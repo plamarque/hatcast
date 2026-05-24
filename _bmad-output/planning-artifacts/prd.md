@@ -18,6 +18,8 @@ stepsCompleted:
   - step-e-02-review
   - step-e-03-edit
   - step-e-04-complete
+  - step-e-01-discovery
+  - step-e-03-edit
 date: '2026-05-23'
 classification:
   projectType: web_app
@@ -59,6 +61,13 @@ editHistory:
   - date: '2026-05-23'
     workflow: bmad-validate-prd
     changes: 'Fourth simple-fix pass: tighten FR10 avatar rules, FR32–FR33 public discovery predicates, FR38–FR39 growth scope, FR47 analytics access'
+  - date: '2026-05-24'
+    workflow: bmad-edit-prd
+    changes: 'League model (FR48–FR52, ADR 0011): user agenda, post-login routing, multi-active leagues, troupe hub; traceability matrix and MVP scope aligned'
+  - date: '2026-05-24'
+    workflow: bmad-edit-prd
+    changes: 'League workspace split (FR53–FR60, ADR 0012): Agenda/Historique/Statistiques, travel leagues for déplacements, personal season glance route, separate exports, cross-scope filters'
+lastEdited: '2026-05-24'
 documentCounts:
   briefCount: 1
   researchCount: 0
@@ -73,7 +82,9 @@ documentCounts:
 
 ## Executive Summary
 
-HatCast is a **mobile-first web application** (Angular SPA, PWA) delivered as **SaaS** for **improvisation troupes**: it supports **seasons** and **shows (spectacles)**, collects **availability by role**, lets organizers **compose lineups** manually or via a **weighted random draw**, runs a **validation and confirmation** workflow, and uses **notifications** with tracking of **confirmations and withdrawals**. The product targets **troupe members**, **season/event participants**, **organizers**, and **administrators**; a **public directory** lists freemium troupes (non-opt-out) so non-members can discover seasons and events—read scope for private content remains a future premium hypothesis.
+HatCast is a **mobile-first web application** (Angular SPA, PWA) delivered as **SaaS** for **improvisation troupes**: it supports **leagues** (*ligues*; V2 API: seasons) and **shows (spectacles)**, collects **availability by role**, lets organizers **compose lineups** manually or via a **weighted random draw**, runs a **validation and confirmation** workflow, and uses **notifications** with tracking of **confirmations and withdrawals**. The product targets **troupe members**, **league/event participants**, **organizers**, and **administrators**; a **public directory** lists freemium troupes (non-opt-out) so non-members can discover leagues and events—read scope for private content remains a future premium hypothesis.
+
+**Member entry (V2 target):** Signed-in members land on a **personal user agenda** (all upcoming events across leagues where they participate) or resume a **last visited league workspace**—not an intermediate home screen. A troupe may run **several active leagues** at once (e.g. leisure vs show circuit). **Inter-troupe matches** appear as **separate events** in the agenda, each labelled by troupe and league (ADR 0011).
 
 The underlying need is not "another signup form" but **trust and clarity** when building teams under time pressure: people change plans, slots open, and groups need a **single system of record** for availability, composition state, and who decided what—**including when someone acts on behalf of someone else**, with **auditability**.
 
@@ -159,11 +170,11 @@ The following items remain explicitly open; downstream architecture, UX, and epi
 
 **Opening:** Léa joue dans une troupe avec une saison chargée. Avant HatCast, elle oubliait les dates et négociait ses rôles dans cinq fils de messages.
 
-**Rising action:** Elle installe la PWA, se connecte (Google ou email), choisit sa **troupe** lorsqu'elle en a plusieurs (FR8), règle son **pseudo** visible dans la troupe et son **avatar** si besoin (FR9, FR10, FR36). Elle reçoit une annonce “spectacle prêt” pour les dispos, ouvre l’événement sur mobile, renseigne **dispo / indispo** et coche les **rôles** demandés par le type de spectacle — ses **rôles préférés** sont pré-cochés lorsqu’ils existent (FR46). Après le tirage, elle consulte la **composition**, voit les **cotes / explications** si affichées, et comprend pourquoi elle est sur un rôle plutôt qu’un autre.
+**Rising action:** Elle installe la PWA, se connecte (Google ou email), et arrive sur **son agenda personnel** (tous spectacles à venir des ligues où elle participe) ou reprend sa **dernière ligue** visitée (FR48, FR49). Elle filtre par troupe si besoin (FR8). Elle règle son **pseudo** visible dans chaque troupe et son **avatar** si besoin (FR9, FR10, FR36). Elle ouvre un événement depuis l’agenda, renseigne **dispo / indispo** et coche les **rôles** — ses **rôles préférés** sont pré-cochés (FR46). Après le tirage, elle consulte la **composition** depuis le détail événement (FR24).
 
 **Climax:** Elle **confirme** sa participation depuis le flux prévu (lien / onglet Équipe) sans relance manuelle interminable.
 
-**Resolution:** Moins de friction cognitive ; la troupe avance vers “équipe confirmée” avec un fil d’état clair. **Requirements surfaced:** auth and account profile (FR1–FR5, FR36), multi-troupe navigation (FR8), pseudo and avatar (FR9, FR10), preferred roles (FR46), notifications + deep links canoniques vers l’événement, disponibilités par rôle, affichage composition et confirmation.
+**Resolution:** Moins de friction cognitive ; la troupe avance vers “équipe confirmée” avec un fil d’état clair. **Requirements surfaced:** auth (FR1–FR5, FR36), **user agenda and entry routing** (FR48, FR49), multi-troupe context (FR8), pseudo and avatar (FR9, FR10), preferred roles (FR46), notifications + deep links to event, availability by role, composition and confirmation.
 
 ### 2) Marc — Organizer (composition, gap after withdrawal)
 
@@ -177,13 +188,13 @@ The following items remain explicitly open; downstream architecture, UX, and epi
 
 ### 3) Amira — Season / troupe admin (configuration + audit)
 
-**Opening:** Amira gère la structure de la saison : types de spectacles, rôles requis, organisateurs par spectacle.
+**Opening:** Amira gère la structure de la troupe et de ses **ligues** : types de spectacles, rôles requis, organisateurs par spectacle.
 
-**Rising action:** Elle crée/édite des **spectacles**, assigne des **permissions** (saison / spectacle), **importe ou exporte la liste des membres de troupe** (CSV documenté) pour migrer depuis HatCast V1, initialiser une nouvelle troupe, ou déplacer des membres entre troupes. Elle ajoute aussi des **participants de saison ou d'événement** qui ne sont pas forcément membres de la troupe : nom simple, email optionnel, ou lien vers un compte HatCast existant/futur. Lorsqu'une organisatrice **modifie la dispo** d'un participant, Amira consulte la **piste d'audit** (acteur vs sujet, horodatage).
+**Rising action:** Depuis le **hub troupe**, elle voit **plusieurs ligues actives** (ex. loisir + compétition), en crée une nouvelle en choisissant **tous les membres actifs** ou un **roster vide** à compléter (FR50). Elle crée/édite des **spectacles** dans une ligue, assigne des **permissions** (ligue / spectacle), **importe ou exporte la liste des membres de troupe** (CSV documenté) pour migrer depuis HatCast V1, initialiser une nouvelle troupe, ou déplacer des membres entre troupes. Elle ajoute aussi des **participants de ligue ou d'événement** qui ne sont pas forcément membres de la troupe : nom simple, email optionnel, ou lien vers un compte HatCast existant/futur. Lorsqu'une organisatrice **modifie la dispo** d'un participant, Amira consulte la **piste d'audit** (acteur vs sujet, horodatage).
 
 **Climax:** Elle peut expliquer à la troupe *qui* a fait *quoi*, sans ambiguïté.
 
-**Resolution:** Gouvernance acceptable pour une communauté bénévole. **Requirements surfaced:** admin UI, rôles et granularité, import/export membres CSV (migration V1→V2 et réutilisation inter-troupes), participants saison/événement distincts des membres de troupe, audit consultable, cohérence avec le modèle de permissions V2.
+**Resolution:** Gouvernance acceptable pour une communauté bénévole. **Requirements surfaced:** hub troupe et ligues multiples (FR52, FR50), admin UI, rôles et granularité, import/export membres CSV (migration V1→V2 et réutilisation inter-troupes), participants ligue/événement distincts des membres de troupe, audit consultable, cohérence avec le modèle de permissions V2.
 
 ### 4) Julien — Anonymous visitor (directory → public discovery)
 
@@ -249,10 +260,10 @@ Mini matrix linking primary journeys to functional and non-functional requiremen
 
 | Journey | Primary FRs | Supporting NFRs |
 | --- | --- | --- |
-| **1 — Léa (member)** | FR1–FR5, FR8–FR10, FR13, FR15–FR16, FR24–FR25, FR29, FR40–FR41, FR46 | NFR-P1, NFR-A1, NFR-S2 |
+| **1 — Léa (member)** | FR1–FR5, FR8–FR10, FR13, FR15–FR16, FR24–FR25, FR29, FR40–FR41, FR46, **FR48–FR49, FR51, FR55, FR58–FR59** | NFR-P1, NFR-A1, NFR-S2 |
 | **2 — Marc (organizer)** | FR19–FR23, FR25–FR28, FR31, FR34 | NFR-P1, NFR-R2 |
-| **3 — Amira (admin)** | FR6–FR7, FR11–FR14, FR34–FR35, FR42–FR45 | NFR-S4, NFR-S5 |
-| **4 — Julien (visitor)** | FR32–FR33 | NFR-P1, NFR-P2 |
+| **3 — Amira (admin)** | FR6–FR7, FR11–FR14, FR34–FR35, FR42–FR45, **FR50, FR52** | NFR-S4, NFR-S5 |
+| **4 — Julien (visitor)** | FR32–FR33, **FR52** (discovery link from troupe hub) | NFR-P1, NFR-P2 |
 | **5 — Edge (fairness)** | FR20, FR24 **(G:** season history analytics) | NFR-A1 |
 | **6 — Camille (event participant)** | FR43–FR45, FR17, FR19, FR21, FR26 | NFR-S5 |
 | **7 — Alex (managed guest)** | FR43–FR45, FR38–FR39 **(G)** | NFR-S5 |
@@ -260,7 +271,7 @@ Mini matrix linking primary journeys to functional and non-functional requiremen
 | **Success / instrumentation** | FR47 | NFR-Q1 |
 | **Platform delivery** | FR40–FR41 | NFR-R1 |
 
-**Traceability notes:** FR47 supports Business Success engagement metrics and Measurable Outcomes leading indicators. NFR-Q1 supports Technical Success automated-test expectation. Journey 5 growth analytics remain intentionally under-specified until post-MVP epic planning.
+**Traceability notes:** FR47 supports Business Success engagement metrics and Measurable Outcomes leading indicators. NFR-Q1 supports Technical Success automated-test expectation. Journey 5 growth analytics remain intentionally under-specified until post-MVP epic planning. **FR48–FR52** (League journey, ADR 0011) trace primarily to Journeys 1 and 3; FR51 also supports organizer navigation from events. **FR53–FR60** (league views, travel leagues, personal glance, ADR 0012) trace to Journeys 1 and 3 and league workspace UX. Troupe join requests beyond directory browse remain **Epic 4** (FR32), not a separate FR.
 
 ## Innovation & Novel Patterns
 
@@ -368,10 +379,10 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 **Core User Journeys Supported:**
 
-- Troupe **member**: sign in (Google or email/password, reset, long session), set availability, view composition and odds where the product surfaces them, confirm or decline participation, receive **web push** (opt-in).
-- Season/event **participant**: appear in availability and composition workflows at the granted scope; if linked to a user, interact directly; if name-only or not yet linked, be managed by authorized admins/organizers.
-- **Organizer**: compose and validate lineups, handle gaps and withdrawals using manual or partial draw paths as scoped for MVP.
-- **Admin**: administer seasons, events, troupe members, and season/event participant rosters; **export and import troupe member lists** (documented CSV) as **troupe administrator** (FR42); consult **audit** trails for sensitive actions per FR35.
+- Troupe **member**: sign in (Google or email/password, reset, long session); land on **user agenda** or last league workspace (FR48–FR49); set availability, view composition and odds where the product surfaces them, confirm or decline participation, receive **web push** (opt-in); filter agenda by troupe/league when in multiple contexts.
+- League/event **participant**: appear in availability and composition workflows at the granted scope; if linked to a user, interact directly; if name-only or not yet linked, be managed by authorized admins/organizers.
+- **Organizer**: compose and validate lineups, handle gaps and withdrawals using manual or partial draw paths as scoped for MVP; navigate from event to league or troupe context (FR51).
+- **Admin**: administer **multiple active leagues** per troupe, events, troupe members, and league/event participant rosters from **troupe hub** and league workspaces (FR50, FR52); **export and import troupe member lists** (documented CSV) as **troupe administrator** (FR42); consult **audit** trails for sensitive actions per FR35.
 - **Visitor** (as scoped for MVP): **public discovery** of troupes and public seasons/events per freemium rules—or a **deliberately reduced** surface if the program stages cutover (**delivery decision**).
 
 **Must-Have Capabilities:**
@@ -406,7 +417,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 ## Functional Requirements
 
-Requirements are listed in numeric order (FR1–FR47).
+Requirements are listed in numeric order (FR1–FR52).
 
 ### Authentication & sessions
 
@@ -418,7 +429,7 @@ Requirements are listed in numeric order (FR1–FR47).
 
 ### Troupe & membership
 
-- FR6: A user can belong to a troupe as a member with a member profile for that troupe. Active troupe members have default access to **active seasons** for that troupe.
+- FR6: A user can belong to a troupe as a member with a member profile for that troupe. Active troupe members have default access to **troupe administration and league creation**; **league participation** (roster) determines which league events appear on the member's **user agenda** (FR48).
 - FR7: A **troupe administrator** can manage which users are members and their baseline troupe roles, including removing a user from the troupe after confirmation. Removing a member revokes that troupe membership only; it does not delete the user account. Troupe membership is distinct from season/event participation records.
 - FR8: A user can navigate between troupes they belong to when multiple membership exists.
 
@@ -429,7 +440,7 @@ Requirements are listed in numeric order (FR1–FR47).
 
 ### Seasons & events
 
-- FR11: An administrator can create, edit, and archive seasons for a troupe.
+- FR11: An administrator can create, edit, and archive **leagues** (*ligues*; V2 API: seasons) for a troupe. A troupe may have **multiple non-archived active leagues** concurrently (ADR 0011).
 - FR12: An administrator can create, edit, and archive events (spectacles) within a season. Each event includes at minimum: **title**, **date and time** (or start/end window), **location or venue label**, **description** (optional), **event type**, and **lifecycle status** (active vs inactive/archived). Inactive or archived events are hidden from ordinary members and visitors; administrators and authorized organizers retain access.
 - FR13: Active troupe members can view **active** seasons and events for their troupe by default. Inactive or archived events are not listed on member and visitor surfaces. Authorized season/event participants who are not troupe members can access only the active season or event scope granted to them, according to the permission model.
 - FR14: An administrator can configure event types and required/optional roles for events according to troupe rules, including whether **volunteer availability is mandatory** when a participant marks a play role as available.
@@ -503,6 +514,35 @@ Requirements are listed in numeric order (FR1–FR47).
 
 - FR47: The product records **anonymized workflow analytics events** sufficient to compute Success Criteria leading indicators: time from participant availability window open to first submission, time from composition validation to full required confirmations, and notification link follow-through when canonical event URLs are present. In MVP, analytics access is limited to **product operators**; troupe-visible analytics dashboards are post-MVP.
 
+### Member journey & leagues (V2 target — ADR 0011)
+
+- FR48: A signed-in member can view a **personal user agenda** listing **upcoming events** from every **league where they are a league participant**, across all troupes. **Upcoming** uses the same civil-day boundary as league agendas (today or future in the user's or product default timezone, e.g. Europe/Paris); archived or past events are excluded. The response is **paginated or bounded** (default page size ≤ **50** events). The agenda supports **filtering by troupe and by league**. Each **inter-troupe encounter** appears as **separate event rows** (one per troupe's event), each labelled with **troupe and league** context.
+- FR49: After sign-in, the product **does not require an intermediate home screen**. Routing priority is: **(1)** a valid **stored deep link** (e.g. notification URL); **(2)** **last visited league workspace** when the slug is still valid for an active membership; **(3)** **user agenda** (`/agenda`); **(4)** if the user has no league participations, an **empty agenda** with guidance (e.g. join a troupe or discover the directory per FR32).
+- FR50: When creating a league, an administrator chooses whether **all active troupe members** are enrolled as initial league participants **or** the roster starts **empty for manual addition** (participants may be existing users, name-only, or email-prelinked per FR45).
+- FR51: From an **event detail** view, an authorized user can navigate to the **league workspace** for that event's league and to the **troupe hub** for that event's troupe.
+- FR52: From a **troupe hub**, a member can view **all leagues** for that troupe (active by default; **archived** via explicit filter), manage **troupe-scoped pseudo** (FR9), access **troupe administration** (e.g. members), and reach the **public troupe directory** to discover or request joining other troupes (FR32).
+
+### Cross-troupe encounters *(post-MVP product option)*
+
+- **(Post-MVP.)** An administrator may **link** two or more HatCast events that represent the same real-world encounter (e.g. inter-troupe match) via a shared **encounter** reference for convenience. MVP satisfies FR48 with **independent events** and clear troupe/league labelling only.
+
+### League workspace views, exports & cross-scope filters (ADR 0012)
+
+- FR53: Within a **league workspace**, the product exposes **three distinct views**: **Agenda** (upcoming events only, per UX-DR12), **Historique** (past, non-archived events in a **chronological**, month-grouped list — **no** participation-statistics grid), and **Statistiques** (V1-style participation statistics grid per DOMAIN.md § Statistiques de composition). A view switcher keeps the user in league context.
+- FR54: **Historique** and **Statistiques** each provide a dedicated **CSV export** aligned with the **visible** content. Exports are **not** combined into a single file.
+- FR55: Member surfaces that aggregate **multiple troupes or leagues** — **user agenda** (FR48), **personal season glance** (FR58), and any **cross-league Statistiques** view — expose **troupe** and **league** filters. **Filter controls are hidden** when the signed-in user has exactly **one** troupe or exactly **one** league in scope (RES-001).
+
+### Travel (déplacement) leagues
+
+- FR56: Away shows (**déplacements**) are managed in a **dedicated travel league** within the troupe (e.g. *Ligue Déplacements*), separate from show-circuit leagues. Travel leagues use the same league lifecycle, roster, events, availability, composition, and per-league statistics as other leagues. **New** events must **not** rely on a special `deplacement` spectacle template type; legacy `deplacement` events remain readable (and migratable) until retired.
+- FR57: Weighted draw and chance calculations run **within a single league** scope. **Cross-league** fairness rules (e.g. balancing travel vs local shows in one draw) are **post-MVP** unless explicitly specified later.
+
+### Personal season glance & transparency
+
+- FR58: A signed-in member can open a **personal season glance** (*Ma saison en un clin d'œil*, V1 parity: summary cards, monthly participation chart, preferred roles) from the **member area** via a stable route (e.g. `/membre/:userSlug`). Optional **troupe** and/or **league** filters apply when multiple contexts exist (FR55).
+- FR59: Any member authorized to view a league's participation data may open **another participant's** season glance via the same URL pattern (V1 **transparency**). Shortcuts from league workspace (e.g. avatar tap) **navigate** to this route; the popover is not the sole surface.
+- FR60: In **Statistiques**, events in **travel leagues** contribute to **DEPLACEMENT** role-family columns; events in show leagues never count toward DEPLACEMENT. Legacy `deplacement` template events count toward DEPLACEMENT until migrated. Cross-league Statistiques honour FR55 filters and aggregate only selected leagues.
+
 ## Non-Functional Requirements
 
 Each NFR states **criterion**, **metric**, **measurement method**, and **context**.
@@ -513,7 +553,7 @@ Each NFR states **criterion**, **metric**, **measurement method**, and **context
   - **Criterion:** Primary interactive flows remain responsive on mobile networks.
   - **Metric:** Time to interactive for season grid, event view, availability submit, and composition open ≤ **3 seconds** at **p95** on a **Fast 3G–equivalent** throttled profile.
   - **Measurement method:** Automated performance tests in staging plus synthetic monitoring on release candidates.
-  - **Context:** Troupes up to **100 members** and **50 events** per active season; list views load bounded pages (default page size ≤ **50** rows).
+  - **Context:** Troupes up to **100 members** and **50 events** per active league; **user agenda** may aggregate across multiple leagues and troupes (default page size ≤ **50** rows per request).
 
 - **NFR-P2**
   - **Criterion:** Common read operations feel immediate for typical troupe sizes.
@@ -595,6 +635,6 @@ Each NFR states **criterion**, **metric**, **measurement method**, and **context
 
 - **NFR-Q1**
   - **Criterion:** Critical product paths have automated regression coverage.
-  - **Metric:** **≥80%** line coverage on domain-critical backend modules; **100%** of FR1–FR5, FR15–FR16, FR19–FR23, FR25, FR32 auth/availability/composition paths covered by at least one automated test (unit and/or E2E); **0** disabled tests to merge without explicit waiver.
+  - **Metric:** **≥80%** line coverage on domain-critical backend modules; **100%** of FR1–FR5, FR15–FR16, FR19–FR23, FR25, FR32, **FR48–FR49** auth/availability/composition/**agenda entry** paths covered by at least one automated test (unit and/or E2E); **0** disabled tests to merge without explicit waiver.
   - **Measurement method:** CI coverage report; Playwright (or equivalent) smoke suite on staging before production promote.
   - **Context:** Supports Technical Success automated-test expectation; scope excludes growth-only FR38–FR39 until implemented.

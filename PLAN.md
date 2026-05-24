@@ -213,3 +213,47 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 - **GitHub Pages:** Whether `pages.yml` and the `deploy` script (gh-pages) are still supported or legacy. firebase.json defines two hosting targets; pages.yml is workflow_dispatch-only.
 - **Invitation lifecycle:** Expiry and single-use semantics for `invitations` and accept flow. Logic is in code but not summarised in one place.
 - **Exact availability schema:** Subcollection path and field names for availability are used in `storage.js` and `playerAvailabilityService.js` but not declared in a single schema doc; DOMAIN mentions the ambiguity.
+
+---
+
+## V2 delivery track (BMAD — League journey)
+
+**Added:** 2026-05-24 — supersedes implicit order in `_bmad-output/planning-artifacts/epics.md` for **navigation and domain** work only. Legacy slices above unchanged.
+
+**Authoritative detail:** [_bmad-output/planning-artifacts/plan-v2-league-journey.md](_bmad-output/planning-artifacts/plan-v2-league-journey.md)
+
+**Decision record:** [docs/adr/0011-league-model-and-user-agenda.md](docs/adr/0011-league-model-and-user-agenda.md)
+
+### Why replan
+
+Epic 2 retro + product revision: member entry must be **user agenda** (multi-league), not `/accueil` or flat `/seasons`. Troupes may run **multiple active leagues**. Inter-troupe matches = **two events** in agenda. DOMAIN **single active season** invariant **removed** (ADR 0011).
+
+### Execution waves (summary)
+
+| Wave | Epics / stories | Outcome |
+|------|-----------------|--------|
+| **0** | 2.9, AC10, 3.6 + 3.6b (parallel) | No stub home; stats ligue + historique chronologie; preferred roles |
+| **1** | **Epic 12** (12.1–12.6) | `/agenda`, filters, event nav strip |
+| **2** | **Epic 13** (13.1–13.5) | Multi-active leagues, roster modes |
+| **3** | **Epic 14** (14.1–14.5) | Troupe hub, demote `/seasons` |
+| **4** | Epic 5.4+, 6.4+ | Resume composition MVP |
+| **Post-MVP** | Epic 15 | Encounter entity linking |
+
+### New functional requirements
+
+PRD **FR48–FR52** (member agenda, entry routing, league roster modes, navigation, troupe hub). See `_bmad-output/planning-artifacts/prd.md`.
+
+### UX artifacts
+
+- [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) — screens 1–10, UX-DR13–18 — **approved 2026-05-24** (reserve RES-001: hide agenda filters when single troupe + single league). UI label: **Ligue**.
+- **Correct Course 2026-05-24 (views/stats):** [_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md) — Agenda / Historique / Statistiques; ligues déplacements; route *clin d'œil*; ADR 0012.
+
+### Gate before Wave 1
+
+**Done 2026-05-24** — UX journey approved by Patrice.
+
+### Gate before Wave 2
+
+### Gate before Epic 5.4+
+
+Wave **1** complete (member reaches events via `/agenda`).

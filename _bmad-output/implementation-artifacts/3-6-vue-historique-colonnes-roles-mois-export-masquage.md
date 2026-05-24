@@ -1,21 +1,21 @@
-# Story 3.6 : Vue « Historique » (colonnes rôles / mois, export, masquage)
+# Story 3.6 : Vue ligue « Statistiques » (colonnes rôles / mois, export, masquage)
 
 Status: ready-for-dev
 
-<!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
+<!-- Renamed from « Historique » per Correct Course 2026-05-24 (ADR 0012). Chronologie passée → Story 3.6b. -->
 
 ## Story
 
 En tant que **membre ou organisateur**,  
-je veux une **vue historique** avec colonnes par rôle et par mois, expansion des détails et options d’**export** ou **masquage**,  
-afin d’**analyser la participation** sur la saison (taux de sélection vs disponibilité inclus).
+je veux une vue **Statistiques** avec colonnes par rôle et par mois, expansion des détails et options d’**export** ou **masquage**,  
+afin d’**analyser la participation** sur la ligue (taux de sélection vs disponibilité inclus).
 
 ## Acceptance Criteria
 
 ### Grille et chrome (UX-DR9)
 
-1. **Given** des données d’historique disponibles pour la saison (participants, événements, dispos, compositions), **when** l’utilisateur ouvre la vue **Historique** depuis le shell saison (story **3.3**), **then** la grille **joueurs × familles de rôles × mois** s’affiche avec expand/collapse des détails (JEU, DECORUM, DEPLAC., BÉNÉVOLE — cf. [DOMAIN.md](../../DOMAIN.md) § Statistiques de composition), colonne participant **sticky**, scroll horizontal pour les mois, boutons **Exporter** et **Masquer** — **UX-DR9**, **NFR-P1**.
-2. **Given** un utilisateur autorisé sur la saison, **when** il consulte Historique, **then** l’écran est accessible à **tous les membres** (pas admin-only), sauf restriction explicite future dans SPEC.
+1. **Given** des données disponibles pour la ligue (participants, événements, dispos, compositions), **when** l’utilisateur ouvre la vue **Statistiques** depuis le shell ligue (story **3.3**), **then** la grille **joueurs × familles de rôles × mois** s’affiche avec expand/collapse des détails (JEU, DECORUM, DEPLAC., BÉNÉVOLE — cf. [DOMAIN.md](../../DOMAIN.md) § Statistiques de composition), colonne participant **sticky**, scroll horizontal pour les mois, boutons **Exporter** et **Masquer** — **UX-DR9**, **FR53–FR54**, **NFR-P1**. **Not** the past-events chronology list (Story **3.6b**).
+2. **Given** un utilisateur autorisé sur la ligue, **when** il consulte Statistiques, **then** l’écran est accessible à **tous les membres** (pas admin-only), sauf restriction explicite future dans SPEC.
 3. **Given** les définitions DOMAIN (spectacle local vs déplacement, sous-colonnes JEU MATCH/CAB/LONG/AUTRE, etc.), **when** les stats sont calculées, **then** les comptages de **sélections** suivent `calculatePlayerRoleStats` V1 ([`legacy/src/components/CastsView.vue`](../../legacy/src/components/CastsView.vue)) : événements **non archivés** ; sélections **hors désistements**.
 
 ### Règles sel/dispo % (V1 0.48 — référence comportementale)

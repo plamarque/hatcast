@@ -12,7 +12,13 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Troupe membership (V2):** Link between a `users` row and a troupe. `ACTIVE` memberships grant member read access to troupe-scoped V2 data; `INACTIVE` memberships are retained for audit/history but no longer grant troupe access.
 - **Baseline troupe role (V2):** Role stored on a troupe membership. Current values are `MEMBER` and `TROUPE_ADMIN`. `MEMBER` grants active-member read access only. `TROUPE_ADMIN` grants troupe-level administration: members, baseline roles, seasons, events, and organizer delegation.
 - **Organizer delegation (V2):** Narrow season/event-scoped permission represented by `season_organizers` and `event_organizers`. It does not make a user a troupe admin and must not be encoded as a baseline troupe role.
-- **Season:** A container for one "run" of shows (e.g. a year or a tour). Has a slug (URL-safe id), events, and players. Firestore: top-level `seasons/{seasonId}` (see `firestore.rules`, `legacy/src/services/storage.js`, `seasons.js`). Belongs to a **troupe** in the product sense when multi-season-per-troupe is modelled (V2 admin).
+- **League (product term; V2 code/DB: `season`):** A container for one programme of shows within a troupe (e.g. a competitive circuit, a leisure year, a tour). Has a slug (URL-safe id), events, and participants. French UI label: **Ligue**. A troupe may run **several active leagues concurrently**. V2 PostgreSQL: `seasons` table; routes may use `/ligue/:slug` (alias `/saison/:slug` during transition). See [ADR 0011](docs/adr/0011-league-model-and-user-agenda.md).
+- **Season:** **Legacy synonym for League** in V1 and early V2 docs/code. Prefer **League** / **Ligue** in new product copy and specs.
+- **Encounter (optional, post-MVP):** A real-world match or show that may correspond to **more than one HatCast event** (one per troupe’s league). MVP: no shared entity — create independent events; UI distinguishes by troupe/league badges. Post-MVP: optional link id between paired events.
+- **User agenda:** The signed-in member’s **cross-league upcoming event list** — all events in leagues where the user is a **league participant**, across all troupes. Primary member hub in V2 target IA (`/agenda`). Distinct from a **league workspace agenda** (single-league view). Supports **troupe** and **league** filters when multiple contexts exist (controls hidden when only one — RES-001).
+- **League workspace views:** Within one league, three surfaces: **Agenda** (upcoming events), **Historique** (past events, chronological list only), **Statistiques** (participation stats grid, V1 parity). Each has its own export when applicable (ADR 0012).
+- **Travel league (*ligue déplacements*):** A league dedicated to **away shows** within a troupe. Same mechanics as other leagues (roster, events, draw, stats). **Preferred V2 model** for déplacements instead of a `deplacement` spectacle template type on show leagues. A troupe may run e.g. *Ligue Spectacle* + *Ligue Déplacements* concurrently.
+- **Personal season glance:** Member-facing screen (*Ma saison en un clin d'œil*, V1 `PlayerModal`) — summary cards, monthly chart, preferred roles; route e.g. `/membre/:userSlug`; optional troupe/league filters; any authorized member may view another participant’s glance (transparency).
 - **Event:** A single date/ show within a season. Belongs to a season. Has a date, title, and optionally role slots. Subcollection or document under the season (e.g. `seasons/{id}/events`). For UI, “past” vs still on the programme follows the **calendar day in `Europe/Paris`** (see `legacy/src/utils/eventPastParis.js`), not raw UTC instant of a date-only field.
 - **Player:** A participant in a season. Has identity (name, optional email link). Stored under the season (e.g. `seasons/{id}/players`). Can be "claimed" by an authenticated user (e.g. `playerAssociations`, `playerProtection`).
 - **Availability:** A player's status for an event (e.g. available / unavailable). Stored per player per event in V1 (e.g. `availability` subcollection or nested; see `playerAvailabilityService.js`, `storage.js`). **V2 (PostgreSQL):** table `event_availability`, keyed by `(event_id, user_id)`; API status `available` | `unavailable` | `unknown` (no row). When `available`, column `role_keys` holds a JSON array of event-required role keys the member offers; an **empty array** means general availability (eligible for any required role on the event, V1 parity).
@@ -55,7 +61,10 @@ User 1──* userPreferences, userPushTokens, userNavigation
 
 ## Business rules / invariants (must always hold)
 
-- **Single active season (troupe scope):** For a given **troupe**, **at most one** season is **active** at any time. Activating a season **must** deactivate any other previously active season in that scope (explicit user action; auditable if required). Normative product statement; see [SPEC.md — Administration — required capabilities (V2 target)](SPEC.md#administration--required-capabilities-v2-target) and [_bmad-output/planning-artifacts/ux-design-hatcast-v2.md_ — Admin surfaces](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#admin-functional-scope).
+- **Multiple active leagues (troupe scope):** For a given **troupe**, **zero or more** leagues may be **non-archived and active** at the same time (e.g. leisure league + show league). Activating or creating a league **must not** deactivate other leagues. Archiving is explicit. See [ADR 0011](docs/adr/0011-league-model-and-user-agenda.md). *(Supersedes prior “single active season per troupe” invariant.)*
+- **League participant roster:** League participation is distinct from troupe membership. On league creation, admins choose **all active troupe members** as initial participants **or** an **empty/manual roster** (add participants individually; optional email pre-link per FR45).
+- **User agenda scope:** The member agenda includes an event **only if** the user is a **league participant** for that event’s league (or event-scoped participant where applicable). **Inter-troupe encounters** appear as **separate events** (one row per troupe’s event); the product does not merge them in the agenda. Users may **exclude travel leagues** (or any league) via filters when multiple leagues exist.
+- **Travel vs show leagues:** **Déplacements** are modeled as events in a **travel league**, not as a separate spectacle template on show leagues (V2 target). Draw and statistics run **per league**; no special-case draw branch for `templateType = deplacement` on show leagues once travel leagues are adopted. Legacy `deplacement` events remain valid until migrated.
 - **At least one active troupe admin (V2):** A troupe must keep at least one active membership with `baseline_role = TROUPE_ADMIN`; demoting or deactivating the last active admin is rejected.
 - **Soft deactivation for members (V2):** Removing a member sets `troupe_memberships.status = INACTIVE`; membership rows are not hard-deleted by the member-admin flow.
 - **Demo direct join limitation (V2):** Direct self-join remains limited to the seed/demo troupe and creates/reactivates `MEMBER` memberships only. Admin access is managed through the member-admin API.
@@ -68,9 +77,17 @@ User 1──* userPreferences, userPushTokens, userNavigation
 
 ---
 
-## Statistiques de composition (vue Compositions)
+## Statistiques de composition (vue Statistiques ligue)
 
-La vue Compositions affiche des statistiques par joueur et par catégorie de rôle. Un événement est soit « spectacle local » (match, cabaret, longform, freeform, catch, custom, survey) soit « déplacement ». Les participations en déplacement vont dans la catégorie DEPLACEMENT, jamais dans JEU ou DECORUM. Implémenté dans `legacy/src/components/CastsView.vue`, `calculatePlayerRoleStats`.
+La vue **Statistiques** (ex-Compositions / Historique stats V1) affiche des statistiques par joueur et par catégorie de rôle. **Historique** (liste chronologique des événements passés) est une vue **distincte** — pas de grille stats (ADR 0012).
+
+**Périmètre événement pour les stats :**
+
+- **Spectacle local** (match, cabaret, longform, freeform, catch, custom, survey) dans une **ligue spectacle** → colonnes JEU / DECORUM / BÉNÉVOLE selon les règles ci-dessous.
+- **Déplacement (V2 cible) :** événements dans une **ligue déplacements** → comptés en **DEPLACEMENT** uniquement (JEU/DECORUM de la ligue déplacements si applicable).
+- **Legacy :** événement `templateType = deplacement` dans une ligue spectacle → catégorie **DEPLACEMENT** (V1) jusqu’à migration.
+
+Les participations en déplacement **ne comptent jamais** dans JEU ou DECORUM d’une ligue spectacle. Implémenté dans `legacy/src/components/CastsView.vue`, `calculatePlayerRoleStats`.
 
 | Catégorie    | Colonne         | Contenu                                                                 | Source                                      |
 | ------------ | --------------- | ----------------------------------------------------------------------- | ------------------------------------------- |

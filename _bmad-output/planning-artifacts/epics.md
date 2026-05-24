@@ -4,14 +4,20 @@ stepsCompleted:
   - step-02-design-epics
   - step-03-create-stories
   - step-04-final-validation
-lastUpdated: 2026-05-23
+lastUpdated: 2026-05-24
 updateMode: incremental
 status: ready-for-development
+ceRevision: '2026-05-24 — FR53–FR60, Epic 16, Story 13.6, split 3.6/3.6b (ADR 0012)'
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/ux-design-hatcast-v2.md
+  - _bmad-output/planning-artifacts/ux-design-journey-league-agenda.md
+  - _bmad-output/planning-artifacts/plan-v2-league-journey.md
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-05-23.md
+  - _bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md
+  - docs/adr/0011-league-model-and-user-agenda.md
+  - docs/adr/0012-league-views-travel-leagues-member-stats.md
   - SPEC.md
   - DOMAIN.md
 ---
@@ -80,6 +86,25 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 
 - FR47: The product records **anonymized workflow analytics events** sufficient to compute Success Criteria leading indicators: time from participant availability window open to first submission, time from composition validation to full required confirmations, and notification link follow-through when canonical event URLs are present. In MVP, analytics access is limited to **product operators**; troupe-visible analytics dashboards are post-MVP.
 
+### Member journey & leagues (ADR 0011)
+
+- FR48: A signed-in member can view a **personal user agenda** listing **upcoming events** from every **league where they are a league participant**, across all troupes, with **filtering by troupe and by league** (paginated, default ≤ 50 rows).
+- FR49: After sign-in, routing priority: deep link → last visited league workspace → `/agenda` → empty guidance; no stub home screen.
+- FR50: When creating a league, an administrator chooses **all active troupe members** or **manual roster** as initial league participants.
+- FR51: From event detail, authorized users navigate to **league workspace** and **troupe hub**.
+- FR52: From troupe hub, members view leagues (active/archived filter), pseudo, admin, and public directory entry.
+
+### League workspace views, travel leagues & personal glance (ADR 0012)
+
+- FR53: League workspace exposes **Agenda**, **Historique** (past events chronology), and **Statistiques** (participation stats grid) as **distinct views**.
+- FR54: **Historique** and **Statistiques** each provide a dedicated **CSV export** aligned with visible content (separate files).
+- FR55: Cross-scope surfaces (user agenda, personal season glance, cross-league Statistiques) expose troupe/league filters; **hidden** when exactly one troupe or one league in scope (RES-001).
+- FR56: Away shows (**déplacements**) are managed in a **dedicated travel league** per troupe; new events must not use legacy `deplacement` template on show leagues.
+- FR57: Weighted draw runs **within a single league**; cross-league fairness is post-MVP.
+- FR58: Personal **season glance** (*Ma saison en un clin d'œil*) via route e.g. `/membre/:userSlug` from member area, with optional troupe/league filters.
+- FR59: Authorized members may open **another participant's** season glance via the same URL (V1 transparency).
+- FR60: In Statistiques, travel-league events count toward **DEPLACEMENT**; show-league events never do; legacy `deplacement` type until migrated.
+
 ### NonFunctional Requirements
 
 - **NFR-P1:** Primary interactive flows (season grid, event view, availability submit, composition open) remain responsive on mobile networks — **≤ 3 s p95 TTI** on Fast 3G–equivalent profile; list views use paging (default **≤ 50** rows). Context: troupes up to **100 members**, **50 events** per active season.
@@ -94,7 +119,7 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - **NFR-SC1:** Staging load test supports **50 troupes × 100 members × 50 events/season** with NFR-P2 still met at p95.
 - **NFR-A1:** Core member and organizer tasks meet **WCAG 2.1 Level AA** baseline — **0** critical axe-core violations on primary flows; contrast **≥ 4.5:1**; keyboard operability for availability submit, composition view, and confirmation actions.
 - **NFR-I1:** Auth provider success rate **≥ 99%** over rolling 7 days (excluding user-caused errors); failed auth surfaces user-actionable message in **100%** of tested error codes.
-- **NFR-Q1:** **≥ 80%** line coverage on domain-critical backend modules; **100%** of FR1–FR5, FR15–FR16, FR19–FR23, FR25, FR32 auth/availability/composition paths covered by at least one automated test; **0** disabled tests to merge without explicit waiver.
+- **NFR-Q1:** **≥ 80%** line coverage on domain-critical backend modules; **100%** of FR1–FR5, FR15–FR16, FR19–FR23, FR25, FR32, **FR48–FR49** auth/availability/composition/**agenda entry** paths covered by at least one automated test; **0** disabled tests to merge without explicit waiver.
 
 ### Additional Requirements
 
@@ -102,7 +127,8 @@ _From `architecture.md` — technical constraints for implementation planning:_
 
 - **Target stack:** **Angular 21** SPA with **Angular Material**; **Kotlin** + **Spring Boot** REST API; **PostgreSQL** on **Neon** (branches per environment); **OpenAPI** as API contract; SPA on **GitHub Pages** and/or **Cloud Run** (bundled image); API on **Google Cloud Run**; **coupled CI** deploys for development/staging/production (NFR-R1).
 - **Brownfield:** Legacy **Firebase** (Firestore, Auth, Functions) remains until migration slices in PLAN; dual paths per feature must stay explicit in stories.
-- **Data:** PostgreSQL as system of record for target stack; **single active season per troupe** (SPEC/DOMAIN); migration strategy via PLAN/ADRs.
+- **Data:** PostgreSQL as system of record for target stack; **multiple active leagues per troupe** (ADR 0011 / DOMAIN); **travel leagues** for déplacements (ADR 0012); migration strategy via PLAN/ADRs.
+- **Member routes (ADR 0011–0012):** `/agenda`, `/ligue/:slug` (Agenda | Historique | Statistiques), `/membre/:userSlug` (season glance).
 - **Participation model (V2):** `troupe_memberships` grants troupe access and baseline governance. **Season participants** (`season_participants`) and **event participants** (`event_participants`) are separate domain identities — optional link to `users`, optional `troupe_membership_id`, optional normalized email, display name, status. Availability and composition reference **participant identities**, not raw users or memberships alone (FR43–FR45; sprint-change-proposal 2026-05-23).
 - **Authorization (participants):** Troupe admins manage troupe members and all participant scopes. Season admins manage season participants. Event admins manage event-only participants. Organizer permissions grant workflow scope; they do not create troupe membership.
 - **API:** REST `/v1/...`; **RFC 7807** Problem Details (or single documented envelope); **camelCase** JSON; **ISO 8601 UTC** dates; audit fields on proxy actions (FR17, FR26, FR35).
@@ -117,17 +143,25 @@ _From `architecture.md` — technical constraints for implementation planning:_
 _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angular Material):_
 
 - **UX-DR1:** **Seasons list** (`/seasons`): card grid, primary CTA "Nouvelle saison", card click + kebab; back to landing; user menu top-right — implement with tokens (dark gradient, pill buttons).
-- **UX-DR2:** **Season calendar / agenda:** header (back, troupe logo, season title, settings, avatar); participant + event filters; view switcher (agenda vs history); month-grouped event rows with date column, composition status, user dispo/role pill; card navigates to event detail.
+- **UX-DR2:** **Season calendar / agenda:** header (back, troupe logo, season title, settings, avatar); participant + event filters; view switcher (**Agenda** | **Historique** | **Statistiques**); month-grouped event rows with date column, composition status, user dispo/role pill; card navigates to event detail.
 - **UX-DR3:** **Availability modal:** three states (Dispo / Pas dispo / Non renseigné), optional comment, title shows whose availability; admin vs self copy — align with **MatDialog** (Angular Material).
 - **UX-DR4:** **Event detail** full screen: tabs **Infos / Dispos / Équipe**; header type icon + title + date; composition status + org actions on Infos; canonical URL behaviour per SPEC.
 - **UX-DR5:** **Dispos tab:** subject selector for org/admin; Moi/Tous; role candidacy when Dispo; Tous shows per-role grids with %; transparency rules.
 - **UX-DR6:** **Équipe tab:** slots per role; manual pick from ordered list; draw animation (proportional bar + cursor); draft vs validated; declined section; participation modal (Confirmer / Décliner / À confirmer); share/validate/announce flows per spec.
 - **UX-DR7:** **Share & announce modal:** editable generated message, WhatsApp, push/email recipient list — reusable for spectacle / tirage / compo.
-- **UX-DR8:** **Member profile popover:** avatar click → season stats + month grid + favourite roles; Planning CTA.
-- **UX-DR9:** **Historique view:** role columns (JEU, DECORUM, etc.) + monthly columns; expand/collapse details; exporter / masquer.
+- **UX-DR8:** **Personal season glance** (`/membre/:userSlug`): V1 *Ma saison en un clin d'œil* — summary cards, month grid, favourite roles; optional troupe/league filters (FR55); Planning CTA; avatar shortcuts navigate here. Popover optional shortcut only.
+- **UX-DR9:** **League Statistiques view:** role columns (JEU, DECORUM, DEPLAC., BÉNÉVOLE) + monthly columns; expand/collapse; **Exporter** (stats CSV) / **Masquer** — distinct from Historique.
+- **UX-DR19:** **League Historique view:** past events only, month-grouped chronological list (no stats grid); **Exporter** (history CSV) when specified.
+- **UX-DR20:** **Travel league:** déplacements as dedicated league per troupe; no `deplacement` template on new show-league events (FR56).
 - **UX-DR10:** **Admin surfaces:** Route **`/saison/:slug/admin/membres`** (menu **Membres**) — troupe **members** + season **organizers**; compact list, search, add modal, active **slide toggle**, inactive **hidden by default**, CSV **Exporter** + **Importer ▾**. Label **Participants** reserved for season/event participant rosters (Story 3.8). Spec: [ux-design-specification.md](./ux-design-specification.md), [ux-design-hatcast-v2.md § Admin Membres](./ux-design-hatcast-v2.md#screen-admin-membres).
 - **UX-DR11:** **Theming:** Angular Material + design tokens; do not use Tailwind as primary styling surface (PRD); preserve V1 mood where referenced.
-- **UX-DR12:** **Agenda content scope:** Agenda lists **non-archived** events with start date on **today or future** (civil-day boundary, timezone explicit — user or Europe/Paris); past/archived events excluded from Agenda (→ Historique). Same rule enforced **API-side** (e.g. `scope=upcoming`) and UI-side.
+- **UX-DR12:** **Agenda content scope:** Agenda lists **non-archived** events with start date on **today or future** (civil-day boundary, timezone explicit — user or Europe/Paris); past/archived events excluded from Agenda (→ **Historique** chronology, not Statistiques). Same rule enforced **API-side** (e.g. `scope=upcoming`) and UI-side.
+- **UX-DR13:** **Post-login routing** — no stub home; `/agenda` or last league / deep link. Spec: [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md).
+- **UX-DR14:** **User agenda** (`/agenda`) — cross-league upcoming events; filters **only when >1 troupe or >1 league** (RES-001); one row per event.
+- **UX-DR15:** **Event context strip** — troupe + ligue badges; links to league workspace and troupe hub.
+- **UX-DR16:** **Troupe hub** (`/troupe/:slug`) — leagues list, pseudo, admin, directory link.
+- **UX-DR17:** **League creation** — initial roster: all active members vs manual.
+- **UX-DR18:** **Multi-active leagues** — several active leagues visible on troupe hub.
 
 ### FR Coverage Map
 
@@ -180,10 +214,20 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 | FR45 | Epic 3 | Liaison email optionnelle → compte utilisateur |
 | FR46 | Epic 5 | Pré-sélection rôles favoris |
 | FR47 | Epic 11 | Analytics workflow anonymisés |
+| FR48 | Epic 12 | Agenda utilisateur multi-ligues |
+| FR49 | Epic 12 | Routage post-connexion |
+| FR50 | Epic 13 | Roster ligue à la création |
+| FR51 | Epic 12 | Navigation événement → ligue/troupe |
+| FR52 | Epic 14 | Hub troupe |
+| FR53–FR54 | Epic 3 | Workspace ligue : Agenda / Historique / Statistiques + exports |
+| FR55 | Epics 12, 16 | Filtres troupe/ligue (masqués si un seul) |
+| FR56–FR57 | Epic 13 | Ligues déplacements ; tirage par ligue |
+| FR58–FR59 | Epic 16 | Route *clin d'œil* membre + transparence |
+| FR60 | Epic 3 | Stats : DEPLAC. = ligue déplacements |
 
-**NFR (adressées au fil des epics / transverses) :** NFR-P1/P2 (perf, pagination) — surtout Epics 3, 5, 6, 10 ; NFR-S1/S2/S3/S4/S5 — Epics 1, 2, 3, 9 ; NFR-R1/R2 — Epics 8, 10 + pipeline ; NFR-SC1 — architecture ; NFR-A1 — Epics 1–9 (UI) ; NFR-I1 — Epic 1 ; NFR-Q1 — transverse CI/tests.
+**NFR (adressées au fil des epics / transverses) :** NFR-P1/P2 (perf, pagination) — surtout Epics 3, 5, 6, 10, **12** ; NFR-S1/S2/S3/S4/S5 — Epics 1, 2, 3, 9 ; NFR-R1/R2 — Epics 8, 10 + pipeline ; NFR-SC1 — architecture ; NFR-A1 — Epics 1–9, **12–14** (UI) ; NFR-I1 — Epic 1 ; NFR-Q1 — transverse CI/tests.
 
-**UX-DR :** UX-DR1–3 → Epics 3, 5 ; UX-DR4–7 → Epic 6 ; UX-DR5 aussi Epic 5 ; UX-DR8–9 → Epics 5, 6 ; UX-DR10 → Epics 2, 3 ; UX-DR11 → transverse (tous epics UI) ; UX-DR12 → Epic 3 (Story 3.3).
+**UX-DR :** UX-DR1–3 → Epics 3, 5 ; UX-DR4–7 → Epic 6 ; UX-DR5 aussi Epic 5 ; UX-DR8–9 → Epics 5, 6 ; UX-DR10 → Epics 2, 3 ; UX-DR11 → transverse ; UX-DR12 → Epic 3 (Story 3.3) + **Epic 12** ; **UX-DR13–18 → Epics 12–14** (voir [plan-v2-league-journey.md](./plan-v2-league-journey.md)).
 
 ## Epic List
 
@@ -201,9 +245,9 @@ Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des m
 
 ### Epic 3 — Saisons, spectacles et gouvernance organisateur
 
-Les administrateurs gèrent saisons et spectacles (CRUD, archivage), configurent types d’événements et rôles requis/optionnels, désignent organisateurs saison/événement, et **administrent les rosters participants** (saison et événement, y compris participants gérés sans compte HatCast) ; les membres et participants autorisés voient les événements de leur périmètre.
+Les administrateurs gèrent saisons et spectacles (CRUD, archivage), configurent types d’événements et rôles requis/optionnels, désignent organisateurs saison/événement, et **administrent les rosters participants** (saison et événement, y compris participants gérés sans compte HatCast) ; les membres et participants autorisés voient les événements de leur périmètre et les **vues ligue** Agenda / Historique / Statistiques.
 
-**FRs couverts :** FR11, FR12, FR13, FR14, FR34, FR43, FR44, FR45
+**FRs couverts :** FR11, FR12, FR13, FR14, FR34, FR43, FR44, FR45, **FR53–FR54, FR60**
 
 ### Epic 4 — Découverte publique (annuaire et pages visiteur)
 
@@ -253,9 +297,39 @@ Le produit enregistre des événements analytics anonymisés pour mesurer les in
 
 **FRs couverts :** FR47
 
+### Epic 12 — Parcours membre & agenda utilisateur
+
+Agenda personnel multi-ligues, routage post-connexion, navigation événement → ligue/troupe, filtres cross-scope (FR55).
+
+**FRs couverts :** FR48, FR49, FR51, **FR55** (filtres agenda)
+
+### Epic 13 — Modèle League (multi-active, roster, déplacements)
+
+Plusieurs ligues actives par troupe, modes de roster à la création, **ligues déplacements** dédiées.
+
+**FRs couverts :** FR11 (étendu), FR50, **FR56–FR57**
+
+### Epic 14 — Hub troupe & découverte
+
+Hub troupe (ligues, pseudo, admin), annuaire, démotion de `/seasons` pour les membres.
+
+**FRs couverts :** FR52, FR9, FR32
+
+### Epic 16 — Profil membre & saison en un clin d'œil
+
+Route dédiée pour le récap personnel et la transparence V1 (navigation entre joueurs).
+
+**FRs couverts :** FR55, FR58, FR59
+
+### Epic 15 — Rencontres liées *(post-MVP)*
+
+Liaison optionnelle entre événements inter-troupes.
+
+**FR :** PRD note post-MVP (encounter entity)
+
 ---
 
-**Dépendances naturelles (ordre de valeur, pas de couches techniques) :** Epic 1 → 2 → 3 (incl. Story **3.8** participants **avant** Epic 5) ; Epic 4 en parallèle tôt ; Epic 5 dépend de 3 + 3.8 ; Epic 6 dépend de 5 ; Epic 7 post-MVP après 3.8 ; Epic 8 recoupe plusieurs epics ; Epic 9 dès actions auditables ; Epic 10 en continu ; Epic 11 en parallèle une fois les flux métier instrumentables.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 4 tôt ; Epic 5 → 6 ; **Epic 12** Wave 1 (après 2.9) ; **Epic 13** Wave 2 ; **Epic 14** Wave 3 ; **Epic 16** après 12.3 (filtres) ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -486,6 +560,8 @@ afin d’être visuellement identifié dans l’interface.
 
 #### Story 2.7 : Popover profil membre (stats saison, grille mensuelle, rôles favoris)
 
+**Note (ADR 0012) :** le *clin d'œil* complet migre vers **Story 16.1** (`/membre/:userSlug`). Story 2.7 **done** couvre la popover V1 ; les avatars doivent **lier** vers 16.1 quand implémenté.
+
 En tant que membre,  
 je veux ouvrir un aperçu profil depuis un avatar avec statistiques de saison, grille mensuelle et rôles favoris, avec un accès rapide au planning,  
 afin de comprendre mon activité dans la saison.
@@ -495,7 +571,7 @@ afin de comprendre mon activité dans la saison.
 - **Given** un avatar cliquable dans le contexte saison (SPEC), **when** l’utilisateur ouvre le popover, **then** les blocs prévus (stats, grille, rôles favoris) s’affichent avec données cohérentes avec le domaine.
 - **Given** le périmètre produit pour les rôles favoris troupe, **when** le membre configure ses rôles favoris depuis le popover ou l’écran associé, **then** ces préférences sont persistées et utilisées pour la pré-sélection en Story 5.2 (FR46).
 - **Given** le CTA « Planning » (ou libellé équivalent), **when** l’utilisateur l’active, **then** il est conduit au flux agenda/liste prévu.
-- **Couverture :** UX-DR8 ; FR46 (configuration rôles favoris) ; croise FR9/FR10 (affichage identité).
+- **Couverture :** UX-DR8 (interim popover) ; **FR58–FR59 → Story 16.1** ; FR46 ; FR9/FR10.
 
 ---
 
@@ -505,12 +581,12 @@ afin de comprendre mon activité dans la saison.
 
 En tant qu’administrateur,  
 je veux créer, modifier et archiver des saisons, avec une liste de cartes saisons,  
-afin d’organiser le travail par saison (y compris une seule saison active par troupe si DOMAIN l’impose).
+afin d’organiser le travail par ligue/saison (plusieurs ligues actives par troupe autorisées depuis ADR 0011 — voir Epic 13 pour lever la contrainte d’activation unique livrée en 3.1).
 
 **Acceptance Criteria**
 
 - **Given** droits admin sur la troupe, **when** l’admin crée ou modifie une saison avec champs requis, **then** la saison apparaît dans la liste et est persistée.
-- **Given** une action d’archivage, **when** elle est confirmée, **then** l’état archived est reflété et la liste/accès suivent SPEC/DOMAIN (saison active unique).
+- **Given** une action d’archivage, **when** elle est confirmée, **then** l’état archived est reflété et la liste/accès suivent SPEC/DOMAIN. *(Note : l’activation unique par troupe de la livraison 3.1 est remplacée par plusieurs ligues actives — Epic 13.)*
 - **Given** la vue liste `/seasons`, **when** l’utilisateur consulte l’écran, **then** la grille de cartes, le CTA « Nouvelle saison » et les actions carte/kebab sont disponibles conformément à UX-DR1 (Angular Material + tokens).
 - **Couverture :** FR11 ; UX-DR1 ; NFR-P1 (pagination si liste longue).
 
@@ -572,19 +648,37 @@ afin de répartir l’organisation sans élargir les droits admin.
 
 ---
 
-#### Story 3.6 : Vue « Historique » (colonnes rôles / mois, export, masquage)
+#### Story 3.6 : Vue ligue « Statistiques » (colonnes rôles / mois, export, masquage)
 
 En tant que membre ou organisateur,  
-je veux une vue historique avec colonnes par rôle et par mois, expansion des détails et options d’export ou masquage selon produit,  
-afin d’analyser la participation sur la saison.
+je veux une vue **Statistiques** avec colonnes par rôle et par mois, expansion des détails et options d’export ou masquage,  
+afin d’analyser la participation sur la ligue (FR53–FR54, FR60).
 
 **Acceptance Criteria**
 
-- **Given** des données d’historique disponibles pour la saison, **when** l’utilisateur ouvre la vue historique, **then** la grille colonnes rôles × mois est affichée avec lignes expand/collapse (UX-DR9).
+- **Given** des données disponibles pour la ligue, **when** l’utilisateur ouvre **Statistiques** depuis le workspace ligue, **then** la grille colonnes rôles × mois est affichée avec lignes expand/collapse (UX-DR9) — **pas** la liste chronologique des événements passés.
 - **Given** les colonnes stats (JEU, DECORUM, DEPLAC., BÉNÉVOLE) et mois, **when** dispos et sélections existent, **then** chaque cellule affiche le ratio **sélectionné/disponible** avec **pourcentage arrondi** (ex. `2/7 (29%)`) — règles détaillées SPEC slice 12 et story file 3.6.
-- **Given** l’action **Exporter**, **when** l’utilisateur télécharge le CSV, **then** le format suit SPEC (stats/mois `sel/avail (%)`, cellules événement Dispo/Décliné/Non dispo/-) — référence V1 0.48 dans `legacy/`.
+- **Given** l’action **Exporter**, **when** l’utilisateur télécharge le CSV, **then** le format suit SPEC (stats/mois `sel/avail (%)`, cellules événement) — export **Statistiques** distinct de l’export Historique (FR54).
 - **Given** les actions « masquer », **when** l’utilisateur les déclenche, **then** le comportement suit SPEC (formats, permissions).
-- **Couverture :** UX-DR9 ; NFR-P1.
+- **Couverture :** FR53–FR54, FR60 ; UX-DR9 ; NFR-P1.
+
+**Story file:** `3-6-vue-historique-colonnes-roles-mois-export-masquage.md` *(nom fichier legacy ; scope = Statistiques)*
+
+---
+
+#### Story 3.6b : Vue ligue « Historique » (chronologie événements passés)
+
+En tant que membre ou organisateur,  
+je veux une vue **Historique** listant les événements passés de la ligue par mois,  
+afin de parcourir le programme passé sans la grille de statistiques (FR53).
+
+**Acceptance Criteria**
+
+- **Given** des événements passés non archivés pour la ligue, **when** l’utilisateur ouvre **Historique**, **then** une liste chronologique groupée par mois s’affiche (cartes légères, statut composition, rôle utilisateur) — **sans** grille JEU/DECORUM (UX-DR19).
+- **Given** l’action **Exporter** Historique, **when** l’utilisateur télécharge, **then** le CSV reflète la chronologie visible — **fichier distinct** de l’export Statistiques (FR54).
+- **Couverture :** FR53–FR54 ; UX-DR19.
+
+**Story file:** `3-6b-vue-historique-ligue-chronologie-export.md`
 
 ---
 
@@ -1000,6 +1094,211 @@ afin de mesurer les indicateurs avancés (délai première dispo, délai confirm
 
 ---
 
+### Epic 12 — Parcours membre & agenda utilisateur
+
+Les membres ont un **agenda personnel** multi-ligues et multi-troupes, un **routage post-connexion** sans écran intermédiaire, et une **navigation claire** depuis le détail événement vers la ligue et la troupe.
+
+**FRs couverts :** FR48, FR49, FR51, **FR55**  
+**Plan :** [plan-v2-league-journey.md](./plan-v2-league-journey.md) Wave 1  
+**UX :** UX-DR13–15, UX-DR14
+
+#### Story 12.1 : API agenda utilisateur
+
+En tant que **membre**, je veux que l’API expose mes **événements à venir** agrégés par ligue participant, afin d’alimenter Mon agenda sans N appels par ligue.
+
+**Acceptance Criteria**
+
+- **Given** un utilisateur participant à N ligues, **when** `GET /v1/me/agenda` est appelé, **then** la réponse liste les événements à venir (UX-DR12) avec **troupeId**, **troupeName**, **leagueId**, **leagueSlug**, **leagueTitle**, statut dispo utilisateur si applicable.
+- **Given** un événement inter-troupes (deux events distincts), **when** l’utilisateur est participant des deux ligues, **then** **deux entrées** distinctes sont retournées.
+- **Couverture :** FR48 ; NFR-P1/P2.
+
+#### Story 12.2 : Écran Mon agenda (`/agenda`)
+
+**Acceptance Criteria**
+
+- **Given** un membre connecté, **when** il ouvre `/agenda`, **then** la liste groupée par mois affiche troupe + ligue par ligne (UX-DR14).
+- **Given** aucun événement, **when** l’écran s’affiche, **then** empty state actionnable.
+- **Couverture :** FR48, UX-DR14.
+
+#### Story 12.3 : Filtres troupe et ligue
+
+**Acceptance Criteria**
+
+- **Given** l’utilisateur participe à **plus d’une troupe** ou **plus d’une ligue**, **when** `/agenda` s’affiche, **then** la barre de filtres troupe/ligue est visible (UX-DR14, RES-001).
+- **Given** **exactement une troupe** et **exactement une ligue** (participant), **when** `/agenda` s’affiche, **then** la barre de filtres est **masquée** ; les badges troupe + ligue restent sur chaque ligne.
+- **Given** plusieurs troupes/ligues et filtres visibles, **when** l’utilisateur filtre, **then** seuls les événements correspondants s’affichent ; effacer filtres restaure la vue complète.
+- **Couverture :** FR48, FR8, UX-DR14.
+
+#### Story 12.4 : Bandeau contexte sur détail événement
+
+**Acceptance Criteria**
+
+- **Given** un détail événement, **when** l’écran s’affiche, **then** bandeau **Ligue · Troupe** avec liens **Voir la ligue** / **Voir la troupe** (UX-DR15).
+- **Couverture :** FR51.
+
+#### Story 12.5 : Finaliser routage post-connexion vers agenda
+
+**Acceptance Criteria**
+
+- **Given** connexion réussie, **when** aucun deep link, **then** `/agenda` ou dernière ligue visitée ; **jamais** `/accueil`.
+- **Couverture :** FR49, UX-DR13. **Suite de Story 2.9.**
+
+#### Story 12.6 : Alias route `/ligue/:slug`
+
+**Acceptance Criteria**
+
+- **Given** `/ligue/:slug`, **when** navigué, **then** même comportement que `/saison/:slug` (alias).
+- **Couverture :** UX-DR13.
+
+---
+
+### Epic 13 — Modèle League (multi-active & roster)
+
+Les administrateurs gèrent **plusieurs ligues actives** par troupe et définissent le **roster initial** à la création.
+
+**FRs couverts :** FR11 (étendu), FR50, **FR56–FR57**  
+**Plan :** Wave 2  
+**ADR :** [0011](../../docs/adr/0011-league-model-and-user-agenda.md), [0012](../../docs/adr/0012-league-views-travel-leagues-member-stats.md)
+
+#### Story 13.1 : Migration multi-active leagues
+
+**Acceptance Criteria**
+
+- **Given** contrainte single-active existante, **when** migration appliquée, **then** plusieurs ligues non archivées peuvent être actives par troupe (ADR 0011).
+
+#### Story 13.2 : API activation sans désactivation globale
+
+**Acceptance Criteria**
+
+- **Given** ligue A active, **when** ligue B est activée, **then** A reste active.
+
+#### Story 13.3 : Roster initial — tous membres vs manuel
+
+**Acceptance Criteria**
+
+- **Given** création ligue, **when** admin choisit « tous membres actifs », **then** participants ligue créés pour chaque membership ACTIVE.
+- **Given** choix manuel, **when** ligue créée, **then** roster vide ; ajout unitaire (FR45).
+
+#### Story 13.4 : UI création ligue + liste multi-active
+
+**Acceptance Criteria**
+
+- **Given** hub troupe ou admin, **when** admin crée une ligue, **then** modal UX-DR17 ; liste montre toutes ligues actives (UX-DR18).
+
+#### Story 13.5 : Retest flows archivage/activation Epic 3
+
+**Acceptance Criteria**
+
+- **Given** suite de tests Epic 3, **when** exécutée post-13.2, **then** green ; AC single-active retirés.
+
+#### Story 13.6 : Ligues déplacements (création et conventions)
+
+En tant qu’**administrateur de troupe**,  
+je veux créer et gérer une **ligue déplacements** distincte des ligues spectacle,  
+afin d’y planifier les bus et spectacles à l’extérieur sans type `deplacement` sur la ligue principale (FR56, UX-DR20).
+
+**Acceptance Criteria**
+
+- **Given** création de ligue, **when** l’admin choisit le modèle **Ligue déplacements** (ou libellé produit équivalent), **then** la ligue est créée avec les mêmes capacités qu’une ligue standard (roster FR50, événements, dispos, composition).
+- **Given** une ligue spectacle, **when** l’admin crée un nouvel événement, **then** le type **`deplacement`** n’est **pas** proposé (legacy lecture seule sur données existantes).
+- **Given** documentation admin, **when** affichée, **then** elle explique que les déplacements vivent dans la ligue dédiée et peuvent être filtrés sur l’agenda (FR55).
+- **Given** tirage sur une ligue déplacements, **when** exécuté, **then** les règles s’appliquent **sans** branche spéciale `isDeplacement` sur template spectacle (FR57).
+- **Couverture :** FR56–FR57 ; UX-DR20.
+
+**Story file:** [13-6-ligues-deplacements-creation-conventions.md](../implementation-artifacts/13-6-ligues-deplacements-creation-conventions.md)
+
+---
+
+### Epic 14 — Hub troupe & découverte
+
+Les utilisateurs accèdent au **hub troupe** (ligues, pseudo, admin) et à l’**annuaire** depuis un parcours cohérent.
+
+**FRs couverts :** FR52, FR9 (pseudo), FR32 (lien)
+
+#### Story 14.1 : Page hub troupe
+
+**Acceptance Criteria**
+
+- **Given** membre d’une troupe, **when** `/troupe/:slug` ouvert, **then** UX-DR16 (identité, ligues, admin gated).
+
+#### Story 14.2 : Ligues actives et archivées
+
+**Acceptance Criteria**
+
+- **Given** ligues archivées, **when** toggle « Afficher archivées », **then** liste complète.
+
+#### Story 14.3 : Pseudo sur hub troupe
+
+**Acceptance Criteria**
+
+- **Given** membre, **when** édition pseudo, **then** FR9 persisté scope troupe.
+
+#### Story 14.4 : Redirection `/seasons`
+
+**Acceptance Criteria**
+
+- **Given** membre non-admin, **when** `/seasons`, **then** redirect `/agenda` ou hub troupe unique si applicable.
+
+#### Story 14.5 : Lien annuaire public
+
+**Acceptance Criteria**
+
+- **Given** hub troupe, **when** « Explorer d’autres troupes », **then** `/troupes` (Epic 4).
+
+---
+
+### Epic 16 — Profil membre & saison en un clin d'œil
+
+Les membres accèdent à **Ma saison en un clin d'œil** via une **route dédiée**, avec filtres troupe/ligue et **transparence** pour consulter les autres participants (V1 parity).
+
+**FRs couverts :** FR55, FR58, FR59  
+**Plan :** [plan-v2-league-journey.md](./plan-v2-league-journey.md) Wave 1b  
+**UX :** UX-DR8  
+**Depends :** Epic 12.3 (filtres), Story 3.6 (formules stats)
+
+#### Story 16.1 : Route `/membre/:userSlug` + filtres
+
+En tant que **membre**,  
+je veux ouvrir ma **saison en un clin d'œil** (cartes récap, grille mensuelle, rôles favoris) depuis l'espace membre et via les avatars, avec filtres optionnels,  
+afin de suivre ma participation et consulter celle des autres membres autorisés (FR58–FR59).
+
+**Acceptance Criteria**
+
+- **Given** un utilisateur connecté, **when** il ouvre `/membre/:userSlug`, **then** l'écran affiche avatar, nom, trois cartes Disponibilités / Sélections / Désistements (% + tooltips V1), grille mensuelle *Ma saison en un clin d'œil*, rôles favoris, CTA **Planning** vers agenda filtré si supporté (UX-DR8, `PlayerModal.vue`).
+- **Given** plusieurs troupes ou ligues, **when** l'écran charge, **then** filtres troupe/ligue visibles ; **masqués** si un seul contexte (FR55, RES-001).
+- **Given** un autre participant visible dans la ligue, **when** un membre autorisé ouvre `/membre/{autreSlug}`, **then** le même écran s'affiche pour ce participant (FR59).
+- **Given** un avatar en workspace ligue, **when** clic, **then** navigation vers `/membre/:userSlug` (query troupe/ligue optionnelle).
+- **Given** agrégation stats, **when** filtres ligue appliqués, **then** compteurs cohérents avec ligues sélectionnées ; ligue déplacements incluse si sélectionnée (FR60 — cartes récap).
+- **Couverture :** FR55, FR58–FR59 ; UX-DR8.
+
+**Story file:** [_bmad-output/implementation-artifacts/16-1-route-membre-saison-clin-oeil-filtres.md](../implementation-artifacts/16-1-route-membre-saison-clin-oeil-filtres.md)
+
+---
+
+### Epic 15 — Rencontres liées *(post-MVP)*
+
+**FR :** Rencontre inter-troupes optionnelle (PRD post-MVP note).
+
+#### Story 15.1 : Entité Encounter + lien events
+
+#### Story 15.2 : UI admin liaison rencontre
+
+---
+
+### Epic 2 — story addition (Wave 0)
+
+#### Story 2.9 : Post-login et dernière ligue visitée (V1 parity)
+
+En tant que **membre connecté**, je veux **reprendre ma dernière ligue** après connexion, afin d’éviter un écran d’accueil inutile.
+
+**Acceptance Criteria**
+
+- **Given** connexion, **when** slug mémorisé valide, **then** `/saison/:slug` (puis `/ligue/:slug`).
+- **Given** `/accueil`, **when** accédé connecté, **then** redirect.
+- **Couverture :** FR49 (partiel), UX-DR13. Finalisé en Story 12.5.
+
+---
+
 ### Couverture UX-DR (contrôle croisé)
 
 | UX-DR | Story(s) principale(s) |
@@ -1011,7 +1310,29 @@ afin de mesurer les indicateurs avancés (délai première dispo, délai confirm
 | UX-DR5 | 5.2, 5.3 |
 | UX-DR6 | 6.3–6.7 |
 | UX-DR7 | 6.10 |
-| UX-DR8 | 2.7 |
+| UX-DR8 | 16.1 (ex-2.7 popover → route) |
 | UX-DR9 | 3.6 |
+| UX-DR19 | 3.6b |
+| UX-DR20 | 13.6 |
 | UX-DR10 | 2.2, 2.3, **2.8**, 3.4, 3.5, **3.8** |
 | UX-DR11 | (critères transverses NFR-A1 + Angular Material + tokens — intégrer en revue/recette par epic UI) |
+| UX-DR13 | 2.9, 12.5 |
+| UX-DR14 | 12.2, 12.3 |
+| UX-DR15 | 12.4 |
+| UX-DR16 | 14.1 |
+| UX-DR17 | 13.3, 13.4 |
+| UX-DR18 | 13.4, 14.2 |
+| UX-DR20 | 13.6 |
+
+---
+
+### Couverture FR53–FR60 (contrôle croisé — ADR 0012)
+
+| FR | Story(s) principale(s) |
+|----|-------------------------|
+| FR53 | 3.3 (switcher), 3.6, 3.6b |
+| FR54 | 3.6, 3.6b |
+| FR55 | 12.3, 16.1 |
+| FR56–FR57 | 13.6 ; draw stories Epic 6 (retrait exception déplacement) |
+| FR58–FR59 | 16.1 |
+| FR60 | 3.6, 13.6 |

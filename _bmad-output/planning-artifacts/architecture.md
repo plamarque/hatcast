@@ -43,7 +43,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 **Functional Requirements:**
 
-The PRD defines **42 functional requirements (FR1–FR42)** spanning: authentication and session (FR1–FR5); troupe membership, roles, display name and avatar, and **admin CSV member import/export** (FR6–FR10, **FR42**) for V1→V2 migration and troupe administration; seasons and events configuration and viewing (FR11–FR14); availability and role-level candidacy, including organizer acting on behalf of members with audit (FR15–FR18); organizer visibility of candidates, weighted draw, manual assignment, draft vs validated composition, explainability of odds (FR19–FR24); member and admin confirmation flows, gap handling, lifecycle states (FR25–FR28); push/email notification preferences and delivery (FR29–FR31); public directory and read-only discovery (FR32–FR33); organizer scope and audit trail (FR34–FR35); account management (FR36–FR37); guest invites and non-default selection modes (FR38–FR39); PWA install and post-deploy client update (FR40–FR41). Architecturally, this implies a **coherent domain model** for seasons, events, roles, availability, casts/composition, draws, and notifications, with **permission boundaries** and **audit** crossing multiple modules. **FR42** is delivered in Epic 2 (Story 2.3): admin-only CSV export/import with a **documented column contract** (see `_bmad-output/implementation-artifacts/2-3-import-export-csv-des-membres-de-troupe.md`); import returns **row-level outcomes** without partial inconsistent writes.
+The PRD defines **60 functional requirements (FR1–FR60)** spanning: authentication and session (FR1–FR5); troupe membership, roles, display name and avatar, and **admin CSV member import/export** (FR6–FR10, **FR42**) for V1→V2 migration and troupe administration; seasons and events configuration and viewing (FR11–FR14); availability and role-level candidacy, including organizer acting on behalf of members with audit (FR15–FR18); organizer visibility of candidates, weighted draw, manual assignment, draft vs validated composition, explainability of odds (FR19–FR24); member and admin confirmation flows, gap handling, lifecycle states (FR25–FR28); push/email notification preferences and delivery (FR29–FR31); public directory and read-only discovery (FR32–FR33); organizer scope and audit trail (FR34–FR35); account management (FR36–FR37); guest invites and non-default selection modes (FR38–FR39); PWA install and post-deploy client update (FR40–FR41); **user agenda, entry routing, league roster modes, troupe hub** (FR48–FR52, ADR 0011); **league workspace views (Agenda/Historique/Statistiques), travel leagues, personal season glance** (FR53–FR60, ADR 0012). Architecturally, this implies a **coherent domain model** for leagues (seasons), events, roles, availability, casts/composition, draws, and notifications, with **permission boundaries** and **audit** crossing multiple modules. **FR42** is delivered in Epic 2 (Story 2.3): admin-only CSV export/import with a **documented column contract** (see `_bmad-output/implementation-artifacts/2-3-import-export-csv-des-membres-de-troupe.md`); import returns **row-level outcomes** without partial inconsistent writes.
 
 **Non-Functional Requirements:**
 
@@ -138,7 +138,8 @@ ng serve
 ### Data Architecture
 
 - **Database:** **PostgreSQL** (Neon), one project with **three branches** aligned to **development**, **staging**, and **production** (isolated data per environment; PRD).
-- **Modeling:** Normalized relational schema for seasons, events, troupes, members, availability, casts, draws, audit—aligned with DOMAIN; **single active season per troupe** invariant (SPEC/DOMAIN).
+- **Modeling:** Normalized relational schema for **leagues** (V2 table/API: `seasons`), events, troupes, memberships, league/event participants, availability, casts, draws, audit—aligned with DOMAIN and [ADR 0011](../../docs/adr/0011-league-model-and-user-agenda.md). A troupe may have **multiple non-archived active leagues** concurrently; activating one league **must not** deactivate others.
+- **League vs season (naming):** Product and UI use **League** / **Ligue**; PostgreSQL and REST paths keep `seasons` / `/v1/.../seasons` until an optional rename migration. SPA routes add **`/ligue/:slug`** as an alias of **`/saison/:slug`** during transition.
 - **Migration:** From Firestore → PostgreSQL via planned migration steps (ETL, parallel run, or slice-by-slice)—**execution plan in PLAN**, not duplicated here.
 - **Caching:** Start **without** mandatory distributed cache; use HTTP caching headers and DB tuning first; add Redis or similar only if NFR-P1/P2 require it (defer).
 
@@ -153,12 +154,29 @@ ng serve
 - **Style:** **REST** + **OpenAPI** published for the SPA and integrators.
 - **Errors:** Consistent problem+json or project envelope; map to **Angular Material** snackbar/dialog patterns on the client.
 - **Inter-service:** Single API service for v1; no requirement for synchronous service mesh in MVP.
+- **User agenda (FR48):** `GET /v1/me/agenda` — authenticated; returns upcoming events for all leagues where the caller is a **league participant** (via `season_participants` / linked user), with `troupeId`, `troupeName`, `troupeSlug`, `leagueId`, `leagueSlug`, `leagueTitle`, event summary fields, and optional user availability pill. Query: `troupeId`, `leagueId` filters; `page`, `size` (default size ≤ 50); `scope=upcoming` (civil-day boundary, align UX-DR12). **Inter-troupe matches:** separate rows per event; no server-side merge. Response may include **`filterBarVisible: boolean`** (false when exactly one troupe and one league participation — UX RES-001); SPA hides filter chrome when false.
 
 ### Frontend Architecture
 
 - **UI:** **Angular Material** + theme tokens / Material theming; avoid Tailwind as the **primary** styling layer (PRD).
 - **Performance:** Code-splitting, lazy routes for large views; list virtualization or paging for large grids (NFR-P1).
 - **PWA:** Installability (FR40) and **update UX** (FR41): detect a pending new client build (service worker / bundler plugin), show a **visible** in-app control so the user **reloads on demand**—no cache-clear as sole remedy, avoid silent forced reload mid-task unless explicitly product-approved.
+
+#### Member navigation (League journey — ADR 0011–0012, FR48–FR60)
+
+| Route | Role | Notes |
+|-------|------|--------|
+| **`/agenda`** | **Primary signed-in member hub** | Cross-league upcoming events; troupe/league filters (FR48, FR55). Replaces `/accueil` stub. |
+| **`/membre/:userSlug`** | Personal season glance | V1 *clin d'œil*; optional troupe/league filters; transparency (FR58–FR59). |
+| **`/ligue/:slug`** | League workspace | Tabs: Agenda, **Historique** (past list), **Statistiques** (stats grid); alias **`/saison/:slug`**. |
+| **`/troupe/:slug`** | Troupe hub | Active/archived leagues, pseudo (FR9), admin entry, directory link (FR52). |
+| **`/troupe/:slug/admin/membres`** | Troupe member admin | Existing admin route (FR7, FR42). |
+| **`/ligue/:slug/event/:eventId`** | Event detail | Context strip → league + troupe (FR51); canonical URLs may keep `/saison/...` alias during transition. |
+| **`/seasons`** | Legacy list | **Demote:** redirect members to `/agenda` or troupe hub; retain for admin migration period (Epic 14). |
+
+**Post-login routing (FR49):** deep link → last valid league slug → `/agenda` → empty state. Persist `lastVisitedLeague` (and optional tab) in localStorage; optional server preference later.
+
+**Client state:** `TroupeContextService` remains authoritative for selected troupe on league-scoped screens; user agenda is **user-scoped**, not troupe-scoped.
 
 ### Infrastructure & Deployment
 
@@ -181,7 +199,7 @@ ng serve
 
 ### Decision Impact Analysis
 
-**Implementation sequence (high level):** (1) Schema + API skeleton + auth; (2) core season/event/availability; (3) draw/composition; (4) notifications; (5) directory/public reads; (6) migration cutover from Firebase.
+**Implementation sequence (high level):** (1) Schema + API skeleton + auth; (2) core league/event/availability; (3) draw/composition; (4) notifications; (5) directory/public reads; (6) migration cutover from Firebase. **League journey insert (PLAN V2 track):** Wave 0 post-login parity → Wave 1 `/v1/me/agenda` + `/agenda` UI → Wave 2 multi-active leagues + roster modes → Wave 3 troupe hub — see [plan-v2-league-journey.md](../_bmad-output/planning-artifacts/plan-v2-league-journey.md).
 
 **Cross-component dependencies:** Composition and draw logic depend on availability and role model; notifications depend on stable **event URLs** and user preferences; audit depends on stable **identity** and **role** resolution on every mutating call.
 

@@ -19,6 +19,8 @@ This document captures **layout, navigation, and visual intent** from HatCast **
 
 ## Screen: Seasons list (`/seasons`) {#screen-seasons-list-seasons}
 
+> **Superseded for members (2026-05-24):** Primary signed-in hub is **`/agenda`** (user agenda, FR48). **`/seasons`** is demoted to admin/legacy; see [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md). This section remains reference for card layout until troupe hub (UX-DR16) ships.
+
 ### Purpose
 
 Let the user see **all seasons they can access**, choose one to enter, or **create a new season**. The screen is **card-driven** and **tap/click-first**.
@@ -85,7 +87,7 @@ Let the user see **all seasons they can access**, choose one to enter, or **crea
 
 ### Purpose
 
-After the user **opens a season** (from `/seasons`), show a **time-ordered** list of **spectacles** (events) for that season, **grouped by month**, in a **calendar-style** layout. On the **Agenda** view specifically, the list is **upcoming-only** (see **Agenda content scope** below); **past** shows belong to [**Historique**](#screen-season--historique-participation-stats), not the Agenda list. The user scans upcoming shows, sees **composition status** and **their own availability/role** at a glance, and **opens detail** by tapping a card. **Filters** narrow the view by **people** and/or **events**; a control switches to **other season views** — notably **Historique** (stats + month-by-month history), available to **all** users alongside **Agenda**.
+After the user **opens a season** (from `/seasons`), show a **time-ordered** list of **spectacles** (events) for that season, **grouped by month**, in a **calendar-style** layout. On the **Agenda** view specifically, the list is **upcoming-only** (see **Agenda content scope** below); **past** shows belong to [**Historique**](#screen-league--historique-chronology) (chronological list only), not the Agenda list. The user scans upcoming shows, sees **composition status** and **their own availability/role** at a glance, and **opens detail** by tapping a card. **Filters** narrow the view by **people** and/or **events**; a control switches to **three league workspace views** — **Agenda**, **Historique** (past events), and **Statistiques** (participation stats grid, V1 parity) — available to **all** users with league access.
 
 ### Reference capture
 
@@ -119,7 +121,7 @@ After the user **opens a season** (from `/seasons`), show a **time-ordered** lis
 
 - **Participant filter** — dropdown showing **current user** (avatar + name) or “focus” selection for **who** the grid reflects (e.g. self vs other member when applicable). Elsewhere, tapping a **member avatar** opens the [**Member profile**](#pattern-member-profile) popover (season stats + chart).
 - **Event filter** — dropdown, e.g. **“Tous”** (all events) vs subset of spectacles.
-- **View switcher** — tabs or pills (V1: **Participants**, **Spectacles**, **Agenda**, **Historique**) to move between **season workspaces**; **Agenda** = this [calendar / event list](#screen-season-calendar); **Historique** = [participation statistics table](#screen-season--historique-participation-stats).
+- **View switcher** — tabs or pills: **Participants**, **Spectacles**, **Agenda**, **Historique**, **Statistiques** (ADR 0012). **Agenda** = [calendar / upcoming list](#screen-season-calendar); **Historique** = [past events chronology](#screen-league--historique-chronology); **Statistiques** = [participation statistics table](#screen-league--statistiques-participation).
 
 **Continuity:** keep **one compact toolbar row** under the header so filters + view switch stay **visible without scrolling** on mobile.
 
@@ -162,16 +164,35 @@ Each row is a **single primary click** → **event detail** (full screen or rout
 - [ ] Events are **grouped by month** with a clear month header.
 - [ ] Each card shows **date**, **title**, **composition status**, and **current user’s** dispo/role summary.
 - [ ] Card click opens **event detail**; filters and view switcher behave without losing season scope.
-- [ ] **Historique** is reachable from the **view switcher** without ambiguity ([spec](#screen-season--historique-participation-stats)).
+- [ ] **Historique** and **Statistiques** are reachable from the **view switcher** without ambiguity ([Historique](#screen-league--historique-chronology), [Statistiques](#screen-league--statistiques-participation)).
 - [ ] **Agenda** liste uniquement spectacles **non archivés** et **à partir d’aujourd’hui** (jour civil inclus), conformément à **Agenda content scope** ci-dessus.
 
 ---
 
-## Screen: Season — Historique (participation stats) {#screen-season--historique-participation-stats}
+## Screen: League — Historique (past events chronology) {#screen-league--historique-chronology}
 
 ### Purpose
 
-In addition to the [**Agenda**](#screen-season-calendar), **every user** with access to the season can open **Historique**: a **data-dense** view of **participation statistics** and **per-person, month-by-month** history. It answers *how often* each member contributed in **broad role families** (jeu, décorum, déplacement, bénévolat) and *what happened* in each month (spectacles, roles, status).
+In addition to the [**Agenda**](#screen-season-calendar), **every user** with access to the league can open **Historique**: a **chronological list** of **past** (non-archived) events, **grouped by month**, using the same card vocabulary as Agenda (date, title, composition status, user role summary). It answers *what happened* and *in what order* — **not** participation statistics (those live in [**Statistiques**](#screen-league--statistiques-participation)).
+
+### Toolbar
+
+- **Participant** and **event** filters (same family as Agenda when applicable).
+- **Exporter** — CSV of the **visible chronology** (distinct from Statistiques export).
+
+### Acceptance hints
+
+- [ ] **No** JEU/DECORUM/DEPLAC. summary columns on this screen.
+- [ ] Past events only (civil-day boundary aligned with Agenda inverse).
+- [ ] Card tap → event detail.
+
+---
+
+## Screen: League — Statistiques (participation stats) {#screen-league--statistiques-participation}
+
+### Purpose
+
+**Every user** with access to the league can open **Statistiques**: a **data-dense** view of **participation statistics** and **per-person, month-by-month** drill-down (V1 Historique grid). It answers *how often* each member contributed in **broad role families** (jeu, décorum, déplacement, bénévolat). Events in a **travel league** feed **DEPLAC.** columns; show leagues never mix déplacements into JEU/DECORUM (FR60, ADR 0012).
 
 ### Reference captures
 
@@ -183,7 +204,7 @@ In addition to the [**Agenda**](#screen-season-calendar), **every user** with ac
 
 ### Global chrome (same season shell)
 
-Same **header** as Agenda: **back** → `/seasons`, **troupe logo**, **season title**, **settings**, **user menu**. **Tabs** on the right (or equivalent): **Participants**, **Spectacles**, **Agenda**, **Historique** — **Historique** active.
+Same **header** as Agenda: **back** → `/seasons`, **troupe logo**, **season title**, **settings**, **user menu**. **Tabs** on the right (or equivalent): **Participants**, **Spectacles**, **Agenda**, **Historique**, **Statistiques** — **Statistiques** active when on this screen.
 
 ### Toolbar
 
@@ -344,11 +365,26 @@ Implement once as a **shared modal (or wizard step)**; only **title**, **default
 
 ---
 
-## Pattern: Member profile popover {#pattern-member-profile}
+## Screen: Personal season glance (`/membre/:userSlug`) {#screen-personal-season-glance}
 
 ### Purpose
 
-Throughout the app, tapping or clicking a **person’s avatar** opens a **compact profile popover** (overlay / dialog) scoped to the **current season**. It gives **identity**, **participation statistics**, and a **season-at-a-glance** chart so users can judge **availability**, **selection**, and **outcomes** without leaving the flow.
+V1 *« Ma saison en un clin d'œil »* (`PlayerModal`) becomes a **dedicated route** from the **member area** and from avatar shortcuts in league workspace (FR58–FR59). Shows **identity**, three **summary cards** (dispo / sélections / désistements), **monthly participation chart**, and **favourite roles**. Optional **troupe** and **league** filters when multiple contexts exist (FR55); hidden when only one troupe or league applies.
+
+**Transparency:** any member who can see league participation may open **`/membre/{slug}`** for another participant (same as V1). URL is shareable/bookmarkable.
+
+### Reference
+
+- V1: [`legacy/src/components/PlayerModal.vue`](../../legacy/src/components/PlayerModal.vue)
+- Story: **16.1** (evolves Story 2.7)
+
+---
+
+## Pattern: Member profile (avatar shortcut) {#pattern-member-profile}
+
+### Purpose
+
+Tapping a **person’s avatar** in league workspace **navigates** to [**Personal season glance**](#screen-personal-season-glance) (`/membre/:userSlug`), optionally passing troupe/league filter query params. A **popover** may remain as a lightweight preview only if product keeps it — **canonical surface is the route**.
 
 ### Reference capture
 
