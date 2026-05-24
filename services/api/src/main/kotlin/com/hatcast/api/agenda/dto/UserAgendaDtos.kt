@@ -39,6 +39,24 @@ data class UserAgendaItemDto(
   }
 }
 
+data class UserAgendaTroupeFilterDto(
+  val id: UUID,
+  val name: String,
+  val slug: String,
+)
+
+data class UserAgendaLeagueFilterDto(
+  val id: UUID,
+  val title: String,
+  val slug: String,
+  val troupeId: UUID,
+)
+
+data class UserAgendaParticipationFiltersDto(
+  val troupes: List<UserAgendaTroupeFilterDto>,
+  val leagues: List<UserAgendaLeagueFilterDto>,
+)
+
 data class UserAgendaResponse(
   val content: List<UserAgendaItemDto>,
   val page: Int,
@@ -47,4 +65,5 @@ data class UserAgendaResponse(
   val totalPages: Int,
   val filterBarVisible: Boolean,
   val noParticipation: Boolean,
+  val participationFilters: UserAgendaParticipationFiltersDto? = null,
 )

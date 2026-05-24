@@ -1,17 +1,22 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { provideRouter, Router } from '@angular/router'
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
-import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
+import { USER_AGENDA_FILTERS_STORAGE_KEY } from '../../core/agenda/user-agenda-filters-storage'
 import {
   UserAgendaApiService,
   type UserAgendaItem,
+  type UserAgendaParticipationFilters,
   type UserAgendaResponse,
 } from '../../core/agenda/user-agenda-api.service'
+import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 import { UserAgenda } from './user-agenda'
+
+const TROUPE_A = 'a0000001-0000-4000-8000-000000000001'
+const LEAGUE_A = 'b0000001-0000-4000-8000-000000000001'
 
 async function settle(fixture: ComponentFixture<UserAgenda>): Promise<void> {
   fixture.detectChanges()
@@ -35,6 +40,7 @@ describe('UserAgenda', () => {
 
   beforeEach(async () => {
     localStorage.clear()
+    sessionStorage.clear()
     agendaApi = {
       listAgenda: vi.fn().mockResolvedValue({
         ok: true,
@@ -81,6 +87,7 @@ describe('UserAgenda', () => {
 
   afterEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     vi.restoreAllMocks()
   })
 
@@ -234,7 +241,8 @@ describe('UserAgenda', () => {
     card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
 
     expect(navigateSpy).toHaveBeenCalledWith([
-      '/saison',
+      '/',
+      'ligue',
       'ligue-clavier',
       'event',
       'event-keyboard',
@@ -257,9 +265,323 @@ describe('UserAgenda', () => {
     const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
     card.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-espace', 'event', 'event-space'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/', 'ligue', 'ligue-espace', 'event', 'event-space'])
+  })
+
+  it('masque la barre de filtres quand filterBarVisible est false', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([agendaItem('event-1', 'Show', '2026-06-01T18:00:00Z')], {
+        filterBarVisible: false,
+      }),
+    })
+
+    await settle(fixture)
+
+    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Effacer filtres')
+  })
+
+  it('affiche la barre de filtres et appelle l’API avec troupeId', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([agendaItem('event-1', 'Show', '2026-06-01T18:00:00Z')], {
+        filterBarVisible: true,
+        participationFilters: sampleParticipationFilters(),
+      }),
+    })
+
+    await settle(fixture)
+
+    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Toutes les troupes')
+
+    agendaApi.listAgenda.mockClear()
+    await fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
+    await settle(fixture)
+
+    expect(agendaApi.listAgenda).toHaveBeenCalledWith(
+      expect.objectContaining({ troupeId: TROUPE_A, scope: 'upcoming' }),
+    )
+  })
+
+  it('appelle l’API avec leagueId et efface les filtres au reset', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([], {
+        filterBarVisible: true,
+        participationFilters: sampleParticipationFilters(),
+      }),
+    })
+
+    await settle(fixture)
+    agendaApi.listAgenda.mockClear()
+
+    await fixture.componentInstance['onLeagueFilterChange'](LEAGUE_A)
+    await settle(fixture)
+
+    expect(agendaApi.listAgenda).toHaveBeenCalledWith(
+      expect.objectContaining({ leagueId: LEAGUE_A }),
+    )
+
+    agendaApi.listAgenda.mockClear()
+    await fixture.componentInstance['onClearFilters']()
+    await settle(fixture)
+
+    expect(agendaApi.listAgenda).toHaveBeenCalledWith({
+      page: 0,
+      size: 50,
+      scope: 'upcoming',
+    })
+    expect(sessionStorage.getItem(USER_AGENDA_FILTERS_STORAGE_KEY)).toBeNull()
+  })
+
+  it('affiche l’état vide filtré avec indication d’élargir les filtres', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([], {
+        filterBarVisible: true,
+        participationFilters: sampleParticipationFilters(),
+      }),
+    })
+
+    await settle(fixture)
+    await fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
+    await settle(fixture)
+
+    expect(fixture.nativeElement.textContent).toContain('Aucun spectacle à venir.')
+    expect(fixture.nativeElement.textContent).toContain('Essaie d’élargir les filtres.')
+    expect(fixture.nativeElement.textContent).not.toContain('Tu n\'es inscrit')
+  })
+
+  it('bootstrap les filtres depuis les query params URL', async () => {
+    TestBed.resetTestingModule()
+    sessionStorage.clear()
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([], { filterBarVisible: true, participationFilters: sampleParticipationFilters() }),
+    })
+
+    await TestBed.configureTestingModule({
+      imports: [UserAgenda, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        { provide: AuthApiService, useValue: auth },
+        { provide: UserAgendaApiService, useValue: agendaApi },
+        { provide: MatSnackBar, useValue: snack },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: convertToParamMap({
+                troupeId: TROUPE_A,
+                leagueId: LEAGUE_A,
+              }),
+            },
+          },
+        },
+      ],
+    }).compileComponents()
+
+    router = TestBed.inject(Router)
+    navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+    fixture = TestBed.createComponent(UserAgenda)
+    await settle(fixture)
+
+    expect(agendaApi.listAgenda).toHaveBeenCalledWith(
+      expect.objectContaining({ troupeId: TROUPE_A, leagueId: LEAGUE_A }),
+    )
+  })
+
+  it('restaure les filtres depuis sessionStorage et synchronise l’URL', async () => {
+    TestBed.resetTestingModule()
+    sessionStorage.setItem(
+      USER_AGENDA_FILTERS_STORAGE_KEY,
+      JSON.stringify({ troupeId: TROUPE_A, leagueId: null }),
+    )
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([], { filterBarVisible: true, participationFilters: sampleParticipationFilters() }),
+    })
+
+    await TestBed.configureTestingModule({
+      imports: [UserAgenda, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        { provide: AuthApiService, useValue: auth },
+        { provide: UserAgendaApiService, useValue: agendaApi },
+        { provide: MatSnackBar, useValue: snack },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { queryParamMap: convertToParamMap({}) },
+          },
+        },
+      ],
+    }).compileComponents()
+
+    router = TestBed.inject(Router)
+    navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+    fixture = TestBed.createComponent(UserAgenda)
+    await settle(fixture)
+
+    expect(agendaApi.listAgenda).toHaveBeenCalledWith(
+      expect.objectContaining({ troupeId: TROUPE_A }),
+    )
+    expect(navigateSpy).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: { troupeId: TROUPE_A, leagueId: null },
+      }),
+    )
+  })
+
+  it('conserve la barre de filtres pendant le rechargement', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([agendaItem('event-1', 'Show', '2026-06-01T18:00:00Z')], {
+        filterBarVisible: true,
+        participationFilters: sampleParticipationFilters(),
+      }),
+    })
+
+    await settle(fixture)
+    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
+
+    let resolveReload: ((value: unknown) => void) | undefined
+    agendaApi.listAgenda.mockReturnValue(
+      new Promise((resolve) => {
+        resolveReload = resolve
+      }),
+    )
+
+    void fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
+
+    resolveReload?.({
+      ok: true,
+      status: 200,
+      data: agendaResponse([], {
+        filterBarVisible: true,
+        participationFilters: sampleParticipationFilters(),
+      }),
+    })
+    await settle(fixture)
+  })
+
+  it('efface leagueId quand la troupe change et invalide la ligue', async () => {
+    const TROUPE_B = 'a0000002-0000-4000-8000-000000000002'
+    const LEAGUE_B = 'b0000002-0000-4000-8000-000000000003'
+    const filters: UserAgendaParticipationFilters = {
+      troupes: [
+        { id: TROUPE_A, name: 'La BIM', slug: 'la-bim' },
+        { id: TROUPE_B, name: 'Autre troupe', slug: 'autre-troupe' },
+      ],
+      leagues: [
+        { id: LEAGUE_A, title: 'Ligue A', slug: 'ligue-a', troupeId: TROUPE_A },
+        { id: LEAGUE_B, title: 'Ligue B', slug: 'ligue-b', troupeId: TROUPE_B },
+      ],
+    }
+
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([], { filterBarVisible: true, participationFilters: filters }),
+    })
+
+    await settle(fixture)
+    await fixture.componentInstance['onLeagueFilterChange'](LEAGUE_B)
+    await settle(fixture)
+    agendaApi.listAgenda.mockClear()
+
+    await fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
+    await settle(fixture)
+
+    expect(agendaApi.listAgenda).toHaveBeenCalledWith(
+      expect.objectContaining({ troupeId: TROUPE_A, leagueId: undefined }),
+    )
+  })
+
+  it('vide sessionStorage quand les filtres sont remis à null via les menus', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([], {
+        filterBarVisible: true,
+        participationFilters: sampleParticipationFilters(),
+      }),
+    })
+
+    await settle(fixture)
+    await fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
+    await settle(fixture)
+    expect(sessionStorage.getItem(USER_AGENDA_FILTERS_STORAGE_KEY)).not.toBeNull()
+
+    await fixture.componentInstance['onTroupeFilterChange'](null)
+    await settle(fixture)
+
+    expect(sessionStorage.getItem(USER_AGENDA_FILTERS_STORAGE_KEY)).toBeNull()
+  })
+
+  it('ignore les UUID invalides dans l’URL', async () => {
+    TestBed.resetTestingModule()
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([agendaItem('event-1', 'Show', '2026-06-01T18:00:00Z')]),
+    })
+
+    await TestBed.configureTestingModule({
+      imports: [UserAgenda, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        { provide: AuthApiService, useValue: auth },
+        { provide: UserAgendaApiService, useValue: agendaApi },
+        { provide: MatSnackBar, useValue: snack },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: convertToParamMap({
+                troupeId: 'not-a-uuid',
+                leagueId: 'also-bad',
+              }),
+            },
+          },
+        },
+      ],
+    }).compileComponents()
+
+    fixture = TestBed.createComponent(UserAgenda)
+    await settle(fixture)
+
+    expect(agendaApi.listAgenda).toHaveBeenCalledWith({ page: 0, size: 50, scope: 'upcoming' })
   })
 })
+
+function sampleParticipationFilters(): UserAgendaParticipationFilters {
+  return {
+    troupes: [{ id: TROUPE_A, name: 'La BIM', slug: 'la-bim' }],
+    leagues: [
+      { id: LEAGUE_A, title: 'Ligue 2026', slug: 'ligue-2026', troupeId: TROUPE_A },
+      {
+        id: 'b0000002-0000-4000-8000-000000000002',
+        title: 'Autre ligue',
+        slug: 'autre-ligue',
+        troupeId: TROUPE_A,
+      },
+    ],
+  }
+}
 
 function agendaResponse(
   content: UserAgendaItem[],

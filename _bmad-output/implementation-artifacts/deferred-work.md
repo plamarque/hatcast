@@ -1,3 +1,11 @@
+## Deferred from: code review of 12-3-filtres-troupe-ligue-agenda.md (2026-05-25)
+
+- Concurrent `loadAgenda()` without request token — race on rapid filter clicks (`user-agenda.ts:loadAgenda`).
+- Two extra catalog SQL queries on every agenda load when `filterBarVisible` — same class as 12-1 participation-context cost.
+- `bootstrapFiltersFromRoute` uses route snapshot only — in-place query param changes not re-synced (`user-agenda.ts`).
+- Sticky bar `top: 0` may overlap page header on scroll — minor UX polish.
+- Filter bar below « Mes troupes » link, not directly under title — layout acceptable vs wireframe intent.
+
 ## Deferred from: code review of 6-6-validation-verrouillage-de-la-composition.md (2026-05-24)
 
 - `compositionPublished` output reused for validate/unlock — AC10 reload works; rename when event-detail outputs are refactored (`event-equipe-tab.ts`).
@@ -108,3 +116,8 @@
 
 - Duplicate eligible-participant loading in `CompositionDrawService` and `CompositionService` — refactor when a shared helper is warranted.
 - `prefers-reduced-motion` read once at `EventEquipeTab` init — user toggling OS reduced-motion without reload will not update until navigation.
+
+## Deferred from: code review of 6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy.md (2026-05-25)
+
+- Dead branch in `onSlotRowClick` foreign-slot snackbar (`event-equipe-tab.ts:337-344`) — readonly button path makes it unreachable; harmless cleanup.
+- Unlinked viewer (`viewerParticipantIds` empty) sees static foreign slots without snackbar (`event-equipe-tab.html:151-168`) — edge case outside typical linked-member flow.

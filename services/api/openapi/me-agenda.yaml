@@ -115,6 +115,48 @@ components:
           description: >
             true si l'utilisateur n'a aucune participation ACTIVE à une ligue ou à un événement éligible ;
             permet à l'écran Mon agenda de distinguer l'absence d'inscription de l'absence de spectacle à venir.
+        participationFilters:
+          type: object
+          nullable: true
+          description: >
+            Catalogue des troupes et ligues où l'utilisateur participe (ACTIVE, non archivé).
+            Présent lorsque filterBarVisible est true ; absent ou null sinon.
+          properties:
+            troupes:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserAgendaTroupeFilter'
+            leagues:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserAgendaLeagueFilter'
+
+    UserAgendaTroupeFilter:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+
+    UserAgendaLeagueFilter:
+      type: object
+      required: [id, title, slug, troupeId]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        slug:
+          type: string
+        troupeId:
+          type: string
+          format: uuid
 
     UserAgendaItem:
       type: object

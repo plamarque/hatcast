@@ -322,6 +322,54 @@ class UserAgendaIntegrationTest {
       .andExpect(jsonPath("$.content.length()").value(2))
       .andExpect(jsonPath("$.content[*].eventId", containsInAnyOrder(eventOne.id.toString(), eventTwo.id.toString())))
       .andExpect(jsonPath("$.filterBarVisible").value(true))
+      .andExpect(jsonPath("$.participationFilters.troupes.length()").value(1))
+      .andExpect(jsonPath("$.participationFilters.leagues.length()").value(2))
+      .andExpect(
+        jsonPath(
+          "$.participationFilters.leagues[*].id",
+          containsInAnyOrder(seasonOne.id.toString(), seasonTwo.id.toString()),
+        ),
+      )
+  }
+
+  @Test
+  fun `participationFilters omitted when filterBarVisible false`() {
+    val member = signIn("agenda-no-filters-catalog", "agenda-no-filters-catalog@example.com", "Agenda No Filters Catalog")
+    val season = createDirectSeason(title = "Agenda single catalog")
+    linkDirectSeasonParticipant(season, member)
+
+    mockMvc
+      .perform(get("/v1/me/agenda").cookie(member.cookie))
+      .andExpect(status().isOk)
+      .andExpect(jsonPath("$.filterBarVisible").value(false))
+      .andExpect(jsonPath("$.participationFilters").doesNotExist())
+  }
+
+  @Test
+  fun `participationFilters unchanged when troupeId filters content`() {
+    val member = signIn("agenda-filter-catalog", "agenda-filter-catalog@example.com", "Agenda Filter Catalog")
+    val otherTroupe =
+      troupeRepository.save(
+        TroupeEntity(
+          id = UUID.randomUUID(),
+          name = "Agenda Catalog Other Troupe",
+          slug = "agenda-catalog-other-${UUID.randomUUID().toString().take(8)}",
+        ),
+      )
+    val seedSeason = createDirectSeason(title = "Agenda catalog home")
+    val otherSeason = createDirectSeason(troupe = otherTroupe, title = "Agenda catalog away")
+    createDirectEvent(seedSeason, "Catalog home event")
+    createDirectEvent(otherSeason, "Catalog away event")
+    linkDirectSeasonParticipant(seedSeason, member)
+    linkDirectSeasonParticipant(otherSeason, member)
+
+    mockMvc
+      .perform(get("/v1/me/agenda?troupeId=$seedTroupeId").cookie(member.cookie))
+      .andExpect(status().isOk)
+      .andExpect(jsonPath("$.content.length()").value(1))
+      .andExpect(jsonPath("$.filterBarVisible").value(true))
+      .andExpect(jsonPath("$.participationFilters.troupes.length()").value(2))
+      .andExpect(jsonPath("$.participationFilters.leagues.length()").value(2))
   }
 
   @Test

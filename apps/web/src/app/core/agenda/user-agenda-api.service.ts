@@ -16,6 +16,24 @@ export interface UserAgendaItem {
   myAvailabilityStatus: AvailabilityStatus | null
 }
 
+export interface UserAgendaTroupeFilter {
+  id: string
+  name: string
+  slug: string
+}
+
+export interface UserAgendaLeagueFilter {
+  id: string
+  title: string
+  slug: string
+  troupeId: string
+}
+
+export interface UserAgendaParticipationFilters {
+  troupes: UserAgendaTroupeFilter[]
+  leagues: UserAgendaLeagueFilter[]
+}
+
 export interface UserAgendaResponse {
   content: UserAgendaItem[]
   page: number
@@ -24,12 +42,15 @@ export interface UserAgendaResponse {
   totalPages: number
   filterBarVisible: boolean
   noParticipation: boolean
+  participationFilters?: UserAgendaParticipationFilters | null
 }
 
 export interface UserAgendaListParams {
   page?: number
   size?: number
   scope?: 'upcoming'
+  troupeId?: string
+  leagueId?: string
 }
 
 @Injectable({ providedIn: 'root' })
@@ -42,6 +63,12 @@ export class UserAgendaApiService {
       size: String(params.size ?? 50),
       scope: params.scope ?? 'upcoming',
     })
+    if (params.troupeId) {
+      q.set('troupeId', params.troupeId)
+    }
+    if (params.leagueId) {
+      q.set('leagueId', params.leagueId)
+    }
 
     try {
       const res = await fetch(`/v1/me/agenda?${q}`, { credentials: 'include' })

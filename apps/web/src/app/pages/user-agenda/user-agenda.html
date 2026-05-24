@@ -34,6 +34,17 @@
     </div>
   }
 
+  @if (!loadingSession() && !loadError() && filterBarCatalog(); as filters) {
+    <app-user-agenda-filter-bar
+      [participationFilters]="filters"
+      [selectedTroupeId]="selectedTroupeId()"
+      [selectedLeagueId]="selectedLeagueId()"
+      (troupeChange)="onTroupeFilterChange($event)"
+      (leagueChange)="onLeagueFilterChange($event)"
+      (clearFilters)="onClearFilters()"
+    />
+  }
+
   @if (loadingSession()) {
     <p class="user-agenda__status" role="status">Vérification de la session…</p>
   } @else if (loadingAgenda()) {
@@ -62,6 +73,13 @@
       <h2 id="agenda-no-participation-heading" class="user-agenda__empty-title">Aucune ligue pour l’instant</h2>
       <p class="user-agenda__empty-text">Tu n'es inscrit·e à aucune ligue pour l'instant.</p>
       <button mat-stroked-button type="button" disabled>Découvrir les troupes</button>
+    </section>
+  } @else if (filteredEmpty() && hasActiveFilters()) {
+    <section class="user-agenda__empty" aria-labelledby="agenda-filtered-empty-heading">
+      <h2 id="agenda-filtered-empty-heading" class="user-agenda__empty-title">Aucun spectacle à venir.</h2>
+      <p class="user-agenda__empty-text user-agenda__empty-text--hint">
+        Aucun spectacle à venir pour cette sélection. Essaie d’élargir les filtres.
+      </p>
     </section>
   } @else if (items().length === 0) {
     <section class="user-agenda__empty" aria-labelledby="agenda-no-events-heading">

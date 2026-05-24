@@ -10,6 +10,19 @@ import org.springframework.data.repository.query.Param
 import java.time.Instant
 import java.util.UUID
 
+interface ParticipatingTroupeCatalogRow {
+  val id: UUID
+  val name: String
+  val slug: String
+}
+
+interface ParticipatingLeagueCatalogRow {
+  val id: UUID
+  val title: String
+  val slug: String
+  val troupeId: UUID
+}
+
 interface UserAgendaRow {
   val eventId: UUID
   val title: String
@@ -163,4 +176,29 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
     @Param("userId") userId: UUID,
     @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
   ): List<UUID>
+
+  @Query(
+    """
+    SELECT t.id AS id, t.name AS name, t.slug AS slug
+    FROM TroupeEntity t
+    WHERE t.id IN :ids
+    ORDER BY t.name ASC
+    """,
+  )
+  fun findTroupeCatalogByIds(
+    @Param("ids") ids: Collection<UUID>,
+  ): List<ParticipatingTroupeCatalogRow>
+
+  @Query(
+    """
+    SELECT s.id AS id, s.title AS title, s.slug AS slug, s.troupe.id AS troupeId
+    FROM SeasonEntity s
+    WHERE s.id IN :ids
+      AND s.archived = false
+    ORDER BY s.title ASC
+    """,
+  )
+  fun findLeagueCatalogByIds(
+    @Param("ids") ids: Collection<UUID>,
+  ): List<ParticipatingLeagueCatalogRow>
 }

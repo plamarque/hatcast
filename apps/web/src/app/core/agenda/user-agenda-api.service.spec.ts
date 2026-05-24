@@ -46,6 +46,34 @@ describe('UserAgendaApiService', () => {
     )
   })
 
+  it('sérialise troupeId et leagueId dans la query', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          content: [],
+          page: 0,
+          size: 50,
+          totalElements: 0,
+          totalPages: 0,
+          filterBarVisible: true,
+          noParticipation: false,
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await service().listAgenda({
+      troupeId: 'a0000001-0000-4000-8000-000000000001',
+      leagueId: 'b0000001-0000-4000-8000-000000000001',
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/me/agenda?page=0&size=50&scope=upcoming&troupeId=a0000001-0000-4000-8000-000000000001&leagueId=b0000001-0000-4000-8000-000000000001',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
   it('retourne un échec local sur erreur réseau', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
 

@@ -3,7 +3,10 @@ package com.hatcast.api.agenda
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.agenda.dto.UserAgendaItemDto
+import com.hatcast.api.agenda.dto.UserAgendaLeagueFilterDto
+import com.hatcast.api.agenda.dto.UserAgendaParticipationFiltersDto
 import com.hatcast.api.agenda.dto.UserAgendaResponse
+import com.hatcast.api.agenda.dto.UserAgendaTroupeFilterDto
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -64,6 +67,50 @@ class UserAgendaService(
       totalPages = eventsPage.totalPages,
       filterBarVisible = filterBarVisible,
       noParticipation = participationContext.noParticipation,
+      participationFilters =
+        if (filterBarVisible) {
+          participationFilters(
+            troupeIds = participationContext.troupeIds,
+            leagueIds = participationContext.leagueIds,
+          )
+        } else {
+          null
+        },
+    )
+  }
+
+  private fun participationFilters(
+    troupeIds: Set<UUID>,
+    leagueIds: Set<UUID>,
+  ): UserAgendaParticipationFiltersDto {
+    val troupes =
+      if (troupeIds.isEmpty()) {
+        emptyList()
+      } else {
+        userAgendaRepository.findTroupeCatalogByIds(troupeIds).map { row ->
+          UserAgendaTroupeFilterDto(
+            id = row.id,
+            name = row.name,
+            slug = row.slug,
+          )
+        }
+      }
+    val leagues =
+      if (leagueIds.isEmpty()) {
+        emptyList()
+      } else {
+        userAgendaRepository.findLeagueCatalogByIds(leagueIds).map { row ->
+          UserAgendaLeagueFilterDto(
+            id = row.id,
+            title = row.title,
+            slug = row.slug,
+            troupeId = row.troupeId,
+          )
+        }
+      }
+    return UserAgendaParticipationFiltersDto(
+      troupes = troupes,
+      leagues = leagues,
     )
   }
 
@@ -79,6 +126,8 @@ class UserAgendaService(
           userAgendaRepository.findParticipatingLeagueIdsFromEventOnly(userId)
       ).toSet()
     return ParticipationContext(
+      troupeIds = troupeIds,
+      leagueIds = leagueIds,
       filterBarVisible = troupeIds.size > 1 || leagueIds.size > 1,
       noParticipation = leagueIds.isEmpty(),
     )
@@ -98,6 +147,8 @@ class UserAgendaService(
 }
 
 private data class ParticipationContext(
+  val troupeIds: Set<UUID>,
+  val leagueIds: Set<UUID>,
   val filterBarVisible: Boolean,
   val noParticipation: Boolean,
 )

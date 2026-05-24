@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-24T24:00:00+02:00
+# last_updated: 2026-05-25T22:40:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-24T24:00:00+02:00"
+last_updated: "2026-05-25T23:45:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -99,7 +99,7 @@ development_status:
   6-5-assignation-manuelle-et-reassignation-des-roles: done
   6-6-validation-verrouillage-de-la-composition: done
   6-7-confirmation-ou-declinaison-de-participation-membre: review
-  6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: backlog
+  6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: done
   6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: backlog
   6-10-partage-et-annonce-message-editable-canaux: backlog
   epic-6-retrospective: optional
@@ -130,11 +130,11 @@ development_status:
 
   epic-12: in-progress
   12-1-api-agenda-utilisateur: done
-  12-2-ecran-mon-agenda: in-progress
-  12-3-filtres-troupe-ligue-agenda: backlog
+  12-2-ecran-mon-agenda: done
+  12-3-filtres-troupe-ligue-agenda: done
   12-4-bandeau-contexte-evenement: done
   12-5-routage-post-connexion-agenda: done
-  12-6-alias-route-ligue-slug: backlog
+  12-6-alias-route-ligue-slug: in-progress
   epic-12-retrospective: optional
 
   epic-13: in-progress

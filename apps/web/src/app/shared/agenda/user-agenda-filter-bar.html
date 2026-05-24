@@ -1,0 +1,55 @@
+<div class="user-agenda-filter-bar" data-testid="agenda-filter-bar">
+  <div class="user-agenda-filter-bar__filters">
+    <button
+      type="button"
+      mat-stroked-button
+      class="user-agenda-filter-bar__filter"
+      [matMenuTriggerFor]="troupeMenu"
+      aria-label="Filtrer par troupe"
+      data-testid="agenda-troupe-filter"
+    >
+      <span>{{ troupeLabel() }}</span>
+      <mat-icon class="user-agenda-filter-bar__caret">expand_more</mat-icon>
+    </button>
+    <mat-menu #troupeMenu="matMenu">
+      <button mat-menu-item type="button" (click)="selectTroupe(null)">Toutes les troupes</button>
+      @for (troupe of participationFilters().troupes; track troupe.id) {
+        <button mat-menu-item type="button" (click)="selectTroupe(troupe)">
+          {{ troupe.name }}
+        </button>
+      }
+    </mat-menu>
+
+    <button
+      type="button"
+      mat-stroked-button
+      class="user-agenda-filter-bar__filter"
+      [matMenuTriggerFor]="leagueMenu"
+      aria-label="Filtrer par ligue"
+      data-testid="agenda-league-filter"
+    >
+      <span>{{ leagueLabel() }}</span>
+      <mat-icon class="user-agenda-filter-bar__caret">expand_more</mat-icon>
+    </button>
+    <mat-menu #leagueMenu="matMenu">
+      <button mat-menu-item type="button" (click)="selectLeague(null)">Toutes les ligues</button>
+      @for (league of scopedLeagues(); track league.id) {
+        <button mat-menu-item type="button" (click)="selectLeague(league)">
+          {{ league.title }}
+        </button>
+      }
+    </mat-menu>
+  </div>
+
+  @if (hasActiveFilters()) {
+    <button
+      mat-button
+      type="button"
+      class="user-agenda-filter-bar__clear"
+      data-testid="agenda-clear-filters"
+      (click)="onClear()"
+    >
+      Effacer filtres
+    </button>
+  }
+</div>
