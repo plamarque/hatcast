@@ -15,6 +15,35 @@ export interface SetMyAvailabilityBody {
   applyVolunteerRule?: boolean
 }
 
+export interface SummaryParticipant {
+  participantId: string
+  userId?: string | null
+  displayName: string
+  avatarUrl?: string | null
+  status: AvailabilityStatus
+  roleKeys: string[]
+}
+
+export interface SummaryRoleCandidate {
+  participantId: string
+  displayName: string
+  avatarUrl?: string | null
+  chancePercent: number
+}
+
+export interface SummaryRole {
+  roleKey: string
+  requiredCount: number
+  candidates: SummaryRoleCandidate[]
+}
+
+export interface EventAvailabilitySummary {
+  eventId: string
+  roleSlots: Record<string, number>
+  participants: SummaryParticipant[]
+  roles: SummaryRole[]
+}
+
 @Injectable({ providedIn: 'root' })
 export class AvailabilityApiService {
   async getMyAvailability(
@@ -58,6 +87,25 @@ export class AvailabilityApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as MyAvailabilityResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async getEventAvailabilitySummary(
+    seasonId: string,
+    eventId: string,
+  ): Promise<{ ok: boolean; status: number; data?: EventAvailabilitySummary }> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/availability/summary`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as EventAvailabilitySummary
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

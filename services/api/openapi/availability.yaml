@@ -75,6 +75,33 @@ paths:
         '404':
           description: Saison ou événement inconnu
 
+  /seasons/{seasonId}/events/{eventId}/availability/summary:
+    get:
+      tags: [Disponibilités]
+      summary: Vue agrégée des disponibilités pour un spectacle (organisateur / membres)
+      description: >
+        Retourne l'état de disponibilité de tous les participants éligibles
+        (roster saison ∪ participants événement), les candidats par rôle requis
+        et les pourcentages de chance estimés (stub sans historique de composition).
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventAvailabilitySummaryResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe
+        '404':
+          description: Saison ou événement inconnu
+
 components:
   securitySchemes:
     cookieAuth:
@@ -142,3 +169,76 @@ components:
             Applique l'auto-ajout de `volunteer` quand un rôle de jeu est coché
             et que l'événement requiert des bénévoles. Passer `false` uniquement
             quand l'utilisateur a explicitement décoché `volunteer`.
+
+    SummaryParticipant:
+      type: object
+      required: [participantId, displayName, status, roleKeys]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+          nullable: true
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/AvailabilityStatus'
+        roleKeys:
+          type: array
+          items:
+            type: string
+
+    SummaryRoleCandidate:
+      type: object
+      required: [participantId, displayName, chancePercent]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        chancePercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    SummaryRole:
+      type: object
+      required: [roleKey, requiredCount, candidates]
+      properties:
+        roleKey:
+          type: string
+        requiredCount:
+          type: integer
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/SummaryRoleCandidate'
+
+    EventAvailabilitySummaryResponse:
+      type: object
+      required: [eventId, roleSlots, participants, roles]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        roleSlots:
+          type: object
+          additionalProperties:
+            type: integer
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/SummaryParticipant'
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/SummaryRole'

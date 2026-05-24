@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-24T12:00:00+02:00"
+last_updated: "2026-05-24T02:25:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -82,13 +82,13 @@ development_status:
   epic-5: in-progress
   5-1-saisie-de-disponibilite-par-evenement-etats-dispo-pas-dispo-non-renseigne: done
   5-2-disponibilite-par-role-lorsque-le-type-devenement-lexige: done
-  5-3-vue-organisateur-disponibilites-par-role-et-vues-moi-tous: in-progress
+  5-3-vue-organisateur-disponibilites-par-role-et-vues-moi-tous: done
   5-4-commentaire-optionnel-sur-la-disponibilite: backlog
   5-5-saisie-de-disponibilite-pour-un-autre-membre-proxy-avec-audit: backlog
   epic-5-retrospective: optional
 
-  epic-6: backlog
-  6-1-etats-de-cycle-de-vie-de-composition-et-coherence-ui: backlog
+  epic-6: in-progress
+  6-1-etats-de-cycle-de-vie-de-composition-et-coherence-ui: in-progress
   6-2-detail-evenement-plein-ecran-onglets-infos-dispos-equipe: backlog
   6-3-composition-brouillon-non-visible-aux-membres-ordinaires: backlog
   6-4-tirage-aleatoire-pondere-et-affichage-des-cotes-explainability: backlog

@@ -1,0 +1,12 @@
+<app-availability-form
+  [seasonId]="seasonId()"
+  [eventId]="eventId()"
+  [troupeId]="troupeId()"
+  [roleSlots]="roleSlots()"
+  [subjectDisplayName]="subject().displayName"
+  [readOnly]="readOnly()"
+  [archived]="archived()"
+  [initialStatus]="subject().status"
+  [initialRoleKeys]="subject().roleKeys"
+  (saved)="saved.emit($event)"
+/>

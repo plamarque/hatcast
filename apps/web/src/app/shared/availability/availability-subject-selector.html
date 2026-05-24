@@ -1,0 +1,24 @@
+<mat-form-field class="subject-selector" appearance="outline" subscriptSizing="dynamic">
+  <mat-label>Participant</mat-label>
+  <mat-select
+    [value]="selectedParticipantId()"
+    [disabled]="disabled()"
+    (valueChange)="selectedParticipantIdChange.emit($event)"
+    aria-label="Choisir un participant"
+  >
+    @for (p of participants(); track p.id) {
+      <mat-option [value]="p.id">
+        <span class="subject-selector__option">
+          @if (p.avatarUrl) {
+            <img class="subject-selector__avatar" [src]="p.avatarUrl" alt="" />
+          } @else {
+            <span class="subject-selector__avatar subject-selector__avatar--fallback" aria-hidden="true">
+              {{ p.displayName.charAt(0) }}
+            </span>
+          }
+          <span>{{ p.displayName }}</span>
+        </span>
+      </mat-option>
+    }
+  </mat-select>
+</mat-form-field>

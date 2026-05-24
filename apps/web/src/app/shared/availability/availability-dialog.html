@@ -8,77 +8,18 @@
     <p class="availability-dialog__event-date">{{ formattedDate }}</p>
   </div>
 
-  <div class="availability-dialog__choices" role="group" aria-label="Choix de disponibilité">
-    <button
-      mat-flat-button
-      type="button"
-      class="availability-dialog__choice availability-dialog__choice--available"
-      [class.availability-dialog__choice--active]="isSelected('available')"
-      [disabled]="saving()"
-      (click)="choose('available')"
-    >
-      @if (isSelected('available')) {
-        <span class="availability-dialog__check" aria-hidden="true">✓</span>
-      }
-      Dispo
-    </button>
-    <button
-      mat-flat-button
-      type="button"
-      class="availability-dialog__choice availability-dialog__choice--unavailable"
-      [class.availability-dialog__choice--active]="isSelected('unavailable')"
-      [disabled]="saving()"
-      (click)="choose('unavailable')"
-    >
-      @if (isSelected('unavailable')) {
-        <span class="availability-dialog__check" aria-hidden="true">✓</span>
-      }
-      Pas dispo
-    </button>
-    <button
-      mat-flat-button
-      type="button"
-      class="availability-dialog__choice availability-dialog__choice--unknown"
-      [class.availability-dialog__choice--active]="isSelected('unknown')"
-      [disabled]="saving()"
-      (click)="choose('unknown')"
-    >
-      @if (isSelected('unknown')) {
-        <span class="availability-dialog__check" aria-hidden="true">✓</span>
-      }
-      Non renseigné
-    </button>
-  </div>
-
-  @if (feedbackText(); as feedback) {
-    <p class="availability-dialog__feedback">{{ feedback }}</p>
-  }
-
-  @if (shouldShowRoleBlock()) {
-    <section class="availability-dialog__roles" aria-label="Rôles disponibles">
-      <p class="availability-dialog__roles-title">Choisis les rôles pour lesquels tu es disponible</p>
-      <div class="availability-dialog__roles-grid">
-        @for (role of roleChoices; track role.key) {
-          <div class="availability-dialog__role-wrap">
-            <mat-checkbox
-              class="availability-dialog__role"
-              [checked]="isRoleSelected(role.key)"
-              [disabled]="saving()"
-              (change)="toggleRole(role.key, $event.checked)"
-            >
-              <span class="availability-dialog__role-emoji" aria-hidden="true">{{ role.emoji }}</span>
-              <span>{{ role.label }}</span>
-            </mat-checkbox>
-            @if (role.key === 'volunteer' && shouldShowVolunteerMandatoryHint()) {
-              <span class="availability-dialog__role-hint">(obligatoire)</span>
-            }
-          </div>
-        }
-      </div>
-    </section>
-  }
+  <app-availability-form
+    [seasonId]="data.seasonId"
+    [eventId]="data.eventId"
+    [troupeId]="data.troupeId"
+    [roleSlots]="data.roleSlots"
+    [subjectDisplayName]="data.subjectDisplayName"
+    [initialStatus]="data.initialStatus"
+    [initialRoleKeys]="data.initialRoleKeys"
+    (saved)="onSaved()"
+  />
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button type="button" [disabled]="saving()" (click)="close()">Fermer</button>
+  <button mat-button type="button" (click)="close()">Fermer</button>
 </mat-dialog-actions>

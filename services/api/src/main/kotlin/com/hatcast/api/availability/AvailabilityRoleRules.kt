@@ -43,4 +43,12 @@ object AvailabilityRoleRules {
 
     fun mandatoryVolunteerCoverage(roleSlots: Map<String, Int>): Boolean =
         (RoleTemplates.normalize(roleSlots)[VOLUNTEER] ?: 0) > 0
+
+    fun isCandidateForRole(
+        status: String,
+        roleKeys: List<String>,
+        roleKey: String,
+    ): Boolean =
+        status == AvailabilityStatusMapper.AVAILABLE &&
+            (roleKeys.isEmpty() || roleKey in roleKeys)
 }

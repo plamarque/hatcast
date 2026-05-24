@@ -34,8 +34,8 @@ export class AvailabilityDialog {
     this.dialogRef.close(state)
   }
 
-  protected onSaved(result: AvailabilityDialogResult): void {
-    this.dialogRef.close(result)
+  protected onSaved(): void {
+    // Persist is handled by the form; dialog stays open until explicit close.
   }
 }
 

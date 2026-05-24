@@ -13,4 +13,6 @@ interface EventAvailabilityRepository : JpaRepository<EventAvailabilityEntity, E
         eventIds: Collection<UUID>,
         userId: UUID,
     ): List<EventAvailabilityEntity>
+
+    fun findByEvent_Id(eventId: UUID): List<EventAvailabilityEntity>
 }

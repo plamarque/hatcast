@@ -5,7 +5,10 @@ import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
+import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
+import { ParticipantApiService } from '../../core/participants/participant-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { EventDetailPlaceholder } from './event-detail-placeholder'
@@ -53,8 +56,11 @@ describe('EventDetailPlaceholder', () => {
   let listMyTroupes: ReturnType<typeof vi.fn>
   let getSeasonBySlug: ReturnType<typeof vi.fn>
 
+  let queryParamMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
+
   beforeEach(async () => {
     paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a', eventId: 'event-2' }))
+    queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
     listEvents = vi.fn()
     listMyTroupes = vi.fn().mockResolvedValue({
       ok: true,
@@ -97,8 +103,16 @@ describe('EventDetailPlaceholder', () => {
       imports: [EventDetailPlaceholder],
       providers: [
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
-        { provide: AuthApiService, useValue: { ensureHatcastSession: vi.fn().mockResolvedValue({ ok: true }) } },
+        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable(), queryParamMap: queryParamMap$.asObservable() } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: { id: 'user-1', email: 'a@b.c', displayName: 'Test' } },
+            }),
+          },
+        },
         {
           provide: TroupeApiService,
           useValue: {
@@ -112,6 +126,27 @@ describe('EventDetailPlaceholder', () => {
           },
         },
         { provide: EventApiService, useValue: { listEvents } },
+        {
+          provide: OrganizerApiService,
+          useValue: {
+            mySeasonPermissions: vi.fn().mockResolvedValue({
+              ok: true,
+              data: {
+                isTroupeAdmin: false,
+                isSeasonOrganizer: false,
+                eventOrganizerFor: [],
+              },
+            }),
+          },
+        },
+        {
+          provide: AvailabilityApiService,
+          useValue: { getEventAvailabilitySummary: vi.fn().mockResolvedValue({ ok: true, data: { participants: [], roles: [], roleSlots: {}, eventId: 'event-2' } }) },
+        },
+        {
+          provide: ParticipantApiService,
+          useValue: { listSeasonParticipantSelectors: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+        },
       ],
     }).compileComponents()
 

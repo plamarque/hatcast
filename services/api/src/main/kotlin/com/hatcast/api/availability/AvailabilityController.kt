@@ -1,6 +1,7 @@
 package com.hatcast.api.availability
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.availability.dto.EventAvailabilitySummaryResponse
 import com.hatcast.api.availability.dto.MyAvailabilityResponse
 import com.hatcast.api.availability.dto.SetMyAvailabilityRequest
 import jakarta.validation.Valid
@@ -32,4 +33,11 @@ class AvailabilityController(
         @Valid @RequestBody body: SetMyAvailabilityRequest,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): MyAvailabilityResponse = availabilityService.setMyStatus(seasonId, eventId, body, principal)
+
+    @GetMapping("/summary")
+    fun getAvailabilitySummary(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventAvailabilitySummaryResponse = availabilityService.getSummary(seasonId, eventId, principal)
 }

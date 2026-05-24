@@ -8,6 +8,7 @@ import { AvailabilityApiService } from '../../core/availability/availability-api
 import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { ROLE_TEMPLATES } from '../../core/events/event-types'
 import { AvailabilityDialog, type AvailabilityDialogData } from './availability-dialog'
+import { AvailabilityForm } from './availability-form'
 
 const dialogData: AvailabilityDialogData = {
   seasonId: 'season-1',
@@ -75,7 +76,7 @@ describe('AvailabilityDialog', () => {
 
   it('shows three choice buttons', async () => {
     const { fixture } = await setup()
-    const buttons = fixture.nativeElement.querySelectorAll('.availability-dialog__choice')
+    const buttons = fixture.nativeElement.querySelectorAll('.availability-form__choice')
     expect(buttons.length).toBe(3)
     expect(fixture.nativeElement.textContent).toContain('Dispo')
     expect(fixture.nativeElement.textContent).toContain('Pas dispo')
@@ -85,7 +86,7 @@ describe('AvailabilityDialog', () => {
   it('calls API on available choice without auto-closing', async () => {
     const { fixture, setMyAvailability, close } = await setup()
     const availableBtn = fixture.nativeElement.querySelector(
-      '.availability-dialog__choice--available',
+      '.availability-form__choice--available',
     ) as HTMLButtonElement
     availableBtn.click()
     await fixture.whenStable()
@@ -117,7 +118,7 @@ describe('AvailabilityDialog', () => {
   it('pre-checks preferred roles when switching to available', async () => {
     const { fixture, getPreferredRoles, setMyAvailability } = await setup()
     const availableBtn = fixture.nativeElement.querySelector(
-      '.availability-dialog__choice--available',
+      '.availability-form__choice--available',
     ) as HTMLButtonElement
 
     availableBtn.click()
@@ -140,14 +141,13 @@ describe('AvailabilityDialog', () => {
     expect(getPreferredRoles).not.toHaveBeenCalled()
   })
 
-  it('shows feedback and falls back to all event roles when preferred roles API fails', async () => {
+  it('saves empty roles when preferred roles API fails', async () => {
     const getPreferredRoles = vi.fn().mockResolvedValue({ ok: false, status: 500 })
     const setMyAvailability = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      data: { status: 'available', roleKeys: ['player', 'mc', 'dj'] },
+      data: { status: 'available', roleKeys: [] },
     })
-    const snackOpen = vi.fn()
 
     await TestBed.configureTestingModule({
       imports: [AvailabilityDialog, NoopAnimationsModule],
@@ -156,7 +156,7 @@ describe('AvailabilityDialog', () => {
         { provide: MAT_DIALOG_DATA, useValue: { ...dialogData, initialStatus: 'unknown' } },
         { provide: AvailabilityApiService, useValue: { setMyAvailability } },
         { provide: MemberProfileApiService, useValue: { getPreferredRoles } },
-        { provide: MatSnackBar, useValue: { open: snackOpen } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
       ],
     }).compileComponents()
 
@@ -164,17 +164,14 @@ describe('AvailabilityDialog', () => {
     fixture.detectChanges()
 
     const availableBtn = fixture.nativeElement.querySelector(
-      '.availability-dialog__choice--available',
+      '.availability-form__choice--available',
     ) as HTMLButtonElement
     availableBtn.click()
     await fixture.whenStable()
 
-    expect(snackOpen).toHaveBeenCalledWith('Impossible de charger tes rôles favoris.', 'OK', {
-      duration: 5000,
-    })
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
       status: 'available',
-      roleKeys: ['player', 'mc', 'dj'],
+      roleKeys: [],
       applyVolunteerRule: true,
     })
   })
@@ -185,9 +182,12 @@ describe('AvailabilityDialog', () => {
       initialRoleKeys: ['player'],
     })
 
-    await (fixture.componentInstance as unknown as {
-      toggleRole: (roleKey: string, checked: boolean) => Promise<void>
-    }).toggleRole('mc', true)
+    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
+      ?.componentInstance as AvailabilityForm
+    await (form as unknown as { toggleRole: (k: string, c: boolean) => Promise<void> }).toggleRole(
+      'mc',
+      true,
+    )
     await fixture.whenStable()
 
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
@@ -209,7 +209,7 @@ describe('AvailabilityDialog', () => {
     })
 
     const unavailableBtn = fixture.nativeElement.querySelector(
-      '.availability-dialog__choice--unavailable',
+      '.availability-form__choice--unavailable',
     ) as HTMLButtonElement
     unavailableBtn.click()
     await fixture.whenStable()
@@ -241,7 +241,7 @@ describe('AvailabilityDialog', () => {
       initialRoleKeys: ['player'],
     })
 
-    const mcCheckbox = [...fixture.nativeElement.querySelectorAll('.availability-dialog__role')].find(
+    const mcCheckbox = [...fixture.nativeElement.querySelectorAll('.availability-form__role')].find(
       (el: Element) => el.textContent?.includes('MC'),
     ) as HTMLElement
     const mcInput = mcCheckbox.querySelector('input[type="checkbox"]') as HTMLInputElement

@@ -54,3 +54,11 @@
 
 - GET list/selectors mutate DB via `ensureMembershipParticipants` on every call — intentional per Dev Notes (sync on GET); revisit if caching or read replicas are introduced.
 - Admin DTO exposes normalized (lowercase) email instead of user-entered casing — cosmetic UX only.
+
+## Deferred from: code review of 5-3-vue-organisateur-disponibilites-par-role-et-vues-moi-tous.md (2026-05-24)
+
+- W1 — GET /summary déclenche `ensureMembershipParticipants` (écriture dans transaction lecture) — design voulu pour cohérence du roster ; revisiter si la synchro est découplée en job séparé (Epic 6+).
+- W2 — Arrondissements des % ne totalisent pas toujours 100 — inhérent au stub `pastSelectionCount=0` ; appliquer "largest remainder" ou normalisation quand les vrais comptages Epic 6 sont injectés.
+- W3 — Accordéons Tous réinitialisés (tous ouverts) à chaque reload du summary post-save — UX mineure ; conserver l'état replié/déplié par rôle lors du rechargement.
+- W4 — `requiredCount` algébriquement neutre dans le stub (annulé dans le ratio malus/total) — deviendra pertinent quand Epic 6 introduira des `pastSelectionCount` variables entre candidats.
+- W5 — Purple active state Moi/Tous toggle non vérifiable sans contenu SCSS dans le diff — audit SCSS `event-dispos-tab.scss` avant merge.

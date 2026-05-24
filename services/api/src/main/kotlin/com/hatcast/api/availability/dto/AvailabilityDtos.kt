@@ -17,3 +17,32 @@ data class MyAvailabilityResponse(
     val updatedAt: Instant? = null,
     val roleKeys: List<String> = emptyList(),
 )
+
+data class SummaryParticipantDto(
+    val participantId: java.util.UUID,
+    val userId: java.util.UUID? = null,
+    val displayName: String,
+    val avatarUrl: String? = null,
+    val status: String,
+    val roleKeys: List<String> = emptyList(),
+)
+
+data class SummaryRoleCandidateDto(
+    val participantId: java.util.UUID,
+    val displayName: String,
+    val avatarUrl: String? = null,
+    val chancePercent: Int,
+)
+
+data class SummaryRoleDto(
+    val roleKey: String,
+    val requiredCount: Int,
+    val candidates: List<SummaryRoleCandidateDto>,
+)
+
+data class EventAvailabilitySummaryResponse(
+    val eventId: java.util.UUID,
+    val roleSlots: Map<String, Int>,
+    val participants: List<SummaryParticipantDto>,
+    val roles: List<SummaryRoleDto>,
+)

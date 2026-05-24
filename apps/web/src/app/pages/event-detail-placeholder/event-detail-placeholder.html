@@ -26,16 +26,51 @@
       <mat-spinner diameter="40" />
     </div>
   } @else if (event(); as ev) {
-    <main class="event-detail__main">
-      @if (ev.location) {
-        <p class="event-detail__loc">{{ ev.location }}</p>
-      }
-      @if (ev.description) {
-        <p class="event-detail__desc">{{ ev.description }}</p>
-      }
-      <p class="event-detail__placeholder">
-        Le détail complet (Infos, Dispos, Équipe) sera disponible dans une prochaine version.
-      </p>
-    </main>
+    <mat-tab-group
+      class="event-detail__tabs"
+      [selectedIndex]="tabIndex()"
+      (selectedIndexChange)="onTabChange($event)"
+      dynamicHeight
+    >
+      <mat-tab label="Infos">
+        <main class="event-detail__main">
+          <div class="event-detail__status-row">
+            <app-composition-status-badge [badge]="ev.teamStatusBadge" [short]="false" />
+            @if (compositionStatusHint(ev); as hint) {
+              <p class="event-detail__status-hint">{{ hint }}</p>
+            }
+          </div>
+          @if (ev.location) {
+            <p class="event-detail__loc">{{ ev.location }}</p>
+          }
+          @if (ev.description) {
+            <p class="event-detail__desc">{{ ev.description }}</p>
+          }
+          <p class="event-detail__placeholder">
+            Le détail complet de l’onglet Infos sera disponible dans une prochaine version.
+          </p>
+        </main>
+      </mat-tab>
+
+      <mat-tab label="Dispos">
+        <section class="event-detail__tab-panel">
+          <app-event-dispos-tab
+            [seasonId]="seasonId()"
+            [troupeId]="troupeId()"
+            [event]="ev"
+            [currentUserId]="currentUserId()"
+            [canSwitchSubject]="canSwitchSubject()"
+          />
+        </section>
+      </mat-tab>
+
+      <mat-tab label="Équipe">
+        <main class="event-detail__main">
+          <p class="event-detail__placeholder">
+            L’onglet Équipe sera disponible dans une prochaine version.
+          </p>
+        </main>
+      </mat-tab>
+    </mat-tab-group>
   }
 </div>

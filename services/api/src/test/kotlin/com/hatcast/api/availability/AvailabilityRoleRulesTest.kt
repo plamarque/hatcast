@@ -58,4 +58,36 @@ class AvailabilityRoleRulesTest {
 
         assertEquals(listOf("player"), normalized)
     }
+
+    @Test
+    fun `isCandidateForRole accepts available with empty role keys for any role`() {
+        assertEquals(
+            true,
+            AvailabilityRoleRules.isCandidateForRole("available", emptyList(), "mc"),
+        )
+    }
+
+    @Test
+    fun `isCandidateForRole accepts available when role is listed`() {
+        assertEquals(
+            true,
+            AvailabilityRoleRules.isCandidateForRole("available", listOf("player"), "player"),
+        )
+        assertEquals(
+            false,
+            AvailabilityRoleRules.isCandidateForRole("available", listOf("player"), "mc"),
+        )
+    }
+
+    @Test
+    fun `isCandidateForRole rejects non available statuses`() {
+        assertEquals(
+            false,
+            AvailabilityRoleRules.isCandidateForRole("unavailable", emptyList(), "player"),
+        )
+        assertEquals(
+            false,
+            AvailabilityRoleRules.isCandidateForRole("unknown", listOf("player"), "player"),
+        )
+    }
 }
