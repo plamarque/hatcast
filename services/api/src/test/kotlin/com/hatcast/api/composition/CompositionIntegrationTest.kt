@@ -180,7 +180,7 @@ class CompositionIntegrationTest {
                 eventId = eventId,
                 roleKey = "player",
                 slotIndex = 0,
-                participantId = participantId,
+                seasonParticipantId = participantId,
                 participationStatus = SlotParticipationStatus.PENDING,
             ),
         )
@@ -348,7 +348,7 @@ class CompositionIntegrationTest {
                 eventId = eventId,
                 roleKey = "player",
                 slotIndex = 0,
-                participantId = participantId,
+                seasonParticipantId = participantId,
                 participationStatus = SlotParticipationStatus.CONFIRMED,
             ),
         )

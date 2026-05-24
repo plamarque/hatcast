@@ -68,6 +68,63 @@ paths:
         '409':
           description: Rien à publier (pas de composition ou aucun slot assigné)
 
+  /seasons/{seasonId}/events/{eventId}/composition/validate:
+    post:
+      tags: [Composition]
+      summary: Valider (verrouiller) la composition
+      description: >
+        Fixe `validatedAt`, rend la composition visible aux membres même sans publication,
+        et réinitialise les statuts de participation à `pending` sur les slots assignés.
+        Idempotent si déjà validée (sans renvoyer la notification). Requiert `canManageComposition`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé (non organisateur ou non membre)
+        '404':
+          description: Saison ou événement inconnu
+        '409':
+          description: Rien à valider (pas de composition ou aucun slot assigné)
+
+  /seasons/{seasonId}/events/{eventId}/composition/unlock:
+    post:
+      tags: [Composition]
+      summary: Déverrouiller la composition validée
+      description: >
+        Efface `validatedAt`, conserve les assignations et remet `participationStatus` à `pending`
+        sur les slots assignés. Requiert `canManageComposition`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé (non organisateur ou non membre)
+        '404':
+          description: Saison ou événement inconnu
+        '409':
+          description: La composition n'est pas validée
+
   /seasons/{seasonId}/events/{eventId}/composition/draw:
     post:
       tags: [Composition]

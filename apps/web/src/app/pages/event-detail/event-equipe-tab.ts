@@ -12,6 +12,7 @@ import {
   type CompositionResponse,
   type CompositionSlot,
 } from '../../core/composition/composition-api.service'
+import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { showPublishButton } from '../../core/composition/composition-visibility'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
@@ -67,6 +68,8 @@ export class EventEquipeTab {
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
   protected readonly publishing = signal(false)
+  protected readonly validating = signal(false)
+  protected readonly unlocking = signal(false)
   protected readonly drawing = signal(false)
   protected readonly assigning = signal(false)
   protected readonly composition = signal<CompositionResponse | null>(null)
@@ -106,6 +109,45 @@ export class EventEquipeTab {
   protected readonly canPublish = computed(() =>
     showPublishButton(this.composition(), this.canManageComposition()),
   )
+
+  protected readonly hasAssignedSlot = computed(() =>
+    (this.composition()?.slots ?? []).some((slot) => slot.participantId != null),
+  )
+
+  protected readonly canValidate = computed(
+    () =>
+      this.canManageComposition() &&
+      !this.isCompositionLocked() &&
+      this.hasAssignedSlot() &&
+      !this.validating() &&
+      !this.unlocking() &&
+      !this.publishing(),
+  )
+
+  protected readonly canUnlock = computed(
+    () =>
+      this.canManageComposition() &&
+      this.isCompositionLocked() &&
+      !this.validating() &&
+      !this.unlocking() &&
+      !this.publishing(),
+  )
+
+  protected readonly equipeStatus = computed(() => {
+    const ev = this.event()
+    const comp = this.composition()
+    if (this.loading() || this.loadError() || this.animatingDraw()) {
+      return null
+    }
+    if (this.showEmptyState() && !this.showOrganizerPlaceholders()) {
+      return null
+    }
+    return resolveCompositionEquipeStatus({
+      composition: comp,
+      canManageComposition: this.canManageComposition(),
+      roleSlots: normalizeRoleSlots(ev.roleSlots),
+    })
+  })
 
   protected readonly canDraw = computed(
     () =>
@@ -285,13 +327,11 @@ export class EventEquipeTab {
 
     const component = dialogRef.componentInstance
     if (!candidatesResult.ok || !candidatesResult.data) {
-      const errorMessage =
-        candidatesResult.status === 403
-          ? 'Accès refusé.'
-          : candidatesResult.status === 409
-            ? 'La composition est verrouillée.'
-            : 'Impossible de charger les candidats.'
-      component.updateState([], false, errorMessage)
+      component.updateState(
+        [],
+        false,
+        this.candidatesErrorMessage(candidatesResult.status, candidatesResult.errorMessage),
+      )
       return
     }
 
@@ -332,13 +372,34 @@ export class EventEquipeTab {
       return
     }
     if (!result.ok || !result.data) {
-      this.snack.open(this.assignErrorMessage(result.status), 'OK', { duration: 6000 })
+      this.snack.open(
+        this.assignErrorMessage(result.status, result.errorMessage),
+        'OK',
+        { duration: 6000 },
+      )
       return
     }
     this.composition.set(result.data)
   }
 
-  private assignErrorMessage(status: number): string {
+  private candidatesErrorMessage(status: number, apiMessage?: string): string {
+    if (apiMessage) {
+      return apiMessage
+    }
+    switch (status) {
+      case 403:
+        return 'Accès refusé.'
+      case 409:
+        return 'La composition est verrouillée.'
+      default:
+        return 'Impossible de charger les candidats.'
+    }
+  }
+
+  private assignErrorMessage(status: number, apiMessage?: string): string {
+    if (apiMessage) {
+      return apiMessage
+    }
     switch (status) {
       case 403:
         return 'Vous ne pouvez pas modifier cette composition.'
@@ -374,6 +435,73 @@ export class EventEquipeTab {
     this.composition.set(result.data)
     this.compositionPublished.emit()
     this.snack.open('Composition publiée.', 'OK', { duration: 4000 })
+  }
+
+  protected async validate(): Promise<void> {
+    if (!this.canValidate()) {
+      return
+    }
+    this.validating.set(true)
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const result = await this.compositionApi.validateComposition(seasonId, eventId)
+    this.validating.set(false)
+    if (this.event().id !== eventId) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      this.snack.open(this.validateUnlockErrorMessage('validate', result.status, result.errorMessage), 'OK', {
+        duration: 6000,
+      })
+      return
+    }
+    this.composition.set(result.data)
+    this.compositionPublished.emit()
+    this.snack.open('Composition validée.', 'OK', { duration: 4000 })
+  }
+
+  protected async unlock(): Promise<void> {
+    if (!this.canUnlock()) {
+      return
+    }
+    this.unlocking.set(true)
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const result = await this.compositionApi.unlockComposition(seasonId, eventId)
+    this.unlocking.set(false)
+    if (this.event().id !== eventId) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      this.snack.open(this.validateUnlockErrorMessage('unlock', result.status, result.errorMessage), 'OK', {
+        duration: 6000,
+      })
+      return
+    }
+    this.composition.set(result.data)
+    this.compositionPublished.emit()
+    this.snack.open('Composition déverrouillée.', 'OK', { duration: 4000 })
+  }
+
+  private validateUnlockErrorMessage(
+    action: 'validate' | 'unlock',
+    status: number,
+    apiMessage?: string,
+  ): string {
+    if (apiMessage) {
+      return apiMessage
+    }
+    if (status === 403) {
+      return action === 'validate'
+        ? 'Vous ne pouvez pas valider cette composition.'
+        : 'Vous ne pouvez pas déverrouiller cette composition.'
+    }
+    if (status === 409) {
+      return action === 'validate'
+        ? 'Rien à valider pour le moment.'
+        : 'La composition n\'est pas verrouillée.'
+    }
+    return action === 'validate' ? 'Validation impossible.' : 'Déverrouillage impossible.'
   }
 
   private async load(seasonId: string, eventId: string): Promise<void> {

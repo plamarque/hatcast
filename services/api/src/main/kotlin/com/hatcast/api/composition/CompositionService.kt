@@ -74,7 +74,7 @@ class CompositionService(
         val alreadyPublished = composition.publishedAt != null
         if (!alreadyPublished) {
             val slots = slotRepository.findByEventId(eventId)
-            val assignedCount = slots.count { it.participantId != null }
+            val assignedCount = slots.count { it.hasAssignee() }
             if (assignedCount == 0) {
                 throw ResponseStatusException(HttpStatus.CONFLICT, "Aucun rôle assigné à publier")
             }
@@ -83,6 +83,82 @@ class CompositionService(
             composition.updatedAt = now
             compositionRepository.save(composition)
             notificationPort.publishDraftCompositionShared(eventId, seasonId, principal.userId)
+        }
+
+        return buildResponse(event, principal, canManage = true)
+    }
+
+    @Transactional
+    fun validateComposition(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): CompositionResponseDto {
+        val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
+        if (!canManage) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
+        }
+
+        val composition =
+            compositionRepository.findByEventIdForUpdate(eventId).orElseThrow {
+                ResponseStatusException(HttpStatus.CONFLICT, "Aucune composition à valider")
+            }
+        val slots = slotRepository.findByEventId(eventId)
+        val assignedCount = slots.count { it.hasAssignee() }
+        if (assignedCount == 0) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Aucun rôle assigné à valider")
+        }
+
+        val alreadyValidated = composition.validatedAt != null
+        if (!alreadyValidated) {
+            val now = Instant.now()
+            composition.validatedAt = now
+            composition.updatedAt = now
+            compositionRepository.save(composition)
+            for (slot in slots) {
+                if (slot.hasAssignee()) {
+                    slot.participationStatus = SlotParticipationStatus.PENDING
+                    slotRepository.save(slot)
+                }
+            }
+            notificationPort.requestCompositionConfirmation(eventId, seasonId, principal.userId)
+        }
+
+        return buildResponse(event, principal, canManage = true)
+    }
+
+    @Transactional
+    fun unlockComposition(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): CompositionResponseDto {
+        val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
+        if (!canManage) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
+        }
+
+        val composition =
+            compositionRepository.findByEventIdForUpdate(eventId).orElseThrow {
+                ResponseStatusException(HttpStatus.CONFLICT, "Aucune composition à déverrouiller")
+            }
+        if (composition.validatedAt == null) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "La composition n'est pas validée")
+        }
+
+        val now = Instant.now()
+        composition.validatedAt = null
+        composition.updatedAt = now
+        compositionRepository.save(composition)
+
+        val slots = slotRepository.findByEventId(eventId)
+        for (slot in slots) {
+            if (slot.hasAssignee()) {
+                slot.participationStatus = SlotParticipationStatus.PENDING
+                slotRepository.save(slot)
+            }
         }
 
         return buildResponse(event, principal, canManage = true)
@@ -103,7 +179,7 @@ class CompositionService(
                 val count = normalizedRoleSlots[slot.roleKey] ?: 0
                 slot.slotIndex in 0 until count
             }
-        val hasAssignedSlots = slots.any { it.participantId != null }
+        val hasAssignedSlots = slots.any { it.hasAssignee() }
         val visibility =
             CompositionVisibilityRules.resolveVisibility(composition, resolvedCanManage, hasAssignedSlots)
         val canViewSlots =
@@ -126,19 +202,20 @@ class CompositionService(
 
         val slotDtos =
             if (canViewSlots) {
-                val participantIds = slots.mapNotNull { it.participantId }.toSet()
+                val participantIds = slots.mapNotNull { it.assignedParticipantId() }.toSet()
                 val displayNames = resolveDisplayNames(eventId, participantIds)
                 slots.map { slot ->
+                    val assignedId = slot.assignedParticipantId()
                     val odds =
-                        slot.participantId?.let { pid ->
+                        assignedId?.let { pid ->
                             explainabilityByRoleAndParticipant[pid to slot.roleKey]
                         }
                     CompositionSlotDto(
                         roleKey = slot.roleKey,
                         slotIndex = slot.slotIndex,
-                        participantId = slot.participantId,
+                        participantId = assignedId,
                         participantDisplayName =
-                            slot.participantId?.let { displayNames[it] },
+                            assignedId?.let { displayNames[it] },
                         participationStatus = slot.participationStatus.name.lowercase(),
                         chancePercent = odds?.first,
                         pastSelectionCount = odds?.second,

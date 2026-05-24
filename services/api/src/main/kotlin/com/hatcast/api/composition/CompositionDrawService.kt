@@ -98,6 +98,7 @@ class CompositionDrawService(
                     slot.slotIndex in 0 until count
                 }.groupBy { it.roleKey }
 
+        val eligibleById = eligible.associateBy { it.participantId }
         val crossRoleExcluded = mutableSetOf<UUID>()
         val steps = mutableListOf<CompositionDrawStepDto>()
 
@@ -106,15 +107,15 @@ class CompositionDrawService(
             if (requiredCount <= 0) continue
 
             val roleSlots = slotsByRole[roleKey].orEmpty().associateBy { it.slotIndex }
-            val filledCount = (0 until requiredCount).count { roleSlots[it]?.participantId != null }
+            val filledCount = (0 until requiredCount).count { roleSlots[it]?.hasAssignee() == true }
             val isFullRedraw =
                 mode == DrawMode.FULL && filledCount >= requiredCount
 
             if (isFullRedraw) {
                 for (index in 0 until requiredCount) {
                     roleSlots[index]?.let { slot ->
-                        if (slot.participantId != null) {
-                            slot.participantId = null
+                        if (slot.hasAssignee()) {
+                            slot.clearAssignee()
                             slot.updatedAt = now
                             slotRepository.save(slot)
                         }
@@ -125,7 +126,7 @@ class CompositionDrawService(
             val withinRoleExcluded = mutableSetOf<UUID>()
             if (!isFullRedraw) {
                 for (index in 0 until requiredCount) {
-                    roleSlots[index]?.participantId?.let {
+                    roleSlots[index]?.assignedParticipantId()?.let {
                         withinRoleExcluded.add(it)
                         crossRoleExcluded.add(it)
                     }
@@ -135,9 +136,9 @@ class CompositionDrawService(
             val indicesToFill =
                 when {
                     mode == DrawMode.FILL_EMPTY ->
-                        (0 until requiredCount).filter { roleSlots[it]?.participantId == null }
+                        (0 until requiredCount).filter { roleSlots[it]?.hasAssignee() != true }
                     isFullRedraw -> (0 until requiredCount).toList()
-                    else -> (0 until requiredCount).filter { roleSlots[it]?.participantId == null }
+                    else -> (0 until requiredCount).filter { roleSlots[it]?.hasAssignee() != true }
                 }
 
             val pastByParticipant =
@@ -200,6 +201,12 @@ class CompositionDrawService(
                 }
 
                 val selectedId = drawResult.selected.participantId
+                val selectedParticipant =
+                    eligibleById[selectedId]
+                        ?: throw ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Participant non éligible pour ce rôle",
+                        )
                 val slotEntity =
                     roleSlots[slotIndex]
                         ?: slotRepository.save(
@@ -209,7 +216,7 @@ class CompositionDrawService(
                                 slotIndex = slotIndex,
                             ),
                         )
-                slotEntity.participantId = selectedId
+                slotEntity.setAssignee(selectedParticipant)
                 slotEntity.participationStatus = SlotParticipationStatus.PENDING
                 slotEntity.updatedAt = now
                 slotRepository.save(slotEntity)

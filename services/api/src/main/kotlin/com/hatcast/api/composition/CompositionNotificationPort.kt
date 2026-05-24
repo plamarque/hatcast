@@ -10,6 +10,12 @@ interface CompositionNotificationPort {
         seasonId: UUID,
         actorUserId: UUID,
     )
+
+    fun requestCompositionConfirmation(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+    )
 }
 
 @Component
@@ -23,6 +29,19 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
     ) {
         log.debug(
             "draft_composition_shared eventId={} seasonId={} actorUserId={}",
+            eventId,
+            seasonId,
+            actorUserId,
+        )
+    }
+
+    override fun requestCompositionConfirmation(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+    ) {
+        log.debug(
+            "composition_confirmation_requested eventId={} seasonId={} actorUserId={}",
             eventId,
             seasonId,
             actorUserId,

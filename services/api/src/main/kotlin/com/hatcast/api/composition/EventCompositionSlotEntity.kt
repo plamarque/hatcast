@@ -26,8 +26,10 @@ class EventCompositionSlotEntity(
     val roleKey: String,
     @Column(name = "slot_index", nullable = false)
     val slotIndex: Int,
-    @Column(name = "participant_id")
-    var participantId: UUID? = null,
+    @Column(name = "season_participant_id")
+    var seasonParticipantId: UUID? = null,
+    @Column(name = "event_participant_id")
+    var eventParticipantId: UUID? = null,
     @Enumerated(EnumType.STRING)
     @Column(name = "participation_status", nullable = false, length = 16)
     var participationStatus: SlotParticipationStatus = SlotParticipationStatus.PENDING,

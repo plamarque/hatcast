@@ -38,6 +38,20 @@ class CompositionController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): CompositionResponseDto = compositionService.publishComposition(seasonId, eventId, principal)
 
+    @PostMapping("/validate")
+    fun validateComposition(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionResponseDto = compositionService.validateComposition(seasonId, eventId, principal)
+
+    @PostMapping("/unlock")
+    fun unlockComposition(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionResponseDto = compositionService.unlockComposition(seasonId, eventId, principal)
+
     @PostMapping("/draw")
     fun drawComposition(
         @PathVariable seasonId: UUID,

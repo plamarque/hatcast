@@ -93,7 +93,7 @@ private fun EventCompositionSlotEntity.toSnapshot(): CompositionSlotSnapshot =
     CompositionSlotSnapshot(
         roleKey = roleKey,
         slotIndex = slotIndex,
-        participantId = participantId,
+        participantId = assignedParticipantId(),
         participationStatus = participationStatus,
         waived = waived,
     )

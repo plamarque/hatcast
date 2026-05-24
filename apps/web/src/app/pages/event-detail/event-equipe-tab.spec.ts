@@ -33,6 +33,8 @@ describe('EventEquipeTab', () => {
   let drawComposition: ReturnType<typeof vi.fn>
   let getCompositionCandidates: ReturnType<typeof vi.fn>
   let assignCompositionSlot: ReturnType<typeof vi.fn>
+  let validateComposition: ReturnType<typeof vi.fn>
+  let unlockComposition: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
   let dialogAfterClosed: Subject<{ participantId: string } | undefined>
 
@@ -80,6 +82,8 @@ describe('EventEquipeTab', () => {
         ],
       },
     })
+    validateComposition = vi.fn()
+    unlockComposition = vi.fn()
     dialogAfterClosed = new Subject<{ participantId: string } | undefined>()
     dialogOpen = vi.fn().mockReturnValue({
       componentInstance: {
@@ -100,6 +104,8 @@ describe('EventEquipeTab', () => {
             drawComposition,
             getCompositionCandidates,
             assignCompositionSlot,
+            validateComposition,
+            unlockComposition,
           },
         },
         { provide: MatDialog, useValue: { open: dialogOpen } },
@@ -411,5 +417,123 @@ describe('EventEquipeTab', () => {
     })
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__slot-button')).toBeNull()
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__clear')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Déverrouiller')
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__validate')).toBeNull()
+  })
+
+  it('shows Valider for organizer draft with assigned slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Ready',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Valider')
+      expect(fixture.nativeElement.textContent).toContain('En préparation')
+    })
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+  })
+
+  it('emits compositionPublished after successful validate', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'ToValidate',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    validateComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'ToValidate',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Valider')
+    })
+
+    const emitted = vi.fn()
+    fixture.componentInstance.compositionPublished.subscribe(emitted)
+
+    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__validate') as HTMLButtonElement
+    btn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(validateComposition).toHaveBeenCalledWith('season-1', 'event-1')
+      expect(emitted).toHaveBeenCalled()
+    })
+  })
+
+  it('shows Confirmations en cours badge on validated pending composition', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Pending Player',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Other',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
+    })
   })
 })

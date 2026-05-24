@@ -276,7 +276,7 @@ class CompositionDrawIntegrationTest {
                 eventId = eventId,
                 roleKey = "player",
                 slotIndex = 0,
-                participantId = keeperId,
+                seasonParticipantId = keeperId,
                 participationStatus = SlotParticipationStatus.PENDING,
             ),
         )

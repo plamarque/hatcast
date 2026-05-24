@@ -142,27 +142,29 @@ class CompositionSlotAssignmentService(
         }
 
         val now = Instant.now()
-        val compositionRow =
-            composition
-                ?: compositionRepository.save(
-                    EventCompositionEntity(
-                        eventId = eventId,
-                        validatedAt = null,
-                        publishedAt = null,
-                        createdAt = now,
-                        updatedAt = now,
-                    ),
-                )
-
         val participantId = body.participantId
         if (participantId == null) {
-            clearSlot(eventId, roleKey, slotIndex, now)
+            val cleared = clearSlot(eventId, roleKey, slotIndex, now)
+            if (composition != null && cleared) {
+                composition.updatedAt = now
+                compositionRepository.save(composition)
+            }
         } else {
+            val compositionRow =
+                composition
+                    ?: compositionRepository.save(
+                        EventCompositionEntity(
+                            eventId = eventId,
+                            validatedAt = null,
+                            publishedAt = null,
+                            createdAt = now,
+                            updatedAt = now,
+                        ),
+                    )
             assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
+            compositionRow.updatedAt = now
+            compositionRepository.save(compositionRow)
         }
-
-        compositionRow.updatedAt = now
-        compositionRepository.save(compositionRow)
 
         return compositionService.getComposition(seasonId, eventId, principal)
     }
@@ -184,9 +186,7 @@ class CompositionSlotAssignmentService(
                 seasonParticipantRepository,
                 eventParticipantRepository,
             )
-        if (eligible.none { it.participantId == participantId }) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "Participant inconnu pour cet événement")
-        }
+        val eligibleRow = resolveAssignee(seasonId, eventId, participantId, eligible)
 
         val availabilityByUserId =
             availabilityRepository.findByEvent_Id(eventId).associateBy { it.user.id }
@@ -207,7 +207,7 @@ class CompositionSlotAssignmentService(
                 .any { slot ->
                     slot.roleKey == roleKey &&
                         slot.slotIndex != slotIndex &&
-                        slot.participantId == participantId
+                        slot.assignedParticipantId() == participantId
                 }
         if (sameRoleConflict) {
             throw ResponseStatusException(
@@ -225,7 +225,7 @@ class CompositionSlotAssignmentService(
                         slotIndex = slotIndex,
                     ),
                 )
-        slotEntity.participantId = participantId
+        slotEntity.setAssignee(eligibleRow)
         slotEntity.participationStatus = SlotParticipationStatus.PENDING
         slotEntity.updatedAt = now
         slotRepository.save(slotEntity)
@@ -236,13 +236,16 @@ class CompositionSlotAssignmentService(
         roleKey: String,
         slotIndex: Int,
         now: Instant,
-    ) {
+    ): Boolean {
         val slotEntity = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
         if (slotEntity != null) {
-            slotEntity.participantId = null
+            slotEntity.clearAssignee()
+            slotEntity.participationStatus = SlotParticipationStatus.PENDING
             slotEntity.updatedAt = now
             slotRepository.save(slotEntity)
+            return true
         }
+        return false
     }
 
     private fun sameRoleAssignedParticipantIds(
@@ -254,17 +257,41 @@ class CompositionSlotAssignmentService(
             .findByEventId(eventId)
             .filter { slot ->
                 slot.roleKey == roleKey &&
-                    slot.participantId != null &&
+                    slot.hasAssignee() &&
                     (editingSlotIndex == null || slot.slotIndex != editingSlotIndex)
-            }.mapNotNull { it.participantId }
+            }.mapNotNull { it.assignedParticipantId() }
             .toSet()
 
     private fun assignedRoleKeysByParticipant(eventId: UUID): Map<UUID, List<String>> =
         slotRepository
             .findByEventId(eventId)
-            .filter { it.participantId != null }
-            .groupBy { it.participantId!! }
+            .filter { it.hasAssignee() }
+            .groupBy { it.assignedParticipantId()!! }
             .mapValues { (_, slots) -> slots.map { it.roleKey }.distinct().sorted() }
+
+    private fun resolveAssignee(
+        seasonId: UUID,
+        eventId: UUID,
+        participantId: UUID,
+        eligible: List<CompositionEligibleParticipant>,
+    ): CompositionEligibleParticipant {
+        eligible.firstOrNull { it.participantId == participantId }?.let { return it }
+
+        val eventRow =
+            eventParticipantRepository.findByIdAndEvent_Id(participantId, eventId)
+                ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Participant inconnu pour cet événement")
+
+        eventRow.user?.id?.let { userId ->
+            eligible.firstOrNull { it.userId == userId }?.let { return it }
+        }
+
+        return CompositionEligibleParticipant(
+            eventRow.id,
+            eventRow.user?.id,
+            eventRow.displayName,
+            CompositionParticipantSource.EVENT,
+        )
+    }
 
     private fun requireManageComposition(
         eventId: UUID,

@@ -16,6 +16,25 @@
       </p>
     }
 
+    @if (equipeStatus(); as status) {
+      <div class="event-equipe-tab__status">
+        <span
+          class="event-equipe-tab__status-badge"
+          [class.event-equipe-tab__status-badge--success]="status.tone === 'success'"
+          [class.event-equipe-tab__status-badge--warning]="status.tone === 'warning'"
+          [class.event-equipe-tab__status-badge--info]="status.tone === 'info'"
+        >
+          {{ status.label }}
+        </span>
+        <p
+          class="event-equipe-tab__status-hint"
+          [class.event-equipe-tab__status-hint--success]="status.tone === 'success'"
+        >
+          {{ status.hint }}
+        </p>
+      </div>
+    }
+
     @if (animatingDraw() && currentDrawStep(); as drawStep) {
       <app-composition-draw-animation
         [step]="drawStep"
@@ -128,6 +147,36 @@
           <mat-spinner diameter="20" />
         } @else {
           Publier
+        }
+      </button>
+    }
+
+    @if (canValidate()) {
+      <button
+        type="button"
+        class="event-equipe-tab__validate"
+        [disabled]="validating()"
+        (click)="validate()"
+      >
+        @if (validating()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Valider
+        }
+      </button>
+    }
+
+    @if (canUnlock()) {
+      <button
+        type="button"
+        class="event-equipe-tab__unlock"
+        [disabled]="unlocking()"
+        (click)="unlock()"
+      >
+        @if (unlocking()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Déverrouiller
         }
       </button>
     }

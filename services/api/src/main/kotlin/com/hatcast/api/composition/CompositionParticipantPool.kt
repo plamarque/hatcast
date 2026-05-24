@@ -14,6 +14,7 @@ data class CompositionEligibleParticipant(
     val participantId: UUID,
     val userId: UUID?,
     val displayName: String,
+    val source: CompositionParticipantSource,
 )
 
 object CompositionParticipantPool {
@@ -36,7 +37,12 @@ object CompositionParticipantPool {
 
         for (row in seasonRows) {
             byId[row.id] =
-                CompositionEligibleParticipant(row.id, row.user?.id, row.displayName)
+                CompositionEligibleParticipant(
+                    row.id,
+                    row.user?.id,
+                    row.displayName,
+                    CompositionParticipantSource.SEASON,
+                )
             row.user?.id?.let { seenUserIds.add(it) }
         }
 
@@ -54,7 +60,13 @@ object CompositionParticipantPool {
             if (userId != null && userId in seenUserIds) {
                 continue
             }
-            byId[row.id] = CompositionEligibleParticipant(row.id, userId, row.displayName)
+            byId[row.id] =
+                CompositionEligibleParticipant(
+                    row.id,
+                    userId,
+                    row.displayName,
+                    CompositionParticipantSource.EVENT,
+                )
             userId?.let { seenUserIds.add(it) }
         }
 

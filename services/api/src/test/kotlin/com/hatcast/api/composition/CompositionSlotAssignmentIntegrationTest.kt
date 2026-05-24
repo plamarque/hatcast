@@ -2,12 +2,20 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.availability.EventAvailabilityEntity
+import com.hatcast.api.availability.EventAvailabilityRepository
+import com.hatcast.api.availability.StoredAvailabilityStatus
+import com.hatcast.api.event.EventRepository
+import com.hatcast.api.participant.EventParticipantEntity
+import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -66,6 +74,15 @@ class CompositionSlotAssignmentIntegrationTest {
 
     @Autowired
     private lateinit var slotRepository: EventCompositionSlotRepository
+
+    @Autowired
+    private lateinit var eventRepository: EventRepository
+
+    @Autowired
+    private lateinit var eventParticipantRepository: EventParticipantRepository
+
+    @Autowired
+    private lateinit var availabilityRepository: EventAvailabilityRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -350,7 +367,25 @@ class CompositionSlotAssignmentIntegrationTest {
 
         val cleared =
             slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)
-        assertTrue(cleared?.participantId == null)
+        assertTrue(cleared?.assignedParticipantId() == null)
+    }
+
+    @Test
+    fun `PUT clear on never-assigned slot does not create composition row`() {
+        val adminCookie = memberCookie("sub-assign-admin-clear-empty", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":null}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        assertTrue(compositionRepository.findById(eventId).isEmpty)
     }
 
     @Test
@@ -463,6 +498,60 @@ class CompositionSlotAssignmentIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Season Display Name"))
+    }
+
+    @Test
+    @Tag("FR21")
+    fun `assign event-only participant persists event participant FK`() {
+        val adminCookie = memberCookie("sub-assign-admin-eventonly", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+        val event = eventRepository.findById(eventId).orElseThrow()
+        val now = Instant.now()
+        val guestUser =
+            userRepository.save(
+                UserEntity(
+                    email = "event-only-guest@example.com",
+                    displayName = "Event Guest",
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+        val eventParticipant =
+            eventParticipantRepository.save(
+                EventParticipantEntity(
+                    event = event,
+                    displayName = "Event Guest",
+                    user = guestUser,
+                    status = ParticipantStatus.ACTIVE,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+        availabilityRepository.save(
+            EventAvailabilityEntity(
+                event = event,
+                user = guestUser,
+                status = StoredAvailabilityStatus.AVAILABLE,
+                roleKeys = listOf("player"),
+                now = now,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":"${eventParticipant.id}"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(eventParticipant.id.toString()))
+            .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Event Guest"))
+
+        val slot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+        assertTrue(slot.eventParticipantId == eventParticipant.id)
+        assertTrue(slot.seasonParticipantId == null)
     }
 
     @Test

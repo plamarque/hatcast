@@ -1,3 +1,7 @@
+## Deferred from: code review of 12-1-api-agenda-utilisateur.md (2026-05-24)
+
+- Participation context runs four auxiliary queries per request — acceptable for MVP; batch into one query if explain plans fail NFR-P1.
+
 ## Deferred from: code review of 12-2-ecran-mon-agenda.md (2026-05-24)
 
 - Silent truncation beyond 50 events — story explicitly defers load-more / pagination UI to a later slice.
@@ -89,6 +93,11 @@
 - **D5** — `resolveDraftVisibility` ignore `hasAssignedSlots` (écart sémantique avec `buildResponse`) : aucune conséquence fonctionnelle actuelle dans `CompositionLifecycleEnrichmentService.kt`.
 - **D6** — Toutes les erreurs 409 mappées au même message UX "Rien à publier" côté Angular (`event-equipe-tab.ts` L132-133) : les trois cas backend distincts (pas de composition, déjà validée, aucun slot assigné) ne sont pas différenciés pour l'organisateur.
 - **D7** — Publish autorisé avec slots tous en statut `DECLINED` (`CompositionService.kt` L60 : `assignedCount` compte tous les `participantId != null`) : logique de participation 6.7+, sans conséquence fonctionnelle en 6.3.
+
+## Deferred from: code review of 6-5-assignation-manuelle-et-reassignation-des-roles.md (2026-05-24)
+
+- `loadEligibleForExplainability` duplicates `CompositionParticipantPool` in `CompositionService.kt` — deferred from 6.4 review; refactor when explainability path is consolidated.
+- Concurrent same-role assign TOCTOU in `CompositionSlotAssignmentService.kt` — check-then-insert without slot-level lock; acceptable for MVP unless duplicate-slot reports appear in prod.
 
 ## Deferred from: code review of 6-4-tirage-aleatoire-pondere-et-affichage-des-cotes-explainability.md (2026-05-24)
 

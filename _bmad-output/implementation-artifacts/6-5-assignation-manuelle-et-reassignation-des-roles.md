@@ -1,6 +1,6 @@
 # Story 6.5: Manual assignment and role reassignment
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -100,6 +100,16 @@ so that **I can adjust the draw or handle special cases** (**FR21**, **UX-DR6**)
   - **Integration:** PUT assign creates composition + slot; reassign resets pending; GET candidates order; member **403**; validated **409**; publish idempotent after clear-all (**D2**); event-only participant name on read.
   - **Component (Angular):** organizer tap opens dialog; pick assigns; × clears; locked composition hides × and disables click.
   - Regression: **6.4** draw still works; **6.3** publish visibility unchanged.
+
+### Review Findings
+
+- [x] [Review][Decision] Event-only participants cannot be assigned — resolved via **V20** migration: `season_participant_id` + `event_participant_id` dual FK with XOR check; `CompositionSlotAssignee` helpers route assign/draw to the correct column.
+- [x] [Review][Patch] Assign-path 409 snackbars not differentiated [`event-equipe-tab.ts:341`] — fixed: API error `message` propagated via `composition-api.service.ts` and shown in assign/candidates UX.
+- [x] [Review][Patch] `clearSlot` leaves stale `participationStatus` [`CompositionSlotAssignmentService.kt:234-245`] — fixed: reset to `PENDING` on clear.
+- [x] [Review][Patch] PUT clear creates orphan composition row [`CompositionSlotAssignmentService.kt:145-165`] — fixed: composition row created only on assign; clear-only no-op without existing row; integration test added.
+- [x] [Review][Defer] Missing event-only display-name integration test [`CompositionSlotAssignmentIntegrationTest.kt`] — resolved with V20 migration + `assign event-only participant persists event participant FK` test.
+- [x] [Review][Defer] `loadEligibleForExplainability` duplicates `CompositionParticipantPool` [`CompositionService.kt:212-248`] — deferred from 6.4 review; refactor when explainability path is consolidated.
+- [x] [Review][Defer] Concurrent same-role assign TOCTOU [`CompositionSlotAssignmentService.kt:204-217`] — check-then-insert without slot-level lock; same class of race as draw; acceptable for MVP unless duplicate-slot reports appear in prod.
 
 ## Dev Notes
 

@@ -18,7 +18,7 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
 
     @Query(
         """
-        SELECT s.participantId AS participantId, s.roleKey AS roleKey, COUNT(s) AS selectionCount
+        SELECT COALESCE(s.seasonParticipantId, s.eventParticipantId) AS participantId, s.roleKey AS roleKey, COUNT(s) AS selectionCount
         FROM EventCompositionSlotEntity s
         JOIN EventCompositionEntity c ON c.eventId = s.eventId
         JOIN EventEntity e ON e.id = s.eventId
@@ -26,9 +26,9 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
           AND s.eventId <> :excludeEventId
           AND e.archived = false
           AND c.validatedAt IS NOT NULL
-          AND s.participantId IS NOT NULL
+          AND COALESCE(s.seasonParticipantId, s.eventParticipantId) IS NOT NULL
           AND s.participationStatus <> com.hatcast.api.composition.SlotParticipationStatus.DECLINED
-        GROUP BY s.participantId, s.roleKey
+        GROUP BY COALESCE(s.seasonParticipantId, s.eventParticipantId), s.roleKey
         """,
     )
     fun countValidatedSelectionsBySeason(

@@ -60,6 +60,26 @@ export interface CompositionResponse {
   slots: CompositionSlot[]
 }
 
+export interface CompositionApiError {
+  ok: false
+  status: number
+  errorMessage?: string
+}
+
+type CompositionApiResult<T> = ({ ok: true; status: number; data: T } | CompositionApiError) & {
+  errorMessage?: string
+}
+
+async function readApiErrorMessage(res: Response): Promise<string | undefined> {
+  try {
+    const body = (await res.json()) as { message?: string }
+    const message = body.message?.trim()
+    return message || undefined
+  } catch {
+    return undefined
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class CompositionApiService {
   async getComposition(
@@ -84,7 +104,7 @@ export class CompositionApiService {
   async publishComposition(
     seasonId: string,
     eventId: string,
-  ): Promise<{ ok: boolean; status: number; data?: CompositionResponse }> {
+  ): Promise<CompositionApiResult<CompositionResponse>> {
     try {
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/publish`,
@@ -95,7 +115,53 @@ export class CompositionApiService {
         },
       )
       if (!res.ok) {
-        return { ok: false, status: res.status }
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      const data = (await res.json()) as CompositionResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async validateComposition(
+    seasonId: string,
+    eventId: string,
+  ): Promise<CompositionApiResult<CompositionResponse>> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/validate`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: csrfHeaders(),
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      const data = (await res.json()) as CompositionResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async unlockComposition(
+    seasonId: string,
+    eventId: string,
+  ): Promise<CompositionApiResult<CompositionResponse>> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/unlock`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: csrfHeaders(),
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
       const data = (await res.json()) as CompositionResponse
       return { ok: true, status: res.status, data }
@@ -137,7 +203,7 @@ export class CompositionApiService {
     eventId: string,
     roleKey: string,
     slotIndex: number,
-  ): Promise<{ ok: boolean; status: number; data?: CompositionCandidateListResponse }> {
+  ): Promise<CompositionApiResult<CompositionCandidateListResponse>> {
     try {
       const params = new URLSearchParams({ roleKey, slotIndex: String(slotIndex) })
       const res = await fetch(
@@ -145,7 +211,7 @@ export class CompositionApiService {
         { credentials: 'include' },
       )
       if (!res.ok) {
-        return { ok: false, status: res.status }
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
       const data = (await res.json()) as CompositionCandidateListResponse
       return { ok: true, status: res.status, data }
@@ -160,7 +226,7 @@ export class CompositionApiService {
     roleKey: string,
     slotIndex: number,
     participantId: string | null,
-  ): Promise<{ ok: boolean; status: number; data?: CompositionResponse }> {
+  ): Promise<CompositionApiResult<CompositionResponse>> {
     try {
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/slots/${encodeURIComponent(roleKey)}/${slotIndex}`,
@@ -175,7 +241,7 @@ export class CompositionApiService {
         },
       )
       if (!res.ok) {
-        return { ok: false, status: res.status }
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
       const data = (await res.json()) as CompositionResponse
       return { ok: true, status: res.status, data }
