@@ -216,44 +216,90 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 
 ---
 
-## V2 delivery track (BMAD — League journey)
+## V2 delivery track (BMAD)
 
-**Added:** 2026-05-24 — supersedes implicit order in `_bmad-output/planning-artifacts/epics.md` for **navigation and domain** work only. Legacy slices above unchanged.
+**Added:** 2026-05-24 — ordre d’exécution V2 Angular + API Spring. Les slices legacy (V1 Firebase) ci-dessus restent inchangées.
 
-**Authoritative detail:** [_bmad-output/planning-artifacts/plan-v2-league-journey.md](_bmad-output/planning-artifacts/plan-v2-league-journey.md)
+**Détail des epics :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md)  
+**Vision ligue (long terme) :** [_bmad-output/planning-artifacts/plan-v2-league-journey.md](_bmad-output/planning-artifacts/plan-v2-league-journey.md)  
+**Suivi sprint :** [_bmad-output/implementation-artifacts/sprint-status.yaml](_bmad-output/implementation-artifacts/sprint-status.yaml)  
+**ADR :** [0011](docs/adr/0011-league-model-and-user-agenda.md), [0012](docs/adr/0012-league-views-travel-leagues-member-stats.md)
 
-**Decision record:** [docs/adr/0011-league-model-and-user-agenda.md](docs/adr/0011-league-model-and-user-agenda.md)
+---
 
-### Why replan
+### V2 MVP — definition (2026-05-24)
 
-Epic 2 retro + product revision: member entry must be **user agenda** (multi-league), not `/accueil` or flat `/seasons`. Troupes may run **multiple active leagues**. Inter-troupe matches = **two events** in agenda. DOMAIN **single active season** invariant **removed** (ADR 0011).
+**Objectif produit :** un pilote troupe peut enchaîner, sans contournement :
 
-### Execution waves (summary)
+1. **Connexion → agenda personnel** (`/agenda`, FR48–FR49) — pas d’écran intermédiaire, pas de liste `/seasons` comme hub membre.
+2. **Navigation depuis un événement** vers la ligue et l’administration troupe/ligue (FR51) — bandeau contexte + routes existantes (`/saison/:slug`, admin participants/membres).
+3. **Composition complète** : remplir les rôles **à la main ou par tirage**, **valider**, **confirmer** (ou décliner + combler un trou) jusqu’à l’état **complete** (FR20–FR28).
 
-| Wave | Epics / stories | Outcome |
-|------|-----------------|--------|
-| **0** | 2.9, AC10, 3.6 + 3.6b (parallel) | No stub home; stats ligue + historique chronologie; preferred roles |
-| **1** | **Epic 12** (12.1–12.6) | `/agenda`, filters, event nav strip |
-| **2** | **Epic 13** (13.1–13.5) | Multi-active leagues, roster modes |
-| **3** | **Epic 14** (14.1–14.5) | Troupe hub, demote `/seasons` |
-| **4** | Epic 5.4+, 6.4+ | Resume composition MVP |
-| **Post-MVP** | Epic 15 | Encounter entity linking |
+**Stories MVP (ordre de valeur, deux pistes parallélisables) :**
 
-### New functional requirements
+| Piste | Stories | FR / UX |
+|-------|---------|---------|
+| **Navigation & entrée** | **12.1** → **12.2** → **12.5** → **12.4** ; puis **12.3** si multi-troupe/ligue ; **12.6** optionnel | FR48–FR49, FR51, UX-DR13–15 |
+| **Composition** | **6.5** → **6.6** → **6.7** → **6.4** → **6.9** | FR20–FR28, UX-DR6 |
 
-PRD **FR48–FR52** (member agenda, entry routing, league roster modes, navigation, troupe hub). See `_bmad-output/planning-artifacts/prd.md`.
+**Prérequis déjà livrés (baseline) :** Epics 1–2 (auth, troupe), Epic 3 stories **3.1–3.5**, **3.8**, Epic 5 **5.1–5.3**, Epic 6 **6.1–6.3**. Story **2.9** = parité partielle post-login ; **12.5** la finalise vers `/agenda`.
 
-### UX artifacts
+**Definition of Done MVP :**
 
-- [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) — screens 1–10, UX-DR13–18 — **approved 2026-05-24** (reserve RES-001: hide agenda filters when single troupe + single league). UI label: **Ligue**.
-- **Correct Course 2026-05-24 (views/stats):** [_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md) — Agenda / Historique / Statistiques; ligues déplacements; route *clin d'œil*; ADR 0012.
+- [ ] Membre connecté arrive sur **`/agenda`** (ou dernière ligue visitée si slug valide).
+- [ ] Liste d’événements à venir agrégée (`GET /v1/me/agenda`).
+- [ ] Détail événement : bandeau **Ligue · Troupe** avec liens navigation + admin (⚙ existant).
+- [ ] Orga : assignation manuelle **ou** tirage pondéré sur un spectacle.
+- [ ] Orga : validation de la composition ; membre : confirmation ; état **complete** atteignable (y compris après un déclin + action 6.9).
 
-### Gate before Wave 1
+**Explicitement hors MVP V2 (backlog post-pilote) :**
 
-**Done 2026-05-24** — UX journey approved by Patrice.
+| Epics / stories | Raison |
+|-----------------|--------|
+| **3.6**, **3.6b** | Statistiques / Historique ligue (FR53–54) |
+| **Epic 13** (13.1–13.6) | Multi-ligues actives, roster création, déplacements — une ligue active suffit au pilote |
+| **Epic 14** (14.1–14.5) | Hub troupe complet ; 12.4 + routes admin couvrent le MVP |
+| **Epic 16** (16.1) | Clin d’œil `/membre/:slug` |
+| **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Annuaire, invités, notifications, audit UI, PWA, analytics, rencontres liées |
+| **5.4**, **5.5**, **6.8**, **6.10** | Commentaire dispo, proxy dispo, proxy confirmation, partage WhatsApp |
 
-### Gate before Wave 2
+---
 
-### Gate before Epic 5.4+
+### Execution waves (revised)
 
-Wave **1** complete (member reaches events via `/agenda`).
+Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où stats et multi-ligues bloquaient la composition.
+
+| Wave | Scope | Stories | Outcome |
+|------|--------|---------|---------|
+| **MVP-A** | Entrée membre | **12.1**, **12.2**, **12.5** | `/agenda` live ; post-login corrigé |
+| **MVP-B** | Navigation événement | **12.4** ; **12.3** si besoin filtres | FR51 ; admin atteignable depuis l’événement |
+| **MVP-C** | Composition (// avec A dès baseline OK) | **6.5**, **6.6**, **6.7**, **6.4**, **6.9** | Boucle compo complète |
+| **Polish MVP** | Confort | **12.6** ; **12.3** si reporté | Alias `/ligue/:slug` |
+| **Post-MVP** | Vision ligue | **Epic 13**, **14**, **16** | Multi-active, hub, clin d’œil |
+| **Post-MVP** | Stats & exports | **3.6**, **3.6b** | Statistiques / Historique (ADR 0012) |
+| **Post-MVP** | Transverse | **5.4+**, **6.8**, **6.10**, **Epics 4**, **7–11**, **15** | Selon priorité produit |
+
+**Ordre de session suggéré (2 stories max — règle retro) :**
+
+1. **12.1** + **12.2**  
+2. **12.5** + **12.4**  
+3. **6.5** + **6.6**  
+4. **6.7** + **6.4** (ou **6.4** avant **6.7** si tirage prioritaire)  
+5. **6.9** + **12.3** ou **12.6**  
+6. Puis backlog post-MVP (13.x, 3.6, …)
+
+### Gates
+
+| Gate | Status | Condition |
+|------|--------|-----------|
+| UX journey (Epic 12) | **Done 2026-05-24** | [ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) approuvé |
+| **MVP navigation** | Open | **12.1** + **12.2** + **12.5** done |
+| **MVP composition** | Open | **6.5** + **6.6** + **6.7** done (minimum) |
+| **MVP pilote** | Open | Toutes les cases DoD MVP ci-dessus |
+| Post-MVP Epic 13 | Open | Après MVP pilote validé en troupe réelle |
+
+### PRD / UX references (V2)
+
+- PRD **FR48–FR52** (agenda, routing, navigation) ; **FR20–FR28** (composition).
+- UX : [ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (UX-DR13–18) ; [ux-design-hatcast-v2.md](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) (détail événement, dispos, équipe — `/seasons` superseded pour les membres).
+- Correct Course stats/déplacements (post-MVP) : [sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md).
