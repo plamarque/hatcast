@@ -146,28 +146,29 @@
   border: none;
   cursor: pointer;
   font: inherit;
-  color: inherit;
-  background: rgba(255, 255, 255, 0.08);
+  color: light-dark(#374151, inherit);
+  background: light-dark(rgba(107, 114, 128, 0.12), rgba(255, 255, 255, 0.08));
   opacity: 0.85;
 
   &--available {
-    background: rgba(22, 163, 74, 0.35);
-    color: #bbf7d0;
+    background: light-dark(rgba(22, 163, 74, 0.14), rgba(22, 163, 74, 0.35));
+    color: light-dark(#166534, #bbf7d0);
   }
 
   &--unavailable {
-    background: rgba(220, 38, 38, 0.35);
-    color: #fecaca;
+    background: light-dark(rgba(220, 38, 38, 0.14), rgba(220, 38, 38, 0.35));
+    color: light-dark(#991b1b, #fecaca);
   }
 
   &--unknown {
-    background: rgba(107, 114, 128, 0.25);
-    opacity: 0.75;
+    background: light-dark(rgba(107, 114, 128, 0.12), rgba(107, 114, 128, 0.25));
+    color: light-dark(#374151, inherit);
+    opacity: 0.85;
   }
 
   &:hover,
   &:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.25);
+    outline: 2px solid light-dark(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.25));
     outline-offset: 1px;
   }
 }

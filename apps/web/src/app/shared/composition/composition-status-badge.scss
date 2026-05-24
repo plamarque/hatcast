@@ -7,20 +7,20 @@
   border: 1px solid transparent;
 
   &--collecting {
-    color: #a5f3fc;
-    background: rgba(6, 182, 212, 0.28);
-    border-color: rgba(34, 211, 238, 0.35);
+    color: light-dark(#0e7490, #a5f3fc);
+    background: light-dark(rgba(6, 182, 212, 0.14), rgba(6, 182, 212, 0.28));
+    border-color: light-dark(rgba(6, 182, 212, 0.35), rgba(34, 211, 238, 0.35));
   }
 
   &--preparing {
-    color: #fed7aa;
-    background: rgba(234, 88, 12, 0.32);
-    border-color: rgba(251, 146, 60, 0.4);
+    color: light-dark(#9a3412, #fed7aa);
+    background: light-dark(rgba(234, 88, 12, 0.14), rgba(234, 88, 12, 0.32));
+    border-color: light-dark(rgba(234, 88, 12, 0.35), rgba(251, 146, 60, 0.4));
   }
 
   &--confirmed {
-    color: #bbf7d0;
-    background: rgba(22, 163, 74, 0.35);
-    border-color: rgba(74, 222, 128, 0.35);
+    color: light-dark(#166534, #bbf7d0);
+    background: light-dark(rgba(22, 163, 74, 0.14), rgba(22, 163, 74, 0.35));
+    border-color: light-dark(rgba(22, 163, 74, 0.35), rgba(74, 222, 128, 0.35));
   }
 }
