@@ -1,6 +1,6 @@
 # Story 12.1: User agenda API (`GET /v1/me/agenda`)
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -17,12 +17,12 @@ so that the **Mon agenda** screen (Story 12.2) can load in **one call** instead 
 3. **Given** the user is an **event-only** participant (`event_participants.user_id` = caller, ACTIVE), **when** the event is upcoming and its league is not archived, **then** that event appears even if the user has **no** season-level participant row for that league. [Source: `DOMAIN.md` § User agenda scope]
 4. **Given** `scope=upcoming` (default), **when** listing, **then** only **non-archived** events with `startsAt` ≥ start of **today** in **`Europe/Paris`** are included — same boundary as `EventService.AGENDA_ZONE` / `GET /v1/seasons/{id}/events?scope=upcoming`. [Source: UX-DR12; `EventService.kt`]
 5. **Given** optional query `troupeId` and/or `leagueId` (season UUID), **when** provided, **then** results are restricted to that troupe and/or league; invalid UUIDs → **400**; IDs the user does not participate in → empty page (not 403). [Source: FR48; architecture.md]
-6. **Given** pagination `page` (≥0) and `size` (1–50, default **50**), **when** listing, **then** response includes `content`, `page`, `size`, `totalElements`, `totalPages` (Spring page shape, consistent with `PagedEventsResponse`). [Source: FR48]
+6. **Given** pagination `page` (≥0) and `size` (1–50, default **50**), **when** listing, **then** response includes `content`, `page`, `size`, `totalElements`, `totalPages`, `filterBarVisible`, and `noParticipation` (Spring page shape + agenda metadata, consistent with `PagedEventsResponse`). [Source: FR48]
 7. **Given** the caller participates in **exactly one troupe** and **exactly one league** (distinct season IDs with ACTIVE participation), **when** listing, **then** `filterBarVisible` is **`false`**; otherwise **`true`** (RES-001 / FR55). [Source: architecture.md; UX-DR14]
 8. **Given** archived leagues (`seasons.archived = true`) or archived events, **when** listing, **then** they are **excluded**. [Source: UX-DR12]
-9. **Given** no league/event participation, **when** listing, **then** `200` with empty `content` and `filterBarVisible: false`. [Source: FR49 empty-agenda path — API contract only here]
+9. **Given** no league/event participation, **when** listing, **then** `200` with empty `content`, `filterBarVisible: false`, and **`noParticipation: true`**. **Given** ACTIVE participation but no upcoming events, **then** `noParticipation: false` with empty `content`. [Source: FR49 empty-agenda path — API contract; unblocks 12.2 empty states]
 10. **Given** no session cookie, **when** calling the endpoint, **then** **401**. [Source: NFR-S2]
-11. **Given** implementation complete, **when** tests run, **then** integration tests cover multi-league aggregation, inter-troupe duplicate rows, filters, pagination cap, `filterBarVisible`, event-only participant, archived exclusion; `./gradlew test` green. [Source: NFR-Q1 FR48–49]
+11. **Given** implementation complete, **when** tests run, **then** integration tests cover multi-league aggregation, inter-troupe duplicate rows, filters, pagination cap, `filterBarVisible`, `noParticipation`, event-only participant, archived exclusion; `./gradlew test` green. [Source: NFR-Q1 FR48–49]
 
 ## Tasks / Subtasks
 
@@ -31,7 +31,7 @@ so that the **Mon agenda** screen (Story 12.2) can load in **one call** instead 
   - Query: `scope` (`upcoming` default), `troupeId`, `leagueId`, `page`, `size` (max 50)
   - Schemas: `UserAgendaResponse`, `UserAgendaItemDto` (see Dev Notes)
   - Security: `cookieAuth`
-  - Document `filterBarVisible` semantics
+  - Document `filterBarVisible` and `noParticipation` semantics
 
 - [x] **Domain package** `com.hatcast.api.agenda` (AC: 1–10):
   - [x] `UserAgendaController` — `@RequestMapping("/v1/me/agenda")`, `@AuthenticationPrincipal SessionUserPrincipal`
@@ -63,6 +63,9 @@ so that the **Mon agenda** screen (Story 12.2) can load in **one call** instead 
 - [x] [Review][Patch] Agenda pagination ordering is not stable when events share `startsAt` [services/api/src/main/kotlin/com/hatcast/api/agenda/UserAgendaRepository.kt:36]
 - [x] [Review][Patch] AC11 integration coverage is incomplete for multi-league aggregation, inter-troupe duplicates, archived exclusion, pagination metadata, invalid UUIDs, and the Paris upcoming boundary [services/api/src/test/kotlin/com/hatcast/api/agenda/UserAgendaIntegrationTest.kt:181]
 - [x] [Review][Patch] Repository returns entities and DTO mapping can trigger lazy-load N+1 despite the one-query performance goal [services/api/src/main/kotlin/com/hatcast/api/agenda/UserAgendaRepository.kt:16]
+- [x] [Review][Decision] Retro-document `noParticipation` in Story 12.1 — Aligned AC6/AC9/AC11, Dev Notes response contract, and epics Story 12.1 retroactively (code review 2026-05-24).
+- [x] [Review][Patch] Update Dev Notes response contract JSON to match shipped API [12-1-api-agenda-utilisateur.md:94] — add `noParticipation`; use lowercase `myAvailabilityStatus` enum (`available`, `unavailable`, `unknown`) per `AvailabilityStatusMapper`
+- [x] [Review][Defer] Participation context runs four auxiliary queries per request [services/api/src/main/kotlin/com/hatcast/api/agenda/UserAgendaService.kt:70] — deferred, acceptable for MVP; batch into one query if explain plans fail NFR-P1
 
 ## Dev Notes
 
@@ -72,6 +75,7 @@ so that the **Mon agenda** screen (Story 12.2) can load in **one call** instead 
 |-----------------|------------------------------|
 | `GET /v1/me/agenda` backend + OpenAPI | Angular `/agenda` route (**12.2**) |
 | `filterBarVisible` in JSON | Filter UI chrome (**12.3**) |
+| `noParticipation` in JSON | Empty-state UI copy (**12.2**) |
 | Query filters `troupeId`, `leagueId` | Post-login → `/agenda` (**12.5**) |
 | Pagination + upcoming scope | Route alias `/ligue/:slug` (**12.6**) |
 | OpenAPI fragment | Multi-active league migration (**Epic 13**) |
@@ -105,18 +109,27 @@ so that the **Mon agenda** screen (Story 12.2) can load in **one call** instead 
       "leagueId": "uuid",
       "leagueSlug": "string",
       "leagueTitle": "string",
-      "myAvailabilityStatus": "AVAILABLE | UNAVAILABLE | UNKNOWN | null"
+      "myAvailabilityStatus": "available | unavailable | unknown | null"
     }
   ],
   "page": 0,
   "size": 50,
   "totalElements": 12,
   "totalPages": 1,
-  "filterBarVisible": true
+  "filterBarVisible": true,
+  "noParticipation": false
 }
 ```
 
 **Naming:** Response uses **`league*`** fields (product term). DB/API paths remain `seasons` / `season_id`. Do **not** expose `seasonId` in this DTO (use `leagueId`).
+
+**`noParticipation` algorithm:**
+
+```
+noParticipation = participatingLeagueIds.isEmpty()
+```
+
+Where `participatingLeagueIds` uses the same distinct season ids as the `filterBarVisible` computation (ACTIVE season + event-only participations, non-archived).
 
 **`filterBarVisible` algorithm:**
 
@@ -217,7 +230,7 @@ claude-4.6-sonnet-medium-thinking
 ### Completion Notes List
 
 - Implemented `GET /v1/me/agenda` with paginated upcoming events across all ACTIVE season/event participations.
-- Added `filterBarVisible` computed from distinct troupe/league participation counts (not filtered result set).
+- Added `filterBarVisible` and `noParticipation` computed from distinct troupe/league participation counts (not filtered result set).
 - Reused `AvailabilityService.myStatusByEventIds` for availability pills; omitted composition lifecycle (MVP per story).
 - Added OpenAPI fragment `me-agenda.yaml` and SecurityConfig whitelist entry.
 - Added 9 integration tests covering auth, pagination cap, filters, filterBarVisible, event-only participant, seed data.
@@ -238,3 +251,4 @@ claude-4.6-sonnet-medium-thinking
 ## Change Log
 
 - 2026-05-24: Story 12.1 — User agenda API (`GET /v1/me/agenda`), OpenAPI, integration tests; V18 H2 compatibility fix.
+- 2026-05-24: Code review — retro-documented `noParticipation` in AC6/AC9/AC11 and Dev Notes; story marked done.

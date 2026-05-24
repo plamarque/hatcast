@@ -1108,9 +1108,10 @@ En tant que **membre**, je veux que l’API expose mes **événements à venir**
 
 **Acceptance Criteria**
 
-- **Given** un utilisateur participant à N ligues, **when** `GET /v1/me/agenda` est appelé, **then** la réponse liste les événements à venir (UX-DR12) avec **troupeId**, **troupeName**, **leagueId**, **leagueSlug**, **leagueTitle**, statut dispo utilisateur si applicable.
+- **Given** un utilisateur participant à N ligues, **when** `GET /v1/me/agenda` est appelé, **then** la réponse liste les événements à venir (UX-DR12) avec **troupeId**, **troupeName**, **leagueId**, **leagueSlug**, **leagueTitle**, statut dispo utilisateur si applicable, **`filterBarVisible`**, et **`noParticipation`**.
 - **Given** un événement inter-troupes (deux events distincts), **when** l’utilisateur est participant des deux ligues, **then** **deux entrées** distinctes sont retournées.
-- **Couverture :** FR48 ; NFR-P1/P2.
+- **Given** aucune participation ligue/événement, **when** l’API répond, **then** `content` vide, `filterBarVisible: false`, **`noParticipation: true`**. **Given** participation ACTIVE sans événement à venir, **then** `noParticipation: false`.
+- **Couverture :** FR48, FR49 ; NFR-P1/P2.
 
 #### Story 12.2 : Écran Mon agenda (`/agenda`)
 

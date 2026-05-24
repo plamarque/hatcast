@@ -69,7 +69,7 @@ so that I can immediately know what is coming next without visiting each league 
 
 ### Review Findings
 
-- [ ] [Review][Decision] Retro-document `noParticipation` in Story 12.1 — The 12.2 implementation added `noParticipation` to the API contract (`me-agenda.yaml`, `UserAgendaService`, integration tests) to distinguish AC5 vs AC6 empty states. Story 12.1 AC9 only describes empty `content` + `filterBarVisible: false`. Should 12.1 / epics be updated retroactively, or is the 12.2 completion note sufficient?
+- [x] [Review][Decision] Retro-document `noParticipation` in Story 12.1 — Resolved in 12.1 code review (2026-05-24): AC6/AC9/AC11, Dev Notes, and epics updated retroactively.
 
 - [x] [Review][Patch] Missing Space key keyboard test [apps/web/src/app/pages/user-agenda/user-agenda.spec.ts] — AC10 requires keyboard activation; Enter is tested but Space is not, despite `(keydown.space)` in the template.
 
