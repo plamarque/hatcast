@@ -1,6 +1,6 @@
 # Story 6.7: Linked participant confirmation or decline
 
-Status: ready-for-dev
+Status: review
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -51,12 +51,12 @@ so that **I can commit to the lineup or signal unavailability** (**FR25**, **UX-
 
 ## Tasks / Subtasks
 
-- [ ] **Scope:** `apps/web/` + `services/api/` ; **do not modify** `legacy/`.
-- [ ] **Migration `V21__composition_participation_declines.sql`:**
+- [x] **Scope:** `apps/web/` + `services/api/` ; **do not modify** `legacy/`.
+- [x] **Migration `V21__composition_participation_declines.sql`:**
   - Table **`event_composition_declines`**: `id UUID PK`, `event_id FK`, `role_key`, `slot_index`, `season_participant_id NULL`, `event_participant_id NULL` (XOR like slots), `declined_by_user_id FK users`, `declined_at`, `note VARCHAR(500) NULL`, `created_at`.
   - Index on `(event_id)`; FK to `season_participants` / `event_participants` where applicable.
   - **Do not** reuse `participation_status = DECLINED` with assignee still present as the long-term model — **6.7** frees the slot per UX/SPEC.
-- [ ] **`CompositionParticipationService` (Kotlin):**
+- [x] **`CompositionParticipationService` (Kotlin):**
   - **`updateParticipation(seasonId, eventId, roleKey, slotIndex, status, note?, principal)`**
   - Preconditions: troupe member; composition **`validatedAt != null`** else **409**; slot exists with assignee; assignee matches **linked participant id(s)** for `principal.userId` else **403**.
   - **Linked participant resolution:** union of `season_participants` where `user_id = actor` OR `troupe_membership.user_id = actor` (active status); plus `event_participants.user_id = actor` for event-only rows. Reuse participant access patterns from [`ParticipantEntities`](../../services/api/src/main/kotlin/com/hatcast/api/participant/ParticipantEntities.kt).
@@ -65,25 +65,25 @@ so that **I can commit to the lineup or signal unavailability** (**FR25**, **UX-
   - **`declined`:** insert **`event_composition_declines`** row (capture assignee ids + optional note trimmed ≤500); clear slot assignee fields; set `participationStatus = PENDING`.
   - Use **`findByEventIdForUpdate`** on composition row (same lock pattern as validate/assign).
   - Return **`CompositionResponseDto`** via extended **`buildResponse`** including **`declines[]`** and **`viewerParticipantIds[]`**.
-- [ ] **API route** in [`CompositionController`](../../services/api/src/main/kotlin/com/hatcast/api/composition/CompositionController.kt):
+- [x] **API route** in [`CompositionController`](../../services/api/src/main/kotlin/com/hatcast/api/composition/CompositionController.kt):
   - `POST /v1/seasons/{seasonId}/events/{eventId}/composition/slots/{roleKey}/{slotIndex}/participation`
   - Body: `{ "status": "confirmed" | "pending" | "declined", "note": "string | null" }`
-- [ ] **OpenAPI:** extend [`openapi/composition.yaml`](../../services/api/openapi/composition.yaml) — participation POST, extend **`CompositionResponse`** with `declines`, `viewerParticipantIds`.
-- [ ] **DTO / read path:**
+- [x] **OpenAPI:** extend [`openapi/composition.yaml`](../../services/api/openapi/composition.yaml) — participation POST, extend **`CompositionResponse`** with `declines`, `viewerParticipantIds`.
+- [x] **DTO / read path:**
   - Map decline rows to `{ participantId, participantDisplayName, roleKey, slotIndex, declinedAt, note? }`.
   - Include **`viewerParticipantIds`** on every composition GET (empty when unauthenticated — should not happen for this route).
-- [ ] **Lifecycle alignment:** after decline frees slot, existing [`CompositionLifecycleService.isEffectivelyFilled`](../../services/api/src/main/kotlin/com/hatcast/api/composition/CompositionLifecycleService.kt) treats empty assignee as gap — **no change expected**; add integration test **decline → gapsToFill**.
-- [ ] **Six-state badge update:** [`composition-equipe-status.ts`](../../apps/web/src/app/core/composition/composition-equipe-status.ts) — **`hasDeclinedInSlots`** (declined assignee still in slot) becomes **legacy/interim only**; post-decline state is **`À compléter`** via empty slot. Update unit tests accordingly.
-- [ ] **Angular — API client** ([`composition-api.service.ts`](../../apps/web/src/app/core/composition/composition-api.service.ts)):
+- [x] **Lifecycle alignment:** after decline frees slot, existing [`CompositionLifecycleService.isEffectivelyFilled`](../../services/api/src/main/kotlin/com/hatcast/api/composition/CompositionLifecycleService.kt) treats empty assignee as gap — **no change expected**; add integration test **decline → gapsToFill**.
+- [x] **Six-state badge update:** [`composition-equipe-status.ts`](../../apps/web/src/app/core/composition/composition-equipe-status.ts) — **`hasDeclinedInSlots`** (declined assignee still in slot) becomes **legacy/interim only**; post-decline state is **`À compléter`** via empty slot. Update unit tests accordingly.
+- [x] **Angular — API client** ([`composition-api.service.ts`](../../apps/web/src/app/core/composition/composition-api.service.ts)):
   - Types: `CompositionDecline`, extend `CompositionResponse`.
   - `updateSlotParticipation(seasonId, eventId, roleKey, slotIndex, status, note?)`.
-- [ ] **Angular — participation dialog** — new **`composition-participation-dialog`** under `apps/web/src/app/shared/composition/`:
+- [x] **Angular — participation dialog** — new **`composition-participation-dialog`** under `apps/web/src/app/shared/composition/`:
   - **`MatDialog`** pattern (mirror [`composition-slot-picker-dialog`](../../apps/web/src/app/shared/composition/composition-slot-picker-dialog.ts)).
   - Title *« Confirmer ma participation »*; event title + formatted date; role recap card (emoji + label from [`ROLE_LABELS`](../../apps/web/src/app/core/events/event-types.ts)).
   - Three actions: **Confirmer** (purple gradient), **Décliner** (terracotta/red), **À confirmer** (orange); highlight current status.
   - Optional note textarea, hint *« Visible par l'organisateur·ice. »* max 500 chars.
   - Returns `{ status, note? }` or `undefined` on cancel.
-- [ ] **Angular — Équipe tab** ([`event-equipe-tab.ts`](../../apps/web/src/app/pages/event-detail/event-equipe-tab.ts) + template + scss):
+- [x] **Angular — Équipe tab** ([`event-equipe-tab.ts`](../../apps/web/src/app/pages/event-detail/event-equipe-tab.ts) + template + scss):
   - When **`isCompositionLocked`** and slot has assignee: make slot **clickable for members** if `slot.participantId` ∈ `composition.viewerParticipantIds`.
   - **`openParticipationModal(row)`** on eligible slot tap — **do not** open organizer picker when locked.
   - After successful mutation: refresh composition + emit **`compositionPublished`** (or dedicated output) for event reload.
@@ -92,7 +92,7 @@ so that **I can commit to the lineup or signal unavailability** (**FR25**, **UX-
   - Slot row classes: **`--pending`**, **`--confirmed`** (add confirmed styling; keep pending warm gradient).
   - **Declined badge + collapsible list** below grid when `declines.length > 0`.
   - Snackbars: success per action; **403**/*409* differentiated messages.
-- [ ] **Tests:**
+- [x] **Tests:**
   - **Integration:** confirm/pending/decline happy paths; decline frees slot + inserts decline row; member own slot **200**; other member slot **403**; unvalidated **409**; lifecycle **gapsToFill** after decline; note length validation **400**.
   - **Component:** modal opens on own slot tap only; locked organizer does not get picker on member path; `showConfirm` auto-open; declined badge count; confirmed/pending CSS classes.
   - **Regression:** **6.6** validate/unlock unchanged; **6.5** assign still **409** when locked; six-state badge priority tests updated.
@@ -272,14 +272,45 @@ apps/web/src/app/pages/event-detail/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Composer
 
 ### Debug Log References
 
+- Validated composition with zero assignees: extended `CompositionService.buildResponse` visibility and `CompositionLifecycleService` so members still see the grid/declines and lifecycle reports `gapsToFill`.
+
 ### Completion Notes List
 
+- Added `POST .../participation` with confirm/pending/decline semantics; decline frees slot and persists `event_composition_declines`.
+- Extended composition GET with `declines[]` and `viewerParticipantIds[]` for self-service gating.
+- Angular: participation modal, locked-slot tap, `showConfirm` auto-open, pending/confirmed styling, declined badge/list.
+- Tests: `CompositionParticipationIntegrationTest`, lifecycle unit test for validated-empty, extended `event-equipe-tab.spec.ts`.
+
 ### File List
+
+- services/api/src/main/resources/db/migration/V21__composition_participation_declines.sql
+- services/api/src/main/kotlin/com/hatcast/api/composition/EventCompositionDeclineEntity.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/EventCompositionDeclineRepository.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionLinkedParticipantResolver.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionParticipationService.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionController.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionService.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionLifecycleService.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/dto/CompositionDtos.kt
+- services/api/openapi/composition.yaml
+- services/api/src/test/kotlin/com/hatcast/api/composition/CompositionParticipationIntegrationTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/composition/CompositionLifecycleServiceTest.kt
+- apps/web/src/app/core/composition/composition-api.service.ts
+- apps/web/src/app/shared/composition/composition-participation-dialog.ts
+- apps/web/src/app/shared/composition/composition-participation-dialog.html
+- apps/web/src/app/shared/composition/composition-participation-dialog.scss
+- apps/web/src/app/pages/event-detail/event-equipe-tab.ts
+- apps/web/src/app/pages/event-detail/event-equipe-tab.html
+- apps/web/src/app/pages/event-detail/event-equipe-tab.scss
+- apps/web/src/app/pages/event-detail/event-equipe-tab.spec.ts
+- apps/web/src/app/pages/event-detail/event-equipe-empty.html
+- _bmad-output/implementation-artifacts/sprint-status.yaml
 
 ### Change Log
 
 - 2026-05-24: Story 6.7 created — linked participant confirm/decline API, participation modal, decline audit, showConfirm auto-open, slot styling, declined badge.
+- 2026-05-24: Story 6.7 implemented — API participation mutation, declines audit, Équipe UX (modal, styling, deep link), tests green for composition scope.

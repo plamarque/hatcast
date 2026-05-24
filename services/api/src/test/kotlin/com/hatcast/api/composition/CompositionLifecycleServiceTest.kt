@@ -21,7 +21,7 @@ class CompositionLifecycleServiceTest {
     }
 
     @Test
-    fun `zero assigned slots yields preparing`() {
+    fun `zero assigned slots yields preparing when not validated`() {
         val composition = CompositionSnapshot(validatedAt = null)
         val slots =
             listOf(
@@ -30,6 +30,20 @@ class CompositionLifecycleServiceTest {
             )
         assertEquals(
             CompositionLifecycle.PREPARING,
+            service.computeRawLifecycle(composition, slots, roleSlots),
+        )
+    }
+
+    @Test
+    fun `zero assigned slots on validated composition yields gaps to fill`() {
+        val composition = CompositionSnapshot(validatedAt = Instant.parse("2026-01-01T00:00:00Z"))
+        val slots =
+            listOf(
+                slot("player", 0, participantId = null),
+                slot("player", 1, participantId = null),
+            )
+        assertEquals(
+            CompositionLifecycle.GAPS_TO_FILL,
             service.computeRawLifecycle(composition, slots, roleSlots),
         )
     }

@@ -1,0 +1,111 @@
+.composition-participation {
+  min-width: min(22rem, calc(100vw - 3rem));
+  max-width: 26rem;
+  padding-top: 0.25rem;
+}
+
+.composition-participation__event {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.composition-participation__event-title {
+  font-weight: 600;
+  color: inherit;
+}
+
+.composition-participation__role-block {
+  margin-bottom: 1rem;
+}
+
+.composition-participation__role-label {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  margin-bottom: 0.35rem;
+}
+
+.composition-participation__role-card {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.composition-participation__role-emoji {
+  font-size: 1.5rem;
+}
+
+.composition-participation__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.composition-participation__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.65rem 0.35rem;
+  border: 2px solid transparent;
+  border-radius: 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+}
+
+.composition-participation__action--confirm {
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.75) 0%, rgba(233, 30, 99, 0.75) 100%);
+}
+
+.composition-participation__action--decline {
+  background: linear-gradient(135deg, rgba(198, 40, 40, 0.75) 0%, rgba(255, 87, 34, 0.75) 100%);
+}
+
+.composition-participation__action--pending {
+  background: linear-gradient(135deg, rgba(245, 124, 0, 0.75) 0%, rgba(255, 152, 0, 0.75) 100%);
+}
+
+.composition-participation__action--active {
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
+.composition-participation__action-icon {
+  font-size: 1.25rem;
+}
+
+.composition-participation__note-label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 0.35rem;
+}
+
+.composition-participation__note {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.composition-participation__note-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}

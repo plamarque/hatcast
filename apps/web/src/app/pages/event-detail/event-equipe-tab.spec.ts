@@ -35,8 +35,9 @@ describe('EventEquipeTab', () => {
   let assignCompositionSlot: ReturnType<typeof vi.fn>
   let validateComposition: ReturnType<typeof vi.fn>
   let unlockComposition: ReturnType<typeof vi.fn>
+  let updateSlotParticipation: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
-  let dialogAfterClosed: Subject<{ participantId: string } | undefined>
+  let dialogAfterClosed: Subject<{ participantId: string } | { status: string; note?: string | null } | undefined>
 
   beforeEach(async () => {
     getComposition = vi.fn().mockResolvedValue({
@@ -84,7 +85,10 @@ describe('EventEquipeTab', () => {
     })
     validateComposition = vi.fn()
     unlockComposition = vi.fn()
-    dialogAfterClosed = new Subject<{ participantId: string } | undefined>()
+    updateSlotParticipation = vi.fn()
+    dialogAfterClosed = new Subject<
+      { participantId: string } | { status: string; note?: string | null } | undefined
+    >()
     dialogOpen = vi.fn().mockReturnValue({
       componentInstance: {
         updateState: vi.fn(),
@@ -106,6 +110,7 @@ describe('EventEquipeTab', () => {
             assignCompositionSlot,
             validateComposition,
             unlockComposition,
+            updateSlotParticipation,
           },
         },
         { provide: MatDialog, useValue: { open: dialogOpen } },
@@ -421,6 +426,48 @@ describe('EventEquipeTab', () => {
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__validate')).toBeNull()
   })
 
+  it('lets organizer open participation modal on own slot when locked', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-organizer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-organizer',
+            participantDisplayName: 'Organisateur',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-other',
+            participantDisplayName: 'Autre',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Organisateur')
+    })
+
+    const buttons = fixture.nativeElement.querySelectorAll(
+      '.event-equipe-tab__slot-button',
+    ) as NodeListOf<HTMLButtonElement>
+    expect(buttons.length).toBe(1)
+    buttons[0].click()
+    fixture.detectChanges()
+    expect(dialogOpen).toHaveBeenCalled()
+  })
+
   it('shows Valider for organizer draft with assigned slot', async () => {
     getComposition.mockResolvedValue({
       ok: true,
@@ -555,6 +602,205 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(unlockComposition).toHaveBeenCalledWith('season-1', 'event-1')
+      expect(emitted).toHaveBeenCalled()
+    })
+  })
+
+  it('opens participation modal on own slot when locked for member', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-other',
+            participantDisplayName: 'Autre',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Moi')
+    })
+
+    const buttons = fixture.nativeElement.querySelectorAll(
+      '.event-equipe-tab__slot-button',
+    ) as NodeListOf<HTMLButtonElement>
+    expect(buttons.length).toBe(1)
+    buttons[0].click()
+    fixture.detectChanges()
+
+    expect(dialogOpen).toHaveBeenCalled()
+  })
+
+  it('auto-opens participation modal when showConfirmPending and own pending slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('showConfirmPending', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalled()
+    })
+  })
+
+  it('shows declined badge and toggles list', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [],
+        declines: [
+          {
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            roleKey: 'player',
+            slotIndex: 0,
+            declinedAt: '2026-01-02T00:00:00.000Z',
+          },
+        ],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('1 personne a décliné')
+    })
+
+    const badge = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__declines-badge',
+    ) as HTMLButtonElement
+    badge.click()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Personnes ayant décliné')
+    expect(fixture.nativeElement.textContent).toContain('Alice')
+  })
+
+  it('applies confirmed row styling class', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Confirmé',
+            participationStatus: 'confirmed',
+          },
+        ],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-equipe-tab__row--confirmed'),
+      ).not.toBeNull()
+    })
+  })
+
+  it('submits participation and emits compositionPublished', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    updateSlotParticipation.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'confirmed',
+          },
+        ],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__slot-button')).not.toBeNull()
+    })
+
+    const emitted = vi.fn()
+    fixture.componentInstance.compositionPublished.subscribe(emitted)
+
+    const slotBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__slot-button',
+    ) as HTMLButtonElement
+    slotBtn.click()
+    fixture.detectChanges()
+
+    dialogAfterClosed.next({ status: 'confirmed' })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(updateSlotParticipation).toHaveBeenCalledWith(
+        'season-1',
+        'event-1',
+        'player',
+        0,
+        'confirmed',
+        undefined,
+      )
       expect(emitted).toHaveBeenCalled()
     })
   })

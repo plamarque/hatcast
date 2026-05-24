@@ -1,0 +1,61 @@
+<h2 mat-dialog-title>Confirmer ma participation</h2>
+<mat-dialog-content class="composition-participation">
+  <div class="composition-participation__event">
+    <div class="composition-participation__event-title">{{ data.eventTitle }}</div>
+    <div class="composition-participation__event-date">{{ formatDate(data.eventDate) }}</div>
+  </div>
+
+  <div class="composition-participation__role-block">
+    <div class="composition-participation__role-label">Rôle assigné</div>
+    <div class="composition-participation__role-card">
+      <span class="composition-participation__role-emoji" aria-hidden="true">{{ data.roleEmoji }}</span>
+      <span class="composition-participation__role-name">{{ data.roleLabel }}</span>
+    </div>
+  </div>
+
+  <div class="composition-participation__actions" role="group" aria-label="Réponse de participation">
+    <button
+      type="button"
+      class="composition-participation__action composition-participation__action--confirm"
+      [class.composition-participation__action--active]="data.currentStatus === 'confirmed'"
+      (click)="respond('confirmed')"
+    >
+      <span class="composition-participation__action-icon" aria-hidden="true">👍</span>
+      <span>Confirmer</span>
+    </button>
+    <button
+      type="button"
+      class="composition-participation__action composition-participation__action--decline"
+      [class.composition-participation__action--active]="data.currentStatus === 'declined'"
+      (click)="respond('declined')"
+    >
+      <span class="composition-participation__action-icon" aria-hidden="true">👎</span>
+      <span>Décliner</span>
+    </button>
+    <button
+      type="button"
+      class="composition-participation__action composition-participation__action--pending"
+      [class.composition-participation__action--active]="data.currentStatus === 'pending'"
+      (click)="respond('pending')"
+    >
+      <span class="composition-participation__action-icon" aria-hidden="true">⏳</span>
+      <span>À confirmer</span>
+    </button>
+  </div>
+
+  <label class="composition-participation__note-label" for="participation-note">
+    Note (optionnelle)
+  </label>
+  <textarea
+    id="participation-note"
+    class="composition-participation__note"
+    rows="3"
+    maxlength="500"
+    [(ngModel)]="note"
+    placeholder="Message pour l'organisateur·ice…"
+  ></textarea>
+  <p class="composition-participation__note-hint">Visible par l'organisateur·ice.</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-button (click)="cancel()">Annuler</button>
+</mat-dialog-actions>

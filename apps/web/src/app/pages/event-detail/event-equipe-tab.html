@@ -77,8 +77,10 @@
           class="event-equipe-tab__row"
           [class.event-equipe-tab__row--filled]="row.slot?.participantId"
           [class.event-equipe-tab__row--pending]="row.slot?.participationStatus === 'pending'"
+          [class.event-equipe-tab__row--confirmed]="row.slot?.participationStatus === 'confirmed'"
           [class.event-equipe-tab__row--empty]="!row.slot?.participantId"
           [class.event-equipe-tab__row--editable]="canEditSlots()"
+          [class.event-equipe-tab__row--participation]="canTapParticipationSlot(row)"
         >
           <span class="event-equipe-tab__role" aria-hidden="true">{{ row.roleEmoji }}</span>
           @if (canEditSlots()) {
@@ -113,6 +115,19 @@
                 <mat-icon>close</mat-icon>
               </button>
             }
+          } @else if (canTapParticipationSlot(row)) {
+            <button
+              type="button"
+              class="event-equipe-tab__slot event-equipe-tab__slot-button"
+              (click)="onSlotRowClick(row)"
+            >
+              @if (row.slot?.participantDisplayName; as name) {
+                <span class="event-equipe-tab__avatar" aria-hidden="true">
+                  {{ name.charAt(0).toUpperCase() }}
+                </span>
+                <span class="event-equipe-tab__name">{{ name }}</span>
+              }
+            </button>
           } @else {
             <div class="event-equipe-tab__slot">
               @if (row.slot?.participantDisplayName; as name) {
@@ -135,6 +150,40 @@
         </li>
       }
     </ul>
+
+    @if (declineBadgeLabel(); as badge) {
+      <div class="event-equipe-tab__declines">
+        <button
+          type="button"
+          class="event-equipe-tab__declines-badge"
+          [attr.aria-expanded]="declinesExpanded()"
+          (click)="toggleDeclinesList()"
+        >
+          {{ badge }}
+        </button>
+        @if (declinesExpanded()) {
+          <section class="event-equipe-tab__declines-panel" aria-label="Personnes ayant décliné">
+            <h3 class="event-equipe-tab__declines-title">Personnes ayant décliné</h3>
+            <ul class="event-equipe-tab__declines-list">
+              @for (decline of declines(); track decline.participantId + ':' + decline.roleKey + ':' + decline.slotIndex) {
+                <li class="event-equipe-tab__declines-row">
+                  <span class="event-equipe-tab__avatar" aria-hidden="true">
+                    {{ decline.participantDisplayName.charAt(0).toUpperCase() }}
+                  </span>
+                  <span class="event-equipe-tab__declines-meta">
+                    <span class="event-equipe-tab__name">{{ decline.participantDisplayName }}</span>
+                    <span class="event-equipe-tab__declines-role">
+                      {{ declineRoleEmoji(decline.roleKey) }}
+                      {{ declineRoleLabel(decline.roleKey) }}
+                    </span>
+                  </span>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+    }
 
     @if (canPublish()) {
       <button

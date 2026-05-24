@@ -11,6 +11,7 @@ import {
   type CompositionDrawStep,
   type CompositionResponse,
   type CompositionSlot,
+  type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { showPublishButton } from '../../core/composition/composition-visibility'
@@ -23,6 +24,11 @@ import {
   type RoleKey,
 } from '../../core/events/event-types'
 import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
+import {
+  CompositionParticipationDialog,
+  type CompositionParticipationDialogData,
+  type CompositionParticipationDialogResult,
+} from '../../shared/composition/composition-participation-dialog'
 import {
   CompositionSlotPickerDialog,
   type CompositionSlotPickerDialogResult,
@@ -72,7 +78,10 @@ export class EventEquipeTab {
   protected readonly unlocking = signal(false)
   protected readonly drawing = signal(false)
   protected readonly assigning = signal(false)
+  protected readonly updatingParticipation = signal(false)
   protected readonly composition = signal<CompositionResponse | null>(null)
+  protected readonly showConfirmOpened = signal(false)
+  protected readonly declinesExpanded = signal(false)
   protected readonly drawSteps = signal<CompositionDrawStep[]>([])
   protected readonly drawStepIndex = signal(0)
   protected readonly animatingDraw = signal(false)
@@ -169,6 +178,20 @@ export class EventEquipeTab {
       !this.assigning(),
   )
 
+  protected readonly viewerParticipantIds = computed(
+    () => new Set(this.composition()?.viewerParticipantIds ?? []),
+  )
+
+  protected readonly declines = computed(() => this.composition()?.declines ?? [])
+
+  protected readonly declineBadgeLabel = computed(() => {
+    const count = this.declines().length
+    if (count === 0) {
+      return null
+    }
+    return count === 1 ? '1 personne a décliné' : `${count} personnes ont décliné`
+  })
+
   protected readonly currentDrawStep = computed(() => {
     const steps = this.drawSteps()
     const index = this.drawStepIndex()
@@ -188,7 +211,7 @@ export class EventEquipeTab {
     if (!comp && !showPlaceholders) {
       return []
     }
-    if (comp && comp.slots.length === 0 && !showPlaceholders) {
+    if (comp && comp.slots.length === 0 && !showPlaceholders && !this.isCompositionLocked()) {
       return []
     }
 
@@ -243,6 +266,157 @@ export class EventEquipeTab {
       }
       queueMicrotask(() => anim.play())
     })
+
+    effect(() => {
+      if (
+        !this.showConfirmPending() ||
+        this.showConfirmOpened() ||
+        this.loading() ||
+        this.loadError() ||
+        !this.isCompositionLocked()
+      ) {
+        return
+      }
+      const row = this.findOwnPendingParticipationRow()
+      if (!row) {
+        return
+      }
+      this.showConfirmOpened.set(true)
+      queueMicrotask(() => void this.openParticipationModal(row))
+    })
+  }
+
+  /** Own-slot confirmation when locked — organizers included (proxy for others is 6.8). */
+  protected canTapParticipationSlot(row: SlotRow): boolean {
+    if (!this.isCompositionLocked() || this.loading() || this.loadError()) {
+      return false
+    }
+    const participantId = row.slot?.participantId
+    if (!participantId) {
+      return false
+    }
+    return this.viewerParticipantIds().has(participantId)
+  }
+
+  protected onSlotRowClick(row: SlotRow): void {
+    if (this.canEditSlots()) {
+      void this.openSlotPicker(row)
+      return
+    }
+    if (this.canTapParticipationSlot(row)) {
+      void this.openParticipationModal(row)
+    }
+  }
+
+  protected toggleDeclinesList(): void {
+    this.declinesExpanded.update((open) => !open)
+  }
+
+  protected declineRoleLabel(roleKey: string): string {
+    return ROLE_LABELS[roleKey as RoleKey] ?? roleKey
+  }
+
+  protected declineRoleEmoji(roleKey: string): string {
+    return ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
+  }
+
+  private findOwnPendingParticipationRow(): SlotRow | null {
+    const viewerIds = this.viewerParticipantIds()
+    for (const row of this.slotRows()) {
+      const slot = row.slot
+      if (
+        slot?.participantId &&
+        viewerIds.has(slot.participantId) &&
+        slot.participationStatus === 'pending'
+      ) {
+        return row
+      }
+    }
+    return null
+  }
+
+  protected async openParticipationModal(row: SlotRow): Promise<void> {
+    const slot = row.slot
+    if (!slot?.participantId || !this.canTapParticipationSlot(row)) {
+      return
+    }
+    const ev = this.event()
+    const dialogRef = this.dialog.open<
+      CompositionParticipationDialog,
+      CompositionParticipationDialogData,
+      CompositionParticipationDialogResult | undefined
+    >(CompositionParticipationDialog, {
+      data: {
+        eventTitle: ev.title,
+        eventDate: ev.startsAt,
+        roleLabel: row.roleLabel,
+        roleEmoji: row.roleEmoji,
+        currentStatus: slot.participationStatus,
+      },
+      autoFocus: 'first-titled-element',
+    })
+
+    const result = await firstValueFrom(dialogRef.afterClosed())
+    if (!result) {
+      return
+    }
+    await this.submitParticipation(row, result.status, result.note)
+  }
+
+  private async submitParticipation(
+    row: SlotRow,
+    status: SlotParticipationUpdateStatus,
+    note?: string | null,
+  ): Promise<void> {
+    if (this.updatingParticipation()) {
+      return
+    }
+    this.updatingParticipation.set(true)
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const result = await this.compositionApi.updateSlotParticipation(
+      seasonId,
+      eventId,
+      row.roleKey,
+      row.slotIndex,
+      status,
+      note,
+    )
+    this.updatingParticipation.set(false)
+    if (this.event().id !== eventId) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      this.snack.open(
+        this.participationErrorMessage(result.status, result.errorMessage),
+        'OK',
+        { duration: 6000 },
+      )
+      return
+    }
+    this.composition.set(result.data)
+    this.compositionPublished.emit()
+    const message =
+      status === 'confirmed'
+        ? 'Participation confirmée.'
+        : status === 'declined'
+          ? 'Participation déclinée.'
+          : 'Participation remise en attente.'
+    this.snack.open(message, 'OK', { duration: 4000 })
+  }
+
+  private participationErrorMessage(status: number, apiMessage?: string): string {
+    if (apiMessage) {
+      return apiMessage
+    }
+    switch (status) {
+      case 403:
+        return 'Vous ne pouvez pas modifier cette participation.'
+      case 409:
+        return 'Les confirmations ne sont pas encore ouvertes.'
+      default:
+        return 'Mise à jour impossible.'
+    }
   }
 
   protected async draw(): Promise<void> {
@@ -380,6 +554,7 @@ export class EventEquipeTab {
       return
     }
     this.composition.set(result.data)
+    this.compositionPublished.emit()
   }
 
   private candidatesErrorMessage(status: number, apiMessage?: string): string {
