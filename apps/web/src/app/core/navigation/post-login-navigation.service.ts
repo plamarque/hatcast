@@ -6,16 +6,31 @@ import {
   clearLastVisitedSeasonSlug,
   getLastVisitedSeasonSlug,
 } from './last-visited-league-storage'
+import {
+  clearPendingPostLoginRedirect,
+  getPendingPostLoginRedirect,
+  isValidInternalRedirectPath,
+} from './post-login-redirect-storage'
+
+export type PostLoginNavigationTarget = string | string[]
 
 @Injectable({ providedIn: 'root' })
 export class PostLoginNavigationService {
   private readonly resolver = inject(TroupeSeasonResolverService)
   private readonly router = inject(Router)
 
-  async resolveAuthenticatedEntryUrl(): Promise<string[]> {
+  async resolveAuthenticatedEntryUrl(): Promise<PostLoginNavigationTarget> {
+    const pending = getPendingPostLoginRedirect()
+    if (pending) {
+      if (isValidInternalRedirectPath(pending)) {
+        return pending
+      }
+      clearPendingPostLoginRedirect()
+    }
+
     const slug = getLastVisitedSeasonSlug()
     if (!slug) {
-      return ['/seasons']
+      return ['/agenda']
     }
 
     try {
@@ -24,15 +39,22 @@ export class PostLoginNavigationService {
         return ['/saison', slug]
       }
     } catch {
-      // Network/server error — clear stale slug and fall through to /seasons
+      // Network/server error — clear stale slug and fall through to /agenda
     }
 
     clearLastVisitedSeasonSlug()
-    return ['/seasons']
+    return ['/agenda']
   }
 
   async navigateAfterSignIn(router: Router = this.router): Promise<boolean> {
     const target = await this.resolveAuthenticatedEntryUrl()
+    if (typeof target === 'string') {
+      const navigated = await router.navigateByUrl(target, { replaceUrl: true })
+      if (navigated) {
+        clearPendingPostLoginRedirect()
+      }
+      return navigated
+    }
     return router.navigate(target, { replaceUrl: true })
   }
 }

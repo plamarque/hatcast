@@ -5,6 +5,7 @@ import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 import {
   UserAgendaApiService,
   type UserAgendaItem,
@@ -33,6 +34,7 @@ describe('UserAgenda', () => {
   let snack: { open: ReturnType<typeof vi.fn> }
 
   beforeEach(async () => {
+    localStorage.clear()
     agendaApi = {
       listAgenda: vi.fn().mockResolvedValue({
         ok: true,
@@ -78,6 +80,7 @@ describe('UserAgenda', () => {
   })
 
   afterEach(() => {
+    localStorage.clear()
     vi.restoreAllMocks()
   })
 
@@ -168,6 +171,7 @@ describe('UserAgenda', () => {
 
   it('redirige vers connexion avec snackbar si la session est invalide', async () => {
     auth.ensureHatcastSession.mockResolvedValue({ ok: false, status: 401 })
+    Object.defineProperty(router, 'url', { value: '/agenda', configurable: true })
 
     await settle(fixture)
 
@@ -176,6 +180,7 @@ describe('UserAgenda', () => {
       'OK',
       { duration: 6000 },
     )
+    expect(getPendingPostLoginRedirect()).toBe('/agenda')
     expect(navigateSpy).toHaveBeenCalledWith(['/connexion'], { replaceUrl: true })
     expect(agendaApi.listAgenda).not.toHaveBeenCalled()
   })

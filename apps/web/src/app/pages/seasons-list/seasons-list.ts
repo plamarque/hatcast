@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import {
   type SeasonResponse,
@@ -86,6 +87,7 @@ export class SeasonsList implements OnInit {
         'OK',
         { duration: 6000 },
       )
+      rememberCurrentUrlForPostLogin(this.router)
       await this.router.navigate(['/connexion'], { replaceUrl: true })
       return
     }

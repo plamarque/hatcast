@@ -14,6 +14,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   OrganizerApiService,
   type MySeasonPermissions,
@@ -100,6 +101,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
     if (!session.ok) {
+      rememberCurrentUrlForPostLogin(this.router)
       await this.router.navigate(['/connexion'], { replaceUrl: true })
       return
     }

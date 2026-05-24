@@ -61,7 +61,7 @@ describe('ResetPassword', () => {
           provide: PostLoginNavigationService,
           useValue: {
             navigateAfterSignIn: vi.fn(async (router: Router) =>
-              router.navigate(['/seasons'], { replaceUrl: true }),
+              router.navigate(['/agenda'], { replaceUrl: true }),
             ),
           },
         },
@@ -172,7 +172,7 @@ describe('ResetPassword', () => {
     expect(confirm).toHaveBeenCalledWith(mockAuth, 'oob', 'longenough')
     expect(signIn).toHaveBeenCalled()
     expect(idpMock).toHaveBeenCalledWith('jwt-token')
-    expect(navigate).toHaveBeenCalledWith(['/seasons'], { replaceUrl: true })
+    expect(navigate).toHaveBeenCalledWith(['/agenda'], { replaceUrl: true })
   })
 
   it('submit : IdP renvoie erreur → snackbar et navigation vers /connexion', async () => {

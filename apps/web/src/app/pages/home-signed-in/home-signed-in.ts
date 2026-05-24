@@ -4,7 +4,7 @@ import { Router } from '@angular/router'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
 
-/** Legacy `/accueil` route — redirects to last league or seasons list (Story 2.9). */
+/** Legacy `/accueil` route — redirects to last league or `/agenda` (Story 2.9, 12.5). */
 @Component({
   selector: 'app-home-signed-in',
   template: `

@@ -8,6 +8,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
@@ -173,6 +174,7 @@ export class SeasonHome implements OnDestroy, OnInit {
           'OK',
           { duration: 6000 },
         )
+        rememberCurrentUrlForPostLogin(this.router)
         await this.router.navigate(['/connexion'], { replaceUrl: true })
         return
       }

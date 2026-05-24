@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from '@angular/core'
+import { AfterViewInit, Component, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
@@ -8,13 +8,18 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { Router, RouterLink } from '@angular/router'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { setHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
 import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
+import {
+  clearPendingPostLoginRedirect,
+  isValidInternalRedirectPath,
+  rememberPendingPostLoginRedirect,
+} from '../../core/navigation/post-login-redirect-storage'
 import {
   userMessageForGoogleSignInFailure,
   userMessageForIdpApiFailure,
@@ -70,10 +75,11 @@ declare global {
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login implements AfterViewInit {
+export class Login implements AfterViewInit, OnInit {
   private readonly googleHost = viewChild<ElementRef<HTMLDivElement>>('googleButtonHost')
   private readonly auth = inject(AuthApiService)
   private readonly firebaseAuth = inject(FirebaseAuthService)
+  private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly postLoginNav = inject(PostLoginNavigationService)
   private readonly snack = inject(MatSnackBar)
@@ -94,6 +100,10 @@ export class Login implements AfterViewInit {
 
   /** Parité V1 : coché par défaut (session longue côté API). */
   protected readonly rememberMe = signal(true)
+
+  ngOnInit(): void {
+    this.ingestReturnUrlFromQuery()
+  }
 
   ngAfterViewInit(): void {
     const clientId = environment.googleOAuthWebClientId
@@ -136,6 +146,16 @@ export class Login implements AfterViewInit {
         )
       }
     }, 12_000)
+  }
+
+  private ingestReturnUrlFromQuery(): void {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim()
+    if (!returnUrl) return
+    if (isValidInternalRedirectPath(returnUrl)) {
+      rememberPendingPostLoginRedirect(returnUrl)
+      return
+    }
+    clearPendingPostLoginRedirect()
   }
 
   /** Widget GSI superposé au bouton Material (voir template) : largeur = pile parent. */

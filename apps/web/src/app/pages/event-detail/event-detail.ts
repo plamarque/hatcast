@@ -23,6 +23,7 @@ import {
 } from '../../core/permissions/organizer-api.service'
 import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   ConfirmDialog,
   type ConfirmDialogData,
@@ -108,6 +109,7 @@ export class EventDetail implements OnDestroy, OnInit {
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
     if (!session.ok) {
+      rememberCurrentUrlForPostLogin(this.router)
       await this.router.navigate(['/connexion'], { replaceUrl: true })
       return
     }

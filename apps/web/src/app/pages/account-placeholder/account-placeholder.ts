@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
@@ -68,6 +69,7 @@ export class AccountPlaceholder implements OnInit {
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
     if (!session.ok || !session.data) {
+      rememberCurrentUrlForPostLogin(this.router)
       await this.router.navigate(['/connexion'], { replaceUrl: true })
       return
     }
