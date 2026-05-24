@@ -7,6 +7,9 @@ import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.hamcrest.Matchers.empty
+import org.hamcrest.Matchers.greaterThanOrEqualTo
+import org.hamcrest.Matchers.not
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -335,5 +338,114 @@ class AvailabilityControllerIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.roleKeys.length()").value(1))
             .andExpect(jsonPath("$.roleKeys[0]").value("player"))
+    }
+
+    @Test
+    fun `summary aggregates participants and role candidates with equal chances`() {
+        val admin = memberCookie("sub-avail-summary-admin")
+        val member = signInOnly("sub-avail-summary-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+
+        val (seasonId, eventId) =
+            createSeasonAndEvent(
+                admin,
+                """
+                {
+                  "title": "Summary roles",
+                  "startsAt": "2031-04-01T19:00:00Z",
+                  "roleSlots": { "player": 5, "mc": 1, "dj": 1 }
+                }
+                """.trimIndent(),
+            )
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player","mc"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(member)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val summaryPath = "/v1/seasons/$seasonId/events/$eventId/availability/summary"
+        mockMvc
+            .perform(get(summaryPath).cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.eventId").value(eventId.toString()))
+            .andExpect(jsonPath("$.participants.length()").value(greaterThanOrEqualTo(2)))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'mc')].candidates.length()").value(2))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'mc')].candidates[0].chancePercent").value(50))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates.length()").value(2))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'dj')].candidates.length()").value(1))
+
+        mockMvc
+            .perform(get(summaryPath).cookie(signInOnly("sub-avail-summary-outsider")))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `summary excludes unavailable participants from role candidates`() {
+        val cookie = memberCookie("sub-avail-summary-unavail")
+        val user = userRepository.findByGoogleSub("sub-avail-summary-unavail")!!
+        val (seasonId, eventId) = createSeasonAndEvent(cookie)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"unavailable"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(
+                jsonPath("$.participants[?(@.userId == '${user.id}')].status").value("unavailable"),
+            ).andExpect(jsonPath("$.roles[?(@.candidates.length() > 0)]").isEmpty)
+    }
+
+    @Test
+    fun `seed season match event exposes template roles and mixed availability summary`() {
+        val seedSeasonId = UUID.fromString("b0000001-0000-4000-8000-000000000001")
+        val matchEventId = UUID.fromString("c0000002-0000-4000-8000-000000000002")
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "seed-malicie-22",
+                email = "patrice@seed.la-malice.test",
+                name = "Patrice",
+            )
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events?scope=all&size=100").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.id == '$matchEventId')].templateType").value("match"))
+            .andExpect(jsonPath("$.content[?(@.id == '$matchEventId')].roleSlots.player").value(5))
+            .andExpect(jsonPath("$.content[?(@.id == '$matchEventId')].roleSlots.volunteer").value(5))
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events/$matchEventId/availability/summary")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.eventId").value(matchEventId.toString()))
+            .andExpect(jsonPath("$.participants.length()").value(32))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].requiredCount").value(5))
+            .andExpect(jsonPath("$.participants[?(@.status == 'available')]").value(not(empty<Any>())))
+            .andExpect(jsonPath("$.participants[?(@.status == 'unavailable')]").value(not(empty<Any>())))
+            .andExpect(jsonPath("$.participants[?(@.status == 'unknown')]").value(not(empty<Any>())))
     }
 }

@@ -21,7 +21,8 @@
     "test:unit": "npm run test:unit -w hatcast-legacy",
     "replay": "node scripts/replay-season.js",
     "export:v1-members": "node scripts/v1-export-troupe-members-csv.js",
-    "export:v1-users": "node scripts/v1-export-season-users-csv.js"
+    "export:v1-users": "node scripts/v1-export-season-users-csv.js",
+    "generate:malice-seed": "node scripts/v2/generate-malice-seed-sql.js"
   },
   "engines": {
     "node": ">=20"

@@ -304,8 +304,8 @@ class EventControllerIntegrationTest {
             .perform(
                 get("/v1/seasons/$seedSeasonId/events?page=0&size=1&scope=all").cookie(cookie),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.content[0].templateType").value("custom"))
-            .andExpect(jsonPath("$.content[0].roleSlots.player").value(0))
+            .andExpect(jsonPath("$.content[0].templateType").value("cabaret"))
+            .andExpect(jsonPath("$.content[0].roleSlots.player").value(5))
     }
 
     @Test
