@@ -410,36 +410,33 @@ describe('EventDetail', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.event-context-strip')).not.toBeNull()
     })
-    const label = fixture.nativeElement.querySelector('.event-context-strip__label')
-    expect(label?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Troupe · Saison')
+    const line = fixture.nativeElement.querySelector('.event-context-strip__line')
+    expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Troupe · Saison')
   })
 
-  it('links Voir la ligue to the current season workspace', async () => {
+  it('links league title to the current season workspace', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      const leagueLink = fixture.nativeElement.querySelector(
-        '.event-context-strip__action[aria-label="Voir la ligue"]',
-      )
+      const leagueLink = fixture.nativeElement.querySelector('a.event-context-strip__league')
       expect(leagueLink?.getAttribute('href')).toBe('/saison/season-a')
+      expect(leagueLink?.textContent?.trim()).toBe('Saison')
     })
   })
 
-  it('hides Voir la troupe for ordinary members', async () => {
+  it('shows troupe name as plain text for ordinary members', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.event-context-strip')).not.toBeNull()
     })
-    expect(
-      fixture.nativeElement.querySelector('.event-context-strip__action[aria-label="Voir la troupe"]'),
-    ).toBeNull()
+    expect(fixture.nativeElement.querySelector('a.event-context-strip__troupe')).toBeNull()
     expect(fixture.nativeElement.querySelector('.event-context-strip__troupe')?.textContent?.trim()).toBe(
       'Troupe',
     )
   })
 
-  it('links Voir la troupe to admin membres for troupe admins', async () => {
+  it('links troupe name to admin membres for troupe admins', async () => {
     listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
@@ -460,10 +457,9 @@ describe('EventDetail', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      const troupeLink = fixture.nativeElement.querySelector(
-        '.event-context-strip__action[aria-label="Voir la troupe"]',
-      )
+      const troupeLink = fixture.nativeElement.querySelector('a.event-context-strip__troupe')
       expect(troupeLink?.getAttribute('href')).toBe('/troupe/troupe/admin/membres')
+      expect(troupeLink?.textContent?.trim()).toBe('Troupe')
     })
   })
 
@@ -507,14 +503,14 @@ describe('EventDetail', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      const label = fixture.nativeElement.querySelector('.event-context-strip__label')
-      expect(label?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Les Beta · Ligue Beta')
+      const line = fixture.nativeElement.querySelector('.event-context-strip__line')
+      expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Les Beta · Ligue Beta')
     })
     expect(fixture.nativeElement.querySelector('.event-context-strip__troupe')?.textContent?.trim()).toBe(
       'Les Beta',
     )
-    expect(fixture.nativeElement.querySelector('.event-context-strip__league')?.textContent?.trim()).toBe(
-      'Ligue Beta',
+    expect(fixture.nativeElement.querySelector('a.event-context-strip__league')?.getAttribute('href')).toBe(
+      '/saison/season-a',
     )
   })
 

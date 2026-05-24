@@ -1,27 +1,23 @@
 <nav class="event-context-strip" aria-label="Contexte du spectacle">
-  <p class="event-context-strip__label">
-    <span class="event-context-strip__troupe">{{ troupeName() }}</span>
-    <span class="event-context-strip__sep" aria-hidden="true"> · </span>
-    <span class="event-context-strip__league">{{ leagueTitle() }}</span>
-  </p>
-  <div class="event-context-strip__actions">
-    <a
-      mat-stroked-button
-      class="event-context-strip__action"
-      [routerLink]="['/saison', seasonSlug()]"
-      aria-label="Voir la ligue"
-    >
-      Voir la ligue
-    </a>
+  <p class="event-context-strip__line">
     @if (showTroupeLink()) {
       <a
-        mat-stroked-button
-        class="event-context-strip__action"
+        class="event-context-strip__troupe event-context-strip__link"
         [routerLink]="['/troupe', troupeSlug(), 'admin', 'membres']"
-        aria-label="Voir la troupe"
+        [attr.aria-label]="'Voir la troupe ' + troupeName()"
       >
-        Voir la troupe
+        {{ troupeName() }}
       </a>
+    } @else {
+      <span class="event-context-strip__troupe">{{ troupeName() }}</span>
     }
-  </div>
+    <span class="event-context-strip__sep" aria-hidden="true"> · </span>
+    <a
+      class="event-context-strip__league event-context-strip__link"
+      [routerLink]="['/saison', seasonSlug()]"
+      [attr.aria-label]="'Voir la ligue ' + leagueTitle()"
+    >
+      {{ leagueTitle() }}
+    </a>
+  </p>
 </nav>

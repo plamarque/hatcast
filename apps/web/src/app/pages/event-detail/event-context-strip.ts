@@ -1,10 +1,9 @@
 import { Component, input } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
 import { RouterLink } from '@angular/router'
 
 @Component({
   selector: 'app-event-context-strip',
-  imports: [MatButtonModule, RouterLink],
+  imports: [RouterLink],
   templateUrl: './event-context-strip.html',
   styleUrl: './event-context-strip.scss',
 })
