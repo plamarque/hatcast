@@ -15,6 +15,8 @@ export interface CompositionParticipationDialogData {
   roleLabel: string
   roleEmoji: string
   currentStatus: 'pending' | 'confirmed' | 'declined'
+  mode?: 'self' | 'proxy'
+  assigneeDisplayName?: string
 }
 
 export interface CompositionParticipationDialogResult {
@@ -38,6 +40,16 @@ export class CompositionParticipationDialog {
     )
   protected readonly data = inject<CompositionParticipationDialogData>(MAT_DIALOG_DATA)
 
+  protected readonly isProxy = this.data.mode === 'proxy'
+
+  protected readonly dialogTitle = this.isProxy
+    ? `Confirmer la participation de ${this.data.assigneeDisplayName ?? 'ce participant'}`
+    : 'Confirmer ma participation'
+
+  protected readonly proxyHint = this.isProxy
+    ? `Vous agissez pour le compte de ${this.data.assigneeDisplayName ?? 'ce participant'}.`
+    : null
+
   protected note = ''
 
   protected formatDate(iso: string): string {
@@ -59,7 +71,8 @@ export class CompositionParticipationDialog {
     const trimmed = this.note.trim()
     this.ref.close({
       status,
-      note: trimmed.length > 0 ? trimmed.slice(0, 500) : null,
+      note:
+        status === 'declined' && trimmed.length > 0 ? trimmed.slice(0, 500) : null,
     })
   }
 

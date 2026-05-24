@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core'
+import { Component } from '@angular/core'
 import { MatIconModule } from '@angular/material/icon'
 
 @Component({
@@ -7,7 +7,4 @@ import { MatIconModule } from '@angular/material/icon'
   templateUrl: './event-equipe-empty.html',
   styleUrl: './event-equipe-empty.scss',
 })
-export class EventEquipeEmpty {
-  /** Deep link `showConfirm=true` — participation UI deferred to story 6.7. */
-  readonly showConfirmPending = input(false)
-}
+export class EventEquipeEmpty {}

@@ -33,6 +33,7 @@ import {
   CompositionSlotPickerDialog,
   type CompositionSlotPickerDialogResult,
 } from '../../shared/composition/composition-slot-picker-dialog'
+import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
 
 interface SlotRow {
@@ -277,17 +278,24 @@ export class EventEquipeTab {
       ) {
         return
       }
-      const row = this.findOwnPendingParticipationRow()
+      const row = this.findOwnAssignedParticipationRow()
       if (!row) {
         return
       }
       this.showConfirmOpened.set(true)
-      queueMicrotask(() => void this.openParticipationModal(row))
+      queueMicrotask(() => void this.openParticipationModal(row, { mode: 'self' }))
     })
   }
 
-  /** Own-slot confirmation when locked — organizers included (proxy for others is 6.8). */
+  protected readonly hasViewerParticipantIdentity = computed(
+    () => this.viewerParticipantIds().size > 0,
+  )
+
+  /** Own-slot confirmation when locked — organizers use self-service copy on own slot. */
   protected canTapParticipationSlot(row: SlotRow): boolean {
+    if (this.updatingParticipation()) {
+      return false
+    }
     if (!this.isCompositionLocked() || this.loading() || this.loadError()) {
       return false
     }
@@ -298,14 +306,48 @@ export class EventEquipeTab {
     return this.viewerParticipantIds().has(participantId)
   }
 
+  /** Organizer proxy on any filled locked slot (foreign slots; own slot uses self-service above). */
+  protected canTapProxyParticipationSlot(row: SlotRow): boolean {
+    if (this.updatingParticipation()) {
+      return false
+    }
+    if (!this.canManageComposition() || !this.isCompositionLocked() || this.loading() || this.loadError()) {
+      return false
+    }
+    return row.slot?.participantId != null
+  }
+
+  protected isParticipationSlotTappable(row: SlotRow): boolean {
+    return this.canTapParticipationSlot(row) || this.canTapProxyParticipationSlot(row)
+  }
+
   protected onSlotRowClick(row: SlotRow): void {
     if (this.canEditSlots()) {
       void this.openSlotPicker(row)
       return
     }
     if (this.canTapParticipationSlot(row)) {
-      void this.openParticipationModal(row)
+      void this.openParticipationModal(row, { mode: 'self' })
+      return
     }
+    if (this.canTapProxyParticipationSlot(row)) {
+      void this.openParticipationModal(row, { mode: 'proxy' })
+      return
+    }
+    if (
+      this.isCompositionLocked() &&
+      row.slot?.participantId &&
+      this.hasViewerParticipantIdentity() &&
+      !this.viewerParticipantIds().has(row.slot.participantId)
+    ) {
+      this.onForeignParticipationSlotTap()
+    }
+  }
+
+  protected onForeignParticipationSlotTap(): void {
+    this.snack.open('Vous ne pouvez confirmer que votre propre participation.', 'OK', {
+      duration: 4000,
+    })
   }
 
   protected toggleDeclinesList(): void {
@@ -320,27 +362,36 @@ export class EventEquipeTab {
     return ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
   }
 
-  private findOwnPendingParticipationRow(): SlotRow | null {
+  private findOwnAssignedParticipationRow(): SlotRow | null {
     const viewerIds = this.viewerParticipantIds()
     for (const row of this.slotRows()) {
       const slot = row.slot
-      if (
-        slot?.participantId &&
-        viewerIds.has(slot.participantId) &&
-        slot.participationStatus === 'pending'
-      ) {
+      if (slot?.participantId && viewerIds.has(slot.participantId)) {
         return row
       }
     }
     return null
   }
 
-  protected async openParticipationModal(row: SlotRow): Promise<void> {
+  protected async openParticipationModal(
+    row: SlotRow,
+    options: { mode: 'self' | 'proxy' },
+  ): Promise<void> {
+    if (this.updatingParticipation()) {
+      return
+    }
     const slot = row.slot
-    if (!slot?.participantId || !this.canTapParticipationSlot(row)) {
+    if (!slot?.participantId) {
+      return
+    }
+    if (options.mode === 'self' && !this.canTapParticipationSlot(row)) {
+      return
+    }
+    if (options.mode === 'proxy' && !this.canTapProxyParticipationSlot(row)) {
       return
     }
     const ev = this.event()
+    const assigneeName = slot.participantDisplayName ?? 'ce participant'
     const dialogRef = this.dialog.open<
       CompositionParticipationDialog,
       CompositionParticipationDialogData,
@@ -352,6 +403,8 @@ export class EventEquipeTab {
         roleLabel: row.roleLabel,
         roleEmoji: row.roleEmoji,
         currentStatus: slot.participationStatus,
+        mode: options.mode,
+        assigneeDisplayName: options.mode === 'proxy' ? assigneeName : undefined,
       },
       autoFocus: 'first-titled-element',
     })
@@ -359,6 +412,27 @@ export class EventEquipeTab {
     const result = await firstValueFrom(dialogRef.afterClosed())
     if (!result) {
       return
+    }
+    if (result.status === 'declined') {
+      const declineMessage =
+        options.mode === 'proxy'
+          ? `Confirmer le désistement de ${assigneeName} pour ce rôle ?`
+          : 'Confirmer votre désistement pour ce rôle ?'
+      const confirmed = await firstValueFrom(
+        this.dialog
+          .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+            data: {
+              title: 'Décliner la participation',
+              message: declineMessage,
+              confirmLabel: 'Décliner',
+              destructive: true,
+            },
+          })
+          .afterClosed(),
+      )
+      if (!confirmed) {
+        return
+      }
     }
     await this.submitParticipation(row, result.status, result.note)
   }

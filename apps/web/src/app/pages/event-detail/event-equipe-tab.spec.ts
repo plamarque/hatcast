@@ -1,4 +1,5 @@
 import { MatDialog } from '@angular/material/dialog'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { Subject } from 'rxjs'
@@ -37,7 +38,13 @@ describe('EventEquipeTab', () => {
   let unlockComposition: ReturnType<typeof vi.fn>
   let updateSlotParticipation: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
-  let dialogAfterClosed: Subject<{ participantId: string } | { status: string; note?: string | null } | undefined>
+  let snackOpen: ReturnType<typeof vi.fn>
+  let dialogAfterClosed: Subject<
+    | { participantId: string }
+    | { status: string; note?: string | null }
+    | boolean
+    | undefined
+  >
 
   beforeEach(async () => {
     getComposition = vi.fn().mockResolvedValue({
@@ -87,7 +94,10 @@ describe('EventEquipeTab', () => {
     unlockComposition = vi.fn()
     updateSlotParticipation = vi.fn()
     dialogAfterClosed = new Subject<
-      { participantId: string } | { status: string; note?: string | null } | undefined
+      | { participantId: string }
+      | { status: string; note?: string | null }
+      | boolean
+      | undefined
     >()
     dialogOpen = vi.fn().mockReturnValue({
       componentInstance: {
@@ -96,6 +106,7 @@ describe('EventEquipeTab', () => {
       afterClosed: () => dialogAfterClosed.asObservable(),
       close: vi.fn(),
     })
+    snackOpen = vi.fn()
 
     await TestBed.configureTestingModule({
       imports: [EventEquipeTab, NoopAnimationsModule],
@@ -114,10 +125,12 @@ describe('EventEquipeTab', () => {
           },
         },
         { provide: MatDialog, useValue: { open: dialogOpen } },
+        { provide: MatSnackBar, useValue: { open: snackOpen } },
       ],
     }).compileComponents()
 
     TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
+    TestBed.overrideProvider(MatSnackBar, { useValue: { open: snackOpen } })
 
     fixture = TestBed.createComponent(EventEquipeTab)
     fixture.componentRef.setInput('seasonId', 'season-1')
@@ -420,10 +433,10 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Locked Player')
     })
-    expect(fixture.nativeElement.querySelector('.event-equipe-tab__slot-button')).toBeNull()
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__clear')).toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Déverrouiller')
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__validate')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__slot-button')).not.toBeNull()
   })
 
   it('lets organizer open participation modal on own slot when locked', async () => {
@@ -459,13 +472,20 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.textContent).toContain('Organisateur')
     })
 
-    const buttons = fixture.nativeElement.querySelectorAll(
-      '.event-equipe-tab__slot-button',
-    ) as NodeListOf<HTMLButtonElement>
-    expect(buttons.length).toBe(1)
-    buttons[0].click()
+    const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
+    const ownRow = [...rows].find((row) => row.textContent?.includes('Organisateur'))
+    expect(ownRow).toBeDefined()
+    const ownBtn = ownRow!.querySelector('.event-equipe-tab__slot-button') as HTMLButtonElement
+    ownBtn.click()
     fixture.detectChanges()
-    expect(dialogOpen).toHaveBeenCalled()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          mode: 'self',
+        }),
+      }),
+    )
   })
 
   it('shows Valider for organizer draft with assigned slot', async () => {
@@ -638,17 +658,17 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.textContent).toContain('Moi')
     })
 
-    const buttons = fixture.nativeElement.querySelectorAll(
-      '.event-equipe-tab__slot-button',
-    ) as NodeListOf<HTMLButtonElement>
-    expect(buttons.length).toBe(1)
-    buttons[0].click()
+    const slotBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__row--participation .event-equipe-tab__slot-button',
+    ) as HTMLButtonElement
+    expect(slotBtn).not.toBeNull()
+    slotBtn.click()
     fixture.detectChanges()
 
     expect(dialogOpen).toHaveBeenCalled()
   })
 
-  it('auto-opens participation modal when showConfirmPending and own pending slot', async () => {
+  it('auto-opens participation modal when showConfirmPending and own assigned slot', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -673,6 +693,216 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(dialogOpen).toHaveBeenCalled()
     })
+  })
+
+  it('auto-opens participation modal when showConfirmPending and own confirmed slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'confirmed',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('showConfirmPending', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalled()
+    })
+  })
+
+  it('opens proxy participation modal when organizer taps foreign locked slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-organizer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-organizer',
+            participantDisplayName: 'Organisateur',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-other',
+            participantDisplayName: 'Autre membre',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Autre membre')
+    })
+
+    const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
+    const foreignRow = [...rows].find((row) => row.textContent?.includes('Autre membre'))
+    expect(foreignRow).toBeDefined()
+    const foreignBtn = foreignRow!.querySelector('.event-equipe-tab__slot-button') as HTMLButtonElement
+    foreignBtn.click()
+    fixture.detectChanges()
+
+    expect(dialogOpen).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          mode: 'proxy',
+          assigneeDisplayName: 'Autre membre',
+        }),
+      }),
+    )
+  })
+
+  it('shows proxy decline confirm copy referencing assignee name', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-organizer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-organizer',
+            participantDisplayName: 'Organisateur',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-other',
+            participantDisplayName: 'Autre membre',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    updateSlotParticipation.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-organizer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-organizer',
+            participantDisplayName: 'Organisateur',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Autre membre')
+    })
+
+    const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
+    const foreignRow = [...rows].find((row) => row.textContent?.includes('Autre membre'))
+    const foreignBtn = foreignRow!.querySelector('.event-equipe-tab__slot-button') as HTMLButtonElement
+    foreignBtn.click()
+    fixture.detectChanges()
+
+    dialogAfterClosed.next({ status: 'declined' })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(2)
+    })
+    const confirmCall = dialogOpen.mock.calls[1]
+    expect(confirmCall[1]).toEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          message: 'Confirmer le désistement de Autre membre pour ce rôle ?',
+        }),
+      }),
+    )
+
+    dialogAfterClosed.next(true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(updateSlotParticipation).toHaveBeenCalledWith(
+        'season-1',
+        'event-1',
+        'player',
+        1,
+        'declined',
+        undefined,
+      )
+    })
+  })
+
+  it('shows feedback when tapping another participant slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-other',
+            participantDisplayName: 'Autre',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Autre')
+    })
+
+    const readonlyBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__slot-button--readonly',
+    ) as HTMLButtonElement
+    readonlyBtn.click()
+    fixture.detectChanges()
+
+    expect(snackOpen).toHaveBeenCalledWith(
+      'Vous ne pouvez confirmer que votre propre participation.',
+      'OK',
+      { duration: 4000 },
+    )
   })
 
   it('shows declined badge and toggles list', async () => {

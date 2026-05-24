@@ -71,6 +71,11 @@
   cursor: pointer;
 }
 
+.event-equipe-tab__slot-button--readonly {
+  cursor: default;
+  opacity: 0.95;
+}
+
 .event-equipe-tab__row--empty {
   opacity: 0.92;
 }

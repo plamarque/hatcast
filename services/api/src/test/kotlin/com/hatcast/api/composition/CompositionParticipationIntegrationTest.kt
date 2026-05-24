@@ -277,6 +277,166 @@ class CompositionParticipationIntegrationTest {
     }
 
     @Test
+    @Tag("FR26")
+    fun `organizer confirms foreign slot via proxy`() {
+        val adminCookie = memberCookie("sub-part-proxy-confirm-admin", admin = true)
+        memberCookie("sub-part-proxy-confirm-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Proxy confirm")
+        val memberId = participantIdForUser(seasonId, "sub-part-proxy-confirm-member")
+        seedValidatedComposition(eventId, memberId)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(memberId.toString()))
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
+    }
+
+    @Test
+    @Tag("FR26")
+    fun `organizer proxy decline frees slot and records actor and subject`() {
+        val adminCookie = memberCookie("sub-part-proxy-decline-admin", admin = true)
+        memberCookie("sub-part-proxy-decline-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Proxy decline")
+        val memberId = participantIdForUser(seasonId, "sub-part-proxy-decline-member")
+        val adminUser = userRepository.findByGoogleSub("sub-part-proxy-decline-admin") ?: error("Missing admin")
+        seedValidatedComposition(eventId, memberId)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"declined","note":"Proxy decline"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").doesNotExist())
+            .andExpect(jsonPath("$.declines.length()").value(1))
+
+        val declines = declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId)
+        assert(declines.size == 1)
+        assert(declines[0].seasonParticipantId == memberId)
+        assert(declines[0].declinedByUserId == adminUser.id)
+        assert(declines[0].declinedByUserId != userRepository.findByGoogleSub("sub-part-proxy-decline-member")?.id)
+    }
+
+    @Test
+    @Tag("FR26")
+    fun `organizer proxy decline on name-only assignee succeeds`() {
+        val adminCookie = memberCookie("sub-part-proxy-nameonly-admin", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Proxy name-only")
+        val nameOnlyId = createSeasonParticipant(seasonId, "Name Only Player")
+        seedValidatedComposition(eventId, nameOnlyId)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"declined"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").doesNotExist())
+
+        val declines = declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId)
+        assert(declines.size == 1)
+        assert(declines[0].seasonParticipantId == nameOnlyId)
+    }
+
+    @Test
+    @Tag("FR26")
+    fun `organizer proxy on own linked slot still succeeds`() {
+        val adminCookie = memberCookie("sub-part-proxy-own-admin", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Proxy own slot")
+        val adminParticipantId = participantIdForUser(seasonId, "sub-part-proxy-own-admin")
+        seedValidatedComposition(eventId, adminParticipantId)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(adminParticipantId.toString()))
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
+    }
+
+    @Test
+    @Tag("FR26")
+    fun `season organizer can proxy confirm on foreign slot`() {
+        val adminCookie = memberCookie("sub-part-proxy-season-org-admin", admin = true)
+        val seasonOrganizerCookie = memberCookie("sub-part-proxy-season-org-user")
+        val memberCookie = memberCookie("sub-part-proxy-season-org-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Season org proxy")
+        val memberId = participantIdForUser(seasonId, "sub-part-proxy-season-org-member")
+        seedValidatedComposition(eventId, memberId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/organizers")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"sub-part-proxy-season-org-user@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(seasonOrganizerCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"pending"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(memberId.toString()))
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("pending"))
+    }
+
+    @Test
+    @Tag("FR26")
+    fun `event organizer can proxy confirm on foreign slot`() {
+        val adminCookie = memberCookie("sub-part-proxy-event-org-admin", admin = true)
+        val eventOrganizerCookie = memberCookie("sub-part-proxy-event-org-user")
+        memberCookie("sub-part-proxy-event-org-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Event org proxy")
+        val memberId = participantIdForUser(seasonId, "sub-part-proxy-event-org-member")
+        seedValidatedComposition(eventId, memberId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/organizers")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"sub-part-proxy-event-org-user@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(eventOrganizerCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(memberId.toString()))
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
+    }
+
+    @Test
     fun `other member cannot update participation on foreign slot`() {
         val adminCookie = memberCookie("sub-part-forbidden-admin", admin = true)
         val ownerCookie = memberCookie("sub-part-forbidden-owner")
@@ -368,6 +528,34 @@ class CompositionParticipationIntegrationTest {
                     .cookie(adminCookie)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"participantId":"$p2"}""")
+                    .with(csrf()),
+            ).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `participation on freed slot after decline returns 409`() {
+        val adminCookie = memberCookie("sub-part-empty-slot-admin", admin = true)
+        val memberCookie = memberCookie("sub-part-empty-slot-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Empty slot participation")
+        val linkedId = participantIdForUser(seasonId, "sub-part-empty-slot-member")
+        seedValidatedComposition(eventId, linkedId)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(memberCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"declined"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(memberCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
                     .with(csrf()),
             ).andExpect(status().isConflict)
     }

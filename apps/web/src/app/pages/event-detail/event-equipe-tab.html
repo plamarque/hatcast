@@ -7,7 +7,7 @@
     Impossible de charger la composition.
   </p>
 } @else if (showEmptyState()) {
-  <app-event-equipe-empty [showConfirmPending]="showConfirmPending()" />
+  <app-event-equipe-empty />
 } @else {
   <div class="event-equipe-tab">
     @if (showDraftBanner()) {
@@ -80,7 +80,7 @@
           [class.event-equipe-tab__row--confirmed]="row.slot?.participationStatus === 'confirmed'"
           [class.event-equipe-tab__row--empty]="!row.slot?.participantId"
           [class.event-equipe-tab__row--editable]="canEditSlots()"
-          [class.event-equipe-tab__row--participation]="canTapParticipationSlot(row)"
+          [class.event-equipe-tab__row--participation]="isParticipationSlotTappable(row)"
         >
           <span class="event-equipe-tab__role" aria-hidden="true">{{ row.roleEmoji }}</span>
           @if (canEditSlots()) {
@@ -115,10 +115,30 @@
                 <mat-icon>close</mat-icon>
               </button>
             }
-          } @else if (canTapParticipationSlot(row)) {
+          } @else if (
+            isCompositionLocked() &&
+            row.slot?.participantId &&
+            hasViewerParticipantIdentity() &&
+            !canTapParticipationSlot(row) &&
+            !canTapProxyParticipationSlot(row)
+          ) {
+            <button
+              type="button"
+              class="event-equipe-tab__slot event-equipe-tab__slot-button event-equipe-tab__slot-button--readonly"
+              (click)="onForeignParticipationSlotTap()"
+            >
+              @if (row.slot?.participantDisplayName; as name) {
+                <span class="event-equipe-tab__avatar" aria-hidden="true">
+                  {{ name.charAt(0).toUpperCase() }}
+                </span>
+                <span class="event-equipe-tab__name">{{ name }}</span>
+              }
+            </button>
+          } @else if (isParticipationSlotTappable(row)) {
             <button
               type="button"
               class="event-equipe-tab__slot event-equipe-tab__slot-button"
+              [disabled]="updatingParticipation()"
               (click)="onSlotRowClick(row)"
             >
               @if (row.slot?.participantDisplayName; as name) {

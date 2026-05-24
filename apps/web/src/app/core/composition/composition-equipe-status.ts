@@ -74,6 +74,7 @@ export function resolveCompositionEquipeStatus(
     return slot?.participantId != null
   })
   const hasEmptySlots = filledRequired.length < required.length
+  /** Legacy rows: declined status with assignee still present (pre-6.7). Post-decline frees slot → `À compléter`. */
   const hasDeclinedInSlots = required.some((req) => {
     const slot = slotAt(slots, req.roleKey, req.slotIndex)
     return slot?.participantId != null && slot.participationStatus === 'declined'

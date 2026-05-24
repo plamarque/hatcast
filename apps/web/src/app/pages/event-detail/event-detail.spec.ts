@@ -50,6 +50,8 @@ describe('EventDetail', () => {
   let mySeasonPermissions: ReturnType<typeof vi.fn>
   let listMyTroupes: ReturnType<typeof vi.fn>
   let getSeasonBySlug: ReturnType<typeof vi.fn>
+  let getComposition: ReturnType<typeof vi.fn>
+  let dialogOpen: ReturnType<typeof vi.fn>
   let router: Router
 
   beforeEach(async () => {
@@ -109,6 +111,15 @@ describe('EventDetail', () => {
         updatedAt: '',
       },
     })
+    getComposition = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { visibility: 'none', slots: [] },
+    })
+    dialogOpen = vi.fn().mockReturnValue({
+      componentInstance: {},
+      afterClosed: () => new BehaviorSubject(undefined).asObservable(),
+      close: vi.fn(),
+    })
 
     await TestBed.configureTestingModule({
       imports: [EventDetail, NoopAnimationsModule],
@@ -157,16 +168,15 @@ describe('EventDetail', () => {
         {
           provide: CompositionApiService,
           useValue: {
-            getComposition: vi.fn().mockResolvedValue({
-              ok: true,
-              data: { visibility: 'none', slots: [] },
-            }),
+            getComposition,
             publishComposition: vi.fn(),
           },
         },
-        { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
       ],
     }).compileComponents()
+
+    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
 
     fixture = TestBed.createComponent(EventDetail)
     router = TestBed.inject(Router)
@@ -277,7 +287,7 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       const back = fixture.nativeElement.querySelector('.event-detail-header__back')
-      expect(back?.getAttribute('href')).toBe('/saison/season-a')
+      expect(back?.getAttribute('href')).toBe('/ligue/season-a')
     })
   })
 
@@ -325,15 +335,41 @@ describe('EventDetail', () => {
     })
   })
 
-  it('selects Équipe and shows participation notice when showConfirm=true', async () => {
+  it('selects Équipe and auto-opens participation modal when showConfirm=true', async () => {
+    getEvent.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', {
+        roleSlots: { ...emptyRoleSlots(), player: 1 },
+      }),
+    })
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'confirmed',
+          },
+        ],
+      },
+    })
+
     queryParamMap$.next(convertToParamMap({ showConfirm: 'true' }))
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect((fixture.componentInstance as unknown as EventDetailHarness).activeTab()).toBe('equipe')
+      expect(dialogOpen).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.textContent).toContain('Aucun tirage pour le moment')
-    expect(fixture.nativeElement.textContent).toContain(
+    expect(fixture.nativeElement.textContent).not.toContain(
       'La confirmation de participation sera disponible dans une prochaine version.',
     )
   })
@@ -386,7 +422,7 @@ describe('EventDetail', () => {
     await vi.waitFor(() => {
       expect(archiveEvent).toHaveBeenCalledWith('season-1', 'event-2')
     })
-    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a'])
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'ligue', 'season-a'])
   })
 
   it('normalizes unknown tab query param in URL', async () => {
@@ -419,7 +455,7 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       const leagueLink = fixture.nativeElement.querySelector('a.event-context-strip__league')
-      expect(leagueLink?.getAttribute('href')).toBe('/saison/season-a')
+      expect(leagueLink?.getAttribute('href')).toBe('/ligue/season-a')
       expect(leagueLink?.textContent?.trim()).toBe('Saison')
     })
   })
@@ -510,7 +546,7 @@ describe('EventDetail', () => {
       'Les Beta',
     )
     expect(fixture.nativeElement.querySelector('a.event-context-strip__league')?.getAttribute('href')).toBe(
-      '/saison/season-a',
+      '/ligue/season-a',
     )
   })
 

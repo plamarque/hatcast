@@ -8,6 +8,7 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
@@ -29,6 +30,7 @@ class CompositionParticipationService(
     private val eventParticipantRepository: EventParticipantRepository,
     private val seasonParticipantService: SeasonParticipantService,
     private val troupeAccess: TroupeAccessService,
+    private val organizerAccess: OrganizerAccessRules,
     private val compositionService: CompositionService,
 ) {
     @Transactional
@@ -54,7 +56,12 @@ class CompositionParticipationService(
                     )
             }
 
-        val note = body.note?.trim()?.takeIf { it.isNotEmpty() }
+        val note =
+            when (participationStatus) {
+                SlotParticipationStatus.DECLINED ->
+                    body.note?.trim()?.takeIf { it.isNotEmpty() }
+                else -> null
+            }
         if (note != null && note.length > 500) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
@@ -96,7 +103,9 @@ class CompositionParticipationService(
                 eventParticipantRepository = eventParticipantRepository,
                 seasonParticipantService = seasonParticipantService,
             )
-        if (assigneeId !in viewerIds) {
+        if (assigneeId !in viewerIds &&
+            !organizerAccess.canManageComposition(eventId, seasonId, principal)
+        ) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
         }
 
