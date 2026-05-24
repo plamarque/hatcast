@@ -294,7 +294,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 |------|--------|-----------|
 | UX journey (Epic 12) | **Done 2026-05-24** | [ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) approuvé |
 | **MVP navigation** | Open | **12.1** + **12.2** + **12.5** done |
-| **MVP composition** | Open | **6.5** + **6.6** + **6.7** done (minimum) |
+| **MVP composition** | **Done 2026-05-25** | **6.5** + **6.6** + **6.7** done (minimum) |
 | **MVP pilote** | Open | Toutes les cases DoD MVP ci-dessus |
 | Post-MVP Epic 13 | Open | Après MVP pilote validé en troupe réelle |
 

@@ -1,6 +1,6 @@
 # Story 6.7: Linked participant confirmation or decline
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -284,6 +284,7 @@ Composer
 - Extended composition GET with `declines[]` and `viewerParticipantIds[]` for self-service gating.
 - Angular: participation modal, locked-slot tap, `showConfirm` auto-open, pending/confirmed styling, declined badge/list.
 - Tests: `CompositionParticipationIntegrationTest`, lifecycle unit test for validated-empty, extended `event-equipe-tab.spec.ts`.
+- Code review (2026-05-25): organizer self-confirm on locked slot, `showConfirm` for any own assignee, decline confirm dialog, note on decline only, loading guard, foreign-slot feedback, `composition-participation-dialog.spec.ts`.
 
 ### File List
 
@@ -308,9 +309,25 @@ Composer
 - apps/web/src/app/pages/event-detail/event-equipe-tab.scss
 - apps/web/src/app/pages/event-detail/event-equipe-tab.spec.ts
 - apps/web/src/app/pages/event-detail/event-equipe-empty.html
+- apps/web/src/app/pages/event-detail/event-equipe-empty.ts
+- apps/web/src/app/pages/event-detail/event-detail.spec.ts
+- apps/web/src/app/core/composition/composition-equipe-status.ts
+- apps/web/src/app/shared/composition/composition-participation-dialog.spec.ts
 - _bmad-output/implementation-artifacts/sprint-status.yaml
 
 ### Change Log
 
 - 2026-05-24: Story 6.7 created — linked participant confirm/decline API, participation modal, decline audit, showConfirm auto-open, slot styling, declined badge.
 - 2026-05-24: Story 6.7 implemented — API participation mutation, declines audit, Équipe UX (modal, styling, deep link), tests green for composition scope.
+- 2026-05-25: Code review patches — organizer own-slot confirm, showConfirm breadth, decline UX hardening, tests; story marked done.
+
+### Review Findings
+
+- [x] [Review][Patch] Organizer assigned on locked composition can open participation modal — `canTapParticipationSlot` no longer gated by `canManageComposition`. [`event-equipe-tab.ts`]
+- [x] [Review][Patch] `showConfirm=true` auto-opens for any own assigned slot (not only `pending`). [`event-equipe-tab.ts`]
+- [x] [Review][Patch] Note persisted only on decline (API + dialog). [`CompositionParticipationService.kt`, `composition-participation-dialog.ts`]
+- [x] [Review][Patch] `updatingParticipation` disables slot buttons during mutation. [`event-equipe-tab.html`]
+- [x] [Review][Patch] Confirm dialog before decline; snackbar on foreign slot tap. [`event-equipe-tab.ts`]
+- [x] [Review][Patch] `composition-participation-dialog.spec.ts`; freed-slot `409` integration test. [`CompositionParticipationIntegrationTest.kt`]
+- [x] [Review][Patch] `event-detail.spec.ts` updated for post-6.7 showConfirm behaviour.
+- [x] [Review][Defer] Proxy confirm/decline for any participant — **6.8** (implemented separately).
