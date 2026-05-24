@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
+import { CompositionApiService } from '../../core/composition/composition-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
@@ -152,6 +153,16 @@ describe('EventDetail', () => {
         {
           provide: ParticipantApiService,
           useValue: { listSeasonParticipantSelectors: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+        },
+        {
+          provide: CompositionApiService,
+          useValue: {
+            getComposition: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { visibility: 'none', slots: [] },
+            }),
+            publishComposition: vi.fn(),
+          },
         },
         { provide: MatDialog, useValue: { open: vi.fn() } },
       ],

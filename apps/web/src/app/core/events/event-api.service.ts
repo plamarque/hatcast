@@ -19,6 +19,7 @@ export interface EventResponse {
   myAvailabilityStatus?: AvailabilityStatus
   compositionLifecycle?: string
   teamStatusBadge?: TeamStatusBadge
+  compositionPublishedAt?: string | null
 }
 
 export interface PagedEventsResponse {

@@ -1,0 +1,56 @@
+@if (loading()) {
+  <div class="event-equipe-tab__spinner" role="status">
+    <mat-spinner diameter="36" />
+  </div>
+} @else if (loadError()) {
+  <p class="event-equipe-tab__error" role="alert">
+    Impossible de charger la composition.
+  </p>
+} @else if (showEmptyState()) {
+  <app-event-equipe-empty [showConfirmPending]="showConfirmPending()" />
+} @else {
+  <div class="event-equipe-tab">
+    @if (showDraftBanner()) {
+      <p class="event-equipe-tab__banner" role="status">
+        Brouillon visible uniquement par les organisateur·ices et administrateur·ices.
+      </p>
+    }
+
+    <ul class="event-equipe-tab__grid" aria-label="Composition de l'équipe">
+      @for (row of slotRows(); track row.roleKey + ':' + row.slotIndex) {
+        <li
+          class="event-equipe-tab__row"
+          [class.event-equipe-tab__row--filled]="row.slot?.participantId"
+          [class.event-equipe-tab__row--pending]="row.slot?.participationStatus === 'pending'"
+        >
+          <span class="event-equipe-tab__role" aria-hidden="true">{{ row.roleEmoji }}</span>
+          <div class="event-equipe-tab__slot">
+            @if (row.slot?.participantDisplayName; as name) {
+              <span class="event-equipe-tab__avatar" aria-hidden="true">
+                {{ name.charAt(0).toUpperCase() }}
+              </span>
+              <span class="event-equipe-tab__name">{{ name }}</span>
+            } @else {
+              <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+
+    @if (canPublish()) {
+      <button
+        type="button"
+        class="event-equipe-tab__publish"
+        [disabled]="publishing()"
+        (click)="publish()"
+      >
+        @if (publishing()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Publier
+        }
+      </button>
+    }
+  </div>
+}

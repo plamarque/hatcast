@@ -17,12 +17,16 @@ import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 export class EventInfosTab {
   readonly event = input.required<EventResponse>()
   readonly canManageEvents = input(false)
+  readonly canManageComposition = input(false)
 
   readonly editRequested = output<void>()
   readonly archiveRequested = output<void>()
 
   protected compositionStatusHint(ev: EventResponse): string | null {
-    return compositionStatusHint(ev.compositionLifecycle)
+    return compositionStatusHint(ev.compositionLifecycle, {
+      canManageComposition: this.canManageComposition(),
+      compositionPublishedAt: ev.compositionPublishedAt,
+    })
   }
 
   protected formatDate(iso: string): string {

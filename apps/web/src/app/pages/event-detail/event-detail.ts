@@ -21,7 +21,7 @@ import {
   OrganizerApiService,
   type MySeasonPermissions,
 } from '../../core/permissions/organizer-api.service'
-import { canManageComposition } from '../../core/permissions/organizer-permissions'
+import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import {
   ConfirmDialog,
@@ -33,7 +33,7 @@ import {
 } from '../season-home/event-form-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 import { EventDetailHeader } from './event-detail-header'
-import { EventEquipeEmpty } from './event-equipe-empty'
+import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
 
 @Component({
@@ -46,7 +46,7 @@ import { EventInfosTab } from './event-infos-tab'
     MatTabsModule,
     EventDetailHeader,
     EventDisposTab,
-    EventEquipeEmpty,
+    EventEquipeTab,
     EventInfosTab,
   ],
   templateUrl: './event-detail.html',
@@ -94,6 +94,12 @@ export class EventDetail implements OnDestroy, OnInit {
     const perms = this.seasonPermissions()
     if (!perms) return false
     return perms.canManageSeasonOrganizers && perms.canManageMembers !== true
+  })
+  protected readonly canManageComposition = computed(() => {
+    const ev = this.event()
+    const perms = this.seasonPermissions()
+    if (!ev || !perms) return false
+    return canManageCompositionForEvent(perms, ev.id)
   })
   protected readonly canManageSettings = computed(
     () => this.canManageSeasonParticipants() || this.canManageSeasonOrganizersOnly(),
@@ -229,6 +235,15 @@ export class EventDetail implements OnDestroy, OnInit {
     }
   }
 
+  protected reloadAfterPublish(): void {
+    const slug = this.slug()
+    const eventId = this.eventId()
+    if (!slug || !eventId) {
+      return
+    }
+    void this.loadEvent(slug, eventId, { silent: true })
+  }
+
   private async reloadEvent(message: string): Promise<void> {
     const slug = this.slug()
     const eventId = this.eventId()
@@ -300,7 +315,7 @@ export class EventDetail implements OnDestroy, OnInit {
 
     this.canSwitchSubject.set(
       permissionsResult.ok && permissionsResult.data
-        ? canManageComposition(permissionsResult.data, found.id)
+        ? canManageCompositionForEvent(permissionsResult.data, found.id)
         : false,
     )
   }

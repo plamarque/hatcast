@@ -1,0 +1,135 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Composition (fragment)
+  description: >
+    Lecture de la composition d’un spectacle et publication du brouillon (FR22).
+    Les assignations de slots ne sont renvoyées que lorsque le viewer a le droit
+    de les voir (brouillon publié, composition validée, ou organisateur).
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Composition
+
+paths:
+  /seasons/{seasonId}/events/{eventId}/composition:
+    get:
+      tags: [Composition]
+      summary: Lire la composition d’un spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe
+        '404':
+          description: Saison ou événement inconnu
+
+  /seasons/{seasonId}/events/{eventId}/composition/publish:
+    post:
+      tags: [Composition]
+      summary: Publier le brouillon de composition
+      description: >
+        Rend les assignations visibles aux membres actifs de la troupe (`publishedAt`).
+        Idempotent si déjà publié. Requiert `canManageComposition`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé (non organisateur ou non membre)
+        '404':
+          description: Saison ou événement inconnu
+        '409':
+          description: Rien à publier (pas de composition ou aucun slot assigné)
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  parameters:
+    SeasonId:
+      name: seasonId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CompositionVisibility:
+      type: string
+      enum: [none, organizerDraft, publishedDraft, validated]
+
+    CompositionSlot:
+      type: object
+      required: [roleKey, slotIndex, participationStatus]
+      properties:
+        roleKey:
+          type: string
+        slotIndex:
+          type: integer
+        participantId:
+          type: string
+          format: uuid
+          nullable: true
+        participantDisplayName:
+          type: string
+          nullable: true
+        participationStatus:
+          type: string
+          enum: [pending, confirmed, declined]
+
+    CompositionResponse:
+      type: object
+      required: [visibility, slots]
+      properties:
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        validatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        visibility:
+          $ref: '#/components/schemas/CompositionVisibility'
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompositionSlot'

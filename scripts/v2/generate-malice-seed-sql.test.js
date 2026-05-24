@@ -4,10 +4,12 @@ import assert from 'node:assert/strict'
 import {
   assignObfuscatedEmails,
   buildAvailabilityRows,
+  buildMalicieCompositionSeedSql,
   buildMalicieSeedSql,
   buildMembersWithIds,
   parseMembersCsv,
   pickRoleKeys,
+  SEED_COMPOSITION_DRAFTS,
   SEED_EVENTS,
   SEED_EMAIL_DOMAIN,
   shouldHaveAvailability,
@@ -78,5 +80,23 @@ describe('generate-malice-seed-sql', () => {
   it('deterministic availability gate', () => {
     assert.equal(shouldHaveAvailability(0, 0), true)
     assert.equal(shouldHaveAvailability(5, 9), shouldHaveAvailability(5, 9))
+  })
+
+  it('composition seed covers unpublished and published drafts', () => {
+    const unpublished = SEED_COMPOSITION_DRAFTS.filter((d) => !d.publishedAt)
+    const published = SEED_COMPOSITION_DRAFTS.filter((d) => d.publishedAt)
+    assert.ok(unpublished.length >= 2)
+    assert.ok(published.length >= 1)
+    for (const draft of SEED_COMPOSITION_DRAFTS) {
+      assert.ok(draft.slots.length > 0)
+    }
+  })
+
+  it('composition sql references event_compositions and assigned slots', () => {
+    const sql = buildMalicieCompositionSeedSql()
+    assert.match(sql, /INSERT INTO event_compositions/)
+    assert.match(sql, /INSERT INTO event_composition_slots/)
+    assert.match(sql, /Cabaret de rentrée/)
+    assert.match(sql, /2026-10-15T12:00:00Z/)
   })
 })

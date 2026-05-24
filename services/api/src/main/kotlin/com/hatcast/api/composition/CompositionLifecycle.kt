@@ -64,4 +64,5 @@ data class TeamStatusBadgeDto(
 data class CompositionLifecycleView(
     val compositionLifecycle: CompositionLifecycle,
     val teamStatusBadge: TeamStatusBadge,
+    val publishedAt: java.time.Instant? = null,
 )

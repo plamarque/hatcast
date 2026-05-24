@@ -6,6 +6,7 @@ import java.time.Instant
 
 data class CompositionSnapshot(
     val validatedAt: Instant?,
+    val publishedAt: Instant? = null,
 )
 
 data class CompositionSlotSnapshot(

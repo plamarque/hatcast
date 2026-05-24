@@ -34,21 +34,40 @@ class CompositionLifecycleEnrichmentService(
             slotRepository
                 .findByEventIdIn(eventIds)
                 .groupBy { it.eventId }
-        val draftVisibleForEvent = resolveDraftVisibility(eventIds, season, principal)
+        val canManageByEvent = resolveCanManageComposition(eventIds, season, principal)
+        val draftVisibleForEvent =
+            resolveDraftVisibility(eventIds, canManageByEvent, compositions)
         return events.associate { event ->
             val slots = slotsByEvent[event.id].orEmpty().map { it.toSnapshot() }
-            val composition = compositions[event.id]?.let { CompositionSnapshot(it.validatedAt) }
+            val composition =
+                compositions[event.id]?.let {
+                    CompositionSnapshot(
+                        validatedAt = it.validatedAt,
+                        publishedAt = it.publishedAt,
+                    )
+                }
             event.id to
                 lifecycleService.computeLifecycle(
                     composition = composition,
                     slots = slots,
                     roleSlots = event.roleSlots,
                     viewerCanSeeDraft = draftVisibleForEvent[event.id] == true,
-                )
+                ).copy(publishedAt = compositions[event.id]?.publishedAt)
         }
     }
 
     private fun resolveDraftVisibility(
+        eventIds: Collection<UUID>,
+        canManageByEvent: Map<UUID, Boolean>,
+        compositions: Map<UUID, EventCompositionEntity>,
+    ): Map<UUID, Boolean> =
+        eventIds.associateWith { eventId ->
+            val composition = compositions[eventId]
+            val canManage = canManageByEvent[eventId] == true
+            CompositionVisibilityRules.canViewSlotAssignments(composition, canManage)
+        }
+
+    private fun resolveCanManageComposition(
         eventIds: Collection<UUID>,
         season: SeasonEntity,
         principal: SessionUserPrincipal,

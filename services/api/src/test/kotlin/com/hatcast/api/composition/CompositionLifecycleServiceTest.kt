@@ -168,6 +168,25 @@ class CompositionLifecycleServiceTest {
         assertEquals("Équipe en préparation", view.teamStatusBadge.label)
     }
 
+    @Test
+    fun `published draft visible for member maps to draft lifecycle and preparing badge`() {
+        val composition =
+            CompositionSnapshot(
+                validatedAt = null,
+                publishedAt = Instant.parse("2026-01-01T00:00:00Z"),
+            )
+        val slots = listOf(slot("player", 0, participantId = java.util.UUID.randomUUID()))
+        val view =
+            service.computeLifecycle(
+                composition = composition,
+                slots = slots,
+                roleSlots = roleSlots,
+                viewerCanSeeDraft = true,
+            )
+        assertEquals(CompositionLifecycle.DRAFT_COMPOSITION, view.compositionLifecycle)
+        assertEquals(TeamStatusBadgeKey.PREPARING, view.teamStatusBadge.key)
+    }
+
     private fun slot(
         role: String,
         index: Int,

@@ -1,0 +1,385 @@
+package com.hatcast.api.composition
+
+import com.hatcast.api.auth.GoogleIdTokenService
+import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.participant.SeasonParticipantEntity
+import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.user.UserRepository
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.mock.mockito.MockBean
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
+import org.springframework.http.MediaType
+import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Instant
+import java.util.UUID
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class CompositionIntegrationTest {
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @MockBean
+    private lateinit var googleIdTokenService: GoogleIdTokenService
+
+    @MockBean
+    private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
+
+    @Autowired
+    private lateinit var membershipRepository: TroupeMembershipRepository
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var seasonRepository: SeasonRepository
+
+    @Autowired
+    private lateinit var seasonParticipantRepository: SeasonParticipantRepository
+
+    @Autowired
+    private lateinit var compositionRepository: EventCompositionRepository
+
+    @Autowired
+    private lateinit var slotRepository: EventCompositionSlotRepository
+
+    private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+    private val mapper = ObjectMapper()
+
+    private fun memberCookie(googleSub: String, admin: Boolean = false): jakarta.servlet.http.Cookie {
+        val cookie =
+            TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                googleSub,
+                email = "$googleSub@example.com",
+                name = "Composition Test",
+            )
+        if (admin) {
+            promoteToAdmin(googleSub)
+        }
+        return cookie
+    }
+
+    private fun promoteToAdmin(googleSub: String) {
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing user")
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+                ?: error("Missing membership")
+        membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
+        membershipRepository.save(membership)
+    }
+
+    private fun createSeason(cookie: jakarta.servlet.http.Cookie): UUID {
+        val res =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"Composition season"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        return UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+    }
+
+    private fun createEvent(
+        cookie: jakarta.servlet.http.Cookie,
+        seasonId: UUID,
+        title: String,
+    ): UUID {
+        val future = Instant.parse("2031-03-01T19:00:00Z")
+        val res =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "$title",
+                              "startsAt": "$future",
+                              "roleSlots": { "player": 2 }
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        return UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+    }
+
+    private fun createSeasonParticipant(seasonId: UUID, label: String): UUID {
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        val saved =
+            seasonParticipantRepository.save(
+                SeasonParticipantEntity(
+                    season = season,
+                    displayName = label,
+                ),
+            )
+        return saved.id
+    }
+
+    private fun signInOnly(googleSub: String): jakarta.servlet.http.Cookie {
+        val jwt =
+            Jwt
+                .withTokenValue("header.payload.sig")
+                .header("alg", "RS256")
+                .claim("sub", googleSub)
+                .claim("email", "$googleSub@example.com")
+                .claim("name", "Outsider")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .issuer("https://accounts.google.com")
+                .build()
+        whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
+        val result =
+            mockMvc
+                .perform(
+                    post("/v1/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"idToken":"fake","rememberMe":true}"""),
+                ).andExpect(status().isOk)
+                .andReturn()
+        return result.response.getCookie("HATCAST_SESSION")!!
+    }
+
+    private fun seedDraftComposition(eventId: UUID, participantId: UUID) {
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = null,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                participantId = participantId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+    }
+
+    @Test
+    @Tag("FR22")
+    fun `member GET composition returns empty slots for unpublished draft`() {
+        val adminCookie = memberCookie("sub-compo-admin-1", admin = true)
+        val memberCookie = memberCookie("sub-compo-member-1")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Draft hidden API")
+        val participantId = createSeasonParticipant(seasonId, "Alice")
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("none"))
+            .andExpect(jsonPath("$.slots").isEmpty)
+            .andExpect(jsonPath("$.publishedAt").isEmpty)
+    }
+
+    @Test
+    @Tag("FR22")
+    fun `organizer GET composition returns slots for unpublished draft`() {
+        val adminCookie = memberCookie("sub-compo-admin-2", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Draft visible org API")
+        val participantId = createSeasonParticipant(seasonId, "Bob")
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(adminCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("organizerDraft"))
+            .andExpect(jsonPath("$.slots.length()").value(1))
+            .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Bob"))
+    }
+
+    @Test
+    @Tag("FR22")
+    fun `POST publish makes draft visible to member`() {
+        val adminCookie = memberCookie("sub-compo-admin-3", admin = true)
+        val memberCookie = memberCookie("sub-compo-member-3")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Publish flow")
+        val participantId = createSeasonParticipant(seasonId, "Charlie")
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("publishedDraft"))
+            .andExpect(jsonPath("$.publishedAt").isNotEmpty)
+            .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Charlie"))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("publishedDraft"))
+            .andExpect(jsonPath("$.slots.length()").value(1))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.compositionLifecycle").value("draftComposition"))
+            .andExpect(jsonPath("$.teamStatusBadge.key").value("preparing"))
+    }
+
+    @Test
+    fun `publish is idempotent`() {
+        val adminCookie = memberCookie("sub-compo-admin-4", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Idempotent publish")
+        val participantId = createSeasonParticipant(seasonId, "Dana")
+        seedDraftComposition(eventId, participantId)
+
+        val first =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                        .cookie(adminCookie)
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val publishedAt = mapper.readTree(first.response.contentAsString).get("publishedAt").asText()
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.publishedAt").value(publishedAt))
+    }
+
+    @Test
+    fun `publish without assignees returns 409`() {
+        val adminCookie = memberCookie("sub-compo-admin-5", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Empty publish")
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = null,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `non member cannot read or publish composition`() {
+        val adminCookie = memberCookie("sub-compo-admin-6", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Forbidden compo")
+        val participantId = createSeasonParticipant(seasonId, "Eve")
+        seedDraftComposition(eventId, participantId)
+        val outsider = signInOnly("sub-compo-outsider-6")
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(outsider))
+            .andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(outsider)
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `validated composition slots always visible to member`() {
+        val adminCookie = memberCookie("sub-compo-admin-7", admin = true)
+        val memberCookie = memberCookie("sub-compo-member-7")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Validated compo")
+        val participantId = createSeasonParticipant(seasonId, "Frank")
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = now,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                participantId = participantId,
+                participationStatus = SlotParticipationStatus.CONFIRMED,
+            ),
+        )
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("validated"))
+            .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Frank"))
+    }
+
+    @Test
+    fun `published draft visible to member on event list lifecycle`() {
+        val adminCookie = memberCookie("sub-compo-admin-8", admin = true)
+        val memberCookie = memberCookie("sub-compo-member-8")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Published lifecycle")
+        val participantId = createSeasonParticipant(seasonId, "Grace")
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[0].compositionLifecycle").value("draftComposition"))
+            .andExpect(jsonPath("$.content[0].teamStatusBadge.key").value("preparing"))
+    }
+}
