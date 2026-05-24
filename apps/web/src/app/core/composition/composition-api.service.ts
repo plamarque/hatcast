@@ -53,11 +53,24 @@ export interface CompositionCandidateListResponse {
   candidates: CompositionCandidate[]
 }
 
+export interface CompositionDecline {
+  participantId: string
+  participantDisplayName: string
+  roleKey: string
+  slotIndex: number
+  declinedAt: string
+  note?: string | null
+}
+
+export type SlotParticipationUpdateStatus = 'confirmed' | 'pending' | 'declined'
+
 export interface CompositionResponse {
   publishedAt?: string | null
   validatedAt?: string | null
   visibility: CompositionVisibility
   slots: CompositionSlot[]
+  declines?: CompositionDecline[]
+  viewerParticipantIds?: string[]
 }
 
 export interface CompositionApiError {
@@ -238,6 +251,37 @@ export class CompositionApiService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ participantId }),
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      const data = (await res.json()) as CompositionResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async updateSlotParticipation(
+    seasonId: string,
+    eventId: string,
+    roleKey: string,
+    slotIndex: number,
+    status: SlotParticipationUpdateStatus,
+    note?: string | null,
+  ): Promise<CompositionApiResult<CompositionResponse>> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/slots/${encodeURIComponent(roleKey)}/${slotIndex}/participation`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            ...csrfHeaders(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status, note: note ?? null }),
         },
       )
       if (!res.ok) {

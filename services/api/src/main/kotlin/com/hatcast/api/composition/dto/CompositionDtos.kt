@@ -14,11 +14,28 @@ data class CompositionSlotDto(
     val pastSelectionCount: Int? = null,
 )
 
+data class CompositionDeclineDto(
+    val participantId: UUID,
+    val participantDisplayName: String,
+    val roleKey: String,
+    val slotIndex: Int,
+    val declinedAt: Instant,
+    val note: String? = null,
+)
+
 data class CompositionResponseDto(
     val publishedAt: Instant?,
     val validatedAt: Instant?,
     val visibility: String,
     val slots: List<CompositionSlotDto>,
+    val declines: List<CompositionDeclineDto> = emptyList(),
+    val viewerParticipantIds: List<UUID> = emptyList(),
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class UpdateSlotParticipationRequestDto(
+    val status: String,
+    val note: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

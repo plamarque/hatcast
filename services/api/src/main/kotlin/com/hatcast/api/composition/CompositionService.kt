@@ -6,6 +6,7 @@ import com.hatcast.api.availability.AvailabilityRoleRules
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.StoredAvailabilityStatus
+import com.hatcast.api.composition.dto.CompositionDeclineDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.CompositionSlotDto
 import com.hatcast.api.event.EventEntity
@@ -40,6 +41,7 @@ class CompositionService(
     private val organizerAccess: OrganizerAccessRules,
     private val troupeAccess: TroupeAccessService,
     private val notificationPort: CompositionNotificationPort,
+    private val declineRepository: EventCompositionDeclineRepository,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -180,11 +182,13 @@ class CompositionService(
                 slot.slotIndex in 0 until count
             }
         val hasAssignedSlots = slots.any { it.hasAssignee() }
+        val compositionValidated = composition?.validatedAt != null
+        val visibilityContent = hasAssignedSlots || compositionValidated
         val visibility =
-            CompositionVisibilityRules.resolveVisibility(composition, resolvedCanManage, hasAssignedSlots)
+            CompositionVisibilityRules.resolveVisibility(composition, resolvedCanManage, visibilityContent)
         val canViewSlots =
             CompositionVisibilityRules.canViewSlotAssignments(composition, resolvedCanManage) &&
-                hasAssignedSlots
+                visibilityContent
 
         val showExplainability =
             canViewSlots &&
@@ -225,12 +229,57 @@ class CompositionService(
                 emptyList()
             }
 
+        val viewerParticipantIds =
+            CompositionLinkedParticipantResolver.resolveViewerParticipantIds(
+                season = event.season,
+                eventId = eventId,
+                userId = principal.userId,
+                seasonParticipantRepository = seasonParticipantRepository,
+                eventParticipantRepository = eventParticipantRepository,
+                seasonParticipantService = seasonParticipantService,
+            )
+        val declineDtos =
+            if (canViewSlots) {
+                mapDeclines(eventId, declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId))
+            } else {
+                emptyList()
+            }
+
         return CompositionResponseDto(
             publishedAt = composition?.publishedAt,
             validatedAt = composition?.validatedAt,
             visibility = visibility.toApiValue(),
             slots = slotDtos,
+            declines = declineDtos,
+            viewerParticipantIds = viewerParticipantIds.toList(),
         )
+    }
+
+    private fun mapDeclines(
+        eventId: UUID,
+        rows: List<EventCompositionDeclineEntity>,
+    ): List<CompositionDeclineDto> {
+        if (rows.isEmpty()) {
+            return emptyList()
+        }
+        val participantIds =
+            rows.mapNotNull { row ->
+                row.seasonParticipantId ?: row.eventParticipantId
+            }.toSet()
+        val displayNames = resolveDisplayNames(eventId, participantIds)
+        return rows.map { row ->
+            val participantId =
+                row.seasonParticipantId ?: row.eventParticipantId
+                    ?: throw IllegalStateException("Decline row missing participant reference")
+            CompositionDeclineDto(
+                participantId = participantId,
+                participantDisplayName = displayNames[participantId] ?: "Participant",
+                roleKey = row.roleKey,
+                slotIndex = row.slotIndex,
+                declinedAt = row.declinedAt,
+                note = row.note,
+            )
+        }
     }
 
     private fun buildExplainabilityLookup(

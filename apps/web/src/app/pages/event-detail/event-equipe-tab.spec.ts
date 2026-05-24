@@ -504,6 +504,61 @@ describe('EventEquipeTab', () => {
     })
   })
 
+  it('emits compositionPublished after successful unlock', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'ToUnlock',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    unlockComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'ToUnlock',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Déverrouiller')
+    })
+
+    const emitted = vi.fn()
+    fixture.componentInstance.compositionPublished.subscribe(emitted)
+
+    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
+    btn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(unlockComposition).toHaveBeenCalledWith('season-1', 'event-1')
+      expect(emitted).toHaveBeenCalled()
+    })
+  })
+
   it('shows Confirmations en cours badge on validated pending composition', async () => {
     getComposition.mockResolvedValue({
       ok: true,

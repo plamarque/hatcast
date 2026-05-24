@@ -44,8 +44,15 @@ class CompositionLifecycleService {
         roleSlots: Map<String, Int>,
     ): CompositionLifecycle {
         val assignedCount = slots.count { it.participantId != null }
-        if (composition == null || assignedCount == 0) {
+        if (composition == null) {
             return CompositionLifecycle.PREPARING
+        }
+        if (assignedCount == 0) {
+            return if (composition.validatedAt != null) {
+                CompositionLifecycle.GAPS_TO_FILL
+            } else {
+                CompositionLifecycle.PREPARING
+            }
         }
         if (composition.validatedAt == null) {
             return CompositionLifecycle.DRAFT_COMPOSITION

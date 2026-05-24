@@ -1,3 +1,8 @@
+## Deferred from: code review of 6-6-validation-verrouillage-de-la-composition.md (2026-05-24)
+
+- `compositionPublished` output reused for validate/unlock — AC10 reload works; rename when event-detail outputs are refactored (`event-equipe-tab.ts`).
+- Slots updated outside composition row lock during validate/unlock — `findByEventIdForUpdate` on composition only; acceptable for single-organizer MVP (`CompositionService.kt`).
+
 ## Deferred from: code review of 12-1-api-agenda-utilisateur.md (2026-05-24)
 
 - Participation context runs four auxiliary queries per request — acceptable for MVP; batch into one query if explain plans fail NFR-P1.

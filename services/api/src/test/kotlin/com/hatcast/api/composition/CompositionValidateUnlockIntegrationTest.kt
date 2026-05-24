@@ -368,6 +368,93 @@ class CompositionValidateUnlockIntegrationTest {
     }
 
     @Test
+    @Tag("FR23")
+    fun `unlock on unpublished validated draft hides slots from member`() {
+        val adminCookie = memberCookie("sub-unlock-member-vis-admin", admin = true)
+        val memberCookie = memberCookie("sub-unlock-member-vis-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Unlock member visibility")
+        val participantId = createSeasonParticipant(seasonId, "MemberVis")
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("validated"))
+            .andExpect(jsonPath("$.slots.length()").value(1))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/unlock")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.validatedAt").isEmpty)
+            .andExpect(jsonPath("$.publishedAt").isEmpty)
+            .andExpect(jsonPath("$.visibility").value("organizerDraft"))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("none"))
+            .andExpect(jsonPath("$.slots").isEmpty)
+    }
+
+    @Test
+    @Tag("FR23")
+    fun `unlock keeps publishedAt and member still sees published draft`() {
+        val adminCookie = memberCookie("sub-unlock-publish-admin", admin = true)
+        val memberCookie = memberCookie("sub-unlock-publish-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Unlock keeps publish")
+        val participantId = createSeasonParticipant(seasonId, "PublishedKeep")
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.publishedAt").isNotEmpty)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("validated"))
+
+        val unlock =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events/$eventId/composition/unlock")
+                        .cookie(adminCookie)
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.validatedAt").isEmpty)
+                .andExpect(jsonPath("$.publishedAt").isNotEmpty)
+                .andExpect(jsonPath("$.visibility").value("publishedDraft"))
+                .andReturn()
+        val publishedAt = mapper.readTree(unlock.response.contentAsString).get("publishedAt").asText()
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("publishedDraft"))
+            .andExpect(jsonPath("$.publishedAt").value(publishedAt))
+            .andExpect(jsonPath("$.slots[0].participantDisplayName").value("PublishedKeep"))
+    }
+
+    @Test
     fun `assign works after unlock`() {
         val adminCookie = memberCookie("sub-unlock-assign-admin", admin = true)
         val member1 = memberCookie("sub-unlock-assign-member-1")

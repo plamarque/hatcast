@@ -199,6 +199,52 @@ paths:
         '409':
           description: Composition validée (verrouillée)
 
+  /seasons/{seasonId}/events/{eventId}/composition/slots/{roleKey}/{slotIndex}/participation:
+    post:
+      tags: [Composition]
+      summary: Confirmer, remettre en attente ou décliner sa participation
+      description: >
+        Mutation self-service pour le participant lié assigné au slot, lorsque la composition
+        est validée (`validatedAt`). Décliner libère le slot et enregistre une trace dans `declines`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: roleKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: slotIndex
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSlotParticipationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionResponse'
+        '400':
+          description: Statut invalide ou note trop longue
+        '401':
+          description: Non authentifié
+        '403':
+          description: L'utilisateur n'est pas le participant assigné
+        '404':
+          description: Saison, événement ou slot inconnu
+        '409':
+          description: Composition non validée ou slot sans assignation
+
   /seasons/{seasonId}/events/{eventId}/composition/slots/{roleKey}/{slotIndex}:
     put:
       tags: [Composition]
@@ -395,6 +441,38 @@ components:
           items:
             $ref: '#/components/schemas/CompositionCandidate'
 
+    CompositionDecline:
+      type: object
+      required: [participantId, participantDisplayName, roleKey, slotIndex, declinedAt]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        participantDisplayName:
+          type: string
+        roleKey:
+          type: string
+        slotIndex:
+          type: integer
+        declinedAt:
+          type: string
+          format: date-time
+        note:
+          type: string
+          nullable: true
+
+    UpdateSlotParticipationRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [confirmed, pending, declined]
+        note:
+          type: string
+          nullable: true
+          maxLength: 500
+
     CompositionResponse:
       type: object
       required: [visibility, slots]
@@ -413,3 +491,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CompositionSlot'
+        declines:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompositionDecline'
+        viewerParticipantIds:
+          type: array
+          items:
+            type: string
+            format: uuid

@@ -6,6 +6,7 @@ import com.hatcast.api.composition.dto.CompositionDrawResponseDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.AssignSlotRequestDto
 import com.hatcast.api.composition.dto.DrawCompositionRequestDto
+import com.hatcast.api.composition.dto.UpdateSlotParticipationRequestDto
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -23,6 +24,7 @@ class CompositionController(
     private val compositionService: CompositionService,
     private val compositionDrawService: CompositionDrawService,
     private val compositionSlotAssignmentService: CompositionSlotAssignmentService,
+    private val compositionParticipationService: CompositionParticipationService,
 ) {
     @GetMapping
     fun getComposition(
@@ -70,6 +72,24 @@ class CompositionController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): CompositionCandidateListResponseDto =
         compositionSlotAssignmentService.getCandidates(seasonId, eventId, roleKey, slotIndex, principal)
+
+    @PostMapping("/slots/{roleKey}/{slotIndex}/participation")
+    fun updateSlotParticipation(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable roleKey: String,
+        @PathVariable slotIndex: Int,
+        @RequestBody body: UpdateSlotParticipationRequestDto,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionResponseDto =
+        compositionParticipationService.updateParticipation(
+            seasonId,
+            eventId,
+            roleKey,
+            slotIndex,
+            body,
+            principal,
+        )
 
     @PutMapping("/slots/{roleKey}/{slotIndex}")
     fun assignCompositionSlot(

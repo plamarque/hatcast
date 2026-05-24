@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-24T20:00:00+02:00
+# last_updated: 2026-05-24T24:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-24T23:59:00+02:00"
+last_updated: "2026-05-24T24:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -97,8 +97,8 @@ development_status:
   6-3-composition-brouillon-non-visible-aux-membres-ordinaires: done
   6-4-tirage-aleatoire-pondere-et-affichage-des-cotes-explainability: done
   6-5-assignation-manuelle-et-reassignation-des-roles: done
-  6-6-validation-verrouillage-de-la-composition: review
-  6-7-confirmation-ou-declinaison-de-participation-membre: backlog
+  6-6-validation-verrouillage-de-la-composition: done
+  6-7-confirmation-ou-declinaison-de-participation-membre: in-progress
   6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: backlog
   6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: backlog
   6-10-partage-et-annonce-message-editable-canaux: backlog

@@ -1,6 +1,6 @@
 # Story 6.6: Composition validation (lock) and unlock
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -283,3 +283,12 @@ Composer (dev-story workflow)
 
 - 2026-05-24: Story 6.6 created — validate/unlock API, Valider/Déverrouiller UI, six-state Équipe badge, confirmation-request notification hook.
 - 2026-05-24: Story 6.6 implemented — API validate/unlock, notification port, Équipe UI and tests.
+- 2026-05-24: Code review patches — unlock visibility integration tests (unpublished + published), unlock component test.
+
+### Review Findings
+
+- [x] [Review][Patch] Test member visibility after unlock (unpublished draft) — `unlock on unpublished validated draft hides slots from member`. [`CompositionValidateUnlockIntegrationTest.kt`]
+- [x] [Review][Patch] Test `publishedAt` preserved after unlock — `unlock keeps publishedAt and member still sees published draft`. [`CompositionValidateUnlockIntegrationTest.kt`]
+- [x] [Review][Patch] Component test for unlock flow — `emits compositionPublished after successful unlock`. [`event-equipe-tab.spec.ts`]
+- [x] [Review][Defer] `compositionPublished` output reused for validate/unlock — works for AC10 reload but naming obscures intent; rename when event-detail outputs are refactored. [`event-equipe-tab.ts`]
+- [x] [Review][Defer] Slots updated outside composition row lock — `findByEventIdForUpdate` on composition only; slot list read without pessimistic lock (low risk for single-organizer MVP). [`CompositionService.kt:107-124`]
