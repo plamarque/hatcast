@@ -1,6 +1,6 @@
 # Story 5.2: Role-level availability and preferred-role pre-selection
 
-Status: in-progress
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -301,8 +301,8 @@ GPT-5.5
 
 ### Review Findings
 
-- [ ] [Review][Decision] Pre-check on reopen with saved `available` + empty `roleKeys` — AC3 requires pre-check when reopening an available row with empty roles, but Dev Notes/V1 « dispo générale » treat `roleKeys: []` as an explicit saved state (no roles checked on reopen). Constructor `applyPreferredPrecheck()` runs on every open when `initialStatus === 'available'` and `initialRoleKeys` is empty, which overwrites dispo générale display with preferred-role intersection.
-- [x] [Review][Patch] Missing NFR-A1 keyboard test for role checkboxes [availability-dialog.spec.ts]
+- [x] [Review][Decision] Pre-check on reopen — **Option B (V1 dispo générale):** pre-check only on first transition to Dispo in the dialog session, not when reopening a persisted `available` row with empty `roleKeys`.
+- [x] [Review][Defer] Silent empty pre-check when preferred-roles API fails — fixed: snackbar + fallback to all catalogue roles (V1 `effectiveKeys` parity).
 - [x] [Review][Patch] Missing AC7 component test for events with zero role slots [availability-dialog.spec.ts]
 - [x] [Review][Patch] Missing AC6 component test for Pas dispo hiding/clearing role block [availability-dialog.spec.ts]
 - [x] [Review][Patch] Misleading test name still says « closes on choice » but dialog no longer auto-closes [availability-dialog.spec.ts:84]
@@ -313,7 +313,7 @@ GPT-5.5
 ### Change Log
 
 - 2026-05-24: Implemented Story 5.2 role-level availability, preferred-role pre-selection, volunteer rule handling, and regression coverage.
-- 2026-05-24: Code review — 1 decision-needed, 6 patch applied, 1 defer, 3 dismissed.
+- 2026-05-24: Post-review fixes — dispo générale preserved on reopen; preferred-roles API failure shows snackbar and falls back to all roles.
 
 ## References
 

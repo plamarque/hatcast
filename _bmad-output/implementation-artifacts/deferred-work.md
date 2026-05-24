@@ -54,7 +54,3 @@
 
 - GET list/selectors mutate DB via `ensureMembershipParticipants` on every call — intentional per Dev Notes (sync on GET); revisit if caching or read replicas are introduced.
 - Admin DTO exposes normalized (lowercase) email instead of user-entered casing — cosmetic UX only.
-
-## Deferred from: code review of 5-2-disponibilite-par-role-lorsque-le-type-devenement-lexige.md (2026-05-24)
-
-- Silent empty pre-check when preferred-roles API fails — user sees no role pre-selection without feedback; same error-handling gap pattern as other dialog API calls.

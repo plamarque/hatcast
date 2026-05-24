@@ -32,6 +32,7 @@ async function setup(data: Partial<AvailabilityDialogData> = {}) {
     status: 200,
     data: { preferredRoleKeys: ['player', 'mc'] },
   })
+  const snackOpen = vi.fn()
   const close = vi.fn()
 
   await TestBed.configureTestingModule({
@@ -52,7 +53,7 @@ async function setup(data: Partial<AvailabilityDialogData> = {}) {
       },
       {
         provide: MatSnackBar,
-        useValue: { open: vi.fn() },
+        useValue: { open: snackOpen },
       },
     ],
   }).compileComponents()
@@ -61,7 +62,7 @@ async function setup(data: Partial<AvailabilityDialogData> = {}) {
   fixture.detectChanges()
   await fixture.whenStable()
   fixture.detectChanges()
-  return { fixture, setMyAvailability, getPreferredRoles, close }
+  return { fixture, setMyAvailability, getPreferredRoles, close, snackOpen }
 }
 
 describe('AvailabilityDialog', () => {
@@ -126,6 +127,54 @@ describe('AvailabilityDialog', () => {
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
       status: 'available',
       roleKeys: ['player', 'mc'],
+      applyVolunteerRule: true,
+    })
+  })
+
+  it('does not pre-check on reopen when available with empty saved roles', async () => {
+    const { getPreferredRoles } = await setup({
+      initialStatus: 'available',
+      initialRoleKeys: [],
+    })
+
+    expect(getPreferredRoles).not.toHaveBeenCalled()
+  })
+
+  it('shows feedback and falls back to all event roles when preferred roles API fails', async () => {
+    const getPreferredRoles = vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    const setMyAvailability = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { status: 'available', roleKeys: ['player', 'mc', 'dj'] },
+    })
+    const snackOpen = vi.fn()
+
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityDialog, NoopAnimationsModule],
+      providers: [
+        { provide: MatDialogRef, useValue: { close: vi.fn() } },
+        { provide: MAT_DIALOG_DATA, useValue: { ...dialogData, initialStatus: 'unknown' } },
+        { provide: AvailabilityApiService, useValue: { setMyAvailability } },
+        { provide: MemberProfileApiService, useValue: { getPreferredRoles } },
+        { provide: MatSnackBar, useValue: { open: snackOpen } },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(AvailabilityDialog)
+    fixture.detectChanges()
+
+    const availableBtn = fixture.nativeElement.querySelector(
+      '.availability-dialog__choice--available',
+    ) as HTMLButtonElement
+    availableBtn.click()
+    await fixture.whenStable()
+
+    expect(snackOpen).toHaveBeenCalledWith('Impossible de charger tes rôles favoris.', 'OK', {
+      duration: 5000,
+    })
+    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
+      status: 'available',
+      roleKeys: ['player', 'mc', 'dj'],
       applyVolunteerRule: true,
     })
   })
