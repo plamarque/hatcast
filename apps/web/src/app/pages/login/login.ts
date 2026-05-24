@@ -14,6 +14,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'fire
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { setHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
+import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
 import {
   userMessageForGoogleSignInFailure,
   userMessageForIdpApiFailure,
@@ -74,6 +75,7 @@ export class Login implements AfterViewInit {
   private readonly auth = inject(AuthApiService)
   private readonly firebaseAuth = inject(FirebaseAuthService)
   private readonly router = inject(Router)
+  private readonly postLoginNav = inject(PostLoginNavigationService)
   private readonly snack = inject(MatSnackBar)
   private readonly fb = inject(FormBuilder)
   private readonly dialog = inject(MatDialog)
@@ -164,7 +166,7 @@ export class Login implements AfterViewInit {
       setHatcastRememberMePreference(this.rememberMe())
       await this.maybePromptGoogleAvatarImport(r.data)
       this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
-      await this.router.navigate(['/accueil'])
+      await this.postLoginNav.navigateAfterSignIn(this.router)
       return
     }
     const msg = userMessageForGoogleSignInFailure(r.status)
@@ -218,7 +220,7 @@ export class Login implements AfterViewInit {
     if (r.ok) {
       setHatcastRememberMePreference(this.rememberMe())
       this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
-      await this.router.navigate(['/accueil'])
+      await this.postLoginNav.navigateAfterSignIn(this.router)
       return
     }
     const msg = userMessageForIdpApiFailure(r.status)

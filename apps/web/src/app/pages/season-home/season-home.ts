@@ -8,6 +8,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import {
@@ -286,6 +287,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
     this.season.set(resolved.season)
+    rememberLastVisitedSeasonSlug(slug)
     await Promise.all([
       this.loadSeasonPermissions(resolved.season.id, requestId),
       this.loadParticipantSelectors(resolved.season.id, requestId),

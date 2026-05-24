@@ -190,6 +190,14 @@ describe('SeasonHome', () => {
     expect(component.selectedEventId()).toBeNull()
   })
 
+  it('mémorise la dernière saison visitée après chargement réussi', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(localStorage.getItem('lastVisitedSeason')).toBe('season-a')
+    })
+  })
+
   it('résout la saison dans la troupe sélectionnée avant les autres', async () => {
     localStorage.setItem('hatcast.selectedTroupeId', 'troupe-2')
     seasonsApi.getSeasonBySlug.mockResolvedValueOnce({

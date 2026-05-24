@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-24T03:10:00+02:00"
+last_updated: "2026-05-24T15:48:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -61,7 +61,34 @@ development_status:
   2-5-pseudo-affiche-par-troupe: done
   2-6-avatar-et-option-image-de-profil-google: done
   2-7-popover-profil-membre-stats-saison-grille-mensuelle-roles-favoris: done
-  epic-2-retrospective: optional
+  2-9-post-login-et-derniere-ligue-visitee-v1-parity: done
+  epic-2-retrospective: done
+
+  epic-12: backlog
+  12-1-api-agenda-utilisateur: backlog
+  12-2-ecran-mon-agenda: backlog
+  12-3-filtres-troupe-ligue-agenda: backlog
+  12-4-bandeau-contexte-evenement: backlog
+  12-5-routage-post-connexion-agenda: backlog
+  12-6-alias-route-ligue-slug: backlog
+  epic-12-retrospective: optional
+
+  epic-13: in-progress
+  13-1-migration-multi-active-leagues: backlog
+  13-2-api-activation-sans-desactivation-globale: backlog
+  13-3-roster-ligue-tous-membres-ou-manuel: backlog
+  13-4-ui-creation-ligue-multi-active: backlog
+  13-5-retest-flows-epic-3: backlog
+  13-6-ligues-deplacements-creation-conventions: backlog
+  epic-13-retrospective: optional
+
+  epic-14: backlog
+  14-1-page-hub-troupe: backlog
+  14-2-ligues-actives-et-archivees: backlog
+  14-3-pseudo-sur-hub-troupe: backlog
+  14-4-redirection-seasons: backlog
+  14-5-lien-annuaire-public: backlog
+  epic-14-retrospective: optional
 
   epic-3: in-progress
   3-1-gestion-des-saisons-creation-edition-archivage-et-liste-saisons: done
@@ -70,6 +97,9 @@ development_status:
   3-4-types-devenement-et-roles-requis-optionnels: done
   3-5-delegation-des-organisateurs-perimetre-saison-evenement: done
   3-6-vue-historique-colonnes-roles-mois-export-masquage: ready-for-dev
+  3-6b-vue-historique-ligue-chronologie-export: ready-for-dev
+  epic-16: backlog
+  16-1-route-membre-saison-clin-oeil-filtres: backlog
   3-7-suppression-de-saisons-admins-troupe-ou-plateforme: done
   3-8-rosters-participants-saison-et-evenement: done
   epic-3-retrospective: optional

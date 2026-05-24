@@ -1,3 +1,7 @@
+## Deferred from: code review of 2-9-post-login-et-derniere-ligue-visitee-v1-parity.md (2026-05-24)
+
+- Appels concurrents à `navigateAfterSignIn` (double-clic / double flux OAuth) — aucun verrou in-flight dans `Login`. Pattern pré-existant avant cette story. À adresser dans une passe dédiée à la robustesse des auth flows (stories Epic 1 rétrospective ou Epic 12).
+
 ## Deferred from: code review of 6-2-detail-evenement-plein-ecran-onglets-infos-dispos-equipe.md (2026-05-24)
 
 - Duplicated date formatting in event-detail header and Infos tab — same pattern as agenda; extract shared helper only if a third consumer appears.

@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core'
 import { Router } from '@angular/router'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
 
 @Component({
   selector: 'app-auth-redirect',
@@ -23,9 +24,14 @@ import { AuthApiService } from '../../core/auth/auth-api.service'
 export class AuthRedirect implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly router = inject(Router)
+  private readonly postLoginNav = inject(PostLoginNavigationService)
 
   async ngOnInit(): Promise<void> {
     const r = await this.auth.ensureHatcastSession()
-    await this.router.navigate(r.ok ? ['/accueil'] : ['/connexion'], { replaceUrl: true })
+    if (!r.ok) {
+      await this.router.navigate(['/connexion'], { replaceUrl: true })
+      return
+    }
+    await this.postLoginNav.navigateAfterSignIn(this.router)
   }
 }

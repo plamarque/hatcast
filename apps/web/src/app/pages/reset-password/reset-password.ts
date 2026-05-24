@@ -19,6 +19,7 @@ import {
   userMessageForPasswordResetConfirm,
 } from '../../core/auth/auth-user-message'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
+import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
 import { environment } from '../../../environments/environment'
 
 type ResetPhase = 'loading' | 'missing' | 'no-config' | 'invalid' | 'ready'
@@ -39,6 +40,7 @@ type ResetPhase = 'loading' | 'missing' | 'no-config' | 'invalid' | 'ready'
 export class ResetPassword implements OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
+  private readonly postLoginNav = inject(PostLoginNavigationService)
   private readonly fb = inject(FormBuilder)
   private readonly firebaseAuth = inject(FirebaseAuthService)
   private readonly authApi = inject(AuthApiService)
@@ -106,7 +108,7 @@ export class ResetPassword implements OnInit {
       if (r.ok) {
         setHatcastRememberMePreference(true)
         this.snack.open('Mot de passe mis à jour. Connexion réussie.', 'OK', { duration: 3500 })
-        await this.router.navigate(['/accueil'])
+        await this.postLoginNav.navigateAfterSignIn(this.router)
         return
       }
       this.snack.open(userMessageForIdpApiFailure(r.status), 'OK', { duration: 10_000 })

@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import {
   type SeasonResponse,
   SeasonApiService,
@@ -74,6 +75,7 @@ export class SeasonsList implements OnInit {
   protected readonly selectedTroupe = this.troupeContext.selectedTroupe
 
   async ngOnInit(): Promise<void> {
+    clearLastVisitedSeasonSlug()
     const r = await this.auth.ensureHatcastSession()
     if (!r.ok || !r.data) {
       this.snack.open(

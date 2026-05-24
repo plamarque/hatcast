@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { userMessageForPasswordResetConfirm } from '../../core/auth/auth-user-message'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
+import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
 import { ResetPassword } from './reset-password'
 
 vi.mock('firebase/auth', () => ({
@@ -56,6 +57,14 @@ describe('ResetPassword', () => {
           useValue: { snapshot: { queryParamMap: convertToParamMap(query) } },
         },
         { provide: Router, useValue: { navigate: navigate } },
+        {
+          provide: PostLoginNavigationService,
+          useValue: {
+            navigateAfterSignIn: vi.fn(async (router: Router) =>
+              router.navigate(['/seasons'], { replaceUrl: true }),
+            ),
+          },
+        },
         {
           provide: AuthApiService,
           useValue: { signInWithIdentityPlatformIdToken: idpMock },
@@ -146,7 +155,7 @@ describe('ResetPassword', () => {
     expect(confirm).not.toHaveBeenCalled()
   })
 
-  it('submit : happy path → confirmPasswordReset, sign-in IdP, navigate /accueil', async () => {
+  it('submit : happy path → confirmPasswordReset, sign-in IdP, post-login navigation', async () => {
     verify.mockResolvedValue('user@test.com')
     confirm.mockResolvedValue(undefined)
     const userCred = {
@@ -163,7 +172,7 @@ describe('ResetPassword', () => {
     expect(confirm).toHaveBeenCalledWith(mockAuth, 'oob', 'longenough')
     expect(signIn).toHaveBeenCalled()
     expect(idpMock).toHaveBeenCalledWith('jwt-token')
-    expect(navigate).toHaveBeenCalledWith(['/accueil'])
+    expect(navigate).toHaveBeenCalledWith(['/seasons'], { replaceUrl: true })
   })
 
   it('submit : IdP renvoie erreur → snackbar et navigation vers /connexion', async () => {

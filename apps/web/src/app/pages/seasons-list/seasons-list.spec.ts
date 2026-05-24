@@ -73,6 +73,16 @@ describe('SeasonsList', () => {
     fixture = TestBed.createComponent(SeasonsList)
   })
 
+  it('efface la dernière saison mémorisée à l’initialisation', async () => {
+    localStorage.setItem('lastVisitedSeason', 'old-slug')
+    localStorage.setItem('lastVisitedSeasonTimestamp', '1')
+
+    await settle(fixture)
+
+    expect(localStorage.getItem('lastVisitedSeason')).toBeNull()
+    expect(localStorage.getItem('lastVisitedSeasonTimestamp')).toBeNull()
+  })
+
   it('gère l’état sans adhésion quand aucune troupe', async () => {
     await settle(fixture)
 
