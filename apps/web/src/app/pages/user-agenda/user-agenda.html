@@ -1,0 +1,114 @@
+<div class="user-agenda">
+  <header class="user-agenda__header">
+    <div class="user-agenda__titles">
+      <h1 class="user-agenda__title">Mon agenda</h1>
+      <p class="user-agenda__subtitle">Tes prochains spectacles, toutes ligues confondues.</p>
+    </div>
+    @if (!loadingSession() && user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="user-agenda__user-btn"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
+      >
+        <app-user-avatar
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel(u)"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+        />
+        <span class="user-agenda__user-label">{{ userDisplayLabel(u) }}</span>
+        <mat-icon>expand_more</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+        <button mat-menu-item type="button" (click)="logout()">Se déconnecter</button>
+      </mat-menu>
+    }
+  </header>
+
+  @if (!loadingSession()) {
+    <div class="user-agenda__secondary">
+      <a mat-stroked-button routerLink="/seasons">Mes troupes</a>
+    </div>
+  }
+
+  @if (loadingSession()) {
+    <p class="user-agenda__status" role="status">Vérification de la session…</p>
+  } @else if (loadingAgenda()) {
+    <div class="user-agenda__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (loadError()) {
+    <section class="user-agenda__empty" aria-labelledby="agenda-load-error-heading">
+      <h2 id="agenda-load-error-heading" class="user-agenda__empty-title">Chargement impossible</h2>
+      <p class="user-agenda__empty-text">
+        Nous n’avons pas pu charger ton agenda. Réessaie dans un instant.
+      </p>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        data-testid="agenda-retry"
+        (click)="loadAgenda()"
+      >
+        Réessayer
+      </button>
+    </section>
+  } @else if (items().length === 0 && noParticipation()) {
+    <section class="user-agenda__empty" aria-labelledby="agenda-no-participation-heading">
+      <h2 id="agenda-no-participation-heading" class="user-agenda__empty-title">Aucune ligue pour l’instant</h2>
+      <p class="user-agenda__empty-text">Tu n'es inscrit·e à aucune ligue pour l'instant.</p>
+      <button mat-stroked-button type="button" disabled>Découvrir les troupes</button>
+    </section>
+  } @else if (items().length === 0) {
+    <section class="user-agenda__empty" aria-labelledby="agenda-no-events-heading">
+      <h2 id="agenda-no-events-heading" class="user-agenda__empty-title">Aucun spectacle à venir.</h2>
+      <p class="user-agenda__empty-text">Ton agenda est prêt dès qu’un prochain spectacle est planifié.</p>
+    </section>
+  } @else {
+    @for (group of monthGroups(); track group.monthKey) {
+      <section class="user-agenda__month">
+        <div class="user-agenda__month-divider">
+          <span class="user-agenda__month-pill">{{ group.monthLabel }}</span>
+        </div>
+
+        @for (ev of group.events; track ev.eventId) {
+          <article
+            class="agenda-card"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'Ouvrir ' + ev.title + ' dans ' + ev.leagueTitle"
+            (click)="openEvent(ev)"
+            (keydown.enter)="openEvent(ev)"
+            (keydown.space)="openEvent(ev); $event.preventDefault()"
+          >
+            <div class="agenda-card__date">
+              <span class="agenda-card__day">{{ ev.dayNumber }}</span>
+              <span class="agenda-card__weekday">{{ ev.dayName }}</span>
+              <span class="agenda-card__time">{{ timeLabel(ev) }}</span>
+            </div>
+            <div class="agenda-card__body">
+              <h2 class="agenda-card__title">{{ ev.title }}</h2>
+              @if (ev.location) {
+                <p class="agenda-card__loc">{{ ev.location }}</p>
+              }
+              <div class="agenda-card__badges">
+                <span class="agenda-card__badge">{{ ev.troupeName }}</span>
+                <span class="agenda-card__badge agenda-card__badge--league">{{ ev.leagueTitle }}</span>
+                @if (ev.myAvailabilityStatus) {
+                  <span
+                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(ev.myAvailabilityStatus) }}"
+                  >
+                    {{ dispoLabel(ev.myAvailabilityStatus) }}
+                  </span>
+                }
+              </div>
+            </div>
+          </article>
+        }
+      </section>
+    }
+  }
+</div>

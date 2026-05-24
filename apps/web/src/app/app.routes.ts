@@ -11,6 +11,7 @@ import { AdminMembres } from './pages/admin-membres/admin-membres';
 import { AdminParticipants } from './pages/admin-participants/admin-participants';
 import { SeasonHome } from './pages/season-home/season-home';
 import { SeasonsList } from './pages/seasons-list/seasons-list';
+import { UserAgenda } from './pages/user-agenda/user-agenda';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: AuthRedirect },
@@ -19,6 +20,7 @@ export const routes: Routes = [
   { path: 'reinitialiser-mot-de-passe', component: ResetPassword },
   { path: 'accueil', component: HomeSignedIn },
   { path: 'compte', component: AccountPlaceholder },
+  { path: 'agenda', component: UserAgenda },
   { path: 'seasons', component: SeasonsList },
   { path: 'troupe/admin/membres', component: AdminMembres },
   { path: 'troupe/:troupeSlug/admin/membres', component: AdminMembres },

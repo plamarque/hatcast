@@ -1,0 +1,162 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Mon agenda utilisateur (fragment)
+  description: >
+    Agrégation paginée des spectacles à venir pour un membre connecté, toutes ligues confondues
+    (participations saison ACTIVE ou participation événement ACTIVE). Un appel remplace N requêtes
+    par ligue pour l'écran Mon agenda (Story 12.2).
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Mon agenda
+
+paths:
+  /me/agenda:
+    get:
+      tags: [Mon agenda]
+      summary: Liste paginée de l'agenda personnel (spectacles à venir)
+      description: >
+        Retourne les événements non archivés dont `startsAt` ≥ début du jour civil Europe/Paris,
+        pour les ligues non archivées où l'utilisateur est participant ACTIVE (saison ou événement).
+        `filterBarVisible` indique si l'UI doit afficher les filtres troupe/ligue (plus d'une troupe
+        ou plus d'une ligue avec participation ACTIVE).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: scope
+          in: query
+          description: upcoming = non archivés et à partir d'aujourd'hui (fuseau Paris)
+          schema:
+            type: string
+            enum: [upcoming]
+            default: upcoming
+        - name: troupeId
+          in: query
+          description: Filtre optionnel par troupe (UUID). Ligues non participées → page vide.
+          schema:
+            type: string
+            format: uuid
+        - name: leagueId
+          in: query
+          description: Filtre optionnel par ligue / saison (UUID). Non participée → page vide.
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 50
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAgendaResponse'
+        '400':
+          description: Paramètres invalides (page, size, scope, UUID)
+        '401':
+          description: Non authentifié
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  schemas:
+    UserAgendaResponse:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+        - filterBarVisible
+        - noParticipation
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserAgendaItem'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        filterBarVisible:
+          type: boolean
+          description: >
+            false si l'utilisateur participe à exactement une troupe et une ligue (distinct season ids) ;
+            true sinon. Calculé sur toutes les participations ACTIVE, indépendamment des filtres query.
+        noParticipation:
+          type: boolean
+          description: >
+            true si l'utilisateur n'a aucune participation ACTIVE à une ligue ou à un événement éligible ;
+            permet à l'écran Mon agenda de distinguer l'absence d'inscription de l'absence de spectacle à venir.
+
+    UserAgendaItem:
+      type: object
+      required:
+        - eventId
+        - title
+        - startsAt
+        - troupeId
+        - troupeName
+        - troupeSlug
+        - leagueId
+        - leagueSlug
+        - leagueTitle
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        location:
+          type: string
+          nullable: true
+        troupeId:
+          type: string
+          format: uuid
+        troupeName:
+          type: string
+        troupeSlug:
+          type: string
+        leagueId:
+          type: string
+          format: uuid
+          description: Identifiant ligue (season id en base)
+        leagueSlug:
+          type: string
+        leagueTitle:
+          type: string
+        myAvailabilityStatus:
+          type: string
+          nullable: true
+          enum: [available, unavailable, unknown]
+          description: Statut de disponibilité de l'utilisateur pour cet événement

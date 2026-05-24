@@ -1,0 +1,166 @@
+package com.hatcast.api.agenda
+
+import com.hatcast.api.event.EventEntity
+import com.hatcast.api.participant.ParticipantStatus
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
+import java.time.Instant
+import java.util.UUID
+
+interface UserAgendaRow {
+  val eventId: UUID
+  val title: String
+  val startsAt: Instant
+  val location: String?
+  val troupeId: UUID
+  val troupeName: String
+  val troupeSlug: String
+  val leagueId: UUID
+  val leagueSlug: String
+  val leagueTitle: String
+}
+
+interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
+  @Query(
+    value =
+    """
+    SELECT DISTINCT
+      e.id AS eventId,
+      e.title AS title,
+      e.startsAt AS startsAt,
+      e.location AS location,
+      t.id AS troupeId,
+      t.name AS troupeName,
+      t.slug AS troupeSlug,
+      s.id AS leagueId,
+      s.slug AS leagueSlug,
+      s.title AS leagueTitle
+    FROM EventEntity e
+    JOIN e.season s
+    JOIN s.troupe t
+    WHERE e.archived = false
+      AND s.archived = false
+      AND e.startsAt >= :fromInclusive
+      AND (
+        s.id IN (
+          SELECT sp.season.id FROM SeasonParticipantEntity sp
+          WHERE sp.user.id = :userId
+            AND sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+        )
+        OR e.id IN (
+          SELECT ep.event.id FROM EventParticipantEntity ep
+          WHERE ep.user.id = :userId
+            AND ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+        )
+      )
+      AND (:troupeId IS NULL OR t.id = :troupeId)
+      AND (:leagueId IS NULL OR s.id = :leagueId)
+    ORDER BY e.startsAt ASC, e.id ASC
+    """,
+    countQuery =
+    """
+    SELECT COUNT(DISTINCT e.id) FROM EventEntity e
+    JOIN e.season s
+    JOIN s.troupe t
+    WHERE e.archived = false
+      AND s.archived = false
+      AND e.startsAt >= :fromInclusive
+      AND (
+        s.id IN (
+          SELECT sp.season.id FROM SeasonParticipantEntity sp
+          WHERE sp.user.id = :userId
+            AND sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+        )
+        OR e.id IN (
+          SELECT ep.event.id FROM EventParticipantEntity ep
+          WHERE ep.user.id = :userId
+            AND ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+        )
+      )
+      AND (:troupeId IS NULL OR t.id = :troupeId)
+      AND (:leagueId IS NULL OR s.id = :leagueId)
+    """,
+  )
+  fun findUpcomingForUser(
+    @Param("userId") userId: UUID,
+    @Param("fromInclusive") fromInclusive: Instant,
+    @Param("troupeId") troupeId: UUID?,
+    @Param("leagueId") leagueId: UUID?,
+    pageable: Pageable,
+  ): Page<UserAgendaRow>
+
+  @Query(
+    """
+    SELECT DISTINCT s.troupe.id FROM SeasonParticipantEntity sp
+    JOIN sp.season s
+    WHERE sp.user.id = :userId
+      AND sp.status = :status
+      AND s.archived = false
+    """,
+  )
+  fun findParticipatingTroupeIdsFromSeason(
+    @Param("userId") userId: UUID,
+    @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
+  ): List<UUID>
+
+  @Query(
+    """
+    SELECT DISTINCT s.id FROM SeasonParticipantEntity sp
+    JOIN sp.season s
+    WHERE sp.user.id = :userId
+      AND sp.status = :status
+      AND s.archived = false
+    """,
+  )
+  fun findParticipatingLeagueIdsFromSeason(
+    @Param("userId") userId: UUID,
+    @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
+  ): List<UUID>
+
+  @Query(
+    """
+    SELECT DISTINCT e.season.troupe.id FROM EventParticipantEntity ep
+    JOIN ep.event e
+    JOIN e.season s
+    WHERE ep.user.id = :userId
+      AND ep.status = :status
+      AND e.archived = false
+      AND s.archived = false
+      AND NOT EXISTS (
+        SELECT 1 FROM SeasonParticipantEntity sp
+        WHERE sp.user.id = :userId
+          AND sp.season.id = s.id
+          AND sp.status = :status
+      )
+    """,
+  )
+  fun findParticipatingTroupeIdsFromEventOnly(
+    @Param("userId") userId: UUID,
+    @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
+  ): List<UUID>
+
+  @Query(
+    """
+    SELECT DISTINCT e.season.id FROM EventParticipantEntity ep
+    JOIN ep.event e
+    JOIN e.season s
+    WHERE ep.user.id = :userId
+      AND ep.status = :status
+      AND e.archived = false
+      AND s.archived = false
+      AND NOT EXISTS (
+        SELECT 1 FROM SeasonParticipantEntity sp
+        WHERE sp.user.id = :userId
+          AND sp.season.id = s.id
+          AND sp.status = :status
+      )
+    """,
+  )
+  fun findParticipatingLeagueIdsFromEventOnly(
+    @Param("userId") userId: UUID,
+    @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
+  ): List<UUID>
+}

@@ -4,15 +4,19 @@ import type { EventResponse } from '../../core/events/event-api.service'
 export const AGENDA_UPCOMING_CAP = 200
 export const AGENDA_TIME_ZONE = 'Europe/Paris'
 
-export interface EventWithDateParts extends EventResponse {
+export interface EventDateSource {
+  startsAt: string
+}
+
+export type EventWithDateParts<T extends EventDateSource = EventResponse> = T & {
   dayNumber: number
   dayName: string
 }
 
-export interface MonthEventGroup {
+export interface MonthEventGroup<T extends EventDateSource = EventResponse> {
   monthKey: string
   monthLabel: string
-  events: EventWithDateParts[]
+  events: EventWithDateParts<T>[]
 }
 
 export function formatEventDateParts(
@@ -31,15 +35,15 @@ export function formatEventDateParts(
   }
 }
 
-export function groupEventsByMonth(
-  events: EventResponse[],
+export function groupEventsByMonth<T extends EventDateSource>(
+  events: T[],
   locale = 'fr-FR',
   timeZone = AGENDA_TIME_ZONE,
-): MonthEventGroup[] {
+): MonthEventGroup<T>[] {
   const sorted = [...events].sort(
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   )
-  const groups = new Map<string, MonthEventGroup>()
+  const groups = new Map<string, MonthEventGroup<T>>()
 
   for (const ev of sorted) {
     const d = new Date(ev.startsAt)
