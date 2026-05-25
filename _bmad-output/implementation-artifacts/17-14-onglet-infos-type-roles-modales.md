@@ -1,6 +1,6 @@
 # Story 17.14: Infos tab — event type and roles (modals)
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -14,10 +14,10 @@ so that **the create/edit dialog stays focused on scheduling** (title, date/time
 
 ## Acceptance Criteria
 
-1. **Given** event detail **Infos** tab, **when** loaded, **then** **type** (icon + label) and **role summary** (emoji + label + counts for slots &gt; 0, or « Aucun rôle configuré ») are visible for all users. [Source: epics 17.14 AC1]
-2. **Given** `canManageEvents`, **when** Infos tab is shown, **then** a CTA (e.g. « Personnaliser type et rôles ») opens a **dedicated Material dialog** — not inline editing on the tab. [Source: epics 17.14; SCP §5; ux-backlog #3]
+1. **Given** event detail **Infos** tab, **when** loaded, **then** **format** (icon + label) and **role summary** (emoji + label + counts for slots &gt; 0, or « Aucun besoin renseigné » on tab; dialog summary may use « Aucun rôle configuré ») are visible for all users. [Source: epics 17.14 AC1; copy aligned 2026-05-25 review]
+2. **Given** `canManageEvents`, **when** Infos tab is shown, **then** a discreet **edit icon** (`aria-label` « Modifier format et besoins ») opens a **dedicated Material dialog** — not inline editing on the tab. [Source: epics 17.14; SCP §5; ux-backlog #3; review 2026-05-25]
 3. **Given** the type/roles dialog, **when** the user changes template type, role counts, confirms template overwrite, or saves, **then** behavior matches today’s `EventFormDialog` logic (template picker, « Changement de type » confirm, summary vs grid, `detectTemplateFromRoles`, counts 0–20). [Source: Story **3.4**; `event-form-dialog.ts`]
-4. **Given** save from the dialog succeeds, **when** PATCH returns, **then** `eventUpdated` refreshes detail; **Équipe** tab sees updated `roleSlots` (parent `event` signal); snackbar in French (e.g. « Type et rôles enregistrés »). [Source: epics 17.14 AC4; `onEventInfosUpdated`]
+4. **Given** save from the dialog succeeds, **when** PATCH returns, **then** `eventUpdated` refreshes detail; **Équipe** tab sees updated `roleSlots` (parent `event` signal); snackbar in French (e.g. « Format et besoins enregistrés »). [Source: epics 17.14 AC4; `onEventInfosUpdated`; copy aligned 2026-05-25 review]
 5. **Given** `EventFormDialog` (create **or** edit), **when** opened, **then** **no** type select, template-change confirm, role summary, « Personnaliser », or role grid; submit sends **only** planning fields (`title`, `startsAt`, `location`, `description`). [Source: epics 17.14 AC2; SCP]
 6. **Given** **create** from season agenda, **when** saved, **then** POST **omits** `templateType` and `roleSlots`; API applies defaults (`cabaret` + template slots per `EventService.create`). Organizer customizes later on Infos. [Source: `EventService.kt` L99–105]
 7. **Given** **edit** from `EventFormDialog`, **when** saved, **then** PATCH **omits** `templateType` and `roleSlots` (JsonNullable absent = unchanged). [Source: 3.4 PATCH semantics; 17.12 slug pattern]
@@ -35,9 +35,8 @@ so that **the create/edit dialog stays focused on scheduling** (title, date/time
 
 - [x] **Infos tab — read + CTA** (AC: 1, 2, 4, 8)
   - [x] Extend [`event-infos-tab.ts`](../../apps/web/src/app/pages/event-detail/event-infos-tab.ts) / `.html` / `.scss`:
-    - Section **Type de spectacle** after **Lieu** (before equity tag section): icon + `getEventTypeLabel(event().templateType)`.
-    - Section **Rôles requis**: inline summary (same visual language as form `roles-summary`).
-    - If `canManageEvents()`: button opens `EventTypeRolesDialog` via `MatDialog` (width ~`min(100vw - 2rem, 32rem)`).
+    - Section **Format et besoins** after **Lieu** (before equity tag section): icon + `getEventTypeLabel(event().templateType)`; inline role summary.
+    - If `canManageEvents()`: `mat-icon-button` (edit) opens `EventTypeRolesDialog` via `MatDialog` (width ~`min(100vw - 2rem, 32rem)`).
   - [x] On dialog close with result: PATCH, `eventUpdated.emit`, snackbar; handle API errors like equity tag (`MatSnackBar` + French `errorMessage`).
   - [x] Import helpers: `getEventTypeIcon`, `getEventTypeLabel`, `rolesWithSlots`, `ROLE_LABELS`, `ROLE_EMOJIS`, `normalizeRoleSlots`.
 
@@ -70,7 +69,7 @@ so that **the create/edit dialog stays focused on scheduling** (title, date/time
 - **Create flow:** Light modal creates spectacle with API default **cabaret** + cabaret role template; organizer opens spectacle → Infos → customizes type/roles before composition/draw. Acceptable per ux-backlog « noyau planning ».
 - **Edit planning vs configuration:** « Modifier le spectacle » from admin menu still opens slim dialog (title, date, location, description only). Type/roles: Infos CTA only.
 - **One modal:** Combine type select + role summary/customization in `EventTypeRolesDialog` (move existing UX block wholesale — avoids two modals).
-- **French copy:** Keep existing strings (« Changement de type de spectacle », « Personnaliser », « Voir résumé », role labels from `ROLE_LABELS`).
+- **French copy:** UI label **Format et besoins** (section Infos, dialog title, snackbar succès). Keep dialog strings (« Changement de type de spectacle », « Personnaliser », « Voir résumé », role labels from `ROLE_LABELS`). Empty tab summary: « Aucun besoin renseigné ».
 - **Read-only members:** Show type + roles summary without CTA when `!canManageEvents` (even if all role counts are 0).
 
 ### Explicit non-goals (scope guard)
@@ -113,20 +112,20 @@ export type EventTypeRolesDialogResult =
 **Suggested Infos tab section (sketch):**
 
 ```html
-<section class="event-infos__type-roles" aria-labelledby="event-infos-type-roles-label">
-  <span id="event-infos-type-roles-label" class="event-infos__label">Type et rôles</span>
-  <div class="event-infos__type-row">
-    <span aria-hidden="true">{{ typeIcon() }}</span>
-    <span>{{ typeLabel() }}</span>
+<section class="event-infos__format" aria-labelledby="event-infos-format-label">
+  <div class="event-infos__format-header">
+    <span id="event-infos-format-label" class="event-infos__label">Format et besoins</span>
+    @if (canManageEvents()) {
+      <button type="button" mat-icon-button aria-label="Modifier format et besoins" (click)="openTypeRolesDialog()">
+        <mat-icon>edit</mat-icon>
+      </button>
+    }
   </div>
-  <div class="event-infos__roles-summary"><!-- same chips as form --></div>
-  @if (canManageEvents()) {
-    <button type="button" mat-stroked-button (click)="openTypeRolesDialog()">Personnaliser type et rôles</button>
-  }
+  <!-- type row + roles summary -->
 </section>
 ```
 
-Place section **after Lieu**, **before** Tag d’équité (consistent field order).
+Place section **after Lieu**, **before** Groupe de spectacles (consistent field order).
 
 ### API contract (unchanged — Story 3.4)
 
@@ -187,6 +186,16 @@ npm run build -w @hatcast/web
 - [Source: `services/api/src/main/kotlin/com/hatcast/api/event/EventService.kt` — create defaults]
 - [Source: `PLAN.md` — Epic 17 table 17.14]
 
+### Review Findings
+
+- [x] [Review][Decision] Terminologie « Format et besoins » — **Résolu (1A)** : AC et sketch story mis à jour pour refléter le rename produit ; le code actuel est la référence.
+- [x] [Review][Decision] CTA gestionnaire — **Résolu (2A)** : conserver `mat-icon-button` + `aria-label` ; AC2 mis à jour.
+- [x] [Review][Patch] Test manquant : échec PATCH type/rôles [`event-infos-tab.spec.ts`] — Ajout test snackbar + pas d’`eventUpdated` si PATCH échoue.
+- [x] [Review][Dismiss] Libellé vide « Aucun besoin renseigné » — Non applicable après 1A (terminologie retenue).
+- [x] [Review][Patch] `mat-select` après annulation changement de type [`event-type-roles-dialog.ts`] — `writeValue` sur `#formatSelect` dans `cancelTemplateChange` + test annulation.
+- [x] [Review][Defer] Renommage copy tag d’équité dans le même commit [`event-equity-tag-dialog.ts`] — Hors périmètre strict 17.14 mais cohérent avec « Groupe de spectacles » sur l’onglet Infos ; acceptable en lot UX.
+- [x] [Review][Defer] Fichiers `event-form-dialog.*` absents du commit `7041ab3` — AC5–7 déjà satisfaits dans l’arbre (payload sans `templateType`/`roleSlots`, régressions spec) ; pas de régression détectée sur la branche actuelle.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -226,3 +235,5 @@ Composer (Cursor)
 ### Change Log
 
 - 2026-05-25: Story 17.14 — type/roles moved from event form to Infos tab + `EventTypeRolesDialog`.
+- 2026-05-25: Code review — AC alignés sur libellés « Format et besoins » et CTA icône (décisions 1A, 2A).
+- 2026-05-25: Code review patches — test échec PATCH, reset `mat-select` après Ignorer, `overrideProvider(MatSnackBar)` dans specs Infos.

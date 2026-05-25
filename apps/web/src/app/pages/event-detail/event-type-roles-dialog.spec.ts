@@ -42,6 +42,7 @@ async function setup(data: EventTypeRolesDialogData) {
 type Harness = {
   onTemplateSelected: (id: EventTypeId) => void
   confirmTemplateChange: () => void
+  cancelTemplateChange: () => void
   onRoleCountChange: (role: 'player', raw: string) => void
   submit: () => void
   showTemplateChangeConfirmation: boolean
@@ -66,6 +67,22 @@ describe('EventTypeRolesDialog', () => {
 
     expect(h.showTemplateChangeConfirmation).toBe(true)
     expect(fixture.nativeElement.textContent).toContain('Changement de type de spectacle')
+  })
+
+  it('keeps selected template after canceling template change', async () => {
+    const customSlots = { ...applyTemplate('cabaret'), player: 99 }
+    const { fixture } = await setup(
+      dialogData({ templateType: 'cabaret', roleSlots: customSlots }),
+    )
+    const h = harness(fixture)
+
+    h.onTemplateSelected('match')
+    h.cancelTemplateChange()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(h.selectedTemplateType).toBe('cabaret')
+    expect(h.showTemplateChangeConfirmation).toBe(false)
   })
 
   it('applies template slots on confirm', async () => {

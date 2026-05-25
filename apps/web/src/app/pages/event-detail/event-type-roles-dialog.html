@@ -3,6 +3,7 @@
   <mat-form-field appearance="outline" class="type-roles-dialog__full">
       <mat-label>Format</mat-label>
     <mat-select
+      #formatSelect
       [value]="selectedTemplateType"
       (selectionChange)="onTemplateSelected($event.value)"
       [disabled]="showTemplateChangeConfirmation"

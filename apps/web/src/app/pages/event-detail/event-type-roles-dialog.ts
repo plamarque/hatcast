@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core'
+import { Component, inject, OnInit, ViewChild } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import {
   MAT_DIALOG_DATA,
@@ -7,7 +7,7 @@ import {
 } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
-import { MatSelectModule } from '@angular/material/select'
+import { MatSelect, MatSelectModule } from '@angular/material/select'
 
 import {
   applyTemplate,
@@ -54,6 +54,8 @@ export type EventTypeRolesDialogResult =
 export class EventTypeRolesDialog implements OnInit {
   private readonly ref = inject(MatDialogRef<EventTypeRolesDialog, EventTypeRolesDialogResult>)
   protected readonly data = inject<EventTypeRolesDialogData>(MAT_DIALOG_DATA)
+
+  @ViewChild('formatSelect') private formatSelect?: MatSelect
 
   protected showRoleInputs = false
   protected showTemplateChangeConfirmation = false
@@ -106,6 +108,9 @@ export class EventTypeRolesDialog implements OnInit {
   protected cancelTemplateChange(): void {
     this.showTemplateChangeConfirmation = false
     this.pendingTemplateId = null
+    queueMicrotask(() => {
+      this.formatSelect?.writeValue(this.selectedTemplateType)
+    })
   }
 
   protected enableCustomization(): void {

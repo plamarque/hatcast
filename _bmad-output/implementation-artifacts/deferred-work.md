@@ -1,3 +1,8 @@
+## Deferred from: code review of 17-14-onglet-infos-type-roles-modales.md (2026-05-25)
+
+- Renommage copy tag d’équité (`event-equity-tag-dialog.ts`) inclus dans le commit 17.14 — cohérence « Groupe de spectacles » sur Infos, pas de correctif isolé requis.
+- Fichiers `event-form-dialog.*` listés dans la story mais non modifiés dans `7041ab3` — comportement AC5–7 déjà présent sur `v2` avant ce commit.
+
 ## Deferred from: code review of 17-12-slug-spectacle-sans-saisie-formulaire.md (2026-05-25)
 
 - AC6 — suite web complète non revalidée lors de la revue ; échecs préexistants `event-infos-tab.spec.ts` (17.8), déjà notés dans la story.

@@ -40,6 +40,7 @@ async function setup(options: {
   equityTag?: string | null
   updateEvent?: ReturnType<typeof vi.fn>
   dialogResult?: string | null | undefined
+  typeRolesDialogResult?: { templateType: string; roleSlots: Record<string, number> }
 }) {
   const updateEvent =
     options.updateEvent ??
@@ -56,8 +57,12 @@ async function setup(options: {
   const snackOpen = vi.fn()
   const dialogOpen = vi.fn().mockReturnValue({
     afterClosed: () => ({
-      subscribe: (fn: (v: string | null | undefined) => void) => {
-        fn(options.dialogResult)
+      subscribe: (fn: (v: unknown) => void) => {
+        if (options.typeRolesDialogResult !== undefined) {
+          fn(options.typeRolesDialogResult)
+        } else {
+          fn(options.dialogResult)
+        }
       },
     }),
   })
@@ -72,6 +77,7 @@ async function setup(options: {
     ],
   }).compileComponents()
   TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
+  TestBed.overrideProvider(MatSnackBar, { useValue: { open: snackOpen } })
 
   const fixture = TestBed.createComponent(EventInfosTab)
   fixture.componentRef.setInput('event', baseEvent({ equityTag: options.equityTag ?? null }))
@@ -258,6 +264,31 @@ describe('EventInfosTab type and roles', () => {
     })
   })
 
+  it('shows snackbar when type/roles PATCH fails', async () => {
+    const { fixture, snackOpen, updateEvent } = await setup({
+      canManageEvents: true,
+      equityTag: null,
+      updateEvent: vi.fn().mockResolvedValue({
+        ok: false,
+        status: 422,
+        errorMessage: 'Format invalide.',
+      }),
+      typeRolesDialogResult: { templateType: 'longform', roleSlots: applyTemplate('longform') },
+    })
+    const spy = vi.fn()
+    fixture.componentInstance.eventUpdated.subscribe(spy)
+    const cmp = fixture.componentInstance as unknown as { openTypeRolesDialog: () => void }
+
+    cmp.openTypeRolesDialog()
+    await vi.waitFor(() => {
+      expect(updateEvent).toHaveBeenCalled()
+    })
+    await vi.waitFor(() => {
+      expect(snackOpen).toHaveBeenCalledWith('Format invalide.', 'OK', { duration: 6000 })
+    })
+    expect(spy).not.toHaveBeenCalled()
+  })
+
   it('emits eventUpdated after successful type/roles save', async () => {
     const updated = baseEvent({ templateType: 'catch', roleSlots: applyTemplate('catch') })
     const updateEvent = vi.fn().mockResolvedValue({ ok: true, status: 200, data: updated })
@@ -278,6 +309,7 @@ describe('EventInfosTab type and roles', () => {
       ],
     }).compileComponents()
     TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
+    TestBed.overrideProvider(MatSnackBar, { useValue: { open: vi.fn() } })
 
     const fixture = TestBed.createComponent(EventInfosTab)
     fixture.componentRef.setInput('event', baseEvent())
