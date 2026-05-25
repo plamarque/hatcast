@@ -1,8 +1,10 @@
-import type { AvailabilityStatus } from '../../core/availability/availability-status'
-import { availabilityBadgeLabel } from '../../core/availability/availability-status'
 import { teamStatusBadgeShortLabel, type TeamStatusBadge } from '../../core/composition/composition-lifecycle'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { formatEventStartLong } from './season-events.utils'
+import {
+  formatParticipantFocusLabel,
+  participantFocusFromEvent,
+} from './season-participant-focus'
 
 export interface HistoryCsvRow {
   date: string
@@ -15,12 +17,12 @@ export function historyCsvRowFromEvent(
   ev: EventResponse,
   participantLabel: string,
 ): HistoryCsvRow {
-  const status = (ev.myAvailabilityStatus ?? 'unknown') as AvailabilityStatus
+  const focusLabel = formatParticipantFocusLabel(participantFocusFromEvent(ev))
   return {
     date: formatEventStartLong(ev.startsAt),
     title: ev.title,
     compositionStatus: teamStatusBadgeShortLabel(ev.teamStatusBadge as TeamStatusBadge | undefined),
-    participantSummary: `${participantLabel}: ${availabilityBadgeLabel(status)}`,
+    participantSummary: `${participantLabel}: ${focusLabel}`,
   }
 }
 

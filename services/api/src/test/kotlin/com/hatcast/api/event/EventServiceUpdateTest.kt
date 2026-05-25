@@ -30,6 +30,7 @@ class EventServiceUpdateTest {
     private val seasonRepository = mock<SeasonRepository>()
     private val troupeAccess = mock<TroupeAccessService>()
     private val availabilityService = mock<AvailabilityService>()
+    private val participantFocusService = mock<EventParticipantFocusService>()
     private val compositionLifecycleEnrichment = mock<CompositionLifecycleEnrichmentService>()
     private val troupeEquityTagService = mock<TroupeEquityTagService>()
     private val service =
@@ -38,6 +39,7 @@ class EventServiceUpdateTest {
             seasonRepository,
             troupeAccess,
             availabilityService,
+            participantFocusService,
             compositionLifecycleEnrichment,
             troupeEquityTagService,
         )

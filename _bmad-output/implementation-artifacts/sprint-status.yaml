@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-25T17:32:00+02:00
+# last_updated: 2026-05-25T19:05:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -73,7 +73,7 @@ development_status:
   3-4-types-devenement-et-roles-requis-optionnels: done
   3-5-delegation-des-organisateurs-perimetre-saison-evenement: done
   3-6-vue-historique-colonnes-roles-mois-export-masquage: ready-for-dev
-  3-6b-vue-historique-ligue-chronologie-export: review
+  3-6b-vue-historique-ligue-chronologie-export: done
   3-7-suppression-de-saisons-admins-troupe-ou-plateforme: done
   3-8-rosters-participants-saison-et-evenement: done
   epic-3-retrospective: optional

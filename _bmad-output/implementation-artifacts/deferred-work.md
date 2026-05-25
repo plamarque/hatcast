@@ -1,3 +1,14 @@
+## Deferred from: code review of 3-6b-vue-historique-ligue-chronologie-export.md (2026-05-25)
+
+- Onglet **Statistiques** absent du switcher ligue — dépend story **3.6** et shell **3.3** à trois vues ; Historique seul est livré.
+- Pas de test composant `SeasonHome` pour `loadPastEvents` — tests unitaires sur `season-agenda`, toolbar, export ; aligné pattern agenda existant.
+
+## Product reserve — Historique vs V1 (PO 2026-05-25, story 3.6b validée avec réserve)
+
+- Historique ligue = chronologie + filtres + export CSV (FR53–54) — **livré**.
+- **UX :** parité Agenda insuffisante pour l’intention V1 (relecture des **compositions** passées, pas édition globale du spectacle). Liste en lecture seule ; **détail événement** encore modifiable pour les orgas.
+- **Follow-up produit / UX :** mode consultation passé, focus Composition / rôle dans l’équipe sur les cartes ; possible epic ou amendement shell ligue + `event-detail`.
+
 ## Deferred from: code review of 17-14-onglet-infos-type-roles-modales.md (2026-05-25)
 
 - Renommage copy tag d’équité (`event-equity-tag-dialog.ts`) inclus dans le commit 17.14 — cohérence « Groupe de spectacles » sur Infos, pas de correctif isolé requis.

@@ -2,6 +2,14 @@ package com.hatcast.api.event
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.composition.EventCompositionEntity
+import com.hatcast.api.composition.EventCompositionRepository
+import com.hatcast.api.composition.EventCompositionSlotEntity
+import com.hatcast.api.composition.EventCompositionSlotRepository
+import com.hatcast.api.composition.SlotParticipationStatus
+import com.hatcast.api.participant.SeasonParticipantEntity
+import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.troupe.TroupeBaselineRole
@@ -22,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.hamcrest.Matchers.nullValue
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -46,6 +55,18 @@ class EventControllerIntegrationTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var seasonRepository: SeasonRepository
+
+    @Autowired
+    private lateinit var seasonParticipantRepository: SeasonParticipantRepository
+
+    @Autowired
+    private lateinit var compositionRepository: EventCompositionRepository
+
+    @Autowired
+    private lateinit var slotRepository: EventCompositionSlotRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
@@ -197,6 +218,164 @@ class EventControllerIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.totalElements").value(1))
             .andExpect(jsonPath("$.content[0].title").value("Vieux spectacle"))
+    }
+
+    @Test
+    fun `scope past excludes archived past events`() {
+        val cookie = memberCookie("sub-event-past-archived")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val past = Instant.parse("2020-01-10T18:00:00Z")
+
+        val createPast =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Passé archivable",
+                              "startsAt": "${past}"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val pastEventId = mapper.readTree(createPast.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=past").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(1))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$pastEventId/actions/archive")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=past").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(0))
+    }
+
+    @Test
+    fun `scope past with participantId returns focus availability for that participant`() {
+        val cookie = memberCookie("sub-event-past-participant")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val past = Instant.parse("2020-02-15T18:00:00Z")
+        val otherParticipantId = createSeasonParticipantForTests(seasonId, "Autre joueur")
+
+        val createPast =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Spectacle passé filtré",
+                              "startsAt": "${past}"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val pastEventId = mapper.readTree(createPast.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$pastEventId/availability/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=past&participantId=$otherParticipantId")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[0].myAvailabilityStatus").value("unknown"))
+            .andExpect(jsonPath("$.content[0].participantFocus.availabilityStatus").value("unknown"))
+            .andExpect(jsonPath("$.content[0].participantFocus.inTeam").value(false))
+    }
+
+    @Test
+    fun `scope past returns participantFocus inTeam when composition is published`() {
+        val cookie = memberCookie("sub-event-past-inteam")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val past = Instant.parse("2019-08-01T18:00:00Z")
+        val participantId = createSeasonParticipantForTests(seasonId, "Joueur passé")
+
+        val createPast =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Passé avec équipe",
+                              "startsAt": "${past}",
+                              "roleSlots": { "player": 1 }
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val pastEventId =
+            UUID.fromString(mapper.readTree(createPast.response.contentAsString).get("id").asText())
+        seedPublishedCompositionForTests(pastEventId, participantId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=past&participantId=$participantId")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[0].participantFocus.inTeam").value(true))
+            .andExpect(jsonPath("$.content[0].participantFocus.compositionRoleKey").value("player"))
+    }
+
+    private fun createSeasonParticipantForTests(seasonId: UUID, label: String): UUID {
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        return seasonParticipantRepository
+            .save(
+                SeasonParticipantEntity(
+                    season = season,
+                    displayName = label,
+                ),
+            ).id
+    }
+
+    private fun seedPublishedCompositionForTests(eventId: UUID, participantId: UUID) {
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = null,
+                publishedAt = now,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                seasonParticipantId = participantId,
+                participationStatus = SlotParticipationStatus.CONFIRMED,
+            ),
+        )
     }
 
     @Test

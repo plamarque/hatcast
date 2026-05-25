@@ -360,6 +360,18 @@ components:
           type: string
           enum: [available, unavailable, unknown]
           description: Présent pour un membre authentifié lors de la liste des spectacles
+        participantFocus:
+          type: object
+          description: Résumé dispo + rôle composition pour le participant ciblé (Historique)
+          properties:
+            availabilityStatus:
+              type: string
+              enum: [available, unavailable, unknown]
+            compositionRoleKey:
+              type: string
+              nullable: true
+            inTeam:
+              type: boolean
         compositionLifecycle:
           type: string
           enum: [preparing, draftComposition, awaitingConfirmations, gapsToFill, complete]

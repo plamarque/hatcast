@@ -18,6 +18,11 @@ export interface EventResponse {
   createdAt: string
   updatedAt: string
   myAvailabilityStatus?: AvailabilityStatus
+  participantFocus?: {
+    availabilityStatus: AvailabilityStatus
+    compositionRoleKey?: string | null
+    inTeam: boolean
+  }
   compositionLifecycle?: string
   teamStatusBadge?: TeamStatusBadge
   compositionPublishedAt?: string | null

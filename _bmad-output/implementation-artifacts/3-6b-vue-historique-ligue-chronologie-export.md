@@ -1,6 +1,6 @@
 # Story 3.6b : Vue ligue « Historique » (chronologie événements passés)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -53,6 +53,7 @@ _(aucun)_
 - Filtre participant : `participantId` sur la liste ; défaut = dispo de l’utilisateur connecté.
 - Export CSV colonnes Date, Titre, Statut composition, Participant (résumé dispo).
 - Placeholder `season-history-shell` supprimé.
+- Code review 2026-05-25 : `participantFocus` API (dispo + rôle composition), pill Historique/CSV, tests intégration + unitaires.
 
 ### File List
 
@@ -73,6 +74,9 @@ _(aucun)_
 - `apps/web/src/app/pages/season-home/season-events.utils.spec.ts`
 - `apps/web/src/app/pages/season-home/season-history-export.ts`
 - `apps/web/src/app/pages/season-home/season-history-export.spec.ts`
+- `services/api/src/main/kotlin/com/hatcast/api/event/EventParticipantFocusService.kt`
+- `apps/web/src/app/pages/season-home/season-participant-focus.ts`
+- `apps/web/src/app/pages/season-home/season-participant-focus.spec.ts`
 - `apps/web/src/app/pages/season-home/season-view-toolbar.ts`
 - `apps/web/src/app/pages/season-home/season-view-toolbar.html`
 - `apps/web/src/app/pages/season-home/season-view-toolbar.spec.ts`
@@ -83,3 +87,20 @@ _(aucun)_
 ### Change Log
 
 - 2026-05-25: Story 3.6b — chronologie Historique, API `scope=past`, export CSV, filtres toolbar.
+- 2026-05-25: Code review — `participantFocus`, tests intégration, aria-label Historique.
+
+### Product reserve (PO, 2026-05-25 — validation avec réserve)
+
+- **Pertinence UX Historique vs V1 :** la vue réutilise l’Agenda (cartes + navigation détail) ; les spectacles passés restent **modifiables** depuis la fiche événement (infos, dispos, orga, etc.). En **V1**, Historique servait surtout à **revoir les compositions** (la sienne ou celles des autres), pas à piloter l’événement.
+- **Liste ligue :** en `variant="history"`, pas de création ni menu ⋮ Modifier/Archiver ; badge dispo en lecture seule — OK pour la chronologie.
+- **Écart principal :** clic carte → détail plein écran encore en mode édition — à trancher produit (lecture seule passé, onglet Composition focal, ou rôle limité).
+- **Suite suggérée (hors 3.6b) :** wireframe dédié « consultation passé » ; aligner `event-detail` / permissions quand `startsAt` &lt; aujourd’hui ; pill rôle dans l’équipe (voir finding Decision ci-dessous).
+
+### Review Findings
+
+- [x] [Review][Decision] Résumé **rôle utilisateur** — enrichissement `participantFocus` sur `GET …/events` + pill/CSV (`formatParticipantFocusLabel`, ex. « Comédien·ne · dans l'équipe »).
+- [x] [Review][Patch] Test d’intégration `participantId` + `scope=past` [`EventControllerIntegrationTest.kt`]
+- [x] [Review][Patch] Test spectacle passé archivé exclu de `scope=past` [`EventControllerIntegrationTest.kt`]
+- [x] [Review][Patch] `aria-label` sur cartes Historique [`season-agenda.html`]
+- [x] [Review][Defer] Onglet **Statistiques** absent du switcher — story **3.6** / shell **3.3** [`season-view-toolbar.html`:107-108]
+- [x] [Review][Defer] Pas de test composant `SeasonHome` pour `loadPastEvents` — pattern agenda existant

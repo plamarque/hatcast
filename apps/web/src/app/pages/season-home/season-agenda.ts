@@ -11,6 +11,10 @@ import {
 import type { MonthEventGroup } from './season-events.utils'
 import { getEventTypeIcon } from '../../core/events/event-types'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
+import {
+  formatParticipantFocusLabel,
+  participantFocusFromEvent,
+} from './season-participant-focus'
 
 @Component({
   selector: 'app-season-agenda',
@@ -73,6 +77,46 @@ export class SeasonAgenda {
 
   protected dispoModifier(status: AvailabilityStatus): string {
     return availabilityBadgeModifier(status)
+  }
+
+  protected focusLabel(ev: {
+    myAvailabilityStatus?: AvailabilityStatus
+    participantFocus?: {
+      availabilityStatus: AvailabilityStatus
+      compositionRoleKey?: string | null
+      inTeam: boolean
+    } | null
+  }): string {
+    return formatParticipantFocusLabel(participantFocusFromEvent(ev))
+  }
+
+  protected focusModifier(ev: {
+    myAvailabilityStatus?: AvailabilityStatus
+    participantFocus?: {
+      availabilityStatus: AvailabilityStatus
+      compositionRoleKey?: string | null
+      inTeam: boolean
+    } | null
+  }): string {
+    const focus = participantFocusFromEvent(ev)
+    if (focus.inTeam) {
+      return '--in-team'
+    }
+    return availabilityBadgeModifier(focus.availabilityStatus)
+  }
+
+  protected historyCardAriaLabel(ev: {
+    title: string
+    dayNumber: number
+    dayName: string
+    myAvailabilityStatus?: AvailabilityStatus
+    participantFocus?: {
+      availabilityStatus: AvailabilityStatus
+      compositionRoleKey?: string | null
+      inTeam: boolean
+    } | null
+  }): string {
+    return `${ev.title}, ${ev.dayNumber} ${ev.dayName}, ${this.focusLabel(ev)}`
   }
 
   protected typeIcon(templateType: string): string {

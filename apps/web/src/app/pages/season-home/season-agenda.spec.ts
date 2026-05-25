@@ -113,6 +113,32 @@ describe('SeasonAgenda', () => {
     expect(badge?.tagName).toBe('SPAN')
   })
 
+  it('shows in-team focus label on history cards when participantFocus is set', () => {
+    const withFocus: MonthEventGroup[] = [
+      {
+        ...monthGroups[0],
+        events: [
+          {
+            ...monthGroups[0].events[0],
+            participantFocus: {
+              availabilityStatus: 'available',
+              compositionRoleKey: 'player',
+              inTeam: true,
+            },
+          },
+        ],
+      },
+    ]
+    fixture.componentRef.setInput('monthGroups', withFocus)
+    fixture.componentRef.setInput('variant', 'history')
+    fixture.detectChanges()
+
+    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo')
+    expect(badge?.textContent?.trim()).toBe("Comédien·ne · dans l'équipe")
+    const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
+    expect(card.getAttribute('aria-label')).toContain("Comédien·ne · dans l'équipe")
+  })
+
   it('emits availabilityClick without opening the event when the badge is clicked', () => {
     const eventSpy = vi.fn()
     const availabilitySpy = vi.fn()

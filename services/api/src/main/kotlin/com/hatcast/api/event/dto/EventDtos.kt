@@ -29,6 +29,8 @@ data class EventResponseDto(
     val createdAt: Instant,
     val updatedAt: Instant,
     val myAvailabilityStatus: String? = null,
+    /** Résumé dispo + rôle composition pour le participant ciblé (Historique, story 3.6b). */
+    val participantFocus: ParticipantFocusSummaryDto? = null,
     val compositionLifecycle: String? = null,
     val teamStatusBadge: TeamStatusBadgeDto? = null,
     val compositionPublishedAt: Instant? = null,
@@ -37,6 +39,7 @@ data class EventResponseDto(
         fun from(
             e: EventEntity,
             myAvailabilityStatus: String? = null,
+            participantFocus: ParticipantFocusSummaryDto? = null,
             compositionView: CompositionLifecycleView? = null,
         ): EventResponseDto =
             EventResponseDto(
@@ -54,12 +57,19 @@ data class EventResponseDto(
                 createdAt = e.createdAt,
                 updatedAt = e.updatedAt,
                 myAvailabilityStatus = myAvailabilityStatus,
+                participantFocus = participantFocus,
                 compositionLifecycle = compositionView?.compositionLifecycle?.toApiValue(),
                 teamStatusBadge = compositionView?.teamStatusBadge?.toDto(),
                 compositionPublishedAt = compositionView?.publishedAt,
             )
     }
 }
+
+data class ParticipantFocusSummaryDto(
+    val availabilityStatus: String,
+    val compositionRoleKey: String? = null,
+    val inTeam: Boolean = false,
+)
 
 data class PagedEventsResponse(
     val content: List<EventResponseDto>,

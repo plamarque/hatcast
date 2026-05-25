@@ -31,7 +31,7 @@ describe('season-history-export', () => {
     const csv = buildHistoryCsv([row])
     expect(csv.split('\n')[0]).toBe('Date,Titre,Statut composition,Participant')
     expect(csv).toContain('"Apérock, ""special"""')
-    expect(csv).toContain('Alice: Dispo')
+    expect(csv).toContain('Alice: Dispo · pas sélectionné')
     expect(csv).toContain('Confirmé')
   })
 })

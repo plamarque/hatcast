@@ -27,6 +27,7 @@ class EventService(
     private val seasonRepository: SeasonRepository,
     private val troupeAccess: TroupeAccessService,
     private val availabilityService: AvailabilityService,
+    private val participantFocusService: EventParticipantFocusService,
     private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
     private val troupeEquityTagService: TroupeEquityTagService,
 ) {
@@ -75,15 +76,29 @@ class EventService(
                 }
             }
         val eventIds = p.content.map { it.id }
+        val focusParticipantId =
+            participantFocusService.resolveFocusParticipantId(seasonId, participantId, principal)
         val availabilityByEvent =
-            if (participantId != null) {
+            if (focusParticipantId != null) {
                 availabilityService.participantStatusByEventIds(
                     seasonId = seasonId,
                     eventIds = eventIds,
-                    seasonParticipantId = participantId,
+                    seasonParticipantId = focusParticipantId,
                 )
             } else {
                 availabilityService.myStatusByEventIds(eventIds, principal.userId)
+            }
+        val focusByEvent =
+            if (focusParticipantId != null) {
+                participantFocusService.summariesByEventIds(
+                    season = season,
+                    eventIds = eventIds,
+                    focusParticipantId = focusParticipantId,
+                    availabilityByEvent = availabilityByEvent,
+                    principal = principal,
+                )
+            } else {
+                emptyMap()
             }
         val lifecycleByEvent =
             compositionLifecycleEnrichment.loadViewsByEventIds(p.content, season, principal)
@@ -93,6 +108,7 @@ class EventService(
                     EventResponseDto.from(
                         event,
                         myAvailabilityStatus = availabilityByEvent[event.id],
+                        participantFocus = focusByEvent[event.id],
                         compositionView = lifecycleByEvent[event.id],
                     )
                 },

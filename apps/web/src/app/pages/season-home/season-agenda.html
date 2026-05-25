@@ -51,6 +51,7 @@
             class="agenda-card"
             role="button"
             tabindex="0"
+            [attr.aria-label]="variant() === 'history' ? historyCardAriaLabel(ev) : null"
             (click)="openEvent(ev.slug)"
             (keydown.enter)="openEvent(ev.slug)"
             (keydown.space)="openEvent(ev.slug); $event.preventDefault()"
@@ -74,9 +75,9 @@
                 }
                 @if (variant() === 'history' || !canEditAvailability()) {
                   <span
-                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(dispoStatus(ev)) }}"
+                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ variant() === 'history' ? focusModifier(ev) : dispoModifier(dispoStatus(ev)) }}"
                   >
-                    {{ dispoLabel(dispoStatus(ev)) }}
+                    {{ variant() === 'history' ? focusLabel(ev) : dispoLabel(dispoStatus(ev)) }}
                   </span>
                 } @else {
                   <button
