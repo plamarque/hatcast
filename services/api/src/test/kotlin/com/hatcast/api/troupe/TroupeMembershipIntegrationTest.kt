@@ -2,6 +2,13 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.event.EventEntity
+import com.hatcast.api.event.EventRepository
+import com.hatcast.api.participant.ParticipantStatus
+import com.hatcast.api.participant.SeasonParticipantEntity
+import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -26,6 +33,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Instant
 import java.util.UUID
 
 @SpringBootTest
@@ -43,6 +51,15 @@ class TroupeMembershipIntegrationTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var seasonRepository: SeasonRepository
+
+    @Autowired
+    private lateinit var eventRepository: EventRepository
+
+    @Autowired
+    private lateinit var seasonParticipantRepository: SeasonParticipantRepository
 
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
@@ -89,21 +106,71 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.[0].slug").value("la-malice"))
             .andExpect(jsonPath("$.[0].membership.status").value("ACTIVE"))
             .andExpect(jsonPath("$.[0].membership.baselineRole").value("MEMBER"))
-            .andExpect(jsonPath("$.[0].activeMemberCount").isNumber)
-            .andExpect(jsonPath("$.[0].upcomingEventCount").isNumber)
-            .andExpect(jsonPath("$.[0].activeMemberCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
     }
 
     @Test
-    fun `troupe list returns member and upcoming event counts`() {
-        val cookie = signInAndJoin("sub-troupe-list-counts", "troupe-list-counts@example.com", "List Counts")
+    fun `troupe list returns batched member and upcoming counts for two troupes`() {
+        val cookie = signIn("sub-troupe-list-two", "troupe-list-two@example.com", "Two Troupes")
+        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+
+        val otherTroupe =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = UUID.randomUUID(),
+                    name = "List Counts Other",
+                    slug = "list-counts-other-${UUID.randomUUID().toString().take(8)}",
+                ),
+            )
+        mockMvc
+            .perform(
+                post("/v1/troupes/${otherTroupe.id}/memberships/me")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val user = userRepository.findByGoogleSub("sub-troupe-list-two")!!
+        val season =
+            seasonRepository.save(
+                SeasonEntity(
+                    troupe = otherTroupe,
+                    slug = "list-counts-season-${UUID.randomUUID().toString().take(8)}",
+                    title = "List counts season",
+                ),
+            )
+        eventRepository.save(
+            EventEntity(
+                season = season,
+                title = "Upcoming for list",
+                startsAt = Instant.parse("2030-06-15T18:00:00Z"),
+            ),
+        )
+        seasonParticipantRepository.save(
+            SeasonParticipantEntity(
+                season = season,
+                displayName = "Two Troupes",
+                normalizedEmail = requireNotNull(user.email).lowercase(),
+                user = user,
+                status = ParticipantStatus.ACTIVE,
+            ),
+        )
 
         mockMvc
             .perform(get("/v1/troupes").cookie(cookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$.[0].activeMemberCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
-            .andExpect(jsonPath("$.[0].upcomingEventCount").value(0))
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[?(@.slug == 'la-malice')].upcomingEventCount[0]").value(0))
+            .andExpect(
+                jsonPath("$[?(@.slug == 'la-malice')].activeMemberCount[0]")
+                    .value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)),
+            )
+            .andExpect(jsonPath("$[?(@.id == '${otherTroupe.id}')].activeMemberCount[0]").value(1))
+            .andExpect(jsonPath("$[?(@.id == '${otherTroupe.id}')].upcomingEventCount[0]").value(1))
+
+        val outsider = signIn("sub-troupe-list-outsider", "outsider@example.com", "Outsider")
+        mockMvc
+            .perform(get("/v1/troupes").cookie(outsider))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(0))
     }
 
     @Test

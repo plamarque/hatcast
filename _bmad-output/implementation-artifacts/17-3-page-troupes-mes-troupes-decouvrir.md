@@ -1,6 +1,6 @@
 # Story 17.3: `/troupes` page (Mes troupes + Découvrir)
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -188,9 +188,9 @@ Composer
 
 ### Review Findings
 
-- [ ] [Review][Patch] Remove unused `countByTroupe_IdAndStatus` repository method [`TroupeMembershipRepository.kt:55`]
-- [ ] [Review][Patch] Strengthen API integration test per story task (2 troupes, exact counts, zero upcoming) [`TroupeMembershipIntegrationTest.kt`]
-- [ ] [Review][Patch] Consolidate redundant integration tests for troupe list counters [`TroupeMembershipIntegrationTest.kt:97-107`]
+- [x] [Review][Patch] Remove unused `countByTroupe_IdAndStatus` repository method [`TroupeMembershipRepository.kt:55`]
+- [x] [Review][Patch] Strengthen API integration test per story task (2 troupes, exact counts, zero upcoming) [`TroupeMembershipIntegrationTest.kt`]
+- [x] [Review][Patch] Consolidate redundant integration tests for troupe list counters [`TroupeMembershipIntegrationTest.kt:97-107`]
 - [x] [Review][Defer] Session redirect test does not assert `rememberCurrentUrlForPostLogin` — deferred, pre-existing pattern (same as `seasons-list`)
 - [x] [Review][Defer] API integration tests blocked locally by Flyway V23 on H2 — deferred, environment
 - [x] [Review][Defer] Pre-existing `event-dispos-tab.spec.ts` failure in full web suite — deferred, unrelated
@@ -199,3 +199,4 @@ Composer
 
 - 2026-05-25: Story 17.3 — `/troupes` directory page, API troupe list counters, tests (Composer).
 - 2026-05-25: Code review — 3 patch, 3 defer, 2 dismissed.
+- 2026-05-25: Code review patches applied — dead repo method removed, integration test for 2 troupes.

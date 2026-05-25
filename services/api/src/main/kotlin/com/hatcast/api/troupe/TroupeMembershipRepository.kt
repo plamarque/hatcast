@@ -52,11 +52,6 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         baselineRole: TroupeBaselineRole,
     ): Long
 
-    fun countByTroupe_IdAndStatus(
-        troupeId: UUID,
-        status: TroupeMembershipStatus,
-    ): Long
-
     @Query(
         """
         SELECT m.troupe.id AS troupeId, COUNT(m) AS memberCount

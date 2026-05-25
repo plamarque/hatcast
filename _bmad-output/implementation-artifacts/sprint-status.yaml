@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-25T13:43:00+02:00
+# last_updated: 2026-05-25T13:50:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -167,7 +167,7 @@ development_status:
   epic-17: in-progress
   17-1-breadcrumb-contexte-responsive: done
   17-2-bandeau-administration-par-scope: done
-  17-3-page-troupes-mes-troupes-decouvrir: review
+  17-3-page-troupes-mes-troupes-decouvrir: done
   17-4-hub-troupes-slug: backlog
   17-5-redirects-fin-seasons-hub-troupe: backlog
   17-11-breadcrumb-pages-admin-back-office: backlog
