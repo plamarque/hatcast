@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-26T22:24:00+02:00"
+last_updated: "2026-05-26T24:52:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -171,7 +171,7 @@ development_status:
   17-4-hub-troupes-slug: done
   17-5-redirects-fin-seasons-hub-troupe: done
   17-11-breadcrumb-pages-admin-back-office: done
-  17-16-route-admin-participants-evenement: review
+  17-16-route-admin-participants-evenement: done
   17-6-slug-evenement-dans-les-urls: done
   17-7-api-tag-equite-glossaire-troupe: done
   17-8-ui-onglet-infos-tag-equite: done

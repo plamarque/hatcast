@@ -215,6 +215,13 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     if (!seasonId || !eventId) {
       return
     }
+    const canRemove =
+      (participant.source === 'SEASON' && !!participant.seasonParticipantId) ||
+      !!participant.eventParticipantId
+    if (!canRemove) {
+      this.snack.open('Participant introuvable — rechargez la page.', 'OK', { duration: 5000 })
+      return
+    }
     this.saving.set(true)
     try {
       const r =
@@ -224,13 +231,11 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
               eventId,
               participant.seasonParticipantId,
             )
-          : participant.eventParticipantId
-            ? await this.participantApi.removeEventParticipant(
-                seasonId,
-                eventId,
-                participant.eventParticipantId,
-              )
-            : { ok: false, status: 0 }
+          : await this.participantApi.removeEventParticipant(
+              seasonId,
+              eventId,
+              participant.eventParticipantId!,
+            )
       if (!r.ok) {
         this.snack.open('Retrait impossible.', 'OK', { duration: 5000 })
         return
@@ -355,6 +360,8 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     if (r.ok && r.data) {
       this.roster.set(r.data)
       this.snack.open(message, 'OK', { duration: 4000 })
+      return
     }
+    this.snack.open('Impossible de rafraîchir la liste.', 'OK', { duration: 5000 })
   }
 }

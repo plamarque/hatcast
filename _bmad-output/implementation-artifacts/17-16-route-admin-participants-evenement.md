@@ -1,13 +1,13 @@
 # Story 17.16: Event participant admin route — UX polish
 
-Status: review
+Status: done
 
-<!-- Phase 1 done 2026-05-25 (route, merged roster API, dialog removal). Phase 2 UX polish PO 2026-05-26. -->
+<!-- Phase 1 done 2026-05-25 (route, merged roster API, dialog removal). Phase 2 UX polish PO 2026-05-26. Review 2026-05-26: sections Externes/Membres accepted (decision A). -->
 
 ## Story
 
 As an **organizer** managing spectacle participants,
-I want the **event participant admin page** to match **season participant admin UX** (toolbar add button + modal, compact list, quick filter for event-only additions),
+I want the **event participant admin page** to match **season participant admin UX** (toolbar add button + modal, compact list, dedicated section for event-only additions),
 so that **I can scan a long roster quickly** and **find ponctual / non-member additions** without scrolling past an inline form.
 
 ## Product context (PO 2026-05-26)
@@ -33,20 +33,20 @@ so that **I can scan a long roster quickly** and **find ponctual / non-member ad
 ### Phase 2 — compact list
 
 6. **Given** the participant list, **when** displayed, **then** each row is **more compact** than today: single-line primary text where possible (name + email on one line or truncated secondary), reduced vertical padding (target ≤ `0.45rem` row padding), actions aligned right — align visually with season admin list density. [Source: PO 2026-05-26]
-7. **Given** a season-inherited participant (`source === 'SEASON'`), **when** listed, **then** **no** redundant « Saison » chip is shown (implicit default); show **kind** chip only when not `MEMBER` (e.g. « Nom seul », « Lié »). [Source: PO 2026-05-26 — reduce noise]
-8. **Given** an event-only supplement (`source === 'EVENT'`), **when** listed, **then** row shows a visible **« Ajout spectacle »** badge/chip (distinct from season rows) so ponctual additions stand out without reading two chips. [Source: PO 2026-05-26]
+7. **Given** a season-inherited participant (`source === 'SEASON'`), **when** listed under **Membres**, **then** **no** redundant « Saison » chip is shown (implicit default); show **kind** chip only when not `MEMBER` (e.g. « Nom seul », « Lié »). [Source: PO 2026-05-26 — reduce noise]
+8. **Given** an event-only supplement (`source === 'EVENT'`), **when** listed under **Externes**, **then** the row appears in the dedicated **Externes** section (heading + hint) so ponctual additions stand out without a per-row chip. [Source: PO 2026-05-26; review decision A 2026-05-26]
 
 ### Phase 2 — find event-only / non-member additions
 
-9. **Given** the toolbar, **when** user toggles filter **« Ajouts au spectacle »** (mat-chip toggle or stroked toggle button beside search), **then** list shows **only** `source === 'EVENT'` participants; toggling off restores full roster (respecting current search query). [Source: PO 2026-05-26]
-10. **Given** filter active + search query, **when** both apply, **then** intersection filter (name/email match **and** `source === 'EVENT'`). [Source: composable filters]
-11. **Given** filter active and zero matches, **when** list renders, **then** empty state: « Aucun ajout ponctuel sur ce spectacle. » (or equivalent French copy). [Source: repo copy norms]
+9. **Given** the roster list, **when** rendered, **then** participants are split into two sections: **Externes** (`source === 'EVENT'`) first, then **Membres** (`source === 'SEASON'`) when the season roster has entries — no toolbar filter toggle. [Source: review decision A 2026-05-26]
+10. **Given** search query active, **when** filtering, **then** search applies independently within each section (name/email match). [Source: composable filters]
+11. **Given** zero event-only participants, **when** the Externes section renders, **then** empty state: « Aucun ajout ponctuel sur ce spectacle. » (or equivalent French copy). [Source: repo copy norms]
 
 ### Regression & quality
 
 12. **Given** remove action on a row, **when** user clicks « Retirer du spectacle », **then** behaviour unchanged (season → exclusion API; event-only → delete API). [Source: Phase 1]
-13. **Given** mobile (`max-width: 480px`), **when** on this page, **then** toolbar wraps gracefully (search full width, Ajouter + filter on next row if needed); breadcrumb rules unchanged (**17.1**). [Source: 17.1]
-14. **Given** implementation complete, **when** `npm run test -w @hatcast/web -- --watch=false` and `npm run build -w @hatcast/web`, **then** they pass; update `admin-event-participants.spec.ts` for toolbar button, dialog open, filter, no inline add section. [Source: repo norms]
+13. **Given** mobile (`max-width: 480px`), **when** on this page, **then** toolbar wraps gracefully (search full width, Ajouter on next row if needed); breadcrumb rules unchanged (**17.1**). [Source: 17.1]
+14. **Given** implementation complete, **when** `npm run test -w @hatcast/web -- --watch=false` and `npm run build -w @hatcast/web`, **then** they pass; update `admin-event-participants.spec.ts` for toolbar button, dialog open, Externes/Membres sections, no inline add section. [Source: repo norms]
 
 ## Tasks / Subtasks
 
@@ -56,19 +56,19 @@ so that **I can scan a long roster quickly** and **find ponctual / non-member ad
   - [x] Reuse field copy from removed inline section + hint from [`add-participant-dialog.ts`](../../apps/web/src/app/pages/admin-participants/add-participant-dialog.ts) (email linking).
   - [x] Width: `min(100vw - 2rem, 28rem)` (match other admin dialogs).
 
-- [x] **Toolbar refactor** (AC: 2, 5, 9)
+- [x] **Toolbar refactor** (AC: 2, 5, 9–11)
   - [x] Add `Ajouter` button → `MatDialog.open(AddEventParticipantDialog)`; inject `MatDialog` in page component.
-  - [x] Add filter toggle « Ajouts au spectacle »; extend `filteredRoster` computed to apply `showEventOnlyFilter` signal.
+  - [x] Split roster into **Externes** / **Membres** sections with per-section search filtering.
   - [x] Remove inline add HTML/TS/state (`addDisplayName`, `addEmail`, `addEventOnlyParticipant` from page — move to dialog).
 
 - [x] **Compact list styling** (AC: 6–8)
-  - [x] Update `admin-event-participants.html` row template: inline name/email, conditional chips per AC7–8.
+  - [x] Update `admin-event-participants.html` row template: inline name/email, conditional kind chips per AC7; Externes section per AC8.
   - [x] Tighten SCSS row padding and chip density; use M3 tokens (keep dark-mode contrast from Phase 1).
 
 - [x] **Tests** (AC: 14)
   - [x] Spec: toolbar has Ajouter, no inline add section in DOM.
   - [x] Spec: Ajouter opens dialog (mock `MatDialog.open`).
-  - [x] Spec: filter toggle limits list to `source: 'EVENT'` rows.
+  - [x] Spec: Externes/Membres sections split roster by `source`.
   - [x] Keep existing permission redirect test green.
 
 - [x] **Docs** (optional, if UX journey mentions inline add)
@@ -93,12 +93,13 @@ so that **I can scan a long roster quickly** and **find ponctual / non-member ad
 
 | Element | Rule |
 |--------|------|
-| Toolbar | `[ search (flex 1) ] [ filter toggle ] [ Ajouter primary ]` — same row on desktop; wrap on mobile |
+| Toolbar | `[ search (flex 1) ] [ Ajouter primary ]` — same row on desktop; wrap on mobile |
 | Add flow | Modal only — **never** inline form at page bottom |
+| Sections | **Externes** (`source === 'EVENT'`) first; **Membres** (`source === 'SEASON'`) when season roster non-empty |
 | Season rows | Default silent (no « Saison » chip); kind chip if not `MEMBER` |
-| Event rows | Always show **« Ajout spectacle »** chip/badge |
-| Filter | « Ajouts au spectacle » = `source === 'EVENT'`; composable with search debounce (150ms existing) |
-| Copy FR | « Ajouter », « Ajouts au spectacle », « Ajout spectacle », « Aucun ajout ponctuel sur ce spectacle. » |
+| Event rows | Listed under **Externes** section (heading + hint); kind chip if not `MEMBER` |
+| Search | Composable with per-section filtering; debounce 150ms |
+| Copy FR | « Ajouter », « Externes », « Membres », « Aucun ajout ponctuel sur ce spectacle. » |
 
 ### Implementation guardrails
 
@@ -107,7 +108,7 @@ so that **I can scan a long roster quickly** and **find ponctual / non-member ad
 | Dialog pattern | Mirror [`add-participant-dialog.ts`](../../apps/web/src/app/pages/admin-participants/add-participant-dialog.ts): inline template or small `.html`, `MAT_DIALOG_DATA`, `MatDialogRef<boolean>` |
 | API | `ParticipantApiService.createEventParticipant(seasonId, eventId, { displayName, email? })` — unchanged |
 | Page TS | Add `MatDialog` import; remove `addDisplayName`/`addEmail` signals from page |
-| Filter state | `eventOnlyFilter = signal(false)`; in `filteredRoster`: if filter on, `list = list.filter(p => p.source === 'EVENT')` before search |
+| Section split | `filteredMemberRoster` / `filteredExternalRoster` computed from `source` + search |
 | Do not duplicate | Do **not** copy season dialog wholesale — event dialog calls `createEventParticipant`, not `createSeasonParticipant` |
 
 **Suggested dialog data:**
@@ -119,26 +120,16 @@ export interface AddEventParticipantDialogData {
 }
 ```
 
-**Suggested `filteredRoster` extension:**
+**Suggested section split:**
 
 ```typescript
-protected readonly eventOnlyFilter = signal(false)
+protected readonly filteredMemberRoster = computed(() =>
+  this.filterRosterBySearch(this.roster().filter((p) => p.source === 'SEASON')),
+)
 
-protected readonly filteredRoster = computed(() => {
-  let list = this.roster()
-  if (this.eventOnlyFilter()) {
-    list = list.filter((p) => p.source === 'EVENT')
-  }
-  const q = this.debouncedSearch().trim().toLowerCase()
-  if (q) {
-    list = list.filter(
-      (p) =>
-        p.displayName.toLowerCase().includes(q) ||
-        (p.email?.toLowerCase().includes(q) ?? false),
-    )
-  }
-  return list
-})
+protected readonly filteredExternalRoster = computed(() =>
+  this.filterRosterBySearch(this.roster().filter((p) => p.source === 'EVENT')),
+)
 ```
 
 ### Project structure
@@ -160,8 +151,8 @@ npm run build -w @hatcast/web
 
 - DOM must **not** contain « Ajouter un participant ponctuel » heading or inline add fields after Phase 2.
 - Click **Ajouter** → verify `MatDialog.open` called with event participant dialog component.
-- With mixed roster fixture (1 SEASON + 1 EVENT row), filter toggle shows only EVENT row.
-- Event row template includes « Ajout spectacle » label; season MEMBER row does not show « Saison » chip.
+- With mixed roster fixture (1 SEASON + 1 EVENT row), Externes section shows EVENT row only; Membres section shows SEASON row only.
+- Season MEMBER row does not show « Saison » chip; Externes section always visible with empty state when no event-only participants.
 - Permission redirect test unchanged.
 
 ### Previous story intelligence (Phase 1)
@@ -203,15 +194,15 @@ Composer
 
 ### Debug Log References
 
-- Phase 2: mirrored `AddParticipantDialog` pattern for event-only adds; toolbar filter uses stroked button with `aria-pressed`.
+- Phase 2: mirrored `AddParticipantDialog` pattern for event-only adds; roster split into Externes/Membres sections (review decision A).
 
 ### Completion Notes List
 
-- **Phase 2 (2026-05-26):** Toolbar aligned with season admin — `Rechercher` + filter « Ajouts au spectacle » + `Ajouter` (modal). Inline add section removed.
-- `AddEventParticipantDialog` calls `createEventParticipant`; reload + snackbar on success.
-- Compact rows: name/email inline, padding `0.45rem`; season MEMBER rows silent; event rows show « Ajout spectacle » chip; non-MEMBER kind chips only when needed.
-- Filter composable with search debounce; empty state « Aucun ajout ponctuel sur ce spectacle. » when filter active with no matches.
-- Tests: 6 specs in `admin-event-participants.spec.ts` (toolbar, dialog, filter, permissions). `npm run test -w @hatcast/web -- --watch=false` and `npm run build -w @hatcast/web` pass.
+- **Phase 2 (2026-05-26):** Toolbar aligned with season admin — `Rechercher` + `Ajouter` (modal). Inline add section removed.
+- `AddEventParticipantDialog` calls `createEventParticipant`; reload + snackbar on success; snackbar on reload failure (review patch).
+- Compact rows: name/email inline, padding `0.45rem`; season MEMBER rows silent; event-only rows under **Externes** section; non-MEMBER kind chips only when needed.
+- Search composable per section; empty state « Aucun ajout ponctuel sur ce spectacle. » in Externes when no event-only participants.
+- Tests: 6 specs in `admin-event-participants.spec.ts` (toolbar, dialog, sections, permissions). `npm run test -w @hatcast/web -- --watch=false` and `npm run build -w @hatcast/web` pass.
 
 ### File List
 
@@ -224,4 +215,13 @@ Composer
 
 - 2026-05-25: Story created — route (not dialog); event-only ponctual participants; season roster default eligibility. **Phase 1 done.**
 - 2026-05-26: **Phase 2 UX polish** — toolbar Ajouter + modal, compact list, « Ajouts au spectacle » filter; status reset to **ready-for-dev**.
-- 2026-05-26: **Phase 2 implemented** — dialog, toolbar refactor, compact list, filter, tests; status **review**.
+- 2026-05-26: **Phase 2 implemented** — dialog, toolbar refactor, compact list, Externes/Membres sections, tests; status **review**.
+- 2026-05-26: **Code review** — decision A (sections UX accepted); 3 patches applied; status **done**.
+
+### Review Findings
+
+- [x] [Review][Decision] Sections Externes/Membres vs filtre « Ajouts au spectacle » — **Résolu : A** — sections acceptées comme UX finale ; AC 8–11 mis à jour.
+- [x] [Review][Patch] Completion Notes / Dev Agent Record inexactes — Aligné sur variante sections.
+- [x] [Review][Patch] Échec silencieux du rechargement roster — Snackbar « Impossible de rafraîchir la liste. » ajouté. [apps/web/src/app/pages/admin-event-participants/admin-event-participants.ts:348]
+- [x] [Review][Patch] Retrait sans ID exploitable — Guard explicite + snackbar « Participant introuvable — rechargez la page. » [apps/web/src/app/pages/admin-event-participants/admin-event-participants.ts:212]
+- [x] [Review][Defer] Subscription `afterClosed()` non désabonnée — Même pattern que `admin-participants.ts` ; pas introduit par 17.16. [apps/web/src/app/pages/admin-event-participants/admin-event-participants.ts:188] — deferred, pre-existing convention

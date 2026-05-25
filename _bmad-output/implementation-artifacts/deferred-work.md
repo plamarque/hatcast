@@ -1,3 +1,7 @@
+## Deferred from: code review of 17-16-route-admin-participants-evenement.md (2026-05-26)
+
+- Subscription `afterClosed()` non désabonnée dans `openAddDialog()` — même pattern que `admin-participants.ts` ; convention existante, pas introduit par 17.16.
+
 ## Deferred from: code review of 17-15-onglet-infos-organisateurs-retrait-participants-formulaire.md (2026-05-25)
 
 - Autocomplete membres troupe limité à 100 dans `EventOrganizersDialog` — même risque que d’autres pickers ; acceptable pour la taille typique des troupes.
