@@ -9,7 +9,11 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
-import { OrganizerApiService, type MySeasonPermissions } from '../../core/permissions/organizer-api.service'
+import {
+  OrganizerApiService,
+  type MySeasonPermissions,
+  type OrganizerResponse,
+} from '../../core/permissions/organizer-api.service'
 import {
   ParticipantApiService,
   type EventRosterParticipant,
@@ -90,10 +94,18 @@ describe('AdminEventParticipants', () => {
     eventParticipantAdminFor: [],
   }
 
+  const eventOrganizer: OrganizerResponse = {
+    userId: 'u-1',
+    email: 'alice@example.com',
+    displayName: 'Alice',
+    grantedAt: '',
+  }
+
   async function setup(
     permissions: MySeasonPermissions,
     options: {
       roster?: EventRosterParticipant[]
+      eventOrganizers?: OrganizerResponse[]
       dialogAfterClosed?: boolean
       dialog?: { open: ReturnType<typeof vi.fn> }
     } = {},
@@ -153,6 +165,13 @@ describe('AdminEventParticipants', () => {
           provide: OrganizerApiService,
           useValue: {
             mySeasonPermissions: vi.fn().mockResolvedValue({ ok: true, data: permissions }),
+            listEventOrganizers: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: options.eventOrganizers ?? [],
+            }),
+            addEventOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 201 }),
+            removeEventOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
           },
         },
         {
@@ -267,6 +286,121 @@ describe('AdminEventParticipants', () => {
     expect(externesSection?.textContent).not.toContain('Alice')
     expect(membresSection?.textContent).toContain('Alice')
     expect(membresSection?.textContent).not.toContain('Guest Bob')
+  })
+
+  it('does not render a dedicated organizers section', async () => {
+    const { fixture } = await setup(
+      { ...adminPermissions, canManageEventOrganizers: true },
+      { eventOrganizers: [eventOrganizer] },
+    )
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+
+    const root = fixture.nativeElement as HTMLElement
+    expect(root.querySelector('#organisateurs-heading')).toBeNull()
+    expect(root.textContent).not.toContain('Organisateur·ices du spectacle')
+  })
+
+  it('shows participation role chip on roster row', async () => {
+    const { fixture } = await setup(
+      { ...adminPermissions, canManageEventOrganizers: true },
+      { roster: [seasonRow], eventOrganizers: [eventOrganizer] },
+    )
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Organisateur·ice')
+      expect(fixture.nativeElement.textContent).not.toContain('hors roster')
+    })
+  })
+
+  it('promotes roster participant to event organizer', async () => {
+    const linkedRow: EventRosterParticipant = {
+      ...seasonRow,
+      userId: 'u-2',
+      email: 'promo@example.com',
+      displayName: 'Promo User',
+    }
+    const organizerApi = {
+      mySeasonPermissions: vi.fn().mockResolvedValue({
+        ok: true,
+        data: { ...adminPermissions, canManageEventOrganizers: true },
+      }),
+      listEventOrganizers: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      addEventOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 201 }),
+      removeEventOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
+    }
+    await TestBed.configureTestingModule({
+      imports: [AdminEventParticipants, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: paramMap$.asObservable() },
+        },
+        { provide: Router, useValue: { navigate: vi.fn().mockResolvedValue(true) } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: vi.fn().mockReturnValue({ afterClosed: () => of(false) }) } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: { email: 'a@example.com', displayName: 'Admin' } },
+            }),
+          },
+        },
+        {
+          provide: TroupeSeasonResolverService,
+          useValue: {
+            resolveSeasonSlug: vi.fn().mockResolvedValue({
+              kind: 'resolved',
+              troupe: { id: 'troupe-1', name: 'Troupe', slug: 'troupe-a' },
+              season,
+            }),
+          },
+        },
+        {
+          provide: EventApiService,
+          useValue: {
+            getEventBySlug: vi.fn().mockResolvedValue({ ok: true, status: 200, data: event }),
+          },
+        },
+        { provide: OrganizerApiService, useValue: organizerApi },
+        {
+          provide: ParticipantApiService,
+          useValue: {
+            listEventParticipantRoster: vi.fn().mockResolvedValue({
+              ok: true,
+              data: [linkedRow],
+            }),
+            removeEventParticipant: vi.fn(),
+            excludeSeasonParticipantFromEvent: vi.fn(),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: { currentUserDisplayLabel: () => 'Admin' },
+        },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(AdminEventParticipants)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const cmp = fixture.componentInstance as AdminEventParticipants
+    cmp['seasonId'].set('season-1')
+    cmp['event'].set(event)
+    cmp['openParticipationRoleMenu'](linkedRow)
+    await cmp['selectEventParticipationRole'](true)
+
+    expect(organizerApi.addEventOrganizer).toHaveBeenCalledWith(
+      'season-1',
+      'event-1',
+      'promo@example.com',
+    )
   })
 
   it('shows empty Externes section when no event-only participants', async () => {

@@ -109,6 +109,16 @@ class ParticipantController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): EventParticipantAdminDto = eventParticipantService.create(seasonId, eventId, body, principal)
 
+    @PatchMapping("/seasons/{seasonId}/events/{eventId}/participants/{participantId}")
+    fun updateEventParticipant(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable participantId: UUID,
+        @Valid @RequestBody body: ParticipantUpdateRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventParticipantAdminDto =
+        eventParticipantService.update(seasonId, eventId, participantId, body, principal)
+
     @DeleteMapping("/seasons/{seasonId}/events/{eventId}/participants/{participantId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun removeEventParticipant(

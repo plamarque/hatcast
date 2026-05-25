@@ -118,13 +118,16 @@
   justify-content: flex-end;
 }
 
+.membres-tab__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
 .membres-tab__role-chip {
   cursor: pointer;
   min-width: unset;
-}
-
-.membres-tab__remove-btn {
-  color: var(--mat-sys-error);
 }
 
 .membres-tab__help p {

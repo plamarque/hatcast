@@ -1,3 +1,5 @@
+@use '../../shared/admin-organizer-row/organizer-row';
+
 .admin-event-participants {
   display: grid;
   gap: 1rem;
@@ -131,12 +133,18 @@
 }
 
 .admin-event-participants__row {
-  align-items: center;
+  align-items: flex-start;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   display: flex;
   gap: 0.75rem;
   justify-content: space-between;
   padding: 0.45rem 0;
+}
+
+.admin-event-participants__row-actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
 }
 
 .admin-event-participants__row-main {
@@ -174,14 +182,6 @@
   }
 }
 
-.admin-event-participants__remove {
-  color: var(--mat-sys-error);
-  flex-shrink: 0;
-
-  &:disabled {
-    color: color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
-  }
-}
 
 @media (max-width: 480px) {
   .admin-event-participants__mobile-context {

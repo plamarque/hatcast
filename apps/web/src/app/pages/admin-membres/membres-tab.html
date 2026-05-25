@@ -109,15 +109,17 @@
             <span class="membres-tab__email">{{ member.email || 'Email indisponible' }}</span>
           </div>
           <div class="membres-tab__controls">
-            <mat-chip
-              class="membres-tab__role-chip"
-              [matMenuTriggerFor]="roleMenu"
-              [disabled]="isLastAdmin(member) || saving()"
-              [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : ''"
-              (click)="openRoleMenu(member)"
-            >
-              {{ roleLabel(member.baselineRole) }} ▾
-            </mat-chip>
+            <div class="membres-tab__chips">
+              <mat-chip
+                class="membres-tab__role-chip"
+                [matMenuTriggerFor]="roleMenu"
+                [disabled]="isLastAdmin(member) || saving()"
+                [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : ''"
+                (click)="openRoleMenu(member)"
+              >
+                {{ roleLabel(member.baselineRole) }} ▾
+              </mat-chip>
+            </div>
             <mat-slide-toggle
               [checked]="member.status === 'ACTIVE'"
               [disabled]="isLastAdmin(member) || saving()"
@@ -129,13 +131,14 @@
             @if (member.status === 'ACTIVE') {
               <button
                 type="button"
-                mat-button
-                class="membres-tab__remove-btn"
+                mat-icon-button
+                class="admin-row-delete-btn"
                 [disabled]="isLastAdmin(member) || saving()"
+                aria-label="Retirer ce membre de la troupe"
                 [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : 'Retire ce membre de la troupe sans supprimer son compte HatCast.'"
                 (click)="retirerMembre(member)"
               >
-                Retirer
+                <mat-icon>delete</mat-icon>
               </button>
             }
           </div>

@@ -54,56 +54,6 @@
       <a [routerLink]="seasonAdminParticipantsLink()">Gérer le roster saison</a>
     </p>
 
-    @if (canManageEventOrganizers()) {
-      <section class="admin-event-participants__section" aria-labelledby="organisateurs-heading">
-        <div class="admin-event-participants__section-header">
-          <h2 id="organisateurs-heading" class="admin-event-participants__section-title">
-            Organisateur·ices du spectacle
-          </h2>
-          <button
-            type="button"
-            mat-stroked-button
-            [disabled]="saving()"
-            (click)="openAddEventOrganizerDialog()"
-          >
-            Ajouter
-          </button>
-        </div>
-        <p class="admin-event-participants__section-hint">
-          Peut gérer la composition de ce spectacle sans être admin de toute la saison.
-        </p>
-        @if (eventOrganizers().length === 0) {
-          <p class="admin-event-participants__section-empty">Aucun·e organisateur·ice pour ce spectacle.</p>
-        } @else if (filteredEventOrganizers().length === 0) {
-          <p class="admin-event-participants__section-empty">Aucun résultat dans cette section.</p>
-        } @else {
-          <ul class="admin-event-participants__list">
-            @for (o of filteredEventOrganizers(); track o.userId) {
-              <li class="admin-event-participants__row">
-                <div class="admin-event-participants__row-main">
-                  <div class="admin-event-participants__row-primary">
-                    <strong>{{ organizerLabel(o) }}</strong>
-                    @if (o.displayName) {
-                      <span class="admin-event-participants__email">{{ o.email }}</span>
-                    }
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  mat-button
-                  class="admin-event-participants__remove"
-                  [disabled]="saving()"
-                  (click)="confirmRemoveEventOrganizer(o)"
-                >
-                  Retirer
-                </button>
-              </li>
-            }
-          </ul>
-        }
-      </section>
-    }
-
     <div class="admin-event-participants__toolbar">
       <mat-form-field appearance="outline" class="admin-event-participants__search">
         <mat-label>Rechercher</mat-label>
@@ -119,7 +69,7 @@
       </button>
     </div>
 
-    @if (hasSearchQuery() && !hasAnyFilteredResults()) {
+    @if (hasSearchQuery() && !hasAnyFilteredParticipantResults()) {
       <p class="admin-event-participants__empty">Aucun résultat pour cette recherche.</p>
     } @else if (roster().length === 0 && !hasSearchQuery()) {
       <p class="admin-event-participants__empty">Aucun participant sur ce spectacle.</p>
@@ -137,30 +87,9 @@
           } @else {
             <ul class="admin-event-participants__list">
               @for (p of filteredExternalRoster(); track rosterKey(p)) {
-                <li class="admin-event-participants__row">
-                  <div class="admin-event-participants__row-main">
-                    <div class="admin-event-participants__row-primary">
-                      <strong>{{ p.displayName }}</strong>
-                      @if (p.email) {
-                        <span class="admin-event-participants__email">{{ p.email }}</span>
-                      }
-                    </div>
-                    @if (showKindChip(p.kind)) {
-                      <mat-chip-set class="admin-event-participants__chips">
-                        <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
-                      </mat-chip-set>
-                    }
-                  </div>
-                  <button
-                    type="button"
-                    mat-button
-                    class="admin-event-participants__remove"
-                    [disabled]="saving()"
-                    (click)="removeFromEvent(p)"
-                  >
-                    Retirer du spectacle
-                  </button>
-                </li>
+                <ng-container
+                  *ngTemplateOutlet="eventRosterRow; context: { $implicit: p }"
+                />
               }
             </ul>
           }
@@ -177,30 +106,9 @@
             } @else {
               <ul class="admin-event-participants__list">
                 @for (p of filteredMemberRoster(); track rosterKey(p)) {
-                  <li class="admin-event-participants__row">
-                    <div class="admin-event-participants__row-main">
-                      <div class="admin-event-participants__row-primary">
-                        <strong>{{ p.displayName }}</strong>
-                        @if (p.email) {
-                          <span class="admin-event-participants__email">{{ p.email }}</span>
-                        }
-                      </div>
-                      @if (showKindChip(p.kind)) {
-                        <mat-chip-set class="admin-event-participants__chips">
-                          <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
-                        </mat-chip-set>
-                      }
-                    </div>
-                    <button
-                      type="button"
-                      mat-button
-                      class="admin-event-participants__remove"
-                      [disabled]="saving()"
-                      (click)="removeFromEvent(p)"
-                    >
-                      Retirer du spectacle
-                    </button>
-                  </li>
+                  <ng-container
+                    *ngTemplateOutlet="eventRosterRow; context: { $implicit: p }"
+                  />
                 }
               </ul>
             }
@@ -210,3 +118,74 @@
     }
   }
 </div>
+
+<ng-template #eventRosterRow let-p>
+  <li class="admin-event-participants__row">
+    <div class="admin-event-participants__row-main">
+      <div class="admin-event-participants__row-primary">
+        <strong>{{ p.displayName }}</strong>
+        @if (p.email) {
+          <span class="admin-event-participants__email">{{ p.email }}</span>
+        }
+      </div>
+      <mat-chip-set class="admin-event-participants__chips">
+        @if (showKindChip(p.kind)) {
+          <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
+        }
+        @if (participationRoleMenuEnabled(p)) {
+          <mat-chip
+            class="admin-participation-role-chip"
+            [matMenuTriggerFor]="eventParticipationRoleMenu"
+            [disabled]="saving()"
+            (click)="openParticipationRoleMenu(p)"
+          >
+            {{ participationRoleChipLabel(p) }}
+          </mat-chip>
+        } @else {
+          <mat-chip
+            class="admin-participation-role-chip admin-participation-role-chip--readonly"
+            [matTooltip]="
+              !canAssignOrganizerRole(p.email) && canManageEventOrganizers()
+                ? promoteTooltip
+                : ''
+            "
+          >
+            {{ participationRoleChipLabel(p) }}
+          </mat-chip>
+        }
+      </mat-chip-set>
+    </div>
+    <div class="admin-event-participants__row-actions">
+      @if (isEditableRosterParticipant(p)) {
+        <button
+          type="button"
+          mat-icon-button
+          [disabled]="saving()"
+          aria-label="Modifier le participant"
+          (click)="openEditRosterParticipant(p)"
+        >
+          <mat-icon>edit</mat-icon>
+        </button>
+      }
+      <button
+        type="button"
+        mat-icon-button
+        class="admin-row-delete-btn"
+        [disabled]="saving()"
+        aria-label="Retirer du spectacle"
+        (click)="confirmRemoveFromEvent(p)"
+      >
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
+  </li>
+</ng-template>
+
+<mat-menu #eventParticipationRoleMenu="matMenu">
+  <button type="button" mat-menu-item (click)="selectEventParticipationRole(false)">
+    {{ participantRoleLabel }}
+  </button>
+  <button type="button" mat-menu-item (click)="selectEventParticipationRole(true)">
+    {{ eventOrganizerMenuLabel }}
+  </button>
+</mat-menu>

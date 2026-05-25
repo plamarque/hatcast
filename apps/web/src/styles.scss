@@ -36,3 +36,20 @@ body {
   height: 100%;
 }
 /* You can add global styles to this file, and also import other style files */
+
+/** Destructive row actions (admin participants, membres, etc.) */
+.admin-row-delete-btn {
+  flex-shrink: 0;
+}
+
+.admin-row-delete-btn:not(:disabled) {
+  color: var(--mat-sys-error);
+
+  mat-icon {
+    color: inherit;
+  }
+}
+
+.admin-row-delete-btn:disabled {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
+}

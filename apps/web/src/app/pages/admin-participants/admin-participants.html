@@ -46,72 +46,146 @@
       <mat-spinner diameter="40" />
     </div>
   } @else if (season(); as se) {
-    <div class="admin-participants__sections">
-      @if (canManageSeasonOrganizers() && troupeId(); as tid) {
-        <section class="admin-participants__section" aria-labelledby="organisateurs-heading">
-          <h2 id="organisateurs-heading" class="admin-participants__section-title">
-            Organisateur·ices de saison
-          </h2>
-          <app-organisateurs-tab [seasonId]="se.id" [troupeId]="tid" />
-        </section>
-      }
+    @if (canManageSeasonParticipants()) {
+      <section class="admin-participants__section" aria-labelledby="participants-heading">
+        <div class="admin-participants__toolbar">
+          <mat-form-field appearance="outline" class="admin-participants__search">
+            <mat-label>Rechercher</mat-label>
+            <input
+              matInput
+              [value]="searchQuery()"
+              (input)="onSearchInput($any($event.target).value)"
+              placeholder="Nom ou email"
+            />
+          </mat-form-field>
+          <button type="button" mat-flat-button color="primary" (click)="openAddDialog()">
+            Ajouter
+          </button>
+        </div>
 
-      @if (canManageSeasonParticipants()) {
-        <section class="admin-participants__section" aria-labelledby="participants-heading">
-          @if (canManageSeasonOrganizers()) {
-            <h2 id="participants-heading" class="admin-participants__section-title">
-              Roster participants
-            </h2>
-          }
-          <div class="admin-participants__toolbar">
-            <mat-form-field appearance="outline" class="admin-participants__search">
-              <mat-label>Rechercher</mat-label>
-              <input
-                matInput
-                [value]="searchQuery()"
-                (input)="onSearchInput($any($event.target).value)"
-                placeholder="Nom ou email"
-              />
-            </mat-form-field>
-            <button type="button" mat-flat-button color="primary" (click)="openAddDialog()">
-              Ajouter
-            </button>
-          </div>
-
-          @if (filteredParticipants().length === 0) {
-            <p class="admin-participants__empty">Aucun participant.</p>
-          } @else {
-            <ul class="admin-participants__list">
-              @for (p of filteredParticipants(); track p.id) {
-                <li class="admin-participants__row">
-                  <div class="admin-participants__row-main">
-                    <div class="admin-participants__row-primary">
-                      <strong>{{ p.displayName }}</strong>
-                      @if (p.email) {
-                        <span class="admin-participants__email">{{ p.email }}</span>
-                      }
-                    </div>
-                    <mat-chip-set class="admin-participants__chips">
-                      <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
-                    </mat-chip-set>
-                  </div>
-                  @if (p.removable) {
-                    <button
-                      type="button"
-                      mat-button
-                      class="admin-participants__remove"
-                      [disabled]="saving()"
-                      (click)="confirmRemove(p)"
-                    >
-                      Retirer
-                    </button>
+        @if (participants().length === 0 && !hasSearchQuery()) {
+          <p class="admin-participants__empty">Aucun participant.</p>
+        } @else if (hasSearchQuery() && !hasAnyFilteredParticipantResults()) {
+          <p class="admin-participants__empty">Aucun résultat pour cette recherche.</p>
+        } @else if (participants().length > 0) {
+          <div class="admin-participants__sections">
+            <section class="admin-participants__section" aria-labelledby="externes-heading">
+              <h2 id="externes-heading" class="admin-participants__section-title">Externes</h2>
+              <p class="admin-participants__section-hint">
+                Participants ajoutés au roster saison (invités, liés, noms seuls…).
+              </p>
+              @if (externalParticipantCount() === 0) {
+                <p class="admin-participants__section-empty">Aucun participant externe sur cette saison.</p>
+              } @else if (filteredExternalParticipants().length === 0) {
+                <p class="admin-participants__section-empty">Aucun résultat dans cette section.</p>
+              } @else {
+                <ul class="admin-participants__list">
+                  @for (p of filteredExternalParticipants(); track p.id) {
+                    <ng-container
+                      *ngTemplateOutlet="seasonParticipantRow; context: { $implicit: p }"
+                    />
                   }
-                </li>
+                </ul>
               }
-            </ul>
-          }
-        </section>
-      }
-    </div>
+            </section>
+
+            @if (memberParticipantCount() > 0) {
+              <section class="admin-participants__section" aria-labelledby="membres-heading">
+                <h2 id="membres-heading" class="admin-participants__section-title">Membres</h2>
+                <p class="admin-participants__section-hint">
+                  Membres de la troupe synchronisés sur ce roster saison.
+                </p>
+                @if (filteredMemberParticipants().length === 0) {
+                  <p class="admin-participants__section-empty">Aucun résultat dans cette section.</p>
+                } @else {
+                  <ul class="admin-participants__list">
+                    @for (p of filteredMemberParticipants(); track p.id) {
+                      <ng-container
+                        *ngTemplateOutlet="seasonParticipantRow; context: { $implicit: p }"
+                      />
+                    }
+                  </ul>
+                }
+              </section>
+            }
+          </div>
+        }
+      </section>
+    } @else if (canManageSeasonOrganizers()) {
+      <p class="admin-participants__empty">Aucun participant sur ce roster.</p>
+    }
   }
 </div>
+
+<ng-template #seasonParticipantRow let-p>
+  <li class="admin-participants__row">
+    <div class="admin-participants__row-main">
+      <div class="admin-participants__row-primary">
+        <strong>{{ p.displayName }}</strong>
+        @if (p.email) {
+          <span class="admin-participants__email">{{ p.email }}</span>
+        }
+      </div>
+      <mat-chip-set class="admin-participants__chips">
+        @if (showKindChip(p.kind)) {
+          <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
+        }
+        @if (participationRoleMenuEnabled(p)) {
+          <mat-chip
+            class="admin-participation-role-chip"
+            [matMenuTriggerFor]="seasonParticipationRoleMenu"
+            [disabled]="saving()"
+            (click)="openParticipationRoleMenu(p)"
+          >
+            {{ participationRoleChipLabel(p) }}
+          </mat-chip>
+        } @else {
+          <mat-chip
+            class="admin-participation-role-chip admin-participation-role-chip--readonly"
+            [matTooltip]="
+              !canAssignOrganizerRole(p.email) && canManageSeasonOrganizers()
+                ? promoteTooltip
+                : ''
+            "
+          >
+            {{ participationRoleChipLabel(p) }}
+          </mat-chip>
+        }
+      </mat-chip-set>
+    </div>
+    <div class="admin-participants__row-actions">
+      @if (isEditableParticipant(p)) {
+        <button
+          type="button"
+          mat-icon-button
+          [disabled]="saving()"
+          aria-label="Modifier le participant"
+          (click)="openEditParticipant(p)"
+        >
+          <mat-icon>edit</mat-icon>
+        </button>
+      }
+      @if (canShowRemove(p)) {
+        <button
+          type="button"
+          mat-icon-button
+          class="admin-row-delete-btn"
+          [disabled]="saving()"
+          [attr.aria-label]="removeAriaLabel(p)"
+          (click)="confirmRemove(p)"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      }
+    </div>
+  </li>
+</ng-template>
+
+<mat-menu #seasonParticipationRoleMenu="matMenu">
+  <button type="button" mat-menu-item (click)="selectSeasonParticipationRole(false)">
+    {{ participantRoleLabel }}
+  </button>
+  <button type="button" mat-menu-item (click)="selectSeasonParticipationRole(true)">
+    {{ seasonOrganizerMenuLabel }}
+  </button>
+</mat-menu>

@@ -8,14 +8,20 @@ import { BehaviorSubject, of } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
-import { OrganizerApiService, type MySeasonPermissions } from '../../core/permissions/organizer-api.service'
+import {
+  OrganizerApiService,
+  type MySeasonPermissions,
+  type OrganizerResponse,
+} from '../../core/permissions/organizer-api.service'
 import {
   ParticipantApiService,
   type SeasonParticipantAdmin,
 } from '../../core/participants/participant-api.service'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import { EditParticipantDialog } from '../../shared/edit-participant-dialog/edit-participant-dialog'
 import { AdminParticipants } from './admin-participants'
 
 describe('AdminParticipants', () => {
@@ -36,6 +42,7 @@ describe('AdminParticipants', () => {
     permissions: MySeasonPermissions,
     options: {
       participants?: SeasonParticipantAdmin[]
+      organizers?: OrganizerResponse[]
       dialogAfterClosed?: boolean
       dialog?: { open: ReturnType<typeof vi.fn> }
     } = {},
@@ -49,6 +56,7 @@ describe('AdminParticipants', () => {
       data: participants,
     })
     const removeSeasonParticipant = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    const deactivateMember = vi.fn().mockResolvedValue({ ok: true, status: 204 })
     const dialogRef = { afterClosed: () => of(options.dialogAfterClosed ?? false) }
     const dialog = options.dialog ?? { open: vi.fn().mockReturnValue(dialogRef) }
 
@@ -110,7 +118,18 @@ describe('AdminParticipants', () => {
               status: 200,
               data: permissions,
             }),
+            listSeasonOrganizers: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: options.organizers ?? [],
+            }),
+            addSeasonOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 201 }),
+            removeSeasonOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
           },
+        },
+        {
+          provide: TroupeApiService,
+          useValue: { deactivateMember },
         },
         {
           provide: ParticipantApiService,
@@ -135,6 +154,7 @@ describe('AdminParticipants', () => {
       dialog,
       listSeasonParticipants,
       removeSeasonParticipant,
+      deactivateMember,
     }
   }
 
@@ -241,7 +261,72 @@ describe('AdminParticipants', () => {
     })
   })
 
-  it('blocks remove for membership-synced rows', async () => {
+  it('splits roster into Externes and Membres sections', async () => {
+    const member: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-member',
+      displayName: 'Alice Member',
+      kind: 'MEMBER',
+      troupeMembershipId: 'm-1',
+      removable: false,
+    }
+    const external: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-guest',
+      displayName: 'Guest Artist',
+      kind: 'NAME_ONLY',
+    }
+    const { fixture } = await setup(participantsAdmin(), {
+      participants: [member, external],
+    })
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice Member')
+      expect(fixture.nativeElement.textContent).toContain('Guest Artist')
+    })
+
+    const root = fixture.nativeElement as HTMLElement
+    expect(root.querySelector('#externes-heading')?.textContent).toContain('Externes')
+    expect(root.querySelector('#membres-heading')?.textContent).toContain('Membres')
+
+    const externesSection = root.querySelector('#externes-heading')?.closest('section')
+    const membresSection = root.querySelector('#membres-heading')?.closest('section')
+    expect(externesSection?.textContent).toContain('Guest Artist')
+    expect(externesSection?.textContent).not.toContain('Alice Member')
+    expect(membresSection?.textContent).toContain('Alice Member')
+    expect(membresSection?.textContent).not.toContain('Guest Artist')
+  })
+
+  it('does not embed OrganisateursTab and keeps Participants title', async () => {
+    const { fixture } = await setup(
+      { ...participantsAdmin(), canManageSeasonOrganizers: true },
+      {
+        participants: [
+          {
+            ...guest,
+            userId: 'u-guest',
+            email: 'guest@example.com',
+          },
+        ],
+        organizers: [
+          {
+            userId: 'u-guest',
+            email: 'guest@example.com',
+            displayName: 'Guest Artist',
+            grantedAt: '',
+          },
+        ],
+      },
+    )
+
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('app-organisateurs-tab')).toBeNull()
+    expect(el.textContent).not.toContain('Organisateur·ices de saison')
+    expect(el.textContent).toContain('Organisateur·ice')
+    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
+  })
+
+  it('shows delete for troupe member rows when canManageMembers', async () => {
     const member: SeasonParticipantAdmin = {
       ...guest,
       id: 'p-member',
@@ -250,18 +335,99 @@ describe('AdminParticipants', () => {
       troupeMembershipId: 'm-2',
       removable: false,
     }
-    const { fixture, snack, removeSeasonParticipant } = await setup(participantsAdmin(), {
+    const { fixture } = await setup(participantsAdmin(), {
       participants: [member],
     })
-    const cmp = fixture.componentInstance as AdminParticipants
-    cmp['confirmRemove'](member)
 
-    expect(snack.open).toHaveBeenCalledWith(
-      expect.stringContaining('Membres'),
-      'OK',
-      expect.any(Object),
+    const deleteBtn = fixture.nativeElement.querySelector(
+      'button[aria-label="Retirer ce membre de la troupe"]',
     )
+    expect(deleteBtn).toBeTruthy()
+  })
+
+  it('deactivates troupe member after confirm', async () => {
+    const member: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-member',
+      displayName: 'Troupe Member',
+      kind: 'MEMBER',
+      troupeMembershipId: 'm-2',
+      removable: false,
+    }
+    const { fixture, deactivateMember, removeSeasonParticipant } = await setup(
+      participantsAdmin(),
+      { participants: [member], dialogAfterClosed: true },
+    )
+    const cmp = fixture.componentInstance as AdminParticipants
+    await cmp['removeTroupeMember']('m-2')
+
+    expect(deactivateMember).toHaveBeenCalledWith('t1', 'm-2')
     expect(removeSeasonParticipant).not.toHaveBeenCalled()
+  })
+
+  it('shows edit for external season participant and opens edit dialog', async () => {
+    const linked: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-linked',
+      displayName: 'Linked Guest',
+      email: 'linked@example.com',
+      userId: 'u-1',
+      kind: 'LINKED',
+    }
+    const { fixture, dialog } = await setup(participantsAdmin(), {
+      participants: [guest, linked],
+    })
+    await waitForPageLoad(fixture)
+
+    const editButtons = fixture.nativeElement.querySelectorAll(
+      'button[aria-label="Modifier le participant"]',
+    )
+    expect(editButtons.length).toBe(2)
+
+    editButtons[0].dispatchEvent(new Event('click'))
+    expect(dialog.open).toHaveBeenCalledWith(
+      EditParticipantDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          scope: 'season',
+          seasonId: 's1',
+          participantId: 'p-guest',
+        }),
+      }),
+    )
+  })
+
+  it('hides edit for troupe member row', async () => {
+    const member: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-member',
+      displayName: 'Troupe Member',
+      kind: 'MEMBER',
+      troupeMembershipId: 'm-2',
+    }
+    const { fixture } = await setup(participantsAdmin(), { participants: [member] })
+    await waitForPageLoad(fixture)
+
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="Modifier le participant"]'),
+    ).toBeNull()
+  })
+
+  it('hides delete for troupe member without canManageMembers', async () => {
+    const member: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-member',
+      displayName: 'Troupe Member',
+      kind: 'MEMBER',
+      troupeMembershipId: 'm-2',
+      removable: false,
+    }
+    const perms = { ...participantsAdmin(), canManageMembers: false }
+    const { fixture } = await setup(perms, { participants: [member] })
+
+    expect(
+      fixture.nativeElement.querySelector('button.admin-row-delete-btn'),
+    ).toBeNull()
   })
 })
 
@@ -315,5 +481,10 @@ function noPermissions(): MySeasonPermissions {
 }
 
 function participantsAdmin(): MySeasonPermissions {
-  return { ...noPermissions(), canManageSeasonParticipants: true, isTroupeAdmin: true }
+  return {
+    ...noPermissions(),
+    canManageSeasonParticipants: true,
+    canManageMembers: true,
+    isTroupeAdmin: true,
+  }
 }

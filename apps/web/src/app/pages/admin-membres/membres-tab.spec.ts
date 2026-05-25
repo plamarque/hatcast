@@ -5,7 +5,6 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { of } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
-import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { MembresTab } from './membres-tab'
 
@@ -78,10 +77,6 @@ describe('MembresTab', () => {
       }),
       addMember: vi.fn(),
     }
-    const organizerApi = {
-      listSeasonOrganizers: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
-      addSeasonOrganizer: vi.fn(),
-    }
     const dialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of(options.confirmRemoval ?? false) }),
     }
@@ -91,7 +86,6 @@ describe('MembresTab', () => {
       imports: [MembresTab, NoopAnimationsModule],
       providers: [
         { provide: TroupeApiService, useValue: api },
-        { provide: OrganizerApiService, useValue: organizerApi },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snack },
       ],
@@ -230,6 +224,16 @@ describe('MembresTab', () => {
       duration: 4000,
     })
     expect(api.listMembers).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not show season organizer or participant role chips', async () => {
+    const { fixture } = await setup()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(text(fixture)).not.toContain('Organisateur·ice')
+    expect(text(fixture)).not.toContain('Participant·e')
+    expect(fixture.nativeElement.querySelector('.admin-participation-role-chip')).toBeNull()
   })
 
   it('shows the last-admin message when removal is rejected by the API', async () => {

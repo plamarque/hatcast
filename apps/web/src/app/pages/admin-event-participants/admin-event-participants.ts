@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common'
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
@@ -36,26 +37,25 @@ import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
-  DEMOTE_ORGANIZER_LABEL,
+  canAssignOrganizerRole,
   findRowOrganizer,
-  isPromotableOrganizerRow,
   isRowOrganizer,
-  organizerChipTooltip,
-  organizerOffRosterNotice,
-  organizersOffRoster,
-  ORGANIZER_CHIP_LABEL,
-  PROMOTE_ORGANIZER_LABEL,
+  normalizeEmail,
+  organizerRoleMenuLabel,
+  PARTICIPANT_ROLE_LABEL,
+  participationRoleChipLabel,
   PROMOTE_TOOLTIP,
-  rosterIdentitySets,
 } from '../../shared/admin-organizer-row/organizer-row.helper'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
+import { EditParticipantDialog } from '../../shared/edit-participant-dialog/edit-participant-dialog'
 import { AddEventParticipantDialog } from './add-event-participant-dialog'
 
 @Component({
   selector: 'app-admin-event-participants',
   imports: [
+    NgTemplateOutlet,
     MatButtonModule,
     MatChipsModule,
     MatFormFieldModule,
@@ -87,11 +87,12 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   private loadRequestId = 0
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-  protected readonly organizerChipLabel = ORGANIZER_CHIP_LABEL
-  protected readonly promoteOrganizerLabel = PROMOTE_ORGANIZER_LABEL
-  protected readonly demoteOrganizerLabel = DEMOTE_ORGANIZER_LABEL
+  protected readonly participantRoleLabel = PARTICIPANT_ROLE_LABEL
+  protected readonly eventOrganizerMenuLabel = organizerRoleMenuLabel('spectacle')
   protected readonly promoteTooltip = PROMOTE_TOOLTIP
-  protected readonly organizerChipTooltip = () => organizerChipTooltip('spectacle')
+  protected readonly canAssignOrganizerRole = canAssignOrganizerRole
+  protected readonly participationRoleMenuParticipant =
+    signal<EventRosterParticipant | null>(null)
 
   protected readonly seasonSlug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
@@ -151,15 +152,6 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     }
     return perms.eventOrganizerFor.includes(ev.id)
   })
-
-  protected readonly eventOrganizersOffRoster = computed(() => {
-    const { userIds, emails } = rosterIdentitySets(this.roster())
-    return organizersOffRoster(this.eventOrganizers(), userIds, emails)
-  })
-
-  protected readonly eventOrganizersOffRosterNotice = computed(() =>
-    organizerOffRosterNotice(this.eventOrganizersOffRoster()),
-  )
 
   protected readonly hasAnyFilteredParticipantResults = computed(
     () =>
@@ -221,12 +213,105 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     return kind !== 'MEMBER'
   }
 
+  protected isEditableRosterParticipant(participant: EventRosterParticipant): boolean {
+    if (participant.source === 'EVENT') {
+      return !!participant.eventParticipantId
+    }
+    return participant.kind !== 'MEMBER' && !!participant.seasonParticipantId
+  }
+
+  protected openEditRosterParticipant(participant: EventRosterParticipant): void {
+    const seasonId = this.seasonId()
+    const eventId = this.event()?.id
+    if (!seasonId || !eventId || !this.isEditableRosterParticipant(participant)) {
+      return
+    }
+    const ref = this.dialog.open(EditParticipantDialog, {
+      data:
+        participant.source === 'EVENT' && participant.eventParticipantId
+          ? {
+              scope: 'event',
+              seasonId,
+              eventId,
+              participantId: participant.eventParticipantId,
+              displayName: participant.displayName,
+              email: participant.email,
+            }
+          : {
+              scope: 'season',
+              seasonId,
+              participantId: participant.seasonParticipantId!,
+              displayName: participant.displayName,
+              email: participant.email,
+            },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.reloadRoster('Participant mis à jour.')
+        void this.reloadEventOrganizers()
+      }
+    })
+  }
+
   protected isEventOrganizer(participant: EventRosterParticipant): boolean {
     return isRowOrganizer(participant.userId, participant.email, this.eventOrganizers())
   }
 
-  protected isPromotable(participant: EventRosterParticipant): boolean {
-    return isPromotableOrganizerRow(participant.userId, participant.email)
+  protected participationRoleChipLabel(participant: EventRosterParticipant): string {
+    return participationRoleChipLabel(
+      this.isEventOrganizer(participant),
+      this.participationRoleMenuEnabled(participant),
+    )
+  }
+
+  protected participationRoleMenuEnabled(participant: EventRosterParticipant): boolean {
+    if (!this.canManageEventOrganizers()) {
+      return false
+    }
+    return (
+      canAssignOrganizerRole(participant.email) || this.isEventOrganizer(participant)
+    )
+  }
+
+  protected openParticipationRoleMenu(participant: EventRosterParticipant): void {
+    this.participationRoleMenuParticipant.set(participant)
+  }
+
+  protected async selectEventParticipationRole(wantOrganizer: boolean): Promise<void> {
+    const participant = this.participationRoleMenuParticipant()
+    this.participationRoleMenuParticipant.set(null)
+    if (!participant) {
+      return
+    }
+    const isOrganizer = this.isEventOrganizer(participant)
+    if (wantOrganizer === isOrganizer) {
+      return
+    }
+    if (wantOrganizer) {
+      if (!canAssignOrganizerRole(participant.email)) {
+        this.snack.open(this.promoteTooltip, 'OK', { duration: 5000 })
+        return
+      }
+      await this.promoteEventOrganizer(participant)
+    } else {
+      await this.demoteEventOrganizer(participant)
+    }
+  }
+
+  protected confirmRemoveFromEvent(participant: EventRosterParticipant): void {
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Retirer du spectacle',
+        message: `Retirer « ${participant.displayName} » de ce spectacle ?`,
+        confirmLabel: 'Retirer',
+      },
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.removeFromEvent(participant)
+      }
+    })
   }
 
   protected openAddDialog(): void {
@@ -263,7 +348,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     return participant.seasonParticipantId ?? participant.eventParticipantId ?? participant.displayName
   }
 
-  protected confirmDemoteEventOrganizer(participant: EventRosterParticipant): void {
+  private async demoteEventOrganizer(participant: EventRosterParticipant): Promise<void> {
     const organizer = findRowOrganizer(
       participant.userId,
       participant.email,
@@ -272,26 +357,15 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     if (!organizer) {
       return
     }
-    const label = organizer.displayName || organizer.email
-    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
-      data: {
-        title: 'Retirer l’organisateur·ice',
-        message: `Retirer « ${label} » des organisateur·ices de ce spectacle ?`,
-        confirmLabel: 'Retirer',
-      },
-    })
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.removeEventOrganizer(organizer.userId)
-      }
-    })
+    await this.removeEventOrganizer(organizer.userId)
   }
 
-  protected async promoteEventOrganizer(participant: EventRosterParticipant): Promise<void> {
+  private async promoteEventOrganizer(participant: EventRosterParticipant): Promise<void> {
     const seasonId = this.seasonId()
     const eventId = this.event()?.id
-    const email = participant.email?.trim()
+    const email = normalizeEmail(participant.email)
     if (!seasonId || !eventId || !email) {
+      this.snack.open(this.promoteTooltip, 'OK', { duration: 5000 })
       return
     }
     this.saving.set(true)

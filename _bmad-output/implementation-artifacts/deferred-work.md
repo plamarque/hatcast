@@ -1,3 +1,8 @@
+## Deferred from: code review of 17-17-chip-organisateur-promouvoir-listes-admin.md (2026-05-26)
+
+- Pas de test Rétrograder ni chip lecture seule sans droits `canManage*` — couverture promote/chip partielle jugée suffisante pour cette story.
+- Duplication template Externes/Membres sur `admin-event-participants.html` — héritage 17.16, refactor structurel hors périmètre 17.17.
+
 ## Deferred from: code review of 17-16-route-admin-participants-evenement.md (2026-05-26)
 
 - Subscription `afterClosed()` non désabonnée dans `openAddDialog()` — même pattern que `admin-participants.ts` ; convention existante, pas introduit par 17.16.

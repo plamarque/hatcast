@@ -4,6 +4,7 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.dto.EventParticipantAdminDto
 import com.hatcast.api.participant.dto.ParticipantCreateRequest
+import com.hatcast.api.participant.dto.ParticipantUpdateRequest
 import com.hatcast.api.user.UserRepository
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -66,6 +67,36 @@ class EventParticipantService(
                     updatedAt = now,
                 ),
             )
+        return EventParticipantAdminDto.from(saved, includeEmail = true)
+    }
+
+    @Transactional
+    fun update(
+        seasonId: UUID,
+        eventId: UUID,
+        participantId: UUID,
+        body: ParticipantUpdateRequest,
+        principal: SessionUserPrincipal,
+    ): EventParticipantAdminDto {
+        participantAccess.loadEventInSeason(seasonId, eventId, principal)
+        participantAccess.requireCanManageEventParticipants(eventId, seasonId, principal)
+        val existing =
+            eventParticipantRepository.findByIdAndEvent_Id(participantId, eventId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
+        if (existing.status != ParticipantStatus.ACTIVE) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
+        }
+        val displayName = body.displayName.trim()
+        if (displayName.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Nom d'affichage requis.")
+        }
+        val normalizedEmail = participantLink.normalizeEmail(body.email)
+        existing.displayName = displayName
+        existing.normalizedEmail = normalizedEmail
+        existing.user =
+            participantLink.resolveUserId(normalizedEmail)?.let { userRepository.findById(it).orElse(null) }
+        existing.updatedAt = Instant.now()
+        val saved = eventParticipantRepository.save(existing)
         return EventParticipantAdminDto.from(saved, includeEmail = true)
     }
 

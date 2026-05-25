@@ -193,6 +193,37 @@ class ParticipantControllerIntegrationTest {
     }
 
     @Test
+    fun `admin can update name-only season participant with email link`() {
+        val admin = signInAdmin("part-admin-edit", "part-admin-edit@example.com", "Part Admin Edit")
+        val linked = signIn("part-linked-edit", "linked-edit@example.com", "Linked Edit")
+        val seasonId = createSeason(admin.cookie)
+
+        val createResult =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/participants")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Solo Guest"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val participantId = mapper.readTree(createResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Solo Guest Renamed","email":"linked-edit@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.displayName").value("Solo Guest Renamed"))
+            .andExpect(jsonPath("$.userId").value(linked.userId))
+            .andExpect(jsonPath("$.kind").value("LINKED"))
+    }
+
+    @Test
     fun `season participant links existing user by email`() {
         val admin = signInAdmin("part-admin-2", "part-admin-2@example.com", "Part Admin Two")
         val linked = signIn("part-linked-2", "linked-user@example.com", "Linked User")

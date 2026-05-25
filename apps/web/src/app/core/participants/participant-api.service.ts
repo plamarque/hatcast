@@ -124,6 +124,18 @@ export class ParticipantApiService {
     )
   }
 
+  async updateEventParticipant(
+    seasonId: string,
+    eventId: string,
+    participantId: string,
+    body: { displayName: string; email?: string },
+  ): ApiResult<EventParticipantAdmin> {
+    return this.patchJson(
+      `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants/${encodeURIComponent(participantId)}`,
+      body,
+    )
+  }
+
   async removeEventParticipant(
     seasonId: string,
     eventId: string,
