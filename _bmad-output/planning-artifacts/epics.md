@@ -340,7 +340,7 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **Epic 17.7→17.10** avant **3.6** stats finales ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **Epic 17.7→17.10** avant **3.6** stats finales ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -1403,14 +1403,19 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 - **Given** tag inconnu à la saisie, **when** politique produit activée, **then** création entrée glossaire troupe (ou normalisation slug).
 - **Given** champ vide, **when** lecture API, **then** équité **principale** (null).
 
-#### Story 17.8 : UI formulaire spectacle — tag optionnel
+#### Story 17.8 : UI onglet Infos — tag d’équité optionnel
+
+> **2026-05-25 (SCP event-form UX) :** Tag saisi sur l’**onglet Infos** du détail spectacle, **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
 
 **Acceptance Criteria**
 
-- **Given** `EventFormDialog`, **when** admin édite, **then** champ **Tag (optionnel)** autocomplete + aide inline + bouton effacer.
+- **Given** onglet **Infos** et droit de gestion du spectacle, **when** affichage, **then** champ **Tag (optionnel)** autocomplete + aide inline + bouton effacer.
+- **Given** `EventFormDialog` (création ou édition), **when** ouvert, **then** **pas** de champ tag d’équité.
 - **Given** aucun tag, **when** affichage, **then** pas de mention « principal ».
-- **Given** tag saisi, **when** sauvegarde, **then** persisté via API 17.7.
+- **Given** tag saisi, **when** sauvegarde, **then** persisté via API 17.7 (PATCH événement).
 - **Given** liste agenda saison, **when** tag présent, **then** badge discret sur la ligne (optionnel MVP).
+
+**Story file:** [_bmad-output/implementation-artifacts/17-8-ui-onglet-infos-tag-equite.md](../implementation-artifacts/17-8-ui-onglet-infos-tag-equite.md)
 
 #### Story 17.9 : Tirage et chances par tag
 
@@ -1428,6 +1433,45 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 - **Given** données legacy `template_type = deplacement`, **when** migration ou lecture, **then** équivalent tag ou règle documentée.
 - **Given** Story 13.6, **when** planification, **then** statut **cancelled/deferred** au profit de 17.x.
 - **Couverture :** ADR 0013 §5 ; remplace ADR 0012 §3 pour nouvelles données.
+
+#### Story 17.12 : Slug spectacle — sans saisie dans le formulaire
+
+> **2026-05-25 (SCP event-form UX) :** Retrait du champ slug UI ; allocation auto à la création (API 17.6).
+
+**Acceptance Criteria**
+
+- **Given** `EventFormDialog`, **when** création ou édition, **then** **pas** de champ « Identifiant URL » éditable.
+- **Given** création, **when** titre saisi, **then** slug alloué côté API (dédoublonnage `-2`, …).
+- **Given** édition, **when** titre modifié, **then** slug stable (comportement 17.6).
+
+**Story file:** [_bmad-output/implementation-artifacts/17-12-slug-spectacle-sans-saisie-formulaire.md](../implementation-artifacts/17-12-slug-spectacle-sans-saisie-formulaire.md)
+
+#### Story 17.13 : Formulaire spectacle — date et heure Material
+
+**Acceptance Criteria**
+
+- **Given** `EventFormDialog`, **when** saisie de la date/heure de début, **then** datepicker Material + sélecteur heure/minute (plus `datetime-local`).
+- **Given** enregistrement, **when** soumis, **then** même sémantique `startsAt` qu’aujourd’hui.
+
+**Story file:** [_bmad-output/implementation-artifacts/17-13-formulaire-spectacle-datepicker-heure.md](../implementation-artifacts/17-13-formulaire-spectacle-datepicker-heure.md)
+
+#### Story 17.14 : Onglet Infos — type de spectacle et rôles (modales)
+
+**Acceptance Criteria**
+
+- **Given** onglet Infos, **when** chargé, **then** type et résumé des rôles visibles ; CTA ouvre modale(s) de personnalisation.
+- **Given** `EventFormDialog`, **when** création/édition, **then** type, confirmation changement de modèle et grille rôles **retirés** (noyau : titre, date/heure, lieu, description).
+
+**Story file:** [_bmad-output/implementation-artifacts/17-14-onglet-infos-type-roles-modales.md](../implementation-artifacts/17-14-onglet-infos-type-roles-modales.md)
+
+#### Story 17.15 : Onglet Infos — organisateur·ices ; retrait participants du formulaire
+
+**Acceptance Criteria**
+
+- **Given** onglet Infos et droits, **when** gestion organisateur·ices, **then** résumé + modale dédiée (hors `EventFormDialog`).
+- **Given** `EventFormDialog` édition, **when** ouvert, **then** **pas** de sections organisateur·ices ni participants du spectacle (parcours menu admin inchangé).
+
+**Story file:** [_bmad-output/implementation-artifacts/17-15-onglet-infos-organisateurs-retrait-participants-formulaire.md](../implementation-artifacts/17-15-onglet-infos-organisateurs-retrait-participants-formulaire.md)
 
 ---
 

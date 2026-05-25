@@ -357,9 +357,11 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 ---
 
-## Screen 6b — Tag d’équité (event form) **[ADR-0013] [Epic 17.7–17.8]**
+## Screen 6b — Tag d’équité (onglet Infos) **[ADR-0013] [Epic 17.7–17.8]**
 
-**Context:** Create/edit spectacle dialog (`EventFormDialog`) — not a separate route.
+> **2026-05-25 (SCP) :** Saisie sur l’onglet **Infos** du détail spectacle (`event-infos-tab`), **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
+
+**Context:** Event detail → tab **Infos** — not a separate route; not in create/edit dialog.
 
 | Field | Behaviour |
 |-------|-----------|
@@ -368,7 +370,7 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 | **Help** | Inline: participations count toward separate chance/draw/stat pool when tagged |
 | **Rule** | **At most one** tag per event |
 
-**Not in UI:** “Principal” radio; `templateType` (match, cabaret…) remains separate field.
+**Not in UI:** “Principal” radio; tag field in `EventFormDialog`. `templateType` (match, cabaret…) — déplacement vers Infos/modales prévu **17.14**.
 
 **List surfaces:** optional small badge on agenda rows when tag set.
 

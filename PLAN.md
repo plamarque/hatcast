@@ -262,7 +262,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **3.6**, **3.6b** | Statistiques / Historique ligue (FR53–54) |
 | **Epic 13** (13.1–13.5 ; **13.6 reporté**) | Multi-saisons actives, roster — **13.6 ligue déplacements** remplacé par tags (ADR 0013) |
 | **Epic 14** (14.1–14.5) | Partiellement recouvert par **Epic 17** — préférer 17.x pour `/troupes` et hub |
-| **Epic 17** (17.1–17.10) | Navigation troupe-first, tags d’équité, slugs — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 |
+| **Epic 17** (17.1–17.15) | Navigation troupe-first, tags d’équité, slugs, polish formulaire/Infos — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 |
 | **Epic 16** (16.1) | Clin d’œil `/membre/:slug` |
 | **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Annuaire, invités, notifications, audit UI, PWA, analytics, **15 = rencontres liées** |
 | **5.4**, **5.5**, **6.8**, **6.10** | Commentaire dispo, proxy dispo, proxy confirmation, partage WhatsApp |
@@ -280,7 +280,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **MVP-C** | Composition (// avec A dès baseline OK) | **6.5**, **6.6**, **6.7**, **6.4**, **6.9** | Boucle compo complète |
 | **Polish MVP** | Confort | **12.6** ; **12.3** si reporté | Alias `/ligue/:slug` |
 | **Post-MVP** | Navigation troupe-first | **Epic 17** **17.1→17.5** | `/troupes`, hub, breadcrumb (ADR 0013) |
-| **Post-MVP** | URLs & équité | **Epic 17** **17.6→17.10** | Slugs événements, `equity_tag`, tirages/stats |
+| **Post-MVP** | URLs & équité | **Epic 17** **17.6→17.15** | Slugs, `equity_tag`, tirages/stats, UX formulaire/Infos |
 | **Post-MVP** | Multi-saisons | **Epic 13** (sans **13.6** travel) | Activation concurrente |
 | **Post-MVP** | Clin d’œil | **Epic 16** | `/membre/:slug` |
 | **Post-MVP** | Stats & exports | **3.6**, **3.6b** | Statistiques / Historique (ADR 0012 + **17.10**) |
@@ -316,15 +316,21 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **17.11** | Breadcrumb pages admin (Participants saison/spectacle, Membres troupe) — clôture LIMIT-002 | P1 | 17.1, 17.2 ; 17.5 recommandé |
 | **17.6** | `events.slug` — migration, API, routes `/saison/:slug/event/:eventSlug`, redirect UUID | P1 | — |
 | **17.7** | `equity_tag` + glossaire tags par troupe (API) | P1 | ADR 0013 |
-| **17.8** | Formulaire spectacle — tag optionnel, autocomplete, aide, suppression | P1 | 17.7 |
+| **17.8** | Onglet **Infos** — tag optionnel, autocomplete, aide (pas dans modale spectacle) | P1 | 17.7 |
 | **17.9** | Tirage / chances partitionnés par `(saison, equity_tag)` | P2 | 17.7 |
 | **17.10** | Statistiques par tag ; migration `template_type=deplacement` → tag ; **annule piste 13.6** | P2 | 17.9, 3.6 |
+| **17.12** | Slug spectacle auto — retirer champ « Identifiant URL » du formulaire | P2 | 17.6 |
+| **17.13** | Formulaire spectacle — datepicker + heure/minute Material | P2 | — |
+| **17.14** | Infos — type + rôles en modales ; alléger `EventFormDialog` | P2 | 17.8 recommandé |
+| **17.15** | Infos — organisateur·ices en modale ; retirer participants du formulaire | P2 | 17.14 recommandé |
 
 **DoD phase navigation (17.1–17.5) :** plus de hub `/seasons` ; breadcrumb sur troupe/saison/événement ; admin troupe depuis hub ; lien nom de troupe sur événement → hub.
 
 **Story 17.11** (P1) — aligne le chrome des pages admin Participants / Membres (LIMIT-002) ; fichier story prêt pour dev après **17.5** recommandé.
 
-**DoD phase domaine (17.7–17.10) :** tag persisté ; tirage respecte compartiments ; stats DEPLACEMENT via tag.
+**DoD phase domaine (17.7–17.10) :** tag persisté (saisie Infos **17.8**) ; tirage respecte compartiments ; stats DEPLACEMENT via tag.
+
+**DoD polish formulaire (17.12–17.15) :** modale spectacle = noyau planning ; gouvernance (type, rôles, orgas) sur Infos ; participants spectacle hors modale. SCP : [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
 
 **UX spec :** [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (amended 2026-05-25).  
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 17.

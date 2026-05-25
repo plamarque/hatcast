@@ -2,6 +2,10 @@
 
 - Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests equity-tag supposent Postgres/CI (aligné 17.6).
 
+## Follow-up — Event form UX (PO 2026-05-25, SCP)
+
+- Retours modale spectacle → **17.8** amendée (tag on Infos tab) ; **17.12–17.15** backlog. SCP : `sprint-change-proposal-2026-05-25-epic17-event-form-ux.md` ; backlog : `ux-backlog-event-form-dialog.md`.
+
 ## Deferred from: code review of 17-6-slug-evenement-dans-les-urls.md (2026-05-25)
 
 - Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests d’intégration slug supposent Postgres/CI.

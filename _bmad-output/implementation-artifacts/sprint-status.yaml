@@ -173,7 +173,11 @@ development_status:
   17-11-breadcrumb-pages-admin-back-office: backlog
   17-6-slug-evenement-dans-les-urls: done
   17-7-api-tag-equite-glossaire-troupe: done
-  17-8-ui-formulaire-spectacle-tag-optionnel: backlog
+  17-8-ui-onglet-infos-tag-equite: backlog
   17-9-tirage-chances-par-tag: backlog
   17-10-statistiques-migration-deplacements: backlog
+  17-12-slug-spectacle-sans-saisie-formulaire: backlog
+  17-13-formulaire-spectacle-datepicker-heure: backlog
+  17-14-onglet-infos-type-roles-modales: backlog
+  17-15-onglet-infos-organisateurs-retrait-participants-formulaire: backlog
   epic-17-retrospective: optional

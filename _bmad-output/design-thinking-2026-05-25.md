@@ -489,9 +489,13 @@ _Pre-test synthesis from design session (Patrice); to validate or invalidate in 
 | P0 | **17.5** Redirects `/seasons`, `/ligue`; fix event troupe link | Nav | 17.4 |
 | P1 | **17.6** `events.slug` migration + routes + redirects | Nav | API |
 | P1 | **17.7** `equity_tag` + troupe tag glossary API | Domain | ADR 0013 |
-| P1 | **17.8** Event form tag autocomplete + help | Domain | 17.7 |
+| P1 | **17.8** Infos tab — equity tag autocomplete + help (not event form) | Domain | 17.7 |
 | P2 | **17.9** Draw/chances partition by tag | Domain | 17.7 |
 | P2 | **17.10** Stats columns driven by tags not travel league | Domain | 17.9 |
+| P2 | **17.12** Event slug auto — no slug field in form | UX | 17.6 |
+| P2 | **17.13** Event form — Material date + time pickers | UX | — |
+| P2 | **17.14** Infos tab — type + roles modals | UX | 17.8 |
+| P2 | **17.15** Infos — organizers modal; drop participants from form | UX | 17.14 |
 | P2 | Découvrir non-member flows | Discovery | Epic 4 |
 
 _Tracked as **Epic 17** in PLAN.md (Epic 15 = Rencontres liées). ADR [0013](../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md)._
