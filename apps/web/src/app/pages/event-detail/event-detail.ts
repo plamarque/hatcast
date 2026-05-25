@@ -24,6 +24,7 @@ import {
 import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { leagueWorkspacePath } from '../../core/navigation/league-routes'
 import {
   ConfirmDialog,
   type ConfirmDialogData,
@@ -247,7 +248,7 @@ export class EventDetail implements OnDestroy, OnInit {
     const r = await this.eventsApi.archiveEvent(seasonId, ev.id)
     if (r.ok) {
       this.snack.open('Spectacle archivé.', 'OK', { duration: 4000 })
-      await this.router.navigate(['/saison', slug])
+      await this.router.navigate(leagueWorkspacePath(slug))
     } else {
       this.snack.open('Archivage impossible.', 'OK', { duration: 6000 })
     }

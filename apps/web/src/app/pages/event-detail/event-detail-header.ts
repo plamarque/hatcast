@@ -9,6 +9,11 @@ import type { UserSummary } from '../../core/auth/auth-api.service'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { getEventTypeIcon } from '../../core/events/event-types'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
+import {
+  leagueAdminMembresPath,
+  leagueAdminParticipantsPath,
+  leagueWorkspacePath,
+} from '../../core/navigation/league-routes'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
@@ -29,6 +34,10 @@ import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 export class EventDetailHeader {
   private readonly troupeContext = inject(TroupeContextService)
   private readonly memberProfile = inject(MemberProfileService)
+
+  protected readonly leagueWorkspacePath = leagueWorkspacePath
+  protected readonly leagueAdminParticipantsPath = leagueAdminParticipantsPath
+  protected readonly leagueAdminMembresPath = leagueAdminMembresPath
 
   readonly seasonSlug = input.required<string>()
   readonly seasonId = input.required<string>()

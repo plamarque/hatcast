@@ -7,6 +7,10 @@ import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
+import {
+  leagueAdminMembresPath,
+  leagueAdminParticipantsPath,
+} from '../../core/navigation/league-routes'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
@@ -24,6 +28,9 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
   styleUrl: './season-header.scss',
 })
 export class SeasonHeader {
+  protected readonly leagueAdminParticipantsPath = leagueAdminParticipantsPath
+  protected readonly leagueAdminMembresPath = leagueAdminMembresPath
+
   private readonly troupeContext = inject(TroupeContextService)
   private readonly memberProfile = inject(MemberProfileService)
   private readonly auth = inject(AuthApiService)

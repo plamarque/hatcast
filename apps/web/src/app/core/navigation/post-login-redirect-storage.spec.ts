@@ -47,6 +47,10 @@ describe('postLoginRedirectStorage', () => {
     expect(isValidInternalRedirectPath('/saison/festibask/event/e1')).toBe(true)
     expect(isValidInternalRedirectPath('/saison/festibask/admin/membres')).toBe(true)
     expect(isValidInternalRedirectPath('/saison/festibask/admin/participants')).toBe(true)
+    expect(isValidInternalRedirectPath('/ligue/festibask')).toBe(true)
+    expect(isValidInternalRedirectPath('/ligue/festibask/event/e1')).toBe(true)
+    expect(isValidInternalRedirectPath('/ligue/festibask/admin/membres')).toBe(true)
+    expect(isValidInternalRedirectPath('/ligue/festibask/admin/participants')).toBe(true)
     expect(isValidInternalRedirectPath('/compte')).toBe(true)
     expect(isValidInternalRedirectPath('/seasons')).toBe(true)
     expect(isValidInternalRedirectPath('/troupe/admin/membres')).toBe(true)
@@ -69,5 +73,14 @@ describe('postLoginRedirectStorage', () => {
     expect(isValidInternalRedirectPath('/saison/festibask/unknown')).toBe(false)
     expect(isValidInternalRedirectPath('/saison/festibask/event')).toBe(false)
     expect(isValidInternalRedirectPath('/saison//event/e1')).toBe(false)
+    expect(isValidInternalRedirectPath('/ligue/festibask/unknown')).toBe(false)
+    expect(isValidInternalRedirectPath('/ligue/festibask/event')).toBe(false)
+    expect(isValidInternalRedirectPath('/ligue//event/e1')).toBe(false)
+  })
+
+  it('stores and reads a valid /ligue/ deep link', () => {
+    rememberPendingPostLoginRedirect('/ligue/festibask/event/abc?showConfirm=true')
+
+    expect(getPendingPostLoginRedirect()).toBe('/ligue/festibask/event/abc?showConfirm=true')
   })
 })

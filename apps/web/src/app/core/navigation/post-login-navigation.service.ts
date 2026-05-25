@@ -6,6 +6,7 @@ import {
   clearLastVisitedSeasonSlug,
   getLastVisitedSeasonSlug,
 } from './last-visited-league-storage'
+import { leagueWorkspacePath } from './league-routes'
 import {
   clearPendingPostLoginRedirect,
   getPendingPostLoginRedirect,
@@ -36,7 +37,7 @@ export class PostLoginNavigationService {
     try {
       const resolved = await this.resolver.resolveSeasonSlug(slug)
       if (resolved.kind === 'resolved') {
-        return ['/saison', slug]
+        return leagueWorkspacePath(slug)
       }
     } catch {
       // Network/server error — clear stale slug and fall through to /agenda

@@ -150,7 +150,7 @@ describe('SeasonHome', () => {
 
     component.openEvent('event-1')
 
-    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-1'])
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'ligue', 'season-a', 'event', 'event-1'])
   })
 
   it('redirects legacy event_details modal query to event detail route', async () => {
@@ -161,7 +161,7 @@ describe('SeasonHome', () => {
 
     await vi.waitFor(() => {
       expect(router.navigate).toHaveBeenCalledWith(
-        ['/saison', 'season-a', 'event', 'event-legacy'],
+        ['/', 'ligue', 'season-a', 'event', 'event-legacy'],
         expect.objectContaining({
           queryParams: { tab: 'dispos' },
           replaceUrl: true,

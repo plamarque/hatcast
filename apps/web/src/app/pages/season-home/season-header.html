@@ -21,7 +21,7 @@
       </button>
       <mat-menu #settingsMenu="matMenu">
         @if (canManageSeasonParticipants()) {
-          <a mat-menu-item [routerLink]="['/saison', seasonSlug(), 'admin', 'participants']">
+          <a mat-menu-item [routerLink]="leagueAdminParticipantsPath(seasonSlug())">
             <mat-icon>person_add</mat-icon>
             <span>Participants</span>
           </a>
@@ -29,7 +29,7 @@
         @if (canManageSeasonOrganizersOnly()) {
           <a
             mat-menu-item
-            [routerLink]="['/saison', seasonSlug(), 'admin', 'membres']"
+            [routerLink]="leagueAdminMembresPath(seasonSlug())"
             [queryParams]="{ onglet: 'organisateurs' }"
           >
             <mat-icon>badge</mat-icon>

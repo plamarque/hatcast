@@ -1,3 +1,7 @@
+## Deferred from: code review of 12-6-alias-route-ligue-slug.md (2026-05-25)
+
+- `season-header.spec.ts` admin menu links assert `href*="admin/participants"` / `admin/membres` only, not the `/ligue/` prefix — pre-existing weak assertion pattern; links did migrate to `/ligue/` via helpers.
+
 ## Deferred from: code review of 12-3-filtres-troupe-ligue-agenda.md (2026-05-25)
 
 - Concurrent `loadAgenda()` without request token — race on rapid filter clicks (`user-agenda.ts:loadAgenda`).

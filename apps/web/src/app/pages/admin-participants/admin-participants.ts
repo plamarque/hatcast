@@ -15,6 +15,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { leagueWorkspacePath } from '../../core/navigation/league-routes'
 import {
   OrganizerApiService,
   type MySeasonPermissions,
@@ -49,6 +50,8 @@ import { AddParticipantDialog } from './add-participant-dialog'
   styleUrl: './admin-participants.scss',
 })
 export class AdminParticipants implements OnDestroy, OnInit {
+  protected readonly leagueWorkspacePath = leagueWorkspacePath
+
   private readonly auth = inject(AuthApiService)
   private readonly troupeContext = inject(TroupeContextService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
@@ -258,7 +261,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
     if (!perms?.canManageSeasonParticipants) {
       this.loading.set(false)
       this.snack.open('Accès non autorisé', 'OK', { duration: 5000 })
-      await this.router.navigate(['/saison', slug])
+      await this.router.navigate(leagueWorkspacePath(slug))
       return
     }
 

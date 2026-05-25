@@ -30,7 +30,14 @@ export function isValidInternalRedirectPath(path: string): boolean {
     )
   }
 
-  if (segments[0] !== 'saison') return false
+  if (segments[0] === 'ligue' || segments[0] === 'saison') {
+    return isValidLeagueScopedPath(segments)
+  }
+
+  return false
+}
+
+function isValidLeagueScopedPath(segments: string[]): boolean {
   if (segments.length === 2) return true
   if (segments.length === 4 && segments[2] === 'admin') {
     return segments[3] === 'membres' || segments[3] === 'participants'

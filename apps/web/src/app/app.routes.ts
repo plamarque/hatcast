@@ -28,4 +28,8 @@ export const routes: Routes = [
   { path: 'saison/:slug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug/admin/participants', component: AdminParticipants },
   { path: 'saison/:slug/event/:eventId', component: EventDetail },
+  { path: 'ligue/:slug', component: SeasonHome },
+  { path: 'ligue/:slug/admin/membres', component: AdminMembres },
+  { path: 'ligue/:slug/admin/participants', component: AdminParticipants },
+  { path: 'ligue/:slug/event/:eventId', component: EventDetail },
 ];

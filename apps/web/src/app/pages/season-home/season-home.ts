@@ -10,6 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import { leagueEventPath } from '../../core/navigation/league-routes'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import {
@@ -220,7 +221,7 @@ export class SeasonHome implements OnDestroy, OnInit {
             queryParams[key] = value
           }
         }
-        void this.router.navigate(['/saison', slug, 'event', eventId], {
+        void this.router.navigate(leagueEventPath(slug, eventId), {
           queryParams,
           replaceUrl: true,
         })
@@ -381,7 +382,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   }
 
   protected openEvent(eventId: string): void {
-    void this.router.navigate(['/saison', this.slug(), 'event', eventId])
+    void this.router.navigate(leagueEventPath(this.slug(), eventId))
   }
 
   protected async openAvailability(payload: { eventId: string; status: AvailabilityStatus }): Promise<void> {

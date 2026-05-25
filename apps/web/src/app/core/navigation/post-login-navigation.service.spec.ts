@@ -46,7 +46,7 @@ describe('PostLoginNavigationService', () => {
     expect(resolver.resolveSeasonSlug).not.toHaveBeenCalled()
   })
 
-  it('routes to /saison/:slug when resolver resolves', async () => {
+  it('routes to /ligue/:slug when resolver resolves', async () => {
     rememberLastVisitedSeasonSlug('festibask')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
@@ -57,7 +57,7 @@ describe('PostLoginNavigationService', () => {
     const url = await service().resolveAuthenticatedEntryUrl()
 
     expect(resolver.resolveSeasonSlug).toHaveBeenCalledWith('festibask')
-    expect(url).toEqual(['/saison', 'festibask'])
+    expect(url).toEqual(['/', 'ligue', 'festibask'])
   })
 
   it('prefers pending redirect over last visited slug', async () => {

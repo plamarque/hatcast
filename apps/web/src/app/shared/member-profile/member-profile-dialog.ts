@@ -13,6 +13,8 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 
+import { leagueWorkspacePath } from '../../core/navigation/league-routes'
+
 import {
   MemberProfileApiService,
   type MemberProfileSummary,
@@ -131,7 +133,7 @@ export class MemberProfileDialog implements OnInit {
   }
 
   protected openPlanning(): void {
-    void this.router.navigate(['/saison', this.data.seasonSlug], {
+    void this.router.navigate(leagueWorkspacePath(this.data.seasonSlug), {
       queryParams: { participant: this.data.userId, view: 'agenda' },
     })
     this.dialogRef.close()

@@ -14,7 +14,7 @@
     <span class="event-context-strip__sep" aria-hidden="true"> · </span>
     <a
       class="event-context-strip__league event-context-strip__link"
-      [routerLink]="['/saison', seasonSlug()]"
+      [routerLink]="leagueWorkspacePath(seasonSlug())"
       [attr.aria-label]="'Voir la ligue ' + leagueTitle()"
     >
       {{ leagueTitle() }}
