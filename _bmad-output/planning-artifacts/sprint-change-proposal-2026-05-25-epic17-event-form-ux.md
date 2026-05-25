@@ -55,13 +55,13 @@ L’epic 17 en cours (**17.7** API tag livrée) n’est pas annulé ; seul le **
 
 ### Story 17.8 : UI onglet Infos — tag d’équité optionnel
 
-**Summary:** Sur l’onglet **Infos** du détail spectacle, champ **Tag (optionnel)** avec autocomplete glossaire troupe (API 17.7), aide inline, effacement → équité principale. Pas de champ dans `EventFormDialog`.
+**Summary:** Sur l’onglet **Infos** du détail spectacle, section **Groupe de spectacles** (`equityTag`, API 17.7) : chip ou CTA **« Mettre dans un groupe »** → modale autocomplete + aide ; effacement → équité principale. Pas de champ dans `EventFormDialog`.
 
 **Acceptance criteria (high level):**
 
-1. Utilisateur avec droit de gestion du spectacle (`canManageEvents` ou équivalent) voit le bloc tag sur **Infos** (lecture + édition).
+1. Utilisateur avec droit de gestion du spectacle (`canManageEvents` ou équivalent) voit le bloc **Groupe de spectacles** sur **Infos** (lecture + édition via chip / CTA primaire + modale).
 2. Autocomplete `GET /v1/troupes/{troupeId}/equity-tags` ; saisie libre → création glossaire si politique 17.7.
-3. `×` ou vide → `equity_tag` null (principal) ; pas de libellé « principal » exposé.
+3. `×` ou vide → `equity_tag` null (principal) ; pas de libellé « principal » exposé ; **un seul** groupe par spectacle.
 4. Sauvegarde via PATCH événement existant ; feedback Material (snackbar/erreur).
 5. Badge discret sur ligne agenda saison si tag présent (optionnel MVP).
 6. **Non-goal :** tag dans modale Nouveau/Modifier spectacle.

@@ -171,6 +171,8 @@ Each row is a **single primary click** → **event detail** (full screen or rout
 
 ## Screen: League — Historique (past events chronology) {#screen-league--historique-chronology}
 
+> **Refined mockups (2026-05-25):** See [ux-design-season-historique-statistiques.md](ux-design-season-historique-statistiques.md) for implementation-ready wireframes, toolbar layout, and decisions D1–D12 (supersedes ambiguous chrome notes below).
+
 ### Purpose
 
 In addition to the [**Agenda**](#screen-season-calendar), **every user** with access to the league can open **Historique**: a **chronological list** of **past** (non-archived) events, **grouped by month**, using the same card vocabulary as Agenda (date, title, composition status, user role summary). It answers *what happened* and *in what order* — **not** participation statistics (those live in [**Statistiques**](#screen-league--statistiques-participation)).
@@ -189,6 +191,8 @@ In addition to the [**Agenda**](#screen-season-calendar), **every user** with ac
 ---
 
 ## Screen: League — Statistiques (participation stats) {#screen-league--statistiques-participation}
+
+> **Refined mockups (2026-05-25):** See [ux-design-season-historique-statistiques.md](ux-design-season-historique-statistiques.md) for grid layout, filters, Exporter/Masquer placement, and mobile behaviour.
 
 ### Purpose
 

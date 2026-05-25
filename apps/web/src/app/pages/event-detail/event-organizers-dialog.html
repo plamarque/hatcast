@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>Ajouter un·e organisateur·ice</h2>
+<mat-dialog-content class="add-event-organizer">
+  <p class="add-event-organizer__intro">
+    Cette personne pourra gérer la composition de ce spectacle sans devenir admin de toute
+    la saison.
+  </p>
+  <mat-form-field appearance="outline" class="add-event-organizer__field">
+    <mat-label>Membre ou email</mat-label>
+    <input
+      matInput
+      autofocus
+      [value]="pickerQuery()"
+      (input)="onPickerInput($any($event.target).value)"
+      [matAutocomplete]="memberAuto"
+      placeholder="Nom, email…"
+    />
+    <mat-autocomplete
+      #memberAuto="matAutocomplete"
+      (optionSelected)="onMemberSelected($event.option.value)"
+    >
+      @for (member of filteredMembers(); track member.id) {
+        <mat-option [value]="member.email ?? ''">
+          {{ member.displayName }} — {{ member.email }}
+        </mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+  <p class="add-event-organizer__hint">
+    Recherchez un membre de la troupe ou saisissez l’email d’un compte HatCast.
+  </p>
+  @if (errorMessage()) {
+    <p class="add-event-organizer__error" role="alert">{{ errorMessage() }}</p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-button mat-dialog-close>Annuler</button>
+  <button type="button" mat-flat-button color="primary" [disabled]="saving()" (click)="submit()">
+    Ajouter
+  </button>
+</mat-dialog-actions>

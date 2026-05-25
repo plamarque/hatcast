@@ -56,7 +56,7 @@ export interface UpdateEventBody {
   equityTag?: string | null
 }
 
-export type EventListScope = 'all' | 'upcoming'
+export type EventListScope = 'all' | 'upcoming' | 'past'
 
 export type EventMutationResult = {
   ok: boolean
@@ -120,12 +120,16 @@ export class EventApiService {
     page: number,
     size: number,
     scope: EventListScope,
+    options: { participantId?: string | null } = {},
   ): Promise<{ ok: boolean; status: number; data?: PagedEventsResponse }> {
     const q = new URLSearchParams({
       page: String(page),
       size: String(size),
       scope,
     })
+    if (options.participantId) {
+      q.set('participantId', options.participantId)
+    }
     try {
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events?${q}`,

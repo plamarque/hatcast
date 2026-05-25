@@ -1,4 +1,4 @@
-import { Component, input, model } from '@angular/core'
+import { Component, input, model, output } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatIconModule } from '@angular/material/icon'
@@ -25,7 +25,8 @@ import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './s
 })
 export class SeasonViewToolbar {
   readonly seasonView = model.required<SeasonView>()
-  readonly showFilters = input(true)
+  readonly showAgendaFilters = input(true)
+  readonly showHistoryFilters = input(false)
 
   /** Participant filter — MVP: only Tous until player/availability data exists. */
   readonly participantOptions = input<ParticipantFilterOption[]>([
@@ -35,6 +36,11 @@ export class SeasonViewToolbar {
 
   readonly eventOptions = input<EventFilterOption[]>([])
   readonly selectedEventId = model<string | null>(null)
+
+  readonly historyEventOptions = input<EventFilterOption[]>([])
+  readonly selectedHistoryEventId = model<string | null>(null)
+
+  readonly exportClick = output<void>()
 
   readonly adminScope = input<ScopeAdminMenuScope>('saison')
   readonly adminItems = input<ScopeAdminMenuItem[]>([])
@@ -53,11 +59,23 @@ export class SeasonViewToolbar {
     return this.eventOptions().find((o) => o.id === id)?.title ?? 'Tous'
   }
 
+  protected historyEventLabel(): string {
+    const id = this.selectedHistoryEventId()
+    if (!id) {
+      return 'Tous'
+    }
+    return this.historyEventOptions().find((o) => o.id === id)?.title ?? 'Tous'
+  }
+
   protected selectParticipant(id: string | null): void {
     this.selectedParticipantId.set(id)
   }
 
   protected selectEvent(id: string | null): void {
     this.selectedEventId.set(id)
+  }
+
+  protected selectHistoryEvent(id: string | null): void {
+    this.selectedHistoryEventId.set(id)
   }
 }

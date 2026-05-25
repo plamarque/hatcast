@@ -14,7 +14,7 @@ so that **draws and stats partition correctly** without overloading the create/e
 
 ## Acceptance Criteria
 
-1. **Given** event detail with **Infos** tab, **when** the tab loads, **then** a **Tag d’équité** section is shown when `canManageEvents` or an existing tag is set: chip (read-only or removable) or « Ajouter un tag » — not in `EventFormDialog`. [Source: epics 17.8; SCP 2026-05-25; code review 2026-05-25 — chip + dialog]
+1. **Given** event detail with **Infos** tab, **when** the tab loads, **then** a **Groupe de spectacles** section is shown when `canManageEvents` or an existing tag is set: chip (read-only or removable) or CTA **« Mettre dans un groupe »** (lien primaire, même style que **« Ajouter un·e organisateur·ice »**) opening `EventEquityTagDialog` — not in `EventFormDialog`. [Source: epics 17.8; SCP 2026-05-25; 17.14 rename; copy 2026-05-25]
 2. **Given** troupe glossary, **when** the user opens the tag dialog and types, **then** autocomplete suggests entries from `GET /v1/troupes/{troupeId}/equity-tags` (API **17.7**). [Source: epics 17.8 AC2; `EventEquityTagDialog`]
 3. **Given** an unknown tag string, **when** saved per product policy, **then** glossary may be extended (same rules as API 17.7 — auto-create on event PATCH). [Source: epics 17.7 AC6]
 4. **Given** clear action (`×`) or empty value, **when** saved, **then** `equity_tag` is null (principal equity); UI does **not** show a « principal » option. [Source: ADR 0013 §3; epics 17.8]
@@ -31,7 +31,7 @@ so that **draws and stats partition correctly** without overloading the create/e
   - [x] Add `listEquityTags(troupeId)` on [`troupe-api.service.ts`](../../apps/web/src/app/core/troupes/troupe-api.service.ts) → `GET /v1/troupes/{troupeId}/equity-tags` returning `{ slug, label }[]`.
 
 - [x] **Infos tab — tag block** (AC: 1–6)
-  - [x] Extend [`event-infos-tab.ts`](../../apps/web/src/app/pages/event-detail/event-infos-tab.ts) / `.html` / `.scss`: **Tag d’équité** section — chip + removable `×`, or « Ajouter un tag »; edit via [`event-equity-tag-dialog.ts`](../../apps/web/src/app/pages/event-detail/event-equity-tag-dialog.ts) (`MatAutocomplete`, `mat-hint`, **Enregistrer**).
+  - [x] Extend [`event-infos-tab.ts`](../../apps/web/src/app/pages/event-detail/event-infos-tab.ts) / `.html` / `.scss`: **Groupe de spectacles** section — chip + removable `×`, or CTA **« Mettre dans un groupe »** (primary link); edit via [`event-equity-tag-dialog.ts`](../../apps/web/src/app/pages/event-detail/event-equity-tag-dialog.ts) (`MatAutocomplete`, `mat-hint`, **Enregistrer**).
   - [x] New inputs: `troupeId`, `canManageEvents`; section visible when `canManageEvents` **or** `equityTag` set (read-only chip for others).
   - [x] Load glossary on Infos tab (chip label) and in dialog; filter client-side like [`add-organizer-dialog.ts`](../../apps/web/src/app/pages/admin-membres/add-organizer-dialog.ts).
   - [x] Save: `EventApiService.updateEvent(seasonId, eventId, { equityTag: slug | null })` — **send JSON `null` to clear** (matches 17.7 `JsonNullable`).
@@ -66,6 +66,7 @@ so that **draws and stats partition correctly** without overloading the create/e
 - **Away shows:** Prefer **normal template + tag `deplacements`** over `templateType=deplacement` for new data (document in hint or internal comment only — **do not** block `deplacement` template in UI this story).
 - **Read-only members:** When `!canManageEvents` and tag set, show chip without remove/edit (implemented).
 - **Edit UX (code review 2026-05-25):** Chip + `EventEquityTagDialog` instead of inline field on the tab — keeps Infos tab scannable; autocomplete/help live in the dialog.
+- **UI copy (2026-05-25, post-17.14):** Section label **Groupe de spectacles** (user-facing; API field remains `equityTag`). Empty state CTA **Mettre dans un groupe** (not « Ajouter un groupe » — at most one tag per event). CTA uses `var(--mat-sys-primary)` like organisateur·ices add link (`.event-infos__add-organizer` / `.event-infos__add-tag` shared styles).
 
 ### Explicit non-goals (scope guard)
 
@@ -218,6 +219,7 @@ Composer (Cursor)
 
 - 2026-05-25: Story 17.8 — Infos tab equity tag UI, season agenda badge, web API client types and tests.
 - 2026-05-25: Code review — chip+dialog UX ratified; glossary race guard; dialog dead state removed.
+- 2026-05-25: UX copy — section **Groupe de spectacles**; CTA **Mettre dans un groupe** + primary link styling (aligned with organisateur·ices).
 
 ### Review Findings
 

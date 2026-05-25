@@ -172,6 +172,13 @@ class EventControllerIntegrationTest {
 
         mockMvc
             .perform(
+                get("/v1/seasons/$seasonId/events?page=0&size=10&scope=past").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Vieux spectacle"))
+
+        mockMvc
+            .perform(
                 post("/v1/seasons/$seasonId/events/$eventFutureId/actions/archive")
                     .cookie(cookie)
                     .with(csrf()),
@@ -183,6 +190,13 @@ class EventControllerIntegrationTest {
                 get("/v1/seasons/$seasonId/events?scope=upcoming").cookie(cookie),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.totalElements").value(0))
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=past").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Vieux spectacle"))
     }
 
     @Test

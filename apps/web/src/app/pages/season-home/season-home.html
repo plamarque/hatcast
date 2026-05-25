@@ -27,11 +27,15 @@
     <app-season-view-toolbar
       [(seasonView)]="seasonView"
       [adminItems]="seasonAdminItems()"
-      [showFilters]="true"
+      [showAgendaFilters]="true"
+      [showHistoryFilters]="seasonView() === 'history'"
       [participantOptions]="participantOptions()"
       [(selectedParticipantId)]="selectedParticipantId"
       [eventOptions]="eventFilterOptions()"
       [(selectedEventId)]="selectedEventId"
+      [historyEventOptions]="historyEventFilterOptions()"
+      [(selectedHistoryEventId)]="selectedHistoryEventId"
+      (exportClick)="exportHistoryCsv()"
     />
 
     @if (seasonView() === 'agenda') {
@@ -52,7 +56,18 @@
         (availabilityClick)="openAvailability($event)"
       />
     } @else {
-      <app-season-history-shell />
+      <app-season-agenda
+        variant="history"
+        [monthGroups]="historyMonthGroups()"
+        [loading]="loadingPastEvents()"
+        [truncated]="pastEventsTruncated()"
+        [totalElements]="pastTotalElements()"
+        [loadedEventsCount]="pastEvents().length"
+        [filtersExcludeAll]="historyFiltersExcludeAll()"
+        [equityTagLabels]="equityTagLabels()"
+        (eventClick)="openEvent($event)"
+        (loadMoreClick)="loadMorePastEvents()"
+      />
     }
   }
 </div>

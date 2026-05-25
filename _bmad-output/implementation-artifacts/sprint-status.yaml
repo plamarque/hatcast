@@ -73,7 +73,7 @@ development_status:
   3-4-types-devenement-et-roles-requis-optionnels: done
   3-5-delegation-des-organisateurs-perimetre-saison-evenement: done
   3-6-vue-historique-colonnes-roles-mois-export-masquage: ready-for-dev
-  3-6b-vue-historique-ligue-chronologie-export: in-progress
+  3-6b-vue-historique-ligue-chronologie-export: review
   3-7-suppression-de-saisons-admins-troupe-ou-plateforme: done
   3-8-rosters-participants-saison-et-evenement: done
   epic-3-retrospective: optional
@@ -179,5 +179,5 @@ development_status:
   17-12-slug-spectacle-sans-saisie-formulaire: done
   17-13-formulaire-spectacle-datepicker-heure: done
   17-14-onglet-infos-type-roles-modales: done
-  17-15-onglet-infos-organisateurs-retrait-participants-formulaire: backlog
+  17-15-onglet-infos-organisateurs-retrait-participants-formulaire: review
   epic-17-retrospective: optional

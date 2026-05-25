@@ -8,8 +8,10 @@ import { EventApiService, type EventResponse } from '../../core/events/event-api
 import { emptyRoleSlots } from '../../core/events/event-types'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { applyTemplate } from '../../core/events/event-types'
+import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { EventInfosTab } from './event-infos-tab'
 import { EventEquityTagDialog } from './event-equity-tag-dialog'
+import { EventOrganizersDialog } from './event-organizers-dialog'
 import { EventTypeRolesDialog } from './event-type-roles-dialog'
 
 function baseEvent(overrides: Partial<EventResponse> = {}): EventResponse {
@@ -37,10 +39,13 @@ const glossary = [
 
 async function setup(options: {
   canManageEvents?: boolean
+  canManageEventOrganizers?: boolean
   equityTag?: string | null
+  organizers?: Array<{ userId: string; email: string; displayName: string | null }>
   updateEvent?: ReturnType<typeof vi.fn>
   dialogResult?: string | null | undefined
   typeRolesDialogResult?: { templateType: string; roleSlots: Record<string, number> }
+  organizersDialogChanged?: boolean
 }) {
   const updateEvent =
     options.updateEvent ??
@@ -55,10 +60,17 @@ async function setup(options: {
     data: glossary,
   })
   const snackOpen = vi.fn()
+  const listEventOrganizers = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: options.organizers ?? [],
+  })
   const dialogOpen = vi.fn().mockReturnValue({
     afterClosed: () => ({
       subscribe: (fn: (v: unknown) => void) => {
-        if (options.typeRolesDialogResult !== undefined) {
+        if (options.organizersDialogChanged !== undefined) {
+          fn(options.organizersDialogChanged ? true : undefined)
+        } else if (options.typeRolesDialogResult !== undefined) {
           fn(options.typeRolesDialogResult)
         } else {
           fn(options.dialogResult)
@@ -72,6 +84,13 @@ async function setup(options: {
     providers: [
       { provide: EventApiService, useValue: { updateEvent } },
       { provide: TroupeApiService, useValue: { listEquityTags } },
+      {
+        provide: OrganizerApiService,
+        useValue: {
+          listEventOrganizers,
+          removeEventOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+        },
+      },
       { provide: MatSnackBar, useValue: { open: snackOpen } },
       { provide: MatDialog, useValue: { open: dialogOpen } },
     ],
@@ -84,10 +103,14 @@ async function setup(options: {
   fixture.componentRef.setInput('seasonId', 'season-1')
   fixture.componentRef.setInput('troupeId', 'troupe-1')
   fixture.componentRef.setInput('canManageEvents', options.canManageEvents ?? true)
+  fixture.componentRef.setInput(
+    'canManageEventOrganizers',
+    options.canManageEventOrganizers ?? false,
+  )
   fixture.detectChanges()
   await fixture.whenStable()
 
-  return { fixture, updateEvent, listEquityTags, snackOpen, dialogOpen }
+  return { fixture, updateEvent, listEquityTags, listEventOrganizers, snackOpen, dialogOpen }
 }
 
 describe('EventInfosTab equity tag', () => {
@@ -189,6 +212,99 @@ describe('EventInfosTab equity tag', () => {
   })
 })
 
+describe('EventInfosTab organizers', () => {
+  it('hides organizers section when empty and user cannot manage', async () => {
+    const { fixture } = await setup({
+      canManageEventOrganizers: false,
+      organizers: [],
+      equityTag: null,
+      canManageEvents: false,
+    })
+    expect(fixture.nativeElement.querySelector('.event-infos__organizers')).toBeNull()
+  })
+
+  it('shows non-removable chips when organizers exist without manage rights', async () => {
+    const { fixture } = await setup({
+      canManageEventOrganizers: false,
+      organizers: [{ userId: 'u-1', email: 'a@x.com', displayName: 'Alice' }],
+      equityTag: null,
+      canManageEvents: false,
+    })
+    await vi.waitFor(() => {
+      const chip = fixture.nativeElement.querySelector('.event-infos__organizer-chip')
+      expect(chip?.textContent?.trim()).toBe('Alice')
+    })
+    expect(fixture.nativeElement.querySelector('.event-infos__add-organizer')).toBeNull()
+  })
+
+  it('shows add control and opens organizers dialog when permitted', async () => {
+    const { fixture, dialogOpen } = await setup({
+      canManageEventOrganizers: true,
+      organizers: [],
+      equityTag: null,
+    })
+    expect(fixture.nativeElement.querySelector('.event-infos__add-organizer')).toBeTruthy()
+    const cmp = fixture.componentInstance as unknown as { openOrganizersDialog: () => void }
+    cmp.openOrganizersDialog()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      EventOrganizersDialog,
+      expect.objectContaining({
+        data: { seasonId: 'season-1', eventId: 'event-1', troupeId: 'troupe-1' },
+      }),
+    )
+  })
+
+  it('removes organizer chip via API', async () => {
+    const removeEventOrganizer = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    const listEventOrganizers = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: [{ userId: 'u-1', email: 'a@x.com', displayName: 'Alice' }],
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, data: [] })
+    await TestBed.configureTestingModule({
+      imports: [EventInfosTab, NoopAnimationsModule],
+      providers: [
+        { provide: EventApiService, useValue: { updateEvent: vi.fn() } },
+        { provide: TroupeApiService, useValue: { listEquityTags: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
+        {
+          provide: OrganizerApiService,
+          useValue: { listEventOrganizers, removeEventOrganizer },
+        },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+      ],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(EventInfosTab)
+    fixture.componentRef.setInput('event', baseEvent())
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('troupeId', 'troupe-1')
+    fixture.componentRef.setInput('canManageEventOrganizers', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const cmp = fixture.componentInstance as unknown as { removeOrganizer: (id: string) => void }
+    cmp.removeOrganizer('u-1')
+    await vi.waitFor(() => {
+      expect(removeEventOrganizer).toHaveBeenCalledWith('season-1', 'event-1', 'u-1')
+    })
+  })
+
+  it('reloads organizers list after dialog closes with change', async () => {
+    const { fixture, listEventOrganizers } = await setup({
+      canManageEventOrganizers: true,
+      organizersDialogChanged: true,
+    })
+    const cmp = fixture.componentInstance as unknown as { openOrganizersDialog: () => void }
+    cmp.openOrganizersDialog()
+    await vi.waitFor(() => {
+      expect(listEventOrganizers.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
+  })
+})
+
 describe('EventInfosTab type and roles', () => {
   it('shows type label and role summary for all users', async () => {
     const { fixture } = await setup({
@@ -235,6 +351,10 @@ describe('EventInfosTab type and roles', () => {
       providers: [
         { provide: EventApiService, useValue: { updateEvent } },
         { provide: TroupeApiService, useValue: { listEquityTags: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
+        {
+          provide: OrganizerApiService,
+          useValue: { listEventOrganizers: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+        },
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
         { provide: MatDialog, useValue: { open: dialogOpen } },
       ],
@@ -246,6 +366,7 @@ describe('EventInfosTab type and roles', () => {
     fixture.componentRef.setInput('seasonId', 'season-1')
     fixture.componentRef.setInput('troupeId', 'troupe-1')
     fixture.componentRef.setInput('canManageEvents', true)
+    fixture.componentRef.setInput('canManageEventOrganizers', false)
     fixture.detectChanges()
 
     const cmp = fixture.componentInstance as unknown as { openTypeRolesDialog: () => void }
@@ -304,18 +425,22 @@ describe('EventInfosTab type and roles', () => {
       providers: [
         { provide: EventApiService, useValue: { updateEvent } },
         { provide: TroupeApiService, useValue: { listEquityTags: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
+        {
+          provide: OrganizerApiService,
+          useValue: { listEventOrganizers: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+        },
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
         { provide: MatDialog, useValue: { open: dialogOpen } },
       ],
     }).compileComponents()
     TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
-    TestBed.overrideProvider(MatSnackBar, { useValue: { open: vi.fn() } })
 
     const fixture = TestBed.createComponent(EventInfosTab)
     fixture.componentRef.setInput('event', baseEvent())
     fixture.componentRef.setInput('seasonId', 'season-1')
     fixture.componentRef.setInput('troupeId', 'troupe-1')
     fixture.componentRef.setInput('canManageEvents', true)
+    fixture.componentRef.setInput('canManageEventOrganizers', false)
     const spy = vi.fn()
     fixture.componentInstance.eventUpdated.subscribe(spy)
     fixture.detectChanges()

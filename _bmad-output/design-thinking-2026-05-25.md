@@ -313,33 +313,16 @@ One scope per screen (troupe | saison | spectacle). Hidden when no permissions.
 - Event rows link to `/saison/:slug/event/:eventSlug` when slugs exist.
 - Tag badge on row if `equityTag` set (Phase 2).
 
-#### Wireframe P4 — Event form dialog (Phase 2 — equity tag)
+#### Wireframe P4 — Event form dialog (Phase 2 — equity tag) — **SUPERSEDED 2026-05-25**
 
-Existing: titre, date, lieu, description, **type de spectacle** (templateType).
+> **SCP event-form UX :** le tag d’équité **ne va pas** dans `EventFormDialog`. Saisie sur l’onglet **Infos** — voir **Screen 6b** dans [`ux-design-journey-league-agenda.md`](planning-artifacts/ux-design-journey-league-agenda.md) : section **Groupe de spectacles**, CTA **« Mettre dans un groupe »**, modale `EventEquityTagDialog`.
 
-**Add** (optional field):
-
-```
-Tag (optionnel)                                    [ × effacer ]
-┌─────────────────────────────────────────────────────────────┐
-│ dépl…                                                        │  ← autocomplete
-└─────────────────────────────────────────────────────────────┘
-  Suggestions: déplacements · aperock · …
-  Tape un nom inconnu pour créer un tag troupe.
-
-ℹ️ Aide : Sans tag, le spectacle compte dans l’équité principale de la
-   saison (comportement par défaut). Avec un tag, les participations
-   comptent dans un compartiment séparé pour les chances et tirages auto.
-   Un seul tag par spectacle.
-
-```
-
-**Rules (Patrice refinement):**
+**Rules (Patrice refinement — unchanged, Infos tab + dialog):**
 
 - **Principal compartment:** system default when field empty — **not shown** in UI (no radio « Principal »).
-- **Optional** autocomplete; creatable tags per troupe vocabulary.
-- **Clear** control (`×`) removes tag → back to principal.
-- At most **one** tag per event (single autocomplete value, not multi-select).
+- **Optional** autocomplete in dialog; creatable tags per troupe vocabulary.
+- **Clear** control (`×` on chip) removes tag → back to principal.
+- At most **one** tag per event — UI CTA **Mettre dans un groupe**, not « Ajouter un groupe ».
 - DB/API: `equity_tag` nullable string (or FK to `troupe_equity_tags`); distinct from `templateType`.
 - Troupe admin UI (later): manage tag glossary + help text template.
 

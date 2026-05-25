@@ -80,7 +80,7 @@ afin d’**analyser la participation** sur la ligue (taux de sélection vs dispo
 - **3.3** : chrome saison (onglets, filtres, bascule vue) — Historique est un **onglet** sans implémenter toute la grille.
 - **3.6** : contenu de l’onglet Historique — grille dense, stats sel/dispo, export CSV, masquage colonnes.
 
-Réf. UX : [ux-design — Historique participation stats](../planning-artifacts/ux-design-hatcast-v2.md#screen-season--historique-participation-stats) et captures `season-history-*.png`.
+Réf. UX : [ux-design-season-historique-statistiques.md](../planning-artifacts/ux-design-season-historique-statistiques.md) (**approved** 2026-05-25), [ux-design-hatcast-v2 § Statistiques](../planning-artifacts/ux-design-hatcast-v2.md#screen-league--statistiques-participation), captures `season-history-*.png`.
 
 ## Tasks / Subtasks
 

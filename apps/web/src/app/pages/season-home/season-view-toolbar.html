@@ -1,5 +1,5 @@
 <div class="season-toolbar">
-  @if (showFilters() && seasonView() === 'agenda') {
+  @if (showAgendaFilters() && seasonView() === 'agenda') {
     <div class="season-toolbar__filters">
       <button
         type="button"
@@ -39,6 +39,60 @@
           </button>
         }
       </mat-menu>
+    </div>
+  }
+
+  @if (showHistoryFilters() && seasonView() === 'history') {
+    <div class="season-toolbar__filters">
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__filter"
+        [matMenuTriggerFor]="historyParticipantMenu"
+        aria-label="Filtrer par participant"
+      >
+        <mat-icon>group</mat-icon>
+        <span>{{ participantLabel() }}</span>
+        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
+      </button>
+      <mat-menu #historyParticipantMenu="matMenu">
+        @for (opt of participantOptions(); track opt.id ?? 'all') {
+          <button mat-menu-item type="button" (click)="selectParticipant(opt.id)">
+            {{ opt.label }}
+          </button>
+        }
+      </mat-menu>
+
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__filter"
+        [matMenuTriggerFor]="historyEventMenu"
+        aria-label="Filtrer par spectacle"
+      >
+        <mat-icon>event</mat-icon>
+        <span>{{ historyEventLabel() }}</span>
+        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
+      </button>
+      <mat-menu #historyEventMenu="matMenu">
+        <button mat-menu-item type="button" (click)="selectHistoryEvent(null)">Tous</button>
+        @for (opt of historyEventOptions(); track opt.id) {
+          <button mat-menu-item type="button" (click)="selectHistoryEvent(opt.id)">
+            {{ opt.title }}
+          </button>
+        }
+      </mat-menu>
+
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__export"
+        aria-label="Exporter l’historique"
+        (click)="exportClick.emit()"
+      >
+        <mat-icon>download</mat-icon>
+        <span>Exporter</span>
+      </button>
     </div>
   }
 

@@ -19,6 +19,8 @@ import { CompositionStatusBadge } from '../../shared/composition/composition-sta
   styleUrl: './season-agenda.scss',
 })
 export class SeasonAgenda {
+  /** agenda = upcoming with actions ; history = past read-only cards (story 3.6b). */
+  readonly variant = input<'agenda' | 'history'>('agenda')
   readonly monthGroups = input.required<MonthEventGroup[]>()
   readonly loading = input(false)
   readonly truncated = input(false)
@@ -26,6 +28,8 @@ export class SeasonAgenda {
   readonly loadedEventsCount = input(0)
   readonly canManageEvents = input(false)
   readonly canEditAvailability = input(false)
+  /** When filters exclude every card (Historique). */
+  readonly filtersExcludeAll = input(false)
   /** Slug → display label for equity tag badges (story 17.8). */
   readonly equityTagLabels = input<Record<string, string>>({})
 

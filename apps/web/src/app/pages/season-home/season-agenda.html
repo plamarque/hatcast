@@ -1,5 +1,5 @@
 <div class="season-agenda">
-  @if (canManageEvents()) {
+  @if (variant() === 'agenda' && canManageEvents()) {
     <div class="season-agenda__admin">
       <button mat-flat-button color="primary" type="button" (click)="createClick.emit()">
         <mat-icon>add</mat-icon>
@@ -9,15 +9,30 @@
   }
 
   @if (loading() && monthGroups().length === 0) {
-    <p class="season-agenda__status" role="status">Chargement de l’agenda…</p>
+    <p class="season-agenda__status" role="status">
+      {{ variant() === 'history' ? 'Chargement de l’historique…' : 'Chargement de l’agenda…' }}
+    </p>
+  } @else if (filtersExcludeAll()) {
+    <p class="season-agenda__empty">Aucun spectacle ne correspond aux filtres.</p>
   } @else if (monthGroups().length === 0) {
-    <p class="season-agenda__empty">Aucun spectacle à venir dans cette vue.</p>
+    <p class="season-agenda__empty">
+      {{
+        variant() === 'history'
+          ? 'Aucun spectacle passé dans cette saison.'
+          : 'Aucun spectacle à venir dans cette vue.'
+      }}
+    </p>
   } @else {
     @if (truncated()) {
       <div class="season-agenda__notice" role="status">
         <span>
-          Affichage limité aux {{ loadedEventsCount() }} prochains spectacles
-          sur {{ totalElements() }} au total.
+          @if (variant() === 'history') {
+            Affichage limité aux {{ loadedEventsCount() }} spectacles passés
+            sur {{ totalElements() }} au total.
+          } @else {
+            Affichage limité aux {{ loadedEventsCount() }} prochains spectacles
+            sur {{ totalElements() }} au total.
+          }
         </span>
         <button mat-stroked-button type="button" [disabled]="loading()" (click)="loadMoreClick.emit()">
           {{ loading() ? 'Chargement…' : 'Charger plus' }}
@@ -57,7 +72,13 @@
                 @if (equityTagBadgeLabel(ev); as tagLabel) {
                   <span class="agenda-card__badge agenda-card__badge--equity">{{ tagLabel }}</span>
                 }
-                @if (canEditAvailability()) {
+                @if (variant() === 'history' || !canEditAvailability()) {
+                  <span
+                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(dispoStatus(ev)) }}"
+                  >
+                    {{ dispoLabel(dispoStatus(ev)) }}
+                  </span>
+                } @else {
                   <button
                     type="button"
                     class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(dispoStatus(ev)) }}"
@@ -70,7 +91,7 @@
                 }
               </div>
             </div>
-            @if (canManageEvents()) {
+            @if (variant() === 'agenda' && canManageEvents()) {
               <button
                 mat-icon-button
                 type="button"

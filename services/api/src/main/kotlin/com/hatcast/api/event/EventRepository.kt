@@ -44,4 +44,19 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         @Param("fromInclusive") fromInclusive: Instant,
         pageable: Pageable,
     ): Page<EventEntity>
+
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND e.startsAt < :beforeExclusive
+        ORDER BY e.startsAt DESC
+        """,
+    )
+    fun findPastNonArchived(
+        @Param("seasonId") seasonId: UUID,
+        @Param("beforeExclusive") beforeExclusive: Instant,
+        pageable: Pageable,
+    ): Page<EventEntity>
 }

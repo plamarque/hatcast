@@ -126,6 +126,34 @@ class AvailabilityService(
         return eventIds.associateWith { byEvent[it] ?: AvailabilityStatusMapper.UNKNOWN }
     }
 
+    /** Status for a season participant on listed events (Historique participant filter — story 3.6b). */
+    @Transactional(readOnly = true)
+    fun participantStatusByEventIds(
+        seasonId: UUID,
+        eventIds: Collection<UUID>,
+        seasonParticipantId: UUID,
+    ): Map<UUID, String> {
+        if (eventIds.isEmpty()) {
+            return emptyMap()
+        }
+        val sp =
+            seasonParticipantRepository
+                .findById(seasonParticipantId)
+                .orElseThrow {
+                    ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant inconnu")
+                }
+        if (sp.season.id != seasonId) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant inconnu")
+        }
+        val rows =
+            availabilityRepository.findByEvent_IdInAndSeasonParticipant_Id(
+                eventIds,
+                seasonParticipantId,
+            )
+        val byEvent = rows.associate { it.event.id to AvailabilityStatusMapper.toApi(it.status) }
+        return eventIds.associateWith { byEvent[it] ?: AvailabilityStatusMapper.UNKNOWN }
+    }
+
     @Transactional
     fun getSummary(
         seasonId: UUID,

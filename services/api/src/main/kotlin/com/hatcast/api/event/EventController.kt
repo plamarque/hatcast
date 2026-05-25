@@ -30,19 +30,21 @@ class EventController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
         @RequestParam(defaultValue = "all") scope: String,
+        @RequestParam(required = false) participantId: UUID?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): PagedEventsResponse {
         val s =
             when (scope.lowercase()) {
                 "upcoming" -> EventListScope.UPCOMING
+                "past" -> EventListScope.PAST
                 "all" -> EventListScope.ALL
                 else ->
                     throw ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
-                        "scope doit être all ou upcoming",
+                        "scope doit être all, upcoming ou past",
                     )
             }
-        return eventService.listForSeason(seasonId, page, size, s, principal)
+        return eventService.listForSeason(seasonId, page, size, s, principal, participantId)
     }
 
     @GetMapping("/by-slug/{slug}")

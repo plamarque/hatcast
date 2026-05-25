@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core'
+import { Component, inject, OnDestroy, OnInit } from '@angular/core'
 import { Subscription } from 'rxjs'
 import {
   type AbstractControl,
@@ -28,21 +28,11 @@ import {
   type EventResponse,
   EventApiService,
 } from '../../core/events/event-api.service'
-import {
-  OrganizerApiService,
-  type OrganizerResponse,
-} from '../../core/permissions/organizer-api.service'
-import {
-  ParticipantApiService,
-  type EventParticipantAdmin,
-} from '../../core/participants/participant-api.service'
 
 export interface EventFormDialogData {
   mode: 'create' | 'edit'
   seasonId: string
   event?: EventResponse
-  canManageEventOrganizers?: boolean
-  canManageEventParticipants?: boolean
 }
 
 /** Instant ISO → date (midi local) + heure/minute locales. */
@@ -126,25 +116,12 @@ export class EventFormDialog implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder)
   private formChangeSub?: Subscription
   private readonly api = inject(EventApiService)
-  private readonly organizerApi = inject(OrganizerApiService)
-  private readonly participantApi = inject(ParticipantApiService)
   private readonly ref = inject(MatDialogRef<EventFormDialog, EventResponse | boolean | undefined>)
   protected readonly data = inject<EventFormDialogData>(MAT_DIALOG_DATA)
 
   protected saving = false
-  protected organizerSaving = false
-  protected participantSaving = false
-  protected organizerEmail = ''
-  protected participantDisplayName = ''
-  protected participantEmail = ''
-  protected organizerMessage = ''
-  protected participantMessage = ''
-  protected readonly timepickerFormat24 = 24 as const
-
-  protected readonly eventOrganizers = signal<OrganizerResponse[]>([])
-  protected readonly eventParticipants = signal<EventParticipantAdmin[]>([])
-
   protected formError = ''
+  protected readonly timepickerFormat24 = 24 as const
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
@@ -165,12 +142,6 @@ export class EventFormDialog implements OnInit, OnDestroy {
         location: e.location ?? '',
         description: e.description ?? '',
       })
-      if (this.canManageEventOrganizers()) {
-        void this.loadEventOrganizers()
-      }
-      if (this.canManageEventParticipants()) {
-        void this.loadEventParticipants()
-      }
     }
 
     this.formChangeSub = this.form.valueChanges.subscribe(() => {
@@ -180,125 +151,6 @@ export class EventFormDialog implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.formChangeSub?.unsubscribe()
-  }
-
-  protected async addEventOrganizer(): Promise<void> {
-    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventOrganizers()) return
-    const email = this.organizerEmail.trim()
-    if (!email) {
-      this.organizerMessage = 'Saisissez un email.'
-      return
-    }
-    this.organizerSaving = true
-    try {
-      const r = await this.organizerApi.addEventOrganizer(
-        this.data.seasonId,
-        this.data.event.id,
-        email,
-      )
-      if (!r.ok) {
-        this.organizerMessage =
-          r.status === 404 ? 'Utilisateur introuvable.' : 'Ajout impossible.'
-        return
-      }
-      this.organizerEmail = ''
-      this.organizerMessage = 'Organisateur·ice ajouté·e.'
-      await this.loadEventOrganizers()
-    } finally {
-      this.organizerSaving = false
-    }
-  }
-
-  protected async removeEventOrganizer(userId: string): Promise<void> {
-    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventOrganizers()) return
-    this.organizerSaving = true
-    try {
-      const r = await this.organizerApi.removeEventOrganizer(
-        this.data.seasonId,
-        this.data.event.id,
-        userId,
-      )
-      if (!r.ok) {
-        this.organizerMessage = 'Retrait impossible.'
-        return
-      }
-      this.organizerMessage = 'Organisateur·ice retiré·e.'
-      await this.loadEventOrganizers()
-    } finally {
-      this.organizerSaving = false
-    }
-  }
-
-  private async loadEventOrganizers(): Promise<void> {
-    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventOrganizers()) return
-    const r = await this.organizerApi.listEventOrganizers(this.data.seasonId, this.data.event.id)
-    if (r.ok && r.data) {
-      this.eventOrganizers.set(r.data)
-    }
-  }
-
-  protected canManageEventOrganizers(): boolean {
-    return this.data.canManageEventOrganizers === true
-  }
-
-  protected canManageEventParticipants(): boolean {
-    return this.data.canManageEventParticipants === true
-  }
-
-  protected async addEventParticipant(): Promise<void> {
-    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventParticipants()) return
-    const displayName = this.participantDisplayName.trim()
-    if (!displayName) {
-      this.participantMessage = 'Saisissez un nom.'
-      return
-    }
-    this.participantSaving = true
-    try {
-      const email = this.participantEmail.trim()
-      const r = await this.participantApi.createEventParticipant(
-        this.data.seasonId,
-        this.data.event.id,
-        { displayName, email: email || undefined },
-      )
-      if (!r.ok) {
-        this.participantMessage = r.status === 403 ? 'Accès non autorisé.' : 'Ajout impossible.'
-        return
-      }
-      this.participantDisplayName = ''
-      this.participantEmail = ''
-      this.participantMessage = 'Participant ajouté.'
-      await this.loadEventParticipants()
-    } finally {
-      this.participantSaving = false
-    }
-  }
-
-  protected async removeEventParticipant(participantId: string): Promise<void> {
-    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventParticipants()) return
-    this.participantSaving = true
-    try {
-      const r = await this.participantApi.removeEventParticipant(
-        this.data.seasonId,
-        this.data.event.id,
-        participantId,
-      )
-      if (!r.ok) {
-        this.participantMessage = 'Retrait impossible.'
-        return
-      }
-      this.participantMessage = 'Participant retiré.'
-      await this.loadEventParticipants()
-    } finally {
-      this.participantSaving = false
-    }
-  }
-
-  private async loadEventParticipants(): Promise<void> {
-    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventParticipants()) return
-    const r = await this.participantApi.listEventParticipants(this.data.seasonId, this.data.event.id)
-    if (r.ok && r.data) {
-      this.eventParticipants.set(r.data)
-    }
   }
 
   protected async submit(): Promise<void> {

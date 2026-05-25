@@ -357,20 +357,23 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 ---
 
-## Screen 6b — Tag d’équité (onglet Infos) **[ADR-0013] [Epic 17.7–17.8]**
+## Screen 6b — Groupe de spectacles (onglet Infos) **[ADR-0013] [Epic 17.7–17.8]**
 
-> **2026-05-25 (SCP) :** Saisie sur l’onglet **Infos** du détail spectacle (`event-infos-tab`), **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
+> **2026-05-25 (SCP) :** Saisie sur l’onglet **Infos** du détail spectacle (`event-infos-tab`), **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).  
+> **Libellé UI (2026-05-25) :** section **Groupe de spectacles** (champ API `equityTag` / tag d’équité en domaine).
 
 **Context:** Event detail → tab **Infos** — not a separate route; not in create/edit dialog.
 
 | Field | Behaviour |
 |-------|-----------|
-| **Tag (optionnel)** | Autocomplete against troupe glossary; type unknown → create tag |
-| **Clear** | `×` removes tag → **principal** equity (default, **not shown** as option) |
-| **Help** | Inline: participations count toward separate chance/draw/stat pool when tagged |
-| **Rule** | **At most one** tag per event |
+| **Section label** | **Groupe de spectacles** (small caps, same pattern as other Infos fields) |
+| **Empty state (manage)** | CTA **« Mettre dans un groupe »** + icon `sell` — **primary** link style (same as **« Ajouter un·e organisateur·ice »**); opens `EventEquityTagDialog` |
+| **Set state** | Chip with glossary label; `×` removes tag → **principal** equity (default, **not shown** as option); chip click reopens dialog |
+| **Dialog** | Title **Groupe de spectacles**; field **Groupe (optionnel)**; autocomplete against troupe glossary; type unknown → create tag |
+| **Help** | `mat-hint` in dialog: participations count toward separate chance/draw/stat pool when tagged |
+| **Rule** | **At most one** tag per event — CTA wording reflects assign/switch, not “add another group” |
 
-**Not in UI:** “Principal” radio; tag field in `EventFormDialog`. `templateType` (match, cabaret…) — déplacement vers Infos/modales prévu **17.14**.
+**Not in UI:** “Principal” radio; tag field in `EventFormDialog`. `templateType` (match, cabaret…) — on Infos via modales (**17.14**).
 
 **List surfaces:** optional small badge on agenda rows when tag set.
 
@@ -446,7 +449,7 @@ No layout redesign in MVP; optional polish Story 2.11.
 | **UX-DR18** | Multi-active seasons — several active cards on troupe hub | Active |
 | **UX-DR19** | Breadcrumb — desktop full path; mobile troupe logo only; links to hub | **New** ADR 0013 |
 | **UX-DR20** | Scope admin bar below header (troupe / saison / spectacle) | **New** ADR 0013 |
-| **UX-DR21** | Equity tag on event — optional autocomplete; principal implicit | **New** ADR 0013 |
+| **UX-DR21** | **Groupe de spectacles** on Infos tab (`equityTag`) — CTA **Mettre dans un groupe** → dialog autocomplete; principal implicit; one tag max | **New** ADR 0013 |
 
 ---
 

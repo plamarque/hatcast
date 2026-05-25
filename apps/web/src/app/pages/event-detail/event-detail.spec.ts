@@ -15,6 +15,8 @@ import { ParticipantApiService } from '../../core/participants/participant-api.s
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { EventDetail } from './event-detail'
+import { EventOrganizersDialog } from './event-organizers-dialog'
+import { EventParticipantsDialog } from './event-participants-dialog'
 import { emptyRoleSlots } from '../../core/events/event-types'
 
 type EventDetailHarness = {
@@ -163,7 +165,13 @@ describe('EventDetail', () => {
             archiveEvent,
           },
         },
-        { provide: OrganizerApiService, useValue: { mySeasonPermissions } },
+        {
+          provide: OrganizerApiService,
+          useValue: {
+            mySeasonPermissions,
+            listEventOrganizers: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+          },
+        },
         {
           provide: AvailabilityApiService,
           useValue: {
@@ -488,7 +496,12 @@ describe('EventDetail', () => {
     }
     expect(cmp.eventAdminItems()[0]?.label).toBe('Participants du spectacle')
     cmp.openEventParticipantsAdmin()
-    expect(dialogOpen).toHaveBeenCalled()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      EventParticipantsDialog,
+      expect.objectContaining({
+        data: { seasonId: 'season-1', eventId: 'event-2' },
+      }),
+    )
   })
 
   it('does not show admin gear on Dispos tab', async () => {
@@ -548,7 +561,12 @@ describe('EventDetail', () => {
     }
     expect(cmp.eventAdminItems()[0]?.label).toBe('Organisateur·ices du spectacle')
     cmp.openEventOrganizersAdmin()
-    expect(dialogOpen).toHaveBeenCalled()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      EventOrganizersDialog,
+      expect.objectContaining({
+        data: { seasonId: 'season-1', eventId: 'event-2', troupeId: 'troupe-1' },
+      }),
+    )
   })
 
   it('omits spectacle organizers entry when saison organizers link is shown', async () => {

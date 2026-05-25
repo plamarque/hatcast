@@ -1,0 +1,27 @@
+.add-event-organizer {
+  display: grid;
+  gap: 0.5rem;
+  min-width: min(24rem, calc(100vw - 3rem));
+}
+
+.add-event-organizer__intro {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.add-event-organizer__field {
+  width: 100%;
+}
+
+.add-event-organizer__hint {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.add-event-organizer__error {
+  color: var(--mat-sys-error);
+  font-size: 0.875rem;
+  margin: 0;
+}

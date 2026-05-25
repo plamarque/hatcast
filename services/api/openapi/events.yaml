@@ -2,8 +2,9 @@ openapi: 3.0.3
 info:
   title: HatCast API — Événements / spectacles (fragment)
   description: >
-    CRUD spectacles par saison. Liste paginée avec `scope=all` (tous, tri par `startsAt` asc)
-    ou `scope=upcoming` (non archivés, `startsAt` ≥ début du jour civil Europe/Paris).
+    CRUD spectacles par saison. Liste paginée avec `scope=all` (tous, tri par `startsAt` asc),
+    `scope=upcoming` (non archivés, `startsAt` ≥ début du jour civil Europe/Paris),
+    ou `scope=past` (non archivés, `startsAt` &lt; début du jour civil Paris, tri desc).
     Mutations : CSRF + cookie de session.
   version: 0.1.0
 
@@ -46,11 +47,17 @@ paths:
             default: 20
         - name: scope
           in: query
-          description: upcoming = non archivés et à partir d’aujourd’hui (fuseau Paris)
+          description: upcoming = non archivés et à partir d’aujourd’hui ; past = passés (Paris)
           schema:
             type: string
-            enum: [all, upcoming]
+            enum: [all, upcoming, past]
             default: all
+        - name: participantId
+          in: query
+          description: Optionnel — statut dispo du participant saison sur chaque spectacle (Historique)
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: OK

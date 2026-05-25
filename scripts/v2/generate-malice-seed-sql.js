@@ -46,6 +46,23 @@ const ROLE_PRESETS = {
   custom: {},
 }
 
+/**
+ * Past events for Historique (story 3.6b) — maintained in Flyway V26, not regenerated here.
+ * @see services/api/src/main/resources/db/migration/V26__seed_malice_past_events_historique.sql
+ */
+export const SEED_PAST_EVENTS = [
+  { id: 'c0000031-0000-4000-8000-000000000031', templateType: 'catch', slug: 'hist-aperock-avril' },
+  { id: 'c0000032-0000-4000-8000-000000000032', templateType: 'match', slug: 'hist-match-vs-roubaix' },
+  { id: 'c0000033-0000-4000-8000-000000000033', templateType: 'cabaret', slug: 'hist-cabaret-de-mars' },
+  { id: 'c0000034-0000-4000-8000-000000000034', templateType: 'deplacement', slug: 'hist-deplacement-valenciennes' },
+  { id: 'c0000035-0000-4000-8000-000000000035', templateType: 'longform', slug: 'hist-long-form-polar' },
+  { id: 'c0000036-0000-4000-8000-000000000036', templateType: 'cabaret', slug: 'hist-cabaret-saint-valentin' },
+  { id: 'c0000037-0000-4000-8000-000000000037', templateType: 'freeform', slug: 'hist-jam-de-janvier' },
+  { id: 'c0000038-0000-4000-8000-000000000038', templateType: 'match', slug: 'hist-match-amicale-arras' },
+  { id: 'c0000039-0000-4000-8000-000000000039', templateType: 'cabaret', slug: 'hist-veille-generale-mai' },
+  { id: 'c000003a-0000-4000-8000-00000000003a', templateType: 'cabaret', slug: 'hist-repetition-archivee', archived: true },
+]
+
 /** Sync with V6 event IDs c0000001 … c0000030 */
 export const SEED_EVENTS = [
   { id: 'c0000001-0000-4000-8000-000000000001', templateType: 'cabaret' },

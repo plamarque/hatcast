@@ -34,6 +34,14 @@ import {
   type EventEquityTagDialogResult,
 } from './event-equity-tag-dialog'
 import {
+  OrganizerApiService,
+  type OrganizerResponse,
+} from '../../core/permissions/organizer-api.service'
+import {
+  EventOrganizersDialog,
+  type EventOrganizersDialogData,
+} from './event-organizers-dialog'
+import {
   EventTypeRolesDialog,
   type EventTypeRolesDialogData,
   type EventTypeRolesDialogResult,
@@ -56,6 +64,7 @@ import {
 export class EventInfosTab {
   private readonly eventsApi = inject(EventApiService)
   private readonly troupeApi = inject(TroupeApiService)
+  private readonly organizerApi = inject(OrganizerApiService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
 
@@ -63,16 +72,22 @@ export class EventInfosTab {
   readonly seasonId = input.required<string>()
   readonly troupeId = input.required<string>()
   readonly canManageEvents = input(false)
+  readonly canManageEventOrganizers = input(false)
   readonly canManageComposition = input(false)
   readonly adminItems = input<ScopeAdminMenuItem[]>([])
 
   readonly eventUpdated = output<EventResponse>()
 
   protected readonly glossary = signal<TroupeEquityTag[]>([])
+  protected readonly organizers = signal<OrganizerResponse[]>([])
   protected readonly saving = signal(false)
 
   protected readonly showEquitySection = computed(
     () => this.canManageEvents() || this.event().equityTag != null,
+  )
+
+  protected readonly showOrganizersSection = computed(
+    () => this.canManageEventOrganizers() || this.organizers().length > 0,
   )
 
   protected readonly typeIcon = computed(() => getEventTypeIcon(this.event().templateType))
@@ -96,6 +111,13 @@ export class EventInfosTab {
       const troupeId = this.troupeId()
       if (troupeId) {
         void this.loadGlossary(troupeId)
+      }
+    })
+    effect(() => {
+      const seasonId = this.seasonId()
+      const eventId = this.event().id
+      if (seasonId && eventId) {
+        void this.loadOrganizers(seasonId, eventId)
       }
     })
   }
@@ -127,6 +149,51 @@ export class EventInfosTab {
 
   protected roleCount(role: RoleKey): number {
     return normalizeRoleSlots(this.event().roleSlots)[role] ?? 0
+  }
+
+  protected organizerLabel(organizer: OrganizerResponse): string {
+    return organizer.displayName || organizer.email
+  }
+
+  protected async removeOrganizer(userId: string): Promise<void> {
+    if (!this.canManageEventOrganizers()) {
+      return
+    }
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    this.saving.set(true)
+    try {
+      const r = await this.organizerApi.removeEventOrganizer(seasonId, eventId, userId)
+      if (!r.ok) {
+        this.snack.open('Retrait impossible.', 'OK', { duration: 5000 })
+        return
+      }
+      await this.loadOrganizers(seasonId, eventId)
+      this.snack.open('Organisateur·ice retiré·e.', 'OK', { duration: 4000 })
+    } finally {
+      this.saving.set(false)
+    }
+  }
+
+  protected openOrganizersDialog(): void {
+    const ev = this.event()
+    const ref = this.dialog.open<EventOrganizersDialog, EventOrganizersDialogData, boolean | undefined>(
+      EventOrganizersDialog,
+      {
+        data: {
+          seasonId: this.seasonId(),
+          eventId: ev.id,
+          troupeId: this.troupeId(),
+        },
+        width: 'min(100vw - 2rem, 28rem)',
+      },
+    )
+    ref.afterClosed().subscribe((added) => {
+      if (added) {
+        void this.loadOrganizers(this.seasonId(), ev.id)
+        this.snack.open('Organisateur·ice ajouté·e.', 'OK', { duration: 4000 })
+      }
+    })
   }
 
   protected openTypeRolesDialog(): void {
@@ -225,6 +292,16 @@ export class EventInfosTab {
       )
     } finally {
       this.saving.set(false)
+    }
+  }
+
+  private async loadOrganizers(seasonId: string, eventId: string): Promise<void> {
+    const r = await this.organizerApi.listEventOrganizers(seasonId, eventId)
+    if (seasonId !== this.seasonId() || eventId !== this.event().id) {
+      return
+    }
+    if (r.ok && r.data) {
+      this.organizers.set(r.data)
     }
   }
 

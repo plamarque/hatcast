@@ -95,11 +95,22 @@ describe('SeasonAgenda', () => {
     expect(badge?.textContent?.trim()).toBe('Collecte')
   })
 
-  it('hides the dispo badge when availability editing is disabled', () => {
+  it('shows a read-only dispo badge when availability editing is disabled', () => {
     fixture.componentRef.setInput('canEditAvailability', false)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('.agenda-card__badge--dispo')).toBeNull()
+    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo')
+    expect(badge?.tagName).toBe('SPAN')
+    expect(badge?.textContent?.trim()).toBe('Non renseigné')
+  })
+
+  it('shows read-only dispo on history cards', () => {
+    fixture.componentRef.setInput('variant', 'history')
+    fixture.componentRef.setInput('canEditAvailability', true)
+    fixture.detectChanges()
+
+    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo')
+    expect(badge?.tagName).toBe('SPAN')
   })
 
   it('emits availabilityClick without opening the event when the badge is clicked', () => {

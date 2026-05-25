@@ -40,6 +40,14 @@ import {
   EventFormDialog,
   type EventFormDialogData,
 } from '../season-home/event-form-dialog'
+import {
+  EventOrganizersDialog,
+  type EventOrganizersDialogData,
+} from './event-organizers-dialog'
+import {
+  EventParticipantsDialog,
+  type EventParticipantsDialogData,
+} from './event-participants-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 import { EventDetailHeader } from './event-detail-header'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
@@ -263,18 +271,17 @@ export class EventDetail implements OnDestroy, OnInit {
       })
       return
     }
-    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(EventFormDialog, {
-      data: {
-        mode: 'edit',
-        seasonId,
-        event: ev,
-        canManageEventParticipants: true,
-      },
+    const ref = this.dialog.open<
+      EventParticipantsDialog,
+      EventParticipantsDialogData,
+      boolean | undefined
+    >(EventParticipantsDialog, {
+      data: { seasonId, eventId: ev.id },
       width: 'min(100vw - 2rem, 28rem)',
     })
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.reloadEvent('Spectacle mis à jour.')
+    ref.afterClosed().subscribe((changed) => {
+      if (changed) {
+        void this.reloadEvent('Participants mis à jour.')
       }
     })
   }
@@ -291,19 +298,17 @@ export class EventDetail implements OnDestroy, OnInit {
       })
       return
     }
-    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(EventFormDialog, {
-      data: {
-        mode: 'edit',
-        seasonId,
-        event: ev,
-        canManageEventOrganizers:
-          this.seasonPermissions()?.canManageEventOrganizers === true || this.isEventOrganizerFor(ev.id),
-      },
+    const ref = this.dialog.open<
+      EventOrganizersDialog,
+      EventOrganizersDialogData,
+      boolean | undefined
+    >(EventOrganizersDialog, {
+      data: { seasonId, eventId: ev.id, troupeId: this.troupeId() },
       width: 'min(100vw - 2rem, 28rem)',
     })
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.reloadEvent('Spectacle mis à jour.')
+    ref.afterClosed().subscribe((changed) => {
+      if (changed) {
+        void this.reloadEvent('Organisateur·ices mis à jour.')
       }
     })
   }
@@ -323,8 +328,6 @@ export class EventDetail implements OnDestroy, OnInit {
         mode: 'edit',
         seasonId,
         event: ev,
-        canManageEventOrganizers: this.seasonPermissions()?.canManageEventOrganizers === true,
-        canManageEventParticipants: this.canManageEventParticipantsFor(ev.id),
       },
       width: 'min(100vw - 2rem, 28rem)',
     })
@@ -495,6 +498,13 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextTroupeSlug.set('')
     this.contextLeagueTitle.set('')
     this.contextSeasonSlug.set('')
+  }
+
+  protected canManageEventOrganizersFor(eventId: string): boolean {
+    const perms = this.seasonPermissions()
+    if (!perms) return false
+    if (perms.canManageEventOrganizers) return true
+    return perms.eventOrganizerFor.includes(eventId)
   }
 
   protected canManageEventParticipantsFor(eventId: string): boolean {

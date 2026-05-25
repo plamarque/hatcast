@@ -193,7 +193,7 @@ npm run build -w @hatcast/web
 - [x] [Review][Patch] Test manquant : échec PATCH type/rôles [`event-infos-tab.spec.ts`] — Ajout test snackbar + pas d’`eventUpdated` si PATCH échoue.
 - [x] [Review][Dismiss] Libellé vide « Aucun besoin renseigné » — Non applicable après 1A (terminologie retenue).
 - [x] [Review][Patch] `mat-select` après annulation changement de type [`event-type-roles-dialog.ts`] — `writeValue` sur `#formatSelect` dans `cancelTemplateChange` + test annulation.
-- [x] [Review][Defer] Renommage copy tag d’équité dans le même commit [`event-equity-tag-dialog.ts`] — Hors périmètre strict 17.14 mais cohérent avec « Groupe de spectacles » sur l’onglet Infos ; acceptable en lot UX.
+- [x] [Review][Defer] Renommage copy tag d’équité dans le même commit [`event-equity-tag-dialog.ts`] — Hors périmètre strict 17.14 mais cohérent avec « Groupe de spectacles » sur l’onglet Infos ; acceptable en lot UX. CTA sans tag finalisé ensuite : **« Mettre dans un groupe »** (2026-05-25, hors 17.14).
 - [x] [Review][Defer] Fichiers `event-form-dialog.*` absents du commit `7041ab3` — AC5–7 déjà satisfaits dans l’arbre (payload sans `templateType`/`roleSlots`, régressions spec) ; pas de régression détectée sur la branche actuelle.
 
 ## Dev Agent Record

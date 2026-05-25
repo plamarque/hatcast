@@ -8,7 +8,7 @@
 
 ## Synthèse produit (vision cible)
 
-La modale **Modifier / Nouveau spectacle** ne devrait porter que le **noyau planning** : titre, date/heure, lieu, description (+ tag d’équité quand **17.8**). Le reste vit sur l’**onglet Infos** du détail spectacle, avec **entrées visibles** et **sous-modales dédiées** (type, rôles, organisateur·ices). Les **participants spectacle** ne passent plus par cette modale (menu admin dédié déjà en place).
+La modale **Modifier / Nouveau spectacle** ne devrait porter que le **noyau planning** : titre, date/heure, lieu, description — **sans** tag d’équité / groupe de spectacles (**17.8** : saisie sur l’onglet Infos uniquement). Le reste vit sur l’**onglet Infos** du détail spectacle, avec **entrées visibles** et **sous-modales dédiées** (type, rôles, organisateur·ices, **groupe de spectacles**). Les **participants spectacle** ne passent plus par cette modale (menu admin dédié déjà en place).
 
 ---
 
@@ -21,7 +21,7 @@ La modale **Modifier / Nouveau spectacle** ne devrait porter que le **noyau plan
 | 3 | **Type + rôles** dans la modale | Infos + modales dédiées | **→ Story 17.14** | — |
 | 4 | **Organisateur·ices** dans la modale | Infos + modale | **→ Story 17.15** (partie orgas) | — |
 | 5 | **Participants** dans la modale | Retrait ; menu admin | **→ Story 17.15** (partie participants) | 3.8 AC11 révisée |
-| — | **Tag d’équité** (initialement modale) | **Onglet Infos** | **→ Story 17.8** (amendée) | SCP 2026-05-25 |
+| — | **Groupe de spectacles** / tag d’équité (initialement modale) | **Onglet Infos** — CTA **Mettre dans un groupe** | **→ Story 17.8** (amendée) | SCP 2026-05-25 |
 
 ---
 
@@ -29,7 +29,7 @@ La modale **Modifier / Nouveau spectacle** ne devrait porter que le **noyau plan
 
 | Story | Périmètre |
 |-------|-----------|
-| **17.8** | Tag équité — onglet Infos uniquement |
+| **17.8** | Groupe de spectacles (tag équité) — onglet Infos uniquement |
 | **17.12** | Slug sans champ formulaire |
 | **17.13** | Date/heure Material dans modale |
 | **17.14** | Type + rôles → Infos + modales |

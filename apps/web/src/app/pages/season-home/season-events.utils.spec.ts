@@ -5,6 +5,7 @@ import {
   formatEventDateParts,
   formatEventStartLong,
   groupEventsByMonth,
+  groupPastEventsByMonth,
 } from './season-events.utils'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { emptyRoleSlots } from '../../core/events/event-types'
@@ -74,6 +75,20 @@ describe('groupEventsByMonth', () => {
 
   it('returns empty array for no events', () => {
     expect(groupEventsByMonth([])).toEqual([])
+  })
+})
+
+describe('groupPastEventsByMonth', () => {
+  it('sorts descending and groups newest month first', () => {
+    const groups = groupPastEventsByMonth([
+      ev('1', '2026-05-10T19:00:00.000Z'),
+      ev('2', '2026-06-15T19:00:00.000Z'),
+      ev('3', '2026-05-20T19:00:00.000Z'),
+    ])
+
+    expect(groups).toHaveLength(2)
+    expect(groups[0].events.map((e) => e.id)).toEqual(['2'])
+    expect(groups[1].events.map((e) => e.id)).toEqual(['3', '1'])
   })
 })
 

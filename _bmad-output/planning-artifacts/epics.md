@@ -1409,9 +1409,9 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 
 **Acceptance Criteria**
 
-- **Given** onglet **Infos** et droit de gestion du spectacle, **when** affichage, **then** champ **Tag (optionnel)** autocomplete + aide inline + bouton effacer.
-- **Given** `EventFormDialog` (création ou édition), **when** ouvert, **then** **pas** de champ tag d’équité.
-- **Given** aucun tag, **when** affichage, **then** pas de mention « principal ».
+- **Given** onglet **Infos** et droit de gestion du spectacle, **when** affichage, **then** section **Groupe de spectacles** : chip du tag (si présent) ou CTA **« Mettre dans un groupe »** (lien primaire) → modale autocomplete + aide ; `×` sur le chip efface le tag.
+- **Given** `EventFormDialog` (création ou édition), **when** ouvert, **then** **pas** de champ tag d’équité / groupe de spectacles.
+- **Given** aucun tag, **when** affichage, **then** pas de mention « principal » ; un seul groupe possible par spectacle.
 - **Given** tag saisi, **when** sauvegarde, **then** persisté via API 17.7 (PATCH événement).
 - **Given** liste agenda saison, **when** tag présent, **then** badge discret sur la ligne (optionnel MVP).
 

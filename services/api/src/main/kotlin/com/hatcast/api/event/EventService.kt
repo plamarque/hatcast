@@ -42,6 +42,7 @@ class EventService(
         size: Int,
         scope: EventListScope,
         principal: SessionUserPrincipal,
+        participantId: UUID? = null,
     ): PagedEventsResponse {
         val season =
             seasonRepository
@@ -54,7 +55,12 @@ class EventService(
         if (page < 0) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "page invalide")
         }
-        val pr = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "startsAt"))
+        val pr =
+            when (scope) {
+                EventListScope.PAST ->
+                    PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startsAt"))
+                else -> PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "startsAt"))
+            }
         val p =
             when (scope) {
                 EventListScope.ALL ->
@@ -63,9 +69,22 @@ class EventService(
                     val from = startOfTodayInclusive(AGENDA_ZONE)
                     eventRepository.findUpcomingNonArchived(seasonId, from, pr)
                 }
+                EventListScope.PAST -> {
+                    val before = startOfTodayInclusive(AGENDA_ZONE)
+                    eventRepository.findPastNonArchived(seasonId, before, pr)
+                }
             }
         val eventIds = p.content.map { it.id }
-        val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, principal.userId)
+        val availabilityByEvent =
+            if (participantId != null) {
+                availabilityService.participantStatusByEventIds(
+                    seasonId = seasonId,
+                    eventIds = eventIds,
+                    seasonParticipantId = participantId,
+                )
+            } else {
+                availabilityService.myStatusByEventIds(eventIds, principal.userId)
+            }
         val lifecycleByEvent =
             compositionLifecycleEnrichment.loadViewsByEventIds(p.content, season, principal)
         return PagedEventsResponse(
@@ -341,4 +360,5 @@ class EventService(
 enum class EventListScope {
     ALL,
     UPCOMING,
+    PAST,
 }

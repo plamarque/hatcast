@@ -40,6 +40,7 @@
             [seasonId]="seasonId()"
             [troupeId]="troupeId()"
             [canManageEvents]="canManageEvents()"
+            [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
             [canManageComposition]="canManageComposition()"
             [adminItems]="eventAdminItems()"
             (eventUpdated)="onEventInfosUpdated($event)"

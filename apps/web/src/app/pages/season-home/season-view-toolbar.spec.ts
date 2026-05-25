@@ -18,16 +18,20 @@ describe('SeasonViewToolbar', () => {
     fixture.detectChanges()
   })
 
-  it('shows participant and event filters when agenda is active', () => {
-    const el = fixture.nativeElement as HTMLElement
-    expect(el.querySelector('.season-toolbar__filters')).toBeTruthy()
-  })
-
-  it('hides filters when history view is selected', () => {
-    fixture.componentRef.setInput('seasonView', 'history')
+  it('shows agenda filters when agenda is active', () => {
+    fixture.componentRef.setInput('showAgendaFilters', true)
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
-    expect(el.querySelector('.season-toolbar__filters')).toBeFalsy()
+    expect(el.textContent).toContain('Tous')
+    expect(el.textContent).not.toContain('Exporter')
+  })
+
+  it('shows history filters and export when history is active', () => {
+    fixture.componentRef.setInput('seasonView', 'history')
+    fixture.componentRef.setInput('showHistoryFilters', true)
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.textContent).toContain('Exporter')
   })
 
   it('renders agenda and history toggles', () => {
