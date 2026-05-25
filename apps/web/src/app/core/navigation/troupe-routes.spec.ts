@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
+  saisonEventPath,
   saisonWorkspacePath,
   troupeAdminMembresPath,
   troupeHubPath,
@@ -20,6 +21,15 @@ describe('troupe-routes', () => {
 
   it('builds saison workspace path', () => {
     expect(saisonWorkspacePath('festibask')).toEqual(['/saison', 'festibask'])
+  })
+
+  it('builds saison event path', () => {
+    expect(saisonEventPath('festibask', 'event-1')).toEqual([
+      '/saison',
+      'festibask',
+      'event',
+      'event-1',
+    ])
   })
 
   it('builds saison admin participants path', () => {
@@ -42,7 +52,8 @@ describe('troupe-routes', () => {
 
   it('builds troupe admin membres path', () => {
     expect(troupeAdminMembresPath('la-malice')).toEqual([
-      '/troupe',
+      '/',
+      'troupes',
       'la-malice',
       'admin',
       'membres',

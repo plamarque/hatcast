@@ -10,7 +10,7 @@
     [user]="user()"
   />
 
-  @if (showContextStrip() && event(); as ev) {
+  @if (showMobileEventContext() && event(); as ev) {
     <div class="event-detail__mobile-context">
       <h1 class="event-detail__mobile-context-title">{{ ev.title }}</h1>
       <p class="event-detail__mobile-context-when">{{ formatEventStart(ev.startsAt) }}</p>
@@ -22,16 +22,6 @@
       <mat-spinner diameter="40" />
     </div>
   } @else if (event(); as ev) {
-    @if (showContextStrip()) {
-      <app-event-context-strip
-        [troupeName]="contextTroupeName()"
-        [troupeSlug]="contextTroupeSlug()"
-        [leagueTitle]="contextLeagueTitle()"
-        [seasonSlug]="contextSeasonSlug()"
-        [showTroupeLink]="showTroupeAdminLink()"
-      />
-    }
-
     <div class="event-detail__tabs-shell">
       <mat-tab-group
         class="event-detail__tabs"

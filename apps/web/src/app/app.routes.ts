@@ -10,10 +10,26 @@ import { EventDetail } from './pages/event-detail/event-detail';
 import { AdminMembres } from './pages/admin-membres/admin-membres';
 import { AdminParticipants } from './pages/admin-participants/admin-participants';
 import { SeasonHome } from './pages/season-home/season-home';
-import { SeasonsList } from './pages/seasons-list/seasons-list';
 import { UserAgenda } from './pages/user-agenda/user-agenda';
-import { TroupeHubStub } from './pages/troupe-hub-stub/troupe-hub-stub';
+import { TroupeHub } from './pages/troupe-hub/troupe-hub';
 import { TroupesList } from './pages/troupes-list/troupes-list';
+
+function redirectPathWithQuery(targetPath: string, queryParamMap: {
+  keys: Iterable<string>;
+  getAll: (name: string) => string[] | null;
+}): string {
+  const keys = [...queryParamMap.keys];
+  if (keys.length === 0) {
+    return targetPath;
+  }
+  const parts: string[] = [];
+  for (const key of keys) {
+    for (const value of queryParamMap.getAll(key) ?? []) {
+      parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+    }
+  }
+  return `${targetPath}?${parts.join('&')}`;
+}
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: AuthRedirect },
@@ -23,17 +39,37 @@ export const routes: Routes = [
   { path: 'accueil', component: HomeSignedIn },
   { path: 'compte', component: AccountPlaceholder },
   { path: 'agenda', component: UserAgenda },
-  { path: 'seasons', component: SeasonsList },
+  {
+    path: 'seasons',
+    redirectTo: (route) => redirectPathWithQuery('/troupes', route.queryParamMap),
+  },
   { path: 'troupes', component: TroupesList },
-  { path: 'troupes/:slug', component: TroupeHubStub },
+  { path: 'troupes/:slug', component: TroupeHub },
+  { path: 'troupes/:slug/admin/membres', component: AdminMembres },
   { path: 'troupe/admin/membres', component: AdminMembres },
-  { path: 'troupe/:troupeSlug/admin/membres', component: AdminMembres },
+  {
+    path: 'troupe/:troupeSlug/admin/membres',
+    redirectTo: (route) => `/troupes/${route.params['troupeSlug']}/admin/membres`,
+  },
   { path: 'saison/:slug', component: SeasonHome },
   { path: 'saison/:slug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug/admin/participants', component: AdminParticipants },
   { path: 'saison/:slug/event/:eventId', component: EventDetail },
-  { path: 'ligue/:slug', component: SeasonHome },
-  { path: 'ligue/:slug/admin/membres', component: AdminMembres },
-  { path: 'ligue/:slug/admin/participants', component: AdminParticipants },
-  { path: 'ligue/:slug/event/:eventId', component: EventDetail },
+  {
+    path: 'ligue/:slug/admin/membres',
+    redirectTo: (route) => `/saison/${route.params['slug']}/admin/membres`,
+  },
+  {
+    path: 'ligue/:slug/admin/participants',
+    redirectTo: (route) => `/saison/${route.params['slug']}/admin/participants`,
+  },
+  {
+    path: 'ligue/:slug/event/:eventId',
+    redirectTo: (route) =>
+      `/saison/${route.params['slug']}/event/${route.params['eventId']}`,
+  },
+  {
+    path: 'ligue/:slug',
+    redirectTo: (route) => `/saison/${route.params['slug']}`,
+  },
 ];

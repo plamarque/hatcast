@@ -1,3 +1,8 @@
+## Deferred from: code review of 17-4-hub-troupes-slug.md (2026-05-25)
+
+- Pagination beyond 50 seasons (`SEASONS_PAGE_SIZE`) — no “Charger plus” until a troupe exceeds the cap.
+- `event-dispos-tab.spec.ts` chances-toggle stabilisation bundled in 17.4 diff — drive-by, not acceptance scope.
+
 ## Deferred from: code review of 17-3-page-troupes-mes-troupes-decouvrir.md (2026-05-25)
 
 - Session redirect test does not assert `rememberCurrentUrlForPostLogin` — same gap as `seasons-list` specs.
@@ -14,7 +19,7 @@
 
 ## Deferred from: code review of 17-1-breadcrumb-contexte-responsive.md (2026-05-25)
 
-- Double affichage troupe·saison (breadcrumb mobile + `app-event-context-strip`) — acceptable until Story 17.5 removes the strip.
+- ~~Double affichage troupe·saison (breadcrumb mobile + `app-event-context-strip`)~~ — **resolved** in Story 17.5 (`event-context-strip` removed).
 
 ## Deferred from: code review of 5-5-saisie-de-disponibilite-pour-un-autre-membre-proxy-avec-audit.md (2026-05-25)
 

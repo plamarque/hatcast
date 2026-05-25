@@ -24,10 +24,10 @@ import {
 import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { leagueWorkspacePath } from '../../core/navigation/league-routes'
 import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
+  saisonWorkspacePath,
 } from '../../core/navigation/troupe-routes'
 import type { ScopeAdminMenuItem } from '../../shared/scope-admin-menu/scope-admin-menu'
 import {
@@ -39,7 +39,6 @@ import {
   type EventFormDialogData,
 } from '../season-home/event-form-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
-import { EventContextStrip } from './event-context-strip'
 import { EventDetailHeader } from './event-detail-header'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
 import { computeCompositionLifecycleView } from '../../core/composition/composition-lifecycle'
@@ -56,7 +55,6 @@ import { formatEventStartLong } from '../season-home/season-events.utils'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
-    EventContextStrip,
     EventDetailHeader,
     EventDisposTab,
     EventEquipeTab,
@@ -100,13 +98,11 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly contextTroupeSlug = signal('')
   protected readonly contextLeagueTitle = signal('')
   protected readonly contextSeasonSlug = signal('')
-  protected readonly showTroupeAdminLink = signal(false)
-
   protected formatEventStart(iso: string): string {
     return formatEventStartLong(iso)
   }
 
-  protected readonly showContextStrip = computed(
+  protected readonly showMobileEventContext = computed(
     () =>
       !this.loading() &&
       this.event() !== null &&
@@ -369,7 +365,7 @@ export class EventDetail implements OnDestroy, OnInit {
     const r = await this.eventsApi.archiveEvent(seasonId, ev.id)
     if (r.ok) {
       this.snack.open('Spectacle archivé.', 'OK', { duration: 4000 })
-      await this.router.navigate(leagueWorkspacePath(slug))
+      await this.router.navigate(saisonWorkspacePath(slug))
     } else {
       this.snack.open('Archivage impossible.', 'OK', { duration: 6000 })
     }
@@ -453,8 +449,6 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextTroupeSlug.set(resolved.troupe.slug)
     this.contextLeagueTitle.set(resolved.season.title)
     this.contextSeasonSlug.set(resolved.season.slug)
-    this.showTroupeAdminLink.set(resolved.troupe.membership.baselineRole === 'TROUPE_ADMIN')
-
     const [eventResult, permissionsResult] = await Promise.all([
       this.eventsApi.getEvent(resolved.season.id, eventId),
       this.organizerApi.mySeasonPermissions(resolved.season.id),
@@ -485,7 +479,6 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextTroupeSlug.set('')
     this.contextLeagueTitle.set('')
     this.contextSeasonSlug.set('')
-    this.showTroupeAdminLink.set(false)
   }
 
   protected canManageEventParticipantsFor(eventId: string): boolean {

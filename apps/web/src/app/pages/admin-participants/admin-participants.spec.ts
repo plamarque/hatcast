@@ -140,7 +140,7 @@ describe('AdminParticipants', () => {
     const { router } = await setup(noPermissions())
 
     await vi.waitFor(() => {
-      expect(router.navigate).toHaveBeenCalledWith(['/', 'ligue', 'season-a'])
+      expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a'])
     })
   })
 

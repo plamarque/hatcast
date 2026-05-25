@@ -1,0 +1,198 @@
+.troupe-hub {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 2rem;
+}
+
+.troupe-hub__header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.troupe-hub__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.95rem;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  [aria-current='page'] {
+    font-weight: 600;
+  }
+}
+
+.troupe-hub__breadcrumb-sep {
+  opacity: 0.65;
+  user-select: none;
+}
+
+.troupe-hub__user-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.troupe-hub__user-label {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.troupe-hub__spinner {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.troupe-hub__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.troupe-hub__empty-title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.troupe-hub__empty-text {
+  margin: 0;
+  opacity: 0.9;
+}
+
+.troupe-hub__hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.troupe-hub__logo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+
+  mat-icon {
+    font-size: 1.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+}
+
+.troupe-hub__hero-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.troupe-hub__hero-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.troupe-hub__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  min-width: 0;
+}
+
+.troupe-hub__hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.troupe-hub__prefs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.troupe-hub__prefs-label {
+  @media (max-width: 480px) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+.troupe-hub__seasons-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.troupe-hub__section-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.troupe-hub__status {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.troupe-hub__season-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.troupe-hub__season-card {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px color-mix(in srgb, currentColor 15%, transparent);
+  }
+}
+
+.troupe-hub__season-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.troupe-hub__footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}

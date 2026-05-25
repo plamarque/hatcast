@@ -1,0 +1,133 @@
+<div class="troupe-hub">
+  <header class="troupe-hub__header">
+    <nav class="troupe-hub__breadcrumb" aria-label="Fil d'Ariane">
+      <a [routerLink]="troupesListLink">Troupes</a>
+      <span class="troupe-hub__breadcrumb-sep" aria-hidden="true">›</span>
+      @if (troupe(); as t) {
+        <span aria-current="page">{{ t.name }}</span>
+      }
+    </nav>
+    @if (!loadingSession() && user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="troupe-hub__user-btn"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
+      >
+        <app-user-avatar
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel(u)"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+        />
+        <span class="troupe-hub__user-label">{{ userDisplayLabel(u) }}</span>
+        <mat-icon>expand_more</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+        <button mat-menu-item type="button" (click)="logout()">Se déconnecter</button>
+      </mat-menu>
+    }
+  </header>
+
+  @if (loadingSession()) {
+    <div class="troupe-hub__spinner" role="status">
+      <mat-spinner diameter="40" aria-label="Chargement" />
+    </div>
+  } @else if (notFound()) {
+    <section class="troupe-hub__empty" aria-labelledby="troupe-not-found-heading">
+      <h2 id="troupe-not-found-heading" class="troupe-hub__empty-title">Troupe introuvable</h2>
+      <p class="troupe-hub__empty-text">
+        Cette troupe n’existe pas ou vous n’y avez pas accès.
+      </p>
+      <a mat-flat-button color="primary" routerLink="/troupes">Voir mes troupes</a>
+      <a mat-button routerLink="/agenda">Voir mon agenda</a>
+    </section>
+  } @else if (troupe(); as t) {
+    <div class="troupe-hub__hero">
+      <span class="troupe-hub__logo" aria-hidden="true">
+        <mat-icon>groups</mat-icon>
+      </span>
+      <div class="troupe-hub__hero-main">
+        <div class="troupe-hub__hero-row">
+          <h1 class="troupe-hub__title">{{ t.name }}</h1>
+          <div class="troupe-hub__hero-actions">
+            <button
+              type="button"
+              mat-stroked-button
+              class="troupe-hub__prefs-btn"
+              aria-label="Préférences dans cette troupe"
+              (click)="openPreferences()"
+            >
+              <mat-icon>tune</mat-icon>
+              <span class="troupe-hub__prefs-label">Préférences dans cette troupe</span>
+            </button>
+            <app-scope-admin-menu scope="troupe" [items]="troupeAdminItems()" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="troupe-hub__seasons" aria-labelledby="saisons-heading">
+      <div class="troupe-hub__seasons-header">
+        <h2 id="saisons-heading" class="troupe-hub__section-title">Saisons</h2>
+        @if (isTroupeAdmin()) {
+          <button mat-flat-button color="primary" type="button" (click)="openCreateSeason()">
+            <mat-icon>add</mat-icon>
+            Nouvelle saison
+          </button>
+        }
+      </div>
+
+      @if (loadingSeasons()) {
+        <div class="troupe-hub__spinner" role="status">
+          <mat-spinner diameter="32" />
+        </div>
+      } @else if (seasonsLoadError()) {
+        <p class="troupe-hub__status">Impossible de charger les saisons.</p>
+      } @else if (activeSeasons().length === 0 && archivedSeasons().length === 0) {
+        <p class="troupe-hub__status">Aucune saison pour l’instant.</p>
+      } @else {
+        @if (onlyArchivedSeasonsHidden()) {
+          <p class="troupe-hub__status">
+            Aucune saison active. Utilisez le bouton ci-dessous pour afficher les saisons
+            archivées.
+          </p>
+        }
+        <div class="troupe-hub__season-grid">
+          @for (season of visibleSeasons(); track season.id) {
+            <a
+              mat-card
+              appearance="outlined"
+              class="troupe-hub__season-card"
+              [routerLink]="saisonLink(season)"
+            >
+              <mat-card-header>
+                <mat-card-title>{{ season.title }}</mat-card-title>
+                @if (season.archived) {
+                  <mat-card-subtitle>Archivée</mat-card-subtitle>
+                }
+              </mat-card-header>
+              <mat-card-content>
+                <p class="troupe-hub__season-meta">
+                  {{ spectacleMeta(season.eventCount) }} ·
+                  {{ participantMeta(season.participantCount) }}
+                </p>
+              </mat-card-content>
+            </a>
+          }
+        </div>
+        @if (archivedSeasons().length > 0) {
+          <button mat-button type="button" (click)="toggleArchived()">
+            {{ archivedToggleLabel() }}
+          </button>
+        }
+      }
+    </section>
+
+    <footer class="troupe-hub__footer">
+      <a mat-button routerLink="/troupes" fragment="decouvrir">Explorer d’autres troupes</a>
+    </footer>
+  }
+</div>

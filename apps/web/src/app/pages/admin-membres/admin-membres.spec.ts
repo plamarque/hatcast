@@ -146,7 +146,7 @@ describe('AdminMembres', () => {
       expect(organizerApi.mySeasonPermissions).toHaveBeenCalled()
     })
     await vi.waitFor(() => {
-      expect(router.navigate).toHaveBeenCalledWith(['/seasons'])
+      expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes'])
     })
   })
 
@@ -169,7 +169,7 @@ describe('AdminMembres', () => {
     })
 
     await vi.waitFor(() => {
-      expect(router.navigate).toHaveBeenCalledWith(['/seasons'])
+      expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes'])
     })
   })
 
@@ -198,7 +198,7 @@ describe('AdminMembres', () => {
   it('loads membres without season when troupe has no seasons', async () => {
     const { fixture, router } = await setup(membersOnly(), {}, { seasons: [] })
 
-    expect(router.navigate).not.toHaveBeenCalledWith(['/seasons'])
+    expect(router.navigate).not.toHaveBeenCalledWith(['/', 'troupes'])
     expect(text(fixture)).toContain('Membres')
   })
 

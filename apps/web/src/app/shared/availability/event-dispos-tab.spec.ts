@@ -180,6 +180,14 @@ describe('EventDisposTab', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
+    const chancesBtn = Array.from(
+      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+    ).find((b) => b.textContent?.includes('Afficher les chances'))
+    chancesBtn?.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
     const el = fixture.nativeElement as HTMLElement
     expect(el.textContent).toContain('Comédien·nes')
     expect(el.textContent).toContain('100 %')

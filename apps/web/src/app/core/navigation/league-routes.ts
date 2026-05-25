@@ -1,4 +1,7 @@
-/** Canonical URL prefix for league workspace routes (product vocabulary: Ligue). */
+/**
+ * Legacy URL prefix (`/ligue/*`); app routes redirect to canonical `/saison/*` (ADR 0013).
+ * Prefer `saisonWorkspacePath` / `saisonEventPath` from `troupe-routes.ts` for new navigations.
+ */
 export const LEAGUE_ROUTE_PREFIX = 'ligue'
 
 export function leagueWorkspacePath(slug: string): string[] {

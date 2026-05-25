@@ -14,7 +14,7 @@ import { Router, RouterLink } from '@angular/router'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
-import { leagueWorkspacePath } from '../../core/navigation/league-routes'
+import { saisonWorkspacePath } from '../../core/navigation/troupe-routes'
 import {
   type SeasonResponse,
   SeasonApiService,
@@ -195,7 +195,7 @@ export class SeasonsList implements OnInit {
   }
 
   protected openCard(season: SeasonResponse): void {
-    void this.router.navigate(leagueWorkspacePath(season.slug))
+    void this.router.navigate(saisonWorkspacePath(season.slug))
   }
 
   protected openCreate(): void {

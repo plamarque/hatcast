@@ -30,7 +30,7 @@
 
   @if (!loadingSession()) {
     <div class="user-agenda__secondary">
-      <a mat-stroked-button routerLink="/seasons">Mes troupes</a>
+      <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
     </div>
   }
 
@@ -72,7 +72,7 @@
     <section class="user-agenda__empty" aria-labelledby="agenda-no-participation-heading">
       <h2 id="agenda-no-participation-heading" class="user-agenda__empty-title">Aucune ligue pour l’instant</h2>
       <p class="user-agenda__empty-text">Tu n'es inscrit·e à aucune ligue pour l'instant.</p>
-      <button mat-stroked-button type="button" disabled>Découvrir les troupes</button>
+      <a mat-stroked-button routerLink="/troupes" fragment="decouvrir">Découvrir les troupes</a>
     </section>
   } @else if (filteredEmpty() && hasActiveFilters()) {
     <section class="user-agenda__empty" aria-labelledby="agenda-filtered-empty-heading">

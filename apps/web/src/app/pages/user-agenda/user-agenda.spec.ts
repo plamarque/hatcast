@@ -241,8 +241,7 @@ describe('UserAgenda', () => {
     card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
 
     expect(navigateSpy).toHaveBeenCalledWith([
-      '/',
-      'ligue',
+      '/saison',
       'ligue-clavier',
       'event',
       'event-keyboard',
@@ -265,7 +264,7 @@ describe('UserAgenda', () => {
     const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
     card.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/', 'ligue', 'ligue-espace', 'event', 'event-space'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-espace', 'event', 'event-space'])
   })
 
   it('masque la barre de filtres quand filterBarVisible est false', async () => {

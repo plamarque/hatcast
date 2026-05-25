@@ -13,6 +13,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { troupeHubPath, troupesListPath } from '../../core/navigation/troupe-routes'
 import {
   OrganizerApiService,
   type MySeasonPermissions,
@@ -109,6 +110,11 @@ export class AdminMembres implements OnDestroy, OnInit {
     return troupe ?? ''
   })
   protected readonly selectedSeasonSlug = computed(() => this.season()?.slug ?? '')
+  protected readonly troupeSlug = signal<string | null>(null)
+  protected readonly backLink = computed(() => {
+    const slug = this.troupeSlug()
+    return slug ? troupeHubPath(slug) : troupesListPath()
+  })
 
   protected userDisplayLabel(): string {
     return this.troupeContext.currentUserDisplayLabel(this.user())
@@ -127,10 +133,17 @@ export class AdminMembres implements OnDestroy, OnInit {
 
     this.routeSubscription = this.route.paramMap
       .pipe(
-        map((p) => ({
-          troupeSlug: p.get('troupeSlug') ?? '',
-          legacySeasonSlug: p.get('slug') ?? '',
-        })),
+        map((p) => {
+          const routePath = this.route.snapshot.routeConfig?.path ?? ''
+          const isTroupesHubAdmin = routePath.startsWith('troupes/')
+          const slugParam = p.get('slug') ?? ''
+          return {
+            troupeSlug: isTroupesHubAdmin
+              ? slugParam
+              : (p.get('troupeSlug') ?? ''),
+            legacySeasonSlug: isTroupesHubAdmin ? '' : slugParam,
+          }
+        }),
         distinctUntilChanged(
           (a, b) =>
             a.troupeSlug === b.troupeSlug && a.legacySeasonSlug === b.legacySeasonSlug,
@@ -175,7 +188,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     this.permissions.set(perms)
     if (!this.isTroupeAdmin() && !perms?.canManageSeasonOrganizers) {
       this.snack.open('Accès non autorisé', 'OK', { duration: 5000 })
-      await this.router.navigate(['/seasons'])
+      await this.router.navigate(troupesListPath())
     }
   }
 
@@ -188,6 +201,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     this.season.set(null)
     this.seasons.set([])
     this.permissions.set(null)
+    this.troupeSlug.set(null)
 
     const loaded = await this.troupeContext.load()
     if (requestId !== this.loadRequestId) return
@@ -195,7 +209,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     if (!loaded) {
       this.loading.set(false)
       this.snack.open('Impossible de charger vos troupes.', 'OK', { duration: 6000 })
-      await this.router.navigate(['/seasons'])
+      await this.router.navigate(troupesListPath())
       return
     }
 
@@ -209,7 +223,7 @@ export class AdminMembres implements OnDestroy, OnInit {
       if (!match) {
         this.loading.set(false)
         this.snack.open('Troupe introuvable.', 'OK', { duration: 6000 })
-        await this.router.navigate(['/seasons'])
+        await this.router.navigate(troupesListPath())
         return
       }
       this.troupeContext.selectTroupe(match.id)
@@ -228,19 +242,20 @@ export class AdminMembres implements OnDestroy, OnInit {
           'OK',
           { duration: 8000 },
         )
-        await this.router.navigate(['/seasons'])
+        await this.router.navigate(troupesListPath())
         return
       }
     }
 
     if (!troupe) {
       this.loading.set(false)
-      await this.router.navigate(['/seasons'])
+      await this.router.navigate(troupesListPath())
       return
     }
 
     this.troupeId.set(troupe.id)
     this.troupeName.set(troupe.name)
+    this.troupeSlug.set(troupe.slug)
     this.isTroupeAdmin.set(troupe.membership.baselineRole === 'TROUPE_ADMIN')
 
     const sr = await this.seasonApi.listSeasons(troupe.id, 0, 100)
@@ -268,7 +283,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     const canAccess = this.isTroupeAdmin() || (!isTroupeRoute && seasonOrganizerPerms)
     if (!canAccess) {
       this.snack.open('Accès non autorisé', 'OK', { duration: 5000 })
-      await this.router.navigate(['/seasons'])
+      await this.router.navigate(troupesListPath())
       return
     }
 

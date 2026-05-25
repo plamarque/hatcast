@@ -24,7 +24,7 @@ import {
   type UserAgendaParticipationFilters,
 } from '../../core/agenda/user-agenda-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { leagueEventPath } from '../../core/navigation/league-routes'
+import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
@@ -182,7 +182,7 @@ export class UserAgenda implements OnInit {
   }
 
   protected openEvent(item: UserAgendaItem): void {
-    void this.router.navigate(leagueEventPath(item.leagueSlug, item.eventId))
+    void this.router.navigate(saisonEventPath(item.leagueSlug, item.eventId))
   }
 
   protected timeLabel(item: UserAgendaItem): string {

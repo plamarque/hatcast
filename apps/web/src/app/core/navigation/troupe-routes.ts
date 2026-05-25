@@ -23,7 +23,11 @@ export function saisonAdminMembresPath(slug: string): string[] {
   return ['/saison', slug, 'admin', 'membres']
 }
 
-/** Existing troupe admin route until Story 17.4 adds `/troupes/:slug/admin/*`. */
+export function saisonEventPath(slug: string, eventId: string): string[] {
+  return ['/saison', slug, 'event', eventId]
+}
+
+/** Troupe admin membres under canonical hub prefix (ADR 0013). */
 export function troupeAdminMembresPath(troupeSlug: string): string[] {
-  return ['/troupe', troupeSlug, 'admin', 'membres']
+  return ['/', TROUPE_HUB_ROUTE_PREFIX, troupeSlug, 'admin', 'membres']
 }

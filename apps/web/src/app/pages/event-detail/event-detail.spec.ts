@@ -593,7 +593,7 @@ describe('EventDetail', () => {
     await vi.waitFor(() => {
       expect(archiveEvent).toHaveBeenCalledWith('season-1', 'event-2')
     })
-    expect(router.navigate).toHaveBeenCalledWith(['/', 'ligue', 'season-a'])
+    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a'])
   })
 
   it('normalizes unknown tab query param in URL', async () => {
@@ -611,142 +611,62 @@ describe('EventDetail', () => {
     })
   })
 
-  it('shows context strip with troupe and league labels after successful load', async () => {
+  it('does not render event context strip after successful load', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-context-strip')).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('app-event-detail-header')).not.toBeNull()
     })
-    const line = fixture.nativeElement.querySelector('.event-context-strip__line')
-    expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Troupe · Saison')
-  })
-
-  it('links league title to the current season workspace', async () => {
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      const leagueLink = fixture.nativeElement.querySelector('a.event-context-strip__league')
-      expect(leagueLink?.getAttribute('href')).toBe('/ligue/season-a')
-      expect(leagueLink?.textContent?.trim()).toBe('Saison')
-    })
-  })
-
-  it('shows troupe name as plain text for ordinary members', async () => {
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-context-strip')).not.toBeNull()
-    })
-    expect(fixture.nativeElement.querySelector('a.event-context-strip__troupe')).toBeNull()
-    expect(fixture.nativeElement.querySelector('.event-context-strip__troupe')?.textContent?.trim()).toBe(
-      'Troupe',
-    )
-  })
-
-  it('links troupe name to admin membres for troupe admins', async () => {
-    listMyTroupes.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: [{
-        id: 'troupe-1',
-        name: 'Troupe',
-        slug: 'troupe',
-        activeMemberCount: 1,
-        upcomingEventCount: 0,
-        membership: {
-          id: 'm-1',
-          displayName: 'Admin',
-          status: 'ACTIVE',
-          baselineRole: 'TROUPE_ADMIN',
-          createdAt: '',
-          updatedAt: '',
-        },
-      }],
-    })
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      const troupeLink = fixture.nativeElement.querySelector('a.event-context-strip__troupe')
-      expect(troupeLink?.getAttribute('href')).toBe('/troupe/troupe/admin/membres')
-      expect(troupeLink?.textContent?.trim()).toBe('Troupe')
-    })
-  })
-
-  it('reflects the resolved event troupe and league in cross-troupe fixtures', async () => {
-    listMyTroupes.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: [{
-        id: 'troupe-beta',
-        name: 'Les Beta',
-        slug: 'beta-troupe',
-        activeMemberCount: 1,
-        upcomingEventCount: 0,
-        membership: {
-          id: 'm-beta',
-          displayName: 'Beta',
-          status: 'ACTIVE',
-          baselineRole: 'MEMBER',
-          createdAt: '',
-          updatedAt: '',
-        },
-      }],
-    })
-    getSeasonBySlug.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        id: 'season-beta',
-        troupeId: 'troupe-beta',
-        slug: 'season-a',
-        title: 'Ligue Beta',
-        description: null,
-        startDate: null,
-        endDate: null,
-        archived: false,
-        active: true,
-        eventCount: 1,
-        participantCount: 0,
-        createdAt: '',
-        updatedAt: '',
-      },
-    })
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      const line = fixture.nativeElement.querySelector('.event-context-strip__line')
-      expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Les Beta · Ligue Beta')
-    })
-    expect(fixture.nativeElement.querySelector('.event-context-strip__troupe')?.textContent?.trim()).toBe(
-      'Les Beta',
-    )
-    expect(fixture.nativeElement.querySelector('a.event-context-strip__league')?.getAttribute('href')).toBe(
-      '/ligue/season-a',
-    )
-  })
-
-  it('does not render context strip while loading', () => {
-    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('app-event-context-strip')).toBeNull()
     expect(fixture.nativeElement.querySelector('.event-context-strip')).toBeNull()
   })
 
-  it('does not render context strip after season resolver failure', async () => {
+  it('links saison in breadcrumb to canonical /saison workspace', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const saisonLink = fixture.nativeElement.querySelector(
+        'app-context-breadcrumb a.context-breadcrumb__link',
+      )
+      expect(saisonLink?.getAttribute('href')).toBe('/saison/season-a')
+    })
+  })
+
+  it('shows mobile title and when block after successful load', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-detail__mobile-context-title')?.textContent?.trim()).toBe(
+        'Spectacle event-2',
+      )
+    })
+    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context-when')?.textContent?.trim()).not.toBe(
+      '',
+    )
+  })
+
+  it('does not render mobile context while loading', () => {
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
+  })
+
+  it('does not render mobile context after season resolver failure', async () => {
     getSeasonBySlug.mockResolvedValue({ ok: false, status: 404 })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(getSeasonBySlug).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.querySelector('.event-context-strip')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
   })
 
-  it('does not render context strip when event is not found', async () => {
+  it('does not render mobile context when event is not found', async () => {
     getEvent.mockResolvedValue({ ok: false, status: 404 })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(getEvent).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.querySelector('.event-context-strip')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
   })
 })

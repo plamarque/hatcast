@@ -7,6 +7,7 @@ import { AdminMembres } from './pages/admin-membres/admin-membres'
 import { AdminParticipants } from './pages/admin-participants/admin-participants'
 import { EventDetail } from './pages/event-detail/event-detail'
 import { SeasonHome } from './pages/season-home/season-home'
+import { TroupesList } from './pages/troupes-list/troupes-list'
 
 function activatedComponent(router: Router): Route['component'] {
   let route = router.routerState.root
@@ -23,15 +24,47 @@ describe('app.routes', () => {
     })
   })
 
-  it.each([
-    { url: '/ligue/test-slug', component: SeasonHome },
-    { url: '/ligue/test-slug/admin/membres', component: AdminMembres },
-    { url: '/ligue/test-slug/admin/participants', component: AdminParticipants },
-    { url: '/ligue/test-slug/event/event-1', component: EventDetail },
-  ])('resolves $url to the expected component', async ({ url, component }) => {
+  it('redirects /seasons to /troupes', async () => {
     const router = TestBed.inject(Router)
-    await router.navigateByUrl(url)
-    expect(router.url).toBe(url)
+
+    await router.navigateByUrl('/seasons')
+
+    expect(router.url).toBe('/troupes')
+    expect(activatedComponent(router)).toBe(TroupesList)
+  })
+
+  it('redirects /seasons preserving query params', async () => {
+    const router = TestBed.inject(Router)
+
+    await router.navigateByUrl('/seasons?foo=bar&foo=baz')
+
+    expect(router.url).toBe('/troupes?foo=bar&foo=baz')
+    expect(activatedComponent(router)).toBe(TroupesList)
+  })
+
+  it.each([
+    { legacy: '/ligue/test-slug', canonical: '/saison/test-slug', component: SeasonHome },
+    {
+      legacy: '/ligue/test-slug/admin/membres',
+      canonical: '/saison/test-slug/admin/membres',
+      component: AdminMembres,
+    },
+    {
+      legacy: '/ligue/test-slug/admin/participants',
+      canonical: '/saison/test-slug/admin/participants',
+      component: AdminParticipants,
+    },
+    {
+      legacy: '/ligue/test-slug/event/event-1',
+      canonical: '/saison/test-slug/event/event-1',
+      component: EventDetail,
+    },
+  ])('redirects $legacy to $canonical', async ({ legacy, canonical, component }) => {
+    const router = TestBed.inject(Router)
+
+    await router.navigateByUrl(legacy)
+
+    expect(router.url).toBe(canonical)
     expect(activatedComponent(router)).toBe(component)
   })
 
@@ -40,7 +73,7 @@ describe('app.routes', () => {
     { url: '/saison/test-slug/admin/membres', component: AdminMembres },
     { url: '/saison/test-slug/admin/participants', component: AdminParticipants },
     { url: '/saison/test-slug/event/event-1', component: EventDetail },
-  ])('keeps /saison alias resolving $url to the same component', async ({ url, component }) => {
+  ])('keeps canonical /saison route $url', async ({ url, component }) => {
     const router = TestBed.inject(Router)
     await router.navigateByUrl(url)
     expect(router.url).toBe(url)

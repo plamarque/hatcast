@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-25T13:50:00+02:00
+# last_updated: 2026-05-25T18:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-25T18:00:00+02:00"
+last_updated: "2026-05-25T20:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -168,8 +168,8 @@ development_status:
   17-1-breadcrumb-contexte-responsive: done
   17-2-bandeau-administration-par-scope: done
   17-3-page-troupes-mes-troupes-decouvrir: done
-  17-4-hub-troupes-slug: backlog
-  17-5-redirects-fin-seasons-hub-troupe: backlog
+  17-4-hub-troupes-slug: done
+  17-5-redirects-fin-seasons-hub-troupe: in-progress
   17-11-breadcrumb-pages-admin-back-office: backlog
   17-6-slug-evenement-dans-les-urls: backlog
   17-7-api-tag-equite-glossaire-troupe: backlog
