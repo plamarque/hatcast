@@ -1,3 +1,9 @@
+## Deferred from: code review of 17-11-breadcrumb-pages-admin-back-office.md (2026-05-25)
+
+- Breadcrumb visible brièvement avant redirect « Accès non autorisé » — même fenêtre qu’avec l’ancien titre H1 ; hors périmètre chrome 17.11.
+- Pas de test viewport mobile 480px pour AC4 — pattern 17.1 non couvert par tests automatisés sur les autres headers.
+- **AC2 admin participants événement** → **Story 17.16** (`17-16-route-admin-participants-evenement.md`, backlog). PO : route (pas dialog) ; participants ponctuels event-only (musicien, MC invité) ; roster par défaut = participants saison (3.8). Supersède entrée dialog 17.15 AC6.
+
 ## Deferred from: code review of 3-6-vue-historique-colonnes-roles-mois-export-masquage.md (2026-05-25)
 
 - Formules sel/dispo dupliquées Kotlin + TS sans test de parité contrat — risque de dérive ; acceptable tant que les tests unitaires des deux côtés restent alignés sur les cas V1.

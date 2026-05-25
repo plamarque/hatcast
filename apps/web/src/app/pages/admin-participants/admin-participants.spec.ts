@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
+import { provideRouter } from '@angular/router'
 import { BehaviorSubject, of } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -54,6 +55,7 @@ describe('AdminParticipants', () => {
     await TestBed.configureTestingModule({
       imports: [AdminParticipants, NoopAnimationsModule],
       providers: [
+        provideRouter([]),
         {
           provide: ActivatedRoute,
           useValue: { paramMap: paramMap$.asObservable() },
@@ -144,11 +146,68 @@ describe('AdminParticipants', () => {
     })
   })
 
-  it('shows Participants title when authorized', async () => {
+  it('shows breadcrumb without back chevron when authorized', async () => {
     const { fixture } = await setup(participantsAdmin())
+    const el = fixture.nativeElement as HTMLElement
 
-    expect(text(fixture)).toContain('Participants')
+    expect(el.querySelector('app-context-breadcrumb')).toBeTruthy()
+    expect(el.querySelector('.admin-participants__back')).toBeNull()
+    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
+    expect(el.querySelector('.context-breadcrumb__link')?.textContent).toContain('Saison A')
     expect(text(fixture)).toContain('Guest Artist')
+  })
+
+  it('does not show breadcrumb before season context resolves', async () => {
+    await TestBed.configureTestingModule({
+      imports: [AdminParticipants, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: paramMap$.asObservable() },
+        },
+        { provide: Router, useValue: { navigate: vi.fn().mockResolvedValue(true) } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { user: { email: 'a@example.com', displayName: 'Admin' } },
+            }),
+          },
+        },
+        {
+          provide: TroupeSeasonResolverService,
+          useValue: {
+            resolveSeasonSlug: vi.fn().mockImplementation(
+              () => new Promise(() => undefined),
+            ),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            selectTroupe: vi.fn(),
+            currentUserDisplayLabel: () => 'Admin',
+          },
+        },
+        {
+          provide: OrganizerApiService,
+          useValue: { mySeasonPermissions: vi.fn() },
+        },
+        {
+          provide: ParticipantApiService,
+          useValue: { listSeasonParticipants: vi.fn(), removeSeasonParticipant: vi.fn() },
+        },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(AdminParticipants)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('app-context-breadcrumb')).toBeNull()
   })
 
   it('opens add dialog and reloads list on success', async () => {

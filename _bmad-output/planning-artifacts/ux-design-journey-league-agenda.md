@@ -383,11 +383,11 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 ## Screen 7 — Admin Membres (`/troupes/:slug/admin/membres`)
 
-**Status:** Shipped (Story 2.8) — **chrome alignment → Story 17.11** (LIMIT-002)
+**Status:** Shipped (Story 17.11) — breadcrumb aligned with 17.1
 
 - From troupe hub **scope gear menu** → Membres
 - Redirect legacy `/troupe/:slug/admin/membres` → `/troupes/:slug/admin/membres`
-- **Gap:** chevron back, no breadcrumb (align with 17.1 — follow-up doc § Follow-up)
+- **Chrome:** `[logo] Troupe › Membres` (troupe hub route) or `Troupe › Saison › Membres` (legacy `/saison/:slug/admin/membres`); no chevron back; account menu top-right
 
 No layout redesign in MVP; optional polish Story 2.11.
 
@@ -395,11 +395,12 @@ No layout redesign in MVP; optional polish Story 2.11.
 
 ## Screen 8 — Participants saison (`/saison/:slug/admin/participants`)
 
-**Status:** Exists (Story 3.8) — **chrome alignment → Story 17.11** (LIMIT-002)
+**Status:** Shipped (Story 17.11) — breadcrumb aligned with 17.1
 
 - UI labels: **Saison** / Participants (not Ligue)
 - Entry: season `app-scope-admin-menu` (toolbar gear)
-- **Planned (17.11):** replace chevron header with breadcrumb per [17-11-breadcrumb-pages-admin-back-office.md](../implementation-artifacts/17-11-breadcrumb-pages-admin-back-office.md)
+- **Chrome:** `Troupe › Saison (link) › Participants` (leaf); no chevron back; mobile title below header
+- Event-only participant admin: dialog (`EventParticipantsDialog`) — breadcrumb event+leaf ready in `app-context-breadcrumb` for a future dedicated route
 
 ---
 

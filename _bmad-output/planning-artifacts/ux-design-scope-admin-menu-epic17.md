@@ -215,15 +215,7 @@ Gear uses `settings` icon (consistent with legacy season header menu before 17.1
 
 ## Follow-up (out of scope 17.2 — PO 2026-05-25)
 
-Admin **destination** pages reached from the scope gear menu still use **legacy header chrome**:
-
-| Route / screen | Current chrome | Target (align with 17.1) |
-|----------------|----------------|---------------------------|
-| `/saison/:slug/admin/participants` | Chevron back + title « Participants » | Breadcrumb: troupe › saison › Participants (leaf) |
-| Event participant admin (same component, event scope) | Same pattern | Breadcrumb: troupe › saison › spectacle › Participants |
-| `/troupe/:slug/admin/membres` | Chevron back | Breadcrumb: troupe › Membres (or Troupes › troupe › Membres) |
-
-**Tracked as:** [ISSUES.md](../../ISSUES.md) **LIMIT-002** → **Story 17.11** (`17-11-breadcrumb-pages-admin-back-office.md`, backlog). Suggested dev order: after **17.5**.
+**Closed in Story 17.11 (2026-05-25):** admin destination pages now use `app-context-breadcrumb` with admin leaf; chevron back removed. See [17-11-breadcrumb-pages-admin-back-office.md](../implementation-artifacts/17-11-breadcrumb-pages-admin-back-office.md).
 
 ---
 

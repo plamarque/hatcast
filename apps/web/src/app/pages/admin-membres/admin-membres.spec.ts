@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
+import { provideRouter } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -36,6 +37,7 @@ describe('AdminMembres', () => {
       seasons?: SeasonResponse[]
       slug?: string
       troupeSlug?: string
+      routePath?: string
       getSeasonBySlug?: ReturnType<typeof vi.fn>
     } = {},
   ) {
@@ -52,7 +54,12 @@ describe('AdminMembres', () => {
     const route = {
       paramMap: paramMap$.asObservable(),
       queryParamMap: queryParamMap$.asObservable(),
-      snapshot: { queryParamMap: queryMap },
+      snapshot: {
+        queryParamMap: queryMap,
+        ...(options.routePath != null
+          ? { routeConfig: { path: options.routePath } }
+          : {}),
+      },
     }
     const troupeApi = {
       listMyTroupes: vi.fn().mockResolvedValue({
@@ -96,6 +103,7 @@ describe('AdminMembres', () => {
     await TestBed.configureTestingModule({
       imports: [AdminMembres, NoopAnimationsModule],
       providers: [
+        provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: Router, useValue: router },
         { provide: MatSnackBar, useValue: snack },
@@ -173,11 +181,77 @@ describe('AdminMembres', () => {
     })
   })
 
-  it('shows Membres title when troupe admin only', async () => {
+  it('shows troupe breadcrumb without back chevron when troupe admin', async () => {
     const { fixture } = await setup(membersOnly())
+    const el = fixture.nativeElement as HTMLElement
 
-    expect(text(fixture)).toContain('Membres')
+    expect(el.querySelector('app-context-breadcrumb')).toBeTruthy()
+    expect(el.querySelector('.admin-membres__back')).toBeNull()
+    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Membres')
     expect(text(fixture)).toContain('Ma Troupe')
+  })
+
+  it('shows season breadcrumb on legacy saison admin membres route', async () => {
+    const { fixture } = await setup(bothPermissions(), {}, {
+      slug: 'season-a',
+      routePath: 'saison/:slug/admin/membres',
+      getSeasonBySlug: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: season('s1'),
+      }),
+    })
+    const el = fixture.nativeElement as HTMLElement
+
+    expect(el.querySelector('app-context-breadcrumb')).toBeTruthy()
+    expect(el.querySelector('.context-breadcrumb__link')?.textContent).toContain('Saison A')
+    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Membres')
+  })
+
+  it('does not show breadcrumb before page context resolves', async () => {
+    await TestBed.configureTestingModule({
+      imports: [AdminMembres, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: paramMap$.asObservable(),
+            queryParamMap: queryParamMap$.asObservable(),
+            snapshot: {
+              queryParamMap: convertToParamMap({}),
+              routeConfig: { path: 'troupes/:slug/admin/membres' },
+            },
+          },
+        },
+        { provide: Router, useValue: { navigate: vi.fn().mockResolvedValue(true) } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { user: { email: 'a@example.com', displayName: 'Admin' } },
+            }),
+          },
+        },
+        {
+          provide: TroupeApiService,
+          useValue: {
+            listMyTroupes: vi.fn().mockImplementation(() => new Promise(() => undefined)),
+          },
+        },
+        { provide: SeasonApiService, useValue: { listSeasons: vi.fn() } },
+        { provide: OrganizerApiService, useValue: { mySeasonPermissions: vi.fn() } },
+      ],
+    }).compileComponents()
+
+    paramMap$.next(convertToParamMap({ slug: 't1' }))
+    const fixture = TestBed.createComponent(AdminMembres)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('app-context-breadcrumb')).toBeNull()
   })
 
   it('shows tab bar when both permissions granted', async () => {

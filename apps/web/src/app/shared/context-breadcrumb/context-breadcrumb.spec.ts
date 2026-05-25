@@ -77,4 +77,59 @@ describe('ContextBreadcrumb', () => {
     expect(el.querySelector('.context-breadcrumb__mobile-logo .context-breadcrumb__troupe-name')).toBeNull()
   })
 
+  it('renders admin leaf on season layout with linked season segment', async () => {
+    const fixture = await setup('season')
+    fixture.componentRef.setInput('leafTitle', 'Participants')
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+
+    const seasonLink = el.querySelector(
+      '.context-breadcrumb__trail--desktop a.context-breadcrumb__link',
+    ) as HTMLAnchorElement
+    expect(seasonLink.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
+  })
+
+  it('renders troupe admin trail with leaf only', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ContextBreadcrumb],
+      providers: [provideRouter([])],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ContextBreadcrumb)
+    fixture.componentRef.setInput('troupeName', 'La Malice')
+    fixture.componentRef.setInput('troupeSlug', 'la-malice')
+    fixture.componentRef.setInput('layout', 'troupe')
+    fixture.componentRef.setInput('leafTitle', 'Membres')
+    fixture.detectChanges()
+
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('.context-breadcrumb__link')).toBeNull()
+    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Membres')
+  })
+
+  it('links event title when admin leaf is set on event layout', async () => {
+    const fixture = await setup('event')
+    fixture.componentRef.setInput('leafTitle', 'Participants')
+    fixture.componentRef.setInput('eventSlug', 'match-bim')
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+
+    const links = el.querySelectorAll('.context-breadcrumb__trail--desktop a.context-breadcrumb__link')
+    expect(links.length).toBe(2)
+    expect(links[0]?.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(links[1]?.getAttribute('href')).toBe('/saison/saison-2025/event/match-bim')
+    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
+  })
+
+  it('uses single aria-current when admin leaf is set without event slug', async () => {
+    const fixture = await setup('event')
+    fixture.componentRef.setInput('leafTitle', 'Participants')
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+
+    expect(el.querySelectorAll('[aria-current="page"]').length).toBe(1)
+    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
+  })
+
 })

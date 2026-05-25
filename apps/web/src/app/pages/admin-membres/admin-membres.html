@@ -1,17 +1,15 @@
 <div class="admin-membres">
   <header class="admin-membres__header">
-    <a
-      mat-icon-button
-      [routerLink]="backLink()"
-      class="admin-membres__back"
-      aria-label="Retour aux troupes"
-    >
-      <mat-icon>chevron_left</mat-icon>
-    </a>
-    <div class="admin-membres__titles">
-      <h1 class="admin-membres__title">{{ pageTitle() }}</h1>
-      @if (subtitle()) {
-        <p class="admin-membres__subtitle">{{ subtitle() }}</p>
+    <div class="admin-membres__header-left">
+      @if (showBreadcrumb()) {
+        <app-context-breadcrumb
+          [layout]="breadcrumbLayout()"
+          [leafTitle]="breadcrumbLeaf()"
+          [troupeName]="troupeName()!"
+          [troupeSlug]="troupeSlug()!"
+          [seasonTitle]="season()?.title ?? ''"
+          [seasonSlug]="selectedSeasonSlug()"
+        />
       }
     </div>
     @if (user(); as u) {
@@ -36,6 +34,12 @@
       </mat-menu>
     }
   </header>
+
+  @if (showBreadcrumb()) {
+    <div class="admin-membres__mobile-context">
+      <h1 class="admin-membres__mobile-context-title">{{ pageTitle() }}</h1>
+    </div>
+  }
 
   @if (loading()) {
     <div class="admin-membres__spinner" role="status">

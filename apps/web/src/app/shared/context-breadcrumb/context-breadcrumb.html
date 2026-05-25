@@ -22,20 +22,39 @@
         <span class="context-breadcrumb__troupe-name">{{ troupeName() }}</span>
       </a>
     </li>
-    <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
-    <li class="context-breadcrumb__segment">
-      @if (layout() === 'event') {
-        <a class="context-breadcrumb__link" [routerLink]="saisonWorkspacePath(seasonSlug())">
-          {{ seasonTitle() }}
-        </a>
-      } @else {
-        <span class="context-breadcrumb__current" aria-current="page">{{ seasonTitle() }}</span>
-      }
-    </li>
+    @if (layout() !== 'troupe') {
+      <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
+      <li class="context-breadcrumb__segment">
+        @if (seasonIsLink()) {
+          <a class="context-breadcrumb__link" [routerLink]="saisonWorkspacePath(seasonSlug())">
+            {{ seasonTitle() }}
+          </a>
+        } @else {
+          <span class="context-breadcrumb__current" aria-current="page">{{ seasonTitle() }}</span>
+        }
+      </li>
+    }
     @if (layout() === 'event' && eventTitle()) {
       <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
       <li class="context-breadcrumb__segment">
-        <span class="context-breadcrumb__current" aria-current="page">{{ eventTitle() }}</span>
+        @if (eventIsLink()) {
+          <a
+            class="context-breadcrumb__link"
+            [routerLink]="saisonEventPath(seasonSlug(), eventSlug()!)"
+          >
+            {{ eventTitle() }}
+          </a>
+        } @else if (!leafTitle()) {
+          <span class="context-breadcrumb__current" aria-current="page">{{ eventTitle() }}</span>
+        } @else {
+          <span class="context-breadcrumb__current">{{ eventTitle() }}</span>
+        }
+      </li>
+    }
+    @if (leafTitle()) {
+      <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
+      <li class="context-breadcrumb__segment">
+        <span class="context-breadcrumb__current" aria-current="page">{{ leafTitle() }}</span>
       </li>
     }
   </ol>

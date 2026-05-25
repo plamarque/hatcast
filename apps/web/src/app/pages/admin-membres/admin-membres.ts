@@ -13,7 +13,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { troupeHubPath, troupesListPath } from '../../core/navigation/troupe-routes'
+import { troupesListPath } from '../../core/navigation/troupe-routes'
 import {
   OrganizerApiService,
   type MySeasonPermissions,
@@ -24,6 +24,7 @@ import {
 } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { ContextBreadcrumb, type ContextBreadcrumbLayout } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { MembresTab } from './membres-tab'
 import { OrganisateursTab } from './organisateurs-tab'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
@@ -55,6 +56,7 @@ function pickDefaultSeason(
     MatSnackBarModule,
     MatTabsModule,
     RouterLink,
+    ContextBreadcrumb,
     MembresTab,
     OrganisateursTab,
     UserAvatarComponent,
@@ -84,6 +86,7 @@ export class AdminMembres implements OnDestroy, OnInit {
   protected readonly permissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly activeTab = signal<AdminMembresTab>('membres')
+  protected readonly isTroupeHubRoute = signal(true)
 
   protected readonly canManageMembers = computed(() => this.isTroupeAdmin())
   protected readonly canManageSeasonOrganizers = computed(
@@ -101,19 +104,20 @@ export class AdminMembres implements OnDestroy, OnInit {
   protected readonly pageTitle = computed(() =>
     this.activeTab() === 'organisateurs' ? 'Organisateur·ices' : 'Membres',
   )
-  protected readonly subtitle = computed(() => {
-    const troupe = this.troupeName()
-    const se = this.season()
-    if (this.activeTab() === 'organisateurs' && se) {
-      return troupe ? `${se.title} · ${troupe}` : se.title
-    }
-    return troupe ?? ''
-  })
+  protected readonly breadcrumbLeaf = computed(() => this.pageTitle())
+  protected readonly breadcrumbLayout = computed<ContextBreadcrumbLayout>(() =>
+    this.isTroupeHubRoute() ? 'troupe' : 'season',
+  )
   protected readonly selectedSeasonSlug = computed(() => this.season()?.slug ?? '')
   protected readonly troupeSlug = signal<string | null>(null)
-  protected readonly backLink = computed(() => {
-    const slug = this.troupeSlug()
-    return slug ? troupeHubPath(slug) : troupesListPath()
+  protected readonly showBreadcrumb = computed(() => {
+    if (!this.troupeName()?.trim() || !this.troupeSlug()?.trim() || this.loading()) {
+      return false
+    }
+    if (this.breadcrumbLayout() === 'season') {
+      return !!this.season()?.title?.trim()
+    }
+    return true
   })
 
   protected userDisplayLabel(): string {
@@ -202,6 +206,9 @@ export class AdminMembres implements OnDestroy, OnInit {
     this.seasons.set([])
     this.permissions.set(null)
     this.troupeSlug.set(null)
+    const { troupeSlug, legacySeasonSlug } = routeParams
+    const isTroupeRoute = legacySeasonSlug === ''
+    this.isTroupeHubRoute.set(isTroupeRoute)
 
     const loaded = await this.troupeContext.load()
     if (requestId !== this.loadRequestId) return
@@ -215,8 +222,6 @@ export class AdminMembres implements OnDestroy, OnInit {
 
     let troupe = this.troupeContext.selectedTroupe()
     let selectedSeason: SeasonResponse | null = null
-    const { troupeSlug, legacySeasonSlug } = routeParams
-    const isTroupeRoute = legacySeasonSlug === ''
 
     if (troupeSlug) {
       const match = this.troupeContext.activeTroupes().find((t) => t.slug === troupeSlug)

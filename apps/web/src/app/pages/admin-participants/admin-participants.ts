@@ -29,6 +29,7 @@ import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
+import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { AddParticipantDialog } from './add-participant-dialog'
 
@@ -44,14 +45,13 @@ import { AddParticipantDialog } from './add-participant-dialog'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
+    ContextBreadcrumb,
     UserAvatarComponent,
   ],
   templateUrl: './admin-participants.html',
   styleUrl: './admin-participants.scss',
 })
 export class AdminParticipants implements OnDestroy, OnInit {
-  protected readonly saisonWorkspacePath = saisonWorkspacePath
-
   private readonly auth = inject(AuthApiService)
   private readonly troupeContext = inject(TroupeContextService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
@@ -75,18 +75,19 @@ export class AdminParticipants implements OnDestroy, OnInit {
   protected readonly season = signal<SeasonResponse | null>(null)
   protected readonly troupeId = signal<string | null>(null)
   protected readonly troupeName = signal<string | null>(null)
+  protected readonly troupeSlug = signal<string | null>(null)
   protected readonly permissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly participants = signal<SeasonParticipantAdmin[]>([])
   protected readonly searchQuery = signal('')
   protected readonly debouncedSearch = signal('')
 
-  protected readonly subtitle = computed(() => {
-    const se = this.season()
-    const troupe = this.troupeName()
-    if (!se) return ''
-    return troupe ? `${se.title} · ${troupe}` : se.title
-  })
+  protected readonly showBreadcrumb = computed(
+    () =>
+      !!this.troupeName()?.trim() &&
+      !!this.troupeSlug()?.trim() &&
+      !!this.season()?.title.trim(),
+  )
 
   protected readonly filteredParticipants = computed(() => {
     const q = this.debouncedSearch().trim().toLowerCase()
@@ -251,6 +252,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
 
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
+    this.troupeSlug.set(resolved.troupe.slug)
     this.troupeContext.selectTroupe(resolved.troupe.id)
     this.season.set(resolved.season)
     const pr = await this.organizerApi.mySeasonPermissions(resolved.season.id)
