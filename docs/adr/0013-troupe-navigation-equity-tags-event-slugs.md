@@ -47,10 +47,14 @@ Usability testing on wireframes was **not run** (no participants available); dec
 - **Mobile:** **troupe logo only** in breadcrumb slot (tap → troupe hub); season/event titles in page body to avoid overflow.
 - **No ⚙** in global header.
 
-**`app-scope-admin-bar`** (below header, one scope per screen)
+**`app-scope-admin-menu`** (one scope per screen, role-gated)
 
-- Troupe hub / season workspace / event detail each expose **one** expandable admin strip when permitted (e.g. « Administration de la troupe », « … de la saison », « … du spectacle »).
-- Troupe **member preferences** (pseudo, preferred roles) behind a **secondary preferences** control on troupe hub — not primary chrome.
+- **Control:** gear icon (`settings` / `admin_panel_settings`) opening a **`mat-menu`** with scope-appropriate entries (router links and dialog actions). Hidden when the user has no entries for that scope.
+- **Placement:** **inline in view chrome** — not a full-width row below the header. Examples: season workspace — gear to the **right** of **Agenda | Historique** in the season toolbar; event detail — gear on the tab/actions row; troupe hub — gear in the hero/toolbar row (not a band across the canvas).
+- Labels in menu items remain explicit (e.g. Participants, Organisateur·ices, Membres); optional menu header text may repeat scope (« Administration de la saison ») for screen readers.
+- Troupe **member preferences** (pseudo, preferred roles) behind a **secondary preferences** control on troupe hub — not the admin gear menu.
+
+**No ⚙ in the global header row** (breadcrumb + avatar) — administration stays out of context navigation (Story 17.1). This is distinct from the contextual gear in the workspace toolbar.
 
 **Remove** redundant `event-context-strip` once breadcrumb ships. Event troupe link targets **`/troupes/:slug`**, not `/troupe/.../admin/membres`.
 
@@ -98,7 +102,7 @@ Usability testing on wireframes was **not run** (no participants available); dec
 
 - **Breaking change** to ADR 0012 §3 and DOMAIN travel-league wording; Epic 13.6 scope must be revisited.
 - New columns + API fields; draw/stats refactor; frontend route and component work (Epic 17).
-- Breadcrumb responsive rules and admin strip discoverability need UX follow-up when usability tests are possible.
+- Breadcrumb responsive rules and admin menu placement need UX follow-up when usability tests are possible.
 
 ### Migration
 
@@ -119,7 +123,8 @@ Usability testing on wireframes was **not run** (no participants available); dec
 | Multi-select tags per event | User rule: one tag only; avoids overlapping pools |
 | Show « Principal » in UI | Clutters form; principal is implicit when empty |
 | Full breadcrumb on mobile | Horizontal overflow; logo-only compromise |
-| ⚙ in header | Competes with breadcrumb; admin scoped per screen below header |
+| ⚙ in breadcrumb header row | Competes with breadcrumb; admin scoped per screen via toolbar gear menu |
+| Full-width admin strip below header | Rejected 2026-05-25 (post-17.2 review); wastes vertical space; PO prefers inline gear + dropdown |
 
 ## References
 

@@ -225,31 +225,23 @@ Replaces left chevron + orphan context strip on season/event screens.
 
 - Logo = troupe `logoUrl` or fallback icon; `aria-label` includes full path for screen readers.
 - No link on current leaf segment.
-- **No ⚙ in header** — admin entry moved to contextual strip (see below).
+- **No ⚙ in breadcrumb header row** — admin via contextual gear menu in view toolbar (see below).
 - **Remove** `event-context-strip` duplicate line once breadcrumb ships.
 
-#### Shared component: `app-scope-admin-bar` (below header, role-gated)
+#### Shared component: `app-scope-admin-menu` (inline gear + dropdown, role-gated)
 
-Placed on **main canvas** of troupe hub, season workspace, and event detail — not in top chrome.
+**Not** a full-width strip below the header. **Gear icon** in view chrome opens **`mat-menu`** with scope entries.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ [⚙ Administration de la troupe ▾]   (TROUPE_ADMIN only)      │
-│   → Membres · Paramètres · …                                 │
-└──────────────────────────────────────────────────────────────┘
+Season toolbar (example):
+[ Filtres… ]                    [ Agenda | Historique ]  [ ⚙ ▾ ]
 
-┌──────────────────────────────────────────────────────────────┐
-│ [⚙ Administration de la saison ▾]   (season orga perms)    │
-│   → Participants · Organisateur·ices · …                     │
-└──────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────┐
-│ [⚙ Administration du spectacle ▾]   (event-level perms)      │
-│   → Participants · Organisateur·ices · …                     │
-└──────────────────────────────────────────────────────────────┘
+Troupe hub / event detail: same pattern — gear beside primary view controls, not its own row.
 ```
 
-One scope visible per screen (troupe | saison | spectacle).
+One scope per screen (troupe | saison | spectacle). Hidden when no permissions.
+
+**Supersedes (2026-05-25):** expandable `app-scope-admin-bar` band — rejected after 17.2 implementation review.
 
 #### Wireframe P1 — `/troupes` (replaces `/seasons` list semantics)
 
@@ -491,7 +483,7 @@ _Pre-test synthesis from design session (Patrice); to validate or invalidate in 
 |----------|--------------|-------|---------|
 | — | Usability sessions (skipped — no participants) | — | — |
 | P0 | **17.1** Breadcrumb + mobile logo-only + remove header ⚙ | Nav | — |
-| P0 | **17.2** `app-scope-admin-bar` on troupe/saison/event | Nav | 17.1 |
+| P0 | **17.2** `app-scope-admin-menu` (gear + dropdown) on troupe/saison/event | Nav | 17.1 |
 | P0 | **17.3** `/troupes` page (cards Mes + Découvrir stub) | Nav | API troupe list + event counts |
 | P0 | **17.4** `/troupes/:slug` hub (logo, saisons, préférences drawer) | Nav | 17.3 |
 | P0 | **17.5** Redirects `/seasons`, `/ligue`; fix event troupe link | Nav | 17.4 |

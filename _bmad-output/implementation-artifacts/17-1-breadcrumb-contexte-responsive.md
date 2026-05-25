@@ -15,7 +15,7 @@ so that **I can orient myself without using `/seasons` as a back target** and ca
 1. **Given** desktop viewport (≥ `480px`, matching existing header breakpoints), **when** the user is on `/saison/:slug` or `/ligue/:slug` (alias), **then** the top chrome shows **`app-context-breadcrumb`** with: troupe logo + troupe name (link) › saison title (current segment, not a link). [Source: `_bmad-output/planning-artifacts/epics.md` Story 17.1; ADR 0013 §2; UX Screen 3]
 2. **Given** desktop, **when** the user is on `/saison/:slug/event/:eventId` (or `/ligue/...` alias), **then** the breadcrumb is: troupe logo + name (link) › saison title (link to season workspace) › spectacle title (current leaf, not linked). [Source: epics 17.1; UX Screen 6 amended; design-thinking wireframe P3]
 3. **Given** mobile viewport (`max-width: 480px`), **when** on season or event screens above, **then** the breadcrumb slot shows **only the troupe logo** (tap → troupe hub); saison title (and on event: spectacle title + datetime) appear **below** the header row in the page body, without horizontal overflow. [Source: ADR 0013 §2; UX-DR19]
-4. **Given** any signed-in screen using the refactored season/event headers, **when** rendered, **then** there is **no `settings` (⚙) icon button** in the header (admin moves to Story **17.2** `app-scope-admin-bar`). [Source: epics 17.1; ADR 0013 §2]
+4. **Given** any signed-in screen using the refactored season/event headers, **when** rendered, **then** there is **no `settings` (⚙) icon button** in the header (admin moves to Story **17.2** `app-scope-admin-menu` (gear in view toolbar, not breadcrumb row)). [Source: epics 17.1; ADR 0013 §2]
 5. **Given** season or event header after this story, **when** loaded, **then** the **back chevron** to `/seasons` or “retour agenda” is **removed**; wayfinding uses breadcrumb segments instead. [Source: design-thinking 2026-05-25; UX Screen 3 “Removed vs 2026-05-24”]
 6. **Given** resolved troupe context (`troupeSlug`, `troupeName` from `TroupeSeasonResolverService`), **when** the user activates the troupe logo or name in the breadcrumb, **then** navigation targets **`/troupes/:troupeSlug`** (canonical hub path per ADR 0013). [Source: ADR 0013 §1–2; design-thinking item 7]
 7. **Given** breadcrumb saison segment on event detail, **when** activated, **then** navigation targets **`/saison/:slug`** (not `/ligue/:slug` in new links; alias route may still exist). [Source: `app.routes.ts`; ADR 0013 route table]
@@ -59,7 +59,7 @@ so that **I can orient myself without using `/seasons` as a back target** and ca
 
 - [x] **Explicit non-goals** (scope guard)
   - [x] Do **not** remove `app-event-context-strip` (Story **17.5**).
-  - [x] Do **not** implement `app-scope-admin-bar` (Story **17.2**).
+  - [x] Do **not** implement `app-scope-admin-menu` (Story **17.2**).
   - [x] Do **not** add `/troupes` list page (17.3), full hub (17.4), or redirects (17.5).
   - [x] Do **not** change post-login routing, `/agenda`, or event slugs.
 
@@ -74,7 +74,7 @@ so that **I can orient myself without using `/seasons` as a back target** and ca
 
 | In scope (17.1) | Out of scope (later 17.x) |
 |-----------------|---------------------------|
-| `app-context-breadcrumb` on season + event screens | `app-scope-admin-bar` (**17.2**) |
+| `app-context-breadcrumb` on season + event screens | `app-scope-admin-menu` (**17.2**) |
 | Remove header ⚙ and back chevrons on those screens | Restore admin entries (**17.2**) |
 | Responsive desktop/mobile chrome rules | Remove `event-context-strip` (**17.5**) |
 | `troupe-routes.ts` + `saisonWorkspacePath` helpers | `/troupes` page (**17.3**), full hub (**17.4**) |

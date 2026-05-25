@@ -204,16 +204,16 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Paris')
   })
 
-  it('hides kebab without canManageEvents', async () => {
+  it('hides admin gear on Infos without any admin rights', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(getEvent).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.querySelector('.event-infos__kebab')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger')).toBeNull()
   })
 
-  it('shows kebab when canManageEvents', async () => {
+  it('shows unified admin gear on Infos when canManageEvents', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {
@@ -233,8 +233,16 @@ describe('EventDetail', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-infos__kebab')).not.toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+      ).not.toBeNull()
     })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    expect(cmp.eventAdminItems().map((i) => i.label)).toContain('Modifier')
+    expect(cmp.eventAdminItems().map((i) => i.label)).toContain('Archiver')
   })
 
   it('selects Dispos tab when showAvailability=true', async () => {
@@ -307,7 +315,7 @@ describe('EventDetail', () => {
     )
   })
 
-  it('hides kebab when event is archived even with canManageEvents', async () => {
+  it('hides Modifier and Archiver when event is archived', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {
@@ -332,7 +340,12 @@ describe('EventDetail', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-infos__kebab')).toBeNull()
+      const cmp = fixture.componentInstance as unknown as {
+        eventAdminItems: () => Array<{ label: string }>
+      }
+      const labels = cmp.eventAdminItems().map((i) => i.label)
+      expect(labels).not.toContain('Modifier')
+      expect(labels).not.toContain('Archiver')
     })
   })
 
@@ -373,6 +386,168 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.textContent).not.toContain(
       'La confirmation de participation sera disponible dans une prochaine version.',
     )
+  })
+
+  it('shows scope admin menu with saison participants when permitted', async () => {
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: true,
+        eventOrganizerFor: [],
+        canManageEvents: false,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: false,
+        canManageMembers: false,
+        canManageEventOrganizers: false,
+        canManageEventParticipants: false,
+        canManageSeasons: false,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+      ).not.toBeNull()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string; routerLink?: string[] }>
+    }
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants'])
+
+    const trigger = fixture.nativeElement.querySelector(
+      '.event-infos__admin-menu .scope-admin-menu__trigger',
+    ) as HTMLButtonElement
+    expect(trigger.getAttribute('aria-label')).toBe('Administration du spectacle')
+    expect(fixture.nativeElement.querySelector('[aria-label="Réglages saison"]')).toBeNull()
+  })
+
+  it('shows spectacle admin menu for event-only participant admin', async () => {
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: [],
+        canManageEvents: false,
+        canManageSeasonParticipants: false,
+        canManageSeasonOrganizers: false,
+        canManageMembers: false,
+        canManageEventOrganizers: false,
+        canManageEventParticipants: false,
+        canManageSeasons: false,
+        eventParticipantAdminFor: ['event-2'],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+      ).not.toBeNull()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string; action?: () => void }>
+      openEventParticipantsAdmin: () => void
+    }
+    expect(cmp.eventAdminItems()[0]?.label).toBe('Participants du spectacle')
+    cmp.openEventParticipantsAdmin()
+    expect(dialogOpen).toHaveBeenCalled()
+  })
+
+  it('does not show admin gear on Dispos tab', async () => {
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: true,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: [],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(getEvent).toHaveBeenCalled())
+
+    ;(fixture.componentInstance as unknown as { onTabChange(index: number): void }).onTabChange(1)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.event-infos__admin-menu')).toBeNull()
+  })
+
+  it('shows spectacle organizers action for event-only organizer', async () => {
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: false,
+        canManageSeasonParticipants: false,
+        canManageSeasonOrganizers: false,
+        canManageMembers: false,
+        canManageEventOrganizers: false,
+        canManageEventParticipants: false,
+        canManageSeasons: false,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+      ).not.toBeNull()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+      openEventOrganizersAdmin: () => void
+    }
+    expect(cmp.eventAdminItems()[0]?.label).toBe('Organisateur·ices du spectacle')
+    cmp.openEventOrganizersAdmin()
+    expect(dialogOpen).toHaveBeenCalled()
+  })
+
+  it('omits spectacle organizers entry when saison organizers link is shown', async () => {
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: true,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: false,
+        canManageSeasonParticipants: false,
+        canManageSeasonOrganizers: true,
+        canManageMembers: false,
+        canManageEventOrganizers: false,
+        canManageEventParticipants: false,
+        canManageSeasons: false,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+      ).not.toBeNull()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Organisateur·ices'])
   })
 
   it('does not render header settings or back chevron after breadcrumb refactor', async () => {

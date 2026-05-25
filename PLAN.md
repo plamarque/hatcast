@@ -309,10 +309,11 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | Story | Titre | Priorité | Depends |
 |-------|-------|----------|---------|
 | **17.1** | Breadcrumb contexte (desktop complet, mobile = logo troupe) ; retirer ⚙ du header global | P0 | — |
-| **17.2** | Bandeau `app-scope-admin-bar` (troupe / saison / spectacle) | P0 | 17.1 |
+| **17.2** | Menu `app-scope-admin-menu` — engrenage + dropdown (troupe / saison / spectacle) | P0 | 17.1 |
 | **17.3** | Page `/troupes` — sections Mes troupes + Découvrir, cards (logo, membres, spectacles à venir) | P0 | API compteurs |
 | **17.4** | Hub `/troupes/:slug` — logo, saisons, ⚙ admin, préférences (pseudo, rôles) | P0 | 17.3 |
 | **17.5** | Redirects `/seasons`, `/ligue/*` ; liens événement → hub troupe ; breadcrumb sur `/troupes` | P0 | 17.4 |
+| **17.11** | Breadcrumb pages admin (Participants saison/spectacle, Membres troupe) — clôture LIMIT-002 | P1 | 17.1, 17.2 ; 17.5 recommandé |
 | **17.6** | `events.slug` — migration, API, routes `/saison/:slug/event/:eventSlug`, redirect UUID | P1 | — |
 | **17.7** | `equity_tag` + glossaire tags par troupe (API) | P1 | ADR 0013 |
 | **17.8** | Formulaire spectacle — tag optionnel, autocomplete, aide, suppression | P1 | 17.7 |
@@ -320,6 +321,8 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **17.10** | Statistiques par tag ; migration `template_type=deplacement` → tag ; **annule piste 13.6** | P2 | 17.9, 3.6 |
 
 **DoD phase navigation (17.1–17.5) :** plus de hub `/seasons` ; breadcrumb sur troupe/saison/événement ; admin troupe depuis hub ; lien nom de troupe sur événement → hub.
+
+**Story 17.11** (P1) — aligne le chrome des pages admin Participants / Membres (LIMIT-002) ; fichier story prêt pour dev après **17.5** recommandé.
 
 **DoD phase domaine (17.7–17.10) :** tag persisté ; tirage respecte compartiments ; stats DEPLACEMENT via tag.
 

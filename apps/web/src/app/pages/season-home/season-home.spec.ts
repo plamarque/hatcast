@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { WritableSignal } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -123,6 +123,7 @@ describe('SeasonHome', () => {
     await TestBed.configureTestingModule({
       imports: [SeasonHome],
       providers: [
+        provideRouter([]),
         { provide: ActivatedRoute, useValue: {
           paramMap: paramMap$.asObservable(),
           queryParamMap: queryParamMap$.asObservable(),
@@ -246,6 +247,53 @@ describe('SeasonHome', () => {
     ])
   })
 
+  it('affiche le bandeau admin saison avec liens participants et organisateurs', async () => {
+    organizerApi.mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        canManageSeasonOrganizers: true,
+        canManageEventOrganizers: false,
+        canManageMembers: false,
+        canManageSeasons: false,
+        canManageEvents: false,
+        canManageSeasonParticipants: true,
+        canManageEventParticipants: false,
+        isTroupeAdmin: false,
+        isSeasonOrganizer: true,
+        eventOrganizerFor: [],
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('app-season-view-toolbar app-scope-admin-menu'),
+      ).not.toBeNull()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      seasonAdminItems: () => Array<{
+        label: string
+        routerLink?: string[]
+        queryParams?: Record<string, string>
+      }>
+    }
+    const items = cmp.seasonAdminItems()
+    expect(items.map((i) => i.label)).toEqual(['Participants', 'Organisateur·ices'])
+    expect(items[0]?.routerLink).toEqual(['/saison', 'season-a', 'admin', 'participants'])
+    expect(items[1]?.routerLink).toEqual(['/saison', 'season-a', 'admin', 'membres'])
+    expect(items[1]?.queryParams).toEqual({ onglet: 'organisateurs' })
+
+    const trigger = fixture.nativeElement.querySelector(
+      '.scope-admin-menu__trigger',
+    ) as HTMLButtonElement
+    expect(trigger.getAttribute('aria-label')).toBe('Administration de la saison')
+    expect(fixture.nativeElement.querySelector('[aria-label="Réglages saison"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.scope-admin-bar')).toBeNull()
+  })
+
   it('masque le menu réglages pour un admin troupe sans droit participants ni orga saison', () => {
     const cmp = fixture.componentInstance as unknown as {
       seasonPermissions: { set: (v: MySeasonPermissions) => void }
@@ -266,6 +314,7 @@ describe('SeasonHome', () => {
     })
 
     expect(cmp.canManageSettings()).toBe(false)
+    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeNull()
   })
 
   it('affiche le menu réglages pour participants ou orga saison sans admin troupe', () => {

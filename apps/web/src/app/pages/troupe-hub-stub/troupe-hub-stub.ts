@@ -9,14 +9,14 @@ import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redir
 import { troupeAdminMembresPath } from '../../core/navigation/troupe-routes'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
-  ScopeAdminBar,
-  type ScopeAdminBarItem,
-} from '../../shared/scope-admin-bar/scope-admin-bar'
+  ScopeAdminMenu,
+  type ScopeAdminMenuItem,
+} from '../../shared/scope-admin-menu/scope-admin-menu'
 
 /** Minimal hub placeholder until Story 17.4 — avoids 404 on breadcrumb troupe links. */
 @Component({
   selector: 'app-troupe-hub-stub',
-  imports: [MatProgressSpinnerModule, RouterLink, ScopeAdminBar],
+  imports: [MatProgressSpinnerModule, RouterLink, ScopeAdminMenu],
   templateUrl: './troupe-hub-stub.html',
   styleUrl: './troupe-hub-stub.scss',
 })
@@ -36,7 +36,7 @@ export class TroupeHubStub implements OnInit {
   protected readonly notFound = signal(false)
   protected readonly isTroupeAdmin = signal(false)
 
-  protected readonly troupeAdminItems = computed<ScopeAdminBarItem[]>(() => {
+  protected readonly troupeAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     if (!this.isTroupeAdmin()) {
       return []
     }

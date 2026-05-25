@@ -37,6 +37,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Expected behavior**: Identifier si la lenteur vient du RTT Neon, du coût serveur (candidats, tirage, lifecycle), ou du front (rechargements redondants). Cible : mesurer p95 des endpoints `/composition/*` et réduire les allers-retours après mutation.
 - **Notes/context**: Profilage 2026-05-25 : cause = `ensureMembershipParticipants` N+1 + explainability complète + `resolveViewerParticipantIds` chargeant 35 lignes à chaque mutation. Correctifs : bulk/cache/`JOIN FETCH`, fast path mutations sans explainability, requêtes viewer ciblées, `saveAll` slots au tirage. Logs 2026-05-25 : mutations HTTP **~0,95–1,2 s** (assign L91, validate L123, unlock L95) vs **~7–12 s** initial ; `explainMs≈0` sur mutations (L90) ; overlay ~1 s puis animation tirage ~3 s (5×450 ms). Index SQL déjà OK (EXPLAIN sous 1 ms). RTT Neon + travail métier restant ~400 ms/req hors SQL.
 
+### LIMIT-002 — Admin back-office pages still use legacy header (chevron back, no breadcrumb)
+- **ID**: LIMIT-002
+- **Status**: Open
+- **Severity**: Low (UX inconsistency; navigation works)
+- **Affected area**: V2 `apps/web` — admin chrome on `/saison/:slug/admin/participants`, event-scoped participant admin (same component), `/troupe/:slug/admin/membres` (and legacy `/troupe/...` alias)
+- **Observed behavior** (recette post–Story 17.2, 2026-05-25): These screens keep a **chevron back** to agenda/workspace and **no** `app-context-breadcrumb`, unlike season workspace, event detail, and troupe hub after Epic 17.1–17.2.
+- **Expected behavior** (future): Align admin pages with ADR 0013 chrome — breadcrumb (troupe › saison › … › admin leaf) and **no** redundant back chevron; consistent with member-facing deep screens.
+- **Notes/context**: **Out of scope** for Stories 17.1 and 17.2 (scope admin **menu** entry only). Captured at 17.2 closure per PO. **Scheduled:** Epic 17 **Story 17.11** (`17-11-breadcrumb-pages-admin-back-office.md`, `ready-for-dev`). Suggested order: after **17.5**. See `_bmad-output/planning-artifacts/ux-design-scope-admin-menu-epic17.md` § Follow-up and `sprint-change-proposal-2026-05-25-epic17-admin-chrome-stories.md`.
+
 ### LIMIT-001 — E2E tests depend on live base state; need fixture re-architecture
 - **ID**: LIMIT-001
 - **Status**: Open

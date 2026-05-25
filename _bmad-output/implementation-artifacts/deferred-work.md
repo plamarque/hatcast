@@ -1,3 +1,11 @@
+## Deferred from: code review of 17-2-bandeau-administration-par-scope.md (2026-05-25)
+
+- Suite web 355/356 — échec préexistant `event-dispos-tab.spec.ts` (assertion « 100 % ») — hors périmètre 17.2 ; AC9 documenté comme connu dans la story.
+
+## Follow-up at story closure (17-2, PO 2026-05-25) — scheduled as Epic 17.11
+
+- **LIMIT-002** → **Story 17.11** `17-11-breadcrumb-pages-admin-back-office.md` (`ready-for-dev`, backlog in sprint-status). Correct Course SCP: `sprint-change-proposal-2026-05-25-epic17-admin-chrome-stories.md`.
+
 ## Deferred from: code review of 17-1-breadcrumb-contexte-responsive.md (2026-05-25)
 
 - Double affichage troupe·saison (breadcrumb mobile + `app-event-context-strip`) — acceptable until Story 17.5 removes the strip.

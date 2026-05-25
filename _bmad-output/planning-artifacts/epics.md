@@ -1317,21 +1317,22 @@ afin de naviguer sans repasser par `/seasons`.
 
 - **Given** desktop, **when** écran saison ou spectacle, **then** fil d’Ariane : logo + nom troupe (lien hub) › titre saison › titre spectacle (feuille non cliquable).
 - **Given** mobile, **when** même écrans, **then** seul le **logo troupe** est dans la barre supérieure (lien hub) ; titres saison/spectacle sous le header.
-- **Given** header global, **when** any screen, **then** pas d’icône ⚙ dans le header (admin déplacé — 17.2).
+- **Given** header global (fil d’Ariane + compte), **when** any screen, **then** pas d’icône ⚙ dans cette ligne (admin via menu engrenage dans la toolbar de la vue — 17.2).
 - **Couverture :** ADR 0013 §2 ; design-thinking wireframes P2–P3.
 
-#### Story 17.2 : Bandeau administration par scope
+#### Story 17.2 : Menu administration par scope (icône engrenage)
 
 En tant qu’**organisateur ou admin**,  
-je veux accéder aux actions d’administration **du niveau courant** (troupe, saison, spectacle) sous le header,  
-afin de ne pas confondre avec la navigation contextuelle.
+je veux accéder aux actions d’administration **du niveau courant** (troupe, saison, spectacle) via une **icône engrenage** et un **menu déroulant**,  
+afin de ne pas confondre avec la navigation contextuelle ni consommer une ligne dédiée sous le header.
 
 **Acceptance Criteria**
 
-- **Given** hub `/troupes/:slug`, **when** `TROUPE_ADMIN`, **then** bandeau « Administration de la troupe » avec entrée Membres (et extensions futures).
-- **Given** `/saison/:slug`, **when** droits saison, **then** bandeau « Administration de la saison » (participants, organisateurs, …).
-- **Given** détail spectacle, **when** droits événement, **then** bandeau « Administration du spectacle » si applicable.
-- **Given** membre sans droit, **when** page chargée, **then** bandeau absent.
+- **Given** hub `/troupes/:slug`, **when** `TROUPE_ADMIN`, **then** icône engrenage (menu) avec au moins **Membres** vers admin troupe ; pas de bandeau pleine largeur.
+- **Given** `/saison/:slug`, **when** droits saison, **then** engrenage **dans la toolbar** (à droite des vues Agenda | Historique) ouvrant un menu (Participants, Organisateur·ices, …).
+- **Given** détail spectacle, **when** droits événement, **then** engrenage unique sur l’onglet **Infos** (haut droite), menu fusionnant admin scope + Modifier/Archiver ; pas sur Dispos/Équipe.
+- **Given** fil d’Ariane + compte, **when** écran saison ou spectacle, **then** **pas** d’engrenage dans cette ligne header (17.1).
+- **Given** membre sans droit, **when** page chargée, **then** contrôle admin absent.
 
 #### Story 17.3 : Page `/troupes` (Mes troupes + Découvrir)
 
@@ -1367,6 +1368,22 @@ afin de centraliser la vie de la troupe hors liste des saisons globale.
 - **Given** `/ligue/:slug`, **when** GET, **then** redirect `/saison/:slug` (et event paths).
 - **Given** agenda membre, **when** lien « Mes troupes », **then** `/troupes`.
 - **Given** `event-context-strip` retiré ou simplifié, **when** breadcrumb actif, **then** pas de duplication troupe·saison.
+
+#### Story 17.11 : Fil d’Ariane sur pages admin back-office
+
+En tant qu’**organisateur ou admin** sur les écrans **Participants** (saison ou spectacle) ou **Membres** (troupe),  
+je veux le **même fil d’Ariane** que sur les écrans membre (sans chevron retour legacy),  
+afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
+
+**Acceptance Criteria**
+
+- **Given** `/saison/:slug/admin/participants`, **when** contexte résolu, **then** fil d’Ariane troupe › saison › Participants (feuille) ; **pas** de chevron retour agenda.
+- **Given** admin participants **spectacle**, **when** chargé, **then** fil d’Ariane troupe › saison › spectacle › Participants ; **pas** de chevron retour.
+- **Given** `/troupes/:slug/admin/membres` (ou alias `/troupe/...`), **when** page admin membres, **then** fil d’Ariane cohérent avec le hub troupe ; **pas** de chevron vers `/seasons`.
+- **Given** mobile, **when** ces écrans, **then** règles responsive **17.1** (logo troupe dans le header).
+- **Given** implémentation terminée, **when** recette, **then** **LIMIT-002** peut être clôturé. [Source: ISSUES.md]
+
+**Story file:** [_bmad-output/implementation-artifacts/17-11-breadcrumb-pages-admin-back-office.md](../implementation-artifacts/17-11-breadcrumb-pages-admin-back-office.md)
 
 #### Story 17.6 : Slug événement dans les URLs
 

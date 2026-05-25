@@ -1,29 +1,13 @@
 <main class="event-infos">
-  <div class="event-infos__status-row">
-    <app-composition-status-badge [badge]="event().teamStatusBadge" [short]="false" />
-    @if (compositionStatusHint(event()); as hint) {
-      <p class="event-infos__status-hint">{{ hint }}</p>
-    }
-    @if (showKebab()) {
-      <button
-        mat-icon-button
-        type="button"
-        class="event-infos__kebab"
-        [matMenuTriggerFor]="eventMenu"
-        aria-label="Actions sur le spectacle"
-      >
-        <mat-icon>more_vert</mat-icon>
-      </button>
-      <mat-menu #eventMenu="matMenu">
-        <button mat-menu-item type="button" (click)="editRequested.emit()">
-          <mat-icon>edit</mat-icon>
-          <span>Modifier</span>
-        </button>
-        <button mat-menu-item type="button" (click)="archiveRequested.emit()">
-          <mat-icon>archive</mat-icon>
-          <span>Archiver</span>
-        </button>
-      </mat-menu>
+  <div class="event-infos__header">
+    <div class="event-infos__status-row">
+      <app-composition-status-badge [badge]="event().teamStatusBadge" [short]="false" />
+      @if (compositionStatusHint(event()); as hint) {
+        <p class="event-infos__status-hint">{{ hint }}</p>
+      }
+    </div>
+    @if (adminItems().length > 0) {
+      <app-scope-admin-menu class="event-infos__admin-menu" scope="event" [items]="adminItems()" />
     }
   </div>
 

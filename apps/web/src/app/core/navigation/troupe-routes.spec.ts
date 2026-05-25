@@ -19,13 +19,12 @@ describe('troupe-routes', () => {
   })
 
   it('builds saison workspace path', () => {
-    expect(saisonWorkspacePath('festibask')).toEqual(['/', 'saison', 'festibask'])
+    expect(saisonWorkspacePath('festibask')).toEqual(['/saison', 'festibask'])
   })
 
   it('builds saison admin participants path', () => {
     expect(saisonAdminParticipantsPath('festibask')).toEqual([
-      '/',
-      'saison',
+      '/saison',
       'festibask',
       'admin',
       'participants',
@@ -34,8 +33,7 @@ describe('troupe-routes', () => {
 
   it('builds saison admin membres path', () => {
     expect(saisonAdminMembresPath('festibask')).toEqual([
-      '/',
-      'saison',
+      '/saison',
       'festibask',
       'admin',
       'membres',
@@ -44,8 +42,7 @@ describe('troupe-routes', () => {
 
   it('builds troupe admin membres path', () => {
     expect(troupeAdminMembresPath('la-malice')).toEqual([
-      '/',
-      'troupe',
+      '/troupe',
       'la-malice',
       'admin',
       'membres',

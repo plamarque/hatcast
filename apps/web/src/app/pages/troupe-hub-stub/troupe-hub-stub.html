@@ -5,8 +5,10 @@
     <p class="troupe-hub-stub__status">Troupe introuvable.</p>
     <a routerLink="/agenda">Voir mon agenda</a>
   } @else if (troupeName(); as name) {
-    <h1 class="troupe-hub-stub__title">{{ name }}</h1>
-    <app-scope-admin-bar scope="troupe" [items]="troupeAdminItems()" />
+    <div class="troupe-hub-stub__hero-row">
+      <h1 class="troupe-hub-stub__title">{{ name }}</h1>
+      <app-scope-admin-menu scope="troupe" [items]="troupeAdminItems()" />
+    </div>
     <p class="troupe-hub-stub__copy">Hub troupe — story 17.4</p>
     <a routerLink="/agenda">Voir mon agenda</a>
   }

@@ -42,14 +42,18 @@
     </div>
   }
 
-  <mat-button-toggle-group
-    class="season-toolbar__views"
-    [value]="seasonView()"
-    (change)="seasonView.set($event.value)"
-    hideSingleSelectionIndicator
-    aria-label="Changer de vue saison"
-  >
-    <mat-button-toggle value="agenda">Agenda</mat-button-toggle>
-    <mat-button-toggle value="history">Historique</mat-button-toggle>
-  </mat-button-toggle-group>
+  <div class="season-toolbar__right">
+    <mat-button-toggle-group
+      class="season-toolbar__views"
+      [value]="seasonView()"
+      (change)="seasonView.set($event.value)"
+      hideSingleSelectionIndicator
+      aria-label="Changer de vue saison"
+    >
+      <mat-button-toggle value="agenda">Agenda</mat-button-toggle>
+      <mat-button-toggle value="history">Historique</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <app-scope-admin-menu [scope]="adminScope()" [items]="adminItems()" />
+  </div>
 </div>

@@ -37,11 +37,13 @@ uxDr: UX-DR13 through UX-DR21
 2. **One row per HatCast event** — inter-troupe matches never merge in the agenda.
 3. **Troupe + Saison always visible** where context could confuse (agenda rows, breadcrumb on deep screens). **[ADR-0013]**
 4. **Pseudo = troupe scope only** — on troupe hub via **Préférences** (secondary), not primary chrome. **[ADR-0013]**
-5. **Admin density vs member clarity** — admin actions in **scope bar below header** (not header ⚙); member agenda keeps V1 “spectacle” mood where feasible (UX-DR11).
+5. **Admin density vs member clarity** — admin actions via **scope gear menu** inline in view toolbar (not breadcrumb-row ⚙, not full-width strip); member agenda keeps V1 “spectacle” mood where feasible (UX-DR11).
 
 ---
 
 ## Shared chrome **[ADR-0013]**
+
+> **Screen-level detail (gear placement, menu entries):** [ux-design-scope-admin-menu-epic17.md](./ux-design-scope-admin-menu-epic17.md) — approved 2026-05-25.
 
 ### `app-context-breadcrumb`
 
@@ -53,17 +55,17 @@ uxDr: UX-DR13 through UX-DR21
 - User avatar menu stays **top-right** (Compte, Déconnexion).
 - **No ⚙** in global header.
 
-### `app-scope-admin-bar` (below breadcrumb / title, role-gated)
+### `app-scope-admin-menu` (inline in view chrome, role-gated)
 
-One strip per screen:
+One gear control per screen; **`mat-menu`** when multiple entries. **Not** a full-width row below the header.
 
-| Screen | Label (example) | Typical entries |
-|--------|-----------------|-----------------|
-| Troupe hub | Administration de la troupe | Membres, Paramètres (future) |
-| Season workspace | Administration de la saison | Participants, Organisateur·ices, … |
-| Event detail | Administration du spectacle | Event-scoped admin when applicable |
+| Screen | Placement | Typical menu entries |
+|--------|-----------|----------------------|
+| Troupe hub | Hero / top actions row | Membres, … |
+| Season workspace | **Right of** Agenda \| Historique toggles | Participants, Organisateur·ices, … |
+| Event detail | Right of tab bar (or actions cluster) | Season-level links + event-scoped actions |
 
-Hidden when user lacks permissions.
+Hidden when user lacks permissions (`items.length === 0`). Optional `aria-label` includes scope (e.g. « Administration de la saison »).
 
 ---
 
@@ -254,9 +256,9 @@ Card grid (responsive):
 |------|---------|
 | **Breadcrumb** | Desktop: `[logo] Troupe › Saison title` — Mobile: logo only → body title |
 | **Top-right** | Avatar menu only |
-| **Below** | `app-scope-admin-bar` — Administration de la saison (when permitted) |
+| **Toolbar right** | `app-scope-admin-menu` — gear + menu (when permitted), beside Agenda \| Historique |
 
-**Removed vs 2026-05-24:** back chevron to `/seasons`; ⚙ in header.
+**Removed vs 2026-05-24:** back chevron to `/seasons`; ⚙ in breadcrumb header row; full-width admin strip (rejected 2026-05-25).
 
 **View switcher tabs:** Agenda | Historique | Statistiques | *(admin: Spectacles, Participants)*
 
@@ -276,7 +278,7 @@ Card grid (responsive):
 |------|---------|
 | **Breadcrumb** | `Troupes › La Malice` (desktop) / logo slot (mobile) |
 | **Hero** | Large **logo + name** (centred or left per layout) |
-| **Below hero** | `app-scope-admin-bar` — Administration de la troupe (TROUPE_ADMIN) |
+| **Hero / actions row** | `app-scope-admin-menu` — gear (TROUPE_ADMIN) |
 | **Top-right** | Avatar menu |
 
 ### Block — Saisons **[ADR-0013]**
@@ -309,7 +311,7 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 **Acceptance hints:**
 
 - [ ] Multiple active seasons visible when applicable (ADR 0011)
-- [ ] Membres admin via scope bar, not `/seasons`
+- [ ] Membres admin via scope gear menu, not `/seasons`
 - [ ] Event detail troupe link lands here (not admin membres)
 
 ---
@@ -343,7 +345,7 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 |------|---------|
 | **Breadcrumb** | `[logo] Troupe › Saison › Event title` (mobile: logo + titles in body) |
 | **Top-right** | Avatar; event overflow ⋮ if needed (not global ⚙) |
-| **Below** | `app-scope-admin-bar` — Administration du spectacle (when permitted) |
+| **Infos tab** (top-right) | Single `app-scope-admin-menu` — gear merges season admin + Modifier/Archiver (no ⋮ kebab) |
 
 **Removed vs 2026-05-24:** chevron back; **context strip** (`La Malice · Ligue…`) — redundant with breadcrumb.
 
@@ -376,10 +378,11 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 ## Screen 7 — Admin Membres (`/troupes/:slug/admin/membres`)
 
-**Status:** Shipped (Story 2.8) — **entry paths updated**
+**Status:** Shipped (Story 2.8) — **chrome alignment → Story 17.11** (LIMIT-002)
 
-- From troupe hub **scope bar** → Membres
+- From troupe hub **scope gear menu** → Membres
 - Redirect legacy `/troupe/:slug/admin/membres` → `/troupes/:slug/admin/membres`
+- **Gap:** chevron back, no breadcrumb (align with 17.1 — follow-up doc § Follow-up)
 
 No layout redesign in MVP; optional polish Story 2.11.
 
@@ -387,10 +390,11 @@ No layout redesign in MVP; optional polish Story 2.11.
 
 ## Screen 8 — Participants saison (`/saison/:slug/admin/participants`)
 
-**Status:** Exists (Story 3.8)
+**Status:** Exists (Story 3.8) — **chrome alignment → Story 17.11** (LIMIT-002)
 
 - UI labels: **Saison** / Participants (not Ligue)
-- Entry: season `app-scope-admin-bar`
+- Entry: season `app-scope-admin-menu` (toolbar gear)
+- **Planned (17.11):** replace chevron header with breadcrumb per [17-11-breadcrumb-pages-admin-back-office.md](../implementation-artifacts/17-11-breadcrumb-pages-admin-back-office.md)
 
 ---
 
@@ -458,6 +462,7 @@ No layout redesign in MVP; optional polish Story 2.11.
 ## Implementation order
 
 - **Epic 17.1–17.5** — navigation (this document Screens 2b, 3, 4, 6 chrome + shared components)
+- **Epic 17.11** — admin back-office breadcrumb (Screens 7–8; closes LIMIT-002)
 - **Epic 17.6** — event slugs (Screen 6 URLs)
 - **Epic 17.7–17.8** — Screen 6b
 - **Epic 17.9–17.10** — draw/stats (see ADR 0013; `ux-design-hatcast-v2` for composition tabs)

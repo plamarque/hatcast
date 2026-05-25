@@ -29,10 +29,7 @@ import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
 } from '../../core/navigation/troupe-routes'
-import {
-  ScopeAdminBar,
-  type ScopeAdminBarItem,
-} from '../../shared/scope-admin-bar/scope-admin-bar'
+import type { ScopeAdminMenuItem } from '../../shared/scope-admin-menu/scope-admin-menu'
 import {
   ConfirmDialog,
   type ConfirmDialogData,
@@ -61,7 +58,6 @@ import { formatEventStartLong } from '../season-home/season-events.utils'
     MatTabsModule,
     EventContextStrip,
     EventDetailHeader,
-    ScopeAdminBar,
     EventDisposTab,
     EventEquipeTab,
     EventInfosTab,
@@ -135,13 +131,13 @@ export class EventDetail implements OnDestroy, OnInit {
       this.canManageSeasonParticipants() ||
       this.canManageSeasonOrganizersOnly(),
   )
-  protected readonly eventAdminItems = computed<ScopeAdminBarItem[]>(() => {
+  protected readonly eventAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     const slug = this.slug()
     const ev = this.event()
     if (!slug || !ev) {
       return []
     }
-    const items: ScopeAdminBarItem[] = []
+    const items: ScopeAdminMenuItem[] = []
     if (this.canManageSeasonParticipants()) {
       items.push({
         label: 'Participants',
@@ -164,16 +160,27 @@ export class EventDetail implements OnDestroy, OnInit {
         action: () => this.openEventParticipantsAdmin(),
       })
     }
-    if (this.isEventOrganizerFor(ev.id)) {
+    if (this.isEventOrganizerFor(ev.id) && !this.canManageSeasonOrganizersOnly()) {
       items.push({
         label: 'Organisateur·ices du spectacle',
         icon: 'badge',
         action: () => this.openEventOrganizersAdmin(),
       })
     }
+    if (this.canManageEvents() && !ev.archived) {
+      items.push({
+        label: 'Modifier',
+        icon: 'edit',
+        action: () => this.openEdit(),
+      })
+      items.push({
+        label: 'Archiver',
+        icon: 'archive',
+        action: () => this.confirmArchive(),
+      })
+    }
     return items
   })
-  protected readonly showEventAdminBar = computed(() => this.eventAdminItems().length > 0)
   protected readonly canManageComposition = computed(() => {
     const ev = this.event()
     const perms = this.seasonPermissions()

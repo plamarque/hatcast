@@ -24,10 +24,9 @@
       </div>
     }
 
-    <app-scope-admin-bar scope="saison" [items]="seasonAdminItems()" />
-
     <app-season-view-toolbar
       [(seasonView)]="seasonView"
+      [adminItems]="seasonAdminItems()"
       [showFilters]="true"
       [participantOptions]="participantOptions()"
       [(selectedParticipantId)]="selectedParticipantId"

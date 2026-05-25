@@ -17,10 +17,6 @@
     </div>
   }
 
-  @if (showEventAdminBar()) {
-    <app-scope-admin-bar scope="event" [items]="eventAdminItems()" />
-  }
-
   @if (loading()) {
     <div class="event-detail__spinner" role="status">
       <mat-spinner diameter="40" />
@@ -36,12 +32,13 @@
       />
     }
 
-    <mat-tab-group
-      class="event-detail__tabs"
-      [selectedIndex]="tabIndex()"
-      (selectedIndexChange)="onTabChange($event)"
-      dynamicHeight
-    >
+    <div class="event-detail__tabs-shell">
+      <mat-tab-group
+        class="event-detail__tabs"
+        [selectedIndex]="tabIndex()"
+        (selectedIndexChange)="onTabChange($event)"
+        dynamicHeight
+      >
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon class="event-detail__tab-icon" aria-hidden="true">info</mat-icon>
@@ -50,10 +47,8 @@
         @if (activeTab() === 'infos') {
           <app-event-infos-tab
             [event]="ev"
-            [canManageEvents]="canManageEvents()"
             [canManageComposition]="canManageComposition()"
-            (editRequested)="openEdit()"
-            (archiveRequested)="confirmArchive()"
+            [adminItems]="eventAdminItems()"
           />
         }
       </mat-tab>
@@ -91,6 +86,7 @@
           />
         }
       </mat-tab>
-    </mat-tab-group>
+      </mat-tab-group>
+    </div>
   }
 </div>

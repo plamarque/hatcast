@@ -39,8 +39,11 @@
   }
 }
 
-.event-detail__tabs {
+.event-detail__tabs-shell {
   margin-top: 0.25rem;
+}
+
+.event-detail__tabs {
 
   ::ng-deep .mat-mdc-tab-header {
     justify-content: center;

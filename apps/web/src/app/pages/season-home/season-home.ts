@@ -15,10 +15,7 @@ import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
 } from '../../core/navigation/troupe-routes'
-import {
-  ScopeAdminBar,
-  type ScopeAdminBarItem,
-} from '../../shared/scope-admin-bar/scope-admin-bar'
+import type { ScopeAdminMenuItem } from '../../shared/scope-admin-menu/scope-admin-menu'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import {
@@ -70,7 +67,6 @@ const FETCH_PAGE_SIZE = 50
     MatProgressSpinnerModule,
     MatSnackBarModule,
     SeasonHeader,
-    ScopeAdminBar,
     SeasonViewToolbar,
     SeasonAgenda,
     SeasonHistoryShell,
@@ -161,12 +157,12 @@ export class SeasonHome implements OnDestroy, OnInit {
       this.canManageSeasonOrganizersOnly(),
   )
 
-  protected readonly seasonAdminItems = computed<ScopeAdminBarItem[]>(() => {
+  protected readonly seasonAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     const slug = this.slug()
     if (!slug) {
       return []
     }
-    const items: ScopeAdminBarItem[] = []
+    const items: ScopeAdminMenuItem[] = []
     if (this.canManageSeasonParticipants()) {
       items.push({
         label: 'Participants',
