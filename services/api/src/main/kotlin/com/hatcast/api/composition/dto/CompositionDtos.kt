@@ -15,6 +15,7 @@ data class CompositionSlotDto(
 )
 
 data class CompositionDeclineDto(
+    val id: UUID,
     val participantId: UUID,
     val participantDisplayName: String,
     val roleKey: String,

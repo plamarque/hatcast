@@ -79,6 +79,7 @@ export class EventEquipeTab {
   protected readonly unlocking = signal(false)
   protected readonly drawing = signal(false)
   protected readonly assigning = signal(false)
+  protected readonly restoringDeclineId = signal<string | null>(null)
   protected readonly updatingParticipation = signal(false)
   protected readonly composition = signal<CompositionResponse | null>(null)
   protected readonly showConfirmOpened = signal(false)
@@ -141,6 +142,22 @@ export class EventEquipeTab {
       !this.validating() &&
       !this.unlocking() &&
       !this.publishing(),
+  )
+
+  protected readonly hasEmptyRequiredSlot = computed(() =>
+    this.slotRows().some((row) => !row.slot?.participantId),
+  )
+
+  protected readonly canFillGaps = computed(
+    () =>
+      this.canManageComposition() &&
+      this.isCompositionLocked() &&
+      this.hasEmptyRequiredSlot() &&
+      !this.drawing() &&
+      !this.animatingDraw() &&
+      !this.assigning() &&
+      !this.loading() &&
+      !this.loadError(),
   )
 
   protected readonly equipeStatus = computed(() => {
@@ -317,12 +334,26 @@ export class EventEquipeTab {
     return row.slot?.participantId != null
   }
 
+  protected canTapGapSlot(row: SlotRow): boolean {
+    return (
+      this.canFillGaps() &&
+      !row.slot?.participantId &&
+      !this.assigning()
+    )
+  }
+
+  protected hasEmptySlotForRole(roleKey: string): boolean {
+    return this.slotRows().some(
+      (row) => row.roleKey === roleKey && !row.slot?.participantId,
+    )
+  }
+
   protected isParticipationSlotTappable(row: SlotRow): boolean {
     return this.canTapParticipationSlot(row) || this.canTapProxyParticipationSlot(row)
   }
 
   protected onSlotRowClick(row: SlotRow): void {
-    if (this.canEditSlots()) {
+    if (this.canEditSlots() || this.canTapGapSlot(row)) {
       void this.openSlotPicker(row)
       return
     }
@@ -493,6 +524,70 @@ export class EventEquipeTab {
     }
   }
 
+  protected async fillGaps(): Promise<void> {
+    if (!this.canFillGaps()) {
+      return
+    }
+    this.drawing.set(true)
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const result = await this.compositionApi.drawComposition(seasonId, eventId, 'fillEmpty')
+    this.drawing.set(false)
+    if (this.event().id !== eventId) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      const message =
+        result.status === 403
+          ? 'Vous ne pouvez pas compléter cette composition.'
+          : result.status === 409
+            ? 'Aucun créneau à compléter ou composition verrouillée.'
+            : 'Complétion impossible.'
+      this.snack.open(message, 'OK', { duration: 6000 })
+      return
+    }
+
+    if (this.prefersReducedMotion() || result.data.steps.length === 0) {
+      this.composition.set(result.data.composition)
+      this.compositionPublished.emit()
+      this.snack.open('Créneaux complétés.', 'OK', { duration: 4000 })
+      return
+    }
+
+    this.drawSteps.set(result.data.steps)
+    this.drawStepIndex.set(0)
+    this.animatingDraw.set(true)
+  }
+
+  protected async restoreDecline(declineId: string): Promise<void> {
+    if (!this.canFillGaps() || this.restoringDeclineId() != null) {
+      return
+    }
+    this.restoringDeclineId.set(declineId)
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const result = await this.compositionApi.restoreDeclinedParticipant(
+      seasonId,
+      eventId,
+      declineId,
+    )
+    this.restoringDeclineId.set(null)
+    if (this.event().id !== eventId) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      this.snack.open(
+        this.restoreErrorMessage(result.status, result.errorMessage),
+        'OK',
+        { duration: 6000 },
+      )
+      return
+    }
+    this.composition.set(result.data)
+    this.compositionPublished.emit()
+    this.snack.open('Participant remis en composition.', 'OK', { duration: 4000 })
+  }
+
   protected async draw(): Promise<void> {
     if (!this.canDraw()) {
       return
@@ -534,11 +629,13 @@ export class EventEquipeTab {
     }
     this.animatingDraw.set(false)
     this.drawSteps.set([])
-    void this.load(this.seasonId(), this.event().id)
+    void this.load(this.seasonId(), this.event().id).then(() => {
+      this.compositionPublished.emit()
+    })
   }
 
   protected async openSlotPicker(row: SlotRow): Promise<void> {
-    if (!this.canEditSlots()) {
+    if (!this.canEditSlots() && !this.canTapGapSlot(row)) {
       return
     }
     const seasonId = this.seasonId()
@@ -642,6 +739,22 @@ export class EventEquipeTab {
         return 'La composition est verrouillée.'
       default:
         return 'Impossible de charger les candidats.'
+    }
+  }
+
+  private restoreErrorMessage(status: number, apiMessage?: string): string {
+    if (apiMessage) {
+      return apiMessage
+    }
+    switch (status) {
+      case 403:
+        return 'Vous ne pouvez pas remettre ce participant en composition.'
+      case 404:
+        return 'Déclin introuvable.'
+      case 409:
+        return 'Aucun créneau vide pour ce rôle ou composition non verrouillée.'
+      default:
+        return 'Remise en composition impossible.'
     }
   }
 

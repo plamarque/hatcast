@@ -16,6 +16,13 @@ interface CompositionNotificationPort {
         seasonId: UUID,
         actorUserId: UUID,
     )
+
+    fun requestConfirmationForAssignees(
+        eventId: UUID,
+        seasonId: UUID,
+        assigneeParticipantIds: List<UUID>,
+        actorUserId: UUID,
+    )
 }
 
 @Component
@@ -44,6 +51,21 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
             "composition_confirmation_requested eventId={} seasonId={} actorUserId={}",
             eventId,
             seasonId,
+            actorUserId,
+        )
+    }
+
+    override fun requestConfirmationForAssignees(
+        eventId: UUID,
+        seasonId: UUID,
+        assigneeParticipantIds: List<UUID>,
+        actorUserId: UUID,
+    ) {
+        log.debug(
+            "gap_fill_confirmation_requested eventId={} seasonId={} assigneeParticipantIds={} actorUserId={}",
+            eventId,
+            seasonId,
+            assigneeParticipantIds,
             actorUserId,
         )
     }

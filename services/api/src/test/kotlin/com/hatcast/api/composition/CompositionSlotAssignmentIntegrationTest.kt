@@ -414,10 +414,14 @@ class CompositionSlotAssignmentIntegrationTest {
     }
 
     @Test
-    fun `validated composition returns 409 for assign and candidates`() {
+    @Tag("FR27")
+    fun `validated composition allows gap assign and candidates when slot empty`() {
         val adminCookie = memberCookie("sub-assign-admin-409", admin = true)
+        val member = memberCookie("sub-assign-member-409")
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+        setAvailability(member, seasonId, eventId, "available")
+        val fillerId = participantIdForUser(seasonId, "sub-assign-member-409")
         val now = Instant.now()
         compositionRepository.save(
             EventCompositionEntity(
@@ -434,7 +438,16 @@ class CompositionSlotAssignmentIntegrationTest {
                 get("/v1/seasons/$seasonId/events/$eventId/composition/candidates")
                     .param("roleKey", "player")
                     .cookie(adminCookie),
-            ).andExpect(status().isConflict)
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":"$fillerId"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
 
         mockMvc
             .perform(

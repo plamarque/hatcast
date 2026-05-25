@@ -272,6 +272,7 @@ class CompositionService(
                 row.seasonParticipantId ?: row.eventParticipantId
                     ?: throw IllegalStateException("Decline row missing participant reference")
             CompositionDeclineDto(
+                id = row.id,
                 participantId = participantId,
                 participantDisplayName = displayNames[participantId] ?: "Participant",
                 roleKey = row.roleKey,

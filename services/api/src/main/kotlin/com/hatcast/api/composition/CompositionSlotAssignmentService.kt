@@ -37,6 +37,7 @@ class CompositionSlotAssignmentService(
     private val troupeAccess: TroupeAccessService,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val compositionService: CompositionService,
+    private val notificationPort: CompositionNotificationPort,
 ) {
     @Transactional(readOnly = true)
     fun getCandidates(
@@ -49,11 +50,19 @@ class CompositionSlotAssignmentService(
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireManageComposition(eventId, seasonId, principal)
         val composition = compositionRepository.findById(eventId).orElse(null)
-        if (composition?.validatedAt != null) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
-        }
-
         val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
+        if (composition?.validatedAt != null) {
+            if (slotIndex != null) {
+                if (!CompositionGapFillRules.isTargetSlotEmpty(eventId, roleKey, slotIndex, slotRepository)) {
+                    throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+                }
+            } else {
+                val slots = slotRepository.findByEventId(eventId)
+                if (!CompositionGapFillRules.hasEmptySlotForRole(roleKey, normalizedSlots, slots)) {
+                    throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+                }
+            }
+        }
         val requiredCount = normalizedSlots[roleKey]
             ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Rôle inconnu pour cet événement")
         if (requiredCount <= 0) {
@@ -137,13 +146,30 @@ class CompositionSlotAssignmentService(
 
         val composition =
             compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
-        if (composition?.validatedAt != null) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
-        }
-
+        val isLocked = composition?.validatedAt != null
         val now = Instant.now()
         val participantId = body.participantId
-        if (participantId == null) {
+
+        if (isLocked) {
+            if (participantId == null) {
+                throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+            }
+            if (!CompositionGapFillRules.isTargetSlotEmpty(eventId, roleKey, slotIndex, slotRepository)) {
+                throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+            }
+            val compositionRow =
+                composition
+                    ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+            assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
+            compositionRow.updatedAt = now
+            compositionRepository.save(compositionRow)
+            notificationPort.requestConfirmationForAssignees(
+                eventId = eventId,
+                seasonId = seasonId,
+                assigneeParticipantIds = listOf(participantId),
+                actorUserId = principal.userId,
+            )
+        } else if (participantId == null) {
             val cleared = clearSlot(eventId, roleKey, slotIndex, now)
             if (composition != null && cleared) {
                 composition.updatedAt = now

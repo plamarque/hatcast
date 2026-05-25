@@ -54,6 +54,7 @@ export interface CompositionCandidateListResponse {
 }
 
 export interface CompositionDecline {
+  id: string
   participantId: string
   participantDisplayName: string
   roleKey: string
@@ -251,6 +252,30 @@ export class CompositionApiService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ participantId }),
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      const data = (await res.json()) as CompositionResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async restoreDeclinedParticipant(
+    seasonId: string,
+    eventId: string,
+    declineId: string,
+  ): Promise<CompositionApiResult<CompositionResponse>> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/declines/${encodeURIComponent(declineId)}/restore`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: csrfHeaders(),
         },
       )
       if (!res.ok) {

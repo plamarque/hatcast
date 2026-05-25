@@ -25,6 +25,7 @@ class CompositionController(
     private val compositionDrawService: CompositionDrawService,
     private val compositionSlotAssignmentService: CompositionSlotAssignmentService,
     private val compositionParticipationService: CompositionParticipationService,
+    private val compositionDeclineRestoreService: CompositionDeclineRestoreService,
 ) {
     @GetMapping
     fun getComposition(
@@ -88,6 +89,20 @@ class CompositionController(
             roleKey,
             slotIndex,
             body,
+            principal,
+        )
+
+    @PostMapping("/declines/{declineId}/restore")
+    fun restoreDeclinedParticipant(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable declineId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionResponseDto =
+        compositionDeclineRestoreService.restoreDecline(
+            seasonId,
+            eventId,
+            declineId,
             principal,
         )
 

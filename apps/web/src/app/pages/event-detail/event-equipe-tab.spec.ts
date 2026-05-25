@@ -37,6 +37,7 @@ describe('EventEquipeTab', () => {
   let validateComposition: ReturnType<typeof vi.fn>
   let unlockComposition: ReturnType<typeof vi.fn>
   let updateSlotParticipation: ReturnType<typeof vi.fn>
+  let restoreDeclinedParticipant: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
   let snackOpen: ReturnType<typeof vi.fn>
   let dialogAfterClosed: Subject<
@@ -93,6 +94,7 @@ describe('EventEquipeTab', () => {
     validateComposition = vi.fn()
     unlockComposition = vi.fn()
     updateSlotParticipation = vi.fn()
+    restoreDeclinedParticipant = vi.fn()
     dialogAfterClosed = new Subject<
       | { participantId: string }
       | { status: string; note?: string | null }
@@ -122,6 +124,7 @@ describe('EventEquipeTab', () => {
             validateComposition,
             unlockComposition,
             updateSlotParticipation,
+            restoreDeclinedParticipant,
           },
         },
         { provide: MatDialog, useValue: { open: dialogOpen } },
@@ -915,6 +918,7 @@ describe('EventEquipeTab', () => {
         slots: [],
         declines: [
           {
+            id: 'decline-1',
             participantId: 'p-1',
             participantDisplayName: 'Alice',
             roleKey: 'player',
@@ -1065,6 +1069,203 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
+    })
+  })
+
+  it('shows Compléter and calls fillEmpty draw when locked with empty slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Occupé',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    drawComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        composition: {
+          publishedAt: null,
+          validatedAt: '2026-01-01T00:00:00.000Z',
+          visibility: 'validated',
+          slots: [
+            {
+              roleKey: 'player',
+              slotIndex: 0,
+              participantId: 'p-1',
+              participantDisplayName: 'Occupé',
+              participationStatus: 'pending',
+            },
+            {
+              roleKey: 'player',
+              slotIndex: 1,
+              participantId: 'p-2',
+              participantDisplayName: 'Nouveau',
+              participationStatus: 'pending',
+            },
+          ],
+        },
+        steps: [],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Compléter')
+    })
+
+    const fillBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__fill',
+    ) as HTMLButtonElement
+    fillBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(drawComposition).toHaveBeenCalledWith('season-1', 'event-1', 'fillEmpty')
+    })
+  })
+
+  it('opens picker on empty locked slot and keeps participation modal on filled slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-filled',
+            participantDisplayName: 'Rempli',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__row--gap-empty')).not.toBeNull()
+    })
+
+    const gapBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__row--gap-empty .event-equipe-tab__slot-button',
+    ) as HTMLButtonElement
+    gapBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(getCompositionCandidates).toHaveBeenCalled()
+      expect(dialogOpen).toHaveBeenCalled()
+    })
+
+    dialogOpen.mockClear()
+    getCompositionCandidates.mockClear()
+
+    const filledBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__row--filled .event-equipe-tab__slot-button',
+    ) as HTMLButtonElement
+    filledBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalled()
+      expect(getCompositionCandidates).not.toHaveBeenCalled()
+      const lastCall = dialogOpen.mock.calls.at(-1)?.[1] as { data?: { mode?: string } } | undefined
+      expect(lastCall?.data?.mode).toBe('proxy')
+    })
+  })
+
+  it('shows restore control only for organizer when empty role slot exists', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Occupé',
+            participationStatus: 'pending',
+          },
+        ],
+        declines: [
+          {
+            id: 'decline-restore',
+            participantId: 'p-declined',
+            participantDisplayName: 'Décliné',
+            roleKey: 'player',
+            slotIndex: 1,
+            declinedAt: '2026-01-02T00:00:00.000Z',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('1 personne a décliné')
+    })
+
+    const badge = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__declines-badge',
+    ) as HTMLButtonElement
+    badge.click()
+    fixture.detectChanges()
+
+    expect(
+      fixture.nativeElement.querySelector('.event-equipe-tab__declines-restore'),
+    ).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('(ne comptent pas dans la composition)')
+
+    fixture.componentRef.setInput('canManageComposition', false)
+    fixture.detectChanges()
+
+    expect(
+      fixture.nativeElement.querySelector('.event-equipe-tab__declines-restore'),
+    ).toBeNull()
+  })
+
+  it('hides Compléter and gap slot picker for member without canManageComposition', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Occupé',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', false)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__fill')).toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__row--gap-empty')).toBeNull()
     })
   })
 })

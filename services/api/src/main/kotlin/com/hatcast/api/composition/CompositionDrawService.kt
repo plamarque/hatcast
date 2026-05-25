@@ -40,6 +40,7 @@ class CompositionDrawService(
     private val troupeAccess: TroupeAccessService,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val compositionService: CompositionService,
+    private val notificationPort: CompositionNotificationPort,
 ) {
     @Transactional
     fun drawComposition(
@@ -60,8 +61,15 @@ class CompositionDrawService(
 
         val composition =
             compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
-        if (composition?.validatedAt != null) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+        val isLocked = composition?.validatedAt != null
+        if (isLocked) {
+            if (mode != DrawMode.FILL_EMPTY) {
+                throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+            }
+            val existingSlots = slotRepository.findByEventId(eventId)
+            if (!CompositionGapFillRules.hasEmptyRequiredSlot(normalizedSlots, existingSlots)) {
+                throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+            }
         }
 
         val now = Instant.now()
@@ -101,6 +109,7 @@ class CompositionDrawService(
         val eligibleById = eligible.associateBy { it.participantId }
         val crossRoleExcluded = mutableSetOf<UUID>()
         val steps = mutableListOf<CompositionDrawStepDto>()
+        val newlyAssignedParticipantIds = mutableListOf<UUID>()
 
         for (roleKey in requiredRoles) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
@@ -223,6 +232,7 @@ class CompositionDrawService(
 
                 withinRoleExcluded.add(selectedId)
                 crossRoleExcluded.add(selectedId)
+                newlyAssignedParticipantIds.add(selectedId)
 
                 steps.add(
                     CompositionDrawStepDto(
@@ -247,6 +257,15 @@ class CompositionDrawService(
 
         compositionRow.updatedAt = now
         compositionRepository.save(compositionRow)
+
+        if (newlyAssignedParticipantIds.isNotEmpty()) {
+            notificationPort.requestConfirmationForAssignees(
+                eventId = eventId,
+                seasonId = seasonId,
+                assigneeParticipantIds = newlyAssignedParticipantIds.distinct(),
+                actorUserId = principal.userId,
+            )
+        }
 
         val compositionResponse =
             compositionService.getComposition(seasonId, eventId, principal)
