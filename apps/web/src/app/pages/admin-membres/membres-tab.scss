@@ -14,6 +14,17 @@
 .membres-tab__search {
   flex: 1 1 12rem;
   min-width: 10rem;
+
+  --mat-form-field-outlined-input-text-placeholder-color: color-mix(
+    in srgb,
+    var(--mat-sys-on-surface) 55%,
+    transparent
+  );
+  --mat-form-field-outlined-label-text-color: color-mix(
+    in srgb,
+    var(--mat-sys-on-surface) 55%,
+    transparent
+  );
 }
 
 .membres-tab__toolbar-actions {
@@ -39,7 +50,7 @@
 
 .membres-tab__empty {
   margin: 0;
-  color: rgba(0, 0, 0, 0.65);
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
 }
 
 .membres-tab__list {
@@ -52,7 +63,7 @@
 
 .membres-tab__row {
   align-items: center;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--mat-sys-outline-variant);
   border-radius: 0.5rem;
   display: grid;
   gap: 0.75rem;
@@ -67,7 +78,7 @@
 
 .membres-tab__avatar {
   align-items: center;
-  background: rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
   border-radius: 50%;
   display: flex;
   font-weight: 600;
@@ -94,20 +105,21 @@
 }
 
 .membres-tab__name-input {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.38);
+  border-bottom: 1px solid var(--mat-sys-outline);
+  color: var(--mat-sys-on-surface);
   cursor: text;
   width: 100%;
 }
 
 .membres-tab__email {
-  color: rgba(0, 0, 0, 0.55);
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
   font-size: 0.85rem;
 }
 
 .membres-tab__orga-link {
   background: none;
   border: none;
-  color: #1565c0;
+  color: var(--mat-sys-primary);
   cursor: pointer;
   font-size: 0.8rem;
   padding: 0;
@@ -129,12 +141,12 @@
 }
 
 .membres-tab__remove-btn {
-  color: #b3261e;
+  color: var(--mat-sys-error);
 }
 
 .membres-tab__help p {
   margin: 0 0 0.5rem;
-  color: rgba(0, 0, 0, 0.65);
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
   font-size: 0.9rem;
 }
 

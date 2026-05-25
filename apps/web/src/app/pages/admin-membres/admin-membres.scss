@@ -51,7 +51,7 @@
 }
 
 .admin-membres__empty-season {
-  color: rgba(0, 0, 0, 0.55);
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
   margin: 1rem 0;
 }
 

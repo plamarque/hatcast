@@ -63,7 +63,7 @@ export interface ImportResultsDialogData {
       }
       .import-results__summary {
         margin: 0;
-        color: rgba(0, 0, 0, 0.65);
+        color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
       }
       .import-results__table-wrap {
         max-height: min(24rem, 50vh);
@@ -76,7 +76,7 @@ export interface ImportResultsDialogData {
       }
       .import-results__table th,
       .import-results__table td {
-        border: 1px solid rgba(0, 0, 0, 0.12);
+        border: 1px solid var(--mat-sys-outline-variant);
         padding: 0.35rem 0.5rem;
         text-align: left;
       }

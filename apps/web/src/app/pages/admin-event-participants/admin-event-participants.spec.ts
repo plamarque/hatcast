@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
 import { provideRouter } from '@angular/router'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, of } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -16,6 +17,7 @@ import {
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import { AddEventParticipantDialog } from './add-event-participant-dialog'
 import { AdminEventParticipants } from './admin-event-participants'
 
 describe('AdminEventParticipants', () => {
@@ -54,7 +56,7 @@ describe('AdminEventParticipants', () => {
     updatedAt: '',
   }
 
-  const rosterRow: EventRosterParticipant = {
+  const seasonRow: EventRosterParticipant = {
     seasonParticipantId: 'sp-1',
     eventParticipantId: null,
     displayName: 'Alice',
@@ -64,10 +66,36 @@ describe('AdminEventParticipants', () => {
     source: 'SEASON',
   }
 
+  const eventRow: EventRosterParticipant = {
+    seasonParticipantId: null,
+    eventParticipantId: 'ep-1',
+    displayName: 'Guest Bob',
+    email: 'bob@example.com',
+    userId: null,
+    kind: 'NAME_ONLY',
+    source: 'EVENT',
+  }
+
+  const adminPermissions: MySeasonPermissions = {
+    isTroupeAdmin: true,
+    isSeasonOrganizer: false,
+    eventOrganizerFor: [],
+    canManageEvents: false,
+    canManageSeasonParticipants: true,
+    canManageSeasonOrganizers: false,
+    canManageMembers: false,
+    canManageEventOrganizers: false,
+    canManageEventParticipants: true,
+    canManageSeasons: false,
+    eventParticipantAdminFor: [],
+  }
+
   async function setup(
     permissions: MySeasonPermissions,
     options: {
       roster?: EventRosterParticipant[]
+      dialogAfterClosed?: boolean
+      dialog?: { open: ReturnType<typeof vi.fn> }
     } = {},
   ) {
     const router = { navigate: vi.fn().mockResolvedValue(true) }
@@ -75,8 +103,14 @@ describe('AdminEventParticipants', () => {
     const listEventParticipantRoster = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      data: options.roster ?? [rosterRow],
+      data: options.roster ?? [seasonRow],
     })
+    const dialogRef = { afterClosed: () => of(options.dialogAfterClosed ?? false) }
+    const dialog =
+      options.dialog ??
+      ({
+        open: vi.fn().mockReturnValue(dialogRef),
+      } as { open: ReturnType<typeof vi.fn> })
 
     await TestBed.configureTestingModule({
       imports: [AdminEventParticipants, NoopAnimationsModule],
@@ -88,6 +122,7 @@ describe('AdminEventParticipants', () => {
         },
         { provide: Router, useValue: router },
         { provide: MatSnackBar, useValue: snack },
+        { provide: MatDialog, useValue: dialog },
         {
           provide: AuthApiService,
           useValue: {
@@ -140,23 +175,11 @@ describe('AdminEventParticipants', () => {
     fixture.detectChanges()
     await fixture.whenStable()
     await vi.waitFor(() => expect(fixture.componentInstance).toBeTruthy())
-    return { fixture, router, snack, listEventParticipantRoster }
+    return { fixture, router, snack, listEventParticipantRoster, dialog }
   }
 
   it('loads merged roster and shows participant names', async () => {
-    const { fixture, listEventParticipantRoster } = await setup({
-      isTroupeAdmin: true,
-      isSeasonOrganizer: false,
-      eventOrganizerFor: [],
-      canManageEvents: false,
-      canManageSeasonParticipants: true,
-      canManageSeasonOrganizers: false,
-      canManageMembers: false,
-      canManageEventOrganizers: false,
-      canManageEventParticipants: true,
-      canManageSeasons: false,
-      eventParticipantAdminFor: [],
-    })
+    const { fixture, listEventParticipantRoster } = await setup(adminPermissions)
 
     await vi.waitFor(() => {
       expect(listEventParticipantRoster).toHaveBeenCalledWith('season-1', 'event-1')
@@ -185,5 +208,77 @@ describe('AdminEventParticipants', () => {
         replaceUrl: true,
       })
     })
+  })
+
+  it('shows toolbar Ajouter button and no inline add section', async () => {
+    const { fixture } = await setup(adminPermissions)
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+
+    const root = fixture.nativeElement as HTMLElement
+    expect(root.querySelector('.admin-event-participants__add')).toBeNull()
+    expect(root.textContent).not.toContain('Ajouter un participant ponctuel')
+    const addButton = Array.from(root.querySelectorAll('button')).find((b) =>
+      b.textContent?.trim().includes('Ajouter'),
+    )
+    expect(addButton).toBeTruthy()
+  })
+
+  it('opens add dialog and reloads roster on success', async () => {
+    const { fixture, dialog, listEventParticipantRoster } = await setup(adminPermissions, {
+      dialogAfterClosed: true,
+    })
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+
+    const cmp = fixture.componentInstance as AdminEventParticipants
+    cmp['openAddDialog']()
+    expect(dialog.open).toHaveBeenCalledWith(AddEventParticipantDialog, {
+      data: { seasonId: 'season-1', eventId: 'event-1' },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    await vi.waitFor(() => {
+      expect(listEventParticipantRoster.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  it('splits roster into Externes and Membres sections without filter button', async () => {
+    const { fixture } = await setup(adminPermissions, {
+      roster: [seasonRow, eventRow],
+    })
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+      expect(fixture.nativeElement.textContent).toContain('Guest Bob')
+    })
+
+    const root = fixture.nativeElement as HTMLElement
+    expect(root.textContent).not.toContain('Ajouts au spectacle')
+    expect(root.querySelector('#externes-heading')?.textContent).toContain('Externes')
+    expect(root.querySelector('#membres-heading')?.textContent).toContain('Membres')
+
+    const externesSection = root.querySelector('#externes-heading')?.closest('section')
+    const membresSection = root.querySelector('#membres-heading')?.closest('section')
+    expect(externesSection?.textContent).toContain('Guest Bob')
+    expect(externesSection?.textContent).not.toContain('Alice')
+    expect(membresSection?.textContent).toContain('Alice')
+    expect(membresSection?.textContent).not.toContain('Guest Bob')
+  })
+
+  it('shows empty Externes section when no event-only participants', async () => {
+    const { fixture } = await setup(adminPermissions, {
+      roster: [seasonRow],
+    })
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+
+    expect(fixture.nativeElement.textContent).toContain('Aucun ajout ponctuel sur ce spectacle.')
+    expect(fixture.nativeElement.querySelector('#membres-heading')).toBeTruthy()
   })
 })

@@ -1,6 +1,6 @@
 # Story 17.16: Event participant admin route — UX polish
 
-Status: ready-for-dev
+Status: review
 
 <!-- Phase 1 done 2026-05-25 (route, merged roster API, dialog removal). Phase 2 UX polish PO 2026-05-26. -->
 
@@ -50,29 +50,29 @@ so that **I can scan a long roster quickly** and **find ponctual / non-member ad
 
 ## Tasks / Subtasks
 
-- [ ] **Add dialog component** (AC: 3, 4)
-  - [ ] Create `add-event-participant-dialog.ts` under `admin-event-participants/` (or colocate in `pages/admin-event-participants/`).
-  - [ ] Data: `{ seasonId: string; eventId: string }`; close `boolean` on success.
-  - [ ] Reuse field copy from removed inline section + hint from [`add-participant-dialog.ts`](../../apps/web/src/app/pages/admin-participants/add-participant-dialog.ts) (email linking).
-  - [ ] Width: `min(100vw - 2rem, 28rem)` (match other admin dialogs).
+- [x] **Add dialog component** (AC: 3, 4)
+  - [x] Create `add-event-participant-dialog.ts` under `admin-event-participants/` (or colocate in `pages/admin-event-participants/`).
+  - [x] Data: `{ seasonId: string; eventId: string }`; close `boolean` on success.
+  - [x] Reuse field copy from removed inline section + hint from [`add-participant-dialog.ts`](../../apps/web/src/app/pages/admin-participants/add-participant-dialog.ts) (email linking).
+  - [x] Width: `min(100vw - 2rem, 28rem)` (match other admin dialogs).
 
-- [ ] **Toolbar refactor** (AC: 2, 5, 9)
-  - [ ] Add `Ajouter` button → `MatDialog.open(AddEventParticipantDialog)`; inject `MatDialog` in page component.
-  - [ ] Add filter toggle « Ajouts au spectacle »; extend `filteredRoster` computed to apply `showEventOnlyFilter` signal.
-  - [ ] Remove inline add HTML/TS/state (`addDisplayName`, `addEmail`, `addEventOnlyParticipant` from page — move to dialog).
+- [x] **Toolbar refactor** (AC: 2, 5, 9)
+  - [x] Add `Ajouter` button → `MatDialog.open(AddEventParticipantDialog)`; inject `MatDialog` in page component.
+  - [x] Add filter toggle « Ajouts au spectacle »; extend `filteredRoster` computed to apply `showEventOnlyFilter` signal.
+  - [x] Remove inline add HTML/TS/state (`addDisplayName`, `addEmail`, `addEventOnlyParticipant` from page — move to dialog).
 
-- [ ] **Compact list styling** (AC: 6–8)
-  - [ ] Update `admin-event-participants.html` row template: inline name/email, conditional chips per AC7–8.
-  - [ ] Tighten SCSS row padding and chip density; use M3 tokens (keep dark-mode contrast from Phase 1).
+- [x] **Compact list styling** (AC: 6–8)
+  - [x] Update `admin-event-participants.html` row template: inline name/email, conditional chips per AC7–8.
+  - [x] Tighten SCSS row padding and chip density; use M3 tokens (keep dark-mode contrast from Phase 1).
 
-- [ ] **Tests** (AC: 14)
-  - [ ] Spec: toolbar has Ajouter, no inline add section in DOM.
-  - [ ] Spec: Ajouter opens dialog (mock `MatDialog.open`).
-  - [ ] Spec: filter toggle limits list to `source: 'EVENT'` rows.
-  - [ ] Keep existing permission redirect test green.
+- [x] **Tests** (AC: 14)
+  - [x] Spec: toolbar has Ajouter, no inline add section in DOM.
+  - [x] Spec: Ajouter opens dialog (mock `MatDialog.open`).
+  - [x] Spec: filter toggle limits list to `source: 'EVENT'` rows.
+  - [x] Keep existing permission redirect test green.
 
-- [ ] **Docs** (optional, if UX journey mentions inline add)
-  - [ ] One-line note in `ux-design-journey-league-agenda.md` if it describes inline add (currently route-only — likely no change).
+- [x] **Docs** (optional, if UX journey mentions inline add)
+  - [x] One-line note in `ux-design-journey-league-agenda.md` if it describes inline add (currently route-only — likely no change).
 
 ## Dependencies
 
@@ -199,15 +199,29 @@ npm run build -w @hatcast/web
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Composer
 
 ### Debug Log References
 
+- Phase 2: mirrored `AddParticipantDialog` pattern for event-only adds; toolbar filter uses stroked button with `aria-pressed`.
+
 ### Completion Notes List
 
+- **Phase 2 (2026-05-26):** Toolbar aligned with season admin — `Rechercher` + filter « Ajouts au spectacle » + `Ajouter` (modal). Inline add section removed.
+- `AddEventParticipantDialog` calls `createEventParticipant`; reload + snackbar on success.
+- Compact rows: name/email inline, padding `0.45rem`; season MEMBER rows silent; event rows show « Ajout spectacle » chip; non-MEMBER kind chips only when needed.
+- Filter composable with search debounce; empty state « Aucun ajout ponctuel sur ce spectacle. » when filter active with no matches.
+- Tests: 6 specs in `admin-event-participants.spec.ts` (toolbar, dialog, filter, permissions). `npm run test -w @hatcast/web -- --watch=false` and `npm run build -w @hatcast/web` pass.
+
 ### File List
+
+| Area | Files |
+|------|--------|
+| Dialog | `apps/web/src/app/pages/admin-event-participants/add-event-participant-dialog.ts` |
+| Page | `apps/web/src/app/pages/admin-event-participants/admin-event-participants.{ts,html,scss,spec.ts}` |
 
 ### Change Log
 
 - 2026-05-25: Story created — route (not dialog); event-only ponctual participants; season roster default eligibility. **Phase 1 done.**
 - 2026-05-26: **Phase 2 UX polish** — toolbar Ajouter + modal, compact list, « Ajouts au spectacle » filter; status reset to **ready-for-dev**.
+- 2026-05-26: **Phase 2 implemented** — dialog, toolbar refactor, compact list, filter, tests; status **review**.

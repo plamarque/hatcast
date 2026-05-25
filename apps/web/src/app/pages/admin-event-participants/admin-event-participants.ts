@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
+import { MatDialog } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -34,6 +35,7 @@ import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-re
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
+import { AddEventParticipantDialog } from './add-event-participant-dialog'
 
 @Component({
   selector: 'app-admin-event-participants',
@@ -63,6 +65,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
+  private readonly dialog = inject(MatDialog)
   private routeSubscription = Subscription.EMPTY
   private loadRequestId = 0
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -88,8 +91,6 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   protected readonly roster = signal<EventRosterParticipant[]>([])
   protected readonly searchQuery = signal('')
   protected readonly debouncedSearch = signal('')
-  protected readonly addDisplayName = signal('')
-  protected readonly addEmail = signal('')
 
   protected readonly showBreadcrumb = computed(
     () =>
@@ -99,18 +100,27 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
       !!this.event()?.title.trim(),
   )
 
-  protected readonly filteredRoster = computed(() => {
-    const q = this.debouncedSearch().trim().toLowerCase()
-    let list = this.roster()
-    if (q) {
-      list = list.filter(
-        (p) =>
-          p.displayName.toLowerCase().includes(q) ||
-          (p.email?.toLowerCase().includes(q) ?? false),
-      )
-    }
-    return list
-  })
+  protected readonly filteredMemberRoster = computed(() =>
+    this.filterRosterBySearch(this.roster().filter((p) => p.source === 'SEASON')),
+  )
+
+  protected readonly filteredExternalRoster = computed(() =>
+    this.filterRosterBySearch(this.roster().filter((p) => p.source === 'EVENT')),
+  )
+
+  protected readonly memberRosterCount = computed(
+    () => this.roster().filter((p) => p.source === 'SEASON').length,
+  )
+
+  protected readonly externalRosterCount = computed(
+    () => this.roster().filter((p) => p.source === 'EVENT').length,
+  )
+
+  protected readonly hasAnyFilteredResults = computed(
+    () => this.filteredMemberRoster().length > 0 || this.filteredExternalRoster().length > 0,
+  )
+
+  protected readonly hasSearchQuery = computed(() => this.debouncedSearch().trim().length > 0)
 
   protected readonly seasonAdminParticipantsLink = computed(() =>
     saisonAdminParticipantsPath(this.seasonSlug()),
@@ -161,8 +171,25 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     }, 150)
   }
 
-  protected sourceLabel(source: EventRosterParticipant['source']): string {
-    return source === 'SEASON' ? 'Saison' : 'Spectacle'
+  protected showKindChip(kind: ParticipantKind): boolean {
+    return kind !== 'MEMBER'
+  }
+
+  protected openAddDialog(): void {
+    const seasonId = this.seasonId()
+    const eventId = this.event()?.id
+    if (!seasonId || !eventId) {
+      return
+    }
+    const ref = this.dialog.open(AddEventParticipantDialog, {
+      data: { seasonId, eventId },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.reloadRoster('Participant ajouté au spectacle.')
+      }
+    })
   }
 
   protected kindLabel(kind: ParticipantKind): string {
@@ -180,35 +207,6 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
 
   protected rosterKey(participant: EventRosterParticipant): string {
     return participant.seasonParticipantId ?? participant.eventParticipantId ?? participant.displayName
-  }
-
-  protected async addEventOnlyParticipant(): Promise<void> {
-    const seasonId = this.seasonId()
-    const eventId = this.event()?.id
-    const displayName = this.addDisplayName().trim()
-    if (!seasonId || !eventId || !displayName) {
-      this.snack.open('Saisissez un nom.', 'OK', { duration: 4000 })
-      return
-    }
-    this.saving.set(true)
-    try {
-      const email = this.addEmail().trim()
-      const r = await this.participantApi.createEventParticipant(seasonId, eventId, {
-        displayName,
-        email: email || undefined,
-      })
-      if (!r.ok) {
-        this.snack.open(r.status === 403 ? 'Accès non autorisé.' : 'Ajout impossible.', 'OK', {
-          duration: 5000,
-        })
-        return
-      }
-      this.addDisplayName.set('')
-      this.addEmail.set('')
-      await this.reloadRoster('Participant ajouté au spectacle.')
-    } finally {
-      this.saving.set(false)
-    }
   }
 
   protected async removeFromEvent(participant: EventRosterParticipant): Promise<void> {
@@ -241,6 +239,18 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     } finally {
       this.saving.set(false)
     }
+  }
+
+  private filterRosterBySearch(list: EventRosterParticipant[]): EventRosterParticipant[] {
+    const q = this.debouncedSearch().trim().toLowerCase()
+    if (!q) {
+      return list
+    }
+    return list.filter(
+      (p) =>
+        p.displayName.toLowerCase().includes(q) ||
+        (p.email?.toLowerCase().includes(q) ?? false),
+    )
   }
 
   private async loadPage(seasonSlug: string, eventSlugParam: string): Promise<void> {
