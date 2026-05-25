@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core'
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core'
+import { Subscription } from 'rxjs'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import {
@@ -14,7 +15,6 @@ import {
   type EventResponse,
   EventApiService,
 } from '../../core/events/event-api.service'
-import { isValidSlug, slugifyTitle } from '../../core/navigation/url-slug'
 import {
   applyTemplate,
   clampRoleCount,
@@ -71,8 +71,9 @@ function toDatetimeLocalValue(iso: string): string {
   templateUrl: './event-form-dialog.html',
   styleUrl: './event-form-dialog.scss',
 })
-export class EventFormDialog implements OnInit {
+export class EventFormDialog implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder)
+  private formChangeSub?: Subscription
   private readonly api = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly participantApi = inject(ParticipantApiService)
@@ -103,12 +104,10 @@ export class EventFormDialog implements OnInit {
   protected readonly eventOrganizers = signal<OrganizerResponse[]>([])
   protected readonly eventParticipants = signal<EventParticipantAdmin[]>([])
 
-  protected slugTouched = false
-  protected slugError = ''
+  protected formError = ''
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
-    slug: [''],
     startsAtLocal: ['', [Validators.required]],
     location: [''],
     description: [''],
@@ -122,10 +121,8 @@ export class EventFormDialog implements OnInit {
       const fromApi = e.templateType as EventTypeId
       this.selectedTemplateType =
         EVENT_TYPE_IDS.includes(fromApi) ? fromApi : detectTemplateFromRoles(this.roleSlots)
-      this.slugTouched = true
       this.form.patchValue({
         title: e.title,
-        slug: e.slug,
         startsAtLocal: toDatetimeLocalValue(e.startsAt),
         location: e.location ?? '',
         description: e.description ?? '',
@@ -142,6 +139,14 @@ export class EventFormDialog implements OnInit {
       this.roleSlots = applyTemplate(DEFAULT_CREATE_EVENT_TYPE)
       this.form.patchValue({ templateType: DEFAULT_CREATE_EVENT_TYPE })
     }
+
+    this.formChangeSub = this.form.valueChanges.subscribe(() => {
+      this.formError = ''
+    })
+  }
+
+  ngOnDestroy(): void {
+    this.formChangeSub?.unsubscribe()
   }
 
   protected async addEventOrganizer(): Promise<void> {
@@ -313,34 +318,13 @@ export class EventFormDialog implements OnInit {
     return this.roleSlots[role] ?? 0
   }
 
-  protected onTitleBlur(): void {
-    if (this.data.mode !== 'create' || this.slugTouched) {
-      return
-    }
-    const proposed = slugifyTitle(this.form.controls.title.value)
-    if (proposed) {
-      this.form.controls.slug.setValue(proposed)
-    }
-  }
-
-  protected onSlugInput(): void {
-    this.slugTouched = true
-    this.slugError = ''
-  }
-
   protected async submit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched()
       return
     }
+    this.formError = ''
     const v = this.form.getRawValue()
-    const slugTrim = v.slug.trim()
-    if (slugTrim && !isValidSlug(slugTrim)) {
-      this.slugError = slugTrim.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-        ? 'L’identifiant URL ne peut pas reprendre le format d’un identifiant technique.'
-        : 'Identifiant URL invalide (lettres minuscules, chiffres et tirets uniquement).'
-      return
-    }
     const startsAt = new Date(v.startsAtLocal).toISOString()
     const payload = {
       title: v.title.trim(),
@@ -349,21 +333,20 @@ export class EventFormDialog implements OnInit {
       description: v.description.trim() || null,
       templateType: this.selectedTemplateType,
       roleSlots: normalizeRoleSlots(this.roleSlots),
-      ...(slugTrim ? { slug: slugTrim } : {}),
     }
     this.saving = true
     try {
       if (this.data.mode === 'create') {
         const r = await this.api.createEvent(this.data.seasonId, payload)
         if (!r.ok) {
-          this.slugError = r.errorMessage ?? 'Création impossible.'
+          this.formError = r.errorMessage ?? 'Création impossible.'
           return
         }
         this.ref.close(r.data)
       } else if (this.data.event) {
         const r = await this.api.updateEvent(this.data.seasonId, this.data.event.id, payload)
         if (!r.ok) {
-          this.slugError = r.errorMessage ?? 'Mise à jour impossible.'
+          this.formError = r.errorMessage ?? 'Mise à jour impossible.'
           return
         }
         this.ref.close(true)

@@ -13,7 +13,7 @@ so that **shared links, agenda navigation, and breadcrumbs** match ADR 0013 and 
 ## Acceptance Criteria
 
 1. **Given** Flyway migration applied, **when** schema is inspected, **then** `events.slug` exists with **`UNIQUE (season_id, slug)`** and every existing row has a non-empty slug (backfilled from title with `-2`, `-3`, … dedupe per season). [Source: epics 17.6; ADR 0013 §4]
-2. **Given** an admin creates a spectacle, **when** title is entered, **then** API returns a **proposed unique slug** derived from title (same normalization as seasons); the create/edit UI shows the slug **pre-filled and editable** before save. [Source: epics 17.6]
+2. **Given** an admin creates a spectacle, **when** title is entered, **then** API allocates a **unique slug** derived from title (same normalization as seasons); the create/edit dialog has **no slug field** (removed in **17.12** — server allocation only). [Source: epics 17.6, amended by 17.12]
 3. **Given** a saved spectacle, **when** `GET` list or detail runs, **then** `EventResponse` includes **`slug`**; OpenAPI `events.yaml` documents `slug` on schemas and any new lookup route(s). [Source: epics 17.6]
 4. **Given** the Angular app, **when** a user opens a spectacle, **then** the canonical browser path is **`/saison/:seasonSlug/event/:eventSlug`**; in-app navigations from season agenda and **Mon agenda** use **slug**, not UUID. [Source: ADR 0013 §1; ux-design-journey Screen 6]
 5. **Given** a legacy URL `/saison/:seasonSlug/event/:uuid` where the spectacle has a slug, **when** the event detail route resolves, **then** the app **replaces the URL** with the slug form (`replaceUrl: true`, preserve query string). [Source: epics 17.6 — client-side canonicalization; SPA pattern from 17.5]
@@ -66,7 +66,7 @@ so that **shared links, agenda navigation, and breadcrumbs** match ADR 0013 and 
 
 - **Canonical public path:** `/saison/:seasonSlug/event/:eventSlug` (French UI: **Spectacle**; param name `eventSlug` in router).
 - **API IDs unchanged:** Sub-resources stay `/v1/seasons/{seasonId}/events/{uuid}/...` — only the **browser URL** and **read-by-slug** entry point gain slugs.
-- **Slug stability:** Changing the **title** must **not** silently change `slug` (unless the user edits the slug field). This differs from seasons (auto slug on title change) — intentional for shared event links.
+- **Slug stability:** Changing the **title** must **not** silently change `slug`. Since **17.12**, users cannot edit slug in the dialog; PATCH omits `slug` so links stay stable.
 - **Vocabulary:** UI **Saison** / **Spectacle**; code may keep `league*` / `eventId` in API types where they mean UUID.
 
 ### Explicit non-goals (scope guard)
@@ -213,6 +213,7 @@ Composer (dev-story workflow)
 
 ### Change Log
 
+- 2026-05-25 (17.12): **Form field removed** — `EventFormDialog` no longer shows « Identifiant URL »; create/update omit `slug` in payloads; API slug behavior unchanged (`EventSlugGenerator`, PATCH only if `slug` present).
 - 2026-05-25: Story 17.6 — event slugs in DB, API, OpenAPI, Angular routes, form field, tests.
 - 2026-05-25: Code review — patches post-création, erreurs API formulaire, rejet slug UUID, tests slug ; décision collision PATCH = auto-dédoublonnement.
 

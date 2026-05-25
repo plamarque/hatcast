@@ -3,8 +3,6 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { describe, expect, it, vi } from 'vitest'
 
-import { slugifyTitle } from '../../core/navigation/url-slug'
-
 import { EventApiService } from '../../core/events/event-api.service'
 import { emptyRoleSlots } from '../../core/events/event-types'
 import type { EventResponse } from '../../core/events/event-api.service'
@@ -85,7 +83,6 @@ function fillRequiredCreateFields(fixture: ComponentFixture<EventFormDialog>): v
   cmp.form.patchValue({
     title: 'Cabaret test',
     startsAtLocal: '2030-06-15T18:00',
-    slug: 'cabaret-test',
   })
 }
 
@@ -139,40 +136,71 @@ describe('EventFormDialog participants section', () => {
   })
 })
 
-describe('EventFormDialog slug field', () => {
-  it('prefills slug from title on blur in create mode', async () => {
+describe('EventFormDialog slug field regression', () => {
+  it('does not expose a slug field in the form', async () => {
     const { fixture } = await setup({ mode: 'create', seasonId: 'season-1' })
-    const cmp = fixture.componentInstance as unknown as {
-      form: { controls: { title: { setValue: (v: string) => void }; slug: { value: string } } }
-      onTitleBlur: () => void
-    }
-    cmp.form.controls.title.setValue('Cabaret de rentrée')
-    cmp.onTitleBlur()
-    expect(cmp.form.controls.slug.value).toBe(slugifyTitle('Cabaret de rentrée'))
+    const html = fixture.nativeElement.innerHTML
+    expect(html).not.toMatch(/Identifiant URL/)
+    expect(html).not.toMatch(/Lien partageable/)
+    expect(fixture.nativeElement.querySelector('[formcontrolname="slug"]')).toBeNull()
   })
 
-  it('does not overwrite slug after manual edit', async () => {
-    const { fixture } = await setup({ mode: 'create', seasonId: 'season-1' })
-    const cmp = fixture.componentInstance as unknown as {
-      slugTouched: boolean
-      form: {
-        controls: { title: { setValue: (v: string) => void }; slug: { setValue: (v: string) => void; value: string } }
-      }
-      onTitleBlur: () => void
-      onSlugInput: () => void
-    }
-    cmp.form.controls.slug.setValue('mon-slug')
-    cmp.onSlugInput()
-    cmp.form.controls.title.setValue('Autre titre')
-    cmp.onTitleBlur()
-    expect(cmp.form.controls.slug.value).toBe('mon-slug')
+  it('createEvent payload omits slug', async () => {
+    const created = event('ev-new')
+    const createEvent = vi.fn().mockResolvedValue({ ok: true, status: 200, data: created })
+    const { fixture } = await setup({ mode: 'create', seasonId: 'season-1' }, { createEvent })
+    fillRequiredCreateFields(fixture)
+    const cmp = fixture.componentInstance as unknown as { submit: () => Promise<void> }
+    await cmp.submit()
+    expect(createEvent).toHaveBeenCalledWith('season-1', expect.not.objectContaining({ slug: expect.anything() }))
+    const body = createEvent.mock.calls[0]?.[1] as Record<string, unknown>
+    expect(body).not.toHaveProperty('slug')
   })
 
-  it('surfaces API error message on failed create', async () => {
+  it('updateEvent payload omits slug', async () => {
+    const updateEvent = vi.fn().mockResolvedValue({ ok: true, status: 200, data: event('ev-1') })
+    const { fixture } = await setup(
+      { mode: 'edit', seasonId: 'season-1', event: event('ev-1') },
+      { updateEvent },
+    )
+    const cmp = fixture.componentInstance as unknown as {
+      form: { patchValue: (v: Record<string, string>) => void }
+      submit: () => Promise<void>
+    }
+    cmp.form.patchValue({ title: 'Nouveau titre' })
+    await cmp.submit()
+    expect(updateEvent).toHaveBeenCalledWith('season-1', 'ev-1', expect.not.objectContaining({ slug: expect.anything() }))
+    const body = updateEvent.mock.calls[0]?.[2] as Record<string, unknown>
+    expect(body).not.toHaveProperty('slug')
+  })
+
+  it('surfaces generic API error on failed update', async () => {
+    const updateEvent = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      errorMessage: 'Mise à jour impossible : conflit.',
+    })
+    const { fixture, close } = await setup(
+      { mode: 'edit', seasonId: 'season-1', event: event('ev-1') },
+      { updateEvent },
+    )
+    const cmp = fixture.componentInstance as unknown as { submit: () => Promise<void> }
+    await cmp.submit()
+    expect(updateEvent).toHaveBeenCalled()
+    expect(close).not.toHaveBeenCalled()
+    const err = (cmp as unknown as { formError: string }).formError
+    expect(err).toContain('Mise à jour impossible')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.form-error')?.textContent).toContain(
+      'Mise à jour impossible',
+    )
+  })
+
+  it('surfaces generic API error on failed create', async () => {
     const createEvent = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
-      errorMessage: 'L’identifiant URL ne peut pas reprendre le format d’un identifiant technique.',
+      errorMessage: 'Création impossible : conflit sur le titre.',
     })
     const { fixture, close } = await setup(
       { mode: 'create', seasonId: 'season-1' },
@@ -183,8 +211,10 @@ describe('EventFormDialog slug field', () => {
     await cmp.submit()
     expect(createEvent).toHaveBeenCalled()
     expect(close).not.toHaveBeenCalled()
-    const err = (cmp as unknown as { slugError: string }).slugError
-    expect(err).toContain('identifiant technique')
+    const err = (cmp as unknown as { formError: string }).formError
+    expect(err).toContain('Création impossible')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.form-error')?.textContent).toContain('Création impossible')
   })
 
   it('closes with created event on success', async () => {

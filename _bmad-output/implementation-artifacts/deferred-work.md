@@ -1,3 +1,7 @@
+## Deferred from: code review of 17-12-slug-spectacle-sans-saisie-formulaire.md (2026-05-25)
+
+- AC6 — suite web complète non revalidée lors de la revue ; échecs préexistants `event-infos-tab.spec.ts` (17.8), déjà notés dans la story.
+
 ## Deferred from: code review of 17-8-ui-onglet-infos-tag-equite.md (2026-05-25)
 
 - Duplicate `listEquityTags` on Infos tab init and on each dialog open — acceptable MVP cost.

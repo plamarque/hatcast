@@ -1390,7 +1390,7 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 **Acceptance Criteria**
 
 - **Given** migration Flyway, **when** appliquée, **then** `events.slug` unique par `(season_id, slug)`.
-- **Given** création spectacle, **when** titre saisi, **then** slug proposé (déduplication `-2`, …) ; éditable.
+- **Given** création spectacle, **when** titre saisi, **then** slug alloué côté API (déduplication `-2`, …) ; **non éditable** dans le formulaire web (17.12).
 - **Given** URL UUID legacy, **when** slug existe, **then** redirect 301 vers `/saison/:slug/event/:eventSlug`.
 - **Given** OpenAPI, **when** publié, **then** routes documentées.
 
