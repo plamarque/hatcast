@@ -373,6 +373,10 @@ export class EventDetail implements OnDestroy, OnInit {
     }
   }
 
+  protected onEventInfosUpdated(updated: EventResponse): void {
+    this.event.set(updated)
+  }
+
   /** Patch event lifecycle fields from composition response — avoids redundant full reload (PERF-001). */
   protected syncCompositionFromEquipe(composition: CompositionResponse): void {
     const ev = this.event()

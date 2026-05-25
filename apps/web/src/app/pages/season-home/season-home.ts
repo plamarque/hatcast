@@ -24,6 +24,10 @@ import {
 } from '../../core/events/event-api.service'
 import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import {
+  TroupeApiService,
+  type TroupeEquityTag,
+} from '../../core/troupes/troupe-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import {
   OrganizerApiService,
@@ -79,6 +83,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   private readonly availabilityApi = inject(AvailabilityApiService)
   private readonly seasonsApi = inject(SeasonApiService)
   private readonly troupeContext = inject(TroupeContextService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly eventsApi = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
@@ -138,6 +143,16 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly monthGroups = computed(() =>
     groupEventsByMonth(this.filteredEvents()),
   )
+
+  protected readonly equityTagLabels = computed(() => {
+    const map: Record<string, string> = {}
+    for (const tag of this.equityTags()) {
+      map[tag.slug] = tag.label
+    }
+    return map
+  })
+
+  private readonly equityTags = signal<TroupeEquityTag[]>([])
   protected readonly canManageMembers = computed(() => this.seasonPermissions()?.canManageMembers === true)
   protected readonly canManageEvents = computed(() => this.seasonPermissions()?.canManageEvents === true)
   protected readonly canManageSeasonParticipants = computed(
@@ -280,6 +295,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.loadingEvents.set(false)
     this.eventLoadLimit.set(AGENDA_UPCOMING_CAP)
     this.selectedEventId.set(null)
+    this.equityTags.set([])
   }
 
   private async loadTroupeAndSeason(slug: string): Promise<void> {
@@ -326,6 +342,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     await Promise.all([
       this.loadSeasonPermissions(resolved.season.id, requestId),
       this.loadParticipantSelectors(resolved.season.id, requestId),
+      this.loadEquityTags(resolved.troupe.id, requestId),
       this.loadUpcomingEvents(),
     ])
   }
@@ -338,6 +355,14 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (r.ok && r.data) {
       this.participantSelectors.set(r.data)
     }
+  }
+
+  private async loadEquityTags(troupeId: string, requestId: number): Promise<void> {
+    const r = await this.troupeApi.listEquityTags(troupeId)
+    if (requestId !== this.seasonLoadRequestId) {
+      return
+    }
+    this.equityTags.set(r.ok && r.data ? r.data : [])
   }
 
   private async loadSeasonPermissions(seasonId: string, requestId: number): Promise<void> {

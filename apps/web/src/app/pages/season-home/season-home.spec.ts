@@ -54,7 +54,10 @@ describe('SeasonHome', () => {
   let organizerApi: { mySeasonPermissions: ReturnType<typeof vi.fn> }
   let participantApi: { listSeasonParticipantSelectors: ReturnType<typeof vi.fn> }
   let authApi: { ensureHatcastSession: ReturnType<typeof vi.fn> }
-  let troupeApi: { listMyTroupes: ReturnType<typeof vi.fn> }
+  let troupeApi: {
+    listMyTroupes: ReturnType<typeof vi.fn>
+    listEquityTags: ReturnType<typeof vi.fn>
+  }
   let seasonsApi: { getSeasonBySlug: ReturnType<typeof vi.fn>; getSeason: ReturnType<typeof vi.fn> }
   let eventsApi: { listEvents: ReturnType<typeof vi.fn> }
   const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
@@ -82,6 +85,7 @@ describe('SeasonHome', () => {
         status: 200,
         data: [troupe('troupe-1'), troupe('troupe-2')],
       }),
+      listEquityTags: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
     }
     seasonsApi = {
       getSeasonBySlug: vi.fn().mockResolvedValue({ ok: true, status: 200, data: season('season-1', 'troupe-1') }),

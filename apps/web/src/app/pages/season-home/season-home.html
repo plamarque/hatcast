@@ -43,6 +43,7 @@
         [loadedEventsCount]="events().length"
         [canManageEvents]="canManageEvents()"
         [canEditAvailability]="canEditAvailability()"
+        [equityTagLabels]="equityTagLabels()"
         (eventClick)="openEvent($event)"
         (editClick)="openEdit($event)"
         (archiveClick)="confirmArchive($event)"

@@ -70,6 +70,26 @@ describe('SeasonAgenda', () => {
     expect(spy).toHaveBeenCalledWith('aperock-mai')
   })
 
+  it('shows an equity tag badge when the event has a tag', () => {
+    const withTag: MonthEventGroup[] = [
+      {
+        ...monthGroups[0],
+        events: [
+          {
+            ...monthGroups[0].events[0],
+            equityTag: 'deplacements',
+          },
+        ],
+      },
+    ]
+    fixture.componentRef.setInput('monthGroups', withTag)
+    fixture.componentRef.setInput('equityTagLabels', { deplacements: 'Dépl.' })
+    fixture.detectChanges()
+
+    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--equity')
+    expect(badge?.textContent?.trim()).toBe('Dépl.')
+  })
+
   it('renders composition team status badge on agenda cards', () => {
     const badge = fixture.nativeElement.querySelector('.composition-status-badge--collecting')
     expect(badge?.textContent?.trim()).toBe('Collecte')

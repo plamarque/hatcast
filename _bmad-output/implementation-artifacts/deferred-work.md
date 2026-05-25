@@ -1,3 +1,8 @@
+## Deferred from: code review of 17-8-ui-onglet-infos-tag-equite.md (2026-05-25)
+
+- Duplicate `listEquityTags` on Infos tab init and on each dialog open — acceptable MVP cost.
+- `event-form-dialog.spec.ts` slug-related edits co-located with 17.8 equity guard — belongs to 17.12 commit hygiene.
+
 ## Deferred from: code review of 17-7-api-tag-equite-glossaire-troupe.md (2026-05-25)
 
 - Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests equity-tag supposent Postgres/CI (aligné 17.6).

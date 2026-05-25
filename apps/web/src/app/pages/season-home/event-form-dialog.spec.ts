@@ -89,6 +89,20 @@ function fillRequiredCreateFields(fixture: ComponentFixture<EventFormDialog>): v
   })
 }
 
+describe('EventFormDialog equity tag regression', () => {
+  it('does not expose an equity tag field in the form', async () => {
+    const { fixture } = await setup({
+      mode: 'edit',
+      seasonId: 'season-1',
+      event: event('ev-1'),
+    })
+    const html = fixture.nativeElement.innerHTML
+    expect(html).not.toMatch(/equityTag/i)
+    expect(html).not.toMatch(/Tag \(optionnel\)/)
+    expect(fixture.nativeElement.querySelector('[formcontrolname="equityTag"]')).toBeNull()
+  })
+})
+
 describe('EventFormDialog participants section', () => {
   it('does not load event participants without permission', async () => {
     const { listEventParticipants } = await setup({

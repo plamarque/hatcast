@@ -46,4 +46,35 @@
       }
     </div>
   </div>
+
+  @if (showEquitySection()) {
+    <section class="event-infos__equity" aria-labelledby="event-infos-equity-label">
+      <span id="event-infos-equity-label" class="event-infos__label">Tag d’équité</span>
+      <div class="event-infos__equity-body">
+        @if (equityTagLabel(); as label) {
+          <mat-chip-set class="event-infos__chip-set">
+            <mat-chip
+              class="event-infos__equity-chip"
+              [disabled]="saving()"
+              [removable]="canManageEvents()"
+              (removed)="removeTag()"
+              (click)="onChipClick()"
+            >
+              {{ label }}
+            </mat-chip>
+          </mat-chip-set>
+        } @else if (canManageEvents()) {
+          <button
+            type="button"
+            class="event-infos__add-tag"
+            [disabled]="saving()"
+            (click)="openTagDialog()"
+          >
+            <mat-icon aria-hidden="true">sell</mat-icon>
+            Ajouter un tag
+          </button>
+        }
+      </div>
+    </section>
+  }
 </main>

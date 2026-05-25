@@ -54,6 +54,9 @@
               }
               <div class="agenda-card__badges">
                 <app-composition-status-badge [badge]="ev.teamStatusBadge" />
+                @if (equityTagBadgeLabel(ev); as tagLabel) {
+                  <span class="agenda-card__badge agenda-card__badge--equity">{{ tagLabel }}</span>
+                }
                 @if (canEditAvailability()) {
                   <button
                     type="button"

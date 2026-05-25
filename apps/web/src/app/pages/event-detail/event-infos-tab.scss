@@ -76,3 +76,62 @@
   opacity: 0.7;
   font-style: italic;
 }
+
+.event-infos__equity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.event-infos__equity-body {
+  padding: 0.5rem 0.9rem 0.65rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.event-infos__chip-set {
+  margin: 0;
+}
+
+.event-infos__equity-chip {
+  --mdc-chip-elevated-container-color: rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: default;
+
+  &:not([disabled]) {
+    cursor: pointer;
+  }
+}
+
+.event-infos__add-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.88rem;
+  opacity: 0.75;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    opacity: 1;
+    text-decoration: underline;
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+}

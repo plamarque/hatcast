@@ -37,8 +37,12 @@
         @if (activeTab() === 'infos') {
           <app-event-infos-tab
             [event]="ev"
+            [seasonId]="seasonId()"
+            [troupeId]="troupeId()"
+            [canManageEvents]="canManageEvents()"
             [canManageComposition]="canManageComposition()"
             [adminItems]="eventAdminItems()"
+            (eventUpdated)="onEventInfosUpdated($event)"
           />
         }
       </mat-tab>

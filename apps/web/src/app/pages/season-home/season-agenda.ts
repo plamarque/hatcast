@@ -26,6 +26,8 @@ export class SeasonAgenda {
   readonly loadedEventsCount = input(0)
   readonly canManageEvents = input(false)
   readonly canEditAvailability = input(false)
+  /** Slug → display label for equity tag badges (story 17.8). */
+  readonly equityTagLabels = input<Record<string, string>>({})
 
   readonly eventClick = output<string>()
   readonly editClick = output<string>()
@@ -71,5 +73,13 @@ export class SeasonAgenda {
 
   protected typeIcon(templateType: string): string {
     return getEventTypeIcon(templateType)
+  }
+
+  protected equityTagBadgeLabel(ev: { equityTag?: string | null }): string | null {
+    const slug = ev.equityTag
+    if (!slug) {
+      return null
+    }
+    return this.equityTagLabels()[slug] ?? slug
   }
 }
