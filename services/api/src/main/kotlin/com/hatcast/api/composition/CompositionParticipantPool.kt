@@ -4,6 +4,7 @@ import com.hatcast.api.availability.AvailabilityRoleRules
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.StoredAvailabilityStatus
+import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantRepository
@@ -23,6 +24,7 @@ object CompositionParticipantPool {
         eventId: UUID,
         seasonParticipantRepository: SeasonParticipantRepository,
         eventParticipantRepository: EventParticipantRepository,
+        eventParticipantExclusionRepository: EventParticipantExclusionRepository,
     ): List<CompositionEligibleParticipant> {
         val seasonRows =
             seasonParticipantRepository
@@ -31,11 +33,19 @@ object CompositionParticipantPool {
                     row.troupeMembership == null ||
                         row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
                 }
+        val excluded =
+            eventParticipantExclusionRepository
+                .findByIdEventId(eventId)
+                .map { it.id.seasonParticipantId }
+                .toSet()
         val seasonParticipantIds = seasonRows.map { it.id }.toSet()
         val byId = linkedMapOf<UUID, CompositionEligibleParticipant>()
         val seenUserIds = mutableSetOf<UUID>()
 
         for (row in seasonRows) {
+            if (row.id in excluded) {
+                continue
+            }
             byId[row.id] =
                 CompositionEligibleParticipant(
                     row.id,

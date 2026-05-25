@@ -25,6 +25,7 @@ import java.util.UUID
 class ParticipantController(
     private val seasonParticipantService: SeasonParticipantService,
     private val eventParticipantService: EventParticipantService,
+    private val eventRosterService: EventRosterService,
 ) {
     @GetMapping("/seasons/{seasonId}/participants")
     fun listSeasonParticipants(
@@ -69,6 +70,36 @@ class ParticipantController(
         @PathVariable eventId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): List<EventParticipantAdminDto> = eventParticipantService.listAdmin(seasonId, eventId, principal)
+
+    @GetMapping("/seasons/{seasonId}/events/{eventId}/participants/roster")
+    fun listEventParticipantRoster(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): List<com.hatcast.api.participant.dto.EventRosterParticipantDto> =
+        eventRosterService.listRoster(seasonId, eventId, principal)
+
+    @PostMapping("/seasons/{seasonId}/events/{eventId}/participants/roster/season/{seasonParticipantId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun includeSeasonParticipantOnEvent(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable seasonParticipantId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ) {
+        eventRosterService.includeSeasonParticipant(seasonId, eventId, seasonParticipantId, principal)
+    }
+
+    @DeleteMapping("/seasons/{seasonId}/events/{eventId}/participants/roster/season/{seasonParticipantId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun excludeSeasonParticipantFromEvent(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable seasonParticipantId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ) {
+        eventRosterService.excludeSeasonParticipant(seasonId, eventId, seasonParticipantId, principal)
+    }
 
     @PostMapping("/seasons/{seasonId}/events/{eventId}/participants")
     fun createEventParticipant(

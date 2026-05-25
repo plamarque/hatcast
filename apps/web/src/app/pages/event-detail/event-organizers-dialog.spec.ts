@@ -45,6 +45,7 @@ const troupeMembers = {
 
 type Harness = {
   submit: () => Promise<void>
+  close: () => void
   onPickerInput: (value: string) => void
   onMemberSelected: (email: string) => void
   pickerQuery: () => string
@@ -119,13 +120,15 @@ describe('EventOrganizersDialog', () => {
     expect(harness().filteredMembers()[0]?.email).toBe('bob@example.com')
   })
 
-  it('closes with true after successful add', async () => {
+  it('stays open after successful add and closes with true when dismissed', async () => {
     const addEventOrganizer = vi.fn().mockResolvedValue({ ok: true, status: 200 })
-    const { close, harness } = await setup({ addEventOrganizer })
+    const { close, harness, fixture } = await setup({ addEventOrganizer })
     const h = harness()
     h.onPickerInput('bob@example.com')
     await h.submit()
     expect(addEventOrganizer).toHaveBeenCalledWith('season-1', 'event-1', 'bob@example.com')
+    expect(close).not.toHaveBeenCalled()
+    ;(fixture.componentInstance as unknown as Harness).close()
     expect(close).toHaveBeenCalledWith(true)
   })
 

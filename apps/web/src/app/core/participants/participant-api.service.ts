@@ -15,6 +15,18 @@ export interface SeasonParticipantAdmin {
   removable: boolean
 }
 
+export type EventRosterSource = 'SEASON' | 'EVENT'
+
+export interface EventRosterParticipant {
+  seasonParticipantId: string | null
+  eventParticipantId: string | null
+  displayName: string
+  email: string | null
+  userId: string | null
+  kind: ParticipantKind
+  source: EventRosterSource
+}
+
 export interface EventParticipantAdmin {
   id: string
   displayName: string
@@ -71,6 +83,25 @@ export class ParticipantApiService {
 
   async listSeasonParticipantSelectors(seasonId: string): ApiResult<ParticipantSelector[]> {
     return this.getList(`/v1/seasons/${encodeURIComponent(seasonId)}/participants/selectors`)
+  }
+
+  async listEventParticipantRoster(
+    seasonId: string,
+    eventId: string,
+  ): ApiResult<EventRosterParticipant[]> {
+    return this.getList(
+      `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants/roster`,
+    )
+  }
+
+  async excludeSeasonParticipantFromEvent(
+    seasonId: string,
+    eventId: string,
+    seasonParticipantId: string,
+  ): ApiResult<void> {
+    return this.deleteResource(
+      `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants/roster/season/${encodeURIComponent(seasonParticipantId)}`,
+    )
   }
 
   async listEventParticipants(

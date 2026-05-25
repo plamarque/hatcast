@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { routes } from './app.routes'
 import { AdminMembres } from './pages/admin-membres/admin-membres'
+import { AdminEventParticipants } from './pages/admin-event-participants/admin-event-participants'
 import { AdminParticipants } from './pages/admin-participants/admin-participants'
 import { EventDetail } from './pages/event-detail/event-detail'
 import { SeasonHome } from './pages/season-home/season-home'
@@ -81,6 +82,7 @@ describe('app.routes', () => {
     { url: '/saison/test-slug', component: SeasonHome },
     { url: '/saison/test-slug/admin/membres', component: AdminMembres },
     { url: '/saison/test-slug/admin/participants', component: AdminParticipants },
+    { url: '/saison/test-slug/event/event-1/admin/participants', component: AdminEventParticipants },
     { url: '/saison/test-slug/event/event-1', component: EventDetail },
   ])('keeps canonical /saison route $url', async ({ url, component }) => {
     const router = TestBed.inject(Router)

@@ -464,4 +464,40 @@ class ParticipantControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isBadRequest)
     }
+
+    @Test
+    fun `event roster lists season participants and supports exclusion`() {
+        val admin = signInAdmin("part-admin-14", "part-admin-14@example.com", "Part Admin Fourteen")
+        val seasonId = createSeason(admin.cookie)
+        val eventId = createEvent(admin.cookie, seasonId)
+
+        val listResult =
+            mockMvc
+                .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+                .andExpect(status().isOk)
+                .andReturn()
+        val memberNode =
+            mapper.readTree(listResult.response.contentAsString).first {
+                it.path("kind").asText() == "MEMBER"
+            }
+        val seasonParticipantId = memberNode.path("id").asText()
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/participants/roster").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.seasonParticipantId == '$seasonParticipantId')]").exists())
+
+        mockMvc
+            .perform(
+                delete(
+                    "/v1/seasons/$seasonId/events/$eventId/participants/roster/season/$seasonParticipantId",
+                ).cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/participants/roster").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.seasonParticipantId == '$seasonParticipantId')]").isEmpty)
+    }
 }

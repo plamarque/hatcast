@@ -43,6 +43,7 @@
             [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
             [canManageComposition]="canManageComposition()"
             [adminItems]="eventAdminItems()"
+            [organizersReloadTrigger]="organizersReloadTrigger()"
             (eventUpdated)="onEventInfosUpdated($event)"
           />
         }

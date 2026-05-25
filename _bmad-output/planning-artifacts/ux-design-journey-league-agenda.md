@@ -400,7 +400,7 @@ No layout redesign in MVP; optional polish Story 2.11.
 - UI labels: **Saison** / Participants (not Ligue)
 - Entry: season `app-scope-admin-menu` (toolbar gear)
 - **Chrome:** `Troupe › Saison (link) › Participants` (leaf); no chevron back; mobile title below header
-- Event-only participant admin: dialog (`EventParticipantsDialog`) — breadcrumb event+leaf ready in `app-context-breadcrumb` for a future dedicated route
+- Event-only participant admin: route `/saison/:slug/event/:eventSlug/admin/participants` (`AdminEventParticipants`) — story **17.16**; supersedes dialog from **17.15**
 
 ---
 

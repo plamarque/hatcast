@@ -12,6 +12,7 @@ import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.organizer.OrganizerAccessRules
+import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
@@ -33,6 +34,7 @@ class CompositionSlotAssignmentService(
     private val seasonParticipantRepository: SeasonParticipantRepository,
     private val seasonParticipantService: SeasonParticipantService,
     private val eventParticipantRepository: EventParticipantRepository,
+    private val eventParticipantExclusionRepository: EventParticipantExclusionRepository,
     private val availabilityRepository: EventAvailabilityRepository,
     private val organizerAccess: OrganizerAccessRules,
     private val troupeAccess: TroupeAccessService,
@@ -77,6 +79,7 @@ class CompositionSlotAssignmentService(
                 eventId,
                 seasonParticipantRepository,
                 eventParticipantRepository,
+                eventParticipantExclusionRepository,
             )
         val availabilityByUserId =
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
@@ -212,6 +215,7 @@ class CompositionSlotAssignmentService(
                 eventId,
                 seasonParticipantRepository,
                 eventParticipantRepository,
+                eventParticipantExclusionRepository,
             )
         val eligibleRow = resolveAssignee(seasonId, eventId, participantId, eligible)
 

@@ -8,6 +8,7 @@ import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.associateByLinkedUserId
+import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
@@ -30,6 +31,7 @@ class CompositionDeclineRestoreService(
     private val seasonParticipantRepository: SeasonParticipantRepository,
     private val seasonParticipantService: SeasonParticipantService,
     private val eventParticipantRepository: EventParticipantRepository,
+    private val eventParticipantExclusionRepository: EventParticipantExclusionRepository,
     private val availabilityRepository: EventAvailabilityRepository,
     private val organizerAccess: OrganizerAccessRules,
     private val troupeAccess: TroupeAccessService,
@@ -82,6 +84,7 @@ class CompositionDeclineRestoreService(
                 eventId,
                 seasonParticipantRepository,
                 eventParticipantRepository,
+                eventParticipantExclusionRepository,
             )
         val eligibleRow = resolveAssignee(seasonId, eventId, declineParticipantId, eligible)
         ensureEligibleForRoleAssign(eventId, decline.roleKey, emptySlotIndex, eligibleRow, eligible)

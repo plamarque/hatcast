@@ -27,6 +27,10 @@ export function saisonEventPath(seasonSlug: string, eventSlug: string): string[]
   return ['/saison', seasonSlug, 'event', eventSlug]
 }
 
+export function saisonEventParticipantsAdminPath(seasonSlug: string, eventSlug: string): string[] {
+  return ['/saison', seasonSlug, 'event', eventSlug, 'admin', 'participants']
+}
+
 /** Troupe admin membres under canonical hub prefix (ADR 0013). */
 export function troupeAdminMembresPath(troupeSlug: string): string[] {
   return ['/', TROUPE_HUB_ROUTE_PREFIX, troupeSlug, 'admin', 'membres']

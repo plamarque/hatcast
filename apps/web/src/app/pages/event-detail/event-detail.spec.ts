@@ -16,7 +16,6 @@ import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { EventDetail } from './event-detail'
 import { EventOrganizersDialog } from './event-organizers-dialog'
-import { EventParticipantsDialog } from './event-participants-dialog'
 import { emptyRoleSlots } from '../../core/events/event-types'
 
 type EventDetailHarness = {
@@ -428,7 +427,7 @@ describe('EventDetail', () => {
     )
   })
 
-  it('shows scope admin menu with saison participants when permitted', async () => {
+  it('navigates to event participants admin when season participant admin', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {
@@ -453,10 +452,14 @@ describe('EventDetail', () => {
       ).not.toBeNull()
     })
 
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
     const cmp = fixture.componentInstance as unknown as {
-      eventAdminItems: () => Array<{ label: string; routerLink?: string[] }>
+      eventAdminItems: () => Array<{ label: string }>
+      openEventParticipantsAdmin: () => void
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants'])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants du spectacle'])
+    cmp.openEventParticipantsAdmin()
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-2', 'admin', 'participants'])
 
     const trigger = fixture.nativeElement.querySelector(
       '.event-infos__admin-menu .scope-admin-menu__trigger',
@@ -490,18 +493,14 @@ describe('EventDetail', () => {
       ).not.toBeNull()
     })
 
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
     const cmp = fixture.componentInstance as unknown as {
       eventAdminItems: () => Array<{ label: string; action?: () => void }>
       openEventParticipantsAdmin: () => void
     }
     expect(cmp.eventAdminItems()[0]?.label).toBe('Participants du spectacle')
     cmp.openEventParticipantsAdmin()
-    expect(dialogOpen).toHaveBeenCalledWith(
-      EventParticipantsDialog,
-      expect.objectContaining({
-        data: { seasonId: 'season-1', eventId: 'event-2' },
-      }),
-    )
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-2', 'admin', 'participants'])
   })
 
   it('does not show admin gear on Dispos tab', async () => {

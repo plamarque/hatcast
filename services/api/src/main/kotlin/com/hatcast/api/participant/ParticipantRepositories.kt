@@ -101,6 +101,21 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
     ): Int
 }
 
+interface EventParticipantExclusionRepository : JpaRepository<EventParticipantExclusionEntity, EventParticipantExclusionId> {
+    fun findByIdEventId(eventId: UUID): List<EventParticipantExclusionEntity>
+
+    fun existsByIdEventIdAndIdSeasonParticipantId(
+        eventId: UUID,
+        seasonParticipantId: UUID,
+    ): Boolean
+
+    @Modifying(clearAutomatically = true)
+    fun deleteByIdEventIdAndIdSeasonParticipantId(
+        eventId: UUID,
+        seasonParticipantId: UUID,
+    ): Int
+}
+
 interface EventParticipantRepository : JpaRepository<EventParticipantEntity, UUID> {
     fun findByEvent_IdAndStatusOrderByDisplayNameAsc(
         eventId: UUID,

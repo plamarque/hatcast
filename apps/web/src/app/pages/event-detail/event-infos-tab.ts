@@ -75,6 +75,8 @@ export class EventInfosTab {
   readonly canManageEventOrganizers = input(false)
   readonly canManageComposition = input(false)
   readonly adminItems = input<ScopeAdminMenuItem[]>([])
+  /** Incremented by parent when organizers change via admin menu dialog. */
+  readonly organizersReloadTrigger = input(0)
 
   readonly eventUpdated = output<EventResponse>()
 
@@ -116,6 +118,7 @@ export class EventInfosTab {
     effect(() => {
       const seasonId = this.seasonId()
       const eventId = this.event().id
+      const _trigger = this.organizersReloadTrigger()
       if (seasonId && eventId) {
         void this.loadOrganizers(seasonId, eventId)
       }

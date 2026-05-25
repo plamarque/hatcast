@@ -9,6 +9,7 @@ import { ResetPassword } from './pages/reset-password/reset-password';
 import { EventDetail } from './pages/event-detail/event-detail';
 import { AdminMembres } from './pages/admin-membres/admin-membres';
 import { AdminParticipants } from './pages/admin-participants/admin-participants';
+import { AdminEventParticipants } from './pages/admin-event-participants/admin-event-participants';
 import { SeasonHome } from './pages/season-home/season-home';
 import { UserAgenda } from './pages/user-agenda/user-agenda';
 import { TroupeHub } from './pages/troupe-hub/troupe-hub';
@@ -55,6 +56,7 @@ export const routes: Routes = [
   { path: 'saison/:slug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug/admin/participants', component: AdminParticipants },
   { path: 'saison/:slug/event/:eventSlug', component: EventDetail },
+  { path: 'saison/:slug/event/:eventSlug/admin/participants', component: AdminEventParticipants },
   {
     path: 'ligue/:slug/admin/membres',
     redirectTo: (route) =>
@@ -76,6 +78,14 @@ export const routes: Routes = [
     redirectTo: (route) =>
       redirectPathWithQuery(
         `/saison/${route.params['slug']}/event/${route.params['eventSlug']}`,
+        route.queryParamMap,
+      ),
+  },
+  {
+    path: 'ligue/:slug/event/:eventSlug/admin/participants',
+    redirectTo: (route) =>
+      redirectPathWithQuery(
+        `/saison/${route.params['slug']}/event/${route.params['eventSlug']}/admin/participants`,
         route.queryParamMap,
       ),
   },

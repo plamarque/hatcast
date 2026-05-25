@@ -71,6 +71,51 @@ data class EventParticipantAdminDto(
     }
 }
 
+enum class EventRosterSource {
+    SEASON,
+    EVENT,
+}
+
+data class EventRosterParticipantDto(
+    val seasonParticipantId: UUID?,
+    val eventParticipantId: UUID?,
+    val displayName: String,
+    val email: String?,
+    val userId: UUID?,
+    val kind: ParticipantKind,
+    val source: EventRosterSource,
+) {
+    companion object {
+        fun fromSeason(
+            entity: SeasonParticipantEntity,
+            includeEmail: Boolean,
+        ): EventRosterParticipantDto =
+            EventRosterParticipantDto(
+                seasonParticipantId = entity.id,
+                eventParticipantId = null,
+                displayName = entity.displayName,
+                email = if (includeEmail) entity.normalizedEmail else null,
+                userId = entity.user?.id,
+                kind = entity.kind(),
+                source = EventRosterSource.SEASON,
+            )
+
+        fun fromEvent(
+            entity: EventParticipantEntity,
+            includeEmail: Boolean,
+        ): EventRosterParticipantDto =
+            EventRosterParticipantDto(
+                seasonParticipantId = entity.seasonParticipant?.id,
+                eventParticipantId = entity.id,
+                displayName = entity.displayName,
+                email = if (includeEmail) entity.normalizedEmail else null,
+                userId = entity.user?.id,
+                kind = entity.kind(),
+                source = EventRosterSource.EVENT,
+            )
+    }
+}
+
 data class ParticipantSelectorDto(
     val id: UUID,
     val displayName: String,

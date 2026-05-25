@@ -1,0 +1,135 @@
+<div class="admin-event-participants">
+  <header class="admin-event-participants__header">
+    <div class="admin-event-participants__header-left">
+      @if (showBreadcrumb()) {
+        <app-context-breadcrumb
+          [layout]="'event'"
+          [leafTitle]="'Participants'"
+          [troupeName]="troupeName()!"
+          [troupeSlug]="troupeSlug()!"
+          [seasonTitle]="season()!.title"
+          [seasonSlug]="seasonSlug()"
+          [eventTitle]="event()!.title"
+          [eventSlug]="eventSlug()"
+        />
+      }
+    </div>
+    @if (user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="admin-event-participants__user"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel()"
+      >
+        <app-user-avatar
+          class="admin-event-participants__user-avatar"
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel()"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+        />
+        <span class="admin-event-participants__user-label">{{ userDisplayLabel() }}</span>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+      </mat-menu>
+    }
+  </header>
+
+  @if (showBreadcrumb()) {
+    <div class="admin-event-participants__mobile-context">
+      <h1 class="admin-event-participants__mobile-context-title">Participants du spectacle</h1>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="admin-event-participants__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (event(); as ev) {
+    <p class="admin-event-participants__intro">
+      Par défaut, les participants de la saison sont présents sur ce spectacle. Vous pouvez retirer
+      quelqu’un pour ce spectacle uniquement ou ajouter un participant ponctuel (invité, musicien…).
+      <a [routerLink]="seasonAdminParticipantsLink()">Gérer le roster saison</a>
+    </p>
+
+    <div class="admin-event-participants__toolbar">
+      <mat-form-field appearance="outline" class="admin-event-participants__search">
+        <mat-label>Rechercher</mat-label>
+        <input
+          matInput
+          [value]="searchQuery()"
+          (input)="onSearchInput($any($event.target).value)"
+          placeholder="Nom ou email"
+        />
+      </mat-form-field>
+    </div>
+
+    @if (filteredRoster().length === 0) {
+      <p class="admin-event-participants__empty">Aucun participant sur ce spectacle.</p>
+    } @else {
+      <ul class="admin-event-participants__list">
+        @for (p of filteredRoster(); track rosterKey(p)) {
+          <li class="admin-event-participants__row">
+            <div class="admin-event-participants__row-main">
+              <strong>{{ p.displayName }}</strong>
+              @if (p.email) {
+                <span class="admin-event-participants__email">{{ p.email }}</span>
+              }
+              <mat-chip-set>
+                <mat-chip>{{ sourceLabel(p.source) }}</mat-chip>
+                <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
+              </mat-chip-set>
+            </div>
+            <button
+              type="button"
+              mat-button
+              class="admin-event-participants__remove"
+              [disabled]="saving()"
+              (click)="removeFromEvent(p)"
+            >
+              Retirer du spectacle
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    <section class="admin-event-participants__add" aria-labelledby="add-event-participant-label">
+      <h2 id="add-event-participant-label" class="admin-event-participants__add-title">
+        Ajouter un participant ponctuel
+      </h2>
+      <p class="admin-event-participants__add-hint">
+        Personne présente uniquement pour ce spectacle (sans effet sur le roster saison).
+      </p>
+      <div class="admin-event-participants__add-fields">
+        <mat-form-field appearance="outline">
+          <mat-label>Nom affiché</mat-label>
+          <input
+            matInput
+            [value]="addDisplayName()"
+            (input)="addDisplayName.set($any($event.target).value)"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Email (optionnel)</mat-label>
+          <input
+            matInput
+            [value]="addEmail()"
+            (input)="addEmail.set($any($event.target).value)"
+          />
+        </mat-form-field>
+        <button
+          type="button"
+          mat-flat-button
+          color="primary"
+          [disabled]="saving()"
+          (click)="addEventOnlyParticipant()"
+        >
+          Ajouter
+        </button>
+      </div>
+    </section>
+  }
+</div>

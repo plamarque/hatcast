@@ -12,6 +12,7 @@ import com.hatcast.api.composition.CompositionSelectionHistoryService
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.organizer.OrganizerAccessService
+import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.ParticipantStatus
@@ -38,6 +39,7 @@ class AvailabilityService(
     private val seasonParticipantRepository: SeasonParticipantRepository,
     private val seasonParticipantService: SeasonParticipantService,
     private val eventParticipantRepository: EventParticipantRepository,
+    private val eventParticipantExclusionRepository: EventParticipantExclusionRepository,
     private val troupeAccess: TroupeAccessService,
     private val organizerAccess: OrganizerAccessService,
     private val userRepository: UserRepository,
@@ -490,11 +492,19 @@ class AvailabilityService(
                     row.troupeMembership == null ||
                         row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
                 }
+        val excluded =
+            eventParticipantExclusionRepository
+                .findByIdEventId(eventId)
+                .map { it.id.seasonParticipantId }
+                .toSet()
         val seasonParticipantIds = seasonRows.map { it.id }.toSet()
         val byId = linkedMapOf<UUID, EligibleParticipantRow>()
         val seenUserIds = mutableSetOf<UUID>()
 
         for (row in seasonRows) {
+            if (row.id in excluded) {
+                continue
+            }
             byId[row.id] = toEligibleRow(row.id, row.user, row.displayName)
             row.user?.id?.let { seenUserIds.add(it) }
         }

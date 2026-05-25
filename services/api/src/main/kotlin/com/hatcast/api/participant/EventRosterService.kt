@@ -1,0 +1,137 @@
+package com.hatcast.api.participant
+
+import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.event.EventRepository
+import com.hatcast.api.participant.dto.EventRosterParticipantDto
+import com.hatcast.api.participant.dto.EventRosterSource
+import com.hatcast.api.troupe.TroupeMembershipStatus
+import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
+import java.util.UUID
+
+@Service
+class EventRosterService(
+    private val seasonParticipantRepository: SeasonParticipantRepository,
+    private val eventParticipantRepository: EventParticipantRepository,
+    private val eventParticipantExclusionRepository: EventParticipantExclusionRepository,
+    private val eventRepository: EventRepository,
+    private val seasonParticipantService: SeasonParticipantService,
+    private val participantAccess: ParticipantAccessService,
+) {
+    @Transactional(readOnly = true)
+    fun listRoster(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): List<EventRosterParticipantDto> {
+        participantAccess.loadEventInSeason(seasonId, eventId, principal)
+        participantAccess.requireCanManageEventParticipants(eventId, seasonId, principal)
+        val includeEmail = participantAccess.canViewEventParticipantEmail(eventId, seasonId, principal)
+        return buildRoster(seasonId, eventId, includeEmail)
+    }
+
+    @Transactional
+    fun excludeSeasonParticipant(
+        seasonId: UUID,
+        eventId: UUID,
+        seasonParticipantId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        participantAccess.loadEventInSeason(seasonId, eventId, principal)
+        participantAccess.requireCanManageEventParticipants(eventId, seasonId, principal)
+        val event =
+            eventRepository
+                .findById(eventId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
+        val seasonParticipant =
+            seasonParticipantRepository
+                .findById(seasonParticipantId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu") }
+        if (seasonParticipant.season.id != seasonId || seasonParticipant.status != ParticipantStatus.ACTIVE) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
+        }
+        if (eventParticipantExclusionRepository.existsByIdEventIdAndIdSeasonParticipantId(eventId, seasonParticipantId)) {
+            return
+        }
+        eventParticipantExclusionRepository.save(
+            EventParticipantExclusionEntity(
+                id = EventParticipantExclusionId(eventId, seasonParticipantId),
+                event = event,
+                seasonParticipant = seasonParticipant,
+                createdAt = Instant.now(),
+            ),
+        )
+    }
+
+    @Transactional
+    fun includeSeasonParticipant(
+        seasonId: UUID,
+        eventId: UUID,
+        seasonParticipantId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        participantAccess.loadEventInSeason(seasonId, eventId, principal)
+        participantAccess.requireCanManageEventParticipants(eventId, seasonId, principal)
+        val seasonParticipant =
+            seasonParticipantRepository
+                .findById(seasonParticipantId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu") }
+        if (seasonParticipant.season.id != seasonId) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
+        }
+        eventParticipantExclusionRepository.deleteByIdEventIdAndIdSeasonParticipantId(eventId, seasonParticipantId)
+    }
+
+    internal fun buildRoster(
+        seasonId: UUID,
+        eventId: UUID,
+        includeEmail: Boolean,
+    ): List<EventRosterParticipantDto> {
+        seasonParticipantService.ensureMembershipParticipants(
+            eventRepository.findById(eventId).orElseThrow().season,
+        )
+        val excluded =
+            eventParticipantExclusionRepository
+                .findByIdEventId(eventId)
+                .map { it.id.seasonParticipantId }
+                .toSet()
+        val seasonRows =
+            seasonParticipantRepository
+                .findActiveForSeasonWithAssociations(seasonId, ParticipantStatus.ACTIVE)
+                .filter { row ->
+                    row.troupeMembership == null ||
+                        row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
+                }
+                .filter { it.id !in excluded }
+        val seasonParticipantIds = seasonRows.map { it.id }.toSet()
+        val seenUserIds = mutableSetOf<UUID>()
+        val roster = linkedMapOf<String, EventRosterParticipantDto>()
+
+        for (row in seasonRows.sortedBy { it.displayName.lowercase() }) {
+            val key = "season:${row.id}"
+            roster[key] = EventRosterParticipantDto.fromSeason(row, includeEmail)
+            row.user?.id?.let { seenUserIds.add(it) }
+        }
+
+        val eventRows =
+            eventParticipantRepository.findActiveForEventWithAssociations(eventId, ParticipantStatus.ACTIVE)
+        for (row in eventRows.sortedBy { it.displayName.lowercase() }) {
+            val linkedSeasonId = row.seasonParticipant?.id
+            if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
+                continue
+            }
+            val userId = row.user?.id
+            if (userId != null && userId in seenUserIds) {
+                continue
+            }
+            val key = "event:${row.id}"
+            roster[key] = EventRosterParticipantDto.fromEvent(row, includeEmail)
+            userId?.let { seenUserIds.add(it) }
+        }
+
+        return roster.values.toList()
+    }
+}

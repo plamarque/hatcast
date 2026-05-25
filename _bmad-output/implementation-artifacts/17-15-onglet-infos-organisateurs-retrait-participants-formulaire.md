@@ -1,6 +1,6 @@
 # Story 17.15: Infos tab — event organizers; remove participants from form
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -14,8 +14,8 @@ so that **create/edit stays focused on scheduling** and admin flows are not dupl
 
 ## Acceptance Criteria
 
-1. **Given** event detail **Infos** tab and organizer-management rights, **when** the tab loads, **then** an **Organisateur·ices** section shows a summary (count and/or names) and a CTA opens a **dedicated Material dialog** — not inline editing on the tab. [Source: epics 17.15 AC1; SCP §5; ux-backlog #4]
-2. **Given** the organizers dialog, **when** the user adds/removes organizers by email, **then** behavior matches today’s `EventFormDialog` organizers block (`listEventOrganizers`, `addEventOrganizer`, `removeEventOrganizer`, French status messages). [Source: `event-form-dialog.ts` L185–238; `organizer-api.service.ts`]
+1. **Given** event detail **Infos** tab and organizer-management rights, **when** the tab loads, **then** an **Organisateur·ices** section shows assigned organizers as **chips** (names), with **inline remove** when permitted and an **« Ajouter »** control that opens a **dedicated add-only Material dialog** (autocomplete membres troupe ou email). Pattern aligné sur la section « Groupe de spectacles » (17.8). [Source: epics 17.15 AC1 — amendé review 2026-05-25 ; ux-backlog #4]
+2. **Given** organizer management on Infos, **when** the user adds via the dialog or removes via chip, **then** APIs `listEventOrganizers`, `addEventOrganizer`, `removeEventOrganizer` are used with French status messages (404 → « Utilisateur introuvable. », snackbars sur l’onglet Infos). Add = modale ; remove = chip sur l’onglet. [Source: review 2026-05-25 — remplace bloc monolithique `EventFormDialog`]
 3. **Given** `!canManageEventOrganizers` for this event, **when** Infos loads, **then** organizers section is hidden or read-only summary only (no CTA) — mirror **17.14** read-only pattern for type/roles. [Source: `event-infos-tab` + `canManageEvents` pattern]
 4. **Given** `EventFormDialog` (create **or** edit), **when** opened, **then** **no** « Organisateur·ices du spectacle » section. [Source: epics 17.15 AC2]
 5. **Given** `EventFormDialog` (create **or** edit), **when** opened, **then** **no** « Participants du spectacle » section. [Source: epics 17.15 AC2; ux-backlog #5]
@@ -74,7 +74,7 @@ so that **create/edit stays focused on scheduling** and admin flows are not dupl
     - `openEventParticipantsAdmin` / `openEventOrganizersAdmin` open **new** dialog components (mock `MatDialog.open` class or `dialog.open` spy args), not `EventFormDialog`.
 
 - [x] **Docs** (AC: 11)
-  - [x] In [`3-8-rosters-participants-saison-et-evenement.md`](3-8-rosters-participants-saison-et-evenement.md): note AC11 **superseded** — event-only participants UI = admin menu → `EventParticipantsDialog` (**17.15**), not `event-form-dialog`.
+  - [x] In [`3-8-rosters-participants-saison-et-evenement.md`](3-8-rosters-participants-saison-et-evenement.md): note AC11 **superseded** — event participant admin = route **17.16** (`AdminEventParticipants`), not `event-form-dialog` or dialog.
 
 ## Dev Notes
 
@@ -217,7 +217,7 @@ Composer (Cursor)
 
 ### Completion Notes List
 
-- Extracted `EventOrganizersDialog` and `EventParticipantsDialog` under `event-detail/` with `true`/`undefined` close semantics; admin menu and Infos CTA open dedicated dialogs instead of `EventFormDialog`.
+- Extracted `EventOrganizersDialog` and `EventParticipantsDialog` under `event-detail/` with `true`/`undefined` close semantics; admin menu and Infos CTA open dedicated dialogs instead of `EventFormDialog`. **Note:** `EventParticipantsDialog` superseded by route **17.16** (`AdminEventParticipants`).
 - Infos tab: organizers summary section (read-only when list non-empty; edit icon when `canManageEventOrganizers`); reload list only after dialog change.
 - Slimmed `EventFormDialog` to planning fields only; removed permission flags from `EventFormDialogData` and all callers.
 - Tests: 439 passing (`npm run test -w @hatcast/web -- --watch=false`); build OK (`npm run build -w @hatcast/web`).
@@ -251,3 +251,13 @@ Composer (Cursor)
 ### Change Log
 
 - 2026-05-25: Story **17.15** — Infos organizers section + dedicated dialogs; slim event form; tests and **3.8** AC11 supersede note.
+- 2026-05-25: Code review — AC1/AC2 amendés (UX chips inline) ; patches modale multi-ajout + reload organisateurs ; status **done**.
+
+### Review Findings
+
+- [x] [Review][Decision] UX organisateurs Infos — **A** : chips inline + modale add-only ; AC1/AC2 amendés (review 2026-05-25).
+- [x] [Review][Decision] Menu gear participants saison — **A** : revert changements non commités ; lien router « Participants » conservé pour admins saison.
+- [x] [Review][Patch] Modale organisateurs multi-ajout [`event-organizers-dialog.ts`] — reste ouverte après ajout ; `close()` renvoie `true` si changement.
+- [x] [Review][Patch] Reload organisateurs admin menu [`event-detail.ts`] — `organizersReloadTrigger` + snackbar alignés sur Infos (sans `reloadEvent`).
+- [x] [Review][Patch] Changements non commités [`event-detail.ts`, `event-detail.spec.ts`] — revert effectué (decision 2A).
+- [x] [Review][Defer] Autocomplete membres limité à 100 [`event-organizers-dialog.ts:107`] — deferred, pre-existing pattern.
