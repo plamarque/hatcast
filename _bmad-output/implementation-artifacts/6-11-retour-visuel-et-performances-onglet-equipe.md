@@ -1,6 +1,6 @@
 # Story 6.11: Équipe tab — loading feedback and performance (profiling-first)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -109,6 +109,7 @@ Analyse statique du code + contrat réseau attendu (pas de mesure Chrome sur see
 ### Change Log
 
 - 2026-05-25: Story 6.11 — UX overlay, unlock stroked button, front perf (skip redundant reloads).
+- 2026-05-25: Clôturée après recette — API perf (bulk membership, fast path composition, optional chances) + livraison front.
 
 ## Dev Notes
 
