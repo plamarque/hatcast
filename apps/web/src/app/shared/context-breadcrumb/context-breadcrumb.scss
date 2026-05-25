@@ -1,0 +1,120 @@
+.context-breadcrumb {
+  min-width: 0;
+  flex: 1;
+}
+
+.context-breadcrumb__trail {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.context-breadcrumb__segment {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.context-breadcrumb__sep {
+  flex-shrink: 0;
+  opacity: 0.65;
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+.context-breadcrumb__troupe {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0.35rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+.context-breadcrumb__troupe-name,
+.context-breadcrumb__link {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.context-breadcrumb__link {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+.context-breadcrumb__current {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.context-breadcrumb__logo-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 1.35rem;
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+}
+
+.context-breadcrumb__logo-badge--round {
+  border-radius: 50%;
+}
+
+.context-breadcrumb__logo-img {
+  display: block;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.context-breadcrumb__logo-img--round {
+  border-radius: 50%;
+}
+
+.context-breadcrumb__mobile-logo {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .context-breadcrumb__trail--desktop {
+    display: none;
+  }
+
+  .context-breadcrumb__mobile-logo {
+    display: inline-flex;
+  }
+}

@@ -4,6 +4,23 @@ import type { EventResponse } from '../../core/events/event-api.service'
 export const AGENDA_UPCOMING_CAP = 200
 export const AGENDA_TIME_ZONE = 'Europe/Paris'
 
+/** Long French date/time for event detail mobile chrome (story 17.1). */
+export function formatEventStartLong(
+  iso: string,
+  locale = 'fr-FR',
+  timeZone = AGENDA_TIME_ZONE,
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone,
+  }).format(new Date(iso))
+}
+
 export interface EventDateSource {
   startsAt: string
 }

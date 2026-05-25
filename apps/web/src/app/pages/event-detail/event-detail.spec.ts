@@ -1,4 +1,3 @@
-import { OverlayContainer } from '@angular/cdk/overlay'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { WritableSignal } from '@angular/core'
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
@@ -282,12 +281,14 @@ describe('EventDetail', () => {
     })
   })
 
-  it('header back link targets season agenda', async () => {
+  it('breadcrumb saison segment links to canonical /saison/ workspace', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      const back = fixture.nativeElement.querySelector('.event-detail-header__back')
-      expect(back?.getAttribute('href')).toBe('/ligue/season-a')
+      const seasonLink = fixture.nativeElement.querySelector(
+        'app-context-breadcrumb a.context-breadcrumb__link',
+      ) as HTMLAnchorElement
+      expect(seasonLink?.getAttribute('href')).toBe('/saison/season-a')
     })
   })
 
@@ -374,40 +375,33 @@ describe('EventDetail', () => {
     )
   })
 
-  it('shows Participants link in settings menu when permitted', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
-        isTroupeAdmin: true,
-        isSeasonOrganizer: false,
-        eventOrganizerFor: [],
-        canManageEvents: true,
-        canManageSeasonParticipants: true,
-        canManageSeasonOrganizers: true,
-        canManageMembers: true,
-        canManageEventOrganizers: true,
-        canManageEventParticipants: true,
-        canManageSeasons: true,
-        eventParticipantAdminFor: [],
-      },
-    })
+  it('does not render header settings or back chevron after breadcrumb refactor', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('[aria-label="Réglages saison"]')).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('app-context-breadcrumb')).toBeTruthy()
     })
 
-    const settingsBtn = fixture.nativeElement.querySelector(
-      '[aria-label="Réglages saison"]',
-    ) as HTMLButtonElement
-    settingsBtn.click()
-    fixture.detectChanges()
-    await fixture.whenStable()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('[aria-label="Réglages saison"]')).toBeNull()
+    expect(el.querySelector('[aria-label="Retour à l’agenda"]')).toBeNull()
+    expect(el.querySelector('.event-detail-header__back')).toBeNull()
+  })
+
+  it('renders breadcrumb with troupe hub and saison links on event detail', async () => {
     fixture.detectChanges()
 
-    const overlayEl = TestBed.inject(OverlayContainer).getContainerElement()
-    expect(overlayEl.textContent).toContain('Participants')
-    expect(overlayEl.querySelector('a[href*="admin/participants"]')).toBeTruthy()
+    await vi.waitFor(() => {
+      const troupeLink = fixture.nativeElement.querySelector(
+        'app-context-breadcrumb a.context-breadcrumb__troupe',
+      )
+      expect(troupeLink).toBeTruthy()
+    })
+
+    const seasonLink = fixture.nativeElement.querySelector(
+      'app-context-breadcrumb a.context-breadcrumb__link',
+    ) as HTMLAnchorElement
+    expect(seasonLink.getAttribute('href')).toBe('/saison/season-a')
   })
 
   it('navigates to season agenda after archive confirm', async () => {

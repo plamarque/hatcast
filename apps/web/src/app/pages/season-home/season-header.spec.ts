@@ -1,4 +1,3 @@
-import { OverlayContainer } from '@angular/cdk/overlay'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter } from '@angular/router'
@@ -35,6 +34,8 @@ describe('SeasonHeader', () => {
     fixture.componentRef.setInput('seasonSlug', 'season-a')
     fixture.componentRef.setInput('seasonId', 'season-id-1')
     fixture.componentRef.setInput('troupeId', 'troupe-id-1')
+    fixture.componentRef.setInput('troupeName', 'Troupe Test')
+    fixture.componentRef.setInput('troupeSlug', 'troupe-test')
     fixture.componentRef.setInput('user', {
       id: 'u1',
       email: 'a@example.com',
@@ -45,43 +46,22 @@ describe('SeasonHeader', () => {
     return { fixture, memberProfile }
   }
 
-  it('shows Participants in settings when permitted', async () => {
+  it('does not render settings or back navigation', async () => {
     const { fixture } = await setup()
-    fixture.componentRef.setInput('canManageSettings', true)
-    fixture.componentRef.setInput('canManageSeasonParticipants', true)
-    fixture.detectChanges()
-
-    const settingsBtn = fixture.nativeElement.querySelector(
-      '[aria-label="Réglages saison"]',
-    ) as HTMLButtonElement
-    settingsBtn.click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const overlayEl = TestBed.inject(OverlayContainer).getContainerElement()
-    expect(overlayEl.textContent).toContain('Participants')
-    expect(overlayEl.textContent).not.toContain('Membres')
-    expect(overlayEl.querySelector('a[href*="admin/participants"]')).toBeTruthy()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('[aria-label="Réglages saison"]')).toBeNull()
+    expect(el.querySelector('[aria-label="Retour aux saisons"]')).toBeNull()
+    expect(el.querySelector('mat-icon')?.textContent?.trim()).not.toBe('chevron_left')
   })
 
-  it('shows Organisateur·ices link for season organizers without troupe admin', async () => {
+  it('renders context breadcrumb with troupe hub link', async () => {
     const { fixture } = await setup()
-    fixture.componentRef.setInput('canManageSettings', true)
-    fixture.componentRef.setInput('canManageSeasonOrganizersOnly', true)
-    fixture.detectChanges()
-
-    const settingsBtn = fixture.nativeElement.querySelector(
-      '[aria-label="Réglages saison"]',
-    ) as HTMLButtonElement
-    settingsBtn.click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const overlayEl = TestBed.inject(OverlayContainer).getContainerElement()
-    expect(overlayEl.textContent).toContain('Organisateur')
-    expect(overlayEl.querySelector('a[href*="admin/membres"]')).toBeTruthy()
+    const troupeLink = fixture.nativeElement.querySelector(
+      'app-context-breadcrumb a.context-breadcrumb__troupe',
+    ) as HTMLAnchorElement
+    expect(troupeLink).toBeTruthy()
+    expect(troupeLink.getAttribute('href')).toBe('/troupes/troupe-test')
+    expect(fixture.nativeElement.querySelector('nav[aria-label="Fil d\'Ariane"]')).toBeTruthy()
   })
 
   it('affiche le pseudo troupe plutôt que le nom de compte quand le contexte le fournit', async () => {
@@ -110,5 +90,12 @@ describe('SeasonHeader', () => {
         seasonSlug: 'season-a',
       }),
     )
+  })
+
+  it('hides breadcrumb when troupe context is missing', async () => {
+    const { fixture } = await setup()
+    fixture.componentRef.setInput('troupeSlug', null)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('app-context-breadcrumb')).toBeNull()
   })
 })

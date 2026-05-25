@@ -1,0 +1,22 @@
+.troupe-hub-stub {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.5rem 1rem;
+}
+
+.troupe-hub-stub__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.troupe-hub-stub__copy {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.troupe-hub-stub__status {
+  margin: 0;
+}

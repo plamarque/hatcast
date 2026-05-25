@@ -14,11 +14,17 @@
       [seasonId]="se.id"
       [troupeId]="troupeId()!"
       [troupeName]="troupeName()"
+      [troupeSlug]="troupeSlug()"
       [user]="user()"
-      [canManageSettings]="canManageSettings()"
-      [canManageSeasonParticipants]="canManageSeasonParticipants()"
-      [canManageSeasonOrganizersOnly]="canManageSeasonOrganizersOnly()"
     />
+
+    @if (troupeName() && troupeSlug()) {
+      <div class="season__mobile-context">
+        <h1 class="season__mobile-context-title">{{ se.title }}</h1>
+      </div>
+    }
+
+    <app-scope-admin-bar scope="saison" [items]="seasonAdminItems()" />
 
     <app-season-view-toolbar
       [(seasonView)]="seasonView"

@@ -1,17 +1,13 @@
-import { Component, inject, input } from '@angular/core'
+import { Component, computed, inject, input } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
-import {
-  leagueAdminMembresPath,
-  leagueAdminParticipantsPath,
-} from '../../core/navigation/league-routes'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 @Component({
@@ -20,17 +16,14 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
-    MatTooltipModule,
     RouterLink,
+    ContextBreadcrumb,
     UserAvatarComponent,
   ],
   templateUrl: './season-header.html',
   styleUrl: './season-header.scss',
 })
 export class SeasonHeader {
-  protected readonly leagueAdminParticipantsPath = leagueAdminParticipantsPath
-  protected readonly leagueAdminMembresPath = leagueAdminMembresPath
-
   private readonly troupeContext = inject(TroupeContextService)
   private readonly memberProfile = inject(MemberProfileService)
   private readonly auth = inject(AuthApiService)
@@ -41,10 +34,12 @@ export class SeasonHeader {
   readonly seasonId = input.required<string>()
   readonly troupeId = input.required<string>()
   readonly troupeName = input<string | null>(null)
+  readonly troupeSlug = input<string | null>(null)
   readonly user = input<UserSummary | null>(null)
-  readonly canManageSettings = input(false)
-  readonly canManageSeasonParticipants = input(false)
-  readonly canManageSeasonOrganizersOnly = input(false)
+
+  protected readonly showBreadcrumb = computed(
+    () => !!this.troupeName()?.trim() && !!this.troupeSlug()?.trim(),
+  )
 
   userDisplayLabel(): string {
     return this.troupeContext.currentUserDisplayLabel(this.user())

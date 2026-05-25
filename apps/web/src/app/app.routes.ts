@@ -12,6 +12,7 @@ import { AdminParticipants } from './pages/admin-participants/admin-participants
 import { SeasonHome } from './pages/season-home/season-home';
 import { SeasonsList } from './pages/seasons-list/seasons-list';
 import { UserAgenda } from './pages/user-agenda/user-agenda';
+import { TroupeHubStub } from './pages/troupe-hub-stub/troupe-hub-stub';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: AuthRedirect },
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'compte', component: AccountPlaceholder },
   { path: 'agenda', component: UserAgenda },
   { path: 'seasons', component: SeasonsList },
+  { path: 'troupes/:slug', component: TroupeHubStub },
   { path: 'troupe/admin/membres', component: AdminMembres },
   { path: 'troupe/:troupeSlug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug', component: SeasonHome },

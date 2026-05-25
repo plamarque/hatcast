@@ -26,6 +26,14 @@ import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-re
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { leagueWorkspacePath } from '../../core/navigation/league-routes'
 import {
+  saisonAdminMembresPath,
+  saisonAdminParticipantsPath,
+} from '../../core/navigation/troupe-routes'
+import {
+  ScopeAdminBar,
+  type ScopeAdminBarItem,
+} from '../../shared/scope-admin-bar/scope-admin-bar'
+import {
   ConfirmDialog,
   type ConfirmDialogData,
 } from '../seasons-list/confirm-dialog'
@@ -41,6 +49,7 @@ import { computeCompositionLifecycleView } from '../../core/composition/composit
 import { normalizeRoleSlots } from '../../core/events/event-types'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
+import { formatEventStartLong } from '../season-home/season-events.utils'
 
 @Component({
   selector: 'app-event-detail',
@@ -52,6 +61,7 @@ import { EventInfosTab } from './event-infos-tab'
     MatTabsModule,
     EventContextStrip,
     EventDetailHeader,
+    ScopeAdminBar,
     EventDisposTab,
     EventEquipeTab,
     EventInfosTab,
@@ -96,6 +106,10 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly contextSeasonSlug = signal('')
   protected readonly showTroupeAdminLink = signal(false)
 
+  protected formatEventStart(iso: string): string {
+    return formatEventStartLong(iso)
+  }
+
   protected readonly showContextStrip = computed(
     () =>
       !this.loading() &&
@@ -116,16 +130,56 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!perms) return false
     return perms.canManageSeasonOrganizers && perms.canManageMembers !== true
   })
+  protected readonly canManageSettings = computed(
+    () =>
+      this.canManageSeasonParticipants() ||
+      this.canManageSeasonOrganizersOnly(),
+  )
+  protected readonly eventAdminItems = computed<ScopeAdminBarItem[]>(() => {
+    const slug = this.slug()
+    const ev = this.event()
+    if (!slug || !ev) {
+      return []
+    }
+    const items: ScopeAdminBarItem[] = []
+    if (this.canManageSeasonParticipants()) {
+      items.push({
+        label: 'Participants',
+        icon: 'groups',
+        routerLink: saisonAdminParticipantsPath(slug),
+      })
+    }
+    if (this.canManageSeasonOrganizersOnly()) {
+      items.push({
+        label: 'Organisateur·ices',
+        icon: 'badge',
+        routerLink: saisonAdminMembresPath(slug),
+        queryParams: { onglet: 'organisateurs' },
+      })
+    }
+    if (this.canManageEventParticipantsFor(ev.id) && !this.canManageSeasonParticipants()) {
+      items.push({
+        label: 'Participants du spectacle',
+        icon: 'groups',
+        action: () => this.openEventParticipantsAdmin(),
+      })
+    }
+    if (this.isEventOrganizerFor(ev.id)) {
+      items.push({
+        label: 'Organisateur·ices du spectacle',
+        icon: 'badge',
+        action: () => this.openEventOrganizersAdmin(),
+      })
+    }
+    return items
+  })
+  protected readonly showEventAdminBar = computed(() => this.eventAdminItems().length > 0)
   protected readonly canManageComposition = computed(() => {
     const ev = this.event()
     const perms = this.seasonPermissions()
     if (!ev || !perms) return false
     return canManageCompositionForEvent(perms, ev.id)
   })
-  protected readonly canManageSettings = computed(
-    () => this.canManageSeasonParticipants() || this.canManageSeasonOrganizersOnly(),
-  )
-
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
     if (!session.ok) {
@@ -190,6 +244,63 @@ export class EventDetail implements OnDestroy, OnInit {
   protected tabIndex(): number {
     const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
     return Math.max(0, tabs.indexOf(this.activeTab()))
+  }
+
+  protected openEventParticipantsAdmin(): void {
+    const ev = this.event()
+    const seasonId = this.seasonId()
+    if (!ev || !seasonId) {
+      return
+    }
+    if (!this.canManageEventParticipantsFor(ev.id)) {
+      this.snack.open('Vous ne pouvez pas gérer les participants de ce spectacle.', 'OK', {
+        duration: 5000,
+      })
+      return
+    }
+    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(EventFormDialog, {
+      data: {
+        mode: 'edit',
+        seasonId,
+        event: ev,
+        canManageEventParticipants: true,
+      },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.reloadEvent('Spectacle mis à jour.')
+      }
+    })
+  }
+
+  protected openEventOrganizersAdmin(): void {
+    const ev = this.event()
+    const seasonId = this.seasonId()
+    if (!ev || !seasonId) {
+      return
+    }
+    if (!this.isEventOrganizerFor(ev.id)) {
+      this.snack.open('Vous ne pouvez pas gérer les organisateur·ices de ce spectacle.', 'OK', {
+        duration: 5000,
+      })
+      return
+    }
+    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(EventFormDialog, {
+      data: {
+        mode: 'edit',
+        seasonId,
+        event: ev,
+        canManageEventOrganizers:
+          this.seasonPermissions()?.canManageEventOrganizers === true || this.isEventOrganizerFor(ev.id),
+      },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.reloadEvent('Spectacle mis à jour.')
+      }
+    })
   }
 
   protected openEdit(): void {
@@ -370,10 +481,14 @@ export class EventDetail implements OnDestroy, OnInit {
     this.showTroupeAdminLink.set(false)
   }
 
-  private canManageEventParticipantsFor(eventId: string): boolean {
+  protected canManageEventParticipantsFor(eventId: string): boolean {
     const perms = this.seasonPermissions()
     if (!perms) return false
     if (perms.canManageEventParticipants) return true
     return perms.eventParticipantAdminFor.includes(eventId)
+  }
+
+  private isEventOrganizerFor(eventId: string): boolean {
+    return this.seasonPermissions()?.eventOrganizerFor.includes(eventId) === true
   }
 }

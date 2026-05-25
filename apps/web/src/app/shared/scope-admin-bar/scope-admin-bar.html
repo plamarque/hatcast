@@ -1,0 +1,42 @@
+@if (items().length > 0) {
+  <section class="scope-admin-bar">
+    <button
+      type="button"
+      class="scope-admin-bar__trigger"
+      [attr.aria-expanded]="expanded()"
+      [attr.aria-controls]="'scope-admin-panel'"
+      [attr.aria-label]="triggerAriaLabel()"
+      (click)="toggleExpanded()"
+    >
+      <mat-icon class="scope-admin-bar__trigger-icon" aria-hidden="true">admin_panel_settings</mat-icon>
+      <span class="scope-admin-bar__trigger-label">{{ panelTitle() }}</span>
+      <mat-icon class="scope-admin-bar__chevron" aria-hidden="true">
+        {{ expanded() ? 'expand_less' : 'expand_more' }}
+      </mat-icon>
+    </button>
+
+    @if (expanded()) {
+      <ul id="scope-admin-panel" class="scope-admin-bar__list" role="list">
+        @for (item of items(); track item.label) {
+          <li class="scope-admin-bar__item" role="listitem">
+            @if (item.routerLink) {
+              <a
+                class="scope-admin-bar__link"
+                [routerLink]="item.routerLink"
+                [queryParams]="item.queryParams ?? null"
+              >
+                <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+                <span>{{ item.label }}</span>
+              </a>
+            } @else {
+              <button type="button" class="scope-admin-bar__link" (click)="item.action?.()">
+                <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+                <span>{{ item.label }}</span>
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

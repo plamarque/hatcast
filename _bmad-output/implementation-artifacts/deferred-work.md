@@ -1,3 +1,7 @@
+## Deferred from: code review of 17-1-breadcrumb-contexte-responsive.md (2026-05-25)
+
+- Double affichage troupe·saison (breadcrumb mobile + `app-event-context-strip`) — acceptable until Story 17.5 removes the strip.
+
 ## Deferred from: code review of 5-5-saisie-de-disponibilite-pour-un-autre-membre-proxy-avec-audit.md (2026-05-25)
 
 - Organizer may call proxy PUT on own `participantId` (sets `recorded_by_user_id`; AC #5 prefers `/me` only) — low impact, no UI path today.

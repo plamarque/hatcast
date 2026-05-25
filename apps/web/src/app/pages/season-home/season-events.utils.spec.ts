@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   filterEventsByIds,
   formatEventDateParts,
+  formatEventStartLong,
   groupEventsByMonth,
 } from './season-events.utils'
 import type { EventResponse } from '../../core/events/event-api.service'
@@ -23,6 +24,15 @@ function ev(id: string, startsAt: string, title = 'T'): EventResponse {
     updatedAt: '',
   }
 }
+
+describe('formatEventStartLong', () => {
+  it('formats a French long date/time in Europe/Paris', () => {
+    const formatted = formatEventStartLong('2026-05-12T17:00:00.000Z')
+    expect(formatted).toMatch(/mai/i)
+    expect(formatted).toMatch(/\d{1,2}/)
+    expect(formatted).toMatch(/\d{2}:\d{2}/)
+  })
+})
 
 describe('formatEventDateParts', () => {
   it('returns French weekday and day number', () => {

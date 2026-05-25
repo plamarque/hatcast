@@ -1,43 +1,16 @@
 <header class="season-header">
   <div class="season-header__left">
-    <a mat-icon-button routerLink="/seasons" class="season-header__back" aria-label="Retour aux saisons">
-      <mat-icon>chevron_left</mat-icon>
-    </a>
-    <div class="season-header__logo" aria-hidden="true">
-      <mat-icon>theater_comedy</mat-icon>
-    </div>
-    <h1 class="season-header__title">{{ seasonTitle() }}</h1>
+    @if (showBreadcrumb()) {
+      <app-context-breadcrumb
+        layout="season"
+        [troupeName]="troupeName()!"
+        [troupeSlug]="troupeSlug()!"
+        [seasonTitle]="seasonTitle()"
+        [seasonSlug]="seasonSlug()"
+      />
+    }
   </div>
   <div class="season-header__right">
-    @if (canManageSettings()) {
-      <button
-        mat-icon-button
-        type="button"
-        matTooltip="Réglages saison"
-        aria-label="Réglages saison"
-        [matMenuTriggerFor]="settingsMenu"
-      >
-        <mat-icon>settings</mat-icon>
-      </button>
-      <mat-menu #settingsMenu="matMenu">
-        @if (canManageSeasonParticipants()) {
-          <a mat-menu-item [routerLink]="leagueAdminParticipantsPath(seasonSlug())">
-            <mat-icon>person_add</mat-icon>
-            <span>Participants</span>
-          </a>
-        }
-        @if (canManageSeasonOrganizersOnly()) {
-          <a
-            mat-menu-item
-            [routerLink]="leagueAdminMembresPath(seasonSlug())"
-            [queryParams]="{ onglet: 'organisateurs' }"
-          >
-            <mat-icon>badge</mat-icon>
-            <span>Organisateur·ices</span>
-          </a>
-        }
-      </mat-menu>
-    }
     @if (user(); as u) {
       <button
         type="button"

@@ -1,55 +1,17 @@
 <header class="event-detail-header">
   <div class="event-detail-header__left">
-    <a
-      mat-icon-button
-      [routerLink]="leagueWorkspacePath(seasonSlug())"
-      class="event-detail-header__back"
-      aria-label="Retour à l’agenda"
-    >
-      <mat-icon>chevron_left</mat-icon>
-    </a>
-    @if (event(); as ev) {
-      <div class="event-detail-header__titles">
-        <span class="event-detail-header__icon" aria-hidden="true">{{ typeIcon(ev.templateType) }}</span>
-        <div class="event-detail-header__text">
-          <h1 class="event-detail-header__title">{{ ev.title }}</h1>
-          <p class="event-detail-header__when">{{ formatStart(ev.startsAt) }}</p>
-        </div>
-      </div>
-    } @else {
-      <h1 class="event-detail-header__title">Spectacle</h1>
+    @if (showBreadcrumb()) {
+      <app-context-breadcrumb
+        layout="event"
+        [troupeName]="troupeName()!"
+        [troupeSlug]="troupeSlug()!"
+        [seasonTitle]="seasonTitle()!"
+        [seasonSlug]="seasonSlug()"
+        [eventTitle]="eventTitle()"
+      />
     }
   </div>
   <div class="event-detail-header__right">
-    @if (canManageSettings()) {
-      <button
-        mat-icon-button
-        type="button"
-        matTooltip="Réglages saison"
-        aria-label="Réglages saison"
-        [matMenuTriggerFor]="settingsMenu"
-      >
-        <mat-icon>settings</mat-icon>
-      </button>
-      <mat-menu #settingsMenu="matMenu">
-        @if (canManageSeasonParticipants()) {
-          <a mat-menu-item [routerLink]="leagueAdminParticipantsPath(seasonSlug())">
-            <mat-icon>person_add</mat-icon>
-            <span>Participants</span>
-          </a>
-        }
-        @if (canManageSeasonOrganizersOnly()) {
-          <a
-            mat-menu-item
-            [routerLink]="leagueAdminMembresPath(seasonSlug())"
-            [queryParams]="{ onglet: 'organisateurs' }"
-          >
-            <mat-icon>badge</mat-icon>
-            <span>Organisateur·ices</span>
-          </a>
-        }
-      </mat-menu>
-    }
     @if (user(); as u) {
       <button
         type="button"

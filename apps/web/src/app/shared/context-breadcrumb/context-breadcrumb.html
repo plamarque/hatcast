@@ -1,0 +1,63 @@
+<nav class="context-breadcrumb" aria-label="Fil d'Ariane">
+  <ol class="context-breadcrumb__trail context-breadcrumb__trail--desktop">
+    <li class="context-breadcrumb__segment">
+      <a
+        class="context-breadcrumb__troupe"
+        [routerLink]="troupeHubPath(troupeSlug())"
+        [attr.aria-label]="troupeAriaLabel()"
+      >
+        @if (showTroupeImage()) {
+          <img
+            class="context-breadcrumb__logo-img"
+            [src]="troupeLogoUrl()!"
+            alt=""
+            width="36"
+            height="36"
+          />
+        } @else {
+          <span class="context-breadcrumb__logo-badge" aria-hidden="true">
+            <mat-icon>groups</mat-icon>
+          </span>
+        }
+        <span class="context-breadcrumb__troupe-name">{{ troupeName() }}</span>
+      </a>
+    </li>
+    <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
+    <li class="context-breadcrumb__segment">
+      @if (layout() === 'event') {
+        <a class="context-breadcrumb__link" [routerLink]="saisonWorkspacePath(seasonSlug())">
+          {{ seasonTitle() }}
+        </a>
+      } @else {
+        <span class="context-breadcrumb__current" aria-current="page">{{ seasonTitle() }}</span>
+      }
+    </li>
+    @if (layout() === 'event' && eventTitle()) {
+      <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
+      <li class="context-breadcrumb__segment">
+        <span class="context-breadcrumb__current" aria-current="page">{{ eventTitle() }}</span>
+      </li>
+    }
+  </ol>
+
+  <a
+    class="context-breadcrumb__mobile-logo"
+    mat-icon-button
+    [routerLink]="troupeHubPath(troupeSlug())"
+    [attr.aria-label]="troupeAriaLabel()"
+  >
+    @if (showTroupeImage()) {
+      <img
+        class="context-breadcrumb__logo-img context-breadcrumb__logo-img--round"
+        [src]="troupeLogoUrl()!"
+        alt=""
+        width="36"
+        height="36"
+      />
+    } @else {
+      <span class="context-breadcrumb__logo-badge context-breadcrumb__logo-badge--round" aria-hidden="true">
+        <mat-icon>groups</mat-icon>
+      </span>
+    }
+  </a>
+</nav>

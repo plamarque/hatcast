@@ -1,0 +1,13 @@
+<div class="troupe-hub-stub">
+  @if (loading()) {
+    <mat-spinner diameter="40" role="status" aria-label="Chargement" />
+  } @else if (notFound()) {
+    <p class="troupe-hub-stub__status">Troupe introuvable.</p>
+    <a routerLink="/agenda">Voir mon agenda</a>
+  } @else if (troupeName(); as name) {
+    <h1 class="troupe-hub-stub__title">{{ name }}</h1>
+    <app-scope-admin-bar scope="troupe" [items]="troupeAdminItems()" />
+    <p class="troupe-hub-stub__copy">Hub troupe — story 17.4</p>
+    <a routerLink="/agenda">Voir mon agenda</a>
+  }
+</div>

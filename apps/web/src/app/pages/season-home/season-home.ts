@@ -11,6 +11,14 @@ import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.servi
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import { leagueEventPath } from '../../core/navigation/league-routes'
+import {
+  saisonAdminMembresPath,
+  saisonAdminParticipantsPath,
+} from '../../core/navigation/troupe-routes'
+import {
+  ScopeAdminBar,
+  type ScopeAdminBarItem,
+} from '../../shared/scope-admin-bar/scope-admin-bar'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import {
@@ -62,6 +70,7 @@ const FETCH_PAGE_SIZE = 50
     MatProgressSpinnerModule,
     MatSnackBarModule,
     SeasonHeader,
+    ScopeAdminBar,
     SeasonViewToolbar,
     SeasonAgenda,
     SeasonHistoryShell,
@@ -98,6 +107,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly loadingEvents = signal(false)
   protected readonly troupeId = signal<string | null>(null)
   protected readonly troupeName = signal<string | null>(null)
+  protected readonly troupeSlug = signal<string | null>(null)
   protected readonly season = signal<SeasonResponse | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
@@ -150,6 +160,30 @@ export class SeasonHome implements OnDestroy, OnInit {
       this.canManageSeasonParticipants() ||
       this.canManageSeasonOrganizersOnly(),
   )
+
+  protected readonly seasonAdminItems = computed<ScopeAdminBarItem[]>(() => {
+    const slug = this.slug()
+    if (!slug) {
+      return []
+    }
+    const items: ScopeAdminBarItem[] = []
+    if (this.canManageSeasonParticipants()) {
+      items.push({
+        label: 'Participants',
+        icon: 'groups',
+        routerLink: saisonAdminParticipantsPath(slug),
+      })
+    }
+    if (this.canManageSeasonOrganizersOnly()) {
+      items.push({
+        label: 'Organisateur·ices',
+        icon: 'badge',
+        routerLink: saisonAdminMembresPath(slug),
+        queryParams: { onglet: 'organisateurs' },
+      })
+    }
+    return items
+  })
 
   protected readonly canEditAvailability = computed(() => {
     const user = this.user()
@@ -289,6 +323,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.loadingSeason.set(false)
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
+    this.troupeSlug.set(resolved.troupe.slug)
     this.season.set(resolved.season)
     rememberLastVisitedSeasonSlug(slug)
     await Promise.all([
