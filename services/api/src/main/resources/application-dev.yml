@@ -1,0 +1,5 @@
+# Profil dev local (HATCAST_SPRING_PROFILE=dev, défaut dans application.yml).
+# Regénération de migrations seed (V17/V19/V22…) : repair aligne les checksums Flyway.
+spring:
+  flyway:
+    repair-on-migrate: true

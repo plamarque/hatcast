@@ -941,10 +941,24 @@ afin de compléter l’équipe.
 
 ---
 
+#### Story 6.11 : Retour visuel et performances — onglet Équipe (profilage)
+
+En tant qu’organisateur ou participant sur l’onglet **Équipe**,  
+je veux un **retour visuel clair** pendant les actions lentes et des **mutations plus réactives**,  
+afin que l’expérience post-pilote MVP reste utilisable (ISSUES UX-001, UX-002, PERF-001).
+
+**Acceptance Criteria**
+
+- **Given** une mutation composition en cours, **when** l’utilisateur attend la réponse API, **then** un état busy visible couvre l’onglet (pas seulement un spinner sur un bouton).
+- **Given** le profilage documenté sur spectacles seed `[MVP]`, **when** les causes de lenteur sont identifiées, **then** appliquer les correctifs minimaux (front reloads redondants, puis API si nécessaire).
+- **Couverture :** NFR-P2, NFR-A1 ; story file [`6-11-retour-visuel-et-performances-onglet-equipe.md`](../implementation-artifacts/6-11-retour-visuel-et-performances-onglet-equipe.md).
+
+---
+
 #### Story 6.10 : Partage et annonce (message éditable, canaux)
 
-En tant qu’organisateur,  
-je veux ouvrir une modale de partage/annonce avec message généré éditable et envoi vers canaux supportés (ex. WhatsApp, liste push/email),  
+En tant qu’organisateur,
+je veux ouvrir une modale de partage/annonce avec message généré éditable et envoi vers canaux supportés (ex. WhatsApp, liste push/email),
 afin de communiquer sur le spectacle ou la composition.
 
 **Acceptance Criteria**

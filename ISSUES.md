@@ -10,6 +10,33 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### UX-001 — Onglet Équipe : mutations lentes sans retour visuel global
+- **ID**: UX-001
+- **Status**: Open
+- **Severity**: Medium (MVP pilote validé fonctionnellement, expérience dégradée)
+- **Affected area**: V2 `apps/web` — `event-equipe-tab` (tirage, assignation, validation, confirmation, compléter)
+- **Observed behavior** (recette MVP pilote, 2026-05-25, admin seul) : Tirage (B), assignation manuelle (C), confirmations proxy (D), compléter (E) — chaque action reste plusieurs secondes **sans feedback visible** (pas d’overlay / blocage de la grille), puis l’écran se rafraîchit. Spinners limités au bouton concerné (`drawing`, `validating`, `assigning`, `updatingParticipation`) faciles à manquer.
+- **Expected behavior**: Retour immédiat (overlay, désactivation de la grille, barre de progression ou skeleton) pendant l’appel API **et** les rechargements en chaîne ; latence perçue sous 1 s en dev local idéalement.
+- **Notes/context**: Pistes techniques : (1) latence réseau API ↔ Neon `eu-central-1` ; (2) `compositionPublished` → `EventDetail.loadEvent()` relance chargement événement + permissions ; (3) fin de tirage : `load()` composition complète après animation ; (4) pas de spinner sur la grille pendant `assigning()`. Scénarios A, F OK. **Scheduled:** Story **6.11** ([`_bmad-output/implementation-artifacts/6-11-retour-visuel-et-performances-onglet-equipe.md`](_bmad-output/implementation-artifacts/6-11-retour-visuel-et-performances-onglet-equipe.md)).
+
+### UX-002 — Bouton « Déverrouiller » peu identifiable comme action
+- **ID**: UX-002
+- **Status**: Open
+- **Severity**: Low
+- **Affected area**: V2 `event-equipe-tab` — styles `.event-equipe-tab__unlock`
+- **Observed behavior** (scénario C, post-validation) : le bouton **Déverrouiller** (`background: transparent`, bord fin) ne se distingue pas assez d’un lien ou d’un libellé par rapport à **Valider** (bouton plein vert).
+- **Expected behavior**: Affordance bouton secondaire cohérente Material (contour + fond léger ou `mat-stroked-button`).
+- **Notes/context**: Voir `event-equipe-tab.scss` ~l.444. **Scheduled:** Story **6.11**.
+
+### PERF-001 — Actions composition (API + rechargements) anormalement lentes en dev
+- **ID**: PERF-001
+- **Status**: Open
+- **Severity**: Medium
+- **Affected area**: V2 API composition + front `composition-api.service` / `event-detail` reload
+- **Observed behavior**: Même symptôme que UX-001 — toutes les mutations composition (draw, assign, validate, participation, gap-fill) ressenties comme lentes en recette MVP (un admin, seed Neon dev).
+- **Expected behavior**: Identifier si la lenteur vient du RTT Neon, du coût serveur (candidats, tirage, lifecycle), ou du front (rechargements redondants). Cible : mesurer p95 des endpoints `/composition/*` et réduire les allers-retours après mutation.
+- **Notes/context**: À profiler : `draw`, `assign`, `validate`, `GET composition`, `loadEvent` enchaînés. Ne pas bloquer la gate **MVP pilote** (fonctionnel OK). **Scheduled:** Story **6.11** (phase 0 = profilage obligatoire).
+
 ### LIMIT-001 — E2E tests depend on live base state; need fixture re-architecture
 - **ID**: LIMIT-001
 - **Status**: Open

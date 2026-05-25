@@ -10,7 +10,7 @@ ALTER TABLE event_availability ADD COLUMN season_participant_id UUID NULL;
 ALTER TABLE event_availability ADD COLUMN event_participant_id UUID NULL;
 ALTER TABLE event_availability ADD COLUMN recorded_by_user_id UUID NULL;
 
-ALTER TABLE event_availability DROP PRIMARY KEY;
+ALTER TABLE event_availability DROP CONSTRAINT event_availability_pkey;
 
 ALTER TABLE event_availability ALTER COLUMN user_id DROP NOT NULL;
 

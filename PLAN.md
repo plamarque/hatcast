@@ -246,11 +246,13 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 
 **Definition of Done MVP :**
 
-- [ ] Membre connecté arrive sur **`/agenda`** (ou dernière ligue visitée si slug valide).
-- [ ] Liste d’événements à venir agrégée (`GET /v1/me/agenda`).
-- [ ] Détail événement : bandeau **Ligue · Troupe** avec liens navigation + admin (⚙ existant).
-- [ ] Orga : assignation manuelle **ou** tirage pondéré sur un spectacle.
-- [ ] Orga : validation de la composition ; membre : confirmation ; état **complete** atteignable (y compris après un déclin + action 6.9).
+- [x] Membre connecté arrive sur **`/agenda`** (ou dernière ligue visitée si slug valide).
+- [x] Liste d’événements à venir agrégée (`GET /v1/me/agenda`).
+- [x] Détail événement : bandeau **Ligue · Troupe** avec liens navigation + admin (⚙ existant).
+- [x] Orga : assignation manuelle **ou** tirage pondéré sur un spectacle.
+- [x] Orga : validation de la composition ; membre : confirmation ; état **complete** atteignable (y compris après un déclin + action 6.9).
+
+**Pilote validé :** 2026-05-25 — recette admin seul sur spectacles seed `[MVP] 00–05` (La Malice 2026-2027). Réserves UX/perfs : **ISSUES.md** UX-001, UX-002, PERF-001 → **Story 6.11**.
 
 **Explicitement hors MVP V2 (backlog post-pilote) :**
 
@@ -277,7 +279,8 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **Polish MVP** | Confort | **12.6** ; **12.3** si reporté | Alias `/ligue/:slug` |
 | **Post-MVP** | Vision ligue | **Epic 13**, **14**, **16** | Multi-active, hub, clin d’œil |
 | **Post-MVP** | Stats & exports | **3.6**, **3.6b** | Statistiques / Historique (ADR 0012) |
-| **Post-MVP** | Transverse | **5.4+**, **6.8**, **6.10**, **Epics 4**, **7–11**, **15** | Selon priorité produit |
+| **Post-MVP** | Polish compo (pilote) | **6.11** | Feedback visuel + perfs onglet Équipe (profilage) |
+| **Post-MVP** | Transverse | **5.4+**, **6.10**, **Epics 4**, **7–11**, **15** | Selon priorité produit ; **5.5**, **6.8** livrés pour pilote |
 
 **Ordre de session suggéré (2 stories max — règle retro) :**
 
@@ -293,10 +296,10 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | Gate | Status | Condition |
 |------|--------|-----------|
 | UX journey (Epic 12) | **Done 2026-05-24** | [ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) approuvé |
-| **MVP navigation** | Open | **12.1** + **12.2** + **12.5** done |
+| **MVP navigation** | **Done 2026-05-25** | **12.1** + **12.2** + **12.5** done |
 | **MVP composition** | **Done 2026-05-25** | **6.5** + **6.6** + **6.7** done (minimum) |
-| **MVP pilote** | Open | Toutes les cases DoD MVP ci-dessus |
-| Post-MVP Epic 13 | Open | Après MVP pilote validé en troupe réelle |
+| **MVP pilote** | **Done 2026-05-25** | DoD MVP validée (recette `[MVP]` ; admin seul) |
+| Post-MVP Epic 13 | Open | Après MVP pilote — priorité produit |
 
 ### PRD / UX references (V2)
 

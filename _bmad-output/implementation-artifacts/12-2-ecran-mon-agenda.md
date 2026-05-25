@@ -1,6 +1,6 @@
 # Story 12.2: Mon agenda screen (`/agenda`)
 
-Status: in-progress
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -266,3 +266,4 @@ GPT-5.5
 
 - 2026-05-24: Story 12.2 created — `/agenda` Angular page consuming `GET /v1/me/agenda`, month-grouped rows, empty/error states, and frontend tests.
 - 2026-05-24: Implemented Story 12.2 and moved to review.
+- 2026-05-25: Checkpoint review approved — story marked done.
