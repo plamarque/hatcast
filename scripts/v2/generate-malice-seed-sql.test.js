@@ -5,7 +5,9 @@ import {
   assignObfuscatedEmails,
   buildAvailabilityRows,
   buildMalicieCompositionSeedSql,
+  buildMalicieMvpPilotSeedSql,
   buildMalicieSeedSql,
+  MVP_PILOT_EVENTS,
   buildMembersWithIds,
   parseMembersCsv,
   pickRoleKeys,
@@ -98,5 +100,18 @@ describe('generate-malice-seed-sql', () => {
     assert.match(sql, /INSERT INTO event_composition_slots/)
     assert.match(sql, /Cabaret de rentrée/)
     assert.match(sql, /2026-10-15T12:00:00Z/)
+  })
+
+  it('builds MVP pilot seed SQL with six prefixed events', () => {
+    const sql = buildMalicieMvpPilotSeedSql()
+    assert.equal(MVP_PILOT_EVENTS.length, 6)
+    for (const ev of MVP_PILOT_EVENTS) {
+      assert.match(sql, new RegExp(ev.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    }
+    assert.match(sql, /INSERT INTO season_organizers/)
+    assert.doesNotMatch(sql, /ON CONFLICT/)
+    assert.match(sql, /WHERE NOT EXISTS/)
+    assert.match(sql, /\[MVP\] 04 · Déclin et compléter/)
+    assert.match(sql, /CONFIRMED/)
   })
 })

@@ -17,6 +17,7 @@ export class AvailabilityMoiPanel {
   readonly roleSlots = input.required<RoleSlots>()
   readonly subject = input.required<SummaryParticipant>()
   readonly readOnly = input(false)
+  readonly proxyMode = input(false)
   readonly archived = input(false)
 
   readonly saved = output<{ status: AvailabilityStatus; roleKeys: string[] }>()

@@ -46,6 +46,12 @@ async function setup(canSwitchSubject = false) {
     status: 200,
     data: mockSummary,
   })
+  const setMyAvailability = vi.fn()
+  const setParticipantAvailability = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: { status: 'available' as const, roleKeys: ['player'] },
+  })
   const listSeasonParticipantSelectors = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
@@ -57,7 +63,11 @@ async function setup(canSwitchSubject = false) {
     providers: [
       {
         provide: AvailabilityApiService,
-        useValue: { getEventAvailabilitySummary, setMyAvailability: vi.fn() },
+        useValue: {
+          getEventAvailabilitySummary,
+          setMyAvailability,
+          setParticipantAvailability,
+        },
       },
       {
         provide: ParticipantApiService,
@@ -86,7 +96,7 @@ async function setup(canSwitchSubject = false) {
     expect(fixture.nativeElement.textContent).not.toContain('mat-spinner')
   })
   fixture.detectChanges()
-  return { fixture, getEventAvailabilitySummary }
+  return { fixture, getEventAvailabilitySummary, setMyAvailability, setParticipantAvailability }
 }
 
 describe('EventDisposTab', () => {
@@ -106,6 +116,60 @@ describe('EventDisposTab', () => {
   it('shows subject selector for organizers in Moi view', async () => {
     const { fixture } = await setup(true)
     expect(fixture.nativeElement.querySelector('app-availability-subject-selector')).not.toBeNull()
+  })
+
+  it('allows organizer to edit another subject (not read-only)', async () => {
+    const { fixture } = await setup(true)
+    const comp = fixture.componentInstance as unknown as {
+      onSubjectChange: (id: string) => void
+    }
+    comp.onSubjectChange('p2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const form = fixture.nativeElement.querySelector('app-availability-form')
+    expect(form).not.toBeNull()
+    const readOnly = form?.getAttribute('ng-reflect-read-only')
+    expect(readOnly === 'false' || readOnly === null).toBe(true)
+  })
+
+  it('calls proxy API when organizer saves for another subject', async () => {
+    const { fixture, setParticipantAvailability, setMyAvailability } = await setup(true)
+    const comp = fixture.componentInstance as unknown as {
+      onSubjectChange: (id: string) => void
+    }
+    comp.onSubjectChange('p2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const dispoBtn = (
+      fixture.nativeElement as HTMLElement
+    ).querySelector('.availability-form__choice--available') as HTMLButtonElement
+    dispoBtn.click()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(setParticipantAvailability).toHaveBeenCalledWith(
+      'season-1',
+      'event-1',
+      'p2',
+      expect.objectContaining({ status: 'available' }),
+    )
+    expect(setMyAvailability).not.toHaveBeenCalled()
+  })
+
+  it('shows edit tooltip on Tous panel when organizer', async () => {
+    const { fixture } = await setup(true)
+    const comp = fixture.componentInstance as unknown as { setViewMode: (mode: 'moi' | 'tous') => void }
+    comp.setViewMode('tous')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const btn = fixture.nativeElement.querySelector('.availability-tous__person--clickable') as HTMLElement
+    expect(btn?.getAttribute('title')).toBe('Cliquer pour modifier la disponibilité')
   })
 
   it('switches to Tous panel with role accordion', async () => {

@@ -65,6 +65,35 @@ export class AvailabilityApiService {
     }
   }
 
+  async setParticipantAvailability(
+    seasonId: string,
+    eventId: string,
+    participantId: string,
+    body: SetMyAvailabilityBody,
+  ): Promise<{ ok: boolean; status: number; data?: MyAvailabilityResponse }> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/availability/participants/${encodeURIComponent(participantId)}`,
+        {
+          method: 'PUT',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...csrfHeaders(),
+          },
+          body: JSON.stringify(body),
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as MyAvailabilityResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   async setMyAvailability(
     seasonId: string,
     eventId: string,

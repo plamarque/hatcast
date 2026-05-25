@@ -4,6 +4,7 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
 import com.hatcast.api.availability.EventAvailabilityRepository
+import com.hatcast.api.availability.associateByLinkedUserId
 import com.hatcast.api.composition.dto.CompositionDrawResponseDto
 import com.hatcast.api.composition.dto.CompositionDrawStepCandidateDto
 import com.hatcast.api.composition.dto.CompositionDrawStepDto
@@ -94,7 +95,7 @@ class CompositionDrawService(
                 eventParticipantRepository,
             )
         val availabilityByUserId =
-            availabilityRepository.findByEvent_Id(eventId).associateBy { it.user.id }
+            availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
         val historyCounts =
             selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, eventId)
 

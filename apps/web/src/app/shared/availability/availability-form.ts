@@ -36,7 +36,9 @@ export class AvailabilityForm {
   readonly troupeId = input.required<string>()
   readonly roleSlots = input.required<RoleSlots>()
   readonly subjectDisplayName = input.required<string>()
+  readonly subjectParticipantId = input<string | null>(null)
   readonly readOnly = input(false)
+  readonly proxyMode = input(false)
   readonly archived = input(false)
   readonly initialStatus = input<AvailabilityStatus>('unknown')
   readonly initialRoleKeys = input<string[] | null | undefined>([])
@@ -86,13 +88,14 @@ export class AvailabilityForm {
   protected feedbackText(): string | null {
     const s = this.selected()
     const name = this.subjectDisplayName()
+    const thirdPerson = this.readOnly() || this.proxyMode()
     if (s === 'unknown') {
-      return this.readOnly()
+      return thirdPerson
         ? `${name} n'a pas renseigné de dispo.`
         : 'Tu n\'as pas renseigné de dispo.'
     }
     if (s === 'unavailable') {
-      return this.readOnly()
+      return thirdPerson
         ? `${name} n'est pas disponible pour cet événement.`
         : 'Tu n\'es pas disponible pour cet événement.'
     }
@@ -157,7 +160,7 @@ export class AvailabilityForm {
   }
 
   private async applyPreferredPrecheck(): Promise<void> {
-    if (this.roleChoices().length === 0 || this.readOnly()) return
+    if (this.roleChoices().length === 0 || this.readOnly() || this.proxyMode()) return
     const preferred = await this.loadPreferredRoleKeys()
     this.selectedRoleKeys.set(preferredRoleIntersection(this.roleSlots(), preferred))
     this.volunteerExplicitlyUnchecked = false
@@ -188,11 +191,21 @@ export class AvailabilityForm {
   private async persist(status: AvailabilityStatus): Promise<void> {
     this.saving.set(true)
     const roleKeys = status === 'available' ? this.selectedRoleKeys() : []
-    const r = await this.api.setMyAvailability(this.seasonId(), this.eventId(), {
+    const body = {
       status,
       roleKeys,
       applyVolunteerRule: this.shouldApplyVolunteerRule(),
-    })
+    }
+    const participantId = this.subjectParticipantId()
+    const r =
+      this.proxyMode() && participantId
+        ? await this.api.setParticipantAvailability(
+            this.seasonId(),
+            this.eventId(),
+            participantId,
+            body,
+          )
+        : await this.api.setMyAvailability(this.seasonId(), this.eventId(), body)
     this.saving.set(false)
     if (!r.ok || !r.data) {
       this.snack.open('Enregistrement impossible.', 'OK', { duration: 5000 })

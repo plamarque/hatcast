@@ -48,7 +48,7 @@
   @if (shouldShowRoleBlock()) {
     <section class="availability-form__roles" aria-label="Rôles disponibles">
       <p class="availability-form__roles-title">
-        @if (readOnly()) {
+        @if (readOnly() || proxyMode()) {
           Rôles pour lesquels {{ subjectDisplayName() }} est disponible
         } @else {
           Choisis les rôles pour lesquels tu es disponible

@@ -75,6 +75,49 @@ paths:
         '404':
           description: Saison ou événement inconnu
 
+  /seasons/{seasonId}/events/{eventId}/availability/participants/{participantId}:
+    put:
+      tags: [Disponibilités]
+      summary: Enregistrer la disponibilité d'un participant (proxy organisateur)
+      description: >
+        Réservé aux utilisateurs avec `canManageComposition` sur le spectacle.
+        Le corps est identique à `/availability/me`. L'acteur authentifié est
+        persisté dans `recorded_by_user_id` (audit FR17 / FR35 minimum).
+        Les participants sans compte lié (`user_id` null) sont adressés par
+        `participantId` (ligne roster saison ou événement).
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: participantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetMyAvailabilityRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyAvailabilityResponse'
+        '400':
+          description: status invalide ou roleKeys hors des rôles requis
+        '401':
+          description: Non authentifié
+        '403':
+          description: Droits insuffisants (pas organisateur / admin composition)
+        '404':
+          description: Saison, événement ou participant inconnu
+
   /seasons/{seasonId}/events/{eventId}/availability/summary:
     get:
       tags: [Disponibilités]

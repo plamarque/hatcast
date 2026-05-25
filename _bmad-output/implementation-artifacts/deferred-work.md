@@ -1,3 +1,7 @@
+## Deferred from: code review of 5-5-saisie-de-disponibilite-pour-un-autre-membre-proxy-avec-audit.md (2026-05-25)
+
+- Organizer may call proxy PUT on own `participantId` (sets `recorded_by_user_id`; AC #5 prefers `/me` only) — low impact, no UI path today.
+
 ## Deferred from: code review of 12-6-alias-route-ligue-slug.md (2026-05-25)
 
 - `season-header.spec.ts` admin menu links assert `href*="admin/participants"` / `admin/membres` only, not the `/ligue/` prefix — pre-existing weak assertion pattern; links did migrate to `/ligue/` via helpers.

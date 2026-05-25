@@ -5,6 +5,7 @@ import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.availability.EventAvailabilityRepository
+import com.hatcast.api.availability.associateByLinkedUserId
 import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.dto.CompositionDeclineDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
@@ -295,7 +296,7 @@ class CompositionService(
             selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, eventId)
         val eligible = loadEligibleForExplainability(seasonId, eventId)
         val availabilityByUserId =
-            availabilityRepository.findByEvent_Id(eventId).associateBy { it.user.id }
+            availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
 
         val result = mutableMapOf<Pair<UUID, String>, Pair<Int, Int>>()
         for (roleKey in requiredRoles) {

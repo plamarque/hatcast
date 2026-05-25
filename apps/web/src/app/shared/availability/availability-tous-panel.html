@@ -28,7 +28,7 @@
                     type="button"
                     class="availability-tous__person"
                     [class.availability-tous__person--clickable]="canSelectSubject()"
-                    [title]="canSelectSubject() ? 'Voir la disponibilité' : null"
+                    [title]="canSelectSubject() ? 'Cliquer pour modifier la disponibilité' : null"
                     (click)="onParticipantClick(candidate.participantId)"
                   >
                     @if (candidate.avatarUrl) {
@@ -68,7 +68,7 @@
               type="button"
               class="availability-tous__person"
               [class.availability-tous__person--clickable]="canSelectSubject()"
-              [title]="canSelectSubject() ? 'Voir la disponibilité' : null"
+              [title]="canSelectSubject() ? 'Cliquer pour modifier la disponibilité' : null"
               (click)="onParticipantClick(p.participantId)"
             >
               @if (p.avatarUrl) {

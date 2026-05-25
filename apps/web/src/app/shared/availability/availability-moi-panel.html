@@ -1,10 +1,17 @@
+@if (proxyMode()) {
+  <p class="availability-moi-panel__proxy-hint">
+    Vous modifiez la disponibilité pour le compte de {{ subject().displayName }}.
+  </p>
+}
 <app-availability-form
   [seasonId]="seasonId()"
   [eventId]="eventId()"
   [troupeId]="troupeId()"
   [roleSlots]="roleSlots()"
   [subjectDisplayName]="subject().displayName"
+  [subjectParticipantId]="subject().participantId"
   [readOnly]="readOnly()"
+  [proxyMode]="proxyMode()"
   [archived]="archived()"
   [initialStatus]="subject().status"
   [initialRoleKeys]="subject().roleKeys"

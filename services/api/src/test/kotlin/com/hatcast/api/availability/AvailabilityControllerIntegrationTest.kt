@@ -2,6 +2,10 @@ package com.hatcast.api.availability
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.participant.SeasonParticipantEntity
+import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.participant.SeasonParticipantService
+import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
@@ -10,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.hamcrest.Matchers.empty
 import org.hamcrest.Matchers.greaterThanOrEqualTo
 import org.hamcrest.Matchers.not
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -23,6 +28,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -47,6 +53,18 @@ class AvailabilityControllerIntegrationTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var seasonRepository: SeasonRepository
+
+    @Autowired
+    private lateinit var seasonParticipantRepository: SeasonParticipantRepository
+
+    @Autowired
+    private lateinit var seasonParticipantService: SeasonParticipantService
+
+    @Autowired
+    private lateinit var availabilityRepository: EventAvailabilityRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -447,5 +465,175 @@ class AvailabilityControllerIntegrationTest {
             .andExpect(jsonPath("$.participants[?(@.status == 'available')]").value(not(empty<Any>())))
             .andExpect(jsonPath("$.participants[?(@.status == 'unavailable')]").value(not(empty<Any>())))
             .andExpect(jsonPath("$.participants[?(@.status == 'unknown')]").value(not(empty<Any>())))
+    }
+
+    private fun createSeasonParticipant(seasonId: UUID, label: String): UUID {
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        return seasonParticipantRepository
+            .save(
+                SeasonParticipantEntity(
+                    season = season,
+                    displayName = label,
+                ),
+            ).id
+    }
+
+    private fun participantIdForUser(seasonId: UUID, googleSub: String): UUID {
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing user")
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+                ?: error("Missing membership")
+        return seasonParticipantRepository
+            .findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)
+            ?.id
+            ?: error("Missing season participant for $googleSub")
+    }
+
+    @Test
+    @Tag("FR17")
+    fun `organizer proxy sets availability for linked member`() {
+        val admin = memberCookie("sub-avail-proxy-admin")
+        val member = signInOnly("sub-avail-proxy-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+        val (seasonId, eventId) = createSeasonAndEvent(admin)
+        val memberParticipantId = participantIdForUser(seasonId, "sub-avail-proxy-member")
+        val adminUser = userRepository.findByGoogleSub("sub-avail-proxy-admin")!!
+        val proxyPath =
+            "/v1/seasons/$seasonId/events/$eventId/availability/participants/$memberParticipantId"
+
+        mockMvc
+            .perform(
+                put(proxyPath)
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player","mc"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("available"))
+            .andExpect(jsonPath("$.roleKeys[0]").value("player"))
+
+        val row = availabilityRepository.findByEvent_IdAndUser_Id(eventId, userRepository.findByGoogleSub("sub-avail-proxy-member")!!.id)
+        assert(row != null)
+        assert(row!!.recordedByUserId == adminUser.id)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(
+                jsonPath("$.participants[?(@.participantId == '$memberParticipantId')].status").value("available"),
+            )
+    }
+
+    @Test
+    @Tag("FR17")
+    fun `organizer proxy sets availability for name-only participant`() {
+        val admin = memberCookie("sub-avail-proxy-nameonly-admin")
+        val (seasonId, eventId) = createSeasonAndEvent(admin)
+        val nameOnlyId = createSeasonParticipant(seasonId, "Proxy Name Only")
+        val adminUser = userRepository.findByGoogleSub("sub-avail-proxy-nameonly-admin")!!
+        val proxyPath = "/v1/seasons/$seasonId/events/$eventId/availability/participants/$nameOnlyId"
+
+        mockMvc
+            .perform(
+                put(proxyPath)
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"unavailable"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("unavailable"))
+
+        val row = availabilityRepository.findByEvent_IdAndSeasonParticipant_Id(eventId, nameOnlyId)
+        assert(row != null)
+        assert(row!!.user == null)
+        assert(row.recordedByUserId == adminUser.id)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(admin))
+            .andExpect(status().isOk)
+            .andExpect(
+                jsonPath("$.participants[?(@.participantId == '$nameOnlyId')].status").value("unavailable"),
+            )
+    }
+
+    @Test
+    @Tag("FR17")
+    fun `non organizer cannot proxy availability`() {
+        val admin = memberCookie("sub-avail-proxy-forbidden-admin")
+        val member = signInOnly("sub-avail-proxy-forbidden-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+        val (seasonId, eventId) = createSeasonAndEvent(admin)
+        val otherId = participantIdForUser(seasonId, "sub-avail-proxy-forbidden-admin")
+        val proxyPath = "/v1/seasons/$seasonId/events/$eventId/availability/participants/$otherId"
+
+        mockMvc
+            .perform(
+                put(proxyPath)
+                    .cookie(member)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"}""")
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    @Tag("FR17")
+    fun `self me path unchanged when member sets own availability`() {
+        val cookie = memberCookie("sub-avail-proxy-me-regression")
+        val (seasonId, eventId) = createSeasonAndEvent(cookie)
+        val user = userRepository.findByGoogleSub("sub-avail-proxy-me-regression")!!
+        val base = "/v1/seasons/$seasonId/events/$eventId/availability/me"
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["mc"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val row = availabilityRepository.findByEvent_IdAndUser_Id(eventId, user.id)
+        assert(row != null)
+        assert(row!!.recordedByUserId == null)
+    }
+
+    @Test
+    @Tag("FR17")
+    fun `cannot set availability on archived event`() {
+        val admin = memberCookie("sub-avail-archived-admin")
+        val member = signInOnly("sub-avail-archived-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+        val (seasonId, eventId) = createSeasonAndEvent(admin)
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/archive")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val mePath = "/v1/seasons/$seasonId/events/$eventId/availability/me"
+        mockMvc
+            .perform(
+                put(mePath)
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"}""")
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+
+        val memberParticipantId = participantIdForUser(seasonId, "sub-avail-archived-member")
+        val proxyPath =
+            "/v1/seasons/$seasonId/events/$eventId/availability/participants/$memberParticipantId"
+        mockMvc
+            .perform(
+                put(proxyPath)
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"}""")
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
     }
 }

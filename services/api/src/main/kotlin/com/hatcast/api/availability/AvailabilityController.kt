@@ -34,6 +34,16 @@ class AvailabilityController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): MyAvailabilityResponse = availabilityService.setMyStatus(seasonId, eventId, body, principal)
 
+    @PutMapping("/participants/{participantId}")
+    fun setParticipantAvailability(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable participantId: UUID,
+        @Valid @RequestBody body: SetMyAvailabilityRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): MyAvailabilityResponse =
+        availabilityService.setParticipantStatus(seasonId, eventId, participantId, body, principal)
+
     @GetMapping("/summary")
     fun getAvailabilitySummary(
         @PathVariable seasonId: UUID,

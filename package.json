@@ -23,7 +23,8 @@
     "export:v1-members": "node scripts/v1-export-troupe-members-csv.js",
     "export:v1-users": "node scripts/v1-export-season-users-csv.js",
     "generate:malice-seed": "node scripts/v2/generate-malice-seed-sql.js",
-    "generate:malice-composition-seed": "node scripts/v2/generate-malice-seed-sql.js --composition-only"
+    "generate:malice-composition-seed": "node scripts/v2/generate-malice-seed-sql.js --composition-only",
+    "generate:malice-mvp-pilot-seed": "node scripts/v2/generate-malice-seed-sql.js --mvp-pilot-only"
   },
   "engines": {
     "node": ">=20"

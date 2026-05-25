@@ -60,7 +60,14 @@ export class EventDisposTab implements OnDestroy {
 
   protected readonly subjectReadOnly = computed(() => {
     const subject = this.subjectParticipant()
-    if (!subject?.userId) return true
+    if (!subject) return true
+    if (subject.userId === this.currentUserId()) return false
+    return !this.canSwitchSubject()
+  })
+
+  protected readonly subjectProxyMode = computed(() => {
+    const subject = this.subjectParticipant()
+    if (!subject || !this.canSwitchSubject()) return false
     return subject.userId !== this.currentUserId()
   })
 

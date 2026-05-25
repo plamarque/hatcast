@@ -300,12 +300,13 @@ class EventControllerIntegrationTest {
     @Test
     fun `seed season events expose templateType after migration`() {
         val cookie = memberCookie("sub-event-7")
+        val seedMatchEventId = "c0000002-0000-4000-8000-000000000002"
         mockMvc
             .perform(
-                get("/v1/seasons/$seedSeasonId/events?page=0&size=1&scope=all").cookie(cookie),
+                get("/v1/seasons/$seedSeasonId/events?page=0&size=100&scope=all").cookie(cookie),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.content[0].templateType").value("cabaret"))
-            .andExpect(jsonPath("$.content[0].roleSlots.player").value(5))
+            .andExpect(jsonPath("$.content[?(@.id == '$seedMatchEventId')].templateType").value("match"))
+            .andExpect(jsonPath("$.content[?(@.id == '$seedMatchEventId')].roleSlots.player").value(5))
     }
 
     @Test
