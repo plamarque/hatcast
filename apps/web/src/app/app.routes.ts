@@ -13,6 +13,7 @@ import { SeasonHome } from './pages/season-home/season-home';
 import { SeasonsList } from './pages/seasons-list/seasons-list';
 import { UserAgenda } from './pages/user-agenda/user-agenda';
 import { TroupeHubStub } from './pages/troupe-hub-stub/troupe-hub-stub';
+import { TroupesList } from './pages/troupes-list/troupes-list';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: AuthRedirect },
@@ -23,6 +24,7 @@ export const routes: Routes = [
   { path: 'compte', component: AccountPlaceholder },
   { path: 'agenda', component: UserAgenda },
   { path: 'seasons', component: SeasonsList },
+  { path: 'troupes', component: TroupesList },
   { path: 'troupes/:slug', component: TroupeHubStub },
   { path: 'troupe/admin/membres', component: AdminMembres },
   { path: 'troupe/:troupeSlug/admin/membres', component: AdminMembres },

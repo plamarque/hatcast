@@ -407,6 +407,8 @@ function troupe(id: string): TroupeListItem {
     id,
     name: `Troupe ${id}`,
     slug: id,
+    activeMemberCount: 1,
+    upcomingEventCount: 0,
     membership: {
       id: `membership-${id}`,
       displayName: id,

@@ -1,0 +1,17 @@
+<mat-card class="troupe-card">
+  <div class="troupe-card__header">
+    <span class="troupe-card__logo" aria-hidden="true">
+      <mat-icon>groups</mat-icon>
+    </span>
+    <h3 class="troupe-card__name">{{ name() }}</h3>
+  </div>
+  <p class="troupe-card__stat">{{ memberLabel(memberCount()) }}</p>
+  <p class="troupe-card__stat">{{ upcomingLabel(upcomingCount()) }}</p>
+  <div class="troupe-card__actions">
+    @if (mode() === 'mine') {
+      <a mat-flat-button color="primary" [routerLink]="hubLink(slug())">Ouvrir</a>
+    } @else {
+      <button mat-stroked-button type="button" disabled>Bientôt</button>
+    }
+  </div>
+</mat-card>

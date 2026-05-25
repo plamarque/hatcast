@@ -1,0 +1,93 @@
+<div class="troupes-list">
+  <header class="troupes-list__header">
+    <nav class="troupes-list__breadcrumb" aria-label="Fil d'Ariane">
+      <a routerLink="/agenda">Mon agenda</a>
+      <span class="troupes-list__breadcrumb-sep" aria-hidden="true">›</span>
+      <span aria-current="page">Troupes</span>
+    </nav>
+    @if (!loadingSession() && user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="troupes-list__user-btn"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
+      >
+        <app-user-avatar
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel(u)"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+        />
+        <span class="troupes-list__user-label">{{ userDisplayLabel(u) }}</span>
+        <mat-icon>expand_more</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+        <button mat-menu-item type="button" (click)="logout()">Se déconnecter</button>
+      </mat-menu>
+    }
+  </header>
+
+  @if (loadingSession()) {
+    <p class="troupes-list__status" role="status">Vérification de la session…</p>
+  } @else if (loadingList()) {
+    <div class="troupes-list__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (loadError()) {
+    <section class="troupes-list__empty" aria-labelledby="troupes-load-error-heading">
+      <h2 id="troupes-load-error-heading" class="troupes-list__empty-title">Chargement impossible</h2>
+      <p class="troupes-list__empty-text">
+        Nous n’avons pas pu charger tes troupes. Réessaie dans un instant.
+      </p>
+      <button mat-flat-button color="primary" type="button" (click)="loadTroupes()">Réessayer</button>
+    </section>
+  } @else {
+    <section class="troupes-list__section" aria-labelledby="mes-troupes-heading">
+      <h2 id="mes-troupes-heading" class="troupes-list__section-title">Mes troupes</h2>
+      @if (troupes().length === 0) {
+        <div class="troupes-list__empty">
+          <p class="troupes-list__empty-text">
+            Tu n’appartiens à aucune troupe pour l’instant. Rejoins la troupe de démonstration pour
+            commencer.
+          </p>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="joiningDemo()"
+            (click)="joinDemoTroupe()"
+          >
+            @if (joiningDemo()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              <mat-icon>group_add</mat-icon>
+            }
+            Rejoindre la troupe de démonstration
+          </button>
+        </div>
+      } @else {
+        <div class="troupes-list__grid">
+          @for (troupe of troupes(); track troupe.id) {
+            <app-troupe-card
+              [name]="troupe.name"
+              [slug]="troupe.slug"
+              [memberCount]="troupe.activeMemberCount"
+              [upcomingCount]="troupe.upcomingEventCount"
+              mode="mine"
+            />
+          }
+        </div>
+      }
+    </section>
+
+    <section id="decouvrir" class="troupes-list__section" aria-labelledby="decouvrir-heading">
+      <h2 id="decouvrir-heading" class="troupes-list__section-title">Découvrir</h2>
+      <p class="troupes-list__discover-copy">
+        L’annuaire public des troupes arrive bientôt. Tu pourras y découvrir de nouvelles troupes à
+        rejoindre.
+      </p>
+    </section>
+  }
+</div>

@@ -7,7 +7,9 @@ import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.eq
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
@@ -21,12 +23,20 @@ import java.util.UUID
 
 class TroupeMembershipServiceTest {
     private val membershipRepository = mock<TroupeMembershipRepository>()
+    private val troupeListStatsRepository = mock<TroupeListStatsRepository>()
     private val troupeRepository = mock<TroupeRepository>()
     private val userRepository = mock<UserRepository>()
     private val userAccountService = mock<UserAccountService>()
     private val csvImportService = mock<TroupeMemberCsvImportService>()
     private val service =
-        TroupeMembershipService(membershipRepository, troupeRepository, userRepository, userAccountService, csvImportService)
+        TroupeMembershipService(
+            membershipRepository,
+            troupeListStatsRepository,
+            troupeRepository,
+            userRepository,
+            userAccountService,
+            csvImportService,
+        )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val troupe = TroupeEntity(id = troupeId, name = "La Malice", slug = "la-malice")
@@ -95,6 +105,37 @@ class TroupeMembershipServiceTest {
     }
 
     @Test
+    fun `listActiveTroupesForUser includes batched member and upcoming event counts`() {
+        val userId = UUID.randomUUID()
+        val membership = membership(userId, TroupeBaselineRole.MEMBER)
+        whenever(membershipRepository.findActiveByUserId(userId)).thenReturn(listOf(membership))
+        whenever(membershipRepository.countActiveMembersByTroupeIds(listOf(troupeId))).thenReturn(
+            listOf(TestTroupeMemberCountRow(troupeId, 4L)),
+        )
+        whenever(
+            troupeListStatsRepository.countUpcomingEventsByTroupeIdsForUser(
+                eq(userId),
+                eq(listOf(troupeId)),
+                any(),
+            ),
+        ).thenReturn(listOf(TestTroupeUpcomingEventCountRow(troupeId, 2L)))
+
+        val items = service.listActiveTroupesForUser(userId)
+
+        assertEquals(1, items.size)
+        assertEquals(4L, items[0].activeMemberCount)
+        assertEquals(2L, items[0].upcomingEventCount)
+    }
+
+    @Test
+    fun `listActiveTroupesForUser returns empty when no memberships`() {
+        val userId = UUID.randomUUID()
+        whenever(membershipRepository.findActiveByUserId(userId)).thenReturn(emptyList())
+
+        assertTrue(service.listActiveTroupesForUser(userId).isEmpty())
+    }
+
+    @Test
     fun `demoting last active admin via add is rejected`() {
         val principal = TestAuthSupport.testPrincipal()
         val target = user("target@example.com")
@@ -138,4 +179,14 @@ class TroupeMembershipServiceTest {
         )
 
     private fun user(email: String): UserEntity = UserEntity(email = email, displayName = "Target")
+
+    private data class TestTroupeMemberCountRow(
+        override val troupeId: UUID,
+        override val memberCount: Long,
+    ) : TroupeMemberCountRow
+
+    private data class TestTroupeUpcomingEventCountRow(
+        override val troupeId: UUID,
+        override val eventCount: Long,
+    ) : TroupeUpcomingEventCountRow
 }

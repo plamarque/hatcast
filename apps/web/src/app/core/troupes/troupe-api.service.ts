@@ -19,6 +19,8 @@ export interface TroupeListItem {
   name: string
   slug: string
   membership: MembershipSummary
+  activeMemberCount: number
+  upcomingEventCount: number
 }
 
 export interface TroupeMemberAdmin {

@@ -1,6 +1,10 @@
 /** Canonical URL prefix for troupe hub routes (ADR 0013). */
 export const TROUPE_HUB_ROUTE_PREFIX = 'troupes'
 
+export function troupesListPath(): string[] {
+  return ['/', TROUPE_HUB_ROUTE_PREFIX]
+}
+
 export function troupeHubPath(slug: string): string[] {
   return ['/', TROUPE_HUB_ROUTE_PREFIX, slug]
 }

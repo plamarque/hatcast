@@ -89,6 +89,21 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.[0].slug").value("la-malice"))
             .andExpect(jsonPath("$.[0].membership.status").value("ACTIVE"))
             .andExpect(jsonPath("$.[0].membership.baselineRole").value("MEMBER"))
+            .andExpect(jsonPath("$.[0].activeMemberCount").isNumber)
+            .andExpect(jsonPath("$.[0].upcomingEventCount").isNumber)
+            .andExpect(jsonPath("$.[0].activeMemberCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+    }
+
+    @Test
+    fun `troupe list returns member and upcoming event counts`() {
+        val cookie = signInAndJoin("sub-troupe-list-counts", "troupe-list-counts@example.com", "List Counts")
+
+        mockMvc
+            .perform(get("/v1/troupes").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$.[0].activeMemberCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.[0].upcomingEventCount").value(0))
     }
 
     @Test

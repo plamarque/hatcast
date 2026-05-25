@@ -1,3 +1,9 @@
+## Deferred from: code review of 17-3-page-troupes-mes-troupes-decouvrir.md (2026-05-25)
+
+- Session redirect test does not assert `rememberCurrentUrlForPostLogin` — same gap as `seasons-list` specs.
+- API integration tests blocked locally by Flyway V23 on H2 (`CREATE EXTENSION`).
+- Pre-existing `event-dispos-tab.spec.ts` failure in full web suite (unrelated to 17.3).
+
 ## Deferred from: code review of 17-2-bandeau-administration-par-scope.md (2026-05-25)
 
 - Suite web 355/356 — échec préexistant `event-dispos-tab.spec.ts` (assertion « 100 % ») — hors périmètre 17.2 ; AC9 documenté comme connu dans la story.

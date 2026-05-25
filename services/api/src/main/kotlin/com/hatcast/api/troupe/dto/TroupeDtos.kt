@@ -38,6 +38,14 @@ data class TroupeListItemDto(
     val name: String,
     val slug: String,
     val membership: MembershipSummaryDto,
+    /** Active troupe memberships (`TroupeMembershipStatus.ACTIVE`). */
+    val activeMemberCount: Long,
+    /**
+     * Distinct upcoming events (non-archived event + season, `startsAt >= startOfTodayInclusive()`)
+     * in this troupe where the caller is an ACTIVE season and/or event participant — mirrors
+     * [com.hatcast.api.agenda.UserAgendaRepository.findUpcomingForUser] eligibility per troupe.
+     */
+    val upcomingEventCount: Long,
 )
 
 data class TroupeMemberAdminDto(

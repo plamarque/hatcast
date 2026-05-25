@@ -1,0 +1,51 @@
+.troupe-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.troupe-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.troupe-card__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  color: var(--mat-sys-primary);
+
+  mat-icon {
+    font-size: 1.35rem;
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+}
+
+.troupe-card__name {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.troupe-card__stat {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.troupe-card__actions {
+  margin-top: auto;
+  padding-top: 0.25rem;
+}

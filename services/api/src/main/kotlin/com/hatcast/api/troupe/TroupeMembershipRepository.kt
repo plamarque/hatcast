@@ -7,6 +7,11 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.util.UUID
 
+interface TroupeMemberCountRow {
+    val troupeId: UUID
+    val memberCount: Long
+}
+
 interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUID> {
     fun findByTroupe_IdAndUser_Id(
         troupeId: UUID,
@@ -46,6 +51,24 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         status: TroupeMembershipStatus,
         baselineRole: TroupeBaselineRole,
     ): Long
+
+    fun countByTroupe_IdAndStatus(
+        troupeId: UUID,
+        status: TroupeMembershipStatus,
+    ): Long
+
+    @Query(
+        """
+        SELECT m.troupe.id AS troupeId, COUNT(m) AS memberCount
+        FROM TroupeMembershipEntity m
+        WHERE m.troupe.id IN :troupeIds
+          AND m.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+        GROUP BY m.troupe.id
+        """,
+    )
+    fun countActiveMembersByTroupeIds(
+        @Param("troupeIds") troupeIds: Collection<UUID>,
+    ): List<TroupeMemberCountRow>
 
     fun findByTroupe_IdAndStatusOrderByDisplayNameAsc(
         troupeId: UUID,

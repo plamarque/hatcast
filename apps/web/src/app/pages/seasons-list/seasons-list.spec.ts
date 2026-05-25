@@ -371,6 +371,8 @@ function troupe(
     id,
     name,
     slug: id,
+    activeMemberCount: 1,
+    upcomingEventCount: 0,
     membership: {
       id: `membership-${id}`,
       displayName: name,

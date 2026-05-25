@@ -67,6 +67,38 @@ describe('TroupeApiService', () => {
     )
   })
 
+  it('listMyTroupes parse activeMemberCount et upcomingEventCount', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve([
+          {
+            id: 't-1',
+            name: 'La Malice',
+            slug: 'la-malice',
+            activeMemberCount: 4,
+            upcomingEventCount: 1,
+            membership: {
+              id: 'm-1',
+              displayName: 'Pat',
+              status: 'ACTIVE',
+              baselineRole: 'MEMBER',
+              createdAt: '',
+              updatedAt: '',
+            },
+          },
+        ]),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service().listMyTroupes()
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.[0].activeMemberCount).toBe(4)
+    expect(result.data?.[0].upcomingEventCount).toBe(1)
+  })
+
   it('addMember envoie POST avec credentials, JSON et CSRF', async () => {
     document.cookie = 'XSRF-TOKEN=token'
     const fetchMock = vi.fn().mockResolvedValue({

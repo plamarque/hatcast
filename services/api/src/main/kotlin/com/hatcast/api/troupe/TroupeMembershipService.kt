@@ -10,6 +10,7 @@ import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
+import com.hatcast.api.agenda.AgendaTimeBoundary
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
@@ -26,21 +27,40 @@ import java.util.UUID
 @Service
 class TroupeMembershipService(
     private val membershipRepository: TroupeMembershipRepository,
+    private val troupeListStatsRepository: TroupeListStatsRepository,
     private val troupeRepository: TroupeRepository,
     private val userRepository: UserRepository,
     private val userAccountService: UserAccountService,
     private val csvImportService: TroupeMemberCsvImportService,
 ) {
     @Transactional(readOnly = true)
-    fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> =
-        membershipRepository.findActiveByUserId(userId).map { membership ->
+    fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
+        val memberships = membershipRepository.findActiveByUserId(userId)
+        if (memberships.isEmpty()) {
+            return emptyList()
+        }
+        val troupeIds = memberships.map { it.troupe.id }
+        val memberCounts =
+            membershipRepository
+                .countActiveMembersByTroupeIds(troupeIds)
+                .associate { it.troupeId to it.memberCount }
+        val fromInclusive = AgendaTimeBoundary.startOfTodayInclusive()
+        val upcomingCounts =
+            troupeListStatsRepository
+                .countUpcomingEventsByTroupeIdsForUser(userId, troupeIds, fromInclusive)
+                .associate { it.troupeId to it.eventCount }
+        return memberships.map { membership ->
+            val troupeId = membership.troupe.id
             TroupeListItemDto(
-                id = membership.troupe.id,
+                id = troupeId,
                 name = membership.troupe.name,
                 slug = membership.troupe.slug,
                 membership = MembershipSummaryDto.from(membership),
+                activeMemberCount = memberCounts[troupeId] ?: 0L,
+                upcomingEventCount = upcomingCounts[troupeId] ?: 0L,
             )
         }
+    }
 
     @Transactional(readOnly = true)
     fun getActiveMembershipForUser(

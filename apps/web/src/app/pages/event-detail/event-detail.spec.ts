@@ -81,6 +81,8 @@ describe('EventDetail', () => {
         id: 'troupe-1',
         name: 'Troupe',
         slug: 'troupe',
+        activeMemberCount: 1,
+        upcomingEventCount: 0,
         membership: {
           id: 'm-1',
           displayName: 'Test',
@@ -649,6 +651,8 @@ describe('EventDetail', () => {
         id: 'troupe-1',
         name: 'Troupe',
         slug: 'troupe',
+        activeMemberCount: 1,
+        upcomingEventCount: 0,
         membership: {
           id: 'm-1',
           displayName: 'Admin',
@@ -676,6 +680,8 @@ describe('EventDetail', () => {
         id: 'troupe-beta',
         name: 'Les Beta',
         slug: 'beta-troupe',
+        activeMemberCount: 1,
+        upcomingEventCount: 0,
         membership: {
           id: 'm-beta',
           displayName: 'Beta',
