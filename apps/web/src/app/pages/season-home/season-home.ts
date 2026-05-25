@@ -20,7 +20,6 @@ import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.servi
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import {
-  saisonAdminMembresPath,
   saisonAdminParticipantsPath,
   saisonEventPath,
 } from '../../core/navigation/troupe-routes'
@@ -257,8 +256,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   )
   protected readonly canManageSettings = computed(
     () =>
-      this.canManageSeasonParticipants() ||
-      this.canManageSeasonOrganizersOnly(),
+      this.canManageSeasonParticipants() || this.canManageSeasonOrganizers(),
   )
 
   protected readonly seasonAdminItems = computed<ScopeAdminMenuItem[]>(() => {
@@ -272,14 +270,6 @@ export class SeasonHome implements OnDestroy, OnInit {
         label: 'Participants',
         icon: 'groups',
         routerLink: saisonAdminParticipantsPath(slug),
-      })
-    }
-    if (this.canManageSeasonOrganizersOnly()) {
-      items.push({
-        label: 'Organisateur·ices',
-        icon: 'badge',
-        routerLink: saisonAdminMembresPath(slug),
-        queryParams: { onglet: 'organisateurs' },
       })
     }
     return items

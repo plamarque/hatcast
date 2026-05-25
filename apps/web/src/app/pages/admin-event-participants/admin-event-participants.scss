@@ -92,6 +92,14 @@
   gap: 0.5rem;
 }
 
+.admin-event-participants__section-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
 .admin-event-participants__section-title {
   font-size: 1rem;
   font-weight: 600;

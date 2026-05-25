@@ -85,7 +85,7 @@
             [displayName]="member.displayName"
             [avatarUrl]="member.avatarUrl ?? null"
             [size]="32"
-            [clickable]="true"
+            [clickable]="!!profileSeasonId()"
             (avatarClick)="openMemberProfile(member.userId)"
           />
           <div class="membres-tab__identity">
@@ -107,16 +107,6 @@
               </button>
             }
             <span class="membres-tab__email">{{ member.email || 'Email indisponible' }}</span>
-            @if (canNommerOrganisateur(member)) {
-              <button
-                type="button"
-                class="membres-tab__orga-link"
-                [disabled]="saving()"
-                (click)="nommerOrganisateur(member)"
-              >
-                Nommer organisateur·ice de saison
-              </button>
-            }
           </div>
           <div class="membres-tab__controls">
             <mat-chip

@@ -21,7 +21,6 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
-import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import {
   type TroupeBaselineRole,
@@ -53,20 +52,17 @@ import { ImportResultsDialog, type ImportResultsDialogData } from './import-resu
 })
 export class MembresTab implements OnInit, OnDestroy {
   readonly troupeId = input.required<string>()
-  readonly seasonId = input.required<string>()
-  readonly seasonSlug = input.required<string>()
-  readonly canManageSeasonOrganizers = input(false)
+  readonly profileSeasonId = input('')
+  readonly profileSeasonSlug = input('')
 
   readonly membersChanged = output<void>()
 
   private readonly api = inject(TroupeApiService)
-  private readonly organizerApi = inject(OrganizerApiService)
   private readonly memberProfile = inject(MemberProfileService)
   private readonly dialog = inject(MatDialog)
   private readonly snack = inject(MatSnackBar)
 
   protected readonly members = signal<TroupeMemberAdmin[]>([])
-  protected readonly seasonOrganizerUserIds = signal<Set<string> | null>(null)
   protected readonly loading = signal(false)
   protected readonly saving = signal(false)
   protected readonly searchQuery = signal('')
@@ -131,15 +127,6 @@ export class MembresTab implements OnInit, OnDestroy {
       (m) => m.baselineRole === 'TROUPE_ADMIN' && m.status === 'ACTIVE',
     )
     return activeAdmins.length === 1 && activeAdmins[0].id === member.id
-  }
-
-  protected canNommerOrganisateur(member: TroupeMemberAdmin): boolean {
-    return (
-      this.canManageSeasonOrganizers() &&
-      member.status === 'ACTIVE' &&
-      this.seasonOrganizerUserIds() !== null &&
-      !this.seasonOrganizerUserIds()!.has(member.userId)
-    )
   }
 
   protected clearSearch(): void {
@@ -232,30 +219,6 @@ export class MembresTab implements OnInit, OnDestroy {
         void this.confirmRetirerMembre(member)
       }
     })
-  }
-
-  protected async nommerOrganisateur(member: TroupeMemberAdmin): Promise<void> {
-    const email = member.email
-    if (!email) {
-      this.snack.open('Email indisponible pour ce membre.', 'OK', { duration: 4000 })
-      return
-    }
-    this.saving.set(true)
-    try {
-      const r = await this.organizerApi.addSeasonOrganizer(this.seasonId(), email)
-      if (!r.ok) {
-        this.snack.open(
-          r.status === 404 ? 'Utilisateur introuvable.' : 'Ajout impossible.',
-          'OK',
-          { duration: 5000 },
-        )
-        return
-      }
-      this.snack.open('Organisateur·ice de saison ajouté·e.', 'OK', { duration: 4000 })
-      await this.loadSeasonOrganizers()
-    } finally {
-      this.saving.set(false)
-    }
   }
 
   protected openAddMember(): void {
@@ -419,28 +382,21 @@ export class MembresTab implements OnInit, OnDestroy {
         return a.displayName.localeCompare(b.displayName, 'fr')
       })
       this.members.set(sorted)
-      if (this.canManageSeasonOrganizers()) {
-        await this.loadSeasonOrganizers()
-      }
     } finally {
       this.loading.set(false)
     }
   }
 
-  private async loadSeasonOrganizers(): Promise<void> {
-    this.seasonOrganizerUserIds.set(null)
-    const r = await this.organizerApi.listSeasonOrganizers(this.seasonId())
-    if (r.ok && r.data) {
-      this.seasonOrganizerUserIds.set(new Set(r.data.map((o) => o.userId)))
-    }
-  }
-
   protected openMemberProfile(userId: string): void {
+    const seasonId = this.profileSeasonId()
+    if (!seasonId) {
+      return
+    }
     this.memberProfile.openProfileDialog({
-      seasonId: this.seasonId(),
+      seasonId,
       troupeId: this.troupeId(),
       userId,
-      seasonSlug: this.seasonSlug(),
+      seasonSlug: this.profileSeasonSlug(),
     })
   }
 

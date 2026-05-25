@@ -25,7 +25,6 @@ import { canManageComposition as canManageCompositionForEvent } from '../../core
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
-  saisonAdminMembresPath,
   saisonEventParticipantsAdminPath,
   saisonEventPath,
   saisonWorkspacePath,
@@ -40,10 +39,6 @@ import {
   EventFormDialog,
   type EventFormDialogData,
 } from '../season-home/event-form-dialog'
-import {
-  EventOrganizersDialog,
-  type EventOrganizersDialogData,
-} from './event-organizers-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 import { EventDetailHeader } from './event-detail-header'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
@@ -148,19 +143,11 @@ export class EventDetail implements OnDestroy, OnInit {
         action: () => this.openEventParticipantsAdmin(),
       })
     }
-    if (this.canManageSeasonOrganizersOnly()) {
+    if (this.canManageEventOrganizersFor(ev.id)) {
       items.push({
         label: 'Organisateur·ices',
         icon: 'badge',
-        routerLink: saisonAdminMembresPath(slug),
-        queryParams: { onglet: 'organisateurs' },
-      })
-    }
-    if (this.isEventOrganizerFor(ev.id) && !this.canManageSeasonOrganizersOnly()) {
-      items.push({
-        label: 'Organisateur·ices du spectacle',
-        icon: 'badge',
-        action: () => this.openEventOrganizersAdmin(),
+        routerLink: saisonEventParticipantsAdminPath(slug, ev.slug ?? ev.id),
       })
     }
     if (this.canManageEvents() && !ev.archived) {
@@ -264,34 +251,6 @@ export class EventDetail implements OnDestroy, OnInit {
     void this.router.navigate(
       saisonEventParticipantsAdminPath(slug, ev.slug ?? ev.id),
     )
-  }
-
-  protected openEventOrganizersAdmin(): void {
-    const ev = this.event()
-    const seasonId = this.seasonId()
-    if (!ev || !seasonId) {
-      return
-    }
-    if (!this.isEventOrganizerFor(ev.id)) {
-      this.snack.open('Vous ne pouvez pas gérer les organisateur·ices de ce spectacle.', 'OK', {
-        duration: 5000,
-      })
-      return
-    }
-    const ref = this.dialog.open<
-      EventOrganizersDialog,
-      EventOrganizersDialogData,
-      boolean | undefined
-    >(EventOrganizersDialog, {
-      data: { seasonId, eventId: ev.id, troupeId: this.troupeId() },
-      width: 'min(100vw - 2rem, 28rem)',
-    })
-    ref.afterClosed().subscribe((changed) => {
-      if (changed) {
-        this.organizersReloadTrigger.update((n) => n + 1)
-        this.snack.open('Organisateur·ice ajouté·e.', 'OK', { duration: 4000 })
-      }
-    })
   }
 
   protected openEdit(): void {
@@ -499,9 +458,5 @@ export class EventDetail implements OnDestroy, OnInit {
     return (
       this.canManageEventParticipantsFor(eventId) || this.canManageSeasonParticipants()
     )
-  }
-
-  private isEventOrganizerFor(eventId: string): boolean {
-    return this.seasonPermissions()?.eventOrganizerFor.includes(eventId) === true
   }
 }

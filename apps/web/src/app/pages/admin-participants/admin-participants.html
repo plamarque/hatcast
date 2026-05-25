@@ -4,7 +4,7 @@
       @if (showBreadcrumb()) {
         <app-context-breadcrumb
           [layout]="'season'"
-          [leafTitle]="'Participants'"
+          [leafTitle]="pageTitle()"
           [troupeName]="troupeName()!"
           [troupeSlug]="troupeSlug()!"
           [seasonTitle]="season()!.title"
@@ -37,7 +37,7 @@
 
   @if (showBreadcrumb()) {
     <div class="admin-participants__mobile-context">
-      <h1 class="admin-participants__mobile-context-title">Participants</h1>
+      <h1 class="admin-participants__mobile-context-title">{{ pageTitle() }}</h1>
     </div>
   }
 
@@ -45,51 +45,73 @@
     <div class="admin-participants__spinner" role="status">
       <mat-spinner diameter="40" />
     </div>
-  } @else if (season()) {
-    <div class="admin-participants__toolbar">
-      <mat-form-field appearance="outline" class="admin-participants__search">
-        <mat-label>Rechercher</mat-label>
-        <input
-          matInput
-          [value]="searchQuery()"
-          (input)="onSearchInput($any($event.target).value)"
-          placeholder="Nom ou email"
-        />
-      </mat-form-field>
-      <button type="button" mat-flat-button color="primary" (click)="openAddDialog()">
-        Ajouter
-      </button>
-    </div>
+  } @else if (season(); as se) {
+    <div class="admin-participants__sections">
+      @if (canManageSeasonOrganizers() && troupeId(); as tid) {
+        <section class="admin-participants__section" aria-labelledby="organisateurs-heading">
+          <h2 id="organisateurs-heading" class="admin-participants__section-title">
+            Organisateur·ices de saison
+          </h2>
+          <app-organisateurs-tab [seasonId]="se.id" [troupeId]="tid" />
+        </section>
+      }
 
-    @if (filteredParticipants().length === 0) {
-      <p class="admin-participants__empty">Aucun participant.</p>
-    } @else {
-      <ul class="admin-participants__list">
-        @for (p of filteredParticipants(); track p.id) {
-          <li class="admin-participants__row">
-            <div class="admin-participants__row-main">
-              <strong>{{ p.displayName }}</strong>
-              @if (p.email) {
-                <span class="admin-participants__email">{{ p.email }}</span>
+      @if (canManageSeasonParticipants()) {
+        <section class="admin-participants__section" aria-labelledby="participants-heading">
+          @if (canManageSeasonOrganizers()) {
+            <h2 id="participants-heading" class="admin-participants__section-title">
+              Roster participants
+            </h2>
+          }
+          <div class="admin-participants__toolbar">
+            <mat-form-field appearance="outline" class="admin-participants__search">
+              <mat-label>Rechercher</mat-label>
+              <input
+                matInput
+                [value]="searchQuery()"
+                (input)="onSearchInput($any($event.target).value)"
+                placeholder="Nom ou email"
+              />
+            </mat-form-field>
+            <button type="button" mat-flat-button color="primary" (click)="openAddDialog()">
+              Ajouter
+            </button>
+          </div>
+
+          @if (filteredParticipants().length === 0) {
+            <p class="admin-participants__empty">Aucun participant.</p>
+          } @else {
+            <ul class="admin-participants__list">
+              @for (p of filteredParticipants(); track p.id) {
+                <li class="admin-participants__row">
+                  <div class="admin-participants__row-main">
+                    <div class="admin-participants__row-primary">
+                      <strong>{{ p.displayName }}</strong>
+                      @if (p.email) {
+                        <span class="admin-participants__email">{{ p.email }}</span>
+                      }
+                    </div>
+                    <mat-chip-set class="admin-participants__chips">
+                      <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
+                    </mat-chip-set>
+                  </div>
+                  @if (p.removable) {
+                    <button
+                      type="button"
+                      mat-button
+                      class="admin-participants__remove"
+                      [disabled]="saving()"
+                      (click)="confirmRemove(p)"
+                    >
+                      Retirer
+                    </button>
+                  }
+                </li>
               }
-              <mat-chip-set>
-                <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
-              </mat-chip-set>
-            </div>
-            @if (p.removable) {
-              <button
-                type="button"
-                mat-button
-                color="warn"
-                [disabled]="saving()"
-                (click)="confirmRemove(p)"
-              >
-                Retirer
-              </button>
-            }
-          </li>
-        }
-      </ul>
-    }
+            </ul>
+          }
+        </section>
+      }
+    </div>
   }
 </div>

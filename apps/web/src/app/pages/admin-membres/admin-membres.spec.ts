@@ -151,11 +151,9 @@ describe('AdminMembres', () => {
     })
 
     await vi.waitFor(() => {
-      expect(organizerApi.mySeasonPermissions).toHaveBeenCalled()
-    })
-    await vi.waitFor(() => {
       expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes'])
     })
+    expect(organizerApi.mySeasonPermissions).not.toHaveBeenCalled()
   })
 
   it('refuse la route troupe à un organisateur saison sans rôle admin troupe', async () => {
@@ -191,21 +189,54 @@ describe('AdminMembres', () => {
     expect(text(fixture)).toContain('Ma Troupe')
   })
 
-  it('shows season breadcrumb on legacy saison admin membres route', async () => {
-    const { fixture } = await setup(bothPermissions(), {}, {
+  it('redirige la route legacy saison vers les membres de la troupe', async () => {
+    const { router } = await setup(bothPermissions(), {}, {
       slug: 'season-a',
       routePath: 'saison/:slug/admin/membres',
+      troupes: [troupe('t1', 'Ma Troupe')],
       getSeasonBySlug: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         data: season('s1'),
       }),
     })
-    const el = fixture.nativeElement as HTMLElement
 
-    expect(el.querySelector('app-context-breadcrumb')).toBeTruthy()
-    expect(el.querySelector('.context-breadcrumb__link')?.textContent).toContain('Saison A')
-    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Membres')
+    await vi.waitFor(() => {
+      expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes', 't1', 'admin', 'membres'], {
+        replaceUrl: true,
+      })
+    })
+  })
+
+  it('redirige un organisateur saison legacy vers les participants', async () => {
+    const { router } = await setup(bothPermissions(), {}, {
+      slug: 'season-a',
+      routePath: 'saison/:slug/admin/membres',
+      troupes: [{
+        id: 't1',
+        name: 'Ma Troupe',
+        slug: 'troupe',
+        membership: {
+          id: 'm-1',
+          displayName: 'Orga',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }],
+      getSeasonBySlug: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: season('s1'),
+      }),
+    })
+
+    await vi.waitFor(() => {
+      expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a', 'admin', 'participants'], {
+        replaceUrl: true,
+      })
+    })
   })
 
   it('does not show breadcrumb before page context resolves', async () => {
@@ -254,21 +285,6 @@ describe('AdminMembres', () => {
     expect(fixture.nativeElement.querySelector('app-context-breadcrumb')).toBeNull()
   })
 
-  it('shows tab bar when both permissions granted', async () => {
-    const { fixture } = await setup(bothPermissions())
-    const cmp = fixture.componentInstance as AdminMembres & { showTabBar: () => boolean }
-
-    expect(cmp.showTabBar()).toBe(true)
-  })
-
-  it('selects organisateurs tab from query param', async () => {
-    queryParamMap$.next(convertToParamMap({ onglet: 'organisateurs' }))
-    const { fixture } = await setup(bothPermissions(), { onglet: 'organisateurs' })
-
-    const cmp = fixture.componentInstance as AdminMembres & { activeTab: () => string }
-    expect(cmp.activeTab()).toBe('organisateurs')
-  })
-
   it('loads membres without season when troupe has no seasons', async () => {
     const { fixture, router } = await setup(membersOnly(), {}, { seasons: [] })
 
@@ -286,22 +302,23 @@ describe('AdminMembres', () => {
     expect(text(fixture)).toContain('Troupe propriétaire')
   })
 
-  it('résout une route legacy slug dans la troupe propriétaire', async () => {
+  it('résout une route legacy slug et redirige vers la troupe propriétaire', async () => {
     localStorage.setItem('hatcast.selectedTroupeId', 't1')
     const getSeasonBySlug = vi.fn()
       .mockResolvedValueOnce({ ok: false, status: 404 })
       .mockResolvedValueOnce({ ok: true, status: 200, data: season('s2', 't2') })
 
-    const { fixture, organizerApi } = await setup(bothPermissions(), {}, {
+    const { router } = await setup(bothPermissions(), {}, {
       slug: 'season-a',
       troupes: [troupe('t1', 'Première troupe'), troupe('t2', 'Troupe propriétaire')],
       getSeasonBySlug,
     })
 
     await vi.waitFor(() => {
-      expect(organizerApi.mySeasonPermissions).toHaveBeenCalledWith('s2')
+      expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes', 't2', 'admin', 'membres'], {
+        replaceUrl: true,
+      })
     })
-    expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('t2')
   })
 })
 

@@ -286,10 +286,8 @@ describe('SeasonHome', () => {
       }>
     }
     const items = cmp.seasonAdminItems()
-    expect(items.map((i) => i.label)).toEqual(['Participants', 'Organisateur·ices'])
+    expect(items.map((i) => i.label)).toEqual(['Participants'])
     expect(items[0]?.routerLink).toEqual(['/saison', 'season-a', 'admin', 'participants'])
-    expect(items[1]?.routerLink).toEqual(['/saison', 'season-a', 'admin', 'membres'])
-    expect(items[1]?.queryParams).toEqual({ onglet: 'organisateurs' })
 
     const trigger = fixture.nativeElement.querySelector(
       '.scope-admin-menu__trigger',

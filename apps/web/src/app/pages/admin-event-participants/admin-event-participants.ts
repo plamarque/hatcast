@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
@@ -24,6 +25,7 @@ import { UUID_IN_PATH_REGEX } from '../../core/navigation/url-slug'
 import {
   OrganizerApiService,
   type MySeasonPermissions,
+  type OrganizerResponse,
 } from '../../core/permissions/organizer-api.service'
 import {
   ParticipantApiService,
@@ -33,8 +35,22 @@ import {
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import {
+  DEMOTE_ORGANIZER_LABEL,
+  findRowOrganizer,
+  isPromotableOrganizerRow,
+  isRowOrganizer,
+  organizerChipTooltip,
+  organizerOffRosterNotice,
+  organizersOffRoster,
+  ORGANIZER_CHIP_LABEL,
+  PROMOTE_ORGANIZER_LABEL,
+  PROMOTE_TOOLTIP,
+  rosterIdentitySets,
+} from '../../shared/admin-organizer-row/organizer-row.helper'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
+import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { AddEventParticipantDialog } from './add-event-participant-dialog'
 
 @Component({
@@ -48,6 +64,7 @@ import { AddEventParticipantDialog } from './add-event-participant-dialog'
     MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTooltipModule,
     RouterLink,
     ContextBreadcrumb,
     UserAvatarComponent,
@@ -70,6 +87,12 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   private loadRequestId = 0
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
+  protected readonly organizerChipLabel = ORGANIZER_CHIP_LABEL
+  protected readonly promoteOrganizerLabel = PROMOTE_ORGANIZER_LABEL
+  protected readonly demoteOrganizerLabel = DEMOTE_ORGANIZER_LABEL
+  protected readonly promoteTooltip = PROMOTE_TOOLTIP
+  protected readonly organizerChipTooltip = () => organizerChipTooltip('spectacle')
+
   protected readonly seasonSlug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
     { initialValue: '' },
@@ -89,6 +112,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   protected readonly permissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly roster = signal<EventRosterParticipant[]>([])
+  protected readonly eventOrganizers = signal<OrganizerResponse[]>([])
   protected readonly searchQuery = signal('')
   protected readonly debouncedSearch = signal('')
 
@@ -116,8 +140,30 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     () => this.roster().filter((p) => p.source === 'EVENT').length,
   )
 
-  protected readonly hasAnyFilteredResults = computed(
-    () => this.filteredMemberRoster().length > 0 || this.filteredExternalRoster().length > 0,
+  protected readonly canManageEventOrganizers = computed(() => {
+    const ev = this.event()
+    const perms = this.permissions()
+    if (!ev || !perms) {
+      return false
+    }
+    if (perms.canManageEventOrganizers) {
+      return true
+    }
+    return perms.eventOrganizerFor.includes(ev.id)
+  })
+
+  protected readonly eventOrganizersOffRoster = computed(() => {
+    const { userIds, emails } = rosterIdentitySets(this.roster())
+    return organizersOffRoster(this.eventOrganizers(), userIds, emails)
+  })
+
+  protected readonly eventOrganizersOffRosterNotice = computed(() =>
+    organizerOffRosterNotice(this.eventOrganizersOffRoster()),
+  )
+
+  protected readonly hasAnyFilteredParticipantResults = computed(
+    () =>
+      this.filteredMemberRoster().length > 0 || this.filteredExternalRoster().length > 0,
   )
 
   protected readonly hasSearchQuery = computed(() => this.debouncedSearch().trim().length > 0)
@@ -175,6 +221,14 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     return kind !== 'MEMBER'
   }
 
+  protected isEventOrganizer(participant: EventRosterParticipant): boolean {
+    return isRowOrganizer(participant.userId, participant.email, this.eventOrganizers())
+  }
+
+  protected isPromotable(participant: EventRosterParticipant): boolean {
+    return isPromotableOrganizerRow(participant.userId, participant.email)
+  }
+
   protected openAddDialog(): void {
     const seasonId = this.seasonId()
     const eventId = this.event()?.id
@@ -207,6 +261,50 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
 
   protected rosterKey(participant: EventRosterParticipant): string {
     return participant.seasonParticipantId ?? participant.eventParticipantId ?? participant.displayName
+  }
+
+  protected confirmDemoteEventOrganizer(participant: EventRosterParticipant): void {
+    const organizer = findRowOrganizer(
+      participant.userId,
+      participant.email,
+      this.eventOrganizers(),
+    )
+    if (!organizer) {
+      return
+    }
+    const label = organizer.displayName || organizer.email
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Retirer l’organisateur·ice',
+        message: `Retirer « ${label} » des organisateur·ices de ce spectacle ?`,
+        confirmLabel: 'Retirer',
+      },
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.removeEventOrganizer(organizer.userId)
+      }
+    })
+  }
+
+  protected async promoteEventOrganizer(participant: EventRosterParticipant): Promise<void> {
+    const seasonId = this.seasonId()
+    const eventId = this.event()?.id
+    const email = participant.email?.trim()
+    if (!seasonId || !eventId || !email) {
+      return
+    }
+    this.saving.set(true)
+    try {
+      const r = await this.organizerApi.addEventOrganizer(seasonId, eventId, email)
+      if (!r.ok) {
+        this.snack.open('Promotion impossible.', 'OK', { duration: 5000 })
+        return
+      }
+      await this.reloadEventOrganizers('Organisateur·ice ajouté·e.')
+    } finally {
+      this.saving.set(false)
+    }
   }
 
   protected async removeFromEvent(participant: EventRosterParticipant): Promise<void> {
@@ -246,6 +344,40 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     }
   }
 
+  private async removeEventOrganizer(userId: string): Promise<void> {
+    const seasonId = this.seasonId()
+    const eventId = this.event()?.id
+    if (!seasonId || !eventId) {
+      return
+    }
+    this.saving.set(true)
+    try {
+      const r = await this.organizerApi.removeEventOrganizer(seasonId, eventId, userId)
+      if (!r.ok) {
+        this.snack.open('Retrait impossible.', 'OK', { duration: 5000 })
+        return
+      }
+      await this.reloadEventOrganizers('Organisateur·ice retiré·e.')
+    } finally {
+      this.saving.set(false)
+    }
+  }
+
+  private async reloadEventOrganizers(message?: string): Promise<void> {
+    const seasonId = this.seasonId()
+    const eventId = this.event()?.id
+    if (!seasonId || !eventId) {
+      return
+    }
+    const r = await this.organizerApi.listEventOrganizers(seasonId, eventId)
+    if (r.ok && r.data) {
+      this.eventOrganizers.set(r.data)
+      if (message) {
+        this.snack.open(message, 'OK', { duration: 4000 })
+      }
+    }
+  }
+
   private filterRosterBySearch(list: EventRosterParticipant[]): EventRosterParticipant[] {
     const q = this.debouncedSearch().trim().toLowerCase()
     if (!q) {
@@ -264,6 +396,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     this.season.set(null)
     this.event.set(null)
     this.roster.set([])
+    this.eventOrganizers.set([])
     if (!seasonSlug || !eventSlugParam) {
       this.loading.set(false)
       return
@@ -335,10 +468,10 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
 
     this.permissions.set(perms)
     this.event.set(eventResult.data)
-    const rosterResult = await this.participantApi.listEventParticipantRoster(
-      resolved.season.id,
-      eventResult.data.id,
-    )
+    const [rosterResult] = await Promise.all([
+      this.participantApi.listEventParticipantRoster(resolved.season.id, eventResult.data.id),
+      this.reloadEventOrganizers(),
+    ])
     if (requestId !== this.loadRequestId) {
       return
     }

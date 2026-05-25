@@ -1,7 +1,7 @@
 <section class="organisateurs-tab" aria-label="Organisateur·ices de saison">
   <p class="organisateurs-tab__help">
     Peut préparer les tirages et annoncer les compositions. Pas un administrateur de troupe.
-    Les organisateur·ices de spectacle se gèrent dans les réglages de chaque spectacle.
+    Les organisateur·ices de spectacle se gèrent sur l’écran participants de chaque spectacle.
   </p>
 
   <div class="organisateurs-tab__toolbar">
@@ -49,7 +49,7 @@
           <button
             type="button"
             mat-button
-            color="warn"
+            class="organisateurs-tab__remove"
             [disabled]="saving()"
             (click)="confirmRemove(organizer)"
           >

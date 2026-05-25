@@ -4,16 +4,15 @@
 }
 
 .membres-tab__toolbar {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  align-items: flex-start;
-  justify-content: space-between;
 }
 
 .membres-tab__search {
-  flex: 1 1 12rem;
-  min-width: 10rem;
+  flex: 1;
+  min-width: 12rem;
 
   --mat-form-field-outlined-input-text-placeholder-color: color-mix(
     in srgb,
@@ -57,19 +56,16 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 0.35rem;
 }
 
 .membres-tab__row {
   align-items: center;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 0.5rem;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: auto 1fr auto;
-  min-height: 3.25rem;
-  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  justify-content: space-between;
+  padding: 0.45rem 0;
 }
 
 .membres-tab__row--inactive {
@@ -77,18 +73,13 @@
 }
 
 .membres-tab__avatar {
-  align-items: center;
-  background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
-  border-radius: 50%;
-  display: flex;
-  font-weight: 600;
-  height: 2rem;
-  justify-content: center;
-  width: 2rem;
+  flex-shrink: 0;
 }
 
 .membres-tab__identity {
-  display: grid;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   gap: 0.15rem;
   min-width: 0;
 }
@@ -113,18 +104,10 @@
 
 .membres-tab__email {
   color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
-  font-size: 0.85rem;
-}
-
-.membres-tab__orga-link {
-  background: none;
-  border: none;
-  color: var(--mat-sys-primary);
-  cursor: pointer;
-  font-size: 0.8rem;
-  padding: 0;
-  text-align: left;
-  text-decoration: underline;
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .membres-tab__controls {
@@ -150,21 +133,13 @@
   font-size: 0.9rem;
 }
 
-@media (max-width: 640px) {
-  .membres-tab__toolbar {
-    flex-direction: column;
+@media (max-width: 480px) {
+  .membres-tab__search {
+    flex-basis: 100%;
+    min-width: 0;
   }
 
   .membres-tab__toolbar-actions {
     width: 100%;
-  }
-
-  .membres-tab__row {
-    grid-template-columns: auto 1fr;
-  }
-
-  .membres-tab__controls {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
   }
 }

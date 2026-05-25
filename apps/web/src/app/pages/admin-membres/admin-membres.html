@@ -3,12 +3,10 @@
     <div class="admin-membres__header-left">
       @if (showBreadcrumb()) {
         <app-context-breadcrumb
-          [layout]="breadcrumbLayout()"
-          [leafTitle]="breadcrumbLeaf()"
+          layout="troupe"
+          leafTitle="Membres"
           [troupeName]="troupeName()!"
           [troupeSlug]="troupeSlug()!"
-          [seasonTitle]="season()?.title ?? ''"
-          [seasonSlug]="selectedSeasonSlug()"
         />
       }
     </div>
@@ -37,7 +35,7 @@
 
   @if (showBreadcrumb()) {
     <div class="admin-membres__mobile-context">
-      <h1 class="admin-membres__mobile-context-title">{{ pageTitle() }}</h1>
+      <h1 class="admin-membres__mobile-context-title">Membres</h1>
     </div>
   }
 
@@ -45,55 +43,11 @@
     <div class="admin-membres__spinner" role="status">
       <mat-spinner diameter="40" />
     </div>
-  } @else if (troupeId()) {
-    @if (showSeasonSelector()) {
-      <mat-form-field appearance="outline" class="admin-membres__season-select">
-        <mat-label>Saison</mat-label>
-        <mat-select [value]="season()?.id" (selectionChange)="onSeasonChange($event)">
-          @for (s of seasons(); track s.id) {
-            <mat-option [value]="s.id">{{ s.title }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-    }
-
-    @if (showTabBar() && season(); as se) {
-      <mat-tab-group
-        class="admin-membres__tabs"
-        [selectedIndex]="tabIndex()"
-        (selectedIndexChange)="onTabChange($event)"
-      >
-        @if (canManageMembers()) {
-          <mat-tab label="Membres">
-            <app-membres-tab
-              [troupeId]="troupeId()!"
-              [seasonId]="se.id"
-              [seasonSlug]="selectedSeasonSlug()"
-              [canManageSeasonOrganizers]="canManageSeasonOrganizers()"
-              (membersChanged)="refreshPermissionsAfterMemberMutation()"
-            />
-          </mat-tab>
-        }
-        @if (canManageSeasonOrganizers()) {
-          <mat-tab label="Organisateur·ices">
-            <app-organisateurs-tab [seasonId]="se.id" [troupeId]="troupeId()!" />
-          </mat-tab>
-        }
-      </mat-tab-group>
-    } @else if (canManageMembers()) {
-      <app-membres-tab
-        [troupeId]="troupeId()!"
-        [seasonId]="season()?.id ?? ''"
-        [seasonSlug]="selectedSeasonSlug()"
-        [canManageSeasonOrganizers]="canManageSeasonOrganizers()"
-        (membersChanged)="refreshPermissionsAfterMemberMutation()"
-      />
-    } @else if (canManageSeasonOrganizers() && season(); as se) {
-      <app-organisateurs-tab [seasonId]="se.id" [troupeId]="troupeId()!" />
-    } @else if (canManageSeasonOrganizers() && !season()) {
-      <p class="admin-membres__empty-season">
-        Créez une saison pour déléguer des organisateur·ices de saison.
-      </p>
-    }
+  } @else if (troupeId() && isTroupeAdmin()) {
+    <app-membres-tab
+      [troupeId]="troupeId()!"
+      [profileSeasonId]="profileSeasonId()"
+      [profileSeasonSlug]="profileSeasonSlug()"
+    />
   }
 </div>

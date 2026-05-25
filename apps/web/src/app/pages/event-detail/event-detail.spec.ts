@@ -15,7 +15,6 @@ import { ParticipantApiService } from '../../core/participants/participant-api.s
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { EventDetail } from './event-detail'
-import { EventOrganizersDialog } from './event-organizers-dialog'
 import { emptyRoleSlots } from '../../core/events/event-types'
 
 type EventDetailHarness = {
@@ -529,7 +528,7 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.querySelector('.event-infos__admin-menu')).toBeNull()
   })
 
-  it('shows spectacle organizers action for event-only organizer', async () => {
+  it('links spectacle organizers to participants admin for event-only organizer', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {
@@ -555,20 +554,20 @@ describe('EventDetail', () => {
     })
 
     const cmp = fixture.componentInstance as unknown as {
-      eventAdminItems: () => Array<{ label: string }>
-      openEventOrganizersAdmin: () => void
+      eventAdminItems: () => Array<{ label: string; routerLink?: string[] }>
     }
-    expect(cmp.eventAdminItems()[0]?.label).toBe('Organisateur·ices du spectacle')
-    cmp.openEventOrganizersAdmin()
-    expect(dialogOpen).toHaveBeenCalledWith(
-      EventOrganizersDialog,
-      expect.objectContaining({
-        data: { seasonId: 'season-1', eventId: 'event-2', troupeId: 'troupe-1' },
-      }),
-    )
+    expect(cmp.eventAdminItems()[0]?.label).toBe('Organisateur·ices')
+    expect(cmp.eventAdminItems()[0]?.routerLink).toEqual([
+      '/saison',
+      'season-a',
+      'event',
+      'event-2',
+      'admin',
+      'participants',
+    ])
   })
 
-  it('omits spectacle organizers entry when saison organizers link is shown', async () => {
+  it('shows spectacle organizers link for season organizer on event admin menu', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {

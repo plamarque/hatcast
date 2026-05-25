@@ -54,6 +54,56 @@
       <a [routerLink]="seasonAdminParticipantsLink()">Gérer le roster saison</a>
     </p>
 
+    @if (canManageEventOrganizers()) {
+      <section class="admin-event-participants__section" aria-labelledby="organisateurs-heading">
+        <div class="admin-event-participants__section-header">
+          <h2 id="organisateurs-heading" class="admin-event-participants__section-title">
+            Organisateur·ices du spectacle
+          </h2>
+          <button
+            type="button"
+            mat-stroked-button
+            [disabled]="saving()"
+            (click)="openAddEventOrganizerDialog()"
+          >
+            Ajouter
+          </button>
+        </div>
+        <p class="admin-event-participants__section-hint">
+          Peut gérer la composition de ce spectacle sans être admin de toute la saison.
+        </p>
+        @if (eventOrganizers().length === 0) {
+          <p class="admin-event-participants__section-empty">Aucun·e organisateur·ice pour ce spectacle.</p>
+        } @else if (filteredEventOrganizers().length === 0) {
+          <p class="admin-event-participants__section-empty">Aucun résultat dans cette section.</p>
+        } @else {
+          <ul class="admin-event-participants__list">
+            @for (o of filteredEventOrganizers(); track o.userId) {
+              <li class="admin-event-participants__row">
+                <div class="admin-event-participants__row-main">
+                  <div class="admin-event-participants__row-primary">
+                    <strong>{{ organizerLabel(o) }}</strong>
+                    @if (o.displayName) {
+                      <span class="admin-event-participants__email">{{ o.email }}</span>
+                    }
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  mat-button
+                  class="admin-event-participants__remove"
+                  [disabled]="saving()"
+                  (click)="confirmRemoveEventOrganizer(o)"
+                >
+                  Retirer
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
     <div class="admin-event-participants__toolbar">
       <mat-form-field appearance="outline" class="admin-event-participants__search">
         <mat-label>Rechercher</mat-label>
@@ -69,11 +119,11 @@
       </button>
     </div>
 
-    @if (roster().length === 0) {
-      <p class="admin-event-participants__empty">Aucun participant sur ce spectacle.</p>
-    } @else if (!hasAnyFilteredResults()) {
+    @if (hasSearchQuery() && !hasAnyFilteredResults()) {
       <p class="admin-event-participants__empty">Aucun résultat pour cette recherche.</p>
-    } @else {
+    } @else if (roster().length === 0 && !hasSearchQuery()) {
+      <p class="admin-event-participants__empty">Aucun participant sur ce spectacle.</p>
+    } @else if (roster().length > 0) {
       <div class="admin-event-participants__sections">
         <section class="admin-event-participants__section" aria-labelledby="externes-heading">
           <h2 id="externes-heading" class="admin-event-participants__section-title">Externes</h2>

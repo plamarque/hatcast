@@ -99,8 +99,8 @@ describe('MembresTab', () => {
 
     const fixture = TestBed.createComponent(MembresTab)
     fixture.componentRef.setInput('troupeId', 't1')
-    fixture.componentRef.setInput('seasonId', 's1')
-    fixture.componentRef.setInput('seasonSlug', 'season-slug')
+    fixture.componentRef.setInput('profileSeasonId', 's1')
+    fixture.componentRef.setInput('profileSeasonSlug', 'season-slug')
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()

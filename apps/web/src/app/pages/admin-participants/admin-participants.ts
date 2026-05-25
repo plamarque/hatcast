@@ -31,6 +31,7 @@ import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
+import { OrganisateursTab } from '../admin-membres/organisateurs-tab'
 import { AddParticipantDialog } from './add-participant-dialog'
 
 @Component({
@@ -47,6 +48,7 @@ import { AddParticipantDialog } from './add-participant-dialog'
     RouterLink,
     ContextBreadcrumb,
     UserAvatarComponent,
+    OrganisateursTab,
   ],
   templateUrl: './admin-participants.html',
   styleUrl: './admin-participants.scss',
@@ -88,6 +90,22 @@ export class AdminParticipants implements OnDestroy, OnInit {
       !!this.troupeSlug()?.trim() &&
       !!this.season()?.title.trim(),
   )
+
+  protected readonly canManageSeasonOrganizers = computed(
+    () => this.permissions()?.canManageSeasonOrganizers === true,
+  )
+  protected readonly canManageSeasonParticipants = computed(
+    () => this.permissions()?.canManageSeasonParticipants === true,
+  )
+  protected readonly pageTitle = computed(() => {
+    if (this.canManageSeasonParticipants() && this.canManageSeasonOrganizers()) {
+      return 'Participants'
+    }
+    if (this.canManageSeasonOrganizers()) {
+      return 'Organisateur·ices'
+    }
+    return 'Participants'
+  })
 
   protected readonly filteredParticipants = computed(() => {
     const q = this.debouncedSearch().trim().toLowerCase()
@@ -260,17 +278,22 @@ export class AdminParticipants implements OnDestroy, OnInit {
 
     const perms = pr.ok && pr.data ? pr.data : null
     this.permissions.set(perms)
-    if (!perms?.canManageSeasonParticipants) {
+    const canAccess =
+      perms?.canManageSeasonParticipants === true ||
+      perms?.canManageSeasonOrganizers === true
+    if (!canAccess) {
       this.loading.set(false)
       this.snack.open('Accès non autorisé', 'OK', { duration: 5000 })
       await this.router.navigate(saisonWorkspacePath(slug))
       return
     }
 
-    const list = await this.participantApi.listSeasonParticipants(resolved.season.id)
-    if (requestId !== this.loadRequestId) return
-    if (list.ok && list.data) {
-      this.participants.set(list.data)
+    if (perms?.canManageSeasonParticipants) {
+      const list = await this.participantApi.listSeasonParticipants(resolved.season.id)
+      if (requestId !== this.loadRequestId) return
+      if (list.ok && list.data) {
+        this.participants.set(list.data)
+      }
     }
     this.loading.set(false)
   }
