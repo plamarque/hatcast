@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-25T18:00:00+02:00
+# last_updated: 2026-05-25T16:25:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -169,9 +169,9 @@ development_status:
   17-2-bandeau-administration-par-scope: done
   17-3-page-troupes-mes-troupes-decouvrir: done
   17-4-hub-troupes-slug: done
-  17-5-redirects-fin-seasons-hub-troupe: in-progress
+  17-5-redirects-fin-seasons-hub-troupe: done
   17-11-breadcrumb-pages-admin-back-office: backlog
-  17-6-slug-evenement-dans-les-urls: backlog
+  17-6-slug-evenement-dans-les-urls: ready-for-dev
   17-7-api-tag-equite-glossaire-troupe: backlog
   17-8-ui-formulaire-spectacle-tag-optionnel: backlog
   17-9-tirage-chances-par-tag: backlog

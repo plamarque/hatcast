@@ -42,6 +42,15 @@ describe('app.routes', () => {
     expect(activatedComponent(router)).toBe(TroupesList)
   })
 
+  it('redirects /ligue event path preserving query params', async () => {
+    const router = TestBed.inject(Router)
+
+    await router.navigateByUrl('/ligue/test-slug/event/event-1?showConfirm=true')
+
+    expect(router.url).toBe('/saison/test-slug/event/event-1?showConfirm=true')
+    expect(activatedComponent(router)).toBe(EventDetail)
+  })
+
   it.each([
     { legacy: '/ligue/test-slug', canonical: '/saison/test-slug', component: SeasonHome },
     {

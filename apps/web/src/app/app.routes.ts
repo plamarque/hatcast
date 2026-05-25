@@ -57,19 +57,31 @@ export const routes: Routes = [
   { path: 'saison/:slug/event/:eventId', component: EventDetail },
   {
     path: 'ligue/:slug/admin/membres',
-    redirectTo: (route) => `/saison/${route.params['slug']}/admin/membres`,
+    redirectTo: (route) =>
+      redirectPathWithQuery(
+        `/saison/${route.params['slug']}/admin/membres`,
+        route.queryParamMap,
+      ),
   },
   {
     path: 'ligue/:slug/admin/participants',
-    redirectTo: (route) => `/saison/${route.params['slug']}/admin/participants`,
+    redirectTo: (route) =>
+      redirectPathWithQuery(
+        `/saison/${route.params['slug']}/admin/participants`,
+        route.queryParamMap,
+      ),
   },
   {
     path: 'ligue/:slug/event/:eventId',
     redirectTo: (route) =>
-      `/saison/${route.params['slug']}/event/${route.params['eventId']}`,
+      redirectPathWithQuery(
+        `/saison/${route.params['slug']}/event/${route.params['eventId']}`,
+        route.queryParamMap,
+      ),
   },
   {
     path: 'ligue/:slug',
-    redirectTo: (route) => `/saison/${route.params['slug']}`,
+    redirectTo: (route) =>
+      redirectPathWithQuery(`/saison/${route.params['slug']}`, route.queryParamMap),
   },
 ];

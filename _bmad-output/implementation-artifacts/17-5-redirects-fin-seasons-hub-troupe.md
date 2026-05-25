@@ -1,6 +1,6 @@
 # Story 17.5: Redirects and end of `/seasons` as hub
 
-Status: ready-for-dev
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -22,36 +22,36 @@ so that **bookmarks, post-login paths, and the agenda** match ADR 0013 and Epic 
 
 ## Tasks / Subtasks
 
-- [ ] **Route redirects in `app.routes.ts`** (AC: 1, 2)
-  - [ ] Replace `{ path: 'seasons', component: SeasonsList }` with redirect to `/troupes` (function `redirectTo` like existing `/troupe/:troupeSlug/admin/membres` pattern).
-  - [ ] Replace each `{ path: 'ligue/...', component: ... }` with **`redirectTo`** to matching `/saison/...` (preserve `:slug`, `:eventId` params).
-  - [ ] Keep **`/saison/*`** routes unchanged as canonical targets.
-  - [ ] Do **not** remove `seasons-list/` folder in this story — component may stay for a later admin cleanup slice; it simply loses the public `/seasons` route.
+- [x] **Route redirects in `app.routes.ts`** (AC: 1, 2)
+  - [x] Replace `{ path: 'seasons', component: SeasonsList }` with redirect to `/troupes` (function `redirectTo` like existing `/troupe/:troupeSlug/admin/membres` pattern).
+  - [x] Replace each `{ path: 'ligue/...', component: ... }` with **`redirectTo`** to matching `/saison/...` (preserve `:slug`, `:eventId` params).
+  - [x] Keep **`/saison/*`** routes unchanged as canonical targets.
+  - [x] Do **not** remove `seasons-list/` folder in this story — component may stay for a later admin cleanup slice; it simply loses the public `/seasons` route.
 
-- [ ] **Update entry-point links** (AC: 3, 5)
-  - [ ] `user-agenda.html`: **Mes troupes** → `routerLink` `/troupes` (or `troupesListPath()` in TS if template uses helper).
-  - [ ] `account-placeholder.html`: **Voir les saisons** / **Retour aux saisons** → `/troupes` (copy may stay “saisons” or shift to “troupes” — prefer **Mes troupes** / **Troupes** for consistency).
-  - [ ] `home-signed-in.html`: **Saisons** button → `/troupes`.
-  - [ ] `admin-membres.html` + `admin-membres.ts`: back link and all `router.navigate(['/seasons'])` → `troupesListPath()` or `troupeHubPath(slug)` when troupe context known.
-  - [ ] Optional (recommended): `user-agenda` empty state — enable **Découvrir les troupes** → `/troupes` with `fragment="decouvrir"` (17.3 left button `disabled`).
+- [x] **Update entry-point links** (AC: 3, 5)
+  - [x] `user-agenda.html`: **Mes troupes** → `routerLink` `/troupes` (or `troupesListPath()` in TS if template uses helper).
+  - [x] `account-placeholder.html`: **Voir les saisons** / **Retour aux saisons** → `/troupes` (copy may stay “saisons” or shift to “troupes” — prefer **Mes troupes** / **Troupes** for consistency).
+  - [x] `home-signed-in.html`: **Saisons** button → `/troupes`.
+  - [x] `admin-membres.html` + `admin-membres.ts`: back link and all `router.navigate(['/seasons'])` → `troupesListPath()` or `troupeHubPath(slug)` when troupe context known.
+  - [x] Optional (recommended): `user-agenda` empty state — enable **Découvrir les troupes** → `/troupes` with `fragment="decouvrir"` (17.3 left button `disabled`).
 
-- [ ] **Canonical navigation helpers usage** (AC: 5, 6)
-  - [ ] `post-login-navigation.service.ts`: return `saisonWorkspacePath(slug)` instead of `leagueWorkspacePath(slug)`; update spec.
-  - [ ] Grep `leagueWorkspacePath` / `['/ligue'` in `apps/web` — update **user-facing navigations** (`user-agenda.ts` event row click, `seasons-list.ts` card open if still referenced, `admin-participants`, `member-profile-dialog`, `event-detail.ts` error fallbacks) to **`saisonWorkspacePath`** / **`['/saison', slug, 'event', id]`**.
-  - [ ] **Keep** `league-routes.ts` and helpers for redirect tests and any remaining legacy href expectations until tests are migrated — or deprecate with comments “legacy prefix; routes redirect to saison”.
+- [x] **Canonical navigation helpers usage** (AC: 5, 6)
+  - [x] `post-login-navigation.service.ts`: return `saisonWorkspacePath(slug)` instead of `leagueWorkspacePath(slug)`; update spec.
+  - [x] Grep `leagueWorkspacePath` / `['/ligue'` in `apps/web` — update **user-facing navigations** (`user-agenda.ts` event row click, `seasons-list.ts` card open if still referenced, `admin-participants`, `member-profile-dialog`, `event-detail.ts` error fallbacks) to **`saisonWorkspacePath`** / **`['/saison', slug, 'event', id]`**.
+  - [x] **Keep** `league-routes.ts` and helpers for redirect tests and any remaining legacy href expectations until tests are migrated — or deprecate with comments “legacy prefix; routes redirect to saison”.
 
-- [ ] **Remove `event-context-strip`** (AC: 4)
-  - [ ] Remove `<app-event-context-strip>` block and imports from `event-detail.ts` / `event-detail.html`.
-  - [ ] Remove `showContextStrip`, `showTroupeAdminLink` signals and related setup in `event-detail.ts` if only used by strip.
-  - [ ] Delete `event-context-strip.ts|html|scss` (only used here).
-  - [ ] Update `event-detail.spec.ts`: strip assertions → breadcrumb-only; remove admin troupe link tests pointing at `/troupe/.../admin/membres`.
-  - [ ] Confirm `app-event-detail-header` + `ContextBreadcrumb` still expose troupe hub link via `troupeHubPath` (17.1) — **no** strip replacement needed.
+- [x] **Remove `event-context-strip`** (AC: 4)
+  - [x] Remove `<app-event-context-strip>` block and imports from `event-detail.ts` / `event-detail.html`.
+  - [x] Remove `showContextStrip`, `showTroupeAdminLink` signals and related setup in `event-detail.ts` if only used by strip.
+  - [x] Delete `event-context-strip.ts|html|scss` (only used here).
+  - [x] Update `event-detail.spec.ts`: strip assertions → breadcrumb-only; remove admin troupe link tests pointing at `/troupe/.../admin/membres`.
+  - [x] Confirm `app-event-detail-header` + `ContextBreadcrumb` still expose troupe hub link via `troupeHubPath` (17.1) — **no** strip replacement needed.
 
-- [ ] **Tests & build** (AC: 7)
-  - [ ] Extend `app.routes.spec.ts`: `/seasons` → `/troupes`; `/ligue/x` → `/saison/x`; nested admin/event paths.
-  - [ ] Update `post-login-navigation.service.spec.ts`, `user-agenda.spec.ts` navigation expectations to `/saison/...` where applicable.
-  - [ ] Update `admin-membres.spec.ts` redirect expectations away from `/seasons`.
-  - [ ] Run web unit tests + build.
+- [x] **Tests & build** (AC: 7)
+  - [x] Extend `app.routes.spec.ts`: `/seasons` → `/troupes`; `/ligue/x` → `/saison/x`; nested admin/event paths.
+  - [x] Update `post-login-navigation.service.spec.ts`, `user-agenda.spec.ts` navigation expectations to `/saison/...` where applicable.
+  - [x] Update `admin-membres.spec.ts` redirect expectations away from `/seasons`.
+  - [x] Run web unit tests + build.
 
 ## Dev Notes
 
@@ -149,10 +149,62 @@ Patterns: standalone components, Vitest + `TestBed`, `redirectTo` functions in r
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Composer (Cursor)
 
 ### Debug Log References
 
+- Route order: nested `/ligue/:slug/*` redirects must be declared **before** `ligue/:slug` to avoid partial redirects to season home only.
+
 ### Completion Notes List
 
+- Redirected `/seasons` → `/troupes` (query params preserved); all `/ligue/*` → matching `/saison/*` via `redirectTo` functions.
+- Updated member entry links (agenda, home, account) and admin fallback navigations to canonical `troupe-routes` helpers.
+- Post-login last-visited season now resolves to `saisonWorkspacePath`.
+- Removed `event-context-strip` component; mobile `event-detail__mobile-context` retained; breadcrumb remains sole troupe·saison chrome.
+- Added `saisonEventPath` helper; deprecated comment on `league-routes.ts`.
+- **379** web unit tests pass; `ng build` succeeds.
+
 ### File List
+
+- `apps/web/src/app/app.routes.ts`
+- `apps/web/src/app/app.routes.spec.ts`
+- `apps/web/src/app/core/navigation/troupe-routes.ts`
+- `apps/web/src/app/core/navigation/troupe-routes.spec.ts`
+- `apps/web/src/app/core/navigation/league-routes.ts`
+- `apps/web/src/app/core/navigation/post-login-navigation.service.ts`
+- `apps/web/src/app/core/navigation/post-login-navigation.service.spec.ts`
+- `apps/web/src/app/pages/user-agenda/user-agenda.html`
+- `apps/web/src/app/pages/user-agenda/user-agenda.ts`
+- `apps/web/src/app/pages/user-agenda/user-agenda.spec.ts`
+- `apps/web/src/app/pages/home-signed-in/home-signed-in.html`
+- `apps/web/src/app/pages/account-placeholder/account-placeholder.html`
+- `apps/web/src/app/pages/admin-membres/admin-membres.ts`
+- `apps/web/src/app/pages/admin-membres/admin-membres.html`
+- `apps/web/src/app/pages/admin-membres/admin-membres.spec.ts`
+- `apps/web/src/app/pages/admin-participants/admin-participants.ts`
+- `apps/web/src/app/pages/admin-participants/admin-participants.html`
+- `apps/web/src/app/pages/admin-participants/admin-participants.spec.ts`
+- `apps/web/src/app/pages/seasons-list/seasons-list.ts`
+- `apps/web/src/app/pages/event-detail/event-detail.ts`
+- `apps/web/src/app/pages/event-detail/event-detail.html`
+- `apps/web/src/app/pages/event-detail/event-detail.spec.ts`
+- `apps/web/src/app/pages/event-detail/event-context-strip.ts` (deleted)
+- `apps/web/src/app/pages/event-detail/event-context-strip.html` (deleted)
+- `apps/web/src/app/pages/event-detail/event-context-strip.scss` (deleted)
+- `apps/web/src/app/shared/member-profile/member-profile-dialog.ts`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+## Change Log
+
+- 2026-05-25: Story 17.5 — legacy `/seasons` and `/ligue/*` redirects, canonical in-app navigation, removal of duplicate event context strip.
+- 2026-05-25: Code review — preserve query on `/ligue/*` redirects, route spec, account copy fix.
+
+### Review Findings
+
+- [x] [Review][Patch] Preserve query string on `/ligue/*` redirects [`app.routes.ts:58-74`] — fixed: all `/ligue/*` redirects use `redirectPathWithQuery`.
+- [x] [Review][Patch] Add route spec for `/ligue` redirect query preservation [`app.routes.spec.ts`] — fixed: `showConfirm=true` deep link test added.
+- [x] [Review][Patch] Align account empty-state copy with `/troupes` link [`account-placeholder.html:91`] — fixed: « liste des troupes ».
+- [x] [Review][Defer] Stale admin-membres spec description [`admin-membres.spec.ts:127`] — Test name says « seasons list » but expects `troupes`; rename in a hygiene pass.
+- [x] [Review][Defer] Commit bundles 17.4 hub + 17.5 redirects [`2dd6c07`] — Single commit mixes troupe-hub implementation with redirect slice; harder to bisect/revert 17.5 alone.
+- [x] [Review][Defer] `seasons-list` unreachable after `/seasons` redirect — Documented product gap (season kebab CRUD); not introduced by redirect logic itself.

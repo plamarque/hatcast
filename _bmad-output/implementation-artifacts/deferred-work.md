@@ -1,3 +1,9 @@
+## Deferred from: code review of 17-5-redirects-fin-seasons-hub-troupe.md (2026-05-25)
+
+- Stale admin-membres spec title (« seasons list ») while asserting navigation to `/troupes`.
+- Commit `2dd6c07` bundles Story 17.4 troupe-hub and 17.5 redirects — harder to bisect/revert redirect-only changes.
+- `seasons-list` unreachable after `/seasons` → `/troupes` redirect — season-level kebab CRUD gap (documented non-goal).
+
 ## Deferred from: code review of 17-4-hub-troupes-slug.md (2026-05-25)
 
 - Pagination beyond 50 seasons (`SEASONS_PAGE_SIZE`) — no “Charger plus” until a troupe exceeds the cap.
