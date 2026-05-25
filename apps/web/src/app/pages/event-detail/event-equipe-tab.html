@@ -9,7 +9,17 @@
 } @else if (showEmptyState()) {
   <app-event-equipe-empty />
 } @else {
-  <div class="event-equipe-tab">
+  <div
+    class="event-equipe-tab"
+    [class.event-equipe-tab--busy]="compositionMutationBusy()"
+    [attr.aria-busy]="compositionMutationBusy()"
+  >
+    @if (compositionMutationBusy()) {
+      <div class="event-equipe-tab__busy-overlay" role="status" aria-live="polite">
+        <mat-spinner diameter="40" />
+        <span class="event-equipe-tab__busy-label">Mise à jour en cours…</span>
+      </div>
+    }
     @if (showDraftBanner()) {
       <p class="event-equipe-tab__banner" role="status">
         Brouillon visible uniquement par les organisateur·ices et administrateur·ices.
@@ -91,7 +101,11 @@
       </p>
     }
 
-    <ul class="event-equipe-tab__grid" aria-label="Composition de l'équipe">
+    <ul
+      class="event-equipe-tab__grid"
+      aria-label="Composition de l'équipe"
+      [attr.inert]="compositionMutationBusy() ? '' : null"
+    >
       @for (row of slotRows(); track row.roleKey + ':' + row.slotIndex) {
         <li
           class="event-equipe-tab__row"
@@ -115,13 +129,6 @@
                   {{ name.charAt(0).toUpperCase() }}
                 </span>
                 <span class="event-equipe-tab__name">{{ name }}</span>
-                @if (row.slot; as slot) {
-                  @if (slot.chancePercent != null) {
-                    <span class="event-equipe-tab__odds" title="Chance au tirage">
-                      {{ slot.chancePercent }}&nbsp;%
-                    </span>
-                  }
-                }
               } @else {
                 <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
               }
@@ -176,13 +183,6 @@
                   {{ name.charAt(0).toUpperCase() }}
                 </span>
                 <span class="event-equipe-tab__name">{{ name }}</span>
-                @if (row.slot; as slot) {
-                  @if (slot.chancePercent != null) {
-                    <span class="event-equipe-tab__odds" title="Chance au tirage">
-                      {{ slot.chancePercent }}&nbsp;%
-                    </span>
-                  }
-                }
               } @else {
                 <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
               }
@@ -275,6 +275,7 @@
     @if (canUnlock()) {
       <button
         type="button"
+        mat-stroked-button
         class="event-equipe-tab__unlock"
         [disabled]="unlocking()"
         (click)="unlock()"

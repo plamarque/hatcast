@@ -211,7 +211,6 @@ class CompositionDrawIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.slots.length()").value(2))
             .andExpect(jsonPath("$.slots[0].participantDisplayName").exists())
-            .andExpect(jsonPath("$.slots[0].chancePercent").exists())
     }
 
     @Test
@@ -342,7 +341,7 @@ class CompositionDrawIntegrationTest {
         val summaryRes =
             mockMvc
                 .perform(
-                    get("/v1/seasons/$seasonId/events/$newEventId/availability/summary")
+                    get("/v1/seasons/$seasonId/events/$newEventId/availability/summary?includeChances=true")
                         .cookie(adminCookie),
                 ).andExpect(status().isOk)
                 .andReturn()
@@ -437,6 +436,6 @@ class CompositionDrawIntegrationTest {
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberView))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.slots[0].chancePercent").exists())
+            .andExpect(jsonPath("$.slots[0].participantDisplayName").exists())
     }
 }

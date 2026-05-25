@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -48,6 +49,8 @@ class AvailabilityController(
     fun getAvailabilitySummary(
         @PathVariable seasonId: UUID,
         @PathVariable eventId: UUID,
+        @RequestParam(defaultValue = "false") includeChances: Boolean,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
-    ): EventAvailabilitySummaryResponse = availabilityService.getSummary(seasonId, eventId, principal)
+    ): EventAvailabilitySummaryResponse =
+        availabilityService.getSummary(seasonId, eventId, principal, includeChances)
 }

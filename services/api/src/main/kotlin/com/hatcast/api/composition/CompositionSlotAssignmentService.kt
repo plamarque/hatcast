@@ -137,6 +137,7 @@ class CompositionSlotAssignmentService(
     ): CompositionResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireManageComposition(eventId, seasonId, principal)
+        seasonParticipantService.ensureMembershipParticipants(event.season)
 
         val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
         val requiredCount = normalizedSlots[roleKey]
@@ -193,7 +194,7 @@ class CompositionSlotAssignmentService(
             compositionRepository.save(compositionRow)
         }
 
-        return compositionService.getComposition(seasonId, eventId, principal)
+        return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
 
     private fun assignParticipant(
@@ -205,7 +206,6 @@ class CompositionSlotAssignmentService(
         participantId: UUID,
         now: Instant,
     ) {
-        seasonParticipantService.ensureMembershipParticipants(event.season)
         val eligible =
             CompositionParticipantPool.loadEligibleParticipants(
                 seasonId,

@@ -55,6 +55,20 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
 
     @Query(
         """
+        SELECT m FROM TroupeMembershipEntity m
+        JOIN FETCH m.user
+        WHERE m.troupe.id = :troupeId
+          AND m.status IN :statuses
+        ORDER BY m.displayName ASC
+        """,
+    )
+    fun findByTroupe_IdAndStatusIn(
+        @Param("troupeId") troupeId: UUID,
+        @Param("statuses") statuses: Collection<TroupeMembershipStatus>,
+    ): List<TroupeMembershipEntity>
+
+    @Query(
+        """
         SELECT CASE WHEN COUNT(m1) > 0 THEN true ELSE false END
         FROM TroupeMembershipEntity m1, TroupeMembershipEntity m2
         WHERE m1.user.id = :viewerId AND m2.user.id = :targetUserId

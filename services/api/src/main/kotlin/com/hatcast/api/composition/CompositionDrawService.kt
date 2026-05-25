@@ -111,6 +111,7 @@ class CompositionDrawService(
         val crossRoleExcluded = mutableSetOf<UUID>()
         val steps = mutableListOf<CompositionDrawStepDto>()
         val newlyAssignedParticipantIds = mutableListOf<UUID>()
+        val slotsToPersist = mutableListOf<EventCompositionSlotEntity>()
 
         for (roleKey in requiredRoles) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
@@ -127,7 +128,7 @@ class CompositionDrawService(
                         if (slot.hasAssignee()) {
                             slot.clearAssignee()
                             slot.updatedAt = now
-                            slotRepository.save(slot)
+                            slotsToPersist.add(slot)
                         }
                     }
                 }
@@ -219,17 +220,15 @@ class CompositionDrawService(
                         )
                 val slotEntity =
                     roleSlots[slotIndex]
-                        ?: slotRepository.save(
-                            EventCompositionSlotEntity(
-                                eventId = eventId,
-                                roleKey = roleKey,
-                                slotIndex = slotIndex,
-                            ),
+                        ?: EventCompositionSlotEntity(
+                            eventId = eventId,
+                            roleKey = roleKey,
+                            slotIndex = slotIndex,
                         )
                 slotEntity.setAssignee(selectedParticipant)
                 slotEntity.participationStatus = SlotParticipationStatus.PENDING
                 slotEntity.updatedAt = now
-                slotRepository.save(slotEntity)
+                slotsToPersist.add(slotEntity)
 
                 withinRoleExcluded.add(selectedId)
                 crossRoleExcluded.add(selectedId)
@@ -256,6 +255,10 @@ class CompositionDrawService(
             }
         }
 
+        if (slotsToPersist.isNotEmpty()) {
+            slotRepository.saveAll(slotsToPersist.distinctBy { it.id })
+        }
+
         compositionRow.updatedAt = now
         compositionRepository.save(compositionRow)
 
@@ -269,7 +272,7 @@ class CompositionDrawService(
         }
 
         val compositionResponse =
-            compositionService.getComposition(seasonId, eventId, principal)
+            compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
         return CompositionDrawResponseDto(composition = compositionResponse, steps = steps)
     }
 

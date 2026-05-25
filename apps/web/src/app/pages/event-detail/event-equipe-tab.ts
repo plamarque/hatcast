@@ -70,7 +70,7 @@ export class EventEquipeTab {
   readonly canManageComposition = input(false)
   readonly showConfirmPending = input(false)
 
-  readonly compositionPublished = output<void>()
+  readonly compositionPublished = output<CompositionResponse>()
 
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
@@ -87,8 +87,20 @@ export class EventEquipeTab {
   protected readonly drawSteps = signal<CompositionDrawStep[]>([])
   protected readonly drawStepIndex = signal(0)
   protected readonly animatingDraw = signal(false)
+  private readonly pendingDrawComposition = signal<CompositionResponse | null>(null)
 
   protected readonly prefersReducedMotion = signal(false)
+
+  protected readonly compositionMutationBusy = computed(
+    () =>
+      this.drawing() ||
+      this.assigning() ||
+      this.validating() ||
+      this.unlocking() ||
+      this.publishing() ||
+      this.updatingParticipation() ||
+      this.restoringDeclineId() != null,
+  )
 
   protected readonly isCompositionLocked = computed(
     () => this.composition()?.validatedAt != null,
@@ -130,18 +142,14 @@ export class EventEquipeTab {
       this.canManageComposition() &&
       !this.isCompositionLocked() &&
       this.hasAssignedSlot() &&
-      !this.validating() &&
-      !this.unlocking() &&
-      !this.publishing(),
+      !this.compositionMutationBusy(),
   )
 
   protected readonly canUnlock = computed(
     () =>
       this.canManageComposition() &&
       this.isCompositionLocked() &&
-      !this.validating() &&
-      !this.unlocking() &&
-      !this.publishing(),
+      !this.compositionMutationBusy(),
   )
 
   protected readonly hasEmptyRequiredSlot = computed(() =>
@@ -153,9 +161,8 @@ export class EventEquipeTab {
       this.canManageComposition() &&
       this.isCompositionLocked() &&
       this.hasEmptyRequiredSlot() &&
-      !this.drawing() &&
+      !this.compositionMutationBusy() &&
       !this.animatingDraw() &&
-      !this.assigning() &&
       !this.loading() &&
       !this.loadError(),
   )
@@ -180,20 +187,16 @@ export class EventEquipeTab {
     () =>
       this.canManageComposition() &&
       !this.isCompositionLocked() &&
-      !this.publishing() &&
-      !this.drawing() &&
-      !this.animatingDraw() &&
-      !this.assigning(),
+      !this.compositionMutationBusy() &&
+      !this.animatingDraw(),
   )
 
   protected readonly canEditSlots = computed(
     () =>
       this.canManageComposition() &&
       !this.isCompositionLocked() &&
-      !this.publishing() &&
-      !this.drawing() &&
-      !this.animatingDraw() &&
-      !this.assigning(),
+      !this.compositionMutationBusy() &&
+      !this.animatingDraw(),
   )
 
   protected readonly viewerParticipantIds = computed(
@@ -310,7 +313,7 @@ export class EventEquipeTab {
 
   /** Own-slot confirmation when locked — organizers use self-service copy on own slot. */
   protected canTapParticipationSlot(row: SlotRow): boolean {
-    if (this.updatingParticipation()) {
+    if (this.compositionMutationBusy()) {
       return false
     }
     if (!this.isCompositionLocked() || this.loading() || this.loadError()) {
@@ -325,7 +328,7 @@ export class EventEquipeTab {
 
   /** Organizer proxy on any filled locked slot (foreign slots; own slot uses self-service above). */
   protected canTapProxyParticipationSlot(row: SlotRow): boolean {
-    if (this.updatingParticipation()) {
+    if (this.compositionMutationBusy()) {
       return false
     }
     if (!this.canManageComposition() || !this.isCompositionLocked() || this.loading() || this.loadError()) {
@@ -335,11 +338,7 @@ export class EventEquipeTab {
   }
 
   protected canTapGapSlot(row: SlotRow): boolean {
-    return (
-      this.canFillGaps() &&
-      !row.slot?.participantId &&
-      !this.assigning()
-    )
+    return this.canFillGaps() && !row.slot?.participantId
   }
 
   protected hasEmptySlotForRole(roleKey: string): boolean {
@@ -499,8 +498,7 @@ export class EventEquipeTab {
       )
       return
     }
-    this.composition.set(result.data)
-    this.compositionPublished.emit()
+    this.applyCompositionUpdate(result.data)
     const message =
       status === 'confirmed'
         ? 'Participation confirmée.'
@@ -548,12 +546,12 @@ export class EventEquipeTab {
     }
 
     if (this.prefersReducedMotion() || result.data.steps.length === 0) {
-      this.composition.set(result.data.composition)
-      this.compositionPublished.emit()
+      this.applyCompositionUpdate(result.data.composition)
       this.snack.open('Créneaux complétés.', 'OK', { duration: 4000 })
       return
     }
 
+    this.pendingDrawComposition.set(result.data.composition)
     this.drawSteps.set(result.data.steps)
     this.drawStepIndex.set(0)
     this.animatingDraw.set(true)
@@ -583,8 +581,7 @@ export class EventEquipeTab {
       )
       return
     }
-    this.composition.set(result.data)
-    this.compositionPublished.emit()
+    this.applyCompositionUpdate(result.data)
     this.snack.open('Participant remis en composition.', 'OK', { duration: 4000 })
   }
 
@@ -612,10 +609,11 @@ export class EventEquipeTab {
     }
 
     if (this.prefersReducedMotion() || result.data.steps.length === 0) {
-      this.composition.set(result.data.composition)
+      this.applyCompositionUpdate(result.data.composition)
       return
     }
 
+    this.pendingDrawComposition.set(result.data.composition)
     this.drawSteps.set(result.data.steps)
     this.drawStepIndex.set(0)
     this.animatingDraw.set(true)
@@ -629,9 +627,11 @@ export class EventEquipeTab {
     }
     this.animatingDraw.set(false)
     this.drawSteps.set([])
-    void this.load(this.seasonId(), this.event().id).then(() => {
-      this.compositionPublished.emit()
-    })
+    const composition = this.pendingDrawComposition()
+    this.pendingDrawComposition.set(null)
+    if (composition) {
+      this.applyCompositionUpdate(composition)
+    }
   }
 
   protected async openSlotPicker(row: SlotRow): Promise<void> {
@@ -724,8 +724,7 @@ export class EventEquipeTab {
       )
       return
     }
-    this.composition.set(result.data)
-    this.compositionPublished.emit()
+    this.applyCompositionUpdate(result.data)
   }
 
   private candidatesErrorMessage(status: number, apiMessage?: string): string {
@@ -794,8 +793,7 @@ export class EventEquipeTab {
       this.snack.open(message, 'OK', { duration: 6000 })
       return
     }
-    this.composition.set(result.data)
-    this.compositionPublished.emit()
+    this.applyCompositionUpdate(result.data)
     this.snack.open('Composition publiée.', 'OK', { duration: 4000 })
   }
 
@@ -817,8 +815,7 @@ export class EventEquipeTab {
       })
       return
     }
-    this.composition.set(result.data)
-    this.compositionPublished.emit()
+    this.applyCompositionUpdate(result.data)
     this.snack.open('Composition validée.', 'OK', { duration: 4000 })
   }
 
@@ -840,9 +837,13 @@ export class EventEquipeTab {
       })
       return
     }
-    this.composition.set(result.data)
-    this.compositionPublished.emit()
+    this.applyCompositionUpdate(result.data)
     this.snack.open('Composition déverrouillée.', 'OK', { duration: 4000 })
+  }
+
+  private applyCompositionUpdate(next: CompositionResponse): void {
+    this.composition.set(next)
+    this.compositionPublished.emit(next)
   }
 
   private validateUnlockErrorMessage(

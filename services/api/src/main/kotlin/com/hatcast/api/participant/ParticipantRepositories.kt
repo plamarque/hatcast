@@ -13,10 +13,53 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
         status: ParticipantStatus,
     ): List<SeasonParticipantEntity>
 
+    @Query(
+        """
+        SELECT p FROM SeasonParticipantEntity p
+        LEFT JOIN FETCH p.user
+        LEFT JOIN FETCH p.troupeMembership
+        WHERE p.season.id = :seasonId AND p.status = :status
+        ORDER BY p.displayName ASC
+        """,
+    )
+    fun findActiveForSeasonWithAssociations(
+        @Param("seasonId") seasonId: UUID,
+        @Param("status") status: ParticipantStatus,
+    ): List<SeasonParticipantEntity>
+
+    @Query(
+        """
+        SELECT p FROM SeasonParticipantEntity p
+        LEFT JOIN FETCH p.user
+        LEFT JOIN FETCH p.troupeMembership tm
+        LEFT JOIN FETCH tm.user
+        WHERE p.season.id = :seasonId
+          AND p.status = :status
+          AND (
+            p.user.id = :userId
+            OR (
+              tm IS NOT NULL
+              AND tm.user.id = :userId
+              AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+            )
+          )
+        """,
+    )
+    fun findActiveForSeasonLinkedToUser(
+        @Param("seasonId") seasonId: UUID,
+        @Param("status") status: ParticipantStatus,
+        @Param("userId") userId: UUID,
+    ): List<SeasonParticipantEntity>
+
     fun findBySeason_IdAndTroupeMembership_Id(
         seasonId: UUID,
         troupeMembershipId: UUID,
     ): SeasonParticipantEntity?
+
+    fun findBySeason_IdAndTroupeMembership_IdIn(
+        seasonId: UUID,
+        troupeMembershipIds: Collection<UUID>,
+    ): List<SeasonParticipantEntity>
 
     fun findByIdAndSeason_Id(
         id: UUID,
@@ -62,6 +105,40 @@ interface EventParticipantRepository : JpaRepository<EventParticipantEntity, UUI
     fun findByEvent_IdAndStatusOrderByDisplayNameAsc(
         eventId: UUID,
         status: ParticipantStatus,
+    ): List<EventParticipantEntity>
+
+    @Query(
+        """
+        SELECT p FROM EventParticipantEntity p
+        LEFT JOIN FETCH p.user
+        LEFT JOIN FETCH p.seasonParticipant sp
+        LEFT JOIN FETCH sp.troupeMembership
+        WHERE p.event.id = :eventId AND p.status = :status
+        ORDER BY p.displayName ASC
+        """,
+    )
+    fun findActiveForEventWithAssociations(
+        @Param("eventId") eventId: UUID,
+        @Param("status") status: ParticipantStatus,
+    ): List<EventParticipantEntity>
+
+    @Query(
+        """
+        SELECT p FROM EventParticipantEntity p
+        LEFT JOIN FETCH p.user
+        LEFT JOIN FETCH p.seasonParticipant sp
+        WHERE p.event.id = :eventId
+          AND p.status = :status
+          AND (
+            p.user.id = :userId
+            OR sp.user.id = :userId
+          )
+        """,
+    )
+    fun findActiveForEventLinkedToUser(
+        @Param("eventId") eventId: UUID,
+        @Param("status") status: ParticipantStatus,
+        @Param("userId") userId: UUID,
     ): List<EventParticipantEntity>
 
     fun findByIdAndEvent_Id(

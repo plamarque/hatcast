@@ -31,7 +31,7 @@ data class SummaryRoleCandidateDto(
     val participantId: java.util.UUID,
     val displayName: String,
     val avatarUrl: String? = null,
-    val chancePercent: Int,
+    val chancePercent: Int? = null,
 )
 
 data class SummaryRoleDto(

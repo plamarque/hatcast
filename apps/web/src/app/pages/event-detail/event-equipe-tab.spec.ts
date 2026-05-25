@@ -1242,6 +1242,158 @@ describe('EventEquipeTab', () => {
     ).toBeNull()
   })
 
+  it('shows tab busy overlay while validating', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Busy',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    let resolveValidate!: (value: unknown) => void
+    validateComposition.mockReturnValue(
+      new Promise((resolve) => {
+        resolveValidate = resolve
+      }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Valider')
+    })
+
+    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__validate') as HTMLButtonElement
+    btn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__busy-overlay')).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab')?.getAttribute('aria-busy')).toBe(
+        'true',
+      )
+    })
+
+    resolveValidate({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Busy',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__busy-overlay')).toBeNull()
+    })
+  })
+
+  it('styles unlock as Material stroked button', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Locked',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Déverrouiller')
+    })
+
+    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
+    expect(btn.className).toMatch(/mat-mdc-outlined-button/)
+  })
+
+  it('does not refetch composition after draw animation completes', async () => {
+    drawComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        composition: {
+          publishedAt: null,
+          validatedAt: null,
+          visibility: 'organizerDraft',
+          slots: [
+            {
+              roleKey: 'player',
+              slotIndex: 0,
+              participantId: 'p-drawn',
+              participantDisplayName: 'Drawn',
+              participationStatus: 'pending',
+            },
+          ],
+        },
+        steps: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            candidates: [],
+            selectedParticipantId: 'p-drawn',
+            randomValue: 0.5,
+            totalWeight: 1,
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Tirer au sort')
+    })
+
+    const drawBtn = fixture.nativeElement.querySelector('.event-equipe-tab__draw') as HTMLButtonElement
+    drawBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(drawComposition).toHaveBeenCalled()
+    })
+
+    expect(getComposition).toHaveBeenCalledTimes(1)
+    getComposition.mockClear()
+
+    ;(fixture.componentInstance as unknown as { onDrawStepFinished(): void }).onDrawStepFinished()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Drawn')
+      expect(getComposition).not.toHaveBeenCalled()
+    })
+  })
+
   it('hides Compléter and gap slot picker for member without canManageComposition', async () => {
     getComposition.mockResolvedValue({
       ok: true,

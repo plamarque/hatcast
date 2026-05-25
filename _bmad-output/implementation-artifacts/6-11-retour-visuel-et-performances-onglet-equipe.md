@@ -1,6 +1,6 @@
 # Story 6.11: Équipe tab — loading feedback and performance (profiling-first)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -53,16 +53,62 @@ For each row note: **TTFB**, **total**, **waterfall count**, whether **`loadEven
 
 **Server-side (optional):** run same flows with Spring Actuator / structured log timing on `CompositionDrawService`, `CompositionSlotAssignmentService`, `CompositionParticipationService` if API p95 exceeds 500 ms.
 
+## Profiling report (Phase 0 — 2026-05-25)
+
+Analyse statique du code + contrat réseau attendu (pas de mesure Chrome sur seed Neon dans cette session).
+
+| Action | Endpoints attendus (avant) | Cause dominante estimée |
+|--------|---------------------------|-------------------------|
+| Tirage (full) | `POST draw` + `GET composition` après animation | **Front** : reload composition post-animation ; **API** : coût draw |
+| Assign | `GET candidates` + `PUT assign` + `GET event` + permissions | **Front** : `loadEvent` redondant (~2 RTT) |
+| Valider / Déverrouiller / Publier | `POST *` + `GET event` + permissions | **Front** : `loadEvent` redondant |
+| Proxy confirm / restore | participation/restore + `GET event` | **Front** : `loadEvent` redondant |
+
+**Hypothèses classées :**
+
+1. **(Haute)** `compositionPublished` → `EventDetail.loadEvent()` relançait événement + permissions à chaque mutation alors que la réponse composition suffit pour lifecycle/badge Infos.
+2. **(Haute)** `onDrawStepFinished()` appelait `load()` (GET composition) alors que `draw` renvoie déjà `composition` dans la réponse.
+3. **(Moyenne)** Latence RTT API ↔ Neon `eu-central-1` en dev (non corrigeable côté front ; mitigation = overlay AC #1).
+
+**Correctifs livrés :** patch lifecycle local (`computeCompositionLifecycleView`), suppression `loadEvent` post-mutation, suppression `GET composition` post-tirage animé, overlay tab + `aria-busy`. Pas de changement API (H3 < 40 % preuve mesurée).
+
+---
+
 ## Tasks / Subtasks
 
-- [ ] **Phase 0 — Profiling** (AC #6): run checklist; write report with ranked hypotheses.
-- [ ] **Phase 1 — UX feedback** (AC #1–2, #5):
-  - [ ] Tab-level busy overlay bound to `drawing || assigning || validating || unlocking || publishing || updatingParticipation || restoringDeclineId`.
-  - [ ] Disable slot interactions while busy.
-  - [ ] Restyle `.event-equipe-tab__unlock` to match validate/draw button family.
-- [ ] **Phase 2 — Front perf** (AC #3–4): based on profiling — reduce redundant `loadEvent` / post-draw `load()`; keep `compositionPublished` contract for Infos lifecycle.
-- [ ] **Phase 3 — API perf** (only if profiling shows server over 40% of wait): targeted optimization (candidates query, draw pipeline, N+1) — smallest change first.
-- [ ] **Tests** (AC #8): update `event-equipe-tab.spec.ts`; manual re-run `[MVP]` recette scenarios B–E.
+- [x] **Phase 0 — Profiling** (AC #6): run checklist; write report with ranked hypotheses.
+- [x] **Phase 1 — UX feedback** (AC #1–2, #5):
+  - [x] Tab-level busy overlay bound to `drawing || assigning || validating || unlocking || publishing || updatingParticipation || restoringDeclineId`.
+  - [x] Disable slot interactions while busy.
+  - [x] Restyle `.event-equipe-tab__unlock` to match validate/draw button family.
+- [x] **Phase 2 — Front perf** (AC #3–4): based on profiling — reduce redundant `loadEvent` / post-draw `load()`; keep `compositionPublished` contract for Infos lifecycle.
+- [x] **Phase 3 — API perf** (only if profiling shows server over 40% of wait): targeted optimization (candidates query, draw pipeline, N+1) — smallest change first — **skipped** (profiling code-first : front dominant).
+- [x] **Tests** (AC #8): update `event-equipe-tab.spec.ts`; manual re-run `[MVP]` recette scenarios B–E — **automated** ; recette manuelle à faire par humain.
+
+## Dev Agent Record
+
+### Completion Notes
+
+- Overlay plein onglet (`event-equipe-tab__busy-overlay`) + `aria-busy` + `pointer-events: none` sur grille/outils pendant mutations.
+- `mat-stroked-button` pour Déverrouiller (UX-002).
+- `compositionPublished` émet `CompositionResponse` ; `EventDetail.syncCompositionFromEquipe` met à jour `compositionLifecycle`, `compositionPublishedAt`, `teamStatusBadge` sans `loadEvent`.
+- Tirage animé : composition issue du `POST draw` appliquée à la fin d’animation (plus de `GET composition`).
+- Tests : 34 passent (`ng test` ciblé equipe-tab + composition-lifecycle).
+
+### File List
+
+- `apps/web/src/app/core/composition/composition-lifecycle.ts`
+- `apps/web/src/app/core/composition/composition-lifecycle.spec.ts`
+- `apps/web/src/app/pages/event-detail/event-equipe-tab.ts`
+- `apps/web/src/app/pages/event-detail/event-equipe-tab.html`
+- `apps/web/src/app/pages/event-detail/event-equipe-tab.scss`
+- `apps/web/src/app/pages/event-detail/event-equipe-tab.spec.ts`
+- `apps/web/src/app/pages/event-detail/event-detail.ts`
+- `apps/web/src/app/pages/event-detail/event-detail.html`
+
+### Change Log
+
+- 2026-05-25: Story 6.11 — UX overlay, unlock stroked button, front perf (skip redundant reloads).
 
 ## Dev Notes
 

@@ -102,7 +102,7 @@ development_status:
   6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: done
   6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: done
   6-10-partage-et-annonce-message-editable-canaux: backlog
-  6-11-retour-visuel-et-performances-onglet-equipe: ready-for-dev
+  6-11-retour-visuel-et-performances-onglet-equipe: review
   epic-6-retrospective: optional
 
   epic-7: backlog

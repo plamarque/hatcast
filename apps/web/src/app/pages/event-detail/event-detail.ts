@@ -36,6 +36,9 @@ import {
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 import { EventContextStrip } from './event-context-strip'
 import { EventDetailHeader } from './event-detail-header'
+import type { CompositionResponse } from '../../core/composition/composition-api.service'
+import { computeCompositionLifecycleView } from '../../core/composition/composition-lifecycle'
+import { normalizeRoleSlots } from '../../core/events/event-types'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
 
@@ -254,13 +257,23 @@ export class EventDetail implements OnDestroy, OnInit {
     }
   }
 
-  protected reloadAfterPublish(): void {
-    const slug = this.slug()
-    const eventId = this.eventId()
-    if (!slug || !eventId) {
+  /** Patch event lifecycle fields from composition response — avoids redundant full reload (PERF-001). */
+  protected syncCompositionFromEquipe(composition: CompositionResponse): void {
+    const ev = this.event()
+    if (!ev) {
       return
     }
-    void this.loadEvent(slug, eventId, { silent: true })
+    const lifecycleView = computeCompositionLifecycleView(
+      composition,
+      normalizeRoleSlots(ev.roleSlots),
+      this.canManageComposition(),
+    )
+    this.event.set({
+      ...ev,
+      compositionLifecycle: lifecycleView.compositionLifecycle,
+      compositionPublishedAt: composition.publishedAt ?? null,
+      teamStatusBadge: lifecycleView.teamStatusBadge,
+    })
   }
 
   private async reloadEvent(message: string): Promise<void> {

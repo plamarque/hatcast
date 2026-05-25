@@ -60,7 +60,7 @@ export class CompositionDrawAnimation {
     this.cursorPercent.set(0)
     requestAnimationFrame(() => {
       this.cursorPercent.set(targetCenter)
-      window.setTimeout(() => this.finished.emit(), 900)
+      window.setTimeout(() => this.finished.emit(), 450)
     })
   }
 }

@@ -51,7 +51,20 @@ class CompositionService(
         principal: SessionUserPrincipal,
     ): CompositionResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        return buildResponse(event, principal)
+        return buildResponse(event, principal, includeSlotExplainability = false)
+    }
+
+    /**
+     * Composition state after a mutation (assign, validate, draw, etc.).
+     * Same lightweight response as GET (odds shown only in candidates picker, not on the grid).
+     */
+    fun getCompositionStateAfterMutation(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): CompositionResponseDto {
+        val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        return buildResponse(event, principal, includeSlotExplainability = false)
     }
 
     @Transactional
@@ -88,7 +101,7 @@ class CompositionService(
             notificationPort.publishDraftCompositionShared(eventId, seasonId, principal.userId)
         }
 
-        return buildResponse(event, principal, canManage = true)
+        return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 
     @Transactional
@@ -119,16 +132,18 @@ class CompositionService(
             composition.validatedAt = now
             composition.updatedAt = now
             compositionRepository.save(composition)
-            for (slot in slots) {
-                if (slot.hasAssignee()) {
-                    slot.participationStatus = SlotParticipationStatus.PENDING
-                    slotRepository.save(slot)
+            val slotsToPending =
+                slots.filter { it.hasAssignee() }.onEach {
+                    it.participationStatus = SlotParticipationStatus.PENDING
+                    it.updatedAt = Instant.now()
                 }
+            if (slotsToPending.isNotEmpty()) {
+                slotRepository.saveAll(slotsToPending)
             }
             notificationPort.requestCompositionConfirmation(eventId, seasonId, principal.userId)
         }
 
-        return buildResponse(event, principal, canManage = true)
+        return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 
     @Transactional
@@ -157,21 +172,31 @@ class CompositionService(
         compositionRepository.save(composition)
 
         val slots = slotRepository.findByEventId(eventId)
-        for (slot in slots) {
-            if (slot.hasAssignee()) {
-                slot.participationStatus = SlotParticipationStatus.PENDING
-                slotRepository.save(slot)
+        val slotsToUpdate =
+            slots.filter { slot ->
+                slot.hasAssignee() && slot.participationStatus != SlotParticipationStatus.PENDING
             }
+        if (slotsToUpdate.isNotEmpty()) {
+            val now = Instant.now()
+            for (slot in slotsToUpdate) {
+                slot.participationStatus = SlotParticipationStatus.PENDING
+                slot.updatedAt = now
+            }
+            slotRepository.saveAll(slotsToUpdate)
         }
 
-        return buildResponse(event, principal, canManage = true)
+        return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 
     private fun buildResponse(
         event: EventEntity,
         principal: SessionUserPrincipal,
         canManage: Boolean? = null,
+        includeSlotExplainability: Boolean = true,
     ): CompositionResponseDto {
+        if (includeSlotExplainability) {
+            seasonParticipantService.ensureMembershipParticipants(event.season)
+        }
         val seasonId = event.season.id
         val eventId = event.id
         val resolvedCanManage = canManage ?: organizerAccess.canManageComposition(eventId, seasonId, principal)
@@ -199,8 +224,8 @@ class CompositionService(
                         resolvedCanManage
                 )
         val explainabilityByRoleAndParticipant =
-            if (showExplainability) {
-                buildExplainabilityLookup(event, seasonId, eventId)
+            if (showExplainability && includeSlotExplainability) {
+                buildExplainabilityLookup(event, seasonId, eventId, slots)
             } else {
                 emptyMap()
             }
@@ -237,7 +262,6 @@ class CompositionService(
                 userId = principal.userId,
                 seasonParticipantRepository = seasonParticipantRepository,
                 eventParticipantRepository = eventParticipantRepository,
-                seasonParticipantService = seasonParticipantService,
             )
         val declineDtos =
             if (canViewSlots) {
@@ -288,10 +312,26 @@ class CompositionService(
         event: EventEntity,
         seasonId: UUID,
         eventId: UUID,
+        assignedSlots: List<EventCompositionSlotEntity>,
     ): Map<Pair<UUID, String>, Pair<Int, Int>> {
-        seasonParticipantService.ensureMembershipParticipants(event.season)
+        return buildExplainabilityLookupInner(event, seasonId, eventId, assignedSlots)
+    }
+
+    private fun buildExplainabilityLookupInner(
+        event: EventEntity,
+        seasonId: UUID,
+        eventId: UUID,
+        assignedSlots: List<EventCompositionSlotEntity>,
+    ): Map<Pair<UUID, String>, Pair<Int, Int>> {
         val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
-        val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(normalizedSlots)
+        val roleKeysForOdds =
+            assignedSlots
+                .filter { it.hasAssignee() }
+                .map { it.roleKey }
+                .toSet()
+        if (roleKeysForOdds.isEmpty()) {
+            return emptyMap()
+        }
         val historyCounts =
             selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, eventId)
         val eligible = loadEligibleForExplainability(seasonId, eventId)
@@ -299,7 +339,7 @@ class CompositionService(
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
 
         val result = mutableMapOf<Pair<UUID, String>, Pair<Int, Int>>()
-        for (roleKey in requiredRoles) {
+        for (roleKey in roleKeysForOdds) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
             val pastByParticipant =
                 selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
@@ -343,7 +383,7 @@ class CompositionService(
     ): List<ExplainabilityParticipantRow> {
         val seasonRows =
             seasonParticipantRepository
-                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE)
+                .findActiveForSeasonWithAssociations(seasonId, ParticipantStatus.ACTIVE)
                 .filter { row ->
                     row.troupeMembership == null ||
                         row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
@@ -356,7 +396,7 @@ class CompositionService(
             row.user?.id?.let { seenUserIds.add(it) }
         }
         val eventRows =
-            eventParticipantRepository.findByEvent_IdAndStatusOrderByDisplayNameAsc(
+            eventParticipantRepository.findActiveForEventWithAssociations(
                 eventId,
                 ParticipantStatus.ACTIVE,
             )

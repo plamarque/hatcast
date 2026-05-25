@@ -28,7 +28,7 @@ export interface SummaryRoleCandidate {
   participantId: string
   displayName: string
   avatarUrl?: string | null
-  chancePercent: number
+  chancePercent?: number | null
 }
 
 export interface SummaryRole {
@@ -125,10 +125,12 @@ export class AvailabilityApiService {
   async getEventAvailabilitySummary(
     seasonId: string,
     eventId: string,
+    includeChances = false,
   ): Promise<{ ok: boolean; status: number; data?: EventAvailabilitySummary }> {
     try {
+      const query = includeChances ? '?includeChances=true' : ''
       const res = await fetch(
-        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/availability/summary`,
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/availability/summary${query}`,
         { credentials: 'include' },
       )
       if (!res.ok) {

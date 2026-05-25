@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, input, OnDestroy, output, signal, viewChild } from '@angular/core'
+import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -19,6 +20,7 @@ export type DisposViewMode = 'moi' | 'tous'
 @Component({
   selector: 'app-event-dispos-tab',
   imports: [
+    MatButtonModule,
     MatButtonToggleModule,
     MatProgressSpinnerModule,
     AvailabilityMoiPanel,
@@ -46,6 +48,8 @@ export class EventDisposTab implements OnDestroy {
   protected readonly summary = signal<EventAvailabilitySummary | null>(null)
   protected readonly selectors = signal<ParticipantSelector[]>([])
   protected readonly viewMode = signal<DisposViewMode>('moi')
+  protected readonly showChances = signal(false)
+  protected readonly loadingChances = signal(false)
   protected readonly subjectParticipantId = signal<string>('')
 
   private readonly moiPanel = viewChild(AvailabilityMoiPanel)
@@ -120,11 +124,20 @@ export class EventDisposTab implements OnDestroy {
     await this.load()
   }
 
+  protected async toggleShowChances(): Promise<void> {
+    const next = !this.showChances()
+    this.showChances.set(next)
+    this.loadingChances.set(true)
+    await this.reloadSummary(next)
+    this.loadingChances.set(false)
+  }
+
   private async load(): Promise<void> {
+    this.showChances.set(false)
     this.loading.set(true)
     const requestId = ++this.loadRequestId
     const [summaryResult, selectorsResult] = await Promise.all([
-      this.availabilityApi.getEventAvailabilitySummary(this.seasonId(), this.event().id),
+      this.availabilityApi.getEventAvailabilitySummary(this.seasonId(), this.event().id, false),
       this.participantApi.listSeasonParticipantSelectors(this.seasonId()),
     ])
 
@@ -153,11 +166,12 @@ export class EventDisposTab implements OnDestroy {
     // leave subjectParticipantId empty so the Moi panel shows an empty state.
   }
 
-  private async reloadSummary(): Promise<void> {
+  private async reloadSummary(includeChances = this.showChances()): Promise<void> {
     const requestId = ++this.loadRequestId
     const result = await this.availabilityApi.getEventAvailabilitySummary(
       this.seasonId(),
       this.event().id,
+      includeChances,
     )
     if (requestId !== this.loadRequestId) return
     if (!result.ok || !result.data) return

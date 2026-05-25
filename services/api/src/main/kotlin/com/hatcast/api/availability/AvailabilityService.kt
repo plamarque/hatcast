@@ -131,6 +131,7 @@ class AvailabilityService(
         seasonId: UUID,
         eventId: UUID,
         principal: SessionUserPrincipal,
+        includeChances: Boolean = false,
     ): EventAvailabilitySummaryResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         val season =
@@ -163,14 +164,16 @@ class AvailabilityService(
                 )
             }
 
-        val historyCounts =
-            selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, event.id)
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots)
+        val historyCounts =
+            if (includeChances) {
+                selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, event.id)
+            } else {
+                emptyMap()
+            }
         val roles =
             requiredRoles.map { roleKey ->
                 val requiredCount = event.roleSlots[roleKey] ?: 0
-                val pastByParticipant =
-                    selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
                 val roleCandidates =
                     participants.filter { participant ->
                         AvailabilityRoleRules.isCandidateForRole(
@@ -179,30 +182,37 @@ class AvailabilityService(
                             roleKey,
                         )
                     }
-                val scored =
-                    AvailabilityChanceCalculator.scoreCandidates(
-                        roleCandidates.map {
-                            AvailabilityChanceCalculator.Candidate(
-                                participantId = it.participantId,
-                                displayName = it.displayName,
-                                avatarUrl = it.avatarUrl,
-                            )
-                        },
-                        requiredCount,
-                        pastByParticipant,
-                    )
+                val chanceByParticipantId =
+                    if (includeChances) {
+                        val pastByParticipant =
+                            selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+                        AvailabilityChanceCalculator.scoreCandidates(
+                            roleCandidates.map {
+                                AvailabilityChanceCalculator.Candidate(
+                                    participantId = it.participantId,
+                                    displayName = it.displayName,
+                                    avatarUrl = it.avatarUrl,
+                                )
+                            },
+                            requiredCount,
+                            pastByParticipant,
+                        ).associate { it.participantId to it.chancePercent }
+                    } else {
+                        emptyMap()
+                    }
+                val candidates =
+                    roleCandidates.map { row ->
+                        SummaryRoleCandidateDto(
+                            participantId = row.participantId,
+                            displayName = row.displayName,
+                            avatarUrl = row.avatarUrl,
+                            chancePercent = chanceByParticipantId[row.participantId],
+                        )
+                    }
                 SummaryRoleDto(
                     roleKey = roleKey,
                     requiredCount = requiredCount,
-                    candidates =
-                        scored.map {
-                            SummaryRoleCandidateDto(
-                                participantId = it.participantId,
-                                displayName = it.displayName,
-                                avatarUrl = it.avatarUrl,
-                                chancePercent = it.chancePercent,
-                            )
-                        },
+                    candidates = candidates,
                 )
             }
 

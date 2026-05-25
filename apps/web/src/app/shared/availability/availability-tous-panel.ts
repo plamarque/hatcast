@@ -20,6 +20,7 @@ import {
 })
 export class AvailabilityTousPanel {
   readonly summary = input.required<EventAvailabilitySummary>()
+  readonly showChances = input(false)
   readonly canSelectSubject = input(false)
 
   readonly participantSelected = output<SummaryParticipant>()

@@ -39,9 +39,11 @@
                       </span>
                     }
                     <span class="availability-tous__name">{{ candidate.displayName }}</span>
-                    <span class="availability-tous__chance" [class]="chanceClass(candidate.chancePercent)">
-                      {{ candidate.chancePercent }} %
-                    </span>
+                    @if (showChances() && candidate.chancePercent != null) {
+                      <span class="availability-tous__chance" [class]="chanceClass(candidate.chancePercent)">
+                        {{ candidate.chancePercent }} %
+                      </span>
+                    }
                   </button>
                 </li>
               }

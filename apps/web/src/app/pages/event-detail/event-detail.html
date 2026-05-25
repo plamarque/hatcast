@@ -76,7 +76,7 @@
             [event]="ev"
             [canManageComposition]="canManageComposition()"
             [showConfirmPending]="showConfirmPending()"
-            (compositionPublished)="reloadAfterPublish()"
+            (compositionPublished)="syncCompositionFromEquipe($event)"
           />
         }
       </mat-tab>

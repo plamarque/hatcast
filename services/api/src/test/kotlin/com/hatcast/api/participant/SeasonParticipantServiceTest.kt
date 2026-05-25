@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -53,34 +54,39 @@ class SeasonParticipantServiceTest {
             SeasonParticipantEntity(
                 season = season,
                 displayName = "Member",
+                normalizedEmail = "member@example.com",
                 user = user,
                 troupeMembership = membership,
+                status = ParticipantStatus.ACTIVE,
             )
 
         whenever(
-            troupeMembershipRepository.findByTroupe_IdAndStatusOrderByDisplayNameAsc(
+            troupeMembershipRepository.findByTroupe_IdAndStatusIn(
                 troupe.id,
-                TroupeMembershipStatus.ACTIVE,
-                Pageable.unpaged(),
+                listOf(TroupeMembershipStatus.ACTIVE, TroupeMembershipStatus.INACTIVE),
             ),
-        ).thenReturn(PageImpl(listOf(membership)))
-        whenever(
-            troupeMembershipRepository.findByTroupe_IdAndStatusOrderByDisplayNameAsc(
-                troupe.id,
-                TroupeMembershipStatus.INACTIVE,
-                Pageable.unpaged(),
-            ),
-        ).thenReturn(PageImpl(emptyList()))
-        whenever(seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(season.id, membership.id))
-            .thenReturn(existing)
+        ).thenReturn(listOf(membership))
+        whenever(seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(season.id, listOf(membership.id)))
+            .thenReturn(listOf(existing))
         whenever(seasonParticipantRepository.save(any())).thenAnswer { it.getArgument(0) }
+        whenever(seasonParticipantRepository.saveAll(any<List<SeasonParticipantEntity>>()))
+            .thenAnswer { it.getArgument<List<SeasonParticipantEntity>>(0) }
         whenever(seasonParticipantRepository.countBySeason_IdAndStatus(season.id, ParticipantStatus.ACTIVE))
             .thenReturn(1)
         whenever(seasonRepository.save(any())).thenAnswer { it.getArgument(0) }
 
+        MembershipSyncScope.clear()
+        MembershipParticipantSyncCache.invalidate(season.id)
         service.ensureMembershipParticipants(season)
         service.ensureMembershipParticipants(season)
 
-        verify(seasonParticipantRepository, times(2)).save(existing)
+        verify(seasonParticipantRepository, times(1))
+            .findBySeason_IdAndTroupeMembership_IdIn(season.id, listOf(membership.id))
+        verify(seasonParticipantRepository, never()).saveAll(any<List<SeasonParticipantEntity>>())
+        verify(seasonParticipantRepository, never()).save(any())
+
+        MembershipSyncScope.clear()
+        service.ensureMembershipParticipants(season)
+        verify(troupeMembershipRepository, times(1)).findByTroupe_IdAndStatusIn(any(), any())
     }
 }

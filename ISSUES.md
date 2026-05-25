@@ -17,7 +17,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Affected area**: V2 `apps/web` — `event-equipe-tab` (tirage, assignation, validation, confirmation, compléter)
 - **Observed behavior** (recette MVP pilote, 2026-05-25, admin seul) : Tirage (B), assignation manuelle (C), confirmations proxy (D), compléter (E) — chaque action reste plusieurs secondes **sans feedback visible** (pas d’overlay / blocage de la grille), puis l’écran se rafraîchit. Spinners limités au bouton concerné (`drawing`, `validating`, `assigning`, `updatingParticipation`) faciles à manquer.
 - **Expected behavior**: Retour immédiat (overlay, désactivation de la grille, barre de progression ou skeleton) pendant l’appel API **et** les rechargements en chaîne ; latence perçue sous 1 s en dev local idéalement.
-- **Notes/context**: Pistes techniques : (1) latence réseau API ↔ Neon `eu-central-1` ; (2) `compositionPublished` → `EventDetail.loadEvent()` relance chargement événement + permissions ; (3) fin de tirage : `load()` composition complète après animation ; (4) pas de spinner sur la grille pendant `assigning()`. Scénarios A, F OK. **Scheduled:** Story **6.11** ([`_bmad-output/implementation-artifacts/6-11-retour-visuel-et-performances-onglet-equipe.md`](_bmad-output/implementation-artifacts/6-11-retour-visuel-et-performances-onglet-equipe.md)).
+- **Notes/context**: Story **6.11** livrée : overlay plein onglet + `aria-busy`, plus de `loadEvent()` après mutation composition, fin de tirage sans GET redondant. Latence serveur ~1 s/mutation (voir PERF-001). Animation tirage raccourcie (450 ms/étape). Recette humaine en attente pour clôture.
 
 ### UX-002 — Bouton « Déverrouiller » peu identifiable comme action
 - **ID**: UX-002
@@ -26,7 +26,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Affected area**: V2 `event-equipe-tab` — styles `.event-equipe-tab__unlock`
 - **Observed behavior** (scénario C, post-validation) : le bouton **Déverrouiller** (`background: transparent`, bord fin) ne se distingue pas assez d’un lien ou d’un libellé par rapport à **Valider** (bouton plein vert).
 - **Expected behavior**: Affordance bouton secondaire cohérente Material (contour + fond léger ou `mat-stroked-button`).
-- **Notes/context**: Voir `event-equipe-tab.scss` ~l.444. **Scheduled:** Story **6.11**.
+- **Notes/context**: Corrigé en 6.11 (`mat-stroked-button` sur Déverrouiller). À fermer après recette visuelle.
 
 ### PERF-001 — Actions composition (API + rechargements) anormalement lentes en dev
 - **ID**: PERF-001
@@ -35,7 +35,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Affected area**: V2 API composition + front `composition-api.service` / `event-detail` reload
 - **Observed behavior**: Même symptôme que UX-001 — toutes les mutations composition (draw, assign, validate, participation, gap-fill) ressenties comme lentes en recette MVP (un admin, seed Neon dev).
 - **Expected behavior**: Identifier si la lenteur vient du RTT Neon, du coût serveur (candidats, tirage, lifecycle), ou du front (rechargements redondants). Cible : mesurer p95 des endpoints `/composition/*` et réduire les allers-retours après mutation.
-- **Notes/context**: À profiler : `draw`, `assign`, `validate`, `GET composition`, `loadEvent` enchaînés. Ne pas bloquer la gate **MVP pilote** (fonctionnel OK). **Scheduled:** Story **6.11** (phase 0 = profilage obligatoire).
+- **Notes/context**: Profilage 2026-05-25 : cause = `ensureMembershipParticipants` N+1 + explainability complète + `resolveViewerParticipantIds` chargeant 35 lignes à chaque mutation. Correctifs : bulk/cache/`JOIN FETCH`, fast path mutations sans explainability, requêtes viewer ciblées, `saveAll` slots au tirage. Logs 2026-05-25 : mutations HTTP **~0,95–1,2 s** (assign L91, validate L123, unlock L95) vs **~7–12 s** initial ; `explainMs≈0` sur mutations (L90) ; overlay ~1 s puis animation tirage ~3 s (5×450 ms). Index SQL déjà OK (EXPLAIN sous 1 ms). RTT Neon + travail métier restant ~400 ms/req hors SQL.
 
 ### LIMIT-001 — E2E tests depend on live base state; need fixture re-architecture
 - **ID**: LIMIT-001

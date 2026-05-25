@@ -94,6 +94,7 @@ class CompositionParticipationService(
             slotEntity.assignedParticipantId()
                 ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Slot sans assignation")
 
+        seasonParticipantService.ensureMembershipParticipants(event.season)
         val viewerIds =
             CompositionLinkedParticipantResolver.resolveViewerParticipantIds(
                 season = event.season,
@@ -101,7 +102,6 @@ class CompositionParticipationService(
                 userId = principal.userId,
                 seasonParticipantRepository = seasonParticipantRepository,
                 eventParticipantRepository = eventParticipantRepository,
-                seasonParticipantService = seasonParticipantService,
             )
         if (assigneeId !in viewerIds &&
             !organizerAccess.canManageComposition(eventId, seasonId, principal)
@@ -140,7 +140,7 @@ class CompositionParticipationService(
         composition.updatedAt = now
         compositionRepository.save(composition)
 
-        return compositionService.getComposition(seasonId, eventId, principal)
+        return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
 
     private fun loadAuthorizedEvent(

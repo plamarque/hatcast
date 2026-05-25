@@ -115,7 +115,7 @@ class CompositionDeclineRestoreService(
             actorUserId = principal.userId,
         )
 
-        return compositionService.getComposition(seasonId, eventId, principal)
+        return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
 
     private fun ensureEligibleForRoleAssign(

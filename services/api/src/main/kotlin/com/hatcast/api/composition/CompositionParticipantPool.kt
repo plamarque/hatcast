@@ -26,7 +26,7 @@ object CompositionParticipantPool {
     ): List<CompositionEligibleParticipant> {
         val seasonRows =
             seasonParticipantRepository
-                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE)
+                .findActiveForSeasonWithAssociations(seasonId, ParticipantStatus.ACTIVE)
                 .filter { row ->
                     row.troupeMembership == null ||
                         row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
@@ -47,7 +47,7 @@ object CompositionParticipantPool {
         }
 
         val eventRows =
-            eventParticipantRepository.findByEvent_IdAndStatusOrderByDisplayNameAsc(
+            eventParticipantRepository.findActiveForEventWithAssociations(
                 eventId,
                 ParticipantStatus.ACTIVE,
             )

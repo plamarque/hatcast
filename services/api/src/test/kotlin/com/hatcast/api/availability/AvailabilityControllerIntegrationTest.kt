@@ -396,7 +396,7 @@ class AvailabilityControllerIntegrationTest {
 
         val summaryPath = "/v1/seasons/$seasonId/events/$eventId/availability/summary"
         mockMvc
-            .perform(get(summaryPath).cookie(member))
+            .perform(get("$summaryPath?includeChances=true").cookie(member))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.eventId").value(eventId.toString()))
             .andExpect(jsonPath("$.participants.length()").value(greaterThanOrEqualTo(2)))

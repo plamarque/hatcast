@@ -175,39 +175,56 @@ class SeasonParticipantService(
 
     @Transactional
     fun ensureMembershipParticipants(season: SeasonEntity) {
+        if (!MembershipSyncScope.markSynced(season.id)) {
+            return
+        }
+        if (MembershipParticipantSyncCache.isInSync(season.id)) {
+            return
+        }
         val troupeId = season.troupe.id
-        val activeMemberships =
-            troupeMembershipRepository
-                .findByTroupe_IdAndStatusOrderByDisplayNameAsc(
-                    troupeId,
-                    TroupeMembershipStatus.ACTIVE,
-                    Pageable.unpaged(),
-                ).content
-        val inactiveMemberships =
-            troupeMembershipRepository
-                .findByTroupe_IdAndStatusOrderByDisplayNameAsc(
-                    troupeId,
-                    TroupeMembershipStatus.INACTIVE,
-                    Pageable.unpaged(),
-                ).content
+        val allMemberships =
+            troupeMembershipRepository.findByTroupe_IdAndStatusIn(
+                troupeId,
+                listOf(TroupeMembershipStatus.ACTIVE, TroupeMembershipStatus.INACTIVE),
+            )
+        val membershipIds = allMemberships.map { it.id }
+        val existingByMembershipId =
+            if (membershipIds.isEmpty()) {
+                emptyMap()
+            } else {
+                seasonParticipantRepository
+                    .findBySeason_IdAndTroupeMembership_IdIn(season.id, membershipIds)
+                    .mapNotNull { row -> row.troupeMembership?.id?.let { id -> id to row } }
+                    .toMap()
+            }
         val now = Instant.now()
-        for (membership in activeMemberships + inactiveMemberships) {
-            val existing =
-                seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(season.id, membership.id)
+        val toSave = mutableListOf<SeasonParticipantEntity>()
+        for (membership in allMemberships) {
+            val normalizedEmail = participantLink.normalizeEmail(membership.user.email)
+            val existing = existingByMembershipId[membership.id]
             if (existing != null) {
+                if (
+                    existing.displayName == membership.displayName &&
+                        existing.user?.id == membership.user.id &&
+                        existing.normalizedEmail == normalizedEmail &&
+                        existing.status == ParticipantStatus.ACTIVE &&
+                        existing.removedAt == null
+                ) {
+                    continue
+                }
                 existing.displayName = membership.displayName
                 existing.user = membership.user
-                existing.normalizedEmail = participantLink.normalizeEmail(membership.user.email)
+                existing.normalizedEmail = normalizedEmail
                 existing.status = ParticipantStatus.ACTIVE
                 existing.removedAt = null
                 existing.updatedAt = now
-                seasonParticipantRepository.save(existing)
+                toSave.add(existing)
             } else {
-                seasonParticipantRepository.save(
+                toSave.add(
                     SeasonParticipantEntity(
                         season = season,
                         displayName = membership.displayName,
-                        normalizedEmail = participantLink.normalizeEmail(membership.user.email),
+                        normalizedEmail = normalizedEmail,
                         user = membership.user,
                         troupeMembership = membership,
                         status = ParticipantStatus.ACTIVE,
@@ -217,7 +234,16 @@ class SeasonParticipantService(
                 )
             }
         }
-        refreshParticipantCount(season)
+        if (toSave.isNotEmpty()) {
+            seasonParticipantRepository.saveAll(toSave)
+            refreshParticipantCount(season)
+            MembershipParticipantSyncCache.invalidate(season.id)
+        } else if (
+            allMemberships.isNotEmpty() &&
+                existingByMembershipId.keys.containsAll(membershipIds)
+        ) {
+            MembershipParticipantSyncCache.markInSync(season.id)
+        }
     }
 
     private fun refreshParticipantCount(season: SeasonEntity) {
