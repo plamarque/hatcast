@@ -1,39 +1,33 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { Subscription } from 'rxjs'
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
+import {
+  type AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  type ValidationErrors,
+  type ValidatorFn,
+  Validators,
+} from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog'
+import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
-import { MatSelectModule } from '@angular/material/select'
+import {
+  NgxMatTimepickerComponent,
+  NgxMatTimepickerDirective,
+  NgxMatTimepickerToggleComponent,
+} from 'ngx-mat-timepicker'
 
 import {
   type EventResponse,
   EventApiService,
 } from '../../core/events/event-api.service'
-import {
-  applyTemplate,
-  clampRoleCount,
-  detectTemplateFromRoles,
-  DEFAULT_CREATE_EVENT_TYPE,
-  type EventTypeId,
-  EVENT_TYPE_IDS,
-  getEventTypeIcon,
-  getEventTypeLabel,
-  normalizeRoleSlots,
-  type RoleKey,
-  ROLE_DISPLAY_ORDER,
-  ROLE_EMOJIS,
-  ROLE_LABELS,
-  roleSlotsEqual,
-  rolesWithSlots,
-  TEMPLATE_DISPLAY_ORDER,
-  type RoleSlots,
-} from '../../core/events/event-types'
 import {
   OrganizerApiService,
   type OrganizerResponse,
@@ -51,11 +45,64 @@ export interface EventFormDialogData {
   canManageEventParticipants?: boolean
 }
 
-/** Instant ISO → valeur `datetime-local` (heure locale). */
-function toDatetimeLocalValue(iso: string): string {
+/** Instant ISO → date (midi local) + heure/minute locales. */
+export function parseStartsAt(iso: string): { date: Date; hour: number; minute: number } {
   const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0)
+  return { date, hour: d.getHours(), minute: d.getMinutes() }
+}
+
+/** Date locale + heure/minute → instant ISO. */
+export function buildStartsAtIso(date: Date, hour: number, minute: number): string {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute, 0, 0).toISOString()
+}
+
+/** Heure/minute → chaîne `HH:mm` (24 h) pour ngx-mat-timepicker. */
+export function formatStartTime(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+/** Minuit local : heure non précisée (comparaisons de date uniquement, non affichée). */
+export const UNSPECIFIED_START_TIME_PARTS = { hour: 0, minute: 0 } as const
+
+export function isUnspecifiedStartTime(hour: number, minute: number): boolean {
+  return hour === 0 && minute === 0
+}
+
+/** Valeur du champ heure : vide si 00:00 (non précisée). */
+export function startTimeForForm(hour: number, minute: number): string {
+  return isUnspecifiedStartTime(hour, minute) ? '' : formatStartTime(hour, minute)
+}
+
+/** `HH:mm` (24 h) → heure/minute ; `null` si invalide. */
+export function parseStartTime(value: string): { hour: number; minute: number } | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value.trim())
+  if (!m) return null
+  const hour = Number(m[1])
+  const minute = Number(m[2])
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null
+  return { hour, minute }
+}
+
+/** Champ vide → 00:00 ; sinon parse (appeler seulement si le contrôle est valide). */
+export function resolveStartTimeParts(value: string): { hour: number; minute: number } {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return { ...UNSPECIFIED_START_TIME_PARTS }
+  }
+  const parsed = parseStartTime(trimmed)
+  if (!parsed) {
+    throw new Error('resolveStartTimeParts: invalid startTime')
+  }
+  return parsed
+}
+
+function startTimeValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = typeof control.value === 'string' ? control.value.trim() : ''
+    if (!value) return null
+    return parseStartTime(value) ? null : { invalidStartTime: true }
+  }
 }
 
 @Component({
@@ -63,10 +110,14 @@ function toDatetimeLocalValue(iso: string): string {
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
-    MatSelectModule,
+    NgxMatTimepickerComponent,
+    NgxMatTimepickerDirective,
+    NgxMatTimepickerToggleComponent,
   ],
   templateUrl: './event-form-dialog.html',
   styleUrl: './event-form-dialog.scss',
@@ -88,19 +139,8 @@ export class EventFormDialog implements OnInit, OnDestroy {
   protected participantEmail = ''
   protected organizerMessage = ''
   protected participantMessage = ''
-  protected showRoleInputs = false
-  protected showTemplateChangeConfirmation = false
-  protected pendingTemplateId: EventTypeId | null = null
+  protected readonly timepickerFormat24 = 24 as const
 
-  protected readonly templateOrder = TEMPLATE_DISPLAY_ORDER
-  protected readonly roleDisplayOrder = ROLE_DISPLAY_ORDER
-  protected readonly roleLabels = ROLE_LABELS
-  protected readonly roleEmojis = ROLE_EMOJIS
-  protected readonly getEventTypeIcon = getEventTypeIcon
-  protected readonly getEventTypeLabel = getEventTypeLabel
-
-  protected selectedTemplateType: EventTypeId = DEFAULT_CREATE_EVENT_TYPE
-  protected roleSlots: RoleSlots = applyTemplate(DEFAULT_CREATE_EVENT_TYPE)
   protected readonly eventOrganizers = signal<OrganizerResponse[]>([])
   protected readonly eventParticipants = signal<EventParticipantAdmin[]>([])
 
@@ -108,25 +148,22 @@ export class EventFormDialog implements OnInit, OnDestroy {
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
-    startsAtLocal: ['', [Validators.required]],
+    startDate: [null as Date | null, [Validators.required]],
+    startTime: ['', [startTimeValidator()]],
     location: [''],
     description: [''],
-    templateType: [DEFAULT_CREATE_EVENT_TYPE as EventTypeId, [Validators.required]],
   })
 
   ngOnInit(): void {
     if (this.data.mode === 'edit' && this.data.event) {
       const e = this.data.event
-      this.roleSlots = normalizeRoleSlots(e.roleSlots)
-      const fromApi = e.templateType as EventTypeId
-      this.selectedTemplateType =
-        EVENT_TYPE_IDS.includes(fromApi) ? fromApi : detectTemplateFromRoles(this.roleSlots)
+      const { date, hour, minute } = parseStartsAt(e.startsAt)
       this.form.patchValue({
         title: e.title,
-        startsAtLocal: toDatetimeLocalValue(e.startsAt),
+        startDate: date,
+        startTime: startTimeForForm(hour, minute),
         location: e.location ?? '',
         description: e.description ?? '',
-        templateType: this.selectedTemplateType,
       })
       if (this.canManageEventOrganizers()) {
         void this.loadEventOrganizers()
@@ -134,10 +171,6 @@ export class EventFormDialog implements OnInit, OnDestroy {
       if (this.canManageEventParticipants()) {
         void this.loadEventParticipants()
       }
-    } else {
-      this.selectedTemplateType = DEFAULT_CREATE_EVENT_TYPE
-      this.roleSlots = applyTemplate(DEFAULT_CREATE_EVENT_TYPE)
-      this.form.patchValue({ templateType: DEFAULT_CREATE_EVENT_TYPE })
     }
 
     this.formChangeSub = this.form.valueChanges.subscribe(() => {
@@ -268,56 +301,6 @@ export class EventFormDialog implements OnInit, OnDestroy {
     }
   }
 
-  protected summaryRoles(): RoleKey[] {
-    return rolesWithSlots(this.roleSlots)
-  }
-
-  protected onTemplateSelected(typeId: EventTypeId): void {
-    const templateSlots = applyTemplate(typeId)
-    if (roleSlotsEqual(this.roleSlots, templateSlots)) {
-      this.selectedTemplateType = typeId
-      this.showTemplateChangeConfirmation = false
-      this.pendingTemplateId = null
-      return
-    }
-    this.pendingTemplateId = typeId
-    this.showTemplateChangeConfirmation = true
-    this.form.controls.templateType.setValue(this.selectedTemplateType, { emitEvent: false })
-  }
-
-  protected confirmTemplateChange(): void {
-    if (!this.pendingTemplateId) return
-    this.selectedTemplateType = this.pendingTemplateId
-    this.roleSlots = applyTemplate(this.pendingTemplateId)
-    this.form.controls.templateType.setValue(this.pendingTemplateId, { emitEvent: false })
-    this.showTemplateChangeConfirmation = false
-    this.pendingTemplateId = null
-    this.showRoleInputs = false
-  }
-
-  protected cancelTemplateChange(): void {
-    this.showTemplateChangeConfirmation = false
-    this.pendingTemplateId = null
-  }
-
-  protected enableCustomization(): void {
-    this.showRoleInputs = true
-  }
-
-  protected hideCustomization(): void {
-    this.showRoleInputs = false
-  }
-
-  protected onRoleCountChange(role: RoleKey, raw: string): void {
-    const n = clampRoleCount(Number(raw))
-    this.roleSlots = { ...this.roleSlots, [role]: n }
-    this.selectedTemplateType = detectTemplateFromRoles(this.roleSlots)
-  }
-
-  protected roleCount(role: RoleKey): number {
-    return this.roleSlots[role] ?? 0
-  }
-
   protected async submit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched()
@@ -325,14 +308,21 @@ export class EventFormDialog implements OnInit, OnDestroy {
     }
     this.formError = ''
     const v = this.form.getRawValue()
-    const startsAt = new Date(v.startsAtLocal).toISOString()
+    if (!v.startDate) {
+      this.form.markAllAsTouched()
+      return
+    }
+    if (this.form.controls.startTime.invalid) {
+      this.form.markAllAsTouched()
+      return
+    }
+    const timeParts = resolveStartTimeParts(v.startTime)
+    const startsAt = buildStartsAtIso(v.startDate, timeParts.hour, timeParts.minute)
     const payload = {
       title: v.title.trim(),
       startsAt,
       location: v.location.trim() || null,
       description: v.description.trim() || null,
-      templateType: this.selectedTemplateType,
-      roleSlots: normalizeRoleSlots(this.roleSlots),
     }
     this.saving = true
     try {

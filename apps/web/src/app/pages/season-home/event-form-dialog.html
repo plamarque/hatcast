@@ -15,13 +15,37 @@
       <p class="form-error" role="alert">{{ formError }}</p>
     }
 
-    <mat-form-field appearance="outline" class="full">
-      <mat-label>Date et heure de début</mat-label>
-      <input matInput type="datetime-local" formControlName="startsAtLocal" />
-      @if (form.controls.startsAtLocal.touched && form.controls.startsAtLocal.errors?.['required']) {
-        <mat-error>Obligatoire</mat-error>
-      }
-    </mat-form-field>
+    <fieldset class="datetime-section">
+      <legend class="datetime-section__legend">Date et heure de début</legend>
+      <div class="datetime-row">
+        <mat-form-field appearance="outline" class="datetime-row__date">
+          <mat-label>Date</mat-label>
+          <input matInput [matDatepicker]="pickerStart" formControlName="startDate" />
+          <mat-datepicker-toggle matIconSuffix [for]="pickerStart" />
+          <mat-datepicker #pickerStart />
+          @if (form.controls.startDate.touched && form.controls.startDate.errors?.['required']) {
+            <mat-error>Obligatoire</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="datetime-row__time">
+          <mat-label>Heure</mat-label>
+          <input
+            matInput
+            formControlName="startTime"
+            readonly
+            [ngxMatTimepicker]="pickerStartTime"
+            [format]="timepickerFormat24"
+          />
+          <ngx-mat-timepicker-toggle matIconSuffix [for]="pickerStartTime" />
+          <ngx-mat-timepicker #pickerStartTime [format]="timepickerFormat24" />
+          @if (
+            form.controls.startTime.touched && form.controls.startTime.errors?.['invalidStartTime']
+          ) {
+            <mat-error>Heure invalide</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    </fieldset>
 
     <mat-form-field appearance="outline" class="full">
       <mat-label>Lieu (optionnel)</mat-label>
@@ -32,71 +56,6 @@
       <mat-label>Description (optionnel)</mat-label>
       <textarea matInput formControlName="description" rows="3"></textarea>
     </mat-form-field>
-
-    <mat-form-field appearance="outline" class="full">
-      <mat-label>Type de spectacle</mat-label>
-      <mat-select formControlName="templateType" (selectionChange)="onTemplateSelected($event.value)">
-        @for (typeId of templateOrder; track typeId) {
-          <mat-option [value]="typeId">
-            {{ getEventTypeIcon(typeId) }} {{ getEventTypeLabel(typeId) }}
-          </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    @if (showTemplateChangeConfirmation && pendingTemplateId) {
-      <div class="template-confirm" role="alert">
-        <p class="template-confirm__title">Changement de type de spectacle</p>
-        <p class="template-confirm__text">
-          Les rôles actuels diffèrent du modèle « {{ getEventTypeLabel(pendingTemplateId) }} ».
-          Appliquer le nouveau modèle ?
-        </p>
-        <div class="template-confirm__actions">
-          <button type="button" mat-flat-button color="primary" (click)="confirmTemplateChange()">
-            Appliquer
-          </button>
-          <button type="button" mat-button (click)="cancelTemplateChange()">Ignorer</button>
-        </div>
-      </div>
-    }
-
-    @if (!showTemplateChangeConfirmation) {
-      @if (!showRoleInputs) {
-        <div class="roles-summary">
-          @if (summaryRoles().length === 0) {
-            <span class="roles-summary__empty">Aucun rôle configuré</span>
-          } @else {
-            @for (role of summaryRoles(); track role) {
-              <span class="roles-summary__item">
-                <span aria-hidden="true">{{ roleEmojis[role] }}</span>
-                {{ roleLabels[role] }}: <strong>{{ roleCount(role) }}</strong>
-              </span>
-            }
-          }
-        </div>
-        <button type="button" mat-button class="customize-btn" (click)="enableCustomization()">
-          Personnaliser
-        </button>
-      } @else {
-        <div class="roles-grid">
-          <p class="roles-grid__title">Personnalisation des rôles</p>
-          @for (role of roleDisplayOrder; track role) {
-            <mat-form-field appearance="outline" class="roles-grid__field">
-              <mat-label>{{ roleEmojis[role] }} {{ roleLabels[role] }}</mat-label>
-              <input
-                matInput
-                type="number"
-                min="0"
-                max="20"
-                [value]="roleCount(role)"
-                (input)="onRoleCountChange(role, $any($event.target).value)"
-              />
-            </mat-form-field>
-          }
-        </div>
-        <button type="button" mat-button (click)="hideCustomization()">Voir résumé</button>
-      }
-    }
 
     @if (data.mode === 'edit' && canManageEventOrganizers()) {
       <section class="organizers-section" aria-labelledby="event-organizers-title">
@@ -229,7 +188,7 @@
     type="button"
     mat-flat-button
     color="primary"
-    [disabled]="form.invalid || saving || showTemplateChangeConfirmation"
+    [disabled]="form.invalid || saving"
     (click)="submit()"
   >
     {{ data.mode === 'create' ? 'Créer' : 'Enregistrer' }}

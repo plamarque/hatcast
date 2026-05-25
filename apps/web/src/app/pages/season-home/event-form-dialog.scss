@@ -9,72 +9,61 @@
   width: 100%;
 }
 
+.datetime-section {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.datetime-section__legend {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  padding: 0;
+}
+
+.datetime-row {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+}
+
+.datetime-row__date,
+.datetime-row__time {
+  width: auto;
+}
+
+.datetime-row__date {
+  flex: 1 1 0;
+  max-width: 13rem;
+  min-width: 0;
+}
+
+.datetime-row__time {
+  flex: 0 0 6.75rem;
+  max-width: 6.75rem;
+}
+
+@media (max-width: 22rem) {
+  .datetime-row {
+    flex-wrap: wrap;
+  }
+
+  .datetime-row__date {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .datetime-row__time {
+    flex: 0 0 6.75rem;
+  }
+}
+
 .form-error {
   margin: 0;
   font-size: 0.875rem;
   color: var(--mat-sys-error);
-}
-
-.template-confirm {
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--mat-sys-error) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--mat-sys-error) 35%, transparent);
-}
-
-.template-confirm__title {
-  margin: 0 0 0.25rem;
-  font-weight: 600;
-}
-
-.template-confirm__text {
-  margin: 0 0 0.75rem;
-  font-size: 0.875rem;
-}
-
-.template-confirm__actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.roles-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  font-size: 0.875rem;
-  margin: 0.25rem 0;
-}
-
-.roles-summary__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.roles-summary__empty {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
-}
-
-.customize-btn {
-  align-self: flex-start;
-}
-
-.roles-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem 0.75rem;
-}
-
-.roles-grid__title {
-  grid-column: 1 / -1;
-  margin: 0.25rem 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.roles-grid__field {
-  width: 100%;
 }
 
 .organizers-section {
@@ -124,10 +113,6 @@
 }
 
 @media (max-width: 480px) {
-  .roles-grid {
-    grid-template-columns: 1fr;
-  }
-
   .organizers-section__add {
     grid-template-columns: 1fr;
   }
