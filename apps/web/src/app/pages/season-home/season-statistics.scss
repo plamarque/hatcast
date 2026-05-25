@@ -1,0 +1,114 @@
+.season-statistics {
+  margin-top: 0.5rem;
+}
+
+.season-statistics__status,
+.season-statistics__empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.season-statistics__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline) 40%, transparent);
+}
+
+.season-statistics__table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.8125rem;
+}
+
+.season-statistics__table th,
+.season-statistics__table td {
+  padding: 0.5rem 0.65rem;
+  text-align: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--mat-sys-outline) 25%, transparent);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.season-statistics__sticky {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--mat-sys-surface, #fff);
+  text-align: left;
+  min-width: 7rem;
+  max-width: 10rem;
+}
+
+.season-statistics__name {
+  font-weight: 500;
+}
+
+.season-statistics__band-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.season-statistics__toggle {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 0.7rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.9;
+}
+
+.season-statistics__band--jeu {
+  background: color-mix(in srgb, #fbbf24 18%, transparent);
+}
+
+.season-statistics__band--decorum {
+  background: color-mix(in srgb, #a78bfa 18%, transparent);
+}
+
+.season-statistics__band--depl {
+  background: color-mix(in srgb, #34d399 18%, transparent);
+}
+
+.season-statistics__band--benev {
+  background: color-mix(in srgb, #94a3b8 18%, transparent);
+}
+
+.season-statistics__month {
+  background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+}
+
+.season-statistics__month--toggle {
+  min-width: 5.5rem;
+}
+
+.season-statistics__month--detail {
+  font-size: 0.7rem;
+  max-width: 6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.season-statistics__event-cell {
+  font-size: 0.7rem;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.season-statistics__subhead th {
+  font-size: 0.65rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+  .season-statistics__sticky {
+    min-width: 5.5rem;
+  }
+}

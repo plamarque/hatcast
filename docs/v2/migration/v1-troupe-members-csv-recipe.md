@@ -2,6 +2,8 @@
 
 Guide opérationnel pour préremplir HatCast V2 **via l’application** (Neon / Postgres — pas de `psql` requis).
 
+**Pre-production staging :** utiliser les exports **Firestore production** (`--database=default`) et suivre [preprod-reset-and-migrate.md](preprod-reset-and-migrate.md) — pas la base `development`. Raccourcis : `npm run export:v1-users:prod`, `npm run export:v1-members:prod`.
+
 ## Vue d’ensemble
 
 | Étape | Quoi | Outil |

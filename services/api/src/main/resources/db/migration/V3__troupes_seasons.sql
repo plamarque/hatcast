@@ -25,12 +25,3 @@ CREATE TABLE seasons (
 );
 
 CREATE INDEX idx_seasons_troupe_created ON seasons (troupe_id, created_at DESC);
-
--- Troupe seed (La Malice) — id aligné sur hatcast.troupe.seed-troupe-id
-INSERT INTO troupes (id, name, slug, created_at)
-VALUES (
-    'a0000001-0000-4000-8000-000000000001',
-    'La Malice',
-    'la-malice',
-    CURRENT_TIMESTAMP
-);

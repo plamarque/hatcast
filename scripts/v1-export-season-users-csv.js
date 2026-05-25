@@ -6,7 +6,9 @@
  * Import this file in HatCast V2 before importing troupe members CSV.
  *
  * Usage:
- *   node scripts/v1-export-season-users-csv.js --season=SEASON_ID [--output=./users.csv] [--database=development]
+ *   node scripts/v1-export-season-users-csv.js --season=SEASON_ID [--output=./users.csv] [--database=default]
+ *
+ * Pre-prod V2 migration: use --database=default (Firestore production). See docs/v2/migration/preprod-reset-and-migrate.md.
  */
 
 import dotenv from 'dotenv'
@@ -26,7 +28,7 @@ function parseArgs() {
   const result = {
     season: null,
     output: null,
-    database: 'development',
+    database: 'default',
     includeRoleOnlyEmails: true,
   }
 
@@ -51,7 +53,8 @@ function printHelp() {
 Options:
   --season=ID           Firestore season document id (required)
   --output=PATH         Write CSV to file (default: stdout)
-  --database=NAME       Firestore database id (default: development)
+  --database=NAME       Firestore database id (default: default = V1 production)
+                        Use development only for local V1 dev data.
   --no-role-only-emails Skip emails found only in roles.users/admins (no player doc)
   --help                Show this help
 

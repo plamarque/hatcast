@@ -619,6 +619,46 @@ paths:
         '401':
           description: Non authentifié
 
+  /seasons/{seasonId}/statistics:
+    get:
+      tags: [Saisons]
+      summary: Statistiques de participation (grille story 3.6)
+      description: >
+        Agrégats sélections / dispos / désistements par participant, colonnes rôles et mois.
+        Événements non archivés de la saison ; filtres optionnels `participantId` et `eventId`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: participantId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeasonStatisticsResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe
+        '404':
+          description: Saison inconnue
+
   /seasons/{seasonId}:
     get:
       tags: [Saisons]
@@ -1283,6 +1323,100 @@ components:
         grantedAt:
           type: string
           format: date-time
+
+    StatCounts:
+      type: object
+      required: [selections, dispos, declines]
+      properties:
+        selections:
+          type: integer
+          minimum: 0
+        dispos:
+          type: integer
+          minimum: 0
+        declines:
+          type: integer
+          minimum: 0
+
+    StatisticsParticipant:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+
+    StatisticsEvent:
+      type: object
+      required: [id, title, startsAt, templateType, monthKey]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        templateType:
+          type: string
+        equityTag:
+          type: string
+          nullable: true
+        monthKey:
+          type: string
+          description: yyyy-MM (Europe/Paris)
+
+    ParticipantStatisticsRow:
+      type: object
+      required: [participantId, displayName, annual, monthSummary, byMonth, eventCells]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        annual:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StatCounts'
+        monthSummary:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StatCounts'
+        byMonth:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/StatCounts'
+        eventCells:
+          type: object
+          additionalProperties:
+            type: string
+
+    SeasonStatisticsResponse:
+      type: object
+      required: [participants, monthKeys, events, rows]
+      properties:
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatisticsParticipant'
+        monthKeys:
+          type: array
+          items:
+            type: string
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatisticsEvent'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantStatisticsRow'
 
     MySeasonPermissions:
       type: object

@@ -145,11 +145,16 @@ class AvailabilityService(
         if (sp.season.id != seasonId) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant inconnu")
         }
+        val linkedUserId = sp.user?.id ?: sp.troupeMembership?.user?.id
         val rows =
-            availabilityRepository.findByEvent_IdInAndSeasonParticipant_Id(
-                eventIds,
-                seasonParticipantId,
-            )
+            if (linkedUserId != null) {
+                availabilityRepository.findByEvent_IdInAndUser_Id(eventIds, linkedUserId)
+            } else {
+                availabilityRepository.findByEvent_IdInAndSeasonParticipant_Id(
+                    eventIds,
+                    seasonParticipantId,
+                )
+            }
         val byEvent = rows.associate { it.event.id to AvailabilityStatusMapper.toApi(it.status) }
         return eventIds.associateWith { byEvent[it] ?: AvailabilityStatusMapper.UNKNOWN }
     }

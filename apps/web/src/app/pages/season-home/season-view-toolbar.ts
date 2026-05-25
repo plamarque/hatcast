@@ -27,6 +27,8 @@ export class SeasonViewToolbar {
   readonly seasonView = model.required<SeasonView>()
   readonly showAgendaFilters = input(true)
   readonly showHistoryFilters = input(false)
+  readonly showStatsFilters = input(false)
+  readonly detailsExpanded = model(false)
 
   /** Participant filter — MVP: only Tous until player/availability data exists. */
   readonly participantOptions = input<ParticipantFilterOption[]>([
@@ -39,6 +41,9 @@ export class SeasonViewToolbar {
 
   readonly historyEventOptions = input<EventFilterOption[]>([])
   readonly selectedHistoryEventId = model<string | null>(null)
+
+  readonly statsEventOptions = input<EventFilterOption[]>([])
+  readonly selectedStatsEventId = model<string | null>(null)
 
   readonly exportClick = output<void>()
 
@@ -67,6 +72,14 @@ export class SeasonViewToolbar {
     return this.historyEventOptions().find((o) => o.id === id)?.title ?? 'Tous'
   }
 
+  protected statsEventLabel(): string {
+    const id = this.selectedStatsEventId()
+    if (!id) {
+      return 'Tous'
+    }
+    return this.statsEventOptions().find((o) => o.id === id)?.title ?? 'Tous'
+  }
+
   protected selectParticipant(id: string | null): void {
     this.selectedParticipantId.set(id)
   }
@@ -77,5 +90,13 @@ export class SeasonViewToolbar {
 
   protected selectHistoryEvent(id: string | null): void {
     this.selectedHistoryEventId.set(id)
+  }
+
+  protected selectStatsEvent(id: string | null): void {
+    this.selectedStatsEventId.set(id)
+  }
+
+  protected toggleDetails(): void {
+    this.detailsExpanded.update((v) => !v)
   }
 }

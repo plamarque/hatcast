@@ -35,6 +35,7 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0011](0011-league-model-and-user-agenda.md) | V2 product model: League (multi-active), user agenda hub, inter-troupe events | Accepted |
 | [0012](0012-league-views-travel-leagues-member-stats.md) | League views (Agenda/Historique/Statistiques), travel leagues, personal glance route | Accepted — §3 superseded by **0013** |
 | [0013](0013-troupe-navigation-equity-tags-event-slugs.md) | Troupe-first IA (`/troupes`), saison workspace, equity tags, event slugs | Accepted |
+| [0014](0014-v2-preprod-migration-no-seed.md) | V2 pre-prod: Flyway schema without dev seeds; V1 Firestore prod as migration source; reset/replay | Accepted |
 
 ---
 

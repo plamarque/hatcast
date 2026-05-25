@@ -22,6 +22,8 @@
     "replay": "node scripts/replay-season.js",
     "export:v1-members": "node scripts/v1-export-troupe-members-csv.js",
     "export:v1-users": "node scripts/v1-export-season-users-csv.js",
+    "export:v1-members:prod": "node scripts/v1-export-troupe-members-csv.js --database=default",
+    "export:v1-users:prod": "node scripts/v1-export-season-users-csv.js --database=default",
     "generate:malice-seed": "node scripts/v2/generate-malice-seed-sql.js",
     "generate:malice-composition-seed": "node scripts/v2/generate-malice-seed-sql.js --composition-only",
     "generate:malice-mvp-pilot-seed": "node scripts/v2/generate-malice-seed-sql.js --mvp-pilot-only"

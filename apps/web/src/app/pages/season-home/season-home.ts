@@ -1,4 +1,13 @@
-import { Component, computed, inject, model, OnDestroy, OnInit, signal } from '@angular/core'
+import {
+  Component,
+  computed,
+  inject,
+  model,
+  OnDestroy,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
@@ -53,8 +62,17 @@ import {
   downloadHistoryCsv,
   historyCsvRowFromEvent,
 } from './season-history-export'
+import {
+  SeasonStatisticsApiService,
+  type SeasonStatisticsResponse,
+} from '../../core/seasons/season-statistics-api.service'
 import { SeasonAgenda } from './season-agenda'
 import { SeasonHeader } from './season-header'
+import {
+  buildStatisticsCsv,
+  downloadStatisticsCsv,
+} from './season-statistics-export'
+import { SeasonStatistics } from './season-statistics'
 import { SeasonViewToolbar } from './season-view-toolbar'
 import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './season-view.types'
 import {
@@ -79,6 +97,7 @@ const FETCH_PAGE_SIZE = 50
     SeasonHeader,
     SeasonViewToolbar,
     SeasonAgenda,
+    SeasonStatistics,
   ],
   templateUrl: './season-home.html',
   styleUrl: './season-home.scss',
@@ -97,10 +116,14 @@ export class SeasonHome implements OnDestroy, OnInit {
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
+  private readonly statisticsApi = inject(SeasonStatisticsApiService)
   private routeSubscription = Subscription.EMPTY
   private seasonLoadRequestId = 0
   private eventLoadRequestId = 0
   private pastEventLoadRequestId = 0
+  private statisticsLoadRequestId = 0
+
+  private readonly statisticsPanel = viewChild(SeasonStatistics)
 
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
@@ -133,6 +156,11 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly selectedParticipantId = model<string | null>(null)
   protected readonly selectedEventId = model<string | null>(null)
   protected readonly selectedHistoryEventId = model<string | null>(null)
+  protected readonly selectedStatsEventId = model<string | null>(null)
+  protected readonly statsDetailsExpanded = model(false)
+
+  protected readonly statisticsData = signal<SeasonStatisticsResponse | null>(null)
+  protected readonly loadingStatistics = signal(false)
 
   protected readonly participantSelectors = signal<ParticipantSelector[]>([])
 
@@ -175,6 +203,10 @@ export class SeasonHome implements OnDestroy, OnInit {
       this.pastEvents().length > 0 &&
       this.filteredPastEvents().length === 0 &&
       this.selectedHistoryEventId() != null,
+  )
+
+  protected readonly statsEventFilterOptions = computed<EventFilterOption[]>(() =>
+    (this.statisticsData()?.events ?? []).map((e) => ({ id: e.id, title: e.title })),
   )
 
   protected readonly historyParticipantLabel = computed(() => {
@@ -286,24 +318,35 @@ export class SeasonHome implements OnDestroy, OnInit {
 
       let lastView: SeasonView | null = null
       let lastParticipant: string | null | undefined
+      let lastStatsEvent: string | null | undefined
       const syncViewLoads = (): void => {
         const view = this.seasonView()
         const participant = this.selectedParticipantId()
+        const statsEvent = this.selectedStatsEventId()
         if (view !== lastView) {
           this.syncViewQueryParam()
         }
-        if (view === lastView && participant === lastParticipant) {
+        if (
+          view === lastView &&
+          participant === lastParticipant &&
+          (view !== 'stats' || statsEvent === lastStatsEvent)
+        ) {
           return
         }
         lastView = view
         lastParticipant = participant
+        lastStatsEvent = statsEvent
         if (view === 'history' && this.season()) {
           void this.loadPastEvents()
+        }
+        if (view === 'stats' && this.season()) {
+          void this.loadStatistics()
         }
       }
       syncViewLoads()
       this.seasonView.subscribe(syncViewLoads)
       this.selectedParticipantId.subscribe(syncViewLoads)
+      this.selectedStatsEventId.subscribe(syncViewLoads)
     } finally {
       this.loadingSession.set(false)
     }
@@ -340,7 +383,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
 
     const view = params.get('view')
-    if (view === 'agenda' || view === 'history') {
+    if (view === 'agenda' || view === 'history' || view === 'stats') {
       this.seasonView.set(view)
     }
     const participant = params.get('participant')
@@ -379,6 +422,10 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.loadingPastEvents.set(false)
     this.pastEventLoadLimit.set(HISTORY_PAST_CAP)
     this.selectedHistoryEventId.set(null)
+    this.selectedStatsEventId.set(null)
+    this.statisticsData.set(null)
+    this.loadingStatistics.set(false)
+    this.statsDetailsExpanded.set(false)
     this.equityTags.set([])
   }
 
@@ -592,6 +639,57 @@ export class SeasonHome implements OnDestroy, OnInit {
     void this.loadPastEvents()
   }
 
+  private async loadStatistics(options: { force?: boolean } = {}): Promise<void> {
+    const s = this.season()
+    if (!s || (this.loadingStatistics() && !options.force)) {
+      return
+    }
+    const requestId = ++this.statisticsLoadRequestId
+    const seasonId = s.id
+    this.loadingStatistics.set(true)
+    try {
+      const r = await this.statisticsApi.loadStatistics(seasonId, {
+        eventId: this.selectedStatsEventId(),
+        participantId: this.selectedParticipantId(),
+      })
+      if (requestId !== this.statisticsLoadRequestId) {
+        return
+      }
+      if (!r.ok || !r.data) {
+        this.snack.open('Impossible de charger les statistiques.', 'OK', { duration: 6000 })
+        return
+      }
+      this.statisticsData.set(r.data)
+      this.resetStaleStatsEventFilter(r.data.events)
+    } finally {
+      if (requestId === this.statisticsLoadRequestId) {
+        this.loadingStatistics.set(false)
+      }
+    }
+  }
+
+  protected exportStatisticsCsv(): void {
+    const data = this.statisticsData()
+    if (!data || data.rows.length === 0) {
+      this.snack.open('Aucune donnée à exporter.', 'OK', { duration: 4000 })
+      return
+    }
+    const panel = this.statisticsPanel()
+    const csv = buildStatisticsCsv(
+      data,
+      panel?.columnVisibility() ?? {
+        showJeuDetails: this.statsDetailsExpanded(),
+        showDecorumDetails: this.statsDetailsExpanded(),
+        showDeplacementDetails: this.statsDetailsExpanded(),
+        showBenevoleDetails: this.statsDetailsExpanded(),
+        expandedMonths: new Set(),
+      },
+    )
+    const slug = this.slug() || 'saison'
+    const date = new Date().toISOString().slice(0, 10)
+    downloadStatisticsCsv(`statistiques-${slug}-${date}.csv`, csv)
+  }
+
   protected exportHistoryCsv(): void {
     const events = this.filteredPastEvents()
     if (events.length === 0) {
@@ -765,6 +863,15 @@ export class SeasonHome implements OnDestroy, OnInit {
     const selected = this.selectedHistoryEventId()
     if (selected && !events.some((e) => e.id === selected)) {
       this.selectedHistoryEventId.set(null)
+    }
+  }
+
+  private resetStaleStatsEventFilter(
+    events: SeasonStatisticsResponse['events'],
+  ): void {
+    const selected = this.selectedStatsEventId()
+    if (selected && !events.some((e) => e.id === selected)) {
+      this.selectedStatsEventId.set(null)
     }
   }
 

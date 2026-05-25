@@ -34,11 +34,21 @@ describe('SeasonViewToolbar', () => {
     expect(el.textContent).toContain('Exporter')
   })
 
-  it('renders agenda and history toggles', () => {
+  it('renders agenda, history and statistics toggles', () => {
     const el = fixture.nativeElement as HTMLElement
     const toggles = el.querySelectorAll('mat-button-toggle')
-    expect(toggles.length).toBe(2)
+    expect(toggles.length).toBe(3)
     expect(el.textContent).toContain('Agenda')
     expect(el.textContent).toContain('Historique')
+    expect(el.textContent).toContain('Statistiques')
+  })
+
+  it('shows statistics filters, export and masquer when stats is active', () => {
+    fixture.componentRef.setInput('seasonView', 'stats')
+    fixture.componentRef.setInput('showStatsFilters', true)
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.textContent).toContain('Exporter')
+    expect(el.textContent).toContain('Détails')
   })
 })

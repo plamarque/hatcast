@@ -8,6 +8,8 @@
 
 - [`technical/V2_GOOGLE_OAUTH_SETUP.md`](technical/V2_GOOGLE_OAUTH_SETUP.md) — configuration Google OAuth (opérateurs)
 - [`technical/DEPLOY_V2_CLOUD_RUN.md`](technical/DEPLOY_V2_CLOUD_RUN.md) — Cloud Run, Neon, GitHub Actions
+- [`migration/preprod-reset-and-migrate.md`](migration/preprod-reset-and-migrate.md) — pre-prod staging : reset Neon, migration depuis Firestore **prod** (`default`)
+- [`migration/v1-troupe-members-csv-recipe.md`](migration/v1-troupe-members-csv-recipe.md) — import CSV utilisateurs + membres (V1 → V2)
 - [`technical/FRONTEND_UI.md`](technical/FRONTEND_UI.md) — Angular Material (références officielles), theming, CDK, **mobile-first** / responsive
 
 ## Décisions (ADR)
@@ -15,6 +17,7 @@
 - [ADR-0010 — Auth V2 : Identity Platform](../adr/0010-v2-auth-identity-platform.md) (décision cible)
 - [ADR-0008 — Auth SPA V2 (Google OIDC + session, historique)](../adr/0008-v2-spa-auth-google-session.md) (Deprecated)
 - [ADR-0009 — PostgreSQL Neon par environnement](../adr/0009-neon-postgres-environments.md)
+- [ADR-0014 — Pre-prod sans seed, migration V1 prod](../adr/0014-v2-preprod-migration-no-seed.md)
 
 ## Planning et architecture (artefacts)
 

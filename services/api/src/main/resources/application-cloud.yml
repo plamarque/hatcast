@@ -1,6 +1,10 @@
 # Profil Cloud Run : reverse proxy TLS + CORS production + cookie Secure.
-# Base et Flyway : identiques à `application.yml` (Neon via HATCAST_DATASOURCE_*).
+# Flyway : schéma uniquement (pas classpath:db/seed) — ADR-0014.
 # Activer avec HATCAST_SPRING_PROFILE=cloud.
+
+spring:
+  flyway:
+    locations: classpath:db/migration
 
 server:
   forward-headers-strategy: framework

@@ -6,7 +6,7 @@
  *
  * Usage:
  *   node scripts/v2/generate-malice-seed-sql.js
- *   node scripts/v2/generate-malice-seed-sql.js --input=members.csv --output=services/api/src/main/resources/db/migration/V17__seed_malice_members_events_availability.sql
+ *   node scripts/v2/generate-malice-seed-sql.js --input=members.csv --output=services/api/src/main/resources/db/seed/V17__seed_malice_members_events_availability.sql
  *
  * Regenerate after editing members.csv (gitignored at repo root — PII).
  * Only the generated SQL (obfuscated emails) is committed.
@@ -48,7 +48,7 @@ const ROLE_PRESETS = {
 
 /**
  * Past events for Historique (story 3.6b) — maintained in Flyway V26, not regenerated here.
- * @see services/api/src/main/resources/db/migration/V26__seed_malice_past_events_historique.sql
+ * @see services/api/src/main/resources/db/seed/V26__seed_malice_past_events_historique.sql
  */
 export const SEED_PAST_EVENTS = [
   { id: 'c0000031-0000-4000-8000-000000000031', templateType: 'catch', slug: 'hist-aperock-avril' },
@@ -661,17 +661,17 @@ function parseArgs() {
   let input = join(REPO_ROOT, 'members.csv')
   let output = join(
     REPO_ROOT,
-    'services/api/src/main/resources/db/migration/V17__seed_malice_members_events_availability.sql',
+    'services/api/src/main/resources/db/seed/V17__seed_malice_members_events_availability.sql',
   )
   let compositionOutput = join(
     REPO_ROOT,
-    'services/api/src/main/resources/db/migration/V19__seed_malice_composition_drafts.sql',
+    'services/api/src/main/resources/db/seed/V19__seed_malice_composition_drafts.sql',
   )
   let compositionOnly = false
   let mvpPilotOnly = false
   let mvpPilotOutput = join(
     REPO_ROOT,
-    'services/api/src/main/resources/db/migration/V22__seed_mvp_pilot_recette.sql',
+    'services/api/src/main/resources/db/seed/V22__seed_mvp_pilot_recette.sql',
   )
   for (const arg of args) {
     if (arg.startsWith('--input=')) input = arg.slice(8)

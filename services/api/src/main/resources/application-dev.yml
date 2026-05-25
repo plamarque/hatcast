@@ -1,5 +1,9 @@
 # Profil dev local (HATCAST_SPRING_PROFILE=dev, défaut dans application.yml).
+# Seeds Flyway : classpath:db/seed (absent en cloud/staging — voir ADR-0014).
 # Regénération de migrations seed (V17/V19/V22…) : repair aligne les checksums Flyway.
 spring:
   flyway:
+    locations: classpath:db/migration,classpath:db/seed
+    # Seeds déplacés dans db/seed (OPS-1) : V3_1 peut arriver après V4+ sur une base Neon déjà migrée.
+    out-of-order: true
     repair-on-migrate: true

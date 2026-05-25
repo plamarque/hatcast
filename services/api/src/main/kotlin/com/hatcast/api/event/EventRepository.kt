@@ -59,4 +59,16 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         @Param("beforeExclusive") beforeExclusive: Instant,
         pageable: Pageable,
     ): Page<EventEntity>
+
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+        ORDER BY e.startsAt ASC
+        """,
+    )
+    fun findNonArchivedBySeasonId(
+        @Param("seasonId") seasonId: UUID,
+    ): List<EventEntity>
 }

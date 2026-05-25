@@ -5,4 +5,6 @@ import java.util.UUID
 
 interface EventCompositionDeclineRepository : JpaRepository<EventCompositionDeclineEntity, UUID> {
     fun findByEventIdOrderByDeclinedAtDesc(eventId: UUID): List<EventCompositionDeclineEntity>
+
+    fun findByEventIdIn(eventIds: Collection<UUID>): List<EventCompositionDeclineEntity>
 }

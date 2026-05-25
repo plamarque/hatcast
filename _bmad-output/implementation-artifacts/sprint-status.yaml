@@ -72,7 +72,7 @@ development_status:
   3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historique: done
   3-4-types-devenement-et-roles-requis-optionnels: done
   3-5-delegation-des-organisateurs-perimetre-saison-evenement: done
-  3-6-vue-historique-colonnes-roles-mois-export-masquage: ready-for-dev
+  3-6-vue-historique-colonnes-roles-mois-export-masquage: done
   3-6b-vue-historique-ligue-chronologie-export: done
   3-7-suppression-de-saisons-admins-troupe-ou-plateforme: done
   3-8-rosters-participants-saison-et-evenement: done

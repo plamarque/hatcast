@@ -7,7 +7,9 @@
  * One V1 season maps to one V2 troupe for migration.
  *
  * Usage:
- *   node scripts/v1-export-troupe-members-csv.js --season=SEASON_ID [--output=./members.csv] [--database=development]
+ *   node scripts/v1-export-troupe-members-csv.js --season=SEASON_ID [--output=./members.csv] [--database=default]
+ *
+ * Pre-prod V2 migration: use --database=default (Firestore production). See docs/v2/migration/preprod-reset-and-migrate.md.
  *
  * Requires Firebase Admin credentials in .env.local (same as scripts/replay/loadSeasonData.js):
  *   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
@@ -31,7 +33,7 @@ function parseArgs() {
   const result = {
     season: null,
     output: null,
-    database: 'development',
+    database: 'default',
     includeRoleOnlyEmails: true,
   }
 
@@ -56,7 +58,8 @@ function printHelp() {
 Options:
   --season=ID           Firestore season document id (required)
   --output=PATH         Write CSV to file (default: stdout)
-  --database=NAME       Firestore database id (default: development)
+  --database=NAME       Firestore database id (default: default = V1 production)
+                        Use development only for local V1 dev data.
   --no-role-only-emails Skip emails found only in roles.users/admins (no player doc)
   --help                Show this help
 

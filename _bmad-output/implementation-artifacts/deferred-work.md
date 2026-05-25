@@ -1,6 +1,10 @@
+## Deferred from: code review of 3-6-vue-historique-colonnes-roles-mois-export-masquage.md (2026-05-25)
+
+- Formules sel/dispo dupliquées Kotlin + TS sans test de parité contrat — risque de dérive ; acceptable tant que les tests unitaires des deux côtés restent alignés sur les cas V1.
+
 ## Deferred from: code review of 3-6b-vue-historique-ligue-chronologie-export.md (2026-05-25)
 
-- Onglet **Statistiques** absent du switcher ligue — dépend story **3.6** et shell **3.3** à trois vues ; Historique seul est livré.
+- _(Résolu 2026-05-25, story 3.6)_ Onglet **Statistiques** dans le switcher ligue (Agenda | Historique | Statistiques).
 - Pas de test composant `SeasonHome` pour `loadPastEvents` — tests unitaires sur `season-agenda`, toolbar, export ; aligné pattern agenda existant.
 
 ## Product reserve — Historique vs V1 (PO 2026-05-25, story 3.6b validée avec réserve)

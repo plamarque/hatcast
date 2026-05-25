@@ -30,6 +30,8 @@ cd services/api
 | `cloud` | Cloud Run : en-têtes `Forwarded`, cookie session **Secure**, `HATCAST_CORS_ALLOWED_ORIGINS` obligatoire — voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). |
 | `test` | Réservé à `./gradlew test` : base **H2 en mémoire** isolée (pas de Neon requis en CI). |
 
+En **dev**, Flyway charge `db/migration` + `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)). Si le démarrage échoue avec *« resolved migration not applied … 3.1 »*, la base a été migrée avant l’ajout du seed `V3_1` : le profil `dev` active `out-of-order` + `repair-on-migrate` pour l’appliquer. Sinon, réinitialiser la branche Neon de dev (reset) puis relancer `bootRun`.
+
 ## CORS
 
 Par défaut, origines autorisées incluent `http://localhost:5173` (V1), **`http://localhost:4200`** et **`https://localhost:4200`** (Angular V2), etc. Surcharge : `HATCAST_CORS_ALLOWED_ORIGINS` (liste séparée par des virgules).

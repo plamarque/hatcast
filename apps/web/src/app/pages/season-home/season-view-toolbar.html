@@ -42,6 +42,72 @@
     </div>
   }
 
+  @if (showStatsFilters() && seasonView() === 'stats') {
+    <div class="season-toolbar__filters">
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__filter"
+        [matMenuTriggerFor]="statsParticipantMenu"
+        aria-label="Filtrer par membre"
+      >
+        <mat-icon>group</mat-icon>
+        <span>{{ participantLabel() }}</span>
+        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
+      </button>
+      <mat-menu #statsParticipantMenu="matMenu">
+        @for (opt of participantOptions(); track opt.id ?? 'all') {
+          <button mat-menu-item type="button" (click)="selectParticipant(opt.id)">
+            {{ opt.label }}
+          </button>
+        }
+      </mat-menu>
+
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__filter"
+        [matMenuTriggerFor]="statsEventMenu"
+        aria-label="Filtrer par spectacle"
+      >
+        <mat-icon>event</mat-icon>
+        <span>{{ statsEventLabel() }}</span>
+        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
+      </button>
+      <mat-menu #statsEventMenu="matMenu">
+        <button mat-menu-item type="button" (click)="selectStatsEvent(null)">Tous</button>
+        @for (opt of statsEventOptions(); track opt.id) {
+          <button mat-menu-item type="button" (click)="selectStatsEvent(opt.id)">
+            {{ opt.title }}
+          </button>
+        }
+      </mat-menu>
+
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__export"
+        aria-label="Exporter les statistiques"
+        (click)="exportClick.emit()"
+      >
+        <mat-icon>download</mat-icon>
+        <span>Exporter</span>
+      </button>
+
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__export"
+        [attr.aria-pressed]="detailsExpanded()"
+        aria-label="Masquer ou afficher les détails des colonnes"
+        (click)="toggleDetails()"
+      >
+        <mat-icon>{{ detailsExpanded() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        <span>{{ detailsExpanded() ? 'Masquer' : 'Détails' }}</span>
+      </button>
+    </div>
+  }
+
   @if (showHistoryFilters() && seasonView() === 'history') {
     <div class="season-toolbar__filters">
       <button
@@ -106,6 +172,7 @@
     >
       <mat-button-toggle value="agenda">Agenda</mat-button-toggle>
       <mat-button-toggle value="history">Historique</mat-button-toggle>
+      <mat-button-toggle value="stats">Statistiques</mat-button-toggle>
     </mat-button-toggle-group>
 
     <app-scope-admin-menu [scope]="adminScope()" [items]="adminItems()" />

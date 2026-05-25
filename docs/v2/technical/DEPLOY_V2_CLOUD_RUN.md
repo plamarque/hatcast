@@ -134,6 +134,10 @@ La valeur **`HATCAST_DATASOURCE_URL`** doit être au format JDBC Postgres attend
 - Pour l’**application** sur Cloud Run (scale-to-zero, nombreuses connexions courtes), privilégiez l’endpoint **poolé** (« Pooled connection » / PgBouncer) proposé par Neon dans la console, s’il est disponible pour votre projet.
 - Pour **Flyway** ou migrations nécessitant des fonctionnalités session complètes, utilisez l’endpoint **direct** si Neon le recommande pour ces opérations.
 
+### 5.5 Schéma Flyway vs seeds (staging / production)
+
+Sur Cloud Run (`HATCAST_SPRING_PROFILE=cloud`), Flyway n’applique que `classpath:db/migration` — **pas** les scripts sous `db/seed` (données La Malice / MVP). Voir [ADR-0014](../../adr/0014-v2-preprod-migration-no-seed.md) et le runbook [preprod-reset-and-migrate.md](../migration/preprod-reset-and-migrate.md) pour alimenter staging depuis **Firestore V1 production** (`default`).
+
 ### 5.3 Réseau
 
 La connexion s’établit en **TCP/TLS** depuis Cloud Run vers Neon sur Internet. Si vous activez une **allowlist** d’IPs côté Neon, documentez les contraintes (Cloud Run n’expose pas d’IP sortante fixe par défaut) ou désactivez l’allowlist pour ces environnements.

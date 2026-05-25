@@ -255,6 +255,28 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 
 **Pilote validé :** 2026-05-25 — recette admin seul sur spectacles seed `[MVP] 00–05` (La Malice 2026-2027). Réserves UX/perfs : **ISSUES.md** UX-001, UX-002, PERF-001 → **Story 6.11**.
 
+### Pre-prod V2 + migration V1 (itérative)
+
+**Added:** 2026-05-25 — [ADR-0014](docs/adr/0014-v2-preprod-migration-no-seed.md), runbook [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md).  
+**Objectif :** déployer V2 en **staging** (sans données seed), alimenter Neon depuis **Firestore V1 production** (`default`), pouvoir **reset + rejouer** la migration jusqu’à la bascule prod (date non fixée).
+
+| Slice | Statut | Livrable | DoD |
+|-------|--------|----------|-----|
+| **M0** Décision & garde-fous | [x] | ADR-0014 ; Flyway `db/seed` hors profil `cloud` | Deploy staging n’insère pas `@seed.la-malice.test` |
+| **M1** Infra pre-prod | [ ] | Env GitHub `staging`, Neon branch, premier deploy `staging` | SPA + API + schéma Flyway OK |
+| **M2** Playbook migration (périmètre actuel) | [x] doc | Runbook + scripts `export:v1-*:prod` ; imports CSV 2.3 | Users + membres prod → staging |
+| **M3** Boucle reset / rejouer | [x] doc | Procédure C du runbook | ≥ 1 cycle reset documenté (cible : 3 avant cutover) |
+| **M4** Cutover production | [ ] | Checklist merge / go-live | Hors scope jusqu’à décision produit |
+
+**Backlog ops (PLAN, pas SPEC) :**
+
+| ID | Titre | Priorité | Statut |
+|----|-------|----------|--------|
+| **OPS-1** | Séparer Flyway schema / seed (profils dev vs cloud) | P0 | [x] |
+| **MIG-1** | Runbook reset Neon staging | P0 | [x] |
+| **MIG-2** | Export V1 → import V2 : saisons + événements | P1 | backlog |
+| **MIG-3** | Export dispos / compositions | P2 | backlog |
+
 **Explicitement hors MVP V2 (backlog post-pilote) :**
 
 | Epics / stories | Raison |
