@@ -3,13 +3,17 @@
 #
 # Usage (depuis la racine du dépôt) :
 #   ./scripts/start-dev.sh
+#   ./scripts/start-dev.sh --no-tailscale   # sans Tailscale Serve (accès mobile MagicDNS)
 #   ./scripts/start-dev.sh --legacy   # ancien comportement : seulement le serveur V1 (Vue / Vite)
 #
 # Prérequis : `npm install` à la racine ; JDK 21 pour Gradle.
 # Variables : fichier `.env` à la racine du dépôt est chargé automatiquement (toutes les clés `KEY=value`
 # reconnues, commentaires `#` ignorés). Utile pour `HATCAST_*`, `VITE_*` (mode --legacy), etc.
+#   HATCAST_SKIP_TAILSCALE_SERVE=1 — équivalent à --no-tailscale
 #
-# URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host` : aussi sur le LAN).
+# URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host`).
+#   Accès mobile (tailnet) : `tailscale up` si déconnecté, puis Serve → https://<machine>.<tailnet>.ts.net
+#   OAuth Google : origine MagicDNS sans :4200 — voir docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md
 # API : PostgreSQL obligatoire (Neon) — exporter HATCAST_DATASOURCE_URL, HATCAST_DATASOURCE_USERNAME,
 # HATCAST_DATASOURCE_PASSWORD dans `.env` (Flyway + Spring Session sur cette base).
 
@@ -24,12 +28,91 @@ load_dotenv "$ROOT/.env"
 
 cd "$ROOT"
 
+SKIP_TAILSCALE_SERVE="${HATCAST_SKIP_TAILSCALE_SERVE:-0}"
+for arg in "$@"; do
+  [[ "$arg" == "--no-tailscale" ]] && SKIP_TAILSCALE_SERVE=1
+done
+
 if [[ "${1:-}" == "--legacy" ]]; then
   exec npm run dev -- --host
 fi
 
 API_PID=""
 CLEANUP_RAN=0
+TAILSCALE_SERVE_URL=""
+
+# Cible du proxy Serve (ng serve en HTTPS auto-signé). Flags avant la cible (CLI ≥ 1.52).
+HATCAST_TAILSCALE_SERVE_TARGET="${HATCAST_TAILSCALE_SERVE_TARGET:-https+insecure://127.0.0.1:4200}"
+
+tailscale_backend_running() {
+  local state
+  state="$(tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": "\([^"]*\)".*/\1/p' | head -1)"
+  [[ "$state" == "Running" ]]
+}
+
+ensure_tailscale_connected() {
+  if tailscale_backend_running; then
+    return 0
+  fi
+  echo "→ Connexion Tailscale (tailscale up)…"
+  local up_out=0
+  up_out="$(tailscale up 2>&1)" || {
+    echo "$up_out"
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      echo "  → Ouverture de l’app Tailscale (basculez sur Connect si besoin)…"
+      open -a Tailscale 2>/dev/null || true
+    fi
+  }
+  local i
+  for ((i = 0; i < 30; i++)); do
+    if tailscale_backend_running; then
+      echo "✓ Tailscale connecté"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "  ⚠ Tailscale reste déconnecté après 30 s — accès mobile indisponible."
+  echo "    Activez Tailscale dans la barre de menu, puis relancez le script."
+  return 1
+}
+
+tailscale_serve_already_configured() {
+  local status
+  status="$(tailscale serve status 2>/dev/null || true)"
+  [[ "$status" == *":4200"* ]]
+}
+
+tailscale_serve_public_url() {
+  tailscale serve status 2>/dev/null | grep -Eo 'https://[^[:space:]]+\.ts\.net' | head -1
+}
+
+ensure_tailscale_serve() {
+  if [[ "$SKIP_TAILSCALE_SERVE" == "1" ]]; then
+    return 0
+  fi
+  if ! command -v tailscale >/dev/null 2>&1; then
+    echo "  ⚠ CLI tailscale introuvable — accès mobile via MagicDNS ignoré."
+    return 0
+  fi
+  if ! ensure_tailscale_connected; then
+    return 0
+  fi
+  if tailscale_serve_already_configured; then
+    TAILSCALE_SERVE_URL="$(tailscale_serve_public_url || true)"
+    echo "✓ Tailscale Serve déjà actif pour le port 4200"
+    [[ -n "$TAILSCALE_SERVE_URL" ]] && echo "    • Mobile (tailnet) : $TAILSCALE_SERVE_URL"
+    return 0
+  fi
+  echo "→ Tailscale Serve (HTTPS tailnet → ng serve :4200)…"
+  if ! tailscale serve --yes --bg "$HATCAST_TAILSCALE_SERVE_TARGET" 2>&1; then
+    echo "  ⚠ Échec : tailscale serve --bg $HATCAST_TAILSCALE_SERVE_TARGET"
+    echo "    (HTTPS activé sur le tailnet ? voir https://tailscale.com/kb/1312/serve)"
+    return 0
+  fi
+  TAILSCALE_SERVE_URL="$(tailscale_serve_public_url || true)"
+  echo "✓ Tailscale Serve démarré"
+  [[ -n "$TAILSCALE_SERVE_URL" ]] && echo "    • Mobile (tailnet) : $TAILSCALE_SERVE_URL"
+}
 
 # Arrête tout ce qui écoute sur 8080 et ressemble à la JVM Spring / Gradle (repli si le groupe de processus n’a pas suffi).
 free_hatcast_api_port() {
@@ -115,13 +198,18 @@ fi
 
 echo "✓ API prête : http://127.0.0.1:8080"
 echo ""
+ensure_tailscale_serve
+echo ""
 echo "→ Démarrage du client Angular (ng serve, port 4200 par défaut)…"
 echo ""
 echo "  Stack V2 :"
 echo "    • API   : http://127.0.0.1:8080"
-echo "    • Front : https://0.0.0.0:4200  (TLS ; accessible sur le LAN via l’IP locale)"
+echo "    • Front : https://localhost:4200  (TLS ; ng serve --host 0.0.0.0)"
+if [[ -n "$TAILSCALE_SERVE_URL" ]]; then
+  echo "    • Mobile : $TAILSCALE_SERVE_URL  (Tailscale Serve ; OAuth : même origine dans Google Cloud)"
+fi
 echo ""
-echo "  Ctrl+C arrête le front puis l’API."
+echo "  Ctrl+C arrête le front puis l’API (Tailscale Serve reste actif en arrière-plan)."
 echo ""
 
 cd "$ROOT"
