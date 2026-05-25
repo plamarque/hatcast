@@ -89,6 +89,34 @@ paths:
         '403':
           description: Gestion refusée (hors règle provisoire seed/admin)
 
+  /seasons/{seasonId}/events/by-slug/{slug}:
+    get:
+      tags: [Événements]
+      summary: Détail d’un spectacle par identifiant URL (slug)
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 128
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe de la saison
+        '404':
+          description: Spectacle ou saison introuvable
+
   /seasons/{seasonId}/events/{eventId}:
     get:
       tags: [Événements]
@@ -284,6 +312,15 @@ components:
         seasonId:
           type: string
           format: uuid
+        slug:
+          type: string
+          maxLength: 128
+          description: Identifiant URL unique dans la saison
+        equityTag:
+          type: string
+          nullable: true
+          maxLength: 64
+          description: Compartiment d'équité (null = principal)
         title:
           type: string
         description:
@@ -365,6 +402,15 @@ components:
             minimum: 0
             maximum: 20
           description: Défaut = slots du templateType
+        slug:
+          type: string
+          maxLength: 128
+          description: >
+            Identifiant URL optionnel (sinon dérivé du titre). Lettres minuscules, chiffres et tirets.
+        equityTag:
+          type: string
+          maxLength: 64
+          description: Tag d'équité optionnel (un seul slug ; absent = principal)
 
     UpdateEventRequest:
       type: object
@@ -388,6 +434,15 @@ components:
             minimum: 0
             maximum: 20
           description: Remplacement complet si présent (PATCH)
+        slug:
+          type: string
+          maxLength: 128
+          description: Nouvel identifiant URL (unicité par saison ; absent = inchangé)
+        equityTag:
+          type: string
+          nullable: true
+          maxLength: 64
+          description: Tag d'équité (null explicite = compartiment principal ; absent = inchangé)
 
     PagedEvents:
       type: object

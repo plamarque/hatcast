@@ -8,6 +8,7 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.troupe.TroupeEquityTagService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -30,6 +31,7 @@ class EventServiceUpdateTest {
     private val troupeAccess = mock<TroupeAccessService>()
     private val availabilityService = mock<AvailabilityService>()
     private val compositionLifecycleEnrichment = mock<CompositionLifecycleEnrichmentService>()
+    private val troupeEquityTagService = mock<TroupeEquityTagService>()
     private val service =
         EventService(
             eventRepository,
@@ -37,6 +39,7 @@ class EventServiceUpdateTest {
             troupeAccess,
             availabilityService,
             compositionLifecycleEnrichment,
+            troupeEquityTagService,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
@@ -69,6 +72,7 @@ class EventServiceUpdateTest {
             id = eventId,
             season = season,
             title = "Spectacle",
+            slug = "spectacle",
             description = "Ancienne description",
             location = "Salle A",
             startsAt = Instant.parse("2030-01-01T20:00:00Z"),
@@ -120,6 +124,37 @@ class EventServiceUpdateTest {
                 )
             }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
+    }
+
+    @Test
+    fun `update title does not change slug`() {
+        val event = baseEvent()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+
+        service.update(
+            seasonId,
+            eventId,
+            UpdateEventRequest(title = JsonNullable.of("Nouveau titre")),
+            principal,
+        )
+
+        assertEquals("spectacle", event.slug)
+        assertEquals("Nouveau titre", event.title)
+    }
+
+    @Test
+    fun `update clears equityTag when null sent`() {
+        val event = baseEvent().apply { equityTag = "deplacements" }
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+
+        service.update(
+            seasonId,
+            eventId,
+            UpdateEventRequest(equityTag = JsonNullable.of(null)),
+            principal,
+        )
+
+        assertNull(event.equityTag)
     }
 
     @Test

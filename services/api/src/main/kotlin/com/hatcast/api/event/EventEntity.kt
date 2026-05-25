@@ -22,6 +22,8 @@ class EventEntity(
     val season: SeasonEntity,
     @Column(nullable = false, length = 255)
     var title: String,
+    @Column(nullable = false, length = 128)
+    var slug: String,
     @Column(columnDefinition = "TEXT")
     var description: String? = null,
     @Column(length = 512)
@@ -39,4 +41,7 @@ class EventEntity(
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now(),
+    /** Compartiment d'équité ; NULL = principal. */
+    @Column(name = "equity_tag", length = 64)
+    var equityTag: String? = null,
 )

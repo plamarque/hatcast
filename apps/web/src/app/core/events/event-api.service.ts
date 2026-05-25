@@ -7,6 +7,7 @@ import { csrfHeaders } from '../http/hatcast-csrf'
 export interface EventResponse {
   id: string
   seasonId: string
+  slug: string
   title: string
   description: string | null
   location: string | null
@@ -37,6 +38,7 @@ export interface CreateEventBody {
   location?: string | null
   templateType?: string
   roleSlots?: Record<string, number>
+  slug?: string
 }
 
 export interface UpdateEventBody {
@@ -46,12 +48,49 @@ export interface UpdateEventBody {
   location?: string | null
   templateType?: string
   roleSlots?: Record<string, number>
+  slug?: string
 }
 
 export type EventListScope = 'all' | 'upcoming'
 
+export type EventMutationResult = {
+  ok: boolean
+  status: number
+  data?: EventResponse
+  errorMessage?: string
+}
+
+async function readApiErrorMessage(res: Response): Promise<string | undefined> {
+  try {
+    const body = (await res.json()) as { message?: string }
+    const message = body.message?.trim()
+    return message || undefined
+  } catch {
+    return undefined
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class EventApiService {
+  async getEventBySlug(
+    seasonId: string,
+    eventSlug: string,
+  ): Promise<{ ok: boolean; status: number; data?: EventResponse }> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/by-slug/${encodeURIComponent(eventSlug)}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   async getEvent(
     seasonId: string,
     eventId: string,
@@ -97,10 +136,7 @@ export class EventApiService {
     }
   }
 
-  async createEvent(
-    seasonId: string,
-    body: CreateEventBody,
-  ): Promise<{ ok: boolean; status: number; data?: EventResponse }> {
+  async createEvent(seasonId: string, body: CreateEventBody): Promise<EventMutationResult> {
     try {
       const res = await fetch(`/v1/seasons/${encodeURIComponent(seasonId)}/events`, {
         method: 'POST',
@@ -112,7 +148,7 @@ export class EventApiService {
         body: JSON.stringify(body),
       })
       if (!res.ok) {
-        return { ok: false, status: res.status }
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
       const data = (await res.json()) as EventResponse
       return { ok: true, status: res.status, data }
@@ -125,7 +161,7 @@ export class EventApiService {
     seasonId: string,
     eventId: string,
     body: UpdateEventBody,
-  ): Promise<{ ok: boolean; status: number; data?: EventResponse }> {
+  ): Promise<EventMutationResult> {
     try {
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}`,
@@ -140,7 +176,7 @@ export class EventApiService {
         },
       )
       if (!res.ok) {
-        return { ok: false, status: res.status }
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
       const data = (await res.json()) as EventResponse
       return { ok: true, status: res.status, data }

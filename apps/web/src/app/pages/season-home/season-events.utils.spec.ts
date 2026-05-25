@@ -13,6 +13,7 @@ function ev(id: string, startsAt: string, title = 'T'): EventResponse {
   return {
     id,
     seasonId: 's1',
+    slug: id,
     title,
     description: null,
     location: null,

@@ -6,6 +6,7 @@ import com.hatcast.api.troupe.dto.MemberImportResultDto
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
+import com.hatcast.api.troupe.dto.TroupeEquityTagDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
@@ -37,6 +38,7 @@ class TroupeController(
     private val membershipService: TroupeMembershipService,
     private val userImportService: UserImportService,
     private val troupeAccess: TroupeAccessService,
+    private val troupeEquityTagService: TroupeEquityTagService,
 ) {
     /** Troupe(s) où l'utilisateur courant a une adhésion active. */
     @GetMapping
@@ -59,6 +61,12 @@ class TroupeController(
         val membership = membershipService.ensureActiveMembership(principal.userId, troupeId)
         return MembershipSummaryDto.from(membership)
     }
+
+    @GetMapping("/{troupeId}/equity-tags")
+    fun listEquityTags(
+        @PathVariable troupeId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): List<TroupeEquityTagDto> = troupeEquityTagService.listForTroupe(troupeId, principal)
 
     @GetMapping("/{troupeId}/memberships/me")
     fun getMyMembership(

@@ -606,6 +606,7 @@ function agendaItem(
 ): UserAgendaItem {
   return {
     eventId,
+    eventSlug: overrides.eventSlug ?? eventId,
     title,
     startsAt,
     location: null,

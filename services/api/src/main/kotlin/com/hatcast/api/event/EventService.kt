@@ -9,6 +9,7 @@ import com.hatcast.api.event.dto.PagedEventsResponse
 import com.hatcast.api.event.dto.UpdateEventRequest
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
+import com.hatcast.api.troupe.TroupeEquityTagService
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -27,6 +28,7 @@ class EventService(
     private val troupeAccess: TroupeAccessService,
     private val availabilityService: AvailabilityService,
     private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
+    private val troupeEquityTagService: TroupeEquityTagService,
 ) {
     companion object {
         /** Fuseau pour la borne « début du jour civil » (liste à venir / agenda). */
@@ -102,17 +104,32 @@ class EventService(
             } else {
                 RoleTemplates.slotsFor(templateType)
             }
+        val slugBase =
+            body.slug?.trim()?.takeIf { it.isNotEmpty() }?.also { EventSlugGenerator.requireValidExplicitSlug(it) }
+                ?: EventSlugGenerator.slugify(titleTrim).also { base ->
+                    if (base.isEmpty()) {
+                        throw ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Le titre ne permet pas de générer un identifiant URL.",
+                        )
+                    }
+                }
+        val uniqueSlug =
+            EventSlugGenerator.allocateUniqueSlug(seasonId, slugBase, eventRepository, null)
         val now = Instant.now()
+        val equityTag = resolveEquityTagForCreate(season.troupe.id, body.equityTag)
         val entity =
             EventEntity(
                 season = season,
                 title = titleTrim,
+                slug = uniqueSlug,
                 description = body.description?.trim()?.takeIf { it.isNotEmpty() },
                 location = body.location?.trim()?.takeIf { it.isNotEmpty() },
                 startsAt = body.startsAt,
                 archived = false,
                 templateType = templateType,
                 roleSlots = roleSlots,
+                equityTag = equityTag,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -200,8 +217,59 @@ class EventService(
             }
             e.roleSlots = RoleTemplates.normalize(raw)
         }
+        if (body.slug.isPresent) {
+            val rawSlug = body.slug.get()
+            if (rawSlug == null) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "L’identifiant URL ne peut pas être effacé.",
+                )
+            }
+            EventSlugGenerator.requireValidExplicitSlug(rawSlug)
+            e.slug =
+                EventSlugGenerator.allocateUniqueSlug(
+                    seasonId,
+                    rawSlug.trim(),
+                    eventRepository,
+                    e.id,
+                )
+        }
+        if (body.equityTag.isPresent) {
+            val raw = body.equityTag.get()
+            e.equityTag =
+                if (raw == null) {
+                    null
+                } else {
+                    troupeEquityTagService.ensureTag(e.season.troupe.id, raw)
+                }
+        }
         e.updatedAt = Instant.now()
         return EventResponseDto.from(eventRepository.save(e))
+    }
+
+    @Transactional(readOnly = true)
+    fun getBySlug(
+        seasonId: UUID,
+        slug: String,
+        principal: SessionUserPrincipal,
+    ): EventResponseDto {
+        val season =
+            seasonRepository
+                .findById(seasonId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
+        troupeAccess.requireActiveMember(principal, season.troupe.id)
+        val e =
+            eventRepository.findBySeason_IdAndSlug(seasonId, slug.trim())
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
+        val availability = availabilityService.myStatusByEventIds(listOf(e.id), principal.userId)
+        val lifecycle =
+            compositionLifecycleEnrichment
+                .loadViewsByEventIds(listOf(e), season, principal)[e.id]
+        return EventResponseDto.from(
+            e,
+            myAvailabilityStatus = availability[e.id],
+            compositionView = lifecycle,
+        )
     }
 
     @Transactional(readOnly = true)
@@ -252,6 +320,16 @@ class EventService(
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
         }
         return e
+    }
+
+    private fun resolveEquityTagForCreate(
+        troupeId: UUID,
+        raw: String?,
+    ): String? {
+        if (raw == null) {
+            return null
+        }
+        return troupeEquityTagService.ensureTag(troupeId, raw)
     }
 
     private fun startOfTodayInclusive(zone: ZoneId): Instant {

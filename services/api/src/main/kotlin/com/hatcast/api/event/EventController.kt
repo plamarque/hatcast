@@ -45,6 +45,13 @@ class EventController(
         return eventService.listForSeason(seasonId, page, size, s, principal)
     }
 
+    @GetMapping("/by-slug/{slug}")
+    fun getBySlug(
+        @PathVariable seasonId: UUID,
+        @PathVariable slug: String,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto = eventService.getBySlug(seasonId, slug, principal)
+
     @GetMapping("/{eventId}")
     fun getById(
         @PathVariable seasonId: UUID,

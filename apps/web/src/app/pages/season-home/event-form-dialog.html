@@ -5,9 +5,23 @@
   <form [formGroup]="form" class="form">
     <mat-form-field appearance="outline" class="full">
       <mat-label>Titre</mat-label>
-      <input matInput formControlName="title" />
+      <input matInput formControlName="title" (blur)="onTitleBlur()" />
       @if (form.controls.title.touched && form.controls.title.errors?.['required']) {
         <mat-error>Obligatoire</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Identifiant URL</mat-label>
+      <input
+        matInput
+        formControlName="slug"
+        (input)="onSlugInput()"
+        placeholder="genere-a-partir-du-titre"
+      />
+      <mat-hint>Lien partageable : /saison/…/event/identifiant</mat-hint>
+      @if (slugError) {
+        <mat-error>{{ slugError }}</mat-error>
       }
     </mat-form-field>
 

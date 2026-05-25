@@ -36,9 +36,9 @@
             class="agenda-card"
             role="button"
             tabindex="0"
-            (click)="openEvent(ev.id)"
-            (keydown.enter)="openEvent(ev.id)"
-            (keydown.space)="openEvent(ev.id); $event.preventDefault()"
+            (click)="openEvent(ev.slug)"
+            (keydown.enter)="openEvent(ev.slug)"
+            (keydown.space)="openEvent(ev.slug); $event.preventDefault()"
           >
             <div class="agenda-card__date">
               <span class="agenda-card__day">{{ ev.dayNumber }}</span>

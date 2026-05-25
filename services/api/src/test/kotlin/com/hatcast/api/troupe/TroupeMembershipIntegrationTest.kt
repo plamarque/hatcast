@@ -141,6 +141,7 @@ class TroupeMembershipIntegrationTest {
             EventEntity(
                 season = season,
                 title = "Upcoming for list",
+                slug = "upcoming-for-list",
                 startsAt = Instant.parse("2030-06-15T18:00:00Z"),
             ),
         )

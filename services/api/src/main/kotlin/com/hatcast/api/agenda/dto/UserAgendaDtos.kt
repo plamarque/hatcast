@@ -6,6 +6,7 @@ import java.util.UUID
 
 data class UserAgendaItemDto(
   val eventId: UUID,
+  val eventSlug: String,
   val title: String,
   val startsAt: Instant,
   val location: String?,
@@ -24,6 +25,7 @@ data class UserAgendaItemDto(
     ): UserAgendaItemDto {
       return UserAgendaItemDto(
         eventId = row.eventId,
+        eventSlug = row.eventSlug,
         title = row.title,
         startsAt = row.startsAt,
         location = row.location,

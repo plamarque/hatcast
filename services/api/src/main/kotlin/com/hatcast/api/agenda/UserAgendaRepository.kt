@@ -25,6 +25,7 @@ interface ParticipatingLeagueCatalogRow {
 
 interface UserAgendaRow {
   val eventId: UUID
+  val eventSlug: String
   val title: String
   val startsAt: Instant
   val location: String?
@@ -42,6 +43,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
     """
     SELECT DISTINCT
       e.id AS eventId,
+      e.slug AS eventSlug,
       e.title AS title,
       e.startsAt AS startsAt,
       e.location AS location,

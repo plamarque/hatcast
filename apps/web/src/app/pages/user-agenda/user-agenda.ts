@@ -182,7 +182,7 @@ export class UserAgenda implements OnInit {
   }
 
   protected openEvent(item: UserAgendaItem): void {
-    void this.router.navigate(saisonEventPath(item.leagueSlug, item.eventId))
+    void this.router.navigate(saisonEventPath(item.leagueSlug, item.eventSlug))
   }
 
   protected timeLabel(item: UserAgendaItem): string {

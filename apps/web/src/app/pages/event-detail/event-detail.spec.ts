@@ -27,6 +27,7 @@ function ev(id: string, overrides: Partial<EventResponse> = {}): EventResponse {
   return {
     id,
     seasonId: 'season-1',
+    slug: overrides.slug ?? id,
     title: `Spectacle ${id}`,
     description: 'Description test',
     location: 'Paris',
@@ -44,7 +45,7 @@ describe('EventDetail', () => {
   let fixture: ComponentFixture<EventDetail>
   let paramMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   let queryParamMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
-  let getEvent: ReturnType<typeof vi.fn>
+  let loadEventMock: ReturnType<typeof vi.fn>
   let archiveEvent: ReturnType<typeof vi.fn>
   let mySeasonPermissions: ReturnType<typeof vi.fn>
   let listMyTroupes: ReturnType<typeof vi.fn>
@@ -54,9 +55,9 @@ describe('EventDetail', () => {
   let router: Router
 
   beforeEach(async () => {
-    paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a', eventId: 'event-2' }))
+    paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a', eventSlug: 'event-2' }))
     queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
-    getEvent = vi.fn().mockResolvedValue({ ok: true, status: 200, data: ev('event-2') })
+    loadEventMock = vi.fn().mockResolvedValue({ ok: true, status: 200, data: ev('event-2') })
     archiveEvent = vi.fn().mockResolvedValue({ ok: true })
     mySeasonPermissions = vi.fn().mockResolvedValue({
       ok: true,
@@ -151,7 +152,14 @@ describe('EventDetail', () => {
           provide: SeasonApiService,
           useValue: { getSeasonBySlug },
         },
-        { provide: EventApiService, useValue: { getEvent, archiveEvent } },
+        {
+          provide: EventApiService,
+          useValue: {
+            getEvent: loadEventMock,
+            getEventBySlug: loadEventMock,
+            archiveEvent,
+          },
+        },
         { provide: OrganizerApiService, useValue: { mySeasonPermissions } },
         {
           provide: AvailabilityApiService,
@@ -184,13 +192,32 @@ describe('EventDetail', () => {
     vi.spyOn(router, 'navigate').mockResolvedValue(true)
   })
 
-  it('loads event via getEvent endpoint', async () => {
+  it('loads event via getEventBySlug when route segment is a slug', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(getEvent).toHaveBeenCalledWith('season-1', 'event-2')
+      expect(loadEventMock).toHaveBeenCalledWith('season-1', 'event-2')
     })
     expect((fixture.componentInstance as unknown as EventDetailHarness).event()?.id).toBe('event-2')
+  })
+
+  it('replaces UUID route with canonical slug URL', async () => {
+    const uuid = 'c0000002-0000-4000-8000-000000000002'
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev(uuid, { slug: 'match-vs-bruxelles' }),
+    })
+    paramMap$.next(convertToParamMap({ slug: 'season-a', eventSlug: uuid }))
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(loadEventMock).toHaveBeenCalledWith('season-1', uuid)
+      expect(router.navigate).toHaveBeenCalledWith(
+        ['/saison', 'season-a', 'event', 'match-vs-bruxelles'],
+        expect.objectContaining({ replaceUrl: true }),
+      )
+    })
   })
 
   it('renders Infos labeled fields', async () => {
@@ -210,7 +237,7 @@ describe('EventDetail', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(getEvent).toHaveBeenCalled()
+      expect(loadEventMock).toHaveBeenCalled()
     })
     expect(fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger')).toBeNull()
   })
@@ -267,7 +294,7 @@ describe('EventDetail', () => {
   })
 
   it('shows composition status hint on Infos tab', async () => {
-    getEvent.mockResolvedValue({
+    loadEventMock.mockResolvedValue({
       ok: true,
       status: 200,
       data: {
@@ -304,7 +331,7 @@ describe('EventDetail', () => {
 
   it('syncs tab changes to URL query', async () => {
     fixture.detectChanges()
-    await vi.waitFor(() => expect(getEvent).toHaveBeenCalled())
+    await vi.waitFor(() => expect(loadEventMock).toHaveBeenCalled())
 
     ;(fixture.componentInstance as unknown as { onTabChange(index: number): void }).onTabChange(1)
 
@@ -334,7 +361,7 @@ describe('EventDetail', () => {
         eventParticipantAdminFor: [],
       },
     })
-    getEvent.mockResolvedValue({
+    loadEventMock.mockResolvedValue({
       ok: true,
       status: 200,
       data: ev('event-2', { archived: true }),
@@ -352,7 +379,7 @@ describe('EventDetail', () => {
   })
 
   it('selects Équipe and auto-opens participation modal when showConfirm=true', async () => {
-    getEvent.mockResolvedValue({
+    loadEventMock.mockResolvedValue({
       ok: true,
       status: 200,
       data: ev('event-2', {
@@ -479,7 +506,7 @@ describe('EventDetail', () => {
       },
     })
     fixture.detectChanges()
-    await vi.waitFor(() => expect(getEvent).toHaveBeenCalled())
+    await vi.waitFor(() => expect(loadEventMock).toHaveBeenCalled())
 
     ;(fixture.componentInstance as unknown as { onTabChange(index: number): void }).onTabChange(1)
     fixture.detectChanges()
@@ -584,7 +611,7 @@ describe('EventDetail', () => {
   it('navigates to season agenda after archive confirm', async () => {
     fixture.detectChanges()
 
-    await vi.waitFor(() => expect(getEvent).toHaveBeenCalled())
+    await vi.waitFor(() => expect(loadEventMock).toHaveBeenCalled())
 
     await (
       fixture.componentInstance as unknown as { runArchive(ev: EventResponse): Promise<void> }
@@ -661,11 +688,11 @@ describe('EventDetail', () => {
   })
 
   it('does not render mobile context when event is not found', async () => {
-    getEvent.mockResolvedValue({ ok: false, status: 404 })
+    loadEventMock.mockResolvedValue({ ok: false, status: 404 })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(getEvent).toHaveBeenCalled()
+      expect(loadEventMock).toHaveBeenCalled()
     })
     expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
   })

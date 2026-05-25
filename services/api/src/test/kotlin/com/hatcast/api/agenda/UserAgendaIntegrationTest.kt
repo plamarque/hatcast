@@ -5,6 +5,7 @@ import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.EventSlugGenerator
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
@@ -207,6 +208,10 @@ class UserAgendaIntegrationTest {
       EventEntity(
         season = season,
         title = title,
+        slug =
+          EventSlugGenerator.slugify(title).ifEmpty {
+            "event-${UUID.randomUUID().toString().take(8)}"
+          },
         startsAt = startsAt,
         archived = archived,
       ),

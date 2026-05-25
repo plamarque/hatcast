@@ -1,3 +1,12 @@
+## Deferred from: code review of 17-7-api-tag-equite-glossaire-troupe.md (2026-05-25)
+
+- Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests equity-tag supposent Postgres/CI (aligné 17.6).
+
+## Deferred from: code review of 17-6-slug-evenement-dans-les-urls.md (2026-05-25)
+
+- Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests d’intégration slug supposent Postgres/CI.
+- Backfill SQL (`translate`) vs `slugify` Kotlin/NFD — écart possible sur titres exotiques au moment de la migration uniquement.
+
 ## Deferred from: code review of 17-5-redirects-fin-seasons-hub-troupe.md (2026-05-25)
 
 - Stale admin-membres spec title (« seasons list ») while asserting navigation to `/troupes`.

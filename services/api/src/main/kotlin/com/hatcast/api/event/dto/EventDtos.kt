@@ -16,6 +16,9 @@ import java.util.UUID
 data class EventResponseDto(
     val id: UUID,
     val seasonId: UUID,
+    val slug: String,
+    /** NULL = compartiment principal. */
+    val equityTag: String? = null,
     val title: String,
     val description: String?,
     val location: String?,
@@ -39,6 +42,8 @@ data class EventResponseDto(
             EventResponseDto(
                 id = e.id,
                 seasonId = e.season.id,
+                slug = e.slug,
+                equityTag = e.equityTag,
                 title = e.title,
                 description = e.description,
                 location = e.location,
@@ -77,6 +82,10 @@ data class CreateEventRequest(
     val location: String? = null,
     val templateType: String? = null,
     val roleSlots: Map<String, Int>? = null,
+    @field:Size(max = 128)
+    val slug: String? = null,
+    @field:Size(max = 64)
+    val equityTag: String? = null,
 )
 
 @JsonDeserialize(using = UpdateEventRequestDeserializer::class)
@@ -97,4 +106,8 @@ data class UpdateEventRequest(
      * Présent = remplacement complet de la map (pas de merge partiel).
      */
     val roleSlots: JsonNullable<Map<String, Int>> = JsonNullable.undefined(),
+    /** Absent = inchangé ; `null` explicite = interdit (400). */
+    val slug: JsonNullable<String> = JsonNullable.undefined(),
+    /** Absent = inchangé ; `null` explicite = effacer (compartiment principal). */
+    val equityTag: JsonNullable<String> = JsonNullable.undefined(),
 )

@@ -14,6 +14,7 @@ function ev(overrides: Partial<EventResponse> = {}): EventResponse {
   return {
     id: 'event-1',
     seasonId: 'season-1',
+    slug: 'event-1',
     title: 'Spectacle',
     description: null,
     location: null,

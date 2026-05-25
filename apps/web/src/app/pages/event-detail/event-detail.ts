@@ -27,8 +27,10 @@ import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redir
 import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
+  saisonEventPath,
   saisonWorkspacePath,
 } from '../../core/navigation/troupe-routes'
+import { UUID_IN_PATH_REGEX } from '../../core/navigation/url-slug'
 import type { ScopeAdminMenuItem } from '../../shared/scope-admin-menu/scope-admin-menu'
 import {
   ConfirmDialog,
@@ -80,8 +82,8 @@ export class EventDetail implements OnDestroy, OnInit {
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
     { initialValue: '' },
   )
-  protected readonly eventId = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('eventId') ?? '')),
+  protected readonly eventSlug = toSignal(
+    this.route.paramMap.pipe(map((p) => p.get('eventSlug') ?? '')),
     { initialValue: '' },
   )
 
@@ -202,12 +204,12 @@ export class EventDetail implements OnDestroy, OnInit {
       .pipe(
         map((p) => ({
           slug: p.get('slug') ?? '',
-          eventId: p.get('eventId') ?? '',
+          eventSlug: p.get('eventSlug') ?? '',
         })),
-        distinctUntilChanged((a, b) => a.slug === b.slug && a.eventId === b.eventId),
+        distinctUntilChanged((a, b) => a.slug === b.slug && a.eventSlug === b.eventSlug),
       )
-      .subscribe(({ slug, eventId }) => {
-        void this.loadEvent(slug, eventId)
+      .subscribe(({ slug, eventSlug }) => {
+        void this.loadEvent(slug, eventSlug)
       })
   }
 
@@ -392,17 +394,17 @@ export class EventDetail implements OnDestroy, OnInit {
 
   private async reloadEvent(message: string): Promise<void> {
     const slug = this.slug()
-    const eventId = this.eventId()
-    if (!slug || !eventId) {
+    const eventSlug = this.event()?.slug ?? this.eventSlug()
+    if (!slug || !eventSlug) {
       return
     }
-    await this.loadEvent(slug, eventId, { silent: true })
+    await this.loadEvent(slug, eventSlug, { silent: true })
     this.snack.open(message, 'OK', { duration: 4000 })
   }
 
   private async loadEvent(
     slug: string,
-    eventId: string,
+    routeSegment: string,
     options: { silent?: boolean } = {},
   ): Promise<void> {
     const requestId = ++this.loadRequestId
@@ -411,7 +413,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.event.set(null)
       this.resetResolvedContext()
     }
-    if (!slug || !eventId) {
+    if (!slug || !routeSegment) {
       this.loading.set(false)
       return
     }
@@ -449,8 +451,11 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextTroupeSlug.set(resolved.troupe.slug)
     this.contextLeagueTitle.set(resolved.season.title)
     this.contextSeasonSlug.set(resolved.season.slug)
+    const isUuidSegment = UUID_IN_PATH_REGEX.test(routeSegment)
     const [eventResult, permissionsResult] = await Promise.all([
-      this.eventsApi.getEvent(resolved.season.id, eventId),
+      isUuidSegment
+        ? this.eventsApi.getEvent(resolved.season.id, routeSegment)
+        : this.eventsApi.getEventBySlug(resolved.season.id, routeSegment),
       this.organizerApi.mySeasonPermissions(resolved.season.id),
     ])
 
@@ -464,6 +469,13 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     const found = eventResult.data
+    if (isUuidSegment && found.slug && found.slug !== routeSegment) {
+      await this.router.navigate(saisonEventPath(resolved.season.slug, found.slug), {
+        queryParams: this.route.snapshot.queryParams,
+        replaceUrl: true,
+      })
+      return
+    }
     this.event.set(found)
     this.seasonPermissions.set(permissionsResult.ok && permissionsResult.data ? permissionsResult.data : null)
 

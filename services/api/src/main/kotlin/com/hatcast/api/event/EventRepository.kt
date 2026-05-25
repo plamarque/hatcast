@@ -9,6 +9,22 @@ import java.time.Instant
 import java.util.UUID
 
 interface EventRepository : JpaRepository<EventEntity, UUID> {
+    fun findBySeason_IdAndSlug(
+        seasonId: UUID,
+        slug: String,
+    ): EventEntity?
+
+    fun existsBySeason_IdAndSlug(
+        seasonId: UUID,
+        slug: String,
+    ): Boolean
+
+    fun existsBySeason_IdAndSlugAndIdNot(
+        seasonId: UUID,
+        slug: String,
+        id: UUID,
+    ): Boolean
+
     fun findBySeason_IdOrderByStartsAtAsc(
         seasonId: UUID,
         pageable: Pageable,

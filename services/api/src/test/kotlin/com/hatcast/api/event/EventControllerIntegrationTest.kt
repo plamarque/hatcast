@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.hamcrest.Matchers.nullValue
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Instant
@@ -126,10 +127,20 @@ class EventControllerIntegrationTest {
                         ).with(csrf()),
                 ).andExpect(status().isOk)
                 .andExpect(jsonPath("$.title").value("Match futur"))
+                .andExpect(jsonPath("$.slug").value("match-futur"))
                 .andExpect(jsonPath("$.archived").value(false))
                 .andReturn()
         val eventFutureId =
             mapper.readTree(createFuture.response.contentAsString).get("id").asText()
+        val eventFutureSlug =
+            mapper.readTree(createFuture.response.contentAsString).get("slug").asText()
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/by-slug/$eventFutureSlug").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(eventFutureId))
+            .andExpect(jsonPath("$.slug").value("match-futur"))
 
         mockMvc
             .perform(
@@ -356,12 +367,186 @@ class EventControllerIntegrationTest {
     }
 
     @Test
+    fun `create event with explicit slug and collision suffix`() {
+        val cookie = memberCookie("sub-event-slug-1")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-15T18:00:00Z")
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "title": "Premier cabaret",
+                          "startsAt": "${future}"
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slug").value("premier-cabaret"))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "title": "Premier cabaret bis",
+                          "startsAt": "${future}"
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slug").value("premier-cabaret-2"))
+    }
+
+    @Test
+    fun `patch slug updates url identifier`() {
+        val cookie = memberCookie("sub-event-slug-2")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-15T18:00:00Z")
+
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Renommable",
+                              "startsAt": "${future}"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val eventId = mapper.readTree(createRes.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId/events/$eventId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "slug": "nouveau-slug" }""".trimIndent())
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slug").value("nouveau-slug"))
+            .andExpect(jsonPath("$.title").value("Renommable"))
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/by-slug/nouveau-slug").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(eventId))
+    }
+
+    @Test
+    fun `seed season events have unique slugs after migration`() {
+        val cookie = memberCookie("sub-event-slug-3")
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events?page=0&size=100&scope=all").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.id == 'c0000002-0000-4000-8000-000000000002')].slug").value("match-vs-bruxelles"))
+    }
+
+    @Test
+    fun `by-slug returns 404 for unknown slug`() {
+        val cookie = memberCookie("sub-event-slug-4")
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events/by-slug/inconnu-xyz").cookie(cookie),
+            ).andExpect(status().isNotFound)
+    }
+
+    @Test
     fun `invalid scope returns 400`() {
         val cookie = memberCookie("sub-event-2")
         val seasonId = createSeasonForEventsTests(cookie)
         mockMvc
             .perform(
                 get("/v1/seasons/$seasonId/events?scope=wrong").cookie(cookie),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `equity tag create get patch clear and reject multi`() {
+        val cookie = memberCookie("sub-event-equity-1")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-07-01T20:00:00Z")
+
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Apérock extérieur",
+                              "startsAt": "$future",
+                              "equityTag": "Apérock"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.equityTag").value("aperock"))
+                .andReturn()
+        val eventId = mapper.readTree(createRes.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.equityTag").value("aperock"))
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId/events/$eventId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "equityTag": null }""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.equityTag").value(nullValue()))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "title": "Multi tag",
+                          "startsAt": "$future",
+                          "equityTag": ["deplacements"]
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isBadRequest)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "title": "Virgule tag",
+                          "startsAt": "${future.plusSeconds(7200)}",
+                          "equityTag": "deplacements,aperock"
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
             ).andExpect(status().isBadRequest)
     }
 }

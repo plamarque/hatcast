@@ -10,10 +10,10 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
-import { leagueEventPath } from '../../core/navigation/league-routes'
 import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
+  saisonEventPath,
 } from '../../core/navigation/troupe-routes'
 import type { ScopeAdminMenuItem } from '../../shared/scope-admin-menu/scope-admin-menu'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
@@ -251,7 +251,8 @@ export class SeasonHome implements OnDestroy, OnInit {
             queryParams[key] = value
           }
         }
-        void this.router.navigate(leagueEventPath(slug, eventId), {
+        const segment = this.events().find((e) => e.id === eventId)?.slug ?? eventId
+        void this.router.navigate(saisonEventPath(slug, segment), {
           queryParams,
           replaceUrl: true,
         })
@@ -412,8 +413,8 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
   }
 
-  protected openEvent(eventId: string): void {
-    void this.router.navigate(leagueEventPath(this.slug(), eventId))
+  protected openEvent(eventSlug: string): void {
+    void this.router.navigate(saisonEventPath(this.slug(), eventSlug))
   }
 
   protected async openAvailability(payload: { eventId: string; status: AvailabilityStatus }): Promise<void> {
@@ -472,17 +473,21 @@ export class SeasonHome implements OnDestroy, OnInit {
       this.snack.open('Vous ne pouvez pas créer de spectacle dans cette saison.', 'OK', { duration: 5000 })
       return
     }
-    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(
+    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, EventResponse | boolean | undefined>(
       EventFormDialog,
       {
         data: { mode: 'create', seasonId: s.id },
         width: 'min(100vw - 2rem, 28rem)',
       },
     )
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.reloadAfterMutation('Spectacle créé.')
+    ref.afterClosed().subscribe((result) => {
+      if (!result) {
+        return
       }
+      if (typeof result === 'object' && result.slug) {
+        void this.router.navigate(saisonEventPath(this.slug(), result.slug))
+      }
+      void this.reloadAfterMutation('Spectacle créé.')
     })
   }
 

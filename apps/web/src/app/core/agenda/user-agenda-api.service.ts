@@ -4,6 +4,7 @@ import type { AvailabilityStatus } from '../availability/availability-status'
 
 export interface UserAgendaItem {
   eventId: string
+  eventSlug: string
   title: string
   startsAt: string
   location: string | null

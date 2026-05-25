@@ -162,6 +162,7 @@ components:
       type: object
       required:
         - eventId
+        - eventSlug
         - title
         - startsAt
         - troupeId
@@ -174,6 +175,10 @@ components:
         eventId:
           type: string
           format: uuid
+        eventSlug:
+          type: string
+          maxLength: 128
+          description: Identifiant URL du spectacle (navigation `/saison/:slug/event/:eventSlug`)
         title:
           type: string
         startsAt:

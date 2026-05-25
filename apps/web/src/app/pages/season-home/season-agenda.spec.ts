@@ -13,6 +13,7 @@ const monthGroups: MonthEventGroup[] = [
       {
         id: 'event-1',
         seasonId: 'season-1',
+        slug: 'aperock-mai',
         title: 'Apérock Mai',
         description: null,
         location: 'Salle A',
@@ -56,17 +57,17 @@ describe('SeasonAgenda', () => {
     const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
     card.click()
 
-    expect(spy).toHaveBeenCalledWith('event-1')
+    expect(spy).toHaveBeenCalledWith('aperock-mai')
   })
 
-  it('emits the event id on keyboard activation', () => {
+  it('emits the event slug on keyboard activation', () => {
     const spy = vi.fn()
     fixture.componentInstance.eventClick.subscribe(spy)
 
     const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
     card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
 
-    expect(spy).toHaveBeenCalledWith('event-1')
+    expect(spy).toHaveBeenCalledWith('aperock-mai')
   })
 
   it('renders composition team status badge on agenda cards', () => {

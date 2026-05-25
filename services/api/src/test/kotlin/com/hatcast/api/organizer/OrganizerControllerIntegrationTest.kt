@@ -314,6 +314,7 @@ class OrganizerControllerIntegrationTest {
                 EventEntity(
                     season = season,
                     title = "Non seed event",
+                    slug = "non-seed-event",
                     startsAt = Instant.parse("2030-06-15T18:00:00Z"),
                 ),
             )

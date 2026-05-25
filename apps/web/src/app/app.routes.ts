@@ -54,7 +54,7 @@ export const routes: Routes = [
   { path: 'saison/:slug', component: SeasonHome },
   { path: 'saison/:slug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug/admin/participants', component: AdminParticipants },
-  { path: 'saison/:slug/event/:eventId', component: EventDetail },
+  { path: 'saison/:slug/event/:eventSlug', component: EventDetail },
   {
     path: 'ligue/:slug/admin/membres',
     redirectTo: (route) =>
@@ -72,10 +72,10 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'ligue/:slug/event/:eventId',
+    path: 'ligue/:slug/event/:eventSlug',
     redirectTo: (route) =>
       redirectPathWithQuery(
-        `/saison/${route.params['slug']}/event/${route.params['eventId']}`,
+        `/saison/${route.params['slug']}/event/${route.params['eventSlug']}`,
         route.queryParamMap,
       ),
   },
