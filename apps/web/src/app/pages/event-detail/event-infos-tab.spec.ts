@@ -7,8 +7,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { emptyRoleSlots } from '../../core/events/event-types'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { applyTemplate } from '../../core/events/event-types'
 import { EventInfosTab } from './event-infos-tab'
 import { EventEquityTagDialog } from './event-equity-tag-dialog'
+import { EventTypeRolesDialog } from './event-type-roles-dialog'
 
 function baseEvent(overrides: Partial<EventResponse> = {}): EventResponse {
   return {
@@ -173,8 +175,123 @@ describe('EventInfosTab equity tag', () => {
       (el: Element) => el.textContent?.trim(),
     )
     const lieuIdx = labels.indexOf('Lieu')
-    const tagIdx = labels.indexOf('Tag d’équité')
+    const typeRolesIdx = labels.indexOf('Format et besoins')
+    const tagIdx = labels.indexOf('Groupe de spectacles')
     expect(lieuIdx).toBeGreaterThanOrEqual(0)
-    expect(tagIdx).toBeGreaterThan(lieuIdx)
+    expect(typeRolesIdx).toBeGreaterThan(lieuIdx)
+    expect(tagIdx).toBeGreaterThan(typeRolesIdx)
+  })
+})
+
+describe('EventInfosTab type and roles', () => {
+  it('shows type label and role summary for all users', async () => {
+    const { fixture } = await setup({
+      canManageEvents: false,
+      equityTag: null,
+    })
+    fixture.componentRef.setInput(
+      'event',
+      baseEvent({
+        templateType: 'match',
+        roleSlots: { ...applyTemplate('match') },
+      }),
+    )
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(fixture.nativeElement.textContent).toContain('Match')
+    expect(fixture.nativeElement.querySelector('.event-infos__format')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('.event-infos__format-edit')).toBeNull()
+  })
+
+  it('shows edit icon when user can manage events', async () => {
+    const { fixture } = await setup({ canManageEvents: true, equityTag: null })
+    const editBtn = fixture.nativeElement.querySelector('.event-infos__format-edit')
+    expect(editBtn).toBeTruthy()
+    expect(editBtn?.getAttribute('aria-label')).toBe('Modifier format et besoins')
+  })
+
+  it('opens type/roles dialog and PATCHes templateType and roleSlots', async () => {
+    const updated = baseEvent({
+      templateType: 'longform',
+      roleSlots: applyTemplate('longform'),
+    })
+    const updateEvent = vi.fn().mockResolvedValue({ ok: true, status: 200, data: updated })
+    const dialogOpen = vi.fn().mockReturnValue({
+      afterClosed: () => ({
+        subscribe: (fn: (v: { templateType: string; roleSlots: Record<string, number> } | undefined) => void) => {
+          fn({ templateType: 'longform', roleSlots: applyTemplate('longform') })
+        },
+      }),
+    })
+    await TestBed.configureTestingModule({
+      imports: [EventInfosTab, NoopAnimationsModule],
+      providers: [
+        { provide: EventApiService, useValue: { updateEvent } },
+        { provide: TroupeApiService, useValue: { listEquityTags: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+      ],
+    }).compileComponents()
+    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
+
+    const fixture = TestBed.createComponent(EventInfosTab)
+    fixture.componentRef.setInput('event', baseEvent())
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('troupeId', 'troupe-1')
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    const cmp = fixture.componentInstance as unknown as { openTypeRolesDialog: () => void }
+    cmp.openTypeRolesDialog()
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledWith(
+        EventTypeRolesDialog,
+        expect.objectContaining({
+          data: expect.objectContaining({ seasonId: 'season-1', eventId: 'event-1' }),
+        }),
+      )
+      expect(updateEvent).toHaveBeenCalledWith('season-1', 'event-1', {
+        templateType: 'longform',
+        roleSlots: applyTemplate('longform'),
+      })
+    })
+  })
+
+  it('emits eventUpdated after successful type/roles save', async () => {
+    const updated = baseEvent({ templateType: 'catch', roleSlots: applyTemplate('catch') })
+    const updateEvent = vi.fn().mockResolvedValue({ ok: true, status: 200, data: updated })
+    const dialogOpen = vi.fn().mockReturnValue({
+      afterClosed: () => ({
+        subscribe: (fn: (v: { templateType: string; roleSlots: Record<string, number> } | undefined) => void) => {
+          fn({ templateType: 'catch', roleSlots: applyTemplate('catch') })
+        },
+      }),
+    })
+    await TestBed.configureTestingModule({
+      imports: [EventInfosTab, NoopAnimationsModule],
+      providers: [
+        { provide: EventApiService, useValue: { updateEvent } },
+        { provide: TroupeApiService, useValue: { listEquityTags: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+      ],
+    }).compileComponents()
+    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
+
+    const fixture = TestBed.createComponent(EventInfosTab)
+    fixture.componentRef.setInput('event', baseEvent())
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('troupeId', 'troupe-1')
+    fixture.componentRef.setInput('canManageEvents', true)
+    const spy = vi.fn()
+    fixture.componentInstance.eventUpdated.subscribe(spy)
+    fixture.detectChanges()
+
+    const cmp = fixture.componentInstance as unknown as { openTypeRolesDialog: () => void }
+    cmp.openTypeRolesDialog()
+    await vi.waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(updated)
+    })
   })
 })

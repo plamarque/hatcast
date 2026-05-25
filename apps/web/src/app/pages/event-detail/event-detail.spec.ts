@@ -230,7 +230,7 @@ describe('EventDetail', () => {
       const labels = [...fixture.nativeElement.querySelectorAll('.event-infos__label')].map(
         (el: Element) => el.textContent?.trim(),
       )
-      expect(labels).toEqual(['Titre', 'Description', 'Date', 'Lieu'])
+      expect(labels).toEqual(['Titre', 'Description', 'Date', 'Lieu', 'Format et besoins'])
     })
     expect(fixture.nativeElement.textContent).toContain('Description test')
     expect(fixture.nativeElement.textContent).toContain('Paris')

@@ -7,6 +7,16 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import type { EventResponse } from '../../core/events/event-api.service'
 import { EventApiService } from '../../core/events/event-api.service'
+import {
+  type EventTypeId,
+  getEventTypeIcon,
+  getEventTypeLabel,
+  normalizeRoleSlots,
+  type RoleKey,
+  ROLE_EMOJIS,
+  ROLE_LABELS,
+  rolesWithSlots,
+} from '../../core/events/event-types'
 import { compositionStatusHint } from '../../core/composition/composition-status-hint'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import {
@@ -23,6 +33,11 @@ import {
   type EventEquityTagDialogData,
   type EventEquityTagDialogResult,
 } from './event-equity-tag-dialog'
+import {
+  EventTypeRolesDialog,
+  type EventTypeRolesDialogData,
+  type EventTypeRolesDialogResult,
+} from './event-type-roles-dialog'
 
 @Component({
   selector: 'app-event-infos-tab',
@@ -59,6 +74,14 @@ export class EventInfosTab {
   protected readonly showEquitySection = computed(
     () => this.canManageEvents() || this.event().equityTag != null,
   )
+
+  protected readonly typeIcon = computed(() => getEventTypeIcon(this.event().templateType))
+  protected readonly typeLabel = computed(() => getEventTypeLabel(this.event().templateType))
+  protected readonly summaryRoleKeys = computed((): RoleKey[] =>
+    rolesWithSlots(normalizeRoleSlots(this.event().roleSlots)),
+  )
+  protected readonly roleLabels = ROLE_LABELS
+  protected readonly roleEmojis = ROLE_EMOJIS
 
   protected readonly equityTagLabel = computed(() => {
     const slug = this.event().equityTag
@@ -102,6 +125,33 @@ export class EventInfosTab {
     }
   }
 
+  protected roleCount(role: RoleKey): number {
+    return normalizeRoleSlots(this.event().roleSlots)[role] ?? 0
+  }
+
+  protected openTypeRolesDialog(): void {
+    const ev = this.event()
+    const ref = this.dialog.open<
+      EventTypeRolesDialog,
+      EventTypeRolesDialogData,
+      EventTypeRolesDialogResult
+    >(EventTypeRolesDialog, {
+      data: {
+        seasonId: this.seasonId(),
+        eventId: ev.id,
+        templateType: ev.templateType,
+        roleSlots: ev.roleSlots,
+      },
+      width: 'min(100vw - 2rem, 32rem)',
+    })
+    ref.afterClosed().subscribe((result) => {
+      if (result === undefined) {
+        return
+      }
+      void this.persistTypeRoles(result)
+    })
+  }
+
   protected openTagDialog(): void {
     const label = this.equityTagLabel()
     const ref = this.dialog.open<
@@ -113,7 +163,7 @@ export class EventInfosTab {
         troupeId: this.troupeId(),
         initialQuery: label ?? '',
       },
-      width: 'min(100vw - 2rem, 28rem)',
+      width: 'min(100vw - 2rem, 32rem)',
     })
     ref.afterClosed().subscribe((result) => {
       if (result === undefined) {
@@ -125,6 +175,32 @@ export class EventInfosTab {
 
   protected removeTag(): void {
     void this.persistTag(null)
+  }
+
+  private async persistTypeRoles(result: {
+    templateType: EventTypeId
+    roleSlots: Record<string, number>
+  }): Promise<void> {
+    const seasonId = this.seasonId()
+    const ev = this.event()
+    const body = {
+      templateType: result.templateType,
+      roleSlots: normalizeRoleSlots(result.roleSlots),
+    }
+
+    this.saving.set(true)
+    try {
+      const apiResult = await this.eventsApi.updateEvent(seasonId, ev.id, body)
+      if (!apiResult.ok || !apiResult.data) {
+        const message = apiResult.errorMessage ?? 'Enregistrement impossible.'
+        this.snack.open(message, 'OK', { duration: 6000 })
+        return
+      }
+      this.eventUpdated.emit(apiResult.data)
+      this.snack.open('Format et besoins enregistrés.', 'OK', { duration: 4000 })
+    } finally {
+      this.saving.set(false)
+    }
   }
 
   private async persistTag(value: string | null): Promise<void> {

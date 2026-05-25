@@ -15,7 +15,7 @@ import {
 } from '../../core/troupes/troupe-api.service'
 
 export const EQUITY_TAG_HELP =
-  'Les participations à ce spectacle comptent dans un compartiment d’équité séparé pour les chances au tirage et les statistiques.'
+  'Les participations à ce spectacle comptent dans un groupe de spectacles séparé pour calculer les chances au tirage et les statistiques.'
 
 export interface EventEquityTagDialogData {
   troupeId: string
@@ -36,10 +36,10 @@ export type EventEquityTagDialogResult = string | null | undefined
     MatInputModule,
   ],
   template: `
-    <h2 mat-dialog-title>Tag d’équité</h2>
+    <h2 mat-dialog-title>Groupe de spectacles</h2>
     <mat-dialog-content class="equity-tag-dialog">
       <mat-form-field appearance="outline" class="equity-tag-dialog__field">
-        <mat-label>Tag (optionnel)</mat-label>
+        <mat-label>Groupe (optionnel)</mat-label>
         <input
           matInput
           autofocus
@@ -68,10 +68,14 @@ export type EventEquityTagDialogResult = string | null | undefined
       .equity-tag-dialog {
         display: grid;
         gap: 0.5rem;
-        min-width: min(24rem, calc(100vw - 3rem));
+        min-width: min(32rem, calc(100vw - 3rem));
       }
       .equity-tag-dialog__field {
         width: 100%;
+      }
+      .equity-tag-dialog__field ::ng-deep .mat-mdc-form-field-hint {
+        white-space: normal;
+        line-height: 1.35;
       }
     `,
   ],

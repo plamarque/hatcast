@@ -47,9 +47,45 @@
     </div>
   </div>
 
+  <section class="event-infos__format" aria-labelledby="event-infos-format-label">
+    <div class="event-infos__format-header">
+      <span id="event-infos-format-label" class="event-infos__label">Format et besoins</span>
+      @if (canManageEvents()) {
+        <button
+          type="button"
+          mat-icon-button
+          class="event-infos__format-edit"
+          aria-label="Modifier format et besoins"
+          [disabled]="saving()"
+          (click)="openTypeRolesDialog()"
+        >
+          <mat-icon aria-hidden="true">edit</mat-icon>
+        </button>
+      }
+    </div>
+    <div class="event-infos__format-body">
+      <div class="event-infos__type-row">
+        <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
+        <span>{{ typeLabel() }}</span>
+      </div>
+      <div class="event-infos__roles-summary">
+        @if (summaryRoleKeys().length === 0) {
+          <span class="event-infos__roles-empty">Aucun besoin renseigné</span>
+        } @else {
+          @for (role of summaryRoleKeys(); track role) {
+            <span class="event-infos__roles-item">
+              <span aria-hidden="true">{{ roleEmojis[role] }}</span>
+              {{ roleLabels[role] }}: <strong>{{ roleCount(role) }}</strong>
+            </span>
+          }
+        }
+      </div>
+    </div>
+  </section>
+
   @if (showEquitySection()) {
     <section class="event-infos__equity" aria-labelledby="event-infos-equity-label">
-      <span id="event-infos-equity-label" class="event-infos__label">Tag d’équité</span>
+      <span id="event-infos-equity-label" class="event-infos__label">Groupe de spectacles</span>
       <div class="event-infos__equity-body">
         @if (equityTagLabel(); as label) {
           <mat-chip-set class="event-infos__chip-set">
@@ -71,7 +107,7 @@
             (click)="openTagDialog()"
           >
             <mat-icon aria-hidden="true">sell</mat-icon>
-            Ajouter un tag
+            Ajouter un groupe
           </button>
         }
       </div>
