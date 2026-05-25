@@ -33,7 +33,8 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0009](0009-neon-postgres-environments.md) | V2 PostgreSQL: Neon + branches dev/staging/prod + secrets GitHub par environnement | Accepted |
 | [0010](0010-v2-auth-identity-platform.md) | V2 auth: Google Cloud Identity Platform (IdP managé GCP ; pas Firebase comme stack V1) | Accepted |
 | [0011](0011-league-model-and-user-agenda.md) | V2 product model: League (multi-active), user agenda hub, inter-troupe events | Accepted |
-| [0012](0012-league-views-travel-leagues-member-stats.md) | League views (Agenda/Historique/Statistiques), travel leagues, personal glance route | Accepted |
+| [0012](0012-league-views-travel-leagues-member-stats.md) | League views (Agenda/Historique/Statistiques), travel leagues, personal glance route | Accepted — §3 superseded by **0013** |
+| [0013](0013-troupe-navigation-equity-tags-event-slugs.md) | Troupe-first IA (`/troupes`), saison workspace, equity tags, event slugs | Accepted |
 
 ---
 

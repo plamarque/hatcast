@@ -1,6 +1,6 @@
 # ADR 0012: League workspace views, travel leagues, and personal season glance
 
-**Status:** Accepted (product direction — 2026-05-24)  
+**Status:** Accepted (product direction — 2026-05-24) — **§3 superseded by [ADR 0013](0013-troupe-navigation-equity-tags-event-slugs.md)** (2026-05-25)  
 **Date:** 2026-05-24  
 **Deciders:** Patrice (product), PM Correct Course  
 **Builds on:** [ADR 0011](0011-league-model-and-user-agenda.md)
@@ -31,7 +31,9 @@ View switcher remains in league shell (Participants, Spectacles, Agenda, Histori
 
 **User agenda**, **personal season glance**, and **cross-league Statistiques** expose troupe + league filters. Controls **hidden** when the user has exactly one troupe or one league in scope (RES-001).
 
-### 3. Travel leagues for déplacements
+### 3. Travel leagues for déplacements *(superseded by ADR 0013 — equity tags)*
+
+> **2026-05-25:** Prefer **optional `equity_tag` on events** within a season (e.g. `deplacements`, `aperock`). Do not implement travel leagues as the primary model for new work. Text below retained for historical context.
 
 - Away shows live in a **dedicated travel league** per troupe (e.g. *Ligue Déplacements*), not as `templateType = deplacement` on show leagues for **new** data.
 - Draw and chances run **per league**; no cross-league draw exception for déplacement type on show leagues once adopted.

@@ -18,6 +18,8 @@ inputDocuments:
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md
   - docs/adr/0011-league-model-and-user-agenda.md
   - docs/adr/0012-league-views-travel-leagues-member-stats.md
+  - docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md
+  - _bmad-output/design-thinking-2026-05-25.md
   - SPEC.md
   - DOMAIN.md
 ---
@@ -327,9 +329,18 @@ Liaison optionnelle entre événements inter-troupes.
 
 **FR :** PRD note post-MVP (encounter entity)
 
+### Epic 17 — Navigation troupe-first, tags d’équité, slugs événements
+
+Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb responsive, admin par scope, **tag d’équité** optionnel sur spectacle, URLs slug.
+
+**FRs couverts :** FR51 (navigation), FR52 (troupe hub), FR8 ; étend FR11–FR12 (saison + événement)  
+**ADR :** [0013](../../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md)  
+**Design :** [_bmad-output/design-thinking-2026-05-25.md](../design-thinking-2026-05-25.md) ; **UX :** [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md) (amended 2026-05-25, UX-DR19–21)  
+**Supersedes :** Epic 14 partiel, ADR 0012 §3 (travel league), Story **13.6** (reportée)
+
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 4 tôt ; Epic 5 → 6 ; **Epic 12** Wave 1 (après 2.9) ; **Epic 13** Wave 2 ; **Epic 14** Wave 3 ; **Epic 16** après 12.3 (filtres) ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **Epic 17.7→17.10** avant **3.6** stats finales ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -1206,7 +1217,9 @@ Les administrateurs gèrent **plusieurs ligues actives** par troupe et définiss
 
 - **Given** suite de tests Epic 3, **when** exécutée post-13.2, **then** green ; AC single-active retirés.
 
-#### Story 13.6 : Ligues déplacements (création et conventions)
+#### Story 13.6 : Ligues déplacements (création et conventions) — *reportée / remplacée par Epic 17*
+
+> **2026-05-25 (ADR 0013) :** Ne pas implémenter comme ligue dédiée. Utiliser **17.7–17.10** (tags d’équité). Story conservée pour trace ; statut **deferred**.
 
 En tant qu’**administrateur de troupe**,  
 je veux créer et gérer une **ligue déplacements** distincte des ligues spectacle,  
@@ -1287,6 +1300,117 @@ afin de suivre ma participation et consulter celle des autres membres autorisés
 - **Couverture :** FR55, FR58–FR59 ; UX-DR8.
 
 **Story file:** [_bmad-output/implementation-artifacts/16-1-route-membre-saison-clin-oeil-filtres.md](../implementation-artifacts/16-1-route-membre-saison-clin-oeil-filtres.md)
+
+---
+
+### Epic 17 — Navigation troupe-first, tags d’équité, slugs événements
+
+**ADR :** [0013](../../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md)
+
+#### Story 17.1 : Breadcrumb contexte (responsive)
+
+En tant qu’**utilisateur connecté**,  
+je veux voir **à quelle troupe et quelle saison** j’appartiens sur les écrans saison et spectacle,  
+afin de naviguer sans repasser par `/seasons`.
+
+**Acceptance Criteria**
+
+- **Given** desktop, **when** écran saison ou spectacle, **then** fil d’Ariane : logo + nom troupe (lien hub) › titre saison › titre spectacle (feuille non cliquable).
+- **Given** mobile, **when** même écrans, **then** seul le **logo troupe** est dans la barre supérieure (lien hub) ; titres saison/spectacle sous le header.
+- **Given** header global, **when** any screen, **then** pas d’icône ⚙ dans le header (admin déplacé — 17.2).
+- **Couverture :** ADR 0013 §2 ; design-thinking wireframes P2–P3.
+
+#### Story 17.2 : Bandeau administration par scope
+
+En tant qu’**organisateur ou admin**,  
+je veux accéder aux actions d’administration **du niveau courant** (troupe, saison, spectacle) sous le header,  
+afin de ne pas confondre avec la navigation contextuelle.
+
+**Acceptance Criteria**
+
+- **Given** hub `/troupes/:slug`, **when** `TROUPE_ADMIN`, **then** bandeau « Administration de la troupe » avec entrée Membres (et extensions futures).
+- **Given** `/saison/:slug`, **when** droits saison, **then** bandeau « Administration de la saison » (participants, organisateurs, …).
+- **Given** détail spectacle, **when** droits événement, **then** bandeau « Administration du spectacle » si applicable.
+- **Given** membre sans droit, **when** page chargée, **then** bandeau absent.
+
+#### Story 17.3 : Page `/troupes` (Mes troupes + Découvrir)
+
+En tant qu’**membre**,  
+je veux lister mes troupes en **cartes** puis découvrir d’autres troupes,  
+afin de ne plus utiliser `/seasons` comme hub.
+
+**Acceptance Criteria**
+
+- **Given** utilisateur avec adhésions, **when** `/troupes`, **then** section **Mes troupes** : cards logo, nb membres, nb spectacles à venir, CTA Ouvrir.
+- **Given** même page, **when** scroll, **then** section **Découvrir** (autres troupes, même layout) — actions non-membre **OPEN** (placeholder OK).
+- **Given** breadcrumb, **when** page chargée, **then** parent cohérent (`/agenda` › Troupes).
+- **Given** API, **when** liste, **then** compteurs spectacles à venir par troupe (agrégation documentée).
+
+#### Story 17.4 : Hub `/troupes/:slug`
+
+En tant qu’**membre d’une troupe**,  
+je veux une **page d’accueil troupe** (logo, saisons, admin, préférences),  
+afin de centraliser la vie de la troupe hors liste des saisons globale.
+
+**Acceptance Criteria**
+
+- **Given** membre, **when** `/troupes/:slug`, **then** logo + nom, liste saisons actives/archivées, CTA nouvelle saison si admin.
+- **Given** membre, **when** clic préférences (icône secondaire), **then** pseudo troupe + rôles préférés (FR9, AC10).
+- **Given** lien depuis spectacle, **when** clic nom/logo troupe, **then** arrive sur ce hub (pas admin membres direct).
+- **Route :** `/troupes/:slug` ; admin membres `/troupes/:slug/admin/membres`.
+
+#### Story 17.5 : Redirects et fin de `/seasons` comme hub
+
+**Acceptance Criteria**
+
+- **Given** `/seasons`, **when** GET, **then** redirect `/troupes` (query `scope=mine` si utile).
+- **Given** `/ligue/:slug`, **when** GET, **then** redirect `/saison/:slug` (et event paths).
+- **Given** agenda membre, **when** lien « Mes troupes », **then** `/troupes`.
+- **Given** `event-context-strip` retiré ou simplifié, **when** breadcrumb actif, **then** pas de duplication troupe·saison.
+
+#### Story 17.6 : Slug événement dans les URLs
+
+**Acceptance Criteria**
+
+- **Given** migration Flyway, **when** appliquée, **then** `events.slug` unique par `(season_id, slug)`.
+- **Given** création spectacle, **when** titre saisi, **then** slug proposé (déduplication `-2`, …) ; éditable.
+- **Given** URL UUID legacy, **when** slug existe, **then** redirect 301 vers `/saison/:slug/event/:eventSlug`.
+- **Given** OpenAPI, **when** publié, **then** routes documentées.
+
+#### Story 17.7 : API tag d’équité et glossaire troupe
+
+**Acceptance Criteria**
+
+- **Given** événement, **when** PATCH/POST, **then** `equity_tag` nullable, **une seule** valeur ; validation rejet multi-tags.
+- **Given** troupe, **when** admin liste tags, **then** glossaire (ex. `deplacements`, `aperock`) extensible.
+- **Given** tag inconnu à la saisie, **when** politique produit activée, **then** création entrée glossaire troupe (ou normalisation slug).
+- **Given** champ vide, **when** lecture API, **then** équité **principale** (null).
+
+#### Story 17.8 : UI formulaire spectacle — tag optionnel
+
+**Acceptance Criteria**
+
+- **Given** `EventFormDialog`, **when** admin édite, **then** champ **Tag (optionnel)** autocomplete + aide inline + bouton effacer.
+- **Given** aucun tag, **when** affichage, **then** pas de mention « principal ».
+- **Given** tag saisi, **when** sauvegarde, **then** persisté via API 17.7.
+- **Given** liste agenda saison, **when** tag présent, **then** badge discret sur la ligne (optionnel MVP).
+
+#### Story 17.9 : Tirage et chances par tag
+
+**Acceptance Criteria**
+
+- **Given** tirage auto sur événement taggé, **when** calcul chances, **then** historique filtré `(season_id, equity_tag)` aligné sur le tag (null = principal).
+- **Given** événement principal, **when** tirage, **then** n’inclut pas participations des seuls événements taggés autres.
+- **Given** tests d’intégration, **when** scénario Malice déplacement, **then** régression couverte.
+
+#### Story 17.10 : Statistiques et migration déplacements
+
+**Acceptance Criteria**
+
+- **Given** vue Statistiques (3.6), **when** agrégation, **then** colonne DEPLACEMENT alimentée par `equity_tag = deplacements` (pas travel league).
+- **Given** données legacy `template_type = deplacement`, **when** migration ou lecture, **then** équivalent tag ou règle documentée.
+- **Given** Story 13.6, **when** planification, **then** statut **cancelled/deferred** au profit de 17.x.
+- **Couverture :** ADR 0013 §5 ; remplace ADR 0012 §3 pour nouvelles données.
 
 ---
 

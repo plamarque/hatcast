@@ -223,7 +223,8 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 **Détail des epics :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md)  
 **Vision ligue (long terme) :** [_bmad-output/planning-artifacts/plan-v2-league-journey.md](_bmad-output/planning-artifacts/plan-v2-league-journey.md)  
 **Suivi sprint :** [_bmad-output/implementation-artifacts/sprint-status.yaml](_bmad-output/implementation-artifacts/sprint-status.yaml)  
-**ADR :** [0011](docs/adr/0011-league-model-and-user-agenda.md), [0012](docs/adr/0012-league-views-travel-leagues-member-stats.md)
+**ADR :** [0011](docs/adr/0011-league-model-and-user-agenda.md), [0012](docs/adr/0012-league-views-travel-leagues-member-stats.md), [0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md)  
+**Design Thinking (2026-05-25) :** [_bmad-output/design-thinking-2026-05-25.md](_bmad-output/design-thinking-2026-05-25.md)
 
 ---
 
@@ -259,10 +260,11 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | Epics / stories | Raison |
 |-----------------|--------|
 | **3.6**, **3.6b** | Statistiques / Historique ligue (FR53–54) |
-| **Epic 13** (13.1–13.6) | Multi-ligues actives, roster création, déplacements — une ligue active suffit au pilote |
-| **Epic 14** (14.1–14.5) | Hub troupe complet ; 12.4 + routes admin couvrent le MVP |
+| **Epic 13** (13.1–13.5 ; **13.6 reporté**) | Multi-saisons actives, roster — **13.6 ligue déplacements** remplacé par tags (ADR 0013) |
+| **Epic 14** (14.1–14.5) | Partiellement recouvert par **Epic 17** — préférer 17.x pour `/troupes` et hub |
+| **Epic 17** (17.1–17.10) | Navigation troupe-first, tags d’équité, slugs — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 |
 | **Epic 16** (16.1) | Clin d’œil `/membre/:slug` |
-| **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Annuaire, invités, notifications, audit UI, PWA, analytics, rencontres liées |
+| **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Annuaire, invités, notifications, audit UI, PWA, analytics, **15 = rencontres liées** |
 | **5.4**, **5.5**, **6.8**, **6.10** | Commentaire dispo, proxy dispo, proxy confirmation, partage WhatsApp |
 
 ---
@@ -277,8 +279,11 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **MVP-B** | Navigation événement | **12.4** ; **12.3** si besoin filtres | FR51 ; admin atteignable depuis l’événement |
 | **MVP-C** | Composition (// avec A dès baseline OK) | **6.5**, **6.6**, **6.7**, **6.4**, **6.9** | Boucle compo complète |
 | **Polish MVP** | Confort | **12.6** ; **12.3** si reporté | Alias `/ligue/:slug` |
-| **Post-MVP** | Vision ligue | **Epic 13**, **14**, **16** | Multi-active, hub, clin d’œil |
-| **Post-MVP** | Stats & exports | **3.6**, **3.6b** | Statistiques / Historique (ADR 0012) |
+| **Post-MVP** | Navigation troupe-first | **Epic 17** **17.1→17.5** | `/troupes`, hub, breadcrumb (ADR 0013) |
+| **Post-MVP** | URLs & équité | **Epic 17** **17.6→17.10** | Slugs événements, `equity_tag`, tirages/stats |
+| **Post-MVP** | Multi-saisons | **Epic 13** (sans **13.6** travel) | Activation concurrente |
+| **Post-MVP** | Clin d’œil | **Epic 16** | `/membre/:slug` |
+| **Post-MVP** | Stats & exports | **3.6**, **3.6b** | Statistiques / Historique (ADR 0012 + **17.10**) |
 | **Post-MVP** | Polish compo (pilote) | **6.11** | Feedback visuel + perfs onglet Équipe (profilage) |
 | **Post-MVP** | Transverse | **5.4+**, **6.10**, **Epics 4**, **7–11**, **15** | Selon priorité produit ; **5.5**, **6.8** livrés pour pilote |
 
@@ -289,7 +294,37 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 3. **6.5** + **6.6**  
 4. **6.7** + **6.4** (ou **6.4** avant **6.7** si tirage prioritaire)  
 5. **6.9** + **12.3** ou **12.6**  
-6. Puis backlog post-MVP (13.x, 3.6, …)
+6. Puis backlog post-MVP (17.x navigation, 3.6, …)
+
+---
+
+### Epic 17 — Navigation troupe-first, tags d’équité, slugs événements
+
+**Added:** 2026-05-25 — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md), session Design Thinking (sans tests utilisateurs prototype).
+
+**Objectif :** Remplacer `/seasons` comme hub, exposer **/troupes** + **/troupes/:slug**, breadcrumb responsive, admin par scope ; puis **tag d’équité** optionnel sur spectacle et **slugs** dans les URLs.
+
+**Note numérotation :** les stories **15.x** du livrable Design Thinking sont **17.x** ici — **Epic 15** reste *Rencontres liées* (encounters inter-troupes).
+
+| Story | Titre | Priorité | Depends |
+|-------|-------|----------|---------|
+| **17.1** | Breadcrumb contexte (desktop complet, mobile = logo troupe) ; retirer ⚙ du header global | P0 | — |
+| **17.2** | Bandeau `app-scope-admin-bar` (troupe / saison / spectacle) | P0 | 17.1 |
+| **17.3** | Page `/troupes` — sections Mes troupes + Découvrir, cards (logo, membres, spectacles à venir) | P0 | API compteurs |
+| **17.4** | Hub `/troupes/:slug` — logo, saisons, ⚙ admin, préférences (pseudo, rôles) | P0 | 17.3 |
+| **17.5** | Redirects `/seasons`, `/ligue/*` ; liens événement → hub troupe ; breadcrumb sur `/troupes` | P0 | 17.4 |
+| **17.6** | `events.slug` — migration, API, routes `/saison/:slug/event/:eventSlug`, redirect UUID | P1 | — |
+| **17.7** | `equity_tag` + glossaire tags par troupe (API) | P1 | ADR 0013 |
+| **17.8** | Formulaire spectacle — tag optionnel, autocomplete, aide, suppression | P1 | 17.7 |
+| **17.9** | Tirage / chances partitionnés par `(saison, equity_tag)` | P2 | 17.7 |
+| **17.10** | Statistiques par tag ; migration `template_type=deplacement` → tag ; **annule piste 13.6** | P2 | 17.9, 3.6 |
+
+**DoD phase navigation (17.1–17.5) :** plus de hub `/seasons` ; breadcrumb sur troupe/saison/événement ; admin troupe depuis hub ; lien nom de troupe sur événement → hub.
+
+**DoD phase domaine (17.7–17.10) :** tag persisté ; tirage respecte compartiments ; stats DEPLACEMENT via tag.
+
+**UX spec :** [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (amended 2026-05-25).  
+**Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 17.
 
 ### Gates
 
@@ -304,5 +339,5 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 ### PRD / UX references (V2)
 
 - PRD **FR48–FR52** (agenda, routing, navigation) ; **FR20–FR28** (composition).
-- UX : [ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (UX-DR13–18) ; [ux-design-hatcast-v2.md](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) (détail événement, dispos, équipe — `/seasons` superseded pour les membres).
+- UX : [ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (**amended 2026-05-25**, UX-DR13–21, Epic 17) ; [ux-design-hatcast-v2.md](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) (onglets événement — dispos, équipe ; complète Screen 6).
 - Correct Course stats/déplacements (post-MVP) : [sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md).

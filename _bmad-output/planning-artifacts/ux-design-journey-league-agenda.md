@@ -1,24 +1,33 @@
 ---
-title: UX Design — League journey & user agenda
-status: approved
+title: UX Design — Troupe & saison journey, user agenda
+status: approved-with-amendments
 author: Sally (UX) + Patrice
 date: '2026-05-24'
+amendmentDate: '2026-05-25'
 approvedDate: '2026-05-24'
 approvedBy: Patrice
+amendedBy: Patrice
 stakeholderReservations:
   - id: RES-001
     topic: Agenda filter chrome
-    decision: Hide troupe/league filter bar when user has exactly one troupe membership and one league participation; show when either dimension has >1 option.
-relatedADR: docs/adr/0011-league-model-and-user-agenda.md
-uxDr: UX-DR13 through UX-DR18
+    decision: Hide troupe/season filter bar when user has exactly one troupe membership and one season participation; show when either dimension has >1 option.
+relatedADR:
+  - docs/adr/0011-league-model-and-user-agenda.md
+  - docs/adr/0012-league-views-travel-leagues-member-stats.md
+  - docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md
+relatedPlan: PLAN.md Epic 17
+relatedDesignThinking: _bmad-output/design-thinking-2026-05-25.md
+uxDr: UX-DR13 through UX-DR21
 ---
 
-# UX Design — League journey & user agenda
+# UX Design — Troupe & saison journey, user agenda
 
 **Author:** Sally (UX Designer)  
 **Product input:** Patrice + John (PM challenge)  
-**Status:** **Approved** — Patrice, 2026-05-24 (reserve RES-001: filtres agenda masqués si une seule troupe et une seule ligue)  
-**Scope:** Member entry, user agenda, troupe hub, league workspace, event navigation — screen by screen
+**Status:** **Approved** 2026-05-24 — **Amended** 2026-05-25 per [ADR 0013](../../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) and Design Thinking session  
+**Scope:** Member entry, user agenda, troupe directory & hub, season workspace, event navigation — screen by screen
+
+> **Amendment note (2026-05-25):** French UI uses **Saison** (not Ligue) for the `season` entity. Canonical routes: `/saison/:slug`, `/troupes`, `/troupes/:slug`, `/saison/:slug/event/:eventSlug`. `/ligue/*` redirects to `/saison/*`. Sections marked **[ADR-0013]** supersede the 2026-05-24 text. Equity **tags** replace travel leagues for déplacements (ADR 0012 §3 superseded). Implementation: **Epic 17**.
 
 ---
 
@@ -26,42 +35,73 @@ uxDr: UX-DR13 through UX-DR18
 
 1. **Member lands in action** — no stub home; agenda or last deep link.
 2. **One row per HatCast event** — inter-troupe matches never merge in the agenda.
-3. **Troupe + Ligue always visible** where context could confuse (agenda rows, event header).
-4. **Pseudo = troupe scope only** — never on account or league screens.
-5. **Admin density vs member clarity** — troupe/league admin can stay Material-clinical; member agenda keeps V1 “spectacle” mood where feasible (UX-DR11).
+3. **Troupe + Saison always visible** where context could confuse (agenda rows, breadcrumb on deep screens). **[ADR-0013]**
+4. **Pseudo = troupe scope only** — on troupe hub via **Préférences** (secondary), not primary chrome. **[ADR-0013]**
+5. **Admin density vs member clarity** — admin actions in **scope bar below header** (not header ⚙); member agenda keeps V1 “spectacle” mood where feasible (UX-DR11).
 
 ---
 
-## Information architecture (target)
+## Shared chrome **[ADR-0013]**
+
+### `app-context-breadcrumb`
+
+| Viewport | Left chrome |
+|----------|-------------|
+| **Desktop** | `[logo] Troupe › Saison › Spectacle` — troupe logo+name links to hub; current leaf not linked |
+| **Mobile** | **Troupe logo only** (tap → `/troupes/:slug`); saison + spectacle titles in page body below |
+
+- User avatar menu stays **top-right** (Compte, Déconnexion).
+- **No ⚙** in global header.
+
+### `app-scope-admin-bar` (below breadcrumb / title, role-gated)
+
+One strip per screen:
+
+| Screen | Label (example) | Typical entries |
+|--------|-----------------|-----------------|
+| Troupe hub | Administration de la troupe | Membres, Paramètres (future) |
+| Season workspace | Administration de la saison | Participants, Organisateur·ices, … |
+| Event detail | Administration du spectacle | Event-scoped admin when applicable |
+
+Hidden when user lacks permissions.
+
+---
+
+## Information architecture (target) **[ADR-0013]**
 
 ```mermaid
 flowchart TB
   subgraph member [Member primary]
     Agenda["/agenda — Mon agenda"]
-    Event["/ligue/:slug/event/:id"]
+    Event["/saison/:slug/event/:eventSlug"]
   end
-  subgraph league [League workspace]
-    LAgenda["/ligue/:slug — Agenda ligue"]
-    LHist["/ligue/:slug/historique"]
-    LAdmin["/ligue/:slug/admin/*"]
+  subgraph season [Season workspace]
+    SAgenda["/saison/:slug — Agenda saison"]
+    SHist["/saison/:slug — Historique tab"]
+    SStats["/saison/:slug — Statistiques tab"]
+    SAdmin["/saison/:slug/admin/*"]
   end
-  subgraph troupe [Troupe hub]
-    THub["/troupe/:slug"]
-    TMembres["/troupe/:slug/admin/membres"]
-  end
-  subgraph public [Discovery]
-    Dir["/troupes — Annuaire"]
+  subgraph troupe [Troupe]
+    TList["/troupes — Mes troupes + Découvrir"]
+    THub["/troupes/:slug — Hub troupe"]
+    TMembres["/troupes/:slug/admin/membres"]
   end
   Login --> Agenda
   Agenda --> Event
-  Event --> LAgenda
+  Agenda --> TList
+  TList --> THub
+  Event --> SAgenda
   Event --> THub
-  LAgenda --> THub
-  THub --> Dir
-  THub --> LAgenda
+  THub --> SAgenda
+  THub --> TList
 ```
 
-**Route aliases (transition):** `/saison/:slug` → `/ligue/:slug`; `/seasons` → troupe hub or legacy redirect.
+**Route aliases (transition only):**
+
+- `/ligue/:slug` → `/saison/:slug` (and event paths)
+- `/seasons` → `/troupes` (default: Mes troupes)
+- `/troupe/:slug` → `/troupes/:slug` if encountered
+- `/accueil` → `/agenda`
 
 ---
 
@@ -81,27 +121,28 @@ flowchart TB
 | Condition | Destination |
 |-----------|-------------|
 | Valid stored deep link (e.g. event URL) | That URL |
-| Valid `lastVisitedLeague` + optional tab | `/ligue/:slug` (agenda tab) |
+| Valid `lastVisitedSeason` slug + optional tab | `/saison/:slug` (agenda tab) |
 | Else | `/agenda` |
 
 **Acceptance hints:**
 
 - [ ] Zero intermediate “Bienvenue” card
-- [ ] Deep links from notifications still work
+- [ ] Deep links from notifications still work (slug URLs when 17.6 shipped)
 
 ---
 
-## Screen 2 — Mon agenda (`/agenda`) — **NEW primary hub**
+## Screen 2 — Mon agenda (`/agenda`) — **primary member hub**
 
 **Persona:** Léa — “Qu’est-ce que j’ai bientôt, toutes troupes confondues ?”
 
-**Purpose:** Unified upcoming events for all **league participations** across troupes.
+**Purpose:** Unified upcoming events for all **season participations** across troupes.
 
 ### Chrome
 
 | Zone | Content |
 |------|---------|
 | **Title** | **Mon agenda** |
+| **Breadcrumb** | Optional desktop: `Mon agenda` (root — no parent) |
 | **Top-right** | User avatar menu (Compte, Déconnexion) |
 | **No back** | This is root for signed-in members |
 
@@ -111,25 +152,21 @@ flowchart TB
 
 | User context | Filter bar |
 |--------------|------------|
-| **1 troupe** + **1 ligue** (participant) | **Hidden** — filtres superflus ; pas de chrome inutile |
-| **>1 troupe** and/or **>1 ligue** | **Shown** — barre ci-dessous |
-| User gains a 2nd troupe or ligue later | Barre apparaît au prochain chargement (ou après refresh contexte) |
+| **1 troupe** + **1 saison** (participant) | **Hidden** |
+| **>1 troupe** and/or **>1 saison** | **Shown** |
 
 When shown:
 
 ```
-[ Toutes les troupes ▾ ]  [ Toutes les ligues ▾ ]     [ Effacer filtres ]
+[ Toutes les troupes ▾ ]  [ Toutes les saisons ▾ ]     [ Effacer filtres ]
 ```
 
-- Troupe filter: dropdown or chips when `activeTroupes.length > 1`.
-- League filter: scoped to selected troupe(s); lists only leagues where user is participant; default = all.
-- Filters persist in session (optional localStorage) **only when bar is visible**.
-
-When hidden: troupe + ligue remain visible **on each event row** (badges) so context is never lost.
+- Season filter: scoped to selected troupe(s); lists seasons where user is participant.
+- When hidden: troupe + saison remain on **each event row** (badges).
 
 ### Event list (UX-DR14)
 
-- **Grouped by month** (same visual language as UX-DR2).
+- **Grouped by month** (UX-DR2 language).
 - **Each row = one HatCast event** — never merged.
 
 **Row content (top → bottom):**
@@ -138,175 +175,232 @@ When hidden: troupe + ligue remain visible **on each event row** (badges) so con
 ┌─────────────────────────────────────────────────────────────┐
 │ 30 mai · 20h30                                              │
 │ Match La BIM vs La Malice                                   │
-│ 🏷 La BIM · Ligue Compétition 2026:26          [Dispo ●]   │
+│ 🏷 La BIM · Saison 2025-26                    [dépl.] [Dispo]│
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **Line 1:** Date/time
-- **Line 2:** Event title
-- **Line 3:** **Troupe · Ligue** (required badges); user dispo pill if participant
+- **Line 3:** **Troupe · Saison** (required badges); optional **equity tag** badge when set (e.g. `dépl.`, `apérock`) — Epic 17.8
 - **Tap row** → Event detail (Screen 6)
-
-**Cross-troupe scenario (BIM + Malice member):** Two rows, same date/title pattern, different troupe badge — user instantly sees which team they’re planning for.
 
 ### Empty states
 
 | Case | Message + CTA |
 |------|----------------|
-| No participations | “Tu n’es inscrit·e à aucune ligue pour l’instant.” + link **Découvrir les troupes** |
-| No upcoming events | “Aucun spectacle à venir.” + muted hint to check filters |
+| No participations | “Tu n’es inscrit·e à aucune saison pour l’instant.” + **Découvrir les troupes** → `/troupes#decouvrir` |
+| No upcoming events | “Aucun spectacle à venir.” + hint to check filters |
 
 ### Secondary entry
 
-- Link **Mes troupes** → Troupe picker or list (Screen 4) — for admin tasks, not daily member path.
+- Link **Mes troupes** → `/troupes` (Screen 2b) — admin / multi-troupe, not daily member path.
 
 **Acceptance hints:**
 
 - [ ] Agenda loads without visiting `/seasons` first
-- [ ] Two troupes → two rows for inter-troupe match
-- [ ] Filters reduce list when bar visible; **bar hidden** when single troupe + single league
-- [ ] With bar hidden, row badges still show troupe + ligue
+- [ ] Filters + RES-001 unchanged in behaviour
+- [ ] Row badges show troupe + saison (and tag when present)
 
 ---
 
-## Screen 3 — Dernière ligue visitée (`/ligue/:slug` — agenda tab)
+## Screen 2b — Mes troupes & Découvrir (`/troupes`) **[ADR-0013] [Epic 17.3]**
 
-**Persona:** Léa returning after login when `lastVisitedLeague` is set.
+**Persona:** Amira or Léa — “Mes collectifs” vs exploration.
 
-**Purpose:** **League-scoped workspace** — same as today’s season-home Agenda, but entered from habit/V1 parity until user adopts global agenda.
+**Purpose:** Replace `/seasons` as hub; separate **memberships** from **discovery**.
 
-**Chrome (UX-DR2, updated):**
+### Chrome
 
-| Left | Centre | Right |
-|------|--------|-------|
-| Back → **`/agenda`** (not `/seasons`) | Troupe logo + **League title** | ⚙ settings + avatar |
+| Zone | Content |
+|------|---------|
+| **Breadcrumb** | `Mon agenda › Troupes` (desktop) or page title |
+| **Top-right** | Avatar menu |
 
-**View switcher tabs:** Agenda | Historique | *(admin: Spectacles, Participants)*
+### Section — Mes troupes
 
-**Difference from Screen 2:** Only events **in this league**; filters for participants/events within league.
-
----
-
-## Screen 4 — Hub troupe (`/troupe/:slug`) — **NEW**
-
-**Persona:** Amira — “Tout ce qui concerne La Malice.”
-
-**Purpose:** Troupe identity, leagues, admin entry, discovery upward.
-
-### Header
-
-- Troupe **logo + name**
-- User menu (top-right)
-- Back → **`/agenda`** or annuaire if arrived from discovery
-
-### Block A — Mon profil dans cette troupe
-
-- **Pseudo** (editable inline or link → compte section troupe) — FR9
-- Avatar (account-level, display only here)
-
-### Block B — Ligues
+Card grid (responsive):
 
 ```
-Ligues actives                    [ + Nouvelle ligue ]  (admin only)
-
-┌──────────────────────────────────────┐
-│ 🎭 Ligue Spectacle 2025-26           │
-│ 12 événements · 18 participants      │
-└──────────────────────────────────────┘
-┌──────────────────────────────────────┐
-│ 🎯 Ligue Loisir                      │
-│ 4 événements · 22 participants       │
-└──────────────────────────────────────┘
-
-[ Afficher les ligues archivées ]
+┌─────────────────────┐
+│ [logo] La Malice    │
+│ 34 membres          │
+│ 5 spectacles à venir│
+│ [ Ouvrir ]          │
+└─────────────────────┘
 ```
 
-- Card tap → `/ligue/:slug`
-- Admin: create league (Screen 5)
+- **Ouvrir** → `/troupes/:slug` (Screen 4)
+- Data: `listMyTroupes` + aggregated upcoming event count per troupe
 
-### Block C — Administration (role-gated)
+### Section — Découvrir (below Mes troupes)
 
-- **Membres** → existing admin route
-- **Paramètres troupe** *(future)*
-
-### Block D — Découverte
-
-- **Explorer d’autres troupes** → `/troupes` (Epic 4)
+- Same card layout for **other** troupes (directory / Epic 4 partial)
+- **OPEN (post-MVP):** non-member actions — read-only browse, join request, etc.
 
 **Acceptance hints:**
 
-- [ ] Multiple active leagues visible simultaneously
-- [ ] Archived leagues hidden until toggle
-- [ ] Non-admin sees Block B read-only, no create
+- [ ] No “Administration troupe” block on this page (lives on hub Screen 4)
+- [ ] `/seasons` redirects here
 
 ---
 
-## Screen 5 — Création ligue (modal or `/troupe/:slug/ligues/nouvelle`)
+## Screen 3 — Workspace saison (`/saison/:slug` — agenda tab)
+
+**Persona:** Léa returning after login when `lastVisitedSeason` is set, or drill-down from hub/agenda.
+
+**Purpose:** **Season-scoped** agenda, historique, statistiques (ADR 0012 views in shell).
+
+### Chrome **[ADR-0013]**
+
+| Zone | Content |
+|------|---------|
+| **Breadcrumb** | Desktop: `[logo] Troupe › Saison title` — Mobile: logo only → body title |
+| **Top-right** | Avatar menu only |
+| **Below** | `app-scope-admin-bar` — Administration de la saison (when permitted) |
+
+**Removed vs 2026-05-24:** back chevron to `/seasons`; ⚙ in header.
+
+**View switcher tabs:** Agenda | Historique | Statistiques | *(admin: Spectacles, Participants)*
+
+**Difference from Screen 2:** Only events **in this season**; filters for participants/events within season.
+
+---
+
+## Screen 4 — Hub troupe (`/troupes/:slug`) **[ADR-0013] [Epic 17.4]**
+
+**Persona:** Amira — “Tout ce qui concerne La Malice.”
+
+**Purpose:** Troupe identity, **seasons** list, admin entry, low-priority member prefs.
+
+### Chrome
+
+| Zone | Content |
+|------|---------|
+| **Breadcrumb** | `Troupes › La Malice` (desktop) / logo slot (mobile) |
+| **Hero** | Large **logo + name** (centred or left per layout) |
+| **Below hero** | `app-scope-admin-bar` — Administration de la troupe (TROUPE_ADMIN) |
+| **Top-right** | Avatar menu |
+
+### Block — Saisons **[ADR-0013]**
+
+```
+Saisons                           [ + Nouvelle saison ]  (admin only)
+
+┌──────────────────────────────────────┐
+│ Saison 2025-26 · active              │
+│ 12 événements · 18 participants      │
+└──────────────────────────────────────┘
+
+[ Afficher les saisons archivées ]
+```
+
+- Card tap → `/saison/:slug`
+- Admin: create season (Screen 5) — Story 13.3 roster modes when multi-season epic ships
+
+### Block — Préférences (secondary) **[ADR-0013]**
+
+- Icon control **Préférences dans cette troupe** → drawer/sheet:
+  - **Pseudo** troupe (FR9)
+  - **Rôles préférés** (AC10)
+- Not inline in hero (low prominence)
+
+### Block — Découverte
+
+- **Explorer d’autres troupes** → `/troupes#decouvrir`
+
+**Acceptance hints:**
+
+- [ ] Multiple active seasons visible when applicable (ADR 0011)
+- [ ] Membres admin via scope bar, not `/seasons`
+- [ ] Event detail troupe link lands here (not admin membres)
+
+---
+
+## Screen 5 — Création saison (modal or `/troupes/:slug/saisons/nouvelle`)
 
 **Persona:** Amira.
 
 **Fields:**
 
 - Title, description (optional), date range (optional)
-- **Participants initiaux:**
+- **Participants initiaux** (Story 13.3):
   - ◉ **Tous les membres actifs de la troupe**
   - ○ **Liste vide — j’ajoute ensuite**
 
-**On save:** Navigate to new league workspace; if “all members”, roster sync job runs (Story 13.3).
+**On save:** Navigate to `/saison/:slug`; roster sync if “all members”.
+
+**Note [ADR-0013]:** Do **not** create a separate “saison déplacements” for away shows — use **equity tags** on events (Screen 6b). Multi-season troupes (loisir + spectacle) remain valid.
 
 ---
 
-## Screen 6 — Détail événement (`/ligue/:slug/event/:id`)
+## Screen 6 — Détail événement (`/saison/:slug/event/:eventSlug`) **[ADR-0013]**
 
 **Persona:** Léa — dispos, compo, confirmation.
 
-**Purpose:** Unchanged functional tabs (UX-DR4–6); **navigation chrome updated**.
+**Purpose:** Functional tabs unchanged (UX-DR4–6 in `ux-design-hatcast-v2.md`); **navigation chrome** per ADR 0013.
 
-### Header (UX-DR15)
+### Chrome
 
-| Left | Centre | Right |
-|------|--------|-------|
-| Back → **league agenda** or **user agenda** (stack-aware) | Type icon + title + date | ⋮ + avatar |
+| Zone | Content |
+|------|---------|
+| **Breadcrumb** | `[logo] Troupe › Saison › Event title` (mobile: logo + titles in body) |
+| **Top-right** | Avatar; event overflow ⋮ if needed (not global ⚙) |
+| **Below** | `app-scope-admin-bar` — Administration du spectacle (when permitted) |
 
-### Context strip (NEW — below header)
-
-```
-La Malice · Ligue Compétition 2025-26
-[ Voir la ligue ]  [ Voir la troupe ]
-```
-
-- **Voir la ligue** → `/ligue/:slug`
-- **Voir la troupe** → `/troupe/:troupeSlug`
+**Removed vs 2026-05-24:** chevron back; **context strip** (`La Malice · Ligue…`) — redundant with breadcrumb.
 
 **Acceptance hints:**
 
-- [ ] User always knows which troupe’s team they’re planning
-- [ ] Inter-troupe event never shows other troupe’s composition
+- [ ] User always knows troupe + saison (breadcrumb + aria)
+- [ ] Shareable slug URL (17.6)
+- [ ] Inter-troupe event never cross-loads wrong troupe
 
 ---
 
-## Screen 7 — Admin Membres (`/troupe/:slug/admin/membres`)
+## Screen 6b — Tag d’équité (event form) **[ADR-0013] [Epic 17.7–17.8]**
 
-**Status:** Shipped (Story 2.8) — **entry paths updated only**
+**Context:** Create/edit spectacle dialog (`EventFormDialog`) — not a separate route.
 
-- From troupe hub Block C
-- From league ⚙ if season-organizer-only edge case (legacy alias)
+| Field | Behaviour |
+|-------|-----------|
+| **Tag (optionnel)** | Autocomplete against troupe glossary; type unknown → create tag |
+| **Clear** | `×` removes tag → **principal** equity (default, **not shown** as option) |
+| **Help** | Inline: participations count toward separate chance/draw/stat pool when tagged |
+| **Rule** | **At most one** tag per event |
+
+**Not in UI:** “Principal” radio; `templateType` (match, cabaret…) remains separate field.
+
+**List surfaces:** optional small badge on agenda rows when tag set.
+
+**Stats/draw:** Epic 17.9–17.10 — DEPLACEMENT column driven by tag `deplacements`, not travel season.
+
+---
+
+## Screen 7 — Admin Membres (`/troupes/:slug/admin/membres`)
+
+**Status:** Shipped (Story 2.8) — **entry paths updated**
+
+- From troupe hub **scope bar** → Membres
+- Redirect legacy `/troupe/:slug/admin/membres` → `/troupes/:slug/admin/membres`
 
 No layout redesign in MVP; optional polish Story 2.11.
 
 ---
 
-## Screen 8 — Participants ligue (`/ligue/:slug/admin/participants`)
+## Screen 8 — Participants saison (`/saison/:slug/admin/participants`)
 
-**Status:** Exists (Story 3.8) — rename labels Saison → Ligue in UI.
+**Status:** Exists (Story 3.8)
+
+- UI labels: **Saison** / Participants (not Ligue)
+- Entry: season `app-scope-admin-bar`
 
 ---
 
-## Screen 9 — Annuaire troupes (`/troupes`) — Epic 4
+## Screen 9 — Découvrir (public directory) — Epic 4
 
-**Entry:** Troupe hub Block D; marketing site.
+**Entry:** `/troupes` section **Découvrir**; troupe hub “Explorer”; marketing.
 
-**Card →** public troupe page → **Demander à rejoindre** *(future story)*.
+**Card →** public troupe page → **Demander à rejoindre** *(future)*.
+
+**Distinct from Screen 2b Mes troupes** — same route `/troupes`, different section.
 
 ---
 
@@ -314,41 +408,58 @@ No layout redesign in MVP; optional polish Story 2.11.
 
 **Updates:**
 
-- Pseudo **per troupe** blocks (already partial)
-- **Preferred roles** (AC10 fix — retro)
-- No league-specific settings here
+- Pseudo **per troupe** blocks (or link to troupe hub Préférences)
+- **Preferred roles** (AC10)
+- No season-specific settings here
 
 ---
 
 ## Deprecated / removed
 
-| Screen | Fate |
-|--------|------|
-| `/accueil` | **Remove** — redirect to `/agenda` |
-| `/seasons` as member hub | **Demote** — redirect admins to troupe hub; members rarely land here |
+| Screen / pattern | Fate |
+|------------------|------|
+| `/accueil` | Redirect `/agenda` |
+| `/seasons` as hub | Redirect `/troupes` |
+| `/ligue/:slug` as canonical | Redirect `/saison/:slug` |
+| **UX-DR15** context strip | Replaced by **UX-DR19** breadcrumb |
+| Header ⚙ for admin | Replaced by **UX-DR20** scope bar |
+| Travel league for déplacements | Replaced by **UX-DR21** equity tags |
+| `/troupe/:slug` hub path | Use `/troupes/:slug` |
 
 ---
 
-## UX-DR register (new)
+## UX-DR register
 
-| ID | Summary |
-|----|---------|
-| **UX-DR13** | Post-login routing; no stub home; last league + deep links |
-| **UX-DR14** | User agenda — multi-league, filters **when >1 troupe or >1 ligue**, one row per event |
-| **UX-DR15** | Event context strip — troupe + ligue + nav links |
-| **UX-DR16** | Troupe hub — leagues list, pseudo, admin, directory |
-| **UX-DR17** | League creation — roster mode (all members vs manual) |
-| **UX-DR18** | Multi-active leagues — several active cards on troupe hub |
+| ID | Summary | Status |
+|----|---------|--------|
+| **UX-DR13** | Post-login routing; no stub home; last season + deep links | Active |
+| **UX-DR14** | User agenda — multi-season, filters when >1 troupe or saison, one row per event | Active |
+| **UX-DR15** | Event context strip — troupe + ligue + nav links | **Deprecated** → UX-DR19 |
+| **UX-DR16** | Troupe hub — seasons list, prefs, admin, directory | **Amended** (routes, chrome) |
+| **UX-DR17** | Season creation — roster mode (all members vs manual) | Active |
+| **UX-DR18** | Multi-active seasons — several active cards on troupe hub | Active |
+| **UX-DR19** | Breadcrumb — desktop full path; mobile troupe logo only; links to hub | **New** ADR 0013 |
+| **UX-DR20** | Scope admin bar below header (troupe / saison / spectacle) | **New** ADR 0013 |
+| **UX-DR21** | Equity tag on event — optional autocomplete; principal implicit | **New** ADR 0013 |
 
 ---
 
 ## Sally → Patrice: edge cases to feel in review
 
-1. **Same slug, two troupes** — agenda shows two rows; event detail never cross-loads wrong troupe (Story 2.4 rules preserved).
-2. **League participant but not troupe member** — row appears in agenda; troupe hub may 403; event detail still works in scope.
-3. **Archived league** — events disappear from member agenda; visible on historique with admin filter.
-4. **Filter bar hidden (single troupe + single league)** — full-width list, no empty filter row; badges on rows sufficient.
+1. **Same slug, two troupes** — agenda shows two rows; event detail never cross-loads wrong troupe.
+2. **Season participant but not troupe member** — row in agenda; troupe hub may 403; event detail works in season scope.
+3. **Archived season** — events leave member agenda; visible on historique with admin filter.
+4. **Filter bar hidden (single troupe + single saison)** — badges on rows sufficient.
+5. **[ADR-0013] Mobile breadcrumb** — logo-only sufficient? saison name in H1 below.
+6. **[ADR-0013] Tag mid-season** — adding `apérock` tag does not retro-change past draws; forward-only for new events unless migration policy defined.
 
 ---
 
-*Approved 2026-05-24 by Patrice (reserve RES-001). Implementation order: see PLAN.md V2 delivery track.*
+## Implementation order
+
+- **Epic 17.1–17.5** — navigation (this document Screens 2b, 3, 4, 6 chrome + shared components)
+- **Epic 17.6** — event slugs (Screen 6 URLs)
+- **Epic 17.7–17.8** — Screen 6b
+- **Epic 17.9–17.10** — draw/stats (see ADR 0013; `ux-design-hatcast-v2` for composition tabs)
+
+*Approved 2026-05-24 by Patrice (RES-001). Amended 2026-05-25 for ADR 0013 / Epic 17.*
