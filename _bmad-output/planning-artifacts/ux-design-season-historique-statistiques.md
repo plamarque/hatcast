@@ -9,6 +9,8 @@ relatedStories:
   - '3.3'
   - '17.2'
   - '17.10'
+relatedAmendments:
+  - _bmad-output/planning-artifacts/ux-design-stats-equity-compartment-filter-17-10.md
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-hatcast-v2.md
   - _bmad-output/planning-artifacts/ux-design-journey-league-agenda.md
@@ -36,10 +38,10 @@ stakeholderScope: Refine wireframes and interaction spec for league workspace Hi
 | D3 | **Historique content** | Reuse **agenda card** layout; **past** events only (`scope=past`) | Same scan pattern as Agenda; no stats columns. |
 | D4 | **Statistiques content** | V1 **mat-table** grid (role families + months) | Parity with `CastsView.vue`; distinct CSV export. |
 | D5 | **Filters on Historique** | **Same** participant + event dropdowns as Agenda | Participant = whose dispo/role badge is shown on cards; event = subset of past spectacles. |
-| D6 | **Filters on Statistiques** | **Membres** + **Spectacles** dropdowns (labels explicit) | Replaces vague “two Tous”; aligns with Agenda filter vocabulary. |
-| D7 | **Export placement** | **Historique:** `Exporter` in filter row (left cluster). **Statistiques:** `Exporter` + `Masquer` in filter row | Keeps gear menu for admin only (Epic 17.2). |
-| D8 | **Masquer** | Toggles **expanded** month columns and **expanded** JEU sub-columns | Matches V1 “voir / masquer les détails”. |
-| D9 | **DEPLACEMENT column** | Events with troupe **`equity_tag = deplacements`** (ADR 0013) | Not travel-league model; Story 17.10 implements aggregation rule. |
+| D6 | **Filters on Statistiques** | **Membres** + **Spectacles** + **Groupes de spectacles** (multi, incl. **Spectacles ordinaires** + tags + **Tous les spectacles**) | Story **17.10**; see [ux-design-stats-equity-compartment-filter-17-10.md](ux-design-stats-equity-compartment-filter-17-10.md). |
+| D7 | **Export placement** | **Historique:** `Exporter` in filter row (left cluster). **Statistiques:** `Exporter` + **Détails** in filter row | Keeps gear menu for admin only (Epic 17.2). |
+| D8 | **Détails** | Toggles **expanded** month columns and **expanded** JEU sub-columns | Matches V1 “voir / masquer les détails”; **no DEPLACEMENT band** after 17.10. |
+| D9 | **Compartments in stats** | **Superseded 2026-05-25** — filter by spectacle group, not DEPLACEMENT column | Was: DEPLACEMENT column; now **17.10** filter spec linked above. |
 | D10 | **Deep link** | `?view=history` \| `?view=stats` syncs toolbar | Bookmarkable; post-login may default to `agenda`. |
 | D11 | **Empty states** | Distinct copy per view | Avoid generic placeholder (“stats coming soon”). |
 | D12 | **Mobile** | Stats: horizontal scroll + sticky name column; Historique: same cards as Agenda | NFR readability on small screens. |
@@ -207,8 +209,9 @@ Map V1 band colours to theme tokens (do not hardcode hex in components):
 |------|------------|
 | JEU | `--stats-band-jeu` (yellow family) |
 | DECORUM | `--stats-band-decorum` (purple) |
-| DEPLAC. | `--stats-band-deplacement` (green) |
 | BÉNÉVOLE | `--stats-band-benevole` (teal/grey) |
+
+> **17.10:** DEPLACEMENT band removed; use compartment filter instead.
 
 ### Responsive (≤768px)
 
@@ -224,11 +227,9 @@ Map V1 band colours to theme tokens (do not hardcode hex in components):
 | Empty season | `Pas encore de données pour cette saison.` |
 | Insufficient data (no dispos/casts) | Grid with **—** cells; tooltips explain |
 
-### DEPLACEMENT (coordination 17.10)
+### Spectacle groups filter (Story 17.10)
 
-- Column counts events where `equity_tag` slug is `deplacements` (troupe glossary).
-- Show-league local events never increment DEPLAC.
-- Legacy `templateType = deplacement` until migration — backend rules per DOMAIN.
+See **[ux-design-stats-equity-compartment-filter-17-10.md](ux-design-stats-equity-compartment-filter-17-10.md)**. Summary: multi-select **Groupes de spectacles** (**Spectacles ordinaires** + troupe tags + **Tous les spectacles**); same JEU/DECORUM/BÉNÉVOLE columns; export respects selection. Data migration `deplacement` → tag: **MIG-4**, not 17.10.
 
 ---
 
@@ -238,7 +239,7 @@ Map V1 band colours to theme tokens (do not hardcode hex in components):
 |------|-------------------------|-------------------------|
 | Agenda | Participant + Spectacle | Agenda \| Historique \| Statistiques + ⚙ |
 | Historique | Participant + Spectacle + **Exporter** | same |
-| Statistiques | Membres + Spectacles + **Exporter** + **Masquer** | same |
+| Statistiques | Membres + Spectacles + **Groupes de spectacles** + **Exporter** + **Détails** | same |
 
 **Gear menu** unchanged — never hosts Exporter/Masquer.
 

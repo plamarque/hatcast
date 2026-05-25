@@ -38,6 +38,10 @@
       [(selectedHistoryEventId)]="selectedHistoryEventId"
       [statsEventOptions]="statsEventFilterOptions()"
       [(selectedStatsEventId)]="selectedStatsEventId"
+      [equityGlossarySlugs]="equityGlossarySlugs()"
+      [equityTagLabels]="equityTagLabels()"
+      [statsEquityCompartments]="statsEquityCompartments()"
+      (statsEquityCompartmentsChange)="onStatsEquityCompartmentsChange($event)"
       [(detailsExpanded)]="statsDetailsExpanded"
       (exportClick)="
         seasonView() === 'stats' ? exportStatisticsCsv() : exportHistoryCsv()
@@ -78,6 +82,7 @@
       <app-season-statistics
         [data]="statisticsData()"
         [loading]="loadingStatistics()"
+        [emptyReason]="statisticsEmptyReason()"
         [detailsExpanded]="statsDetailsExpanded()"
       />
     }

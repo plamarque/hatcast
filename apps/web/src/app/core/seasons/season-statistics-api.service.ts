@@ -32,11 +32,17 @@ export interface SeasonStatisticsResponse {
   rows: ParticipantStatisticsRow[]
 }
 
+export type EquityCompartmentsQuery = 'all' | string[]
+
 @Injectable({ providedIn: 'root' })
 export class SeasonStatisticsApiService {
   async loadStatistics(
     seasonId: string,
-    options: { eventId?: string | null; participantId?: string | null } = {},
+    options: {
+      eventId?: string | null
+      participantId?: string | null
+      equityCompartments?: EquityCompartmentsQuery
+    } = {},
   ): Promise<{ ok: boolean; status: number; data?: SeasonStatisticsResponse }> {
     const params = new URLSearchParams()
     if (options.eventId) {
@@ -44,6 +50,17 @@ export class SeasonStatisticsApiService {
     }
     if (options.participantId) {
       params.set('participantId', options.participantId)
+    }
+    if (options.equityCompartments !== undefined) {
+      if (options.equityCompartments === 'all') {
+        params.append('equityCompartments', 'all')
+      } else if (options.equityCompartments.length === 0) {
+        params.append('equityCompartments', '')
+      } else {
+        for (const slug of options.equityCompartments) {
+          params.append('equityCompartments', slug)
+        }
+      }
     }
     const qs = params.toString()
     const url = `/v1/seasons/${encodeURIComponent(seasonId)}/statistics${qs ? `?${qs}` : ''}`

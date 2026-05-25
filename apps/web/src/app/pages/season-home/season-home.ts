@@ -72,8 +72,14 @@ import {
   buildStatisticsCsv,
   downloadStatisticsCsv,
 } from './season-statistics-export'
-import { SeasonStatistics } from './season-statistics'
+import { SeasonStatistics, type StatisticsEmptyReason } from './season-statistics'
 import { SeasonViewToolbar } from './season-view-toolbar'
+import {
+  compartmentsToQueryValue,
+  defaultStatsEquityCompartments,
+  statsGroupsExportLabel,
+  type StatsEquityCompartments,
+} from './stats-equity-compartments'
 import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './season-view.types'
 import {
   EventFormDialog,
@@ -158,9 +164,13 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly selectedHistoryEventId = model<string | null>(null)
   protected readonly selectedStatsEventId = model<string | null>(null)
   protected readonly statsDetailsExpanded = model(false)
+  protected readonly statsEquityCompartments = signal<StatsEquityCompartments>(
+    defaultStatsEquityCompartments(),
+  )
 
   protected readonly statisticsData = signal<SeasonStatisticsResponse | null>(null)
   protected readonly loadingStatistics = signal(false)
+  protected readonly statisticsEmptyReason = signal<StatisticsEmptyReason>(null)
 
   protected readonly participantSelectors = signal<ParticipantSelector[]>([])
 
@@ -226,6 +236,10 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
     return map
   })
+
+  protected readonly equityGlossarySlugs = computed(() =>
+    this.equityTags().map((t) => t.slug),
+  )
 
   private readonly equityTags = signal<TroupeEquityTag[]>([])
   protected readonly canManageMembers = computed(() => this.seasonPermissions()?.canManageMembers === true)
@@ -319,23 +333,29 @@ export class SeasonHome implements OnDestroy, OnInit {
       let lastView: SeasonView | null = null
       let lastParticipant: string | null | undefined
       let lastStatsEvent: string | null | undefined
+      let lastStatsGroupsKey: string | undefined
+      const statsGroupsKey = (c: StatsEquityCompartments): string =>
+        c.kind === 'selected' ? `selected:${c.slugs.join(',')}` : c.kind
       const syncViewLoads = (): void => {
         const view = this.seasonView()
         const participant = this.selectedParticipantId()
         const statsEvent = this.selectedStatsEventId()
+        const statsGroupsKeyValue = statsGroupsKey(this.statsEquityCompartments())
         if (view !== lastView) {
           this.syncViewQueryParam()
         }
         if (
           view === lastView &&
           participant === lastParticipant &&
-          (view !== 'stats' || statsEvent === lastStatsEvent)
+          (view !== 'stats' ||
+            (statsEvent === lastStatsEvent && statsGroupsKeyValue === lastStatsGroupsKey))
         ) {
           return
         }
         lastView = view
         lastParticipant = participant
         lastStatsEvent = statsEvent
+        lastStatsGroupsKey = statsGroupsKeyValue
         if (view === 'history' && this.season()) {
           void this.loadPastEvents()
         }
@@ -425,7 +445,9 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.selectedStatsEventId.set(null)
     this.statisticsData.set(null)
     this.loadingStatistics.set(false)
+    this.statisticsEmptyReason.set(null)
     this.statsDetailsExpanded.set(false)
+    this.statsEquityCompartments.set(defaultStatsEquityCompartments())
     this.equityTags.set([])
   }
 
@@ -631,6 +653,13 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
   }
 
+  protected onStatsEquityCompartmentsChange(compartments: StatsEquityCompartments): void {
+    this.statsEquityCompartments.set(compartments)
+    if (this.seasonView() === 'stats' && this.season()) {
+      void this.loadStatistics({ force: true })
+    }
+  }
+
   protected loadMorePastEvents(): void {
     if (this.loadingPastEvents() || !this.pastEventsTruncated()) {
       return
@@ -644,22 +673,48 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (!s || (this.loadingStatistics() && !options.force)) {
       return
     }
+    const compartments = this.statsEquityCompartments()
+    if (compartments.kind === 'none') {
+      this.statisticsData.set(null)
+      this.statisticsEmptyReason.set('none-selected')
+      this.loadingStatistics.set(false)
+      return
+    }
+
     const requestId = ++this.statisticsLoadRequestId
     const seasonId = s.id
     this.loadingStatistics.set(true)
+    this.statisticsEmptyReason.set(null)
     try {
+      const queryValue = compartmentsToQueryValue(compartments)
+      const equityCompartments =
+        queryValue === 'all'
+          ? ('all' as const)
+          : queryValue === ''
+            ? []
+            : queryValue!.split(',')
+
       const r = await this.statisticsApi.loadStatistics(seasonId, {
         eventId: this.selectedStatsEventId(),
         participantId: this.selectedParticipantId(),
+        equityCompartments,
       })
       if (requestId !== this.statisticsLoadRequestId) {
         return
       }
       if (!r.ok || !r.data) {
+        this.statisticsData.set(null)
+        this.statisticsEmptyReason.set(null)
         this.snack.open('Impossible de charger les statistiques.', 'OK', { duration: 6000 })
         return
       }
-      this.statisticsData.set(r.data)
+      if (r.data.events.length === 0) {
+        this.statisticsData.set(r.data)
+        this.statisticsEmptyReason.set('no-data')
+      } else {
+        this.statisticsData.set(r.data)
+        this.statisticsEmptyReason.set(null)
+      }
       this.resetStaleStatsEventFilter(r.data.events)
     } finally {
       if (requestId === this.statisticsLoadRequestId) {
@@ -670,7 +725,12 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   protected exportStatisticsCsv(): void {
     const data = this.statisticsData()
-    if (!data || data.rows.length === 0) {
+    if (
+      !data ||
+      data.rows.length === 0 ||
+      data.events.length === 0 ||
+      this.statsEquityCompartments().kind === 'none'
+    ) {
       this.snack.open('Aucune donnée à exporter.', 'OK', { duration: 4000 })
       return
     }
@@ -680,9 +740,14 @@ export class SeasonHome implements OnDestroy, OnInit {
       panel?.columnVisibility() ?? {
         showJeuDetails: this.statsDetailsExpanded(),
         showDecorumDetails: this.statsDetailsExpanded(),
-        showDeplacementDetails: this.statsDetailsExpanded(),
         showBenevoleDetails: this.statsDetailsExpanded(),
         expandedMonths: new Set(),
+      },
+      {
+        groupsLabel: statsGroupsExportLabel(
+          this.statsEquityCompartments(),
+          this.equityTagLabels(),
+        ),
       },
     )
     const slug = this.slug() || 'saison'

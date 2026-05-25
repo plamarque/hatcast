@@ -25,12 +25,6 @@ const DECORUM_DETAIL_COLUMNS: ColumnDef[] = [
   { key: 'totalDecorum', label: 'TOTAL DECORUM' },
 ]
 
-const DEPLACEMENT_DETAIL_COLUMNS: ColumnDef[] = [
-  { key: 'deplacementJeu', label: 'DEPLAC. JEU' },
-  { key: 'deplacementDecorum', label: 'DEPLAC. DECORUM' },
-  { key: 'totalDeplacement', label: 'TOTAL DEPLAC.' },
-]
-
 const BENEVOLE_DETAIL_COLUMNS: ColumnDef[] = [
   { key: 'stageManager', label: 'RÉGISSEUR' },
   { key: 'lighting', label: 'LUMIÈRE' },
@@ -40,7 +34,6 @@ const BENEVOLE_DETAIL_COLUMNS: ColumnDef[] = [
 
 const JEU_SUMMARY: ColumnDef = { key: 'totalJeu', label: 'JEU' }
 const DECORUM_SUMMARY: ColumnDef = { key: 'totalDecorum', label: 'DECORUM' }
-const DEPLACEMENT_SUMMARY: ColumnDef = { key: 'totalDeplacement', label: 'DEPLAC.' }
 const BENEVOLE_SUMMARY: ColumnDef = { key: 'totalBenevole', label: 'BÉNÉVOLE' }
 
 function csvEscape(value: string): string {
@@ -78,11 +71,6 @@ function annualColumnsForVisibility(visibility: StatisticsColumnVisibility): Col
   } else {
     cols.push(DECORUM_SUMMARY)
   }
-  if (visibility.showDeplacementDetails) {
-    cols.push(...DEPLACEMENT_DETAIL_COLUMNS)
-  } else {
-    cols.push(DEPLACEMENT_SUMMARY)
-  }
   if (visibility.showBenevoleDetails) {
     cols.push(...BENEVOLE_DETAIL_COLUMNS)
   } else {
@@ -99,9 +87,14 @@ function eventsForExport(data: SeasonStatisticsResponse): StatisticsEvent[] {
 export function buildStatisticsCsv(
   data: SeasonStatisticsResponse,
   visibility: StatisticsColumnVisibility,
+  options: { groupsLabel?: string } = {},
 ): string {
   const annualCols = annualColumnsForVisibility(visibility)
   const exportEvents = eventsForExport(data)
+  const lines: string[] = []
+  if (options.groupsLabel) {
+    lines.push(csvEscape(`Groupes: ${options.groupsLabel}`))
+  }
   const headers = ['Participant', ...annualCols.map((c) => c.label)]
 
   for (const monthKey of data.monthKeys) {
@@ -111,7 +104,7 @@ export function buildStatisticsCsv(
     headers.push(`${ev.title} (${ev.startsAt.slice(0, 10)})`)
   }
 
-  const lines = [headers.map(csvEscape).join(',')]
+  lines.push(headers.map(csvEscape).join(','))
   for (const row of data.rows) {
     const cells = [csvEscape(row.displayName)]
     for (const col of annualCols) {

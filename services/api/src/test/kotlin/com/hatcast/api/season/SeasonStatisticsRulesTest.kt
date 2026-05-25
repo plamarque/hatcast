@@ -49,20 +49,31 @@ class SeasonStatisticsRulesTest {
     }
 
     @Test
-    fun `is deplacement event uses equity tag or template type`() {
-        assertTrue(SeasonStatisticsRules.isDeplacementEvent(event("deplacement")))
-        assertTrue(SeasonStatisticsRules.isDeplacementEvent(event("match", equityTag = "deplacements")))
-        assertFalse(SeasonStatisticsRules.isDeplacementEvent(event("match")))
+    fun `event matches column routes by template type regardless of equity tag`() {
+        val localMatch = event("match")
+        val awayMatch = event("match", equityTag = "deplacements")
+        val legacyDepl = event("deplacement")
+        assertTrue(SeasonStatisticsRules.eventMatchesColumn(localMatch, "jeuMatch"))
+        assertTrue(SeasonStatisticsRules.eventMatchesColumn(awayMatch, "jeuMatch"))
+        assertFalse(SeasonStatisticsRules.eventMatchesColumn(legacyDepl, "jeuMatch"))
+        assertTrue(SeasonStatisticsRules.eventMatchesColumn(legacyDepl, "jeuAutre"))
     }
 
     @Test
-    fun `event matches column for jeu and deplacement`() {
-        val localMatch = event("match")
-        val depl = event("deplacement")
-        assertTrue(SeasonStatisticsRules.eventMatchesColumn(localMatch, "jeuMatch"))
-        assertFalse(SeasonStatisticsRules.eventMatchesColumn(depl, "jeuMatch"))
-        assertTrue(SeasonStatisticsRules.eventMatchesColumn(depl, "deplacementJeu"))
-        assertFalse(SeasonStatisticsRules.eventMatchesColumn(localMatch, "deplacementJeu"))
+    fun `selection column for player uses template type not deplacement band`() {
+        assertEquals("jeuMatch", SeasonStatisticsRules.selectionColumnForRole(event("match"), "player"))
+        assertEquals(
+            "jeuMatch",
+            SeasonStatisticsRules.selectionColumnForRole(event("match", equityTag = "deplacements"), "player"),
+        )
+        assertEquals("jeuAutre", SeasonStatisticsRules.selectionColumnForRole(event("deplacement"), "player"))
+        assertEquals("mc", SeasonStatisticsRules.selectionColumnForRole(event("deplacement"), "mc"))
+    }
+
+    @Test
+    fun `column keys exclude deplacement band`() {
+        assertFalse(SeasonStatisticsRules.COLUMN_KEYS.contains("deplacementJeu"))
+        assertFalse(SeasonStatisticsRules.COLUMN_KEYS.contains("totalDeplacement"))
     }
 
     @Test

@@ -116,4 +116,67 @@ class SeasonStatisticsServiceTest {
         val cell = result.rows.first().eventCells[eventId]
         assertTrue(cell?.startsWith("Dispo (") == true, "expected Dispo export, got: $cell")
     }
+
+    @Test
+    fun `loadStatistics filters events by equity compartments`() {
+        val troupe = mock<TroupeEntity> { whenever(it.id).thenReturn(troupeId) }
+        val season =
+            mock<SeasonEntity>().also {
+                whenever(it.id).thenReturn(seasonId)
+                whenever(it.troupe).thenReturn(troupe)
+            }
+        val participant =
+            mock<SeasonParticipantEntity>().also {
+                whenever(it.id).thenReturn(participantId)
+                whenever(it.displayName).thenReturn("Alice")
+            }
+        val ordinary =
+            mock<EventEntity>().also {
+                whenever(it.id).thenReturn(UUID.randomUUID())
+                whenever(it.title).thenReturn("Match local")
+                whenever(it.startsAt).thenReturn(Instant.parse("2026-03-10T19:00:00Z"))
+                whenever(it.templateType).thenReturn("match")
+                whenever(it.equityTag).thenReturn(null)
+                whenever(it.roleSlots).thenReturn(mapOf("player" to 6))
+                whenever(it.archived).thenReturn(false)
+            }
+        val away =
+            mock<EventEntity>().also {
+                whenever(it.id).thenReturn(eventId)
+                whenever(it.title).thenReturn("Déplacement")
+                whenever(it.startsAt).thenReturn(Instant.parse("2026-03-15T19:00:00Z"))
+                whenever(it.templateType).thenReturn("deplacement")
+                whenever(it.equityTag).thenReturn(null)
+                whenever(it.roleSlots).thenReturn(mapOf("player" to 6))
+                whenever(it.archived).thenReturn(false)
+            }
+
+        whenever(seasonRepository.findById(seasonId)).thenReturn(Optional.of(season))
+        whenever(seasonParticipantRepository.findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE))
+            .thenReturn(listOf(participant))
+        whenever(eventRepository.findNonArchivedBySeasonId(seasonId)).thenReturn(listOf(ordinary, away))
+        whenever(compositionRepository.findByEventIdIn(any())).thenReturn(emptyList())
+        whenever(slotRepository.findByEventIdIn(any())).thenReturn(emptyList())
+        whenever(declineRepository.findByEventIdIn(any())).thenReturn(emptyList())
+        whenever(availabilityRepository.findByEvent_IdIn(any())).thenReturn(emptyList())
+
+        val principal =
+            SessionUserPrincipal(
+                userId = UUID.randomUUID(),
+                googleSub = "sub",
+                idpUid = null,
+                email = "alice@example.com",
+            )
+
+        val principalOnly = service.loadStatistics(seasonId, principal, equityCompartments = listOf("principal"))
+        assertEquals(1, principalOnly.events.size)
+        assertEquals("Match local", principalOnly.events.first().title)
+
+        val deplOnly = service.loadStatistics(seasonId, principal, equityCompartments = listOf("deplacements"))
+        assertEquals(1, deplOnly.events.size)
+        assertEquals(eventId, deplOnly.events.first().id)
+
+        val empty = service.loadStatistics(seasonId, principal, equityCompartments = listOf(""))
+        assertTrue(empty.events.isEmpty())
+    }
 }

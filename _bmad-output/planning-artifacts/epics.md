@@ -340,7 +340,7 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **Epic 17.7→17.10** avant **3.6** stats finales ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→17.9** (tags + tirage) ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -1425,14 +1425,24 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 - **Given** événement principal, **when** tirage, **then** n’inclut pas participations des seuls événements taggés autres.
 - **Given** tests d’intégration, **when** scénario Malice déplacement, **then** régression couverte.
 
-#### Story 17.10 : Statistiques et migration déplacements
+#### Story 17.10 : Statistiques — filtre par groupes de spectacles (compartiments)
+
+> **2026-05-25 (PO + UX) :** Pas de bandeau colonnes DEPLACEMENT. Les compartiments (`equity_tag`, dont principal = null) sont un **filtre multi** sur les événements inclus dans la grille et l’export. Backfill `template_type = deplacement` → tag : **MIG-4** (phase import V1→V2), pas cette story.
 
 **Acceptance Criteria**
 
-- **Given** vue Statistiques (3.6), **when** agrégation, **then** colonne DEPLACEMENT alimentée par `equity_tag = deplacements` (pas travel league).
-- **Given** données legacy `template_type = deplacement`, **when** migration ou lecture, **then** équivalent tag ou règle documentée.
-- **Given** Story 13.6, **when** planification, **then** statut **cancelled/deferred** au profit de 17.x.
-- **Couverture :** ADR 0013 §5 ; remplace ADR 0012 §3 pour nouvelles données.
+- **Given** vue Statistiques (3.6), **when** affichage, **then** grille **JEU / DECORUM / BÉNÉVOLE** uniquement (pas de bandeau DEPLACEMENT / `deplacementJeu` exposé).
+- **Given** filtre **Groupes de spectacles**, **when** l’utilisateur coche un ou plusieurs compartiments (**Spectacles ordinaires** + tags du glossaire troupe **17.7**), **then** seuls les événements dont `equity_tag` correspond (null = spectacles ordinaires) entrent dans l’agrégat et les colonnes mensuelles.
+- **Given** option **Tous les spectacles** (défaut), **when** sélectionnée, **then** tous les compartiments sont inclus (équivalent à tout cocher).
+- **Given** seul le tag `deplacements` coché, **when** stats calculées, **then** les totaux reflètent uniquement les spectacles de ce groupe (mêmes colonnes JEU/DECORUM que pour les spectacles ordinaires).
+- **Given** export CSV, **when** déclenché, **then** même périmètre d’événements que le filtre groupes actif (+ filtres Membres / Spectacle existants).
+- **Given** événement legacy `template_type = deplacement` sans `equity_tag`, **when** agrégation avant **MIG-4**, **then** traité comme compartiment `deplacements` pour le filtre uniquement (règle de lecture documentée).
+- **Given** aucun groupe coché (hors « Tous »), **when** affichage, **then** état vide explicite invitant à sélectionner au moins un groupe.
+- **Given** Story **13.6**, **when** planification, **then** reste **deferred/cancelled** (ligue déplacements remplacée par tags + filtre).
+- **Hors scope :** migration DB / import prod `deplacement` → tag (**MIG-4**) ; tirage partitionné (**17.9**).
+- **Couverture :** ADR 0013 §5 ; UX [ux-design-stats-equity-compartment-filter-17-10.md](ux-design-stats-equity-compartment-filter-17-10.md). Libellé UI compartiment null : **Spectacles ordinaires**.
+
+**Story file:** [_bmad-output/implementation-artifacts/17-10-statistiques-filtre-groupes-spectacles.md](../implementation-artifacts/17-10-statistiques-filtre-groupes-spectacles.md)
 
 #### Story 17.12 : Slug spectacle — sans saisie dans le formulaire
 

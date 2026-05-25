@@ -15,7 +15,7 @@ data class StatCountBucket(
     var declines: Int = 0,
 )
 
-/** V1 parity — [legacy/src/components/CastsView.vue] column and sel/dispo rules (story 3.6). */
+/** V1 parity — [legacy/src/components/CastsView.vue] column and sel/dispo rules (story 3.6, 17.10). */
 object SeasonStatisticsRules {
     val COLUMN_KEYS: List<String> =
         listOf(
@@ -30,9 +30,6 @@ object SeasonStatisticsRules {
             "assistantReferee",
             "coach",
             "totalDecorum",
-            "deplacementJeu",
-            "deplacementDecorum",
-            "totalDeplacement",
             "stageManager",
             "lighting",
             "volunteer",
@@ -41,26 +38,20 @@ object SeasonStatisticsRules {
 
     private val DECORUM_ROLES = listOf("mc", "dj", "referee", "assistant_referee", "coach")
     private val BENEVOLE_ROLES = listOf("stage_manager", "lighting", "volunteer")
-    private val JEU_AUTRE_TYPES = setOf("freeform", "catch", "custom", "survey")
-
-    fun isDeplacementEvent(event: EventEntity): Boolean =
-        event.equityTag == "deplacements" || event.templateType == "deplacement"
+    private val JEU_AUTRE_TYPES = setOf("freeform", "catch", "custom", "survey", "deplacement")
 
     fun eventMatchesColumn(
         event: EventEntity,
         columnKey: String,
     ): Boolean {
-        val isDepl = isDeplacementEvent(event)
         val t = event.templateType
         return when (columnKey) {
-            "jeuMatch" -> !isDepl && t == "match"
-            "jeuCab" -> !isDepl && t == "cabaret"
-            "jeuLong" -> !isDepl && t == "longform"
-            "jeuAutre" -> !isDepl && t in JEU_AUTRE_TYPES
-            "totalJeu" -> !isDepl
-            "mc", "dj", "referee", "assistantReferee", "coach" -> !isDepl
-            "totalDecorum" -> !isDepl
-            "deplacementJeu", "deplacementDecorum", "totalDeplacement" -> isDepl
+            "jeuMatch" -> t == "match"
+            "jeuCab" -> t == "cabaret"
+            "jeuLong" -> t == "longform"
+            "jeuAutre" -> t in JEU_AUTRE_TYPES
+            "totalJeu" -> t == "match" || t == "cabaret" || t == "longform" || t in JEU_AUTRE_TYPES
+            "mc", "dj", "referee", "assistantReferee", "coach", "totalDecorum" -> true
             "stageManager", "lighting", "volunteer", "totalBenevole" -> true
             else -> false
         }
@@ -68,14 +59,13 @@ object SeasonStatisticsRules {
 
     fun rolesForColumn(columnKey: String): List<String> =
         when (columnKey) {
-            "jeuMatch", "jeuCab", "jeuLong", "jeuAutre", "totalJeu", "deplacementJeu" -> listOf("player")
+            "jeuMatch", "jeuCab", "jeuLong", "jeuAutre", "totalJeu" -> listOf("player")
             "mc" -> listOf("mc")
             "dj" -> listOf("dj")
             "referee" -> listOf("referee")
             "assistantReferee" -> listOf("assistant_referee")
             "coach" -> listOf("coach")
-            "totalDecorum", "deplacementDecorum" -> DECORUM_ROLES
-            "totalDeplacement" -> listOf("player") + DECORUM_ROLES
+            "totalDecorum" -> DECORUM_ROLES
             "stageManager" -> listOf("stage_manager")
             "lighting" -> listOf("lighting")
             "volunteer" -> listOf("volunteer")
@@ -86,31 +76,25 @@ object SeasonStatisticsRules {
     fun selectionColumnForRole(
         event: EventEntity,
         roleKey: String,
-    ): String? {
-        val isDepl = isDeplacementEvent(event)
-        return when (roleKey) {
-            "mc" -> if (isDepl) "deplacementDecorum" else "mc"
-            "dj" -> if (isDepl) "deplacementDecorum" else "dj"
-            "referee" -> if (isDepl) "deplacementDecorum" else "referee"
-            "assistant_referee" -> if (isDepl) "deplacementDecorum" else "assistantReferee"
-            "coach" -> if (isDepl) "deplacementDecorum" else "coach"
+    ): String? =
+        when (roleKey) {
+            "mc" -> "mc"
+            "dj" -> "dj"
+            "referee" -> "referee"
+            "assistant_referee" -> "assistantReferee"
+            "coach" -> "coach"
             "player" ->
-                if (isDepl) {
-                    "deplacementJeu"
-                } else {
-                    when (event.templateType) {
-                        "match" -> "jeuMatch"
-                        "cabaret" -> "jeuCab"
-                        "longform" -> "jeuLong"
-                        else -> "jeuAutre"
-                    }
+                when (event.templateType) {
+                    "match" -> "jeuMatch"
+                    "cabaret" -> "jeuCab"
+                    "longform" -> "jeuLong"
+                    else -> "jeuAutre"
                 }
             "stage_manager" -> "stageManager"
             "lighting" -> "lighting"
             "volunteer" -> "volunteer"
             else -> null
         }
-    }
 
     fun incrementSelectionTotals(
         totals: MutableMap<String, Int>,
@@ -123,8 +107,6 @@ object SeasonStatisticsRules {
             "jeuMatch", "jeuCab", "jeuLong", "jeuAutre" -> totals["totalJeu"] = (totals["totalJeu"] ?: 0) + 1
             "mc", "dj", "referee", "assistantReferee", "coach" ->
                 totals["totalDecorum"] = (totals["totalDecorum"] ?: 0) + 1
-            "deplacementJeu", "deplacementDecorum" ->
-                totals["totalDeplacement"] = (totals["totalDeplacement"] ?: 0) + 1
             "stageManager", "lighting", "volunteer" ->
                 totals["totalBenevole"] = (totals["totalBenevole"] ?: 0) + 1
         }

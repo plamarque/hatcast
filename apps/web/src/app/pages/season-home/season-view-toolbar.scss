@@ -35,6 +35,31 @@
   height: 1.1rem;
 }
 
+.season-toolbar__filter--warn {
+  border-color: var(--mat-sys-error, #f44336);
+  color: var(--mat-sys-error, #f44336);
+}
+
+.season-toolbar__groups-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  max-width: 22rem;
+}
+
+.season-toolbar__groups-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.season-toolbar__groups-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  opacity: 0.85;
+}
+
 .season-toolbar__right {
   display: flex;
   flex-shrink: 0;

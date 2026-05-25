@@ -86,6 +86,49 @@
       <button
         type="button"
         mat-stroked-button
+        class="season-toolbar__filter"
+        [class.season-toolbar__filter--warn]="statsGroupsNoneSelected()"
+        [matMenuTriggerFor]="statsGroupsMenu"
+        aria-label="Filtrer par groupes de spectacles"
+      >
+        <mat-icon>category</mat-icon>
+        <span>{{ statsGroupsLabel() }}</span>
+        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
+      </button>
+      <mat-menu #statsGroupsMenu="matMenu" class="season-toolbar__groups-menu">
+        <div class="season-toolbar__groups-panel" (click)="$event.stopPropagation()">
+          <p class="season-toolbar__groups-title">Groupes de spectacles</p>
+          <p class="season-toolbar__groups-hint">
+            Les stats ne comptent que les spectacles des groupes cochés. Choisissez quels spectacles
+            entrent dans le tableau. <em>Spectacles ordinaires</em> = spectacles sans groupe. Pour les
+            stats d’un seul programme (ex. bus), cochez uniquement ce groupe.
+          </p>
+          <mat-checkbox
+            [checked]="isAllCompartmentsSelected()"
+            (change)="toggleAllGroups($event.checked)"
+          >
+            Tous les spectacles
+          </mat-checkbox>
+          <mat-checkbox
+            [checked]="isCompartmentChecked('principal')"
+            (change)="togglePrincipal($event.checked)"
+          >
+            {{ principalLabel() }}
+          </mat-checkbox>
+          @for (slug of equityGlossarySlugs(); track slug) {
+            <mat-checkbox
+              [checked]="isCompartmentChecked(slug)"
+              (change)="toggleGlossarySlug(slug, $event.checked)"
+            >
+              {{ glossaryLabel(slug) }}
+            </mat-checkbox>
+          }
+        </div>
+      </mat-menu>
+
+      <button
+        type="button"
+        mat-stroked-button
         class="season-toolbar__export"
         aria-label="Exporter les statistiques"
         (click)="exportClick.emit()"

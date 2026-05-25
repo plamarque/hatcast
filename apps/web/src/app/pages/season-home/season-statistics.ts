@@ -13,10 +13,11 @@ import { monthLabel } from './season-statistics.utils'
 export type StatisticsColumnVisibility = {
   showJeuDetails: boolean
   showDecorumDetails: boolean
-  showDeplacementDetails: boolean
   showBenevoleDetails: boolean
   expandedMonths: Set<string>
 }
+
+export type StatisticsEmptyReason = 'none-selected' | 'no-data' | null
 
 @Component({
   selector: 'app-season-statistics',
@@ -28,10 +29,10 @@ export class SeasonStatistics {
   readonly data = input<SeasonStatisticsResponse | null>(null)
   readonly loading = input(false)
   readonly detailsExpanded = input(false)
+  readonly emptyReason = input<StatisticsEmptyReason>(null)
 
   protected readonly jeuExpanded = signal(false)
   protected readonly decorumExpanded = signal(false)
-  protected readonly deplacementExpanded = signal(false)
   protected readonly benevoleExpanded = signal(false)
   protected readonly expandedMonths = signal<Set<string>>(new Set())
 
@@ -39,16 +40,26 @@ export class SeasonStatistics {
   protected readonly monthKeys = computed(() => this.data()?.monthKeys ?? [])
   protected readonly events = computed(() => this.data()?.events ?? [])
 
+  protected readonly emptyMessage = computed(() => {
+    const reason = this.emptyReason()
+    if (reason === 'none-selected') {
+      return 'Sélectionnez au moins un groupe de spectacles pour afficher les statistiques.'
+    }
+    if (reason === 'no-data') {
+      return 'Aucune donnée pour les groupes sélectionnés sur cette saison.'
+    }
+    if (!this.data() || this.rows().length === 0) {
+      return 'Pas encore de données pour cette saison.'
+    }
+    return null
+  })
+
   protected toggleJeu(): void {
     this.jeuExpanded.update((v) => !v)
   }
 
   protected toggleDecorum(): void {
     this.decorumExpanded.update((v) => !v)
-  }
-
-  protected toggleDeplacement(): void {
-    this.deplacementExpanded.update((v) => !v)
   }
 
   protected toggleBenevole(): void {
@@ -105,10 +116,6 @@ export class SeasonStatistics {
     return this.detailsExpanded() || this.decorumExpanded()
   }
 
-  protected deplacementDetailsVisible(): boolean {
-    return this.detailsExpanded() || this.deplacementExpanded()
-  }
-
   protected benevoleDetailsVisible(): boolean {
     return this.detailsExpanded() || this.benevoleExpanded()
   }
@@ -117,7 +124,6 @@ export class SeasonStatistics {
     return (
       this.jeuDetailsVisible() ||
       this.decorumDetailsVisible() ||
-      this.deplacementDetailsVisible() ||
       this.benevoleDetailsVisible()
     )
   }
@@ -127,7 +133,6 @@ export class SeasonStatistics {
     return {
       showJeuDetails: this.jeuDetailsVisible(),
       showDecorumDetails: this.decorumDetailsVisible(),
-      showDeplacementDetails: this.deplacementDetailsVisible(),
       showBenevoleDetails: this.benevoleDetailsVisible(),
       expandedMonths: this.expandedMonthKeys(),
     }

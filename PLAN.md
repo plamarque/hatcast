@@ -276,6 +276,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **MIG-1** | Runbook reset Neon staging | P0 | [x] |
 | **MIG-2** | Export V1 → import V2 : saisons + événements | P1 | backlog |
 | **MIG-3** | Export dispos / compositions | P2 | backlog |
+| **MIG-4** | À l’import / post-import : `template_type=deplacement` → `equity_tag=deplacements` ; retrait progressif du type `deplacement` | P2 | backlog | Après **MIG-2** (données prod) |
 
 **Explicitement hors MVP V2 (backlog post-pilote) :**
 
@@ -305,7 +306,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **Post-MVP** | URLs & équité | **Epic 17** **17.6→17.15** | Slugs, `equity_tag`, tirages/stats, UX formulaire/Infos |
 | **Post-MVP** | Multi-saisons | **Epic 13** (sans **13.6** travel) | Activation concurrente |
 | **Post-MVP** | Clin d’œil | **Epic 16** | `/membre/:slug` |
-| **Post-MVP** | Stats & exports | **3.6**, **3.6b** | Statistiques / Historique (ADR 0012 + **17.10**) |
+| **Post-MVP** | Stats & exports | **3.6**, **3.6b**, **17.10** | Statistiques / Historique (ADR 0012) ; filtre compartiments (**17.10**) |
 | **Post-MVP** | Polish compo (pilote) | **6.11** | Feedback visuel + perfs onglet Équipe (profilage) |
 | **Post-MVP** | Transverse | **5.4+**, **6.10**, **Epics 4**, **7–11**, **15** | Selon priorité produit ; **5.5**, **6.8** livrés pour pilote |
 
@@ -340,7 +341,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **17.7** | `equity_tag` + glossaire tags par troupe (API) | P1 | ADR 0013 |
 | **17.8** | Onglet **Infos** — tag optionnel, autocomplete, aide (pas dans modale spectacle) | P1 | 17.7 |
 | **17.9** | Tirage / chances partitionnés par `(saison, equity_tag)` | P2 | 17.7 |
-| **17.10** | Statistiques par tag ; migration `template_type=deplacement` → tag ; **annule piste 13.6** | P2 | 17.9, 3.6 |
+| **17.10** | Stats : filtre multi **groupes de spectacles** (principal + tags) ; retrait bandeau DEPLACEMENT ; export aligné ; lecture legacy `deplacement` sans backfill DB | P2 | 3.6, 17.7, 17.8 ; 17.9 recommandé avant |
 | **17.12** | Slug spectacle auto — retirer champ « Identifiant URL » du formulaire | P2 | 17.6 |
 | **17.13** | Formulaire spectacle — datepicker + heure/minute Material | P2 | — |
 | **17.14** | Infos — type + rôles en modales ; alléger `EventFormDialog` | P2 | 17.8 recommandé |
@@ -350,7 +351,9 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 
 **Story 17.11** (P1) — aligne le chrome des pages admin Participants / Membres (LIMIT-002) ; fichier story prêt pour dev après **17.5** recommandé.
 
-**DoD phase domaine (17.7–17.10) :** tag persisté (saisie Infos **17.8**) ; tirage respecte compartiments ; stats DEPLACEMENT via tag.
+**DoD phase domaine (17.7–17.10) :** tag persisté (saisie Infos **17.8**) ; tirage respecte compartiments (**17.9**) ; stats filtrables par compartiment(s), sans colonnes DEPLACEMENT dédiées (**17.10**). Migration données `deplacement` → tag : **MIG-4**, pas 17.10.
+
+**UX filtre compartiments (17.10) :** [_bmad-output/planning-artifacts/ux-design-stats-equity-compartment-filter-17-10.md](_bmad-output/planning-artifacts/ux-design-stats-equity-compartment-filter-17-10.md) ; amendement [ux-design-season-historique-statistiques.md](_bmad-output/planning-artifacts/ux-design-season-historique-statistiques.md) (D9).
 
 **DoD polish formulaire (17.12–17.15) :** modale spectacle = noyau planning ; gouvernance (type, rôles, orgas) sur Infos ; participants spectacle hors modale. SCP : [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
 

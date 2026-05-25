@@ -1,8 +1,8 @@
 <div class="season-statistics">
   @if (loading() && !data()) {
     <p class="season-statistics__status" role="status">Chargement des statistiques…</p>
-  } @else if (!data() || rows().length === 0) {
-    <p class="season-statistics__empty">Pas encore de données pour cette saison.</p>
+  } @else if (emptyMessage(); as message) {
+    <p class="season-statistics__empty" role="status">{{ message }}</p>
   } @else {
     <div class="season-statistics__scroll" role="region" aria-label="Grille statistiques participation">
       <table class="season-statistics__table">
@@ -25,16 +25,6 @@
                 @if (!detailsExpanded()) {
                   <button type="button" class="season-statistics__toggle" (click)="toggleDecorum()">
                     {{ decorumDetailsVisible() ? 'Masquer les détails' : 'Voir les détails' }}
-                  </button>
-                }
-              </div>
-            </th>
-            <th [attr.colspan]="deplacementDetailsVisible() ? 3 : 1" class="season-statistics__band season-statistics__band--depl">
-              <div class="season-statistics__band-head">
-                <span>DEPLAC.</span>
-                @if (!detailsExpanded()) {
-                  <button type="button" class="season-statistics__toggle" (click)="toggleDeplacement()">
-                    {{ deplacementDetailsVisible() ? 'Masquer les détails' : 'Voir les détails' }}
                   </button>
                 }
               </div>
@@ -102,13 +92,6 @@
               } @else {
                 <th></th>
               }
-              @if (deplacementDetailsVisible()) {
-                <th>JEU</th>
-                <th>DECORUM</th>
-                <th>TOTAL</th>
-              } @else {
-                <th></th>
-              }
               @if (benevoleDetailsVisible()) {
                 <th>RÉG.</th>
                 <th>LUM.</th>
@@ -154,13 +137,6 @@
                 <td><app-stat-ratio-display [counts]="annualCounts(row, 'totalDecorum')" /></td>
               } @else {
                 <td><app-stat-ratio-display [counts]="annualCounts(row, 'totalDecorum')" /></td>
-              }
-              @if (deplacementDetailsVisible()) {
-                <td><app-stat-ratio-display [counts]="annualCounts(row, 'deplacementJeu')" /></td>
-                <td><app-stat-ratio-display [counts]="annualCounts(row, 'deplacementDecorum')" /></td>
-                <td><app-stat-ratio-display [counts]="annualCounts(row, 'totalDeplacement')" /></td>
-              } @else {
-                <td><app-stat-ratio-display [counts]="annualCounts(row, 'totalDeplacement')" /></td>
               }
               @if (benevoleDetailsVisible()) {
                 <td><app-stat-ratio-display [counts]="annualCounts(row, 'stageManager')" /></td>

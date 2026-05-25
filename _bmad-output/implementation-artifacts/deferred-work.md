@@ -1,3 +1,13 @@
+## Deferred from: code review of 17-15-onglet-infos-organisateurs-retrait-participants-formulaire.md (2026-05-25)
+
+- Autocomplete membres troupe limité à 100 dans `EventOrganizersDialog` — même risque que d’autres pickers ; acceptable pour la taille typique des troupes.
+
+## Deferred from: code review of 17-10-statistiques-filtre-groupes-spectacles.md (2026-05-25)
+
+- Pas de test MockMvc du paramètre `equityCompartments` — couverture service + unitaires compartiments jugée suffisante pour cette story.
+- Bottom sheet mobile pour le filtre groupes — menu Material desktop livré ; polish mobile hors scope story.
+- Deep link `?statsGroups=` — UX F10 optionnel ; non implémenté.
+
 ## Deferred from: code review of 17-11-breadcrumb-pages-admin-back-office.md (2026-05-25)
 
 - Breadcrumb visible brièvement avant redirect « Accès non autorisé » — même fenêtre qu’avec l’ancien titre H1 ; hors périmètre chrome 17.11.

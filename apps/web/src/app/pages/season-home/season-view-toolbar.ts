@@ -1,6 +1,7 @@
-import { Component, input, model, output } from '@angular/core'
+import { Component, computed, input, model, output } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
+import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 
@@ -10,12 +11,22 @@ import {
   type ScopeAdminMenuScope,
 } from '../../shared/scope-admin-menu/scope-admin-menu'
 import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './season-view.types'
+import {
+  PRINCIPAL_COMPARTMENT,
+  allCompartmentSlugs,
+  isSlugSelected,
+  statsGroupsFilterLabel,
+  toggleAllCompartments,
+  toggleCompartmentSlug,
+  type StatsEquityCompartments,
+} from './stats-equity-compartments'
 
 @Component({
   selector: 'app-season-view-toolbar',
   imports: [
     MatButtonModule,
     MatButtonToggleModule,
+    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     ScopeAdminMenu,
@@ -45,10 +56,27 @@ export class SeasonViewToolbar {
   readonly statsEventOptions = input<EventFilterOption[]>([])
   readonly selectedStatsEventId = model<string | null>(null)
 
+  readonly equityGlossarySlugs = input<string[]>([])
+  readonly equityTagLabels = input<Record<string, string>>({})
+  readonly statsEquityCompartments = input<StatsEquityCompartments>({ kind: 'all' })
+  readonly statsEquityCompartmentsChange = output<StatsEquityCompartments>()
+
   readonly exportClick = output<void>()
 
   readonly adminScope = input<ScopeAdminMenuScope>('saison')
   readonly adminItems = input<ScopeAdminMenuItem[]>([])
+
+  protected readonly allCompartmentSlugs = computed(() =>
+    allCompartmentSlugs(this.equityGlossarySlugs()),
+  )
+
+  protected readonly statsGroupsLabel = computed(() =>
+    statsGroupsFilterLabel(this.statsEquityCompartments(), this.equityTagLabels()),
+  )
+
+  protected readonly statsGroupsNoneSelected = computed(
+    () => this.statsEquityCompartments().kind === 'none',
+  )
 
   protected participantLabel(): string {
     const id = this.selectedParticipantId()
@@ -78,6 +106,51 @@ export class SeasonViewToolbar {
       return 'Tous'
     }
     return this.statsEventOptions().find((o) => o.id === id)?.title ?? 'Tous'
+  }
+
+  protected isAllCompartmentsSelected(): boolean {
+    return this.statsEquityCompartments().kind === 'all'
+  }
+
+  protected isCompartmentChecked(slug: string): boolean {
+    return isSlugSelected(this.statsEquityCompartments(), slug)
+  }
+
+  protected principalLabel(): string {
+    return 'Spectacles ordinaires'
+  }
+
+  protected glossaryLabel(slug: string): string {
+    return this.equityTagLabels()[slug] ?? slug
+  }
+
+  protected toggleAllGroups(checked: boolean): void {
+    this.emitCompartments(
+      toggleAllCompartments(this.statsEquityCompartments(), this.allCompartmentSlugs(), checked),
+    )
+  }
+
+  protected togglePrincipal(checked: boolean): void {
+    this.toggleCompartment(PRINCIPAL_COMPARTMENT, checked)
+  }
+
+  protected toggleGlossarySlug(slug: string, checked: boolean): void {
+    this.toggleCompartment(slug, checked)
+  }
+
+  private toggleCompartment(slug: string, checked: boolean): void {
+    this.emitCompartments(
+      toggleCompartmentSlug(
+        this.statsEquityCompartments(),
+        this.allCompartmentSlugs(),
+        slug,
+        checked,
+      ),
+    )
+  }
+
+  private emitCompartments(next: StatsEquityCompartments): void {
+    this.statsEquityCompartmentsChange.emit(next)
   }
 
   protected selectParticipant(id: string | null): void {

@@ -92,6 +92,7 @@ class SeasonStatisticsService(
         principal: SessionUserPrincipal,
         eventId: UUID? = null,
         participantId: UUID? = null,
+        equityCompartments: List<String>? = null,
     ): SeasonStatisticsResponseDto {
         val season =
             seasonRepository
@@ -110,6 +111,8 @@ class SeasonStatisticsService(
             }
 
         var events = eventRepository.findNonArchivedBySeasonId(seasonId)
+        val compartmentFilter = SeasonStatisticsCompartments.parse(equityCompartments)
+        events = events.filter { SeasonStatisticsCompartments.matches(it, compartmentFilter) }
         if (eventId != null) {
             events = events.filter { it.id == eventId }
         }
@@ -278,8 +281,6 @@ class SeasonStatisticsService(
                 bucket["totalJeu"]?.selections = (bucket["totalJeu"]?.selections ?: 0) + 1
             "mc", "dj", "referee", "assistantReferee", "coach" ->
                 bucket["totalDecorum"]?.selections = (bucket["totalDecorum"]?.selections ?: 0) + 1
-            "deplacementJeu", "deplacementDecorum" ->
-                bucket["totalDeplacement"]?.selections = (bucket["totalDeplacement"]?.selections ?: 0) + 1
             "stageManager", "lighting", "volunteer" ->
                 bucket["totalBenevole"]?.selections = (bucket["totalBenevole"]?.selections ?: 0) + 1
         }

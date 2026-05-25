@@ -28,14 +28,18 @@ describe('season-statistics-export', () => {
       ],
     }
 
-    const csv = buildStatisticsCsv(data, {
-      showJeuDetails: false,
-      showDecorumDetails: false,
-      showDeplacementDetails: false,
-      showBenevoleDetails: false,
-      expandedMonths: new Set(),
-    })
+    const csv = buildStatisticsCsv(
+      data,
+      {
+        showJeuDetails: false,
+        showDecorumDetails: false,
+        showBenevoleDetails: false,
+        expandedMonths: new Set(),
+      },
+      { groupsLabel: 'Tous les spectacles' },
+    )
 
+    expect(csv).toContain('Groupes: Tous les spectacles')
     expect(csv).toContain('Match mars')
     expect(csv).toContain('Dispo (J, MC)')
     expect(csv).toContain('1/2 (50%)')

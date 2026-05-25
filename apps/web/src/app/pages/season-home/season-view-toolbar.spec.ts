@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { SeasonViewToolbar } from './season-view-toolbar'
 
@@ -50,5 +50,17 @@ describe('SeasonViewToolbar', () => {
     const el = fixture.nativeElement as HTMLElement
     expect(el.textContent).toContain('Exporter')
     expect(el.textContent).toContain('Détails')
+  })
+
+  it('shows groupes de spectacles filter trigger on stats view', () => {
+    fixture.componentRef.setInput('seasonView', 'stats')
+    fixture.componentRef.setInput('showStatsFilters', true)
+    fixture.componentRef.setInput('statsEquityCompartments', { kind: 'all' })
+    fixture.componentRef.setInput('equityGlossarySlugs', ['deplacements'])
+    fixture.componentRef.setInput('equityTagLabels', { deplacements: 'Déplacements' })
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.textContent).toContain('Groupes : Tous les spectacles')
+    expect(el.querySelector('[aria-label="Filtrer par groupes de spectacles"]')).toBeTruthy()
   })
 })
