@@ -1,0 +1,58 @@
+<h2 mat-dialog-title>{{ content().title }}</h2>
+<mat-dialog-content class="pwa-install-dialog__content">
+  @if (content().isAlternativeNeeded) {
+    <div class="pwa-install-dialog__alert pwa-install-dialog__alert--warn" role="status">
+      <p class="pwa-install-dialog__alert-title">Installation non supportée</p>
+      <p>
+        {{ content().browserName || 'Ce navigateur' }} ne supporte pas l'installation PWA. Utilisez la
+        solution ci-dessous.
+      </p>
+    </div>
+  }
+
+  <ol class="pwa-install-dialog__steps">
+    @for (step of content().steps; track $index) {
+      <li>
+        <span class="pwa-install-dialog__step-num">{{ $index + 1 }}</span>
+        <span class="pwa-install-dialog__step-text" [innerHTML]="step"></span>
+      </li>
+    }
+  </ol>
+
+  @if (content().alternativeText) {
+    <div class="pwa-install-dialog__alert pwa-install-dialog__alert--tip" role="note">
+      <p class="pwa-install-dialog__alert-title">Astuce</p>
+      <p>{{ content().alternativeText }}</p>
+    </div>
+  }
+
+  @if (content().successText) {
+    <div class="pwa-install-dialog__alert pwa-install-dialog__alert--success" role="note">
+      <p class="pwa-install-dialog__alert-title">Résultat</p>
+      <p [innerHTML]="content().successText"></p>
+    </div>
+  }
+
+  @if (content().warningText) {
+    <div class="pwa-install-dialog__alert pwa-install-dialog__alert--warn" role="note">
+      <p class="pwa-install-dialog__alert-title">Note importante</p>
+      <p>{{ content().warningText }}</p>
+    </div>
+  }
+
+  <div class="pwa-install-dialog__alert pwa-install-dialog__alert--reminder" role="note">
+    <p class="pwa-install-dialog__alert-title">Pour relancer l'installation plus tard</p>
+    <p>
+      Utilisez le <strong>menu utilisateur</strong> (en haut à droite) →
+      <strong>« Installer l'app »</strong> lorsque cette option sera disponible.
+    </p>
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-button mat-dialog-close>Fermer</button>
+  @if (content().canRetry) {
+    <button type="button" mat-flat-button color="primary" (click)="retryInstall()">
+      Réessayer l'installation
+    </button>
+  }
+</mat-dialog-actions>

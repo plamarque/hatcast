@@ -31,6 +31,7 @@ export interface TroupeListItem {
 export interface TroupeMemberAdmin {
   id: string
   userId: string
+  userSlug: string
   email: string | null
   displayName: string
   avatarUrl?: string | null

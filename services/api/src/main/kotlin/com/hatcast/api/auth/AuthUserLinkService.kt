@@ -4,6 +4,7 @@ import com.hatcast.api.participant.ParticipantLinkService
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
+import com.hatcast.api.user.UserSlugService
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
@@ -17,6 +18,7 @@ class AuthUserLinkService(
     private val userRepository: UserRepository,
     private val userAccountService: UserAccountService,
     private val participantLinkService: ParticipantLinkService,
+    private val userSlugService: UserSlugService,
 ) {
     fun resolveGoogleSignInUser(
         googleSub: String,
@@ -59,7 +61,7 @@ class AuthUserLinkService(
                 ),
             )
         participantLinkService.linkPendingParticipantsOnLogin(created)
-        return created
+        return userSlugService.ensureSlug(created)
     }
 
     fun resolveIdpSignInUser(
@@ -103,7 +105,7 @@ class AuthUserLinkService(
                 ),
             )
         participantLinkService.linkPendingParticipantsOnLogin(created)
-        return created
+        return userSlugService.ensureSlug(created)
     }
 
     private fun updateProfile(
@@ -118,6 +120,6 @@ class AuthUserLinkService(
             user.displayName = displayName
         }
         user.updatedAt = Instant.now()
-        return userRepository.save(user)
+        return userSlugService.ensureSlug(userRepository.save(user))
     }
 }

@@ -22,6 +22,9 @@ class UserEntity(
     var email: String? = null,
     @Column(name = "display_name", length = 255)
     var displayName: String? = null,
+    /** Identifiant URL global (`/membre/:userSlug`). Story 16.1. */
+    @Column(length = 128, nullable = true)
+    var slug: String? = null,
     /** Clé de stockage interne (LocalAvatarStorage / GCS), pas une URL publique. */
     @Column(name = "avatar_url", length = 2048)
     var avatarUrl: String? = null,

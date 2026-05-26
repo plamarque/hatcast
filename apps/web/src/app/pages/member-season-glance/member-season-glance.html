@@ -1,0 +1,78 @@
+<div class="member-glance-page">
+  <header class="member-glance-page__header">
+    <button type="button" class="member-glance-page__back" (click)="goBack()" aria-label="Retour">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+
+    @if (panelProfile(); as p) {
+      <app-user-avatar
+        class="member-glance-page__avatar"
+        [style.--user-avatar-size.px]="72"
+        [displayName]="p.displayName"
+        [avatarUrl]="p.avatarUrl"
+        [size]="72"
+      />
+      <div class="member-glance-page__identity">
+        <h1 class="member-glance-page__title">{{ pageTitle() }}</h1>
+        <p class="member-glance-page__subtitle">{{ p.displayName }}</p>
+      </div>
+    } @else {
+      <h1 class="member-glance-page__title">{{ pageTitle() }}</h1>
+    }
+
+    @if (sessionUser(); as u) {
+      <button
+        type="button"
+        class="member-glance-page__account"
+        [matMenuTriggerFor]="accountMenu"
+        aria-label="Menu compte"
+      >
+        <app-user-avatar
+          [displayName]="userDisplayLabel(u)"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="36"
+        />
+      </button>
+      <mat-menu #accountMenu="matMenu">
+        <app-user-account-menu-items [showAgendaLink]="true" logoutLabel="Déconnexion" />
+      </mat-menu>
+    }
+  </header>
+
+  @if (filterBarVisible() && filterBarCatalog()) {
+    <app-user-agenda-filter-bar
+      class="member-glance-page__filters"
+      [participationFilters]="filterBarCatalog()!"
+      [selectedTroupeId]="selectedTroupeId()"
+      [selectedLeagueId]="selectedLeagueId()"
+      (troupeChange)="onTroupeFilterChange($event)"
+      (leagueChange)="onLeagueFilterChange($event)"
+      (clearFilters)="onClearFilters()"
+    />
+  }
+
+  <main class="member-glance-page__main" aria-labelledby="member-glance-main-title">
+    <h2 id="member-glance-main-title" class="visually-hidden">{{ pageTitle() }}</h2>
+
+    @if (loadingSession() || loadingGlance()) {
+      <div class="member-glance-page__loading" role="status">
+        <mat-spinner diameter="40" />
+      </div>
+    } @else if (loadError()) {
+      <p class="member-glance-page__error" role="alert">Impossible de charger le profil saison.</p>
+    } @else if (panelProfile(); as profile) {
+      <app-member-profile-panel
+        [profile]="profile"
+        [loading]="false"
+        [saving]="saving()"
+        [selectedRoleKeys]="selectedRoleKeys()"
+        (roleToggled)="onRoleToggled($event)"
+        (savePreferredRoles)="savePreferredRoles()"
+      />
+    }
+
+    <footer class="member-glance-page__footer">
+      <button type="button" mat-stroked-button (click)="openPlanning()">Planning</button>
+    </footer>
+  </main>
+</div>

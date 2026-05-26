@@ -23,8 +23,7 @@
         <mat-icon>expand_more</mat-icon>
       </button>
       <mat-menu #userMenu="matMenu">
-        <a mat-menu-item routerLink="/compte">Mon compte</a>
-        <button mat-menu-item type="button" (click)="logout()">Se déconnecter</button>
+        <app-user-account-menu-items />
       </mat-menu>
     }
   </header>

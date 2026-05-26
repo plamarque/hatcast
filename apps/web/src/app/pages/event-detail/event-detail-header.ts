@@ -8,6 +8,7 @@ import type { UserSummary } from '../../core/auth/auth-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
+import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 @Component({
@@ -18,6 +19,7 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
     MatMenuModule,
     RouterLink,
     ContextBreadcrumb,
+    UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],
   templateUrl: './event-detail-header.html',
@@ -54,14 +56,13 @@ export class EventDetailHeader {
 
   protected openSelfProfile(): void {
     const u = this.user()
-    if (!u || !this.profileContextReady()) {
+    if (!u?.slug || !this.profileContextReady()) {
       return
     }
-    this.memberProfile.openProfileDialog({
-      seasonId: this.seasonId(),
+    this.memberProfile.navigateToMemberGlance({
+      userSlug: u.slug,
       troupeId: this.troupeId(),
-      userId: u.id,
-      seasonSlug: this.seasonSlug(),
+      leagueId: this.seasonId(),
     })
   }
 }

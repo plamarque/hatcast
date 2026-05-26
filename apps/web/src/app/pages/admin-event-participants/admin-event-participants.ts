@@ -47,6 +47,7 @@ import {
   PROMOTE_TOOLTIP,
 } from '../../shared/admin-organizer-row/organizer-row.helper'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
+import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EditParticipantDialog } from '../../shared/edit-participant-dialog/edit-participant-dialog'
@@ -67,6 +68,7 @@ import { AddEventParticipantDialog } from './add-event-participant-dialog'
     MatTooltipModule,
     RouterLink,
     ContextBreadcrumb,
+    UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],
   templateUrl: './admin-event-participants.html',

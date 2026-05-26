@@ -31,8 +31,7 @@
         <span class="season-header__user-label">{{ userDisplayLabel() }}</span>
       </button>
       <mat-menu #userMenu="matMenu">
-        <a mat-menu-item routerLink="/compte">Mon compte</a>
-        <button mat-menu-item type="button" (click)="logout()">Se déconnecter</button>
+        <app-user-account-menu-items />
       </mat-menu>
     }
   </div>

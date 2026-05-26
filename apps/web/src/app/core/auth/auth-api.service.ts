@@ -10,6 +10,7 @@ import {
 
 export interface UserSummary {
   id: string
+  slug: string
   email: string | null
   displayName: string | null
   avatarUrl?: string | null

@@ -32,7 +32,7 @@
         <span class="admin-event-participants__user-label">{{ userDisplayLabel() }}</span>
       </button>
       <mat-menu #userMenu="matMenu">
-        <a mat-menu-item routerLink="/compte">Mon compte</a>
+        <app-user-account-menu-items [showLogout]="false" />
       </mat-menu>
     }
   </header>

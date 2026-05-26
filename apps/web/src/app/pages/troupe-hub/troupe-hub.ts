@@ -29,6 +29,7 @@ import {
   ScopeAdminMenu,
   type ScopeAdminMenuItem,
 } from '../../shared/scope-admin-menu/scope-admin-menu'
+import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import {
   SeasonFormDialog,
@@ -54,6 +55,7 @@ const SEASONS_PAGE_SIZE = 50
     MatSnackBarModule,
     RouterLink,
     ScopeAdminMenu,
+    UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],
   templateUrl: './troupe-hub.html',
@@ -184,11 +186,6 @@ export class TroupeHub implements OnInit, OnDestroy {
 
   protected userDisplayLabel(u: UserSummary): string {
     return this.troupeContext.currentUserDisplayLabel(u)
-  }
-
-  protected async logout(): Promise<void> {
-    await this.auth.logout()
-    await this.router.navigate(['/connexion'], { replaceUrl: true })
   }
 
   protected saisonLink(season: SeasonResponse): string[] {

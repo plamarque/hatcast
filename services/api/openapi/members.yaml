@@ -1,0 +1,101 @@
+openapi: 3.0.3
+info:
+  title: HatCast Members API
+  version: 1.0.0
+paths:
+  /members/{userSlug}/season-glance:
+    get:
+      operationId: getMemberSeasonGlance
+      summary: Personal season glance for a member (Story 16.1)
+      parameters:
+        - name: userSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: troupeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: leagueId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Season glance payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberSeasonGlanceResponse'
+        '400':
+          description: Ambiguous scope (select a league)
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Forbidden
+        '404':
+          description: Unknown member slug
+components:
+  schemas:
+    MemberSeasonGlanceResponse:
+      type: object
+      required:
+        - userId
+        - userSlug
+        - displayName
+        - isSelf
+        - resolvedSeasonId
+        - troupeId
+        - leagueId
+        - preferredRolesTroupeId
+        - filterBarVisible
+        - monthlyChart
+        - favoriteRoleCounts
+      properties:
+        userId:
+          type: string
+          format: uuid
+        userSlug:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        isSelf:
+          type: boolean
+        resolvedSeasonId:
+          type: string
+          format: uuid
+        troupeId:
+          type: string
+          format: uuid
+        leagueId:
+          type: string
+          format: uuid
+        preferredRolesTroupeId:
+          type: string
+          format: uuid
+        filterBarVisible:
+          type: boolean
+        participationFilters:
+          $ref: './me-agenda.yaml#/components/schemas/UserAgendaParticipationFilters'
+        stats:
+          nullable: true
+          type: object
+        monthlyChart:
+          type: array
+          items:
+            type: object
+        favoriteRoleCounts:
+          type: array
+          items:
+            type: object
+        preferredRoleKeys:
+          type: array
+          items:
+            type: string
+          nullable: true

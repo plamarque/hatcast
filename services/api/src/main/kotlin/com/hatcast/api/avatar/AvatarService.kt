@@ -50,14 +50,19 @@ class AvatarService(
         }
     }
 
-    fun toUserSummary(user: UserEntity): UserSummaryDto =
-        UserSummaryDto(
+    fun toUserSummary(user: UserEntity): UserSummaryDto {
+        val slug =
+            user.slug?.trim()?.takeIf { it.isNotEmpty() }
+                ?: throw IllegalStateException("User ${user.id} has no slug")
+        return UserSummaryDto(
             id = user.id,
+            slug = slug,
             email = user.email,
             displayName = user.displayName,
             avatarUrl = publicAvatarUrl(user.id, user.avatarUpdatedAt),
             hasGoogleAccount = user.googleSub != null,
         )
+    }
 
     @Transactional
     fun uploadAvatar(

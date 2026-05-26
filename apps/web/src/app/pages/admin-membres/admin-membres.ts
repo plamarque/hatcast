@@ -27,6 +27,7 @@ import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-re
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { MembresTab } from './membres-tab'
+import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 function pickProfileSeason(
@@ -53,6 +54,7 @@ function pickProfileSeason(
     RouterLink,
     ContextBreadcrumb,
     MembresTab,
+    UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],
   templateUrl: './admin-membres.html',

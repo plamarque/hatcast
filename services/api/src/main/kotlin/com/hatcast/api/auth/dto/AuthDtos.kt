@@ -20,6 +20,7 @@ data class AuthSessionResponse(
 
 data class UserSummaryDto(
     val id: UUID,
+    val slug: String,
     val email: String?,
     val displayName: String?,
     val avatarUrl: String? = null,

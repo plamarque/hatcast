@@ -1,7 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { Component, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -10,42 +8,34 @@ import {
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
-
-import { saisonWorkspacePath } from '../../core/navigation/troupe-routes'
 
 import {
   MemberProfileApiService,
   type MemberProfileSummary,
 } from '../../core/member-profile/member-profile-api.service'
-import {
-  canDisablePreferredRole,
-  orderedRoleKeys,
-  roleEmoji,
-  roleLabelSingular,
-  type RoleKey,
-} from '../event-roles/event-roles'
+import { type RoleKey } from '../event-roles/event-roles'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
+import { MemberProfilePanel } from './member-profile-panel'
 
 export interface MemberProfileDialogData {
   seasonId: string
   troupeId: string
   userId: string
   seasonSlug: string
+  userSlug?: string
+  leagueId?: string
 }
 
 @Component({
   selector: 'app-member-profile-dialog',
   imports: [
-    FormsModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatDialogModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatTooltipModule,
     UserAvatarComponent,
+    MemberProfilePanel,
   ],
   templateUrl: './member-profile-dialog.html',
   styleUrl: './member-profile-dialog.scss',
@@ -61,15 +51,6 @@ export class MemberProfileDialog implements OnInit {
   protected readonly saving = signal(false)
   protected readonly profile = signal<MemberProfileSummary | null>(null)
   protected readonly selectedRoleKeys = signal<Set<string>>(new Set())
-  protected readonly roleKeys = orderedRoleKeys()
-
-  protected readonly hasStats = computed(() => !!this.profile()?.stats)
-  protected readonly hasFavoriteCounts = computed(
-    () => (this.profile()?.favoriteRoleCounts?.length ?? 0) > 0,
-  )
-  protected readonly chartHeading = computed(() =>
-    this.profile()?.isSelf ? 'Ma saison en un clin d\'œil' : 'Saison en un clin d\'œil',
-  )
 
   async ngOnInit(): Promise<void> {
     const r = await this.api.getProfileSummary(this.data.seasonId, this.data.userId)
@@ -86,31 +67,12 @@ export class MemberProfileDialog implements OnInit {
     this.loading.set(false)
   }
 
-  protected roleLabel(key: RoleKey): string {
-    return roleLabelSingular(key)
-  }
-
-  protected roleEmoji(key: RoleKey): string {
-    return roleEmoji(key)
-  }
-
-  protected canToggleRole(key: RoleKey): boolean {
-    return canDisablePreferredRole(key)
-  }
-
-  protected isRoleSelected(key: RoleKey): boolean {
-    return this.selectedRoleKeys().has(key)
-  }
-
-  protected toggleRole(key: RoleKey, checked: boolean): void {
-    if (!canDisablePreferredRole(key)) {
-      return
-    }
+  protected onRoleToggled(event: { key: RoleKey; checked: boolean }): void {
     const next = new Set(this.selectedRoleKeys())
-    if (checked) {
-      next.add(key)
+    if (event.checked) {
+      next.add(event.key)
     } else {
-      next.delete(key)
+      next.delete(event.key)
     }
     next.add('volunteer')
     this.selectedRoleKeys.set(next)
@@ -133,9 +95,14 @@ export class MemberProfileDialog implements OnInit {
   }
 
   protected openPlanning(): void {
-    void this.router.navigate(saisonWorkspacePath(this.data.seasonSlug), {
-      queryParams: { participant: this.data.userId, view: 'agenda' },
-    })
+    const queryParams: Record<string, string> = {}
+    if (this.data.troupeId) {
+      queryParams['troupeId'] = this.data.troupeId
+    }
+    if (this.data.leagueId ?? this.data.seasonId) {
+      queryParams['leagueId'] = this.data.leagueId ?? this.data.seasonId
+    }
+    void this.router.navigate(['/agenda'], { queryParams })
     this.dialogRef.close()
   }
 

@@ -44,6 +44,7 @@ import {
 } from '../../shared/admin-organizer-row/organizer-row.helper'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
+import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { EditParticipantDialog } from '../../shared/edit-participant-dialog/edit-participant-dialog'
 import { AddParticipantDialog } from './add-participant-dialog'
@@ -63,6 +64,7 @@ import { AddParticipantDialog } from './add-participant-dialog'
     MatTooltipModule,
     RouterLink,
     ContextBreadcrumb,
+    UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],
   templateUrl: './admin-participants.html',

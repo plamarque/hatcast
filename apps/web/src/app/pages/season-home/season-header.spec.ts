@@ -16,7 +16,7 @@ describe('SeasonHeader', () => {
         return user?.displayName || user?.email || 'Compte'
       },
     }
-    const memberProfile = { openProfileDialog: vi.fn() }
+    const memberProfile = { navigateToMemberGlance: vi.fn() }
     const authApi = { logout: vi.fn().mockResolvedValue(true) }
 
     await TestBed.configureTestingModule({
@@ -38,6 +38,7 @@ describe('SeasonHeader', () => {
     fixture.componentRef.setInput('troupeSlug', 'troupe-test')
     fixture.componentRef.setInput('user', {
       id: 'u1',
+      slug: 'account-name',
       email: 'a@example.com',
       displayName: 'Account Name',
       avatarUrl: '/v1/users/u1/avatar?v=1',
@@ -82,12 +83,11 @@ describe('SeasonHeader', () => {
       'app-user-avatar img, app-user-avatar .user-avatar__initial',
     ) as HTMLElement
     avatar.click()
-    expect(memberProfile.openProfileDialog).toHaveBeenCalledWith(
+    expect(memberProfile.navigateToMemberGlance).toHaveBeenCalledWith(
       expect.objectContaining({
-        seasonId: 'season-id-1',
+        userSlug: 'account-name',
         troupeId: 'troupe-id-1',
-        userId: 'u1',
-        seasonSlug: 'season-a',
+        leagueId: 'season-id-1',
       }),
     )
   })

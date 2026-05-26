@@ -26,6 +26,7 @@ import {
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
+import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
 
@@ -46,6 +47,7 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
     MatSnackBarModule,
     RouterLink,
     UserAgendaFilterBar,
+    UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],
   templateUrl: './user-agenda.html',
@@ -108,11 +110,6 @@ export class UserAgenda implements OnInit {
 
   protected userDisplayLabel(u: UserSummary): string {
     return u.displayName || u.email || 'Mon compte'
-  }
-
-  protected async logout(): Promise<void> {
-    await this.auth.logout()
-    await this.router.navigate(['/connexion'], { replaceUrl: true })
   }
 
   protected async loadAgenda(): Promise<void> {

@@ -4,6 +4,7 @@ import com.hatcast.api.participant.ParticipantLinkService
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
+import com.hatcast.api.user.UserSlugService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -21,7 +22,13 @@ class AuthUserLinkServiceTest {
     private val userRepository = mock<UserRepository>()
     private val userAccountService = mock<UserAccountService>()
     private val participantLinkService = mock<ParticipantLinkService>()
-    private val service = AuthUserLinkService(userRepository, userAccountService, participantLinkService)
+    private val userSlugService = mock<UserSlugService>()
+    private val service =
+        AuthUserLinkService(userRepository, userAccountService, participantLinkService, userSlugService)
+
+    init {
+        whenever(userSlugService.ensureSlug(any())).thenAnswer { it.getArgument(0) }
+    }
 
     @Test
     fun `google sign in links migration stub by email`() {

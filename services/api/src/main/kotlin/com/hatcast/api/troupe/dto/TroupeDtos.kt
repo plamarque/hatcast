@@ -51,6 +51,7 @@ data class TroupeListItemDto(
 data class TroupeMemberAdminDto(
     val id: UUID,
     val userId: UUID,
+    val userSlug: String,
     val email: String?,
     val displayName: String,
     val avatarUrl: String?,
@@ -60,10 +61,14 @@ data class TroupeMemberAdminDto(
     val updatedAt: Instant,
 ) {
     companion object {
-        fun from(entity: TroupeMembershipEntity): TroupeMemberAdminDto =
-            TroupeMemberAdminDto(
+        fun from(entity: TroupeMembershipEntity): TroupeMemberAdminDto {
+            val slug =
+                entity.user.slug?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: throw IllegalStateException("User ${entity.user.id} has no slug")
+            return TroupeMemberAdminDto(
                 id = entity.id,
                 userId = entity.user.id,
+                userSlug = slug,
                 email = entity.user.email,
                 displayName = entity.displayName,
                 avatarUrl = AvatarService.publicAvatarUrl(entity.user.id, entity.user.avatarUpdatedAt),
@@ -72,6 +77,7 @@ data class TroupeMemberAdminDto(
                 createdAt = entity.createdAt,
                 updatedAt = entity.updatedAt,
             )
+        }
     }
 }
 

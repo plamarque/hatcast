@@ -1,3 +1,13 @@
+## Deferred from: code review of 16-1-route-membre-saison-clin-oeil-filtres.md (2026-05-26)
+
+- `MemberSeasonGlanceIntegrationTest` non exécutable localement — Flyway H2 échoue sur seed `V3_1` (`ON CONFLICT`) avant d’atteindre les tests glance ; valider en CI.
+- `openapi/members.yaml` isolé — pas de merge dans la composition OpenAPI tant qu’aucun pipeline ne l’exige.
+
+## Deferred from: code review of 10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil.md (2026-05-26)
+
+- `scripts/check-pwa.sh` still targets V1 production URL — parameterize `BASE_URL` for V2 HTTPS smoke (story already optional).
+- `PwaInstallService` imports `PwaInstallInstructionsDialog` from `shared/` (core → shared) — acceptable for now; refactor only if layering rules tighten.
+
 ## Deferred from: code review of 6-10-partage-et-annonce-message-editable-canaux.md (2026-05-26)
 
 - `ShareRecipientsIntegrationTest` non exécuté localement (Flyway/H2) — tests présents ; à valider en CI / env test sain.

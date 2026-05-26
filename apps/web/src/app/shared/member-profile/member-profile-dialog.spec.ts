@@ -70,7 +70,7 @@ describe('MemberProfileDialog', () => {
   it('affiche le message stats vide quand stats absentes', async () => {
     const { fixture } = await setup(selfProfile)
     expect(fixture.nativeElement.textContent).toContain(
-      'Les statistiques de saison apparaîtront ici',
+      'Statistiques disponibles lorsque les disponibilités seront saisies',
     )
   })
 

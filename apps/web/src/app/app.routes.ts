@@ -11,6 +11,7 @@ import { AdminMembres } from './pages/admin-membres/admin-membres';
 import { AdminParticipants } from './pages/admin-participants/admin-participants';
 import { AdminEventParticipants } from './pages/admin-event-participants/admin-event-participants';
 import { SeasonHome } from './pages/season-home/season-home';
+import { MemberSeasonGlance } from './pages/member-season-glance/member-season-glance';
 import { UserAgenda } from './pages/user-agenda/user-agenda';
 import { TroupeHub } from './pages/troupe-hub/troupe-hub';
 import { TroupesList } from './pages/troupes-list/troupes-list';
@@ -40,6 +41,7 @@ export const routes: Routes = [
   { path: 'accueil', component: HomeSignedIn },
   { path: 'compte', component: AccountPlaceholder },
   { path: 'agenda', component: UserAgenda },
+  { path: 'membre/:userSlug', component: MemberSeasonGlance },
   {
     path: 'seasons',
     redirectTo: (route) => redirectPathWithQuery('/troupes', route.queryParamMap),

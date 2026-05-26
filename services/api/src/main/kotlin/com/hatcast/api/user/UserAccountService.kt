@@ -10,6 +10,7 @@ import java.time.Instant
 @Service
 class UserAccountService(
     private val userRepository: UserRepository,
+    private val userSlugService: UserSlugService,
 ) {
     @Transactional
     fun importMigrationUser(
@@ -37,15 +38,17 @@ class UserAccountService(
             return UserAccountImportOutcome.SKIPPED
         }
         val now = Instant.now()
-        userRepository.save(
-            UserEntity(
-                googleSub = null,
-                idpUid = null,
-                email = email,
-                displayName = normalizedDisplayName,
-                activatedAt = null,
-                createdAt = now,
-                updatedAt = now,
+        userSlugService.ensureSlug(
+            userRepository.save(
+                UserEntity(
+                    googleSub = null,
+                    idpUid = null,
+                    email = email,
+                    displayName = normalizedDisplayName,
+                    activatedAt = null,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
             ),
         )
         return UserAccountImportOutcome.CREATED

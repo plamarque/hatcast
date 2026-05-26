@@ -1,0 +1,128 @@
+@if (loading()) {
+  <div class="member-profile__loading" role="status">
+    <mat-spinner diameter="40" />
+  </div>
+} @else {
+  <div class="member-profile__body">
+    @if (hasStats()) {
+      <div class="member-profile__stats">
+        <div
+          class="member-profile__stat member-profile__stat--avail"
+          [matTooltip]="profile().stats!.availabilities.tooltip ?? ''"
+        >
+          <span class="member-profile__stat-label">Disponibilités</span>
+          <span class="member-profile__stat-value">
+            {{ profile().stats!.availabilities.count }}
+            <small>({{ profile().stats!.availabilities.percent }} %)</small>
+          </span>
+        </div>
+        <div
+          class="member-profile__stat member-profile__stat--selection"
+          [matTooltip]="profile().stats!.selections.tooltip ?? ''"
+        >
+          <span class="member-profile__stat-label">Sélections</span>
+          <span class="member-profile__stat-value">
+            {{ profile().stats!.selections.count }}
+            <small>({{ profile().stats!.selections.percent }} %)</small>
+          </span>
+        </div>
+        <div
+          class="member-profile__stat member-profile__stat--decline"
+          [matTooltip]="profile().stats!.declines.tooltip ?? ''"
+        >
+          <span class="member-profile__stat-label">Désistements</span>
+          <span class="member-profile__stat-value">
+            {{ profile().stats!.declines.count }}
+            <small>({{ profile().stats!.declines.percent }} %)</small>
+          </span>
+        </div>
+      </div>
+    } @else {
+      <p class="member-profile__empty-stats">
+        Statistiques disponibles lorsque les disponibilités seront saisies.
+      </p>
+    }
+
+    <section class="member-profile__section" aria-labelledby="member-profile-chart-heading">
+      <h3 id="member-profile-chart-heading" class="member-profile__section-title">
+        {{ chartHeading() }}
+      </h3>
+      @if (profile().monthlyChart.length > 0) {
+        <div class="member-profile__chart">
+          @for (month of profile().monthlyChart; track month.monthKey) {
+            <div class="member-profile__chart-month">
+              <span class="member-profile__chart-month-label">{{ month.monthKey }}</span>
+              <div class="member-profile__chart-blocks">
+                @for (block of month.blocks; track block.eventId) {
+                  <span
+                    class="member-profile__chart-block"
+                    [class.member-profile__chart-block--avail]="block.status === 'available'"
+                    [class.member-profile__chart-block--decline]="block.status === 'declined'"
+                  ></span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="member-profile__chart member-profile__chart--empty" aria-hidden="true"></div>
+      }
+    </section>
+
+    @if (hasFavoriteCounts()) {
+      <section class="member-profile__section" aria-labelledby="member-profile-fav-heading">
+        <h3 id="member-profile-fav-heading" class="member-profile__section-title">Rôles favoris</h3>
+        <div class="member-profile__pills">
+          @for (item of profile().favoriteRoleCounts; track item.roleKey) {
+            <span class="member-profile__pill">
+              {{ roleEmoji($any(item.roleKey)) }}
+              {{ roleLabel($any(item.roleKey)) }}
+              ({{ item.count }})
+            </span>
+          }
+        </div>
+      </section>
+    }
+
+    @if (profile().isSelf) {
+      <section class="member-profile__section" aria-labelledby="member-profile-pref-heading">
+        <h3 id="member-profile-pref-heading" class="member-profile__section-title">
+          Mes rôles préférés
+        </h3>
+        <p class="member-profile__helper">
+          Rôles pré-cochés par défaut lors de la saisie de disponibilité.
+        </p>
+        <div class="member-profile__roles-grid">
+          @for (key of roleKeys; track key) {
+            <label class="member-profile__role-row">
+              <mat-checkbox
+                [checked]="isRoleSelected(key)"
+                [disabled]="!canToggleRole(key) || saving()"
+                [matTooltip]="
+                  key === 'volunteer'
+                    ? 'Le rôle bénévole est toujours pré-coché : si tu es disponible, tu peux toujours aider !'
+                    : ''
+                "
+                (change)="onToggleRole(key, $event.checked)"
+              />
+              <span class="member-profile__role-label">
+                <span aria-hidden="true">{{ roleEmoji(key) }}</span>
+                {{ roleLabel(key) }}
+              </span>
+            </label>
+          }
+        </div>
+        <div class="member-profile__save-row">
+          <button
+            type="button"
+            mat-stroked-button
+            [disabled]="saving()"
+            (click)="onSavePreferredRoles()"
+          >
+            Enregistrer
+          </button>
+        </div>
+      </section>
+    }
+  </div>
+}

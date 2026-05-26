@@ -21,6 +21,7 @@ import {
 } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { environment } from '../../../environments/environment'
 import { ConfirmDialog, type ConfirmDialogData } from './confirm-dialog'
@@ -43,6 +44,7 @@ const PAGE_SIZE = 20
     MatSelectModule,
     MatSnackBarModule,
     RouterLink,
+    UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],
   templateUrl: './seasons-list.html',
@@ -100,11 +102,6 @@ export class SeasonsList implements OnInit {
 
   protected userDisplayLabel(u: UserSummary): string {
     return this.troupeContext.currentUserDisplayLabel(u)
-  }
-
-  protected async logout(): Promise<void> {
-    await this.auth.logout()
-    await this.router.navigate(['/connexion'], { replaceUrl: true })
   }
 
   protected async joinDemoTroupe(): Promise<void> {

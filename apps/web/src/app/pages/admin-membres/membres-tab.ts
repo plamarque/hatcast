@@ -387,16 +387,15 @@ export class MembresTab implements OnInit, OnDestroy {
     }
   }
 
-  protected openMemberProfile(userId: string): void {
+  protected openMemberProfile(member: TroupeMemberAdmin): void {
     const seasonId = this.profileSeasonId()
-    if (!seasonId) {
+    if (!seasonId || !member.userSlug) {
       return
     }
-    this.memberProfile.openProfileDialog({
-      seasonId,
+    this.memberProfile.navigateToMemberGlance({
+      userSlug: member.userSlug,
       troupeId: this.troupeId(),
-      userId,
-      seasonSlug: this.profileSeasonSlug(),
+      leagueId: seasonId,
     })
   }
 

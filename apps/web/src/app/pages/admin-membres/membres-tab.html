@@ -86,7 +86,7 @@
             [avatarUrl]="member.avatarUrl ?? null"
             [size]="32"
             [clickable]="!!profileSeasonId()"
-            (avatarClick)="openMemberProfile(member.userId)"
+            (avatarClick)="openMemberProfile(member)"
           />
           <div class="membres-tab__identity">
             @if (editingMemberId() === member.id) {
