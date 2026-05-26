@@ -1,0 +1,358 @@
+package com.hatcast.api.share
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.hatcast.api.auth.GoogleIdTokenService
+import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.composition.CompositionNotificationPort
+import com.hatcast.api.composition.EventCompositionEntity
+import com.hatcast.api.composition.EventCompositionRepository
+import com.hatcast.api.composition.EventCompositionSlotEntity
+import com.hatcast.api.composition.EventCompositionSlotRepository
+import com.hatcast.api.composition.SlotParticipationStatus
+import com.hatcast.api.participant.SeasonParticipantEntity
+import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.user.UserRepository
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.verify
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.http.MediaType
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Instant
+import java.util.UUID
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class ShareRecipientsIntegrationTest {
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @MockBean
+    private lateinit var googleIdTokenService: GoogleIdTokenService
+
+    @MockBean
+    private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
+
+    @MockBean
+    private lateinit var notificationPort: CompositionNotificationPort
+
+    @Autowired
+    private lateinit var membershipRepository: TroupeMembershipRepository
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var seasonRepository: SeasonRepository
+
+    @Autowired
+    private lateinit var seasonParticipantRepository: SeasonParticipantRepository
+
+    @Autowired
+    private lateinit var compositionRepository: EventCompositionRepository
+
+    @Autowired
+    private lateinit var slotRepository: EventCompositionSlotRepository
+
+    private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+    private val mapper = ObjectMapper()
+
+    private fun adminCookie(googleSub: String): jakarta.servlet.http.Cookie {
+        val cookie =
+            TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                googleSub,
+                email = "$googleSub@example.com",
+                name = "Share Recipients Test",
+            )
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing user")
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+                ?: error("Missing membership")
+        membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
+        membershipRepository.save(membership)
+        return cookie
+    }
+
+    private fun memberCookie(googleSub: String): jakarta.servlet.http.Cookie =
+        TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+            mockMvc,
+            googleIdTokenService,
+            googleSub,
+            email = "$googleSub@example.com",
+            name = "Share Member",
+        )
+
+    private fun createSeason(cookie: jakarta.servlet.http.Cookie): UUID {
+        val res =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"Share season"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        return UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+    }
+
+    private fun createEvent(cookie: jakarta.servlet.http.Cookie, seasonId: UUID): UUID {
+        val future = Instant.parse("2031-06-01T19:00:00Z")
+        val res =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Share event",
+                              "startsAt": "$future",
+                              "roleSlots": { "player": 2 }
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        return UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+    }
+
+    private fun createParticipant(
+        seasonId: UUID,
+        name: String,
+        email: String?,
+    ): UUID {
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        val saved =
+            seasonParticipantRepository.save(
+                SeasonParticipantEntity(
+                    season = season,
+                    displayName = name,
+                    normalizedEmail = email,
+                ),
+            )
+        return saved.id
+    }
+
+    private fun seedComposition(
+        eventId: UUID,
+        participantId: UUID,
+        validatedAt: Instant? = null,
+    ) {
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = validatedAt,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                seasonParticipantId = participantId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET share-recipients draw returns assignees with obfuscated email`() {
+        val cookie = adminCookie("sub-share-admin-1")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val participantId = createParticipant(seasonId, "Alice", "alice.secret@example.com")
+        seedComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "draw")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.total").value(1))
+            .andExpect(jsonPath("$.notifiableCount").value(1))
+            .andExpect(jsonPath("$.manualCount").value(0))
+            .andExpect(jsonPath("$.recipients[0].displayName").value("Alice"))
+            .andExpect(jsonPath("$.recipients[0].channels.email").value(true))
+            .andExpect(jsonPath("$.recipients[0].channels.push").value(false))
+            .andExpect(jsonPath("$.recipients[0].emailObfuscated").value("ali••@ex••.com"))
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET share-recipients returns 403 for member without canManageComposition`() {
+        val adminCookie = adminCookie("sub-share-admin-2")
+        val memberCookie = memberCookie("sub-share-member-2")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId)
+        val participantId = createParticipant(seasonId, "Bob", null)
+        seedComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "draw")
+                    .cookie(memberCookie),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET share-recipients composition returns 409 when no assignees`() {
+        val cookie = adminCookie("sub-share-admin-3")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "composition")
+                    .cookie(cookie),
+            ).andExpect(status().isConflict)
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `POST notify invokes manual announcement port`() {
+        val cookie = adminCookie("sub-share-admin-4")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val participantId = createParticipant(seasonId, "Carol", "carol@example.com")
+        seedComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"intent":"draw","messageText":"🎲 TIRAGE test message"}""",
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.accepted").value(true))
+
+        verify(notificationPort).requestManualAnnouncement(
+            eq(eventId),
+            eq(seasonId),
+            eq("draw"),
+            eq("🎲 TIRAGE test message"),
+            any(),
+        )
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET share-recipients event intent lists season participants`() {
+        val cookie = adminCookie("sub-share-admin-5")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        createParticipant(seasonId, "Dave", "dave@example.com")
+        createParticipant(seasonId, "Eve", null)
+
+        val body =
+            mockMvc
+                .perform(
+                    get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                        .param("intent", "event")
+                        .cookie(cookie),
+                ).andExpect(status().isOk)
+                .andReturn()
+                .response.contentAsString
+
+        val tree = mapper.readTree(body)
+        assertTrue(tree.get("total").asInt() >= 2)
+        val emails =
+            tree.get("recipients").map { node ->
+                node.get("emailObfuscated")?.asText()
+            }
+        assertTrue(emails.any { it?.contains("••") == true })
+        val manual = tree.get("manualCount").asInt()
+        assertTrue(manual >= 1)
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET share-recipients draw returns 409 when composition is validated`() {
+        val cookie = adminCookie("sub-share-admin-6")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val participantId = createParticipant(seasonId, "Frank", "frank@example.com")
+        seedComposition(eventId, participantId, validatedAt = Instant.now())
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "draw")
+                    .cookie(cookie),
+            ).andExpect(status().isConflict)
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `POST notify returns 403 for member without canManageComposition`() {
+        val adminCookie = adminCookie("sub-share-admin-7")
+        val memberCookie = memberCookie("sub-share-member-7")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId)
+        val participantId = createParticipant(seasonId, "Gina", null)
+        seedComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify")
+                    .cookie(memberCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"intent":"draw","messageText":"Test notify"}""",
+                    ).with(csrf()),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `POST notify draw returns 409 when composition is validated`() {
+        val cookie = adminCookie("sub-share-admin-8")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val participantId = createParticipant(seasonId, "Helen", "helen@example.com")
+        seedComposition(eventId, participantId, validatedAt = Instant.now())
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"intent":"draw","messageText":"Late draw"}""",
+                    ).with(csrf()),
+            ).andExpect(status().isConflict)
+    }
+
+}

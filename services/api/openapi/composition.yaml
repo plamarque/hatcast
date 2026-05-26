@@ -337,6 +337,74 @@ paths:
           description: >
             Composition verrouillée, participant non éligible, ou conflit même rôle
 
+  /seasons/{seasonId}/events/{eventId}/share-recipients:
+    get:
+      tags: [Composition]
+      summary: Destinataires pour partage / annonce manuelle
+      description: >
+        Liste les destinataires selon l'intent (`draw`, `composition`, `event`).
+        Emails obfusqués côté serveur. Requiert `canManageComposition`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: intent
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [draw, composition, event]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareRecipientsResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Saison ou événement inconnu
+        '409':
+          description: Préconditions intent non satisfaites (ex. aucun assigné)
+
+  /seasons/{seasonId}/events/{eventId}/share-recipients/notify:
+    post:
+      tags: [Composition]
+      summary: Envoyer les notifications manuelles (stub FR31)
+      description: >
+        Enregistre l'intention d'annonce manuelle via `CompositionNotificationPort`
+        (stub DEBUG ; livraison réelle Epic 8). Requiert `canManageComposition`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareNotifyRequest'
+      responses:
+        '200':
+          description: Accepté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareNotifyResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Saison ou événement inconnu
+        '409':
+          description: Préconditions intent non satisfaites
+
 components:
   securitySchemes:
     cookieAuth:
@@ -522,6 +590,63 @@ components:
           type: string
           nullable: true
           maxLength: 500
+
+    ShareRecipientChannels:
+      type: object
+      required: [email, push]
+      properties:
+        email:
+          type: boolean
+        push:
+          type: boolean
+
+    ShareRecipient:
+      type: object
+      required: [participantId, displayName, channels]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        emailObfuscated:
+          type: string
+          nullable: true
+        channels:
+          $ref: '#/components/schemas/ShareRecipientChannels'
+
+    ShareRecipientsResponse:
+      type: object
+      required: [total, notifiableCount, manualCount, recipients]
+      properties:
+        total:
+          type: integer
+        notifiableCount:
+          type: integer
+        manualCount:
+          type: integer
+        recipients:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShareRecipient'
+
+    ShareNotifyRequest:
+      type: object
+      required: [intent, messageText]
+      properties:
+        intent:
+          type: string
+          enum: [draw, composition, event]
+        messageText:
+          type: string
+          maxLength: 500
+
+    ShareNotifyResponse:
+      type: object
+      required: [accepted]
+      properties:
+        accepted:
+          type: boolean
 
     CompositionResponse:
       type: object

@@ -23,6 +23,14 @@ interface CompositionNotificationPort {
         assigneeParticipantIds: List<UUID>,
         actorUserId: UUID,
     )
+
+    fun requestManualAnnouncement(
+        eventId: UUID,
+        seasonId: UUID,
+        intent: String,
+        messagePreview: String,
+        actorUserId: UUID,
+    )
 }
 
 @Component
@@ -66,6 +74,23 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
             eventId,
             seasonId,
             assigneeParticipantIds,
+            actorUserId,
+        )
+    }
+
+    override fun requestManualAnnouncement(
+        eventId: UUID,
+        seasonId: UUID,
+        intent: String,
+        messagePreview: String,
+        actorUserId: UUID,
+    ) {
+        log.debug(
+            "manual_announcement_requested eventId={} seasonId={} intent={} messagePreviewLength={} actorUserId={}",
+            eventId,
+            seasonId,
+            intent,
+            messagePreview.length,
             actorUserId,
         )
     }

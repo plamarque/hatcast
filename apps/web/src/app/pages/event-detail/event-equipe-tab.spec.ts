@@ -138,6 +138,7 @@ describe('EventEquipeTab', () => {
 
     fixture = TestBed.createComponent(EventEquipeTab)
     fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('seasonSlug', 'saison-test')
     fixture.componentRef.setInput('event', ev())
     fixture.componentRef.setInput('canManageComposition', false)
   })
@@ -518,6 +519,127 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.textContent).toContain('En préparation')
     })
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+  })
+
+  it('shows Partager for organizer draft with assignee and hides when validated', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'ShareMe',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Partager')
+    })
+    expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
+
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'ShareMe',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentInstance['composition'].set({
+      publishedAt: null,
+      validatedAt: '2026-01-01T00:00:00.000Z',
+      visibility: 'validated',
+      slots: [
+        {
+          roleKey: 'player',
+          slotIndex: 0,
+          participantId: 'p-1',
+          participantDisplayName: 'ShareMe',
+          participationStatus: 'pending',
+        },
+      ],
+    })
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).not.toContain('Partager')
+    expect(fixture.nativeElement.textContent).toContain('Annoncer la compo')
+  })
+
+  it('hides Partager and Annoncer for member', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Hidden',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).not.toContain('Partager')
+      expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
+    })
+  })
+
+  it('opens share dialog when Partager is clicked', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Partager')
+    })
+
+    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__share') as HTMLButtonElement
+    btn.click()
+
+    expect(dialogOpen).toHaveBeenCalled()
+    const [, config] = dialogOpen.mock.calls.at(-1) ?? []
+    expect((config as { data?: { intent?: string } }).data?.intent).toBe('draw')
   })
 
   it('emits compositionPublished after successful validate', async () => {

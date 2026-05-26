@@ -1,3 +1,7 @@
+## Deferred from: code review of 6-10-partage-et-annonce-message-editable-canaux.md (2026-05-26)
+
+- `ShareRecipientsIntegrationTest` non exécuté localement (Flyway/H2) — tests présents ; à valider en CI / env test sain.
+
 ## Deferred from: code review of 17-17-chip-organisateur-promouvoir-listes-admin.md (2026-05-26)
 
 - Pas de test Rétrograder ni chip lecture seule sans droits `canManage*` — couverture promote/chip partielle jugée suffisante pour cette story.

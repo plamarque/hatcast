@@ -20,6 +20,7 @@
 
 .event-equipe-tab--busy .event-equipe-tab__grid,
 .event-equipe-tab--busy .event-equipe-tab__draw-toolbar,
+.event-equipe-tab--busy .event-equipe-tab__share-toolbar,
 .event-equipe-tab--busy .event-equipe-tab__fill-toolbar,
 .event-equipe-tab--busy .event-equipe-tab__declines,
 .event-equipe-tab--busy .event-equipe-tab__publish,
@@ -152,12 +153,14 @@
   opacity: 0.78;
 }
 
+.event-equipe-tab__share-toolbar,
 .event-equipe-tab__draw-toolbar {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
+.event-equipe-tab__share,
 .event-equipe-tab__draw {
   align-self: stretch;
   padding: 0.75rem 1rem;
@@ -167,12 +170,19 @@
   font-weight: 600;
   color: #fff;
   cursor: pointer;
-  background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);
 
   &:disabled {
     opacity: 0.65;
     cursor: wait;
   }
+}
+
+.event-equipe-tab__share {
+  background: linear-gradient(135deg, #22c55e, #059669);
+}
+
+.event-equipe-tab__draw {
+  background: linear-gradient(135deg, #e91e63, #9c27b0);
 }
 
 .event-equipe-tab__draw-hint {

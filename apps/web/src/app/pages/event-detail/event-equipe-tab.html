@@ -54,6 +54,32 @@
       />
     }
 
+    @if (canShareDraw()) {
+      <div class="event-equipe-tab__share-toolbar">
+        <button
+          type="button"
+          class="event-equipe-tab__share"
+          [disabled]="compositionMutationBusy()"
+          (click)="openShareDialog('draw')"
+        >
+          Partager
+        </button>
+      </div>
+    }
+
+    @if (canAnnounceComposition()) {
+      <div class="event-equipe-tab__share-toolbar">
+        <button
+          type="button"
+          class="event-equipe-tab__share"
+          [disabled]="compositionMutationBusy()"
+          (click)="openShareDialog('composition')"
+        >
+          Annoncer la compo
+        </button>
+      </div>
+    }
+
     @if (canFillGaps()) {
       <div class="event-equipe-tab__fill-toolbar">
         <button

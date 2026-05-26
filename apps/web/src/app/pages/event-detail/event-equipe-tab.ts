@@ -33,6 +33,14 @@ import {
   CompositionSlotPickerDialog,
   type CompositionSlotPickerDialogResult,
 } from '../../shared/composition/composition-slot-picker-dialog'
+import type {
+  RoleAssignmentLine,
+  ShareAnnounceIntent,
+} from '../../core/messaging/share-announce-messages'
+import {
+  ShareAnnounceDialog,
+  type ShareAnnounceDialogData,
+} from '../../shared/share-announce/share-announce-dialog'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
 
@@ -66,6 +74,7 @@ export class EventEquipeTab {
   private readonly drawAnimation = viewChild(CompositionDrawAnimation)
 
   readonly seasonId = input.required<string>()
+  readonly seasonSlug = input.required<string>()
   readonly event = input.required<EventResponse>()
   readonly canManageComposition = input(false)
   readonly showConfirmPending = input(false)
@@ -189,6 +198,26 @@ export class EventEquipeTab {
       !this.isCompositionLocked() &&
       !this.compositionMutationBusy() &&
       !this.animatingDraw(),
+  )
+
+  protected readonly canShareDraw = computed(
+    () =>
+      this.canManageComposition() &&
+      !this.isCompositionLocked() &&
+      this.hasAssignedSlot() &&
+      !this.compositionMutationBusy() &&
+      !this.loading() &&
+      !this.loadError(),
+  )
+
+  protected readonly canAnnounceComposition = computed(
+    () =>
+      this.canManageComposition() &&
+      this.isCompositionLocked() &&
+      this.hasAssignedSlot() &&
+      !this.compositionMutationBusy() &&
+      !this.loading() &&
+      !this.loadError(),
   )
 
   protected readonly canEditSlots = computed(
@@ -382,6 +411,48 @@ export class EventEquipeTab {
 
   protected toggleDeclinesList(): void {
     this.declinesExpanded.update((open) => !open)
+  }
+
+  protected openShareDialog(intent: ShareAnnounceIntent): void {
+    if (this.compositionMutationBusy()) {
+      return
+    }
+    const ev = this.event()
+    const roleLines = this.buildShareRoleLines()
+    this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, boolean | undefined>(
+      ShareAnnounceDialog,
+      {
+        data: {
+          intent,
+          seasonId: this.seasonId(),
+          eventId: ev.id,
+          seasonSlug: this.seasonSlug(),
+          eventSlug: ev.slug,
+          eventTitle: ev.title,
+          eventDateIso: ev.startsAt,
+          roleLines,
+        },
+        width: 'min(42rem, 96vw)',
+        maxHeight: '92vh',
+        autoFocus: 'first-titled-element',
+        panelClass: 'share-announce-dialog-panel',
+      },
+    )
+  }
+
+  private buildShareRoleLines(): RoleAssignmentLine[] {
+    const byRole = new Map<string, string[]>()
+    for (const row of this.slotRows()) {
+      const name = row.slot?.participantDisplayName
+      if (!name) continue
+      const list = byRole.get(row.roleKey) ?? []
+      list.push(name)
+      byRole.set(row.roleKey, list)
+    }
+    return [...byRole.entries()].map(([roleKey, displayNames]) => ({
+      roleKey: roleKey as RoleKey,
+      displayNames,
+    }))
   }
 
   protected declineRoleLabel(roleKey: string): string {

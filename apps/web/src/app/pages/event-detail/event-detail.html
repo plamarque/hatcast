@@ -75,6 +75,7 @@
         @if (activeTab() === 'equipe') {
           <app-event-equipe-tab
             [seasonId]="seasonId()"
+            [seasonSlug]="slug()"
             [event]="ev"
             [canManageComposition]="canManageComposition()"
             [showConfirmPending]="showConfirmPending()"

@@ -1,0 +1,89 @@
+<div class="share-announce-dialog" [attr.aria-labelledby]="dialogTitleId">
+  <header class="share-announce-dialog__header">
+    <button
+      type="button"
+      class="share-announce-dialog__close"
+      aria-label="Fermer"
+      (click)="close()"
+    >
+      ✕
+    </button>
+    <h2 class="share-announce-dialog__title" [id]="dialogTitleId">{{ dialogTitle }}</h2>
+    <p class="share-announce-dialog__subtitle">
+      {{ data.eventTitle }} — {{ subtitleDate }}
+    </p>
+  </header>
+
+  <div class="share-announce-dialog__body">
+    <label class="share-announce-dialog__label" for="share-message">{{ messageLabel }}</label>
+    <textarea
+      id="share-message"
+      class="share-announce-dialog__textarea"
+      rows="12"
+      [(ngModel)]="messageText"
+    ></textarea>
+
+    <div class="share-announce-dialog__whatsapp-row">
+      <button type="button" class="share-announce-dialog__whatsapp" (click)="openWhatsApp()">
+        Envoyer par WhatsApp
+      </button>
+    </div>
+
+    <section class="share-announce-dialog__recipients" aria-label="Personnes à prévenir">
+      <h3 class="share-announce-dialog__recipients-title">Personnes à prévenir</h3>
+      <p class="share-announce-dialog__recipients-hint">
+        Les cartes vertes ont au moins un canal automatique (email). Les cartes jaunes nécessitent un
+        contact manuel. Les notifications push arrivent avec l’Epic 8.
+      </p>
+
+      @if (loadingRecipients()) {
+        <div class="share-announce-dialog__recipients-loading" role="status">
+          <mat-spinner diameter="28" />
+        </div>
+      } @else if (recipientsError()) {
+        <p class="share-announce-dialog__recipients-error" role="alert">
+          Impossible de charger les destinataires.
+        </p>
+      } @else if (recipientsSummary(); as summary) {
+        <p class="share-announce-dialog__recipients-summary">{{ summary }}</p>
+        <ul class="share-announce-dialog__recipient-list">
+          @for (card of recipientCards(); track card.participantId) {
+            <li
+              class="share-announce-dialog__recipient-card"
+              [class.share-announce-dialog__recipient-card--manual]="!card.notifiable"
+            >
+              <span class="share-announce-dialog__recipient-name">{{ card.displayName }}</span>
+              @if (card.notifiable) {
+                <span class="share-announce-dialog__recipient-badge" aria-hidden="true">✓</span>
+              } @else {
+                <span class="share-announce-dialog__recipient-badge share-announce-dialog__recipient-badge--warn" aria-hidden="true">⚠</span>
+              }
+              @if (card.emailObfuscated) {
+                <span class="share-announce-dialog__recipient-email">{{ card.emailObfuscated }}</span>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    @if (sendError(); as err) {
+      <p class="share-announce-dialog__send-error" role="alert">{{ err }}</p>
+    }
+
+    <div class="share-announce-dialog__notify-row">
+      <button
+        type="button"
+        class="share-announce-dialog__notify"
+        [disabled]="sending() || loadingRecipients() || recipientsError()"
+        (click)="sendNotifications()"
+      >
+        @if (sending()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Envoyer les notifications
+        }
+      </button>
+    </div>
+  </div>
+</div>
