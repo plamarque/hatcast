@@ -2,8 +2,6 @@ import { Component, computed, inject, input } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
-import { RouterLink } from '@angular/router'
-
 import { type UserSummary } from '../../core/auth/auth-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
@@ -17,7 +15,6 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
-    RouterLink,
     ContextBreadcrumb,
     UserAccountMenuItemsComponent,
     UserAvatarComponent,

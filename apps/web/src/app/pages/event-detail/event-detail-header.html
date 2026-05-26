@@ -32,7 +32,12 @@
         <span class="event-detail-header__user-label">{{ userDisplayLabel() }}</span>
       </button>
       <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items [showLogout]="false" />
+        <app-user-account-menu-items
+          [userSlug]="u.slug"
+          [glanceTroupeId]="troupeId()"
+          [glanceLeagueId]="seasonId()"
+          [showLogout]="false"
+        />
       </mat-menu>
     }
   </div>

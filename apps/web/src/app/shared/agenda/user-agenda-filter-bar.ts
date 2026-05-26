@@ -48,13 +48,13 @@ export class UserAgendaFilterBar {
   protected leagueLabel(): string {
     const id = this.selectedLeagueId()
     if (!id) {
-      return 'Toutes les ligues'
+      return 'Tous les groupes'
     }
     const inScope = this.scopedLeagues().find((l) => l.id === id)
     if (inScope) {
       return inScope.title
     }
-    return this.participationFilters().leagues.find((l) => l.id === id)?.title ?? 'Ligue sélectionnée'
+    return this.participationFilters().leagues.find((l) => l.id === id)?.title ?? 'Groupe sélectionné'
   }
 
   protected selectTroupe(troupe: UserAgendaTroupeFilter | null): void {

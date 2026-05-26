@@ -33,7 +33,7 @@ describe('UserAgendaFilterBar', () => {
   it('affiche les libellés par défaut et masque Effacer filtres sans sélection', () => {
     const text = fixture.nativeElement.textContent
     expect(text).toContain('Toutes les troupes')
-    expect(text).toContain('Toutes les ligues')
+    expect(text).toContain('Tous les groupes')
     expect(fixture.nativeElement.querySelector('[data-testid="agenda-clear-filters"]')).toBeNull()
   })
 

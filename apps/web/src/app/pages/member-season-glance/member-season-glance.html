@@ -34,7 +34,12 @@
         />
       </button>
       <mat-menu #accountMenu="matMenu">
-        <app-user-account-menu-items [showAgendaLink]="true" logoutLabel="Déconnexion" />
+        <app-user-account-menu-items
+          [userSlug]="u.slug"
+          [showSeasonGlanceLink]="false"
+          [showAgendaLink]="true"
+          logoutLabel="Déconnexion"
+        />
       </mat-menu>
     }
   </header>
@@ -61,14 +66,7 @@
     } @else if (loadError()) {
       <p class="member-glance-page__error" role="alert">Impossible de charger le profil saison.</p>
     } @else if (panelProfile(); as profile) {
-      <app-member-profile-panel
-        [profile]="profile"
-        [loading]="false"
-        [saving]="saving()"
-        [selectedRoleKeys]="selectedRoleKeys()"
-        (roleToggled)="onRoleToggled($event)"
-        (savePreferredRoles)="savePreferredRoles()"
-      />
+      <app-member-profile-panel [profile]="profile" [loading]="false" [showPreferredRoles]="false" />
     }
 
     <footer class="member-glance-page__footer">

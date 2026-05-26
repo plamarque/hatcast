@@ -27,6 +27,9 @@ data class MemberProfileStatsDto(
 data class MemberProfileChartBlockDto(
     val eventId: UUID,
     val status: String,
+    val eventTitle: String,
+    /** Local calendar date (`yyyy-MM-dd`, Europe/Paris). */
+    val eventDate: String,
     val roleKey: String? = null,
 )
 

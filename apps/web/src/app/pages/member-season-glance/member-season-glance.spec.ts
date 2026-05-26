@@ -12,7 +12,6 @@ import {
   MemberSeasonGlanceApiService,
   type MemberSeasonGlance as MemberSeasonGlanceData,
 } from '../../core/member-glance/member-season-glance-api.service'
-import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { MemberSeasonGlance } from './member-season-glance'
 
 const glanceSelf: MemberSeasonGlanceData = {
@@ -94,7 +93,6 @@ describe('MemberSeasonGlance', () => {
         },
         { provide: MemberSeasonGlanceApiService, useValue: glanceApi },
         { provide: AuthApiService, useValue: authApi },
-        { provide: MemberProfileApiService, useValue: { updatePreferredRoles: vi.fn() } },
         {
           provide: PwaInstallService,
           useValue: {
@@ -166,6 +164,12 @@ describe('MemberSeasonGlance', () => {
   it('hides filter bar when API reports filterBarVisible false', async () => {
     const { fixture } = await setup({ glance: glanceSelf })
     expect(fixture.nativeElement.querySelector('app-user-agenda-filter-bar')).toBeNull()
+  })
+
+  it('does not show preferred roles editor on glance page', async () => {
+    const { fixture } = await setup({ glance: glanceSelf })
+    expect(fixture.nativeElement.textContent).not.toContain('Mes rôles préférés')
+    expect(fixture.nativeElement.textContent).not.toContain('Enregistrer')
   })
 
   it('hides preferred roles editor when viewing another member', async () => {

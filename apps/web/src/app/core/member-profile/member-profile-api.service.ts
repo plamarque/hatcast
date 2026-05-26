@@ -17,6 +17,8 @@ export interface MemberProfileStats {
 export interface MemberProfileChartBlock {
   eventId: string
   status: string
+  eventTitle: string
+  eventDate: string
   roleKey?: string | null
 }
 

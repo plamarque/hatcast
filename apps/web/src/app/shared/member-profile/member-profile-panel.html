@@ -51,16 +51,26 @@
         <div class="member-profile__chart">
           @for (month of profile().monthlyChart; track month.monthKey) {
             <div class="member-profile__chart-month">
-              <span class="member-profile__chart-month-label">{{ month.monthKey }}</span>
               <div class="member-profile__chart-blocks">
                 @for (block of month.blocks; track block.eventId) {
                   <span
                     class="member-profile__chart-block"
-                    [class.member-profile__chart-block--avail]="block.status === 'available'"
-                    [class.member-profile__chart-block--decline]="block.status === 'declined'"
-                  ></span>
+                    [class.member-profile__chart-block--available]="block.status === 'available'"
+                    [class.member-profile__chart-block--unavailable]="block.status === 'unavailable'"
+                    [class.member-profile__chart-block--declined]="block.status === 'declined'"
+                    [class.member-profile__chart-block--neutral]="block.status === 'neutral'"
+                    [matTooltip]="chartBlockTooltip(block)"
+                    matTooltipClass="member-profile__chart-tooltip"
+                    matTooltipPosition="above"
+                    [attr.aria-label]="chartBlockTooltip(block)"
+                  >
+                    @if (chartBlockRoleEmoji(block.roleKey); as roleEmoji) {
+                      <span class="member-profile__chart-role" aria-hidden="true">{{ roleEmoji }}</span>
+                    }
+                  </span>
                 }
               </div>
+              <span class="member-profile__chart-month-label">{{ monthLabel(month.monthKey) }}</span>
             </div>
           }
         </div>
@@ -84,7 +94,7 @@
       </section>
     }
 
-    @if (profile().isSelf) {
+    @if (showPreferredRoles() && profile().isSelf) {
       <section class="member-profile__section" aria-labelledby="member-profile-pref-heading">
         <h3 id="member-profile-pref-heading" class="member-profile__section-title">
           Mes rôles préférés

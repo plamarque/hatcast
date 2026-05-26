@@ -20,11 +20,9 @@ import {
   MemberSeasonGlanceApiService,
   type MemberSeasonGlance as MemberSeasonGlanceData,
 } from '../../core/member-glance/member-season-glance-api.service'
-import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import type { MemberProfileSummary } from '../../core/member-profile/member-profile-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
-import { type RoleKey } from '../../shared/event-roles/event-roles'
 import { MemberProfilePanel } from '../../shared/member-profile/member-profile-panel'
 import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
@@ -53,7 +51,6 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
 export class MemberSeasonGlance implements OnInit, OnDestroy {
   private readonly auth = inject(AuthApiService)
   private readonly glanceApi = inject(MemberSeasonGlanceApiService)
-  private readonly profileApi = inject(MemberProfileApiService)
   private readonly router = inject(Router)
   private readonly route = inject(ActivatedRoute)
   private readonly snack = inject(MatSnackBar)
@@ -66,8 +63,6 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   protected readonly loadError = signal(false)
   protected readonly sessionUser = signal<UserSummary | null>(null)
   protected readonly glance = signal<MemberSeasonGlanceData | null>(null)
-  protected readonly saving = signal(false)
-  protected readonly selectedRoleKeys = signal<Set<string>>(new Set())
 
   protected readonly filterBarVisible = signal(false)
   protected readonly participationFilters = signal<UserAgendaParticipationFilters | null>(null)
@@ -99,7 +94,6 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       stats: g.stats,
       monthlyChart: g.monthlyChart,
       favoriteRoleCounts: g.favoriteRoleCounts,
-      preferredRoleKeys: g.preferredRoleKeys,
     }
   }
 
@@ -185,34 +179,6 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     await this.loadGlance()
   }
 
-  protected onRoleToggled(event: { key: RoleKey; checked: boolean }): void {
-    const next = new Set(this.selectedRoleKeys())
-    if (event.checked) {
-      next.add(event.key)
-    } else {
-      next.delete(event.key)
-    }
-    next.add('volunteer')
-    this.selectedRoleKeys.set(next)
-  }
-
-  protected async savePreferredRoles(): Promise<void> {
-    const g = this.glance()
-    if (this.saving() || !g?.isSelf) {
-      return
-    }
-    this.saving.set(true)
-    const keys = [...this.selectedRoleKeys()]
-    const r = await this.profileApi.updatePreferredRoles(g.preferredRolesTroupeId, keys)
-    this.saving.set(false)
-    if (r.ok && r.data) {
-      this.selectedRoleKeys.set(new Set(r.data.preferredRoleKeys))
-      this.snack.open('Préférences enregistrées', 'OK', { duration: 3000 })
-    } else {
-      this.snack.open('Enregistrement impossible.', 'OK', { duration: 5000 })
-    }
-  }
-
   protected openPlanning(): void {
     const queryParams: Record<string, string> = {}
     const troupeId = this.selectedTroupeId() ?? this.glance()?.troupeId
@@ -256,10 +222,6 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       this.filterBarVisible.set(r.data.filterBarVisible)
       this.participationFilters.set(r.data.participationFilters)
 
-      if (r.data.isSelf && r.data.preferredRoleKeys) {
-        this.selectedRoleKeys.set(new Set(r.data.preferredRoleKeys))
-      }
-
       if (!r.data.filterBarVisible) {
         this.selectedTroupeId.set(null)
         this.selectedLeagueId.set(null)
@@ -284,10 +246,11 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
 
     if (r.status === 400) {
       this.snack.open(
-        r.errorMessage ?? 'Sélectionnez une ligue pour afficher les statistiques.',
+        r.errorMessage ?? 'Filtres invalides pour ce profil.',
         'OK',
         { duration: 6000 },
       )
+      return
     }
 
     this.loadError.set(true)

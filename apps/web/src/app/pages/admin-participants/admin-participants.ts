@@ -10,7 +10,7 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { ActivatedRoute, Router, RouterLink } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -62,7 +62,6 @@ import { AddParticipantDialog } from './add-participant-dialog'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    RouterLink,
     ContextBreadcrumb,
     UserAccountMenuItemsComponent,
     UserAvatarComponent,

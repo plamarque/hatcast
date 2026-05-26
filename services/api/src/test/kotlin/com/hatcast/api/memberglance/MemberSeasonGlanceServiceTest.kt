@@ -23,6 +23,8 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
+import java.time.LocalDate
 import java.util.Optional
 import java.util.UUID
 
@@ -72,6 +74,55 @@ class MemberSeasonGlanceServiceTest {
 
         assertEquals(userId, result.userId)
         verify(troupeAccess, never()).requireActiveMember(any(), any())
+    }
+
+    @Test
+    fun `all groups filter resolves primary season when several leagues exist`() {
+        val userId = UUID.randomUUID()
+        val target = user(id = userId, slug = "multi-league")
+        val primarySeasonId = UUID.fromString("b0000002-0000-4000-8000-000000000002")
+        val otherSeasonId = UUID.fromString("b0000003-0000-4000-8000-000000000003")
+        val primary =
+            season(
+                id = primarySeasonId,
+                troupeId = seedTroupeId,
+                title = "Saison active",
+                isActive = true,
+                startDate = LocalDate.of(2026, 3, 1),
+            )
+        val older =
+            season(
+                id = otherSeasonId,
+                troupeId = seedTroupeId,
+                title = "Ancienne saison",
+                isActive = false,
+                startDate = LocalDate.of(2025, 9, 1),
+            )
+        val membership = activeMembership(target, "Multi")
+
+        stubParticipation(
+            userId,
+            troupeIds = setOf(seedTroupeId),
+            leagueIds = setOf(primarySeasonId, otherSeasonId),
+        )
+        whenever(userRepository.findBySlug("multi-league")).thenReturn(target)
+        whenever(seasonRepository.findById(primarySeasonId)).thenReturn(Optional.of(primary))
+        whenever(seasonRepository.findById(otherSeasonId)).thenReturn(Optional.of(older))
+        whenever(membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, userId)).thenReturn(membership)
+        whenever(statsProvider.loadStats(primarySeasonId, userId)).thenReturn(null)
+        whenever(statsProvider.loadMonthlyChart(primarySeasonId, userId)).thenReturn(emptyList())
+        whenever(statsProvider.loadFavoriteRoleCounts(primarySeasonId, userId)).thenReturn(emptyList())
+
+        val result =
+            service.getSeasonGlance(
+                userSlug = "multi-league",
+                principal = principal(userId),
+                troupeId = null,
+                leagueId = null,
+            )
+
+        assertEquals(primarySeasonId, result.resolvedSeasonId)
+        assertEquals(true, result.filterBarVisible)
     }
 
     @Test
@@ -129,14 +180,20 @@ class MemberSeasonGlanceServiceTest {
     private fun season(
         id: UUID,
         troupeId: UUID,
+        title: String = "Season",
+        isActive: Boolean = false,
+        startDate: LocalDate? = null,
     ): SeasonEntity {
         val troupe = TroupeEntity(id = troupeId, name = "Troupe", slug = "troupe")
         return SeasonEntity(
             id = id,
             troupe = troupe,
-            slug = "season",
-            title = "Season",
+            slug = "season-$id",
+            title = title,
             archived = false,
+            isActive = isActive,
+            startDate = startDate,
+            updatedAt = Instant.parse("2026-01-01T00:00:00Z"),
         )
     }
 

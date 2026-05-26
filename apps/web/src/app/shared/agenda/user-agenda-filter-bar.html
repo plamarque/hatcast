@@ -25,14 +25,14 @@
       mat-stroked-button
       class="user-agenda-filter-bar__filter"
       [matMenuTriggerFor]="leagueMenu"
-      aria-label="Filtrer par ligue"
+      aria-label="Filtrer par groupe"
       data-testid="agenda-league-filter"
     >
       <span>{{ leagueLabel() }}</span>
       <mat-icon class="user-agenda-filter-bar__caret">expand_more</mat-icon>
     </button>
     <mat-menu #leagueMenu="matMenu">
-      <button mat-menu-item type="button" (click)="selectLeague(null)">Toutes les ligues</button>
+      <button mat-menu-item type="button" (click)="selectLeague(null)">Tous les groupes</button>
       @for (league of scopedLeagues(); track league.id) {
         <button mat-menu-item type="button" (click)="selectLeague(league)">
           {{ league.title }}

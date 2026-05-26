@@ -31,7 +31,11 @@
         <span class="season-header__user-label">{{ userDisplayLabel() }}</span>
       </button>
       <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items />
+        <app-user-account-menu-items
+          [userSlug]="u.slug"
+          [glanceTroupeId]="troupeId()"
+          [glanceLeagueId]="seasonId()"
+        />
       </mat-menu>
     }
   </div>

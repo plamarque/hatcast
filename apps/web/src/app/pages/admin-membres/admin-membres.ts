@@ -4,7 +4,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
-import { ActivatedRoute, Router, RouterLink } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 
@@ -51,7 +51,6 @@ function pickProfileSeason(
     MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    RouterLink,
     ContextBreadcrumb,
     MembresTab,
     UserAccountMenuItemsComponent,

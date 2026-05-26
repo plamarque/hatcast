@@ -184,7 +184,7 @@ class SeasonGlanceStatsProvider(
             val block =
                 participantIds.firstNotNullOfOrNull { pid ->
                     chartBlockForEvent(
-                        eventId = event.id,
+                        event = event,
                         participantId = pid,
                         participants = participants,
                         validated = validated,
@@ -192,7 +192,7 @@ class SeasonGlanceStatsProvider(
                         declines = declines,
                         availabilityIndex = availabilityIndex,
                     )
-                } ?: MemberProfileChartBlockDto(eventId = event.id, status = "neutral")
+                } ?: neutralChartBlock(event)
 
             blocksByMonth.getOrPut(monthKey) { mutableListOf() }.add(block)
         }
@@ -306,7 +306,7 @@ class SeasonGlanceStatsProvider(
         }
 
     private fun chartBlockForEvent(
-        eventId: UUID,
+        event: EventEntity,
         participantId: UUID,
         participants: List<SeasonParticipantEntity>,
         validated: Boolean,
@@ -314,6 +314,7 @@ class SeasonGlanceStatsProvider(
         declines: List<EventCompositionDeclineEntity>,
         availabilityIndex: GlanceAvailabilityIndex,
     ): MemberProfileChartBlockDto? {
+        val meta = chartBlockEventMeta(event)
         if (validated) {
             val declinedSlot =
                 slots.firstOrNull { slot ->
@@ -325,8 +326,10 @@ class SeasonGlanceStatsProvider(
                 }
             if (declinedSlot != null) {
                 return MemberProfileChartBlockDto(
-                    eventId = eventId,
+                    eventId = event.id,
                     status = "declined",
+                    eventTitle = meta.title,
+                    eventDate = meta.date,
                     roleKey = declinedSlot.roleKey,
                 )
             }
@@ -337,21 +340,54 @@ class SeasonGlanceStatsProvider(
                 }
             if (selectedSlot != null) {
                 return MemberProfileChartBlockDto(
-                    eventId = eventId,
+                    eventId = event.id,
                     status = "available",
+                    eventTitle = meta.title,
+                    eventDate = meta.date,
                     roleKey = selectedSlot.roleKey,
                 )
             }
         }
         val participant = participants.firstOrNull { it.id == participantId } ?: return null
-        return when (availabilityIndex.forParticipant(eventId, participant)?.status) {
+        return when (availabilityIndex.forParticipant(event.id, participant)?.status) {
             StoredAvailabilityStatus.AVAILABLE ->
-                MemberProfileChartBlockDto(eventId = eventId, status = "available")
+                MemberProfileChartBlockDto(
+                    eventId = event.id,
+                    status = "available",
+                    eventTitle = meta.title,
+                    eventDate = meta.date,
+                )
             StoredAvailabilityStatus.UNAVAILABLE ->
-                MemberProfileChartBlockDto(eventId = eventId, status = "unavailable")
+                MemberProfileChartBlockDto(
+                    eventId = event.id,
+                    status = "unavailable",
+                    eventTitle = meta.title,
+                    eventDate = meta.date,
+                )
             null -> null
         }
     }
+
+    private fun neutralChartBlock(event: EventEntity): MemberProfileChartBlockDto {
+        val meta = chartBlockEventMeta(event)
+        return MemberProfileChartBlockDto(
+            eventId = event.id,
+            status = "neutral",
+            eventTitle = meta.title,
+            eventDate = meta.date,
+        )
+    }
+
+    private fun chartBlockEventMeta(event: EventEntity): ChartBlockEventMeta =
+        ChartBlockEventMeta(
+            title = event.title,
+            date = event.startsAt.atZone(ZONE).format(EVENT_DATE_FORMAT),
+        )
+
+    private data class ChartBlockEventMeta(
+        val title: String,
+        val date: String,
+    )
 
     private class GlanceAvailabilityIndex(
         private val byEventAndUserId: Map<Pair<UUID, UUID>, EventAvailabilityEntity>,
@@ -385,5 +421,6 @@ class SeasonGlanceStatsProvider(
     companion object {
         private val ZONE: ZoneId = ZoneId.of("Europe/Paris")
         private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM")
+        private val EVENT_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     }
 }

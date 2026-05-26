@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.time.LocalDate
 import java.util.UUID
 
 @Service
@@ -127,38 +128,42 @@ class MemberSeasonGlanceService(
             return season
         }
 
-        if (troupeId != null) {
-            val seasonsInTroupe =
-                participation.leagueIds.mapNotNull { id ->
-                    seasonRepository.findById(id).orElse(null)?.takeIf {
-                        !it.archived && it.troupe.id == troupeId
+        val candidates = candidateSeasons(participation.leagueIds, troupeId)
+        when {
+            candidates.isEmpty() -> {
+                val message =
+                    if (troupeId != null) {
+                        "Aucune ligue pour cette troupe."
+                    } else {
+                        "Aucune participation active."
                     }
-                }
-            when {
-                seasonsInTroupe.isEmpty() ->
-                    throw ResponseStatusException(HttpStatus.NOT_FOUND, "Aucune ligue pour cette troupe.")
-                seasonsInTroupe.size == 1 -> return seasonsInTroupe.single()
-                else ->
-                    throw ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Sélectionnez une ligue pour afficher les statistiques.",
-                    )
+                throw ResponseStatusException(HttpStatus.NOT_FOUND, message)
+            }
+            candidates.size == 1 -> return candidates.single()
+            filterBarVisible -> return selectPrimarySeason(candidates)
+            else ->
+                throw ResponseStatusException(HttpStatus.NOT_FOUND, "Aucune participation active.")
+        }
+    }
+
+    private fun candidateSeasons(
+        leagueIds: Set<UUID>,
+        troupeId: UUID?,
+    ): List<SeasonEntity> =
+        leagueIds.mapNotNull { id ->
+            seasonRepository.findById(id).orElse(null)?.takeIf { season ->
+                !season.archived && (troupeId == null || season.troupe.id == troupeId)
             }
         }
 
-        if (!filterBarVisible) {
-            val onlyLeague = participation.leagueIds.singleOrNull()
-                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Aucune participation active.")
-            return seasonRepository
-                .findById(onlyLeague)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Ligue inconnue.") }
-        }
-
-        throw ResponseStatusException(
-            HttpStatus.BAD_REQUEST,
-            "Sélectionnez une ligue pour afficher les statistiques.",
+    /** MVP: no cross-league merge — pick the most relevant single season when filters are unset. */
+    private fun selectPrimarySeason(candidates: List<SeasonEntity>): SeasonEntity =
+        candidates.maxWith(
+            compareBy<SeasonEntity> { it.isActive }
+                .thenByDescending { it.startDate ?: LocalDate.MIN }
+                .thenByDescending { it.updatedAt }
+                .thenBy { it.title.lowercase() },
         )
-    }
 
     private fun requireCanViewGlance(
         principal: SessionUserPrincipal,

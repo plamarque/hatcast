@@ -1141,6 +1141,11 @@ components:
           format: uuid
         status:
           type: string
+        eventTitle:
+          type: string
+        eventDate:
+          type: string
+          description: Local calendar date (yyyy-MM-dd)
         roleKey:
           type: string
           nullable: true
