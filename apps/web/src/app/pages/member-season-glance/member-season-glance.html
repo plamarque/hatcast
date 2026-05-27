@@ -1,54 +1,41 @@
 <div class="member-glance-page">
   <header class="member-glance-page__header">
-    <button type="button" class="member-glance-page__back" (click)="goBack()" aria-label="Retour">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-
-    @if (panelProfile(); as p) {
-      <app-user-avatar
-        class="member-glance-page__avatar"
-        [style.--user-avatar-size.px]="72"
-        [displayName]="p.displayName"
-        [avatarUrl]="p.avatarUrl"
-        [size]="72"
-      />
-      <div class="member-glance-page__identity">
-        <h1 class="member-glance-page__title">{{ pageTitle() }}</h1>
-        <p class="member-glance-page__subtitle">{{ p.displayName }}</p>
-      </div>
-    } @else {
-      <h1 class="member-glance-page__title">{{ pageTitle() }}</h1>
-    }
-
+    <div class="member-glance-page__titles">
+      <h1 class="member-glance-page__title">{{ headerTitle() }}</h1>
+      <p class="member-glance-page__subtitle">{{ headerSubtitle() }}</p>
+    </div>
     @if (sessionUser(); as u) {
-      <button
-        type="button"
-        class="member-glance-page__account"
-        [matMenuTriggerFor]="accountMenu"
-        aria-label="Menu compte"
-      >
-        <app-user-avatar
-          [displayName]="userDisplayLabel(u)"
-          [avatarUrl]="u.avatarUrl ?? null"
-          [size]="36"
-        />
-      </button>
-      <mat-menu #accountMenu="matMenu">
-        <app-user-account-menu-items
-          [userSlug]="u.slug"
-          [showSeasonGlanceLink]="false"
-          [showAgendaLink]="true"
-          logoutLabel="Déconnexion"
-        />
-      </mat-menu>
+      <div class="member-glance-page__header-actions">
+        @if (glance()?.isSelf) {
+          <app-member-cross-nav-shortcuts />
+        }
+        <button
+          type="button"
+          mat-stroked-button
+          class="member-glance-page__user-btn"
+          [matMenuTriggerFor]="accountMenu"
+          [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
+        >
+          <app-user-avatar
+            [style.--user-avatar-size.px]="24"
+            [displayName]="userDisplayLabel(u)"
+            [avatarUrl]="u.avatarUrl ?? null"
+            [size]="24"
+          />
+          <span class="member-glance-page__user-label">{{ userDisplayLabel(u) }}</span>
+          <mat-icon aria-hidden="true">expand_more</mat-icon>
+        </button>
+        <mat-menu #accountMenu="matMenu">
+          <app-user-account-menu-items
+            [userSlug]="u.slug"
+            [showSeasonGlanceLink]="false"
+            [showAgendaLink]="true"
+            logoutLabel="Déconnexion"
+          />
+        </mat-menu>
+      </div>
     }
   </header>
-
-  @if (glance()?.isSelf) {
-    <div class="member-glance-page__cross-nav">
-      <app-member-cross-nav-shortcuts />
-    </div>
-  }
 
   @if (filterBarVisible() && filterBarCatalog()) {
     <app-user-agenda-filter-bar

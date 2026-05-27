@@ -119,8 +119,10 @@ describe('MemberSeasonGlance', () => {
     return { fixture, router: TestBed.inject(Router), glanceApi, paramMap$ }
   }
 
-  it('loads glance and shows self title', async () => {
+  it('loads glance and shows Mes Stats page title', async () => {
     const { fixture } = await setup()
+    const title = fixture.nativeElement.querySelector('.member-glance-page__title')
+    expect(title?.textContent).toContain('Mes Stats')
     expect(fixture.nativeElement.textContent).toContain("Ma saison en un clin d'œil")
   })
 

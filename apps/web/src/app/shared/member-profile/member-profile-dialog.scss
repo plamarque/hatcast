@@ -102,13 +102,16 @@
   min-height: 12.5rem;
   padding: 0.75rem;
   border-radius: 0.85rem;
-  background: rgba(7, 16, 37, 0.48);
+  background: color-mix(in srgb, var(--mat-sys-surface-container-high, #1e293b) 72%, transparent);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .member-profile__chart-month {
   display: flex;
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: 2.25rem;
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
@@ -221,19 +224,38 @@
     padding: 0.6rem 0.45rem;
   }
 
+  .member-profile__chart-month {
+    min-width: 2rem;
+  }
+
   .member-profile__chart-block {
-    width: 1.6rem;
-    height: 1.6rem;
+    width: 1.5rem;
+    height: 1.5rem;
     border-radius: 0.45rem;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    flex-shrink: 0;
   }
 
   .member-profile__chart-blocks {
-    gap: 0.26rem;
+    gap: 0.22rem;
     min-height: 8.75rem;
+    width: 100%;
+    align-items: center;
   }
 
   .member-profile__chart-month-label {
-    font-size: 0.74rem;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .member-profile__chart-block {
+    width: 1.35rem;
+    height: 1.35rem;
+    font-size: 0.8rem;
+  }
+
+  .member-profile__chart-month {
+    min-width: 1.85rem;
   }
 }
