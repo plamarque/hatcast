@@ -1,191 +1,182 @@
-<div class="account-ph">
-  <mat-card appearance="outlined" class="account-ph__card">
-    <mat-card-header>
-      <mat-card-title>Mon compte</mat-card-title>
-      <mat-card-subtitle>Paramètres du compte</mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <p class="account-ph__text">
-        La gestion détaillée du compte (e-mail, mot de passe lorsque vous êtes connecté, etc.) arrive
-        dans une prochaine livraison.
-      </p>
-    </mat-card-content>
-  </mat-card>
+<div class="account-page">
+  <header class="account-page__header">
+    <div class="account-page__titles">
+      <h1 class="account-page__title">Mon compte</h1>
+      <p class="account-page__subtitle">Identité, sécurité et préférences de ton compte HatCast.</p>
+    </div>
+  </header>
 
   @if (loading()) {
-    <div class="account-ph__spinner" role="status">
+    <div class="account-page__spinner" role="status" aria-label="Chargement">
       <mat-spinner diameter="40" />
     </div>
-  } @else {
-    @if (user(); as u) {
-      <mat-card appearance="outlined" class="account-ph__card">
-        <mat-card-header>
-          <mat-card-title>Photo de profil</mat-card-title>
-          <mat-card-subtitle>
-            Visible dans l’application (menu compte, listes de membres). Formats : JPEG, PNG, WebP, AVIF — 2 Mo max.
-          </mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content class="account-ph__avatar-section">
-          <app-user-avatar
-            class="account-ph__avatar-preview"
-            [style.--user-avatar-size.px]="72"
-            [displayName]="avatarDisplayName()"
-            [avatarUrl]="u.avatarUrl ?? null"
-            [size]="72"
-          />
-          <div class="account-ph__avatar-actions">
-            <input
-              #avatarFileInput
-              class="account-ph__file-input"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/avif"
-              [disabled]="avatarSaving()"
-              (change)="onAvatarFileSelected($event)"
+  } @else if (user(); as u) {
+    <section class="account-page__identity" aria-labelledby="account-identity-heading">
+      <h2 id="account-identity-heading" class="account-page__visually-hidden">Identité</h2>
+      <div class="account-page__identity-row">
+        <div class="account-page__avatar-wrap">
+          <button
+            type="button"
+            class="account-page__avatar-trigger"
+            data-testid="account-avatar-menu-trigger"
+            [matMenuTriggerFor]="avatarMenu"
+            [disabled]="avatarSaving()"
+            aria-label="Modifier la photo de profil"
+            aria-haspopup="menu"
+          >
+            <app-user-avatar
+              class="account-page__avatar"
+              [style.--user-avatar-size.px]="72"
+              [displayName]="avatarDisplayName()"
+              [avatarUrl]="u.avatarUrl ?? null"
+              [size]="72"
             />
+            <span class="account-page__avatar-badge" aria-hidden="true">
+              <mat-icon>photo_camera</mat-icon>
+            </span>
+          </button>
+          <mat-menu #avatarMenu="matMenu" class="account-page__avatar-menu">
             <button
               type="button"
-              mat-stroked-button
-              [disabled]="avatarSaving()"
+              mat-menu-item
+              data-testid="account-avatar-choose"
               (click)="avatarFileInput.click()"
             >
-              Choisir une image
+              <mat-icon aria-hidden="true">upload</mat-icon>
+              <span>Choisir une photo</span>
             </button>
             @if (u.hasGoogleAccount) {
               <button
                 type="button"
-                mat-stroked-button
+                mat-menu-item
+                data-testid="account-avatar-google"
                 [disabled]="avatarSaving()"
                 (click)="importGoogleAvatar()"
               >
-                Utiliser ma photo Google
+                <mat-icon aria-hidden="true">account_circle</mat-icon>
+                <span>Utiliser ma photo Google</span>
               </button>
             }
             @if (u.avatarUrl) {
               <button
                 type="button"
-                mat-stroked-button
+                mat-menu-item
+                data-testid="account-avatar-delete"
                 [disabled]="avatarSaving()"
                 (click)="deleteAvatar()"
               >
-                Supprimer la photo
+                <mat-icon aria-hidden="true">delete</mat-icon>
+                <span>Supprimer la photo</span>
               </button>
             }
-            @if (avatarSaving()) {
-              <mat-spinner diameter="24" />
-            }
+          </mat-menu>
+          <input
+            #avatarFileInput
+            class="account-page__file-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            [disabled]="avatarSaving()"
+            (change)="onAvatarFileSelected($event)"
+          />
+          @if (avatarSaving()) {
+            <mat-spinner class="account-page__avatar-spinner" diameter="24" aria-hidden="true" />
+          }
+        </div>
+        <div class="account-page__identity-text">
+          <p class="account-page__email">{{ u.email }}</p>
+          @if (accountDisplayName(); as name) {
+            <p class="account-page__display-name">{{ name }}</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="account-page__section" aria-labelledby="account-security-heading">
+      <h2 id="account-security-heading" class="account-page__section-title">Sécurité</h2>
+      <mat-nav-list class="account-page__list">
+        <button
+          type="button"
+          mat-list-item
+          class="account-page__list-item--disabled"
+          disabled
+          data-testid="account-change-email"
+          [matTooltip]="emailComingSoonTooltip"
+        >
+          <span matListItemTitle>Changer l’adresse e-mail</span>
+          <span matListItemMeta class="account-page__soon">Bientôt</span>
+        </button>
+        @if (!u.hasGoogleAccount) {
+          <button
+            type="button"
+            mat-list-item
+            data-testid="account-reset-password"
+            [disabled]="passwordResetSending() || !u.email"
+            (click)="requestPasswordReset()"
+          >
+            <span matListItemTitle>Réinitialiser le mot de passe</span>
+            <span matListItemLine>Un lien sera envoyé à ton adresse e-mail.</span>
+          </button>
+        } @else {
+          <div mat-list-item class="account-page__list-item--hint" data-testid="account-google-password-hint">
+            <span matListItemTitle>Connexion via Google</span>
+            <span matListItemLine>Pas de mot de passe HatCast sur ce compte.</span>
           </div>
-        </mat-card-content>
-      </mat-card>
-    }
+        }
+      </mat-nav-list>
+    </section>
 
-    @if (loadError()) {
-      <mat-card appearance="outlined" class="account-ph__card">
-        <mat-card-content>
-          <p class="account-ph__text">Impossible de charger vos troupes. Réessayez plus tard.</p>
-        </mat-card-content>
-      </mat-card>
-    } @else if (troupes().length === 0) {
-      <mat-card appearance="outlined" class="account-ph__card">
-        <mat-card-content>
-          <p class="account-ph__text">
-            Pour définir un pseudo, rejoignez d’abord une troupe depuis la liste des troupes.
-          </p>
-          <a mat-button routerLink="/troupes">Mes troupes</a>
-        </mat-card-content>
-      </mat-card>
-    } @else {
-      <mat-card appearance="outlined" class="account-ph__card">
-        <mat-card-header>
-          <mat-card-title>Pseudo par troupe</mat-card-title>
-          <mat-card-subtitle>
-            Nom affiché aux autres membres de la troupe. Chaque troupe a son propre pseudo.
-          </mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content class="account-ph__pseudo-list">
-          @for (troupe of troupes(); track troupe.id) {
-            <div class="account-ph__pseudo-row">
-              <p class="account-ph__troupe-name">{{ troupe.name }}</p>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-ph__field">
-                <mat-label>Pseudo</mat-label>
-                <input
-                  matInput
-                  maxlength="255"
-                  [ngModel]="pseudoByTroupeId()[troupe.id]"
-                  (ngModelChange)="onPseudoInput(troupe.id, $event)"
-                  (keydown.enter)="savePseudo(troupe)"
-                />
-                @if (validationErrorByTroupeId()[troupe.id]) {
-                  <mat-error>Le pseudo ne peut pas être vide.</mat-error>
-                }
-              </mat-form-field>
-              <button
-                mat-stroked-button
-                type="button"
-                [disabled]="savingTroupeId() === troupe.id"
-                (click)="savePseudo(troupe)"
-              >
-                @if (savingTroupeId() === troupe.id) {
-                  <mat-spinner diameter="20" />
-                } @else {
-                  Enregistrer
-                }
-              </button>
-            </div>
-          }
-        </mat-card-content>
-      </mat-card>
+    <section class="account-page__section" aria-labelledby="account-notifications-heading">
+      <h2 id="account-notifications-heading" class="account-page__section-title">Notifications</h2>
+      <p class="account-page__section-hint">
+        Comme sur l’app actuelle : e-mails et rappels pour les spectacles et les compositions.
+      </p>
+      <mat-nav-list class="account-page__list">
+        @for (pref of notificationPlaceholders; track pref.id) {
+          <button
+            type="button"
+            mat-list-item
+            class="account-page__list-item--disabled"
+            disabled
+            [attr.data-testid]="'account-notif-' + pref.id"
+            [matTooltip]="notificationsComingSoonTooltip"
+          >
+            <span matListItemTitle>{{ pref.label }}</span>
+            <span matListItemMeta class="account-page__soon">Bientôt</span>
+          </button>
+        }
+      </mat-nav-list>
+    </section>
 
-      <mat-card appearance="outlined" class="account-ph__card">
-        <mat-card-header>
-          <mat-card-title>Rôles préférés par troupe</mat-card-title>
-          <mat-card-subtitle>
-            Rôles pré-cochés par défaut lors de la saisie de disponibilité. Chaque troupe conserve
-            ses propres préférences.
-          </mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content class="account-ph__roles-list">
-          @if (preferredRolesLoading()) {
-            <mat-spinner diameter="24" />
-          } @else {
-            @for (troupe of troupes(); track troupe.id) {
-              <div class="account-ph__roles-row">
-                <p class="account-ph__troupe-name">{{ troupe.name }}</p>
-                <div class="account-ph__roles-grid">
-                  @for (key of roleKeys; track key) {
-                    <label class="account-ph__role-option">
-                      <mat-checkbox
-                        [checked]="isPreferredRoleSelected(troupe.id, key)"
-                        [disabled]="
-                          !canToggleRole(key) || savingPreferredRolesTroupeId() === troupe.id
-                        "
-                        (change)="togglePreferredRole(troupe.id, key, $event.checked)"
-                      />
-                      <span class="account-ph__role-label">
-                        <span aria-hidden="true">{{ roleEmoji(key) }}</span>
-                        {{ roleLabel(key) }}
-                      </span>
-                    </label>
-                  }
-                </div>
-                <button
-                  mat-stroked-button
-                  type="button"
-                  [disabled]="savingPreferredRolesTroupeId() === troupe.id"
-                  (click)="savePreferredRoles(troupe)"
-                >
-                  @if (savingPreferredRolesTroupeId() === troupe.id) {
-                    <mat-spinner diameter="20" />
-                  } @else {
-                    Enregistrer
-                  }
-                </button>
-              </div>
-            }
-          }
-        </mat-card-content>
-      </mat-card>
-    }
+    <section
+      class="account-page__section account-page__section--danger"
+      aria-labelledby="account-danger-heading"
+    >
+      <h2 id="account-danger-heading" class="account-page__section-title">Zone sensible</h2>
+      <mat-nav-list class="account-page__list">
+        <button
+          type="button"
+          mat-list-item
+          class="account-page__list-item--danger account-page__list-item--disabled"
+          disabled
+          data-testid="account-delete"
+          [matTooltip]="emailComingSoonTooltip"
+        >
+          <span matListItemTitle>Supprimer mon compte</span>
+          <span matListItemMeta class="account-page__soon">Bientôt</span>
+        </button>
+      </mat-nav-list>
+    </section>
+
+    <footer class="account-page__footer">
+      <button
+        type="button"
+        mat-stroked-button
+        class="account-page__logout"
+        data-testid="account-logout"
+        (click)="logout()"
+      >
+        Se déconnecter
+      </button>
+    </footer>
   }
-
-  <a mat-button routerLink="/troupes" class="account-ph__back">Retour aux troupes</a>
 </div>

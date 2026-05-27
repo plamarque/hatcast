@@ -1,195 +1,226 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { provideRouter } from '@angular/router'
+import { provideRouter, Router } from '@angular/router'
+import { sendPasswordResetEmail } from 'firebase/auth'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
-import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
-import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
-import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
+import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 import { AccountPlaceholder } from './account-placeholder'
 
+vi.mock('firebase/auth', () => ({
+  sendPasswordResetEmail: vi.fn(),
+}))
+
 describe('AccountPlaceholder', () => {
+  const sendPasswordReset = vi.mocked(sendPasswordResetEmail)
+
   async function setup(options: {
-    troupes?: TroupeListItem[]
-    updateResult?: { ok: boolean; status: number; data?: { displayName: string } }
+    session?: { ok: boolean; status: number; data?: { user: Record<string, unknown> } }
+    hasGoogleAccount?: boolean
+    routerUrl?: string
+    firebaseConfigured?: boolean
   } = {}) {
     const snack = { open: vi.fn() }
-    const troupes = options.troupes ?? []
-    const troupeApi = {
-      listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: troupes }),
-      updateMyMembership: vi.fn().mockResolvedValue(
-        options.updateResult ?? {
-          ok: true,
-          status: 200,
-          data: {
-            id: 'm-1',
-            displayName: 'Patou',
-            status: 'ACTIVE',
-            baselineRole: 'MEMBER',
-            createdAt: '',
-            updatedAt: '',
-          },
-        },
-      ),
-    }
-    const memberProfileApi = {
-      getPreferredRoles: vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        data: { preferredRoleKeys: ['player', 'volunteer'] },
-      }),
-      updatePreferredRoles: vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        data: { preferredRoleKeys: ['mc', 'volunteer'] },
-      }),
+    const navigate = vi.fn().mockResolvedValue(true)
+    const logout = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    sendPasswordReset.mockReset().mockResolvedValue(undefined)
+
+    const user = {
+      id: 'u1',
+      email: 'lea@example.com',
+      displayName: 'Léa Martin',
+      hasGoogleAccount: options.hasGoogleAccount ?? false,
+      ...(options.session?.data?.user ?? {}),
     }
 
     await TestBed.configureTestingModule({
       imports: [AccountPlaceholder, NoopAnimationsModule],
       providers: [
         provideRouter([]),
-        TroupeContextService,
         { provide: MatSnackBar, useValue: snack },
+        { provide: AuthApiService, useValue: {} },
         {
-          provide: AuthApiService,
+          provide: FirebaseAuthService,
           useValue: {
-            ensureHatcastSession: vi.fn().mockResolvedValue({
-              ok: true,
-              status: 200,
-              data: { user: { id: 'u1', email: 'a@example.com', displayName: 'Account Name' } },
-            }),
+            getAuthOrNull: () =>
+              options.firebaseConfigured === false ? null : ({} as never),
           },
         },
-        { provide: TroupeApiService, useValue: troupeApi },
-        { provide: MemberProfileApiService, useValue: memberProfileApi },
       ],
     }).compileComponents()
+
+    const authApi = {
+      ensureHatcastSession: vi.fn().mockResolvedValue(
+        options.session ?? {
+          ok: true,
+          status: 200,
+          data: { user },
+        },
+      ),
+      logout,
+      uploadAvatar: vi.fn(),
+      importGoogleAvatar: vi.fn(),
+      deleteAvatar: vi.fn(),
+    }
+    TestBed.overrideProvider(AuthApiService, { useValue: authApi })
+    TestBed.overrideProvider(MatSnackBar, { useValue: snack })
+
+    const router = TestBed.inject(Router)
+    vi.spyOn(router, 'navigate').mockImplementation(navigate)
+    if (options.routerUrl) {
+      Object.defineProperty(router, 'url', {
+        value: options.routerUrl,
+        configurable: true,
+      })
+    }
 
     const fixture = TestBed.createComponent(AccountPlaceholder)
     fixture.detectChanges()
 
-    let attempts = 0
-    while (fixture.componentInstance['loading']() && attempts < 50) {
+    for (let i = 0; i < 30; i++) {
       await fixture.whenStable()
       await new Promise((resolve) => setTimeout(resolve, 0))
       fixture.detectChanges()
-      attempts++
+      if (!fixture.componentInstance['loading']()) {
+        break
+      }
     }
 
-    expect(fixture.componentInstance['loading']()).toBe(false)
-
-    return { fixture, troupeApi, memberProfileApi, snack }
+    return { fixture, snack, navigate, logout }
   }
 
-  function troupe(id: string, name: string, displayName: string): TroupeListItem {
-    return {
-      id,
-      name,
-      slug: id,
-      activeMemberCount: 1,
-      upcomingEventCount: 0,
-      membership: {
-        id: `membership-${id}`,
-        displayName,
-        status: 'ACTIVE',
-        baselineRole: 'MEMBER',
-        createdAt: '',
-        updatedAt: '',
-      },
-    }
-  }
-
-  it('liste une ligne de pseudo par troupe active', async () => {
-    const { fixture } = await setup({
-      troupes: [
-        troupe('t1', 'La Malice', 'Patrice'),
-        troupe('t2', 'Les Impros', 'Patou'),
-      ],
-    })
-
+  it('affiche le titre et le sous-titre hub membre', async () => {
+    const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
-    expect(text).toContain('Pseudo par troupe')
-    expect(text).toContain('La Malice')
-    expect(text).toContain('Les Impros')
+    expect(text).toContain('Mon compte')
+    expect(text).toContain('Identité, sécurité et préférences')
   })
 
-  it('enregistre un pseudo valide et rafraîchit le contexte', async () => {
-    const { fixture, troupeApi, snack } = await setup({
-      troupes: [troupe('t1', 'La Malice', 'Avant')],
-    })
-
-    const component = fixture.componentInstance
-    component['onPseudoInput']('t1', 'Patou')
-    await component['savePseudo'](component['troupes']()[0])
+  it('propose un menu sur l’avatar pour la photo', async () => {
+    const { fixture } = await setup()
+    const trigger = fixture.nativeElement.querySelector(
+      '[data-testid="account-avatar-menu-trigger"]',
+    ) as HTMLButtonElement
+    expect(trigger).toBeTruthy()
+    trigger.click()
     fixture.detectChanges()
-
-    expect(troupeApi.updateMyMembership).toHaveBeenCalledWith('t1', { displayName: 'Patou' })
-    expect(TestBed.inject(TroupeContextService).activeTroupes()[0].membership.displayName).toBe('Patou')
+    await fixture.whenStable()
+    expect(
+      document.querySelector('[data-testid="account-avatar-choose"]'),
+    ).toBeTruthy()
+    expect(document.body.textContent).toContain('Choisir une photo')
+    expect(fixture.nativeElement.textContent).not.toContain('Choisir une image')
   })
 
-  it('affiche une validation quand le pseudo est vide', async () => {
-    const { fixture, troupeApi } = await setup({
-      troupes: [troupe('t1', 'La Malice', 'Avant')],
-    })
-
-    const component = fixture.componentInstance
-    component['onPseudoInput']('t1', '   ')
-    await component['savePseudo'](component['troupes']()[0])
-    fixture.detectChanges()
-
-    expect(troupeApi.updateMyMembership).not.toHaveBeenCalled()
-    expect(component['validationErrorByTroupeId']()['t1']).toBe(true)
+  it('affiche la zone identité avec e-mail et displayName', async () => {
+    const { fixture } = await setup()
+    const text = fixture.nativeElement.textContent ?? ''
+    expect(text).toContain('lea@example.com')
+    expect(text).toContain('Léa Martin')
+    expect(text).not.toContain('Photo de profil')
   })
 
-  it('affiche la section photo de profil', async () => {
-    const { fixture } = await setup({
-      troupes: [troupe('t1', 'La Malice', 'Patrice')],
-    })
-    expect(fixture.nativeElement.textContent).toContain('Photo de profil')
+  it('n’affiche pas pseudo ni rôles par troupe', async () => {
+    const { fixture } = await setup()
+    const text = fixture.nativeElement.textContent ?? ''
+    expect(text).not.toContain('Pseudo par troupe')
+    expect(text).not.toContain('Rôles préférés par troupe')
+    expect(text).not.toContain('Retour aux troupes')
+    expect(text).not.toContain('prochaine livraison')
+    expect(text).not.toContain('Préférences par troupe')
   })
 
-  it('affiche le pseudo défini par un admin et permet de le modifier (AC6)', async () => {
-    const adminSetName = 'Nom Admin'
-    const { fixture, troupeApi } = await setup({
-      troupes: [troupe('t1', 'La Malice', adminSetName)],
-      updateResult: {
-        ok: true,
-        status: 200,
-        data: { displayName: 'Mon Pseudo' },
-      },
-    })
-
-    const component = fixture.componentInstance
-    expect(component['pseudoByTroupeId']()['t1']).toBe(adminSetName)
-
-    component['onPseudoInput']('t1', 'Mon Pseudo')
-    await component['savePseudo'](component['troupes']()[0])
-    fixture.detectChanges()
-
-    expect(troupeApi.updateMyMembership).toHaveBeenCalledWith('t1', { displayName: 'Mon Pseudo' })
-    expect(component['pseudoByTroupeId']()['t1']).toBe('Mon Pseudo')
+  it('affiche les préférences notifications en placeholder', async () => {
+    const { fixture } = await setup()
+    expect(fixture.nativeElement.textContent).toContain('Notifications')
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="account-notif-availability-email"]'),
+    ).toBeTruthy()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="account-notif-push"]'),
+    ).toBeTruthy()
   })
 
-  it('affiche et enregistre les rôles préférés par troupe', async () => {
-    const { fixture, memberProfileApi } = await setup({
-      troupes: [troupe('t1', 'La Malice', 'Patrice')],
-    })
-
-    const component = fixture.componentInstance
-    expect(memberProfileApi.getPreferredRoles).toHaveBeenCalledWith('t1')
-    expect(fixture.nativeElement.textContent).toContain('Rôles préférés par troupe')
-    expect(component['preferredRolesByTroupeId']()['t1']).toEqual(['player', 'volunteer'])
-
-    component['togglePreferredRole']('t1', 'mc', true)
-    await component['savePreferredRoles'](component['troupes']()[0])
-
-    expect(memberProfileApi.updatePreferredRoles).toHaveBeenCalledWith(
-      't1',
-      expect.arrayContaining(['mc', 'volunteer']),
+  it('envoie un e-mail de réinitialisation du mot de passe', async () => {
+    const { fixture, snack } = await setup()
+    await fixture.componentInstance['requestPasswordReset']()
+    expect(sendPasswordReset).toHaveBeenCalledWith(
+      expect.anything(),
+      'lea@example.com',
+      expect.objectContaining({
+        url: expect.stringContaining('/reinitialiser-mot-de-passe'),
+        handleCodeInApp: false,
+      }),
     )
-    expect(component['preferredRolesByTroupeId']()['t1']).toEqual(['mc', 'volunteer'])
+    expect(snack.open).toHaveBeenCalledWith(
+      expect.stringContaining('lea@example.com'),
+      'OK',
+      expect.objectContaining({ duration: 8000 }),
+    )
+  })
+
+  it('affiche les placeholders e-mail et suppression', async () => {
+    const { fixture } = await setup()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="account-change-email"]'),
+    ).toBeTruthy()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="account-reset-password"]'),
+    ).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-delete"]')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('Supprimer mon compte')
+  })
+
+  it('indique la connexion Google à la place du mot de passe', async () => {
+    const { fixture } = await setup({ hasGoogleAccount: true })
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="account-reset-password"]'),
+    ).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="account-google-password-hint"]'),
+    ).toBeTruthy()
+    const trigger = fixture.nativeElement.querySelector(
+      '[data-testid="account-avatar-menu-trigger"]',
+    ) as HTMLButtonElement
+    trigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(document.querySelector('[data-testid="account-avatar-google"]')).toBeTruthy()
+  })
+
+  it('utilise le displayName compte pour l’avatar, pas le pseudo troupe', async () => {
+    const { fixture } = await setup()
+    expect(fixture.componentInstance['avatarDisplayName']()).toBe('Léa Martin')
+  })
+
+  it('déconnecte et redirige vers connexion', async () => {
+    const { fixture, logout, navigate } = await setup()
+    await fixture.componentInstance['logout']()
+    expect(logout).toHaveBeenCalled()
+    expect(navigate).toHaveBeenCalledWith(['/connexion'], { replaceUrl: true })
+  })
+
+  it('redirige vers connexion avec snackbar si la session est invalide', async () => {
+    const { fixture, snack, navigate } = await setup({
+      session: { ok: false, status: 401 },
+      routerUrl: '/compte',
+    })
+
+    for (let i = 0; i < 30; i++) {
+      if (navigate.mock.calls.length > 0) break
+      await fixture.whenStable()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+
+    expect(snack.open).toHaveBeenCalledWith(
+      'Votre session a expiré ou vous n’êtes pas connecté.',
+      'OK',
+      { duration: 6000 },
+    )
+    expect(getPendingPostLoginRedirect()).toBe('/compte')
+    expect(navigate).toHaveBeenCalledWith(['/connexion'], { replaceUrl: true })
   })
 })

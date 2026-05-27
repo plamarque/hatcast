@@ -10,7 +10,9 @@ import { PwaInstallService } from '../../core/pwa/pwa-install.service';
   selector: 'app-user-account-menu-items',
   imports: [MatMenuModule, RouterLink],
   template: `
-    <a mat-menu-item routerLink="/compte">Mon compte</a>
+    @if (showAccountLink()) {
+      <a mat-menu-item routerLink="/compte">Mon compte</a>
+    }
     @if (showInstallApp()) {
       <button type="button" mat-menu-item (click)="onInstallApp()">Installer l'app</button>
     }
@@ -26,6 +28,11 @@ export class UserAccountMenuItemsComponent {
   private readonly pwaInstall = inject(PwaInstallService);
   private readonly auth = inject(AuthApiService);
   private readonly router = inject(Router);
+
+  protected showAccountLink(): boolean {
+    const path = (this.router.url ?? '').split('?')[0]?.split('#')[0] ?? '';
+    return path !== '/compte';
+  }
 
   protected showInstallApp(): boolean {
     return !this.pwaInstall.isPwaInstalled();
