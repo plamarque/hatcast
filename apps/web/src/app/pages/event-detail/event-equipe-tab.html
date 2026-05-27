@@ -11,10 +11,10 @@
 } @else {
   <div
     class="event-equipe-tab"
-    [class.event-equipe-tab--busy]="compositionMutationBusy()"
-    [attr.aria-busy]="compositionMutationBusy()"
+    [class.event-equipe-tab--busy]="compositionInteractionBlocked()"
+    [attr.aria-busy]="showBusyOverlay()"
   >
-    @if (compositionMutationBusy()) {
+    @if (showBusyOverlay()) {
       <div class="event-equipe-tab__busy-overlay" role="status" aria-live="polite">
         <mat-spinner diameter="40" />
         <span class="event-equipe-tab__busy-label">Mise à jour en cours…</span>
@@ -45,6 +45,10 @@
       </div>
     }
 
+    @if (showDrawPreparing()) {
+      <app-composition-draw-animation [preparing]="true" />
+    }
+
     @if (animatingDraw() && currentDrawStep(); as drawStep) {
       <app-composition-draw-animation
         [step]="drawStep"
@@ -59,7 +63,7 @@
         <button
           type="button"
           class="event-equipe-tab__share"
-          [disabled]="compositionMutationBusy()"
+          [disabled]="compositionInteractionBlocked()"
           (click)="openShareDialog('draw')"
         >
           Partager
@@ -72,7 +76,7 @@
         <button
           type="button"
           class="event-equipe-tab__share"
-          [disabled]="compositionMutationBusy()"
+          [disabled]="compositionInteractionBlocked()"
           (click)="openShareDialog('composition')"
         >
           Annoncer la compo
@@ -130,7 +134,7 @@
     <ul
       class="event-equipe-tab__grid"
       aria-label="Composition de l'équipe"
-      [attr.inert]="compositionMutationBusy() ? '' : null"
+      [attr.inert]="compositionInteractionBlocked() ? '' : null"
     >
       @for (row of slotRows(); track row.roleKey + ':' + row.slotIndex) {
         <li

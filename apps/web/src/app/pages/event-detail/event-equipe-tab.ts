@@ -97,10 +97,15 @@ export class EventEquipeTab {
   protected readonly drawStepIndex = signal(0)
   protected readonly animatingDraw = signal(false)
   private readonly pendingDrawComposition = signal<CompositionResponse | null>(null)
+  private drawPrepareSnapshot: CompositionResponse | null = null
 
   protected readonly prefersReducedMotion = signal(false)
 
-  protected readonly compositionMutationBusy = computed(
+  /** HTTP draw in flight — show preparing panel before step animation. */
+  protected readonly showDrawPreparing = computed(() => this.drawing() && !this.animatingDraw())
+
+  /** Blocks interactions (grid inert, actions disabled). Includes draw animation. */
+  protected readonly compositionInteractionBlocked = computed(
     () =>
       this.drawing() ||
       this.assigning() ||
@@ -108,7 +113,17 @@ export class EventEquipeTab {
       this.unlocking() ||
       this.publishing() ||
       this.updatingParticipation() ||
-      this.restoringDeclineId() != null,
+      this.restoringDeclineId() != null ||
+      this.animatingDraw(),
+  )
+
+  /**
+   * Full-tab overlay — not during draw: HTTP wait uses the draw button spinner;
+   * step animation uses the roulette (see animatingDraw).
+   */
+  protected readonly showBusyOverlay = computed(
+    () =>
+      this.compositionInteractionBlocked() && !this.animatingDraw() && !this.drawing(),
   )
 
   protected readonly isCompositionLocked = computed(
@@ -124,7 +139,7 @@ export class EventEquipeTab {
   )
 
   protected readonly showEmptyState = computed(() => {
-    if (this.loading() || this.loadError() || this.animatingDraw()) {
+    if (this.loading() || this.loadError() || this.animatingDraw() || this.drawing()) {
       return false
     }
     if (this.showOrganizerPlaceholders()) {
@@ -138,9 +153,20 @@ export class EventEquipeTab {
     return this.canManageComposition() && comp?.visibility === 'organizerDraft'
   })
 
-  protected readonly canPublish = computed(() =>
-    showPublishButton(this.composition(), this.canManageComposition()),
-  )
+  protected readonly canPublish = computed(() => {
+    if (!showPublishButton(this.composition(), this.canManageComposition())) {
+      return false
+    }
+    return (
+      !this.drawing() &&
+      !this.assigning() &&
+      !this.validating() &&
+      !this.unlocking() &&
+      !this.updatingParticipation() &&
+      this.restoringDeclineId() == null &&
+      !this.animatingDraw()
+    )
+  })
 
   protected readonly hasAssignedSlot = computed(() =>
     (this.composition()?.slots ?? []).some((slot) => slot.participantId != null),
@@ -151,14 +177,14 @@ export class EventEquipeTab {
       this.canManageComposition() &&
       !this.isCompositionLocked() &&
       this.hasAssignedSlot() &&
-      !this.compositionMutationBusy(),
+      !this.compositionInteractionBlocked(),
   )
 
   protected readonly canUnlock = computed(
     () =>
       this.canManageComposition() &&
       this.isCompositionLocked() &&
-      !this.compositionMutationBusy(),
+      !this.compositionInteractionBlocked(),
   )
 
   protected readonly hasEmptyRequiredSlot = computed(() =>
@@ -170,7 +196,7 @@ export class EventEquipeTab {
       this.canManageComposition() &&
       this.isCompositionLocked() &&
       this.hasEmptyRequiredSlot() &&
-      !this.compositionMutationBusy() &&
+      !this.compositionInteractionBlocked() &&
       !this.animatingDraw() &&
       !this.loading() &&
       !this.loadError(),
@@ -179,7 +205,7 @@ export class EventEquipeTab {
   protected readonly equipeStatus = computed(() => {
     const ev = this.event()
     const comp = this.composition()
-    if (this.loading() || this.loadError() || this.animatingDraw()) {
+    if (this.loading() || this.loadError() || this.animatingDraw() || this.drawing()) {
       return null
     }
     if (this.showEmptyState() && !this.showOrganizerPlaceholders()) {
@@ -196,7 +222,7 @@ export class EventEquipeTab {
     () =>
       this.canManageComposition() &&
       !this.isCompositionLocked() &&
-      !this.compositionMutationBusy() &&
+      !this.compositionInteractionBlocked() &&
       !this.animatingDraw(),
   )
 
@@ -205,7 +231,7 @@ export class EventEquipeTab {
       this.canManageComposition() &&
       !this.isCompositionLocked() &&
       this.hasAssignedSlot() &&
-      !this.compositionMutationBusy() &&
+      !this.compositionInteractionBlocked() &&
       !this.loading() &&
       !this.loadError(),
   )
@@ -215,7 +241,7 @@ export class EventEquipeTab {
       this.canManageComposition() &&
       this.isCompositionLocked() &&
       this.hasAssignedSlot() &&
-      !this.compositionMutationBusy() &&
+      !this.compositionInteractionBlocked() &&
       !this.loading() &&
       !this.loadError(),
   )
@@ -224,7 +250,7 @@ export class EventEquipeTab {
     () =>
       this.canManageComposition() &&
       !this.isCompositionLocked() &&
-      !this.compositionMutationBusy() &&
+      !this.compositionInteractionBlocked() &&
       !this.animatingDraw(),
   )
 
@@ -342,7 +368,7 @@ export class EventEquipeTab {
 
   /** Own-slot confirmation when locked — organizers use self-service copy on own slot. */
   protected canTapParticipationSlot(row: SlotRow): boolean {
-    if (this.compositionMutationBusy()) {
+    if (this.compositionInteractionBlocked()) {
       return false
     }
     if (!this.isCompositionLocked() || this.loading() || this.loadError()) {
@@ -357,7 +383,7 @@ export class EventEquipeTab {
 
   /** Organizer proxy on any filled locked slot (foreign slots; own slot uses self-service above). */
   protected canTapProxyParticipationSlot(row: SlotRow): boolean {
-    if (this.compositionMutationBusy()) {
+    if (this.compositionInteractionBlocked()) {
       return false
     }
     if (!this.canManageComposition() || !this.isCompositionLocked() || this.loading() || this.loadError()) {
@@ -414,7 +440,7 @@ export class EventEquipeTab {
   }
 
   protected openShareDialog(intent: ShareAnnounceIntent): void {
-    if (this.compositionMutationBusy()) {
+    if (this.compositionInteractionBlocked()) {
       return
     }
     const ev = this.event()
@@ -598,14 +624,17 @@ export class EventEquipeTab {
       return
     }
     this.drawing.set(true)
+    this.beginDrawPrepare({ preserveExistingSlots: true })
     const seasonId = this.seasonId()
     const eventId = this.event().id
     const result = await this.compositionApi.drawComposition(seasonId, eventId, 'fillEmpty')
     this.drawing.set(false)
     if (this.event().id !== eventId) {
+      this.restoreDrawPrepareSnapshot()
       return
     }
     if (!result.ok || !result.data) {
+      this.restoreDrawPrepareSnapshot()
       const message =
         result.status === 403
           ? 'Vous ne pouvez pas compléter cette composition.'
@@ -617,15 +646,13 @@ export class EventEquipeTab {
     }
 
     if (this.prefersReducedMotion() || result.data.steps.length === 0) {
+      this.clearDrawPrepareSnapshot()
       this.applyCompositionUpdate(result.data.composition)
       this.snack.open('Créneaux complétés.', 'OK', { duration: 4000 })
       return
     }
 
-    this.pendingDrawComposition.set(result.data.composition)
-    this.drawSteps.set(result.data.steps)
-    this.drawStepIndex.set(0)
-    this.animatingDraw.set(true)
+    this.startDrawAnimation(result.data.composition, result.data.steps, { preserveExistingSlots: true })
   }
 
   protected async restoreDecline(declineId: string): Promise<void> {
@@ -661,14 +688,17 @@ export class EventEquipeTab {
       return
     }
     this.drawing.set(true)
+    this.beginDrawPrepare({ preserveExistingSlots: false })
     const seasonId = this.seasonId()
     const eventId = this.event().id
     const result = await this.compositionApi.drawComposition(seasonId, eventId, 'full')
     this.drawing.set(false)
     if (this.event().id !== eventId) {
+      this.restoreDrawPrepareSnapshot()
       return
     }
     if (!result.ok || !result.data) {
+      this.restoreDrawPrepareSnapshot()
       const message =
         result.status === 403
           ? 'Vous ne pouvez pas lancer le tirage au sort.'
@@ -680,17 +710,20 @@ export class EventEquipeTab {
     }
 
     if (this.prefersReducedMotion() || result.data.steps.length === 0) {
+      this.clearDrawPrepareSnapshot()
       this.applyCompositionUpdate(result.data.composition)
       return
     }
 
-    this.pendingDrawComposition.set(result.data.composition)
-    this.drawSteps.set(result.data.steps)
-    this.drawStepIndex.set(0)
-    this.animatingDraw.set(true)
+    this.startDrawAnimation(result.data.composition, result.data.steps)
   }
 
   protected onDrawStepFinished(): void {
+    const step = this.currentDrawStep()
+    if (step) {
+      this.applyDrawStepToComposition(step)
+    }
+
     const next = this.drawStepIndex() + 1
     if (next < this.drawSteps().length) {
       this.drawStepIndex.set(next)
@@ -703,6 +736,77 @@ export class EventEquipeTab {
     if (composition) {
       this.applyCompositionUpdate(composition)
     }
+  }
+
+  private beginDrawPrepare(options: { preserveExistingSlots?: boolean }): void {
+    const current = this.composition()
+    this.drawPrepareSnapshot = current ? { ...current, slots: [...current.slots] } : null
+    const shell: CompositionResponse = current ?? {
+      publishedAt: null,
+      validatedAt: null,
+      visibility: 'organizerDraft',
+      slots: [],
+    }
+    const initialSlots = options.preserveExistingSlots ? [...shell.slots] : []
+    this.composition.set({ ...shell, slots: initialSlots })
+  }
+
+  private restoreDrawPrepareSnapshot(): void {
+    if (this.drawPrepareSnapshot) {
+      this.composition.set(this.drawPrepareSnapshot)
+    }
+    this.drawPrepareSnapshot = null
+  }
+
+  private clearDrawPrepareSnapshot(): void {
+    this.drawPrepareSnapshot = null
+  }
+
+  private startDrawAnimation(
+    finalComposition: CompositionResponse,
+    steps: CompositionDrawStep[],
+    options: { preserveExistingSlots?: boolean } = {},
+  ): void {
+    this.clearDrawPrepareSnapshot()
+    const initialSlots = options.preserveExistingSlots
+      ? [...(this.composition()?.slots ?? [])]
+      : []
+    this.pendingDrawComposition.set(finalComposition)
+    this.composition.set({ ...finalComposition, slots: initialSlots })
+    this.drawSteps.set(steps)
+    this.drawStepIndex.set(0)
+    this.animatingDraw.set(true)
+  }
+
+  /** Reveal one slot in the grid when its draw step animation completes. */
+  private applyDrawStepToComposition(step: CompositionDrawStep): void {
+    const comp = this.composition()
+    if (!comp) {
+      return
+    }
+    const participantId = step.selectedParticipantId
+    if (!participantId) {
+      return
+    }
+    const displayName =
+      step.candidates.find((c) => c.participantId === participantId)?.displayName ?? null
+    const slots = [...comp.slots]
+    const existingIndex = slots.findIndex(
+      (s) => s.roleKey === step.roleKey && s.slotIndex === step.slotIndex,
+    )
+    const slot: CompositionSlot = {
+      roleKey: step.roleKey,
+      slotIndex: step.slotIndex,
+      participantId,
+      participantDisplayName: displayName,
+      participationStatus: 'pending',
+    }
+    if (existingIndex >= 0) {
+      slots[existingIndex] = slot
+    } else {
+      slots.push(slot)
+    }
+    this.composition.set({ ...comp, slots })
   }
 
   protected async openSlotPicker(row: SlotRow): Promise<void> {

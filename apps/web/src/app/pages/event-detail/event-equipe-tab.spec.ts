@@ -1460,6 +1460,178 @@ describe('EventEquipeTab', () => {
     expect(btn.className).toMatch(/mat-mdc-outlined-button/)
   })
 
+  it('shows draw preparing panel while HTTP request is in flight', async () => {
+    let resolveDraw!: (value: unknown) => void
+    drawComposition.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDraw = resolve
+      }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Tirer au sort')
+    })
+
+    const drawBtn = fixture.nativeElement.querySelector('.event-equipe-tab__draw') as HTMLButtonElement
+    drawBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(drawComposition).toHaveBeenCalled()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__busy-overlay')).toBeNull()
+      expect(fixture.nativeElement.textContent).toContain('Nous préparons le tirage au sort')
+    })
+
+    resolveDraw({
+      ok: true,
+      data: {
+        composition: { publishedAt: null, validatedAt: null, visibility: 'organizerDraft', slots: [] },
+        steps: [],
+      },
+    })
+    fixture.detectChanges()
+  })
+
+  it('does not show busy overlay during draw animation', async () => {
+    drawComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        composition: {
+          publishedAt: null,
+          validatedAt: null,
+          visibility: 'organizerDraft',
+          slots: [
+            {
+              roleKey: 'player',
+              slotIndex: 0,
+              participantId: 'p-drawn',
+              participantDisplayName: 'Drawn',
+              participationStatus: 'pending',
+            },
+          ],
+        },
+        steps: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            candidates: [{ participantId: 'p-drawn', displayName: 'Drawn', chancePercent: 100, weight: 1 }],
+            selectedParticipantId: 'p-drawn',
+            randomValue: 0.5,
+            totalWeight: 1,
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Tirer au sort')
+    })
+
+    const drawBtn = fixture.nativeElement.querySelector('.event-equipe-tab__draw') as HTMLButtonElement
+    drawBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(drawComposition).toHaveBeenCalled()
+      expect(fixture.nativeElement.querySelector('app-composition-draw-animation')).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__busy-overlay')).toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab')?.getAttribute('aria-busy')).not.toBe(
+        'true',
+      )
+    })
+  })
+
+  it('reveals slot in grid when a draw step animation finishes', async () => {
+    drawComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        composition: {
+          publishedAt: null,
+          validatedAt: null,
+          visibility: 'organizerDraft',
+          slots: [
+            {
+              roleKey: 'player',
+              slotIndex: 0,
+              participantId: 'p-drawn',
+              participantDisplayName: 'Drawn',
+              participationStatus: 'pending',
+            },
+          ],
+        },
+        steps: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            candidates: [{ participantId: 'p-drawn', displayName: 'Drawn', chancePercent: 100, weight: 1 }],
+            selectedParticipantId: 'p-drawn',
+            randomValue: 0.5,
+            totalWeight: 1,
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Tirer au sort')
+    })
+
+    const drawBtn = fixture.nativeElement.querySelector('.event-equipe-tab__draw') as HTMLButtonElement
+    drawBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(drawComposition).toHaveBeenCalled()
+    })
+
+    expect(fixture.nativeElement.textContent).not.toContain('Drawn')
+
+    ;(fixture.componentInstance as unknown as { onDrawStepFinished(): void }).onDrawStepFinished()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Drawn')
+    })
+  })
+
+  it('hides publish while assign is in flight', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).not.toBeNull()
+    })
+
+    const cmp = fixture.componentInstance as unknown as { assigning: { set(value: boolean): void } }
+    cmp.assigning.set(true)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
+  })
+
   it('does not refetch composition after draw animation completes', async () => {
     drawComposition.mockResolvedValue({
       ok: true,

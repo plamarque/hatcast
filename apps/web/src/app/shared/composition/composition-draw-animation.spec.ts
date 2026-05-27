@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CompositionDrawAnimation } from './composition-draw-animation'
@@ -9,7 +10,7 @@ describe('CompositionDrawAnimation', () => {
   beforeEach(async () => {
     vi.useFakeTimers()
     await TestBed.configureTestingModule({
-      imports: [CompositionDrawAnimation],
+      imports: [CompositionDrawAnimation, NoopAnimationsModule],
     }).compileComponents()
 
     fixture = TestBed.createComponent(CompositionDrawAnimation)
@@ -47,6 +48,14 @@ describe('CompositionDrawAnimation', () => {
     expect(fixture.nativeElement.textContent).toContain('Alice')
     expect(fixture.nativeElement.textContent).toContain('Bob')
     expect(fixture.nativeElement.textContent).toContain('Sélection en cours')
+  })
+
+  it('shows preparing message when preparing input is true', () => {
+    fixture.componentRef.setInput('preparing', true)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Nous préparons le tirage au sort')
+    expect(fixture.nativeElement.querySelector('.composition-draw-animation__bar')).toBeNull()
   })
 
   it('emits finished after play animation delay', () => {

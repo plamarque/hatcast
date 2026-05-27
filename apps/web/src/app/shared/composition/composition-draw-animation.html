@@ -1,32 +1,45 @@
-<div class="composition-draw-animation" role="status" aria-live="polite">
+<div
+  class="composition-draw-animation"
+  [class.composition-draw-animation--preparing]="preparing()"
+  role="status"
+  aria-live="polite"
+>
   <p class="composition-draw-animation__banner">
     Sélection en cours — proposition de composition, pas encore validée.
   </p>
-  <p class="composition-draw-animation__progress">
-    Étape {{ stepIndex() + 1 }} / {{ totalSteps() }}
-  </p>
 
-  <div class="composition-draw-animation__bar" aria-hidden="true">
-    @for (segment of segments(); track segment.participantId) {
-      <div
-        class="composition-draw-animation__segment"
-        [style.flex-grow]="segment.widthPercent"
-        [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
-      >
-        <span class="composition-draw-animation__segment-label">{{ segment.displayName }}</span>
-      </div>
-    }
-    <span
-      class="composition-draw-animation__cursor"
-      [style.left.%]="cursorPercent()"
-    ></span>
-  </div>
-
-  @if (selectedLabel(); as winner) {
-    <p class="composition-draw-animation__winner">Sélectionné : {{ winner }}</p>
+  @if (preparing()) {
+    <div class="composition-draw-animation__preparing-body">
+      <mat-spinner diameter="36" />
+      <p class="composition-draw-animation__preparing-message">{{ preparingMessage() }}</p>
+    </div>
   } @else {
-    <p class="composition-draw-animation__winner composition-draw-animation__winner--empty">
-      Aucun candidat disponible pour ce slot.
+    <p class="composition-draw-animation__progress">
+      Étape {{ stepIndex() + 1 }} / {{ totalSteps() }}
     </p>
+
+    <div class="composition-draw-animation__bar" aria-hidden="true">
+      @for (segment of segments(); track segment.participantId) {
+        <div
+          class="composition-draw-animation__segment"
+          [style.flex-grow]="segment.widthPercent"
+          [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+        >
+          <span class="composition-draw-animation__segment-label">{{ segment.displayName }}</span>
+        </div>
+      }
+      <span
+        class="composition-draw-animation__cursor"
+        [style.left.%]="cursorPercent()"
+      ></span>
+    </div>
+
+    @if (selectedLabel(); as winner) {
+      <p class="composition-draw-animation__winner">Sélectionné : {{ winner }}</p>
+    } @else {
+      <p class="composition-draw-animation__winner composition-draw-animation__winner--empty">
+        Aucun candidat disponible pour ce slot.
+      </p>
+    }
   }
 </div>

@@ -253,7 +253,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 - [x] Orga : assignation manuelle **ou** tirage pondéré sur un spectacle.
 - [x] Orga : validation de la composition ; membre : confirmation ; état **complete** atteignable (y compris après un déclin + action 6.9).
 
-**Pilote validé :** 2026-05-25 — recette admin seul sur spectacles seed `[MVP] 00–05` (La Malice 2026-2027). Réserves UX/perfs : **ISSUES.md** UX-001, UX-002, PERF-001 → **Story 6.11**.
+**Pilote validé :** 2026-05-25 — recette admin seul sur spectacles seed `[MVP] 00–05` (La Malice 2026-2027). Réserves UX/perfs pilote : **Story 6.11** clôturée 2026-05-27 (**ISSUES.md** UX-001, UX-002, PERF-001 fermées).
 
 ### Pre-prod V2 + migration V1 (itérative)
 

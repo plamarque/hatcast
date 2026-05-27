@@ -89,11 +89,12 @@ Analyse statique du code + contrat réseau attendu (pas de mesure Chrome sur see
 
 ### Completion Notes
 
-- Overlay plein onglet (`event-equipe-tab__busy-overlay`) + `aria-busy` + `pointer-events: none` sur grille/outils pendant mutations.
+- Overlay plein onglet (`event-equipe-tab__busy-overlay`) + `aria-busy` + `pointer-events: none` sur grille/outils pendant mutations (assign, validate, etc.) — **pas** pendant tirage HTTP ni animation roulette.
 - `mat-stroked-button` pour Déverrouiller (UX-002).
 - `compositionPublished` émet `CompositionResponse` ; `EventDetail.syncCompositionFromEquipe` met à jour `compositionLifecycle`, `compositionPublishedAt`, `teamStatusBadge` sans `loadEvent`.
-- Tirage animé : composition issue du `POST draw` appliquée à la fin d’animation (plus de `GET composition`).
-- Tests : 34 passent (`ng test` ciblé equipe-tab + composition-lifecycle).
+- Tirage : panneau immédiat « Nous préparons le tirage au sort… » ; animation visible ; slots remplis étape par étape ; composition finale via `POST draw` (plus de `GET composition`).
+- Recette humaine validée 2026-05-27. Pas de profiling serveur supplémentaire (latence draw ~1 s acceptable, opération peu fréquente).
+- ISSUES fermées : UX-001, UX-002, PERF-001 (résiduel API accepté).
 
 ### File List
 
@@ -110,6 +111,7 @@ Analyse statique du code + contrat réseau attendu (pas de mesure Chrome sur see
 
 - 2026-05-25: Story 6.11 — UX overlay, unlock stroked button, front perf (skip redundant reloads).
 - 2026-05-25: Clôturée après recette — API perf (bulk membership, fast path composition, optional chances) + livraison front.
+- 2026-05-27: Polish tirage — panneau préparation, pas d’overlay sur animation, remplissage progressif des slots ; clôture story + ISSUES UX-001/002, PERF-001.
 
 ## Dev Notes
 

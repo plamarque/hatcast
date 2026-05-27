@@ -8,7 +8,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
-import { CompositionApiService } from '../../core/composition/composition-api.service'
+import {
+  CompositionApiService,
+  type CompositionResponse,
+} from '../../core/composition/composition-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
@@ -714,5 +717,65 @@ describe('EventDetail', () => {
       expect(loadEventMock).toHaveBeenCalled()
     })
     expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
+  })
+
+  it('syncCompositionFromEquipe patches lifecycle without reloading event', async () => {
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: true,
+        eventOrganizerFor: [],
+        canManageEvents: true,
+        canManageSeasonParticipants: false,
+        canManageSeasonOrganizers: false,
+        canManageMembers: false,
+        canManageEventOrganizers: false,
+        canManageEventParticipants: false,
+        canManageSeasons: false,
+        eventParticipantAdminFor: [],
+      },
+    })
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', {
+        roleSlots: { ...emptyRoleSlots(), player: 2 },
+        compositionLifecycle: 'draftComposition',
+        teamStatusBadge: {
+          key: 'preparing',
+          label: 'Équipe en préparation',
+          tone: 'preparing',
+          shortLabel: 'Préparation',
+        },
+      }),
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => expect(loadEventMock).toHaveBeenCalledTimes(1))
+
+    const cmp = fixture.componentInstance as unknown as {
+      syncCompositionFromEquipe(composition: CompositionResponse): void
+      event: () => EventResponse | null
+    }
+    const composition: CompositionResponse = {
+      publishedAt: null,
+      validatedAt: '2026-01-01T00:00:00.000Z',
+      visibility: 'validated',
+      slots: [
+        {
+          roleKey: 'player',
+          slotIndex: 0,
+          participantId: 'p-1',
+          participantDisplayName: 'Alice',
+          participationStatus: 'confirmed',
+        },
+      ],
+    }
+    cmp.syncCompositionFromEquipe(composition)
+
+    expect(cmp.event()?.compositionLifecycle).toBe('gapsToFill')
+    expect(cmp.event()?.teamStatusBadge?.shortLabel).toBe('Préparation')
+    expect(loadEventMock).toHaveBeenCalledTimes(1)
   })
 })
