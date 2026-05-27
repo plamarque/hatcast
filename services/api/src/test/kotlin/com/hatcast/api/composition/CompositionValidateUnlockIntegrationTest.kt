@@ -409,7 +409,7 @@ class CompositionValidateUnlockIntegrationTest {
 
     @Test
     @Tag("FR23")
-    fun `unlock keeps publishedAt and member still sees published draft`() {
+    fun `unlock clears validation and hides slots from member even when publishedAt remains`() {
         val adminCookie = memberCookie("sub-unlock-publish-admin", admin = true)
         val memberCookie = memberCookie("sub-unlock-publish-member")
         val seasonId = createSeason(adminCookie)
@@ -442,16 +442,16 @@ class CompositionValidateUnlockIntegrationTest {
                 ).andExpect(status().isOk)
                 .andExpect(jsonPath("$.validatedAt").isEmpty)
                 .andExpect(jsonPath("$.publishedAt").isNotEmpty)
-                .andExpect(jsonPath("$.visibility").value("publishedDraft"))
+                .andExpect(jsonPath("$.visibility").value("organizerDraft"))
                 .andReturn()
         val publishedAt = mapper.readTree(unlock.response.contentAsString).get("publishedAt").asText()
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.visibility").value("publishedDraft"))
+            .andExpect(jsonPath("$.visibility").value("none"))
             .andExpect(jsonPath("$.publishedAt").value(publishedAt))
-            .andExpect(jsonPath("$.slots[0].participantDisplayName").value("PublishedKeep"))
+            .andExpect(jsonPath("$.slots").isEmpty)
     }
 
     @Test

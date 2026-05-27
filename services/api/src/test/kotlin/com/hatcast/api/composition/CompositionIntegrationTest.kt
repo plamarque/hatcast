@@ -223,7 +223,7 @@ class CompositionIntegrationTest {
 
     @Test
     @Tag("FR22")
-    fun `POST publish makes draft visible to member`() {
+    fun `POST publish sets publishedAt but does not expose draft slots to member`() {
         val adminCookie = memberCookie("sub-compo-admin-3", admin = true)
         val memberCookie = memberCookie("sub-compo-member-3")
         val seasonId = createSeason(adminCookie)
@@ -237,21 +237,16 @@ class CompositionIntegrationTest {
                     .cookie(adminCookie)
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.visibility").value("publishedDraft"))
+            .andExpect(jsonPath("$.visibility").value("organizerDraft"))
             .andExpect(jsonPath("$.publishedAt").isNotEmpty)
             .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Charlie"))
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.visibility").value("publishedDraft"))
-            .andExpect(jsonPath("$.slots.length()").value(1))
-
-        mockMvc
-            .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(memberCookie))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.compositionLifecycle").value("draftComposition"))
-            .andExpect(jsonPath("$.teamStatusBadge.key").value("preparing"))
+            .andExpect(jsonPath("$.visibility").value("none"))
+            .andExpect(jsonPath("$.slots").isEmpty)
+            .andExpect(jsonPath("$.publishedAt").isNotEmpty)
     }
 
     @Test
@@ -361,7 +356,7 @@ class CompositionIntegrationTest {
     }
 
     @Test
-    fun `published draft visible to member on event list lifecycle`() {
+    fun `published draft hidden from member on event list lifecycle`() {
         val adminCookie = memberCookie("sub-compo-admin-8", admin = true)
         val memberCookie = memberCookie("sub-compo-member-8")
         val seasonId = createSeason(adminCookie)
@@ -379,7 +374,7 @@ class CompositionIntegrationTest {
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events").cookie(memberCookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content[0].compositionLifecycle").value("draftComposition"))
-            .andExpect(jsonPath("$.content[0].teamStatusBadge.key").value("preparing"))
+            .andExpect(jsonPath("$.content[0].compositionLifecycle").value("preparing"))
+            .andExpect(jsonPath("$.content[0].compositionPublishedAt").isNotEmpty)
     }
 }

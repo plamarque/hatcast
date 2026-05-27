@@ -728,7 +728,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR24")
-    fun `member sees odds only after publish`() {
+    fun `member sees odds only after validate`() {
         val adminCookie = memberCookie("sub-draw-admin-4", admin = true)
         val member1 = memberCookie("sub-draw-member-4a")
         val member2 = memberCookie("sub-draw-member-4b")
@@ -747,7 +747,7 @@ class CompositionDrawIntegrationTest {
 
         mockMvc
             .perform(
-                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
                     .cookie(adminCookie)
                     .with(csrf()),
             ).andExpect(status().isOk)

@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
+import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
@@ -13,9 +14,14 @@ import {
   type CompositionSlot,
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
+import {
+  isEquipePrimaryAction,
+  resolveEquipeToolbarLayout,
+  type EquipeActionId,
+} from '../../core/composition/composition-equipe-actions'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
-import { showPublishButton } from '../../core/composition/composition-visibility'
+import { showCompositionDraftBanner } from '../../core/composition/composition-visibility'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
   normalizeRoleSlots,
@@ -45,8 +51,6 @@ import {
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
 
-export type EquipePrimaryAction = 'validate' | 'fill' | 'announce' | 'draw' | 'publish'
-
 interface SlotRow {
   roleKey: string
   slotIndex: number
@@ -61,6 +65,7 @@ interface SlotRow {
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     EventEquipeEmpty,
@@ -87,7 +92,6 @@ export class EventEquipeTab {
 
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
-  protected readonly publishing = signal(false)
   protected readonly validating = signal(false)
   protected readonly unlocking = signal(false)
   protected readonly drawing = signal(false)
@@ -115,7 +119,6 @@ export class EventEquipeTab {
       this.assigning() ||
       this.validating() ||
       this.unlocking() ||
-      this.publishing() ||
       this.updatingParticipation() ||
       this.restoringDeclineId() != null ||
       this.animatingDraw(),
@@ -152,25 +155,9 @@ export class EventEquipeTab {
     return this.slotRows().length === 0
   })
 
-  protected readonly showDraftBanner = computed(() => {
-    const comp = this.composition()
-    return this.canManageComposition() && comp?.visibility === 'organizerDraft'
-  })
-
-  protected readonly canPublish = computed(() => {
-    if (!showPublishButton(this.composition(), this.canManageComposition())) {
-      return false
-    }
-    return (
-      !this.drawing() &&
-      !this.assigning() &&
-      !this.validating() &&
-      !this.unlocking() &&
-      !this.updatingParticipation() &&
-      this.restoringDeclineId() == null &&
-      !this.animatingDraw()
-    )
-  })
+  protected readonly showDraftBanner = computed(() =>
+    showCompositionDraftBanner(this.composition(), this.canManageComposition()),
+  )
 
   protected readonly hasAssignedSlot = computed(() =>
     (this.composition()?.slots ?? []).some((slot) => slot.participantId != null),
@@ -219,8 +206,25 @@ export class EventEquipeTab {
       composition: comp,
       canManageComposition: this.canManageComposition(),
       roleSlots: normalizeRoleSlots(ev.roleSlots),
+      suppressValidateCtaInGuideline: this.canValidate(),
     })
   })
+
+  protected readonly equipeActionFlags = computed(() => ({
+    canValidate: this.canValidate(),
+    canFillGaps: this.canFillGaps(),
+    canAnnounceComposition: this.canAnnounceComposition(),
+    canDraw: this.canDraw(),
+    canUnlock: this.canUnlock(),
+    canShareDraw: this.canShareDraw(),
+    hasAssignedSlot: this.hasAssignedSlot(),
+  }))
+
+  protected readonly equipeToolbar = computed(() =>
+    resolveEquipeToolbarLayout(this.equipeActionFlags()),
+  )
+
+  protected readonly primaryAction = computed(() => this.equipeToolbar().primary)
 
   protected readonly canDraw = computed(
     () =>
@@ -258,39 +262,22 @@ export class EventEquipeTab {
       !this.animatingDraw(),
   )
 
-  /** Single forward CTA per screen — others render as outlined secondaries. */
-  protected readonly primaryAction = computed((): EquipePrimaryAction | null => {
-    if (this.canValidate()) {
-      return 'validate'
-    }
-    if (this.canFillGaps()) {
-      return 'fill'
-    }
-    if (this.canAnnounceComposition()) {
-      return 'announce'
-    }
-    if (this.canDraw() && !this.hasAssignedSlot()) {
-      return 'draw'
-    }
-    if (this.canPublish()) {
-      return 'publish'
-    }
-    if (this.canDraw()) {
-      return 'draw'
-    }
-    return null
-  })
-
   protected readonly showActionsToolbar = computed(
     () =>
       this.canShareDraw() ||
       this.canAnnounceComposition() ||
       this.canFillGaps() ||
       this.canDraw() ||
-      this.canPublish() ||
       this.canValidate() ||
       this.canUnlock(),
   )
+
+  /** Draw helper copy — not when validate lead already guides the forward action. */
+  protected readonly showDrawActionHint = computed(
+    () => this.canDraw() && !this.canValidate(),
+  )
+
+  protected readonly showFillActionHint = computed(() => this.canFillGaps())
 
   protected readonly viewerParticipantIds = computed(
     () => new Set(this.composition()?.viewerParticipantIds ?? []),
@@ -475,6 +462,18 @@ export class EventEquipeTab {
 
   protected toggleDeclinesList(): void {
     this.declinesExpanded.update((open) => !open)
+  }
+
+  protected isEquipePrimary(actionId: EquipeActionId): boolean {
+    return isEquipePrimaryAction(actionId, this.equipeToolbar().primary)
+  }
+
+  protected equipeActionInGrid(actionId: EquipeActionId): boolean {
+    return this.equipeToolbar().grid.includes(actionId)
+  }
+
+  protected equipeActionInOverflow(actionId: EquipeActionId): boolean {
+    return this.equipeToolbar().overflow.includes(actionId)
   }
 
   protected openShareDialog(intent: ShareAnnounceIntent): void {
@@ -982,32 +981,6 @@ export class EventEquipeTab {
       default:
         return 'Assignation impossible.'
     }
-  }
-
-  protected async publish(): Promise<void> {
-    if (this.publishing() || !this.canPublish()) {
-      return
-    }
-    this.publishing.set(true)
-    const seasonId = this.seasonId()
-    const eventId = this.event().id
-    const result = await this.compositionApi.publishComposition(seasonId, eventId)
-    this.publishing.set(false)
-    if (this.event().id !== eventId) {
-      return
-    }
-    if (!result.ok || !result.data) {
-      const message =
-        result.status === 403
-          ? 'Vous ne pouvez pas publier cette composition.'
-          : result.status === 409
-            ? 'Rien à publier pour le moment.'
-            : 'Publication impossible.'
-      this.snack.open(message, 'OK', { duration: 6000 })
-      return
-    }
-    this.applyCompositionUpdate(result.data)
-    this.snack.open('Composition publiée.', 'OK', { duration: 4000 })
   }
 
   protected async validate(): Promise<void> {

@@ -19,7 +19,7 @@
 }
 
 .event-equipe-tab--busy .event-equipe-tab__grid,
-.event-equipe-tab--busy .event-equipe-tab__actions-grid,
+.event-equipe-tab--busy .event-equipe-tab__actions-toolbar,
 .event-equipe-tab--busy .event-equipe-tab__declines,
 .event-equipe-tab--busy .event-equipe-tab__manual-hint {
   pointer-events: none;
@@ -108,6 +108,17 @@
   background: rgba(255, 193, 7, 0.08);
 }
 
+.event-equipe-tab__actions-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.25rem;
+  background: var(--mat-sys-surface, #0a1628);
+  border-top: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+}
+
 .event-equipe-tab__actions-lead {
   margin: 0.5rem 0 0;
   font-size: 0.9rem;
@@ -116,50 +127,29 @@
   opacity: 0.92;
 }
 
-.event-equipe-tab__actions-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+.event-equipe-tab__actions-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   margin-top: 0.25rem;
 }
 
+.event-equipe-tab__actions-grid {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
 .event-equipe-tab__action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  line-height: 1.2;
-  cursor: pointer;
-  text-align: center;
-
-  &:disabled {
-    opacity: 0.65;
-    cursor: wait;
-  }
 }
 
-.event-equipe-tab__action--primary {
-  border: none;
-  color: #fff;
-  background: linear-gradient(135deg, #1976d2 0%, #388e3c 100%);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-}
-
-.event-equipe-tab__action--secondary {
-  border: 1.5px solid var(--mat-sys-outline, #79747e);
-  background: var(--mat-sys-surface-container-low, rgba(0, 0, 0, 0.04));
-  color: var(--mat-sys-on-surface, inherit);
-
-  &:hover:not(:disabled),
-  &:focus-visible:not(:disabled) {
-    background: var(--mat-sys-surface-container, rgba(0, 0, 0, 0.08));
-    outline: none;
-  }
+.event-equipe-tab__action-overflow {
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .event-equipe-tab__action-hint {
@@ -167,6 +157,10 @@
   font-size: 0.85rem;
   line-height: 1.4;
   opacity: 0.78;
+}
+
+.event-equipe-tab__action-hint--above {
+  margin: 0.35rem 0 0;
 }
 
 .event-equipe-tab__odds {
@@ -286,8 +280,10 @@
 .event-equipe-tab__validate,
 .event-equipe-tab__fill,
 .event-equipe-tab__share,
-.event-equipe-tab__draw {
-  // Legacy class hooks for tests — visual styles live on __action modifiers.
+.event-equipe-tab__announce,
+.event-equipe-tab__draw,
+.event-equipe-tab__unlock {
+  // Semantic hooks for tests — Material handles shape and colors.
 }
 
 .event-equipe-tab__declines {

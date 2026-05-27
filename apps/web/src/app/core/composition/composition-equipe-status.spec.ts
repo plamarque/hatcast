@@ -186,4 +186,24 @@ describe('resolveCompositionEquipeStatus', () => {
     expect(status?.managerGuideline).toContain('En préparation')
     expect(status?.managerGuideline).toContain('Valider')
   })
+
+  it('omits validate CTA from draft guideline when suppressValidateCtaInGuideline', () => {
+    const status = resolveCompositionEquipeStatus({
+      composition: comp({
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participationStatus: 'pending',
+          },
+        ],
+      }),
+      canManageComposition: true,
+      roleSlots,
+      suppressValidateCtaInGuideline: true,
+    })
+    expect(status?.managerGuideline).toContain('En préparation')
+    expect(status?.managerGuideline).not.toContain('Valider')
+  })
 })

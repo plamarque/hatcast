@@ -4,10 +4,16 @@ export function compositionHasVisibleSlots(composition: CompositionResponse | nu
   return (composition?.slots.length ?? 0) > 0
 }
 
-export function showPublishButton(
+/** Organizer-only banner: draft composition not yet validated. */
+export function showCompositionDraftBanner(
   composition: CompositionResponse | null | undefined,
   canManageComposition: boolean,
 ): boolean {
-  if (!canManageComposition || !composition) return false
-  return composition.visibility === 'organizerDraft' && composition.slots.length > 0
+  if (!canManageComposition || !composition) {
+    return false
+  }
+  if (composition.validatedAt != null) {
+    return false
+  }
+  return composition.slots.some((slot) => slot.participantId != null)
 }

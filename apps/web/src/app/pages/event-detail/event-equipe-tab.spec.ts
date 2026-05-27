@@ -150,7 +150,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('shows draft banner and Publier for organizer draft', async () => {
+  it('shows composition draft banner for organizer unvalidated draft', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -173,14 +173,15 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain(
-        'Brouillon visible uniquement par les organisateur·ices',
+        'Composition en brouillon',
       )
     })
     expect(fixture.nativeElement.textContent).toContain('Alice')
-    expect(fixture.nativeElement.textContent).toContain('Publier')
+    expect(fixture.nativeElement.textContent).toContain('Valider')
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
   })
 
-  it('shows slots without Publier for published draft member view', async () => {
+  it('shows draft banner for organizer when publishedAt is set but not validated', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -198,9 +199,11 @@ describe('EventEquipeTab', () => {
         ],
       },
     })
+    fixture.componentRef.setInput('canManageComposition', true)
     fixture.detectChanges()
 
     await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Composition en brouillon')
       expect(fixture.nativeElement.textContent).toContain('Bob')
     })
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
@@ -265,61 +268,6 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.textContent).toContain('Alice')
     })
     vi.unstubAllGlobals()
-  })
-
-  it('emits compositionPublished after successful publish', async () => {
-    getComposition.mockResolvedValue({
-      ok: true,
-      data: {
-        publishedAt: null,
-        validatedAt: null,
-        visibility: 'organizerDraft',
-        slots: [
-          {
-            roleKey: 'player',
-            slotIndex: 0,
-            participantId: 'p-1',
-            participantDisplayName: 'Charlie',
-            participationStatus: 'pending',
-          },
-        ],
-      },
-    })
-    publishComposition.mockResolvedValue({
-      ok: true,
-      data: {
-        publishedAt: '2026-01-01T00:00:00.000Z',
-        validatedAt: null,
-        visibility: 'publishedDraft',
-        slots: [
-          {
-            roleKey: 'player',
-            slotIndex: 0,
-            participantId: 'p-1',
-            participantDisplayName: 'Charlie',
-            participationStatus: 'pending',
-          },
-        ],
-      },
-    })
-    fixture.componentRef.setInput('canManageComposition', true)
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Publier')
-    })
-
-    const emitted = vi.fn()
-    fixture.componentInstance.compositionPublished.subscribe(emitted)
-
-    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__publish') as HTMLButtonElement
-    btn.click()
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(publishComposition).toHaveBeenCalledWith('season-1', 'event-1')
-      expect(emitted).toHaveBeenCalled()
-    })
   })
 
   it('opens picker and assigns on organizer slot click', async () => {
@@ -519,9 +467,12 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.textContent).toContain('En préparation')
     })
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+    expect(
+      fixture.nativeElement.textContent,
+    ).not.toContain('Proposition automatique selon les dispos')
   })
 
-  it('shows Partager for organizer draft with assignee and hides when validated', async () => {
+  it('puts Partager in overflow menu for organizer draft with validate', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -543,8 +494,11 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Partager')
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+      ).not.toBeNull()
     })
+    expect(fixture.nativeElement.textContent).not.toContain('Partager')
     expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
 
     getComposition.mockResolvedValue({
@@ -609,7 +563,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('opens share dialog when Partager is clicked', async () => {
+  it('opens share dialog when Partager is clicked from overflow menu', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -631,11 +585,22 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Partager')
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+      ).not.toBeNull()
     })
 
-    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__share') as HTMLButtonElement
-    btn.click()
+    const overflowBtn = fixture.nativeElement.querySelector(
+      '[data-testid="composition-actions-overflow"]',
+    ) as HTMLButtonElement
+    overflowBtn.click()
+    fixture.detectChanges()
+
+    const shareItem = document.querySelector(
+      '[data-testid="composition-action-share"]',
+    ) as HTMLButtonElement
+    expect(shareItem).not.toBeNull()
+    shareItem.click()
 
     expect(dialogOpen).toHaveBeenCalled()
     const [, config] = dialogOpen.mock.calls.at(-1) ?? []
@@ -1431,7 +1396,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('styles unlock as secondary action button', async () => {
+  it('styles unlock as Material outlined button while announce is primary', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1446,6 +1411,13 @@ describe('EventEquipeTab', () => {
             participantDisplayName: 'Locked',
             participationStatus: 'pending',
           },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Autre',
+            participationStatus: 'pending',
+          },
         ],
       },
     })
@@ -1456,9 +1428,104 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.textContent).toContain('Déverrouiller')
     })
 
-    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
-    expect(btn.classList.contains('event-equipe-tab__action--secondary')).toBe(true)
-    expect(btn.classList.contains('event-equipe-tab__action--primary')).toBe(false)
+    const unlockBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__unlock',
+    ) as HTMLButtonElement
+    expect(unlockBtn.classList.contains('mat-mdc-outlined-button')).toBe(true)
+
+    const announcePrimary = fixture.nativeElement.querySelector(
+      '[data-testid="composition-action-primary"][data-action="announce"]',
+    ) as HTMLButtonElement
+    expect(announcePrimary).not.toBeNull()
+    expect(announcePrimary.classList.contains('mat-mdc-unelevated-button')).toBe(true)
+  })
+
+  it('uses Material filled button for primary validate on draft', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Ready',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Valider')
+    })
+
+    const validateBtn = fixture.nativeElement.querySelector(
+      '[data-testid="composition-action-primary"][data-action="validate"]',
+    ) as HTMLButtonElement
+    expect(validateBtn.classList.contains('mat-mdc-unelevated-button')).toBe(true)
+
+    const drawBtn = fixture.nativeElement.querySelector(
+      '[data-testid="composition-action-draw"]',
+    ) as HTMLButtonElement
+    expect(drawBtn.classList.contains('mat-mdc-outlined-button')).toBe(true)
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-actions-toolbar"]'),
+    ).not.toBeNull()
+  })
+
+  it('uses Material filled button for empty composition draw primary', async () => {
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Tirer au sort')
+    })
+
+    const drawBtn = fixture.nativeElement.querySelector(
+      '[data-testid="composition-action-primary"][data-action="draw"]',
+    ) as HTMLButtonElement
+    expect(drawBtn.classList.contains('mat-mdc-unelevated-button')).toBe(true)
+  })
+
+  it('omits validate CTA from status hint when actions lead is shown', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Ready',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain(
+        'Prêt ? Validez pour rendre la composition visible',
+      )
+    })
+
+    const guideline = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__slots-guideline',
+    ) as HTMLElement
+    expect(guideline.textContent).toContain('En préparation')
+    expect(guideline.textContent).not.toContain('Valider')
   })
 
   it('shows draw preparing panel while HTTP request is in flight', async () => {
@@ -1599,38 +1666,6 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Drawn')
     })
-  })
-
-  it('hides publish while assign is in flight', async () => {
-    getComposition.mockResolvedValue({
-      ok: true,
-      data: {
-        publishedAt: null,
-        validatedAt: null,
-        visibility: 'organizerDraft',
-        slots: [
-          {
-            roleKey: 'player',
-            slotIndex: 0,
-            participantId: 'p-1',
-            participantDisplayName: 'Alice',
-            participationStatus: 'pending',
-          },
-        ],
-      },
-    })
-    fixture.componentRef.setInput('canManageComposition', true)
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).not.toBeNull()
-    })
-
-    const cmp = fixture.componentInstance as unknown as { assigning: { set(value: boolean): void } }
-    cmp.assigning.set(true)
-    fixture.detectChanges()
-
-    expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
   })
 
   it('does not refetch composition after draw animation completes', async () => {

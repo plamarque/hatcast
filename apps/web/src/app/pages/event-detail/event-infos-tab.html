@@ -1,10 +1,5 @@
 <main class="event-infos">
   <div class="event-infos__header">
-    @if (showDraftBanner()) {
-      <p class="composition-equipe-status__banner" role="status">
-        Brouillon visible uniquement par les organisateur·ices et administrateur·ices.
-      </p>
-    }
     @if (equipeStatus(); as status) {
       <div class="composition-equipe-status">
         <div class="composition-equipe-status__head">

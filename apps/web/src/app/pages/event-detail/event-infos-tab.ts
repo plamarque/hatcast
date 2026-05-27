@@ -100,13 +100,6 @@ export class EventInfosTab {
     })
   })
 
-  protected readonly showDraftBanner = computed(
-    () =>
-      this.compositionLoaded() &&
-      this.canManageComposition() &&
-      this.composition()?.visibility === 'organizerDraft',
-  )
-
   protected readonly showEquitySection = computed(
     () => this.canManageEvents() || this.event().equityTag != null,
   )

@@ -219,11 +219,7 @@ class CompositionService(
 
         val showExplainability =
             canViewSlots &&
-                (
-                    composition?.publishedAt != null ||
-                        composition?.validatedAt != null ||
-                        resolvedCanManage
-                )
+                (composition?.validatedAt != null || resolvedCanManage)
         val explainabilityByRoleAndParticipant =
             if (showExplainability && includeSlotExplainability) {
                 buildExplainabilityLookup(event, seasonId, eventId, slots)

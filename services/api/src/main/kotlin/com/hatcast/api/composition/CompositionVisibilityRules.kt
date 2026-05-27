@@ -8,9 +8,7 @@ object CompositionVisibilityRules {
         if (composition == null) {
             return false
         }
-        return composition.validatedAt != null ||
-            composition.publishedAt != null ||
-            canManageComposition
+        return composition.validatedAt != null || canManageComposition
     }
 
     fun resolveVisibility(
@@ -23,9 +21,6 @@ object CompositionVisibilityRules {
         }
         if (composition.validatedAt != null) {
             return CompositionVisibility.VALIDATED
-        }
-        if (composition.publishedAt != null) {
-            return CompositionVisibility.PUBLISHED_DRAFT
         }
         if (canManageComposition) {
             return CompositionVisibility.ORGANIZER_DRAFT

@@ -39,12 +39,22 @@ class CompositionVisibilityRulesTest {
   }
 
   @Test
-  fun `member can view published draft slots`() {
+  fun `member cannot view published-but-unvalidated draft slots`() {
     val published = composition(publishedAt = Instant.parse("2026-01-01T00:00:00Z"))
-    assertTrue(CompositionVisibilityRules.canViewSlotAssignments(published, canManageComposition = false))
+    assertFalse(CompositionVisibilityRules.canViewSlotAssignments(published, canManageComposition = false))
     assertEquals(
-      CompositionVisibility.PUBLISHED_DRAFT,
+      CompositionVisibility.NONE,
       CompositionVisibilityRules.resolveVisibility(published, canManageComposition = false, hasAssignedSlots = true),
+    )
+  }
+
+  @Test
+  fun `organizer still sees draft when publishedAt is set but not validated`() {
+    val published = composition(publishedAt = Instant.parse("2026-01-01T00:00:00Z"))
+    assertTrue(CompositionVisibilityRules.canViewSlotAssignments(published, canManageComposition = true))
+    assertEquals(
+      CompositionVisibility.ORGANIZER_DRAFT,
+      CompositionVisibilityRules.resolveVisibility(published, canManageComposition = true, hasAssignedSlots = true),
     )
   }
 

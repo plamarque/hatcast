@@ -23,6 +23,8 @@ export interface CompositionEquipeStatusInput {
   composition: CompositionResponse | null
   canManageComposition: boolean
   roleSlots: Record<string, number>
+  /** When true, draft guideline omits validate CTA (shown in actions lead instead). */
+  suppressValidateCtaInGuideline?: boolean
 }
 
 interface SlotView {
@@ -71,7 +73,7 @@ function withGuideline(
 export function resolveCompositionEquipeStatus(
   input: CompositionEquipeStatusInput,
 ): CompositionEquipeStatus | null {
-  const { composition, canManageComposition, roleSlots } = input
+  const { composition, canManageComposition, roleSlots, suppressValidateCtaInGuideline } = input
   const required = requiredSlotKeys(roleSlots)
   if (required.length === 0) {
     return null
@@ -160,13 +162,17 @@ export function resolveCompositionEquipeStatus(
     )
   }
 
+  const draftGuideline = suppressValidateCtaInGuideline
+    ? '🧠 En préparation : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez-la aux responsables si vous le désirez.'
+    : '🧠 En préparation : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez-la aux responsables si vous le désirez et, lorsque vous serez prêt, cliquez sur ✅ Valider pour la rendre visible à tout le monde.'
+
   return withGuideline(
     {
       type: 'draft',
       label: 'En préparation',
       tone: 'info',
     },
-    '🧠 En préparation : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez la aux responsables si vous le désirez et lorsque vous serez prêt cliquez sur ✅ Valider pour la rendre visible à tout le monde.',
+    draftGuideline,
     canManageComposition,
   )
 }

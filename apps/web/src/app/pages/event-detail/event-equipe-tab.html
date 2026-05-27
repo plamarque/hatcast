@@ -199,133 +199,216 @@
     }
 
     @if (showActionsToolbar()) {
-      @if (canValidate()) {
-        <p class="event-equipe-tab__actions-lead">
-          Prêt ? Validez pour rendre la composition visible à tout le monde.
-        </p>
-      }
-
-      <div class="event-equipe-tab__actions-grid">
+      <div class="event-equipe-tab__actions-sticky">
         @if (canValidate()) {
-          <button
-            type="button"
-            class="event-equipe-tab__action event-equipe-tab__validate"
-            [class.event-equipe-tab__action--primary]="primaryAction() === 'validate'"
-            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'validate'"
-            [disabled]="validating()"
-            (click)="validate()"
-          >
-            @if (validating()) {
-              <mat-spinner diameter="20" />
+          <p class="event-equipe-tab__actions-lead">
+            Prêt ? Validez pour rendre la composition visible à tout le monde.
+          </p>
+        }
+
+        @if (showDrawActionHint()) {
+          <p class="event-equipe-tab__action-hint event-equipe-tab__action-hint--above">
+            Proposition automatique selon les dispos et l’historique des sélections — à publier
+            ensuite.
+          </p>
+        }
+
+        @if (showFillActionHint()) {
+          <p class="event-equipe-tab__action-hint event-equipe-tab__action-hint--above">
+            Tirage pondéré sur les créneaux vides uniquement — la composition reste verrouillée.
+          </p>
+        }
+
+        <div
+          class="event-equipe-tab__actions-toolbar"
+          role="toolbar"
+          aria-label="Actions de composition"
+          data-testid="composition-actions-toolbar"
+        >
+          <div class="event-equipe-tab__actions-grid">
+          @if (equipeActionInGrid('validate')) {
+            @if (isEquipePrimary('validate')) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="event-equipe-tab__action event-equipe-tab__validate"
+                data-testid="composition-action-primary"
+                [attr.data-action]="'validate'"
+                [disabled]="validating()"
+                (click)="validate()"
+              >
+                @if (validating()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Valider
+                }
+              </button>
             } @else {
-              Valider
+              <button
+                mat-stroked-button
+                type="button"
+                class="event-equipe-tab__action event-equipe-tab__validate"
+                data-testid="composition-action-validate"
+                [disabled]="validating()"
+                (click)="validate()"
+              >
+                @if (validating()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Valider
+                }
+              </button>
             }
-          </button>
-        }
+          }
 
-        @if (canDraw()) {
-          <button
-            type="button"
-            class="event-equipe-tab__action event-equipe-tab__draw"
-            [class.event-equipe-tab__action--primary]="primaryAction() === 'draw'"
-            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'draw'"
-            [disabled]="drawing()"
-            (click)="draw()"
-          >
-            @if (drawing()) {
-              <mat-spinner diameter="20" />
+          @if (equipeActionInGrid('draw')) {
+            @if (isEquipePrimary('draw')) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="event-equipe-tab__action event-equipe-tab__draw"
+                data-testid="composition-action-primary"
+                [attr.data-action]="'draw'"
+                [disabled]="drawing()"
+                (click)="draw()"
+              >
+                @if (drawing()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Tirer au sort
+                }
+              </button>
             } @else {
-              Tirer au sort
+              <button
+                mat-stroked-button
+                type="button"
+                class="event-equipe-tab__action event-equipe-tab__draw"
+                data-testid="composition-action-draw"
+                [disabled]="drawing()"
+                (click)="draw()"
+              >
+                @if (drawing()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Tirer au sort
+                }
+              </button>
             }
-          </button>
-        }
+          }
 
-        @if (canPublish()) {
-          <button
-            type="button"
-            class="event-equipe-tab__action event-equipe-tab__publish"
-            [class.event-equipe-tab__action--primary]="primaryAction() === 'publish'"
-            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'publish'"
-            [disabled]="publishing()"
-            (click)="publish()"
-          >
-            @if (publishing()) {
-              <mat-spinner diameter="20" />
+          @if (equipeActionInGrid('announce')) {
+            @if (isEquipePrimary('announce')) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="event-equipe-tab__action event-equipe-tab__announce"
+                data-testid="composition-action-primary"
+                [attr.data-action]="'announce'"
+                [disabled]="compositionInteractionBlocked()"
+                (click)="openShareDialog('composition')"
+              >
+                Annoncer la compo
+              </button>
             } @else {
-              Publier
+              <button
+                mat-stroked-button
+                type="button"
+                class="event-equipe-tab__action event-equipe-tab__announce"
+                data-testid="composition-action-announce"
+                [disabled]="compositionInteractionBlocked()"
+                (click)="openShareDialog('composition')"
+              >
+                Annoncer la compo
+              </button>
             }
-          </button>
-        }
+          }
 
-        @if (canShareDraw()) {
-          <button
-            type="button"
-            class="event-equipe-tab__action event-equipe-tab__share event-equipe-tab__action--secondary"
-            [disabled]="compositionInteractionBlocked()"
-            (click)="openShareDialog('draw')"
-          >
-            Partager
-          </button>
-        }
-
-        @if (canAnnounceComposition()) {
-          <button
-            type="button"
-            class="event-equipe-tab__action event-equipe-tab__share"
-            [class.event-equipe-tab__action--primary]="primaryAction() === 'announce'"
-            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'announce'"
-            [disabled]="compositionInteractionBlocked()"
-            (click)="openShareDialog('composition')"
-          >
-            Annoncer la compo
-          </button>
-        }
-
-        @if (canFillGaps()) {
-          <button
-            type="button"
-            class="event-equipe-tab__action event-equipe-tab__fill"
-            [class.event-equipe-tab__action--primary]="primaryAction() === 'fill'"
-            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'fill'"
-            [disabled]="drawing()"
-            (click)="fillGaps()"
-          >
-            @if (drawing()) {
-              <mat-spinner diameter="20" />
+          @if (equipeActionInGrid('fill')) {
+            @if (isEquipePrimary('fill')) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="event-equipe-tab__action event-equipe-tab__fill"
+                data-testid="composition-action-primary"
+                [attr.data-action]="'fill'"
+                [disabled]="drawing()"
+                (click)="fillGaps()"
+              >
+                @if (drawing()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Compléter
+                }
+              </button>
             } @else {
-              Compléter
+              <button
+                mat-stroked-button
+                type="button"
+                class="event-equipe-tab__action event-equipe-tab__fill"
+                data-testid="composition-action-fill"
+                [disabled]="drawing()"
+                (click)="fillGaps()"
+              >
+                @if (drawing()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Compléter
+                }
+              </button>
             }
-          </button>
-        }
+          }
 
-        @if (canUnlock()) {
-          <button
-            type="button"
-            class="event-equipe-tab__action event-equipe-tab__unlock event-equipe-tab__action--secondary"
-            [disabled]="unlocking()"
-            (click)="unlock()"
-          >
-            @if (unlocking()) {
-              <mat-spinner diameter="20" />
-            } @else {
-              Déverrouiller
-            }
-          </button>
-        }
+          @if (equipeActionInGrid('unlock')) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="event-equipe-tab__action event-equipe-tab__unlock"
+              data-testid="composition-action-unlock"
+              [disabled]="unlocking()"
+              (click)="unlock()"
+            >
+              @if (unlocking()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                Déverrouiller
+              }
+            </button>
+          }
+
+          </div>
+
+          @if (equipeToolbar().overflow.length > 0) {
+            <button
+              mat-icon-button
+              type="button"
+              class="event-equipe-tab__action-overflow"
+              data-testid="composition-actions-overflow"
+              aria-label="Autres actions"
+              [matMenuTriggerFor]="equipeOverflowMenu"
+              [disabled]="compositionInteractionBlocked()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #equipeOverflowMenu="matMenu">
+              @if (equipeActionInOverflow('share')) {
+                <button
+                  mat-menu-item
+                  type="button"
+                  class="event-equipe-tab__share"
+                  data-testid="composition-action-share"
+                  (click)="openShareDialog('draw')"
+                >
+                  Partager
+                </button>
+              }
+            </mat-menu>
+          }
+        </div>
       </div>
-
-      @if (canDraw()) {
-        <p class="event-equipe-tab__action-hint">
-          Proposition automatique selon les dispos et l’historique des sélections — à publier
-          ensuite.
-        </p>
-      }
-
-      @if (canFillGaps()) {
-        <p class="event-equipe-tab__action-hint">
-          Tirage pondéré sur les créneaux vides uniquement — la composition reste verrouillée.
-        </p>
-      }
     }
   </div>
 }
