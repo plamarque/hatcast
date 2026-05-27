@@ -5,33 +5,33 @@
       <p class="user-agenda__subtitle">Tes prochains spectacles, toutes ligues confondues.</p>
     </div>
     @if (!loadingSession() && user(); as u) {
-      <button
-        type="button"
-        mat-stroked-button
-        class="user-agenda__user-btn"
-        [matMenuTriggerFor]="userMenu"
-        [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
-      >
-        <app-user-avatar
-          [style.--user-avatar-size.px]="24"
-          [displayName]="userDisplayLabel(u)"
-          [avatarUrl]="u.avatarUrl ?? null"
-          [size]="24"
-        />
-        <span class="user-agenda__user-label">{{ userDisplayLabel(u) }}</span>
-        <mat-icon>expand_more</mat-icon>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items [userSlug]="u.slug" [showAgendaLink]="true" />
-      </mat-menu>
+      <div class="user-agenda__header-actions">
+        <app-member-season-shortcut />
+        <a mat-stroked-button routerLink="/troupes" class="member-cross-nav__btn user-agenda__troupes-link">
+          Mes troupes
+        </a>
+        <button
+          type="button"
+          mat-stroked-button
+          class="user-agenda__user-btn"
+          [matMenuTriggerFor]="userMenu"
+          [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
+        >
+          <app-user-avatar
+            [style.--user-avatar-size.px]="24"
+            [displayName]="userDisplayLabel(u)"
+            [avatarUrl]="u.avatarUrl ?? null"
+            [size]="24"
+          />
+          <span class="user-agenda__user-label">{{ userDisplayLabel(u) }}</span>
+          <mat-icon>expand_more</mat-icon>
+        </button>
+        <mat-menu #userMenu="matMenu">
+          <app-user-account-menu-items [userSlug]="u.slug" [showAgendaLink]="true" />
+        </mat-menu>
+      </div>
     }
   </header>
-
-  @if (!loadingSession()) {
-    <div class="user-agenda__secondary">
-      <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
-    </div>
-  }
 
   @if (!loadingSession() && !loadError() && filterBarCatalog(); as filters) {
     <app-user-agenda-filter-bar

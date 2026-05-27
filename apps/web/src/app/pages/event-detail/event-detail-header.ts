@@ -6,6 +6,7 @@ import type { UserSummary } from '../../core/auth/auth-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
+import { MemberAgendaShortcut } from '../../shared/member-cross-nav/member-agenda-shortcut'
 import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
@@ -16,6 +17,7 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
     MatIconModule,
     MatMenuModule,
     ContextBreadcrumb,
+    MemberAgendaShortcut,
     UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],

@@ -1,6 +1,8 @@
 .context-breadcrumb {
   min-width: 0;
-  flex: 1;
+  flex: 1 1 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .context-breadcrumb__trail {
@@ -11,12 +13,28 @@
   padding: 0;
   list-style: none;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .context-breadcrumb__segment {
   display: flex;
   align-items: center;
   min-width: 0;
+  overflow: hidden;
+  flex: 0 1 auto;
+}
+
+.context-breadcrumb__segment:last-child {
+  flex: 1 1 0;
+  min-width: 2.5rem;
+}
+
+.context-breadcrumb__segment:not(:last-child) .context-breadcrumb__troupe-name,
+.context-breadcrumb__segment:not(:last-child) .context-breadcrumb__link,
+.context-breadcrumb__segment:not(:last-child) .context-breadcrumb__current {
+  display: block;
+  max-width: 6.5rem;
 }
 
 .context-breadcrumb__sep {

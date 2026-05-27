@@ -1499,7 +1499,7 @@ afin de ne plus passer par le menu compte pour ces deux destinations.
 
 **Priorité :** P1 — livrable isolé.  
 **Depends :** 17.1 (chrome header), 12.2 (`/agenda`).  
-**Story file :** à créer via `bmad-create-story` → `17-18-raccourcis-croises-agenda-saison.md`
+**Story file:** [_bmad-output/implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md](../implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md)
 
 #### Story 17.19 : Hub membre `/accueil` — À faire (MVP)
 

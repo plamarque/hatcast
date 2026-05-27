@@ -44,6 +44,12 @@
     }
   </header>
 
+  @if (glance()?.isSelf) {
+    <div class="member-glance-page__cross-nav">
+      <app-member-cross-nav-shortcuts />
+    </div>
+  }
+
   @if (filterBarVisible() && filterBarCatalog()) {
     <app-user-agenda-filter-bar
       class="member-glance-page__filters"

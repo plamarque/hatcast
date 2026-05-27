@@ -13,6 +13,9 @@ import {
   type UserAgendaResponse,
 } from '../../core/agenda/user-agenda-api.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import type { SeasonResponse } from '../../core/seasons/season-api.service'
+import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { UserAgenda } from './user-agenda'
 
 const TROUPE_A = 'a0000001-0000-4000-8000-000000000001'
@@ -37,6 +40,7 @@ describe('UserAgenda', () => {
   let router: Router
   let navigateSpy: ReturnType<typeof vi.fn>
   let snack: { open: ReturnType<typeof vi.fn> }
+  let seasonResolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
 
   beforeEach(async () => {
     localStorage.clear()
@@ -68,6 +72,7 @@ describe('UserAgenda', () => {
       logout: vi.fn().mockResolvedValue(true),
     }
     snack = { open: vi.fn() }
+    seasonResolver = { resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }) }
 
     await TestBed.configureTestingModule({
       imports: [UserAgenda, NoopAnimationsModule],
@@ -76,6 +81,7 @@ describe('UserAgenda', () => {
         { provide: AuthApiService, useValue: auth },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
+        { provide: TroupeSeasonResolverService, useValue: seasonResolver },
       ],
     }).compileComponents()
     TestBed.overrideProvider(MatSnackBar, { useValue: snack })
@@ -89,6 +95,34 @@ describe('UserAgenda', () => {
     localStorage.clear()
     sessionStorage.clear()
     vi.restoreAllMocks()
+  })
+
+  it('shows season shortcut to troupes when no last visited slug', async () => {
+    await settle(fixture)
+
+    const seasonLink = fixture.nativeElement.querySelector(
+      'app-member-season-shortcut a',
+    ) as HTMLAnchorElement
+    expect(seasonLink).toBeTruthy()
+    expect(seasonLink.getAttribute('href')).toBe('/troupes')
+    expect(seasonLink.textContent).toContain('Choisir une saison')
+  })
+
+  it('shows season shortcut to last visited saison when resolver resolves', async () => {
+    rememberLastVisitedSeasonSlug('festibask')
+    seasonResolver.resolveSeasonSlug.mockResolvedValue({
+      kind: 'resolved',
+      troupe: { id: 't1', name: 'Troupe' },
+      season: { id: 's1', slug: 'festibask', title: 'Ligue 2026' } as SeasonResponse,
+    })
+
+    await settle(fixture)
+
+    const seasonLink = fixture.nativeElement.querySelector(
+      'app-member-season-shortcut a',
+    ) as HTMLAnchorElement
+    expect(seasonLink.getAttribute('href')).toBe('/saison/festibask')
+    expect(seasonLink.textContent).toContain('Ma saison · Ligue 2026')
   })
 
   it('affiche les événements groupés par mois avec les badges troupe, ligue et disponibilité', async () => {

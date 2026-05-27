@@ -17,7 +17,13 @@ describe('SeasonHeader', () => {
       },
     }
     const memberProfile = { navigateToMemberGlance: vi.fn() }
-    const authApi = { logout: vi.fn().mockResolvedValue(true) }
+    const authApi = {
+      logout: vi.fn().mockResolvedValue(true),
+      ensureHatcastSession: vi.fn().mockResolvedValue({
+        ok: true,
+        data: { user: { slug: 'account-name' } },
+      }),
+    }
 
     await TestBed.configureTestingModule({
       imports: [SeasonHeader, NoopAnimationsModule],
@@ -90,6 +96,15 @@ describe('SeasonHeader', () => {
         leagueId: 'season-id-1',
       }),
     )
+  })
+
+  it('shows Mon agenda shortcut when user is signed in', async () => {
+    const { fixture } = await setup()
+    const agendaLink = fixture.nativeElement.querySelector(
+      'app-member-agenda-shortcut a[href="/agenda"]',
+    ) as HTMLAnchorElement
+    expect(agendaLink).toBeTruthy()
+    expect(agendaLink.getAttribute('aria-label')).toBe('Mon agenda')
   })
 
   it('hides breadcrumb when troupe context is missing', async () => {

@@ -262,7 +262,7 @@ InboxSummary:
 
 Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.22 ; ordre PLAN : [`PLAN.md`](../../PLAN.md) § Epic 17.
 
-**Fichiers story :** à générer avec **`/bmad-create-story`** (un par slice avant dev) — pas encore dans `implementation-artifacts/`.
+**Fichiers story :** **17.18** → [`17-18-raccourcis-croises-agenda-saison.md`](../implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md) (`done`) ; **17.19–17.22** à générer avec **`/bmad-create-story`** avant dev.
 
 ---
 

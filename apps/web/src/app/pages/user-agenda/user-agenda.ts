@@ -26,6 +26,7 @@ import {
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
+import { MemberSeasonShortcut } from '../../shared/member-cross-nav/member-season-shortcut'
 import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
@@ -47,6 +48,7 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
     MatSnackBarModule,
     RouterLink,
     UserAgendaFilterBar,
+    MemberSeasonShortcut,
     UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],

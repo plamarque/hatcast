@@ -50,6 +50,12 @@
   padding: 0;
 }
 
+.member-glance-page__cross-nav {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 1rem 0.75rem;
+}
+
 .member-glance-page__filters {
   position: sticky;
   top: 4.5rem;
