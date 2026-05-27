@@ -45,7 +45,7 @@ Ordre de priorité (identique à [`PostLoginNavigationService`](../../apps/web/s
 | 2 | **Dernière visite membre** mémorisée (voir ci-dessous) | Route revalidée (saison, agenda, accueil, …) |
 | 3 | Fallback | `/agenda` (ou saison unique si règle produit mono-ligue) |
 
-**Extension recommandée (phase 2+) :** au-delà de `lastVisitedSeason` seul, mémoriser une **`lastMemberEntryPath`** (ex. `/agenda`, `/accueil`, `/saison/festibask`) mise à jour à chaque sortie d’un écran « shell » membre (agenda, accueil, saison, clin d’œil self). Conserver `lastVisitedSeason` pour l’onglet **Saison** de la nav bar et les chips raccourcis.
+**Extension recommandée (phase 2+) :** au-delà de `lastVisitedSeason` seul, mémoriser une **`lastMemberEntryPath`** (ex. `/agenda`, `/accueil`, `/membre/:slug`, `/saison/festibask`) mise à jour à chaque sortie d’un écran « shell » membre. Conserver `lastVisitedSeason` pour les chips **Ma saison** (workspace), pas pour la nav globale.
 
 **Pourquoi ne pas forcer `/accueil` au login :** pour un membre qui vit dans une saison (orga ou mono-ligue), revenir sur la saison est le bon défaut ; pour un autre, l’agenda. Le hub À faire sert quand il y a **du travail en attente** (badge nav), pas comme tableau de bord obligatoire.
 
@@ -56,23 +56,26 @@ Ordre de priorité (identique à [`PostLoginNavigationService`](../../apps/web/s
 ```mermaid
 flowchart TB
   subgraph nav [Navigation bar mobile]
-    A[À faire /accueil]
+    A[Accueil /accueil]
     B[Agenda /agenda]
-    C[Saison /saison/:slug]
+    C[Stats /membre/:userSlug]
   end
   A --> AgendaList[Section actions]
   A --> Shortcuts[Raccourcis]
   B --> MonthList[Liste par mois]
-  C --> SeasonWS[Workspace saison]
+  C --> Glance[Clin d'œil stats perso]
   B --> Event[/saison/.../event/...]
   AgendaList --> Event
+  Shortcuts --> SeasonWS[Workspace /saison/:slug]
 ```
 
 | Destination | Rôle | Icône Material (suggestion) |
 |-------------|------|------------------------------|
-| **À faire** | Actions en attente + prochain focus + raccourcis | `checklist` ou `inbox` |
+| **Accueil** | Actions en attente + prochain focus + raccourcis (hub `/accueil`) | `home` |
 | **Agenda** | Liste complète des spectacles à venir | `calendar_month` |
-| **Saison** | Dernière saison visitée (`lastVisitedSeason`) ; si absente → picker ou `/troupes` | `groups` ou `stadium` |
+| **Stats** | Clin d'œil perso (`/membre/{userSlug}` session) ; badge inbox sur **Accueil** uniquement | `insights` |
+
+**Workspace saison** (`/saison/:slug`) : **hors** barre globale — accès via chip **Ma saison · {titre}** (Accueil, Agenda, headers saison) et menu compte. Distinction : Agenda = chronologie multi-troupes ; Stats = participation perso ; workspace = ligue.
 
 **Desktop (≥ 840 px) :** navigation **rail** à gauche (mêmes 3 entrées). Pas de barre basse permanente sur grand écran.
 
@@ -86,11 +89,11 @@ flowchart TB
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  À faire                                    [Avatar ▾]     │
+│  Accueil                                    [Avatar ▾]     │
 └────────────────────────────────────────────────────────────┘
 ```
 
-- Titre : **À faire** (pas « Accueil » — plus orienté action).
+- Titre : **Accueil** (hub membre ; contenu orienté actions en attente).
 - Menu compte : Compte, Clin d’œil, Installer PWA, Déconnexion (inchangé).
 - **Pas** de filtre troupe/saison sur cet écran (réservé à l’agenda).
 
@@ -138,7 +141,7 @@ Rangée de **chips** ou **list items** (pas des onglets de nav).
 | **Saison en un clin d’œil** | `/membre/{userSlug}` + query troupe/ligue si connus | Si session résolue |
 | **Mes troupes** | `/troupes` | Toujours |
 
-> Distinction volontaire : **workspace saison** (organiser / voir la ligue) ≠ **clin d’œil** (stats perso). Ne pas fusionner en un seul libellé « Saison ».
+> Distinction volontaire : **workspace saison** (organiser / voir la ligue) ≠ **clin d’œil** (stats perso). La nav globale expose **Stats** (clin d’œil) ; le workspace reste via accès rapides / chips **Ma saison**.
 
 ### Empty states (écran entier)
 
@@ -201,8 +204,8 @@ InboxSummary:
 ### Phase 4 — Navigation bar M3
 
 - Shell `MemberChrome` : `mat-toolbar` + nav bar basse (mobile) / rail (desktop).
-- Badge sur **À faire** = `actions.length` (max affiché « 9+ »).
-- Masquer la nav bar sur `/connexion`, routes admin lourdes, modales plein écran (option : garder sur event detail).
+- Badge sur **Accueil** = `actions.length` (max affiché « 9+ »).
+- Masquer la nav bar sur `/connexion`, routes **admin** (`*/admin/*`) uniquement ; **visible** sur workspace saison, détail événement, troupes, compte (shell membre global).
 
 ---
 
@@ -210,8 +213,10 @@ InboxSummary:
 
 ### Badges et compteurs
 
-- Nav **À faire** : badge rouge/error si ≥1 action ; pas de badge si 0.
+- Nav **Accueil** : badge rouge/error si ≥1 action ; pas de badge si 0.
 - Nav **Agenda** : pas de badge (liste passive).
+- Nav **Stats** : pas de badge.
+- **Mon compte** : menu **avatar** (top app bar), pas de 4ᵉ onglet nav (pattern M3).
 - Nav **Saison** : pas de badge ; libellé tronqué « Saison » + tooltip nom complet au long press / hover.
 
 ### Accessibilité
@@ -244,7 +249,7 @@ InboxSummary:
 │ [ Agenda ] [ Saison ]   │
 │ [ Clin d'œil ] [ Troupes]│
 ├─────────────────────────┤
-│  À faire │ Agenda │ Saison │  ← Phase 4
+│ Accueil │ Agenda │ Stats │  ← Phase 4 (compte : avatar)
 └─────────────────────────┘
 ```
 
@@ -259,10 +264,11 @@ InboxSummary:
 | **17.20** | `lastMemberEntryPath` (remember last visit élargi) | 2 | P2 — optionnel |
 | **17.21** | API `GET /me/inbox` + confirmations pending | 3 | P1 (après ou MVP+17.19) |
 | **17.22** | Shell navigation bar M3 (3 onglets) | 4 | P2 |
+| **17.23** | Sélecteur contexte troupe · saison (fil + menu) | — | P2 |
 
-Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.22 ; ordre PLAN : [`PLAN.md`](../../PLAN.md) § Epic 17.
+Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.23 ; ordre PLAN : [`PLAN.md`](../../PLAN.md) § Epic 17.
 
-**Fichiers story :** **17.18** → [`17-18-raccourcis-croises-agenda-saison.md`](../implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md) (`done`) ; **17.19** → [`17-19-hub-accueil-a-faire-mvp.md`](../implementation-artifacts/17-19-hub-accueil-a-faire-mvp.md) (`done`) ; **17.20**, **17.21**, **17.22** à générer avec **`/bmad-create-story`** avant dev.
+**Fichiers story :** **17.18** → [`17-18-raccourcis-croises-agenda-saison.md`](../implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md) (`done`) ; **17.19** → [`17-19-hub-accueil-a-faire-mvp.md`](../implementation-artifacts/17-19-hub-accueil-a-faire-mvp.md) (`done`) ; **17.20** → [`17-20-remember-last-member-entry-path.md`](../implementation-artifacts/17-20-remember-last-member-entry-path.md) (`done`) ; **17.21** → [`17-21-api-me-inbox-hub-membre.md`](../implementation-artifacts/17-21-api-me-inbox-hub-membre.md) (`done`) ; **17.22** → [`17-22-navigation-bar-m3-membre.md`](../implementation-artifacts/17-22-navigation-bar-m3-membre.md) (`done`) ; **17.23** → [`17-23-selecteur-contexte-troupe-saison.md`](../implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md) (`ready-for-dev`).
 
 ---
 
@@ -288,6 +294,6 @@ Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.22 ; ordre PLAN : [`
 - Remplacer le placeholder [`HomeSignedIn`](../../apps/web/src/app/pages/home-signed-in/) par le hub À faire sur `{ path: 'accueil', … }` (déjà routé ; aujourd’hui redirect ou carte bienvenue selon config).
 - Retirer ou ne pas dupliquer le bloc « actions » sur `/agenda` — l’agenda reste **liste chronologique + filtres** uniquement.
 - Redirect racine `/` : inchangé (`AuthRedirect` → post-login) ; **`/accueil` n’est plus un simple alias vers `/agenda`** une fois le hub livré (cf. journey : mettre à jour la note « `/accueil` → `/agenda` »).
-- Nav bar phase 4 : onglet **À faire** → `/accueil` ; onglet **Agenda** → `/agenda`.
+- Nav bar phase 4 : **Accueil** → `/accueil` ; **Agenda** → `/agenda` ; **Stats** → `/membre/{userSlug}` (clin d’œil) ; workspace saison via chips.
 
 **Priorité dev par défaut (reste) :** inbox API avant nav bar ; `lastMemberEntryPath` optionnel avec la nav bar.

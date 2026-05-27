@@ -1,0 +1,30 @@
+---
+description: Material 3 + Angular Material — règles UI pour le front V2 HatCast
+globs: apps/web/**
+---
+
+# Material 3 — front HatCast (`apps/web/`)
+
+Norme détaillée : [docs/v2/technical/FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) (checklist complète, anti-patterns, liens UX).
+
+## Règles impératives
+
+1. **Composants** — Utiliser Angular Material (`mat-button`, `mat-stroked-button`, `mat-form-field`, `mat-dialog`, `mat-menu`, `mat-chip`, `mat-toolbar`, `mat-icon`, etc.) avant tout contrôle HTML/CSS custom équivalent.
+2. **Couleurs & typo** — `var(--mat-sys-*)` et `color-mix(in srgb, var(--mat-sys-…) …)` ; pas de couleurs hex/rgb en dur sur les features (thème global dans `apps/web/src/styles.scss`).
+3. **Mobile-first** — Tester mentalement ≤ **480px** ; cibles tactiles **≥ 48dp** (40dp min seulement si l’AC de la story le dit).
+4. **Accessibilité** — Libellé UI en **français** ; si le texte visible est masqué sur mobile, **`aria-label`** sur le contrôle (`member-cross-nav` est le modèle).
+5. **Navigation membre** — Top app bar M3 ; **ne pas** introduire de bottom app bar M2 pour changer d’espace app ; rail desktop à **840px** seulement quand la spec hub / story le demande ([ux-hub-a-faire.md](../../_bmad-output/planning-artifacts/ux-hub-a-faire.md)).
+6. **Pas Tailwind** comme surface principale de layout/couleur/typo (UX-DR11).
+7. **Réutiliser** — Chercher dans `apps/web/src/app/shared/` (ex. `member-cross-nav`, breadcrumbs, cartes agenda) avant d’ajouter un nouveau pattern.
+
+## Avant de terminer une tâche UI
+
+Parcourir la checklist § « Checklist M3 HatCast » dans FRONTEND_UI.md et confirmer dans le résumé :
+
+- points validés ;
+- points N/A au scope ;
+- toute exception volontaire (avec lien story ou issue).
+
+## Stories BMad
+
+Si un fichier `_bmad-output/implementation-artifacts/*.md` est fourni : respecter la section **Acceptance Criteria — Material 3 (UI)** (AC **M3-1** … **M3-5**) en plus de cette règle. Nouvelles stories : partir de `_bmad-output/implementation-artifacts/story-template.md`.

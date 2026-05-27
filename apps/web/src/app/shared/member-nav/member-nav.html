@@ -1,0 +1,112 @@
+<div class="member-nav">
+  <mat-nav-list class="member-nav__rail" role="navigation" aria-label="Navigation principale membre">
+    <a
+      mat-list-item
+      class="member-nav__rail-link"
+      routerLink="/accueil"
+      routerLinkActive="member-nav__link--active"
+      #accueilRailRla="routerLinkActive"
+      [attr.aria-label]="accueilAriaLabel()"
+      [attr.aria-current]="accueilRailRla.isActive ? 'page' : null"
+    >
+      <span class="member-nav__rail-item">
+        <span class="member-nav__rail-icon-wrap">
+          <mat-icon aria-hidden="true">home</mat-icon>
+          @if (accueilBadgeLabel()) {
+            <span class="member-nav__badge member-nav__badge--overlay" aria-hidden="true">
+              {{ accueilBadgeLabel() }}
+            </span>
+          }
+        </span>
+        <span class="member-nav__rail-label">Accueil</span>
+      </span>
+    </a>
+    <a
+      mat-list-item
+      class="member-nav__rail-link"
+      routerLink="/agenda"
+      routerLinkActive="member-nav__link--active"
+      #agendaRailRla="routerLinkActive"
+      aria-label="Agenda"
+      [attr.aria-current]="agendaRailRla.isActive ? 'page' : null"
+    >
+      <span class="member-nav__rail-item">
+        <span class="member-nav__rail-icon-wrap">
+          <mat-icon aria-hidden="true">calendar_month</mat-icon>
+        </span>
+        <span class="member-nav__rail-label">Agenda</span>
+      </span>
+    </a>
+    <a
+      mat-list-item
+      class="member-nav__rail-link"
+      [routerLink]="statsShortcut.link()"
+      [class.member-nav__link--active]="isStatsTabActive()"
+      aria-label="Stats"
+      [attr.aria-current]="isStatsTabActive() ? 'page' : null"
+    >
+      <span class="member-nav__rail-item">
+        <span class="member-nav__rail-icon-wrap">
+          <mat-icon aria-hidden="true">insights</mat-icon>
+        </span>
+        <span class="member-nav__rail-label">Stats</span>
+      </span>
+    </a>
+  </mat-nav-list>
+
+  <nav
+    mat-tab-nav-bar
+    class="member-nav__bottom"
+    [tabPanel]="bottomPanel"
+    aria-label="Navigation principale membre"
+  >
+    <a
+      mat-tab-link
+      routerLink="/accueil"
+      routerLinkActive
+      #accueilRla="routerLinkActive"
+      [active]="accueilRla.isActive"
+      [attr.aria-label]="accueilAriaLabel()"
+      [attr.aria-current]="accueilRla.isActive ? 'page' : null"
+    >
+      <span class="member-nav__bottom-item">
+        <span class="member-nav__bottom-icon-wrap">
+          <mat-icon aria-hidden="true">home</mat-icon>
+          @if (accueilBadgeLabel()) {
+            <span class="member-nav__badge member-nav__badge--overlay" aria-hidden="true">
+              {{ accueilBadgeLabel() }}
+            </span>
+          }
+        </span>
+        <span class="member-nav__bottom-label">Accueil</span>
+      </span>
+    </a>
+    <a
+      mat-tab-link
+      routerLink="/agenda"
+      routerLinkActive
+      #agendaRla="routerLinkActive"
+      [active]="agendaRla.isActive"
+      aria-label="Agenda"
+      [attr.aria-current]="agendaRla.isActive ? 'page' : null"
+    >
+      <span class="member-nav__bottom-item">
+        <mat-icon aria-hidden="true">calendar_month</mat-icon>
+        <span class="member-nav__bottom-label">Agenda</span>
+      </span>
+    </a>
+    <a
+      mat-tab-link
+      [routerLink]="statsShortcut.link()"
+      [active]="isStatsTabActive()"
+      aria-label="Stats"
+      [attr.aria-current]="isStatsTabActive() ? 'page' : null"
+    >
+      <span class="member-nav__bottom-item">
+        <mat-icon aria-hidden="true">insights</mat-icon>
+        <span class="member-nav__bottom-label">Stats</span>
+      </span>
+    </a>
+  </nav>
+  <mat-tab-nav-panel #bottomPanel class="member-nav__bottom-panel" />
+</div>

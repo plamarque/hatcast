@@ -21,7 +21,10 @@ describe('UserAccountMenuItemsComponent', () => {
         },
         {
           provide: AuthApiService,
-          useValue: { ensureHatcastSession: vi.fn(), logout: vi.fn() },
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({ ok: true, data: { user: {} } }),
+            logout: vi.fn(),
+          },
         },
       ],
     }).compileComponents();
@@ -51,7 +54,10 @@ describe('UserAccountMenuItemsComponent', () => {
         },
         {
           provide: AuthApiService,
-          useValue: { ensureHatcastSession: vi.fn(), logout: vi.fn() },
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({ ok: true, data: { user: {} } }),
+            logout: vi.fn(),
+          },
         },
       ],
     }).compileComponents();

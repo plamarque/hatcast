@@ -1537,7 +1537,7 @@ afin que le remember last visit couvre tout mon usage quotidien, pas seulement l
 
 **Priorité :** P2 — peut attendre **17.22** si la nav bar est prioritaire.  
 **Depends :** 17.19 (route `/accueil` réelle).  
-**Story file :** à créer → `17-20-remember-last-member-entry-path.md`
+**Story file:** [_bmad-output/implementation-artifacts/17-20-remember-last-member-entry-path.md](../implementation-artifacts/17-20-remember-last-member-entry-path.md)
 
 #### Story 17.21 : API `GET /me/inbox` — confirmations et résumé hub
 
@@ -1555,7 +1555,7 @@ afin de compléter la file d’actions (FR25).
 
 **Priorité :** P1 pour valeur hub complète ; **peut suivre 17.19** (MVP dispo-only d’abord).  
 **Depends :** 6.7 (participation membre), 17.19.  
-**Story file :** à créer → `17-21-api-me-inbox-hub-membre.md`
+**Story file:** [_bmad-output/implementation-artifacts/17-21-api-me-inbox-hub-membre.md](../implementation-artifacts/17-21-api-me-inbox-hub-membre.md)
 
 #### Story 17.22 : Shell navigation bar M3 (À faire · Agenda · Saison)
 
@@ -1574,7 +1574,28 @@ afin d’alterner entre **À faire**, **Agenda** et **Saison** sans menu caché.
 
 **Priorité :** P2 — après hub + idéalement inbox.  
 **Depends :** 17.19 ; 17.21 recommandé (badge utile) ; 17.20 optionnel.  
-**Story file :** à créer → `17-22-navigation-bar-m3-membre.md`
+**Story file:** [_bmad-output/implementation-artifacts/17-22-navigation-bar-m3-membre.md](../implementation-artifacts/17-22-navigation-bar-m3-membre.md)
+
+#### Story 17.23 : Sélecteur de contexte troupe · saison (fil + menu)
+
+En tant qu’**organisateur ou membre actif** multi-troupes ou multi-saisons,  
+je veux **changer de troupe ou de saison en un ou deux taps** depuis le workspace saison ou le détail spectacle,  
+afin de **compléter le fil d’Ariane** sans repasser systématiquement par le hub troupe.
+
+**Acceptance Criteria**
+
+- **Given** desktop sur `/saison/:slug` ou détail spectacle, **when** au moins deux troupes ou deux saisons listables, **then** segment saison = bouton **{titre} ▾** (`mat-menu`) ; fil conserve logo + troupe (lien hub) › sélecteur › spectacle (feuille).
+- **Given** menu ouvert, **when** affiché, **then** sections Troupes + Saisons (troupe courante) + liens `/troupes` et hub troupe.
+- **Given** choix autre saison, **when** sélection, **then** navigation `/saison/:slug` + mémorisation `lastVisitedSeason`.
+- **Given** choix autre troupe, **when** sélection, **then** dernière saison mémorisée de cette troupe si valide, sinon hub `/troupes/:slug`.
+- **Given** une troupe et une saison seules, **when** header, **then** pas de sélecteur (comportement 17.1).
+- **Given** mobile, **when** sélecteur requis, **then** ligne titre ▾ à côté du logo ; pas de H1 saison dupliqué.
+- **Given** header contextuel, **when** rendu, **then** pas d’engrenage admin ; raccourcis 17.18 conservés.
+- **Couverture :** ADR 0013 §2 (complément) ; wireframes UX 2026-05-27.
+
+**Priorité :** P2 — après 17.18 ; utile orga multi-saisons.  
+**Depends :** 17.1, 17.3, 17.4.  
+**Story file:** [_bmad-output/implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md](../implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md)
 
 **UX spec hub :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) (décisions 2026-05-27 : route `/accueil` dédiée, post-login = remember last visit).
 

@@ -1,0 +1,148 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Hub membre À faire / inbox (fragment)
+  description: >
+    Agrégation hub « À faire » : actions de disponibilité et confirmations de participation,
+    prochain spectacle et indices pour les raccourcis (Story 17.21).
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Hub membre
+
+paths:
+  /me/inbox:
+    get:
+      tags: [Hub membre]
+      summary: Boîte de réception hub membre (actions + prochain spectacle)
+      description: >
+        Retourne les actions requises (`availability_unknown`, `composition_confirm_pending`),
+        le prochain spectacle participé (`nextEvent`, même forme que `UserAgendaItem`),
+        des indices de raccourcis et `noParticipation` (sémantique alignée sur `GET /me/agenda`).
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboxResponse'
+        '401':
+          description: Non authentifié
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  schemas:
+    InboxResponse:
+      type: object
+      required: [actions, shortcuts, noParticipation]
+      properties:
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboxAction'
+        nextEvent:
+          allOf:
+            - $ref: './me-agenda.yaml#/components/schemas/UserAgendaItem'
+          nullable: true
+        shortcuts:
+          $ref: '#/components/schemas/InboxShortcuts'
+        noParticipation:
+          type: boolean
+          description: >
+            true si l'utilisateur n'a aucune participation ACTIVE à une ligue ou un événement éligible.
+
+    InboxActionType:
+      type: string
+      enum:
+        - availability_unknown
+        - composition_confirm_pending
+
+    InboxAction:
+      type: object
+      required:
+        - type
+        - eventId
+        - eventSlug
+        - leagueSlug
+        - title
+        - startsAt
+        - troupeName
+        - troupeSlug
+        - leagueTitle
+        - troupeId
+        - leagueId
+        - deepLink
+      properties:
+        type:
+          $ref: '#/components/schemas/InboxActionType'
+        eventId:
+          type: string
+          format: uuid
+        eventSlug:
+          type: string
+        leagueSlug:
+          type: string
+        title:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        troupeName:
+          type: string
+        troupeSlug:
+          type: string
+        leagueTitle:
+          type: string
+        location:
+          type: string
+          nullable: true
+        troupeId:
+          type: string
+          format: uuid
+        leagueId:
+          type: string
+          format: uuid
+        roleKey:
+          type: string
+          description: Présent pour `composition_confirm_pending`
+        roleLabel:
+          type: string
+          description: Libellé français du rôle (composition uniquement)
+        deepLink:
+          type: string
+          description: >
+            Chemin relatif applicatif (préfixe `/`), ex. `/saison/{leagueSlug}/event/{eventSlug}?tab=dispos`
+            ou `?showConfirm=true`.
+
+    InboxShortcuts:
+      type: object
+      required: [lastSeasonSlug, seasonGlanceQuery]
+      properties:
+        lastSeasonSlug:
+          type: string
+          nullable: true
+          description: Indice best-effort (ligue du prochain spectacle ou première ligne à venir).
+        seasonGlanceQuery:
+          $ref: '#/components/schemas/InboxSeasonGlanceQuery'
+
+    InboxSeasonGlanceQuery:
+      type: object
+      properties:
+        troupeId:
+          type: string
+          format: uuid
+        leagueId:
+          type: string
+          format: uuid

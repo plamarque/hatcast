@@ -62,13 +62,31 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       AND (
         s.id IN (
           SELECT sp.season.id FROM SeasonParticipantEntity sp
-          WHERE sp.user.id = :userId
-            AND sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+          LEFT JOIN sp.troupeMembership tm
+          WHERE sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+            AND (
+              sp.user.id = :userId
+              OR (
+                tm IS NOT NULL
+                AND tm.user.id = :userId
+                AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+              )
+            )
         )
         OR e.id IN (
           SELECT ep.event.id FROM EventParticipantEntity ep
-          WHERE ep.user.id = :userId
-            AND ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+          LEFT JOIN ep.seasonParticipant sp
+          LEFT JOIN sp.troupeMembership tm
+          WHERE ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+            AND (
+              ep.user.id = :userId
+              OR sp.user.id = :userId
+              OR (
+                tm IS NOT NULL
+                AND tm.user.id = :userId
+                AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+              )
+            )
         )
       )
       AND (:troupeId IS NULL OR t.id = :troupeId)
@@ -86,13 +104,31 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       AND (
         s.id IN (
           SELECT sp.season.id FROM SeasonParticipantEntity sp
-          WHERE sp.user.id = :userId
-            AND sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+          LEFT JOIN sp.troupeMembership tm
+          WHERE sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+            AND (
+              sp.user.id = :userId
+              OR (
+                tm IS NOT NULL
+                AND tm.user.id = :userId
+                AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+              )
+            )
         )
         OR e.id IN (
           SELECT ep.event.id FROM EventParticipantEntity ep
-          WHERE ep.user.id = :userId
-            AND ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+          LEFT JOIN ep.seasonParticipant sp
+          LEFT JOIN sp.troupeMembership tm
+          WHERE ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+            AND (
+              ep.user.id = :userId
+              OR sp.user.id = :userId
+              OR (
+                tm IS NOT NULL
+                AND tm.user.id = :userId
+                AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+              )
+            )
         )
       )
       AND (:troupeId IS NULL OR t.id = :troupeId)
@@ -106,6 +142,65 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
     @Param("leagueId") leagueId: UUID?,
     pageable: Pageable,
   ): Page<UserAgendaRow>
+
+  @Query(
+    value =
+    """
+    SELECT DISTINCT
+      e.id AS eventId,
+      e.slug AS eventSlug,
+      e.title AS title,
+      e.startsAt AS startsAt,
+      e.location AS location,
+      t.id AS troupeId,
+      t.name AS troupeName,
+      t.slug AS troupeSlug,
+      s.id AS leagueId,
+      s.slug AS leagueSlug,
+      s.title AS leagueTitle
+    FROM EventEntity e
+    JOIN e.season s
+    JOIN s.troupe t
+    WHERE e.archived = false
+      AND s.archived = false
+      AND e.id IN :eventIds
+      AND (
+        s.id IN (
+          SELECT sp.season.id FROM SeasonParticipantEntity sp
+          LEFT JOIN sp.troupeMembership tm
+          WHERE sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+            AND (
+              sp.user.id = :userId
+              OR (
+                tm IS NOT NULL
+                AND tm.user.id = :userId
+                AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+              )
+            )
+        )
+        OR e.id IN (
+          SELECT ep.event.id FROM EventParticipantEntity ep
+          LEFT JOIN ep.seasonParticipant sp
+          LEFT JOIN sp.troupeMembership tm
+          WHERE ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+            AND (
+              ep.user.id = :userId
+              OR sp.user.id = :userId
+              OR (
+                tm IS NOT NULL
+                AND tm.user.id = :userId
+                AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+              )
+            )
+        )
+      )
+    ORDER BY e.startsAt ASC, e.id ASC
+    """,
+  )
+  fun findParticipatedEventsByIds(
+    @Param("userId") userId: UUID,
+    @Param("eventIds") eventIds: Collection<UUID>,
+  ): List<UserAgendaRow>
 
   @Query(
     """
@@ -125,9 +220,17 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
     """
     SELECT DISTINCT s.id FROM SeasonParticipantEntity sp
     JOIN sp.season s
-    WHERE sp.user.id = :userId
-      AND sp.status = :status
+    LEFT JOIN sp.troupeMembership tm
+    WHERE sp.status = :status
       AND s.archived = false
+      AND (
+        sp.user.id = :userId
+        OR (
+          tm IS NOT NULL
+          AND tm.user.id = :userId
+          AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+        )
+      )
     """,
   )
   fun findParticipatingLeagueIdsFromSeason(

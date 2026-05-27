@@ -20,6 +20,9 @@ Treat these as authoritative. When they conflict with code, flag the conflict; d
 | **ISSUES.md** | Issue registry (bugs, defects, limitations). Informational; not normative. |
 | **docs/adr/** | Recorded decisions. Refer to ADRs for "why" and alternatives. |
 | **docs/shared/technical/COMMIT_MESSAGE_GUIDELINES.md** | Commit message format (Conventional Commits). Mandatory when creating or suggesting commits. |
+| **docs/v2/technical/FRONTEND_UI.md** | Angular Material 3, theming, mobile-first, **checklist M3** (UX-DR11). Mandatory for any change under `apps/web/`. |
+| **project-context.md** | Lean stack + rules for BMad/Cursor agents (brownfield context). |
+| **_bmad-output/implementation-artifacts/story-template.md** | Template for new stories, including **Material 3 acceptance criteria**. |
 
 Code and config are the **runtime** source of truth. The docs above describe intent and constraints; when code clearly diverges, report it rather than changing behavior without explicit approval.
 
@@ -71,6 +74,16 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 - When you change production behavior (features, APIs, data model, auth, deployment): update the relevant normative doc in the same change (SPEC, DOMAIN, ARCH, or ADR as appropriate).
 - When you only fix bugs or refactor without changing observable behavior: update docs only if the previous wording was wrong or misleading.
 - When adding a significant technical decision: add or update an ADR in `docs/adr/` and link from ARCH or PLAN if relevant.
+
+---
+
+## Frontend UI (V2 — `apps/web/`)
+
+- **Before implementing or reviewing** any user-visible change in the Angular app: read [docs/v2/technical/FRONTEND_UI.md](docs/v2/technical/FRONTEND_UI.md) (including the **Material 3 checklist** and anti-patterns).
+- **UX-DR11** (epics): Angular Material + design tokens; Tailwind must not be the primary styling surface.
+- For member navigation chrome (app bar, rail, shortcuts): align with [_bmad-output/planning-artifacts/ux-hub-a-faire.md](_bmad-output/planning-artifacts/ux-hub-a-faire.md) when the story does not override.
+- At the end of a UI story: self-check against the checklist; mention any waived items in the handoff summary.
+- When **creating** a story (`bmad-create-story` or manually): start from [_bmad-output/implementation-artifacts/story-template.md](_bmad-output/implementation-artifacts/story-template.md); include **Acceptance Criteria — Material 3 (UI)** or explicit **UI : N/A** for backend-only work.
 
 ---
 

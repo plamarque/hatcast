@@ -20,6 +20,7 @@ import {
   inboxActionAsAgendaItem,
   type InboxAction,
 } from '../../core/inbox/me-inbox-api.service'
+import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import {
   deriveSeasonGlanceQueryParamsFromInbox,
   enrichAgendaCardFields,
@@ -58,6 +59,7 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 export class MemberHomeTodo implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly inboxApi = inject(MeInboxApiService)
+  private readonly inboxBadge = inject(MemberInboxBadgeService)
   private readonly seasonResolver = inject(TroupeSeasonResolverService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
@@ -134,6 +136,7 @@ export class MemberHomeTodo implements OnInit {
 
     if (r.ok && r.data) {
       this.actions.set(r.data.actions)
+      this.inboxBadge.pendingActionCount.set(r.data.actions.length)
       this.noParticipation.set(r.data.noParticipation ?? false)
       this.inboxShortcuts.set(r.data.shortcuts)
       const next = r.data.nextEvent

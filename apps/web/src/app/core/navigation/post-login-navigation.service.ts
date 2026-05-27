@@ -1,7 +1,15 @@
 import { Injectable, inject } from '@angular/core'
 import { Router } from '@angular/router'
 
+import { AuthApiService } from '../auth/auth-api.service'
 import { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
+import {
+  clearLastMemberEntryPath,
+  getLastMemberEntryPath,
+  isPersistableMemberEntryPath,
+  memberStatsSlugFromMemberEntryPath,
+  seasonSlugFromMemberEntryPath,
+} from './last-member-entry-path-storage'
 import {
   clearLastVisitedSeasonSlug,
   getLastVisitedSeasonSlug,
@@ -18,6 +26,7 @@ export type PostLoginNavigationTarget = string | string[]
 @Injectable({ providedIn: 'root' })
 export class PostLoginNavigationService {
   private readonly resolver = inject(TroupeSeasonResolverService)
+  private readonly auth = inject(AuthApiService)
   private readonly router = inject(Router)
 
   async resolveAuthenticatedEntryUrl(): Promise<PostLoginNavigationTarget> {
@@ -27,6 +36,14 @@ export class PostLoginNavigationService {
         return pending
       }
       clearPendingPostLoginRedirect()
+    }
+
+    const entryPath = getLastMemberEntryPath()
+    if (entryPath) {
+      const entryTarget = await this.resolveMemberEntryPath(entryPath)
+      if (entryTarget) {
+        return entryTarget
+      }
     }
 
     const slug = getLastVisitedSeasonSlug()
@@ -44,7 +61,63 @@ export class PostLoginNavigationService {
     }
 
     clearLastVisitedSeasonSlug()
+    this.clearMemberEntryPathForSeasonSlug(slug)
     return ['/agenda']
+  }
+
+  private async resolveMemberEntryPath(
+    path: string,
+  ): Promise<PostLoginNavigationTarget | null> {
+    if (!isPersistableMemberEntryPath(path)) {
+      clearLastMemberEntryPath()
+      return null
+    }
+
+    if (path === '/accueil') {
+      return ['/accueil']
+    }
+    if (path === '/agenda') {
+      return ['/agenda']
+    }
+
+    const seasonSlug = seasonSlugFromMemberEntryPath(path)
+    if (seasonSlug) {
+      try {
+        const resolved = await this.resolver.resolveSeasonSlug(seasonSlug)
+        if (resolved.kind === 'resolved') {
+          return saisonWorkspacePath(seasonSlug)
+        }
+      } catch {
+        // Network/server error — clear stale entry and fall through
+      }
+      if (getLastVisitedSeasonSlug() === seasonSlug) {
+        clearLastVisitedSeasonSlug()
+      }
+      if (getLastMemberEntryPath() === path) {
+        clearLastMemberEntryPath()
+      }
+      return null
+    }
+
+    const membreSlug = memberStatsSlugFromMemberEntryPath(path)
+    if (membreSlug) {
+      const session = await this.auth.ensureHatcastSession()
+      const ownSlug = session.data?.user.slug?.trim()
+      if (ownSlug && membreSlug === ownSlug) {
+        return ['/membre', ownSlug]
+      }
+      clearLastMemberEntryPath()
+      return null
+    }
+
+    clearLastMemberEntryPath()
+    return null
+  }
+
+  private clearMemberEntryPathForSeasonSlug(slug: string): void {
+    if (getLastMemberEntryPath() === `/saison/${slug}`) {
+      clearLastMemberEntryPath()
+    }
   }
 
   async navigateAfterSignIn(router: Router = this.router): Promise<boolean> {

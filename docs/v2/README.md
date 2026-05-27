@@ -10,7 +10,9 @@
 - [`technical/DEPLOY_V2_CLOUD_RUN.md`](technical/DEPLOY_V2_CLOUD_RUN.md) — Cloud Run, Neon, GitHub Actions
 - [`migration/preprod-reset-and-migrate.md`](migration/preprod-reset-and-migrate.md) — pre-prod staging : reset Neon, migration depuis Firestore **prod** (`default`)
 - [`migration/v1-troupe-members-csv-recipe.md`](migration/v1-troupe-members-csv-recipe.md) — import CSV utilisateurs + membres (V1 → V2)
-- [`technical/FRONTEND_UI.md`](technical/FRONTEND_UI.md) — Angular Material (références officielles), theming, CDK, **mobile-first** / responsive
+- [`technical/FRONTEND_UI.md`](technical/FRONTEND_UI.md) — Angular Material (références officielles), theming, CDK, **mobile-first** / responsive, **checklist M3**
+- [`../../project-context.md`](../../project-context.md) — contexte court pour agents (stack, chemins, règles)
+- [`../../_bmad-output/implementation-artifacts/story-template.md`](../../_bmad-output/implementation-artifacts/story-template.md) — modèle de story avec AC Material 3
 
 ## Décisions (ADR)
 

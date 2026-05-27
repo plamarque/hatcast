@@ -184,5 +184,9 @@ development_status:
   17-15-onglet-infos-organisateurs-retrait-participants-formulaire: done
   17-17-chip-organisateur-promouvoir-listes-admin: done
   17-18-raccourcis-croises-agenda-saison: done
-  17-23-selecteur-contexte-troupe-saison: backlog
+  17-19-hub-accueil-a-faire-mvp: done
+  17-21-api-me-inbox-hub-membre: done
+  17-22-navigation-bar-m3-membre: done
+  17-20-remember-last-member-entry-path: done
+  17-23-selecteur-contexte-troupe-saison: ready-for-dev
   epic-17-retrospective: optional

@@ -46,6 +46,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.POST, "/v1/auth/idp").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/auth/me").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/agenda").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/v1/me/inbox").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/members/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/logout").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/me/avatar").authenticated()

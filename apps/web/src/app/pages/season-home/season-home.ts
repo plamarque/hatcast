@@ -18,6 +18,10 @@ import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import {
+  rememberLastMemberEntryPath,
+  saisonMemberEntryPath,
+} from '../../core/navigation/last-member-entry-path-storage'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import {
   saisonAdminParticipantsPath,
@@ -482,6 +486,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeSlug.set(resolved.troupe.slug)
     this.season.set(resolved.season)
     rememberLastVisitedSeasonSlug(slug)
+    rememberLastMemberEntryPath(saisonMemberEntryPath(slug))
     await Promise.all([
       this.loadSeasonPermissions(resolved.season.id, requestId),
       this.loadParticipantSelectors(resolved.season.id, requestId),
@@ -772,6 +777,8 @@ export class SeasonHome implements OnDestroy, OnInit {
     const availability = await this.availabilityApi.getMyAvailability(s.id, ev.id)
     const initialStatus = availability.ok && availability.data ? availability.data.status : payload.status
     const initialRoleKeys = availability.ok && availability.data ? availability.data.roleKeys : []
+    const initialComment =
+      availability.ok && availability.data ? (availability.data.comment ?? null) : null
     const ref = this.dialog.open<AvailabilityDialog, AvailabilityDialogData, AvailabilityDialogResult>(
       AvailabilityDialog,
       {
@@ -785,6 +792,7 @@ export class SeasonHome implements OnDestroy, OnInit {
           troupeId: s.troupeId,
           roleSlots: normalizeRoleSlots(ev.roleSlots),
           initialRoleKeys,
+          initialComment,
         },
         width: 'min(100vw - 2rem, 26rem)',
         autoFocus: 'first-tabbable',

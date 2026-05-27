@@ -7,6 +7,10 @@ import {
 } from './last-visited-league-storage'
 
 describe('lastVisitedLeagueStorage', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   afterEach(() => {
     localStorage.clear()
   })

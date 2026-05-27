@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { MemberShell } from './layout/member-shell/member-shell';
 import { AccountPlaceholder } from './pages/account-placeholder/account-placeholder';
 import { AuthRedirect } from './pages/auth-redirect/auth-redirect';
 import { ForgotPassword } from './pages/forgot-password/forgot-password';
@@ -38,26 +39,32 @@ export const routes: Routes = [
   { path: 'connexion', component: Login },
   { path: 'mot-de-passe-oublie', component: ForgotPassword },
   { path: 'reinitialiser-mot-de-passe', component: ResetPassword },
-  { path: 'accueil', component: MemberHomeTodo },
-  { path: 'compte', component: AccountPlaceholder },
-  { path: 'agenda', component: UserAgenda },
-  { path: 'membre/:userSlug', component: MemberSeasonGlance },
+  {
+    path: '',
+    component: MemberShell,
+    children: [
+      { path: 'accueil', component: MemberHomeTodo },
+      { path: 'agenda', component: UserAgenda },
+      { path: 'membre/:userSlug', component: MemberSeasonGlance },
+      { path: 'compte', component: AccountPlaceholder },
+      { path: 'troupes', component: TroupesList },
+      { path: 'troupes/:slug', component: TroupeHub },
+      { path: 'saison/:slug/event/:eventSlug', component: EventDetail },
+      { path: 'saison/:slug', component: SeasonHome },
+    ],
+  },
   {
     path: 'seasons',
     redirectTo: (route) => redirectPathWithQuery('/troupes', route.queryParamMap),
   },
-  { path: 'troupes', component: TroupesList },
-  { path: 'troupes/:slug', component: TroupeHub },
   { path: 'troupes/:slug/admin/membres', component: AdminMembres },
   { path: 'troupe/admin/membres', component: AdminMembres },
   {
     path: 'troupe/:troupeSlug/admin/membres',
     redirectTo: (route) => `/troupes/${route.params['troupeSlug']}/admin/membres`,
   },
-  { path: 'saison/:slug', component: SeasonHome },
   { path: 'saison/:slug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug/admin/participants', component: AdminParticipants },
-  { path: 'saison/:slug/event/:eventSlug', component: EventDetail },
   { path: 'saison/:slug/event/:eventSlug/admin/participants', component: AdminEventParticipants },
   {
     path: 'ligue/:slug/admin/membres',

@@ -1,0 +1,8 @@
+<div class="member-shell" [class.member-shell--with-nav]="showNav()">
+  @if (showNav()) {
+    <app-member-nav class="member-shell__nav" />
+  }
+  <main class="member-shell__content">
+    <router-outlet />
+  </main>
+</div>

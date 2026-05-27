@@ -1,0 +1,24 @@
+.member-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  min-height: 100vh;
+}
+
+.member-shell--with-nav {
+  @media (min-width: 840px) {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.member-shell__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.member-shell--with-nav .member-shell__content {
+  @media (max-width: 839px) {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
