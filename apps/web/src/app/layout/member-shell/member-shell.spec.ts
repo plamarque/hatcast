@@ -47,6 +47,7 @@ describe('MemberShell', () => {
               { path: 'membre/:userSlug', component: ShellChildStub },
               { path: 'saison/:slug/event/:eventSlug', component: ShellChildStub },
               { path: 'compte', component: ShellChildStub },
+              { path: 'saison/:slug/admin/membres', component: ShellChildStub },
             ],
           },
         ]),
@@ -96,6 +97,11 @@ describe('MemberShell', () => {
 
   it('shows member nav on compte', async () => {
     await renderAt('/compte')
+    expect(fixture.nativeElement.querySelector('app-member-nav')).not.toBeNull()
+  })
+
+  it('shows member nav on season admin', async () => {
+    await renderAt('/saison/ligue-2026/admin/membres')
     expect(fixture.nativeElement.querySelector('app-member-nav')).not.toBeNull()
   })
 

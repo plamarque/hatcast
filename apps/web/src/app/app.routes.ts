@@ -48,8 +48,16 @@ export const routes: Routes = [
       { path: 'membre/:userSlug', component: MemberSeasonGlance },
       { path: 'compte', component: AccountPlaceholder },
       { path: 'troupes', component: TroupesList },
+      { path: 'troupes/:slug/admin/membres', component: AdminMembres },
       { path: 'troupes/:slug', component: TroupeHub },
+      { path: 'troupe/admin/membres', component: AdminMembres },
+      {
+        path: 'saison/:slug/event/:eventSlug/admin/participants',
+        component: AdminEventParticipants,
+      },
       { path: 'saison/:slug/event/:eventSlug', component: EventDetail },
+      { path: 'saison/:slug/admin/membres', component: AdminMembres },
+      { path: 'saison/:slug/admin/participants', component: AdminParticipants },
       { path: 'saison/:slug', component: SeasonHome },
     ],
   },
@@ -57,15 +65,10 @@ export const routes: Routes = [
     path: 'seasons',
     redirectTo: (route) => redirectPathWithQuery('/troupes', route.queryParamMap),
   },
-  { path: 'troupes/:slug/admin/membres', component: AdminMembres },
-  { path: 'troupe/admin/membres', component: AdminMembres },
   {
     path: 'troupe/:troupeSlug/admin/membres',
     redirectTo: (route) => `/troupes/${route.params['troupeSlug']}/admin/membres`,
   },
-  { path: 'saison/:slug/admin/membres', component: AdminMembres },
-  { path: 'saison/:slug/admin/participants', component: AdminParticipants },
-  { path: 'saison/:slug/event/:eventSlug/admin/participants', component: AdminEventParticipants },
   {
     path: 'ligue/:slug/admin/membres',
     redirectTo: (route) =>

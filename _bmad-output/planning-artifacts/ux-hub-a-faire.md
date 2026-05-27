@@ -205,7 +205,7 @@ InboxSummary:
 
 - Shell `MemberChrome` : `mat-toolbar` + nav bar basse (mobile) / rail (desktop).
 - Badge sur **Accueil** = `actions.length` (max affiché « 9+ »).
-- Masquer la nav bar sur `/connexion`, routes **admin** (`*/admin/*`) uniquement ; **visible** sur workspace saison, détail événement, troupes, compte (shell membre global).
+- Masquer la nav bar sur `/connexion` et flux mot de passe uniquement ; **visible** partout dans l’app membre signée, y compris `*/admin/*`, workspace saison, détail événement, troupes, compte (shell membre global).
 
 ---
 

@@ -21,37 +21,30 @@ const AUTH_PATHS_WITHOUT_NAV = new Set([
   '/reinitialiser-mot-de-passe',
 ])
 
-function isMemberAdminPath(path: string): boolean {
-  return /\/admin(\/|$)/.test(path)
-}
+/** Paths that show the global member nav (Accueil · Agenda · Stats), including admin screens. */
+const MEMBER_NAV_PATH_PATTERNS: RegExp[] = [
+  /^\/accueil$/,
+  /^\/agenda$/,
+  /^\/compte$/,
+  /^\/troupes$/,
+  /^\/membre\/[^/]+$/,
+  /^\/troupes\/[^/]+$/,
+  /^\/troupes\/[^/]+\/admin\/membres$/,
+  /^\/troupe\/admin\/membres$/,
+  /^\/saison\/[^/]+$/,
+  /^\/saison\/[^/]+\/admin\/membres$/,
+  /^\/saison\/[^/]+\/admin\/participants$/,
+  /^\/saison\/[^/]+\/event\/[^/]+$/,
+  /^\/saison\/[^/]+\/event\/[^/]+\/admin\/participants$/,
+]
 
 /** Member routes that show the global nav (Accueil · Agenda · Stats). */
 export function shouldShowMemberNav(url: string): boolean {
   const path = pathFromUrl(url)
 
-  if (!path || path === '/' || AUTH_PATHS_WITHOUT_NAV.has(path) || isMemberAdminPath(path)) {
+  if (!path || path === '/' || AUTH_PATHS_WITHOUT_NAV.has(path)) {
     return false
   }
 
-  if (path === '/accueil' || path === '/agenda' || path === '/compte' || path === '/troupes') {
-    return true
-  }
-
-  if (isMemberStatsPath(path)) {
-    return true
-  }
-
-  if (/^\/troupes\/[^/]+$/.test(path)) {
-    return true
-  }
-
-  if (/^\/saison\/[^/]+$/.test(path)) {
-    return true
-  }
-
-  if (/^\/saison\/[^/]+\/event\/[^/]+$/.test(path)) {
-    return true
-  }
-
-  return false
+  return MEMBER_NAV_PATH_PATTERNS.some((pattern) => pattern.test(path))
 }

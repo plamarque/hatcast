@@ -25,11 +25,16 @@ describe('shouldShowMemberNav', () => {
     expect(shouldShowMemberNav('/accueil?foo=1')).toBe(true)
   })
 
-  it('hides nav on auth and admin routes', () => {
+  it('shows nav on admin routes', () => {
+    expect(shouldShowMemberNav('/saison/foo/admin/membres')).toBe(true)
+    expect(shouldShowMemberNav('/saison/foo/admin/participants')).toBe(true)
+    expect(shouldShowMemberNav('/saison/foo/event/bar/admin/participants')).toBe(true)
+    expect(shouldShowMemberNav('/troupes/foo/admin/membres')).toBe(true)
+    expect(shouldShowMemberNav('/troupe/admin/membres')).toBe(true)
+  })
+
+  it('hides nav on auth routes', () => {
     expect(shouldShowMemberNav('/connexion')).toBe(false)
     expect(shouldShowMemberNav('/mot-de-passe-oublie')).toBe(false)
-    expect(shouldShowMemberNav('/saison/foo/admin/membres')).toBe(false)
-    expect(shouldShowMemberNav('/saison/foo/event/bar/admin/participants')).toBe(false)
-    expect(shouldShowMemberNav('/troupes/foo/admin/membres')).toBe(false)
   })
 })
