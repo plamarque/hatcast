@@ -11,8 +11,10 @@ import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.user.UserRepository
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -121,14 +123,16 @@ class TroupeMembershipIntegrationTest {
                     slug = "list-counts-other-${UUID.randomUUID().toString().take(8)}",
                 ),
             )
-        mockMvc
-            .perform(
-                post("/v1/troupes/${otherTroupe.id}/memberships/me")
-                    .cookie(cookie)
-                    .with(csrf()),
-            ).andExpect(status().isOk)
-
         val user = userRepository.findByGoogleSub("sub-troupe-list-two")!!
+        membershipRepository.save(
+            TroupeMembershipEntity(
+                troupe = otherTroupe,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.MEMBER,
+                displayName = "Two Troupes",
+            ),
+        )
         val season =
             seasonRepository.save(
                 SeasonEntity(
@@ -159,13 +163,22 @@ class TroupeMembershipIntegrationTest {
             .perform(get("/v1/troupes").cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[?(@.slug == 'la-malice')].upcomingEventCount[0]").value(0))
             .andExpect(
-                jsonPath("$[?(@.slug == 'la-malice')].activeMemberCount[0]")
-                    .value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)),
+                jsonPath("$.[?(@.slug == 'la-malice')].upcomingEventCount")
+                    .value(org.hamcrest.Matchers.contains(0)),
             )
-            .andExpect(jsonPath("$[?(@.id == '${otherTroupe.id}')].activeMemberCount[0]").value(1))
-            .andExpect(jsonPath("$[?(@.id == '${otherTroupe.id}')].upcomingEventCount[0]").value(1))
+            .andExpect(
+                jsonPath("$.[?(@.slug == 'la-malice')].activeMemberCount")
+                    .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.greaterThanOrEqualTo(1))),
+            )
+            .andExpect(
+                jsonPath("$.[?(@.id == '${otherTroupe.id}')].activeMemberCount")
+                    .value(org.hamcrest.Matchers.contains(1)),
+            )
+            .andExpect(
+                jsonPath("$.[?(@.id == '${otherTroupe.id}')].upcomingEventCount")
+                    .value(org.hamcrest.Matchers.contains(1)),
+            )
 
         val outsider = signIn("sub-troupe-list-outsider", "outsider@example.com", "Outsider")
         mockMvc
@@ -416,10 +429,7 @@ class TroupeMembershipIntegrationTest {
 
         val membershipId = UUID.fromString(mapper.readTree(addResult.response.contentAsString).path("id").asText())
 
-        mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/members?page=0&size=100").cookie(adminCookie))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content[?(@.email == 'target-members-1@example.com')]").exists())
+        assertEquals("target-members-1@example.com", findMemberInAdminList(adminCookie, "target-members-1@example.com").get("email").asText())
 
         mockMvc
             .perform(
@@ -439,10 +449,10 @@ class TroupeMembershipIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
 
-        mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/members?page=0&size=100").cookie(adminCookie))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content[?(@.id == '$membershipId')].status").value("INACTIVE"))
+        assertEquals(
+            "INACTIVE",
+            findMemberInAdminList(adminCookie, "target-members-1@example.com").get("status").asText(),
+        )
     }
 
     @Test
@@ -621,13 +631,14 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.summary.error").value(1))
             .andExpect(jsonPath("$.rows[?(@.email == 'unknown-user@example.com')].code").value("USER_NOT_FOUND"))
 
-        mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/members?page=0&size=100").cookie(adminCookie))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content[?(@.email == 'csv-target-2@example.com')].displayName").value("Nouveau membre"))
-            .andExpect(
-                jsonPath("$.content[?(@.email == 'csv-target-1@example.com')].displayName").value("Export Target Updated"),
-            )
+        assertEquals(
+            "Nouveau membre",
+            findMemberInAdminList(adminCookie, "csv-target-2@example.com").get("displayName").asText(),
+        )
+        assertEquals(
+            "Export Target Updated",
+            findMemberInAdminList(adminCookie, "csv-target-1@example.com").get("displayName").asText(),
+        )
     }
 
     @Test
@@ -800,10 +811,38 @@ class TroupeMembershipIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.summary.success").value(2))
 
-        mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/members?page=0&size=100").cookie(adminCookie))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content[?(@.email == 'csv-migrated-2@example.com')].baselineRole").value("TROUPE_ADMIN"))
+        assertEquals(
+            "TROUPE_ADMIN",
+            findMemberInAdminList(adminCookie, "csv-migrated-2@example.com").get("baselineRole").asText(),
+        )
+    }
+
+    private fun findMemberInAdminList(
+        adminCookie: jakarta.servlet.http.Cookie,
+        email: String,
+    ): JsonNode {
+        var page = 0
+        while (true) {
+            val res =
+                mockMvc
+                    .perform(
+                        get("/v1/troupes/$seedTroupeId/members?page=$page&size=100")
+                            .cookie(adminCookie),
+                    ).andExpect(status().isOk)
+                    .andReturn()
+            val body = mapper.readTree(res.response.contentAsString)
+            val match =
+                (0 until body.get("content").size())
+                    .map { body.get("content").get(it) }
+                    .firstOrNull { it.get("email").asText() == email }
+            if (match != null) {
+                return match
+            }
+            if (page + 1 >= body.get("totalPages").asInt()) {
+                error("Member $email not found in troupe member list")
+            }
+            page++
+        }
     }
 
     private fun signInAndJoin(

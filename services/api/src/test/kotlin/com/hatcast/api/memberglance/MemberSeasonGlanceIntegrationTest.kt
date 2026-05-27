@@ -2,7 +2,12 @@ package com.hatcast.api.memberglance
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.participant.MembershipParticipantSyncCache
+import com.hatcast.api.participant.MembershipSyncScope
+import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.troupe.TroupeRepository
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
@@ -28,6 +33,12 @@ class MemberSeasonGlanceIntegrationTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var seasonRepository: SeasonRepository
+
+    @Autowired
+    private lateinit var troupeRepository: TroupeRepository
 
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
@@ -137,12 +148,27 @@ class MemberSeasonGlanceIntegrationTest {
     fun `GET season-glance returns empty stats shape when no dispos in scope`() {
         val cookie = signInAndJoin("sub-glance-empty-stats", "glance-empty@example.com", "Empty Stats")
         val user = userRepository.findByGoogleSub("sub-glance-empty-stats")!!
+        val emptySeason =
+            seasonRepository.save(
+                SeasonEntity(
+                    troupe = troupeRepository.findById(seedTroupeId).orElseThrow(),
+                    slug = "glance-empty-${java.util.UUID.randomUUID()}",
+                    title = "Empty glance season",
+                ),
+            )
+        MembershipSyncScope.clear()
+        MembershipParticipantSyncCache.invalidate(emptySeason.id)
+        mockMvc
+            .perform(
+                get("/v1/seasons/${emptySeason.id}/participants/selectors")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
 
         mockMvc
             .perform(
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
-                    .param("leagueId", seedSeasonId.toString()),
+                    .param("leagueId", emptySeason.id.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.stats").doesNotExist())
             .andExpect(jsonPath("$.monthlyChart").isArray)
@@ -156,6 +182,17 @@ class MemberSeasonGlanceIntegrationTest {
         name: String,
     ) = signIn(googleSub, email, name).also { cookie ->
         TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+        syncSeedSeasonParticipation(cookie)
+    }
+
+    private fun syncSeedSeasonParticipation(cookie: jakarta.servlet.http.Cookie) {
+        MembershipSyncScope.clear()
+        MembershipParticipantSyncCache.invalidate(seedSeasonId)
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/participants/selectors")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
     }
 
     private fun signIn(

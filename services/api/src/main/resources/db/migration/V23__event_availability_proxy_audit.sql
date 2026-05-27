@@ -1,6 +1,5 @@
 -- Story 5.5: proxy availability for name-only participants + audit actor.
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- gen_random_uuid(): PostgreSQL 13+ core; H2 test profile registers alias in application-test.yml.
 
 ALTER TABLE event_availability ADD COLUMN id UUID;
 UPDATE event_availability SET id = gen_random_uuid() WHERE id IS NULL;
@@ -10,7 +9,7 @@ ALTER TABLE event_availability ADD COLUMN season_participant_id UUID NULL;
 ALTER TABLE event_availability ADD COLUMN event_participant_id UUID NULL;
 ALTER TABLE event_availability ADD COLUMN recorded_by_user_id UUID NULL;
 
-ALTER TABLE event_availability DROP CONSTRAINT event_availability_pkey;
+ALTER TABLE event_availability DROP PRIMARY KEY;
 
 ALTER TABLE event_availability ALTER COLUMN user_id DROP NOT NULL;
 

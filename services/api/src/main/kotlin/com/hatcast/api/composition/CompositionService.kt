@@ -10,6 +10,7 @@ import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.dto.CompositionDeclineDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.CompositionSlotDto
+import com.hatcast.api.event.EquityCompartment
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
@@ -333,7 +334,11 @@ class CompositionService(
             return emptyMap()
         }
         val historyCounts =
-            selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, eventId)
+            selectionHistory.pastSelectionCountByParticipantAndRole(
+                seasonId,
+                eventId,
+                EquityCompartment.slug(event),
+            )
         val eligible = loadEligibleForExplainability(seasonId, eventId)
         val availabilityByUserId =
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()

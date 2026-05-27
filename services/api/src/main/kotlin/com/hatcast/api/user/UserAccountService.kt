@@ -38,19 +38,18 @@ class UserAccountService(
             return UserAccountImportOutcome.SKIPPED
         }
         val now = Instant.now()
-        userSlugService.ensureSlug(
-            userRepository.save(
-                UserEntity(
-                    googleSub = null,
-                    idpUid = null,
-                    email = email,
-                    displayName = normalizedDisplayName,
-                    activatedAt = null,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            ),
-        )
+        val draft =
+            UserEntity(
+                googleSub = null,
+                idpUid = null,
+                email = email,
+                displayName = normalizedDisplayName,
+                activatedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            )
+        draft.slug = userSlugService.allocateUniqueSlug(draft)
+        userRepository.save(draft)
         return UserAccountImportOutcome.CREATED
     }
 

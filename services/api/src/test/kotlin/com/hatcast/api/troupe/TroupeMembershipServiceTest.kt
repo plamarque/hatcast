@@ -178,7 +178,8 @@ class TroupeMembershipServiceTest {
             displayName = "Member",
         )
 
-    private fun user(email: String): UserEntity = UserEntity(email = email, displayName = "Target")
+    private fun user(email: String): UserEntity =
+        UserEntity(email = email, displayName = "Target", slug = "target-${email.hashCode()}")
 
     private data class TestTroupeMemberCountRow(
         override val troupeId: UUID,

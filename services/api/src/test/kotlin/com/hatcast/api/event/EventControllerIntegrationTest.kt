@@ -589,7 +589,7 @@ class EventControllerIntegrationTest {
                     .content(
                         """
                         {
-                          "title": "Premier cabaret bis",
+                          "title": "Premier cabaret",
                           "startsAt": "${future}"
                         }
                         """.trimIndent(),

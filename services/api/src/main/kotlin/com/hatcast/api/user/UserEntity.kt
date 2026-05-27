@@ -3,6 +3,7 @@ package com.hatcast.api.user
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
+import jakarta.persistence.PrePersist
 import jakarta.persistence.Table
 import java.time.Instant
 import java.util.UUID
@@ -37,4 +38,11 @@ class UserEntity(
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now(),
-)
+) {
+    @PrePersist
+    fun assignSlugIfMissing() {
+        if (slug.isNullOrBlank()) {
+            slug = "user-${id.toString().replace("-", "").take(12)}"
+        }
+    }
+}

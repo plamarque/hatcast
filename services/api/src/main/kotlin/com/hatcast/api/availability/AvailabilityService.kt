@@ -9,6 +9,7 @@ import com.hatcast.api.availability.dto.SummaryRoleCandidateDto
 import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.composition.CompositionSelectionHistoryService
+import com.hatcast.api.event.EquityCompartment
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.organizer.OrganizerAccessService
@@ -202,7 +203,11 @@ class AvailabilityService(
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots)
         val historyCounts =
             if (includeChances) {
-                selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, event.id)
+                selectionHistory.pastSelectionCountByParticipantAndRole(
+                    seasonId,
+                    event.id,
+                    EquityCompartment.slug(event),
+                )
             } else {
                 emptyMap()
             }

@@ -8,6 +8,7 @@ import com.hatcast.api.composition.dto.AssignSlotRequestDto
 import com.hatcast.api.composition.dto.CompositionCandidateDto
 import com.hatcast.api.composition.dto.CompositionCandidateListResponseDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
+import com.hatcast.api.event.EquityCompartment
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
@@ -84,7 +85,11 @@ class CompositionSlotAssignmentService(
         val availabilityByUserId =
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
         val historyCounts =
-            selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, eventId)
+            selectionHistory.pastSelectionCountByParticipantAndRole(
+                seasonId,
+                eventId,
+                EquityCompartment.slug(event),
+            )
         val pastByParticipant =
             selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
 

@@ -28,11 +28,17 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
           AND c.validatedAt IS NOT NULL
           AND COALESCE(s.seasonParticipantId, s.eventParticipantId) IS NOT NULL
           AND s.participationStatus <> com.hatcast.api.composition.SlotParticipationStatus.DECLINED
+          AND (
+            (:compartmentSlug = 'principal' AND e.equityTag IS NULL AND e.templateType <> 'deplacement')
+            OR (:compartmentSlug = 'deplacements' AND (e.equityTag = 'deplacements' OR (e.equityTag IS NULL AND e.templateType = 'deplacement')))
+            OR (:compartmentSlug NOT IN ('principal', 'deplacements') AND e.equityTag = :compartmentSlug)
+          )
         GROUP BY COALESCE(s.seasonParticipantId, s.eventParticipantId), s.roleKey
         """,
     )
-    fun countValidatedSelectionsBySeason(
+    fun countValidatedSelectionsBySeasonAndCompartment(
         @Param("seasonId") seasonId: UUID,
         @Param("excludeEventId") excludeEventId: UUID,
+        @Param("compartmentSlug") compartmentSlug: String,
     ): List<RoleSelectionCountProjection>
 }

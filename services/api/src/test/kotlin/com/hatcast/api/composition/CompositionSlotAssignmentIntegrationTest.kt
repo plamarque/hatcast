@@ -8,6 +8,8 @@ import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.MembershipParticipantSyncCache
+import com.hatcast.api.participant.MembershipSyncScope
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
@@ -500,6 +502,8 @@ class CompositionSlotAssignmentIntegrationTest {
             membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)!!
         membership.displayName = "Season Display Name"
         membershipRepository.save(membership)
+        MembershipSyncScope.clear()
+        MembershipParticipantSyncCache.invalidate(seasonId)
         seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
 
         mockMvc

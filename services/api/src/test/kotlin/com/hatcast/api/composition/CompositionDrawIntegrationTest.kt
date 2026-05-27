@@ -4,6 +4,7 @@ import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
@@ -60,6 +61,9 @@ class CompositionDrawIntegrationTest {
     private lateinit var seasonParticipantRepository: SeasonParticipantRepository
 
     @Autowired
+    private lateinit var seasonParticipantService: SeasonParticipantService
+
+    @Autowired
     private lateinit var compositionRepository: EventCompositionRepository
 
     @Autowired
@@ -106,8 +110,12 @@ class CompositionDrawIntegrationTest {
         cookie: jakarta.servlet.http.Cookie,
         seasonId: UUID,
         roleSlotsJson: String = """{ "player": 2 }""",
+        templateType: String? = null,
+        equityTag: String? = null,
     ): UUID {
         val future = Instant.parse("2031-04-01T19:00:00Z")
+        val templateJson = templateType?.let { """, "templateType": "$it"""" } ?: ""
+        val equityJson = equityTag?.let { """, "equityTag": "$it"""" } ?: ""
         val res =
             mockMvc
                 .perform(
@@ -119,13 +127,179 @@ class CompositionDrawIntegrationTest {
                             {
                               "title": "Draw event",
                               "startsAt": "$future",
-                              "roleSlots": $roleSlotsJson
+                              "roleSlots": $roleSlotsJson$templateJson$equityJson
                             }
                             """.trimIndent(),
                         ).with(csrf()),
                 ).andExpect(status().isOk)
                 .andReturn()
         return UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+    }
+
+    private fun validateComposition(eventId: UUID) {
+        val now = Instant.now()
+        val composition =
+            compositionRepository.findById(eventId).orElseThrow()
+        composition.validatedAt = now
+        composition.updatedAt = now
+        compositionRepository.save(composition)
+    }
+
+    private fun chancePercentForParticipant(
+        summaryJson: JsonNode,
+        roleKey: String,
+        participantId: String,
+    ): Int {
+        val playerCandidates =
+            summaryJson
+                .get("roles")
+                .first { it.get("roleKey").asText() == roleKey }
+                .get("candidates")
+        return (0 until playerCandidates.size())
+            .map { playerCandidates.get(it) }
+            .first { it.get("participantId").asText() == participantId }
+            .get("chancePercent")
+            .asInt()
+    }
+
+    private fun pastSelectionCountFromCandidates(
+        adminCookie: jakarta.servlet.http.Cookie,
+        seasonId: UUID,
+        eventId: UUID,
+        roleKey: String,
+        participantId: String,
+    ): Int {
+        val res =
+            mockMvc
+                .perform(
+                    get("/v1/seasons/$seasonId/events/$eventId/composition/candidates")
+                        .param("roleKey", roleKey)
+                        .param("slotIndex", "0")
+                        .cookie(adminCookie),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val candidates = mapper.readTree(res.response.contentAsString).get("candidates")
+        return (0 until candidates.size())
+            .map { candidates.get(it) }
+            .first { it.get("participantId").asText() == participantId }
+            .get("pastSelectionCount")
+            .asInt()
+    }
+
+    private fun chancePercentFromDrawStep(
+        drawBody: JsonNode,
+        roleKey: String,
+        participantId: String,
+    ): Int {
+        val step =
+            drawBody
+                .get("steps")
+                .first { it.get("roleKey").asText() == roleKey && it.get("slotIndex").asInt() == 0 }
+        val candidates = step.get("candidates")
+        return (0 until candidates.size())
+            .map { candidates.get(it) }
+            .first { it.get("participantId").asText() == participantId }
+            .get("chancePercent")
+            .asInt()
+    }
+
+    private fun participantIdForUser(
+        seasonId: UUID,
+        googleSub: String,
+    ): UUID {
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing user")
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+                ?: error("Missing membership")
+        return seasonParticipantRepository
+            .findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)
+            ?.id
+            ?: error("Missing season participant")
+    }
+
+    private fun assignSlot(
+        adminCookie: jakarta.servlet.http.Cookie,
+        seasonId: UUID,
+        eventId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+        participantId: UUID,
+    ) {
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/composition/slots/$roleKey/$slotIndex")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":"$participantId"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+    }
+
+    private fun assertPrincipalChancesEqualAfterAwayAssignment(
+        adminCookie: jakarta.servlet.http.Cookie,
+        seasonId: UUID,
+        awayEventId: UUID,
+        principalEventId: UUID,
+        awayEvent2Id: UUID,
+        veteran: jakarta.servlet.http.Cookie,
+        rookie: jakarta.servlet.http.Cookie,
+        veteranGoogleSub: String,
+        rookieGoogleSub: String,
+    ) {
+        val veteranId = participantIdForUser(seasonId, veteranGoogleSub)
+        val rookieId = participantIdForUser(seasonId, rookieGoogleSub)
+
+        setAvailability(veteran, seasonId, awayEventId, "available")
+        setAvailability(rookie, seasonId, awayEventId, "available")
+        setAvailability(veteran, seasonId, principalEventId, "available")
+        setAvailability(rookie, seasonId, principalEventId, "available")
+        setAvailability(veteran, seasonId, awayEvent2Id, "available")
+        setAvailability(rookie, seasonId, awayEvent2Id, "available")
+
+        assignSlot(adminCookie, seasonId, awayEventId, "player", 0, veteranId)
+        validateComposition(awayEventId)
+
+        val principalSummaryRes =
+            mockMvc
+                .perform(
+                    get(
+                        "/v1/seasons/$seasonId/events/$principalEventId/availability/summary?includeChances=true",
+                    ).cookie(adminCookie),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val principalSummary = mapper.readTree(principalSummaryRes.response.contentAsString)
+        assertEquals(
+            chancePercentForParticipant(principalSummary, "player", rookieId.toString()),
+            chancePercentForParticipant(principalSummary, "player", veteranId.toString()),
+            "Away validated assignment must not reduce principal chances",
+        )
+
+        val principalDraw = draw(adminCookie, seasonId, principalEventId)
+        assertEquals(
+            chancePercentFromDrawStep(principalDraw, "player", veteranId.toString()),
+            chancePercentFromDrawStep(principalDraw, "player", rookieId.toString()),
+            "Principal draw chances must stay equal after away assignment",
+        )
+
+        val veteranAwayHistory =
+            pastSelectionCountFromCandidates(
+                adminCookie,
+                seasonId,
+                awayEvent2Id,
+                "player",
+                veteranId.toString(),
+            )
+        val rookieAwayHistory =
+            pastSelectionCountFromCandidates(
+                adminCookie,
+                seasonId,
+                awayEvent2Id,
+                "player",
+                rookieId.toString(),
+            )
+        assertTrue(veteranAwayHistory > rookieAwayHistory)
     }
 
     private fun setAvailability(
@@ -364,6 +538,151 @@ class CompositionDrawIntegrationTest {
                 .get("chancePercent")
                 .asInt()
         assertTrue(veteranChance < rookieChance)
+    }
+
+    @Test
+    @Tag("FR19")
+    fun `selection history is scoped to equity compartment`() {
+        val adminCookie = memberCookie("sub-compartment-admin", admin = true)
+        val veteran = memberCookie("sub-compartment-vet")
+        val rookie = memberCookie("sub-compartment-rook")
+        val seasonId = createSeason(adminCookie)
+        val awayEventId =
+            createEvent(
+                adminCookie,
+                seasonId,
+                """{ "player": 1 }""",
+                templateType = "match",
+                equityTag = "deplacements",
+            )
+        val principalEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+        val awayEvent2Id =
+            createEvent(
+                adminCookie,
+                seasonId,
+                """{ "player": 1 }""",
+                templateType = "match",
+                equityTag = "deplacements",
+            )
+
+        assertPrincipalChancesEqualAfterAwayAssignment(
+            adminCookie,
+            seasonId,
+            awayEventId,
+            principalEventId,
+            awayEvent2Id,
+            veteran,
+            rookie,
+            veteranGoogleSub = "sub-compartment-vet",
+            rookieGoogleSub = "sub-compartment-rook",
+        )
+    }
+
+    @Test
+    @Tag("FR19")
+    fun `legacy deplacement template scopes history to deplacements compartment`() {
+        val adminCookie = memberCookie("sub-compartment-legacy-admin", admin = true)
+        val veteran = memberCookie("sub-compartment-legacy-vet")
+        val rookie = memberCookie("sub-compartment-legacy-rook")
+        val seasonId = createSeason(adminCookie)
+        val awayEventId =
+            createEvent(
+                adminCookie,
+                seasonId,
+                """{ "player": 1 }""",
+                templateType = "deplacement",
+            )
+        val principalEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+        val awayEvent2Id =
+            createEvent(
+                adminCookie,
+                seasonId,
+                """{ "player": 1 }""",
+                templateType = "deplacement",
+            )
+
+        assertPrincipalChancesEqualAfterAwayAssignment(
+            adminCookie,
+            seasonId,
+            awayEventId,
+            principalEventId,
+            awayEvent2Id,
+            veteran,
+            rookie,
+            veteranGoogleSub = "sub-compartment-legacy-vet",
+            rookieGoogleSub = "sub-compartment-legacy-rook",
+        )
+    }
+
+    @Test
+    @Tag("FR19")
+    fun `aperock compartment isolates history from principal and deplacements`() {
+        val adminCookie = memberCookie("sub-compartment-aperock-admin", admin = true)
+        val veteran = memberCookie("sub-compartment-aperock-vet")
+        val rookie = memberCookie("sub-compartment-aperock-rook")
+        val seasonId = createSeason(adminCookie)
+        val aperockEventId =
+            createEvent(
+                adminCookie,
+                seasonId,
+                """{ "player": 1 }""",
+                templateType = "match",
+                equityTag = "aperock",
+            )
+        val principalEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+        val aperockEvent2Id =
+            createEvent(
+                adminCookie,
+                seasonId,
+                """{ "player": 1 }""",
+                templateType = "match",
+                equityTag = "aperock",
+            )
+
+        setAvailability(veteran, seasonId, aperockEventId, "available")
+        setAvailability(rookie, seasonId, aperockEventId, "available")
+        setAvailability(veteran, seasonId, principalEventId, "available")
+        setAvailability(rookie, seasonId, principalEventId, "available")
+        setAvailability(veteran, seasonId, aperockEvent2Id, "available")
+        setAvailability(rookie, seasonId, aperockEvent2Id, "available")
+
+        val veteranId = participantIdForUser(seasonId, "sub-compartment-aperock-vet")
+        val rookieId = participantIdForUser(seasonId, "sub-compartment-aperock-rook")
+        assignSlot(adminCookie, seasonId, aperockEventId, "player", 0, veteranId)
+        validateComposition(aperockEventId)
+
+        val principalSummaryRes =
+            mockMvc
+                .perform(
+                    get(
+                        "/v1/seasons/$seasonId/events/$principalEventId/availability/summary?includeChances=true",
+                    ).cookie(adminCookie),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val principalSummary = mapper.readTree(principalSummaryRes.response.contentAsString)
+        assertEquals(
+            chancePercentForParticipant(principalSummary, "player", rookieId.toString()),
+            chancePercentForParticipant(principalSummary, "player", veteranId.toString()),
+            "Apérock assignment must not reduce principal chances",
+        )
+
+        val veteranAperockHistory =
+            pastSelectionCountFromCandidates(
+                adminCookie,
+                seasonId,
+                aperockEvent2Id,
+                "player",
+                veteranId.toString(),
+            )
+        val rookieAperockHistory =
+            pastSelectionCountFromCandidates(
+                adminCookie,
+                seasonId,
+                aperockEvent2Id,
+                "player",
+                rookieId.toString(),
+            )
+        assertTrue(veteranAperockHistory > rookieAperockHistory)
     }
 
     @Test

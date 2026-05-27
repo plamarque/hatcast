@@ -48,20 +48,20 @@ class AuthUserLinkService(
         }
 
         val now = Instant.now()
-        val created =
-            userRepository.save(
-                UserEntity(
-                    googleSub = googleSub,
-                    idpUid = null,
-                    email = normalizedEmail ?: email,
-                    displayName = displayName,
-                    activatedAt = now,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
+        val draft =
+            UserEntity(
+                googleSub = googleSub,
+                idpUid = null,
+                email = normalizedEmail ?: email,
+                displayName = displayName,
+                activatedAt = now,
+                createdAt = now,
+                updatedAt = now,
             )
+        draft.slug = userSlugService.allocateUniqueSlug(draft)
+        val created = userRepository.save(draft)
         participantLinkService.linkPendingParticipantsOnLogin(created)
-        return userSlugService.ensureSlug(created)
+        return created
     }
 
     fun resolveIdpSignInUser(
@@ -92,20 +92,20 @@ class AuthUserLinkService(
         }
 
         val now = Instant.now()
-        val created =
-            userRepository.save(
-                UserEntity(
-                    googleSub = null,
-                    idpUid = idpUid,
-                    email = normalizedEmail ?: email,
-                    displayName = displayName,
-                    activatedAt = now,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
+        val draft =
+            UserEntity(
+                googleSub = null,
+                idpUid = idpUid,
+                email = normalizedEmail ?: email,
+                displayName = displayName,
+                activatedAt = now,
+                createdAt = now,
+                updatedAt = now,
             )
+        draft.slug = userSlugService.allocateUniqueSlug(draft)
+        val created = userRepository.save(draft)
         participantLinkService.linkPendingParticipantsOnLogin(created)
-        return userSlugService.ensureSlug(created)
+        return created
     }
 
     private fun updateProfile(

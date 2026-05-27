@@ -10,6 +10,7 @@ import com.hatcast.api.composition.dto.CompositionDrawStepCandidateDto
 import com.hatcast.api.composition.dto.CompositionDrawStepDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.DrawCompositionRequestDto
+import com.hatcast.api.event.EquityCompartment
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
@@ -100,7 +101,11 @@ class CompositionDrawService(
         val availabilityByUserId =
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
         val historyCounts =
-            selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, eventId)
+            selectionHistory.pastSelectionCountByParticipantAndRole(
+                seasonId,
+                eventId,
+                EquityCompartment.slug(event),
+            )
 
         val allSlots = slotRepository.findByEventId(eventId)
         val slotsByRole =

@@ -206,6 +206,7 @@ class AuthControllerIntegrationTest {
             UserEntity(
                 email = "migrated@example.com",
                 displayName = "Stub User",
+                slug = "stub-user",
             ),
         )
 

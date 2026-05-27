@@ -1,5 +1,6 @@
 package com.hatcast.api.season
 
+import com.hatcast.api.event.EquityCompartment
 import com.hatcast.api.event.EventEntity
 
 /** Story 17.10 — filter stats events by spectacle group (compartment) before aggregation. */
@@ -33,12 +34,7 @@ object SeasonStatisticsCompartments {
     }
 
     /** Compartment slug for filtering: `principal`, glossary slug, or legacy `deplacements` bucket. */
-    fun compartmentSlug(event: EventEntity): String =
-        when {
-            event.equityTag != null -> event.equityTag!!
-            event.templateType == "deplacement" -> "deplacements"
-            else -> "principal"
-        }
+    fun compartmentSlug(event: EventEntity): String = EquityCompartment.slug(event)
 
     fun matches(
         event: EventEntity,
