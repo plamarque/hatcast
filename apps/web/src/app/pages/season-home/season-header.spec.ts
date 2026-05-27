@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { SeasonHeader } from './season-header'
@@ -25,6 +26,17 @@ describe('SeasonHeader', () => {
       }),
     }
 
+    const switcherData = {
+      initialized: () => false,
+      showSwitcher: () => false,
+      loadError: () => false,
+      ensureReady: vi.fn().mockResolvedValue(undefined),
+      loading: () => false,
+      troupes: () => [],
+      seasonsForTroupe: () => [],
+      prepareMenuOpen: vi.fn().mockResolvedValue(undefined),
+    }
+
     await TestBed.configureTestingModule({
       imports: [SeasonHeader, NoopAnimationsModule],
       providers: [
@@ -32,6 +44,7 @@ describe('SeasonHeader', () => {
         { provide: TroupeContextService, useValue: troupeContext },
         { provide: MemberProfileService, useValue: memberProfile },
         { provide: AuthApiService, useValue: authApi },
+        { provide: ContextSwitcherDataService, useValue: switcherData },
       ],
     }).compileComponents()
 

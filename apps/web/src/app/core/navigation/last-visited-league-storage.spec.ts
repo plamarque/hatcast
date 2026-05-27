@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   clearLastVisitedSeasonSlug,
   getLastVisitedSeasonSlug,
+  getLastVisitedSeasonSlugForTroupe,
   rememberLastVisitedSeasonSlug,
 } from './last-visited-league-storage'
 
@@ -40,5 +41,21 @@ describe('lastVisitedLeagueStorage', () => {
   it('ignores blank slug', () => {
     rememberLastVisitedSeasonSlug('   ')
     expect(getLastVisitedSeasonSlug()).toBeNull()
+  })
+
+  it('stores per-troupe slug map when troupeId is provided', () => {
+    rememberLastVisitedSeasonSlug('saison-a', 'troupe-1')
+    rememberLastVisitedSeasonSlug('saison-b', 'troupe-2')
+
+    expect(getLastVisitedSeasonSlug()).toBe('saison-b')
+    expect(getLastVisitedSeasonSlugForTroupe('troupe-1')).toBe('saison-a')
+    expect(getLastVisitedSeasonSlugForTroupe('troupe-2')).toBe('saison-b')
+  })
+
+  it('clears per-troupe map with global clear', () => {
+    rememberLastVisitedSeasonSlug('saison-a', 'troupe-1')
+    clearLastVisitedSeasonSlug()
+
+    expect(getLastVisitedSeasonSlugForTroupe('troupe-1')).toBeNull()
   })
 })

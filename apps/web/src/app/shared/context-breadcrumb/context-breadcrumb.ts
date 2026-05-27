@@ -1,27 +1,32 @@
-import { Component, computed, input } from '@angular/core'
+import { Component, computed, inject, input } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { RouterLink } from '@angular/router'
 
+import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
 import {
   saisonEventPath,
   saisonWorkspacePath,
   troupeHubPath,
 } from '../../core/navigation/troupe-routes'
+import { ContextSwitcher } from '../context-switcher/context-switcher'
 
 export type ContextBreadcrumbLayout = 'season' | 'event' | 'troupe'
 
 @Component({
   selector: 'app-context-breadcrumb',
-  imports: [MatButtonModule, MatIconModule, RouterLink],
+  imports: [ContextSwitcher, MatButtonModule, MatIconModule, RouterLink],
   templateUrl: './context-breadcrumb.html',
   styleUrl: './context-breadcrumb.scss',
 })
 export class ContextBreadcrumb {
+  private readonly switcherData = inject(ContextSwitcherDataService)
+
   protected readonly troupeHubPath = troupeHubPath
   protected readonly saisonWorkspacePath = saisonWorkspacePath
   protected readonly saisonEventPath = saisonEventPath
 
+  readonly troupeId = input<string>('')
   readonly troupeName = input.required<string>()
   readonly troupeSlug = input.required<string>()
   readonly troupeLogoUrl = input<string | null>(null)
@@ -64,4 +69,20 @@ export class ContextBreadcrumb {
   })
 
   protected readonly showTroupeImage = computed(() => !!this.troupeLogoUrl()?.trim())
+
+  protected readonly useSwitcher = computed(() => {
+    const troupeId = this.troupeId()?.trim()
+    if (!troupeId || this.layout() === 'troupe') {
+      return false
+    }
+    return (
+      this.switcherData.initialized() &&
+      this.switcherData.showSwitcher() &&
+      !this.switcherData.loadError()
+    )
+  })
+
+  protected readonly switcherInputsReady = computed(
+    () => !!this.troupeId()?.trim() && !!this.troupeSlug()?.trim() && !!this.troupeName()?.trim(),
+  )
 }

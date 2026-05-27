@@ -25,7 +25,15 @@
     @if (layout() !== 'troupe') {
       <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
       <li class="context-breadcrumb__segment">
-        @if (seasonIsLink()) {
+        @if (useSwitcher() && switcherInputsReady()) {
+          <app-context-switcher
+            [troupeId]="troupeId()!"
+            [troupeSlug]="troupeSlug()"
+            [troupeName]="troupeName()"
+            [seasonSlug]="seasonSlug()"
+            [seasonTitle]="seasonTitle()"
+          />
+        } @else if (seasonIsLink()) {
           <a class="context-breadcrumb__link" [routerLink]="saisonWorkspacePath(seasonSlug())">
             {{ seasonTitle() }}
           </a>
@@ -59,24 +67,36 @@
     }
   </ol>
 
-  <a
-    class="context-breadcrumb__mobile-logo"
-    mat-icon-button
-    [routerLink]="troupeHubPath(troupeSlug())"
-    [attr.aria-label]="troupeAriaLabel()"
-  >
-    @if (showTroupeImage()) {
-      <img
-        class="context-breadcrumb__logo-img context-breadcrumb__logo-img--round"
-        [src]="troupeLogoUrl()!"
-        alt=""
-        width="36"
-        height="36"
+  <div class="context-breadcrumb__mobile-row">
+    <a
+      class="context-breadcrumb__mobile-logo"
+      mat-icon-button
+      [routerLink]="troupeHubPath(troupeSlug())"
+      [attr.aria-label]="troupeAriaLabel()"
+    >
+      @if (showTroupeImage()) {
+        <img
+          class="context-breadcrumb__logo-img context-breadcrumb__logo-img--round"
+          [src]="troupeLogoUrl()!"
+          alt=""
+          width="36"
+          height="36"
+        />
+      } @else {
+        <span class="context-breadcrumb__logo-badge context-breadcrumb__logo-badge--round" aria-hidden="true">
+          <mat-icon>groups</mat-icon>
+        </span>
+      }
+    </a>
+    @if (layout() !== 'troupe' && useSwitcher() && switcherInputsReady()) {
+      <app-context-switcher
+        [compact]="true"
+        [troupeId]="troupeId()!"
+        [troupeSlug]="troupeSlug()"
+        [troupeName]="troupeName()"
+        [seasonSlug]="seasonSlug()"
+        [seasonTitle]="seasonTitle()"
       />
-    } @else {
-      <span class="context-breadcrumb__logo-badge context-breadcrumb__logo-badge--round" aria-hidden="true">
-        <mat-icon>groups</mat-icon>
-      </span>
     }
-  </a>
+  </div>
 </nav>

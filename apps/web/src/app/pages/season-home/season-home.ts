@@ -22,6 +22,7 @@ import {
   rememberLastMemberEntryPath,
   saisonMemberEntryPath,
 } from '../../core/navigation/last-member-entry-path-storage'
+import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import {
   saisonAdminParticipantsPath,
@@ -118,6 +119,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   private readonly troupeContext = inject(TroupeContextService)
   private readonly troupeApi = inject(TroupeApiService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
+  private readonly contextSwitcherData = inject(ContextSwitcherDataService)
   private readonly eventsApi = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly participantApi = inject(ParticipantApiService)
@@ -147,6 +149,13 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly troupeId = signal<string | null>(null)
   protected readonly troupeName = signal<string | null>(null)
   protected readonly troupeSlug = signal<string | null>(null)
+
+  protected readonly showMobileSeasonTitle = computed(() => {
+    if (!this.contextSwitcherData.initialized()) {
+      return true
+    }
+    return !this.contextSwitcherData.showSwitcher()
+  })
   protected readonly season = signal<SeasonResponse | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
@@ -485,7 +494,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeName.set(resolved.troupe.name)
     this.troupeSlug.set(resolved.troupe.slug)
     this.season.set(resolved.season)
-    rememberLastVisitedSeasonSlug(slug)
+    rememberLastVisitedSeasonSlug(slug, resolved.troupe.id)
     rememberLastMemberEntryPath(saisonMemberEntryPath(slug))
     await Promise.all([
       this.loadSeasonPermissions(resolved.season.id, requestId),

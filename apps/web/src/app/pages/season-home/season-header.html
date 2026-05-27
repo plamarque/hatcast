@@ -3,6 +3,7 @@
     @if (showBreadcrumb()) {
       <app-context-breadcrumb
         layout="season"
+        [troupeId]="troupeId()"
         [troupeName]="troupeName()!"
         [troupeSlug]="troupeSlug()!"
         [seasonTitle]="seasonTitle()"

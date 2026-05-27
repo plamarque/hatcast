@@ -123,8 +123,16 @@
   border-radius: 50%;
 }
 
-.context-breadcrumb__mobile-logo {
+.context-breadcrumb__mobile-row {
   display: none;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.context-breadcrumb__mobile-logo {
+  flex-shrink: 0;
 }
 
 @media (max-width: 480px) {
@@ -132,7 +140,7 @@
     display: none;
   }
 
-  .context-breadcrumb__mobile-logo {
-    display: inline-flex;
+  .context-breadcrumb__mobile-row {
+    display: flex;
   }
 }

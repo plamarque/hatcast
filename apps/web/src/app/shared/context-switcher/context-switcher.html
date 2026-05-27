@@ -1,0 +1,70 @@
+@if (showSwitcher()) {
+  <button
+    type="button"
+    mat-stroked-button
+    class="context-switcher__trigger"
+    [class.context-switcher__trigger--compact]="compact()"
+    [matMenuTriggerFor]="contextMenu"
+    [disabled]="menuDisabled()"
+    [attr.aria-label]="'Changer de troupe ou de saison'"
+    (menuOpened)="onMenuOpen()"
+  >
+    @if (loading()) {
+      <mat-spinner class="context-switcher__spinner" diameter="18" />
+    } @else {
+      <ng-container>
+        <span class="context-switcher__label">{{ seasonTitle() }}</span>
+        <mat-icon class="context-switcher__caret" aria-hidden="true">expand_more</mat-icon>
+      </ng-container>
+    }
+  </button>
+
+  <mat-menu #contextMenu="matMenu" class="context-switcher__panel">
+    <div class="context-switcher__section-label" role="presentation">Troupes</div>
+    @for (troupe of troupes(); track troupe.id) {
+      <button
+        type="button"
+        mat-menu-item
+        (click)="selectTroupe(troupe)"
+        [attr.aria-current]="isCurrentTroupe(troupe) ? 'true' : null"
+      >
+        @if (isCurrentTroupe(troupe)) {
+          <span aria-hidden="true" class="context-switcher__bullet">●</span>
+        }
+        <span>{{ troupe.name }}</span>
+        @if (isCurrentTroupe(troupe)) {
+          <span class="context-switcher__current-hint"> (actuel)</span>
+        }
+      </button>
+    }
+
+    <mat-divider />
+
+    <div class="context-switcher__section-label" role="presentation">
+      {{ menuSeasonSectionLabel() }}
+    </div>
+    @for (season of seasonsForMenu(); track season.id) {
+      <button
+        type="button"
+        mat-menu-item
+        (click)="selectSeason(season)"
+        [attr.aria-current]="isCurrentSeason(season) ? 'true' : null"
+      >
+        @if (isCurrentSeason(season)) {
+          <span aria-hidden="true" class="context-switcher__bullet">●</span>
+        }
+        <span>{{ season.title }}</span>
+        @if (isCurrentSeason(season)) {
+          <span class="context-switcher__current-hint"> (actuel)</span>
+        }
+      </button>
+    }
+
+    <mat-divider />
+
+    <a mat-menu-item [routerLink]="troupesListPath()">Voir toutes mes troupes</a>
+    <a mat-menu-item [routerLink]="troupeHubPath(troupeSlug())">
+      Gérer les saisons sur la page troupe
+    </a>
+  </mat-menu>
+}
