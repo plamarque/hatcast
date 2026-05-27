@@ -11,8 +11,8 @@
   margin-left: auto;
 
   .mat-button-toggle-checked {
-    background: rgba(147, 51, 234, 0.35);
-    color: #fff;
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
   }
 }
 
@@ -20,6 +20,12 @@
   display: flex;
   justify-content: center;
   padding: 2rem;
+}
+
+.event-dispos__empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 75%, transparent);
 }
 
 @media (max-width: 480px) {

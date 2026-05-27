@@ -1,7 +1,16 @@
 @if (proxyMode()) {
-  <p class="availability-moi-panel__proxy-hint">
-    Vous modifiez la disponibilité pour le compte de {{ subject().displayName }}.
-  </p>
+  <div class="availability-moi-panel__proxy-banner" role="status">
+    <mat-icon class="availability-moi-panel__proxy-icon" aria-hidden="true">warning</mat-icon>
+    <div class="availability-moi-panel__proxy-text">
+      <p class="availability-moi-panel__proxy-title">
+        Saisie pour le compte de {{ subject().displayName }}
+      </p>
+      <p class="availability-moi-panel__proxy-detail">
+        Vérifiez avant d'enregistrer&nbsp;: statut, rôles et commentaire s'appliquent à ce·tte
+        membre, pas à votre compte.
+      </p>
+    </div>
+  </div>
 }
 <app-availability-form
   [seasonId]="seasonId()"
@@ -15,5 +24,6 @@
   [archived]="archived()"
   [initialStatus]="subject().status"
   [initialRoleKeys]="subject().roleKeys"
+  [initialComment]="subject().comment"
   (saved)="saved.emit($event)"
 />

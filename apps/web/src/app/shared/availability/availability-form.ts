@@ -1,7 +1,18 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  OnDestroy,
+  output,
+  signal,
+} from '@angular/core'
 import { A11yModule } from '@angular/cdk/a11y'
-import { MatButtonModule } from '@angular/material/button'
+import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
+import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
@@ -20,13 +31,21 @@ import {
   type RoleSlots,
 } from '../../core/events/event-types'
 
+export const AVAILABILITY_COMMENT_MAX_LENGTH = 500
+
 @Component({
   selector: 'app-availability-form',
-  imports: [A11yModule, MatButtonModule, MatCheckboxModule],
+  imports: [
+    A11yModule,
+    MatButtonToggleModule,
+    MatCheckboxModule,
+    MatFormFieldModule,
+    MatInputModule,
+  ],
   templateUrl: './availability-form.html',
   styleUrl: './availability-form.scss',
 })
-export class AvailabilityForm {
+export class AvailabilityForm implements OnDestroy {
   private readonly api = inject(AvailabilityApiService)
   private readonly memberProfileApi = inject(MemberProfileApiService)
   private readonly snack = inject(MatSnackBar)
@@ -42,12 +61,19 @@ export class AvailabilityForm {
   readonly archived = input(false)
   readonly initialStatus = input<AvailabilityStatus>('unknown')
   readonly initialRoleKeys = input<string[] | null | undefined>([])
+  readonly initialComment = input<string | null | undefined>(null)
 
-  readonly saved = output<{ status: AvailabilityStatus; roleKeys: string[] }>()
+  readonly saved = output<{
+    status: AvailabilityStatus
+    roleKeys: string[]
+    comment: string | null
+  }>()
 
   protected readonly selected = signal<AvailabilityStatus>('unknown')
   protected readonly saving = signal(false)
   protected readonly selectedRoleKeys = signal<RoleKey[]>([])
+  protected readonly commentText = signal('')
+  protected readonly commentError = signal<string | null>(null)
 
   protected readonly roleChoices = computed(() =>
     candidateRolesForEvent(this.roleSlots()).map((key) => ({
@@ -60,6 +86,7 @@ export class AvailabilityForm {
   private volunteerExplicitlyUnchecked = false
   protected volunteerMandatoryHint = false
   private skipInputEffect = false
+  private commentSaveTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor() {
     effect(() => {
@@ -71,14 +98,22 @@ export class AvailabilityForm {
       this.selectedRoleKeys.set(
         normalizeCandidateRoleKeys(this.roleSlots(), this.initialRoleKeys(), false),
       )
+      this.commentText.set(this.initialComment() ?? '')
+      this.commentError.set(null)
     })
   }
 
-  syncFromParent(status: AvailabilityStatus, roleKeys: string[] | null | undefined): void {
+  syncFromParent(
+    status: AvailabilityStatus,
+    roleKeys: string[] | null | undefined,
+    comment?: string | null,
+  ): void {
     if (this.saving()) return
     this.skipInputEffect = true
     this.selected.set(status)
     this.selectedRoleKeys.set(normalizeCandidateRoleKeys(this.roleSlots(), roleKeys, false))
+    this.commentText.set(comment ?? '')
+    this.commentError.set(null)
   }
 
   protected isSelected(status: AvailabilityStatus): boolean {
@@ -106,12 +141,36 @@ export class AvailabilityForm {
     return this.selected() === 'available' && this.roleChoices().length > 0
   }
 
+  protected shouldShowCommentBlock(): boolean {
+    return this.selected() !== 'unknown' || !!this.commentText().trim()
+  }
+
   protected isRoleSelected(roleKey: RoleKey): boolean {
     return this.selectedRoleKeys().includes(roleKey)
   }
 
   protected shouldShowVolunteerMandatoryHint(): boolean {
     return this.volunteerMandatoryHint
+  }
+
+  ngOnDestroy(): void {
+    if (this.commentSaveTimer) {
+      clearTimeout(this.commentSaveTimer)
+      this.commentSaveTimer = null
+    }
+  }
+
+  protected onCommentInput(value: string): void {
+    if (this.readOnly() || this.archived()) return
+    this.commentText.set(value)
+    this.commentError.set(null)
+    this.scheduleCommentSave()
+  }
+
+  protected async onStatusChange(status: AvailabilityStatus): Promise<void> {
+    if (this.saving() || this.readOnly() || this.archived()) return
+    if (status === this.selected()) return
+    await this.choose(status)
   }
 
   protected async choose(status: AvailabilityStatus): Promise<void> {
@@ -188,13 +247,43 @@ export class AvailabilityForm {
     )
   }
 
+  private scheduleCommentSave(): void {
+    if (this.commentSaveTimer) {
+      clearTimeout(this.commentSaveTimer)
+    }
+    this.commentSaveTimer = setTimeout(() => {
+      this.commentSaveTimer = null
+      void this.persist(this.selected())
+    }, 400)
+  }
+
+  private normalizedComment(): string | null {
+    const trimmed = this.commentText().trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+
+  private validateCommentLocally(): boolean {
+    if (this.commentText().length > AVAILABILITY_COMMENT_MAX_LENGTH) {
+      this.commentError.set(
+        `Le commentaire ne peut pas dépasser ${AVAILABILITY_COMMENT_MAX_LENGTH} caractères.`,
+      )
+      return false
+    }
+    this.commentError.set(null)
+    return true
+  }
+
   private async persist(status: AvailabilityStatus): Promise<void> {
+    if (!this.validateCommentLocally()) {
+      return
+    }
     this.saving.set(true)
     const roleKeys = status === 'available' ? this.selectedRoleKeys() : []
     const body = {
       status,
       roleKeys,
       applyVolunteerRule: this.shouldApplyVolunteerRule(),
+      comment: this.normalizedComment(),
     }
     const participantId = this.subjectParticipantId()
     const r =
@@ -208,6 +297,12 @@ export class AvailabilityForm {
         : await this.api.setMyAvailability(this.seasonId(), this.eventId(), body)
     this.saving.set(false)
     if (!r.ok || !r.data) {
+      if (r.status === 400) {
+        this.commentError.set(
+          `Le commentaire ne peut pas dépasser ${AVAILABILITY_COMMENT_MAX_LENGTH} caractères.`,
+        )
+        return
+      }
       this.snack.open('Enregistrement impossible.', 'OK', { duration: 5000 })
       return
     }
@@ -215,10 +310,19 @@ export class AvailabilityForm {
     this.selectedRoleKeys.set(
       normalizeCandidateRoleKeys(this.roleSlots(), r.data.roleKeys, false),
     )
-    this.saved.emit({ status: r.data.status, roleKeys: r.data.roleKeys })
+    this.commentText.set(r.data.comment ?? '')
+    this.saved.emit({
+      status: r.data.status,
+      roleKeys: r.data.roleKeys,
+      comment: r.data.comment ?? null,
+    })
   }
 
-  currentState(): { status: AvailabilityStatus; roleKeys: string[] } {
-    return { status: this.selected(), roleKeys: this.selectedRoleKeys() }
+  currentState(): { status: AvailabilityStatus; roleKeys: string[]; comment: string | null } {
+    return {
+      status: this.selected(),
+      roleKeys: this.selectedRoleKeys(),
+      comment: this.normalizedComment(),
+    }
   }
 }

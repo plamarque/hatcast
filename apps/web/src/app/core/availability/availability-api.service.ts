@@ -7,12 +7,14 @@ export interface MyAvailabilityResponse {
   status: AvailabilityStatus
   updatedAt?: string | null
   roleKeys: string[]
+  comment?: string | null
 }
 
 export interface SetMyAvailabilityBody {
   status: AvailabilityStatus
   roleKeys?: string[]
   applyVolunteerRule?: boolean
+  comment?: string | null
 }
 
 export interface SummaryParticipant {
@@ -22,6 +24,7 @@ export interface SummaryParticipant {
   avatarUrl?: string | null
   status: AvailabilityStatus
   roleKeys: string[]
+  comment?: string | null
 }
 
 export interface SummaryRoleCandidate {

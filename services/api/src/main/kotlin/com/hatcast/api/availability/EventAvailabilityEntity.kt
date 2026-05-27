@@ -39,6 +39,10 @@ class EventAvailabilityEntity(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_participant_id")
     var eventParticipant: EventParticipantEntity? = null,
+    /**
+     * Last user who wrote this row (self-service or proxy). Includes comment updates.
+     * Dedicated audit trail (FR35) should record per-field history, including comment author.
+     */
     @Column(name = "recorded_by_user_id")
     var recordedByUserId: UUID? = null,
     @Enumerated(EnumType.STRING)
@@ -51,6 +55,8 @@ class EventAvailabilityEntity(
     @Convert(converter = RoleKeysJsonConverter::class)
     @Column(name = "role_keys", nullable = false, length = 4096)
     var roleKeys: List<String> = emptyList(),
+    @Column(name = "comment", length = 500)
+    var comment: String? = null,
 ) {
     constructor(
         event: EventEntity,

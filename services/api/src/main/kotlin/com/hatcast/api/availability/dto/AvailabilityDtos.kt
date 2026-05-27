@@ -2,6 +2,7 @@ package com.hatcast.api.availability.dto
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Size
 import java.time.Instant
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -10,12 +11,15 @@ data class SetMyAvailabilityRequest(
     val status: String,
     val roleKeys: List<String>? = null,
     val applyVolunteerRule: Boolean? = null,
+    @field:Size(max = 500, message = "Le commentaire ne peut pas dépasser 500 caractères")
+    val comment: String? = null,
 )
 
 data class MyAvailabilityResponse(
     val status: String,
     val updatedAt: Instant? = null,
     val roleKeys: List<String> = emptyList(),
+    val comment: String? = null,
 )
 
 data class SummaryParticipantDto(
@@ -25,6 +29,7 @@ data class SummaryParticipantDto(
     val avatarUrl: String? = null,
     val status: String,
     val roleKeys: List<String> = emptyList(),
+    val comment: String? = null,
 )
 
 data class SummaryRoleCandidateDto(

@@ -4,64 +4,36 @@
   gap: 1rem;
 }
 
-.availability-form__choices {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-}
+.availability-form__status-toggle {
+  display: flex;
+  width: 100%;
 
-.availability-form__choice {
-  min-height: 2.75rem;
-  padding-inline: 0.35rem;
-  font-size: 0.78rem;
-  line-height: 1.2;
-  white-space: normal;
-  opacity: 0.75;
-  transition: opacity 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-
-  &--active {
-    opacity: 1;
-    border: 2px solid currentColor;
-    box-shadow: 0 0 0.75rem rgba(255, 255, 255, 0.08);
+  mat-button-toggle {
+    flex: 1;
+    min-height: 3rem;
   }
 
-  &--available {
-    background: rgba(22, 163, 74, 0.65);
-    color: #fff;
-
-    &.availability-form__choice--active {
-      background: rgb(22, 163, 74);
-    }
+  .mat-button-toggle-checked.availability-form__status--available {
+    background: var(--hatcast-availability-available-container);
+    color: var(--hatcast-availability-available-on);
   }
 
-  &--unavailable {
-    background: rgba(220, 38, 38, 0.65);
-    color: #fff;
-
-    &.availability-form__choice--active {
-      background: rgb(220, 38, 38);
-    }
+  .mat-button-toggle-checked.availability-form__status--unavailable {
+    background: var(--hatcast-availability-unavailable-container);
+    color: var(--hatcast-availability-unavailable-on);
   }
 
-  &--unknown {
-    background: rgba(107, 114, 128, 0.65);
-    color: #fff;
-
-    &.availability-form__choice--active {
-      background: rgb(107, 114, 128);
-    }
+  .mat-button-toggle-checked.availability-form__status--unknown {
+    background: var(--hatcast-availability-unknown-container);
+    color: var(--hatcast-availability-unknown-on);
   }
-}
-
-.availability-form__check {
-  margin-right: 0.15rem;
 }
 
 .availability-form__feedback {
   margin: 0;
   text-align: center;
   font-size: 0.78rem;
-  opacity: 0.75;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 75%, transparent);
 }
 
 .availability-form__roles {
@@ -69,9 +41,9 @@
   flex-direction: column;
   gap: 0.65rem;
   padding: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--hatcast-availability-border);
   border-radius: 0.65rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--hatcast-availability-surface);
 }
 
 .availability-form__roles-title {
@@ -100,10 +72,20 @@
 .availability-form__role-hint {
   padding-left: 2.5rem;
   font-size: 0.72rem;
-  opacity: 0.65;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 65%, transparent);
 }
 
 .availability-form__role-emoji {
   display: inline-block;
   width: 1.4rem;
+}
+
+.availability-form__comment {
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .availability-form__status-toggle mat-button-toggle {
+    min-height: 3rem;
+  }
 }

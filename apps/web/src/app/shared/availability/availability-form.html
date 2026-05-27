@@ -1,45 +1,22 @@
 <div class="availability-form">
-  <div class="availability-form__choices" role="group" aria-label="Choix de disponibilité">
-    <button
-      mat-flat-button
-      type="button"
-      class="availability-form__choice availability-form__choice--available"
-      [class.availability-form__choice--active]="isSelected('available')"
-      [disabled]="saving() || readOnly() || archived()"
-      (click)="choose('available')"
-    >
-      @if (isSelected('available')) {
-        <span class="availability-form__check" aria-hidden="true">✓</span>
-      }
+  <mat-button-toggle-group
+    class="availability-form__status-toggle"
+    [value]="selected()"
+    [disabled]="saving() || readOnly() || archived()"
+    (change)="onStatusChange($event.value)"
+    hideSingleSelectionIndicator
+    aria-label="Choix de disponibilité"
+  >
+    <mat-button-toggle class="availability-form__status--available" value="available">
       Dispo
-    </button>
-    <button
-      mat-flat-button
-      type="button"
-      class="availability-form__choice availability-form__choice--unavailable"
-      [class.availability-form__choice--active]="isSelected('unavailable')"
-      [disabled]="saving() || readOnly() || archived()"
-      (click)="choose('unavailable')"
-    >
-      @if (isSelected('unavailable')) {
-        <span class="availability-form__check" aria-hidden="true">✓</span>
-      }
+    </mat-button-toggle>
+    <mat-button-toggle class="availability-form__status--unavailable" value="unavailable">
       Pas dispo
-    </button>
-    <button
-      mat-flat-button
-      type="button"
-      class="availability-form__choice availability-form__choice--unknown"
-      [class.availability-form__choice--active]="isSelected('unknown')"
-      [disabled]="saving() || readOnly() || archived()"
-      (click)="choose('unknown')"
-    >
-      @if (isSelected('unknown')) {
-        <span class="availability-form__check" aria-hidden="true">✓</span>
-      }
+    </mat-button-toggle>
+    <mat-button-toggle class="availability-form__status--unknown" value="unknown">
       Non renseigné
-    </button>
-  </div>
+    </mat-button-toggle>
+  </mat-button-toggle-group>
 
   @if (feedbackText(); as feedback) {
     <p class="availability-form__feedback">{{ feedback }}</p>
@@ -73,5 +50,26 @@
         }
       </div>
     </section>
+  }
+
+  @if (shouldShowCommentBlock()) {
+    <mat-form-field class="availability-form__comment" appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Commentaire (optionnel)</mat-label>
+      <textarea
+        matInput
+        rows="3"
+        [value]="commentText()"
+        [readonly]="readOnly() || archived()"
+        maxlength="500"
+        [attr.aria-readonly]="readOnly() || archived()"
+        (input)="onCommentInput($any($event.target).value)"
+      ></textarea>
+      @if (!readOnly() && !archived()) {
+        <mat-hint align="end">{{ commentText().length }} / 500</mat-hint>
+      }
+      @if (commentError(); as err) {
+        <mat-error>{{ err }}</mat-error>
+      }
+    </mat-form-field>
   }
 </div>

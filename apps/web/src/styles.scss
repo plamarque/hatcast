@@ -53,3 +53,51 @@ body {
 .admin-row-delete-btn:disabled {
   color: color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
 }
+
+/** Onglet Dispos — états de disponibilité (story 5.6, revue M3) */
+:root {
+  --hatcast-availability-available-container: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary) 72%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-availability-available-on: var(--mat-sys-on-tertiary-container);
+  --hatcast-availability-unavailable-container: color-mix(
+    in srgb,
+    var(--mat-sys-error) 65%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-availability-unavailable-on: var(--mat-sys-on-error-container);
+  --hatcast-availability-unknown-container: color-mix(
+    in srgb,
+    var(--mat-sys-on-surface) 22%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-availability-unknown-on: var(--mat-sys-on-surface);
+  --hatcast-availability-surface: color-mix(
+    in srgb,
+    var(--mat-sys-surface-container-low) 88%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-availability-border: color-mix(
+    in srgb,
+    var(--mat-sys-outline-variant) 55%,
+    transparent
+  );
+  --hatcast-chance-high: var(--mat-sys-tertiary);
+  --hatcast-chance-medium: var(--mat-sys-secondary);
+  --hatcast-chance-low: var(--mat-sys-error);
+  /** Bandeau proxy / avertissement (saisie pour le compte d'un autre membre) */
+  --hatcast-proxy-banner-surface: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary) 34%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-proxy-banner-border: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary) 62%,
+    transparent
+  );
+  --hatcast-proxy-banner-on: var(--mat-sys-on-surface);
+  --hatcast-proxy-banner-icon: var(--mat-sys-tertiary);
+}

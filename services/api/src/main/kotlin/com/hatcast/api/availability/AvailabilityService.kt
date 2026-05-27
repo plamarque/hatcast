@@ -197,6 +197,7 @@ class AvailabilityService(
                     avatarUrl = row.avatarUrl,
                     status = apiStatus,
                     roleKeys = roleKeys,
+                    comment = availability?.comment?.takeIf { it.isNotBlank() },
                 )
             }
 
@@ -346,6 +347,8 @@ class AvailabilityService(
         recordedByUserId: UUID?,
     ): MyAvailabilityResponse {
         val stored = parseStoredStatus(body)
+        validateComment(body.comment)
+        val normalizedComment = normalizeComment(body.comment)
         val existing = findRowForUser(event.id, user.id)
         if (stored == null) {
             if (existing != null) {
@@ -359,6 +362,7 @@ class AvailabilityService(
             if (existing != null) {
                 existing.status = stored
                 existing.roleKeys = roleKeys
+                existing.comment = normalizedComment
                 existing.updatedAt = now
                 if (recordedByUserId != null) {
                     existing.recordedByUserId = recordedByUserId
@@ -373,7 +377,7 @@ class AvailabilityService(
                         roleKeys = roleKeys,
                         recordedByUserId = recordedByUserId,
                         now = now,
-                    ),
+                    ).also { it.comment = normalizedComment },
                 )
             }
         return toResponse(saved)
@@ -387,6 +391,7 @@ class AvailabilityService(
     ): MyAvailabilityResponse = upsertForParticipantScopedRow(
         event = event,
         existing = availabilityRepository.findByEvent_IdAndSeasonParticipant_Id(event.id, participant.id),
+        body = body,
         stored = parseStoredStatus(body),
         roleKeys = { stored -> roleKeysForWrite(event, stored, body) },
         create = { stored, roleKeys, now ->
@@ -410,6 +415,7 @@ class AvailabilityService(
     ): MyAvailabilityResponse = upsertForParticipantScopedRow(
         event = event,
         existing = availabilityRepository.findByEvent_IdAndEventParticipant_Id(event.id, participant.id),
+        body = body,
         stored = parseStoredStatus(body),
         roleKeys = { stored -> roleKeysForWrite(event, stored, body) },
         create = { stored, roleKeys, now ->
@@ -428,11 +434,14 @@ class AvailabilityService(
     private fun upsertForParticipantScopedRow(
         event: EventEntity,
         existing: EventAvailabilityEntity?,
+        body: SetMyAvailabilityRequest,
         stored: StoredAvailabilityStatus?,
         roleKeys: (StoredAvailabilityStatus) -> List<String>,
         create: (StoredAvailabilityStatus, List<String>, Instant) -> EventAvailabilityEntity,
         recordedByUserId: UUID,
     ): MyAvailabilityResponse {
+        validateComment(body.comment)
+        val normalizedComment = normalizeComment(body.comment)
         if (stored == null) {
             if (existing != null) {
                 availabilityRepository.delete(existing)
@@ -445,14 +454,26 @@ class AvailabilityService(
             if (existing != null) {
                 existing.status = stored
                 existing.roleKeys = keys
+                existing.comment = normalizedComment
                 existing.updatedAt = now
                 existing.recordedByUserId = recordedByUserId
                 availabilityRepository.save(existing)
             } else {
-                availabilityRepository.save(create(stored, keys, now))
+                availabilityRepository.save(create(stored, keys, now).also { it.comment = normalizedComment })
             }
         return toResponse(saved)
     }
+
+    private fun validateComment(comment: String?) {
+        if (comment != null && comment.length > MAX_AVAILABILITY_COMMENT_LENGTH) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Le commentaire ne peut pas dépasser $MAX_AVAILABILITY_COMMENT_LENGTH caractères",
+            )
+        }
+    }
+
+    private fun normalizeComment(comment: String?): String? = comment?.trim()?.takeIf { it.isNotEmpty() }
 
     private fun parseStoredStatus(body: SetMyAvailabilityRequest): StoredAvailabilityStatus? {
         val apiStatus =
@@ -589,6 +610,11 @@ class AvailabilityService(
                 status = AvailabilityStatusMapper.toApi(row.status),
                 updatedAt = row.updatedAt,
                 roleKeys = if (row.status == StoredAvailabilityStatus.AVAILABLE) row.roleKeys else emptyList(),
+                comment = row.comment?.takeIf { it.isNotBlank() },
             )
         }
+
+    companion object {
+        private const val MAX_AVAILABILITY_COMMENT_LENGTH = 500
+    }
 }

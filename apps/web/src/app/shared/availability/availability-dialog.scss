@@ -8,7 +8,8 @@
 .availability-dialog__context {
   padding: 0.75rem 0.85rem;
   border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hatcast-availability-surface);
+  border: 1px solid var(--hatcast-availability-border);
 }
 
 .availability-dialog__event-title {
@@ -20,110 +21,6 @@
 .availability-dialog__event-date {
   margin: 0.35rem 0 0;
   font-size: 0.88rem;
-  opacity: 0.85;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 85%, transparent);
   text-transform: capitalize;
-}
-
-.availability-dialog__choices {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-.availability-dialog__choice {
-  min-height: 2.75rem;
-  padding-inline: 0.35rem;
-  font-size: 0.78rem;
-  line-height: 1.2;
-  white-space: normal;
-  opacity: 0.75;
-  transition: opacity 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-
-  &--active {
-    opacity: 1;
-    border: 2px solid currentColor;
-    box-shadow: 0 0 0.75rem rgba(255, 255, 255, 0.08);
-  }
-
-  &--available {
-    background: rgba(22, 163, 74, 0.65);
-    color: #fff;
-
-    &.availability-dialog__choice--active {
-      background: rgb(22, 163, 74);
-    }
-  }
-
-  &--unavailable {
-    background: rgba(220, 38, 38, 0.65);
-    color: #fff;
-
-    &.availability-dialog__choice--active {
-      background: rgb(220, 38, 38);
-    }
-  }
-
-  &--unknown {
-    background: rgba(107, 114, 128, 0.65);
-    color: #fff;
-
-    &.availability-dialog__choice--active {
-      background: rgb(107, 114, 128);
-    }
-  }
-}
-
-.availability-dialog__check {
-  margin-right: 0.15rem;
-}
-
-.availability-dialog__feedback {
-  margin: 0;
-  text-align: center;
-  font-size: 0.78rem;
-  opacity: 0.75;
-}
-
-.availability-dialog__roles {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.65rem;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.availability-dialog__roles-title {
-  margin: 0;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.availability-dialog__roles-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem 0.75rem;
-}
-
-.availability-dialog__role-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.availability-dialog__role {
-  min-width: 0;
-}
-
-.availability-dialog__role-hint {
-  padding-left: 2.5rem;
-  font-size: 0.72rem;
-  opacity: 0.65;
-}
-
-.availability-dialog__role-emoji {
-  display: inline-block;
-  width: 1.4rem;
 }

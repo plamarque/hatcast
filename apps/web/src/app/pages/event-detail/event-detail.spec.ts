@@ -37,7 +37,7 @@ function ev(id: string, overrides: Partial<EventResponse> = {}): EventResponse {
     startsAt: '2026-05-12T19:00:00.000Z',
     archived: false,
     templateType: 'custom',
-    roleSlots: emptyRoleSlots(),
+    roleSlots: { ...emptyRoleSlots(), player: 1, ...overrides.roleSlots },
     createdAt: '',
     updatedAt: '',
     ...overrides,

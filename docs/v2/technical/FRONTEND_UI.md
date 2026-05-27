@@ -27,3 +27,95 @@ Lorsqu’un besoin ne peut pas être couvert proprement par les composants Mater
 L’usage sur **navigateur desktop** reste **pleinement supporté** : layouts adaptatifs (breakpoints, grilles, navigation) pour que l’expérience soit confortable sur grand écran sans dupliquer des parcours métier distincts.
 
 Cette exigence est alignée avec le positionnement produit (PWA, usage sur le terrain) et les NFR d’accessibilité (voir PRD / epics).
+
+---
+
+## Material 3 — exigence transverse (UX-DR11)
+
+Le PRD et les epics imposent **Angular Material en première intention**, le **theming M3** (`mat.theme()` dans [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss)), et **pas Tailwind comme surface de style principale** (utilitaires ponctuels tolérés s’ils ne pilotent pas layout ni identité visuelle).
+
+**Specs produit complémentaires** (parcours, chrome, navigation membre) :
+
+| Document | Contenu |
+|----------|---------|
+| [`_bmad-output/planning-artifacts/ux-design-hatcast-v2.md`](../../../_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) | Continuité V1, tokens, écrans de référence |
+| [`_bmad-output/planning-artifacts/ux-hub-a-faire.md`](../../../_bmad-output/planning-artifacts/ux-hub-a-faire.md) | Top app bar M3, nav rail desktop (≥ 840 px), interdits M2 |
+| [`_bmad-output/planning-artifacts/ux-design-specification.md`](../../../_bmad-output/planning-artifacts/ux-design-specification.md) | Surfaces admin (Material defaults + tokens) |
+
+Avant toute story UI, lire la section **checklist** ci-dessous et les **Dev Notes** / AC de la story (souvent sous `_bmad-output/implementation-artifacts/`).
+
+---
+
+## Checklist M3 HatCast (implémentation & revue)
+
+Utiliser cette liste **à la fin** de chaque changement sous `apps/web/` (développement, PR, `bmad-code-review`, checkpoint UX). Un point non coché sans justification documentée dans la story = dette UX à traiter ou reporter explicitement.
+
+### Composants et structure
+
+- [ ] **Composant Material d’abord** — boutons (`mat-button`, `mat-stroked-button`, `mat-flat-button`), champs (`mat-form-field`), listes (`mat-list`, `mat-table`), dialogs (`MatDialog`), menus (`mat-menu`), chips (`mat-chip`), onglets (`mat-tab-group`), toolbars (`mat-toolbar`) : pas de `<button class="…">` ou div cliquable custom si Material couvre le cas.
+- [ ] **Icônes** — `mat-icon` + noms [Material Symbols](https://fonts.google.com/icons) déjà utilisés dans l’app (`calendar_month`, `groups`, `settings`, etc.) ; `aria-hidden="true"` sur l’icône décorative si un libellé texte ou `aria-label` porte le sens.
+- [ ] **Dialogs / bottom sheets** — `MatDialog` (ou pattern documenté dans la story) ; pas de overlay maison pour des flux modaux standard.
+- [ ] **CDK seulement si nécessaire** — overlay, drag-drop, focus trap : via CDK + tokens, pas de z-index / couleurs arbitraires.
+
+### Thème, couleurs, typographie
+
+- [ ] **Tokens système** — couleurs et fonds via `var(--mat-sys-*)` (`primary`, `on-surface`, `surface`, `outline-variant`, `error`, etc.) ; nuances avec `color-mix(in srgb, var(--mat-sys-…) …)` comme dans le code existant.
+- [ ] **Pas de palette ad hoc** — éviter `#rrggbb`, `rgb()` ou gradients en dur dans les composants ; exceptions : mood « spectacle » déjà mappé dans le thème global ou token nommé documenté dans `ux-design-hatcast-v2.md`.
+- [ ] **Typographie** — hiérarchie Material (`--mat-sys-body-medium`, `title-medium`, etc.) ou classes du thème ; pas de `font-size` arbitraire sauf compactage local justifié (toolbar, chip).
+- [ ] **Thème global** — ne pas contourner `mat.theme()` dans `styles.scss` ; personnalisation via palettes / density documentées.
+
+### Layout, navigation, densité
+
+- [ ] **Mobile-first** — concevoir et tester d’abord ≤ 480 px (breakpoint le plus utilisé dans l’app), puis tablette / desktop.
+- [ ] **Chrome membre** — top app bar M3 (titre + actions à droite) ; **pas** de bottom app bar Material 2 pour changer d’espace applicatif (cf. `ux-hub-a-faire.md`).
+- [ ] **Desktop membre (cible)** — navigation **rail** à gauche à partir de **840 px** lorsque la story ou le hub membre le prévoit ; jusqu’alors, raccourcis header / chips acceptés (phase discoverability).
+- [ ] **Admin** — densité plus compacte acceptable ; rester sur Material defaults + tokens (UX-DR10 / UX-DR11), clarté avant effet « spectacle ».
+
+### Accessibilité et tactile
+
+- [ ] **Cibles tactiles** — contrôles interactifs **≥ 48×48 dp** de préférence ; minimum **40×40** seulement si documenté dans l’AC de la story (ex. icône seule avec `aria-label`).
+- [ ] **Libellé masqué** — si le texte est caché en mobile (`display: none` sur le label), **`aria-label` français** obligatoire sur le contrôle (voir `member-agenda-shortcut`).
+- [ ] **Focus** — `cdkFocusInitial` / ordre de tabulation cohérent dans les dialogs ; pas de piège clavier.
+- [ ] **Contraste** — états erreur / warning via `--mat-sys-error` ou tokens sémantiques, pas uniquement une couleur custom faible.
+
+### Copy et cohérence produit
+
+- [ ] **UI en français** — tutoiement aligné agenda / membre sauf spec contraire (admin peut rester neutre).
+- [ ] **Réutilisation** — avant un nouveau bloc UI, chercher un composant partagé (`shared/`, `member-cross-nav`, cartes agenda, headers saison/événement).
+
+### Anti-patterns (rejeter en revue)
+
+| Éviter | Faire à la place |
+|--------|------------------|
+| Tailwind (ou utilitaires) pour grille, couleurs, typo principales | Flex/grid SCSS léger + tokens `--mat-sys-*` |
+| Bouton HTML stylé en CSS | `mat-button` / `mat-stroked-button` + `routerLink` si lien |
+| Couleur hardcodée `#9333ea` sur un écran | Token ou `color-mix` sur `--mat-sys-primary` |
+| Modale div + `position: fixed` | `MatDialog` + composant standalone |
+| Nouvelle barre de navigation basse globale | Top app bar + rail desktop (spec hub) |
+| Dupliquer la logique « dernière saison » / agenda | `LastVisitedSeasonShortcutService`, `member-cross-nav` |
+
+### Références code (bons patterns)
+
+- Raccourcis membre : [`apps/web/src/app/shared/member-cross-nav/`](../../../apps/web/src/app/shared/member-cross-nav/) — `mat-stroked-button`, `routerLink`, `aria-label`, ellipsis mobile.
+- Thème M3 global : [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss).
+- Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*`).
+
+### Stories et agents
+
+- Chaque **story UI** doit référencer ce fichier et **UX-DR11**, et reprendre la section **« Acceptance Criteria — Material 3 (UI) »** du modèle [`story-template.md`](../../../_bmad-output/implementation-artifacts/story-template.md) (AC **M3-1** … **M3-5**, adaptés au périmètre).
+- En fin de tâche, l’agent cite dans le résumé les points checklist **non applicables** et ceux **validés** ; toute dérive volontaire est notée dans la story ou `ISSUES.md`.
+
+---
+
+## Grille de revue rapide (copier dans une PR / checkpoint)
+
+```text
+M3 HatCast — revue UI
+[ ] Composants Material (pas de contrôles HTML custom équivalents)
+[ ] Couleurs / typo : --mat-sys-* uniquement (ou color-mix documenté)
+[ ] Mobile ≤480px : lisible, pas de chevauchement chrome
+[ ] Touch + aria-label si label masqué
+[ ] Pas bottom app bar M2 ; nav conforme spec hub si dans le scope
+[ ] Copy FR ; réutilisation shared/ existant
+[ ] Tests unitaires des templates touchés (repo norm)
+```

@@ -1,4 +1,5 @@
 import { Component, input, output, viewChild } from '@angular/core'
+import { MatIconModule } from '@angular/material/icon'
 
 import type { SummaryParticipant } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
@@ -7,8 +8,9 @@ import { AvailabilityForm } from './availability-form'
 
 @Component({
   selector: 'app-availability-moi-panel',
-  imports: [AvailabilityForm],
+  imports: [AvailabilityForm, MatIconModule],
   templateUrl: './availability-moi-panel.html',
+  styleUrl: './availability-moi-panel.scss',
 })
 export class AvailabilityMoiPanel {
   readonly seasonId = input.required<string>()
@@ -20,11 +22,15 @@ export class AvailabilityMoiPanel {
   readonly proxyMode = input(false)
   readonly archived = input(false)
 
-  readonly saved = output<{ status: AvailabilityStatus; roleKeys: string[] }>()
+  readonly saved = output<{
+    status: AvailabilityStatus
+    roleKeys: string[]
+    comment: string | null
+  }>()
 
   private readonly form = viewChild(AvailabilityForm)
 
   syncSubject(subject: SummaryParticipant): void {
-    this.form()?.syncFromParent(subject.status, subject.roleKeys)
+    this.form()?.syncFromParent(subject.status, subject.roleKeys, subject.comment)
   }
 }

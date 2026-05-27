@@ -74,10 +74,10 @@ describe('AvailabilityDialog', () => {
     expect(el.textContent).toContain('Match du samedi')
   })
 
-  it('shows three choice buttons', async () => {
+  it('shows three status toggles', async () => {
     const { fixture } = await setup()
-    const buttons = fixture.nativeElement.querySelectorAll('.availability-form__choice')
-    expect(buttons.length).toBe(3)
+    const toggles = fixture.nativeElement.querySelectorAll('mat-button-toggle')
+    expect(toggles.length).toBe(3)
     expect(fixture.nativeElement.textContent).toContain('Dispo')
     expect(fixture.nativeElement.textContent).toContain('Pas dispo')
     expect(fixture.nativeElement.textContent).toContain('Non renseigné')
@@ -85,16 +85,16 @@ describe('AvailabilityDialog', () => {
 
   it('calls API on available choice without auto-closing', async () => {
     const { fixture, setMyAvailability, close } = await setup()
-    const availableBtn = fixture.nativeElement.querySelector(
-      '.availability-form__choice--available',
-    ) as HTMLButtonElement
-    availableBtn.click()
+    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
+      ?.componentInstance as AvailabilityForm
+    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('available')
     await fixture.whenStable()
 
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
       status: 'available',
       roleKeys: ['player', 'mc'],
       applyVolunteerRule: true,
+      comment: null,
     })
     expect(close).not.toHaveBeenCalled()
   })
@@ -117,11 +117,9 @@ describe('AvailabilityDialog', () => {
 
   it('pre-checks preferred roles when switching to available', async () => {
     const { fixture, getPreferredRoles, setMyAvailability } = await setup()
-    const availableBtn = fixture.nativeElement.querySelector(
-      '.availability-form__choice--available',
-    ) as HTMLButtonElement
-
-    availableBtn.click()
+    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
+      ?.componentInstance as AvailabilityForm
+    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('available')
     await fixture.whenStable()
 
     expect(getPreferredRoles).toHaveBeenCalledWith('troupe-1')
@@ -129,6 +127,7 @@ describe('AvailabilityDialog', () => {
       status: 'available',
       roleKeys: ['player', 'mc'],
       applyVolunteerRule: true,
+      comment: null,
     })
   })
 
@@ -163,16 +162,16 @@ describe('AvailabilityDialog', () => {
     const fixture = TestBed.createComponent(AvailabilityDialog)
     fixture.detectChanges()
 
-    const availableBtn = fixture.nativeElement.querySelector(
-      '.availability-form__choice--available',
-    ) as HTMLButtonElement
-    availableBtn.click()
+    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
+      ?.componentInstance as AvailabilityForm
+    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('available')
     await fixture.whenStable()
 
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
       status: 'available',
       roleKeys: [],
       applyVolunteerRule: true,
+      comment: null,
     })
   })
 
@@ -194,6 +193,7 @@ describe('AvailabilityDialog', () => {
       status: 'available',
       roleKeys: ['player', 'mc'],
       applyVolunteerRule: true,
+      comment: null,
     })
   })
 
@@ -208,10 +208,9 @@ describe('AvailabilityDialog', () => {
       data: { status: 'unavailable', roleKeys: [] },
     })
 
-    const unavailableBtn = fixture.nativeElement.querySelector(
-      '.availability-form__choice--unavailable',
-    ) as HTMLButtonElement
-    unavailableBtn.click()
+    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
+      ?.componentInstance as AvailabilityForm
+    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('unavailable')
     await fixture.whenStable()
     fixture.detectChanges()
 
@@ -221,6 +220,7 @@ describe('AvailabilityDialog', () => {
       status: 'unavailable',
       roleKeys: [],
       applyVolunteerRule: true,
+      comment: null,
     })
   })
 
@@ -255,6 +255,7 @@ describe('AvailabilityDialog', () => {
       status: 'available',
       roleKeys: ['player', 'mc'],
       applyVolunteerRule: true,
+      comment: null,
     })
   })
 })

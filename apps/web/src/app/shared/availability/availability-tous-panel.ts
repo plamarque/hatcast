@@ -1,8 +1,11 @@
 import { Component, effect, input, output, signal } from '@angular/core'
+import { MatExpansionModule } from '@angular/material/expansion'
+import { MatListModule } from '@angular/material/list'
 
 import type {
   EventAvailabilitySummary,
   SummaryParticipant,
+  SummaryRoleCandidate,
 } from '../../core/availability/availability-api.service'
 import { chanceColorClass } from '../../core/availability/availability-chances'
 import {
@@ -14,13 +17,13 @@ import {
 
 @Component({
   selector: 'app-availability-tous-panel',
-  imports: [],
+  imports: [MatExpansionModule, MatListModule],
   templateUrl: './availability-tous-panel.html',
   styleUrl: './availability-tous-panel.scss',
 })
 export class AvailabilityTousPanel {
   readonly summary = input.required<EventAvailabilitySummary>()
-  readonly showChances = input(false)
+  readonly loadingChances = input(false)
   readonly canSelectSubject = input(false)
 
   readonly participantSelected = output<SummaryParticipant>()
@@ -69,22 +72,20 @@ export class AvailabilityTousPanel {
     }
   }
 
+  protected participantAriaLabel(candidate: SummaryRoleCandidate | SummaryParticipant): string {
+    const name = candidate.displayName
+    if (!this.canSelectSubject()) {
+      return `Voir la disponibilité de ${name}`
+    }
+    return `Modifier la disponibilité de ${name}`
+  }
+
   protected onParticipantClick(participantId: string): void {
     if (!this.canSelectSubject()) return
     const participant = this.summary().participants.find((p) => p.participantId === participantId)
     if (participant) {
       this.participantSelected.emit(participant)
     }
-  }
-
-  protected toggleRole(roleKey: string): void {
-    const next = new Set(this.expandedRoles())
-    if (next.has(roleKey)) {
-      next.delete(roleKey)
-    } else {
-      next.add(roleKey)
-    }
-    this.expandedRoles.set(next)
   }
 
   protected isRoleExpanded(roleKey: string): boolean {

@@ -1,58 +1,57 @@
 @if (hasRoles()) {
-  <div class="availability-tous">
+  <mat-accordion class="availability-tous" multi>
     @for (role of summary().roles; track role.roleKey) {
-      <section class="availability-tous__role">
-        <button
-          type="button"
-          class="availability-tous__role-header"
-          [attr.aria-expanded]="isRoleExpanded(role.roleKey)"
-          (click)="toggleRole(role.roleKey)"
-        >
-          <span class="availability-tous__role-chevron" aria-hidden="true">
-            {{ isRoleExpanded(role.roleKey) ? '▼' : '▶' }}
-          </span>
-          <span class="availability-tous__role-title">
-            {{ roleEmoji(role.roleKey) }} {{ roleLabel(role.roleKey) }}
+      <mat-expansion-panel class="availability-tous__role" [expanded]="isRoleExpanded(role.roleKey)">
+        <mat-expansion-panel-header>
+          <mat-panel-title class="availability-tous__role-title">
+            <span aria-hidden="true">{{ roleEmoji(role.roleKey) }}</span>
+            {{ roleLabel(role.roleKey) }}
             ({{ role.candidates.length }}/{{ role.requiredCount }})
-          </span>
-        </button>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
 
-        @if (isRoleExpanded(role.roleKey)) {
-          @if (role.candidates.length === 0) {
-            <p class="availability-tous__empty">Aucun candidat pour ce rôle</p>
-          } @else {
-            <ul class="availability-tous__grid">
-              @for (candidate of role.candidates; track candidate.participantId) {
-                <li>
-                  <button
-                    type="button"
-                    class="availability-tous__person"
-                    [class.availability-tous__person--clickable]="canSelectSubject()"
-                    [title]="canSelectSubject() ? 'Cliquer pour modifier la disponibilité' : null"
-                    (click)="onParticipantClick(candidate.participantId)"
+        @if (role.candidates.length === 0) {
+          <p class="availability-tous__empty">Aucun candidat pour ce rôle</p>
+        } @else {
+          <mat-nav-list class="availability-tous__list" disableRipple>
+            @for (candidate of role.candidates; track candidate.participantId) {
+              <button
+                type="button"
+                mat-list-item
+                class="availability-tous__person"
+                [class.availability-tous__person--clickable]="canSelectSubject()"
+                [disabled]="!canSelectSubject()"
+                [attr.aria-label]="participantAriaLabel(candidate)"
+                (click)="onParticipantClick(candidate.participantId)"
+              >
+                @if (candidate.avatarUrl) {
+                  <img matListItemAvatar [src]="candidate.avatarUrl" alt="" />
+                } @else {
+                  <span
+                    matListItemAvatar
+                    class="availability-tous__avatar-fallback"
+                    aria-hidden="true"
                   >
-                    @if (candidate.avatarUrl) {
-                      <img class="availability-tous__avatar" [src]="candidate.avatarUrl" alt="" />
-                    } @else {
-                      <span class="availability-tous__avatar availability-tous__avatar--fallback" aria-hidden="true">
-                        {{ candidate.displayName.charAt(0) }}
-                      </span>
-                    }
-                    <span class="availability-tous__name">{{ candidate.displayName }}</span>
-                    @if (showChances() && candidate.chancePercent != null) {
-                      <span class="availability-tous__chance" [class]="chanceClass(candidate.chancePercent)">
-                        {{ candidate.chancePercent }} %
-                      </span>
-                    }
-                  </button>
-                </li>
-              }
-            </ul>
-          }
+                    {{ candidate.displayName.charAt(0) }}
+                  </span>
+                }
+                <span matListItemTitle>{{ candidate.displayName }}</span>
+                @if (loadingChances()) {
+                  <span matListItemMeta class="availability-tous__chance-skeleton" aria-hidden="true">
+                    <span class="availability-tous__chance-skeleton-bar"></span>
+                  </span>
+                } @else if (candidate.chancePercent != null) {
+                  <span matListItemMeta class="availability-tous__chance" [class]="chanceClass(candidate.chancePercent)">
+                    {{ candidate.chancePercent }} %
+                  </span>
+                }
+              </button>
+            }
+          </mat-nav-list>
         }
-      </section>
+      </mat-expansion-panel>
     }
-  </div>
+  </mat-accordion>
 } @else {
   <section class="availability-tous availability-tous--flat">
     <h3 class="availability-tous__flat-title">
@@ -63,29 +62,29 @@
         Aucun participant sur ce spectacle. Un administrateur doit ajouter des participants.
       </p>
     } @else {
-      <ul class="availability-tous__grid">
+      <mat-nav-list class="availability-tous__list" disableRipple>
         @for (p of flatParticipants(); track p.participantId) {
-          <li>
-            <button
-              type="button"
-              class="availability-tous__person"
-              [class.availability-tous__person--clickable]="canSelectSubject()"
-              [title]="canSelectSubject() ? 'Cliquer pour modifier la disponibilité' : null"
-              (click)="onParticipantClick(p.participantId)"
-            >
-              @if (p.avatarUrl) {
-                <img class="availability-tous__avatar" [src]="p.avatarUrl" alt="" />
-              } @else {
-                <span class="availability-tous__avatar availability-tous__avatar--fallback" aria-hidden="true">
-                  {{ p.displayName.charAt(0) }}
-                </span>
-              }
-              <span class="availability-tous__name">{{ p.displayName }}</span>
-              <span class="availability-tous__status">{{ statusLabel(p.status) }}</span>
-            </button>
-          </li>
+          <button
+            type="button"
+            mat-list-item
+            class="availability-tous__person"
+            [class.availability-tous__person--clickable]="canSelectSubject()"
+            [disabled]="!canSelectSubject()"
+            [attr.aria-label]="participantAriaLabel(p)"
+            (click)="onParticipantClick(p.participantId)"
+          >
+            @if (p.avatarUrl) {
+              <img matListItemAvatar [src]="p.avatarUrl" alt="" />
+            } @else {
+              <span matListItemAvatar class="availability-tous__avatar-fallback" aria-hidden="true">
+                {{ p.displayName.charAt(0) }}
+              </span>
+            }
+            <span matListItemTitle>{{ p.displayName }}</span>
+            <span matListItemMeta class="availability-tous__status">{{ statusLabel(p.status) }}</span>
+          </button>
         }
-      </ul>
+      </mat-nav-list>
     }
   </section>
 }

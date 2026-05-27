@@ -131,6 +131,15 @@ paths:
       parameters:
         - $ref: '#/components/parameters/SeasonId'
         - $ref: '#/components/parameters/EventId'
+        - name: includeChances
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: >
+            Inclure `chancePercent` sur les candidats par rôle (calcul basé sur l'historique
+            de composition). Recommandé pour la vue Tous de l'onglet Dispos (FR19).
       responses:
         '200':
           description: OK
@@ -190,6 +199,11 @@ components:
             vide pour unavailable/unknown ou pour une disponibilité générale.
           items:
             type: string
+        comment:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Commentaire optionnel sur la disponibilité (FR18).
 
     SetMyAvailabilityRequest:
       type: object
@@ -212,6 +226,11 @@ components:
             Applique l'auto-ajout de `volunteer` quand un rôle de jeu est coché
             et que l'événement requiert des bénévoles. Passer `false` uniquement
             quand l'utilisateur a explicitement décoché `volunteer`.
+        comment:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Commentaire optionnel (max 500 caractères). Ignoré si status = unknown.
 
     SummaryParticipant:
       type: object
@@ -235,6 +254,10 @@ components:
           type: array
           items:
             type: string
+        comment:
+          type: string
+          nullable: true
+          maxLength: 500
 
     SummaryRoleCandidate:
       type: object

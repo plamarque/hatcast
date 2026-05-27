@@ -11,9 +11,11 @@ export interface AvailabilityDialogData {
   troupeId: string
   roleSlots: RoleSlots
   initialRoleKeys?: string[] | null
+  initialComment?: string | null
 }
 
 export interface AvailabilityDialogResult {
   status: AvailabilityStatus
   roleKeys: string[]
+  comment?: string | null
 }

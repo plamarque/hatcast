@@ -48,12 +48,12 @@ export class EventDisposTab implements OnDestroy {
   protected readonly summary = signal<EventAvailabilitySummary | null>(null)
   protected readonly selectors = signal<ParticipantSelector[]>([])
   protected readonly viewMode = signal<DisposViewMode>('moi')
-  protected readonly showChances = signal(false)
   protected readonly loadingChances = signal(false)
   protected readonly subjectParticipantId = signal<string>('')
 
   private readonly moiPanel = viewChild(AvailabilityMoiPanel)
   private loadRequestId = 0
+  private summaryIncludesChances = false
 
   protected readonly subjectParticipant = computed(() => {
     const id = this.subjectParticipantId()
@@ -76,13 +76,13 @@ export class EventDisposTab implements OnDestroy {
   })
 
   constructor() {
-    // Reload whenever the event identity changes (e.g. intra-route navigation).
     let previousEventId: string | null = null
     effect(() => {
       const eventId = this.event().id
       if (eventId !== previousEventId) {
         previousEventId = eventId
         this.summary.set(null)
+        this.summaryIncludesChances = false
         this.subjectParticipantId.set('')
         this.loadError.set(false)
         void this.load()
@@ -91,13 +91,16 @@ export class EventDisposTab implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Invalidate any in-flight request.
     this.loadRequestId++
   }
 
-  protected setViewMode(mode: DisposViewMode): void {
+  protected async setViewMode(mode: DisposViewMode): Promise<void> {
+    const enteringTous = mode === 'tous' && this.viewMode() !== 'tous'
     this.viewMode.set(mode)
     this.viewModeChange.emit(mode)
+    if (enteringTous && !this.summaryIncludesChances) {
+      await this.reloadSummaryWithChances()
+    }
   }
 
   protected onSubjectChange(participantId: string): void {
@@ -111,12 +114,12 @@ export class EventDisposTab implements OnDestroy {
   protected onParticipantFromTous(participant: SummaryParticipant): void {
     if (!this.canSwitchSubject()) return
     this.subjectParticipantId.set(participant.participantId)
-    this.setViewMode('moi')
+    void this.setViewMode('moi')
     queueMicrotask(() => this.moiPanel()?.syncSubject(participant))
   }
 
   protected async onSaved(): Promise<void> {
-    await this.reloadSummary()
+    await this.reloadSummary(this.viewMode() === 'tous' || this.summaryIncludesChances)
   }
 
   protected async retryLoad(): Promise<void> {
@@ -124,16 +127,7 @@ export class EventDisposTab implements OnDestroy {
     await this.load()
   }
 
-  protected async toggleShowChances(): Promise<void> {
-    const next = !this.showChances()
-    this.showChances.set(next)
-    this.loadingChances.set(true)
-    await this.reloadSummary(next)
-    this.loadingChances.set(false)
-  }
-
   private async load(): Promise<void> {
-    this.showChances.set(false)
     this.loading.set(true)
     const requestId = ++this.loadRequestId
     const [summaryResult, selectorsResult] = await Promise.all([
@@ -152,6 +146,7 @@ export class EventDisposTab implements OnDestroy {
     }
 
     this.summary.set(summaryResult.data)
+    this.summaryIncludesChances = false
     if (selectorsResult.ok && selectorsResult.data) {
       this.selectors.set(selectorsResult.data)
     }
@@ -162,11 +157,15 @@ export class EventDisposTab implements OnDestroy {
     if (selfParticipant) {
       this.subjectParticipantId.set(selfParticipant.participantId)
     }
-    // No fallback to participants[0]: if the current user has no linked participant,
-    // leave subjectParticipantId empty so the Moi panel shows an empty state.
   }
 
-  private async reloadSummary(includeChances = this.showChances()): Promise<void> {
+  private async reloadSummaryWithChances(): Promise<void> {
+    this.loadingChances.set(true)
+    await this.reloadSummary(true)
+    this.loadingChances.set(false)
+  }
+
+  private async reloadSummary(includeChances: boolean): Promise<void> {
     const requestId = ++this.loadRequestId
     const result = await this.availabilityApi.getEventAvailabilitySummary(
       this.seasonId(),
@@ -176,13 +175,13 @@ export class EventDisposTab implements OnDestroy {
     if (requestId !== this.loadRequestId) return
     if (!result.ok || !result.data) return
     this.summary.set(result.data)
+    this.summaryIncludesChances = includeChances
 
     const currentId = this.subjectParticipantId()
     const subject = result.data.participants.find((p) => p.participantId === currentId)
     if (subject) {
       queueMicrotask(() => this.moiPanel()?.syncSubject(subject))
     } else if (currentId) {
-      // Subject disappeared from summary after reload — reset to self.
       const self = result.data.participants.find((p) => p.userId === this.currentUserId())
       this.subjectParticipantId.set(self?.participantId ?? '')
     }

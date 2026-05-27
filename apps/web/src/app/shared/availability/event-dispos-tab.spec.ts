@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
 import { ROLE_TEMPLATES } from '../../core/events/event-types'
+import { AvailabilityForm } from './availability-form'
 import { EventDisposTab } from './event-dispos-tab'
 
 const mockSummary = {
@@ -19,6 +20,7 @@ const mockSummary = {
       avatarUrl: null,
       status: 'available' as const,
       roleKeys: ['player'],
+      comment: null,
     },
     {
       participantId: 'p2',
@@ -27,6 +29,7 @@ const mockSummary = {
       avatarUrl: null,
       status: 'unknown' as const,
       roleKeys: [],
+      comment: null,
     },
   ],
   roles: [
@@ -50,7 +53,7 @@ async function setup(canSwitchSubject = false) {
   const setParticipantAvailability = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
-    data: { status: 'available' as const, roleKeys: ['player'] },
+    data: { status: 'available' as const, roleKeys: ['player'], comment: null },
   })
   const listSeasonParticipantSelectors = vi.fn().mockResolvedValue({
     ok: true,
@@ -144,10 +147,9 @@ describe('EventDisposTab', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const dispoBtn = (
-      fixture.nativeElement as HTMLElement
-    ).querySelector('.availability-form__choice--available') as HTMLButtonElement
-    dispoBtn.click()
+    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
+      ?.componentInstance as AvailabilityForm
+    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('available')
     await fixture.whenStable()
     fixture.detectChanges()
 
@@ -155,41 +157,46 @@ describe('EventDisposTab', () => {
       'season-1',
       'event-1',
       'p2',
-      expect.objectContaining({ status: 'available' }),
+      expect.objectContaining({ status: 'available', comment: null }),
     )
     expect(setMyAvailability).not.toHaveBeenCalled()
   })
 
-  it('shows edit tooltip on Tous panel when organizer', async () => {
+  it('uses French aria-label on Tous panel rows when organizer', async () => {
     const { fixture } = await setup(true)
     const comp = fixture.componentInstance as unknown as { setViewMode: (mode: 'moi' | 'tous') => void }
-    comp.setViewMode('tous')
+    await comp.setViewMode('tous')
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const btn = fixture.nativeElement.querySelector('.availability-tous__person--clickable') as HTMLElement
-    expect(btn?.getAttribute('title')).toBe('Cliquer pour modifier la disponibilité')
+    const btn = fixture.nativeElement.querySelector(
+      '.availability-tous__person--clickable',
+    ) as HTMLElement
+    expect(btn?.getAttribute('aria-label')).toBe('Modifier la disponibilité de Patrice')
   })
 
-  it('switches to Tous panel with role accordion', async () => {
+  it('loads summary with includeChances when switching to Tous', async () => {
+    const { fixture, getEventAvailabilitySummary } = await setup()
+    const comp = fixture.componentInstance as unknown as { setViewMode: (mode: 'moi' | 'tous') => void }
+    await comp.setViewMode('tous')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', true)
+    expect(fixture.nativeElement.querySelector('mat-expansion-panel')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('100 %')
+  })
+
+  it('does not show Afficher les chances toggle', async () => {
     const { fixture } = await setup()
     const comp = fixture.componentInstance as unknown as { setViewMode: (mode: 'moi' | 'tous') => void }
-    comp.setViewMode('tous')
+    await comp.setViewMode('tous')
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const chancesBtn = Array.from(
-      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
-    ).find((b) => b.textContent?.includes('Afficher les chances'))
-    chancesBtn?.click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const el = fixture.nativeElement as HTMLElement
-    expect(el.textContent).toContain('Comédien·nes')
-    expect(el.textContent).toContain('100 %')
+    expect(fixture.nativeElement.textContent).not.toContain('Afficher les chances')
   })
 })

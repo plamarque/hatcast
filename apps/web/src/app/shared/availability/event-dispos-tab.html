@@ -27,24 +27,6 @@
       <mat-button-toggle value="moi">Moi</mat-button-toggle>
       <mat-button-toggle value="tous">Tous</mat-button-toggle>
     </mat-button-toggle-group>
-
-    @if (viewMode() === 'tous') {
-      <button
-        mat-stroked-button
-        type="button"
-        class="event-dispos__chances-toggle"
-        [disabled]="loadingChances()"
-        (click)="toggleShowChances()"
-      >
-        @if (loadingChances()) {
-          Affichage des chances…
-        } @else if (showChances()) {
-          Masquer les chances
-        } @else {
-          Afficher les chances
-        }
-      </button>
-    }
   </div>
 
   @if (viewMode() === 'moi') {
@@ -66,7 +48,7 @@
   } @else {
     <app-availability-tous-panel
       [summary]="s"
-      [showChances]="showChances()"
+      [loadingChances]="loadingChances()"
       [canSelectSubject]="canSwitchSubject()"
       (participantSelected)="onParticipantFromTous($event)"
     />

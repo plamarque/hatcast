@@ -19,7 +19,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
     font-size: 0.75rem;
     font-weight: 700;
   }

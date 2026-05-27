@@ -606,6 +606,91 @@ Same **event header** and **three tab pills** as [Event detail — Infos](#scree
 - [ ] **Tous** lists **candidates per role** with **ratio** and **%**; percentages are **visible to all** viewers of the tab unless SPEC says otherwise.
 - [ ] **Moi** vs **Tous** switching does not lose **unsaved** changes if the product requires a save model (or auto-saves per field—align with API).
 - [ ] Privileged **edit via Tous** (click person) is **gated**; tooltip matches actual permission.
+- [ ] **Material 3** — voir [Revue M3 — onglet Dispos](#revue-m3-onglet-dispos) (composants, tokens, chances, commentaire).
+
+---
+
+## Revue Material 3 — onglet Dispos {#revue-m3-onglet-dispos}
+
+**Date :** 2026-05-27 · **Périmètre :** `/saison/:slug/event/:eventId?tab=dispos` (et modal agenda partageant `availability-form`).  
+**Références normatives :** [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) (checklist M3, UX-DR11), stories **5.3** (done), **5.5** (proxy, done), implémentation [`apps/web/src/app/shared/availability/`](../../apps/web/src/app/shared/availability/).  
+**Story d’implémentation :** [_bmad-output/implementation-artifacts/5-6-dispos-onglet-material-3-et-commentaire.md](../implementation-artifacts/5-6-dispos-onglet-material-3-et-commentaire.md).
+
+### Contexte du challenge
+
+Le parcours métier (**Moi / Tous**, trichotomie Dispo, candidature par rôle, transparence des chances, sélecteur de sujet orga) reste **valide** et aligné UX-DR5 / FR19. L’écart principal est **visuel et structurel** : l’onglet repose encore sur des patterns **V1** (couleurs hex/rgba, accordéon HTML, pourcentages optionnels) alors que le shell applicatif est en **thème M3** (`mat.theme()`, `color-scheme: light dark`).
+
+### Décisions produit (post-challenge)
+
+| Sujet | Décision cible V2 | Rationale |
+|-------|-------------------|-----------|
+| **Chances en vue Tous** | **Affichées par défaut** pour tout membre autorisé sur l’onglet (spec originale § « Tous »). | Transparence tirage (FR19) ; le bouton actuel « Afficher les chances » est un contournement perf (cf. [G-003](growth-backlog.md)) — à remplacer par chargement initial `includeChances=true` + **skeleton** sur les cellules % si l’API est lente, pas par un état sans %. |
+| **Masquage des chances** | **Optionnel** : action secondaire « Masquer les chances » (`mat-stroked-button`) seulement si le PO valide le besoin terrain ; sinon retirer le toggle. | Éviter deux modèles mentaux ; priorité à la spec transparence. |
+| **Couleurs sémantiques dispo** | **Tokens de thème** nommés (pas de `#` / `rgb()` dans les features). | M3 + modes clair/sombre ; conserver la lecture verte / rouge / gris via tokens documentés. |
+| **Commentaire (FR18)** | **Même champ** dans la [modal](#pattern-availability-modal-overlay) et le panneau **Moi** (`availability-form`), max **500** caractères, auto-save comme le statut. | Spec modal + onglet ; story epic **5.4** — livrée dans la story **5.6** (pas de divergence de copy). |
+| **États dispo (3)** | Conserver **trois actions exclusives** ; implémentation cible : **`mat-button-toggle-group`** (une ligne) ou **`mat-chip-listbox`** `selection="single"` plutôt que trois `mat-flat-button` surchargés en CSS. | Meilleure annonce a11y (exclusivité) et états M3 (selected / unselected). |
+
+### Composants Material cibles
+
+| Zone actuelle | Cible M3 |
+|---------------|----------|
+| Toolbar **Moi / Tous** | `mat-button-toggle-group` (conservé) — état actif via **`--mat-sys-primary-container`** / **`--mat-sys-on-primary-container`**, pas `rgba(147, 51, 234, …)`. |
+| Sélecteur sujet | `mat-form-field` + `mat-select` (conservé). |
+| **3 états** + rôles | `mat-button-toggle-group` ou chips single-select + `mat-checkbox` (rôles) ; `mat-form-field` + `textarea` (commentaire). |
+| Accordéon **Tous** | **`mat-accordion`** / **`mat-expansion-panel`** par rôle ; chevron **`mat-icon`** `expand_more` (rotation), pas caractères ▶/▼. |
+| Grille candidats | **`mat-nav-list`** ou `mat-list` avec `matListItemAvatar` + meta pour le **%** (ou skeleton). |
+| Chargement | `mat-spinner` (conservé) ; skeleton inline pour % en attente. |
+
+### Tokens de thème (à définir dans `apps/web/src/styles.scss`)
+
+Exposer des variables **globales** (mood « spectacle » autorisé par FRONTEND_UI si centralisé) :
+
+| Token | Usage |
+|-------|--------|
+| `--hatcast-availability-available` | Fond / bordure état **Dispo** (dérivé de `tertiary` ou `color-mix` sur `--mat-sys-tertiary`). |
+| `--hatcast-availability-unavailable` | État **Pas dispo** (`--mat-sys-error` / mix). |
+| `--hatcast-availability-unknown` | État **Non renseigné** (`--mat-sys-surface-variant`, `--mat-sys-on-surface-variant`). |
+| `--hatcast-chance-high` / `--medium` / `--low` | % en vue **Tous** — échelle sémantique (éviter `#34d399`, `#fbbf24`, `#fb7185` en feature SCSS). |
+
+Surfaces accordéon / cartes : **`--mat-sys-surface-container-low`**, **`--mat-sys-outline-variant`** — pas `rgba(255,255,255,0.08)` en dur.
+
+### Vue « Moi »
+
+- **Feedback** sous les états : typo **`--mat-sys-body-small`**, couleur **`--mat-sys-on-surface-variant`**.
+- **Bloc rôles** : conteneur avec bordure token ; titre en **title-small** ou **body-large** token.
+- **Cibles tactiles** : hauteur minimale **48 dp** sur les trois choix de statut (breakpoint ≤ 480 px : conserver grille 3 colonnes si lisible, sinon empiler).
+- **Proxy / lecture seule** : bandeau existant conservé ; en **proxy** (orga édite pour un autre), commentaire **éditable** comme le statut (**FR18**) ; en consultation sans proxy, commentaire **lecture seule**.
+
+### Vue « Tous »
+
+- En-tête de rôle : **icon rôle + libellé FR + ratio `(candidats/places)`** dans le `mat-expansion-panel-header`.
+- **%** : tri descendant inchangé (algorithme V1 / API) ; affichage **dès le premier rendu** de l’onglet en mode Tous (avec skeleton si chargement).
+- Clic personne (orga) : **`aria-label`** du type *« Modifier la disponibilité de {nom} »* quand édition autorisée ; *« Voir la disponibilité de {nom} »* en lecture seule — le `title` seul ne suffit pas (a11y).
+- Grille : **2 colonnes** ≤ 480 px ; **3 colonnes** optionnelles ≥ 600 px (densité desktop sans changer le modèle).
+
+### Toolbar (sous les onglets événement)
+
+Ordre recommandé (mobile, colonne) : **sujet** (si visible) → **Moi / Tous** → action chances (si conservée). Focus clavier cohérent.
+
+### Aide contextuelle (optionnel — lien G-002)
+
+Icône **`help_outline`** (`mat-icon`) à côté du ratio `(n/m)` et/ou du libellé des chances : **dialog** ou **tooltip** Material expliquant le calcul (malus sélections passées × places). Hors scope minimal de la story **5.6** sauf temps restant.
+
+### Non-objectifs (story 5.6)
+
+- Refonte perf API `summary` / `ensureMembershipParticipants` (rester dans [G-003](growth-backlog.md) / epic perf).
+- Bottom app bar, rail hub, onglets Infos / Équipe.
+- Affichage du commentaire sur pages **publiques** (interdit FR18).
+
+### Acceptance hints — Material 3 (revue / QA)
+
+- [ ] Aucune couleur **hex/rgb** en dur dans `event-dispos-tab`, `availability-form`, `availability-tous-panel`, `availability-subject-selector` (hors `styles.scss`).
+- [ ] Onglet lisible en **mode clair** et **sombre** (`prefers-color-scheme`).
+- [ ] Accordéon rôles = **`mat-expansion-panel`** ; liste candidats = **`mat-list`** (ou équivalent documenté).
+- [ ] **%** visibles par défaut en **Tous** (ou skeleton explicite pendant chargement).
+- [ ] **Commentaire** présent dans modal + onglet ; validation **≤ 500** caractères.
+- [ ] Contrôles interactifs principaux **≥ 48 dp** ; `aria-label` FR si libellé masqué.
+- [ ] Checklist [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) parcourue en fin de story ; écarts dans Dev Notes ou `ISSUES.md`.
 
 ---
 
@@ -704,14 +789,21 @@ When someone taps **Décliner** in [**Confirmer ma participation**](#pattern-con
 
 ### Primary controls (organizer/admin toolbar)
 
-Typical row (see draft capture):
+**V2 implementation (story 6.12):** compact **2-column grid** at the bottom of the Équipe tab; **one** Material 3 **filled** button (`mat-flat-button`, `color="primary"`) per state; all other visible actions use **outlined** (`mat-stroked-button`). **No** per-button rainbow gradients (V1 mood deprecated for this toolbar).
 
-- **Partager** / **Annoncer** — opens the shared [**Share & announce**](#pattern-share-announce) modal (message + WhatsApp + notifications).
-- **Valider** — **commits** visibility and **locks** composition editing as above; triggers **member** visibility and **confirmation** flows.
-- **Effacer** — **wipes** current composition (**whole** or **partial** per product—capture suggests **full** clear); only **before** validation (or after unlock).
-- **Tirer au sort** / **Simuler** — remain available **while editable**.
+| Composition state | Primary (filled) | Grid secondaries (outlined) | Overflow (`⋯` → menu) |
+|-------------------|------------------|-----------------------------|------------------------|
+| À composer | **Tirer au sort** | — | — |
+| En préparation (draft) | **Valider** | Tirer au sort, Publier | **Partager** |
+| Confirmations en cours / complète / à vérifier | **Annoncer la compo** | Déverrouiller | — |
+| À compléter (validated, empty slots) | **Compléter** | Annoncer, Déverrouiller | — |
 
-**After validation:** UI should **not** offer casual **edit** / **clear** / **redraw** except through **Déverrouiller**. **« Annoncer la compo »** opens the [**Share & announce**](#pattern-share-announce) modal (editable message, WhatsApp, push/email). If slots are still **empty**, show **« Compléter »** (e.g. random fill for remaining slots) and the **« À compléter »** warning from the [incomplete validated capture](ux-references/event-detail-equipe-declined-validated-incomplete-v1.png).
+- **Partager** / **Annoncer** — open the shared [**Share & announce**](#pattern-share-announce) modal. **Partager** is tucked in the **overflow** menu during draft (coordination action, rare) so the grid stays at ≤3 cells + `more_vert`.
+- **Valider** — commits visibility and locks editing; when **Valider** is available, the status hint **does not** repeat the validate CTA (short admin-only copy + dedicated **actions lead** above the toolbar).
+- **Toolbar** — `role="toolbar"`, `aria-label="Actions de composition"`; stable `data-testid` hooks for E2E (`composition-action-*`). **Sticky** at the bottom of the tab scroll area on long grids (mobile).
+- **Effacer** / **Simuler** — not in V2 yet (separate stories if requested).
+
+**After validation:** no casual edit / clear / redraw except **Déverrouiller** (always **outlined**, never primary). **Annoncer** stays **primary** whenever shown with unlock.
 
 ### Pattern: “Confirmer ma participation” (modal) {#pattern-confirm-participation-modal}
 

@@ -601,6 +601,78 @@ class AvailabilityControllerIntegrationTest {
     }
 
     @Test
+    @Tag("FR18")
+    fun `comment is persisted and returned up to 500 characters`() {
+        val cookie = memberCookie("sub-avail-comment")
+        val (seasonId, eventId) = createSeasonAndEvent(cookie)
+        val base = "/v1/seasons/$seasonId/events/$eventId/availability/me"
+        val comment = "Dispo seulement en début de soirée."
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["mc"],"comment":"$comment"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.comment").value(comment))
+
+        mockMvc
+            .perform(get(base).cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.comment").value(comment))
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.participants[?(@.comment == '$comment')]").isNotEmpty)
+
+        val tooLong = "x".repeat(501)
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","comment":"$tooLong"}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    @Tag("FR18")
+    fun `organizer proxy can set and update member comment`() {
+        val admin = memberCookie("sub-avail-proxy-comment-admin")
+        val member = signInOnly("sub-avail-proxy-comment-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+        val (seasonId, eventId) = createSeasonAndEvent(admin)
+        val memberParticipantId = participantIdForUser(seasonId, "sub-avail-proxy-comment-member")
+        val memberUser = userRepository.findByGoogleSub("sub-avail-proxy-comment-member")!!
+        val adminUser = userRepository.findByGoogleSub("sub-avail-proxy-comment-admin")!!
+        val proxyPath =
+            "/v1/seasons/$seasonId/events/$eventId/availability/participants/$memberParticipantId"
+        val proxyComment = "Saisi par l'orga : dispo dès 19h."
+
+        mockMvc
+            .perform(
+                put(proxyPath)
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"status":"available","roleKeys":["mc"],"comment":"$proxyComment"}""",
+                    )
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.comment").value(proxyComment))
+
+        val row = availabilityRepository.findByEvent_IdAndUser_Id(eventId, memberUser.id)
+        assert(row != null)
+        assert(row!!.comment == proxyComment)
+        assert(row.recordedByUserId == adminUser.id)
+    }
+
+    @Test
     @Tag("FR17")
     fun `cannot set availability on archived event`() {
         val admin = memberCookie("sub-avail-archived-admin")
