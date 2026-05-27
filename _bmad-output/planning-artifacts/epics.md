@@ -340,7 +340,7 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→17.9** (tags + tirage) ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→17.9** (tags + tirage) ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **17.18→17.22** (hub membre À faire, voir [ux-hub-a-faire.md](./ux-hub-a-faire.md)) : **17.18** puis **17.19** ; **17.21** avant **17.22** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -1482,6 +1482,101 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 - **Given** `EventFormDialog` édition, **when** ouvert, **then** **pas** de sections organisateur·ices ni participants du spectacle (parcours menu admin inchangé).
 
 **Story file:** [_bmad-output/implementation-artifacts/17-15-onglet-infos-organisateurs-retrait-participants-formulaire.md](../implementation-artifacts/17-15-onglet-infos-organisateurs-retrait-participants-formulaire.md)
+
+#### Story 17.18 : Raccourcis croisés agenda ↔ saison (app bar)
+
+En tant que **membre**,  
+je veux accéder en **un tap** à **Mon agenda** depuis l’espace saison/spectacle et à **ma saison** depuis l’agenda,  
+afin de ne plus passer par le menu compte pour ces deux destinations.
+
+**Acceptance Criteria**
+
+- **Given** `/saison/:slug` ou détail spectacle, **when** header membre affiché, **then** action **Mon agenda** visible (bouton texte ou icône + label) → `/agenda`.
+- **Given** `/agenda`, **when** `lastVisitedSeason` valide, **then** chip ou bouton **Ma saison · {titre}** → `/saison/:slug` ; si slug absent ou invalide, **Choisir une saison** → `/troupes` (ou liste saisons selon UX).
+- **Given** `/membre/:userSlug` (self), **when** écran chargé, **then** liens **Mon agenda** et **Ma saison** (même règles que ci-dessus) en surface, pas seulement menu compte.
+- **Given** post-login, **when** connexion réussie, **then** **aucun changement** : remember last visit inchangé (Story 2.9 / 12.5).
+- **Couverture :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) phase 1 ; UX-DR13 (complément discoverability).
+
+**Priorité :** P1 — livrable isolé.  
+**Depends :** 17.1 (chrome header), 12.2 (`/agenda`).  
+**Story file :** à créer via `bmad-create-story` → `17-18-raccourcis-croises-agenda-saison.md`
+
+#### Story 17.19 : Hub membre `/accueil` — À faire (MVP)
+
+En tant que **membre**,  
+je veux un écran **À faire** listant mes **actions urgentes**, mon **prochain spectacle** et des **accès rapides**,  
+afin de savoir quoi traiter sans parcourir tout l’agenda.
+
+**Acceptance Criteria**
+
+- **Given** utilisateur connecté, **when** `/accueil`, **then** écran réel (plus redirect `HomeSignedIn` vers post-login) : titre **À faire**, menu compte, sections **Actions requises** (si ≥1), **Prochain spectacle**, **Accès rapides**.
+- **Given** `GET /me/agenda`, **when** chargement, **then** actions **dispo à renseigner** = événements à venir avec `myAvailabilityStatus === unknown` (fenêtre **30 jours** ; badge **Bientôt** si ≤7 jours) ; tap → détail spectacle (onglet Dispos ou flux dispo existant).
+- **Given** agenda, **when** prochain événement existe, **then** carte **Prochain spectacle** (réutiliser style `agenda-card`) ; sinon empty section dédié.
+- **Given** accès rapides, **when** affichés, **then** liens distincts : **Mon agenda** → `/agenda` ; **Ma saison** → `lastVisitedSeason` ou fallback ; **Saison en un clin d’œil** → `/membre/:slug` ; **Mes troupes** → `/troupes`.
+- **Given** 0 action et 0 événement à venir, **when** affichage, **then** empty « Tout est à jour » + CTAs cohérents (spec hub).
+- **Given** `/agenda`, **when** hub livré, **then** **pas** de duplication du bloc actions sur l’agenda (liste chronologique seule).
+- **Given** post-login, **when** connexion, **then** **pas** de défaut forcé vers `/accueil` (remember last visit — 2.9 / 12.5).
+- **Couverture :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) ; FR15 (rappel dispo), FR48–FR49 (navigation membre, partiel).
+
+**Priorité :** P1.  
+**Depends :** 12.2, 17.18 recommandé (raccourcis déjà en place sur agenda/saison).  
+**Story file :** à créer → `17-19-hub-accueil-a-faire-mvp.md`
+
+#### Story 17.20 : Remember last visit — `lastMemberEntryPath` *(optionnel)*
+
+En tant que **membre**,  
+je veux revenir après connexion sur **le dernier écran membre** visité (agenda, accueil, saison),  
+afin que le remember last visit couvre tout mon usage quotidien, pas seulement la saison.
+
+**Acceptance Criteria**
+
+- **Given** navigation vers `/agenda`, `/accueil`, ou `/saison/:slug` (workspace), **when** sortie de l’écran, **then** persistance `lastMemberEntryPath` (localStorage, même famille que `lastVisitedSeason`).
+- **Given** post-login sans deep link, **when** `lastMemberEntryPath` valide et revalidé, **then** navigation vers cette route ; sinon fallback actuel (`lastVisitedSeason` → saison, puis `/agenda`).
+- **Given** deep link en attente, **when** connexion, **then** priorité inchangée sur `lastMemberEntryPath`.
+- **Couverture :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) ; UX-DR13.
+
+**Priorité :** P2 — peut attendre **17.22** si la nav bar est prioritaire.  
+**Depends :** 17.19 (route `/accueil` réelle).  
+**Story file :** à créer → `17-20-remember-last-member-entry-path.md`
+
+#### Story 17.21 : API `GET /me/inbox` — confirmations et résumé hub
+
+En tant que **membre**,  
+je veux que le hub **À faire** inclue les **compositions à confirmer** sans charger chaque événement,  
+afin de compléter la file d’actions (FR25).
+
+**Acceptance Criteria**
+
+- **Given** `GET /me/inbox` (ou nom retenu), **when** membre authentifié, **then** payload : `actions[]` (types `availability_unknown` | `composition_confirm_pending`), `nextEvent` (nullable), métadonnées raccourcis (`lastSeasonSlug`, filtres clin d’œil optionnels).
+- **Given** slot assigné au viewer, compo **validée**, `participationStatus === pending`, **when** agrégation, **then** action `composition_confirm_pending` avec `deepLink` incluant `showConfirm=true` si applicable.
+- **Given** hub `/accueil`, **when** chargement, **then** utilise **inbox** pour actions (remplace dérivation client-only dispo) ; agenda API reste pour carte prochain spectacle ou délégué à `nextEvent` inbox.
+- **Given** OpenAPI, **when** publié, **then** fragment documenté ; tests intégration scénarios pending + unknown dispo.
+- **Couverture :** FR25, FR28 (état awaiting confirmations) ; [ux-hub-a-faire.md](./ux-hub-a-faire.md) phase 3.
+
+**Priorité :** P1 pour valeur hub complète ; **peut suivre 17.19** (MVP dispo-only d’abord).  
+**Depends :** 6.7 (participation membre), 17.19.  
+**Story file :** à créer → `17-21-api-me-inbox-hub-membre.md`
+
+#### Story 17.22 : Shell navigation bar M3 (À faire · Agenda · Saison)
+
+En tant que **membre**,  
+je veux une **navigation bar** persistante sur les écrans membre principaux,  
+afin d’alterner entre **À faire**, **Agenda** et **Saison** sans menu caché.
+
+**Acceptance Criteria**
+
+- **Given** mobile, **when** routes shell (`/accueil`, `/agenda`, `/saison/:slug` — pas admin, pas `/connexion`), **then** **navigation bar** M3 en bas : **À faire**, **Agenda**, **Saison** (dernière saison mémorisée ; tap long ou fallback si absente documenté).
+- **Given** desktop (breakpoint documenté, ex. ≥840px), **when** mêmes routes, **then** **navigation rail** à gauche (mêmes 3 destinations).
+- **Given** actions en attente sur inbox, **when** ≥1, **then** badge sur onglet **À faire** (cap affichage « 9+ »).
+- **Given** tokens Material, **when** rendu, **then** styles via `--mat-sys-*` ; pas de bottom app bar M2.
+- **Given** event detail ou routes admin, **when** navigation, **then** bar **masquée** ou réduite (décision documentée dans story file — défaut : masquée hors shell).
+- **Couverture :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) phase 4 ; [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md).
+
+**Priorité :** P2 — après hub + idéalement inbox.  
+**Depends :** 17.19 ; 17.21 recommandé (badge utile) ; 17.20 optionnel.  
+**Story file :** à créer → `17-22-navigation-bar-m3-membre.md`
+
+**UX spec hub :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) (décisions 2026-05-27 : route `/accueil` dédiée, post-login = remember last visit).
 
 ---
 

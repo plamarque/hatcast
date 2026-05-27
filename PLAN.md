@@ -346,6 +346,15 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **17.13** | Formulaire spectacle — datepicker + heure/minute Material | P2 | — |
 | **17.14** | Infos — type + rôles en modales ; alléger `EventFormDialog` | P2 | 17.8 recommandé |
 | **17.15** | Infos — organisateur·ices en modale ; retirer participants du formulaire | P2 | 17.14 recommandé |
+| **17.16** | Route admin participants **événement** (breadcrumb, hors dialog) | P1 | 17.11 — fichier story existant |
+| **17.17** | Chip organisateur + Promouvoir listes admin | P2 | — — fichier story existant |
+| **17.18** | Raccourcis app bar agenda ↔ saison | P1 | 17.1, 12.2 |
+| **17.19** | Hub `/accueil` À faire (MVP, agenda API) | P1 | 12.2 ; 17.18 reco. |
+| **17.20** | `lastMemberEntryPath` post-login *(optionnel)* | P2 | 17.19 |
+| **17.21** | API `GET /me/inbox` (confirmations + actions) | P1 | 6.7, 17.19 |
+| **17.22** | Navigation bar M3 membre (3 onglets) | P2 | 17.19 ; 17.21 reco. |
+
+**Wave hub membre (2026-05-27) :** livrer **17.18** seul en premier si besoin rapide ; puis **17.19** ; **17.21** avant ou en parallèle de **17.22** ; **17.20** si remember last visit doit inclure `/accueil`. Spec : [_ux-hub-a-faire.md_](_bmad-output/planning-artifacts/ux-hub-a-faire.md).
 
 **DoD phase navigation (17.1–17.5) :** plus de hub `/seasons` ; breadcrumb sur troupe/saison/événement ; admin troupe depuis hub ; lien nom de troupe sur événement → hub.
 
