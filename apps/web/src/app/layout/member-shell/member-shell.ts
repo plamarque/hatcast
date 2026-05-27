@@ -9,6 +9,7 @@ import {
   isPersistableMemberEntryPath,
   memberStatsSlugFromMemberEntryPath,
   rememberLastMemberEntryPath,
+  seasonSlugFromMemberEntryPath,
 } from '../../core/navigation/last-member-entry-path-storage'
 import { MemberNav } from '../../shared/member-nav/member-nav'
 import { pathFromUrl, shouldShowMemberNav } from './member-shell-nav-visibility'
@@ -49,6 +50,10 @@ export class MemberShell implements OnInit {
 
   private async persistMemberEntryPathIfNeeded(url: string, path: string): Promise<void> {
     if (!shouldShowMemberNav(url) || !isPersistableMemberEntryPath(path)) {
+      return
+    }
+    // Season workspace: SeasonHome persists after a successful resolve only.
+    if (seasonSlugFromMemberEntryPath(path)) {
       return
     }
 

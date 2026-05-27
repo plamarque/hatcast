@@ -45,6 +45,7 @@ describe('MemberShell', () => {
               { path: 'accueil', component: ShellChildStub },
               { path: 'agenda', component: ShellChildStub },
               { path: 'membre/:userSlug', component: ShellChildStub },
+              { path: 'saison/:slug', component: ShellChildStub },
               { path: 'saison/:slug/event/:eventSlug', component: ShellChildStub },
               { path: 'compte', component: ShellChildStub },
               { path: 'saison/:slug/admin/membres', component: ShellChildStub },
@@ -130,5 +131,23 @@ describe('MemberShell', () => {
     await renderAt('/membre/bob')
 
     expect(getLastMemberEntryPath()).toBeNull()
+  })
+
+  it('does not persist season workspace on NavigationEnd (SeasonHome owns AC2)', async () => {
+    await renderAt('/saison/ligue-2026')
+
+    expect(getLastMemberEntryPath()).toBeNull()
+  })
+
+  it('does not persist event detail path', async () => {
+    await renderAt('/saison/ligue-2026/event/ev-1')
+
+    expect(getLastMemberEntryPath()).toBeNull()
+  })
+
+  it('persists own member stats path', async () => {
+    await renderAt('/membre/alice')
+
+    expect(getLastMemberEntryPath()).toBe('/membre/alice')
   })
 })
