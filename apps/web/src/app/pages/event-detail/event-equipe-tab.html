@@ -20,29 +20,11 @@
         <span class="event-equipe-tab__busy-label">Mise à jour en cours…</span>
       </div>
     }
-    @if (showDraftBanner()) {
-      <p class="event-equipe-tab__banner" role="status">
-        Brouillon visible uniquement par les organisateur·ices et administrateur·ices.
-      </p>
-    }
-
     @if (equipeStatus(); as status) {
-      <div class="event-equipe-tab__status">
-        <span
-          class="event-equipe-tab__status-badge"
-          [class.event-equipe-tab__status-badge--success]="status.tone === 'success'"
-          [class.event-equipe-tab__status-badge--warning]="status.tone === 'warning'"
-          [class.event-equipe-tab__status-badge--info]="status.tone === 'info'"
-        >
-          {{ status.label }}
-        </span>
-        <p
-          class="event-equipe-tab__status-hint"
-          [class.event-equipe-tab__status-hint--success]="status.tone === 'success'"
-        >
-          {{ status.hint }}
-        </p>
-      </div>
+      <app-composition-equipe-status-header
+        [status]="status"
+        [showDraftBanner]="showDraftBanner()"
+      />
     }
 
     @if (showDrawPreparing()) {
@@ -58,77 +40,21 @@
       />
     }
 
-    @if (canShareDraw()) {
-      <div class="event-equipe-tab__share-toolbar">
-        <button
-          type="button"
-          class="event-equipe-tab__share"
-          [disabled]="compositionInteractionBlocked()"
-          (click)="openShareDialog('draw')"
-        >
-          Partager
-        </button>
-      </div>
-    }
-
-    @if (canAnnounceComposition()) {
-      <div class="event-equipe-tab__share-toolbar">
-        <button
-          type="button"
-          class="event-equipe-tab__share"
-          [disabled]="compositionInteractionBlocked()"
-          (click)="openShareDialog('composition')"
-        >
-          Annoncer la compo
-        </button>
-      </div>
-    }
-
-    @if (canFillGaps()) {
-      <div class="event-equipe-tab__fill-toolbar">
-        <button
-          type="button"
-          class="event-equipe-tab__fill"
-          [disabled]="drawing()"
-          (click)="fillGaps()"
-        >
-          @if (drawing()) {
-            <mat-spinner diameter="20" />
-          } @else {
-            Compléter
-          }
-        </button>
-        <p class="event-equipe-tab__fill-hint">
-          Tirage pondéré sur les créneaux vides uniquement — la composition reste verrouillée.
-        </p>
-      </div>
-    }
-
-    @if (canDraw()) {
-      <div class="event-equipe-tab__draw-toolbar">
-        <button
-          type="button"
-          class="event-equipe-tab__draw"
-          [disabled]="drawing()"
-          (click)="draw()"
-        >
-          @if (drawing()) {
-            <mat-spinner diameter="20" />
-          } @else {
-            Tirer au sort
-          }
-        </button>
-        <p class="event-equipe-tab__draw-hint">
-          Proposition automatique selon les dispos et l’historique des sélections — à publier
-          ensuite.
-        </p>
-      </div>
-    }
-
     @if (canEditSlots()) {
       <p class="event-equipe-tab__manual-hint">
         Cliquez sur un rôle pour choisir manuellement, ou utilisez Tirer au sort.
       </p>
+    }
+
+    @if (equipeStatus(); as status) {
+      @if (status.managerGuideline; as guideline) {
+        <p
+          class="composition-equipe-status__hint event-equipe-tab__slots-guideline"
+          [class.composition-equipe-status__hint--success]="status.tone === 'success'"
+        >
+          {{ guideline }}
+        </p>
+      }
     }
 
     <ul
@@ -272,50 +198,134 @@
       </div>
     }
 
-    @if (canPublish()) {
-      <button
-        type="button"
-        class="event-equipe-tab__publish"
-        [disabled]="publishing()"
-        (click)="publish()"
-      >
-        @if (publishing()) {
-          <mat-spinner diameter="20" />
-        } @else {
-          Publier
-        }
-      </button>
-    }
+    @if (showActionsToolbar()) {
+      @if (canValidate()) {
+        <p class="event-equipe-tab__actions-lead">
+          Prêt ? Validez pour rendre la composition visible à tout le monde.
+        </p>
+      }
 
-    @if (canValidate()) {
-      <button
-        type="button"
-        class="event-equipe-tab__validate"
-        [disabled]="validating()"
-        (click)="validate()"
-      >
-        @if (validating()) {
-          <mat-spinner diameter="20" />
-        } @else {
-          Valider
+      <div class="event-equipe-tab__actions-grid">
+        @if (canValidate()) {
+          <button
+            type="button"
+            class="event-equipe-tab__action event-equipe-tab__validate"
+            [class.event-equipe-tab__action--primary]="primaryAction() === 'validate'"
+            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'validate'"
+            [disabled]="validating()"
+            (click)="validate()"
+          >
+            @if (validating()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              Valider
+            }
+          </button>
         }
-      </button>
-    }
 
-    @if (canUnlock()) {
-      <button
-        type="button"
-        mat-stroked-button
-        class="event-equipe-tab__unlock"
-        [disabled]="unlocking()"
-        (click)="unlock()"
-      >
-        @if (unlocking()) {
-          <mat-spinner diameter="20" />
-        } @else {
-          Déverrouiller
+        @if (canDraw()) {
+          <button
+            type="button"
+            class="event-equipe-tab__action event-equipe-tab__draw"
+            [class.event-equipe-tab__action--primary]="primaryAction() === 'draw'"
+            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'draw'"
+            [disabled]="drawing()"
+            (click)="draw()"
+          >
+            @if (drawing()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              Tirer au sort
+            }
+          </button>
         }
-      </button>
+
+        @if (canPublish()) {
+          <button
+            type="button"
+            class="event-equipe-tab__action event-equipe-tab__publish"
+            [class.event-equipe-tab__action--primary]="primaryAction() === 'publish'"
+            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'publish'"
+            [disabled]="publishing()"
+            (click)="publish()"
+          >
+            @if (publishing()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              Publier
+            }
+          </button>
+        }
+
+        @if (canShareDraw()) {
+          <button
+            type="button"
+            class="event-equipe-tab__action event-equipe-tab__share event-equipe-tab__action--secondary"
+            [disabled]="compositionInteractionBlocked()"
+            (click)="openShareDialog('draw')"
+          >
+            Partager
+          </button>
+        }
+
+        @if (canAnnounceComposition()) {
+          <button
+            type="button"
+            class="event-equipe-tab__action event-equipe-tab__share"
+            [class.event-equipe-tab__action--primary]="primaryAction() === 'announce'"
+            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'announce'"
+            [disabled]="compositionInteractionBlocked()"
+            (click)="openShareDialog('composition')"
+          >
+            Annoncer la compo
+          </button>
+        }
+
+        @if (canFillGaps()) {
+          <button
+            type="button"
+            class="event-equipe-tab__action event-equipe-tab__fill"
+            [class.event-equipe-tab__action--primary]="primaryAction() === 'fill'"
+            [class.event-equipe-tab__action--secondary]="primaryAction() !== 'fill'"
+            [disabled]="drawing()"
+            (click)="fillGaps()"
+          >
+            @if (drawing()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              Compléter
+            }
+          </button>
+        }
+
+        @if (canUnlock()) {
+          <button
+            type="button"
+            class="event-equipe-tab__action event-equipe-tab__unlock event-equipe-tab__action--secondary"
+            [disabled]="unlocking()"
+            (click)="unlock()"
+          >
+            @if (unlocking()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              Déverrouiller
+            }
+          </button>
+        }
+      </div>
+
+      @if (canDraw()) {
+        <p class="event-equipe-tab__action-hint">
+          Proposition automatique selon les dispos et l’historique des sélections — à publier
+          ensuite.
+        </p>
+      }
+
+      @if (canFillGaps()) {
+        <p class="event-equipe-tab__action-hint">
+          Tirage pondéré sur les créneaux vides uniquement — la composition reste verrouillée.
+        </p>
+      }
     }
   </div>
 }

@@ -17,8 +17,11 @@ import {
   ROLE_LABELS,
   rolesWithSlots,
 } from '../../core/events/event-types'
-import { compositionStatusHint } from '../../core/composition/composition-status-hint'
-import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
+import {
+  CompositionApiService,
+  type CompositionResponse,
+} from '../../core/composition/composition-api.service'
+import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import {
   ScopeAdminMenu,
   type ScopeAdminMenuItem,
@@ -55,14 +58,14 @@ import {
     MatDialogModule,
     MatIconModule,
     MatSnackBarModule,
-    CompositionStatusBadge,
     ScopeAdminMenu,
   ],
   templateUrl: './event-infos-tab.html',
-  styleUrl: './event-infos-tab.scss',
+  styleUrls: ['./event-infos-tab.scss', '../../shared/composition/composition-equipe-status-header.scss'],
 })
 export class EventInfosTab {
   private readonly eventsApi = inject(EventApiService)
+  private readonly compositionApi = inject(CompositionApiService)
   private readonly troupeApi = inject(TroupeApiService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly snack = inject(MatSnackBar)
@@ -83,6 +86,26 @@ export class EventInfosTab {
   protected readonly glossary = signal<TroupeEquityTag[]>([])
   protected readonly organizers = signal<OrganizerResponse[]>([])
   protected readonly saving = signal(false)
+  protected readonly composition = signal<CompositionResponse | null>(null)
+  protected readonly compositionLoaded = signal(false)
+
+  protected readonly equipeStatus = computed(() => {
+    if (!this.compositionLoaded()) {
+      return null
+    }
+    return resolveCompositionEquipeStatus({
+      composition: this.composition(),
+      canManageComposition: this.canManageComposition(),
+      roleSlots: normalizeRoleSlots(this.event().roleSlots),
+    })
+  })
+
+  protected readonly showDraftBanner = computed(
+    () =>
+      this.compositionLoaded() &&
+      this.canManageComposition() &&
+      this.composition()?.visibility === 'organizerDraft',
+  )
 
   protected readonly showEquitySection = computed(
     () => this.canManageEvents() || this.event().equityTag != null,
@@ -123,13 +146,23 @@ export class EventInfosTab {
         void this.loadOrganizers(seasonId, eventId)
       }
     })
+    effect(() => {
+      const seasonId = this.seasonId()
+      const eventId = this.event().id
+      if (seasonId && eventId) {
+        void this.loadComposition(seasonId, eventId)
+      }
+    })
   }
 
-  protected compositionStatusHint(ev: EventResponse): string | null {
-    return compositionStatusHint(ev.compositionLifecycle, {
-      canManageComposition: this.canManageComposition(),
-      compositionPublishedAt: ev.compositionPublishedAt,
-    })
+  private async loadComposition(seasonId: string, eventId: string): Promise<void> {
+    const result = await this.compositionApi.getComposition(seasonId, eventId)
+    if (result.ok && result.data) {
+      this.composition.set(result.data)
+    } else {
+      this.composition.set(null)
+    }
+    this.compositionLoaded.set(true)
   }
 
   protected formatDate(iso: string): string {

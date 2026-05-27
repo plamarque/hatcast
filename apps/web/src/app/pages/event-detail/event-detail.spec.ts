@@ -305,28 +305,60 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Aucun tirage pour le moment')
   })
 
-  it('shows composition status hint on Infos tab', async () => {
+  it('omits manager guideline on Infos tab', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participationStatus: 'confirmed',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: true,
+        isSeasonOrganizer: true,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
     loadEventMock.mockResolvedValue({
       ok: true,
       status: 200,
       data: {
-        ...ev('event-2'),
+        ...ev('event-2', {
+          roleSlots: { ...emptyRoleSlots(), player: 2 },
+        }),
         compositionLifecycle: 'awaitingConfirmations',
-        teamStatusBadge: {
-          key: 'preparing',
-          label: 'Équipe en préparation',
-          tone: 'preparing',
-          shortLabel: 'Préparation',
-        },
       },
     })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      const hint = fixture.nativeElement.querySelector('.event-infos__status-hint')
-      expect(hint?.textContent?.trim()).toBe(
-        'En attente des confirmations des personnes composées.',
-      )
+      expect(fixture.nativeElement.querySelector('.composition-equipe-status__hint')).toBeNull()
+      expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
     })
   })
 

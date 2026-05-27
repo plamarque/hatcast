@@ -1431,7 +1431,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('styles unlock as Material stroked button', async () => {
+  it('styles unlock as secondary action button', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1457,7 +1457,8 @@ describe('EventEquipeTab', () => {
     })
 
     const btn = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
-    expect(btn.className).toMatch(/mat-mdc-outlined-button/)
+    expect(btn.classList.contains('event-equipe-tab__action--secondary')).toBe(true)
+    expect(btn.classList.contains('event-equipe-tab__action--primary')).toBe(false)
   })
 
   it('shows draw preparing panel while HTTP request is in flight', async () => {

@@ -14,8 +14,9 @@ export type CompositionEquipeStatusTone = 'neutral' | 'success' | 'warning' | 'i
 export interface CompositionEquipeStatus {
   type: CompositionEquipeStatusType
   label: string
-  hint: string
   tone: CompositionEquipeStatusTone
+  /** Organizer guideline for Équipe tab (above slots); null for members. */
+  managerGuideline: string | null
 }
 
 export interface CompositionEquipeStatusInput {
@@ -55,6 +56,17 @@ function slotAt(
   }
 }
 
+function withGuideline(
+  status: Omit<CompositionEquipeStatus, 'managerGuideline'>,
+  guideline: string,
+  canManageComposition: boolean,
+): CompositionEquipeStatus {
+  return {
+    ...status,
+    managerGuideline: canManageComposition ? guideline : null,
+  }
+}
+
 /** Six-state Équipe badge — first match wins (composition-status-messages.md). */
 export function resolveCompositionEquipeStatus(
   input: CompositionEquipeStatusInput,
@@ -89,61 +101,72 @@ export function resolveCompositionEquipeStatus(
     })
 
   if (!hasSelection) {
-    return {
-      type: 'none',
-      label: 'À composer',
-      hint:
-        '🫵 À composer : Cliquez dans les emplacements pour sélectionner un participant ou ✨ Tirez au sort pour faire une sélection automatique.',
-      tone: 'neutral',
-    }
+    return withGuideline(
+      {
+        type: 'none',
+        label: 'À composer',
+        tone: 'neutral',
+      },
+      '🫵 À composer : Cliquez dans les emplacements pour sélectionner un participant ou ✨ Tirez au sort pour faire une sélection automatique.',
+      canManageComposition,
+    )
   }
 
   if (isValidated && allFilledConfirmed) {
-    return {
-      type: 'complete',
-      label: 'Équipe complète',
-      hint:
-        '🎉 Équipe complète : 📢 Annoncez la compo définitive ou 🔓 Déverrouillez pour faire des changements.',
-      tone: 'success',
-    }
+    return withGuideline(
+      {
+        type: 'complete',
+        label: 'Équipe complète',
+        tone: 'success',
+      },
+      '🎉 Équipe complète : 📢 Annoncez la compo définitive ou 🔓 Déverrouillez pour faire des changements.',
+      canManageComposition,
+    )
   }
 
   if (isValidated && hasEmptySlots) {
-    return {
-      type: 'slots_to_complete',
-      label: 'À compléter',
-      hint:
-        '⚠️ À compléter : La composition a été validée mais certains emplacements sont vides. Finalisez la compo en cliquant dans un emplacement vide ou sur le bouton 🔧 Compléter pour un choix aléatoire.',
-      tone: 'warning',
-    }
+    return withGuideline(
+      {
+        type: 'slots_to_complete',
+        label: 'À compléter',
+        tone: 'warning',
+      },
+      '⚠️ À compléter : La composition a été validée mais certains emplacements sont vides. Finalisez la compo en cliquant dans un emplacement vide ou sur le bouton 🔧 Compléter pour un choix aléatoire.',
+      canManageComposition,
+    )
   }
 
   if (isValidated && hasDeclinedInSlots) {
-    return {
-      type: 'has_declined',
-      label: 'À vérifier',
-      hint:
-        '⚠️ À vérifier : La composition de l\'équipe contient des personnes désistées, vérifiez que tout le monde est toujours disponible.',
-      tone: 'warning',
-    }
+    return withGuideline(
+      {
+        type: 'has_declined',
+        label: 'À vérifier',
+        tone: 'warning',
+      },
+      '⚠️ À vérifier : La composition de l\'équipe contient des personnes désistées, vérifiez que tout le monde est toujours disponible.',
+      canManageComposition,
+    )
   }
 
   if (isValidated) {
-    return {
-      type: 'pending_confirmation',
-      label: 'Confirmations en cours',
-      hint:
-        '⏳ Confirmations : 📢 Annoncez la compo, puis récoltez les confirmations des participants. ⚠️ La compo actuelle est visible de tous. 🔒 Déverrouillez pour la masquer.',
-      tone: 'info',
-    }
+    return withGuideline(
+      {
+        type: 'pending_confirmation',
+        label: 'Confirmations en cours',
+        tone: 'info',
+      },
+      '⏳ Confirmations : 📢 Annoncez la compo, puis récoltez les confirmations des participants. ⚠️ La compo actuelle est visible de tous. 🔒 Déverrouillez pour la masquer.',
+      canManageComposition,
+    )
   }
 
-  return {
-    type: 'draft',
-    label: 'En préparation',
-    hint: canManageComposition
-      ? '🧠 En préparation : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez la aux responsables si vous le désirez et lorsque vous serez prêt cliquez sur ✅ Valider pour la rendre visible à tout le monde.'
-      : 'Une composition est en cours de préparation par les sélectionneurs.',
-    tone: 'info',
-  }
+  return withGuideline(
+    {
+      type: 'draft',
+      label: 'En préparation',
+      tone: 'info',
+    },
+    '🧠 En préparation : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez la aux responsables si vous le désirez et lorsque vous serez prêt cliquez sur ✅ Valider pour la rendre visible à tout le monde.',
+    canManageComposition,
+  )
 }

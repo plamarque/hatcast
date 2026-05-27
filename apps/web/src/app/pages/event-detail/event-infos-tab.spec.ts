@@ -9,6 +9,7 @@ import { emptyRoleSlots } from '../../core/events/event-types'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { applyTemplate } from '../../core/events/event-types'
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
+import { CompositionApiService } from '../../core/composition/composition-api.service'
 import { EventInfosTab } from './event-infos-tab'
 import { EventEquityTagDialog } from './event-equity-tag-dialog'
 import { EventOrganizersDialog } from './event-organizers-dialog'
@@ -65,6 +66,15 @@ async function setup(options: {
     status: 200,
     data: options.organizers ?? [],
   })
+  const getComposition = vi.fn().mockResolvedValue({
+    ok: true,
+    data: {
+      publishedAt: null,
+      validatedAt: null,
+      visibility: 'none',
+      slots: [],
+    },
+  })
   const dialogOpen = vi.fn().mockReturnValue({
     afterClosed: () => ({
       subscribe: (fn: (v: unknown) => void) => {
@@ -91,6 +101,7 @@ async function setup(options: {
           removeEventOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
         },
       },
+      { provide: CompositionApiService, useValue: { getComposition } },
       { provide: MatSnackBar, useValue: { open: snackOpen } },
       { provide: MatDialog, useValue: { open: dialogOpen } },
     ],

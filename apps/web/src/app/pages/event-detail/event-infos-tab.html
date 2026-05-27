@@ -1,13 +1,32 @@
 <main class="event-infos">
   <div class="event-infos__header">
-    <div class="event-infos__status-row">
-      <app-composition-status-badge [badge]="event().teamStatusBadge" [short]="false" />
-      @if (compositionStatusHint(event()); as hint) {
-        <p class="event-infos__status-hint">{{ hint }}</p>
-      }
-    </div>
-    @if (adminItems().length > 0) {
-      <app-scope-admin-menu class="event-infos__admin-menu" scope="event" [items]="adminItems()" />
+    @if (showDraftBanner()) {
+      <p class="composition-equipe-status__banner" role="status">
+        Brouillon visible uniquement par les organisateur·ices et administrateur·ices.
+      </p>
+    }
+    @if (equipeStatus(); as status) {
+      <div class="composition-equipe-status">
+        <div class="composition-equipe-status__head">
+          <span
+            class="composition-equipe-status__badge"
+            [class.composition-equipe-status__badge--success]="status.tone === 'success'"
+            [class.composition-equipe-status__badge--warning]="status.tone === 'warning'"
+            [class.composition-equipe-status__badge--info]="status.tone === 'info'"
+          >
+            {{ status.label }}
+          </span>
+          <div class="composition-equipe-status__actions">
+            @if (adminItems().length > 0) {
+              <app-scope-admin-menu
+                class="event-infos__admin-menu"
+                scope="event"
+                [items]="adminItems()"
+              />
+            }
+          </div>
+        </div>
+      </div>
     }
   </div>
 

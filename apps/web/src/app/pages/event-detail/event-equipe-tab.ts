@@ -14,6 +14,7 @@ import {
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
+import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { showPublishButton } from '../../core/composition/composition-visibility'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
@@ -44,6 +45,8 @@ import {
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
 
+export type EquipePrimaryAction = 'validate' | 'fill' | 'announce' | 'draw' | 'publish'
+
 interface SlotRow {
   roleKey: string
   slotIndex: number
@@ -62,9 +65,10 @@ interface SlotRow {
     MatSnackBarModule,
     EventEquipeEmpty,
     CompositionDrawAnimation,
+    CompositionEquipeStatusHeader,
   ],
   templateUrl: './event-equipe-tab.html',
-  styleUrl: './event-equipe-tab.scss',
+  styleUrls: ['./event-equipe-tab.scss', '../../shared/composition/composition-equipe-status-header.scss'],
 })
 export class EventEquipeTab {
   private readonly compositionApi = inject(CompositionApiService)
@@ -252,6 +256,40 @@ export class EventEquipeTab {
       !this.isCompositionLocked() &&
       !this.compositionInteractionBlocked() &&
       !this.animatingDraw(),
+  )
+
+  /** Single forward CTA per screen — others render as outlined secondaries. */
+  protected readonly primaryAction = computed((): EquipePrimaryAction | null => {
+    if (this.canValidate()) {
+      return 'validate'
+    }
+    if (this.canFillGaps()) {
+      return 'fill'
+    }
+    if (this.canAnnounceComposition()) {
+      return 'announce'
+    }
+    if (this.canDraw() && !this.hasAssignedSlot()) {
+      return 'draw'
+    }
+    if (this.canPublish()) {
+      return 'publish'
+    }
+    if (this.canDraw()) {
+      return 'draw'
+    }
+    return null
+  })
+
+  protected readonly showActionsToolbar = computed(
+    () =>
+      this.canShareDraw() ||
+      this.canAnnounceComposition() ||
+      this.canFillGaps() ||
+      this.canDraw() ||
+      this.canPublish() ||
+      this.canValidate() ||
+      this.canUnlock(),
   )
 
   protected readonly viewerParticipantIds = computed(

@@ -149,7 +149,7 @@ describe('resolveCompositionEquipeStatus', () => {
     expect(status?.tone).toBe('success')
   })
 
-  it('uses non-manager hint for draft En préparation', () => {
+  it('returns null managerGuideline for members on draft', () => {
     const status = resolveCompositionEquipeStatus({
       composition: comp({
         slots: [
@@ -164,6 +164,26 @@ describe('resolveCompositionEquipeStatus', () => {
       canManageComposition: false,
       roleSlots,
     })
-    expect(status?.hint).toContain('sélectionneurs')
+    expect(status?.managerGuideline).toBeNull()
+    expect(status?.label).toBe('En préparation')
+  })
+
+  it('returns managerGuideline for organizers on draft', () => {
+    const status = resolveCompositionEquipeStatus({
+      composition: comp({
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participationStatus: 'pending',
+          },
+        ],
+      }),
+      canManageComposition: true,
+      roleSlots,
+    })
+    expect(status?.managerGuideline).toContain('En préparation')
+    expect(status?.managerGuideline).toContain('Valider')
   })
 })

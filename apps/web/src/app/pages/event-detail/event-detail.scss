@@ -45,6 +45,10 @@
 
 .event-detail__tabs {
 
+  ::ng-deep .mat-mdc-tab-body-content {
+    overflow: visible;
+  }
+
   ::ng-deep .mat-mdc-tab-header {
     justify-content: center;
   }

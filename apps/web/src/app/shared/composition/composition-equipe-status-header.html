@@ -1,0 +1,23 @@
+@if (showDraftBanner()) {
+  <p class="composition-equipe-status__banner" role="status">
+    Brouillon visible uniquement par les organisateur·ices et administrateur·ices.
+  </p>
+}
+
+@if (status(); as s) {
+  <div class="composition-equipe-status composition-equipe-status--badge-only">
+    <div class="composition-equipe-status__head">
+      <span
+        class="composition-equipe-status__badge"
+        [class.composition-equipe-status__badge--success]="s.tone === 'success'"
+        [class.composition-equipe-status__badge--warning]="s.tone === 'warning'"
+        [class.composition-equipe-status__badge--info]="s.tone === 'info'"
+      >
+        {{ s.label }}
+      </span>
+      <div class="composition-equipe-status__actions">
+        <ng-content />
+      </div>
+    </div>
+  </div>
+}
