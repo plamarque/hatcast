@@ -163,11 +163,12 @@ describe('TroupeHub', () => {
 
   it('lists active seasons and links to saison workspace', async () => {
     const { fixture } = await setup()
-    const cards = fixture.nativeElement.querySelectorAll('.troupe-hub__season-card')
+    const cards = fixture.nativeElement.querySelectorAll('app-season-card')
     expect(cards.length).toBe(1)
     expect(cards[0].textContent).toContain('Saison active')
     expect(cards[0].textContent).toContain('3 spectacles')
-    expect(cards[0].getAttribute('href')).toBe('/saison/2025-26')
+    const openLink = cards[0].querySelector('a[mat-flat-button]') as HTMLAnchorElement
+    expect(openLink.getAttribute('href')).toBe('/saison/2025-26')
   })
 
   it('reveals archived seasons when toggled', async () => {
@@ -177,7 +178,7 @@ describe('TroupeHub', () => {
     ).find((b) => b.textContent?.includes('Afficher les saisons archivées'))!
     archivedBtn.click()
     fixture.detectChanges()
-    const cards = fixture.nativeElement.querySelectorAll('.troupe-hub__season-card')
+    const cards = fixture.nativeElement.querySelectorAll('app-season-card')
     expect(cards.length).toBe(2)
   })
 

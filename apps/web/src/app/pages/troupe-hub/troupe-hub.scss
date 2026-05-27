@@ -169,26 +169,17 @@
 
 .troupe-hub__season-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  gap: 1rem;
   margin-bottom: 0.75rem;
-}
 
-.troupe-hub__season-card {
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-  transition: box-shadow 0.15s ease;
-
-  &:hover {
-    box-shadow: 0 2px 8px color-mix(in srgb, currentColor 15%, transparent);
+  @media (min-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
   }
-}
 
-.troupe-hub__season-meta {
-  margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.85;
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .troupe-hub__footer {

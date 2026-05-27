@@ -1,7 +1,6 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet'
 import { MatButtonModule } from '@angular/material/button'
-import { MatCardModule } from '@angular/material/card'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
@@ -30,6 +29,7 @@ import {
   type ScopeAdminMenuItem,
 } from '../../shared/scope-admin-menu/scope-admin-menu'
 import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
+import { SeasonCard } from '../../shared/season-card/season-card'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import {
   SeasonFormDialog,
@@ -47,7 +47,6 @@ const SEASONS_PAGE_SIZE = 50
   imports: [
     MatBottomSheetModule,
     MatButtonModule,
-    MatCardModule,
     MatDialogModule,
     MatIconModule,
     MatMenuModule,
@@ -55,6 +54,7 @@ const SEASONS_PAGE_SIZE = 50
     MatSnackBarModule,
     RouterLink,
     ScopeAdminMenu,
+    SeasonCard,
     UserAccountMenuItemsComponent,
     UserAvatarComponent,
   ],
@@ -186,18 +186,6 @@ export class TroupeHub implements OnInit, OnDestroy {
 
   protected userDisplayLabel(u: UserSummary): string {
     return this.troupeContext.currentUserDisplayLabel(u)
-  }
-
-  protected saisonLink(season: SeasonResponse): string[] {
-    return saisonWorkspacePath(season.slug)
-  }
-
-  protected spectacleMeta(count: number): string {
-    return count === 1 ? '1 spectacle' : `${count} spectacles`
-  }
-
-  protected participantMeta(count: number): string {
-    return count === 1 ? '1 participant' : `${count} participants`
   }
 
   protected toggleArchived(): void {

@@ -96,25 +96,13 @@
         }
         <div class="troupe-hub__season-grid">
           @for (season of visibleSeasons(); track season.id) {
-            <a
-              mat-card
-              appearance="outlined"
-              class="troupe-hub__season-card"
-              [routerLink]="saisonLink(season)"
-            >
-              <mat-card-header>
-                <mat-card-title>{{ season.title }}</mat-card-title>
-                @if (season.archived) {
-                  <mat-card-subtitle>Archivée</mat-card-subtitle>
-                }
-              </mat-card-header>
-              <mat-card-content>
-                <p class="troupe-hub__season-meta">
-                  {{ spectacleMeta(season.eventCount) }} ·
-                  {{ participantMeta(season.participantCount) }}
-                </p>
-              </mat-card-content>
-            </a>
+            <app-season-card
+              [title]="season.title"
+              [slug]="season.slug"
+              [eventCount]="season.eventCount"
+              [participantCount]="season.participantCount"
+              [archived]="season.archived"
+            />
           }
         </div>
         @if (archivedSeasons().length > 0) {
