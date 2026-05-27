@@ -92,7 +92,7 @@ describe('AvailabilityDialog', () => {
 
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
       status: 'available',
-      roleKeys: ['player', 'mc'],
+      roleKeys: [],
       applyVolunteerRule: true,
       comment: null,
     })
@@ -125,10 +125,13 @@ describe('AvailabilityDialog', () => {
     expect(getPreferredRoles).toHaveBeenCalledWith('troupe-1')
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
       status: 'available',
-      roleKeys: ['player', 'mc'],
+      roleKeys: [],
       applyVolunteerRule: true,
       comment: null,
     })
+    const formEl = fixture.nativeElement as HTMLElement
+    expect(formEl.textContent).toContain('Comédien·nes')
+    expect(formEl.textContent).toContain('MC')
   })
 
   it('does not pre-check on reopen when available with empty saved roles', async () => {
@@ -175,7 +178,7 @@ describe('AvailabilityDialog', () => {
     })
   })
 
-  it('saves role toggles while status is available', async () => {
+  it('saves role toggles via the details save button', async () => {
     const { fixture, setMyAvailability } = await setup({
       initialStatus: 'available',
       initialRoleKeys: ['player'],
@@ -183,10 +186,11 @@ describe('AvailabilityDialog', () => {
 
     const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
       ?.componentInstance as AvailabilityForm
-    await (form as unknown as { toggleRole: (k: string, c: boolean) => Promise<void> }).toggleRole(
-      'mc',
-      true,
-    )
+    ;(form as unknown as { toggleRole: (k: string, c: boolean) => void }).toggleRole('mc', true)
+    fixture.detectChanges()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+
+    await (form as unknown as { saveDetails: () => Promise<void> }).saveDetails()
     await fixture.whenStable()
 
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
@@ -235,7 +239,7 @@ describe('AvailabilityDialog', () => {
     expect(el.textContent).not.toContain('Choisis les rôles pour lesquels tu es disponible')
   })
 
-  it('persists role toggle via keyboard on checkboxes', async () => {
+  it('persists role toggle via keyboard after explicit save', async () => {
     const { fixture, setMyAvailability } = await setup({
       initialStatus: 'available',
       initialRoleKeys: ['player'],
@@ -249,6 +253,12 @@ describe('AvailabilityDialog', () => {
     mcInput.focus()
     mcInput.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
     mcInput.click()
+    fixture.detectChanges()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+
+    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
+      ?.componentInstance as AvailabilityForm
+    await (form as unknown as { saveDetails: () => Promise<void> }).saveDetails()
     await fixture.whenStable()
 
     expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {

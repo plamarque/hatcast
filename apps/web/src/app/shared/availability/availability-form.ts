@@ -4,11 +4,11 @@ import {
   effect,
   inject,
   input,
-  OnDestroy,
   output,
   signal,
 } from '@angular/core'
 import { A11yModule } from '@angular/cdk/a11y'
+import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -33,10 +33,18 @@ import {
 
 export const AVAILABILITY_COMMENT_MAX_LENGTH = 500
 
+export type AvailabilityFormSavedPayload = {
+  status: AvailabilityStatus
+  roleKeys: string[]
+  comment: string | null
+  scope: 'status' | 'details'
+}
+
 @Component({
   selector: 'app-availability-form',
   imports: [
     A11yModule,
+    MatButtonModule,
     MatButtonToggleModule,
     MatCheckboxModule,
     MatFormFieldModule,
@@ -45,7 +53,7 @@ export const AVAILABILITY_COMMENT_MAX_LENGTH = 500
   templateUrl: './availability-form.html',
   styleUrl: './availability-form.scss',
 })
-export class AvailabilityForm implements OnDestroy {
+export class AvailabilityForm {
   private readonly api = inject(AvailabilityApiService)
   private readonly memberProfileApi = inject(MemberProfileApiService)
   private readonly snack = inject(MatSnackBar)
@@ -63,17 +71,23 @@ export class AvailabilityForm implements OnDestroy {
   readonly initialRoleKeys = input<string[] | null | undefined>([])
   readonly initialComment = input<string | null | undefined>(null)
 
-  readonly saved = output<{
-    status: AvailabilityStatus
-    roleKeys: string[]
-    comment: string | null
-  }>()
+  readonly saved = output<AvailabilityFormSavedPayload>()
 
   protected readonly selected = signal<AvailabilityStatus>('unknown')
-  protected readonly saving = signal(false)
+  protected readonly savingStatus = signal(false)
+  protected readonly savingDetails = signal(false)
   protected readonly selectedRoleKeys = signal<RoleKey[]>([])
+  protected readonly savedRoleKeys = signal<RoleKey[]>([])
   protected readonly commentText = signal('')
+  protected readonly savedComment = signal('')
   protected readonly commentError = signal<string | null>(null)
+
+  protected readonly detailsDirty = computed(() => {
+    if (!roleKeysEqual(this.selectedRoleKeys(), this.savedRoleKeys())) {
+      return true
+    }
+    return this.commentText().trim() !== this.savedComment().trim()
+  })
 
   protected readonly roleChoices = computed(() =>
     candidateRolesForEvent(this.roleSlots()).map((key) => ({
@@ -86,7 +100,6 @@ export class AvailabilityForm implements OnDestroy {
   private volunteerExplicitlyUnchecked = false
   protected volunteerMandatoryHint = false
   private skipInputEffect = false
-  private commentSaveTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor() {
     effect(() => {
@@ -94,11 +107,13 @@ export class AvailabilityForm implements OnDestroy {
         this.skipInputEffect = false
         return
       }
+      const roles = normalizeCandidateRoleKeys(this.roleSlots(), this.initialRoleKeys(), false)
+      const comment = this.initialComment() ?? ''
       this.selected.set(this.initialStatus())
-      this.selectedRoleKeys.set(
-        normalizeCandidateRoleKeys(this.roleSlots(), this.initialRoleKeys(), false),
-      )
-      this.commentText.set(this.initialComment() ?? '')
+      this.selectedRoleKeys.set(roles)
+      this.savedRoleKeys.set(roles)
+      this.commentText.set(comment)
+      this.savedComment.set(comment)
       this.commentError.set(null)
     })
   }
@@ -108,11 +123,18 @@ export class AvailabilityForm implements OnDestroy {
     roleKeys: string[] | null | undefined,
     comment?: string | null,
   ): void {
-    if (this.saving()) return
+    if (this.savingStatus() || this.savingDetails()) return
+    const roles = normalizeCandidateRoleKeys(this.roleSlots(), roleKeys, false)
+    const commentValue = comment ?? ''
+    const preserveDraft = this.detailsDirty()
     this.skipInputEffect = true
     this.selected.set(status)
-    this.selectedRoleKeys.set(normalizeCandidateRoleKeys(this.roleSlots(), roleKeys, false))
-    this.commentText.set(comment ?? '')
+    this.savedRoleKeys.set(roles)
+    this.savedComment.set(commentValue)
+    if (!preserveDraft) {
+      this.selectedRoleKeys.set(roles)
+      this.commentText.set(commentValue)
+    }
     this.commentError.set(null)
   }
 
@@ -153,44 +175,36 @@ export class AvailabilityForm implements OnDestroy {
     return this.volunteerMandatoryHint
   }
 
-  ngOnDestroy(): void {
-    if (this.commentSaveTimer) {
-      clearTimeout(this.commentSaveTimer)
-      this.commentSaveTimer = null
-    }
-  }
-
   protected onCommentInput(value: string): void {
     if (this.readOnly() || this.archived()) return
     this.commentText.set(value)
     this.commentError.set(null)
-    this.scheduleCommentSave()
   }
 
-  protected async onStatusChange(status: AvailabilityStatus): Promise<void> {
-    if (this.saving() || this.readOnly() || this.archived()) return
+  protected onStatusClick(status: AvailabilityStatus): void {
+    if (this.savingStatus() || this.readOnly() || this.archived()) return
     if (status === this.selected()) return
-    await this.choose(status)
+    void this.choose(status)
   }
 
   protected async choose(status: AvailabilityStatus): Promise<void> {
-    if (this.saving() || this.readOnly() || this.archived()) return
+    if (this.savingStatus() || this.readOnly() || this.archived()) return
     this.selected.set(status)
     if (status === 'available') {
-      if (this.selectedRoleKeys().length === 0) {
+      if (this.selectedRoleKeys().length === 0 && this.savedRoleKeys().length === 0) {
         await this.applyPreferredPrecheck()
       }
-      await this.persist(status)
+      await this.persistStatus(status)
     } else {
       this.volunteerExplicitlyUnchecked = false
       this.volunteerMandatoryHint = false
       this.selectedRoleKeys.set([])
-      await this.persist(status)
+      await this.persistStatus(status)
     }
   }
 
-  protected async toggleRole(roleKey: RoleKey, checked: boolean): Promise<void> {
-    if (this.saving() || this.readOnly() || this.archived() || this.selected() !== 'available') {
+  protected toggleRole(roleKey: RoleKey, checked: boolean): void {
+    if (this.savingDetails() || this.readOnly() || this.archived() || this.selected() !== 'available') {
       return
     }
     const current = this.selectedRoleKeys()
@@ -215,7 +229,23 @@ export class AvailabilityForm implements OnDestroy {
       this.volunteerMandatoryHint = false
     }
     this.selectedRoleKeys.set(next)
-    await this.persist('available')
+  }
+
+  protected async saveDetails(): Promise<void> {
+    if (
+      this.savingDetails() ||
+      this.savingStatus() ||
+      this.readOnly() ||
+      this.archived() ||
+      !this.detailsDirty()
+    ) {
+      return
+    }
+    await this.persistDetails(this.selected())
+  }
+
+  protected shouldShowDetailsSave(): boolean {
+    return !this.readOnly() && !this.archived() && this.selected() !== 'unknown'
   }
 
   private async applyPreferredPrecheck(): Promise<void> {
@@ -247,16 +277,6 @@ export class AvailabilityForm implements OnDestroy {
     )
   }
 
-  private scheduleCommentSave(): void {
-    if (this.commentSaveTimer) {
-      clearTimeout(this.commentSaveTimer)
-    }
-    this.commentSaveTimer = setTimeout(() => {
-      this.commentSaveTimer = null
-      void this.persist(this.selected())
-    }, 400)
-  }
-
   private normalizedComment(): string | null {
     const trimmed = this.commentText().trim()
     return trimmed.length > 0 ? trimmed : null
@@ -273,49 +293,110 @@ export class AvailabilityForm implements OnDestroy {
     return true
   }
 
-  private async persist(status: AvailabilityStatus): Promise<void> {
-    if (!this.validateCommentLocally()) {
-      return
+  private roleKeysForStatusSave(status: AvailabilityStatus): RoleKey[] {
+    if (status !== 'available') {
+      return []
     }
-    this.saving.set(true)
-    const roleKeys = status === 'available' ? this.selectedRoleKeys() : []
+    return this.savedRoleKeys()
+  }
+
+  private commentForStatusSave(): string | null {
+    const trimmed = this.savedComment().trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+
+  private async persistStatus(status: AvailabilityStatus): Promise<void> {
+    this.savingStatus.set(true)
     const body = {
       status,
-      roleKeys,
-      applyVolunteerRule: this.shouldApplyVolunteerRule(),
-      comment: this.normalizedComment(),
+      roleKeys: this.roleKeysForStatusSave(status),
+      applyVolunteerRule: this.shouldApplyVolunteerRule(this.roleKeysForStatusSave(status)),
+      comment: this.commentForStatusSave(),
     }
-    const participantId = this.subjectParticipantId()
-    const r =
-      this.proxyMode() && participantId
-        ? await this.api.setParticipantAvailability(
-            this.seasonId(),
-            this.eventId(),
-            participantId,
-            body,
-          )
-        : await this.api.setMyAvailability(this.seasonId(), this.eventId(), body)
-    this.saving.set(false)
+    const r = await this.putAvailability(body)
+    this.savingStatus.set(false)
     if (!r.ok || !r.data) {
-      if (r.status === 400) {
-        this.commentError.set(
-          `Le commentaire ne peut pas dépasser ${AVAILABILITY_COMMENT_MAX_LENGTH} caractères.`,
-        )
-        return
-      }
-      this.snack.open('Enregistrement impossible.', 'OK', { duration: 5000 })
+      this.handlePersistError(r.status)
       return
     }
-    this.selected.set(r.data.status)
-    this.selectedRoleKeys.set(
-      normalizeCandidateRoleKeys(this.roleSlots(), r.data.roleKeys, false),
-    )
-    this.commentText.set(r.data.comment ?? '')
+    this.applyServerResponse(r.data, 'status')
     this.saved.emit({
       status: r.data.status,
       roleKeys: r.data.roleKeys,
       comment: r.data.comment ?? null,
+      scope: 'status',
     })
+  }
+
+  private async persistDetails(status: AvailabilityStatus): Promise<void> {
+    if (!this.validateCommentLocally()) {
+      return
+    }
+    this.savingDetails.set(true)
+    const roleKeys = status === 'available' ? this.selectedRoleKeys() : []
+    const body = {
+      status,
+      roleKeys,
+      applyVolunteerRule: this.shouldApplyVolunteerRule(roleKeys),
+      comment: this.normalizedComment(),
+    }
+    const r = await this.putAvailability(body)
+    this.savingDetails.set(false)
+    if (!r.ok || !r.data) {
+      this.handlePersistError(r.status)
+      return
+    }
+    this.applyServerResponse(r.data, 'details')
+    this.snack.open('Rôles et commentaire enregistrés.', 'OK', { duration: 3000 })
+    this.saved.emit({
+      status: r.data.status,
+      roleKeys: r.data.roleKeys,
+      comment: r.data.comment ?? null,
+      scope: 'details',
+    })
+  }
+
+  private applyServerResponse(
+    data: { status: AvailabilityStatus; roleKeys: string[]; comment?: string | null },
+    scope: 'status' | 'details',
+  ): void {
+    const preserveDraft = scope === 'status' && this.detailsDirty()
+    const serverRoles = normalizeCandidateRoleKeys(this.roleSlots(), data.roleKeys, false)
+    const serverComment = data.comment ?? ''
+    this.selected.set(data.status)
+    this.savedRoleKeys.set(serverRoles)
+    this.savedComment.set(serverComment)
+    if (!preserveDraft) {
+      this.selectedRoleKeys.set(serverRoles)
+      this.commentText.set(serverComment)
+    }
+  }
+
+  private handlePersistError(status: number): void {
+    if (status === 400) {
+      this.commentError.set(
+        `Le commentaire ne peut pas dépasser ${AVAILABILITY_COMMENT_MAX_LENGTH} caractères.`,
+      )
+      return
+    }
+    this.snack.open('Enregistrement impossible.', 'OK', { duration: 5000 })
+  }
+
+  private async putAvailability(body: {
+    status: AvailabilityStatus
+    roleKeys: RoleKey[]
+    applyVolunteerRule: boolean
+    comment: string | null
+  }) {
+    const participantId = this.subjectParticipantId()
+    return this.proxyMode() && participantId
+      ? await this.api.setParticipantAvailability(
+          this.seasonId(),
+          this.eventId(),
+          participantId,
+          body,
+        )
+      : await this.api.setMyAvailability(this.seasonId(), this.eventId(), body)
   }
 
   currentState(): { status: AvailabilityStatus; roleKeys: string[]; comment: string | null } {
@@ -325,4 +406,11 @@ export class AvailabilityForm implements OnDestroy {
       comment: this.normalizedComment(),
     }
   }
+}
+
+function roleKeysEqual(a: RoleKey[], b: RoleKey[]): boolean {
+  if (a.length !== b.length) return false
+  const sortedA = [...a].sort()
+  const sortedB = [...b].sort()
+  return sortedA.every((key, index) => key === sortedB[index])
 }

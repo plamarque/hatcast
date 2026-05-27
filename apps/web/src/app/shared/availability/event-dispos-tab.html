@@ -40,7 +40,7 @@
         [readOnly]="subjectReadOnly()"
         [proxyMode]="subjectProxyMode()"
         [archived]="event().archived"
-        (saved)="onSaved()"
+        (saved)="onSaved($event)"
       />
     } @else {
       <p class="event-dispos__empty">Aucun participant lié à ce compte pour cet événement.</p>

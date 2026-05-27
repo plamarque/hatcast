@@ -29,6 +29,13 @@
   }
 }
 
+.availability-form__status-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
+}
+
 .availability-form__feedback {
   margin: 0;
   text-align: center;
@@ -82,6 +89,24 @@
 
 .availability-form__comment {
   width: 100%;
+}
+
+.availability-form__details-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.availability-form__details-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--mat-sys-error);
+  text-align: center;
+}
+
+.availability-form__details-save {
+  min-height: 3rem;
 }
 
 @media (max-width: 480px) {

@@ -16,6 +16,7 @@ async function setupForm(options: {
   proxyMode?: boolean
   initialComment?: string | null
   initialStatus?: 'available' | 'unavailable' | 'unknown'
+  initialRoleKeys?: string[]
 } = {}) {
   const setMyAvailability = vi.fn().mockResolvedValue({
     ok: true,
@@ -67,7 +68,7 @@ async function setupForm(options: {
   fixture.componentRef.setInput('proxyMode', options.proxyMode ?? false)
   fixture.componentRef.setInput('subjectParticipantId', options.proxyMode ? 'p-other' : null)
   fixture.componentRef.setInput('initialStatus', options.initialStatus ?? 'available')
-  fixture.componentRef.setInput('initialRoleKeys', ['player'])
+  fixture.componentRef.setInput('initialRoleKeys', options.initialRoleKeys ?? ['player'])
   fixture.componentRef.setInput('initialComment', options.initialComment ?? null)
   fixture.detectChanges()
   await fixture.whenStable()
@@ -132,16 +133,108 @@ describe('AvailabilityForm', () => {
     const form = fixture.componentInstance as unknown as {
       commentText: { set: (value: string) => void }
       commentError: () => string | null
-      persist: (status: string) => Promise<void>
+      saveDetails: () => Promise<void>
     }
     form.commentText.set('x'.repeat(AVAILABILITY_COMMENT_MAX_LENGTH + 1))
     fixture.detectChanges()
-    await form.persist('available')
+    await form.saveDetails()
     fixture.detectChanges()
 
     expect(setMyAvailability).not.toHaveBeenCalled()
     expect(form.commentError()).toBe(
       `Le commentaire ne peut pas dépasser ${AVAILABILITY_COMMENT_MAX_LENGTH} caractères.`,
+    )
+  })
+
+  it('saves status without draft roles or comment', async () => {
+    const { fixture, setMyAvailability } = await setupForm({
+      initialStatus: 'available',
+      initialRoleKeys: ['player'],
+      initialComment: 'Enregistré',
+    })
+    const form = fixture.componentInstance as unknown as {
+      selectedRoleKeys: { set: (value: string[]) => void }
+      commentText: { set: (value: string) => void }
+      choose: (status: string) => Promise<void>
+    }
+    form.selectedRoleKeys.set(['player', 'mc'])
+    form.commentText.set('Brouillon non enregistré')
+    fixture.detectChanges()
+
+    await form.choose('unavailable')
+
+    expect(setMyAvailability).toHaveBeenCalledWith(
+      'season-1',
+      'event-1',
+      expect.objectContaining({
+        status: 'unavailable',
+        roleKeys: [],
+        comment: 'Enregistré',
+      }),
+    )
+  })
+
+  it('pre-checks preferred roles in UI when becoming available', async () => {
+    const { fixture } = await setupForm({ initialStatus: 'unknown', initialRoleKeys: [] })
+    const form = fixture.componentInstance as unknown as {
+      choose: (status: string) => Promise<void>
+      selected: () => string
+    }
+    await form.choose('available')
+    fixture.detectChanges()
+
+    expect(form.selected()).toBe('available')
+    expect(fixture.nativeElement.textContent).toContain('Comédien·nes')
+  })
+
+  it('hides role block immediately when becoming unavailable', async () => {
+    const { fixture, setMyAvailability } = await setupForm({
+      initialStatus: 'available',
+      initialRoleKeys: ['player', 'mc'],
+    })
+    setMyAvailability.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { status: 'unavailable', roleKeys: [], comment: null },
+    })
+    const form = fixture.componentInstance as unknown as {
+      choose: (status: string) => Promise<void>
+      selected: () => string
+    }
+    await form.choose('unavailable')
+    fixture.detectChanges()
+
+    expect(form.selected()).toBe('unavailable')
+    expect(fixture.nativeElement.textContent).not.toContain(
+      'Choisis les rôles pour lesquels tu es disponible',
+    )
+  })
+
+  it('persists roles and comment only via save button', async () => {
+    const { fixture, setMyAvailability } = await setupForm({
+      initialStatus: 'available',
+      initialRoleKeys: ['player'],
+    })
+    const form = fixture.componentInstance as unknown as {
+      toggleRole: (key: string, checked: boolean) => void
+      commentText: { set: (value: string) => void }
+      saveDetails: () => Promise<void>
+    }
+    form.toggleRole('mc', true)
+    form.commentText.set('Arrive vers 19h')
+    fixture.detectChanges()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+
+    await form.saveDetails()
+
+    expect(setMyAvailability).toHaveBeenCalledWith(
+      'season-1',
+      'event-1',
+      expect.objectContaining({
+        status: 'available',
+        roleKeys: ['player', 'mc'],
+        comment: 'Arrive vers 19h',
+      }),
     )
   })
 })

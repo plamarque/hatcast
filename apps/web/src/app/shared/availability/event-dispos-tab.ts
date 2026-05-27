@@ -10,6 +10,7 @@ import {
   type SummaryParticipant,
 } from '../../core/availability/availability-api.service'
 import type { EventResponse } from '../../core/events/event-api.service'
+import type { AvailabilityFormSavedPayload } from './availability-form'
 import { ParticipantApiService, type ParticipantSelector } from '../../core/participants/participant-api.service'
 import { AvailabilityMoiPanel } from './availability-moi-panel'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
@@ -118,8 +119,38 @@ export class EventDisposTab implements OnDestroy {
     queueMicrotask(() => this.moiPanel()?.syncSubject(participant))
   }
 
-  protected async onSaved(): Promise<void> {
-    await this.reloadSummary(this.viewMode() === 'tous' || this.summaryIncludesChances)
+  protected onSaved(payload: AvailabilityFormSavedPayload): void {
+    this.patchSubjectInSummary(payload)
+    const needsFullReload =
+      this.viewMode() === 'tous' ||
+      this.summaryIncludesChances ||
+      payload.scope === 'details'
+    if (needsFullReload) {
+      void this.reloadSummary(this.viewMode() === 'tous' || this.summaryIncludesChances)
+    }
+  }
+
+  private patchSubjectInSummary(payload: AvailabilityFormSavedPayload): void {
+    const participantId = this.subjectParticipantId()
+    const current = this.summary()
+    if (!participantId || !current) return
+
+    const participants = current.participants.map((p) =>
+      p.participantId === participantId
+        ? {
+            ...p,
+            status: payload.status,
+            roleKeys: payload.roleKeys,
+            comment: payload.comment,
+          }
+        : p,
+    )
+    this.summary.set({ ...current, participants })
+
+    const subject = participants.find((p) => p.participantId === participantId)
+    if (subject) {
+      queueMicrotask(() => this.moiPanel()?.syncSubject(subject))
+    }
   }
 
   protected async retryLoad(): Promise<void> {

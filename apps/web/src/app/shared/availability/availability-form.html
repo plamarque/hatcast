@@ -2,21 +2,39 @@
   <mat-button-toggle-group
     class="availability-form__status-toggle"
     [value]="selected()"
-    [disabled]="saving() || readOnly() || archived()"
-    (change)="onStatusChange($event.value)"
+    [disabled]="savingStatus() || readOnly() || archived()"
     hideSingleSelectionIndicator
     aria-label="Choix de disponibilité"
   >
-    <mat-button-toggle class="availability-form__status--available" value="available">
+    <mat-button-toggle
+      class="availability-form__status--available"
+      value="available"
+      (click)="onStatusClick('available')"
+    >
       Dispo
     </mat-button-toggle>
-    <mat-button-toggle class="availability-form__status--unavailable" value="unavailable">
+    <mat-button-toggle
+      class="availability-form__status--unavailable"
+      value="unavailable"
+      (click)="onStatusClick('unavailable')"
+    >
       Pas dispo
     </mat-button-toggle>
-    <mat-button-toggle class="availability-form__status--unknown" value="unknown">
+    <mat-button-toggle
+      class="availability-form__status--unknown"
+      value="unknown"
+      (click)="onStatusClick('unknown')"
+    >
       Non renseigné
     </mat-button-toggle>
   </mat-button-toggle-group>
+
+  @if (!readOnly() && !archived() && !proxyMode()) {
+    <p class="availability-form__status-hint">
+      Le statut s'enregistre tout de suite. Les rôles et le commentaire se valident avec le bouton
+      ci-dessous.
+    </p>
+  }
 
   @if (feedbackText(); as feedback) {
     <p class="availability-form__feedback">{{ feedback }}</p>
@@ -37,7 +55,7 @@
             <mat-checkbox
               class="availability-form__role"
               [checked]="isRoleSelected(role.key)"
-              [disabled]="saving() || readOnly() || archived()"
+              [disabled]="savingDetails() || readOnly() || archived()"
               (change)="toggleRole(role.key, $event.checked)"
             >
               <span class="availability-form__role-emoji" aria-hidden="true">{{ role.emoji }}</span>
@@ -59,9 +77,9 @@
         matInput
         rows="3"
         [value]="commentText()"
-        [readonly]="readOnly() || archived()"
+        [readonly]="readOnly() || archived() || savingDetails()"
         maxlength="500"
-        [attr.aria-readonly]="readOnly() || archived()"
+        [attr.aria-readonly]="readOnly() || archived() || savingDetails()"
         (input)="onCommentInput($any($event.target).value)"
       ></textarea>
       @if (!readOnly() && !archived()) {
@@ -71,5 +89,26 @@
         <mat-error>{{ err }}</mat-error>
       }
     </mat-form-field>
+  }
+
+  @if (shouldShowDetailsSave()) {
+    <div class="availability-form__details-actions">
+      @if (detailsDirty()) {
+        <p class="availability-form__details-hint">Modifications non enregistrées</p>
+      }
+      <button
+        mat-flat-button
+        type="button"
+        class="availability-form__details-save"
+        [disabled]="!detailsDirty() || savingDetails() || savingStatus()"
+        (click)="saveDetails()"
+      >
+        @if (savingDetails()) {
+          Enregistrement…
+        } @else {
+          Enregistrer rôles et commentaire
+        }
+      </button>
+    </div>
   }
 </div>

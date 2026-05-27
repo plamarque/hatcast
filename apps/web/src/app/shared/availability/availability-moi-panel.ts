@@ -2,9 +2,8 @@ import { Component, input, output, viewChild } from '@angular/core'
 import { MatIconModule } from '@angular/material/icon'
 
 import type { SummaryParticipant } from '../../core/availability/availability-api.service'
-import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import type { RoleSlots } from '../../core/events/event-types'
-import { AvailabilityForm } from './availability-form'
+import { AvailabilityForm, type AvailabilityFormSavedPayload } from './availability-form'
 
 @Component({
   selector: 'app-availability-moi-panel',
@@ -22,11 +21,7 @@ export class AvailabilityMoiPanel {
   readonly proxyMode = input(false)
   readonly archived = input(false)
 
-  readonly saved = output<{
-    status: AvailabilityStatus
-    roleKeys: string[]
-    comment: string | null
-  }>()
+  readonly saved = output<AvailabilityFormSavedPayload>()
 
   private readonly form = viewChild(AvailabilityForm)
 
