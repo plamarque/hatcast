@@ -22,17 +22,13 @@ import {
 } from '../../core/inbox/me-inbox-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import {
-  deriveSeasonGlanceQueryParamsFromInbox,
   enrichAgendaCardFields,
   isSoonAction,
   MAX_VISIBLE_ACTIONS,
-  resolveLastVisitedSeasonGlanceIds,
   type AgendaCardEnrichedItem,
 } from '../../core/member-home/member-home-todo.utils'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { saisonEventPath } from '../../core/navigation/troupe-routes'
-import { MemberAgendaShortcut } from '../../shared/member-cross-nav/member-agenda-shortcut'
 import { MemberSeasonShortcut } from '../../shared/member-cross-nav/member-season-shortcut'
 import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
@@ -48,7 +44,6 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
-    MemberAgendaShortcut,
     MemberSeasonShortcut,
     UserAccountMenuItemsComponent,
     UserAvatarComponent,
@@ -60,7 +55,6 @@ export class MemberHomeTodo implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly inboxApi = inject(MeInboxApiService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
-  private readonly seasonResolver = inject(TroupeSeasonResolverService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
 
@@ -72,24 +66,11 @@ export class MemberHomeTodo implements OnInit {
   protected readonly nextEvent = signal<AgendaCardEnrichedItem | null>(null)
   protected readonly noParticipation = signal(false)
   protected readonly referenceNow = signal(new Date())
-  private readonly lastVisitedGlanceIds = signal<{
-    troupeId?: string
-    leagueId?: string
-  } | null>(null)
-  private readonly inboxShortcuts = signal<{
-    lastSeasonSlug: string | null
-    seasonGlanceQuery: { troupeId?: string; leagueId?: string }
-  } | null>(null)
-
   protected readonly visibleActions = computed(() =>
     this.actions().slice(0, MAX_VISIBLE_ACTIONS),
   )
 
   protected readonly showSeeAllInAgenda = computed(() => this.actions().length > MAX_VISIBLE_ACTIONS)
-
-  protected readonly seasonGlanceQueryParams = computed(() =>
-    deriveSeasonGlanceQueryParamsFromInbox(this.inboxShortcuts(), this.lastVisitedGlanceIds()),
-  )
 
   protected readonly showActionsSection = computed(() => this.actions().length > 0)
 
@@ -114,12 +95,7 @@ export class MemberHomeTodo implements OnInit {
     }
     this.user.set(r.data.user)
     this.loadingSession.set(false)
-    await this.resolveLastVisitedGlanceIds()
     await this.loadInbox()
-  }
-
-  private async resolveLastVisitedGlanceIds(): Promise<void> {
-    this.lastVisitedGlanceIds.set(await resolveLastVisitedSeasonGlanceIds(this.seasonResolver))
   }
 
   protected userDisplayLabel(u: UserSummary): string {
@@ -138,7 +114,6 @@ export class MemberHomeTodo implements OnInit {
       this.actions.set(r.data.actions)
       this.inboxBadge.pendingActionCount.set(r.data.actions.length)
       this.noParticipation.set(r.data.noParticipation ?? false)
-      this.inboxShortcuts.set(r.data.shortcuts)
       const next = r.data.nextEvent
       this.nextEvent.set(next ? enrichAgendaCardFields(next) : null)
       return

@@ -23,7 +23,6 @@ import {
 import type { MemberProfileSummary } from '../../core/member-profile/member-profile-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
-import { MemberCrossNavShortcuts } from '../../shared/member-cross-nav/member-cross-nav-shortcuts'
 import { MemberProfilePanel } from '../../shared/member-profile/member-profile-panel'
 import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
@@ -42,7 +41,6 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     UserAgendaFilterBar,
-    MemberCrossNavShortcuts,
     UserAccountMenuItemsComponent,
     UserAvatarComponent,
     MemberProfilePanel,
@@ -195,19 +193,6 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     clearStoredMemberGlanceFilters()
     await this.syncFilterQueryParams()
     await this.loadGlance()
-  }
-
-  protected openPlanning(): void {
-    const queryParams: Record<string, string> = {}
-    const troupeId = this.selectedTroupeId() ?? this.glance()?.troupeId
-    const leagueId = this.selectedLeagueId() ?? this.glance()?.leagueId
-    if (troupeId) {
-      queryParams['troupeId'] = troupeId
-    }
-    if (leagueId) {
-      queryParams['leagueId'] = leagueId
-    }
-    void this.router.navigate(['/agenda'], { queryParams })
   }
 
   protected goBack(): void {

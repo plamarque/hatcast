@@ -7,7 +7,7 @@ import { PwaInstallService } from '../../core/pwa/pwa-install.service';
 import { UserAccountMenuItemsComponent } from './user-account-menu-items';
 
 describe('UserAccountMenuItemsComponent', () => {
-  it('renders season glance link when userSlug is provided', async () => {
+  async function setup(options?: { pwaInstalled?: boolean; showLogout?: boolean }) {
     await TestBed.configureTestingModule({
       imports: [UserAccountMenuItemsComponent],
       providers: [
@@ -15,60 +15,37 @@ describe('UserAccountMenuItemsComponent', () => {
         {
           provide: PwaInstallService,
           useValue: {
-            isPwaInstalled: () => true,
+            isPwaInstalled: () => options?.pwaInstalled ?? true,
             installFromUserMenu: vi.fn(),
           },
         },
         {
           provide: AuthApiService,
           useValue: {
-            ensureHatcastSession: vi.fn().mockResolvedValue({ ok: true, data: { user: {} } }),
-            logout: vi.fn(),
+            logout: vi.fn().mockResolvedValue(true),
           },
         },
       ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(UserAccountMenuItemsComponent);
-    fixture.componentRef.setInput('userSlug', 'angie-dupont');
+    if (options?.showLogout === false) {
+      fixture.componentRef.setInput('showLogout', false);
+    }
     fixture.detectChanges();
+    return fixture;
+  }
 
-    const link = fixture.nativeElement.querySelector(
-      'a[href="/membre/angie-dupont"]',
-    ) as HTMLAnchorElement | null;
-    expect(link).toBeTruthy();
-    expect(link?.textContent).toContain("Ma saison en un clin d'œil");
+  it('renders Mon compte and logout by default', async () => {
+    const fixture = await setup();
+    expect(fixture.nativeElement.textContent).toContain('Mon compte');
+    expect(fixture.nativeElement.textContent).toContain('Se déconnecter');
+    expect(fixture.nativeElement.textContent).not.toContain("Ma saison en un clin d'œil");
+    expect(fixture.nativeElement.textContent).not.toContain('Mon agenda');
   });
 
-  it('hides season glance link when showSeasonGlanceLink is false', async () => {
-    await TestBed.configureTestingModule({
-      imports: [UserAccountMenuItemsComponent],
-      providers: [
-        provideRouter([]),
-        {
-          provide: PwaInstallService,
-          useValue: {
-            isPwaInstalled: () => true,
-            installFromUserMenu: vi.fn(),
-          },
-        },
-        {
-          provide: AuthApiService,
-          useValue: {
-            ensureHatcastSession: vi.fn().mockResolvedValue({ ok: true, data: { user: {} } }),
-            logout: vi.fn(),
-          },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(UserAccountMenuItemsComponent);
-    fixture.componentRef.setInput('userSlug', 'angie-dupont');
-    fixture.componentRef.setInput('showSeasonGlanceLink', false);
-    fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement.querySelector('a[href="/membre/angie-dupont"]'),
-    ).toBeNull();
+  it('hides logout when showLogout is false', async () => {
+    const fixture = await setup({ showLogout: false });
+    expect(fixture.nativeElement.textContent).not.toContain('Se déconnecter');
   });
 });

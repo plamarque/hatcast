@@ -11,7 +11,6 @@ import {
   type InboxAction,
   type MeInboxResponse,
 } from '../../core/inbox/me-inbox-api.service'
-import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { MemberHomeTodo } from './member-home-todo'
 
 async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> {
@@ -30,7 +29,6 @@ describe('MemberHomeTodo', () => {
   let fixture: ComponentFixture<MemberHomeTodo>
   let inboxApi: { getInbox: ReturnType<typeof vi.fn> }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
-  let seasonResolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
   let router: Router
   let navigateByUrlSpy: ReturnType<typeof vi.fn>
   let navigateSpy: ReturnType<typeof vi.fn>
@@ -62,9 +60,6 @@ describe('MemberHomeTodo', () => {
       }),
     }
     snack = { open: vi.fn() }
-    seasonResolver = {
-      resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }),
-    }
 
     await TestBed.configureTestingModule({
       imports: [MemberHomeTodo, NoopAnimationsModule],
@@ -73,7 +68,6 @@ describe('MemberHomeTodo', () => {
         { provide: AuthApiService, useValue: auth },
         { provide: MeInboxApiService, useValue: inboxApi },
         { provide: MatSnackBar, useValue: snack },
-        { provide: TroupeSeasonResolverService, useValue: seasonResolver },
       ],
     }).compileComponents()
     TestBed.overrideProvider(MatSnackBar, { useValue: snack })
@@ -220,7 +214,7 @@ describe('MemberHomeTodo', () => {
     )
   })
 
-  it('affiche les CTAs Mes troupes et Mon agenda quand tout est à jour sans événement', async () => {
+  it('affiche le CTA Mes troupes sans Mon agenda quand tout est à jour sans événement', async () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
       status: 200,
@@ -232,7 +226,9 @@ describe('MemberHomeTodo', () => {
     expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
     expect(fixture.nativeElement.textContent).toContain('Aucun spectacle à venir')
     expect(fixture.nativeElement.textContent).toContain('Mes troupes')
-    expect(fixture.nativeElement.textContent).toContain('Mon agenda')
+    const shortcuts = fixture.nativeElement.querySelector('.member-home-todo__shortcuts')
+    expect(shortcuts?.querySelector('app-member-agenda-shortcut')).toBeNull()
+    expect(shortcuts?.textContent).not.toContain("Saison en un clin d'œil")
   })
 
   it('redirige vers connexion quand la session est absente', async () => {
@@ -279,53 +275,6 @@ describe('MemberHomeTodo', () => {
 
     expect(inboxApi.getInbox).toHaveBeenCalledTimes(2)
     expect(fixture.nativeElement.textContent).toContain('Retour hub')
-  })
-
-  it('utilise les ids lastVisitedSeason pour le clin d’œil, pas les hints inbox', async () => {
-    localStorage.setItem('lastVisitedSeason', 'festibask')
-    seasonResolver.resolveSeasonSlug.mockResolvedValue({
-      kind: 'resolved',
-      troupe: { id: 'troupe-stored', slug: 'la-bim', name: 'La BIM' },
-      season: {
-        id: 'league-stored',
-        troupeId: 'troupe-stored',
-        slug: 'festibask',
-        title: 'Festibask',
-        description: null,
-        startDate: null,
-        endDate: null,
-        archived: false,
-        active: true,
-        eventCount: 0,
-        participantCount: 0,
-        createdAt: '',
-        updatedAt: '',
-      },
-    })
-    inboxApi.getInbox.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: inboxResponse(
-        [],
-        agendaItem('next', 'Prochain', isoInDays(2), 'available', {
-          troupeId: 'troupe-next',
-          leagueId: 'league-next',
-        }),
-        {
-          shortcuts: {
-            lastSeasonSlug: 'ligue-2026',
-            seasonGlanceQuery: { troupeId: 'troupe-next', leagueId: 'league-next' },
-          },
-        },
-      ),
-    })
-
-    await settle(fixture)
-
-    expect(fixture.componentInstance['seasonGlanceQueryParams']()).toEqual({
-      troupeId: 'troupe-stored',
-      leagueId: 'league-stored',
-    })
   })
 
   it('affiche la carte prochain spectacle depuis nextEvent inbox', async () => {

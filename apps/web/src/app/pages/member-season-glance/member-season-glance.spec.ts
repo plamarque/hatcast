@@ -126,19 +126,11 @@ describe('MemberSeasonGlance', () => {
     expect(fixture.nativeElement.textContent).toContain("Ma saison en un clin d'œil")
   })
 
-  it('navigates to filtered agenda from Planning CTA', async () => {
-    const { fixture, router } = await setup()
-    const navigateSpy = vi.spyOn(router, 'navigate')
-    const btn = fixture.nativeElement.querySelector(
-      '.member-glance-page__footer button',
-    ) as HTMLButtonElement
-    btn.click()
-    expect(navigateSpy).toHaveBeenCalledWith(
-      ['/agenda'],
-      expect.objectContaining({
-        queryParams: expect.objectContaining({ troupeId: 'troupe-1', leagueId: 'season-1' }),
-      }),
-    )
+  it('does not show cross-nav shortcuts or agenda footer on self glance', async () => {
+    const { fixture } = await setup({ glance: glanceSelf })
+    expect(fixture.nativeElement.querySelector('app-member-cross-nav-shortcuts')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.member-glance-page__footer')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Voir dans mon agenda')
   })
 
   it('shows filter bar when API reports filterBarVisible', async () => {
@@ -183,19 +175,6 @@ describe('MemberSeasonGlance', () => {
     const { fixture } = await setup({ glance: glanceOther })
     expect(fixture.nativeElement.textContent).not.toContain('Mes rôles préférés')
     expect(fixture.nativeElement.textContent).toContain('Saison en un clin d')
-  })
-
-  it('shows cross-nav shortcuts on self glance', async () => {
-    const { fixture } = await setup({ glance: glanceSelf })
-    expect(fixture.nativeElement.querySelector('app-member-cross-nav-shortcuts')).toBeTruthy()
-    expect(
-      fixture.nativeElement.querySelector('app-member-agenda-shortcut a[href="/agenda"]'),
-    ).toBeTruthy()
-  })
-
-  it('hides cross-nav shortcuts when viewing another member', async () => {
-    const { fixture } = await setup({ glance: glanceOther })
-    expect(fixture.nativeElement.querySelector('app-member-cross-nav-shortcuts')).toBeNull()
   })
 
   it('reloads glance when route userSlug changes', async () => {

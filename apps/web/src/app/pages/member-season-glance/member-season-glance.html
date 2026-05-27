@@ -6,9 +6,6 @@
     </div>
     @if (sessionUser(); as u) {
       <div class="member-glance-page__header-actions">
-        @if (glance()?.isSelf) {
-          <app-member-cross-nav-shortcuts />
-        }
         <button
           type="button"
           mat-stroked-button
@@ -26,12 +23,7 @@
           <mat-icon aria-hidden="true">expand_more</mat-icon>
         </button>
         <mat-menu #accountMenu="matMenu">
-          <app-user-account-menu-items
-            [userSlug]="u.slug"
-            [showSeasonGlanceLink]="false"
-            [showAgendaLink]="true"
-            logoutLabel="Déconnexion"
-          />
+          <app-user-account-menu-items logoutLabel="Déconnexion" />
         </mat-menu>
       </div>
     }
@@ -61,9 +53,5 @@
     } @else if (panelProfile(); as profile) {
       <app-member-profile-panel [profile]="profile" [loading]="false" [showPreferredRoles]="false" />
     }
-
-    <footer class="member-glance-page__footer">
-      <button type="button" mat-stroked-button (click)="openPlanning()">Planning</button>
-    </footer>
   </main>
 </div>

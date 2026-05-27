@@ -702,15 +702,13 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.querySelector('.event-context-strip')).toBeNull()
   })
 
-  it('shows Mon agenda shortcut in event header when signed in', async () => {
+  it('does not show Mon agenda header shortcut when signed in', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      const agendaLink = fixture.nativeElement.querySelector(
-        'app-member-agenda-shortcut a[href="/agenda"]',
-      )
-      expect(agendaLink).toBeTruthy()
+      expect(fixture.nativeElement.querySelector('app-event-detail-header')).not.toBeNull()
     })
+    expect(fixture.nativeElement.querySelector('app-member-agenda-shortcut')).toBeNull()
   })
 
   it('links saison in breadcrumb to canonical /saison workspace', async () => {

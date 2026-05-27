@@ -3,7 +3,7 @@
   [routerLink]="shortcut.link()"
   class="member-cross-nav__btn member-cross-nav__btn--season"
   [class.member-cross-nav__btn--pending]="shortcut.loading()"
-  [attr.aria-label]="shortcut.label()"
+  [attr.aria-label]="shortcut.ariaLabel()"
   [attr.aria-busy]="shortcut.loading() ? 'true' : null"
 >
   <mat-icon aria-hidden="true">groups</mat-icon>

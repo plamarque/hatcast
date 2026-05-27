@@ -14,7 +14,6 @@
   </div>
   <div class="event-detail-header__right">
     @if (user(); as u) {
-      <app-member-agenda-shortcut />
       <button
         type="button"
         mat-stroked-button
@@ -34,12 +33,7 @@
         <span class="event-detail-header__user-label">{{ userDisplayLabel() }}</span>
       </button>
       <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items
-          [userSlug]="u.slug"
-          [glanceTroupeId]="troupeId()"
-          [glanceLeagueId]="seasonId()"
-          [showLogout]="false"
-        />
+        <app-user-account-menu-items [showLogout]="false" />
       </mat-menu>
     }
   </div>

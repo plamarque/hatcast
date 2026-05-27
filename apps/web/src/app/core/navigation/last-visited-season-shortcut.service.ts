@@ -26,9 +26,16 @@ export class LastVisitedSeasonShortcutService {
     return slug ? saisonWorkspacePath(slug) : troupesListPath()
   })
 
+  /** Visible button text (season title only when known). */
   readonly label = computed(() => {
-    const title = this.seasonTitle()
-    return title ? `Ma saison · ${title}` : 'Choisir une saison'
+    const title = this.seasonTitle()?.trim()
+    return title || 'Choisir une saison'
+  })
+
+  /** Screen reader label — clarifies destination when visible text is title-only. */
+  readonly ariaLabel = computed(() => {
+    const title = this.seasonTitle()?.trim()
+    return title ? `Ma saison : ${title}` : 'Choisir une saison'
   })
 
   async refresh(): Promise<void> {

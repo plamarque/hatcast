@@ -6,10 +6,6 @@
     </div>
     @if (!loadingSession() && user(); as u) {
       <div class="user-agenda__header-actions">
-        <app-member-season-shortcut />
-        <a mat-stroked-button routerLink="/troupes" class="member-cross-nav__btn user-agenda__troupes-link">
-          Mes troupes
-        </a>
         <button
           type="button"
           mat-stroked-button
@@ -27,7 +23,7 @@
           <mat-icon>expand_more</mat-icon>
         </button>
         <mat-menu #userMenu="matMenu">
-          <app-user-account-menu-items [userSlug]="u.slug" [showAgendaLink]="true" />
+          <app-user-account-menu-items />
         </mat-menu>
       </div>
     }
@@ -93,36 +89,52 @@
         </div>
 
         @for (ev of group.events; track ev.eventId) {
-          <article
-            class="agenda-card"
-            role="button"
-            tabindex="0"
-            [attr.aria-label]="'Ouvrir ' + ev.title + ' dans ' + ev.leagueTitle"
-            (click)="openEvent(ev)"
-            (keydown.enter)="openEvent(ev)"
-            (keydown.space)="openEvent(ev); $event.preventDefault()"
-          >
-            <div class="agenda-card__date">
-              <span class="agenda-card__day">{{ ev.dayNumber }}</span>
-              <span class="agenda-card__weekday">{{ ev.dayName }}</span>
-              <span class="agenda-card__time">{{ timeLabel(ev) }}</span>
-            </div>
-            <div class="agenda-card__body">
-              <h2 class="agenda-card__title">{{ ev.title }}</h2>
-              @if (ev.location) {
-                <p class="agenda-card__loc">{{ ev.location }}</p>
-              }
-              <div class="agenda-card__badges">
-                <span class="agenda-card__badge">{{ ev.troupeName }}</span>
-                <span class="agenda-card__badge agenda-card__badge--league">{{ ev.leagueTitle }}</span>
-                @if (ev.myAvailabilityStatus) {
-                  <span
-                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(ev.myAvailabilityStatus) }}"
-                  >
-                    {{ dispoLabel(ev.myAvailabilityStatus) }}
-                  </span>
+          <article class="agenda-card">
+            <div
+              class="agenda-card__clickable"
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="'Ouvrir ' + ev.title + ' dans ' + ev.leagueTitle"
+              (click)="openEvent(ev)"
+              (keydown.enter)="openEvent(ev)"
+              (keydown.space)="openEvent(ev); $event.preventDefault()"
+            >
+              <div class="agenda-card__date">
+                <span class="agenda-card__day">{{ ev.dayNumber }}</span>
+                <span class="agenda-card__weekday">{{ ev.dayName }}</span>
+                <span class="agenda-card__time">{{ timeLabel(ev) }}</span>
+              </div>
+              <div class="agenda-card__body">
+                <h2 class="agenda-card__title">{{ ev.title }}</h2>
+                @if (ev.location) {
+                  <p class="agenda-card__loc">{{ ev.location }}</p>
                 }
               </div>
+            </div>
+            <div class="agenda-card__badges">
+              <a
+                class="agenda-card__badge agenda-card__badge--link"
+                [routerLink]="troupeHubPath(ev.troupeSlug)"
+                [attr.aria-label]="'Ouvrir la troupe ' + ev.troupeName"
+                (click)="$event.stopPropagation()"
+              >
+                {{ ev.troupeName }}
+              </a>
+              <a
+                class="agenda-card__badge agenda-card__badge--league agenda-card__badge--link"
+                [routerLink]="saisonWorkspacePath(ev.leagueSlug)"
+                [attr.aria-label]="'Ouvrir la saison ' + ev.leagueTitle"
+                (click)="$event.stopPropagation()"
+              >
+                {{ ev.leagueTitle }}
+              </a>
+              @if (ev.myAvailabilityStatus) {
+                <span
+                  class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(ev.myAvailabilityStatus) }}"
+                >
+                  {{ dispoLabel(ev.myAvailabilityStatus) }}
+                </span>
+              }
             </div>
           </article>
         }

@@ -94,7 +94,7 @@ export class MemberProfileDialog implements OnInit {
     }
   }
 
-  protected openPlanning(): void {
+  protected openFilteredAgenda(): void {
     const queryParams: Record<string, string> = {}
     if (this.data.troupeId) {
       queryParams['troupeId'] = this.data.troupeId

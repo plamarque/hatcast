@@ -19,12 +19,7 @@
         <mat-icon aria-hidden="true">expand_more</mat-icon>
       </button>
       <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items
-          [userSlug]="u.slug"
-          [showAgendaLink]="true"
-          [glanceTroupeId]="seasonGlanceQueryParams()['troupeId']"
-          [glanceLeagueId]="seasonGlanceQueryParams()['leagueId']"
-        />
+        <app-user-account-menu-items />
       </mat-menu>
     }
   </header>
@@ -72,7 +67,6 @@
           </p>
           <div class="member-home-todo__status-banner-actions">
             <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
-            <a mat-stroked-button routerLink="/agenda">Mon agenda</a>
           </div>
         } @else {
           <p class="member-home-todo__status-banner-text">Prochain spectacle ci-dessous.</p>
@@ -167,20 +161,7 @@
     <section class="member-home-todo__section" aria-labelledby="todo-shortcuts-heading">
       <h2 id="todo-shortcuts-heading" class="member-home-todo__section-title">Accès rapides</h2>
       <div class="member-home-todo__shortcuts member-cross-nav">
-        <app-member-agenda-shortcut />
         <app-member-season-shortcut />
-        @if (user(); as u) {
-          <a
-            mat-stroked-button
-            class="member-cross-nav__btn"
-            [routerLink]="['/membre', u.slug]"
-            [queryParams]="seasonGlanceQueryParams()"
-            aria-label="Saison en un clin d'œil"
-          >
-            <mat-icon aria-hidden="true">insights</mat-icon>
-            <span class="member-cross-nav__label">Saison en un clin d'œil</span>
-          </a>
-        }
         <a
           mat-stroked-button
           routerLink="/troupes"

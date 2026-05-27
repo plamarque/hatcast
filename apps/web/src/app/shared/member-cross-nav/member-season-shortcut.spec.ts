@@ -53,6 +53,7 @@ describe('MemberSeasonShortcut', () => {
 
     const link = fixture.nativeElement.querySelector('a') as HTMLAnchorElement
     expect(link.getAttribute('href')).toBe('/saison/festibask')
-    expect(link.textContent).toContain('Ma saison · Ligue 2026')
+    expect(link.textContent).toContain('Ligue 2026')
+    expect(link.getAttribute('aria-label')).toBe('Ma saison : Ligue 2026')
   })
 })

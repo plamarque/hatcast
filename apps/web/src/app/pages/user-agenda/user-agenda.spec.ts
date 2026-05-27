@@ -1,7 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
+import {
+  ActivatedRoute,
+  convertToParamMap,
+  provideRouter,
+  Router,
+  type Routes,
+} from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -13,13 +19,17 @@ import {
   type UserAgendaResponse,
 } from '../../core/agenda/user-agenda-api.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
-import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
-import type { SeasonResponse } from '../../core/seasons/season-api.service'
-import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { UserAgenda } from './user-agenda'
 
 const TROUPE_A = 'a0000001-0000-4000-8000-000000000001'
 const LEAGUE_A = 'b0000001-0000-4000-8000-000000000001'
+
+const testRoutes: Routes = [
+  { path: 'agenda', component: UserAgenda },
+  { path: 'troupes/:slug', component: UserAgenda },
+  { path: 'saison/:slug', component: UserAgenda },
+  { path: 'saison/:slug/event/:eventSlug', component: UserAgenda },
+]
 
 async function settle(fixture: ComponentFixture<UserAgenda>): Promise<void> {
   fixture.detectChanges()
@@ -40,8 +50,6 @@ describe('UserAgenda', () => {
   let router: Router
   let navigateSpy: ReturnType<typeof vi.fn>
   let snack: { open: ReturnType<typeof vi.fn> }
-  let seasonResolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
-
   beforeEach(async () => {
     localStorage.clear()
     sessionStorage.clear()
@@ -72,16 +80,14 @@ describe('UserAgenda', () => {
       logout: vi.fn().mockResolvedValue(true),
     }
     snack = { open: vi.fn() }
-    seasonResolver = { resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }) }
 
     await TestBed.configureTestingModule({
       imports: [UserAgenda, NoopAnimationsModule],
       providers: [
-        provideRouter([]),
+        provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
-        { provide: TroupeSeasonResolverService, useValue: seasonResolver },
       ],
     }).compileComponents()
     TestBed.overrideProvider(MatSnackBar, { useValue: snack })
@@ -97,32 +103,45 @@ describe('UserAgenda', () => {
     vi.restoreAllMocks()
   })
 
-  it('shows season shortcut to troupes when no last visited slug', async () => {
+  it('n’affiche pas le raccourci Ma saison dans le header', async () => {
     await settle(fixture)
-
-    const seasonLink = fixture.nativeElement.querySelector(
-      'app-member-season-shortcut a',
-    ) as HTMLAnchorElement
-    expect(seasonLink).toBeTruthy()
-    expect(seasonLink.getAttribute('href')).toBe('/troupes')
-    expect(seasonLink.textContent).toContain('Choisir une saison')
+    expect(fixture.nativeElement.querySelector('app-member-season-shortcut')).toBeNull()
   })
 
-  it('shows season shortcut to last visited saison when resolver resolves', async () => {
-    rememberLastVisitedSeasonSlug('festibask')
-    seasonResolver.resolveSeasonSlug.mockResolvedValue({
-      kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
-      season: { id: 's1', slug: 'festibask', title: 'Ligue 2026' } as SeasonResponse,
+  it('affiche les badges troupe et saison cliquables sur chaque carte', async () => {
+    await settle(fixture)
+
+    const troupeLink = fixture.nativeElement.querySelector(
+      'a.agenda-card__badge--link[href="/troupes/la-bim"]',
+    ) as HTMLAnchorElement
+    const seasonLink = fixture.nativeElement.querySelector(
+      'a.agenda-card__badge--league[href="/saison/ligue-2026"]',
+    ) as HTMLAnchorElement
+
+    expect(troupeLink).toBeTruthy()
+    expect(troupeLink.getAttribute('aria-label')).toBe('Ouvrir la troupe La BIM')
+    expect(seasonLink).toBeTruthy()
+    expect(seasonLink.getAttribute('aria-label')).toBe('Ouvrir la saison Ligue 2026')
+  })
+
+  it('n’ouvre pas l’événement quand on clique sur le badge saison', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([
+        agendaItem('event-badge', 'Cabaret badge', '2026-05-10T18:00:00Z'),
+      ]),
     })
 
     await settle(fixture)
+    navigateSpy.mockClear()
 
     const seasonLink = fixture.nativeElement.querySelector(
-      'app-member-season-shortcut a',
+      'a.agenda-card__badge--league',
     ) as HTMLAnchorElement
-    expect(seasonLink.getAttribute('href')).toBe('/saison/festibask')
-    expect(seasonLink.textContent).toContain('Ma saison · Ligue 2026')
+    seasonLink.click()
+
+    expect(navigateSpy).not.toHaveBeenCalled()
   })
 
   it('affiche les événements groupés par mois avec les badges troupe, ligue et disponibilité', async () => {
@@ -271,7 +290,7 @@ describe('UserAgenda', () => {
 
     await settle(fixture)
 
-    const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
+    const card = fixture.nativeElement.querySelector('.agenda-card__clickable') as HTMLElement
     card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
 
     expect(navigateSpy).toHaveBeenCalledWith([
@@ -295,7 +314,7 @@ describe('UserAgenda', () => {
 
     await settle(fixture)
 
-    const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
+    const card = fixture.nativeElement.querySelector('.agenda-card__clickable') as HTMLElement
     card.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
 
     expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-espace', 'event', 'event-space'])
@@ -403,7 +422,7 @@ describe('UserAgenda', () => {
     await TestBed.configureTestingModule({
       imports: [UserAgenda, NoopAnimationsModule],
       providers: [
-        provideRouter([]),
+        provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
@@ -446,7 +465,7 @@ describe('UserAgenda', () => {
     await TestBed.configureTestingModule({
       imports: [UserAgenda, NoopAnimationsModule],
       providers: [
-        provideRouter([]),
+        provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
@@ -576,7 +595,7 @@ describe('UserAgenda', () => {
     await TestBed.configureTestingModule({
       imports: [UserAgenda, NoopAnimationsModule],
       providers: [
-        provideRouter([]),
+        provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },

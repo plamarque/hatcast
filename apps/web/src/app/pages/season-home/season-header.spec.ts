@@ -111,13 +111,9 @@ describe('SeasonHeader', () => {
     )
   })
 
-  it('shows Mon agenda shortcut when user is signed in', async () => {
+  it('does not show Mon agenda header shortcut when user is signed in', async () => {
     const { fixture } = await setup()
-    const agendaLink = fixture.nativeElement.querySelector(
-      'app-member-agenda-shortcut a[href="/agenda"]',
-    ) as HTMLAnchorElement
-    expect(agendaLink).toBeTruthy()
-    expect(agendaLink.getAttribute('aria-label')).toBe('Mon agenda')
+    expect(fixture.nativeElement.querySelector('app-member-agenda-shortcut')).toBeNull()
   })
 
   it('hides breadcrumb when troupe context is missing', async () => {

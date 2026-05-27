@@ -48,7 +48,8 @@ describe('LastVisitedSeasonShortcutService', () => {
     await service().refresh()
 
     expect(service().link()).toEqual(['/saison', 'festibask'])
-    expect(service().label()).toBe('Ma saison · Ligue 2026')
+    expect(service().label()).toBe('Ligue 2026')
+    expect(service().ariaLabel()).toBe('Ma saison : Ligue 2026')
     expect(service().linkTarget()).toBe('season')
     expect(localStorage.getItem('lastVisitedSeason')).toBe('festibask')
   })
@@ -100,7 +101,8 @@ describe('LastVisitedSeasonShortcutService', () => {
 
     await Promise.all([older, newer])
 
-    expect(svc.label()).toBe('Ma saison · Ligue B')
+    expect(svc.label()).toBe('Ligue B')
+    expect(svc.ariaLabel()).toBe('Ma saison : Ligue B')
     expect(svc.link()).toEqual(['/saison', 'ligue-b'])
   })
 
