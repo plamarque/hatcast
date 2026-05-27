@@ -134,19 +134,28 @@ describe('MemberShell', () => {
   })
 
   it('does not persist season workspace on NavigationEnd (SeasonHome owns AC2)', async () => {
-    await renderAt('/saison/ligue-2026')
+    fixture.detectChanges()
+    await router.navigateByUrl('/saison/ligue-2026')
+    fixture.detectChanges()
+    await fixture.whenStable()
 
     expect(getLastMemberEntryPath()).toBeNull()
   })
 
   it('does not persist event detail path', async () => {
-    await renderAt('/saison/ligue-2026/event/ev-1')
+    fixture.detectChanges()
+    await router.navigateByUrl('/saison/ligue-2026/event/ev-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
 
     expect(getLastMemberEntryPath()).toBeNull()
   })
 
   it('persists own member stats path', async () => {
-    await renderAt('/membre/alice')
+    fixture.detectChanges()
+    await router.navigateByUrl('/membre/alice')
+    fixture.detectChanges()
+    await fixture.whenStable()
 
     expect(getLastMemberEntryPath()).toBe('/membre/alice')
   })

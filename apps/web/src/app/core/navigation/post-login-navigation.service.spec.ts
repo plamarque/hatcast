@@ -101,6 +101,16 @@ describe('PostLoginNavigationService', () => {
     expect(resolver.resolveSeasonSlug).not.toHaveBeenCalled()
   })
 
+  it('routes to /agenda when last member entry path is /agenda', async () => {
+    rememberLastMemberEntryPath('/agenda')
+    rememberLastVisitedSeasonSlug('festibask')
+
+    const url = await service().resolveAuthenticatedEntryUrl()
+
+    expect(url).toEqual(['/agenda'])
+    expect(resolver.resolveSeasonSlug).not.toHaveBeenCalled()
+  })
+
   it('routes to /saison/:slug from last member entry path when resolver resolves', async () => {
     rememberLastMemberEntryPath('/saison/festibask')
     resolver.resolveSeasonSlug.mockResolvedValue({

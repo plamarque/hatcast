@@ -42,7 +42,7 @@ so that **remember last visit covers my daily navigation**, not only the last se
     - Key e.g. `lastMemberEntryPath` (document V1/V2 coexistence if legacy ever used a different key — **new key** for V2).
     - `getLastMemberEntryPath()`, `rememberLastMemberEntryPath(path)`, `clearLastMemberEntryPath()`.
     - Mirror try/catch / silent failure pattern from [`last-visited-league-storage.ts`](../../apps/web/src/app/core/navigation/last-visited-league-storage.ts).
-  - [ ] Add `isPersistableMemberEntryPath(path: string): boolean` (pure) — allow `/accueil`, `/agenda`, `/saison/:slug` (2 segments), `/membre/:slug` (2 segments); reject empty segments, `//`, external schemes, `/connexion`, admin segments, `/saison/:slug/event/...`, etc.
+  - [x] Add `isPersistableMemberEntryPath(path: string): boolean` (pure) — allow `/accueil`, `/agenda`, `/saison/:slug` (2 segments), `/membre/:slug` (2 segments); reject empty segments, `//`, external schemes, `/connexion`, admin segments, `/saison/:slug/event/...`, etc.
 
 - [x] **Post-login resolution** (AC: 4–9, 12)
   - [x] Extend [`post-login-navigation.service.ts`](../../apps/web/src/app/core/navigation/post-login-navigation.service.ts):
@@ -51,7 +51,7 @@ so that **remember last visit covers my daily navigation**, not only the last se
   - [x] Extend [`post-login-navigation.service.spec.ts`](../../apps/web/src/app/core/navigation/post-login-navigation.service.spec.ts): entry path `/accueil` beats `lastVisitedSeason`; `/saison/x` valid; stale season clears path; deep link still first; `/membre/wrong` falls through.
 
 - [x] **Write hooks** (AC: 1, 2, 11)
-  - [x] [`member-shell.ts`](../../apps/web/src/app/layout/member-shell/member-shell.ts): on `NavigationEnd`, if `shouldShowMemberNav(url)` and path is persistable, `rememberLastMemberEntryPath(pathFromUrl(url))`.
+  - [x] [`member-shell.ts`](../../apps/web/src/app/layout/member-shell/member-shell.ts): on `NavigationEnd`, if `shouldShowMemberNav(url)` and path is persistable **shell** (`/accueil`, `/agenda`, own `/membre/:slug` only) — **not** `/saison/*` (AC2 → `SeasonHome` only).
   - [x] [`season-home.ts`](../../apps/web/src/app/pages/season-home/season-home.ts): after successful resolve (alongside `rememberLastVisitedSeasonSlug`), `rememberLastMemberEntryPath(saisonWorkspacePath(slug))` or equivalent `/saison/{slug}` string.
   - [x] **Do not** write from event detail, admin, or login routes.
 
@@ -148,7 +148,12 @@ Composer
 
 - `lastMemberEntryPath` (clé V2) : `/accueil`, `/agenda`, `/saison/:slug`, `/membre/:slug` (pathname seul).
 - Post-login : deep link > `lastMemberEntryPath` (revalidation saison + slug membre) > `lastVisitedSeason` > `/agenda`.
-- Écriture : `MemberShell` (`NavigationEnd`) + `SeasonHome` (resolve OK) ; pas d’écrasement pour `/membre` d’un autre utilisateur.
+- Écriture : `MemberShell` (`NavigationEnd`, shell uniquement) + `SeasonHome` (resolve OK pour `/saison/:slug`) ; pas d’écrasement pour `/membre` d’un autre utilisateur.
+
+### Revue code (2026-05-27)
+
+- **M1** : `MemberShell` n’écrit plus `/saison/*` sur `NavigationEnd` — seul `SeasonHome` après resolve (AC1/AC2).
+- Tests : post-login `/agenda` ; shell saison / event detail / membre propre.
 
 ### File List
 
@@ -166,6 +171,7 @@ Composer
 
 - 2026-05-27 : Story créée via `/bmad-create-story` (17.20).
 - 2026-05-27 : Implémentation `/bmad-dev-story` 17.20.
+- 2026-05-27 : Revue code — correctif AC2 (`MemberShell` sans `/saison/*`) + tests complémentaires ; story **done**.
 
 ---
 
