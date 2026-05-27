@@ -23,6 +23,10 @@ import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { AddEventParticipantDialog } from './add-event-participant-dialog'
 import { AdminEventParticipants } from './admin-event-participants'
+import {
+  ORGANIZER_LIST_RELOAD_FAILED,
+  PARTICIPATION_ROLE_UPDATE_FAILED,
+} from '../../shared/admin-organizer-row/organizer-row.helper'
 
 describe('AdminEventParticipants', () => {
   const paramMap$ = new BehaviorSubject(
@@ -189,6 +193,7 @@ describe('AdminEventParticipants', () => {
         },
       ],
     }).compileComponents()
+    TestBed.overrideProvider(MatSnackBar, { useValue: snack })
 
     const fixture = TestBed.createComponent(AdminEventParticipants)
     fixture.detectChanges()
@@ -401,6 +406,100 @@ describe('AdminEventParticipants', () => {
       'event-1',
       'promo@example.com',
     )
+  })
+
+  it('shows snackbar when demoting organizer missing from cached list', async () => {
+    const { fixture, snack } = await setup(
+      { ...adminPermissions, canManageEventOrganizers: true },
+      { roster: [seasonRow], eventOrganizers: [] },
+    )
+    const cmp = fixture.componentInstance as AdminEventParticipants
+    await cmp['demoteEventOrganizer'](seasonRow)
+
+    expect(snack.open).toHaveBeenCalledWith(PARTICIPATION_ROLE_UPDATE_FAILED, 'OK', {
+      duration: 5000,
+    })
+  })
+
+  it('shows snackbar when organizer reload fails after mutation', async () => {
+    const listEventOrganizers = vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    const snack = { open: vi.fn() }
+    await TestBed.configureTestingModule({
+      imports: [AdminEventParticipants, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: paramMap$.asObservable() },
+        },
+        { provide: Router, useValue: { navigate: vi.fn().mockResolvedValue(true) } },
+        { provide: MatSnackBar, useValue: snack },
+        { provide: MatDialog, useValue: { open: vi.fn().mockReturnValue({ afterClosed: () => of(false) }) } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: { email: 'a@example.com', displayName: 'Admin' } },
+            }),
+          },
+        },
+        {
+          provide: TroupeSeasonResolverService,
+          useValue: {
+            resolveSeasonSlug: vi.fn().mockResolvedValue({
+              kind: 'resolved',
+              troupe: { id: 'troupe-1', name: 'Troupe', slug: 'troupe-a' },
+              season,
+            }),
+          },
+        },
+        {
+          provide: EventApiService,
+          useValue: {
+            getEventBySlug: vi.fn().mockResolvedValue({ ok: true, status: 200, data: event }),
+          },
+        },
+        {
+          provide: OrganizerApiService,
+          useValue: {
+            mySeasonPermissions: vi.fn().mockResolvedValue({
+              ok: true,
+              data: adminPermissions,
+            }),
+            listEventOrganizers,
+            addEventOrganizer: vi.fn(),
+            removeEventOrganizer: vi.fn(),
+          },
+        },
+        {
+          provide: ParticipantApiService,
+          useValue: {
+            listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, data: [seasonRow] }),
+            removeEventParticipant: vi.fn(),
+            excludeSeasonParticipantFromEvent: vi.fn(),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: { currentUserDisplayLabel: () => 'Admin' },
+        },
+      ],
+    }).compileComponents()
+    TestBed.overrideProvider(MatSnackBar, { useValue: snack })
+
+    const fixture = TestBed.createComponent(AdminEventParticipants)
+    const cmp = fixture.componentInstance as AdminEventParticipants
+    cmp['seasonId'].set('season-1')
+    cmp['event'].set(event)
+    await cmp['reloadEventOrganizers']('Organisateur·ice ajouté·e.')
+
+    expect(snack.open).toHaveBeenCalledWith(ORGANIZER_LIST_RELOAD_FAILED, 'OK', {
+      duration: 5000,
+    })
+    expect(snack.open).not.toHaveBeenCalledWith('Organisateur·ice ajouté·e.', 'OK', {
+      duration: 4000,
+    })
   })
 
   it('shows empty Externes section when no event-only participants', async () => {

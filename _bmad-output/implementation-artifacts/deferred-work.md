@@ -12,10 +12,12 @@
 
 - `ShareRecipientsIntegrationTest` non exécuté localement (Flyway/H2) — tests présents ; à valider en CI / env test sain.
 
-## Deferred from: code review of 17-17-chip-organisateur-promouvoir-listes-admin.md (2026-05-26)
+## Deferred from: code review of 17-17-chip-organisateur-promouvoir-listes-admin.md (2026-05-26, closure 2026-05-27)
 
-- Pas de test Rétrograder ni chip lecture seule sans droits `canManage*` — couverture promote/chip partielle jugée suffisante pour cette story.
+- Pas de test Rétrograder via menu UI ni chip lecture seule sans droits `canManage*` — couverture promote/chip partielle jugée suffisante pour cette story.
 - Duplication template Externes/Membres sur `admin-event-participants.html` — héritage 17.16, refactor structurel hors périmètre 17.17.
+- `organizerChipTooltip` exporté mais non branché sur les templates — cosmétique ; retirer ou utiliser en follow-up UI.
+- AC 11 branche `canManageSeasonOrganizers` sans liste participants — inactif tant que l’API lie les deux flags au admin troupe ; à revisiter si permissions orga saison évoluent.
 
 ## Deferred from: code review of 17-16-route-admin-participants-evenement.md (2026-05-26)
 

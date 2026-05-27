@@ -1,6 +1,6 @@
 # Story 17.17: Chip organisateur + action Promouvoir sur listes admin
 
-Status: review
+Status: done
 
 <!-- PO 2026-05-26 — Remplace les sections / onglets dédiés « Organisateur·ices » par chip + Promouvoir sur la ligne, aligné avec la logique sections Externes/Membres (17.16 review). Note : 17.7 est déjà prise (API tag équité) ; numéro suivant disponible = 17.17. -->
 
@@ -92,6 +92,9 @@ so that **I do not maintain a parallel organizer list** and can switch roles in 
 - [x] [Review][Patch] Notice hors roster — **supprimée** (PO : inutile avec chip-menu)
 - [x] [Review][Defer] Pas de test Rétrograder ni chip lecture seule sans `canManage*` [`*.spec.ts`] — deferred, pre-existing
 - [x] [Review][Defer] Duplication template Externes/Membres — **réduit** via `ng-template` event roster row
+- [x] [Review][Patch] Snackbar si démotion impossible (liste orga désynchronisée) — **corrigé** (review 2026-05-27)
+- [x] [Review][Patch] Snackbar si reload orga échoue après mutation — **corrigé** (review 2026-05-27)
+- [x] [Review][Decision] AC 11 branche orga-sans-participants — acceptable tant que API lie les deux flags admin troupe — **confirmé review 2026-05-27**
 
 ## Dependencies
 
@@ -115,7 +118,7 @@ so that **I do not maintain a parallel organizer list** and can switch roles in 
 |--------|-------------|-----------------|----------|----------------|
 | `admin-event-participants` | Event roster | Event | `userId` / email | Organisateur·ices du spectacle |
 | `admin-participants` | Season participants | Season | `userId` / email | `OrganisateursTab` embed |
-| `membres-tab` | Troupe members | Season (profile) | `userId` / email | N/A (was on participants page) |
+| `membres-tab` | Troupe members | — (orga saison sur Participants) | — | N/A |
 
 ### APIs (unchanged)
 
@@ -177,11 +180,11 @@ Composer
 ### Completion Notes List
 
 - Helper partagé `organizer-row.helper.ts` + styles chip-menu / poubelle.
-- Sections dédiées « Organisateur·ices » retirées ; chip **Participant ▾** + menu sur les 3 écrans.
+- Sections dédiées « Organisateur·ices » retirées ; chip **Participant ▾** + menu sur participants spectacle et saison (pas sur membres troupe — AC 14).
 - Retrait via icône `delete` + confirmation (spectacle, saison, membres).
 - Pas de bandeau hors roster ni liens Promouvoir/Rétrograder.
 - `OrganisateursTab` et `AddOrganizerDialog` supprimés.
-- 477 tests passent.
+- Revue 2026-05-27 : snackbars démotion / reload orga ; tests ciblés (39 specs 17.17) ; build web OK.
 
 ### File List
 
@@ -211,3 +214,4 @@ Composer
 - 2026-05-26: Story created — cross-screen organizer chip + Promouvoir; replaces dedicated organizer sections on participants (saison/spectacle) and season-organizer affordances on membres.
 - 2026-05-26: Implemented chip + row actions on event/season participants and membres; removed OrganisateursTab; added shared helper and tests.
 - 2026-05-26: PO refinement — participation chip-menu (style Membres), delete icon, removed off-roster notice and Promouvoir/Rétrograder links.
+- 2026-05-27: Code review closure — snackbars démotion/reload orga ; story `done`.

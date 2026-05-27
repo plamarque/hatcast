@@ -175,11 +175,11 @@ development_status:
   17-6-slug-evenement-dans-les-urls: done
   17-7-api-tag-equite-glossaire-troupe: done
   17-8-ui-onglet-infos-tag-equite: done
-  17-9-tirage-chances-par-tag: backlog
+  17-9-tirage-chances-par-tag: done
   17-10-statistiques-filtre-groupes-spectacles: done
   17-12-slug-spectacle-sans-saisie-formulaire: done
   17-13-formulaire-spectacle-datepicker-heure: done
   17-14-onglet-infos-type-roles-modales: done
   17-15-onglet-infos-organisateurs-retrait-participants-formulaire: done
-  17-17-chip-organisateur-promouvoir-listes-admin: review
+  17-17-chip-organisateur-promouvoir-listes-admin: done
   epic-17-retrospective: optional

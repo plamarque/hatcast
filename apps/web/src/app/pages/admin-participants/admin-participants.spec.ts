@@ -22,6 +22,10 @@ import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { EditParticipantDialog } from '../../shared/edit-participant-dialog/edit-participant-dialog'
+import {
+  ORGANIZER_LIST_RELOAD_FAILED,
+  PARTICIPATION_ROLE_UPDATE_FAILED,
+} from '../../shared/admin-organizer-row/organizer-row.helper'
 import { AdminParticipants } from './admin-participants'
 
 describe('AdminParticipants', () => {
@@ -428,6 +432,118 @@ describe('AdminParticipants', () => {
     expect(
       fixture.nativeElement.querySelector('button.admin-row-delete-btn'),
     ).toBeNull()
+  })
+
+  it('shows snackbar when demoting organizer missing from cached list', async () => {
+    const linked: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-linked',
+      email: 'linked@example.com',
+      userId: 'u-1',
+      kind: 'LINKED',
+    }
+    const { fixture, snack } = await setup(
+      { ...participantsAdmin(), canManageSeasonOrganizers: true },
+      { participants: [linked], organizers: [] },
+    )
+    const cmp = fixture.componentInstance as AdminParticipants
+    await cmp['demoteSeasonOrganizer'](linked)
+
+    expect(snack.open).toHaveBeenCalledWith(PARTICIPATION_ROLE_UPDATE_FAILED, 'OK', {
+      duration: 5000,
+    })
+  })
+
+  it('shows snackbar when organizer reload fails after mutation', async () => {
+    const listSeasonOrganizers = vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    const snack = { open: vi.fn() }
+    await TestBed.configureTestingModule({
+      imports: [AdminParticipants, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: paramMap$.asObservable() },
+        },
+        { provide: Router, useValue: { navigate: vi.fn().mockResolvedValue(true) } },
+        { provide: MatSnackBar, useValue: snack },
+        { provide: MatDialog, useValue: { open: vi.fn().mockReturnValue({ afterClosed: () => of(false) }) } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { user: { email: 'a@example.com', displayName: 'Admin' } },
+            }),
+          },
+        },
+        {
+          provide: TroupeSeasonResolverService,
+          useValue: {
+            resolveSeasonSlug: vi.fn().mockResolvedValue({
+              kind: 'resolved',
+              troupe: {
+                id: 't1',
+                name: 'Ma Troupe',
+                slug: 't1',
+                membership: {
+                  id: 'm-1',
+                  displayName: 'Admin',
+                  status: 'ACTIVE',
+                  baselineRole: 'TROUPE_ADMIN',
+                  createdAt: '',
+                  updatedAt: '',
+                },
+              },
+              season: season('s1'),
+            }),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            selectTroupe: vi.fn(),
+            currentUserDisplayLabel: () => 'Admin',
+          },
+        },
+        {
+          provide: OrganizerApiService,
+          useValue: {
+            mySeasonPermissions: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: participantsAdmin(),
+            }),
+            listSeasonOrganizers,
+            addSeasonOrganizer: vi.fn(),
+            removeSeasonOrganizer: vi.fn(),
+          },
+        },
+        { provide: TroupeApiService, useValue: { deactivateMember: vi.fn() } },
+        {
+          provide: ParticipantApiService,
+          useValue: {
+            listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+            removeSeasonParticipant: vi.fn(),
+            createSeasonParticipant: vi.fn(),
+          },
+        },
+      ],
+    }).compileComponents()
+    TestBed.overrideProvider(MatSnackBar, { useValue: snack })
+
+    const fixture = TestBed.createComponent(AdminParticipants)
+    const cmp = fixture.componentInstance as AdminParticipants
+    cmp['season'].set(season('s1'))
+    await cmp['reloadSeasonOrganizers']('Organisateur·ice ajouté·e.')
+
+    expect(snack.open).toHaveBeenCalledWith(ORGANIZER_LIST_RELOAD_FAILED, 'OK', {
+      duration: 5000,
+    })
+    expect(snack.open).not.toHaveBeenCalledWith('Organisateur·ice ajouté·e.', 'OK', {
+      duration: 4000,
+    })
   })
 })
 

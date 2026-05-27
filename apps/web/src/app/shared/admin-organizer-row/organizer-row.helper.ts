@@ -9,6 +9,12 @@ export const ORGANIZER_ROLE_LABEL = 'Organisateur·ice'
 export const PROMOTE_TOOLTIP =
   'Liez un compte HatCast pour promouvoir organisateur·ice'
 
+export const PARTICIPATION_ROLE_UPDATE_FAILED =
+  'Impossible de mettre à jour le rôle — rechargez la page.'
+
+export const ORGANIZER_LIST_RELOAD_FAILED =
+  'Impossible de rafraîchir les organisateur·ices — rechargez la page.'
+
 export function normalizeEmail(email: string | null | undefined): string | null {
   const trimmed = email?.trim().toLowerCase()
   return trimmed ? trimmed : null

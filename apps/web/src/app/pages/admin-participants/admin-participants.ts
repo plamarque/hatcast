@@ -38,7 +38,9 @@ import {
   isRowOrganizer,
   normalizeEmail,
   organizerRoleMenuLabel,
+  ORGANIZER_LIST_RELOAD_FAILED,
   PARTICIPANT_ROLE_LABEL,
+  PARTICIPATION_ROLE_UPDATE_FAILED,
   participationRoleChipLabel,
   PROMOTE_TOOLTIP,
 } from '../../shared/admin-organizer-row/organizer-row.helper'
@@ -389,6 +391,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
       this.seasonOrganizers(),
     )
     if (!organizer) {
+      this.snack.open(PARTICIPATION_ROLE_UPDATE_FAILED, 'OK', { duration: 5000 })
       return
     }
     await this.removeSeasonOrganizer(organizer.userId)
@@ -459,6 +462,10 @@ export class AdminParticipants implements OnDestroy, OnInit {
       if (message) {
         this.snack.open(message, 'OK', { duration: 4000 })
       }
+      return
+    }
+    if (message) {
+      this.snack.open(ORGANIZER_LIST_RELOAD_FAILED, 'OK', { duration: 5000 })
     }
   }
 
