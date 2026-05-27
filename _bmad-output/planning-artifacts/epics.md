@@ -1520,7 +1520,7 @@ afin de savoir quoi traiter sans parcourir tout l’agenda.
 
 **Priorité :** P1.  
 **Depends :** 12.2, 17.18 recommandé (raccourcis déjà en place sur agenda/saison).  
-**Story file :** à créer → `17-19-hub-accueil-a-faire-mvp.md`
+**Story file:** [_bmad-output/implementation-artifacts/17-19-hub-accueil-a-faire-mvp.md](../implementation-artifacts/17-19-hub-accueil-a-faire-mvp.md)
 
 #### Story 17.20 : Remember last visit — `lastMemberEntryPath` *(optionnel)*
 

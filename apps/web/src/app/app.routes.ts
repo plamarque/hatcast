@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 import { AccountPlaceholder } from './pages/account-placeholder/account-placeholder';
 import { AuthRedirect } from './pages/auth-redirect/auth-redirect';
 import { ForgotPassword } from './pages/forgot-password/forgot-password';
-import { HomeSignedIn } from './pages/home-signed-in/home-signed-in';
+import { MemberHomeTodo } from './pages/member-home-todo/member-home-todo';
 import { Login } from './pages/login/login';
 import { ResetPassword } from './pages/reset-password/reset-password';
 import { EventDetail } from './pages/event-detail/event-detail';
@@ -38,7 +38,7 @@ export const routes: Routes = [
   { path: 'connexion', component: Login },
   { path: 'mot-de-passe-oublie', component: ForgotPassword },
   { path: 'reinitialiser-mot-de-passe', component: ResetPassword },
-  { path: 'accueil', component: HomeSignedIn },
+  { path: 'accueil', component: MemberHomeTodo },
   { path: 'compte', component: AccountPlaceholder },
   { path: 'agenda', component: UserAgenda },
   { path: 'membre/:userSlug', component: MemberSeasonGlance },

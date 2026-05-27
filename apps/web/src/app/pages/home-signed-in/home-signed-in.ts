@@ -4,7 +4,7 @@ import { Router } from '@angular/router'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
 
-/** Legacy `/accueil` route — redirects to last league or `/agenda` (Story 2.9, 12.5). */
+/** Post-login redirect helper (Story 2.9, 12.5). `/accueil` uses `MemberHomeTodo` (Story 17.19). */
 @Component({
   selector: 'app-home-signed-in',
   template: `
