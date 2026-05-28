@@ -2,8 +2,6 @@
 
 Ce guide complète la configuration **Google Cloud**, **Neon** (PostgreSQL managé) et **GitHub Actions** pour des services **Cloud Run** distincts par environnement : image Docker (Nginx + Angular statique + Spring Boot), alignée avec le plan option A.
 
-**Flux Git quotidien (promote, release, checklist)** : [DEPLOYMENT_WORKFLOW.md](DEPLOYMENT_WORKFLOW.md).
-
 ## 1. APIs Google Cloud à activer
 
 Dans **APIs & Services > Library**, activer au minimum :
@@ -180,11 +178,23 @@ Après chaque **premier** déploiement sur un environnement, récupérer l’URL
 
 Voir [V2_GOOGLE_OAUTH_SETUP.md](V2_GOOGLE_OAUTH_SETUP.md) pour le détail multi-environnements.
 
-## 5. PostgreSQL sur Neon (un projet, trois branches)
+## 5. PostgreSQL sur Neon (un projet, quatre branches)
 
 - Créer un **projet Neon** ([console](https://console.neon.tech)).
 - **Branche primary** : données de **production** (alignée avec les déploiements depuis `production-v2`).
-- Créer deux branches enfant (depuis la primary ou selon votre politique Neon), par ex. **`staging`** et **`development`** (ou `dev`), pour isoler données et chaînes de connexion.
+- Branches enfant (depuis la primary ou selon votre politique Neon) :
+  - **`staging`** — recette V2 (`staging-v2` → Cloud Run staging).
+  - **`development`** — **cloud dev seulement** (`v2` → `hatcast-v2-dev`, secrets GitHub `development`). Profil Spring **`cloud`** : Flyway **`db/migration` uniquement** (ADR-0014) — pas de seeds Les Improbots.
+  - **`local`** — **poste développeur uniquement** (`.env` → `HATCAST_DATASOURCE_*`, jamais dans GitHub Actions). Profil Spring **`dev`** : Flyway `db/migration` + `db/seed` (Les Improbots, MVP, context switcher).
+
+| Cible | Branche Neon | Profil Spring | Flyway | Credentials |
+|-------|--------------|---------------|--------|-------------|
+| `./scripts/start-dev.sh` | **`local`** | `dev` | migration + seed | `.env` local |
+| `hatcast-v2-dev` (push `v2`) | **`development`** | `cloud` | migration seule | GitHub env `development` |
+| `hatcast-v2-staging` | **`staging`** | `cloud` | migration seule | GitHub env `staging` |
+| `hatcast-v2` (prod) | **primary** | `cloud` | migration seule | GitHub env `production` |
+
+**Pourquoi séparer `local` et `development` ?** Le dev local exécute les scripts `db/seed` et peut regénérer Les Improbots ; le cloud dev ne charge pas ces scripts. Partager une branche provoquait des échecs Flyway au démarrage Cloud Run (`Detected applied migration not resolved locally`) et couplait les resets seed locaux au service déployé. Voir [ADR-0009](../../adr/0009-neon-postgres-environments.md).
 
 Chaque branche Neon fournit sa propre **chaîne de connexion** (hôte `*.neon.tech` distinct dans le tableau de bord).
 
@@ -204,7 +214,15 @@ La valeur **`HATCAST_DATASOURCE_URL`** doit être au format JDBC Postgres attend
 
 ### 5.5 Schéma Flyway vs seeds (staging / production)
 
-Sur Cloud Run (`HATCAST_SPRING_PROFILE=cloud`), Flyway n’applique que `classpath:db/migration` — **pas** les scripts sous `db/seed` (données La Malice / MVP). Voir [ADR-0014](../../adr/0014-v2-preprod-migration-no-seed.md) et le runbook [preprod-reset-and-migrate.md](../migration/preprod-reset-and-migrate.md) pour alimenter staging depuis **Firestore V1 production** (`default`).
+Sur Cloud Run (`HATCAST_SPRING_PROFILE=cloud`), Flyway n’applique que `classpath:db/migration` — **pas** les scripts sous `db/seed` (données Les Improbots / MVP). Voir [ADR-0014](../../adr/0014-v2-preprod-migration-no-seed.md) et le runbook [preprod-reset-and-migrate.md](../migration/preprod-reset-and-migrate.md) pour alimenter staging depuis **Firestore V1 production** (`default`).
+
+**Symptôme :** l’UI charge (Nginx) mais l’API ne répond pas ; logs Cloud Run `FlywayValidateException: Detected applied migration not resolved locally` (versions 3.1, 4, 6, 17, … — scripts `db/seed`), puis `exited: api (exit status 1)` en boucle.
+
+**Cause :** la branche Neon **`development`** (cloud dev) avait reçu des migrations **`db/seed`** (profil `dev` ou ancienne config partagée avec le poste local). Le déploiement `cloud` ne charge plus ces scripts.
+
+**Prévention (2026-05-28) :** branche Neon **`local`** pour le poste (`dev` + seeds) ; branche **`development`** réservée à `hatcast-v2-dev` (`cloud`, schéma seul). Ne plus pointer `.env` vers `development`.
+
+**Correctif ops :** reset de la branche Neon concernée (`development`, `staging`, …) puis redeploy — ou purge ciblée des lignes seed dans `flyway_schema_history`. **Pas** de contournement Flyway côté app : le profil `cloud` doit échouer au démarrage si l’historique ne correspond pas au classpath (fail-fast).
 
 ### 5.3 Réseau
 

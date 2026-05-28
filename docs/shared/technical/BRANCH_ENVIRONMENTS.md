@@ -8,7 +8,7 @@ Ce document fixe le **mapping** entre branches Git, déploiements et stacks, pou
 | **`production-v2`** | Ligne **production V2** (Cloud Run + Neon) | Workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) → environnement GitHub **`production`** | API Spring + **Neon** (branche primary) — voir [DEPLOY_V2_CLOUD_RUN.md](../../v2/technical/DEPLOY_V2_CLOUD_RUN.md) |
 | **`staging`** | Préproduction / recette **V1** uniquement | Même client `legacy/` → cible Hosting `staging` | Même projet Firebase, base `staging` (config client `VITE_FIRESTORE_DATABASE`) |
 | **`staging-v2`** | Préproduction / recette **V2** (Cloud Run + Neon) | Même workflow V2 → environnement GitHub **`staging`** | API Spring + **Neon** (branche `staging`) |
-| **`v2`** | Développement **V2** (client `apps/web`, API `services/api`) | Même workflow V2 → environnement GitHub `development` | API Spring + **Neon** (branche dev), hors Firebase client legacy |
+| **`v2`** | Développement **V2** (client `apps/web`, API `services/api`) | Même workflow V2 → environnement GitHub `development` | Cloud Run `hatcast-v2-dev` → Neon **`development`** ; poste local → Neon **`local`** (`.env`) |
 
 ### Workflow V2 (scripts + CI)
 

@@ -13,7 +13,7 @@
 ## V2 — stack cible (résumé)
 
 - **API** : Kotlin / Spring Boot sous [`services/api/`](../../services/api/), déployée sur **Google Cloud Run** (image Docker ; option A : Nginx + Angular + API).
-- **Données** : **PostgreSQL** sur **Neon** — un projet Neon, **trois branches** (development, staging, production) alignées sur les environnements GitHub et les services Cloud Run ; détails dans [`DEPLOY_V2_CLOUD_RUN.md`](../../v2/technical/DEPLOY_V2_CLOUD_RUN.md) et [`docs/adr/0009-neon-postgres-environments.md`](../../adr/0009-neon-postgres-environments.md).
+- **Données** : **PostgreSQL** sur **Neon** — un projet Neon, branches **`local`** (poste), **`development`** / **`staging`** / **primary** (Cloud Run) ; détails dans [`DEPLOY_V2_CLOUD_RUN.md`](../../v2/technical/DEPLOY_V2_CLOUD_RUN.md) et [`docs/adr/0009-neon-postgres-environments.md`](../../adr/0009-neon-postgres-environments.md).
 
 ## Règles d’import (anti-mélange)
 

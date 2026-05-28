@@ -29,7 +29,7 @@ flowchart LR
 
 | Étape | Branche git | Action | CI / service |
 |-------|-------------|--------|----------------|
-| Dev local | — | `./scripts/start-dev.sh` | Neon branche dev, pas de push requis |
+| Dev local | — | `./scripts/start-dev.sh` | Neon branche **`local`** (`.env`), pas de push requis |
 | Dev cloud | `v2` | `git push origin v2` | Env GitHub `development` → `hatcast-v2-dev` |
 | Staging | `staging-v2` | `./scripts/v2/promote-to-staging.sh` | Env `staging` → `hatcast-v2-staging` |
 | Production | `production-v2` | `./scripts/v2/release-production.sh` | Env `production` → `hatcast-v2` |
@@ -56,7 +56,8 @@ Le workflow YAML est une **deuxième source de vérité** (limitation GitHub Act
 ## Développement local
 
 - Stack : [`scripts/start-dev.sh`](../../../scripts/start-dev.sh) — API `http://127.0.0.1:8080`, front `https://localhost:4200`
-- Base : Neon branche **development** (variables dans `.env` local, voir [DEVELOPMENT.md](../../../DEVELOPMENT.md))
+- Base : Neon branche **`local`** — variables `HATCAST_DATASOURCE_*` dans **`.env`** à la racine (voir [`.env.example`](../../../.env.example), [DEVELOPMENT.md](../../../DEVELOPMENT.md)). **Ne pas** utiliser la branche **`development`** en local : elle est réservée à Cloud Run `hatcast-v2-dev` (profil `cloud`, sans seeds Flyway).
+- Profil Spring **`dev`** : Flyway applique `db/migration` + `db/seed` (Les Improbots, recette MVP). Resets / regénération seed sur **`local`** sans impacter le déploiement cloud.
 - Aucun push Git n’est requis pour travailler en local
 
 ## Déploiement dev (push sur `v2`)
@@ -70,6 +71,7 @@ git push origin v2
 - Déclenche le workflow **Deploy V2 (Cloud Run)** uniquement si les fichiers modifiés correspondent aux `paths` du workflow (`apps/web/`, `services/api/`, `deploy/v2/`, `Dockerfile`, etc.). Un push qui ne touche que `docs/` ou `scripts/` **ne redéploie pas** — utiliser **workflow_dispatch** dans l’onglet Actions pour forcer un deploy si besoin.
 - Environnement GitHub : **`development`**
 - Service typique : **`hatcast-v2-dev`**
+- Base Neon : branche **`development`** (secrets `HATCAST_DATASOURCE_*` de l’env GitHub — distincte de la branche **`local`** du `.env` poste)
 - Suivi : onglet **Actions** du dépôt GitHub
 
 Prérequis : environnement `development` autorise la branche `v2` ; secrets Neon/OAuth dev configurés ([DEPLOY_V2_CLOUD_RUN.md](DEPLOY_V2_CLOUD_RUN.md)).

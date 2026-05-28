@@ -1,5 +1,6 @@
 # Profil Cloud Run : reverse proxy TLS + CORS production + cookie Secure.
 # Flyway : schéma uniquement (pas classpath:db/seed) — ADR-0014.
+# Branche Neon « development » : schéma seul (pas de seeds) — voir ADR-0009.
 # Activer avec HATCAST_SPRING_PROFILE=cloud.
 
 spring:

@@ -19,7 +19,7 @@
   6. **Production cutover** (Neon primary, branch `main`) is **out of scope** of this ADR — separate checklist when a go-live date is chosen ([MERGE_V2_TO_MAIN_CHECKLIST.md](../shared/technical/MERGE_V2_TO_MAIN_CHECKLIST.md)).
 - **Consequences:**
   - **Positive:** Staging mirrors real membership; repeatable migration drills; dev seeds unchanged for local/CI.
-  - **Negative:** Existing Neon staging DBs that already ran seed migrations need a **one-time reset** after this ADR ships.
+  - **Negative:** Existing Neon staging DBs that already ran seed migrations need a **one-time reset** after this ADR ships. La branche Neon **`development`** (cloud dev) ne doit **pas** partager le poste local : seeds sur branche **`local`** uniquement ([ADR-0009](0009-neon-postgres-environments.md)).
   - **Operational:** Export scripts require **production-grade** Firebase Admin credentials (read-only service account recommended); exports must not target `development` Firestore for pre-prod.
   - **Gap (explicit):** Events, availability, compositions, and season/league structure are **not** automated in the current migration playbook — manual admin setup or future MIG-* slices in PLAN.md.
 - **Alternatives considered:**
