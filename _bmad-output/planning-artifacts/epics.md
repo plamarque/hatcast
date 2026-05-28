@@ -1693,7 +1693,8 @@ afin de **remplacer le hack `isSeedTroupe()`** par des règles métier explicite
 
 **Priorité :** P0 — bloque 18.2–18.5.  
 **Depends :** Story 2.1 (table `troupes`).  
-**UI :** N/A.
+**UI :** N/A.  
+**Story file:** [_bmad-output/implementation-artifacts/18-1-modele-join-policy-is-demo.md](../implementation-artifacts/18-1-modele-join-policy-is-demo.md)
 
 ---
 

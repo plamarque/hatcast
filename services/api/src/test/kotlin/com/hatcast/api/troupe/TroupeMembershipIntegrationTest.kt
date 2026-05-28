@@ -106,6 +106,8 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$.[0].id").value(seedTroupeId.toString()))
             .andExpect(jsonPath("$.[0].slug").value("les-improbots"))
+            .andExpect(jsonPath("$.[0].joinPolicy").value("OPEN"))
+            .andExpect(jsonPath("$.[0].isDemo").value(false))
             .andExpect(jsonPath("$.[0].membership.status").value("ACTIVE"))
             .andExpect(jsonPath("$.[0].membership.baselineRole").value("MEMBER"))
     }

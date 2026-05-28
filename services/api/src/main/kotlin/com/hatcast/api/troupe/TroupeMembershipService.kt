@@ -53,11 +53,9 @@ class TroupeMembershipService(
                 .associate { it.troupeId to it.eventCount }
         return memberships.map { membership ->
             val troupeId = membership.troupe.id
-            TroupeListItemDto(
-                id = troupeId,
-                name = membership.troupe.name,
-                slug = membership.troupe.slug,
-                membership = MembershipSummaryDto.from(membership),
+            TroupeListItemDto.from(
+                troupe = membership.troupe,
+                membership = membership,
                 activeMemberCount = memberCounts[troupeId] ?: 0L,
                 upcomingEventCount = upcomingCounts[troupeId] ?: 0L,
             )

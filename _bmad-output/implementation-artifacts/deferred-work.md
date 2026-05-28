@@ -1,3 +1,7 @@
+## Deferred from: code review of 18-1-modele-join-policy-is-demo.md (2026-05-28)
+
+- Drift enum `TroupeJoinPolicy` ↔ CHECK `troupes_join_policy_chk` — même pattern que `baseline_role` / V10 ; pas de source de vérité unique.
+
 ## Deferred from: code review of 18-0-renommer-seed-dev-les-improbots.md (2026-05-28)
 
 - Venue fiction « Local Malice, Lille » dans V26 — libellé lieu spectacle, pas identité troupe seed.

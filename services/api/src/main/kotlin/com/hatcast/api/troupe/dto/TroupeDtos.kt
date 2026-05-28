@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.troupe.TroupeJoinPolicy
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import jakarta.validation.constraints.NotBlank
@@ -37,6 +39,8 @@ data class TroupeListItemDto(
     val id: UUID,
     val name: String,
     val slug: String,
+    val joinPolicy: TroupeJoinPolicy,
+    val isDemo: Boolean,
     val membership: MembershipSummaryDto,
     /** Active troupe memberships (`TroupeMembershipStatus.ACTIVE`). */
     val activeMemberCount: Long,
@@ -46,7 +50,26 @@ data class TroupeListItemDto(
      * [com.hatcast.api.agenda.UserAgendaRepository.findUpcomingForUser] eligibility per troupe.
      */
     val upcomingEventCount: Long,
-)
+) {
+    companion object {
+        fun from(
+            troupe: TroupeEntity,
+            membership: TroupeMembershipEntity,
+            activeMemberCount: Long,
+            upcomingEventCount: Long,
+        ): TroupeListItemDto =
+            TroupeListItemDto(
+                id = troupe.id,
+                name = troupe.name,
+                slug = troupe.slug,
+                joinPolicy = troupe.joinPolicy,
+                isDemo = troupe.isDemo,
+                membership = MembershipSummaryDto.from(membership),
+                activeMemberCount = activeMemberCount,
+                upcomingEventCount = upcomingEventCount,
+            )
+    }
+}
 
 data class TroupeMemberAdminDto(
     val id: UUID,

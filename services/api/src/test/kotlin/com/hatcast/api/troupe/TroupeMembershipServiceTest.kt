@@ -125,6 +125,8 @@ class TroupeMembershipServiceTest {
         val items = service.listActiveTroupesForUser(userId)
 
         assertEquals(1, items.size)
+        assertEquals(TroupeJoinPolicy.OPEN, items[0].joinPolicy)
+        assertEquals(false, items[0].isDemo)
         assertEquals(4L, items[0].activeMemberCount)
         assertEquals(2L, items[0].upcomingEventCount)
     }

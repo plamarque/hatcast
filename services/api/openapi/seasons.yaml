@@ -915,7 +915,7 @@ components:
   schemas:
     TroupeListItem:
       type: object
-      required: [id, name, slug, membership]
+      required: [id, name, slug, joinPolicy, isDemo, membership]
       properties:
         id:
           type: string
@@ -924,8 +924,22 @@ components:
           type: string
         slug:
           type: string
+        joinPolicy:
+          $ref: '#/components/schemas/TroupeJoinPolicy'
+        isDemo:
+          type: boolean
+          description: >
+            Identifie la troupe sandbox d'onboarding production (ADR-0015). La seed dev
+            Les Improbots reste `false`.
         membership:
           $ref: '#/components/schemas/MembershipSummary'
+
+    TroupeJoinPolicy:
+      type: string
+      enum: [OPEN, INVITE_ONLY]
+      description: >
+        Politique d'adhésion à la troupe (FR62). `OPEN` autorise l'auto-adhésion ;
+        `INVITE_ONLY` restreint l'accès aux invitations admin.
 
     MembershipSummary:
       type: object

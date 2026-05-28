@@ -59,6 +59,8 @@ class TroupeCreationIntegrationTest {
                 ).andExpect(status().isCreated)
                 .andExpect(jsonPath("$.name").value("Ma Nouvelle Troupe"))
                 .andExpect(jsonPath("$.slug").value("ma-nouvelle-troupe"))
+                .andExpect(jsonPath("$.joinPolicy").value("OPEN"))
+                .andExpect(jsonPath("$.isDemo").value(false))
                 .andExpect(jsonPath("$.membership.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.membership.baselineRole").value("TROUPE_ADMIN"))
                 .andExpect(jsonPath("$.activeMemberCount").value(1))
@@ -69,15 +71,28 @@ class TroupeCreationIntegrationTest {
 
         val troupeId = UUID.fromString(mapper.readTree(createBody).get("id").asText())
 
+        val persisted = troupeRepository.findById(troupeId).orElseThrow()
+        assertEquals(TroupeJoinPolicy.OPEN, persisted.joinPolicy)
+        assertEquals(false, persisted.isDemo)
+
         mockMvc
             .perform(get("/v1/troupes").cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$.[0].slug").value("ma-nouvelle-troupe"))
+            .andExpect(jsonPath("$.[0].joinPolicy").value("OPEN"))
+            .andExpect(jsonPath("$.[0].isDemo").value(false))
 
         mockMvc
             .perform(get("/v1/troupes/$troupeId/members/export").cookie(cookie))
             .andExpect(status().isOk)
+    }
+
+    @Test
+    fun `seed troupe has join policy OPEN and isDemo false after migration`() {
+        val seed = troupeRepository.findById(seedTroupeId).orElseThrow()
+        assertEquals(TroupeJoinPolicy.OPEN, seed.joinPolicy)
+        assertEquals(false, seed.isDemo)
     }
 
     @Test

@@ -2,7 +2,6 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.CreateTroupeRequest
-import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
@@ -66,11 +65,9 @@ class TroupeService(
                             updatedAt = now,
                         ),
                     )
-                return TroupeListItemDto(
-                    id = troupe.id,
-                    name = troupe.name,
-                    slug = troupe.slug,
-                    membership = MembershipSummaryDto.from(membership),
+                return TroupeListItemDto.from(
+                    troupe = troupe,
+                    membership = membership,
                     activeMemberCount = 1L,
                     upcomingEventCount = 0L,
                 )
