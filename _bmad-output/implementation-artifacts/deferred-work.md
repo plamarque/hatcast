@@ -1,3 +1,10 @@
+## Deferred from: code review of mig-3-availability-compositions-migration-pipeline.md (2026-05-29)
+
+- `comment` > VARCHAR(500) / `role_key` > VARCHAR(64) non validés côté transform → ferait échouer toute la transaction unique au load ; non routé vers rejects. Non déclenché par les données Malice (`comment=null`, role_keys courts). [scripts/v1/maliceAvailabilityCompositions.js:196,283]
+- Rejeu non destructif : `ON CONFLICT DO UPDATE` ne supprime jamais → lignes orphelines (slots/declines/availability) si un joueur est retiré d'un rôle entre deux runs. Atténué par le reset-entre-cycles (staging) et l'apply prod unique ; par conception.
+- AC 9 gate « ≥ 3 cycles propres » + run loggué (date/counts/écarts) : documenté dans le runbook mais aucune entrée `replay-log.jsonl` réelle fournie ; gate opérationnel à exécuter avant tout load prod.
+- Finitions mineures : URL Postgres en `argv` de `psql` (visible dans `ps`), sortie principale « Wrote… » sur stderr, flags mal orthographiés ignorés silencieusement, garde mort `!casts`, écrasement silencieux des fichiers de sortie existants.
+
 ## Deferred from: code review of 12-7-agenda-annulation-requetes-obsoletes-verrou-navigation-post-login.md (2026-05-29)
 
 - Test AC2 `loadingAgenda` pendant la course — le test race prouve l’ignorance des données périmées ; l’implémentation respecte AC2 mais le test ne vérifie pas explicitement l’absence de flash `loadingAgenda=false` entre deux requêtes concurrentes.

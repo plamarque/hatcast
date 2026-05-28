@@ -63,11 +63,11 @@ describe('migrate-malice-load — planLoad (URL↔target guards)', () => {
     assert.match(plan.errors.join('\n'), /does not contain --expect-host="staging"/)
   })
 
-  it('still writes staging with --yes and no --expect-host (only a note)', () => {
+  it('refuses staging write without --expect-host (URL↔target check mandatory)', () => {
     const opts = { ...base, databaseUrl: STAGING_URL, yes: true }
     const plan = planLoad(opts, parseDbInfo(STAGING_URL))
-    assert.equal(plan.willWrite, true)
-    assert.ok(plan.notes.some((n) => /No --expect-host/.test(n)))
+    assert.equal(plan.willWrite, false)
+    assert.match(plan.errors.join('\n'), /requires --expect-host/)
   })
 
   it('prod write requires --expect-host', () => {

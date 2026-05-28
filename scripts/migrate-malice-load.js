@@ -6,10 +6,12 @@
  * ADR-0016 §Decision.5: idempotent SQL applied inside a SINGLE transaction.
  * `--dry-run` is the DEFAULT (prints the SQL + a report, writes nothing). To
  * actually write:
- *   - staging target: pass `--yes`
+ *   - staging target: pass `--yes` AND `--expect-host=<marker>`
  *   - production target: pass `--confirm-prod=<slug>` (must match --target) AND
- *     `--expect-host=<marker>` (asserts the connection host — guards against a
- *     correct label pointing at the wrong URL).
+ *     `--expect-host=<marker>`
+ *
+ * `--expect-host` asserts the connection host/branch for EVERY write (staging and
+ * prod) so a prod URL mislabelled `--target=staging` cannot slip through.
  *
  * The TARGET DATABASE is whatever `--database-url` / env resolves to — the
  * `--target` label only drives the guard. `--expect-host` cross-checks the
@@ -75,7 +77,7 @@ Options:
   --confirm-prod=SLUG   Confirm a PROD write; SLUG must equal --target
   --expect-host=SUBSTR  Require the connection host OR database/branch name to contain
                         SUBSTR (URL↔target check). Neon usually carries the env name in
-                        the branch/db. Mandatory for prod; recommended for staging.
+                        the branch/db. MANDATORY for any write (staging and prod).
   --dry-run             Print SQL + report, write nothing (DEFAULT)
 
 Default is dry-run: nothing is written without --yes (staging) or --confirm-prod (prod).`)
@@ -135,9 +137,12 @@ export function planLoad(opts, dbInfo) {
     )
   }
 
-  // Prod writes MUST assert the host explicitly.
-  if (prod && !opts.expectHost) {
-    errors.push('Production write requires --expect-host=<marker> to assert the connection host.')
+  // ALL writes MUST assert the host explicitly (URL↔target safety): a prod URL
+  // mislabelled --target=staging must not slip through with only --yes.
+  if (!opts.expectHost) {
+    errors.push(
+      `${prod ? 'Production' : 'Staging'} write requires --expect-host=<marker> to assert the connection host (URL↔target check).`,
+    )
   }
 
   // URL↔target cross-check (any target, when --expect-host is provided).
@@ -159,8 +164,6 @@ export function planLoad(opts, dbInfo) {
     } else {
       notes.push(`Host check OK: "${identity}" contains "${opts.expectHost}".`)
     }
-  } else if (!prod) {
-    notes.push('No --expect-host given (recommended even for staging to cross-check the URL).')
   }
 
   return { prod, willWrite: errors.length === 0, errors, notes }
@@ -175,7 +178,13 @@ function main() {
 
   const dbInfo = parseDbInfo(opts.databaseUrl)
   const plan = planLoad(opts, dbInfo)
-  const combined = opts.sql.map((p) => `-- >>> ${p}\n${readFileSync(p, 'utf8')}`).join('\n')
+  let combined
+  try {
+    combined = opts.sql.map((p) => `-- >>> ${p}\n${readFileSync(p, 'utf8')}`).join('\n')
+  } catch (err) {
+    console.error(`❌ Cannot read SQL file: ${err.message}`)
+    process.exit(1)
+  }
 
   // Pre-write recap (always printed to stderr).
   console.error(
@@ -195,7 +204,7 @@ function main() {
         `   Files: ${opts.sql.join(', ')}\n` +
         (plan.prod
           ? `   To apply: --confirm-prod=${opts.target} --expect-host=<marker> --database-url=<PROD_URL>\n`
-          : `   To apply: --yes [--expect-host=<marker>] --database-url=<URL>\n`),
+          : `   To apply: --yes --expect-host=<marker> --database-url=<URL>\n`),
     )
     process.stdout.write(`${combined}\n`)
     return

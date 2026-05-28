@@ -140,6 +140,7 @@ export async function loadPlayers(seasonId) {
 export async function loadAvailabilityRecords(seasonId, players, databaseId = 'development') {
   const db = getDb(databaseId)
   const records = []
+  const failures = []
 
   await Promise.all(
     players.map(async (player) => {
@@ -162,11 +163,20 @@ export async function loadAvailabilityRecords(seasonId, players, databaseId = 'd
             comment: typeof data.comment === 'string' ? data.comment : null,
           })
         })
-      } catch {
-        /* skip unreadable player subcollection */
+      } catch (err) {
+        // Never silently drop a player's availability: a faithful read-only
+        // migration must surface partial reads so the operator can react.
+        failures.push({ playerId: player.id, message: err?.message || String(err) })
       }
     }),
   )
+
+  if (failures.length > 0) {
+    console.error(
+      `⚠️  loadAvailabilityRecords: ${failures.length} player subcollection(s) unreadable — availability is INCOMPLETE:`,
+    )
+    for (const f of failures) console.error(`   • player ${f.playerId}: ${f.message}`)
+  }
 
   return records
 }
