@@ -2,6 +2,7 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.CreateTroupeRequest
+import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
@@ -79,6 +80,18 @@ class TroupeService(
             HttpStatus.CONFLICT,
             "Impossible de créer la troupe, réessayez.",
         )
+    }
+
+    @Transactional
+    fun updateJoinPolicy(
+        troupeId: UUID,
+        joinPolicy: TroupeJoinPolicy,
+    ): TroupeAdminSummaryDto {
+        val troupe =
+            troupeRepository.findById(troupeId).orElse(null)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        troupe.joinPolicy = joinPolicy
+        return TroupeAdminSummaryDto.from(troupeRepository.save(troupe))
     }
 
     companion object {

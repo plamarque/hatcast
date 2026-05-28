@@ -12,6 +12,8 @@ import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
 import com.hatcast.api.agenda.AgendaTimeBoundary
+import com.hatcast.api.participant.SeasonParticipantMembershipSync
+import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
@@ -34,6 +36,8 @@ class TroupeMembershipService(
     private val userAccountService: UserAccountService,
     private val csvImportService: TroupeMemberCsvImportService,
     private val platformAdminService: PlatformAdminService,
+    private val seasonRepository: SeasonRepository,
+    private val membershipSync: SeasonParticipantMembershipSync,
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
@@ -127,6 +131,21 @@ class TroupeMembershipService(
             totalElements = p.totalElements,
             totalPages = p.totalPages,
         )
+    }
+
+    @Transactional
+    fun selfJoin(
+        userId: UUID,
+        troupeId: UUID,
+    ): TroupeMembershipEntity {
+        val troupe = requireOpenJoinPolicy(troupeId)
+        val membership = ensureActiveMembership(userId, troupeId)
+        if (troupe.isDemo) {
+            seasonRepository.findByTroupe_IdAndIsActiveTrue(troupeId)?.let { season ->
+                membershipSync.ensureForMembership(season, membership)
+            }
+        }
+        return membership
     }
 
     @Transactional
@@ -366,6 +385,19 @@ class TroupeMembershipService(
     }
 
     private fun normalizeDisplayName(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }
+
+    private fun requireOpenJoinPolicy(troupeId: UUID): TroupeEntity {
+        val troupe =
+            troupeRepository.findById(troupeId).orElse(null)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        if (troupe.joinPolicy != TroupeJoinPolicy.OPEN) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Adhésion directe non autorisée pour cette troupe.",
+            )
+        }
+        return troupe
+    }
 
     private fun requireCanManageTroupeMembers(
         principal: SessionUserPrincipal,

@@ -1,3 +1,8 @@
+## Deferred from: code review of 18-2-self-join-open-api-super-admin-join-policy.md (2026-05-28)
+
+- `ensureMembershipParticipants` n'utilise pas `ensureSeasonParticipantForMembership` — refactor bulk sync hors scope 18.2, duplication préexistante étendue.
+- Plusieurs saisons actives → `NonUniqueResultException` sur `findByTroupe_IdAndIsActiveTrue` — invariant produit via `SeasonService.activate`, edge case DB directe.
+
 ## Deferred from: code review of 18-1-modele-join-policy-is-demo.md (2026-05-28)
 
 - Drift enum `TroupeJoinPolicy` ↔ CHECK `troupes_join_policy_chk` — même pattern que `baseline_role` / V10 ; pas de source de vérité unique.

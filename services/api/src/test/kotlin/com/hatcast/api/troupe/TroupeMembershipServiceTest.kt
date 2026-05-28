@@ -29,6 +29,8 @@ class TroupeMembershipServiceTest {
     private val userAccountService = mock<UserAccountService>()
     private val csvImportService = mock<TroupeMemberCsvImportService>()
     private val platformAdminService = mock<com.hatcast.api.auth.PlatformAdminService>()
+    private val seasonRepository = mock<com.hatcast.api.season.SeasonRepository>()
+    private val membershipSync = mock<com.hatcast.api.participant.SeasonParticipantMembershipSync>()
     private val service =
         TroupeMembershipService(
             membershipRepository,
@@ -38,6 +40,8 @@ class TroupeMembershipServiceTest {
             userAccountService,
             csvImportService,
             platformAdminService,
+            seasonRepository,
+            membershipSync,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

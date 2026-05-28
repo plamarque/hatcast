@@ -8,7 +8,8 @@ info:
     Pagination liste : paramètres `page` (0-based) et `size` (défaut côté client 20, max 100 côté API).
     Les mutations exigent le cookie de session et l’en-tête CSRF `X-XSRF-TOKEN` (voir Spring Security).
     Les mutations d'administration de troupe exigent une adhésion active avec le rôle de base `TROUPE_ADMIN`.
-    L'adhésion directe à la troupe de démonstration reste limitée au flux demo et crée un rôle `MEMBER`.
+    L'auto-adhésion (`POST …/memberships/me`) est autorisée pour les troupes `joinPolicy = OPEN` (rôle `MEMBER`).
+    La troupe démo (`isDemo`) inscrit aussi le membre sur la saison active. Les admins plateforme peuvent modifier `joinPolicy` via `PATCH /admin/troupes/{id}`.
   version: 0.1.0
 
 servers:
@@ -72,6 +73,40 @@ paths:
         '409':
           description: Conflit d'unicité slug après plusieurs tentatives
 
+  /admin/troupes/{troupeId}:
+    patch:
+      tags: [Troupes]
+      summary: Modifier la politique d'adhésion d'une troupe (admin plateforme, FR63)
+      description: >
+        Met à jour `joinPolicy` (`OPEN` ou `INVITE_ONLY`) sans modifier les adhésions existantes.
+        Réservé aux emails `hatcast.auth.super-admin-emails`. Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTroupeJoinPolicyRequest'
+      responses:
+        '200':
+          description: Troupe mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeAdminSummary'
+        '403':
+          description: Non admin plateforme ou CSRF invalide
+        '404':
+          description: Troupe inconnue
+
   /troupes/{troupeId}/memberships/me:
     get:
       tags: [Troupes]
@@ -99,11 +134,11 @@ paths:
 
     post:
       tags: [Troupes]
-      summary: Rejoindre la troupe de démonstration (adhésion active pour l'utilisateur courant)
+      summary: Auto-adhésion à une troupe ouverte (`joinPolicy = OPEN`)
       description: >
-        Flux demo limité à la troupe seed/démonstration en attendant les invitations.
+        Crée ou réactive une adhésion `MEMBER` pour l'utilisateur connecté lorsque la troupe a `joinPolicy = OPEN`.
+        Si `isDemo = true` et une saison active existe, le membre est aussi inscrit comme participant de saison actif.
         Idempotent : une seconde invocation réactive ou retourne l'adhésion existante.
-        Les adhésions créées par ce flux ont `baselineRole = MEMBER`.
         Requiert CSRF (`X-XSRF-TOKEN`).
       security:
         - cookieAuth: []
@@ -124,7 +159,7 @@ paths:
         '404':
           description: Troupe inconnue
         '403':
-          description: Adhésion directe refusée hors troupe de démonstration, ou CSRF/session invalide
+          description: Troupe `INVITE_ONLY`, ou CSRF/session invalide
 
     patch:
       tags: [Troupes]
@@ -940,6 +975,29 @@ components:
       description: >
         Politique d'adhésion à la troupe (FR62). `OPEN` autorise l'auto-adhésion ;
         `INVITE_ONLY` restreint l'accès aux invitations admin.
+
+    UpdateTroupeJoinPolicyRequest:
+      type: object
+      required: [joinPolicy]
+      properties:
+        joinPolicy:
+          $ref: '#/components/schemas/TroupeJoinPolicy'
+
+    TroupeAdminSummary:
+      type: object
+      required: [id, name, slug, joinPolicy, isDemo]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        joinPolicy:
+          $ref: '#/components/schemas/TroupeJoinPolicy'
+        isDemo:
+          type: boolean
 
     MembershipSummary:
       type: object

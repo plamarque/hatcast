@@ -225,14 +225,15 @@ class TroupeMembershipIntegrationTest {
     }
 
     @Test
-    fun `direct join is limited to seed troupe`() {
+    fun `direct join succeeds for OPEN non-seed troupe`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-6")
         val otherTroupeId = UUID.randomUUID()
         troupeRepository.save(
             TroupeEntity(
                 id = otherTroupeId,
-                name = "Private ${otherTroupeId.toString().take(8)}",
-                slug = "private-${otherTroupeId.toString().take(8)}",
+                name = "Open ${otherTroupeId.toString().take(8)}",
+                slug = "open-${otherTroupeId.toString().take(8)}",
+                joinPolicy = TroupeJoinPolicy.OPEN,
             ),
         )
 
@@ -241,7 +242,73 @@ class TroupeMembershipIntegrationTest {
                 post("/v1/troupes/$otherTroupeId/memberships/me")
                     .cookie(cookie)
                     .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.baselineRole").value("MEMBER"))
+    }
+
+    @Test
+    fun `direct join returns 403 for INVITE_ONLY troupe`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-invite")
+        val closedTroupeId = UUID.randomUUID()
+        troupeRepository.save(
+            TroupeEntity(
+                id = closedTroupeId,
+                name = "Closed ${closedTroupeId.toString().take(8)}",
+                slug = "closed-${closedTroupeId.toString().take(8)}",
+                joinPolicy = TroupeJoinPolicy.INVITE_ONLY,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$closedTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .with(csrf()),
             ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `demo self-join enrolls active season participant`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-demo-join-1")
+        val demoTroupeId = UUID.randomUUID()
+        val demoTroupe =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = demoTroupeId,
+                    name = "Démo test",
+                    slug = "demo-join-${demoTroupeId.toString().take(8)}",
+                    joinPolicy = TroupeJoinPolicy.OPEN,
+                    isDemo = true,
+                ),
+            )
+        val season =
+            seasonRepository.save(
+                SeasonEntity(
+                    troupe = demoTroupe,
+                    slug = "demo-season-${demoTroupeId.toString().take(8)}",
+                    title = "Saison démo",
+                    isActive = true,
+                ),
+            )
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$demoTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val user = userRepository.findByGoogleSub("sub-demo-join-1")!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(demoTroupeId, user.id)!!
+        val participants =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(
+                season.id,
+                listOf(membership.id),
+            )
+        assertEquals(1, participants.size)
+        assertEquals(ParticipantStatus.ACTIVE, participants.single().status)
+        assertEquals(membership.id, participants.single().troupeMembership?.id)
     }
 
     @Test
@@ -478,12 +545,108 @@ class TroupeMembershipIntegrationTest {
     private val platformAdminEmail = "platform-members-admin@hatcast.test"
 
     @Test
-    fun `platform admin can manage members without troupe admin role`() {
+    fun `platform admin can patch troupe join policy`() {
         val cookie =
-            TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "sub-platform-members-1",
+                "sub-platform-members-admin",
+                email = platformAdminEmail,
+                name = "Platform Join Policy",
+            )
+        val troupeId = UUID.randomUUID()
+        troupeRepository.save(
+            TroupeEntity(
+                id = troupeId,
+                name = "Policy ${troupeId.toString().take(8)}",
+                slug = "policy-${troupeId.toString().take(8)}",
+                joinPolicy = TroupeJoinPolicy.OPEN,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                patch("/v1/admin/troupes/$troupeId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"joinPolicy":"INVITE_ONLY"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.joinPolicy").value("INVITE_ONLY"))
+            .andExpect(jsonPath("$.isDemo").value(false))
+    }
+
+    @Test
+    fun `troupe admin cannot patch join policy without platform admin`() {
+        val cookie = signInAndJoin("sub-troupe-admin-policy", "troupe-admin-policy@example.com", "Troupe Admin Policy")
+        promoteSeedMemberToAdmin("sub-troupe-admin-policy")
+
+        mockMvc
+            .perform(
+                patch("/v1/admin/troupes/$seedTroupeId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"joinPolicy":"INVITE_ONLY"}""")
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `OPEN to INVITE_ONLY preserves active member count`() {
+        val platformCookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-platform-members-admin",
+                email = platformAdminEmail,
+                name = "Platform Preserve",
+            )
+        val troupeId = UUID.randomUUID()
+        val troupe =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = troupeId,
+                    name = "Preserve ${troupeId.toString().take(8)}",
+                    slug = "preserve-${troupeId.toString().take(8)}",
+                    joinPolicy = TroupeJoinPolicy.OPEN,
+                ),
+            )
+        val user = userRepository.findByGoogleSub("sub-platform-members-admin")!!
+        membershipRepository.save(
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.MEMBER,
+                displayName = "Platform Preserve",
+            ),
+        )
+        fun activeMemberCount() =
+            membershipRepository
+                .countActiveMembersByTroupeIds(listOf(troupeId))
+                .firstOrNull()
+                ?.memberCount ?: 0L
+        val countBefore = activeMemberCount()
+
+        mockMvc
+            .perform(
+                patch("/v1/admin/troupes/$troupeId")
+                    .cookie(platformCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"joinPolicy":"INVITE_ONLY"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        assertEquals(countBefore, activeMemberCount())
+    }
+
+    @Test
+    fun `platform admin can manage members without troupe admin role`() {
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-platform-members-admin",
                 email = platformAdminEmail,
                 name = "Platform Admin",
             )

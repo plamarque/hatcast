@@ -27,6 +27,8 @@ class SeasonParticipantServiceTest {
     private val userRepository = mock<UserRepository>()
     private val participantAccess = mock<ParticipantAccessService>()
     private val participantLink = ParticipantLinkService(userRepository, seasonParticipantRepository, mock())
+    private val membershipSync =
+        SeasonParticipantMembershipSync(seasonParticipantRepository, seasonRepository, participantLink)
 
     private val service =
         SeasonParticipantService(
@@ -36,6 +38,7 @@ class SeasonParticipantServiceTest {
             userRepository,
             participantAccess,
             participantLink,
+            membershipSync,
         )
 
     @Test
@@ -88,5 +91,37 @@ class SeasonParticipantServiceTest {
         MembershipSyncScope.clear()
         service.ensureMembershipParticipants(season)
         verify(troupeMembershipRepository, times(1)).findByTroupe_IdAndStatusIn(any(), any())
+    }
+
+    @Test
+    fun `ensureSeasonParticipantForMembership is idempotent`() {
+        val troupe = TroupeEntity(id = UUID.randomUUID(), name = "Troupe", slug = "troupe")
+        val season = SeasonEntity(id = UUID.randomUUID(), troupe = troupe, slug = "saison", title = "Saison")
+        val user = UserEntity(id = UUID.randomUUID(), email = "member@example.com", displayName = "Member")
+        val membership =
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                displayName = "Member",
+            )
+        val existing =
+            SeasonParticipantEntity(
+                season = season,
+                displayName = "Member",
+                normalizedEmail = "member@example.com",
+                user = user,
+                troupeMembership = membership,
+                status = ParticipantStatus.ACTIVE,
+            )
+
+        whenever(
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(season.id, membership.id),
+        ).thenReturn(existing)
+
+        service.ensureSeasonParticipantForMembership(season, membership)
+        service.ensureSeasonParticipantForMembership(season, membership)
+
+        verify(seasonParticipantRepository, never()).save(any())
     }
 }

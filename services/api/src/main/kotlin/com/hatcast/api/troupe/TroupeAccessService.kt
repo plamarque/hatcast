@@ -20,8 +20,16 @@ class TroupeAccessService(
 ) {
     private val seedTroupeId: UUID = UUID.fromString(seedTroupeIdRaw.trim())
 
+    /**
+     * @deprecated Remplacé par `join_policy = OPEN` et `is_demo` (story 18.5 : suppression de la config seed).
+     */
+    @Deprecated("Use join_policy OPEN and is_demo; removal in story 18.5")
     fun seedTroupeId(): UUID = seedTroupeId
 
+    /**
+     * @deprecated Remplacé par `join_policy = OPEN` et `is_demo` (story 18.5 : suppression de la config seed).
+     */
+    @Deprecated("Use join_policy OPEN and is_demo; removal in story 18.5")
     fun isSeedTroupe(troupeId: UUID): Boolean = troupeId == seedTroupeId
 
     /** Lecture : saisons, événements, contexte troupe pour un membre actif. */

@@ -9,6 +9,7 @@ import com.hatcast.api.troupe.TroupeJoinPolicy
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 import org.openapitools.jackson.nullable.JsonNullable
 import java.time.Instant
@@ -110,6 +111,31 @@ data class PagedTroupeMembersResponse(
     val size: Int,
     val totalElements: Long,
     val totalPages: Int,
+)
+
+data class TroupeAdminSummaryDto(
+    val id: UUID,
+    val name: String,
+    val slug: String,
+    val joinPolicy: TroupeJoinPolicy,
+    val isDemo: Boolean,
+) {
+    companion object {
+        fun from(troupe: TroupeEntity): TroupeAdminSummaryDto =
+            TroupeAdminSummaryDto(
+                id = troupe.id,
+                name = troupe.name,
+                slug = troupe.slug,
+                joinPolicy = troupe.joinPolicy,
+                isDemo = troupe.isDemo,
+            )
+    }
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class UpdateTroupeJoinPolicyRequest(
+    @field:NotNull(message = "La politique d'adhésion est requise.")
+    val joinPolicy: TroupeJoinPolicy,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
