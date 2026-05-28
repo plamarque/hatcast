@@ -254,21 +254,4 @@
   background: color-mix(in srgb, var(--mat-sys-tertiary) 28%, transparent);
 }
 
-.agenda-card__badge--dispo {
-  opacity: 0.9;
-
-  &--available {
-    background: color-mix(in srgb, var(--mat-sys-primary) 22%, transparent);
-    color: var(--mat-sys-primary);
-  }
-
-  &--unavailable {
-    background: color-mix(in srgb, var(--mat-sys-error) 22%, transparent);
-    color: var(--mat-sys-error);
-  }
-
-  &--unknown {
-    background: color-mix(in srgb, var(--mat-sys-outline) 18%, transparent);
-    opacity: 0.85;
-  }
-}
+// Disponibilité : styles globaux `.agenda-card__badge--dispo` (styles/_hatcast-agenda-dispo-badge.scss)

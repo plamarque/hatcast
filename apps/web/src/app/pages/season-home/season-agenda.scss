@@ -151,42 +151,7 @@
   white-space: nowrap;
 }
 
-.agenda-card__badge--dispo {
-  border: none;
-  cursor: pointer;
-  font: inherit;
-  color: light-dark(#374151, inherit);
-  background: light-dark(rgba(107, 114, 128, 0.12), rgba(255, 255, 255, 0.08));
-  opacity: 0.85;
-
-  &--available {
-    background: light-dark(rgba(22, 163, 74, 0.14), rgba(22, 163, 74, 0.35));
-    color: light-dark(#166534, #bbf7d0);
-  }
-
-  &--unavailable {
-    background: light-dark(rgba(220, 38, 38, 0.14), rgba(220, 38, 38, 0.35));
-    color: light-dark(#991b1b, #fecaca);
-  }
-
-  &--unknown {
-    background: light-dark(rgba(107, 114, 128, 0.12), rgba(107, 114, 128, 0.25));
-    color: light-dark(#374151, inherit);
-    opacity: 0.85;
-  }
-
-  &--in-team {
-    background: light-dark(rgba(126, 34, 206, 0.14), rgba(168, 85, 247, 0.35));
-    color: light-dark(#6b21a8, #e9d5ff);
-    opacity: 1;
-  }
-
-  &:hover,
-  &:focus-visible {
-    outline: 2px solid light-dark(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.25));
-    outline-offset: 1px;
-  }
-}
+// Disponibilité : styles globaux `.agenda-card__badge--dispo` (styles/_hatcast-agenda-dispo-badge.scss)
 
 .agenda-card__menu {
   flex-shrink: 0;

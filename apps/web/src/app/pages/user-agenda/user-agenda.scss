@@ -252,24 +252,4 @@
   background: color-mix(in srgb, var(--mat-sys-tertiary) 28%, transparent);
 }
 
-.agenda-card__badge--dispo {
-  color: light-dark(#374151, inherit);
-  background: light-dark(rgba(107, 114, 128, 0.12), rgba(255, 255, 255, 0.08));
-  opacity: 0.9;
-
-  &--available {
-    background: light-dark(rgba(22, 163, 74, 0.14), rgba(22, 163, 74, 0.35));
-    color: light-dark(#166534, #bbf7d0);
-  }
-
-  &--unavailable {
-    background: light-dark(rgba(220, 38, 38, 0.14), rgba(220, 38, 38, 0.35));
-    color: light-dark(#991b1b, #fecaca);
-  }
-
-  &--unknown {
-    background: light-dark(rgba(107, 114, 128, 0.12), rgba(107, 114, 128, 0.25));
-    color: light-dark(#374151, inherit);
-    opacity: 0.85;
-  }
-}
+// Disponibilité : styles globaux `.agenda-card__badge--dispo` (styles/_hatcast-agenda-dispo-badge.scss)

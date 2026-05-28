@@ -98,7 +98,21 @@ Utiliser cette liste **à la fin** de chaque changement sous `apps/web/` (dével
 
 - Raccourcis membre : [`apps/web/src/app/shared/member-cross-nav/`](../../../apps/web/src/app/shared/member-cross-nav/) — `mat-stroked-button`, `routerLink`, `aria-label`, ellipsis mobile.
 - Thème M3 global : [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss).
-- Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*`).
+- **Charte sémantique disponibilité** : [`apps/web/src/styles/_hatcast-semantic-colors.scss`](../../../apps/web/src/styles/_hatcast-semantic-colors.scss) (vert = dispo, rouge = pas dispo, gris = non renseigné ; badges agenda dans [`_hatcast-agenda-dispo-badge.scss`](../../../apps/web/src/styles/_hatcast-agenda-dispo-badge.scss)).
+- Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*` ou `--hatcast-availability-*`).
+
+### Couleurs sémantiques — disponibilité
+
+Aligné sur [`ux-design-hatcast-v2.md`](../../../_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) (modal dispo) :
+
+| État | Signification | Tokens à utiliser |
+|------|---------------|-------------------|
+| Disponible | Vert (positif) | `--hatcast-sys-positive*`, `--hatcast-availability-available-*`, `--hatcast-availability-badge-*-available` |
+| Pas dispo | Rouge (refus) | `--mat-sys-error`, `--hatcast-availability-unavailable-*`, badge `*-unavailable` |
+| Non renseigné | Gris neutre | `--hatcast-availability-unknown-*`, badge `*-unknown` |
+| Dans l’équipe (historique) | Violet (primary) | `--hatcast-availability-badge-*-in-team` |
+
+**Règles :** définir / modifier les teintes uniquement dans `_hatcast-semantic-colors.scss` ; les composants consomment les variables CSS. Modificateurs de classe BEM : `availabilityBadgeModifier()` → `--available` \| `--unavailable` \| `--unknown` (voir `availability-status.ts`).
 
 ### Stories et agents
 

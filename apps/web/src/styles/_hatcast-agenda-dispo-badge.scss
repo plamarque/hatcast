@@ -1,0 +1,37 @@
+// Shared agenda / inbox dispo pill — use modifier classes from availability-status.ts
+// (--available | --unavailable | --unknown | --in-team).
+
+.agenda-card__badge--dispo {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  opacity: 0.9;
+
+  &--available {
+    background: var(--hatcast-availability-badge-bg-available);
+    color: var(--hatcast-availability-badge-fg-available);
+  }
+
+  &--unavailable {
+    background: var(--hatcast-availability-badge-bg-unavailable);
+    color: var(--hatcast-availability-badge-fg-unavailable);
+  }
+
+  &--unknown {
+    background: var(--hatcast-availability-badge-bg-unknown);
+    color: var(--hatcast-availability-badge-fg-unknown);
+    opacity: 0.85;
+  }
+
+  &--in-team {
+    background: var(--hatcast-availability-badge-bg-in-team);
+    color: var(--hatcast-availability-badge-fg-in-team);
+    opacity: 1;
+  }
+
+  &:hover,
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--mat-sys-on-surface) 22%, transparent);
+    outline-offset: 1px;
+  }
+}
