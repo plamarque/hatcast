@@ -6,18 +6,17 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { Router } from '@angular/router'
-import { sendPasswordResetEmail } from 'firebase/auth'
+import { Router, RouterLink } from '@angular/router'
 
-import { userMessageForPasswordResetRequestFailure } from '../../core/auth/auth-user-message'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
-import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024
 
 const COMING_SOON_TOOLTIP = 'Fonctionnalité à venir (prochaine livraison).'
+const PASSWORD_COMING_SOON_TOOLTIP =
+  'Fonctionnalité à venir. Pour un mot de passe oublié, utilise le parcours de réinitialisation depuis la connexion.'
 
 /** Mon compte — identité et sécurité globale (story 17.24). */
 @Component({
@@ -30,6 +29,7 @@ const COMING_SOON_TOOLTIP = 'Fonctionnalité à venir (prochaine livraison).'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
+    RouterLink,
     UserAvatarComponent,
   ],
   templateUrl: './account-placeholder.html',
@@ -37,25 +37,16 @@ const COMING_SOON_TOOLTIP = 'Fonctionnalité à venir (prochaine livraison).'
 })
 export class AccountPlaceholder implements OnInit {
   private readonly auth = inject(AuthApiService)
-  private readonly firebaseAuth = inject(FirebaseAuthService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
 
   protected readonly loading = signal(true)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly avatarSaving = signal(false)
-  protected readonly passwordResetSending = signal(false)
 
   protected readonly emailComingSoonTooltip = COMING_SOON_TOOLTIP
-  protected readonly notificationsComingSoonTooltip = COMING_SOON_TOOLTIP
-
-  /** Aligné sur les préférences V1 (`PreferencesModal`) — backend Epic 8. */
-  protected readonly notificationPlaceholders = [
-    { id: 'availability-email', label: 'E-mails pour les appels à disponibilité' },
-    { id: 'selection-email', label: 'E-mails pour les compositions' },
-    { id: 'reminders-email', label: 'Rappels avant les spectacles' },
-    { id: 'push', label: 'Notifications push sur cet appareil' },
-  ] as const
+  protected readonly passwordComingSoonTooltip = PASSWORD_COMING_SOON_TOOLTIP
+  protected readonly deleteComingSoonTooltip = COMING_SOON_TOOLTIP
 
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
@@ -130,42 +121,6 @@ export class AccountPlaceholder implements OnInit {
       this.snack.open('Photo supprimée', 'OK', { duration: 3000 })
     } finally {
       this.avatarSaving.set(false)
-    }
-  }
-
-  protected async requestPasswordReset(): Promise<void> {
-    const email = this.user()?.email?.trim()
-    if (!email) {
-      this.snack.open('Aucune adresse e-mail associée à ce compte.', 'OK', { duration: 5000 })
-      return
-    }
-
-    const auth = this.firebaseAuth.getAuthOrNull()
-    if (!auth) {
-      this.snack.open(
-        'Configuration Identity Platform absente (firebase dans environment).',
-        'OK',
-        { duration: 10_000 },
-      )
-      return
-    }
-
-    this.passwordResetSending.set(true)
-    try {
-      const continueUrl = `${globalThis.location.origin}/reinitialiser-mot-de-passe`
-      await sendPasswordResetEmail(auth, email, {
-        url: continueUrl,
-        handleCodeInApp: false,
-      })
-      this.snack.open(
-        `Un e-mail de réinitialisation a été envoyé à ${email}.`,
-        'OK',
-        { duration: 8000 },
-      )
-    } catch {
-      this.snack.open(userMessageForPasswordResetRequestFailure(), 'OK', { duration: 8000 })
-    } finally {
-      this.passwordResetSending.set(false)
     }
   }
 

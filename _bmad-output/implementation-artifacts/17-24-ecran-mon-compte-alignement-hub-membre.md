@@ -1,6 +1,6 @@
 # Story 17.24 : Écran Mon compte — alignement hub membre
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed — bmad-create-story 2026-05-28 ; UX spec approved ; prépare stories 1.6 / 1.7 -->
 
@@ -68,6 +68,14 @@ afin de **gérer ma photo et mes identifiants sans dupliquer les préférences t
 
 - [x] **Trace docs** (AC: 11)
   - [x] Lier story depuis [`ux-design-mon-compte.md`](../planning-artifacts/ux-design-mon-compte.md) (`relatedStories`).
+
+### Review Findings
+
+- [x] [Review][Patch] Sous-titre `/compte` non conforme à l’AC1 [`apps/web/src/app/pages/account-placeholder/account-placeholder.html`:5]
+- [x] [Review][Patch] Ligne `Préférences par troupe` vers `/troupes` absente et testée comme absente, en contradiction avec AC4/AC11 [`apps/web/src/app/pages/account-placeholder/account-placeholder.html`:94]
+- [x] [Review][Patch] Mot de passe livré comme réinitialisation Firebase réelle au lieu d’un placeholder non fonctionnel AC5 [`apps/web/src/app/pages/account-placeholder/account-placeholder.ts`:136]
+- [x] [Review][Patch] Section `Notifications` ajoutée hors périmètre alors que la story centre `/compte` sur identité/sécurité et le lien troupe [`apps/web/src/app/pages/account-placeholder/account-placeholder.html`:128]
+- [x] [Review][Patch] Tooltips `Bientôt` portés par des boutons natifs `disabled`, donc difficilement accessibles au hover/focus/touch [`apps/web/src/app/pages/account-placeholder/account-placeholder.html`:97]
 
 ## Dev Notes
 

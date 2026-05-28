@@ -2,7 +2,7 @@
   <header class="account-page__header">
     <div class="account-page__titles">
       <h1 class="account-page__title">Mon compte</h1>
-      <p class="account-page__subtitle">Identité, sécurité et préférences de ton compte HatCast.</p>
+      <p class="account-page__subtitle">Identité et sécurité de ton compte HatCast.</p>
     </div>
   </header>
 
@@ -91,58 +91,50 @@
       </div>
     </section>
 
-    <section class="account-page__section" aria-labelledby="account-security-heading">
-      <h2 id="account-security-heading" class="account-page__section-title">Sécurité</h2>
+    <section class="account-page__section" aria-labelledby="account-troupe-preferences-heading">
+      <h2 id="account-troupe-preferences-heading" class="account-page__section-title">Préférences troupe</h2>
       <mat-nav-list class="account-page__list">
-        <button
-          type="button"
-          mat-list-item
-          class="account-page__list-item--disabled"
-          disabled
-          data-testid="account-change-email"
-          [matTooltip]="emailComingSoonTooltip"
-        >
-          <span matListItemTitle>Changer l’adresse e-mail</span>
-          <span matListItemMeta class="account-page__soon">Bientôt</span>
-        </button>
-        @if (!u.hasGoogleAccount) {
-          <button
-            type="button"
-            mat-list-item
-            data-testid="account-reset-password"
-            [disabled]="passwordResetSending() || !u.email"
-            (click)="requestPasswordReset()"
-          >
-            <span matListItemTitle>Réinitialiser le mot de passe</span>
-            <span matListItemLine>Un lien sera envoyé à ton adresse e-mail.</span>
-          </button>
-        } @else {
-          <div mat-list-item class="account-page__list-item--hint" data-testid="account-google-password-hint">
-            <span matListItemTitle>Connexion via Google</span>
-            <span matListItemLine>Pas de mot de passe HatCast sur ce compte.</span>
-          </div>
-        }
+        <a mat-list-item routerLink="/troupes" data-testid="account-troupe-preferences">
+          <mat-icon matListItemIcon aria-hidden="true">groups</mat-icon>
+          <span matListItemTitle>Préférences par troupe</span>
+          <span matListItemLine>Pseudo et rôles par défaut, troupe par troupe.</span>
+        </a>
       </mat-nav-list>
     </section>
 
-    <section class="account-page__section" aria-labelledby="account-notifications-heading">
-      <h2 id="account-notifications-heading" class="account-page__section-title">Notifications</h2>
-      <p class="account-page__section-hint">
-        Comme sur l’app actuelle : e-mails et rappels pour les spectacles et les compositions.
-      </p>
+    <section class="account-page__section" aria-labelledby="account-security-heading">
+      <h2 id="account-security-heading" class="account-page__section-title">Sécurité</h2>
       <mat-nav-list class="account-page__list">
-        @for (pref of notificationPlaceholders; track pref.id) {
+        <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="emailComingSoonTooltip">
           <button
             type="button"
             mat-list-item
             class="account-page__list-item--disabled"
             disabled
-            [attr.data-testid]="'account-notif-' + pref.id"
-            [matTooltip]="notificationsComingSoonTooltip"
+            data-testid="account-change-email"
           >
-            <span matListItemTitle>{{ pref.label }}</span>
+            <span matListItemTitle>Changer l’adresse e-mail</span>
             <span matListItemMeta class="account-page__soon">Bientôt</span>
           </button>
+        </span>
+        @if (!u.hasGoogleAccount) {
+          <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="passwordComingSoonTooltip">
+            <button
+              type="button"
+              mat-list-item
+              class="account-page__list-item--disabled"
+              data-testid="account-reset-password"
+              disabled
+            >
+              <span matListItemTitle>Changer le mot de passe</span>
+              <span matListItemMeta class="account-page__soon">Bientôt</span>
+            </button>
+          </span>
+        } @else {
+          <div mat-list-item class="account-page__list-item--hint" data-testid="account-google-password-hint">
+            <span matListItemTitle>Connexion via Google</span>
+            <span matListItemLine>Pas de mot de passe HatCast sur ce compte.</span>
+          </div>
         }
       </mat-nav-list>
     </section>
@@ -153,17 +145,18 @@
     >
       <h2 id="account-danger-heading" class="account-page__section-title">Zone sensible</h2>
       <mat-nav-list class="account-page__list">
-        <button
-          type="button"
-          mat-list-item
-          class="account-page__list-item--danger account-page__list-item--disabled"
-          disabled
-          data-testid="account-delete"
-          [matTooltip]="emailComingSoonTooltip"
-        >
-          <span matListItemTitle>Supprimer mon compte</span>
-          <span matListItemMeta class="account-page__soon">Bientôt</span>
-        </button>
+        <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="deleteComingSoonTooltip">
+          <button
+            type="button"
+            mat-list-item
+            class="account-page__list-item--danger account-page__list-item--disabled"
+            disabled
+            data-testid="account-delete"
+          >
+            <span matListItemTitle>Supprimer mon compte</span>
+            <span matListItemMeta class="account-page__soon">Bientôt</span>
+          </button>
+        </span>
       </mat-nav-list>
     </section>
 

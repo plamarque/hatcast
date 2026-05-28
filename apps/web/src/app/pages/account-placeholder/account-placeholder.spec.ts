@@ -2,31 +2,21 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
-import { sendPasswordResetEmail } from 'firebase/auth'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
-import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 import { AccountPlaceholder } from './account-placeholder'
 
-vi.mock('firebase/auth', () => ({
-  sendPasswordResetEmail: vi.fn(),
-}))
-
 describe('AccountPlaceholder', () => {
-  const sendPasswordReset = vi.mocked(sendPasswordResetEmail)
-
   async function setup(options: {
     session?: { ok: boolean; status: number; data?: { user: Record<string, unknown> } }
     hasGoogleAccount?: boolean
     routerUrl?: string
-    firebaseConfigured?: boolean
   } = {}) {
     const snack = { open: vi.fn() }
     const navigate = vi.fn().mockResolvedValue(true)
     const logout = vi.fn().mockResolvedValue({ ok: true, status: 200 })
-    sendPasswordReset.mockReset().mockResolvedValue(undefined)
 
     const user = {
       id: 'u1',
@@ -42,13 +32,6 @@ describe('AccountPlaceholder', () => {
         provideRouter([]),
         { provide: MatSnackBar, useValue: snack },
         { provide: AuthApiService, useValue: {} },
-        {
-          provide: FirebaseAuthService,
-          useValue: {
-            getAuthOrNull: () =>
-              options.firebaseConfigured === false ? null : ({} as never),
-          },
-        },
       ],
     }).compileComponents()
 
@@ -96,7 +79,7 @@ describe('AccountPlaceholder', () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
     expect(text).toContain('Mon compte')
-    expect(text).toContain('Identité, sécurité et préférences')
+    expect(text).toContain('Identité et sécurité de ton compte HatCast.')
   })
 
   it('propose un menu sur l’avatar pour la photo', async () => {
@@ -130,47 +113,45 @@ describe('AccountPlaceholder', () => {
     expect(text).not.toContain('Rôles préférés par troupe')
     expect(text).not.toContain('Retour aux troupes')
     expect(text).not.toContain('prochaine livraison')
-    expect(text).not.toContain('Préférences par troupe')
   })
 
-  it('affiche les préférences notifications en placeholder', async () => {
+  it('affiche un lien vers les préférences par troupe', async () => {
     const { fixture } = await setup()
-    expect(fixture.nativeElement.textContent).toContain('Notifications')
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="account-notif-availability-email"]'),
-    ).toBeTruthy()
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="account-notif-push"]'),
-    ).toBeTruthy()
+    const link = fixture.nativeElement.querySelector(
+      '[data-testid="account-troupe-preferences"]',
+    ) as HTMLAnchorElement
+    expect(link).toBeTruthy()
+    expect(link.getAttribute('href')).toBe('/troupes')
+    expect(link.textContent).toContain('Préférences par troupe')
+    expect(link.textContent).toContain('Pseudo et rôles par défaut')
+    expect(link.querySelector('mat-icon')?.textContent?.trim()).toBe('groups')
   })
 
-  it('envoie un e-mail de réinitialisation du mot de passe', async () => {
-    const { fixture, snack } = await setup()
-    await fixture.componentInstance['requestPasswordReset']()
-    expect(sendPasswordReset).toHaveBeenCalledWith(
-      expect.anything(),
-      'lea@example.com',
-      expect.objectContaining({
-        url: expect.stringContaining('/reinitialiser-mot-de-passe'),
-        handleCodeInApp: false,
-      }),
-    )
-    expect(snack.open).toHaveBeenCalledWith(
-      expect.stringContaining('lea@example.com'),
-      'OK',
-      expect.objectContaining({ duration: 8000 }),
-    )
+  it('garde le changement de mot de passe en placeholder', async () => {
+    const { fixture } = await setup()
+    const button = fixture.nativeElement.querySelector(
+      '[data-testid="account-reset-password"]',
+    ) as HTMLButtonElement
+    expect(button).toBeTruthy()
+    expect(button.textContent).toContain('Changer le mot de passe')
+    expect(button.disabled).toBe(true)
+    expect(button.closest('.account-page__tooltip-row')).toBeTruthy()
   })
 
   it('affiche les placeholders e-mail et suppression', async () => {
     const { fixture } = await setup()
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="account-change-email"]'),
-    ).toBeTruthy()
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="account-reset-password"]'),
-    ).toBeTruthy()
-    expect(fixture.nativeElement.querySelector('[data-testid="account-delete"]')).toBeTruthy()
+    const emailButton = fixture.nativeElement.querySelector(
+      '[data-testid="account-change-email"]',
+    ) as HTMLButtonElement
+    const deleteButton = fixture.nativeElement.querySelector(
+      '[data-testid="account-delete"]',
+    ) as HTMLButtonElement
+    expect(emailButton).toBeTruthy()
+    expect(emailButton.disabled).toBe(true)
+    expect(emailButton.closest('.account-page__tooltip-row')).toBeTruthy()
+    expect(deleteButton).toBeTruthy()
+    expect(deleteButton.disabled).toBe(true)
+    expect(deleteButton.closest('.account-page__tooltip-row')).toBeTruthy()
     expect(fixture.nativeElement.textContent).toContain('Supprimer mon compte')
   })
 
