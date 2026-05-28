@@ -1,4 +1,4 @@
--- Dev/test seed only (classpath:db/seed). Id aligné sur hatcast.troupe.seed-troupe-id.
+-- Dev/test seed only (classpath:db/seed). UUID Les Improbots …000001 (distinct de la troupe Démo …000099 en migration).
 -- Troupe fictive locale : Les Improbots (≠ Démo prod, ≠ La Malice migration V1).
 -- Idempotent : safe when V3_1 is applied out-of-order (base déjà seedée avant le split OPS-1).
 -- Portable H2 + PostgreSQL (pas de ON CONFLICT — H2 test profile).

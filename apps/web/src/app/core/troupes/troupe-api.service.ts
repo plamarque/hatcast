@@ -23,6 +23,8 @@ export interface TroupeListItem {
   id: string
   name: string
   slug: string
+  isDemo: boolean
+  joinPolicy: 'OPEN' | 'INVITE_ONLY'
   membership: MembershipSummary
   activeMemberCount: number
   upcomingEventCount: number

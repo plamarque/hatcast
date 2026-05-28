@@ -23,6 +23,7 @@ import {
   type UserAgendaParticipationFilters,
 } from '../../core/agenda/user-agenda-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import {
   saisonEventPath,
   saisonWorkspacePath,
@@ -57,6 +58,9 @@ export class UserAgenda implements OnInit {
   private readonly router = inject(Router)
   private readonly route = inject(ActivatedRoute)
   private readonly snack = inject(MatSnackBar)
+  private readonly demoJoin = inject(DemoTroupeJoinService)
+
+  protected readonly joiningDemo = this.demoJoin.joining
 
   protected readonly loadingSession = signal(true)
   protected readonly loadingAgenda = signal(false)
@@ -297,5 +301,9 @@ export class UserAgenda implements OnInit {
     })
     rememberCurrentUrlForPostLogin(this.router)
     await this.router.navigate(['/connexion'], { replaceUrl: true })
+  }
+
+  protected async joinDemoTroupe(): Promise<void> {
+    await this.demoJoin.join()
   }
 }

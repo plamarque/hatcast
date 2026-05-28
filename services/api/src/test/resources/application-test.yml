@@ -24,8 +24,6 @@ spring:
 hatcast:
   google:
     oauth-web-client-id: test-google-web-client-id
-  troupe:
-    seed-troupe-id: a0000001-0000-4000-8000-000000000001
   auth:
     remember-me-seconds: 2592000
     no-remember-me-seconds: 1800

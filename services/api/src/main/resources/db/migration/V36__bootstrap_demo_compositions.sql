@@ -6,7 +6,7 @@ SELECT 'c0000001-0000-4000-8000-000000000099', TIMESTAMP '2026-05-11T10:00:00Z',
 WHERE NOT EXISTS (SELECT 1 FROM event_compositions WHERE event_id = 'c0000001-0000-4000-8000-000000000099');
 
 INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)
-SELECT v.id, v.event_id, v.role_key, v.slot_index, v.sp_id, NULL, 'CONFIRMED', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST(v.event_id AS uuid), v.role_key, v.slot_index, CAST(v.sp_id AS uuid), NULL, 'CONFIRMED', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('91000001-0000-4000-8000-000000000099', 'c0000001-0000-4000-8000-000000000099', 'player', 0, 'f0000001-0000-4000-8000-000000000099'),
@@ -15,7 +15,7 @@ FROM (
         ('91000004-0000-4000-8000-000000000099', 'c0000001-0000-4000-8000-000000000099', 'mc', 0, 'f0000004-0000-4000-8000-000000000099'),
         ('91000005-0000-4000-8000-000000000099', 'c0000001-0000-4000-8000-000000000099', 'dj', 0, 'f0000005-0000-4000-8000-000000000099')
 ) AS v(id, event_id, role_key, slot_index, sp_id)
-WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = CAST(v.id AS uuid));
 
 -- Historical complete : c0000002 (match avril)
 INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)
@@ -23,15 +23,21 @@ SELECT 'c0000002-0000-4000-8000-000000000099', TIMESTAMP '2026-04-21T10:00:00Z',
 WHERE NOT EXISTS (SELECT 1 FROM event_compositions WHERE event_id = 'c0000002-0000-4000-8000-000000000099');
 
 INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)
-SELECT v.id, v.event_id, v.role_key, v.slot_index, v.sp_id, NULL, 'CONFIRMED', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST(v.event_id AS uuid), v.role_key, v.slot_index, CAST(v.sp_id AS uuid), NULL, 'CONFIRMED', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('91000006-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'player', 0, 'f0000006-0000-4000-8000-000000000099'),
         ('91000007-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'player', 1, 'f0000007-0000-4000-8000-000000000099'),
+        ('91000053-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'player', 2, 'f0000002-0000-4000-8000-000000000099'),
+        ('91000054-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'player', 3, 'f0000003-0000-4000-8000-000000000099'),
+        ('91000055-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'player', 4, 'f0000004-0000-4000-8000-000000000099'),
+        ('91000056-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'volunteer', 0, 'f0000005-0000-4000-8000-000000000099'),
+        ('91000057-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'volunteer', 1, 'f0000001-0000-4000-8000-000000000099'),
         ('91000008-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'mc', 0, 'f0000008-0000-4000-8000-000000000099'),
-        ('91000009-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'referee', 0, 'f0000001-0000-4000-8000-000000000099')
+        ('91000009-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'referee', 0, 'f0000006-0000-4000-8000-000000000099'),
+        ('91000058-0000-4000-8000-000000000099', 'c0000002-0000-4000-8000-000000000099', 'assistant_referee', 0, 'f0000007-0000-4000-8000-000000000099')
 ) AS v(id, event_id, role_key, slot_index, sp_id)
-WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = CAST(v.id AS uuid));
 
 -- Historical complete : c0000003 (déplacement — 5 players)
 INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)
@@ -39,7 +45,7 @@ SELECT 'c0000003-0000-4000-8000-000000000099', TIMESTAMP '2026-03-16T10:00:00Z',
 WHERE NOT EXISTS (SELECT 1 FROM event_compositions WHERE event_id = 'c0000003-0000-4000-8000-000000000099');
 
 INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)
-SELECT v.id, v.event_id, v.role_key, v.slot_index, v.sp_id, NULL, 'CONFIRMED', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST(v.event_id AS uuid), v.role_key, v.slot_index, CAST(v.sp_id AS uuid), NULL, 'CONFIRMED', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('91000010-0000-4000-8000-000000000099', 'c0000003-0000-4000-8000-000000000099', 'player', 0, 'f0000002-0000-4000-8000-000000000099'),
@@ -48,20 +54,20 @@ FROM (
         ('91000013-0000-4000-8000-000000000099', 'c0000003-0000-4000-8000-000000000099', 'player', 3, 'f0000005-0000-4000-8000-000000000099'),
         ('91000014-0000-4000-8000-000000000099', 'c0000003-0000-4000-8000-000000000099', 'player', 4, 'f0000006-0000-4000-8000-000000000099')
 ) AS v(id, event_id, role_key, slot_index, sp_id)
-WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = CAST(v.id AS uuid));
 
 -- Draft : c0000008, c0000009 (validated_at NULL, slots partiels)
 INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)
-SELECT v.event_id, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.event_id AS uuid), NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('c0000008-0000-4000-8000-000000000099'),
         ('c0000009-0000-4000-8000-000000000099')
 ) AS v(event_id)
-WHERE NOT EXISTS (SELECT 1 FROM event_compositions ec WHERE ec.event_id = v.event_id);
+WHERE NOT EXISTS (SELECT 1 FROM event_compositions ec WHERE ec.event_id = CAST(v.event_id AS uuid));
 
 INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)
-SELECT v.id, v.event_id, v.role_key, v.slot_index, v.sp_id, NULL, 'PENDING', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST(v.event_id AS uuid), v.role_key, v.slot_index, CAST(v.sp_id AS uuid), NULL, 'PENDING', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('91000015-0000-4000-8000-000000000099', 'c0000008-0000-4000-8000-000000000099', 'player', 0, 'f0000001-0000-4000-8000-000000000099'),
@@ -70,20 +76,20 @@ FROM (
         ('91000018-0000-4000-8000-000000000099', 'c0000009-0000-4000-8000-000000000099', 'player', 0, 'f0000004-0000-4000-8000-000000000099'),
         ('91000019-0000-4000-8000-000000000099', 'c0000009-0000-4000-8000-000000000099', 'mc', 0, 'f0000005-0000-4000-8000-000000000099')
 ) AS v(id, event_id, role_key, slot_index, sp_id)
-WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = CAST(v.id AS uuid));
 
 -- Awaiting confirmations : c0000010 (all PENDING), c0000011 (mixed)
 INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)
-SELECT v.event_id, TIMESTAMP '2026-12-01T10:00:00Z', TIMESTAMP '2026-12-01T10:00:00Z', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.event_id AS uuid), TIMESTAMP '2026-12-01T10:00:00Z', TIMESTAMP '2026-12-01T10:00:00Z', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('c0000010-0000-4000-8000-000000000099'),
         ('c0000011-0000-4000-8000-000000000099')
 ) AS v(event_id)
-WHERE NOT EXISTS (SELECT 1 FROM event_compositions ec WHERE ec.event_id = v.event_id);
+WHERE NOT EXISTS (SELECT 1 FROM event_compositions ec WHERE ec.event_id = CAST(v.event_id AS uuid));
 
 INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)
-SELECT v.id, v.event_id, v.role_key, v.slot_index, v.sp_id, NULL, v.status, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST(v.event_id AS uuid), v.role_key, v.slot_index, CAST(v.sp_id AS uuid), NULL, v.status, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('91000020-0000-4000-8000-000000000099', 'c0000010-0000-4000-8000-000000000099', 'player', 0, 'f0000001-0000-4000-8000-000000000099', 'PENDING'),
@@ -103,7 +109,7 @@ FROM (
         ('91000034-0000-4000-8000-000000000099', 'c0000011-0000-4000-8000-000000000099', 'assistant_referee', 0, 'f0000007-0000-4000-8000-000000000099', 'PENDING'),
         ('91000035-0000-4000-8000-000000000099', 'c0000011-0000-4000-8000-000000000099', 'assistant_referee', 1, 'f0000002-0000-4000-8000-000000000099', 'PENDING')
 ) AS v(id, event_id, role_key, slot_index, sp_id, status)
-WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = CAST(v.id AS uuid));
 
 -- Gaps : c0000012 — validated, player slot 2 DECLINED + player slot 4 empty (5 players required)
 INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)
@@ -111,7 +117,7 @@ SELECT 'c0000012-0000-4000-8000-000000000099', TIMESTAMP '2027-02-01T10:00:00Z',
 WHERE NOT EXISTS (SELECT 1 FROM event_compositions WHERE event_id = 'c0000012-0000-4000-8000-000000000099');
 
 INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)
-SELECT v.id, v.event_id, v.role_key, v.slot_index, v.sp_id, NULL, v.status, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST(v.event_id AS uuid), v.role_key, v.slot_index, CAST(v.sp_id AS uuid), NULL, v.status, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('91000036-0000-4000-8000-000000000099', 'c0000012-0000-4000-8000-000000000099', 'player', 0, 'f0000001-0000-4000-8000-000000000099', 'CONFIRMED'),
@@ -121,7 +127,7 @@ FROM (
         ('91000040-0000-4000-8000-000000000099', 'c0000012-0000-4000-8000-000000000099', 'mc', 0, 'f0000005-0000-4000-8000-000000000099', 'CONFIRMED'),
         ('91000041-0000-4000-8000-000000000099', 'c0000012-0000-4000-8000-000000000099', 'dj', 0, 'f0000006-0000-4000-8000-000000000099', 'CONFIRMED')
 ) AS v(id, event_id, role_key, slot_index, sp_id, status)
-WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = CAST(v.id AS uuid));
 
 -- Complete upcoming : c0000013 (match — all required slots CONFIRMED)
 INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)
@@ -129,7 +135,7 @@ SELECT 'c0000013-0000-4000-8000-000000000099', TIMESTAMP '2027-03-01T10:00:00Z',
 WHERE NOT EXISTS (SELECT 1 FROM event_compositions WHERE event_id = 'c0000013-0000-4000-8000-000000000099');
 
 INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)
-SELECT v.id, v.event_id, v.role_key, v.slot_index, v.sp_id, NULL, 'CONFIRMED', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST(v.event_id AS uuid), v.role_key, v.slot_index, CAST(v.sp_id AS uuid), NULL, 'CONFIRMED', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('91000042-0000-4000-8000-000000000099', 'c0000013-0000-4000-8000-000000000099', 'player', 0, 'f0000001-0000-4000-8000-000000000099'),
@@ -144,6 +150,6 @@ FROM (
         ('91000051-0000-4000-8000-000000000099', 'c0000013-0000-4000-8000-000000000099', 'assistant_referee', 0, 'f0000002-0000-4000-8000-000000000099'),
         ('91000052-0000-4000-8000-000000000099', 'c0000013-0000-4000-8000-000000000099', 'assistant_referee', 1, 'f0000003-0000-4000-8000-000000000099')
 ) AS v(id, event_id, role_key, slot_index, sp_id)
-WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots s WHERE s.id = CAST(v.id AS uuid));
 
 -- c0000004–c0000007 : no composition rows (preparing — self-join availability)

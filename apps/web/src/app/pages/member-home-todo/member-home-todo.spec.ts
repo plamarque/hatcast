@@ -151,7 +151,8 @@ describe('MemberHomeTodo', () => {
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('Rien en attente pour l')
-    expect(fixture.nativeElement.textContent).toContain('Tu n')
+    expect(fixture.nativeElement.textContent).toContain('troupe de démonstration')
+    expect(fixture.nativeElement.textContent).toContain('Rejoindre la troupe de démonstration')
     expect(fixture.nativeElement.textContent).toContain('Découvrir les troupes')
   })
 

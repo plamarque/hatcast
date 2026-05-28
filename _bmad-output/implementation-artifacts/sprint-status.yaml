@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-28T23:45:00+02:00
+# last_updated: 2026-05-28T23:47:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-28T23:35:00+02:00"
+last_updated: "2026-05-28T24:45:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -203,7 +203,7 @@ development_status:
   18-0-renommer-seed-dev-les-improbots: done
   18-1-modele-join-policy-is-demo: done
   18-2-self-join-open-api-super-admin-join-policy: done
-  18-3-seed-production-troupe-demo: review
-  18-4-ux-onboarding-rejoindre-demo: backlog
-  18-5-configuration-prod-tests-separation-demo: backlog
+  18-3-seed-production-troupe-demo: done
+  18-4-ux-onboarding-rejoindre-demo: done
+  18-5-configuration-prod-tests-separation-demo: review
   epic-18-retrospective: optional

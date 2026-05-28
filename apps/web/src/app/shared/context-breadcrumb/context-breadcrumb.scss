@@ -87,6 +87,13 @@
   user-select: none;
 }
 
+.context-breadcrumb__troupe-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
 .context-breadcrumb__troupe {
   display: inline-flex;
   align-items: center;
@@ -164,6 +171,26 @@
 
 .context-breadcrumb__logo-img--round {
   border-radius: 50%;
+}
+
+.context-breadcrumb__demo-chip {
+  flex-shrink: 0;
+  min-height: 1.75rem;
+  --mdc-chip-label-text-size: 0.75rem;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.context-breadcrumb__demo-chip--mobile {
+  @media (min-width: 840px) {
+    display: none;
+  }
+}
+
+@media (min-width: 840px) {
+  .context-breadcrumb__segment .context-breadcrumb__demo-chip--mobile {
+    display: none;
+  }
 }
 
 .context-breadcrumb__mobile-row {

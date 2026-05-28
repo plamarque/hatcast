@@ -31,7 +31,7 @@
         @if (isCurrentTroupe(troupe)) {
           <span aria-hidden="true" class="context-switcher__bullet">●</span>
         }
-        <span>{{ troupe.name }}</span>
+        <span>{{ troupe.name }}@if (troupe.isDemo) { (Démo) }</span>
         @if (isCurrentTroupe(troupe)) {
           <span class="context-switcher__current-hint"> (actuel)</span>
         }

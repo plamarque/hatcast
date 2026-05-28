@@ -11,6 +11,7 @@ import { Subscription } from 'rxjs'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { DEMO_TROUPE_SLUG } from '../../core/troupes/demo-troupe.constants'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   saisonWorkspacePath,
@@ -77,6 +78,9 @@ export class TroupeHub implements OnInit, OnDestroy {
   protected readonly seasonsLoadError = signal(false)
   protected readonly troupe = signal<TroupeListItem | null>(null)
   protected readonly notFound = signal(false)
+  protected readonly isDemoTroupe = computed(
+    () => this.slug() === DEMO_TROUPE_SLUG || this.troupe()?.isDemo === true,
+  )
   protected readonly showArchived = signal(false)
   protected readonly allSeasons = signal<SeasonResponse[]>([])
   protected readonly platformAdmin = signal(false)

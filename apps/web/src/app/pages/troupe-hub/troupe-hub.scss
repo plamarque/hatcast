@@ -39,6 +39,15 @@
   user-select: none;
 }
 
+.troupe-hub__demo-hint {
+  margin: 0 0 1.25rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  background: color-mix(in srgb, var(--mat-sys-secondary-container) 72%, transparent);
+  color: var(--mat-sys-on-secondary-container);
+}
+
 .troupe-hub__user-btn {
   flex-shrink: 0;
   display: flex;

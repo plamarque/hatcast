@@ -342,6 +342,8 @@ function troupe(id: string, name: string) {
     id,
     name,
     slug: id,
+    isDemo: false,
+    joinPolicy: 'OPEN' as const,
     activeMemberCount: 1,
     upcomingEventCount: 0,
     membership: {

@@ -1,3 +1,8 @@
+## Deferred from: code review of 18-4-ux-onboarding-rejoindre-demo.md (2026-05-28)
+
+- Fichiers `demo-troupe-*.ts` encore non suivis git (`??`) — à inclure au prochain commit ; pas un défaut runtime.
+- Pages admin (`admin-membres`, `admin-participants`, etc.) : breadcrumb sans `troupeIsDemo` — hors libellé AC3 « surfaces membre saison » ; aligner si badge souhaité côté orga.
+
 ## Deferred from: code review of 18-2-self-join-open-api-super-admin-join-policy.md (2026-05-28)
 
 - `ensureMembershipParticipants` n'utilise pas `ensureSeasonParticipantForMembership` — refactor bulk sync hors scope 18.2, duplication préexistante étendue.
@@ -270,6 +275,12 @@
 
 - Duplicate eligible-participant loading in `CompositionDrawService` and `CompositionService` — refactor when a shared helper is warranted.
 - `prefers-reduced-motion` read once at `EventEquipeTab` init — user toggling OS reduced-motion without reload will not update until navigation.
+
+## Deferred from: code review of 18-5-configuration-prod-tests-separation-demo.md (2026-05-28)
+
+- Vitest ne couvre pas `inject-google-client-id.mjs` — seul `environment.ts` commité est testé ; hardening optionnel prévu par la story.
+- `seasons-list.spec.ts` mock `DemoTroupeJoinService` sans assert `DEMO_TROUPE_ID` — AC4 satisfait via `troupes-list` + `demo-troupe-join.service` (clause `and/or`).
+- UUID `…000099` dupliqué dans env + inject script sans import `DEMO_TROUPE_ID` — hardening optionnel prévu par la story.
 
 ## Deferred from: code review of 6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy.md (2026-05-25)
 

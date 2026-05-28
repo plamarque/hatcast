@@ -58,7 +58,15 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
-**Troupe Démo prod (ADR-0015) :** bootstrap idempotent Flyway `V33`–`V37` (`db/migration`, profil `cloud` inclus). UUID `a0000001-0000-4000-8000-000000000099`. Si la première connexion Google sur Neon vide précède le déploiement, les liens `TROUPE_ADMIN` pour `patrice.lamarque@gmail.com` / `impropick@gmail.com` sont appliqués au prochain migrate (`V37`) ou redéploiement.
+**Trois troupes en local (`./scripts/start-dev.sh`, profil `dev`, Neon branche `local`) :**
+
+| Troupe | UUID (suffixe) | Source | Cible du bouton « Rejoindre la démo » |
+|--------|----------------|--------|--------------------------------------|
+| **Les Improbots** | `…000001` | `db/seed` (V3_1+, dev/CI) | Non |
+| **Démo** | `…000099` | `db/migration` V33+ (tous profils incl. cloud) | Oui (`environment.demoTroupeId` / `DEMO_TROUPE_ID`) |
+| **La Malice** | variable | migration V1 réelle | Non (jamais seed Flyway) |
+
+**Troupe Démo prod (ADR-0015) :** bootstrap idempotent Flyway `V33`–`V37` + repeatable `R__bootstrap_demo_admin_memberships.sql` (`db/migration`, profil `cloud` inclus). UUID `a0000001-0000-4000-8000-000000000099`. Les liens `TROUPE_ADMIN` pour `patrice.lamarque@gmail.com` / `impropick@gmail.com` sont appliqués idempotent à chaque migrate Flyway dès que les comptes `users` existent (première connexion Google sur Neon vide incluse). Smoke manuel après join : `/saison/saison-2026-2027` — checklist opérateur dans [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) § Post-deploy smoke.
 
 **Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) ; workflow Git (promote / release) : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) ; branches / environnements : [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 

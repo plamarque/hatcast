@@ -1,5 +1,6 @@
--- Story 18.3 AC7 : prod super-admin TROUPE_ADMIN on Démo when users exist (no-op otherwise).
--- Repeatable re-apply : R__bootstrap_demo_admin_memberships.sql (runs on every Flyway migrate).
+-- Story 18.3 AC7 (repeatable) : prod super-admin TROUPE_ADMIN on Démo when users exist.
+-- Re-runs on every Flyway migrate (checksum change or pending repeatables) so first Google login
+-- after an empty Neon bootstrap is picked up without a manual SQL runbook.
 
 INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, preferred_role_keys, created_at, updated_at)
 SELECT

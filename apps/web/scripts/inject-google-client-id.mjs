@@ -27,8 +27,8 @@ const content = `import type { FirebaseOptions } from 'firebase/app'
 export const environment = {
   production: true,
   googleOAuthWebClientId: ${JSON.stringify(id)},
-  /** Troupe seed dev « Les Improbots » (alignée Flyway V3_1 / hatcast.troupe.seed-troupe-id). */
-  demoTroupeId: 'a0000001-0000-4000-8000-000000000001',
+  /** Troupe Démo prod (Flyway V33+, ADR-0015). Les Improbots (…000001) = seed dev local uniquement. */
+  demoTroupeId: 'a0000001-0000-4000-8000-000000000099',
   firebase: {
     apiKey: ${JSON.stringify(apiKey)},
     authDomain: ${JSON.stringify(authDomain)},

@@ -1,5 +1,6 @@
 import { Component, computed, inject, input } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
+import { MatChipsModule } from '@angular/material/chips'
 import { MatIconModule } from '@angular/material/icon'
 import { RouterLink } from '@angular/router'
 
@@ -15,7 +16,7 @@ export type ContextBreadcrumbLayout = 'season' | 'event' | 'troupe'
 
 @Component({
   selector: 'app-context-breadcrumb',
-  imports: [ContextSwitcher, MatButtonModule, MatIconModule, RouterLink],
+  imports: [ContextSwitcher, MatButtonModule, MatChipsModule, MatIconModule, RouterLink],
   templateUrl: './context-breadcrumb.html',
   styleUrl: './context-breadcrumb.scss',
 })
@@ -30,6 +31,7 @@ export class ContextBreadcrumb {
   readonly troupeName = input.required<string>()
   readonly troupeSlug = input.required<string>()
   readonly troupeLogoUrl = input<string | null>(null)
+  readonly troupeIsDemo = input(false)
   readonly seasonTitle = input<string>('')
   readonly seasonSlug = input<string>('')
   readonly eventTitle = input<string | null>(null)
@@ -54,6 +56,9 @@ export class ContextBreadcrumb {
 
   protected readonly troupeAriaLabel = computed(() => {
     const parts = [this.troupeName()]
+    if (this.troupeIsDemo()) {
+      parts.push('troupe Démo')
+    }
     if (this.layout() !== 'troupe') {
       parts.push(this.seasonTitle())
     }

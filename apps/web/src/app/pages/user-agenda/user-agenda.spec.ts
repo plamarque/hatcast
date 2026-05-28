@@ -212,8 +212,9 @@ describe('UserAgenda', () => {
     await settle(fixture)
 
     const text = fixture.nativeElement.textContent
-    expect(text).toContain("Tu n'es inscrit·e à aucune ligue pour l'instant.")
-    expect(text).toContain('Découvrir les troupes')
+    expect(text).toContain('troupe de démonstration')
+    expect(text).toContain('Rejoindre la troupe de démonstration')
+    expect(text).toContain('Mes troupes')
   })
 
   it('affiche l’état vide sans spectacles à venir', async () => {

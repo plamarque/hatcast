@@ -15,6 +15,7 @@ export class SeasonHeader {
   readonly troupeId = input.required<string>()
   readonly troupeName = input<string | null>(null)
   readonly troupeSlug = input<string | null>(null)
+  readonly troupeIsDemo = input(false)
 
   protected readonly showBreadcrumb = computed(
     () => !!this.troupeName()?.trim() && !!this.troupeSlug()?.trim(),

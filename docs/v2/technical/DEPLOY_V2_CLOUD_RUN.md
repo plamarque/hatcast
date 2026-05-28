@@ -118,6 +118,9 @@ Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (
 | `HATCAST_DATASOURCE_USERNAME` | Utilisateur Neon |
 | `HATCAST_DATASOURCE_PASSWORD` | Mot de passe Neon |
 | `HATCAST_CORS_ALLOWED_ORIGINS` | Origine **exacte** du service Cloud Run **de cet env** (schéma `https://`, sans chemin), ex. `https://hatcast-v2-dev-xxxxx-ew.a.run.app` |
+| `HATCAST_SUPER_ADMIN_EMAILS` | Emails séparés par des virgules — admin plateforme (menu Membres, join policy, bootstrap Démo). **Prod/staging :** inclure au minimum `patrice.lamarque@gmail.com` ; `impropick@gmail.com` optionnel (ADR-0015). Ne pas committer les valeurs. |
+
+**Ne pas définir** `HATCAST_SEED_TROUPE_ID` (supprimé en story 18.5). L’onboarding « Rejoindre la troupe de démonstration » cible la troupe **Démo** (`a0000001-0000-4000-8000-000000000099`, Flyway) ; **Les Improbots** (`…000001`) est un seed dev uniquement.
 
 Le workflow utilise `google-github-actions/auth` avec `workload_identity_provider` et `service_account` (secrets dépôt).
 
@@ -265,6 +268,19 @@ Le **domaine au début du lien** dans l’e-mail (variable `%LINK%` du modèle, 
 - Référence : [Create custom email action handlers](https://firebase.google.com/docs/auth/custom-email-handler) (Firebase) — le comportement par défaut du gestionnaire `__/auth/action` suffit en général pour HatCast V2.
 
 ## 7. Vérifications post-déploiement
+
+### Post-deploy smoke (Epic 18 / NFR-R1)
+
+Checklist manuelle après déploiement couplé SPA + API (staging ou production) :
+
+1. Ouvrir l’URL du service → se connecter (Google ou email).
+2. Aller sur `/troupes` (ou CTA vide sur `/agenda`).
+3. Cliquer **Rejoindre la troupe de démonstration**.
+4. Vérifier la redirection vers **`/saison/saison-2026-2027`** et le fil d’Ariane / chip **Démo**.
+5. Ouvrir un spectacle **en préparation** (ex. événement seed bootstrap si visible) → renseigner une première disponibilité → enregistrer.
+6. (Optionnel) Avec `HATCAST_SUPER_ADMIN_EMAILS` incluant l’email opérateur, vérifier l’accès aux surfaces admin plateforme.
+
+### Vérifications techniques
 
 - Pas de **403 Forbidden** sur `/` (IAM `run.invoker` pour `allUsers`, §4.1).
 - `https://<service-url>/` charge l’SPA Angular.

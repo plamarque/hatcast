@@ -14,6 +14,7 @@ export class EventDetailHeader {
   readonly troupeId = input.required<string>()
   readonly troupeName = input<string | null>(null)
   readonly troupeSlug = input<string | null>(null)
+  readonly troupeIsDemo = input(false)
   readonly seasonTitle = input<string | null>(null)
   readonly eventTitle = input<string | null>(null)
 

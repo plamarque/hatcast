@@ -1,5 +1,5 @@
 -- Saison seed pour le dev local : évite de recréer une saison à la main après chaque reset DB.
--- Troupe : Les Improbots (même UUID que V3_1 / hatcast.troupe.seed-troupe-id).
+-- Troupe : Les Improbots (même UUID que V3_1, …000001).
 -- Slug aligné sur la règle slugify(titre) → les-improbots-2026-2027
 INSERT INTO seasons (
     id,

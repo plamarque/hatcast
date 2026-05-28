@@ -1,6 +1,6 @@
 # Story 18.3: Seed production — Demo troupe, season, ~20 events, fictitious participants
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -258,8 +258,9 @@ Composer
 
 - Bootstrap prod **Démo** livré en **V33–V37** (`db/migration`, idempotent, profil `cloud`). Troupe `…000099` (`demo`, `OPEN`, `is_demo=true`) + saison active `saison-2026-2027`.
 - **20** événements pédagogiques (3 historiques complets, 4 preparing, 2 draft, 2 awaiting, 1 gaps, 1 complete upcoming, longform/déplacement, 2 archivés) ; 8 personas `@seed.demo.test`.
-- `V37` rattache `patrice.lamarque@gmail.com` / `impropick@gmail.com` en `TROUPE_ADMIN` si comptes présents.
+- `V37` + `R__bootstrap_demo_admin_memberships.sql` rattache `patrice.lamarque@gmail.com` / `impropick@gmail.com` en `TROUPE_ADMIN` si comptes présents (repeatable à chaque migrate).
 - `DemoBootstrapIntegrationTest` + `./gradlew test` verts. Note FR47 dans en-tête V33 + `DEVELOPMENT.md`.
+- Code review : composition historique `c0000002` complétée ; tests AC4–AC6 renforcés.
 
 ### File List
 
@@ -268,6 +269,7 @@ Composer
 - `services/api/src/main/resources/db/migration/V35__bootstrap_demo_roster.sql`
 - `services/api/src/main/resources/db/migration/V36__bootstrap_demo_compositions.sql`
 - `services/api/src/main/resources/db/migration/V37__bootstrap_demo_admin_memberships.sql`
+- `services/api/src/main/resources/db/migration/R__bootstrap_demo_admin_memberships.sql`
 - `services/api/src/test/kotlin/com/hatcast/api/troupe/DemoBootstrapIntegrationTest.kt`
 - `DEVELOPMENT.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
@@ -276,6 +278,13 @@ Composer
 
 - 2026-05-28 : Story **18.3** created via `bmad-create-story` — prod Démo bootstrap via idempotent `db/migration` (FR64, ADR-0015).
 - 2026-05-28 : Story **18.3** implemented — Flyway V33–V37, integration test, docs.
+- 2026-05-28 : Code review fixes — `c0000002` slots, `R__` admin memberships, tests AC4–AC6.
+
+### Review Findings
+
+- [x] [Review][Patch] Composition historique `c0000002` incomplète — slots match complétés dans `V36`.
+- [x] [Review][Decision] AC7 re-run post-signup — migration repeatable `R__bootstrap_demo_admin_memberships.sql` + doc `DEVELOPMENT.md`.
+- [x] [Review][Patch] Couverture test insuffisante — lifecycles historiques, templates, dispos dans `DemoBootstrapIntegrationTest`.
 
 ---
 

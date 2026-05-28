@@ -1,5 +1,6 @@
 package com.hatcast.api.troupe
 
+import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.composition.CompositionLifecycle
 import com.hatcast.api.composition.CompositionLifecycleService
 import com.hatcast.api.composition.CompositionSlotSnapshot
@@ -38,6 +39,9 @@ class DemoBootstrapIntegrationTest {
 
     @Autowired
     private lateinit var slotRepository: EventCompositionSlotRepository
+
+    @Autowired
+    private lateinit var availabilityRepository: EventAvailabilityRepository
 
     @Autowired
     private lateinit var lifecycleService: CompositionLifecycleService
@@ -81,18 +85,34 @@ class DemoBootstrapIntegrationTest {
         assertEquals(true, season.isActive)
         assertEquals(false, season.archived)
 
+        val allEvents = eventRepository.findAll().filter { it.season.id == demoSeasonId }
+        assertEquals(20, allEvents.size)
+
         val activeEvents = eventRepository.findNonArchivedBySeasonId(demoSeasonId)
-        assertTrue(activeEvents.size in 18..22)
+        assertEquals(18, activeEvents.size)
+
+        val templateTypes = allEvents.map { it.templateType }.toSet()
+        assertTrue("cabaret" in templateTypes)
+        assertTrue("match" in templateTypes)
+        assertTrue("longform" in templateTypes)
+        assertTrue("deplacement" in templateTypes)
 
         val participantCount =
             seasonParticipantRepository.countBySeason_IdAndStatus(demoSeasonId, ParticipantStatus.ACTIVE)
         assertTrue(participantCount >= 8)
 
-        assertEquals(CompositionLifecycle.PREPARING, lifecycleFor(UUID.fromString("c0000004-0000-4000-8000-000000000099")))
+        val preparingEventId = UUID.fromString("c0000004-0000-4000-8000-000000000099")
+        assertTrue(availabilityRepository.findByEvent_Id(preparingEventId).isNotEmpty())
+
+        assertEquals(CompositionLifecycle.PREPARING, lifecycleFor(preparingEventId))
         assertEquals(CompositionLifecycle.DRAFT_COMPOSITION, lifecycleFor(UUID.fromString("c0000008-0000-4000-8000-000000000099")))
+        assertEquals(CompositionLifecycle.DRAFT_COMPOSITION, lifecycleFor(UUID.fromString("c0000009-0000-4000-8000-000000000099")))
         assertEquals(CompositionLifecycle.COMPLETE, lifecycleFor(UUID.fromString("c0000001-0000-4000-8000-000000000099")))
+        assertEquals(CompositionLifecycle.COMPLETE, lifecycleFor(UUID.fromString("c0000002-0000-4000-8000-000000000099")))
+        assertEquals(CompositionLifecycle.COMPLETE, lifecycleFor(UUID.fromString("c0000003-0000-4000-8000-000000000099")))
         assertEquals(CompositionLifecycle.COMPLETE, lifecycleFor(UUID.fromString("c0000013-0000-4000-8000-000000000099")))
         assertEquals(CompositionLifecycle.AWAITING_CONFIRMATIONS, lifecycleFor(UUID.fromString("c0000010-0000-4000-8000-000000000099")))
+        assertEquals(CompositionLifecycle.AWAITING_CONFIRMATIONS, lifecycleFor(UUID.fromString("c0000011-0000-4000-8000-000000000099")))
         assertEquals(CompositionLifecycle.GAPS_TO_FILL, lifecycleFor(UUID.fromString("c0000012-0000-4000-8000-000000000099")))
 
         val improbots = troupeRepository.findById(improbotsTroupeId).orElseThrow()

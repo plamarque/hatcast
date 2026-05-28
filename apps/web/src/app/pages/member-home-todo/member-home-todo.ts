@@ -27,6 +27,7 @@ import {
   type AgendaCardEnrichedItem,
 } from '../../core/member-home/member-home-todo.utils'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { MemberSeasonShortcut } from '../../shared/member-cross-nav/member-season-shortcut'
 
@@ -51,6 +52,9 @@ export class MemberHomeTodo implements OnInit {
   private readonly inboxBadge = inject(MemberInboxBadgeService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
+  private readonly demoJoin = inject(DemoTroupeJoinService)
+
+  protected readonly joiningDemo = this.demoJoin.joining
 
   protected readonly loadingSession = signal(true)
   protected readonly loadingInbox = signal(false)
@@ -185,5 +189,9 @@ export class MemberHomeTodo implements OnInit {
     })
     rememberCurrentUrlForPostLogin(this.router)
     await this.router.navigate(['/connexion'], { replaceUrl: true })
+  }
+
+  protected async joinDemoTroupe(): Promise<void> {
+    await this.demoJoin.join()
   }
 }

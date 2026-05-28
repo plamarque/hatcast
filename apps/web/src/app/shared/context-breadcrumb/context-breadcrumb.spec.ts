@@ -189,4 +189,16 @@ describe('ContextBreadcrumb', () => {
     expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
   })
 
+  it('affiche le chip Démo et l’aria-label troupe Démo quand troupeIsDemo', async () => {
+    const fixture = await setup('season')
+    fixture.componentRef.setInput('troupeIsDemo', true)
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+
+    expect(el.querySelector('.context-breadcrumb__demo-chip')?.textContent).toContain('Démo')
+    const troupeLink = el.querySelector('a.context-breadcrumb__troupe') as HTMLAnchorElement
+    expect(troupeLink.getAttribute('aria-label')).toContain('troupe Démo')
+    expect(el.querySelector('.context-breadcrumb__demo-chip--mobile')).toBeTruthy()
+  })
+
 })

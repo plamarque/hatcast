@@ -312,6 +312,35 @@ class TroupeMembershipIntegrationTest {
     }
 
     @Test
+    fun `self-join on flyway demo troupe enrolls saison 2026-2027 participant`() {
+        val demoId = UUID.fromString("a0000001-0000-4000-8000-000000000099")
+        val demoSeasonId = UUID.fromString("b0000001-0000-4000-8000-000000000099")
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-bootstrap-demo-join",
+            )
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$demoId/memberships/me")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val user = userRepository.findByGoogleSub("sub-bootstrap-demo-join")!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(demoId, user.id)!!
+        val participants =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(
+                demoSeasonId,
+                listOf(membership.id),
+            )
+        assertEquals(1, participants.size)
+        assertEquals(ParticipantStatus.ACTIVE, participants.single().status)
+    }
+
+    @Test
     fun `join seed troupe requires csrf`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-7")
 

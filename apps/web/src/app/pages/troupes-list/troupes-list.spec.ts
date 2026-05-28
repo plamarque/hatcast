@@ -6,15 +6,24 @@ import { provideRouter, Router } from '@angular/router'
 import { of } from 'rxjs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { environment } from '../../../environments/environment'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
+import {
+  DEMO_ACTIVE_SEASON_SLUG,
+  DEMO_TROUPE_ID,
+} from '../../core/troupes/demo-troupe.constants'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { TroupesList } from './troupes-list'
 
 const mockTroupe: TroupeListItem = {
   id: 't-1',
   name: 'Les Improbots',
   slug: 'les-improbots',
+  isDemo: false,
+  joinPolicy: 'OPEN',
   activeMemberCount: 3,
   upcomingEventCount: 2,
   membership: {
@@ -48,6 +57,7 @@ describe('TroupesList', () => {
   }
   let dialog: { open: ReturnType<typeof vi.fn> }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> }
+  let demoJoin: { join: ReturnType<typeof vi.fn>; joining: ReturnType<typeof vi.fn> }
 
   afterEach(() => {
     vi.restoreAllMocks()
@@ -69,6 +79,10 @@ describe('TroupesList', () => {
       }),
       logout: vi.fn().mockResolvedValue(undefined),
     }
+    demoJoin = {
+      join: vi.fn().mockResolvedValue({ ok: true }),
+      joining: vi.fn(() => false),
+    }
 
     await TestBed.configureTestingModule({
       imports: [TroupesList, NoopAnimationsModule],
@@ -77,6 +91,7 @@ describe('TroupesList', () => {
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
         { provide: AuthApiService, useValue: auth },
         { provide: TroupeApiService, useValue: troupeApi },
+        { provide: DemoTroupeJoinService, useValue: demoJoin },
         { provide: MatDialog, useValue: dialog },
         {
           provide: TroupeContextService,
@@ -150,6 +165,67 @@ describe('TroupesList', () => {
 
     expect(dialog.open).toHaveBeenCalled()
     expect(navigate).toHaveBeenCalledWith(['/', 'troupes', 'ma-troupe'])
+  })
+
+  it('délègue le join Démo au service partagé', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
+    await settle(fixture)
+
+    await fixture.componentInstance['joinDemoTroupe']()
+
+    expect(demoJoin.join).toHaveBeenCalled()
+  })
+})
+
+describe('TroupesList — join Démo UUID', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    localStorage.clear()
+  })
+
+  it('appelle joinTroupe avec DEMO_TROUPE_ID …000099', async () => {
+    localStorage.clear()
+    environment.demoTroupeId = DEMO_TROUPE_ID
+    const troupeContext = { reloadAndSelect: vi.fn().mockResolvedValue(true) }
+    const resolver = {
+      resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'resolved', troupe: {}, season: {} }),
+    }
+    const api = {
+      listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      joinTroupe: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+      createTroupe: vi.fn(),
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [TroupesList, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        DemoTroupeJoinService,
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' } },
+            }),
+          },
+        },
+        { provide: TroupeApiService, useValue: api },
+        { provide: TroupeContextService, useValue: troupeContext },
+        { provide: TroupeSeasonResolverService, useValue: resolver },
+      ],
+    }).compileComponents()
+
+    const router = TestBed.inject(Router)
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+    const integrationFixture = TestBed.createComponent(TroupesList)
+    await integrationFixture.componentInstance['joinDemoTroupe']()
+
+    expect(api.joinTroupe).toHaveBeenCalledWith(DEMO_TROUPE_ID)
+    expect(troupeContext.reloadAndSelect).toHaveBeenCalledWith(DEMO_TROUPE_ID)
+    expect(navigate).toHaveBeenCalledWith(['/saison', DEMO_ACTIVE_SEASON_SLUG])
   })
 })
 

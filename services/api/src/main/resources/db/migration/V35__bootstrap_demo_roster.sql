@@ -1,7 +1,7 @@
 -- Story 18.3 : fictitious roster (≥ 8 personas, @seed.demo.test) + partial availability.
 
 INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT v.id, v.google_sub, NULL, v.email, v.display_name, v.slug, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), v.google_sub, NULL, v.email, v.display_name, v.slug, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('d0000001-0000-4000-8000-000000000099', 'seed-demo-01', 'alex@seed.demo.test', 'Alex', 'demo-alex'),
@@ -13,10 +13,10 @@ FROM (
         ('d0000007-0000-4000-8000-000000000099', 'seed-demo-07', 'sam@seed.demo.test', 'Sam', 'demo-sam'),
         ('d0000008-0000-4000-8000-000000000099', 'seed-demo-08', 'zoe@seed.demo.test', 'Zoé', 'demo-zoe')
 ) AS v(id, google_sub, email, display_name, slug)
-WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST(v.id AS uuid));
 
 INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, preferred_role_keys, created_at, updated_at)
-SELECT v.id, 'a0000001-0000-4000-8000-000000000099', v.user_id, 'ACTIVE', 'MEMBER', v.display_name, '[]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST('a0000001-0000-4000-8000-000000000099' AS uuid), CAST(v.user_id AS uuid), 'ACTIVE', 'MEMBER', v.display_name, '[]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('e0000001-0000-4000-8000-000000000099', 'd0000001-0000-4000-8000-000000000099', 'Alex'),
@@ -28,10 +28,10 @@ FROM (
         ('e0000007-0000-4000-8000-000000000099', 'd0000007-0000-4000-8000-000000000099', 'Sam'),
         ('e0000008-0000-4000-8000-000000000099', 'd0000008-0000-4000-8000-000000000099', 'Zoé')
 ) AS v(id, user_id, display_name)
-WHERE NOT EXISTS (SELECT 1 FROM troupe_memberships tm WHERE tm.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM troupe_memberships tm WHERE tm.id = CAST(v.id AS uuid));
 
 INSERT INTO season_participants (id, season_id, display_name, normalized_email, user_id, troupe_membership_id, status, created_at, updated_at)
-SELECT v.id, 'b0000001-0000-4000-8000-000000000099', v.display_name, v.email, v.user_id, v.membership_id, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST('b0000001-0000-4000-8000-000000000099' AS uuid), v.display_name, v.email, CAST(v.user_id AS uuid), CAST(v.membership_id AS uuid), 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('f0000001-0000-4000-8000-000000000099', 'Alex', 'alex@seed.demo.test', 'd0000001-0000-4000-8000-000000000099', 'e0000001-0000-4000-8000-000000000099'),
@@ -43,11 +43,11 @@ FROM (
         ('f0000007-0000-4000-8000-000000000099', 'Sam', 'sam@seed.demo.test', 'd0000007-0000-4000-8000-000000000099', 'e0000007-0000-4000-8000-000000000099'),
         ('f0000008-0000-4000-8000-000000000099', 'Zoé', 'zoe@seed.demo.test', 'd0000008-0000-4000-8000-000000000099', 'e0000008-0000-4000-8000-000000000099')
 ) AS v(id, display_name, email, user_id, membership_id)
-WHERE NOT EXISTS (SELECT 1 FROM season_participants sp WHERE sp.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM season_participants sp WHERE sp.id = CAST(v.id AS uuid));
 
 -- Disponibilités sur événements « preparing » + brouillons (c0000004–c0000009).
 INSERT INTO event_availability (id, event_id, user_id, season_participant_id, event_participant_id, status, role_keys, created_at, updated_at)
-SELECT v.id, v.event_id, v.user_id, NULL, NULL, v.status, v.role_keys, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT CAST(v.id AS uuid), CAST(v.event_id AS uuid), CAST(v.user_id AS uuid), NULL, NULL, v.status, v.role_keys, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('a2000001-0000-4000-8000-000000000099', 'c0000004-0000-4000-8000-000000000099', 'd0000001-0000-4000-8000-000000000099', 'AVAILABLE', '["player"]'),
@@ -62,7 +62,7 @@ FROM (
         ('a2000010-0000-4000-8000-000000000099', 'c0000009-0000-4000-8000-000000000099', 'd0000002-0000-4000-8000-000000000099', 'AVAILABLE', '["mc"]'),
         ('a2000011-0000-4000-8000-000000000099', 'c0000009-0000-4000-8000-000000000099', 'd0000003-0000-4000-8000-000000000099', 'AVAILABLE', '["player"]')
 ) AS v(id, event_id, user_id, status, role_keys)
-WHERE NOT EXISTS (SELECT 1 FROM event_availability ea WHERE ea.id = v.id);
+WHERE NOT EXISTS (SELECT 1 FROM event_availability ea WHERE ea.id = CAST(v.id AS uuid));
 
 UPDATE seasons
 SET

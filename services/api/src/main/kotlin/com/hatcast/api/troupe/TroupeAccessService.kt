@@ -2,7 +2,6 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.util.UUID
 
@@ -14,24 +13,9 @@ import java.util.UUID
  */
 @Component
 class TroupeAccessService(
-    @Value("\${hatcast.troupe.seed-troupe-id}") private val seedTroupeIdRaw: String,
     private val membershipService: TroupeMembershipService,
     private val platformAdminService: PlatformAdminService,
 ) {
-    private val seedTroupeId: UUID = UUID.fromString(seedTroupeIdRaw.trim())
-
-    /**
-     * @deprecated Remplacé par `join_policy = OPEN` et `is_demo` (story 18.5 : suppression de la config seed).
-     */
-    @Deprecated("Use join_policy OPEN and is_demo; removal in story 18.5")
-    fun seedTroupeId(): UUID = seedTroupeId
-
-    /**
-     * @deprecated Remplacé par `join_policy = OPEN` et `is_demo` (story 18.5 : suppression de la config seed).
-     */
-    @Deprecated("Use join_policy OPEN and is_demo; removal in story 18.5")
-    fun isSeedTroupe(troupeId: UUID): Boolean = troupeId == seedTroupeId
-
     /** Lecture : saisons, événements, contexte troupe pour un membre actif. */
     fun requireActiveMember(
         principal: SessionUserPrincipal,

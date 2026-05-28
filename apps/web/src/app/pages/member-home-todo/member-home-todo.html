@@ -31,10 +31,22 @@
       <h2 id="todo-no-participation-heading" class="member-home-todo__empty-title">
         Rien en attente pour l'instant
       </h2>
-      <p class="member-home-todo__empty-text">Tu n'es inscrit·e à aucune ligue.</p>
-      <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
-        Découvrir les troupes
-      </a>
+      <p class="member-home-todo__empty-text">
+        Rejoins la troupe de démonstration pour explorer HatCast en bac à sable.
+      </p>
+      <div class="member-home-todo__empty-actions">
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="joiningDemo()"
+          (click)="joinDemoTroupe()"
+        >
+          Rejoindre la troupe de démonstration
+        </button>
+        <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
+          Découvrir les troupes
+        </a>
+      </div>
     </section>
   } @else {
     @if (showAllCaughtUpBanner()) {

@@ -5,7 +5,7 @@ Données : migration seed `V30__seed_context_switcher_dev.sql` (profil **dev** u
 ## Prérequis
 
 1. Redémarrer l’API après pull (Flyway applique **V30**), ou reset branche Neon **`local`** puis `./scripts/start-dev.sh`.
-2. Compte avec adhésion **Les Improbots** (seed dev ou `POST /v1/troupes/{seedTroupeId}/memberships/me` — UUID …000001).
+2. Compte avec adhésion **Les Improbots** (seed dev ou `POST /v1/troupes/a0000001-0000-4000-8000-000000000001/memberships/me`).
 
 ## Connexion recommandée
 

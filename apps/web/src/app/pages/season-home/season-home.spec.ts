@@ -410,6 +410,8 @@ function troupe(id: string): TroupeListItem {
     id,
     name: `Troupe ${id}`,
     slug: id,
+    isDemo: false,
+    joinPolicy: 'OPEN',
     activeMemberCount: 1,
     upcomingEventCount: 0,
     membership: {
