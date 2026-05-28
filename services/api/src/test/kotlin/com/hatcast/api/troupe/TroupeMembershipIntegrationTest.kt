@@ -13,6 +13,9 @@ import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.persistence.EntityManagerFactory
+import jakarta.servlet.http.Cookie
+import org.hibernate.SessionFactory
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -62,6 +65,9 @@ class TroupeMembershipIntegrationTest {
 
     @Autowired
     private lateinit var seasonParticipantRepository: SeasonParticipantRepository
+
+    @Autowired
+    private lateinit var entityManagerFactory: EntityManagerFactory
 
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
@@ -496,6 +502,57 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.displayName").value("Updated Name"))
             .andExpect(jsonPath("$.status").value("ACTIVE"))
             .andExpect(jsonPath("$.baselineRole").value("MEMBER"))
+    }
+
+    @Test
+    fun `list members does not N+1 user email`() {
+        val fixture = createN1GuardTroupe("n1-list", memberCount = 8)
+        val stats = hibernateStats()
+        stats.clear()
+
+        val response =
+            mockMvc
+                .perform(
+                    get("/v1/troupes/${fixture.troupeId}/members")
+                        .param("page", "0")
+                        .param("size", "25")
+                        .cookie(fixture.adminCookie),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val content = mapper.readTree(response.response.contentAsString).get("content")
+        assertEquals(9, content.size())
+        assertTrue(content.all { !it.get("email").asText().isNullOrBlank() })
+        assertTrue(content.all { it.get("userSlug").asText().isNotBlank() })
+        // Baseline (2026-05-29, H2, 9 members via GET): auth lookup + count + id page + batch JOIN FETCH users.
+        // N+1 would add one SELECT per member (~11+ total); cap at 6 leaves headroom without masking regression.
+        assertTrue(
+            stats.prepareStatementCount <= 6,
+            "expected batched user fetch, got ${stats.prepareStatementCount} SQL statements",
+        )
+    }
+
+    @Test
+    fun `export members csv does not N+1 user email`() {
+        val fixture = createN1GuardTroupe("n1-export", memberCount = 8)
+        val stats = hibernateStats()
+        stats.clear()
+
+        val response =
+            mockMvc
+                .perform(get("/v1/troupes/${fixture.troupeId}/members/export").cookie(fixture.adminCookie))
+                .andExpect(status().isOk)
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andReturn()
+
+        val exportedCsv = response.response.contentAsString
+        assertTrue(exportedCsv.contains("email,displayName,baselineRole,status"))
+        assertTrue(exportedCsv.contains("n1-export-member-0@example.com"))
+        // Baseline mirrors the list endpoint: authorization + ID page/count + one JOIN FETCH user batch.
+        assertTrue(
+            stats.prepareStatementCount <= 6,
+            "expected batched export user fetch, got ${stats.prepareStatementCount} SQL statements",
+        )
     }
 
     @Test
@@ -1036,7 +1093,7 @@ class TroupeMembershipIntegrationTest {
     }
 
     private fun findMemberInAdminList(
-        adminCookie: jakarta.servlet.http.Cookie,
+        adminCookie: Cookie,
         email: String,
     ): JsonNode {
         var page = 0
@@ -1062,6 +1119,59 @@ class TroupeMembershipIntegrationTest {
             page++
         }
     }
+
+    private data class N1GuardFixture(
+        val troupeId: UUID,
+        val adminCookie: Cookie,
+    )
+
+    private fun createN1GuardTroupe(
+        prefix: String,
+        memberCount: Int,
+    ): N1GuardFixture {
+        val troupeId = UUID.randomUUID()
+        val suffix = troupeId.toString().take(8)
+        val troupe =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = troupeId,
+                    name = "N+1 guard $suffix",
+                    slug = "$prefix-$suffix",
+                ),
+            )
+        val adminSub = "sub-$prefix-admin-$suffix"
+        val adminCookie = signIn(adminSub, "$prefix-admin-$suffix@example.com", "N1 Guard Admin")
+        val adminUser = userRepository.findByGoogleSub(adminSub)!!
+        membershipRepository.save(
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = adminUser,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.TROUPE_ADMIN,
+                displayName = "N1 Guard Admin",
+            ),
+        )
+        repeat(memberCount) { index ->
+            val sub = "sub-$prefix-member-$index-$suffix"
+            signIn(sub, "$prefix-member-$index@example.com", "N1 Member $index")
+            val memberUser = userRepository.findByGoogleSub(sub)!!
+            membershipRepository.save(
+                TroupeMembershipEntity(
+                    troupe = troupe,
+                    user = memberUser,
+                    status = TroupeMembershipStatus.ACTIVE,
+                    baselineRole = TroupeBaselineRole.MEMBER,
+                    displayName = "N1 Member ${index.toString().padStart(2, '0')}",
+                ),
+            )
+        }
+        return N1GuardFixture(troupeId, adminCookie)
+    }
+
+    private fun hibernateStats() =
+        entityManagerFactory.unwrap(SessionFactory::class.java).statistics.also {
+            it.isStatisticsEnabled = true
+        }
 
     private fun signInAndJoin(
         googleSub: String,

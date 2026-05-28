@@ -18,7 +18,10 @@ import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -119,11 +122,8 @@ class TroupeMembershipService(
         if (page < 0) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "page invalide")
         }
-        val p =
-            membershipRepository.findByTroupe_Id(
-                troupeId,
-                PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "displayName")),
-            )
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "displayName"))
+        val p = fetchMembershipPageWithUsers(troupeId, pageable)
         return PagedTroupeMembersResponse(
             content = p.content.map(TroupeMemberAdminDto::from),
             page = p.number,
@@ -294,21 +294,30 @@ class TroupeMembershipService(
         principal: SessionUserPrincipal,
     ): String {
         requireCanManageTroupeMembers(principal, troupeId)
-        val memberships = sequence {
-            var page = 0
-            while (true) {
-                val batch =
-                    membershipRepository.findByTroupe_IdAndStatusOrderByDisplayNameAsc(
-                        troupeId,
-                        TroupeMembershipStatus.ACTIVE,
-                        PageRequest.of(page, EXPORT_BATCH_SIZE, Sort.by(Sort.Direction.ASC, "displayName")),
-                    )
-                if (batch.isEmpty) break
-                batch.forEach { yield(it) }
-                if (!batch.hasNext()) break
-                page++
+        val sort = Sort.by(Sort.Direction.ASC, "displayName")
+        val memberships =
+            sequence {
+                var page = 0
+                while (true) {
+                    val idBatch =
+                        membershipRepository.findIdsByTroupe_IdAndStatus(
+                            troupeId,
+                            TroupeMembershipStatus.ACTIVE,
+                            PageRequest.of(page, EXPORT_BATCH_SIZE, sort),
+                        )
+                    if (idBatch.isEmpty) break
+                    val fetched =
+                        membershipRepository.findByTroupe_IdAndStatusAndIdInWithUser(
+                            troupeId,
+                            TroupeMembershipStatus.ACTIVE,
+                            idBatch.content,
+                        )
+                    val byId = fetched.associateBy { it.id }
+                    idBatch.content.forEach { id -> byId[id]?.let { yield(it) } }
+                    if (!idBatch.hasNext()) break
+                    page++
+                }
             }
-        }
         return TroupeMemberCsvCodec.formatExport(memberships)
     }
 
@@ -411,6 +420,20 @@ class TroupeMembershipService(
 
     companion object {
         private const val EXPORT_BATCH_SIZE = 100
+    }
+
+    private fun fetchMembershipPageWithUsers(
+        troupeId: UUID,
+        pageable: Pageable,
+    ): Page<TroupeMembershipEntity> {
+        val idPage = membershipRepository.findIdsByTroupe_Id(troupeId, pageable)
+        if (idPage.isEmpty) {
+            return PageImpl(emptyList(), pageable, idPage.totalElements)
+        }
+        val fetched = membershipRepository.findByIdInWithUser(idPage.content)
+        val byId = fetched.associateBy { it.id }
+        val ordered = idPage.content.mapNotNull { byId[it] }
+        return PageImpl(ordered, pageable, idPage.totalElements)
     }
 
     private fun ensureLastAdminRemains(

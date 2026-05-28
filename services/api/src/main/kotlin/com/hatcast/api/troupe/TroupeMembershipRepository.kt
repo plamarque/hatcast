@@ -29,6 +29,67 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
     ): Page<TroupeMembershipEntity>
 
     @Query(
+        value =
+            """
+            SELECT m.id FROM TroupeMembershipEntity m
+            WHERE m.troupe.id = :troupeId
+            """,
+        countQuery =
+            """
+            SELECT COUNT(m) FROM TroupeMembershipEntity m
+            WHERE m.troupe.id = :troupeId
+            """,
+    )
+    fun findIdsByTroupe_Id(
+        @Param("troupeId") troupeId: UUID,
+        pageable: Pageable,
+    ): Page<UUID>
+
+    @Query(
+        value =
+            """
+            SELECT m.id FROM TroupeMembershipEntity m
+            WHERE m.troupe.id = :troupeId AND m.status = :status
+            """,
+        countQuery =
+            """
+            SELECT COUNT(m) FROM TroupeMembershipEntity m
+            WHERE m.troupe.id = :troupeId AND m.status = :status
+            """,
+    )
+    fun findIdsByTroupe_IdAndStatus(
+        @Param("troupeId") troupeId: UUID,
+        @Param("status") status: TroupeMembershipStatus,
+        pageable: Pageable,
+    ): Page<UUID>
+
+    @Query(
+        """
+        SELECT m FROM TroupeMembershipEntity m
+        JOIN FETCH m.user
+        WHERE m.id IN :ids
+        """,
+    )
+    fun findByIdInWithUser(
+        @Param("ids") ids: Collection<UUID>,
+    ): List<TroupeMembershipEntity>
+
+    @Query(
+        """
+        SELECT m FROM TroupeMembershipEntity m
+        JOIN FETCH m.user
+        WHERE m.troupe.id = :troupeId
+          AND m.status = :status
+          AND m.id IN :ids
+        """,
+    )
+    fun findByTroupe_IdAndStatusAndIdInWithUser(
+        @Param("troupeId") troupeId: UUID,
+        @Param("status") status: TroupeMembershipStatus,
+        @Param("ids") ids: Collection<UUID>,
+    ): List<TroupeMembershipEntity>
+
+    @Query(
         """
         SELECT m FROM TroupeMembershipEntity m
         JOIN FETCH m.troupe t
