@@ -1,12 +1,13 @@
 # Déploie l’image V2 (Nginx + Angular + Spring) vers Cloud Run.
 # Prérequis : secrets dépôt + secrets par environnement GitHub — voir docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md
-# Branches : v2 → development, staging → staging, main → production (Neon + Cloud Run alignés).
+# Branches : v2 → development, staging-v2 → staging, main → production (Neon + Cloud Run alignés).
+# La branche git `staging` reste réservée au déploiement V1 (Firebase) — voir DEPLOY_V2_CLOUD_RUN.md.
 name: Deploy V2 (Cloud Run)
 
 on:
   workflow_dispatch:
   push:
-    branches: [v2, staging, main]
+    branches: [v2, staging-v2, main]
     paths:
       - 'apps/web/**'
       - 'services/api/**'
@@ -27,13 +28,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref_name == 'main' && 'production' || github.ref_name == 'staging' && 'staging' || 'development' }}
+      name: ${{ github.ref_name == 'main' && 'production' || github.ref_name == 'staging-v2' && 'staging' || 'development' }}
     env:
       # Surcharge : variable d’environnement GitHub `GCP_REGION` ou `vars` dépôt (défaut europe-west1)
       GCP_REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
       IMAGE_TAG: ${{ secrets.GCP_ARTIFACT_REGISTRY }}:${{ github.sha }}
       # Par env : `CLOUD_RUN_SERVICE_NAME` dans l’environnement GitHub ; défauts hatcast-v2 / -staging / -dev
-      SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE_NAME || (github.ref_name == 'main' && 'hatcast-v2' || github.ref_name == 'staging' && 'hatcast-v2-staging' || 'hatcast-v2-dev') }}
+      SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE_NAME || (github.ref_name == 'main' && 'hatcast-v2' || github.ref_name == 'staging-v2' && 'hatcast-v2-staging' || 'hatcast-v2-dev') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

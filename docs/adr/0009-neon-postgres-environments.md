@@ -6,7 +6,7 @@
   1. **Fournisseur:** Utiliser **Neon** comme Postgres managé pour la V2.
   2. **Modèle de données:** Un **projet Neon** avec **trois branches** alignées sur les cibles de déploiement : une branche **primary** (production), une branche **staging**, une branche **development** (ou `dev`) — noms exacts à figer dans l’équipe et dans la console Neon.
   3. **Connexion:** Chaque branche expose sa propre **chaîne JDBC** (hôte, utilisateur, mot de passe) ; TLS requis (`sslmode=require` ou équivalent dans l’URL JDBC).
-  4. **CI/CD:** Les secrets **`HATCAST_DATASOURCE_*`** et **`HATCAST_CORS_ALLOWED_ORIGINS`** sont stockés par **environnement GitHub** (`development`, `staging`, `production`) et reliés aux branches git **`v2`**, **`staging`**, **`main`** respectivement (voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../v2/technical/DEPLOY_V2_CLOUD_RUN.md)).
+  4. **CI/CD:** Les secrets **`HATCAST_DATASOURCE_*`** et **`HATCAST_CORS_ALLOWED_ORIGINS`** sont stockés par **environnement GitHub** (`development`, `staging`, `production`) et reliés aux branches git **`v2`**, **`staging-v2`**, **`main`** respectivement (la branche git **`staging`** reste V1 / Firebase ; voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../v2/technical/DEPLOY_V2_CLOUD_RUN.md)).
   5. **Pas de Cloud SQL** pour la couche données V2 tant que cette ADR s’applique : pas de connecteur Unix socket ni rôle **Cloud SQL Client** requis sur le compte d’exécution Cloud Run pour cette base.
 - **Consequences:**
   - **Positive:** Coût et opérations simplifiés ; branches Neon pour cloner / diverger les données entre env ; alignement clair git ↔ Neon ↔ Cloud Run.

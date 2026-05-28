@@ -2,6 +2,7 @@ package com.hatcast.api.availability
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
@@ -150,6 +151,11 @@ class AvailabilityControllerIntegrationTest {
                 .andReturn()
         val eventId = UUID.fromString(mapper.readTree(createEvent.response.contentAsString).get("id").asText())
         return seasonId to eventId
+    }
+
+    private fun syncSeasonParticipants(seasonId: UUID) {
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
     }
 
     @Test
@@ -394,6 +400,8 @@ class AvailabilityControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
 
+        syncSeasonParticipants(seasonId)
+
         val summaryPath = "/v1/seasons/$seasonId/events/$eventId/availability/summary"
         mockMvc
             .perform(get("$summaryPath?includeChances=true").cookie(member))
@@ -411,10 +419,57 @@ class AvailabilityControllerIntegrationTest {
     }
 
     @Test
+    @Tag("G-003")
+    fun `summary GET does not sync membership participants`() {
+        val admin = memberCookie("sub-avail-summary-readonly-admin")
+        val (seasonId, eventId) = createSeasonAndEvent(admin)
+
+        val newcomerSub = "sub-avail-summary-readonly-newcomer"
+        val newcomer = signInOnly(newcomerSub)
+        TestAuthSupport.joinSeedTroupe(mockMvc, newcomer, seedTroupeId)
+
+        val newcomerUser = userRepository.findByGoogleSub(newcomerSub)!!
+        val newcomerMembership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, newcomerUser.id)
+                ?: error("Missing membership for newcomer")
+
+        val unsyncedParticipant =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
+                seasonId,
+                newcomerMembership.id,
+            )
+        assert(unsyncedParticipant == null) {
+            "precondition: newcomer must not yet have a season participant row"
+        }
+
+        val countBefore =
+            seasonParticipantRepository.countBySeason_IdAndStatus(seasonId, ParticipantStatus.ACTIVE)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(admin),
+            ).andExpect(status().isOk)
+
+        val countAfter =
+            seasonParticipantRepository.countBySeason_IdAndStatus(seasonId, ParticipantStatus.ACTIVE)
+        assert(countBefore == countAfter) {
+            "GET summary must not create season participant rows (was $countBefore, now $countAfter)"
+        }
+
+        val stillUnsynced =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
+                seasonId,
+                newcomerMembership.id,
+            )
+        assert(stillUnsynced == null)
+    }
+
+    @Test
     fun `summary excludes unavailable participants from role candidates`() {
         val cookie = memberCookie("sub-avail-summary-unavail")
         val user = userRepository.findByGoogleSub("sub-avail-summary-unavail")!!
         val (seasonId, eventId) = createSeasonAndEvent(cookie)
+        syncSeasonParticipants(seasonId)
 
         mockMvc
             .perform(
@@ -622,6 +677,8 @@ class AvailabilityControllerIntegrationTest {
             .perform(get(base).cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.comment").value(comment))
+
+        syncSeasonParticipants(seasonId)
 
         mockMvc
             .perform(

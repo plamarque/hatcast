@@ -19,7 +19,6 @@ import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
-import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
@@ -38,7 +37,6 @@ class AvailabilityService(
     private val eventRepository: EventRepository,
     private val seasonRepository: SeasonRepository,
     private val seasonParticipantRepository: SeasonParticipantRepository,
-    private val seasonParticipantService: SeasonParticipantService,
     private val eventParticipantRepository: EventParticipantRepository,
     private val eventParticipantExclusionRepository: EventParticipantExclusionRepository,
     private val troupeAccess: TroupeAccessService,
@@ -162,7 +160,7 @@ class AvailabilityService(
         return eventIds.associateWith { byEvent[it] ?: AvailabilityStatusMapper.UNKNOWN }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     fun getSummary(
         seasonId: UUID,
         eventId: UUID,
@@ -170,11 +168,6 @@ class AvailabilityService(
         includeChances: Boolean = false,
     ): EventAvailabilitySummaryResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        val season =
-            seasonRepository
-                .findById(seasonId)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        seasonParticipantService.ensureMembershipParticipants(season)
         val eligible = loadEligibleParticipants(seasonId, event.id)
         val availabilityIndex = buildAvailabilityIndex(event.id)
 

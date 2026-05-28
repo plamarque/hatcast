@@ -55,10 +55,28 @@ Créer **trois environnements** dans **Settings > Environments** : `development`
 | Branche git | Environnement GitHub | Branche Neon (voir §5) | Exemple de nom de service Cloud Run |
 |-------------|----------------------|-------------------------|-------------------------------------|
 | `v2` | `development` | `development` ou `dev` | `hatcast-v2-dev` |
-| `staging` | `staging` | `staging` | `hatcast-v2-staging` |
+| `staging-v2` | `staging` | `staging` | `hatcast-v2-staging` |
 | `main` | `production` | branche **primary** (prod) | `hatcast-v2` |
 
+La branche git **`staging`** reste dédiée au déploiement **V1** (Firebase Hosting, workflow [`.github/workflows/deploy-staging.yml`](../../.github/workflows/deploy-staging.yml)). Pour la V2, utiliser **`staging-v2`** : même environnement GitHub `staging` et mêmes secrets, sans déclencher ni mélanger les pipelines legacy.
+
 Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) applique cet environnement selon la branche ; les secrets ci-dessous doivent être **définis dans chaque environnement** (valeurs différentes par cible).
+
+#### Environnement GitHub `staging` — branche de déploiement
+
+Dans **Settings → Environments → staging → Deployment branches**, choisir **Selected branch** et indiquer **`staging-v2`** (pas `staging`, réservée à la V1). Les secrets `HATCAST_DATASOURCE_*` et le reste du tableau « par environnement » restent sur l’environnement nommé `staging`.
+
+Créer la branche git (point de départ = ligne V2 actuelle, en général `v2`) :
+
+```bash
+git fetch origin
+git checkout v2
+git pull origin v2
+git checkout -b staging-v2
+git push -u origin staging-v2
+```
+
+Ensuite, les merges habituels vers la préprod V2 se font sur **`staging-v2`** (ex. `v2` → `staging-v2`), sans toucher à **`staging`** (V1).
 
 #### Secrets au niveau **dépôt** (réutilisés pour tous les déploiements)
 
