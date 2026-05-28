@@ -38,8 +38,8 @@ describe('ContextBreadcrumb', () => {
 
     const fixture = TestBed.createComponent(ContextBreadcrumb)
     fixture.componentRef.setInput('troupeId', 'troupe-1')
-    fixture.componentRef.setInput('troupeName', 'La Malice')
-    fixture.componentRef.setInput('troupeSlug', 'la-malice')
+    fixture.componentRef.setInput('troupeName', 'Les Improbots')
+    fixture.componentRef.setInput('troupeSlug', 'les-improbots')
     fixture.componentRef.setInput('seasonTitle', 'Saison 2025-26')
     fixture.componentRef.setInput('seasonSlug', 'saison-2025')
     fixture.componentRef.setInput('layout', layout)
@@ -57,7 +57,7 @@ describe('ContextBreadcrumb', () => {
     const troupeLink = el.querySelector(
       '.context-breadcrumb__trail--desktop a.context-breadcrumb__troupe',
     ) as HTMLAnchorElement
-    expect(troupeLink.getAttribute('href')).toBe('/troupes/la-malice')
+    expect(troupeLink.getAttribute('href')).toBe('/troupes/les-improbots')
 
     const seasonLink = el.querySelector(
       '.context-breadcrumb__trail--desktop a.context-breadcrumb__link',
@@ -82,8 +82,8 @@ describe('ContextBreadcrumb', () => {
     const el = fixture.nativeElement as HTMLElement
     const mobile = el.querySelector('.context-breadcrumb__mobile-logo') as HTMLAnchorElement
     expect(mobile).toBeTruthy()
-    expect(mobile.getAttribute('href')).toBe('/troupes/la-malice')
-    expect(mobile.getAttribute('aria-label')).toContain('La Malice')
+    expect(mobile.getAttribute('href')).toBe('/troupes/les-improbots')
+    expect(mobile.getAttribute('aria-label')).toContain('Les Improbots')
     expect(mobile.getAttribute('aria-label')).toContain('Saison 2025-26')
     expect(mobile.getAttribute('aria-label')).toContain('Match BIM')
   })
@@ -102,7 +102,7 @@ describe('ContextBreadcrumb', () => {
       '.context-breadcrumb__trail--desktop a.context-breadcrumb__troupe',
     ) as HTMLAnchorElement
     expect(troupeLink.querySelector('.context-breadcrumb__troupe-name')).toBeTruthy()
-    expect(troupeLink.getAttribute('aria-label')).toContain('La Malice')
+    expect(troupeLink.getAttribute('aria-label')).toContain('Les Improbots')
 
     expect(el.querySelector('.context-breadcrumb__mobile-logo')).toBeTruthy()
     expect(el.querySelector('.context-breadcrumb__mobile-logo .context-breadcrumb__troupe-name')).toBeNull()
@@ -131,8 +131,8 @@ describe('ContextBreadcrumb', () => {
     }).compileComponents()
 
     const fixture = TestBed.createComponent(ContextBreadcrumb)
-    fixture.componentRef.setInput('troupeName', 'La Malice')
-    fixture.componentRef.setInput('troupeSlug', 'la-malice')
+    fixture.componentRef.setInput('troupeName', 'Les Improbots')
+    fixture.componentRef.setInput('troupeSlug', 'les-improbots')
     fixture.componentRef.setInput('layout', 'troupe')
     fixture.componentRef.setInput('leafTitle', 'Membres')
     fixture.detectChanges()
@@ -163,7 +163,7 @@ describe('ContextBreadcrumb', () => {
     expect(el.querySelector('app-context-switcher .context-switcher__trigger')).toBeTruthy()
     expect(el.querySelector('.context-breadcrumb__current')).toBeNull()
     const troupeLink = el.querySelector('a.context-breadcrumb__troupe') as HTMLAnchorElement
-    expect(troupeLink.getAttribute('href')).toBe('/troupes/la-malice')
+    expect(troupeLink.getAttribute('href')).toBe('/troupes/les-improbots')
   })
 
   it('renders compact context switcher on mobile row when enabled', async () => {

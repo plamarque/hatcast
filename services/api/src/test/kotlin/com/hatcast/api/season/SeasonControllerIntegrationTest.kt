@@ -73,7 +73,7 @@ class SeasonControllerIntegrationTest {
                 get("/v1/troupes").cookie(cookie),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.[0].id").value(seedTroupeId.toString()))
-            .andExpect(jsonPath("$.[0].slug").value("la-malice"))
+            .andExpect(jsonPath("$.[0].slug").value("les-improbots"))
             .andExpect(jsonPath("$.[0].membership.status").value("ACTIVE"))
 
         // list initiale : au moins la saison seed, éventuellement d'autres seeds/fixtures.

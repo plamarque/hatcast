@@ -22,7 +22,7 @@
     <div class="admin-membres__spinner" role="status">
       <mat-spinner diameter="40" />
     </div>
-  } @else if (troupeId() && isTroupeAdmin()) {
+  } @else if (troupeId() && canManageMembers()) {
     <app-membres-tab
       [troupeId]="troupeId()!"
       [profileSeasonId]="profileSeasonId()"

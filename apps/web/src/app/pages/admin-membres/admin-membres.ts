@@ -73,7 +73,12 @@ export class AdminMembres implements OnDestroy, OnInit {
   protected readonly troupeName = signal<string | null>(null)
   protected readonly troupeSlug = signal<string | null>(null)
   protected readonly isTroupeAdmin = signal(false)
+  protected readonly platformAdmin = signal(false)
   protected readonly user = signal<UserSummary | null>(null)
+
+  protected readonly canManageMembers = computed(
+    () => this.isTroupeAdmin() || this.platformAdmin(),
+  )
 
   protected readonly profileSeasonId = computed(() => this.profileSeason()?.id ?? '')
   protected readonly profileSeasonSlug = computed(() => this.profileSeason()?.slug ?? '')
@@ -94,6 +99,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     if (session.data?.user) {
       this.user.set(session.data.user)
     }
+    this.platformAdmin.set(session.data?.platformAdmin === true)
 
     this.routeSubscription = this.route.paramMap
       .pipe(
@@ -184,6 +190,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     }
 
     const isTroupeAdmin = troupe.membership.baselineRole === 'TROUPE_ADMIN'
+    const canManageMembers = isTroupeAdmin || this.platformAdmin()
     this.troupeId.set(troupe.id)
     this.troupeName.set(troupe.name)
     this.troupeSlug.set(troupe.slug)
@@ -204,7 +211,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     this.loading.set(false)
 
     if (legacySeasonSlug) {
-      if (isTroupeAdmin) {
+      if (canManageMembers) {
         await this.router.navigate(troupeAdminMembresPath(troupe.slug), { replaceUrl: true })
         return
       }
@@ -219,7 +226,7 @@ export class AdminMembres implements OnDestroy, OnInit {
       return
     }
 
-    if (!isTroupeAdmin) {
+    if (!canManageMembers) {
       this.snack.open('Accès non autorisé', 'OK', { duration: 5000 })
       await this.router.navigate(troupesListPath())
     }

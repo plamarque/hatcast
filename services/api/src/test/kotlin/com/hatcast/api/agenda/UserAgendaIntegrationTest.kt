@@ -597,6 +597,6 @@ class UserAgendaIntegrationTest {
       .andExpect(status().isOk)
       .andExpect(jsonPath("$.content").isNotEmpty)
       .andExpect(jsonPath("$.content[0].leagueId").value(seedSeasonId.toString()))
-      .andExpect(jsonPath("$.content[0].troupeSlug").value("la-malice"))
+      .andExpect(jsonPath("$.content[0].troupeSlug").value("les-improbots"))
   }
 }

@@ -28,6 +28,7 @@ class TroupeMembershipServiceTest {
     private val userRepository = mock<UserRepository>()
     private val userAccountService = mock<UserAccountService>()
     private val csvImportService = mock<TroupeMemberCsvImportService>()
+    private val platformAdminService = mock<com.hatcast.api.auth.PlatformAdminService>()
     private val service =
         TroupeMembershipService(
             membershipRepository,
@@ -36,10 +37,11 @@ class TroupeMembershipServiceTest {
             userRepository,
             userAccountService,
             csvImportService,
+            platformAdminService,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
-    private val troupe = TroupeEntity(id = troupeId, name = "La Malice", slug = "la-malice")
+    private val troupe = TroupeEntity(id = troupeId, name = "Les Improbots", slug = "les-improbots")
 
     @Test
     fun `direct membership creation defaults to MEMBER`() {

@@ -496,8 +496,8 @@ class AvailabilityControllerIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "seed-malicie-22",
-                email = "patrice@seed.la-malice.test",
+                "seed-improbots-22",
+                email = "patrice@seed.improbots.test",
                 name = "Patrice",
             )
 

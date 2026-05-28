@@ -107,7 +107,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -126,7 +126,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'MEMBER')],
+      data: [troupe('troupe-1', 'Les Improbots', 'MEMBER')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -165,7 +165,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -191,7 +191,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice'), troupe('troupe-2', 'Les Impros')],
+      data: [troupe('troupe-1', 'Les Improbots'), troupe('troupe-2', 'Les Impros')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -202,7 +202,7 @@ describe('SeasonsList', () => {
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('Troupe')
-    expect(fixture.nativeElement.textContent).toContain('La Malice')
+    expect(fixture.nativeElement.textContent).toContain('Les Improbots')
     expect(fixture.nativeElement.textContent).toContain('Changer de troupe')
   })
 
@@ -210,7 +210,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice')],
+      data: [troupe('troupe-1', 'Les Improbots')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -220,7 +220,7 @@ describe('SeasonsList', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.textContent).toContain('La Malice')
+    expect(fixture.nativeElement.textContent).toContain('Les Improbots')
     expect(fixture.nativeElement.textContent).not.toContain('Changer de troupe')
   })
 
@@ -228,7 +228,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice'), troupe('troupe-2', 'Les Impros', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots'), troupe('troupe-2', 'Les Impros', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -251,7 +251,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice'), troupe('troupe-2', 'Les Impros', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots'), troupe('troupe-2', 'Les Impros', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -272,7 +272,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'MEMBER')],
+      data: [troupe('troupe-1', 'Les Improbots', 'MEMBER')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -296,7 +296,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -336,7 +336,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,

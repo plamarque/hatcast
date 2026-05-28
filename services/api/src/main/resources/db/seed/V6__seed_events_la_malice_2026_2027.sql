@@ -1,7 +1,7 @@
--- Seed dev/test : saison complète (~30 spectacles) pour la Malice 2026-2027
+-- Seed dev/test : saison complète (~30 spectacles) pour Les Improbots 2026-2027
 -- Objectif: alimenter l'écran saison/agenda avec un volume réaliste (2 à 4 événements / mois).
 -- Saison seed : b0000001-0000-4000-8000-000000000001 (V4).
--- Pas de colonne slug ici : V6 s'exécute avant V24__events_slug ; les slugs sont backfillés par V24.
+-- Pas de colonne slug ici : V6 s'exécute avant db/migration V24 qui backfill events.slug depuis title.
 
 INSERT INTO events (id, season_id, title, description, location, starts_at, archived, created_at, updated_at)
 VALUES

@@ -89,7 +89,7 @@ class TroupeCreationIntegrationTest {
                 "sub-create-troupe-2",
             )
         val seedSlug = troupeRepository.findById(seedTroupeId).orElseThrow().slug
-        assertEquals("la-malice", seedSlug)
+        assertEquals("les-improbots", seedSlug)
 
         mockMvc
             .perform(
@@ -97,9 +97,9 @@ class TroupeCreationIntegrationTest {
                     .cookie(cookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"name":"La Malice"}"""),
+                    .content("""{"name":"Les Improbots"}"""),
             ).andExpect(status().isCreated)
-            .andExpect(jsonPath("$.slug").value("la-malice-2"))
+            .andExpect(jsonPath("$.slug").value("les-improbots-2"))
     }
 
     @Test

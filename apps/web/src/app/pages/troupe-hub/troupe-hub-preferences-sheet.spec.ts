@@ -17,8 +17,8 @@ import {
 
 const troupe: TroupeListItem = {
   id: 't1',
-  name: 'La Malice',
-  slug: 'la-malice',
+  name: 'Les Improbots',
+  slug: 'les-improbots',
   membership: {
     id: 'm1',
     displayName: 'Patou',

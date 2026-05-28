@@ -157,7 +157,7 @@ describe('UserAgenda', () => {
         }),
         agendaItem('event-feb', 'Cabaret de février', '2026-02-02T20:00:00Z', {
           myAvailabilityStatus: null,
-          troupeName: 'La Malice',
+          troupeName: 'Les Improbots',
           leagueTitle: 'Matchs impro',
         }),
       ]),

@@ -71,7 +71,9 @@ export class SeasonsList implements OnInit {
     () => this.canManageSeasons() || this.platformAdmin(),
   )
   protected readonly canManageMembers = computed(
-    () => this.selectedTroupe()?.membership.baselineRole === 'TROUPE_ADMIN',
+    () =>
+      this.selectedTroupe()?.membership.baselineRole === 'TROUPE_ADMIN' ||
+      this.platformAdmin(),
   )
   protected readonly seasons = signal<SeasonResponse[]>([])
   protected readonly troupeId = signal<string | null>(null)

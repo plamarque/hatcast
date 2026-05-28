@@ -1,7 +1,7 @@
 -- Seed dev/test : spectacles passés pour la vue Historique (story 3.6b).
 -- Référence « aujourd’hui » dev : 25 mai 2026 (Europe/Paris) — tous les starts_at ci-dessous sont strictement avant ce jour civil.
--- Saison : b0000001-0000-4000-8000-000000000001 (La Malice 2026-2027).
--- Connexion seed utile : patrice@seed.la-malice.test (participant f0000001-…-000022).
+-- Saison : b0000001-0000-4000-8000-000000000001 (Les Improbots 2026-2027).
+-- Connexion seed utile : patrice@seed.improbots.test (participant f0000001-…-000022).
 -- Slugs préfixés hist- pour éviter les collisions avec V24 (ex. long-form-polar sur c0000019).
 
 INSERT INTO events (

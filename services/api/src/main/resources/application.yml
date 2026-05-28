@@ -44,8 +44,7 @@ hatcast:
   google:
     oauth-web-client-id: ${HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID:}
   troupe:
-    # Même UUID que l’INSERT Flyway V3 (troupe seed « La Malice »)
-    # UUID alignée sur l’INSERT Flyway V3
+    # Même UUID que l’INSERT Flyway V3_1 (troupe seed dev « Les Improbots »)
     seed-troupe-id: ${HATCAST_SEED_TROUPE_ID:a0000001-0000-4000-8000-000000000001}
   auth:
     remember-me-seconds: ${HATCAST_AUTH_REMEMBER_ME_SECONDS:2592000}

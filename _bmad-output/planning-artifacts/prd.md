@@ -67,7 +67,10 @@ editHistory:
   - date: '2026-05-24'
     workflow: bmad-edit-prd
     changes: 'League workspace split (FR53–FR60, ADR 0012): Agenda/Historique/Statistiques, travel leagues for déplacements, personal season glance route, separate exports, cross-scope filters'
-lastEdited: '2026-05-24'
+  - date: '2026-05-28'
+    workflow: bmad-edit-prd
+    changes: 'Demo troupe onboarding (FR61–FR64): shared sandbox, join_policy OPEN|INVITE_ONLY, platform-admin join-policy control, production seed spec with pedagogical event matrix; Journey 8; MVP prod scope'
+lastEdited: '2026-05-28'
 documentCounts:
   briefCount: 1
   researchCount: 0
@@ -85,6 +88,8 @@ documentCounts:
 HatCast is a **mobile-first web application** (Angular SPA, PWA) delivered as **SaaS** for **improvisation troupes**: it supports **leagues** (*ligues*; V2 API: seasons) and **shows (spectacles)**, collects **availability by role**, lets organizers **compose lineups** manually or via a **weighted random draw**, runs a **validation and confirmation** workflow, and uses **notifications** with tracking of **confirmations and withdrawals**. The product targets **troupe members**, **league/event participants**, **organizers**, and **administrators**; a **public directory** lists freemium troupes (non-opt-out) so non-members can discover leagues and events—read scope for private content remains a future premium hypothesis.
 
 **Member entry (V2 target):** Signed-in members land on a **personal user agenda** (all upcoming events across leagues where they participate) or resume a **last visited league workspace**—not an intermediate home screen. A troupe may run **several active leagues** at once (e.g. leisure vs show circuit). **Inter-troupe matches** appear as **separate events** in the agenda, each labelled by troupe and league (ADR 0011).
+
+**Onboarding (V2 prod):** New users with **no troupe membership** can **self-join a shared Demo troupe** (*Démo*) seeded in production—a realistic sandbox with fictitious participants, varied event types, and composition lifecycle states—before creating their own troupe. Demo join is **product onboarding**, not a dev-only seed hack (FR61–FR64).
 
 The underlying need is not "another signup form" but **trust and clarity** when building teams under time pressure: people change plans, slots open, and groups need a **single system of record** for availability, composition state, and who decided what—**including when someone acts on behalf of someone else**, with **auditability**.
 
@@ -118,7 +123,7 @@ The underlying need is not "another signup form" but **trust and clarity** when 
 
 ### Business Success
 
-- **Adoption:** New troupes can onboard and run at least **one season** with **core flows** (events, availability, composition path) in production; freemium listing remains **non-opt-out** for listed troupes as a deliberate growth/trust trade (hypothesis to validate in interviews).
+- **Adoption:** New troupes can onboard and run at least **one season** with **core flows** (events, availability, composition path) in production; freemium listing remains **non-opt-out** for listed troupes as a deliberate growth/trust trade (hypothesis to validate in interviews). **Leading onboarding metric:** a signed-in user with zero memberships can reach **first availability submission on a Demo event** within **one session** after choosing “Rejoindre la troupe de démonstration” (FR61, FR64).
 - **Engagement:** Organizers return across multiple shows per season (repeat use of composition, notifications, gap-filling workflows). **Initial pilot target:** at least **70%** of pilot troupe organizers run **≥2 composition cycles** per active season within **90 days** of troupe onboarding; measured via FR47 workflow analytics and validated or revised after the first pilot cohort.
 - **Monetization (post-V1):** Premium hypotheses (private seasons/events, advanced lottery, guests, etc.) remain **explicitly not V1**; success first is **proving core value** and directory transparency, not immediate ARPU.
 
@@ -142,6 +147,8 @@ Must preserve and stabilize what **SPEC** marks as **Must have** today: seasons/
 
 **PRD-oriented MVP for evolution:** Canonical **event URL** and **event-details** behaviour where already sliced in **PLAN/SPEC** (full-screen event, tabs, inline composition) is treated as **product delivery scope** when those slices are scheduled—not as speculative fluff. MVP administration includes the core participation-scope model: troupe members are distinct from season participants and event-only participants; season/event participants can be name-only, optionally email-prelinked, or linked to a HatCast user.
 
+**V2 production launch (onboarding):** A **Demo troupe** (*Démo*, slug `demo`) with season **Saison 2026-2027** (2026-06-01 → 2027-05-31), **~20 pedagogical events**, fictitious season participants, and varied composition states is **seeded in production** and joinable by any authenticated user (FR61, FR64). **Join policy** (`OPEN` | `INVITE_ONLY`) is modeled at troupe level from MVP; **platform administrators** may change join policy; troupe admins may not (FR62–FR63). Premium paywall for closed troupes is **explicitly deferred**—`INVITE_ONLY` is a data model and permission hook only until packaging is defined.
+
 ### Growth Features (Post-MVP)
 
 - Deeper **fairness analytics** and season history views described in the brief (stats, “demand satisfaction”, expanded UX for lottery pedagogy).
@@ -163,6 +170,10 @@ The following items remain explicitly open; downstream architecture, UX, and epi
 | **Fairness explainability MVP depth** | Odds only vs odds + narrative “why this outcome” vs full season history | Per-role odds on composition view for draw-mode events (FR24); richer history in growth |
 | **Analytics baseline & privacy** | Product-only vs troupe-visible dashboards; retention of raw events | Anonymized workflow events per FR47; troupe-visible analytics deferred to growth |
 | **Team capacity (program)** | Squad size and skill mix for V2 rewrite | Assumption: **2–4** engineers (full-stack or paired front/back) plus part-time design/PM until validated |
+| **Demo troupe for V2 prod onboarding** | Shared sandbox vs per-user clone; dev seed vs dedicated Demo | **Shared Demo troupe** in prod via **`db/migration` Option A** (**decided 2026-05-28**) |
+| **Dev seed troupe naming** | La Malice vs fictional name | **Les Improbots** (`les-improbots`, `@seed.improbots.test`) — **La Malice** reserved for real V1 migration (**decided 2026-05-28**) |
+| **Join policy default for user-created troupes** | All new troupes `OPEN` vs `INVITE_ONLY` until premium | **`OPEN` by default**; premium packaging for closed troupes deferred (**decided 2026-05-28**) |
+| **Who may change join policy** | Troupe admin vs platform admin only | **Platform administrator only** in MVP (**decided 2026-05-28**) |
 
 ## User Journeys
 
@@ -236,6 +247,16 @@ The following items remain explicitly open; downstream architecture, UX, and epi
 
 **Resolution:** Flexibilité pour les **contributions ponctuelles** sans diluer la logique “membre” ni créer de zone grise sur le **fairness** perçu. **Requirements surfaced:** participants saison/événement administrés en MVP ; modèle de **sélection invité** avancé (exclusion loterie / joker / assignation directe), préférences et contraintes par événement, notifications et audit adaptés en croissance.
 
+### 8) Sam — New user (try before you commit via Demo troupe)
+
+**Opening:** Sam découvre HatCast via un ami ou une recherche. Il hésite à créer une troupe sans savoir si l’outil lui convient.
+
+**Rising action:** Il crée un compte, ouvre **Mes troupes**, voit l’état vide, et clique **Rejoindre la troupe de démonstration**. Il est adhérent **membre** (pas admin) de la troupe **Démo**, inscrit automatiquement à la ligue **Saison 2026-2027**, et voit un agenda déjà peuplé de **participants fictifs** avec dispos variées. Il ouvre un spectacle à venir, saisit **dispo / indispo** et ses **rôles**, consulte un autre événement en état **validations en attente** ou **équipe complète** pour comprendre le cycle de vie.
+
+**Climax:** Sam comprend le produit **en contexte réaliste** sans attendre une invitation ni fabriquer une saison vide.
+
+**Resolution:** Il crée sa propre troupe quand il est prêt, ou reste dans la Démo pour continuer à explorer. **Requirements surfaced:** FR61 (self-join OPEN), FR64 (seed Demo), FR49 (empty guidance), FR15–FR16 (availability), FR28 (lifecycle visibility), FR6/FR8 (membership context). **Out of scope for Sam:** premium closed troupes, public directory browse without account (Journey 4).
+
 ### Journey Requirements Summary
 
 - **Collaboration:** disponibilités, composition brouillon vs validée, confirmations/désistements, notifications.
@@ -245,6 +266,7 @@ The following items remain explicitly open; downstream architecture, UX, and epi
 - **Governance:** rôles admin/organisateur, audit acteur/sujet, frontière claire membre / participant / invité avancé.
 - **Growth:** stats de saison / “demand satisfaction” (brief), au-delà du MVP fonctionnel listé dans le scope.
 - **Public discovery:** annuaire + lecture publique freemium (hypothèses premium pour contenu privé plus tard).
+- **Onboarding sandbox:** shared Demo troupe, self-join, fictitious roster, pedagogical event matrix (FR61, FR64).
 
 ### Account lifecycle (cross-cutting)
 
@@ -268,10 +290,12 @@ Mini matrix linking primary journeys to functional and non-functional requiremen
 | **6 — Camille (event participant)** | FR43–FR45, FR17, FR19, FR21, FR26 | NFR-S5 |
 | **7 — Alex (managed guest)** | FR43–FR45, FR38–FR39 **(G)** | NFR-S5 |
 | **Account lifecycle** | FR36–FR37 | NFR-S3 |
+| **8 — Sam (Demo onboarding)** | FR61, FR64, FR49, FR15–FR16, FR28, FR6, FR8 | NFR-S2 |
 | **Success / instrumentation** | FR47 | NFR-Q1 |
 | **Platform delivery** | FR40–FR41 | NFR-R1 |
+| **Platform governance (join policy)** | FR62–FR63 | NFR-S2 |
 
-**Traceability notes:** FR47 supports Business Success engagement metrics and Measurable Outcomes leading indicators. NFR-Q1 supports Technical Success automated-test expectation. Journey 5 growth analytics remain intentionally under-specified until post-MVP epic planning. **FR48–FR52** (League journey, ADR 0011) trace primarily to Journeys 1 and 3; FR51 also supports organizer navigation from events. **FR53–FR60** (league views, travel leagues, personal glance, ADR 0012) trace to Journeys 1 and 3 and league workspace UX. Troupe join requests beyond directory browse remain **Epic 4** (FR32), not a separate FR.
+**Traceability notes:** FR47 supports Business Success engagement metrics and Measurable Outcomes leading indicators. NFR-Q1 supports Technical Success automated-test expectation. Journey 5 growth analytics remain intentionally under-specified until post-MVP epic planning. **FR48–FR52** (League journey, ADR 0011) trace primarily to Journeys 1 and 3; FR51 also supports organizer navigation from events. **FR53–FR60** (league views, travel leagues, personal glance, ADR 0012) trace to Journeys 1 and 3 and league workspace UX. Troupe join requests beyond directory browse remain **Epic 4** (FR32), not a separate FR. **FR61–FR64** (Demo troupe, join policy) trace to Journey 8 and V2 prod onboarding; premium packaging for `INVITE_ONLY` troupes remains growth scope.
 
 ## Innovation & Novel Patterns
 
@@ -384,6 +408,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 - **Organizer**: compose and validate lineups, handle gaps and withdrawals using manual or partial draw paths as scoped for MVP; navigate from event to league or troupe context (FR51).
 - **Admin**: administer **multiple active leagues** per troupe, events, troupe members, and league/event participant rosters from **troupe hub** and league workspaces (FR50, FR52); **export and import troupe member lists** (documented CSV) as **troupe administrator** (FR42); consult **audit** trails for sensitive actions per FR35.
 - **Visitor** (as scoped for MVP): **public discovery** of troupes and public seasons/events per freemium rules—or a **deliberately reduced** surface if the program stages cutover (**delivery decision**).
+- **New member (no troupe yet):** self-join the **production Demo troupe**, explore a pre-populated season, submit availability on demo events (Journey 8; FR61, FR64).
 
 **Must-Have Capabilities:**
 
@@ -394,6 +419,8 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 - **Core domain:** seasons, events, scoped participants, availability, weighted draw / cast workflow, confirmations—aligned with SPEC intent, delivered on the new stack (full **UI parity** with legacy is not assumed for the first cut).
 - **Season/event participant rosters:** authorized admins can add participants at season or event scope using a display name, optional email, and optional user linkage; this does not grant troupe membership.
 - **Troupe member import/export (MVP-enabling):** authorized administrators can export and import troupe member lists in a documented CSV format to support V1→V2 cutover and ongoing troupe administration (FR42).
+- **Demo troupe (V2 prod):** Flyway (or equivalent) **production seed** for troupe **Démo**, season **Saison 2026-2027**, ~20 events, fictitious participants, varied composition states; `demoTroupeId` / `HATCAST_SEED_TROUPE_ID` (or successor config) points to Demo UUID—not dev-only La Malice seed (FR64).
+- **Join policy (MVP hook):** troupe-level `OPEN` | `INVITE_ONLY`; default **OPEN** for newly created troupes; self-join API for `OPEN` troupes; **platform administrators** may change join policy; troupe administrators may not (FR62–FR63).
 
 ### Post-MVP Features
 
@@ -517,7 +544,7 @@ Requirements are listed in numeric order (FR1–FR52).
 ### Member journey & leagues (V2 target — ADR 0011)
 
 - FR48: A signed-in member can view a **personal user agenda** listing **upcoming events** from every **league where they are a league participant**, across all troupes. **Upcoming** uses the same civil-day boundary as league agendas (today or future in the user's or product default timezone, e.g. Europe/Paris); archived or past events are excluded. The response is **paginated or bounded** (default page size ≤ **50** events). The agenda supports **filtering by troupe and by league**. Each **inter-troupe encounter** appears as **separate event rows** (one per troupe's event), each labelled with **troupe and league** context.
-- FR49: After sign-in, the product **does not require an intermediate home screen**. Routing priority is: **(1)** a valid **stored deep link** (e.g. notification URL); **(2)** **last visited league workspace** when the slug is still valid for an active membership; **(3)** **user agenda** (`/agenda`); **(4)** if the user has no league participations, an **empty agenda** with guidance (e.g. join a troupe or discover the directory per FR32).
+- FR49: After sign-in, the product **does not require an intermediate home screen**. Routing priority is: **(1)** a valid **stored deep link** (e.g. notification URL); **(2)** **last visited league workspace** when the slug is still valid for an active membership; **(3)** **user agenda** (`/agenda`); **(4)** if the user has no league participations, an **empty agenda** with guidance to **create a troupe**, **join the Demo troupe** (FR61), or **discover the directory** (FR32) when available.
 - FR50: When creating a league, an administrator chooses whether **all active troupe members** are enrolled as initial league participants **or** the roster starts **empty for manual addition** (participants may be existing users, name-only, or email-prelinked per FR45).
 - FR51: From an **event detail** view, an authorized user can navigate to the **league workspace** for that event's league and to the **troupe hub** for that event's troupe.
 - FR52: From a **troupe hub**, a member can view **all leagues** for that troupe (active by default; **archived** via explicit filter), manage **troupe-scoped pseudo** (FR9), access **troupe administration** (e.g. members), and reach the **public troupe directory** to discover or request joining other troupes (FR32).
@@ -542,6 +569,28 @@ Requirements are listed in numeric order (FR1–FR52).
 - FR58: A signed-in member can open a **personal season glance** (*Ma saison en un clin d'œil*, V1 parity: summary cards, monthly participation chart, preferred roles) from the **member area** via a stable route (e.g. `/membre/:userSlug`). Optional **troupe** and/or **league** filters apply when multiple contexts exist (FR55).
 - FR59: Any member authorized to view a league's participation data may open **another participant's** season glance via the same URL pattern (V1 **transparency**). Shortcuts from league workspace (e.g. avatar tap) **navigate** to this route; the popover is not the sole surface.
 - FR60: In **Statistiques**, events in **travel leagues** contribute to **DEPLACEMENT** role-family columns; events in show leagues never count toward DEPLACEMENT. Legacy `deplacement` template events count toward DEPLACEMENT until migrated. Cross-league Statistiques honour FR55 filters and aggregate only selected leagues.
+
+### Demo troupe onboarding & join policy (V2 production)
+
+- FR61: A **signed-in user** with no prior membership can **self-join** any troupe whose **join policy is `OPEN`**, including the production **Demo** troupe, via an explicit in-app action (e.g. “Rejoindre la troupe de démonstration” on `/troupes`). Self-join **creates or reactivates** an active troupe membership with baseline role **`MEMBER` only**—never `TROUPE_ADMIN`. Self-join **enrolls the member as a season participant** in active leagues configured for Demo onboarding (minimum: **Saison 2026-2027** on the Demo troupe). Self-join is **rejected** for troupes with **`INVITE_ONLY`** join policy.
+- FR62: Each troupe has a **join policy**: **`OPEN`** (authenticated self-join permitted per FR61) or **`INVITE_ONLY`** (membership only via troupe administrator invitation or admin-managed add flows). **Newly created troupes default to `OPEN`**. Premium tier packaging that restricts **`INVITE_ONLY`** to paid plans is **deferred**; FR62 establishes the model and permissions only.
+- FR63: A **platform administrator** (super-admin email allowlist, V1 parity via `hatcast.auth.super-admin-emails`) can **read and update** a troupe's **join policy**. **Troupe administrators cannot** change join policy in MVP—even for their own troupe. Changing join policy from **`OPEN`** to **`INVITE_ONLY`** does **not** remove existing active memberships.
+- FR64: **Production** deployments seed a dedicated **Demo** troupe (**name:** *Démo*; **slug:** `demo`; flagged **`is_demo = true`**) distinct from **dev/recette** seeds (e.g. La Malice). The Demo troupe includes one primary season **Saison 2026-2027** (**start:** 2026-06-01; **end:** 2027-05-31), **approximately 20 active events** spanning event types and role-slot configurations (cabaret, match, longform, travel/deplacement patterns), and **fictitious season participants** (generic first names, no real emails) with **pre-seeded availability** sufficient to render a credible agenda and composition views. Event **composition lifecycle states** must cover at minimum the pedagogical mix below. **Platform administrators** maintain Demo content and composition states; self-joining users may submit **their own** availability but **must not** gain organizer or troupe-admin powers. Real user memberships in the Demo troupe **must not** be counted in product analytics as pilot-troupe adoption unless explicitly filtered (FR47).
+
+#### Demo season pedagogical event matrix (planning default)
+
+| Count | Pedagogical intent | Event types (examples) | Composition / lifecycle target |
+| --- | --- | --- | --- |
+| 3–4 | Learn availability + role selection | cabaret, match | **preparing** — no validated composition |
+| 2–3 | Past season context | mixed | **complete** (historique) |
+| 2 | Upcoming draw workflow | match | **draft composition** (organizer-visible) |
+| 2 | Confirmation flow | cabaret | **awaiting confirmations** |
+| 1 | Gap recovery | match | **gaps to fill** |
+| 1 | Fully confirmed team | cabaret | **complete** (upcoming) |
+| 2–3 | Format variety | longform, travel/deplacement | mixed states |
+| 1–2 | Archived / inactive | any | archived or inactive (admin-visible) |
+
+Exact titles, dates, and UUIDs are **implementation** concerns (Flyway seed); this matrix is the **acceptance benchmark** for FR64.
 
 ## Non-Functional Requirements
 

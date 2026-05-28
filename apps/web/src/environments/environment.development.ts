@@ -4,7 +4,7 @@ import type { FirebaseOptions } from 'firebase/app'
 export const environment = {
   production: false,
   googleOAuthWebClientId: '730278491306-fdsq5i690k45tfvphjtjr2j2iq8bgjjd.apps.googleusercontent.com',
-  /** Troupe seed « La Malice » — flux provisoire « Rejoindre la troupe de démonstration » (Story 2.1). */
+  /** Troupe seed dev « Les Improbots » (UUID …000001) — distincte de la troupe Démo prod (Epic 18). */
   demoTroupeId: 'a0000001-0000-4000-8000-000000000001',
   /**
    * Config Web du projet GCP avec Identity Platform (Console : paramètres projet → applications Web,

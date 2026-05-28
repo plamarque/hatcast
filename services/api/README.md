@@ -73,7 +73,7 @@ La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml
 
 ### Flyway en profil `test`
 
-Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` (données `@seed.la-malice.test` pour `MemberSeasonGlanceIntegrationTest`, etc.). Le profil **cloud** exclut `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
+Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` (données `@seed.improbots.test` pour `MemberSeasonGlanceIntegrationTest`, etc.). Le profil **cloud** exclut `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
 
 ### Compatibilité SQL H2 (shims test uniquement)
 

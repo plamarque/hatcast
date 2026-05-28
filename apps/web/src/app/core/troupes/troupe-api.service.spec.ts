@@ -115,8 +115,8 @@ describe('TroupeApiService', () => {
         Promise.resolve([
           {
             id: 't-1',
-            name: 'La Malice',
-            slug: 'la-malice',
+            name: 'Les Improbots',
+            slug: 'les-improbots',
             activeMemberCount: 4,
             upcomingEventCount: 1,
             membership: {

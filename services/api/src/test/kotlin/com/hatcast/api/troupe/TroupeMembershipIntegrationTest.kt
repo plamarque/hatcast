@@ -71,7 +71,7 @@ class TroupeMembershipIntegrationTest {
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
-    private val seedSeasonSlug = "la-malice-2026-2027"
+    private val seedSeasonSlug = "les-improbots-2026-2027"
     private val mapper = ObjectMapper()
 
     @Test
@@ -105,7 +105,7 @@ class TroupeMembershipIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$.[0].id").value(seedTroupeId.toString()))
-            .andExpect(jsonPath("$.[0].slug").value("la-malice"))
+            .andExpect(jsonPath("$.[0].slug").value("les-improbots"))
             .andExpect(jsonPath("$.[0].membership.status").value("ACTIVE"))
             .andExpect(jsonPath("$.[0].membership.baselineRole").value("MEMBER"))
     }
@@ -164,11 +164,11 @@ class TroupeMembershipIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(
-                jsonPath("$.[?(@.slug == 'la-malice')].upcomingEventCount")
+                jsonPath("$.[?(@.slug == 'les-improbots')].upcomingEventCount")
                     .value(org.hamcrest.Matchers.contains(0)),
             )
             .andExpect(
-                jsonPath("$.[?(@.slug == 'la-malice')].activeMemberCount")
+                jsonPath("$.[?(@.slug == 'les-improbots')].activeMemberCount")
                     .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.greaterThanOrEqualTo(1))),
             )
             .andExpect(
@@ -471,6 +471,21 @@ class TroupeMembershipIntegrationTest {
                     .content("""{"title":"Forbidden season"}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `platform admin can manage members without troupe admin role`() {
+        val cookie =
+            signInAndJoin(
+                "sub-platform-members-1",
+                "platform-admin@hatcast.test",
+                "Platform Admin",
+            )
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/members").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content").isArray)
     }
 
     @Test

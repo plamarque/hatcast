@@ -1,5 +1,6 @@
 package com.hatcast.api.troupe
 
+import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
 import com.hatcast.api.troupe.dto.MemberImportResultDto
@@ -32,6 +33,7 @@ class TroupeMembershipService(
     private val userRepository: UserRepository,
     private val userAccountService: UserAccountService,
     private val csvImportService: TroupeMemberCsvImportService,
+    private val platformAdminService: PlatformAdminService,
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
@@ -108,7 +110,7 @@ class TroupeMembershipService(
         size: Int,
         principal: SessionUserPrincipal,
     ): PagedTroupeMembersResponse {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         if (size < 1 || size > 100) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "size doit être entre 1 et 100")
         }
@@ -175,7 +177,7 @@ class TroupeMembershipService(
         body: AddTroupeMemberRequest,
         principal: SessionUserPrincipal,
     ): TroupeMemberAdminDto {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         val troupe =
             troupeRepository
                 .findByIdForMembershipJoin(troupeId)
@@ -244,7 +246,7 @@ class TroupeMembershipService(
         body: UpdateTroupeMemberRequest,
         principal: SessionUserPrincipal,
     ): TroupeMemberAdminDto {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         val membership =
             membershipRepository.findByIdAndTroupe_Id(membershipId, troupeId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Adhésion introuvable.")
@@ -274,7 +276,7 @@ class TroupeMembershipService(
         troupeId: UUID,
         principal: SessionUserPrincipal,
     ): String {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         val memberships = sequence {
             var page = 0
             while (true) {
@@ -299,7 +301,7 @@ class TroupeMembershipService(
         csvContent: String,
         principal: SessionUserPrincipal,
     ): MemberImportResultDto {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         troupeRepository.findByIdForMembershipJoin(troupeId)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
         val parsed = TroupeMemberCsvCodec.parse(csvContent)
@@ -331,7 +333,7 @@ class TroupeMembershipService(
         membershipId: UUID,
         principal: SessionUserPrincipal,
     ) {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         val membership =
             membershipRepository.findByIdAndTroupe_Id(membershipId, troupeId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Adhésion introuvable.")
@@ -366,6 +368,16 @@ class TroupeMembershipService(
     }
 
     private fun normalizeDisplayName(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }
+
+    private fun requireCanManageTroupeMembers(
+        principal: SessionUserPrincipal,
+        troupeId: UUID,
+    ) {
+        if (platformAdminService.isPlatformAdmin(principal)) {
+            return
+        }
+        requireTroupeAdmin(principal.userId, troupeId)
+    }
 
     companion object {
         private const val EXPORT_BATCH_SIZE = 100

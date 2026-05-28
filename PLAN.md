@@ -264,7 +264,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 
 | Slice | Statut | Livrable | DoD |
 |-------|--------|----------|-----|
-| **M0** Décision & garde-fous | [x] | ADR-0014 ; Flyway `db/seed` hors profil `cloud` | Deploy staging n’insère pas `@seed.la-malice.test` |
+| **M0** Décision & garde-fous | [x] | ADR-0014 ; Flyway `db/seed` hors profil `cloud` | Deploy staging n’insère pas `@seed.improbots.test` |
 | **M1** Infra pre-prod | [ ] | Env GitHub `staging`, Neon branch, premier deploy `staging` | SPA + API + schéma Flyway OK ; **après OPS-2** |
 | **M2** Playbook migration (périmètre actuel) | [x] doc | Runbook + scripts `export:v1-*:prod` ; imports CSV 2.3 | Users + membres prod → staging |
 | **M3** Boucle reset / rejouer | [x] doc | Procédure C du runbook | ≥ 1 cycle reset documenté (cible : 3 avant cutover) |

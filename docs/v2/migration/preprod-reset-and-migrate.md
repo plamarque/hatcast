@@ -40,7 +40,7 @@ Do **not** use `--database=staging` or `--database=development` for pre-prod mig
 1. Provision Neon branch `staging` and GitHub secrets (see DEPLOY_V2_CLOUD_RUN §5).
 2. Push or merge to **`staging`** → CI deploys Cloud Run.
 3. Confirm health: SPA loads, `GET /v1/auth/me` returns 401 without session.
-4. Confirm DB is empty of seed data: no users with `@seed.la-malice.test` (SQL or admin check).
+4. Confirm DB is empty of seed data: no users with `@seed.improbots.test` (SQL or admin check).
 5. Continue with **Procedure B** (migrate).
 
 ## Procedure B — Migrate from V1 production

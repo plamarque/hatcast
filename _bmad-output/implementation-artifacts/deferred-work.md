@@ -1,3 +1,11 @@
+## Deferred from: code review of 18-0-renommer-seed-dev-les-improbots.md (2026-05-28)
+
+- Venue fiction « Local Malice, Lille » dans V26 — libellé lieu spectacle, pas identité troupe seed.
+- Noms export `buildMalicie*` dans `generate-improbots-seed-sql.js` — aliases npm malice conservés ; renommage cosmétique différé.
+- Checksum Flyway seeds modifiés sur base Neon persistant sans `repair-on-migrate` — V31 compense le contenu ; pattern ops connu.
+- Collision slug `les-improbots` si troupe homonyme créée manuellement avant V31 — edge case dev rare.
+- Fixtures unitaires front « La Malice » génériques dans `troupe-context.service.spec.ts` — non couplées au seed UUID.
+
 ## Deferred from: code review of 2-11-creation-troupe-api-ui-minimale.md (2026-05-28)
 
 - `TroupeRepository.findBySlug` ajouté mais non utilisé (optionnel dans la story) — retirer ou utiliser si un flux slug→id apparaît.

@@ -13,8 +13,8 @@ import { TroupesList } from './troupes-list'
 
 const mockTroupe: TroupeListItem = {
   id: 't-1',
-  name: 'La Malice',
-  slug: 'la-malice',
+  name: 'Les Improbots',
+  slug: 'les-improbots',
   activeMemberCount: 3,
   upcomingEventCount: 2,
   membership: {
@@ -106,7 +106,7 @@ describe('TroupesList', () => {
   it('affiche les cartes troupe avec lien Ouvrir vers le hub', async () => {
     await settle(fixture)
 
-    const openLink = fixture.nativeElement.querySelector('a[href="/troupes/la-malice"]')
+    const openLink = fixture.nativeElement.querySelector('a[href="/troupes/les-improbots"]')
     expect(openLink?.textContent?.trim()).toBe('Ouvrir')
     expect(fixture.nativeElement.textContent).toContain('3 membres')
     expect(fixture.nativeElement.textContent).toContain('2 spectacles à venir')
