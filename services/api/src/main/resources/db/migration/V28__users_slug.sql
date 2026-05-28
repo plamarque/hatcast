@@ -19,8 +19,8 @@ SET slug = (
                   coalesce(
                     nullif(trim(usr.display_name), ''),
                     CASE
-                      WHEN locate('@', coalesce(usr.email, '')) > 0
-                      THEN substring(usr.email, 1, locate('@', usr.email) - 1)
+                      WHEN position('@' in coalesce(usr.email, '')) > 0
+                      THEN substring(usr.email from 1 for position('@' in usr.email) - 1)
                       ELSE nullif(trim(coalesce(usr.email, '')), '')
                     END,
                     'user'
