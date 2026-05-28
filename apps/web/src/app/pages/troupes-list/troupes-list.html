@@ -30,27 +30,50 @@
     </section>
   } @else {
     <section class="troupes-list__section" aria-labelledby="mes-troupes-heading">
-      <h2 id="mes-troupes-heading" class="troupes-list__section-title">Mes troupes</h2>
+      <div class="troupes-list__section-head">
+        <h2 id="mes-troupes-heading" class="troupes-list__section-title">Mes troupes</h2>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          class="troupes-list__create-btn"
+          (click)="openCreateTroupeDialog()"
+        >
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Créer une troupe
+        </button>
+      </div>
       @if (troupes().length === 0) {
         <div class="troupes-list__empty">
           <p class="troupes-list__empty-text">
-            Tu n’appartiens à aucune troupe pour l’instant. Rejoins la troupe de démonstration pour
-            commencer.
+            Tu n’appartiens à aucune troupe pour l’instant. Crée la tienne ou rejoins la troupe de
+            démonstration pour commencer.
           </p>
-          <button
-            mat-flat-button
-            color="primary"
-            type="button"
-            [disabled]="joiningDemo()"
-            (click)="joinDemoTroupe()"
-          >
-            @if (joiningDemo()) {
-              <mat-spinner diameter="20" />
-            } @else {
-              <mat-icon>group_add</mat-icon>
-            }
-            Rejoindre la troupe de démonstration
-          </button>
+          <div class="troupes-list__empty-actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              class="troupes-list__create-btn"
+              (click)="openCreateTroupeDialog()"
+            >
+              <mat-icon aria-hidden="true">add</mat-icon>
+              Créer une troupe
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="joiningDemo()"
+              (click)="joinDemoTroupe()"
+            >
+              @if (joiningDemo()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                <mat-icon aria-hidden="true">group_add</mat-icon>
+              }
+              Rejoindre la troupe de démonstration
+            </button>
+          </div>
         </div>
       } @else {
         <div class="troupes-list__grid">

@@ -260,7 +260,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 **Added:** 2026-05-25 — [ADR-0014](docs/adr/0014-v2-preprod-migration-no-seed.md), runbook [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md).  
 **Objectif :** déployer V2 en **staging** (sans données seed), alimenter Neon depuis **Firestore V1 production** (`default`), pouvoir **reset + rejouer** la migration jusqu’à la bascule prod (date non fixée).
 
-**Hygiène & ordre d’exécution (2026-05-28) :** [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md), SCP [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md). **Gate M1 (PO : option B) :** **OPS-2** (check `services/api (tests)` vert — H2, `api-test.yml`) puis **M1** ; le reste de la vague **Hygiene H1** peut avancer en parallèle avec **M1** ; viser clôture **5-7**, **2-10**, **12-7**, **6-13** avant le premier import **MIG-2** complet.
+**Hygiène & ordre d’exécution (2026-05-28) :** [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md), SCP [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md). **Gate M1 (PO : option B) :** **OPS-2** (check `services/api (tests)` vert — H2, `api-test.yml`) puis **M1** ; le reste de la vague **Hygiene H1** peut avancer en parallèle avec **M1** ; viser clôture **5-7**, **2-10**, **12-7**, **6-13** avant le premier import **MIG-2** complet. **Gate migration (staging vide) :** **Story 2.11** (création troupe) **avant** proc. B du runbook (import CSV 2.3) — pas de seed sur profil `cloud` ([ADR-0014](docs/adr/0014-v2-preprod-migration-no-seed.md)).
 
 | Slice | Statut | Livrable | DoD |
 |-------|--------|----------|-----|
@@ -278,7 +278,8 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **OPS-2** | CI : tests d’intégration API (H2, `api-test.yml`) / profil test documenté (**DW-099**) | P0 | [x] | **Gate M1** — workflow `api-test.yml`, profil H2 documenté |
 | **OPS-3** | Smoke PWA — `BASE_URL` staging V2 (**DW-002**) | P2 | backlog | |
 | **MIG-1** | Runbook reset Neon staging | P0 | [x] |
-| **MIG-2** | Export V1 → import V2 : saisons + événements | P1 | backlog |
+| **MIG-0** | Bootstrap troupe sur staging/prod vide (sans `db/seed`) | P0 | [x] | Story **2.11** — prérequis import CSV [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md) |
+| **MIG-2** | Export V1 → import V2 : saisons + événements | P1 | backlog | **Après 2.11** + imports users/membres (2.3) |
 | **MIG-3** | Export dispos / compositions | P2 | backlog |
 | **MIG-4** | À l’import / post-import : `template_type=deplacement` → `equity_tag=deplacements` ; retrait progressif du type `deplacement` | P2 | backlog | Après **MIG-2** (données prod) |
 
@@ -291,6 +292,12 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **12-7** | Agenda : annulation requêtes obsolètes + verrou navigation post-login | P1 | backlog | DW-044, DW-054 |
 | **6-13** | Publish : notifications hors transaction | P2 | backlog | DW-085 |
 | **DOC-1** | Archive deferred (en-tête + IDs triage 2026-05-28) | P2 | backlog | H-ARCHIVE |
+
+**Pre-prod / migration (PLAN, pas SPEC) — story produit :**
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **2.11** | Création d’une troupe (API + UI minimale) | **P0** | [x] | **Gate MIG-0** ; créateur → `TROUPE_ADMIN` ; slug unique ; remplace bootstrap SQL manuel |
 
 **Explicitement hors MVP V2 (backlog post-pilote) :**
 
@@ -339,6 +346,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 |-------|--------|---------|
 | **Hygiene H1** | **OPS-2** (gate) ; **DOC-1** ; **5-7**, **2-10**, **12-7**, **6-13** ; **OPS-3** ; validation slugs **MIG-2** (DW-031) | CI fiable ; recette staging sans dette H1 bloquante sur import |
 | **M1** | Infra pre-prod | Staging live — **dès OPS-2 vert** (option B PO) |
+| **MIG-0** | Story **2.11** — première troupe + admin sur env `cloud` | Import CSV 2.3 possible |
 | **MIG-2 → MIG-4** | Export / import V1 sur Neon staging | Données réelles ; tags déplacement |
 | **Iso-V1** | Liste §5 [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md) (pas le deferred brut) | Parité produit ciblée ; ex. **17.24**, Epic **4** |
 | **Hygiene H2 + growth** | Deferred D/C restant, [growth-backlog.md](_bmad-output/planning-artifacts/growth-backlog.md) | Post-staging |
@@ -349,8 +357,9 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 2. **M1** (ops, dès gate CI) en parallèle possible avec **5-7**  
 3. **5-7** + **2-10**  
 4. **12-7** + **6-13** (avant premier **MIG-2** complet)  
-5. **MIG-2** puis **MIG-3** / **MIG-4**  
-6. Vague **iso-V1** puis **H2**
+5. **2.11** (création troupe) — **avant** import migration staging  
+6. **MIG-2** (exports + import) puis **MIG-3** / **MIG-4**  
+7. Vague **iso-V1** puis **H2**
 
 ---
 

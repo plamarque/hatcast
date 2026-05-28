@@ -22,7 +22,7 @@ Tracking: [PLAN.md](../../../PLAN.md) § « Pre-prod V2 + migration V1 ».
   - `FIREBASE_PROJECT_ID` (or `VITE_FIREBASE_PROJECT_ID`)
   - `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` **or** `gcloud auth application-default login`
 - V1 **season document id** to migrate (one season ≈ one troupe in current playbook).
-- V2 **troupe** already created on staging (empty or target troupe UUID known for imports).
+- V2 **troupe** on staging: created via **Story 2.11** ([PLAN.md](../../../PLAN.md) **MIG-0**) or equivalent product flow — **not** Flyway `db/seed` on `cloud` ([ADR-0014](../../adr/0014-v2-preprod-migration-no-seed.md)). Manual SQL bootstrap is deprecated once **2.11** is done.
 
 ## Environment matrix
 

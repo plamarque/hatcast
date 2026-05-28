@@ -90,6 +90,13 @@ data class PagedTroupeMembersResponse(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+data class CreateTroupeRequest(
+    @field:NotBlank(message = "Le nom de la troupe ne peut pas être vide.")
+    @field:Size(max = 255)
+    val name: String,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class AddTroupeMemberRequest(
     @field:NotBlank
     val email: String,

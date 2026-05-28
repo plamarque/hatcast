@@ -20,6 +20,46 @@ describe('TroupeApiService', () => {
     return TestBed.inject(TroupeApiService)
   }
 
+  it('createTroupe envoie POST avec credentials, CSRF et nom trimé', async () => {
+    document.cookie = 'XSRF-TOKEN=abc%3D'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () =>
+        Promise.resolve({
+          id: 't-new',
+          name: 'Ma Troupe',
+          slug: 'ma-troupe',
+          membership: {
+            id: 'm-1',
+            displayName: 'Patrice',
+            status: 'ACTIVE',
+            baselineRole: 'TROUPE_ADMIN',
+            createdAt: '',
+            updatedAt: '',
+          },
+          activeMemberCount: 1,
+          upcomingEventCount: 0,
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await service().createTroupe({ name: '  Ma Troupe  ' })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'X-XSRF-TOKEN': 'abc=',
+        }),
+        body: JSON.stringify({ name: 'Ma Troupe' }),
+      }),
+    )
+  })
+
   it('joinTroupe envoie POST avec credentials et CSRF', async () => {
     document.cookie = 'XSRF-TOKEN=abc%3D'
     const fetchMock = vi.fn().mockResolvedValue({

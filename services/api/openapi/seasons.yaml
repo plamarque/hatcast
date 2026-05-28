@@ -4,6 +4,7 @@ info:
   description: >
     Contrat pour la gestion des troupes, adhésions membres et saisons V2 (Postgres, session cookie).
     `GET /troupes` retourne uniquement les troupes où l'utilisateur connecté a une adhésion active.
+    `POST /troupes` crée une troupe et place l'utilisateur courant en `TROUPE_ADMIN` actif (bootstrap MIG-0, slug auto).
     Pagination liste : paramètres `page` (0-based) et `size` (défaut côté client 20, max 100 côté API).
     Les mutations exigent le cookie de session et l’en-tête CSRF `X-XSRF-TOKEN` (voir Spring Security).
     Les mutations d'administration de troupe exigent une adhésion active avec le rôle de base `TROUPE_ADMIN`.
@@ -40,6 +41,36 @@ paths:
                   $ref: '#/components/schemas/TroupeListItem'
         '401':
           description: Non authentifié
+
+    post:
+      tags: [Troupes]
+      summary: Créer une troupe (bootstrap MIG-0)
+      description: >
+        Crée une troupe et une adhésion active `TROUPE_ADMIN` pour l'utilisateur connecté.
+        Le slug est dérivé automatiquement du nom (unicité globale, suffixes `-2`, `-3`, …).
+        Toute session authentifiée peut créer une troupe (pas de gate super-admin).
+        Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTroupeRequest'
+      responses:
+        '201':
+          description: Troupe créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeListItem'
+        '400':
+          description: Nom vide ou slug impossible
+        '401':
+          description: Non authentifié
+        '409':
+          description: Conflit d'unicité slug après plusieurs tentatives
 
   /troupes/{troupeId}/memberships/me:
     get:
@@ -1070,6 +1101,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserImportRowResult'
+
+    CreateTroupeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Nom affiché de la troupe (trim côté serveur ; slug calculé automatiquement).
 
     AddTroupeMemberRequest:
       type: object

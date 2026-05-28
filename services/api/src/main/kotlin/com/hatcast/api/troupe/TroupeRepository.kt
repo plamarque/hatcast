@@ -8,6 +8,10 @@ import org.springframework.data.repository.query.Param
 import java.util.UUID
 
 interface TroupeRepository : JpaRepository<TroupeEntity, UUID> {
+    fun existsBySlug(slug: String): Boolean
+
+    fun findBySlug(slug: String): TroupeEntity?
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM TroupeEntity t WHERE t.id = :id")
     fun findByIdForMembershipJoin(

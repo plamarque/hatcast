@@ -1,3 +1,7 @@
+## Deferred from: code review of 2-11-creation-troupe-api-ui-minimale.md (2026-05-28)
+
+- `TroupeRepository.findBySlug` ajouté mais non utilisé (optionnel dans la story) — retirer ou utiliser si un flux slug→id apparaît.
+
 ## Deferred from: code review of ops-2-ci-integration-tests-postgres.md (2026-05-28)
 
 - Required status check / branch protection for workflow `services/api (tests)` (`api-test.yml`) not verified in repo settings — configure on `v2`/`main` when enforcing M1 gate.
