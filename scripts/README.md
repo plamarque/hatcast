@@ -17,8 +17,17 @@ Ce dossier contient les scripts utiles pour les migrations, le déploiement, la 
 - **`test-dev-server.sh`** : Lance le serveur de développement V1 et vérifie qu’il démarre (port 5173 ; utile surtout pour le scénario décrit ci-dessous avec la V1).
 
 ### 📦 Gestion des versions
-- **`release-version.sh`** : Script principal pour créer de nouvelles versions
-- **`generate-changelog.js`** : Génère le changelog automatiquement
+- **`release-version.sh`** : Release **V1** (Firebase) depuis la branche `staging` → `main`
+- **`generate-changelog.js`** : Génère le changelog automatiquement (V1)
+
+### ☁️ Déploiement V2 (Cloud Run)
+- **`v2/branches.env`** : Noms de branches Git V2 (`v2`, `staging-v2`, `production-v2`) — voir `v2/branches.env.example`
+- **`v2/lib/git-branches.sh`** : Helpers Git partagés (fetch, arbre propre, branche courante)
+- **`v2/promote-to-staging.sh`** : Merge `origin/v2` → `staging-v2` + push (CI staging)
+- **`v2/release-production.sh`** : Release prod V2 depuis `staging-v2` (version, changelog, tag, merge → `production-v2`)
+- **`lib/version-changelog.sh`** : Fonctions semver / CHANGELOG (usage opt-in V2)
+
+Documentation : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](../docs/v2/technical/DEPLOYMENT_WORKFLOW.md)
 
 ### 📱 PWA et déploiement
 - **`deploy-pwa.sh`** : Préparation et vérification du déploiement PWA (build optionnel, vérification des assets). Usage : `./scripts/deploy-pwa.sh` depuis la racine.

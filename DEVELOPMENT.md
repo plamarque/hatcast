@@ -57,7 +57,7 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
-**Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) ; branches / environnements : [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
+**Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) ; workflow Git (promote / release) : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) ; branches / environnements : [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 
 ---
 
@@ -114,9 +114,11 @@ Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [
 
 ## Release / version
 
+### V1 (Firebase — branche `staging`)
+
 - **Commande (depuis la racine du repo) :**  
   `./scripts/release-version.sh [--dry-run] [--major|--minor|--patch]`  
-  Script principal pour créer une nouvelle version (bump de `package.json`, mise à jour des changelogs, tag Git, etc.). Détails dans [scripts/release-version.sh](scripts/release-version.sh).
+  Script principal pour créer une nouvelle version V1 (bump de `package.json`, mise à jour des changelogs, tag Git, merge vers `main`, etc.). Détails dans [scripts/release-version.sh](scripts/release-version.sh).
 
 - **Options :**
   - `--patch` : 0.43.1 → 0.43.2
@@ -124,7 +126,13 @@ Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [
   - `--major` : 0.43.1 → 1.0.0
   - `--dry-run` : simulation sans modification des fichiers ni création de tag
 
-- **Changelog :** [scripts/generate-changelog.js](scripts/generate-changelog.js) peut être utilisé pour générer le changelog ; voir [scripts/README.md](scripts/README.md) pour la gestion des versions.
+- **Changelog :** [scripts/generate-changelog.js](scripts/generate-changelog.js) peut être utilisé pour générer le changelog ; voir [scripts/README.md](scripts/README.md).
+
+### V2 (Cloud Run — branche `staging-v2`)
+
+- **Promotion staging :** `./scripts/v2/promote-to-staging.sh [--dry-run] [--ff-only]`
+- **Release production :** depuis `staging-v2`, `./scripts/v2/release-production.sh [--dry-run] [--patch|--minor|--major|--version=X.Y.Z]`
+- Guide : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md)
 
 ---
 

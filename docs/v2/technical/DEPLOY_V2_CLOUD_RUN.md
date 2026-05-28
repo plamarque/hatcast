@@ -2,6 +2,8 @@
 
 Ce guide complète la configuration **Google Cloud**, **Neon** (PostgreSQL managé) et **GitHub Actions** pour des services **Cloud Run** distincts par environnement : image Docker (Nginx + Angular statique + Spring Boot), alignée avec le plan option A.
 
+**Flux Git quotidien (promote, release, checklist)** : [DEPLOYMENT_WORKFLOW.md](DEPLOYMENT_WORKFLOW.md).
+
 ## 1. APIs Google Cloud à activer
 
 Dans **APIs & Services > Library**, activer au minimum :
@@ -56,7 +58,7 @@ Créer **trois environnements** dans **Settings > Environments** : `development`
 |-------------|----------------------|-------------------------|-------------------------------------|
 | `v2` | `development` | `development` ou `dev` | `hatcast-v2-dev` |
 | `staging-v2` | `staging` | `staging` | `hatcast-v2-staging` |
-| `main` | `production` | branche **primary** (prod) | `hatcast-v2` |
+| `production-v2` | `production` | branche **primary** (prod) | `hatcast-v2` |
 
 La branche git **`staging`** reste dédiée au déploiement **V1** (Firebase Hosting, workflow [`.github/workflows/deploy-staging.yml`](../../.github/workflows/deploy-staging.yml)). Pour la V2, utiliser **`staging-v2`** : même environnement GitHub `staging` et mêmes secrets, sans déclencher ni mélanger les pipelines legacy.
 
@@ -181,7 +183,7 @@ Voir [V2_GOOGLE_OAUTH_SETUP.md](V2_GOOGLE_OAUTH_SETUP.md) pour le détail multi-
 ## 5. PostgreSQL sur Neon (un projet, trois branches)
 
 - Créer un **projet Neon** ([console](https://console.neon.tech)).
-- **Branche primary** : données de **production** (alignée avec les déploiements depuis `main`).
+- **Branche primary** : données de **production** (alignée avec les déploiements depuis `production-v2`).
 - Créer deux branches enfant (depuis la primary ou selon votre politique Neon), par ex. **`staging`** et **`development`** (ou `dev`), pour isoler données et chaînes de connexion.
 
 Chaque branche Neon fournit sa propre **chaîne de connexion** (hôte `*.neon.tech` distinct dans le tableau de bord).
