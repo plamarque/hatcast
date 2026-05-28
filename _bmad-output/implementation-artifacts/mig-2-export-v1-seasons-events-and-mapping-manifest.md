@@ -1,6 +1,6 @@
 # Story MIG-2 : Export V1 saisons + événements vers V2 et manifest de mapping
 
-Status: ready-for-dev
+Status: done
 
 **Type :** Migration / outillage (PLAN.md § Pre-prod V2 + migration V1). Pas de feature produit.
 **ADR :** [docs/adr/0016-…-migration-pipeline.md](../../docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md) · [0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md) · [0015](../../docs/adr/0015-v2-demo-troupe-product-bootstrap.md)
@@ -34,14 +34,14 @@ afin de **disposer du pont d'identités V1→V2 déterministe dont MIG-3 (dispos
 
 ## Tasks / Subtasks
 
-- [ ] **Périmètre :** `scripts/` (Node) + SQL appliqué sur Neon. Pas d'`apps/web/`, pas de `services/api/` runtime (réutilise le schéma existant).
-- [ ] **Extract** (AC 1, 8) : étendre `scripts/replay/loadSeasonData.js` `getDb` pour normaliser `default`→`(default)` ; commande `migrate:malice:extract` qui dump events + season meta en JSON horodaté. Réutiliser `loadEvents()`.
-- [ ] **Transform events** (AC 2, 3) : module pur testable (cf. `scripts/v1/troupeMembersCsv.js`) qui produit les `INSERT events` (+ slug) idempotents.
-- [ ] **Manifest** (AC 4, 5, 6) : résolution joueurs par email contre `users`/`season_participants` (lecture Neon ou export), résolution events par `v1EventId`; écrire `manifest.json` + `rejects.json`.
-- [ ] **Load** (AC 7) : `migrate:malice:load` (partagé avec MIG-3) — `psql -f load.sql` en transaction, dry-run par défaut, garde-fou prod.
-- [ ] **npm scripts** : `migrate:malice:extract`, `migrate:malice:transform`, `migrate:malice:load` dans `package.json` (+ variantes `:prod`).
-- [ ] **Tests** : tests unitaires du transform events + résolution manifest (jeux de données fixtures, sans Firestore), à la manière de `scripts/v2/generate-improbots-seed-sql.test.js`.
-- [ ] **Doc** : mettre à jour `docs/v2/migration/preprod-reset-and-migrate.md` (étape events + manifest, `(default)`).
+- [x] **Périmètre :** `scripts/` (Node) + SQL appliqué sur Neon. Pas d'`apps/web/`, pas de `services/api/` runtime (réutilise le schéma existant).
+- [x] **Extract** (AC 1, 8) : `getDb` normalise `default`/vide → `(default)` (`normalizeDatabaseId`) ; commande `migrate:malice:extract` qui dump season meta + **tous** les events + players en JSON horodaté sous `export/malice/<ts>/raw.json`. (Dump brut plutôt que `loadEvents()` qui filtre les archivés et cible la base dev — voir notes.)
+- [x] **Transform events** (AC 2, 3) : module pur testable `scripts/v1/maliceEventsManifest.js` qui produit les `INSERT events` (+ slug V24, unique/saison) idempotents.
+- [x] **Manifest** (AC 4, 5, 6) : résolution joueurs par email normalisé contre l'export `season_participants` (camelCase ou snake_case Neon), résolution events par `v1EventId` ; écrit `manifest.json` + `rejects.json`.
+- [x] **Load** (AC 7) : `migrate:malice:load` (partagé avec MIG-3, accepte plusieurs `--sql`) — `psql -f` en transaction unique (`--single-transaction`, `ON_ERROR_STOP`), dry-run par défaut, garde-fou prod (`--confirm-prod=<slug>`), staging `--yes`.
+- [x] **npm scripts** : `migrate:malice:extract`(+`:prod`), `migrate:malice:transform`, `migrate:malice:load`(+`:prod`) dans `package.json`.
+- [x] **Tests** : tests unitaires du transform events + résolution manifest (fixtures, sans Firestore) dans `scripts/v1/maliceEventsManifest.test.js`.
+- [x] **Doc** : `docs/v2/migration/preprod-reset-and-migrate.md` mis à jour (étape B4 events + manifest, note `(default)`).
 
 ## Dev Notes
 
@@ -87,21 +87,56 @@ afin de **disposer du pont d'identités V1→V2 déterministe dont MIG-3 (dispos
 
 ### Agent Model Used
 
-…
+Claude Opus 4.8 (Cursor, bmad-dev-story workflow).
 
 ### Completion Notes List
 
-- …
+- **AC1, AC8 (Extract)** : `scripts/migrate-malice-extract.js` lit la saison en lecture seule (`.get()` uniquement) et écrit `export/malice/<ts>/raw.json` (season meta + events + players). `normalizeDatabaseId()` dans `loadSeasonData.js` corrige BUG-DOC-001 (`default`/vide → `(default)`). `export/` ajouté au `.gitignore` (PII, hors git).
+- **Choix technique (Extract)** : dump **brut de tous les events** (y compris archivés) au lieu de réutiliser `loadEvents()`, car celui-ci filtre `archived !== true` et cible la base `development`. AC2 migre le champ `archived`, donc les events archivés doivent être présents dans le dump.
+- **AC2, AC3 (Transform)** : `transformEvents()` mappe chaque event valide → ligne V2 (`title`, `starts_at` = date V1 + heure par défaut **19:00 local**, `location`, `description`, `template_type` ← `templateType`, `role_slots` JSON fidèle aux `roles` V1, `archived`, `season_id`). Slug généré comme V24 (translit. accents, `-`, unique par saison via suffixe `-2`, `-3`). `v2EventId` = UUID v5 déterministe du `v1EventId` (replay-safe).
+- **AC4, AC5, AC6 (Manifest)** : `buildManifest()` résout `players[]` par email normalisé contre l'export `season_participants`, `events[]` par `v1EventId`. Les non-résolus (player sans email / sans participant, event sans date valide) vont dans `rejects.json` sans interrompre le run.
+- **AC7 (Load)** : `migrate-malice-load.js` applique le(s) `--sql` via `psql --single-transaction -v ON_ERROR_STOP=1` ; **dry-run par défaut** (imprime le SQL, n'écrit rien) ; staging exige `--yes`, prod exige `--confirm-prod=<slug>` (doit égaler `--target`). SQL idempotent `INSERT … ON CONFLICT (id) DO UPDATE`. Partagé avec MIG-3 (accepte plusieurs `--sql`). **La cible réelle = l'URL `--database-url`** ; le même `load.sql` se rejoue tel quel sur la branche staging puis production.
+- **Garde-fou URL↔cible (renforcement demandé en revue)** : `--expect-host=<marker>` vérifie que l'hôte **ou** le nom de branche/base de l'URL contient le marqueur (Neon met souvent l'env dans la branche/db). **Obligatoire pour une écriture prod**, recommandé en staging ; refuse l'écriture si l'URL ne correspond pas à l'étiquette `--target`. Logique pure extraite (`parseDbInfo`, `planLoad`, `isProdTarget`) et couverte par `scripts/v1/maliceLoadGuard.test.js` (13 tests).
+- **Tests** : `node --test scripts/v1/*.test.js` → 32 tests verts (12 transform/manifest + 13 garde-fou load + existants). Aucune régression.
+- **BUG-DOC-001** déplacé en *Fixed* dans `ISSUES.md` (code + runbook corrigés).
 
 ### File List
 
-- …
+- `scripts/replay/loadSeasonData.js` (modifié : `normalizeDatabaseId` + normalisation dans `getDb`)
+- `scripts/v1/maliceEventsManifest.js` (nouveau : module pur transform + manifest)
+- `scripts/v1/maliceEventsManifest.test.js` (nouveau : tests unitaires)
+- `scripts/migrate-malice-extract.js` (nouveau : CLI extract read-only)
+- `scripts/migrate-malice-transform.js` (nouveau : CLI transform → load.sql + manifest + rejects)
+- `scripts/migrate-malice-load.js` (nouveau : CLI load psql, dry-run + garde-fous URL↔cible ; helpers purs exportés)
+- `scripts/v1/maliceLoadGuard.test.js` (nouveau : tests garde-fou load)
+- `package.json` (modifié : npm scripts `migrate:malice:*`)
+- `.gitignore` (modifié : `/export/`)
+- `docs/v2/migration/preprod-reset-and-migrate.md` (modifié : procédure B4 + note `(default)`)
+- `ISSUES.md` (modifié : BUG-DOC-001 → Fixed)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modifié : statut story)
 
 ### Change Log
 
 - 2026-05-29 : Création de la story (ADR-0016).
+- 2026-05-29 : Implémentation MIG-2 — extract/transform/load + manifest, fix BUG-DOC-001, 12 tests unitaires. Statut → review.
+- 2026-05-29 : Renforcement load — garde-fou URL↔cible (`--expect-host`, obligatoire prod), helpers purs + 13 tests, runbook B4 mis à jour.
+- 2026-05-29 : Code review — doublons email V2 dans manifest, retrait alias npm `migrate:malice:load:prod`. Statut → done.
 
 ---
+
+### Review Findings
+
+*Code review 2026-05-29 — cible : changements non commités (file list story).*
+
+- [x] [Review][Patch] Emails V2 dupliqués dans `participants.json` — `buildPlayersManifest` garde le premier `season_participant` (tri par id) et signale les doublons dans `rejects.json` (`V2_DUPLICATE_PARTICIPANT_EMAIL`). [`scripts/v1/maliceEventsManifest.js`]
+
+- [x] [Review][Patch] Script npm `migrate:malice:load:prod` trompeur — alias retiré ; prod documenté dans le runbook B4 (`--confirm-prod` + `--expect-host`). [`package.json`]
+
+- [x] [Review][Defer] `getDb()` ré-appelle `initializeApp()` pour chaque nouvel id de base — risque `Firebase App already exists` si un même process mélange `(default)` et `development` (pattern pré-existant dans `loadSeasonData.js`, hors périmètre MIG-2). [`scripts/replay/loadSeasonData.js:33-68`]
+
+- [x] [Review][Defer] `starts_at` naïf (`YYYY-MM-DD HH:mm:ss`) sans fuseau — cohérent avec `TIMESTAMP` V5 et documenté (19:00 « local ») ; l’interprétation dépend du fuseau session Postgres / app (assumption opérationnelle acceptable pour la migration). [`scripts/v1/maliceEventsManifest.js:20-21`, `docs/v2/migration/preprod-reset-and-migrate.md`]
+
+- [x] [Review][Defer] ADR-0016 §Consequences mentionne encore le défaut doc `--database=default` comme ouvert — corrigé dans le code/runbook (ISSUES Fixed) ; mise à jour ADR hors scope story. [`docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md:43`]
 
 ### Validation create-story
 

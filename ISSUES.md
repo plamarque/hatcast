@@ -10,17 +10,6 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
-### BUG-DOC-001 — V1 export docs/scripts use `--database=default` instead of `(default)`
-- **ID**: BUG-DOC-001
-- **Status**: Open
-- **Severity**: Medium (blocks V1 production exports/migration until the correct id is used)
-- **Affected area**: Migration tooling — `docs/v2/migration/preprod-reset-and-migrate.md`, `scripts/v1-export-*.js`, `scripts/replay/loadSeasonData.js`, ADR-0014
-- **Observed behavior**: Running V1 export/inspection against production with `--database=default` fails with gRPC `5 NOT_FOUND`. `firebase-admin` `getFirestore(app, 'default')` looks for a database literally named `default`, which does not exist.
-- **Expected behavior**: Production Firestore default database id is `(default)`. Commands must pass `--database='(default)'` (or scripts should normalize `default` → `(default)`).
-- **Cause**: Docs/scripts conflate the human label "default" with the Firestore default database id `(default)` (already noted correctly in ADR-0002/ADR-0014 context).
-- **Fix (proposed)**: Normalize `default`/empty → `(default)` in `getDb`, and correct the runbook examples; verified working via `node scripts/v1-inspect-season.js --database='(default)'`.
-- **Notes/context**: Discovered 2026-05-29 while profiling La Malice for MIG-3 (ADR-0016).
-
 ### LIMIT-001 — E2E tests depend on live base state; need fixture re-architecture
 - **ID**: LIMIT-001
 - **Status**: Open
@@ -33,6 +22,17 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 ---
 
 ## Fixed
+
+### BUG-DOC-001 — V1 export docs/scripts use `--database=default` instead of `(default)`
+- **ID**: BUG-DOC-001
+- **Status**: Fixed
+- **Severity**: Medium (blocked V1 production exports/migration until the correct id is used)
+- **Affected area**: Migration tooling — `docs/v2/migration/preprod-reset-and-migrate.md`, `scripts/v1-export-*.js`, `scripts/replay/loadSeasonData.js`, ADR-0014
+- **Observed behavior**: Running V1 export/inspection against production with `--database=default` fails with gRPC `5 NOT_FOUND`. `firebase-admin` `getFirestore(app, 'default')` looks for a database literally named `default`, which does not exist.
+- **Expected behavior**: Production Firestore default database id is `(default)`. Commands must pass `--database='(default)'` (or scripts should normalize `default` → `(default)`).
+- **Cause**: Docs/scripts conflate the human label "default" with the Firestore default database id `(default)` (already noted correctly in ADR-0002/ADR-0014 context).
+- **Fix**: Story **MIG-2** — added `normalizeDatabaseId()` in `scripts/replay/loadSeasonData.js`; `getDb` now maps `default`/empty → `(default)`, so both `--database=default` and `--database='(default)'` work. Runbook `preprod-reset-and-migrate.md` updated (matrix + note).
+- **Notes/context**: Discovered 2026-05-29 while profiling La Malice for MIG-3 (ADR-0016); fixed same day with MIG-2.
 
 ### UX-001 — Onglet Équipe : mutations lentes sans retour visuel global
 - **ID**: UX-001

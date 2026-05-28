@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-29T00:48:00+02:00
+# last_updated: 2026-05-29T12:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-29T00:59:00+02:00"
+last_updated: "2026-05-29T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -48,7 +48,7 @@ development_status:
   ops-2-ci-integration-tests-postgres: done
 
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
-  mig-2-export-v1-seasons-events-and-mapping-manifest: ready-for-dev
+  mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: ready-for-dev
 
   epic-1: in-progress
