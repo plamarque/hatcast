@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-28T23:47:00+02:00
+# last_updated: 2026-05-29T00:11:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -94,7 +94,7 @@ development_status:
   5-4-commentaire-optionnel-sur-la-disponibilite: done
   5-5-saisie-de-disponibilite-pour-un-autre-membre-proxy-avec-audit: done
   5-6-dispos-onglet-material-3-et-commentaire: done
-  5-7-summary-dispos-lecture-sans-ecriture: review
+  5-7-summary-dispos-lecture-sans-ecriture: done
   epic-5-retrospective: optional
 
   epic-6: in-progress

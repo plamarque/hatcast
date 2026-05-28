@@ -449,6 +449,9 @@ class AvailabilityControllerIntegrationTest {
             .perform(
                 get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(admin),
             ).andExpect(status().isOk)
+            .andExpect(
+                jsonPath("$.participants[?(@.userId == '${newcomerUser.id}')]").value(empty<Any>()),
+            )
 
         val countAfter =
             seasonParticipantRepository.countBySeason_IdAndStatus(seasonId, ParticipantStatus.ACTIVE)

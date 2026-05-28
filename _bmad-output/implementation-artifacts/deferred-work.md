@@ -282,6 +282,12 @@
 - `seasons-list.spec.ts` mock `DemoTroupeJoinService` sans assert `DEMO_TROUPE_ID` — AC4 satisfait via `troupes-list` + `demo-troupe-join.service` (clause `and/or`).
 - UUID `…000099` dupliqué dans env + inject script sans import `DEMO_TROUPE_ID` — hardening optionnel prévu par la story.
 
+## Deferred from: code review of 5-7-summary-dispos-lecture-sans-ecriture.md (2026-05-29)
+
+- Transient summary/selectors race on first parallel load (`event-dispos-tab.ts:164`) — pre-existing Promise.all pattern; AC3 keeps sync on selectors; microwindow resolves on reload/retry.
+- `reloadSummary()` does not re-fetch selectors (`event-dispos-tab.ts:199`) — pre-existing; out of 5-7 scope; membership changes mid-session are rare.
+- API clients calling GET summary without selectors get stale roster (`AvailabilityController.kt:48`) — intentional AC2 contract; sync paths remain on selectors/listAdmin/composition.
+
 ## Deferred from: code review of 6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy.md (2026-05-25)
 
 - Dead branch in `onSlotRowClick` foreign-slot snackbar (`event-equipe-tab.ts:337-344`) — readonly button path makes it unreachable; harmless cleanup.
