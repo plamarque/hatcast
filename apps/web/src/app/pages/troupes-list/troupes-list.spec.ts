@@ -79,14 +79,16 @@ describe('TroupesList', () => {
     fixture = TestBed.createComponent(TroupesList)
   })
 
-  it('affiche le fil d’Ariane Mon agenda › Troupes', async () => {
+  it('affiche le fil d’Ariane Accueil › Troupes', async () => {
     await settle(fixture)
 
     const breadcrumb = fixture.nativeElement.querySelector('.troupes-list__breadcrumb')
-    expect(breadcrumb?.textContent).toContain('Mon agenda')
     expect(breadcrumb?.textContent).toContain('Troupes')
-    const agendaLink = breadcrumb?.querySelector('a[href="/agenda"]')
-    expect(agendaLink).not.toBeNull()
+    expect(breadcrumb?.textContent).not.toContain('Mon agenda')
+    const homeLink = breadcrumb?.querySelector('a[href="/accueil"]')
+    expect(homeLink).not.toBeNull()
+    expect(homeLink?.getAttribute('aria-label')).toBe('Accueil')
+    expect(homeLink?.querySelector('mat-icon')?.textContent?.trim()).toBe('home')
   })
 
   it('affiche les cartes troupe avec lien Ouvrir vers le hub', async () => {

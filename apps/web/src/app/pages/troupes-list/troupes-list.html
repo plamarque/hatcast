@@ -1,7 +1,14 @@
 <div class="troupes-list">
   <header class="troupes-list__header">
     <nav class="troupes-list__breadcrumb" aria-label="Fil d'Ariane">
-      <a routerLink="/agenda">Mon agenda</a>
+      <a
+        class="troupes-list__breadcrumb-home"
+        routerLink="/accueil"
+        aria-label="Accueil"
+        matTooltip="Accueil"
+      >
+        <mat-icon aria-hidden="true">home</mat-icon>
+      </a>
       <span class="troupes-list__breadcrumb-sep" aria-hidden="true">›</span>
       <span aria-current="page">Troupes</span>
     </nav>

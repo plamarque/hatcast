@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -18,6 +19,7 @@ import { environment } from '../../../environments/environment'
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTooltipModule,
     RouterLink,
     TroupeCard,
   ],
