@@ -121,12 +121,60 @@ Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (
 
 Le workflow utilise `google-github-actions/auth` avec `workload_identity_provider` et `service_account` (secrets dépôt).
 
-## 4. Cloud Run — origines OAuth (une par environnement)
+## 4. Cloud Run — accès public (IAM) et origines OAuth
+
+### 4.1 Accès public au service (`403 Forbidden`)
+
+Le workflow passe `--allow-unauthenticated` à `gcloud run deploy`, mais le compte de service CI peut **ne pas avoir** le droit d’appliquer la policy IAM (`Setting IAM policy failed` dans les logs GitHub). Symptôme : le service est **vert** dans la console, mais le navigateur affiche **403 Forbidden** — *Your client does not have permission to get URL / from this server*.
+
+**Après le premier déploiement réussi** (ou si le warning IAM apparaît), accorder **Invoquer Cloud Run** au public :
+
+```bash
+gcloud run services add-iam-policy-binding "${SERVICE_NAME}" \
+  --region "${GCP_REGION}" \
+  --member="allUsers" \
+  --role="roles/run.invoker"
+```
+
+Exemple staging :
+
+```bash
+gcloud run services add-iam-policy-binding hatcast-v2-staging \
+  --region europe-west9 \
+  --member="allUsers" \
+  --role="roles/run.invoker"
+```
+
+Alternative : console Cloud Run → service → **Sécurité** / **Permissions** → principal **`allUsers`** → rôle **Cloud Run Invoker**.
+
+Le workflow CI tente aussi ce binding après chaque deploy (avertissement GitHub Actions si échec — policy org ou droits SA insuffisants).
+
+> Une **policy d’organisation** peut interdire `allUsers` ; dans ce cas, documenter l’alternative (IAP, accès authentifié GCP, etc.).
+
+### 4.2 Mémoire JVM (OOM au démarrage)
+
+Spring Boot + Nginx dans la même image peuvent dépasser **512 Mi** au cold start (Flyway, parsing JPQL). Symptôme : logs **`Java heap space`** pendant la création des beans JPA, révision Cloud Run en échec « port 8080 ».
+
+Recommandation **staging / production** : **1 Gi** RAM minimum (le workflow CI applique déjà `--memory 1Gi` et `--cpu 1` — voir [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml)).
+
+Ajustement manuel si besoin avant le prochain deploy CI :
+
+```bash
+gcloud run services update "${SERVICE_NAME}" \
+  --region "${GCP_REGION}" \
+  --memory 1Gi \
+  --cpu 1
+```
+
+### 4.3 Origines OAuth (une par environnement)
 
 Après chaque **premier** déploiement sur un environnement, récupérer l’URL HTTPS du service (console Cloud Run ou `gcloud run services describe`).
 
-1. Dans **Google Cloud Console > APIs & Credentials > Client OAuth Web**, ajouter chaque URL en **Authorized JavaScript origins** (schéma `https://`, sans chemin).
-2. Mettre à jour le secret **`HATCAST_CORS_ALLOWED_ORIGINS`** de **l’environnement** correspondant avec **exactement** la même origine.
+1. Dans **Google Cloud Console > APIs & Credentials > Client OAuth Web**, ajouter chaque URL en **Authorized JavaScript origins** (schéma `https://`, **sans** chemin, **sans** slash final).  
+   Ex. staging : `https://hatcast-v2-staging-730278491306.europe-west9.run.app`  
+   Sans cette entrée : **Error 400: origin_mismatch** au clic « Continuer avec Google ».
+2. **Identity Platform / Firebase Auth** → **Authorized domains** : ajouter le **hostname** seul (ex. `hatcast-v2-staging-730278491306.europe-west9.run.app`).
+3. Mettre à jour le secret **`HATCAST_CORS_ALLOWED_ORIGINS`** de **l’environnement** GitHub correspondant avec **exactement** la même origine que (1), puis redeployer ou `gcloud run services update … --update-env-vars`.
 
 Voir [V2_GOOGLE_OAUTH_SETUP.md](V2_GOOGLE_OAUTH_SETUP.md) pour le détail multi-environnements.
 
@@ -198,9 +246,10 @@ Le **domaine au début du lien** dans l’e-mail (variable `%LINK%` du modèle, 
 
 ## 7. Vérifications post-déploiement
 
+- Pas de **403 Forbidden** sur `/` (IAM `run.invoker` pour `allUsers`, §4.1).
 - `https://<service-url>/` charge l’SPA Angular.
 - Navigation directe vers `/accueil` ou `/connexion` : pas de 404 (fallback SPA via Nginx).
-- Connexion Google sans `origin_mismatch` (origine OAuth + CORS alignés sur cet env).
+- Connexion Google sans **`origin_mismatch`** (origine OAuth §4.3 + CORS alignés sur cet env).
 - `GET /v1/auth/me` après login.
 - Après déploiement : tester **email / mot de passe** sur `/connexion` ; si **503** sur `POST /v1/auth/idp`, vérifier IAM du compte d’exécution Cloud Run (§6.1) et les logs JVM.
 - Parcours **mot de passe oublié** : `/mot-de-passe-oublie` → email reçu → lien vers `/reinitialiser-mot-de-passe?...` (domaine autorisé, §6.2).
