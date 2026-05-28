@@ -11,6 +11,8 @@ import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -315,15 +317,16 @@ class CompositionValidateUnlockIntegrationTest {
         val participantId = createSeasonParticipant(seasonId, "Dana")
         seedDraftComposition(eventId, participantId)
 
-        val first =
-            mockMvc
-                .perform(
-                    post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
-                        .cookie(adminCookie)
-                        .with(csrf()),
-                ).andExpect(status().isOk)
-                .andReturn()
-        val validatedAt = mapper.readTree(first.response.contentAsString).get("validatedAt").asText()
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val validatedAt =
+            compositionRepository.findById(eventId).orElseThrow().validatedAt
+        assertNotNull(validatedAt)
 
         mockMvc
             .perform(
@@ -331,7 +334,11 @@ class CompositionValidateUnlockIntegrationTest {
                     .cookie(adminCookie)
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.validatedAt").value(validatedAt))
+
+        assertEquals(
+            validatedAt,
+            compositionRepository.findById(eventId).orElseThrow().validatedAt,
+        )
 
         verify(notificationPort, times(1)).requestCompositionConfirmation(
             eq(eventId),

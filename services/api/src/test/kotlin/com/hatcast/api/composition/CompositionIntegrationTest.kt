@@ -10,6 +10,8 @@ import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -257,15 +259,16 @@ class CompositionIntegrationTest {
         val participantId = createSeasonParticipant(seasonId, "Dana")
         seedDraftComposition(eventId, participantId)
 
-        val first =
-            mockMvc
-                .perform(
-                    post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
-                        .cookie(adminCookie)
-                        .with(csrf()),
-                ).andExpect(status().isOk)
-                .andReturn()
-        val publishedAt = mapper.readTree(first.response.contentAsString).get("publishedAt").asText()
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val publishedAt =
+            compositionRepository.findById(eventId).orElseThrow().publishedAt
+        assertNotNull(publishedAt)
 
         mockMvc
             .perform(
@@ -273,7 +276,11 @@ class CompositionIntegrationTest {
                     .cookie(adminCookie)
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.publishedAt").value(publishedAt))
+
+        assertEquals(
+            publishedAt,
+            compositionRepository.findById(eventId).orElseThrow().publishedAt,
+        )
     }
 
     @Test
