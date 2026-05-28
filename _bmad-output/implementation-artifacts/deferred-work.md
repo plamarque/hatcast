@@ -1,6 +1,14 @@
+## Archive / closed (triage 2026-05-28, OPS-2)
+
+- **DW-099 / H-CI-TEST** — CI `./gradlew test` : [`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml) ; profil `test` + H2 documenté dans [`services/api/README.md`](../../services/api/README.md).
+- **DW-001, DW-004** — `MemberSeasonGlanceIntegrationTest`, `ShareRecipientsIntegrationTest` : fermés après vert CI (seed `V3_1` sans `ON CONFLICT`, OPS-1).
+- **DW-028, DW-030, DW-037** (pgcrypto) — **Obsolète** : `V23` utilise `gen_random_uuid()` (PostgreSQL 13+) ; pas d’extension `pgcrypto` ; H2 `MODE=PostgreSQL` en test.
+
+---
+
 ## Deferred from: code review of 16-1-route-membre-saison-clin-oeil-filtres.md (2026-05-26)
 
-- `MemberSeasonGlanceIntegrationTest` non exécutable localement — Flyway H2 échoue sur seed `V3_1` (`ON CONFLICT`) avant d’atteindre les tests glance ; valider en CI.
+- ~~`MemberSeasonGlanceIntegrationTest` non exécutable localement — Flyway H2 échoue sur seed `V3_1` (`ON CONFLICT`) avant d’atteindre les tests glance ; valider en CI.~~ **Fermé OPS-2 (2026-05-28).**
 - `openapi/members.yaml` isolé — pas de merge dans la composition OpenAPI tant qu’aucun pipeline ne l’exige.
 
 ## Deferred from: code review of 10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil.md (2026-05-26)
@@ -10,7 +18,7 @@
 
 ## Deferred from: code review of 6-10-partage-et-annonce-message-editable-canaux.md (2026-05-26)
 
-- `ShareRecipientsIntegrationTest` non exécuté localement (Flyway/H2) — tests présents ; à valider en CI / env test sain.
+- ~~`ShareRecipientsIntegrationTest` non exécuté localement (Flyway/H2) — tests présents ; à valider en CI / env test sain.~~ **Fermé OPS-2 (2026-05-28).**
 
 ## Deferred from: code review of 17-17-chip-organisateur-promouvoir-listes-admin.md (2026-05-26, closure 2026-05-27)
 
@@ -71,7 +79,7 @@
 
 ## Deferred from: code review of 17-7-api-tag-equite-glossaire-troupe.md (2026-05-25)
 
-- Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests equity-tag supposent Postgres/CI (aligné 17.6).
+- ~~Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests equity-tag supposent Postgres/CI (aligné 17.6).~~ **Obsolète** — voir en-tête archive OPS-2 ; CI H2 + `gen_random_uuid`.
 
 ## Follow-up — Event form UX (PO 2026-05-25, SCP)
 
@@ -79,7 +87,7 @@
 
 ## Deferred from: code review of 17-6-slug-evenement-dans-les-urls.md (2026-05-25)
 
-- Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests d’intégration slug supposent Postgres/CI.
+- ~~Suite d’intégration API `@SpringBootTest` sur H2 — V23 `pgcrypto` bloque Flyway en local H2 ; tests d’intégration slug supposent Postgres/CI.~~ **Obsolète** — voir en-tête archive OPS-2.
 - Backfill SQL (`translate`) vs `slugify` Kotlin/NFD — écart possible sur titres exotiques au moment de la migration uniquement.
 
 ## Deferred from: code review of 17-5-redirects-fin-seasons-hub-troupe.md (2026-05-25)
@@ -96,7 +104,7 @@
 ## Deferred from: code review of 17-3-page-troupes-mes-troupes-decouvrir.md (2026-05-25)
 
 - Session redirect test does not assert `rememberCurrentUrlForPostLogin` — same gap as `seasons-list` specs.
-- API integration tests blocked locally by Flyway V23 on H2 (`CREATE EXTENSION`).
+- ~~API integration tests blocked locally by Flyway V23 on H2 (`CREATE EXTENSION`).~~ **Obsolète** — voir en-tête archive OPS-2.
 - Pre-existing `event-dispos-tab.spec.ts` failure in full web suite (unrelated to 17.3).
 
 ## Deferred from: code review of 17-2-bandeau-administration-par-scope.md (2026-05-25)

@@ -50,11 +50,41 @@ Endpoints : `POST /v1/auth/me/avatar` (multipart), `POST /v1/auth/me/avatar/goog
 
 ## Tests
 
+### Commande locale
+
+Depuis `services/api/` :
+
 ```bash
 ./gradlew test
 ```
 
-Les tests d’intégration utilisent le profil `test` et **H2** uniquement pour une base jetable ; les migrations Flyway restent les mêmes artefacts que pour Neon (compatibilité SQL surveillée).
+Profil Spring **`test`** (`@ActiveProfiles("test")` sur les suites `@SpringBootTest`). Aucune variable `HATCAST_DATASOURCE_*` ni branche Neon requise.
+
+### H2 (CI et local) vs PostgreSQL (Neon)
+
+| Environnement | Moteur | Config |
+|---------------|--------|--------|
+| **CI** + `./gradlew test` local | **H2** en mémoire | [`src/test/resources/application-test.yml`](src/test/resources/application-test.yml) |
+| **dev** / **cloud** (runtime) | **PostgreSQL** (Neon) | `HATCAST_DATASOURCE_*` + profils `dev` / `cloud` |
+
+La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml)**) exécute `./gradlew test --no-daemon` sur chaque PR/push touchant `services/api/**` (branches `v2`, `main`). Échec du job = check rouge. Relance manuelle : onglet Actions → *services/api (tests)* → *Run workflow*.
+
+**Ne pas** pointer les tests vers Neon staging/prod. La parité Postgres complète (job `services: postgres` ou Testcontainers) reste optionnelle avant **MIG-2** si un écart SQL H2/Postgres apparaît ; aujourd’hui la gate **M1** repose sur H2 + migrations/seed identiques aux artefacts prod.
+
+### Flyway en profil `test`
+
+Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` (données `@seed.la-malice.test` pour `MemberSeasonGlanceIntegrationTest`, etc.). Le profil **cloud** exclut `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
+
+### Compatibilité SQL H2 (shims test uniquement)
+
+- **`TIMESTAMPTZ`** : domaine créé dans l’URL JDBC H2 (`INIT=CREATE DOMAIN IF NOT EXISTS TIMESTAMPTZ AS TIMESTAMP WITH TIME ZONE` dans `application-test.yml`).
+- **`gen_random_uuid()`** : en production, PostgreSQL 13+ natif ([`V23__event_availability_proxy_audit.sql`](src/main/resources/db/migration/V23__event_availability_proxy_audit.sql)). En test, H2 en `MODE=PostgreSQL` fournit la fonction — **pas** de `CREATE EXTENSION pgcrypto` dans les migrations (texte deferred obsolète DW-028/030/037).
+
+Les migrations doivent rester exécutables sur H2 tant que la CI utilise ce profil ; éviter le SQL réservé Postgres non émulé par H2.
+
+### Suites d’intégration (non désactivées en CI)
+
+Environ **22** classes `@SpringBootTest` sous `src/test/kotlin/`, dont notamment `MemberSeasonGlanceIntegrationTest`, `ShareRecipientsIntegrationTest`, et l’ensemble des tests composition/auth/event. Aucun `@Disabled` pour faire passer la CI.
 
 ## Contrats OpenAPI (fragments)
 

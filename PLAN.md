@@ -260,10 +260,12 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 **Added:** 2026-05-25 — [ADR-0014](docs/adr/0014-v2-preprod-migration-no-seed.md), runbook [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md).  
 **Objectif :** déployer V2 en **staging** (sans données seed), alimenter Neon depuis **Firestore V1 production** (`default`), pouvoir **reset + rejouer** la migration jusqu’à la bascule prod (date non fixée).
 
+**Hygiène & ordre d’exécution (2026-05-28) :** [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md), SCP [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md). **Gate M1 (PO : option B) :** **OPS-2** (CI Postgres vert) puis **M1** ; le reste de la vague **Hygiene H1** peut avancer en parallèle avec **M1** ; viser clôture **5-7**, **2-10**, **12-7**, **6-13** avant le premier import **MIG-2** complet.
+
 | Slice | Statut | Livrable | DoD |
 |-------|--------|----------|-----|
 | **M0** Décision & garde-fous | [x] | ADR-0014 ; Flyway `db/seed` hors profil `cloud` | Deploy staging n’insère pas `@seed.la-malice.test` |
-| **M1** Infra pre-prod | [ ] | Env GitHub `staging`, Neon branch, premier deploy `staging` | SPA + API + schéma Flyway OK |
+| **M1** Infra pre-prod | [ ] | Env GitHub `staging`, Neon branch, premier deploy `staging` | SPA + API + schéma Flyway OK ; **après OPS-2** |
 | **M2** Playbook migration (périmètre actuel) | [x] doc | Runbook + scripts `export:v1-*:prod` ; imports CSV 2.3 | Users + membres prod → staging |
 | **M3** Boucle reset / rejouer | [x] doc | Procédure C du runbook | ≥ 1 cycle reset documenté (cible : 3 avant cutover) |
 | **M4** Cutover production | [ ] | Checklist merge / go-live | Hors scope jusqu’à décision produit |
@@ -273,10 +275,22 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | ID | Titre | Priorité | Statut |
 |----|-------|----------|--------|
 | **OPS-1** | Séparer Flyway schema / seed (profils dev vs cloud) | P0 | [x] |
+| **OPS-2** | CI : tests d’intégration sur Postgres / profil test documenté (**DW-099**) | P0 | [x] | **Gate M1** — workflow `api-test.yml`, profil H2 documenté |
+| **OPS-3** | Smoke PWA — `BASE_URL` staging V2 (**DW-002**) | P2 | backlog | |
 | **MIG-1** | Runbook reset Neon staging | P0 | [x] |
 | **MIG-2** | Export V1 → import V2 : saisons + événements | P1 | backlog |
 | **MIG-3** | Export dispos / compositions | P2 | backlog |
 | **MIG-4** | À l’import / post-import : `template_type=deplacement` → `equity_tag=deplacements` ; retrait progressif du type `deplacement` | P2 | backlog | Après **MIG-2** (données prod) |
+
+**Hygiene H1 (PLAN, pas SPEC) — stories à créer via BMad :**
+
+| ID | Titre | Priorité | Statut | Source triage |
+|----|-------|----------|--------|---------------|
+| **5-7** | Summary dispos : lecture sans écriture sur GET (`ensureMembershipParticipants`) | P0 | backlog | **G-003**, DW-079 |
+| **2-10** | Liste membres : corriger N+1 emails | P1 | backlog | DW-068 |
+| **12-7** | Agenda : annulation requêtes obsolètes + verrou navigation post-login | P1 | backlog | DW-044, DW-054 |
+| **6-13** | Publish : notifications hors transaction | P2 | backlog | DW-085 |
+| **DOC-1** | Archive deferred (en-tête + IDs triage 2026-05-28) | P2 | backlog | H-ARCHIVE |
 
 **Explicitement hors MVP V2 (backlog post-pilote) :**
 
@@ -318,6 +332,25 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 4. **6.7** + **6.4** (ou **6.4** avant **6.7** si tirage prioritaire)  
 5. **6.9** + **12.3** ou **12.6**  
 6. Puis backlog post-MVP (17.x navigation, 3.6, …)
+
+### Execution order revised (2026-05-28)
+
+| Phase | Scope | Outcome |
+|-------|--------|---------|
+| **Hygiene H1** | **OPS-2** (gate) ; **DOC-1** ; **5-7**, **2-10**, **12-7**, **6-13** ; **OPS-3** ; validation slugs **MIG-2** (DW-031) | CI fiable ; recette staging sans dette H1 bloquante sur import |
+| **M1** | Infra pre-prod | Staging live — **dès OPS-2 vert** (option B PO) |
+| **MIG-2 → MIG-4** | Export / import V1 sur Neon staging | Données réelles ; tags déplacement |
+| **Iso-V1** | Liste §5 [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md) (pas le deferred brut) | Parité produit ciblée ; ex. **17.24**, Epic **4** |
+| **Hygiene H2 + growth** | Deferred D/C restant, [growth-backlog.md](_bmad-output/planning-artifacts/growth-backlog.md) | Post-staging |
+
+**Ordre de session actuel (2 stories max) :**
+
+1. **OPS-2** (+ **DOC-1** si doc seul)  
+2. **M1** (ops, dès gate CI) en parallèle possible avec **5-7**  
+3. **5-7** + **2-10**  
+4. **12-7** + **6-13** (avant premier **MIG-2** complet)  
+5. **MIG-2** puis **MIG-3** / **MIG-4**  
+6. Vague **iso-V1** puis **H2**
 
 ---
 
