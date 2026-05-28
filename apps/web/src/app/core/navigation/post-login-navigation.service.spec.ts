@@ -240,6 +240,34 @@ describe('PostLoginNavigationService', () => {
     )
   })
 
+  it('mutex navigateAfterSignIn — une seule navigation pour deux appels concurrents', async () => {
+    rememberPendingPostLoginRedirect('/saison/festibask/event/abc?showConfirm=true')
+    const router = TestBed.inject(Router)
+    let resolveNavigate: (value: boolean) => void
+    const navigatePromise = new Promise<boolean>((resolve) => {
+      resolveNavigate = resolve
+    })
+    const navigateByUrlSpy = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockReturnValue(navigatePromise as Promise<boolean>)
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    const svc = service()
+    const first = svc.navigateAfterSignIn(router)
+    const second = svc.navigateAfterSignIn(router)
+    await Promise.resolve()
+
+    expect(navigateByUrlSpy).toHaveBeenCalledTimes(1)
+    expect(navigateSpy).not.toHaveBeenCalled()
+
+    resolveNavigate!(true)
+    const [r1, r2] = await Promise.all([first, second])
+
+    expect(r1).toBe(true)
+    expect(r2).toBe(true)
+    expect(navigateByUrlSpy).toHaveBeenCalledTimes(1)
+  })
+
   it('navigateAfterSignIn uses replaceUrl for /agenda fallback', async () => {
     const router = TestBed.inject(Router)
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)

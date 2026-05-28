@@ -585,6 +585,65 @@ describe('UserAgenda', () => {
     expect(sessionStorage.getItem(USER_AGENDA_FILTERS_STORAGE_KEY)).toBeNull()
   })
 
+  it('ignore une réponse agenda obsolète quand un filtre plus récent est appliqué', async () => {
+    const TROUPE_B = 'a0000002-0000-4000-8000-000000000002'
+    const filters: UserAgendaParticipationFilters = {
+      troupes: [
+        { id: TROUPE_A, name: 'La BIM', slug: 'la-bim' },
+        { id: TROUPE_B, name: 'Autre troupe', slug: 'autre-troupe' },
+      ],
+      leagues: [
+        { id: LEAGUE_A, title: 'Ligue 2026', slug: 'ligue-2026', troupeId: TROUPE_A },
+      ],
+    }
+
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([], { filterBarVisible: true, participationFilters: filters }),
+    })
+
+    await settle(fixture)
+
+    const itemA = agendaItem('event-a', 'Spectacle Troupe A', '2026-06-10T18:00:00Z', {
+      troupeId: TROUPE_A,
+      troupeName: 'La BIM',
+    })
+    const itemB = agendaItem('event-b', 'Spectacle Troupe B', '2026-06-11T18:00:00Z', {
+      troupeId: TROUPE_B,
+      troupeName: 'Autre troupe',
+      troupeSlug: 'autre-troupe',
+    })
+
+    let resolveSlow: ((value: unknown) => void) | undefined
+    agendaApi.listAgenda
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSlow = resolve
+          }),
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: agendaResponse([itemB], { filterBarVisible: true, participationFilters: filters }),
+      })
+
+    void fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
+    await fixture.componentInstance['onTroupeFilterChange'](TROUPE_B)
+
+    resolveSlow?.({
+      ok: true,
+      status: 200,
+      data: agendaResponse([itemA], { filterBarVisible: true, participationFilters: filters }),
+    })
+    await settle(fixture)
+
+    const text = fixture.nativeElement.textContent
+    expect(text).toContain('Spectacle Troupe B')
+    expect(text).not.toContain('Spectacle Troupe A')
+  })
+
   it('ignore les UUID invalides dans l’URL', async () => {
     TestBed.resetTestingModule()
     agendaApi.listAgenda.mockResolvedValue({

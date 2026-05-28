@@ -1,3 +1,7 @@
+## Deferred from: code review of 12-7-agenda-annulation-requetes-obsoletes-verrou-navigation-post-login.md (2026-05-29)
+
+- Test AC2 `loadingAgenda` pendant la course — le test race prouve l’ignorance des données périmées ; l’implémentation respecte AC2 mais le test ne vérifie pas explicitement l’absence de flash `loadingAgenda=false` entre deux requêtes concurrentes.
+
 ## Deferred from: code review of 18-4-ux-onboarding-rejoindre-demo.md (2026-05-28)
 
 - Fichiers `demo-troupe-*.ts` encore non suivis git (`??`) — à inclure au prochain commit ; pas un défaut runtime.

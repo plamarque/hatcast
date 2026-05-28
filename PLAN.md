@@ -289,7 +289,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 |----|-------|----------|--------|---------------|
 | **5-7** | Summary dispos : lecture sans écriture sur GET (`ensureMembershipParticipants`) | P0 | done | **G-003**, DW-079 — story [5-7](_bmad-output/implementation-artifacts/5-7-summary-dispos-lecture-sans-ecriture.md) |
 | **2-10** | Liste membres : corriger N+1 emails | P1 | backlog | DW-068 |
-| **12-7** | Agenda : annulation requêtes obsolètes + verrou navigation post-login | P1 | backlog | DW-044, DW-054 |
+| **12-7** | Agenda : annulation requêtes obsolètes + verrou navigation post-login | P1 | done | DW-044, DW-054 |
 | **6-13** | Publish : notifications hors transaction | P2 | backlog | DW-085 |
 | **DOC-1** | Archive deferred (en-tête + IDs triage 2026-05-28) | P2 | backlog | H-ARCHIVE |
 
