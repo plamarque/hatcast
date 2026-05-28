@@ -9,7 +9,8 @@ ALTER TABLE event_availability ADD COLUMN season_participant_id UUID NULL;
 ALTER TABLE event_availability ADD COLUMN event_participant_id UUID NULL;
 ALTER TABLE event_availability ADD COLUMN recorded_by_user_id UUID NULL;
 
-ALTER TABLE event_availability DROP PRIMARY KEY;
+-- ${drop_event_availability_pk}: PostgreSQL vs H2 (see application.yml / application-test.yml flyway.placeholders)
+ALTER TABLE event_availability ${drop_event_availability_pk};
 
 ALTER TABLE event_availability ALTER COLUMN user_id DROP NOT NULL;
 
