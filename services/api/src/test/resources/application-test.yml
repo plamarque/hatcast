@@ -29,7 +29,7 @@ hatcast:
   auth:
     remember-me-seconds: 2592000
     no-remember-me-seconds: 1800
-    super-admin-emails: platform-admin@hatcast.test
+    super-admin-emails: platform-admin@hatcast.test,platform-members-admin@hatcast.test
   cors:
     allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:4200
   avatar:

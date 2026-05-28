@@ -473,14 +473,23 @@ class TroupeMembershipIntegrationTest {
             ).andExpect(status().isForbidden)
     }
 
+    private val platformAdminEmail = "platform-members-admin@hatcast.test"
+
     @Test
     fun `platform admin can manage members without troupe admin role`() {
         val cookie =
-            signInAndJoin(
+            TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
                 "sub-platform-members-1",
-                "platform-admin@hatcast.test",
-                "Platform Admin",
+                email = platformAdminEmail,
+                name = "Platform Admin",
             )
+
+        mockMvc
+            .perform(get("/v1/auth/me").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.platformAdmin").value(true))
 
         mockMvc
             .perform(get("/v1/troupes/$seedTroupeId/members").cookie(cookie))
