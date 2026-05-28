@@ -260,7 +260,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 **Added:** 2026-05-25 — [ADR-0014](docs/adr/0014-v2-preprod-migration-no-seed.md), runbook [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md).  
 **Objectif :** déployer V2 en **staging** (sans données seed), alimenter Neon depuis **Firestore V1 production** (`default`), pouvoir **reset + rejouer** la migration jusqu’à la bascule prod (date non fixée).
 
-**Hygiène & ordre d’exécution (2026-05-28) :** [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md), SCP [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md). **Gate M1 (PO : option B) :** **OPS-2** (CI Postgres vert) puis **M1** ; le reste de la vague **Hygiene H1** peut avancer en parallèle avec **M1** ; viser clôture **5-7**, **2-10**, **12-7**, **6-13** avant le premier import **MIG-2** complet.
+**Hygiène & ordre d’exécution (2026-05-28) :** [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md), SCP [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md). **Gate M1 (PO : option B) :** **OPS-2** (check `services/api (tests)` vert — H2, `api-test.yml`) puis **M1** ; le reste de la vague **Hygiene H1** peut avancer en parallèle avec **M1** ; viser clôture **5-7**, **2-10**, **12-7**, **6-13** avant le premier import **MIG-2** complet.
 
 | Slice | Statut | Livrable | DoD |
 |-------|--------|----------|-----|
@@ -275,7 +275,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | ID | Titre | Priorité | Statut |
 |----|-------|----------|--------|
 | **OPS-1** | Séparer Flyway schema / seed (profils dev vs cloud) | P0 | [x] |
-| **OPS-2** | CI : tests d’intégration sur Postgres / profil test documenté (**DW-099**) | P0 | [x] | **Gate M1** — workflow `api-test.yml`, profil H2 documenté |
+| **OPS-2** | CI : tests d’intégration API (H2, `api-test.yml`) / profil test documenté (**DW-099**) | P0 | [x] | **Gate M1** — workflow `api-test.yml`, profil H2 documenté |
 | **OPS-3** | Smoke PWA — `BASE_URL` staging V2 (**DW-002**) | P2 | backlog | |
 | **MIG-1** | Runbook reset Neon staging | P0 | [x] |
 | **MIG-2** | Export V1 → import V2 : saisons + événements | P1 | backlog |

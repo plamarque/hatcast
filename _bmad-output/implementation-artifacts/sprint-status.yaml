@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-26T12:00:00+02:00
+# last_updated: 2026-05-28T12:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -45,7 +45,7 @@ story_location: "{project-root}/_bmad-output/implementation-artifacts"
 
 development_status:
   # Hygiene / ops (PLAN backlog — SCP 2026-05-28)
-  ops-2-ci-integration-tests-postgres: review
+  ops-2-ci-integration-tests-postgres: done
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done

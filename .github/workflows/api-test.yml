@@ -26,5 +26,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
+          cache-dependency-path: |
+            services/api/build.gradle.kts
+            services/api/gradle/wrapper/gradle-wrapper.properties
       - name: Run Gradle test suite
         run: ./gradlew test --no-daemon

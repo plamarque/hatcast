@@ -1,6 +1,6 @@
 # OPS-2 — CI integration tests (API gate for M1)
 
-**Status:** review
+**Status:** done
 
 **PLAN:** [PLAN.md](../../PLAN.md) § Pre-prod V2 (gate **M1** option B), backlog ops **OPS-2**  
 **SCP:** [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](../planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md)  
@@ -146,7 +146,7 @@ Composer (dev-story OPS-2)
 - **AC5 option A** : CI reste sur profil `test`/H2 ; pas de job Postgres/Testcontainers (documenté comme option avant MIG-2).
 - README § Tests étendu (local, H2 vs Neon, Flyway seed, shims, CI).
 - PLAN **OPS-2** `[x]` ; triage DW-001/004/099 fermés ; en-tête archive `deferred-work.md`.
-- Prochaine étape recommandée : `code-review` puis merge ; valider le premier run vert du workflow sur GitHub.
+- **CI GitHub Actions :** run `26564531586` (**échec** sur `188148b` — 2 tests composition, flake H2 `TIMESTAMPTZ` nanosecondes) ; commit `b7dd808` stabilise les assertions ; run `26564855831` (**succès**, branche `v2`).
 
 ### File List
 
@@ -157,6 +157,15 @@ Composer (dev-story OPS-2)
 - `_bmad-output/implementation-artifacts/deferred-triage-2026-05.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/ops-2-ci-integration-tests-postgres.md`
+- `services/api/src/test/kotlin/com/hatcast/api/composition/CompositionIntegrationTest.kt` (follow-up `b7dd808` — CI green)
+- `services/api/src/test/kotlin/com/hatcast/api/composition/CompositionValidateUnlockIntegrationTest.kt` (follow-up `b7dd808`)
+
+### Review Findings
+
+- [x] [Review][Patch] PLAN gate text says « CI Postgres vert » while OPS-2 ships H2 (`api-test.yml`) — align `PLAN.md` hygiene line and OPS-2 backlog title with H2/CI wording [`PLAN.md`:263, `:278`]
+- [x] [Review][Patch] Story completion omits CI evidence and follow-up commit — document run `26564855831` (success) after failed `26564531586` on `188148b`; note `b7dd808` fixes H2 `TIMESTAMPTZ` nanosecond flake in composition idempotency tests [`ops-2-ci-integration-tests-postgres.md`:142-149]
+- [x] [Review][Patch] Gradle cache may miss in monorepo — add `cache-dependency-path` to `setup-java` in `api-test.yml` [`.github/workflows/api-test.yml`:24-28]
+- [x] [Review][Defer] Required status check / branch protection for `services/api (tests)` not verified in repo settings — deferred, ops outside diff
 
 ---
 
@@ -166,3 +175,4 @@ Composer (dev-story OPS-2)
 |------|--------|
 | 2026-05-28 | Story created (`bmad-create-story`) — hygiene H1 gate for M1 option B |
 | 2026-05-28 | Implemented: CI workflow, README, PLAN/triage/deferred closure; AC5A |
+| 2026-05-28 | Code review: PLAN H2 wording, CI run notes, `cache-dependency-path` in workflow |

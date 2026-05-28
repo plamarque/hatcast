@@ -1,3 +1,7 @@
+## Deferred from: code review of ops-2-ci-integration-tests-postgres.md (2026-05-28)
+
+- Required status check / branch protection for workflow `services/api (tests)` (`api-test.yml`) not verified in repo settings — configure on `v2`/`main` when enforcing M1 gate.
+
 ## Archive / closed (triage 2026-05-28, OPS-2)
 
 - **DW-099 / H-CI-TEST** — CI `./gradlew test` : [`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml) ; profil `test` + H2 documenté dans [`services/api/README.md`](../../services/api/README.md).
