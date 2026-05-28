@@ -3,6 +3,11 @@
     <app-member-nav class="member-shell__nav" />
   }
   <main class="member-shell__content">
+    @if (showNav() && isMobileViewport()) {
+      <div class="member-shell__account-trigger">
+        <app-member-account-menu-trigger variant="shell-mobile-icon" />
+      </div>
+    }
     <router-outlet />
   </main>
 </div>

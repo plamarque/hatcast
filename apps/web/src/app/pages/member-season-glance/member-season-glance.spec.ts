@@ -114,8 +114,9 @@ describe('MemberSeasonGlance', () => {
     const fixture = TestBed.createComponent(MemberSeasonGlance)
     fixture.detectChanges()
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Angie')
+      expect(fixture.nativeElement.textContent).toContain('Mes Stats')
     })
+    await fixture.whenStable()
     return { fixture, router: TestBed.inject(Router), glanceApi, paramMap$ }
   }
 
@@ -157,7 +158,9 @@ describe('MemberSeasonGlance', () => {
         },
       },
     })
-    expect(fixture.nativeElement.querySelector('app-user-agenda-filter-bar')).toBeTruthy()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('app-user-agenda-filter-bar')).toBeTruthy()
+    })
   })
 
   it('hides filter bar when API reports filterBarVisible false', async () => {
@@ -178,7 +181,7 @@ describe('MemberSeasonGlance', () => {
   })
 
   it('reloads glance when route userSlug changes', async () => {
-    const { glanceApi, paramMap$ } = await setup({ userSlug: 'angie' })
+    const { fixture, glanceApi, paramMap$ } = await setup({ userSlug: 'angie' })
     expect(glanceApi.getSeasonGlance).toHaveBeenCalledTimes(1)
 
     glanceApi.getSeasonGlance.mockResolvedValue({

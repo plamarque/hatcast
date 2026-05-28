@@ -1,3 +1,9 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .context-switcher__trigger {
   max-width: 100%;
   min-height: 2.5rem;
@@ -19,15 +25,11 @@
 .context-switcher__label {
   display: block;
   min-width: 0;
-  max-width: 10rem;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 700;
-
-  .context-switcher__trigger--compact & {
-    max-width: 12rem;
-  }
 }
 
 .context-switcher__caret {

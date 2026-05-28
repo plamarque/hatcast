@@ -2,13 +2,17 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem 0.75rem;
   padding: 0.5rem 0 0.75rem;
   position: sticky;
   top: 0;
   z-index: 10;
   background: var(--season-shell-bg, inherit);
+  overflow: visible;
+
+  @media (max-width: 839px) {
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  }
 }
 
 .season-header__left {
@@ -16,8 +20,8 @@
   align-items: center;
   gap: 0.35rem;
   min-width: 0;
-  flex: 1 1 12rem;
-  max-width: 100%;
+  flex: 1 1 auto;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -48,45 +52,3 @@
   text-overflow: ellipsis;
 }
 
-.season-header__right {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
-  flex: 0 0 auto;
-  margin-left: auto;
-  max-width: 100%;
-}
-
-@media (max-width: 960px) {
-  .season-header__right .member-cross-nav__btn--agenda .member-cross-nav__label {
-    display: none;
-  }
-
-  .season-header__right .member-cross-nav__btn--agenda mat-icon {
-    margin-right: 0;
-  }
-}
-
-.season-header__user {
-  max-width: 10rem;
-  padding-inline: 0.5rem 0.65rem;
-}
-
-.season-header__user-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 480px) {
-  .season-header__user-label {
-    display: none;
-  }
-
-  .season-header__user {
-    min-width: unset;
-    padding-inline: 0.35rem;
-  }
-}

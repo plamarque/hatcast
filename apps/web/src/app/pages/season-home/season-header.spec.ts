@@ -1,51 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter } from '@angular/router'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { AuthApiService } from '../../core/auth/auth-api.service'
-import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
-import { MemberProfileService } from '../../core/member-profile/member-profile.service'
-import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { SeasonHeader } from './season-header'
 
 describe('SeasonHeader', () => {
-  async function setup(options?: { troupeDisplayName?: string | null }) {
-    const troupeContext = {
-      currentUserDisplayLabel: (user: { displayName: string | null; email: string | null } | null) => {
-        if (options?.troupeDisplayName) return options.troupeDisplayName
-        return user?.displayName || user?.email || 'Compte'
-      },
-    }
-    const memberProfile = { navigateToMemberGlance: vi.fn() }
-    const authApi = {
-      logout: vi.fn().mockResolvedValue(true),
-      ensureHatcastSession: vi.fn().mockResolvedValue({
-        ok: true,
-        data: { user: { slug: 'account-name' } },
-      }),
-    }
-
-    const switcherData = {
-      initialized: () => false,
-      showSwitcher: () => false,
-      loadError: () => false,
-      ensureReady: vi.fn().mockResolvedValue(undefined),
-      loading: () => false,
-      troupes: () => [],
-      seasonsForTroupe: () => [],
-      prepareMenuOpen: vi.fn().mockResolvedValue(undefined),
-    }
-
+  async function setup(): Promise<ComponentFixture<SeasonHeader>> {
     await TestBed.configureTestingModule({
       imports: [SeasonHeader, NoopAnimationsModule],
-      providers: [
-        provideRouter([]),
-        { provide: TroupeContextService, useValue: troupeContext },
-        { provide: MemberProfileService, useValue: memberProfile },
-        { provide: AuthApiService, useValue: authApi },
-        { provide: ContextSwitcherDataService, useValue: switcherData },
-      ],
+      providers: [provideRouter([])],
     }).compileComponents()
 
     const fixture = TestBed.createComponent(SeasonHeader)
@@ -55,27 +19,12 @@ describe('SeasonHeader', () => {
     fixture.componentRef.setInput('troupeId', 'troupe-id-1')
     fixture.componentRef.setInput('troupeName', 'Troupe Test')
     fixture.componentRef.setInput('troupeSlug', 'troupe-test')
-    fixture.componentRef.setInput('user', {
-      id: 'u1',
-      slug: 'account-name',
-      email: 'a@example.com',
-      displayName: 'Account Name',
-      avatarUrl: '/v1/users/u1/avatar?v=1',
-    })
     fixture.detectChanges()
-    return { fixture, memberProfile }
+    return fixture
   }
 
-  it('does not render settings or back navigation', async () => {
-    const { fixture } = await setup()
-    const el = fixture.nativeElement as HTMLElement
-    expect(el.querySelector('[aria-label="Réglages saison"]')).toBeNull()
-    expect(el.querySelector('[aria-label="Retour aux saisons"]')).toBeNull()
-    expect(el.querySelector('mat-icon')?.textContent?.trim()).not.toBe('chevron_left')
-  })
-
   it('renders context breadcrumb with troupe hub link', async () => {
-    const { fixture } = await setup()
+    const fixture = await setup()
     const troupeLink = fixture.nativeElement.querySelector(
       'app-context-breadcrumb a.context-breadcrumb__troupe',
     ) as HTMLAnchorElement
@@ -84,40 +33,14 @@ describe('SeasonHeader', () => {
     expect(fixture.nativeElement.querySelector('nav[aria-label="Fil d\'Ariane"]')).toBeTruthy()
   })
 
-  it('affiche le pseudo troupe plutôt que le nom de compte quand le contexte le fournit', async () => {
-    const { fixture } = await setup({ troupeDisplayName: 'Patou' })
-
-    expect(fixture.nativeElement.textContent).toContain('Patou')
-    expect(fixture.nativeElement.textContent).not.toContain('Account Name')
-  })
-
-  it('affiche une image avatar dans le menu compte quand avatarUrl est présent', async () => {
-    const { fixture } = await setup()
-    expect(fixture.nativeElement.querySelector('app-user-avatar img')).toBeTruthy()
-  })
-
-  it('ouvre le profil membre au clic sur l’avatar', async () => {
-    const { fixture, memberProfile } = await setup()
-    const avatar = fixture.nativeElement.querySelector(
-      'app-user-avatar img, app-user-avatar .user-avatar__initial',
-    ) as HTMLElement
-    avatar.click()
-    expect(memberProfile.navigateToMemberGlance).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userSlug: 'account-name',
-        troupeId: 'troupe-id-1',
-        leagueId: 'season-id-1',
-      }),
-    )
-  })
-
-  it('does not show Mon agenda header shortcut when user is signed in', async () => {
-    const { fixture } = await setup()
-    expect(fixture.nativeElement.querySelector('app-member-agenda-shortcut')).toBeNull()
+  it('does not render account menu trigger in page header', async () => {
+    const fixture = await setup()
+    expect(fixture.nativeElement.querySelector('app-user-avatar')).toBeNull()
+    expect(fixture.nativeElement.querySelector('app-user-account-menu-items')).toBeNull()
   })
 
   it('hides breadcrumb when troupe context is missing', async () => {
-    const { fixture } = await setup()
+    const fixture = await setup()
     fixture.componentRef.setInput('troupeSlug', null)
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('app-context-breadcrumb')).toBeNull()

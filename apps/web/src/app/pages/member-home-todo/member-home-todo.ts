@@ -3,7 +3,6 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
@@ -13,7 +12,7 @@ import {
   availabilityBadgeModifier,
   type AvailabilityStatus,
 } from '../../core/availability/availability-status'
-import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { AuthApiService } from '../../core/auth/auth-api.service'
 import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
 import {
   MeInboxApiService,
@@ -30,8 +29,6 @@ import {
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { MemberSeasonShortcut } from '../../shared/member-cross-nav/member-season-shortcut'
-import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
-import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 @Component({
   selector: 'app-member-home-todo',
@@ -40,13 +37,10 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
     MatChipsModule,
     MatIconModule,
     MatListModule,
-    MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
     MemberSeasonShortcut,
-    UserAccountMenuItemsComponent,
-    UserAvatarComponent,
   ],
   templateUrl: './member-home-todo.html',
   styleUrl: './member-home-todo.scss',
@@ -61,7 +55,6 @@ export class MemberHomeTodo implements OnInit {
   protected readonly loadingSession = signal(true)
   protected readonly loadingInbox = signal(false)
   protected readonly loadError = signal(false)
-  protected readonly user = signal<UserSummary | null>(null)
   protected readonly actions = signal<InboxAction[]>([])
   protected readonly nextEvent = signal<AgendaCardEnrichedItem | null>(null)
   protected readonly noParticipation = signal(false)
@@ -93,13 +86,8 @@ export class MemberHomeTodo implements OnInit {
       await this.redirectToLogin()
       return
     }
-    this.user.set(r.data.user)
     this.loadingSession.set(false)
     await this.loadInbox()
-  }
-
-  protected userDisplayLabel(u: UserSummary): string {
-    return u.displayName || u.email || 'Mon compte'
   }
 
   protected async loadInbox(): Promise<void> {

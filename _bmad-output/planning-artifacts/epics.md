@@ -1597,7 +1597,27 @@ afin de **compléter le fil d’Ariane** sans repasser systématiquement par le 
 **Depends :** 17.1, 17.3, 17.4.  
 **Story file:** [_bmad-output/implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md](../implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md)
 
-**UX spec hub :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) (décisions 2026-05-27 : route `/accueil` dédiée, post-login = remember last visit).
+#### Story 17.25 : Menu compte — rail footer (desktop) · avatar shell (mobile)
+
+En tant que **membre connecté**,  
+je veux accéder à **Mon compte**, **Installer l'app** et **Se déconnecter** depuis un **emplacement stable** sans encombrer les titres de page,  
+afin de **libérer l’en-tête** tout en gardant le compte accessible.
+
+**Acceptance Criteria**
+
+- **Given** `shouldShowMemberNav(url)` et viewport **≥ 840 px**, **when** le shell s’affiche, **then** trigger **Menu compte** en **bas du rail** (avatar + nom tronqué + chevron) ; **pas** de menu compte dupliqué dans les headers de page concernés.
+- **Given** mêmes routes et viewport **< 840 px**, **when** le shell s’affiche, **then** trigger **avatar seul** en haut à droite du **shell** ; headers sans doublon.
+- **Given** ouverture du menu, **when** affiché, **then** entrées [`app-user-account-menu-items`](../../apps/web/src/app/shared/user-account-menu/user-account-menu-items.ts) (Mon compte, Installer l'app, Déconnexion) — comportement inchangé.
+- **Given** `/compte`, **when** navigation, **then** **aucun** trigger shell/rail (déconnexion dans la page — [ux-design-mon-compte.md](./ux-design-mon-compte.md)).
+- **Given** routes sans nav globale, **when** header local existait, **then** pas de régression.
+- **Given** tokens Material, **when** styles, **then** `--mat-sys-*` uniquement.
+- **Couverture :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) § Menu compte (2026-05-28) ; complète **17.22**.
+
+**Priorité :** P2 — après **17.22** ; compatible **17.24** (page compte).  
+**Depends :** 17.22, 2.6 (avatar).  
+**Story file:** [_bmad-output/implementation-artifacts/17-25-menu-compte-rail-desktop-avatar-mobile.md](../implementation-artifacts/17-25-menu-compte-rail-desktop-avatar-mobile.md)
+
+**UX spec hub :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) (décisions 2026-05-27 : route `/accueil` dédiée, post-login = remember last visit ; 2026-05-28 : menu compte rail / avatar shell).
 
 ---
 

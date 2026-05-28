@@ -1,4 +1,8 @@
-<nav class="context-breadcrumb" aria-label="Fil d'Ariane">
+<nav
+  class="context-breadcrumb"
+  [class.context-breadcrumb--event]="layout() === 'event'"
+  aria-label="Fil d'Ariane"
+>
   <ol class="context-breadcrumb__trail context-breadcrumb__trail--desktop">
     <li class="context-breadcrumb__segment">
       <a

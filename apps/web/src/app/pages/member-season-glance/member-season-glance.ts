@@ -1,14 +1,13 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 
-import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { AuthApiService } from '../../core/auth/auth-api.service'
 import type { UserAgendaParticipationFilters } from '../../core/agenda/user-agenda-api.service'
 import {
   clearStoredMemberGlanceFilters,
@@ -24,8 +23,6 @@ import type { MemberProfileSummary } from '../../core/member-profile/member-prof
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
 import { MemberProfilePanel } from '../../shared/member-profile/member-profile-panel'
-import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
-import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
   troupes: [],
@@ -37,12 +34,9 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
   imports: [
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     UserAgendaFilterBar,
-    UserAccountMenuItemsComponent,
-    UserAvatarComponent,
     MemberProfilePanel,
   ],
   templateUrl: './member-season-glance.html',
@@ -61,7 +55,6 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   protected readonly loadingSession = signal(true)
   protected readonly loadingGlance = signal(false)
   protected readonly loadError = signal(false)
-  protected readonly sessionUser = signal<UserSummary | null>(null)
   protected readonly glance = signal<MemberSeasonGlanceData | null>(null)
 
   protected readonly filterBarVisible = signal(false)
@@ -129,7 +122,6 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       await this.redirectToLogin()
       return
     }
-    this.sessionUser.set(r.data.user)
     this.loadingSession.set(false)
 
     this.userSlug.set(this.route.snapshot.paramMap.get('userSlug') ?? '')
@@ -157,10 +149,6 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe()
-  }
-
-  protected userDisplayLabel(u: UserSummary): string {
-    return u.displayName || u.email || 'Mon compte'
   }
 
   protected async logout(): Promise<void> {
@@ -304,15 +292,19 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
 
   private async syncFilterQueryParams(): Promise<void> {
     this.skipNextParamReload = true
-    await this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        troupeId: this.selectedTroupeId(),
-        leagueId: this.selectedLeagueId(),
-      },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    })
+    try {
+      await this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {
+          troupeId: this.selectedTroupeId(),
+          leagueId: this.selectedLeagueId(),
+        },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      })
+    } finally {
+      this.skipNextParamReload = false
+    }
   }
 
   private async reconcileFiltersWithCatalog(): Promise<void> {

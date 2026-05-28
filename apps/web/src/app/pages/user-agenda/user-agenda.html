@@ -4,29 +4,6 @@
       <h1 class="user-agenda__title">Mon agenda</h1>
       <p class="user-agenda__subtitle">Tes prochains spectacles, toutes ligues confondues.</p>
     </div>
-    @if (!loadingSession() && user(); as u) {
-      <div class="user-agenda__header-actions">
-        <button
-          type="button"
-          mat-stroked-button
-          class="user-agenda__user-btn"
-          [matMenuTriggerFor]="userMenu"
-          [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
-        >
-          <app-user-avatar
-            [style.--user-avatar-size.px]="24"
-            [displayName]="userDisplayLabel(u)"
-            [avatarUrl]="u.avatarUrl ?? null"
-            [size]="24"
-          />
-          <span class="user-agenda__user-label">{{ userDisplayLabel(u) }}</span>
-          <mat-icon>expand_more</mat-icon>
-        </button>
-        <mat-menu #userMenu="matMenu">
-          <app-user-account-menu-items />
-        </mat-menu>
-      </div>
-    }
   </header>
 
   @if (!loadingSession() && !loadError() && filterBarCatalog(); as filters) {

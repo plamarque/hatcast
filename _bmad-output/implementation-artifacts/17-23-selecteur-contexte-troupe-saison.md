@@ -175,20 +175,31 @@ Réutiliser [`TroupeSeasonResolverService`](../../apps/web/src/app/core/troupes/
 
 ### Agent Model Used
 
-_(à remplir à l’implémentation)_
+Composer
 
 ### Completion Notes List
 
-- …
+- `ContextSwitcherDataService` : troupes actives + saisons non archivées ; `showSwitcher` si >1 troupe ou >1 saison ; lazy load saisons si >3 troupes.
+- `app-context-switcher` : `mat-stroked-button` + `mat-menu` (sections Troupes / Saisons, liens `/troupes` et hub) ; navigation saison/troupe avec persistance map `lastVisitedSeasonByTroupe`.
+- Fil desktop + ligne mobile (logo + sélecteur compact) ; mono-contexte inchangé (17.1).
+- `season-home` : masque le H1 mobile saison dupliqué quand le sélecteur est actif.
+- P2 admin breadcrumb : non livré (hors scope).
 
 ### File List
 
-- _(à remplir)_
+- `apps/web/src/app/core/navigation/context-switcher-data.service.ts` (+ spec)
+- `apps/web/src/app/core/navigation/last-visited-league-storage.ts` (+ spec)
+- `apps/web/src/app/shared/context-switcher/*` (nouveau)
+- `apps/web/src/app/shared/context-breadcrumb/*`
+- `apps/web/src/app/pages/season-home/season-header.html`, `season-home.html`, `season-home.ts`
+- `apps/web/src/app/pages/event-detail/event-detail-header.html`
+- `apps/web/src/app/pages/season-home/season-header.spec.ts`
 
 ### Change Log
 
 - 2026-05-27 : Story créée (UX breadcrumb + sélecteur, conversation produit).
 - 2026-05-27 : Story **17.23** enrichie via `/bmad-create-story` — ancres code, dépendance **17.22** `done`, statut **ready-for-dev**.
+- 2026-05-27 : Implémentation story **17.23** — sélecteur contexte troupe/saison dans le fil d’Ariane.
 
 ---
 

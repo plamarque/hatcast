@@ -3,7 +3,6 @@ import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-s
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
@@ -11,7 +10,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { Subscription } from 'rxjs'
 import { toSignal } from '@angular/core/rxjs-interop'
 
-import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { AuthApiService } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   saisonWorkspacePath,
@@ -28,9 +27,7 @@ import {
   ScopeAdminMenu,
   type ScopeAdminMenuItem,
 } from '../../shared/scope-admin-menu/scope-admin-menu'
-import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { SeasonCard } from '../../shared/season-card/season-card'
-import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import {
   SeasonFormDialog,
   type SeasonFormDialogData,
@@ -49,14 +46,11 @@ const SEASONS_PAGE_SIZE = 50
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
-    MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
     ScopeAdminMenu,
     SeasonCard,
-    UserAccountMenuItemsComponent,
-    UserAvatarComponent,
   ],
   templateUrl: './troupe-hub.html',
   styleUrl: './troupe-hub.scss',
@@ -84,7 +78,6 @@ export class TroupeHub implements OnInit, OnDestroy {
   protected readonly troupe = signal<TroupeListItem | null>(null)
   protected readonly notFound = signal(false)
   protected readonly showArchived = signal(false)
-  protected readonly user = signal<UserSummary | null>(null)
   protected readonly allSeasons = signal<SeasonResponse[]>([])
 
   protected readonly isTroupeAdmin = computed(
@@ -139,7 +132,6 @@ export class TroupeHub implements OnInit, OnDestroy {
       return
     }
     this.loadingSession.set(false)
-    this.user.set(session.data.user)
 
     const loaded = await this.troupeContext.load()
     if (!loaded) {
@@ -182,10 +174,6 @@ export class TroupeHub implements OnInit, OnDestroy {
     this.troupeContext.selectTroupe(match.id)
     this.troupe.set(match)
     await this.loadSeasons(match.id)
-  }
-
-  protected userDisplayLabel(u: UserSummary): string {
-    return this.troupeContext.currentUserDisplayLabel(u)
   }
 
   protected toggleArchived(): void {

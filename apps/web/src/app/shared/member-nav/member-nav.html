@@ -1,5 +1,6 @@
 <div class="member-nav">
-  <mat-nav-list class="member-nav__rail" role="navigation" aria-label="Navigation principale membre">
+  <div class="member-nav__desktop-column">
+    <mat-nav-list class="member-nav__rail" role="navigation" aria-label="Navigation principale membre">
     <a
       mat-list-item
       class="member-nav__rail-link"
@@ -52,7 +53,12 @@
         <span class="member-nav__rail-label">Stats</span>
       </span>
     </a>
-  </mat-nav-list>
+    </mat-nav-list>
+
+    <footer class="member-nav__account-footer">
+      <app-member-account-menu-trigger variant="rail-footer" />
+    </footer>
+  </div>
 
   <nav
     mat-tab-nav-bar

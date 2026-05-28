@@ -4,29 +4,6 @@
       <h1 class="member-glance-page__title">{{ headerTitle() }}</h1>
       <p class="member-glance-page__subtitle">{{ headerSubtitle() }}</p>
     </div>
-    @if (sessionUser(); as u) {
-      <div class="member-glance-page__header-actions">
-        <button
-          type="button"
-          mat-stroked-button
-          class="member-glance-page__user-btn"
-          [matMenuTriggerFor]="accountMenu"
-          [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
-        >
-          <app-user-avatar
-            [style.--user-avatar-size.px]="24"
-            [displayName]="userDisplayLabel(u)"
-            [avatarUrl]="u.avatarUrl ?? null"
-            [size]="24"
-          />
-          <span class="member-glance-page__user-label">{{ userDisplayLabel(u) }}</span>
-          <mat-icon aria-hidden="true">expand_more</mat-icon>
-        </button>
-        <mat-menu #accountMenu="matMenu">
-          <app-user-account-menu-items logoutLabel="Déconnexion" />
-        </mat-menu>
-      </div>
-    }
   </header>
 
   @if (filterBarVisible() && filterBarCatalog()) {

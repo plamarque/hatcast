@@ -11,12 +11,13 @@ import {
   rememberLastMemberEntryPath,
   seasonSlugFromMemberEntryPath,
 } from '../../core/navigation/last-member-entry-path-storage'
+import { MemberAccountMenuTrigger } from '../../shared/member-account-menu/member-account-menu-trigger'
 import { MemberNav } from '../../shared/member-nav/member-nav'
 import { pathFromUrl, shouldShowMemberNav } from './member-shell-nav-visibility'
 
 @Component({
   selector: 'app-member-shell',
-  imports: [RouterOutlet, MemberNav],
+  imports: [RouterOutlet, MemberNav, MemberAccountMenuTrigger],
   templateUrl: './member-shell.html',
   styleUrl: './member-shell.scss',
 })
@@ -30,8 +31,19 @@ export class MemberShell implements OnInit {
 
   protected readonly showNav = computed(() => shouldShowMemberNav(this.currentUrl()))
 
+  protected readonly isMobileViewport = signal(readMobileShellViewport())
+
   ngOnInit(): void {
     void this.inboxBadge.refresh()
+
+    if (typeof globalThis.matchMedia === 'function') {
+      const mq = globalThis.matchMedia('(max-width: 839px)')
+      const onViewportChange = (): void => {
+        this.isMobileViewport.set(mq.matches)
+      }
+      mq.addEventListener('change', onViewportChange)
+      this.destroyRef.onDestroy(() => mq.removeEventListener('change', onViewportChange))
+    }
 
     this.router.events
       .pipe(
@@ -68,4 +80,11 @@ export class MemberShell implements OnInit {
 
     rememberLastMemberEntryPath(path)
   }
+}
+
+function readMobileShellViewport(): boolean {
+  if (typeof globalThis.matchMedia !== 'function') {
+    return false
+  }
+  return globalThis.matchMedia('(max-width: 839px)').matches
 }

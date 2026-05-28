@@ -14,27 +14,6 @@
         />
       }
     </div>
-    @if (user(); as u) {
-      <button
-        type="button"
-        mat-stroked-button
-        class="admin-event-participants__user"
-        [matMenuTriggerFor]="userMenu"
-        [attr.aria-label]="'Menu compte : ' + userDisplayLabel()"
-      >
-        <app-user-avatar
-          class="admin-event-participants__user-avatar"
-          [style.--user-avatar-size.px]="24"
-          [displayName]="userDisplayLabel()"
-          [avatarUrl]="u.avatarUrl ?? null"
-          [size]="24"
-        />
-        <span class="admin-event-participants__user-label">{{ userDisplayLabel() }}</span>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items [showLogout]="false" />
-      </mat-menu>
-    }
   </header>
 
   @if (showBreadcrumb()) {

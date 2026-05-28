@@ -5,27 +5,6 @@
       <span class="troupes-list__breadcrumb-sep" aria-hidden="true">›</span>
       <span aria-current="page">Troupes</span>
     </nav>
-    @if (!loadingSession() && user(); as u) {
-      <button
-        type="button"
-        mat-stroked-button
-        class="troupes-list__user-btn"
-        [matMenuTriggerFor]="userMenu"
-        [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
-      >
-        <app-user-avatar
-          [style.--user-avatar-size.px]="24"
-          [displayName]="userDisplayLabel(u)"
-          [avatarUrl]="u.avatarUrl ?? null"
-          [size]="24"
-        />
-        <span class="troupes-list__user-label">{{ userDisplayLabel(u) }}</span>
-        <mat-icon>expand_more</mat-icon>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items />
-      </mat-menu>
-    }
   </header>
 
   @if (loadingSession()) {

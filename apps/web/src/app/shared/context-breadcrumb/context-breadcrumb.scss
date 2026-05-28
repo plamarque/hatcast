@@ -5,6 +5,22 @@
   overflow: hidden;
 }
 
+@media (max-width: 839px) {
+  /* 17.1 mobile : logo troupe seul dans le fil (nom accessible via aria-label du lien). */
+  .context-breadcrumb__troupe-name {
+    display: none;
+  }
+
+  .context-breadcrumb__troupe {
+    gap: 0;
+  }
+
+  .context-breadcrumb__segment:first-child {
+    flex: 0 0 auto;
+    max-width: none;
+  }
+}
+
 .context-breadcrumb__trail {
   display: flex;
   align-items: center;
@@ -12,6 +28,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -25,16 +42,42 @@
   flex: 0 1 auto;
 }
 
-.context-breadcrumb__segment:last-child {
-  flex: 1 1 0;
-  min-width: 2.5rem;
+.context-breadcrumb__segment:first-child {
+  flex: 0 2 auto;
+  max-width: min(32%, 10rem);
 }
 
-.context-breadcrumb__segment:not(:last-child) .context-breadcrumb__troupe-name,
-.context-breadcrumb__segment:not(:last-child) .context-breadcrumb__link,
-.context-breadcrumb__segment:not(:last-child) .context-breadcrumb__current {
+.context-breadcrumb__segment:not(:first-child):not(:last-child) {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: none;
+}
+
+.context-breadcrumb__segment:last-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.context-breadcrumb__segment:last-child .context-breadcrumb__current,
+.context-breadcrumb__segment:last-child .context-breadcrumb__link {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.context-breadcrumb__segment app-context-switcher {
   display: block;
-  max-width: 6.5rem;
+  min-width: 0;
+  max-width: 100%;
+  width: max-content;
+}
+
+.context-breadcrumb--event .context-breadcrumb__segment:not(:first-child):not(:last-child) {
+  max-width: min(38%, 14rem);
+}
+
+.context-breadcrumb--event .context-breadcrumb__segment:not(:first-child):not(:last-child) .context-switcher__trigger {
+  max-width: 100%;
 }
 
 .context-breadcrumb__sep {

@@ -4,8 +4,11 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { AuthApiService } from '../../core/auth/auth-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import { MemberStatsShortcutService } from '../../core/navigation/member-stats-shortcut.service'
+import { PwaInstallService } from '../../core/pwa/pwa-install.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { MemberNav } from './member-nav'
 
 describe('MemberNav', () => {
@@ -37,15 +40,49 @@ describe('MemberNav', () => {
         provideRouter([
           { path: 'accueil', component: MemberNav },
           { path: 'agenda', component: MemberNav },
+          { path: 'compte', component: MemberNav },
           { path: 'membre/:userSlug', component: MemberNav },
         ]),
         { provide: MemberInboxBadgeService, useValue: inboxBadge },
         { provide: MemberStatsShortcutService, useValue: statsShortcut },
+        {
+          provide: AuthApiService,
+          useValue: {
+            sessionUser: signal({
+              slug: 'patrice',
+              email: 'patrice@example.com',
+              displayName: 'Patrice',
+              avatarUrl: null,
+            }),
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: {
+                user: {
+                  slug: 'patrice',
+                  email: 'patrice@example.com',
+                  displayName: 'Patrice',
+                  avatarUrl: null,
+                },
+              },
+            }),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            currentUserDisplayLabel: (u: { displayName?: string | null; email?: string | null }) =>
+              u?.displayName ?? u?.email ?? 'Compte',
+          },
+        },
+        {
+          provide: PwaInstallService,
+          useValue: { isPwaInstalled: () => true, installFromUserMenu: vi.fn() },
+        },
       ],
     }).compileComponents()
 
     router = TestBed.inject(Router)
-    fixture = TestBed.createComponent(MemberNav)
+
   })
 
   afterEach(() => {
@@ -54,9 +91,19 @@ describe('MemberNav', () => {
 
   async function renderAt(url: string): Promise<void> {
     await router.navigateByUrl(url)
+    fixture = TestBed.createComponent(MemberNav)
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
+  }
+
+  async function waitForRailAccountTrigger(): Promise<void> {
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(
+        fixture.nativeElement.querySelector('.member-account-menu-trigger--rail'),
+      ).not.toBeNull()
+    })
   }
 
   it('shows badge on Accueil when count is 3', async () => {
@@ -125,5 +172,16 @@ describe('MemberNav', () => {
       '.member-nav__bottom a[aria-label*="9+"]',
     )
     expect(accueilLink).not.toBeNull()
+  })
+
+  it('renders rail account footer on shell routes', async () => {
+    await renderAt('/agenda')
+    expect(fixture.nativeElement.querySelector('.member-nav__account-footer')).not.toBeNull()
+    await waitForRailAccountTrigger()
+  })
+
+  it('hides rail account footer on /compte', async () => {
+    await renderAt('/compte')
+    expect(fixture.nativeElement.querySelector('.member-account-menu-trigger--rail')).toBeNull()
   })
 })

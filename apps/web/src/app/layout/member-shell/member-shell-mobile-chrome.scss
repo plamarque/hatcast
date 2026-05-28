@@ -1,0 +1,21 @@
+/* Global (imported from styles.scss) — avatar compte mobile fixe en haut à droite du viewport. */
+
+@media (max-width: 839px) {
+  .member-shell--with-nav .member-shell__content {
+    --member-shell-account-reserve: 3.25rem;
+  }
+
+  .member-shell--with-nav .season-header,
+  .member-shell--with-nav .event-detail-header,
+  .member-shell--with-nav .admin-participants__header,
+  .member-shell--with-nav .admin-membres__header,
+  .member-shell--with-nav .admin-event-participants__header,
+  .member-shell--with-nav .user-agenda__header,
+  .member-shell--with-nav .member-home-todo__header,
+  .member-shell--with-nav .member-glance-page__header,
+  .member-shell--with-nav .troupe-hub__header,
+  .member-shell--with-nav .troupes-list__header {
+    box-sizing: border-box;
+    padding-inline-end: calc(var(--member-shell-account-reserve, 3.25rem) + env(safe-area-inset-right, 0px));
+  }
+}

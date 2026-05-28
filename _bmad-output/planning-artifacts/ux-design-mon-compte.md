@@ -5,6 +5,7 @@ date: '2026-05-28'
 status: approved
 relatedStories:
   - '17.24'
+  - '17.25'
   - '1.6'
   - '1.7'
   - '2.6'
@@ -57,9 +58,9 @@ Référence implémentation actuelle : [`account-placeholder`](../../apps/web/sr
 | C4 | **Structure contenu** | **`mat-nav-list` / `mat-list`** (sections + lignes action) plutôt que plusieurs `mat-card` outline avec paragraphes. |
 | C5 | **Avatar** | Conserver la gestion **photo de profil** (story 2.6) en **tête de page** (zone compacte, pas une carte « Paramètres du compte »). |
 | C6 | **Placeholders Epic 1** | Lignes **désactivées** ou boutons « Bientôt » avec `matTooltip` jusqu’à stories **1.6** / **1.7** — pas de faux formulaires email/mot de passe. |
-| C7 | **PWA** | **Pas** sur cet écran — reste dans le menu avatar global (`Installer l'app`, FR40). |
-| C8 | **Déconnexion** | **Pas** de menu avatar sur `/compte` ; **Déconnexion** en bas de liste (zone sensible) ou bouton texte footer — évite doublon « Mon compte » dans le menu. |
-| C9 | **Nav shell** | `/compte` garde la **barre membre** (Accueil · Agenda · Stats) — [ux-hub-a-faire.md](ux-hub-a-faire.md) ; pas de 4ᵉ onglet « Compte ». |
+| C7 | **PWA** | **Pas** sur cet écran — **Installer l'app** reste dans le menu compte global (FR40), accessible depuis une autre route via le chrome shell ([ux-hub-a-faire.md](ux-hub-a-faire.md) § Menu compte, story **17.25**). |
+| C8 | **Déconnexion** | **Pas** de trigger menu compte sur `/compte` (ni rail footer, ni avatar shell) ; **Déconnexion** en bas de liste (zone sensible) ou bouton texte footer — évite doublon « Mon compte ». |
+| C9 | **Nav shell** | `/compte` garde la **barre membre** (Accueil · Agenda · Stats) — [ux-hub-a-faire.md](ux-hub-a-faire.md) ; pas de 4ᵉ onglet « Compte » ; menu compte ailleurs = **17.25**. |
 
 ---
 

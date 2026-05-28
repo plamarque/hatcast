@@ -1,10 +1,12 @@
-import { Component } from '@angular/core'
+import { Component, signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { PwaInstallService } from '../../core/pwa/pwa-install.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { MeInboxApiService } from '../../core/inbox/me-inbox-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import { getLastMemberEntryPath } from '../../core/navigation/last-member-entry-path-storage'
@@ -21,6 +23,15 @@ describe('MemberShell', () => {
 
   beforeEach(async () => {
     localStorage.clear()
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query.includes('max-width: 839px'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    )
     inboxApi = {
       getInbox: vi.fn().mockResolvedValue({
         ok: true,
@@ -61,12 +72,36 @@ describe('MemberShell', () => {
         {
           provide: AuthApiService,
           useValue: {
+            sessionUser: signal({
+              slug: 'alice',
+              email: 'alice@example.com',
+              displayName: 'Alice',
+              avatarUrl: null,
+            }),
             ensureHatcastSession: vi.fn().mockResolvedValue({
               ok: true,
               status: 200,
-              data: { user: { slug: 'alice' } },
+              data: {
+                user: {
+                  slug: 'alice',
+                  email: 'alice@example.com',
+                  displayName: 'Alice',
+                  avatarUrl: null,
+                },
+              },
             }),
           },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            currentUserDisplayLabel: (u: { displayName?: string | null; email?: string | null }) =>
+              u?.displayName ?? u?.email ?? 'Compte',
+          },
+        },
+        {
+          provide: PwaInstallService,
+          useValue: { isPwaInstalled: () => true, installFromUserMenu: vi.fn() },
         },
       ],
     }).compileComponents()
@@ -77,6 +112,7 @@ describe('MemberShell', () => {
 
   afterEach(() => {
     localStorage.clear()
+    vi.unstubAllGlobals()
   })
 
   async function renderAt(url: string): Promise<void> {
@@ -99,6 +135,34 @@ describe('MemberShell', () => {
   it('shows member nav on compte', async () => {
     await renderAt('/compte')
     expect(fixture.nativeElement.querySelector('app-member-nav')).not.toBeNull()
+  })
+
+  it('shows shell account trigger on agenda but not on compte', async () => {
+    await renderAt('/agenda')
+    const shellTrigger = fixture.nativeElement.querySelector(
+      '.member-shell__account-trigger app-member-account-menu-trigger',
+    )
+    expect(shellTrigger).not.toBeNull()
+
+    await renderAt('/compte')
+    expect(
+      fixture.nativeElement.querySelector('.member-account-menu-trigger--shell-icon'),
+    ).toBeNull()
+  })
+
+  it('shows a single shell mobile account trigger on agenda', async () => {
+    await renderAt('/agenda')
+    const shellTriggers = fixture.nativeElement.querySelectorAll(
+      '.member-account-menu-trigger--shell-icon',
+    )
+    expect(shellTriggers.length).toBe(1)
+  })
+
+  it('shows shell mobile account trigger on event detail', async () => {
+    await renderAt('/saison/ligue-2026/event/ev-1')
+    expect(
+      fixture.nativeElement.querySelector('.member-shell__account-trigger'),
+    ).not.toBeNull()
   })
 
   it('shows member nav on season admin', async () => {

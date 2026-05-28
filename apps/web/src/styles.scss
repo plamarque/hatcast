@@ -101,3 +101,5 @@ body {
   --hatcast-proxy-banner-on: var(--mat-sys-on-surface);
   --hatcast-proxy-banner-icon: var(--mat-sys-tertiary);
 }
+
+@import 'app/layout/member-shell/member-shell-mobile-chrome.scss';

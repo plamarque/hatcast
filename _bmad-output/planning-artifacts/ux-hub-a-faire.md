@@ -79,22 +79,72 @@ flowchart TB
 
 **Desktop (≥ 840 px) :** navigation **rail** à gauche (mêmes 3 entrées). Pas de barre basse permanente sur grand écran.
 
-**Ce qu’on n’utilise pas :** bottom app bar M2, docked toolbar globale pour changer d’espace app.
+**Ce qu’on n’utilise pas :** bottom app bar M2, docked toolbar globale pour changer d’espace app ; **hamburger** latéral pour un second panneau de navigation (la bottom bar couvre déjà les 3 destinations ; un drawer serait vide).
+
+---
+
+## Menu compte — placement responsive (2026-05-28)
+
+**Contexte :** le menu compte était dupliqué dans le **header de chaque page** (avatar + nom + chevron), ce qui réduit la place utile pour titres et filtres (agenda). Alignement avec des références produit (Cursor, ChatGPT) et avec **Material 3** : le rail officiel ne porte que les **destinations primaires** ; le compte est une **extension footer** du rail (pattern d’écosystème), pas une 4ᵉ destination de nav.
+
+| Breakpoint | Emplacement du trigger | Menu (`mat-menu`) | Header de page |
+|------------|------------------------|-------------------|----------------|
+| **≥ 840 px** (desktop) | **Bas du rail** membre : avatar + nom tronqué + chevron | Mon compte, Installer l’app (si applicable), séparateur, Se déconnecter | **Aucun** menu compte dans les headers des routes où la nav globale est visible ([`shouldShowMemberNav`](../../apps/web/src/app/layout/member-shell/member-shell-nav-visibility.ts)) |
+| **< 840 px** (mobile) | **Coin haut-droit du shell** : **avatar seul** (zone tactile ≥ 48 dp), sans nom ni `expand_more` | Idem | **Aucun** menu compte dupliqué dans les headers de ces mêmes routes |
+| **`/compte`** | **Masqué** (pas de trigger rail ni shell) — [ux-design-mon-compte.md](./ux-design-mon-compte.md) C8 | Déconnexion (et actions sensibles) **dans la page** ; PWA reste accessible depuis une autre route avant visite compte, ou ligne dédiée si besoin ultérieur | Titre + sous-titre uniquement |
+| **Routes sans nav globale** (`/connexion`, flux mot de passe) | N/A | N/A | Inchangé |
+| **Routes legacy hors `shouldShowMemberNav`** | Conserver le trigger **local** dans le header de la page jusqu’à rattachement au shell | `app-user-account-menu-items` existant | — |
+
+**Règles produit (inchangées) :**
+
+- **Pas** de 4ᵉ onglet « Compte » dans la nav Accueil · Agenda · Stats.
+- **Pas** de panneau hamburger pour le compte.
+- Composant menu partagé : [`app-user-account-menu-items`](../../apps/web/src/app/shared/user-account-menu/user-account-menu-items.ts) (ne pas dupliquer les entrées).
+
+**Référence M3 (justification) :** les guidelines placent souvent le profil dans la **top app bar** ; le **footer rail** est un agencement **custom** accepté lorsque le rail est déjà le chrome persistant (évite une double barre titre + avatar). Menus ancrés au trigger, hiérarchie identité → actions → déconnexion.
+
+**Story d’implémentation :** **17.25** — [`17-25-menu-compte-rail-desktop-avatar-mobile.md`](../implementation-artifacts/17-25-menu-compte-rail-desktop-avatar-mobile.md).
+
+### Wireframes chrome compte
+
+**Desktop (≥ 840 px)**
+
+```text
+┌──┬──────────────────────┐
+│🏠│  Mon agenda          │
+│📅│  (filtres…)          │
+│📊│                      │
+│  │                      │
+│──│                      │
+│👤│  Patrice… ▾          │  ← footer rail ; mat-menu vers le haut
+└──┴──────────────────────┘
+```
+
+**Mobile (< 840 px)**
+
+```text
+┌────────────────────── [👤] ┐  ← shell, avatar seul
+│  Mon agenda                 │
+│  (filtres…)                 │
+├─────────────────────────────┤
+│ Accueil │ Agenda │ Stats    │
+└─────────────────────────────┘
+```
 
 ---
 
 ## Écran `/accueil` — structure
 
-### Chrome (top app bar M3)
+### Chrome (en-tête de page)
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  Accueil                                    [Avatar ▾]     │
+│  Accueil                                                   │
 └────────────────────────────────────────────────────────────┘
 ```
 
 - Titre : **Accueil** (hub membre ; contenu orienté actions en attente).
-- Menu compte : Compte, Clin d’œil, Installer PWA, Déconnexion (inchangé).
+- Menu compte : via **chrome shell** (§ Menu compte — 2026-05-28), pas dans ce header.
 - **Pas** de filtre troupe/saison sur cet écran (réservé à l’agenda).
 
 ### Zone 1 — Actions requises (priorité haute)
@@ -216,7 +266,7 @@ InboxSummary:
 - Nav **Accueil** : badge rouge/error si ≥1 action ; pas de badge si 0.
 - Nav **Agenda** : pas de badge (liste passive).
 - Nav **Stats** : pas de badge.
-- **Mon compte** : menu **avatar** (top app bar), pas de 4ᵉ onglet nav (pattern M3).
+- **Mon compte** : menu via **rail footer** (desktop) ou **avatar shell** (mobile) — § Menu compte ; pas de 4ᵉ onglet nav.
 - Nav **Saison** : pas de badge ; libellé tronqué « Saison » + tooltip nom complet au long press / hover.
 
 ### Accessibilité
@@ -236,7 +286,7 @@ InboxSummary:
 
 ```
 ┌─────────────────────────┐
-│ À faire            [👤] │
+│ À faire            [👤] │  ← shell mobile (avatar seul), pas dans le titre
 ├─────────────────────────┤
 │ ACTIONS REQUISES        │
 │ ○ Confirmer — Match…    │
@@ -264,11 +314,12 @@ InboxSummary:
 | **17.20** | `lastMemberEntryPath` (remember last visit élargi) | 2 | P2 — optionnel |
 | **17.21** | API `GET /me/inbox` + confirmations pending | 3 | P1 (après ou MVP+17.19) |
 | **17.22** | Shell navigation bar M3 (3 onglets) | 4 | P2 |
-| **17.23** | Sélecteur contexte troupe · saison (fil + menu) | — | P2 |
+| **17.23** | Sélecteur contexte troupe · saison (fil + menu) | done | P2 |
+| **17.25** | Menu compte — rail footer (desktop) · avatar shell (mobile) | 4b | P2 |
 
-Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.23 ; ordre PLAN : [`PLAN.md`](../../PLAN.md) § Epic 17.
+Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.25 ; ordre PLAN : [`PLAN.md`](../../PLAN.md) § Epic 17.
 
-**Fichiers story :** **17.18** → [`17-18-raccourcis-croises-agenda-saison.md`](../implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md) (`done`) ; **17.19** → [`17-19-hub-accueil-a-faire-mvp.md`](../implementation-artifacts/17-19-hub-accueil-a-faire-mvp.md) (`done`) ; **17.20** → [`17-20-remember-last-member-entry-path.md`](../implementation-artifacts/17-20-remember-last-member-entry-path.md) (`done`) ; **17.21** → [`17-21-api-me-inbox-hub-membre.md`](../implementation-artifacts/17-21-api-me-inbox-hub-membre.md) (`done`) ; **17.22** → [`17-22-navigation-bar-m3-membre.md`](../implementation-artifacts/17-22-navigation-bar-m3-membre.md) (`done`) ; **17.23** → [`17-23-selecteur-contexte-troupe-saison.md`](../implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md) (`ready-for-dev`).
+**Fichiers story :** **17.18** → [`17-18-raccourcis-croises-agenda-saison.md`](../implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md) (`done`) ; **17.19** → [`17-19-hub-accueil-a-faire-mvp.md`](../implementation-artifacts/17-19-hub-accueil-a-faire-mvp.md) (`done`) ; **17.20** → [`17-20-remember-last-member-entry-path.md`](../implementation-artifacts/17-20-remember-last-member-entry-path.md) (`done`) ; **17.21** → [`17-21-api-me-inbox-hub-membre.md`](../implementation-artifacts/17-21-api-me-inbox-hub-membre.md) (`done`) ; **17.22** → [`17-22-navigation-bar-m3-membre.md`](../implementation-artifacts/17-22-navigation-bar-m3-membre.md) (`done`) ; **17.23** → [`17-23-selecteur-contexte-troupe-saison.md`](../implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md) (`done`) ; **17.25** → [`17-25-menu-compte-rail-desktop-avatar-mobile.md`](../implementation-artifacts/17-25-menu-compte-rail-desktop-avatar-mobile.md) (`ready-for-dev`).
 
 ---
 
@@ -288,6 +339,7 @@ Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.23 ; ordre PLAN : [`
 | **Post-login** | **Remember last visit** — pas `/accueil` par défaut (2026-05-27). |
 | **Route hub** | **Route dédiée `/accueil`** — écran À faire autonome, pas une section en tête de `/agenda` (2026-05-27). |
 | **Priorité dev** | Stories **17.18 → 17.19 → 17.21 → 17.22** ; **17.20** optionnel (planifié dans `epics.md` / `PLAN.md`). |
+| **Menu compte** | **Rail footer** (desktop ≥ 840 px) + **avatar shell** (mobile) ; headers allégés ; pas de 4ᵉ onglet ni hamburger — **17.25** (2026-05-28). |
 
 **Conséquences techniques (route dédiée) :**
 

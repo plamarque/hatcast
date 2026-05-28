@@ -1,7 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
@@ -11,7 +10,7 @@ import {
   availabilityBadgeModifier,
   type AvailabilityStatus,
 } from '../../core/availability/availability-status'
-import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { AuthApiService } from '../../core/auth/auth-api.service'
 import {
   clearStoredUserAgendaFilters,
   parseAgendaFilterUuid,
@@ -30,8 +29,6 @@ import {
   troupeHubPath,
 } from '../../core/navigation/troupe-routes'
 import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
-import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
-import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
 
 const PAGE_SIZE = 50
@@ -46,13 +43,10 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
   imports: [
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
     UserAgendaFilterBar,
-    UserAccountMenuItemsComponent,
-    UserAvatarComponent,
   ],
   templateUrl: './user-agenda.html',
   styleUrl: './user-agenda.scss',
@@ -67,7 +61,6 @@ export class UserAgenda implements OnInit {
   protected readonly loadingSession = signal(true)
   protected readonly loadingAgenda = signal(false)
   protected readonly loadError = signal(false)
-  protected readonly user = signal<UserSummary | null>(null)
   protected readonly items = signal<UserAgendaItem[]>([])
   protected readonly noParticipation = signal(false)
   protected readonly filterBarVisible = signal(false)
@@ -105,15 +98,10 @@ export class UserAgenda implements OnInit {
       await this.redirectToLogin()
       return
     }
-    this.user.set(r.data.user)
     this.loadingSession.set(false)
     this.bootstrapFiltersFromRoute()
     await this.syncInitialFilterUrl()
     await this.loadAgenda()
-  }
-
-  protected userDisplayLabel(u: UserSummary): string {
-    return u.displayName || u.email || 'Mon compte'
   }
 
   protected async loadAgenda(): Promise<void> {

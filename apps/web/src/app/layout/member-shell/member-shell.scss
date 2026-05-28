@@ -13,8 +13,27 @@
 }
 
 .member-shell__content {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.member-shell__account-trigger {
+  display: none;
+  position: fixed;
+  top: max(0.25rem, env(safe-area-inset-top, 0px));
+  inset-inline-end: max(0.5rem, env(safe-area-inset-right, 0px));
+  z-index: 1100;
+
+  @media (max-width: 839px) {
+    display: block;
+  }
+}
+
+.member-shell--with-nav .member-shell__content {
+  @media (max-width: 839px) {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }
 
 .member-shell--with-nav .member-shell__content {

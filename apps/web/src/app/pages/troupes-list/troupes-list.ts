@@ -1,18 +1,14 @@
 import { Component, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
-import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { AuthApiService } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
-import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { TroupeCard } from '../../shared/troupe-card/troupe-card'
-import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
-import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { environment } from '../../../environments/environment'
 
 @Component({
@@ -20,13 +16,10 @@ import { environment } from '../../../environments/environment'
   imports: [
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
     TroupeCard,
-    UserAccountMenuItemsComponent,
-    UserAvatarComponent,
   ],
   templateUrl: './troupes-list.html',
   styleUrl: './troupes-list.scss',
@@ -34,7 +27,6 @@ import { environment } from '../../../environments/environment'
 export class TroupesList implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly troupeApi = inject(TroupeApiService)
-  private readonly troupeContext = inject(TroupeContextService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
 
@@ -42,7 +34,6 @@ export class TroupesList implements OnInit {
   protected readonly loadingList = signal(false)
   protected readonly loadError = signal(false)
   protected readonly joiningDemo = signal(false)
-  protected readonly user = signal<UserSummary | null>(null)
   protected readonly troupes = signal<TroupeListItem[]>([])
 
   async ngOnInit(): Promise<void> {
@@ -58,12 +49,7 @@ export class TroupesList implements OnInit {
       return
     }
     this.loadingSession.set(false)
-    this.user.set(r.data.user)
     await this.loadTroupes()
-  }
-
-  protected userDisplayLabel(u: UserSummary): string {
-    return this.troupeContext.currentUserDisplayLabel(u)
   }
 
   protected async loadTroupes(): Promise<void> {

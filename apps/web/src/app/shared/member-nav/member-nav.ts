@@ -12,6 +12,7 @@ import {
 } from '../../core/inbox/member-inbox-badge.service'
 import { MemberStatsShortcutService } from '../../core/navigation/member-stats-shortcut.service'
 import { isMemberStatsPath, pathFromUrl } from '../../layout/member-shell/member-shell-nav-visibility'
+import { MemberAccountMenuTrigger } from '../member-account-menu/member-account-menu-trigger'
 
 @Component({
   selector: 'app-member-nav',
@@ -23,6 +24,7 @@ import { isMemberStatsPath, pathFromUrl } from '../../layout/member-shell/member
     MatTabNavPanel,
     RouterLink,
     RouterLinkActive,
+    MemberAccountMenuTrigger,
   ],
   templateUrl: './member-nav.html',
   styleUrl: './member-nav.scss',

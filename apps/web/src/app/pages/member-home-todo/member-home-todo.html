@@ -1,27 +1,6 @@
 <div class="member-home-todo">
   <header class="member-home-todo__header">
     <h1 class="member-home-todo__title">Accueil</h1>
-    @if (!loadingSession() && user(); as u) {
-      <button
-        type="button"
-        mat-stroked-button
-        class="member-home-todo__user-btn"
-        [matMenuTriggerFor]="userMenu"
-        [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
-      >
-        <app-user-avatar
-          [style.--user-avatar-size.px]="24"
-          [displayName]="userDisplayLabel(u)"
-          [avatarUrl]="u.avatarUrl ?? null"
-          [size]="24"
-        />
-        <span class="member-home-todo__user-label">{{ userDisplayLabel(u) }}</span>
-        <mat-icon aria-hidden="true">expand_more</mat-icon>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items />
-      </mat-menu>
-    }
   </header>
 
   @if (loadingSession()) {

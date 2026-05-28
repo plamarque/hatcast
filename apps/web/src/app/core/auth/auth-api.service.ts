@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core'
+import { inject, Injectable, signal } from '@angular/core'
 import { signOut } from 'firebase/auth'
 
 import { csrfHeaders } from '../http/hatcast-csrf'
@@ -26,28 +26,70 @@ export interface AuthSessionBody {
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
   private readonly firebaseAuth = inject(FirebaseAuthService)
+  private readonly sessionUserSignal = signal<UserSummary | null>(null)
+  private ensureInFlight: Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> | null =
+    null
+
+  /** Utilisateur HatCast en session (mis à jour par ensureHatcastSession et les flux auth). */
+  readonly sessionUser = this.sessionUserSignal.asReadonly()
 
   /**
    * GET /v1/auth/me ; si 401 et « se souvenir de moi » + session Firebase encore présente,
    * rééchange un ID token Identity Platform → session HatCast (redémarrage API / perte cookie serveur).
    */
   async ensureHatcastSession(): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
-    const first = await this.getMe()
-    if (first.ok) return first
+    if (this.ensureInFlight) {
+      return this.ensureInFlight
+    }
 
-    if (!getHatcastRememberMePreference()) return first
+    this.ensureInFlight = this.resolveEnsureHatcastSession()
+    try {
+      return await this.ensureInFlight
+    } finally {
+      this.ensureInFlight = null
+    }
+  }
+
+  private async resolveEnsureHatcastSession(): Promise<{
+    ok: boolean
+    status: number
+    data?: AuthSessionBody
+  }> {
+    const first = await this.getMe()
+    if (first.ok) {
+      this.applySessionBody(first.data)
+      return first
+    }
+
+    if (!getHatcastRememberMePreference()) {
+      return first
+    }
 
     const auth = this.firebaseAuth.getAuthOrNull()
     const user = auth?.currentUser
-    if (!user) return first
+    if (!user) {
+      return first
+    }
 
     try {
       const idToken = await user.getIdToken(true)
       const exchanged = await this.signInWithIdentityPlatformIdToken(idToken, true)
-      if (!exchanged.ok) return first
-      return await this.getMe()
+      if (!exchanged.ok) {
+        return first
+      }
+      const refreshed = await this.getMe()
+      if (refreshed.ok) {
+        this.applySessionBody(refreshed.data)
+      }
+      return refreshed
     } catch {
       return first
+    }
+  }
+
+  private applySessionBody(data?: AuthSessionBody): void {
+    if (data?.user) {
+      this.sessionUserSignal.set(data.user)
     }
   }
 
@@ -58,6 +100,7 @@ export class AuthApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as AuthSessionBody
+      this.applySessionBody(data)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -79,6 +122,7 @@ export class AuthApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as AuthSessionBody
+      this.applySessionBody(data)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -101,6 +145,7 @@ export class AuthApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as AuthSessionBody
+      this.applySessionBody(data)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -137,6 +182,8 @@ export class AuthApiService {
       clearHatcastRememberMePreference()
     }
 
+    this.sessionUserSignal.set(null)
+
     return apiOk
   }
 
@@ -153,7 +200,9 @@ export class AuthApiService {
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
-      return { ok: true, status: res.status, data: (await res.json()) as AuthSessionBody }
+      const data = (await res.json()) as AuthSessionBody
+      this.applySessionBody(data)
+      return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
     }
@@ -175,7 +224,9 @@ export class AuthApiService {
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
-      return { ok: true, status: res.status, data: (await res.json()) as AuthSessionBody }
+      const data = (await res.json()) as AuthSessionBody
+      this.applySessionBody(data)
+      return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
     }
@@ -191,7 +242,9 @@ export class AuthApiService {
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
-      return { ok: true, status: res.status, data: (await res.json()) as AuthSessionBody }
+      const data = (await res.json()) as AuthSessionBody
+      this.applySessionBody(data)
+      return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
     }

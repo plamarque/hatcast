@@ -94,11 +94,16 @@ describe('ContextBreadcrumb', () => {
     expect(nav?.getAttribute('aria-label')).toBe("Fil d'Ariane")
   })
 
-  it('keeps desktop troupe name in trail and exposes a separate mobile logo control', async () => {
+  it('keeps troupe name in desktop trail markup and logo-only mobile controls (17.1)', async () => {
     const fixture = await setup('event')
     const el = fixture.nativeElement as HTMLElement
 
-    expect(el.querySelector('.context-breadcrumb__trail--desktop .context-breadcrumb__troupe-name')).toBeTruthy()
+    const troupeLink = el.querySelector(
+      '.context-breadcrumb__trail--desktop a.context-breadcrumb__troupe',
+    ) as HTMLAnchorElement
+    expect(troupeLink.querySelector('.context-breadcrumb__troupe-name')).toBeTruthy()
+    expect(troupeLink.getAttribute('aria-label')).toContain('La Malice')
+
     expect(el.querySelector('.context-breadcrumb__mobile-logo')).toBeTruthy()
     expect(el.querySelector('.context-breadcrumb__mobile-logo .context-breadcrumb__troupe-name')).toBeNull()
   })

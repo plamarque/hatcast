@@ -1,0 +1,44 @@
+@if (visible()) {
+  @if (variant() === 'rail-footer') {
+    <button
+      type="button"
+      mat-button
+      class="member-account-menu-trigger member-account-menu-trigger--rail"
+      [matMenuTriggerFor]="accountMenu"
+      [attr.aria-label]="accountAriaLabel()"
+    >
+      <span class="member-account-menu-trigger__rail-item">
+        <span class="member-account-menu-trigger__rail-icon-wrap">
+          <app-user-avatar
+            class="member-account-menu-trigger__avatar"
+            [style.--user-avatar-size.px]="24"
+            [displayName]="displayLabel()"
+            [avatarUrl]="sessionUser()?.avatarUrl ?? null"
+            [size]="24"
+          />
+        </span>
+        <span class="member-account-menu-trigger__rail-label">Compte</span>
+      </span>
+    </button>
+  } @else {
+    <button
+      type="button"
+      mat-icon-button
+      class="member-account-menu-trigger member-account-menu-trigger--shell-icon"
+      [matMenuTriggerFor]="accountMenu"
+      [attr.aria-label]="accountAriaLabel()"
+    >
+      <app-user-avatar
+        class="member-account-menu-trigger__avatar"
+        [style.--user-avatar-size.px]="32"
+        [displayName]="displayLabel()"
+        [avatarUrl]="sessionUser()?.avatarUrl ?? null"
+        [size]="32"
+      />
+    </button>
+  }
+
+  <mat-menu #accountMenu="matMenu" yPosition="above">
+    <app-user-account-menu-items [showLogout]="effectiveShowLogout()" />
+  </mat-menu>
+}
