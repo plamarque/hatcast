@@ -39,8 +39,9 @@ import { pathToFileURL } from 'url'
 export function parseArgs(argv = process.argv.slice(2)) {
   const result = {
     sql: [],
-    databaseUrl:
+    databaseUrl: normalizePostgresUrl(
       process.env.HATCAST_MIGRATE_DATABASE_URL || process.env.DATABASE_URL || null,
+    ),
     target: 'staging',
     yes: false,
     confirmProd: null,
@@ -49,7 +50,9 @@ export function parseArgs(argv = process.argv.slice(2)) {
   }
   for (const arg of argv) {
     if (arg.startsWith('--sql=')) result.sql.push(arg.slice(6).trim())
-    else if (arg.startsWith('--database-url=')) result.databaseUrl = arg.slice(15).trim()
+    else if (arg.startsWith('--database-url=')) {
+      result.databaseUrl = normalizePostgresUrl(arg.slice(15).trim())
+    }
     else if (arg.startsWith('--target=')) result.target = arg.slice(9).trim()
     else if (arg.startsWith('--confirm-prod=')) result.confirmProd = arg.slice(15).trim()
     else if (arg.startsWith('--expect-host=')) result.expectHost = arg.slice(14).trim()
@@ -88,14 +91,32 @@ export function isProdTarget(target, prodFlag) {
 }
 
 /**
+ * Spring JDBC URLs use jdbc:postgresql://… — pg/psql need postgresql://…
+ * @param {string|null|undefined} databaseUrl
+ * @returns {string|null|undefined}
+ */
+export function normalizePostgresUrl(databaseUrl) {
+  if (databaseUrl == null || typeof databaseUrl !== 'string') return databaseUrl
+  const trimmed = databaseUrl.trim()
+  if (trimmed.startsWith('jdbc:postgresql://')) {
+    return `postgresql://${trimmed.slice('jdbc:postgresql://'.length)}`
+  }
+  if (trimmed.startsWith('jdbc:postgres://')) {
+    return `postgres://${trimmed.slice('jdbc:postgres://'.length)}`
+  }
+  return trimmed
+}
+
+/**
  * Extract { host, database } from a Postgres connection URL (best effort).
  * @param {string|null|undefined} databaseUrl
  * @returns {{ host: string|null, database: string|null } | null}
  */
 export function parseDbInfo(databaseUrl) {
-  if (!databaseUrl) return null
+  const normalized = normalizePostgresUrl(databaseUrl)
+  if (!normalized) return null
   try {
-    const u = new URL(databaseUrl)
+    const u = new URL(normalized)
     return {
       host: u.hostname || null,
       database: u.pathname ? u.pathname.replace(/^\//, '') || null : null,

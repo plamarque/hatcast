@@ -5,6 +5,8 @@
 import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 
+import { normalizePostgresUrl } from '../../migrate-malice-load.mjs'
+
 const STEP_ORDER = [
   'preflight',
   'bootstrap',
@@ -78,12 +80,14 @@ export function parseConfig(argv = process.argv.slice(2)) {
     seasonEndDate: base.seasonEndDate ?? null,
     troupeId: parseArgValue(argv, '--troupe-id=') ?? base.troupeId ?? null,
     seasonV2: parseArgValue(argv, '--season-v2=') ?? base.seasonV2 ?? null,
-    databaseUrl: coalesceNonEmpty(
-      parseArgValue(argv, '--database-url='),
-      base.databaseUrl,
-      process.env.NEON_STAGING_URL,
-      process.env.HATCAST_MIGRATE_DATABASE_URL,
-      process.env.DATABASE_URL,
+    databaseUrl: normalizePostgresUrl(
+      coalesceNonEmpty(
+        parseArgValue(argv, '--database-url='),
+        base.databaseUrl,
+        process.env.NEON_STAGING_URL,
+        process.env.HATCAST_MIGRATE_DATABASE_URL,
+        process.env.DATABASE_URL,
+      ),
     ),
     expectHost: parseArgValue(argv, '--expect-host=') ?? base.expectHost ?? 'auto',
     exportDir,
