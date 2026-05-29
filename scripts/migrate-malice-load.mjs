@@ -92,17 +92,25 @@ export function isProdTarget(target, prodFlag) {
 
 /**
  * Spring JDBC URLs use jdbc:postgresql://… — pg/psql need postgresql://…
+ * Neon console URLs may include channelBinding / channel_binding — strip for psql.
  * @param {string|null|undefined} databaseUrl
  * @returns {string|null|undefined}
  */
 export function normalizePostgresUrl(databaseUrl) {
   if (databaseUrl == null || typeof databaseUrl !== 'string') return databaseUrl
-  const trimmed = databaseUrl.trim()
+  let trimmed = databaseUrl.trim()
   if (trimmed.startsWith('jdbc:postgresql://')) {
-    return `postgresql://${trimmed.slice('jdbc:postgresql://'.length)}`
+    trimmed = `postgresql://${trimmed.slice('jdbc:postgresql://'.length)}`
+  } else if (trimmed.startsWith('jdbc:postgres://')) {
+    trimmed = `postgres://${trimmed.slice('jdbc:postgres://'.length)}`
   }
-  if (trimmed.startsWith('jdbc:postgres://')) {
-    return `postgres://${trimmed.slice('jdbc:postgres://'.length)}`
+  try {
+    const u = new URL(trimmed)
+    for (const key of ['channelBinding', 'channel_binding']) {
+      if (u.searchParams.has(key)) u.searchParams.delete(key)
+    }
+  } catch {
+    /* leave as-is if not parseable */
   }
   return trimmed
 }
