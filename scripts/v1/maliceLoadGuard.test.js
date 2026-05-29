@@ -7,6 +7,7 @@ import {
   parseDbInfo,
   planLoad,
   resolveExpectHost,
+  normalizePostgresUrl,
 } from '../migrate-malice-load.mjs'
 
 const STAGING_URL =
@@ -129,6 +130,15 @@ describe('migrate-malice-load — planLoad (URL↔target guards)', () => {
     const plan = planLoad(opts, null)
     assert.equal(plan.willWrite, false)
     assert.match(plan.errors.join('\n'), /No database URL/)
+  })
+})
+
+describe('migrate-malice-load — normalizePostgresUrl', () => {
+  it('strips jdbc: prefix for pg/psql', () => {
+    assert.equal(
+      normalizePostgresUrl('jdbc:postgresql://user:pass@ep-plain-mode-al95cugr.eu/neondb'),
+      'postgresql://user:pass@ep-plain-mode-al95cugr.eu/neondb',
+    )
   })
 })
 

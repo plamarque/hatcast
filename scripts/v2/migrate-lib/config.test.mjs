@@ -26,4 +26,21 @@ describe('migrate-lib config', () => {
   it('parseConfig rejects unknown from-step', () => {
     assert.throws(() => parseConfig(['--from-step=unknown']), /Unknown --from-step/)
   })
+
+  it('parseConfig falls back when JSON env placeholder resolved to empty', () => {
+    const prev = process.env.NEON_STAGING_URL
+    process.env.NEON_STAGING_URL = 'postgresql://user:pass@ep-branch.example/neondb'
+    try {
+      const config = parseConfig([
+        '--yes',
+        '--v1-season=test',
+        '--api-base-url=http://localhost',
+        '--database-url=',
+      ])
+      assert.equal(config.databaseUrl, process.env.NEON_STAGING_URL)
+    } finally {
+      if (prev === undefined) delete process.env.NEON_STAGING_URL
+      else process.env.NEON_STAGING_URL = prev
+    }
+  })
 })

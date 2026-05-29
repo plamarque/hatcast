@@ -64,7 +64,12 @@ async function main() {
   }
 
   const config = parseConfig(argv)
-  if (config.expectHost === 'auto' && config.databaseUrl) {
+  if (config.expectHost === 'auto') {
+    if (!config.databaseUrl) {
+      throw new Error(
+        'databaseUrl is required (NEON_STAGING_URL in .env.local, migrate.config.json, or --database-url=)',
+      )
+    }
     config.expectHost = resolveExpectHost('auto', config.databaseUrl)
   }
 

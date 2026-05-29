@@ -4,10 +4,13 @@
 
 import pg from 'pg'
 
+import { normalizePostgresUrl } from '../../migrate-malice-load.mjs'
+
 const { Client } = pg
 
 export async function withClient(databaseUrl, fn) {
-  const client = new Client({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } })
+  const connectionString = normalizePostgresUrl(databaseUrl)
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } })
   await client.connect()
   try {
     return await fn(client)
