@@ -8,7 +8,7 @@
  * CLI only wires file I/O. Nothing here writes to a database (see :load).
  *
  * Inputs:
- *   --raw=<path>            raw.json from migrate-malice-extract.js (required)
+ *   --raw=<path>            raw.json from migrate-malice-extract.mjs (required)
  *   --season-v2=<uuid>      target V2 season UUID (required)
  *   --participants=<path>   JSON array of V2 season_participants for that season:
  *                           [{ seasonParticipantId|id, userId|user_id, normalizedEmail|normalized_email }]

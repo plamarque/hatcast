@@ -24,11 +24,12 @@
     "export:v1-users": "node scripts/v1-export-season-users-csv.js",
     "export:v1-members:prod": "node scripts/v1-export-troupe-members-csv.js --database=default",
     "export:v1-users:prod": "node scripts/v1-export-season-users-csv.js --database=default",
-    "migrate:malice:extract": "node scripts/migrate-malice-extract.js",
-    "migrate:malice:extract:prod": "node scripts/migrate-malice-extract.js --database='(default)'",
-    "migrate:malice:transform": "node scripts/migrate-malice-transform.js",
-    "migrate:malice:transform:ac": "node scripts/migrate-malice-transform-ac.js",
-    "migrate:malice:load": "node scripts/migrate-malice-load.js",
+    "migrate:malice:extract": "node scripts/migrate-malice-extract.mjs",
+    "migrate:malice:extract:prod": "node scripts/migrate-malice-extract.mjs --database='(default)'",
+    "migrate:malice:transform": "node scripts/migrate-malice-transform.mjs",
+    "migrate:malice:transform:ac": "node scripts/migrate-malice-transform-ac.mjs",
+    "migrate:malice:load": "node scripts/migrate-malice-load.mjs",
+    "migrate:from-v1": "./scripts/migrate-from-v1.sh",
     "migrate:v2:run": "node scripts/v2/migrate-run.mjs",
     "migrate:v2:validate-replay": "node scripts/v2/validate-replay-log.mjs",
     "test:migrate": "node --test scripts/v1/*.test.js scripts/v2/migrate-lib/*.test.mjs",
@@ -43,6 +44,6 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "pg": "^8.16.0"
+    "pg": "^8.21.0"
   }
 }

@@ -51,37 +51,48 @@ Do **not** use `--database=staging` or `--database=development` for pre-prod mig
 
 Replace `SEASON_ID` and `TROUPE_ID` (V2 UUID of the target troupe).
 
-### Orchestrateur (MIG-5, recommended)
+### Script unique (MIG-6, recommended)
 
-Single headless command chaining bootstrap → B1–B5 → smoke. Requires **migration API key** on staging ([ADR-0017](../../adr/0017-v2-migration-api-key.md)).
+One command from repo root after **Procedure C** Neon reset (and staging deploy with migration API key — [ADR-0017](../../adr/0017-v2-migration-api-key.md)):
 
-1. Copy `scripts/v2/migrate.config.example.json` → `export/malice/migrate.config.json` (gitignored).
-2. Set env: `HATCAST_MIGRATION_API_KEY`, `NEON_STAGING_URL`, Firebase Admin in `.env.local`.
-3. After **Procedure C** Neon reset, acknowledge empty branch:
+**One-time:** add to `.env.local` — `NEON_STAGING_URL`, `HATCAST_MIGRATION_API_KEY`, Firebase Admin (see [.env.example](../../../.env.example)).
 
 ```bash
-npm run migrate:v2:run -- --config=export/malice/migrate.config.json --i-reset-neon --yes --record-cycle
+./scripts/migrate-from-v1.sh
+# or: npm run migrate:from-v1
 ```
 
-Resume from a step (uses `export/malice-runs/<runId>/state.json`):
+The script loads `.env.local`, checks deps (`pg`, `psql`), creates `export/malice/migrate.config.json` from the example if missing, tests the migration API, prompts for Neon reset confirmation, then runs the full pipeline (`--yes --record-cycle`). No Google sign-in required on staging after reset (operator stub auto-provisioned — ADR-0017).
+
+Options:
 
 ```bash
-npm run migrate:v2:run -- --config=export/malice/migrate.config.json --from-step=b4 --yes --run-id=<previous-run-id>
+./scripts/migrate-from-v1.sh --dry-run          # export + SQL only (smoke skipped)
+./scripts/migrate-from-v1.sh --no-prompt-reset  # skip reset prompt
+./scripts/migrate-from-v1.sh --help
 ```
-
-Dry-run (no Neon writes, default):
-
-```bash
-npm run migrate:v2:run -- --config=export/malice/migrate.config.json --dry-run
-```
-
-`--expect-host=auto` derives the Neon branch marker from the JDBC URL (see `migrate-malice-load.js`). Manual steps below remain valid as **fallback** if the orchestrator is unavailable.
 
 Validate the ≥ 3 cycles gate:
 
 ```bash
 npm run migrate:v2:validate-replay -- --path=export/malice/replay-log.jsonl --min=3
 ```
+
+### Orchestrateur npm (MIG-5, advanced / troubleshooting)
+
+Lower-level entry point — same pipeline, more flags:
+
+```bash
+npm run migrate:v2:run -- --config=export/malice/migrate.config.json --i-reset-neon --yes --record-cycle
+```
+
+Resume from a step (`export/malice-runs/<runId>/state.json`):
+
+```bash
+npm run migrate:v2:run -- --config=export/malice/migrate.config.json --from-step=b4 --yes --run-id=<previous-run-id>
+```
+
+`--expect-host=auto` derives the Neon branch marker from the JDBC URL (see `migrate-malice-load.mjs`). Manual steps below remain valid as **fallback** if the orchestrator is unavailable.
 
 ### B1 — Export from Firestore production
 
@@ -232,7 +243,7 @@ Redeploy V2 (push to `staging` or re-run workflow). Flyway runs **migration** sc
 
 Run **Procedure B** again from the same V1 production exports (re-export if V1 data changed).
 
-**Orchestrateur:** `npm run migrate:v2:run -- --config=export/malice/migrate.config.json --i-reset-neon --yes --record-cycle`
+**Script:** `./scripts/migrate-from-v1.sh` (or `npm run migrate:from-v1`)
 
 **Manuel:** follow Procedure B steps B1–B5.
 
@@ -266,7 +277,7 @@ npm run migrate:v2:validate-replay -- --path=export/malice/replay-log.jsonl --mi
 
 #### Operator checklist (staging, ≥ 3 cycles)
 
-Each cycle: **Procedure C1–C2** (Neon reset + redeploy if needed) → `migrate:v2:run --i-reset-neon --yes --record-cycle`.
+Each cycle: **Procedure C1–C2** (Neon reset + redeploy if needed) → `./scripts/migrate-from-v1.sh`.
 
 | Cycle | Expected smoke counts (Malice) | Notes |
 |-------|-------------------------------|-------|

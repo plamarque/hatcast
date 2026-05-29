@@ -7,7 +7,7 @@ import {
   parseDbInfo,
   planLoad,
   resolveExpectHost,
-} from '../migrate-malice-load.js'
+} from '../migrate-malice-load.mjs'
 
 const STAGING_URL =
   'postgresql://u:p@ep-cool-bird-123-pooler.eu-central-1.aws.neon.tech/hatcast_staging?sslmode=require'

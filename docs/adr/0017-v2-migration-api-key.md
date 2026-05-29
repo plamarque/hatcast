@@ -12,8 +12,10 @@
      - Server env: `HATCAST_MIGRATION_API_ENABLED=true`, `HATCAST_MIGRATION_API_KEY`, `HATCAST_MIGRATION_OPERATOR_EMAIL` (existing user, typically platform super-admin).
      - Client header: `X-Hatcast-Migration-Key`.
      - Valid key → authenticate as the operator user (`SessionUserPrincipal`); **CSRF skipped** for those requests (same class of trust as `/v1/auth/google`).
+     - If the operator email is not yet in Postgres (e.g. after Neon reset), the API **auto-provisions a migration stub** via `UserAccountService.ensureUserByEmail` — no browser Google sign-in required before CLI runs.
   2. **Default off** (`api-enabled=false`). Production enables only with explicit env + secret; Neon prod load remains guarded by `migrate-malice-load` (`--confirm-prod`, `--expect-host`).
   3. Implement orchestrator **`npm run migrate:v2:run`** (Node) that chains bootstrap, B1–B5, SQL/API checks, and structured logging — see [PLAN.md](../../PLAN.md) **MIG-5**.
+  4. Operator entry point **`./scripts/migrate-from-v1.sh`** (MIG-6) — loads `.env.local`, preflight, Neon reset prompt, invokes orchestrator with `--yes --record-cycle`.
   4. Do **not** add duplicate `/v1/internal/migration/*` endpoints in v1; reuse existing REST surface.
 - **Consequences:**
   - **Positive:** Fully scriptable replays; CI-friendly; no browser; same business rules as UI imports.

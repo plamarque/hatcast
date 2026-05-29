@@ -76,6 +76,39 @@ class MigrationApiKeyIntegrationTest {
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(
+    properties = [
+        "hatcast.migration.api-enabled=true",
+        "hatcast.migration.api-key=test-migration-key-secret",
+        "hatcast.migration.operator-email=migration-cli-operator@hatcast.test",
+    ],
+)
+class MigrationApiKeyAutoProvisionIntegrationTest {
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @MockBean
+    private lateinit var googleIdTokenService: GoogleIdTokenService
+
+    @MockBean
+    private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
+
+    @Test
+    fun `migration key provisions operator stub when user missing`() {
+        mockMvc
+            .perform(
+                post("/v1/troupes")
+                    .header(MigrationApiKeyService.HEADER_NAME, "test-migration-key-secret")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"Empty DB Operator Troupe"}"""),
+            ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.name").value("Empty DB Operator Troupe"))
+    }
+}
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
 class MigrationApiKeyDisabledIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
