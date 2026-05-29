@@ -51,6 +51,38 @@ Do **not** use `--database=staging` or `--database=development` for pre-prod mig
 
 Replace `SEASON_ID` and `TROUPE_ID` (V2 UUID of the target troupe).
 
+### Orchestrateur (MIG-5, recommended)
+
+Single headless command chaining bootstrap → B1–B5 → smoke. Requires **migration API key** on staging ([ADR-0017](../../adr/0017-v2-migration-api-key.md)).
+
+1. Copy `scripts/v2/migrate.config.example.json` → `export/malice/migrate.config.json` (gitignored).
+2. Set env: `HATCAST_MIGRATION_API_KEY`, `NEON_STAGING_URL`, Firebase Admin in `.env.local`.
+3. After **Procedure C** Neon reset, acknowledge empty branch:
+
+```bash
+npm run migrate:v2:run -- --config=export/malice/migrate.config.json --i-reset-neon --yes --record-cycle
+```
+
+Resume from a step (uses `export/malice-runs/<runId>/state.json`):
+
+```bash
+npm run migrate:v2:run -- --config=export/malice/migrate.config.json --from-step=b4 --yes --run-id=<previous-run-id>
+```
+
+Dry-run (no Neon writes, default):
+
+```bash
+npm run migrate:v2:run -- --config=export/malice/migrate.config.json --dry-run
+```
+
+`--expect-host=auto` derives the Neon branch marker from the JDBC URL (see `migrate-malice-load.js`). Manual steps below remain valid as **fallback** if the orchestrator is unavailable.
+
+Validate the ≥ 3 cycles gate:
+
+```bash
+npm run migrate:v2:validate-replay -- --path=export/malice/replay-log.jsonl --min=3
+```
+
 ### B1 — Export from Firestore production
 
 From repo root, with `.env.local` pointing at the **production** Firebase project:
@@ -97,7 +129,7 @@ npm run migrate:malice:extract -- --season=SEASON_ID --database='(default)'
 #   → export/malice/<ts>/raw.json  (season meta + ALL events + players)
 
 # 2) Export the target season_participants from Neon (resolves the manifest by email):
-psql "$STAGING_URL" -t -A --csv \
+psql "$STAGING_URL" -A --csv \
   -c "SELECT id AS \"seasonParticipantId\", user_id AS \"userId\", normalized_email AS \"normalizedEmail\"
       FROM season_participants WHERE season_id = 'V2_SEASON_UUID' AND status = 'ACTIVE'" \
   | python3 -c 'import csv,json,sys; print(json.dumps(list(csv.DictReader(sys.stdin))))' \
@@ -115,7 +147,7 @@ npm run migrate:malice:load -- --sql=export/malice/<ts>/load.sql
 
 #   Apply on STAGING (later switch to prod with the same load.sql):
 npm run migrate:malice:load -- --sql=export/malice/<ts>/load.sql \
-  --database-url="$NEON_STAGING_URL" --target=staging --yes --expect-host=staging
+  --database-url="$NEON_STAGING_URL" --target=staging --yes --expect-host=auto
 
 #   Apply on PRODUCTION (typed confirmation + host assertion both required):
 npm run migrate:malice:load -- --sql=export/malice/<ts>/load.sql \
@@ -163,7 +195,7 @@ npm run migrate:malice:load -- \
 npm run migrate:malice:load -- \
   --sql=export/malice/<ts>/load.sql \
   --sql=export/malice/<ts>/load-ac.sql \
-  --database-url="$NEON_STAGING_URL" --target=staging --yes --expect-host=staging
+  --database-url="$NEON_STAGING_URL" --target=staging --yes --expect-host=auto
 
 # 4) Apply on PRODUCTION (same SQL files, typed confirmation):
 npm run migrate:malice:load -- \
@@ -200,6 +232,10 @@ Redeploy V2 (push to `staging` or re-run workflow). Flyway runs **migration** sc
 
 Run **Procedure B** again from the same V1 production exports (re-export if V1 data changed).
 
+**Orchestrateur:** `npm run migrate:v2:run -- --config=export/malice/migrate.config.json --i-reset-neon --yes --record-cycle`
+
+**Manuel:** follow Procedure B steps B1–B5.
+
 ### C4 — Gate before production cutover
 
 Record each replay in a simple log (date, season id, row counts, issues). Target: **≥ 3 successful** reset → migrate → smoke cycles without undocumented manual fixes.
@@ -221,6 +257,23 @@ Keep a file outside git (e.g. `export/malice/replay-log.jsonl`). One JSON object
 | `notes` | Manual fixes still required (should be empty before prod) |
 
 Gate: **≥ 3 lines** with `smoke: "pass"` and `rejects.mig3: 0` (or documented, accepted rejects) before any production load.
+
+Validate with:
+
+```bash
+npm run migrate:v2:validate-replay -- --path=export/malice/replay-log.jsonl --min=3
+```
+
+#### Operator checklist (staging, ≥ 3 cycles)
+
+Each cycle: **Procedure C1–C2** (Neon reset + redeploy if needed) → `migrate:v2:run --i-reset-neon --yes --record-cycle`.
+
+| Cycle | Expected smoke counts (Malice) | Notes |
+|-------|-------------------------------|-------|
+| 1 | events=55, availability≈1226±2, compositions=32 | Thresholds in `migrate.config.example.json` |
+| 2–3 | Same as cycle 1 | No undocumented manual fixes |
+
+If counts drift, adjust `thresholds` in `migrate.config.json` and document in `notes` field of replay log only when rejects are accepted.
 
 ## Security notes
 

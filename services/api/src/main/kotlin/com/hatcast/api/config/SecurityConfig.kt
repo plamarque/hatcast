@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
+import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 import org.springframework.web.cors.CorsConfiguration
@@ -20,6 +21,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableWebSecurity
 class SecurityConfig(
     @Value("\${hatcast.cors.allowed-origins}") private val allowedOrigins: String,
+    private val migrationApiKeyAuthenticationFilter: MigrationApiKeyAuthenticationFilter,
+    private val migrationApiKeyRequestMatcher: MigrationApiKeyRequestMatcher,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -37,6 +40,7 @@ class SecurityConfig(
                     AntPathRequestMatcher("/v1/auth/google", HttpMethod.POST.name()),
                     AntPathRequestMatcher("/v1/auth/idp", HttpMethod.POST.name()),
                     AntPathRequestMatcher("/v1/auth/logout", HttpMethod.POST.name()),
+                    migrationApiKeyRequestMatcher,
                 )
             }.authorizeHttpRequests { auth ->
                 auth
@@ -63,6 +67,7 @@ class SecurityConfig(
             }.exceptionHandling { ex ->
                 ex.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             }
+            .addFilterBefore(migrationApiKeyAuthenticationFilter, CsrfFilter::class.java)
 
         return http.build()
     }

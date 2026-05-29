@@ -282,6 +282,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **MIG-2** | Export V1 → import V2 : saisons + événements **+ `manifest.json` (mapping joueurs/events)** | P1 | ready-for-dev | **Après 2.11** + imports users/membres (2.3) ; [ADR-0016](docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md) ; story [mig-2](_bmad-output/implementation-artifacts/mig-2-export-v1-seasons-events-and-mapping-manifest.md) |
 | **MIG-3** | Export dispos / compositions (pipeline rejouable `extract → transform → load`) | P2 | ready-for-dev | **Bloqué par manifest MIG-2** ; [ADR-0016](docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md) ; story [mig-3](_bmad-output/implementation-artifacts/mig-3-availability-compositions-migration-pipeline.md) |
 | **MIG-4** | À l’import / post-import : `template_type=deplacement` → `equity_tag=deplacements` ; retrait progressif du type `deplacement` | P2 | backlog | Après **MIG-2** (données prod) |
+| **MIG-5** | Orchestrateur headless `migrate:v2:run` + clé API migration (ADR-0017) | P1 | [x] | Bootstrap API → B1–B5 → smoke ; reprise `--from-step` ; gate replay `migrate:v2:validate-replay` |
 
 **Hygiene H1 (PLAN, pas SPEC) — stories à créer via BMad :**
 
