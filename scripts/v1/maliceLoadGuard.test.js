@@ -140,6 +140,24 @@ describe('migrate-malice-load — normalizePostgresUrl', () => {
       'postgresql://user:pass@ep-plain-mode-al95cugr.eu/neondb',
     )
   })
+
+  it('strips channelBinding query param for psql', () => {
+    assert.equal(
+      normalizePostgresUrl(
+        'postgresql://ep-plain-mode-al95cugr-pooler.c-3.eu-central-1.aws.neon.tech/neondb?user=u&password=p&sslmode=require&channelBinding=require',
+      ),
+      'postgresql://ep-plain-mode-al95cugr-pooler.c-3.eu-central-1.aws.neon.tech/neondb?user=u&password=p&sslmode=require',
+    )
+  })
+
+  it('strips channel_binding query param', () => {
+    assert.equal(
+      normalizePostgresUrl(
+        'postgresql://neondb_owner:secret@ep-plain-mode-al95cugr-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+      ),
+      'postgresql://neondb_owner:secret@ep-plain-mode-al95cugr-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require',
+    )
+  })
 })
 
 describe('migrate-malice-load — resolveExpectHost', () => {
