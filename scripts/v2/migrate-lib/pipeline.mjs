@@ -264,6 +264,9 @@ export async function runPipeline(config, logger) {
   }
 
   if (shouldRunStep(config, 'smoke')) {
+    if (config.dryRun) {
+      logger.info('smoke', 'Skipped in dry-run (no Neon writes)')
+    } else {
     await logger.runStep('smoke', async () => {
       const counts = await smokeCounts(config.databaseUrl, state.seasonV2)
       assertEqual('events', counts.events, config.thresholds.events)
@@ -280,9 +283,13 @@ export async function runPipeline(config, logger) {
       state.stepsCompleted.push('smoke')
       saveState(config, state)
     })
+    }
   }
 
   if (shouldRunStep(config, 'report')) {
+    if (config.dryRun) {
+      logger.info('report', 'Skipped in dry-run')
+    } else {
     await logger.runStep('report', async () => {
       if (config.recordCycle && state.smoke) {
         const rejectsMig2 = state.artifactDir
@@ -308,6 +315,7 @@ export async function runPipeline(config, logger) {
       state.stepsCompleted.push('report')
       saveState(config, state)
     })
+    }
   }
 
   return state

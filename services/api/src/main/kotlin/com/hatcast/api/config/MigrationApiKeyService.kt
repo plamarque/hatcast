@@ -1,6 +1,7 @@
 package com.hatcast.api.config
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserRepository
 import org.springframework.stereotype.Service
 import java.nio.charset.StandardCharsets
@@ -10,6 +11,7 @@ import java.security.MessageDigest
 class MigrationApiKeyService(
     private val properties: MigrationApiProperties,
     private val userRepository: UserRepository,
+    private val userAccountService: UserAccountService,
 ) {
     companion object {
         const val HEADER_NAME = "X-Hatcast-Migration-Key"
@@ -28,9 +30,10 @@ class MigrationApiKeyService(
 
     fun resolveOperatorPrincipal(): SessionUserPrincipal? {
         if (!isEnabled()) return null
+        val operatorEmail = properties.operatorEmail.trim()
         val user =
-            userRepository.findFirstByEmailIgnoreCase(properties.operatorEmail.trim())
-                ?: return null
+            userRepository.findFirstByEmailIgnoreCase(operatorEmail)
+                ?: userAccountService.ensureUserByEmail(operatorEmail)
         return SessionUserPrincipal(
             userId = user.id,
             googleSub = user.googleSub,

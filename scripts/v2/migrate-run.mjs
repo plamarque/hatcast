@@ -12,10 +12,18 @@
  *   npm run migrate:v2:run -- --config=... --from-step=b4 --yes --i-reset-neon
  */
 
+import dotenv from 'dotenv'
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+
 import { parseConfig } from './migrate-lib/config.mjs'
 import { createLogger } from './migrate-lib/logger.mjs'
 import { runPipeline } from './migrate-lib/pipeline.mjs'
-import { resolveExpectHost } from '../migrate-malice-load.js'
+import { resolveExpectHost } from '../migrate-malice-load.mjs'
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+dotenv.config({ path: join(REPO_ROOT, '.env.local') })
+dotenv.config({ path: join(REPO_ROOT, '.env') })
 
 function printHelp() {
   console.log(`Usage:
