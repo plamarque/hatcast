@@ -7,6 +7,33 @@ import { basename } from 'path'
 
 export const MIGRATION_HEADER = 'X-Hatcast-Migration-Key'
 
+/** Cloud Run serves the Angular SPA at `/`; local `bootRun` is API-only (Spring on 8080). */
+export function isLocalApiBase(apiBaseUrl) {
+  try {
+    const host = new URL(apiBaseUrl).hostname
+    return host === 'localhost' || host === '127.0.0.1'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Preflight reachability: SPA root on Cloud Run, actuator health on local API-only dev.
+ * @param {string} base Normalized API base URL (no trailing slash)
+ */
+export async function preflightApiBase(base, fetchImpl = fetch) {
+  const root = await fetchImpl(`${base}/`)
+  if (root.ok) return
+
+  if (isLocalApiBase(base)) {
+    const health = await fetchImpl(`${base}/actuator/health`)
+    if (health.ok) return
+    throw new Error(`API health ${base}/actuator/health → ${health.status}`)
+  }
+
+  throw new Error(`SPA root ${base}/ → ${root.status}`)
+}
+
 function buildCsvForm(csvPath) {
   const form = new FormData()
   const buf = readFileSync(csvPath)
@@ -57,8 +84,7 @@ export function createApiClient(config) {
       return request('POST', path, { formData: form })
     },
     async preflight() {
-      const root = await fetch(`${base}/`)
-      if (!root.ok) throw new Error(`SPA root ${base}/ → ${root.status}`)
+      await preflightApiBase(base)
       const me = await fetch(`${base}/v1/auth/me`)
       if (me.status !== 401) {
         throw new Error(`Expected GET /v1/auth/me → 401 without session, got ${me.status}`)
