@@ -89,6 +89,7 @@ if [[ "${DRY_RUN}" == true ]]; then
   echo "   git pull origin ${HATCAST_V2_BRANCH_STAGING}"
   echo "   git merge ${MERGE_FLAG} ${DEV_REF} -m \"chore(v2): promote ${HATCAST_V2_BRANCH_DEV} to ${HATCAST_V2_BRANCH_STAGING}\""
   echo "   git push origin ${HATCAST_V2_BRANCH_STAGING}"
+  echo "   git checkout ${HATCAST_V2_BRANCH_DEV}"
   echo ""
   echo "✅ DRY RUN terminé."
   exit 0
@@ -104,3 +105,6 @@ echo ""
 echo "✅ Push effectué sur origin/${HATCAST_V2_BRANCH_STAGING}"
 echo "🌐 Suivre le déploiement : ${ACTIONS_URL}"
 echo "☁️  Service Cloud Run attendu : hatcast-v2-staging (environnement GitHub « staging »)"
+
+git checkout "${HATCAST_V2_BRANCH_DEV}"
+echo "↩️  Retour sur la branche ${HATCAST_V2_BRANCH_DEV}"
