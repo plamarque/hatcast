@@ -93,6 +93,15 @@ jobs:
           V="${V},HATCAST_CORS_ALLOWED_ORIGINS=${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}"
           V="${V},GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}"
           V="${V},JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0"
+          if [ "${{ github.ref_name }}" = "staging-v2" ]; then
+            if [ -n "${{ secrets.HATCAST_MIGRATION_API_KEY }}" ] && [ -n "${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}" ]; then
+              V="${V},HATCAST_MIGRATION_API_ENABLED=true"
+              V="${V},HATCAST_MIGRATION_API_KEY=${{ secrets.HATCAST_MIGRATION_API_KEY }}"
+              V="${V},HATCAST_MIGRATION_OPERATOR_EMAIL=${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}"
+            else
+              echo "::warning::Migration API key not configured — headless migrate:v2:run will not work until HATCAST_MIGRATION_API_KEY and HATCAST_MIGRATION_OPERATOR_EMAIL are set on environment staging"
+            fi
+          fi
           gcloud run deploy "${SERVICE_NAME}" \
             --image "${IMAGE_TAG}" \
             --region "${GCP_REGION}" \

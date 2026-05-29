@@ -76,8 +76,8 @@ Options:
   --yes                 Confirm a NON-prod write (staging)
   --confirm-prod=SLUG   Confirm a PROD write; SLUG must equal --target
   --expect-host=SUBSTR  Require the connection host OR database/branch name to contain
-                        SUBSTR (URL↔target check). Neon usually carries the env name in
-                        the branch/db. MANDATORY for any write (staging and prod).
+                        SUBSTR (URL↔target check). Use "auto" to derive from Neon host
+                        (ep-<branch>-…). MANDATORY for any write (staging and prod).
   --dry-run             Print SQL + report, write nothing (DEFAULT)
 
 Default is dry-run: nothing is written without --yes (staging) or --confirm-prod (prod).`)
@@ -103,6 +103,35 @@ export function parseDbInfo(databaseUrl) {
   } catch {
     return null
   }
+}
+
+/**
+ * Resolve --expect-host for Neon URLs. When value is `auto`, derive a substring
+ * marker from the endpoint hostname (`ep-<branch>-…`) so planLoad can match
+ * against host/database without hard-coding `staging` vs branch-specific names.
+ *
+ * @param {string|null|undefined} expectHost
+ * @param {string|null|undefined} databaseUrl
+ * @returns {string}
+ */
+export function resolveExpectHost(expectHost, databaseUrl) {
+  if (expectHost && expectHost !== 'auto') return expectHost
+  const info = parseDbInfo(databaseUrl)
+  if (!info?.host) {
+    throw new Error(
+      'Cannot derive --expect-host=auto: pass --expect-host=<marker> or a valid --database-url.',
+    )
+  }
+  let host = info.host.replace(/-pooler\./i, '.')
+  const match = host.match(/^ep-([^.]+)/i)
+  if (match) {
+    const branch = match[1].replace(/-\d+$/, '')
+    if (branch) return branch
+  }
+  if (info.database) return info.database
+  throw new Error(
+    'Cannot derive --expect-host=auto from connection URL. Pass --expect-host=<marker> explicitly.',
+  )
 }
 
 /**

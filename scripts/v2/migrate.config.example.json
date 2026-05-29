@@ -1,0 +1,22 @@
+{
+  "target": "staging",
+  "apiBaseUrl": "https://hatcast-v2-staging-730278491306.europe-west9.run.app",
+  "migrationApiKey": "${HATCAST_MIGRATION_API_KEY}",
+  "v1SeasonId": "o0kD2IJekMdGdiJeIg4O",
+  "troupeName": "La Malice",
+  "seasonTitle": "Malice 2025-2026",
+  "databaseUrl": "${NEON_STAGING_URL}",
+  "expectHost": "auto",
+  "exportDir": "./export/malice-runs",
+  "replayLogPath": "export/malice/replay-log.jsonl",
+  "allowImportErrors": 0,
+  "thresholds": {
+    "events": 55,
+    "availability": 1226,
+    "availabilityTolerance": 2,
+    "compositions": 32,
+    "rejectsMig2": 0,
+    "rejectsMig3": 2,
+    "seedUsers": 0
+  }
+}

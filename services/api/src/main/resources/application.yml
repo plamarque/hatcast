@@ -53,6 +53,10 @@ hatcast:
     storage: ${HATCAST_AVATAR_STORAGE:local}
     local-base-path: ${HATCAST_AVATAR_LOCAL_PATH:${java.io.tmpdir}/hatcast-avatars}
     max-bytes: 2097152
+  migration:
+    api-enabled: ${HATCAST_MIGRATION_API_ENABLED:false}
+    api-key: ${HATCAST_MIGRATION_API_KEY:}
+    operator-email: ${HATCAST_MIGRATION_OPERATOR_EMAIL:}
 
 management:
   endpoints:
