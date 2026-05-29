@@ -2,6 +2,7 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
+import com.hatcast.api.troupe.dto.CreateTroupeRequest
 import com.hatcast.api.troupe.dto.MemberImportResultDto
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
@@ -36,8 +37,8 @@ import java.util.UUID
 @RequestMapping("/v1/troupes")
 class TroupeController(
     private val membershipService: TroupeMembershipService,
+    private val troupeService: TroupeService,
     private val userImportService: UserImportService,
-    private val troupeAccess: TroupeAccessService,
     private val troupeEquityTagService: TroupeEquityTagService,
 ) {
     /** Troupe(s) où l'utilisateur courant a une adhésion active. */
@@ -47,18 +48,26 @@ class TroupeController(
     ): List<TroupeListItemDto> = membershipService.listActiveTroupesForUser(principal.userId)
 
     /**
-     * Rejoindre (ou réactiver) l'adhésion courante à la troupe de démonstration.
-     * Flux provisoire limité à la seed jusqu'aux invitations/rôles de la Story 2.2.
+     * Crée une troupe et place l'utilisateur courant en administrateur actif (MIG-0).
+     * Slug dérivé automatiquement du nom ; toute session authentifiée peut créer une troupe.
+     */
+    @PostMapping
+    fun createTroupe(
+        @Valid @RequestBody body: CreateTroupeRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): ResponseEntity<TroupeListItemDto> =
+        ResponseEntity.status(HttpStatus.CREATED).body(troupeService.create(body, principal))
+
+    /**
+     * Rejoindre (ou réactiver) l'adhésion courante lorsque la troupe a `join_policy = OPEN`.
+     * Les troupes démo inscrivent aussi le membre sur la saison active (roster).
      */
     @PostMapping("/{troupeId}/memberships/me")
     fun joinTroupe(
         @PathVariable troupeId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): MembershipSummaryDto {
-        if (!troupeAccess.isSeedTroupe(troupeId)) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Adhésion directe réservée à la troupe de démonstration.")
-        }
-        val membership = membershipService.ensureActiveMembership(principal.userId, troupeId)
+        val membership = membershipService.selfJoin(principal.userId, troupeId)
         return MembershipSummaryDto.from(membership)
     }
 

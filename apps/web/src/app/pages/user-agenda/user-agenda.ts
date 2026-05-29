@@ -23,6 +23,7 @@ import {
   type UserAgendaParticipationFilters,
 } from '../../core/agenda/user-agenda-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import {
   saisonEventPath,
   saisonWorkspacePath,
@@ -57,6 +58,11 @@ export class UserAgenda implements OnInit {
   private readonly router = inject(Router)
   private readonly route = inject(ActivatedRoute)
   private readonly snack = inject(MatSnackBar)
+  private readonly demoJoin = inject(DemoTroupeJoinService)
+
+  private loadGeneration = 0
+
+  protected readonly joiningDemo = this.demoJoin.joining
 
   protected readonly loadingSession = signal(true)
   protected readonly loadingAgenda = signal(false)
@@ -105,6 +111,7 @@ export class UserAgenda implements OnInit {
   }
 
   protected async loadAgenda(): Promise<void> {
+    const generation = ++this.loadGeneration
     this.loadingAgenda.set(true)
     this.loadError.set(false)
     const r = await this.api.listAgenda({
@@ -114,6 +121,11 @@ export class UserAgenda implements OnInit {
       troupeId: this.selectedTroupeId() ?? undefined,
       leagueId: this.selectedLeagueId() ?? undefined,
     })
+
+    if (generation !== this.loadGeneration) {
+      return
+    }
+
     this.loadingAgenda.set(false)
 
     if (r.ok && r.data) {
@@ -297,5 +309,9 @@ export class UserAgenda implements OnInit {
     })
     rememberCurrentUrlForPostLogin(this.router)
     await this.router.navigate(['/connexion'], { replaceUrl: true })
+  }
+
+  protected async joinDemoTroupe(): Promise<void> {
+    await this.demoJoin.join()
   }
 }

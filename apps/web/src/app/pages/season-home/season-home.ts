@@ -149,6 +149,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly troupeId = signal<string | null>(null)
   protected readonly troupeName = signal<string | null>(null)
   protected readonly troupeSlug = signal<string | null>(null)
+  protected readonly troupeIsDemo = signal(false)
 
   protected readonly showMobileSeasonTitle = computed(() => {
     if (!this.contextSwitcherData.initialized()) {
@@ -493,6 +494,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
     this.troupeSlug.set(resolved.troupe.slug)
+    this.troupeIsDemo.set(resolved.troupe.isDemo)
     this.season.set(resolved.season)
     rememberLastVisitedSeasonSlug(slug, resolved.troupe.id)
     rememberLastMemberEntryPath(saisonMemberEntryPath(slug))

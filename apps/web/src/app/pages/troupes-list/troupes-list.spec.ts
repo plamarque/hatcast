@@ -1,18 +1,29 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
+import { of } from 'rxjs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { environment } from '../../../environments/environment'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
+import {
+  DEMO_ACTIVE_SEASON_SLUG,
+  DEMO_TROUPE_ID,
+} from '../../core/troupes/demo-troupe.constants'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { TroupesList } from './troupes-list'
 
 const mockTroupe: TroupeListItem = {
   id: 't-1',
-  name: 'La Malice',
-  slug: 'la-malice',
+  name: 'Les Improbots',
+  slug: 'les-improbots',
+  isDemo: false,
+  joinPolicy: 'OPEN',
   activeMemberCount: 3,
   upcomingEventCount: 2,
   membership: {
@@ -39,17 +50,27 @@ async function settle(fixture: ComponentFixture<TroupesList>): Promise<void> {
 
 describe('TroupesList', () => {
   let fixture: ComponentFixture<TroupesList>
-  let troupeApi: { listMyTroupes: ReturnType<typeof vi.fn>; joinTroupe: ReturnType<typeof vi.fn> }
+  let troupeApi: {
+    listMyTroupes: ReturnType<typeof vi.fn>
+    joinTroupe: ReturnType<typeof vi.fn>
+    createTroupe: ReturnType<typeof vi.fn>
+  }
+  let dialog: { open: ReturnType<typeof vi.fn> }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> }
+  let demoJoin: { join: ReturnType<typeof vi.fn>; joining: ReturnType<typeof vi.fn> }
 
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
   beforeEach(async () => {
+    dialog = {
+      open: vi.fn().mockReturnValue({ afterClosed: () => of(undefined) }),
+    }
     troupeApi = {
       listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [mockTroupe] }),
       joinTroupe: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+      createTroupe: vi.fn(),
     }
     auth = {
       ensureHatcastSession: vi.fn().mockResolvedValue({
@@ -57,6 +78,10 @@ describe('TroupesList', () => {
         data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' } },
       }),
       logout: vi.fn().mockResolvedValue(undefined),
+    }
+    demoJoin = {
+      join: vi.fn().mockResolvedValue({ ok: true }),
+      joining: vi.fn(() => false),
     }
 
     await TestBed.configureTestingModule({
@@ -66,6 +91,8 @@ describe('TroupesList', () => {
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
         { provide: AuthApiService, useValue: auth },
         { provide: TroupeApiService, useValue: troupeApi },
+        { provide: DemoTroupeJoinService, useValue: demoJoin },
+        { provide: MatDialog, useValue: dialog },
         {
           provide: TroupeContextService,
           useValue: {
@@ -94,7 +121,7 @@ describe('TroupesList', () => {
   it('affiche les cartes troupe avec lien Ouvrir vers le hub', async () => {
     await settle(fixture)
 
-    const openLink = fixture.nativeElement.querySelector('a[href="/troupes/la-malice"]')
+    const openLink = fixture.nativeElement.querySelector('a[href="/troupes/les-improbots"]')
     expect(openLink?.textContent?.trim()).toBe('Ouvrir')
     expect(fixture.nativeElement.textContent).toContain('3 membres')
     expect(fixture.nativeElement.textContent).toContain('2 spectacles à venir')
@@ -120,6 +147,85 @@ describe('TroupesList', () => {
 
     expect(fixture.componentInstance['troupes']().length).toBe(0)
     expect(fixture.nativeElement.textContent).toContain('troupe de démonstration')
+    expect(fixture.nativeElement.textContent).toContain('Créer une troupe')
+  })
+
+  it('ouvre le dialogue de création et navigue vers le hub après succès', async () => {
+    const router = TestBed.inject(Router)
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+    dialog.open.mockReturnValue({ afterClosed: () => of('ma-troupe') })
+
+    await settle(fixture)
+    const buttons = fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>
+    const createBtn = Array.from(buttons).find((b) => b.textContent?.includes('Créer une troupe'))
+    expect(createBtn).toBeDefined()
+    createBtn?.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(dialog.open).toHaveBeenCalled()
+    expect(navigate).toHaveBeenCalledWith(['/', 'troupes', 'ma-troupe'])
+  })
+
+  it('délègue le join Démo au service partagé', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
+    await settle(fixture)
+
+    await fixture.componentInstance['joinDemoTroupe']()
+
+    expect(demoJoin.join).toHaveBeenCalled()
+  })
+})
+
+describe('TroupesList — join Démo UUID', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    localStorage.clear()
+  })
+
+  it('appelle joinTroupe avec DEMO_TROUPE_ID …000099', async () => {
+    localStorage.clear()
+    environment.demoTroupeId = DEMO_TROUPE_ID
+    const troupeContext = { reloadAndSelect: vi.fn().mockResolvedValue(true) }
+    const resolver = {
+      resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'resolved', troupe: {}, season: {} }),
+    }
+    const api = {
+      listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      joinTroupe: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+      createTroupe: vi.fn(),
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [TroupesList, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        DemoTroupeJoinService,
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' } },
+            }),
+          },
+        },
+        { provide: TroupeApiService, useValue: api },
+        { provide: TroupeContextService, useValue: troupeContext },
+        { provide: TroupeSeasonResolverService, useValue: resolver },
+      ],
+    }).compileComponents()
+
+    const router = TestBed.inject(Router)
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+    const integrationFixture = TestBed.createComponent(TroupesList)
+    await integrationFixture.componentInstance['joinDemoTroupe']()
+
+    expect(api.joinTroupe).toHaveBeenCalledWith(DEMO_TROUPE_ID)
+    expect(troupeContext.reloadAndSelect).toHaveBeenCalledWith(DEMO_TROUPE_ID)
+    expect(navigate).toHaveBeenCalledWith(['/saison', DEMO_ACTIVE_SEASON_SLUG])
   })
 })
 
@@ -138,8 +244,9 @@ describe('TroupesList session gate', () => {
         },
         {
           provide: TroupeApiService,
-          useValue: { listMyTroupes: vi.fn(), joinTroupe: vi.fn() },
+          useValue: { listMyTroupes: vi.fn(), joinTroupe: vi.fn(), createTroupe: vi.fn() },
         },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
         {
           provide: TroupeContextService,
           useValue: { currentUserDisplayLabel: () => 'Compte' },

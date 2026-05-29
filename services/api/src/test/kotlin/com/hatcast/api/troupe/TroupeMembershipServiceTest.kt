@@ -28,6 +28,9 @@ class TroupeMembershipServiceTest {
     private val userRepository = mock<UserRepository>()
     private val userAccountService = mock<UserAccountService>()
     private val csvImportService = mock<TroupeMemberCsvImportService>()
+    private val platformAdminService = mock<com.hatcast.api.auth.PlatformAdminService>()
+    private val seasonRepository = mock<com.hatcast.api.season.SeasonRepository>()
+    private val membershipSync = mock<com.hatcast.api.participant.SeasonParticipantMembershipSync>()
     private val service =
         TroupeMembershipService(
             membershipRepository,
@@ -36,10 +39,13 @@ class TroupeMembershipServiceTest {
             userRepository,
             userAccountService,
             csvImportService,
+            platformAdminService,
+            seasonRepository,
+            membershipSync,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
-    private val troupe = TroupeEntity(id = troupeId, name = "La Malice", slug = "la-malice")
+    private val troupe = TroupeEntity(id = troupeId, name = "Les Improbots", slug = "les-improbots")
 
     @Test
     fun `direct membership creation defaults to MEMBER`() {
@@ -123,6 +129,8 @@ class TroupeMembershipServiceTest {
         val items = service.listActiveTroupesForUser(userId)
 
         assertEquals(1, items.size)
+        assertEquals(TroupeJoinPolicy.OPEN, items[0].joinPolicy)
+        assertEquals(false, items[0].isDemo)
         assertEquals(4L, items[0].activeMemberCount)
         assertEquals(2L, items[0].upcomingEventCount)
     }

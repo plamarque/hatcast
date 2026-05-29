@@ -3,11 +3,13 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSelectChange } from '@angular/material/select'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { provideRouter } from '@angular/router'
+import { Router, provideRouter } from '@angular/router'
 import { of } from 'rxjs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { DEMO_ACTIVE_SEASON_SLUG } from '../../core/troupes/demo-troupe.constants'
+import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { SeasonsList } from './seasons-list'
@@ -29,6 +31,7 @@ describe('SeasonsList', () => {
   let troupeApi: { listMyTroupes: ReturnType<typeof vi.fn>; joinTroupe: ReturnType<typeof vi.fn> }
   let seasonApi: { listSeasons: ReturnType<typeof vi.fn>; deleteSeason: ReturnType<typeof vi.fn> }
   let dialog: { open: ReturnType<typeof vi.fn>; closeAll: ReturnType<typeof vi.fn> }
+  let demoJoin: { join: ReturnType<typeof vi.fn>; joining: ReturnType<typeof vi.fn> }
 
   afterEach(() => {
     localStorage.clear()
@@ -48,6 +51,10 @@ describe('SeasonsList', () => {
       open: vi.fn().mockReturnValue({ afterClosed: () => of(false) }),
       closeAll: vi.fn(),
     }
+    demoJoin = {
+      join: vi.fn().mockResolvedValue({ ok: true }),
+      joining: vi.fn(() => false),
+    }
 
     await TestBed.configureTestingModule({
       imports: [SeasonsList, NoopAnimationsModule],
@@ -65,6 +72,7 @@ describe('SeasonsList', () => {
           },
         },
         { provide: TroupeApiService, useValue: troupeApi },
+        { provide: DemoTroupeJoinService, useValue: demoJoin },
         { provide: SeasonApiService, useValue: seasonApi },
       ],
     }).compileComponents()
@@ -107,7 +115,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -126,7 +134,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'MEMBER')],
+      data: [troupe('troupe-1', 'Les Improbots', 'MEMBER')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -165,7 +173,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -180,18 +188,25 @@ describe('SeasonsList', () => {
     expect(fixture.nativeElement.querySelector('a[href*="troupe/troupe-1/admin/membres"]')).toBeTruthy()
   })
 
-  it('rejoint la troupe de démonstration puis recharge les troupes', async () => {
+  it('rejoint la troupe de démonstration via le service partagé et redirige vers la saison active', async () => {
+    const router = TestBed.inject(Router)
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+    demoJoin.join.mockImplementation(async () => {
+      await router.navigate(['/saison', DEMO_ACTIVE_SEASON_SLUG])
+      return { ok: true }
+    })
+
     await fixture.componentInstance['joinDemoTroupe']()
 
-    expect(troupeApi.joinTroupe).toHaveBeenCalled()
-    expect(troupeApi.listMyTroupes).toHaveBeenCalledWith()
+    expect(demoJoin.join).toHaveBeenCalled()
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', DEMO_ACTIVE_SEASON_SLUG])
   })
 
   it('affiche un switcher seulement quand plusieurs troupes actives existent', async () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice'), troupe('troupe-2', 'Les Impros')],
+      data: [troupe('troupe-1', 'Les Improbots'), troupe('troupe-2', 'Les Impros')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -202,7 +217,7 @@ describe('SeasonsList', () => {
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('Troupe')
-    expect(fixture.nativeElement.textContent).toContain('La Malice')
+    expect(fixture.nativeElement.textContent).toContain('Les Improbots')
     expect(fixture.nativeElement.textContent).toContain('Changer de troupe')
   })
 
@@ -210,7 +225,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice')],
+      data: [troupe('troupe-1', 'Les Improbots')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -220,7 +235,7 @@ describe('SeasonsList', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.textContent).toContain('La Malice')
+    expect(fixture.nativeElement.textContent).toContain('Les Improbots')
     expect(fixture.nativeElement.textContent).not.toContain('Changer de troupe')
   })
 
@@ -228,7 +243,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice'), troupe('troupe-2', 'Les Impros', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots'), troupe('troupe-2', 'Les Impros', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -251,7 +266,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice'), troupe('troupe-2', 'Les Impros', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots'), troupe('troupe-2', 'Les Impros', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -272,7 +287,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'MEMBER')],
+      data: [troupe('troupe-1', 'Les Improbots', 'MEMBER')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -296,7 +311,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -336,7 +351,7 @@ describe('SeasonsList', () => {
     troupeApi.listMyTroupes.mockResolvedValue({
       ok: true,
       status: 200,
-      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+      data: [troupe('troupe-1', 'Les Improbots', 'TROUPE_ADMIN')],
     })
     seasonApi.listSeasons.mockResolvedValue({
       ok: true,
@@ -371,6 +386,8 @@ function troupe(
     id,
     name,
     slug: id,
+    isDemo: false,
+    joinPolicy: 'OPEN',
     activeMemberCount: 1,
     upcomingEventCount: 0,
     membership: {

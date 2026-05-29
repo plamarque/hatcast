@@ -1,6 +1,6 @@
 # Story 5.7 — Summary dispos : lecture sans écriture sur GET
 
-**Status:** review
+**Status:** done
 
 **PLAN:** [PLAN.md](../../PLAN.md) § Hygiene H1 backlog **5-7**  
 **SCP:** [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](../planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md)  
@@ -48,6 +48,13 @@ afin de **réduire la latence perçue (G-003)** et éviter des écritures roster
 - [x] Test intégration : GET summary ne crée pas de `season_participant` pour un nouveau membre non synchronisé.
 - [x] `./gradlew test` vert (AvailabilityControllerIntegrationTest + suite).
 - [x] Mettre à jour PLAN.md backlog **5-7** et `sprint-status.yaml`.
+
+### Review Findings
+
+- [x] [Review][Patch] G-003 test omits AC2 response-body assertion [`AvailabilityControllerIntegrationTest.kt:423`] — assert newcomer absent from `$.participants` after GET summary
+- [x] [Review][Defer] Transient summary/selectors race on first parallel load [`event-dispos-tab.ts:164`] — deferred, pre-existing Promise.all pattern; AC3 keeps sync on selectors; microwindow resolves on reload/retry
+- [x] [Review][Defer] `reloadSummary()` does not re-fetch selectors [`event-dispos-tab.ts:199`] — deferred, pre-existing; out of 5-7 scope; membership changes mid-session are rare
+- [x] [Review][Defer] API clients calling GET summary without selectors get stale roster [`AvailabilityController.kt:48`] — deferred, intentional AC2 contract; sync paths remain on selectors/listAdmin/composition
 
 ---
 
@@ -100,3 +107,4 @@ Composer (Cursor)
 
 - 2026-05-28 : Story créée (hygiene H1 / SCP 2026-05-28).
 - 2026-05-28 : Implémentation API read-only summary + test G-003.
+- 2026-05-29 : Code review — assertion AC2 `$.participants` dans test G-003 ; story `done`.

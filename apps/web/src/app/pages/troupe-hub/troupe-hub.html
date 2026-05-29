@@ -47,10 +47,16 @@
       </div>
     </div>
 
+    @if (isDemoTroupe()) {
+      <p class="troupe-hub__demo-hint" role="note">
+        Bac à sable — crée ta troupe quand tu es prêt·e
+      </p>
+    }
+
     <section class="troupe-hub__seasons" aria-labelledby="saisons-heading">
       <div class="troupe-hub__seasons-header">
         <h2 id="saisons-heading" class="troupe-hub__section-title">Saisons</h2>
-        @if (isTroupeAdmin()) {
+        @if (canManageTroupe()) {
           <button mat-flat-button color="primary" type="button" (click)="openCreateSeason()">
             <mat-icon>add</mat-icon>
             Nouvelle saison

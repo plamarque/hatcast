@@ -9,6 +9,8 @@ const troupeA: TroupeListItem = {
   id: 't-a',
   name: 'Troupe A',
   slug: 'troupe-a',
+  isDemo: false,
+  joinPolicy: 'OPEN',
   membership: {
     id: 'm-a',
     displayName: 'Alice',

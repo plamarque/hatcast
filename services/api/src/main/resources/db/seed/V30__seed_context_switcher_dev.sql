@@ -1,6 +1,6 @@
 -- Story 17.23 — données dev pour tester le sélecteur troupe · saison (multi-contexte).
--- Profil dev : patrice@seed.la-malice.test (user d0000001-…-000022, déjà membre La Malice via V17).
--- Tout membre actif de La Malice reçoit aussi une adhésion « Les Zinzins » (connexion Google réelle incluse).
+-- Profil dev : patrice@seed.improbots.test (user d0000001-…-000022, déjà membre Les Improbots via V17).
+-- Tout membre actif de Les Improbots reçoit aussi une adhésion « Les Zinzins » (connexion Google réelle incluse).
 -- Flyway seed V30 (ne pas réutiliser V29 — réservé à db/migration).
 -- Après migration : redémarrer l’API (profil dev) ou reset branche Neon dev.
 
@@ -15,7 +15,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM troupes WHERE id = 'a0000001-0000-4000-8000-000000000002'
 );
 
--- Saison supplémentaire sur La Malice (2 saisons listables → sélecteur même avec une seule troupe)
+-- Saison supplémentaire sur Les Improbots (2 saisons listables → sélecteur même avec une seule troupe)
 INSERT INTO seasons (
     id,
     troupe_id,
@@ -83,7 +83,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM seasons WHERE id = 'b0000001-0000-4000-8000-000000000003'
 );
 
--- Miroir des adhésions La Malice → Les Zinzins (évite une UI « créer troupe » en dev)
+-- Miroir des adhésions Les Improbots → Les Zinzins (évite une UI « créer troupe » en dev)
 INSERT INTO troupe_memberships (
     id,
     troupe_id,

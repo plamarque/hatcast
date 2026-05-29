@@ -23,6 +23,8 @@ export interface TroupeListItem {
   id: string
   name: string
   slug: string
+  isDemo: boolean
+  joinPolicy: 'OPEN' | 'INVITE_ONLY'
   membership: MembershipSummary
   activeMemberCount: number
   upcomingEventCount: number
@@ -53,6 +55,10 @@ export interface AddTroupeMemberRequest {
   email: string
   displayName?: string
   baselineRole?: TroupeBaselineRole
+}
+
+export interface CreateTroupeRequest {
+  name: string
 }
 
 export interface UpdateMyMembershipRequest {
@@ -125,6 +131,27 @@ export class TroupeApiService {
       )
       if (!res.ok) return { ok: false, status: res.status }
       return { ok: true, status: res.status, data: (await res.json()) as TroupeEquityTag[] }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async createTroupe(body: CreateTroupeRequest): ApiResult<TroupeListItem> {
+    try {
+      const res = await fetch('/v1/troupes', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders(),
+        },
+        body: JSON.stringify({ name: body.name.trim() }),
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as TroupeListItem
+      return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
     }

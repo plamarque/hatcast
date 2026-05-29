@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import { saisonWorkspacePath } from '../../core/navigation/troupe-routes'
@@ -23,7 +24,6 @@ import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { UserAccountMenuItemsComponent } from '../../shared/user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
-import { environment } from '../../../environments/environment'
 import { ConfirmDialog, type ConfirmDialogData } from './confirm-dialog'
 import { SeasonFormDialog, type SeasonFormDialogData } from './season-form-dialog'
 
@@ -55,6 +55,7 @@ export class SeasonsList implements OnInit {
   private readonly api = inject(SeasonApiService)
   private readonly troupeApi = inject(TroupeApiService)
   private readonly troupeContext = inject(TroupeContextService)
+  private readonly demoJoin = inject(DemoTroupeJoinService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
@@ -62,7 +63,7 @@ export class SeasonsList implements OnInit {
   protected readonly loadingSession = signal(true)
   protected readonly loadingList = signal(false)
   protected readonly loadError = signal(false)
-  protected readonly joiningDemo = signal(false)
+  protected readonly joiningDemo = this.demoJoin.joining
   protected readonly hasMembership = signal(false)
   protected readonly canManageSeasons = signal(false)
   protected readonly platformAdmin = signal(false)
@@ -71,7 +72,9 @@ export class SeasonsList implements OnInit {
     () => this.canManageSeasons() || this.platformAdmin(),
   )
   protected readonly canManageMembers = computed(
-    () => this.selectedTroupe()?.membership.baselineRole === 'TROUPE_ADMIN',
+    () =>
+      this.selectedTroupe()?.membership.baselineRole === 'TROUPE_ADMIN' ||
+      this.platformAdmin(),
   )
   protected readonly seasons = signal<SeasonResponse[]>([])
   protected readonly troupeId = signal<string | null>(null)
@@ -105,29 +108,7 @@ export class SeasonsList implements OnInit {
   }
 
   protected async joinDemoTroupe(): Promise<void> {
-    const demoId = environment.demoTroupeId
-    if (!demoId) {
-      this.snack.open('Troupe de démonstration indisponible.', 'OK', { duration: 6000 })
-      return
-    }
-    this.joiningDemo.set(true)
-    const jr = await this.troupeApi.joinTroupe(demoId)
-    this.joiningDemo.set(false)
-    if (!jr.ok) {
-      this.snack.open('Impossible de rejoindre la troupe de démonstration.', 'OK', { duration: 6000 })
-      return
-    }
-    this.snack.open('Vous avez rejoint la troupe de démonstration.', 'OK', { duration: 4000 })
-    this.loadingList.set(true)
-    const refreshed = await this.troupeContext.reloadAndSelect(demoId)
-    if (refreshed) {
-      await this.loadSelectedTroupeSeasons(0)
-    } else {
-      this.loadingList.set(false)
-      this.snack.open('Adhésion enregistrée, mais le rechargement des troupes a échoué.', 'OK', {
-        duration: 6000,
-      })
-    }
+    await this.demoJoin.join()
   }
 
   protected async loadTroupeAndSeasons(page: number): Promise<boolean> {

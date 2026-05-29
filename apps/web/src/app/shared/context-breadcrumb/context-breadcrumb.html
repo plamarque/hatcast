@@ -5,26 +5,31 @@
 >
   <ol class="context-breadcrumb__trail context-breadcrumb__trail--desktop">
     <li class="context-breadcrumb__segment">
-      <a
-        class="context-breadcrumb__troupe"
-        [routerLink]="troupeHubPath(troupeSlug())"
-        [attr.aria-label]="troupeAriaLabel()"
-      >
-        @if (showTroupeImage()) {
-          <img
-            class="context-breadcrumb__logo-img"
-            [src]="troupeLogoUrl()!"
-            alt=""
-            width="36"
-            height="36"
-          />
-        } @else {
-          <span class="context-breadcrumb__logo-badge" aria-hidden="true">
-            <mat-icon>groups</mat-icon>
-          </span>
+      <div class="context-breadcrumb__troupe-group">
+        <a
+          class="context-breadcrumb__troupe"
+          [routerLink]="troupeHubPath(troupeSlug())"
+          [attr.aria-label]="troupeAriaLabel()"
+        >
+          @if (showTroupeImage()) {
+            <img
+              class="context-breadcrumb__logo-img"
+              [src]="troupeLogoUrl()!"
+              alt=""
+              width="36"
+              height="36"
+            />
+          } @else {
+            <span class="context-breadcrumb__logo-badge" aria-hidden="true">
+              <mat-icon>groups</mat-icon>
+            </span>
+          }
+          <span class="context-breadcrumb__troupe-name">{{ troupeName() }}</span>
+        </a>
+        @if (troupeIsDemo()) {
+          <mat-chip class="context-breadcrumb__demo-chip" aria-label="Troupe Démo">Démo</mat-chip>
         }
-        <span class="context-breadcrumb__troupe-name">{{ troupeName() }}</span>
-      </a>
+      </div>
     </li>
     @if (layout() !== 'troupe') {
       <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
@@ -92,6 +97,11 @@
         </span>
       }
     </a>
+    @if (troupeIsDemo()) {
+      <mat-chip class="context-breadcrumb__demo-chip context-breadcrumb__demo-chip--mobile" aria-label="Troupe Démo">
+        Démo
+      </mat-chip>
+    }
     @if (layout() !== 'troupe' && useSwitcher() && switcherInputsReady()) {
       <app-context-switcher
         [compact]="true"

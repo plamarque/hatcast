@@ -1,13 +1,13 @@
 # Recette MVP pilote — un seul admin (Patrice)
 
-Données générées par `npm run generate:malice-mvp-pilot-seed` → migration `V22__seed_mvp_pilot_recette.sql`.
+Données générées par `npm run generate:improbots-mvp-pilot-seed` → migration `V22__seed_mvp_pilot_recette.sql`.
 
 ## Prérequis
 
 1. Base locale migrée (Flyway jusqu’à **V22** inclus) : redémarrer l’API ou `./scripts/start-dev.sh`.
 2. Connexion en **Patrice** — admin troupe + orga saison :
-   - Email seed : `patrice@seed.la-malice.test`
-   - Troupe : **La Malice** · Ligue : **La Malice 2026-2027** (`/saison/la-malice-2026-2027`)
+   - Email seed : `patrice@seed.improbots.test`
+   - Troupe : **Les Improbots** · Ligue : **Les Improbots 2026-2027** (`/saison/les-improbots-2026-2027`)
 3. Stories **5.5** (proxy dispos) et **6.8** (proxy confirmation) livrées côté app.
 
 ## Cast MVP (6 personnes)
@@ -48,7 +48,7 @@ Sur **`[MVP] 02 · Assignation manuelle`** (dispos déjà seedées ; optionnel s
 ## Scénario 00 — Navigation (déjà validé chez vous)
 
 1. `/agenda` → ouvrir **`[MVP] 00 · Bandeau navigation`**.
-2. Vérifier bandeau **La Malice · La Malice 2026-2027** + **Voir la ligue** + **Voir la troupe**.
+2. Vérifier bandeau **Les Improbots · Les Improbots 2026-2027** + **Voir la ligue** + **Voir la troupe**.
 3. **Succès** : liens OK (routes à ajuster plus tard = hors gate).
 
 ---
@@ -127,5 +127,5 @@ Cocher dans `PLAN.md` la DoD MVP après scénarios **01–04** (05 = contrôle v
 Regénérer le seed :
 
 ```bash
-npm run generate:malice-mvp-pilot-seed
+npm run generate:improbots-mvp-pilot-seed
 ```

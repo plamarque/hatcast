@@ -24,9 +24,17 @@
     "export:v1-users": "node scripts/v1-export-season-users-csv.js",
     "export:v1-members:prod": "node scripts/v1-export-troupe-members-csv.js --database=default",
     "export:v1-users:prod": "node scripts/v1-export-season-users-csv.js --database=default",
-    "generate:malice-seed": "node scripts/v2/generate-malice-seed-sql.js",
-    "generate:malice-composition-seed": "node scripts/v2/generate-malice-seed-sql.js --composition-only",
-    "generate:malice-mvp-pilot-seed": "node scripts/v2/generate-malice-seed-sql.js --mvp-pilot-only"
+    "migrate:malice:extract": "node scripts/migrate-malice-extract.js",
+    "migrate:malice:extract:prod": "node scripts/migrate-malice-extract.js --database='(default)'",
+    "migrate:malice:transform": "node scripts/migrate-malice-transform.js",
+    "migrate:malice:transform:ac": "node scripts/migrate-malice-transform-ac.js",
+    "migrate:malice:load": "node scripts/migrate-malice-load.js",
+    "generate:improbots-seed": "node scripts/v2/generate-improbots-seed-sql.js",
+    "generate:improbots-composition-seed": "node scripts/v2/generate-improbots-seed-sql.js --composition-only",
+    "generate:improbots-mvp-pilot-seed": "node scripts/v2/generate-improbots-seed-sql.js --mvp-pilot-only",
+    "generate:malice-seed": "npm run generate:improbots-seed",
+    "generate:malice-composition-seed": "npm run generate:improbots-composition-seed",
+    "generate:malice-mvp-pilot-seed": "npm run generate:improbots-mvp-pilot-seed"
   },
   "engines": {
     "node": ">=20"

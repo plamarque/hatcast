@@ -13,6 +13,9 @@ import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.persistence.EntityManagerFactory
+import jakarta.servlet.http.Cookie
+import org.hibernate.SessionFactory
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -63,6 +66,9 @@ class TroupeMembershipIntegrationTest {
     @Autowired
     private lateinit var seasonParticipantRepository: SeasonParticipantRepository
 
+    @Autowired
+    private lateinit var entityManagerFactory: EntityManagerFactory
+
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
 
@@ -71,7 +77,7 @@ class TroupeMembershipIntegrationTest {
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
-    private val seedSeasonSlug = "la-malice-2026-2027"
+    private val seedSeasonSlug = "les-improbots-2026-2027"
     private val mapper = ObjectMapper()
 
     @Test
@@ -105,7 +111,9 @@ class TroupeMembershipIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$.[0].id").value(seedTroupeId.toString()))
-            .andExpect(jsonPath("$.[0].slug").value("la-malice"))
+            .andExpect(jsonPath("$.[0].slug").value("les-improbots"))
+            .andExpect(jsonPath("$.[0].joinPolicy").value("OPEN"))
+            .andExpect(jsonPath("$.[0].isDemo").value(false))
             .andExpect(jsonPath("$.[0].membership.status").value("ACTIVE"))
             .andExpect(jsonPath("$.[0].membership.baselineRole").value("MEMBER"))
     }
@@ -164,11 +172,11 @@ class TroupeMembershipIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(
-                jsonPath("$.[?(@.slug == 'la-malice')].upcomingEventCount")
+                jsonPath("$.[?(@.slug == 'les-improbots')].upcomingEventCount")
                     .value(org.hamcrest.Matchers.contains(0)),
             )
             .andExpect(
-                jsonPath("$.[?(@.slug == 'la-malice')].activeMemberCount")
+                jsonPath("$.[?(@.slug == 'les-improbots')].activeMemberCount")
                     .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.greaterThanOrEqualTo(1))),
             )
             .andExpect(
@@ -223,14 +231,15 @@ class TroupeMembershipIntegrationTest {
     }
 
     @Test
-    fun `direct join is limited to seed troupe`() {
+    fun `direct join succeeds for OPEN non-seed troupe`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-6")
         val otherTroupeId = UUID.randomUUID()
         troupeRepository.save(
             TroupeEntity(
                 id = otherTroupeId,
-                name = "Private ${otherTroupeId.toString().take(8)}",
-                slug = "private-${otherTroupeId.toString().take(8)}",
+                name = "Open ${otherTroupeId.toString().take(8)}",
+                slug = "open-${otherTroupeId.toString().take(8)}",
+                joinPolicy = TroupeJoinPolicy.OPEN,
             ),
         )
 
@@ -239,7 +248,102 @@ class TroupeMembershipIntegrationTest {
                 post("/v1/troupes/$otherTroupeId/memberships/me")
                     .cookie(cookie)
                     .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.baselineRole").value("MEMBER"))
+    }
+
+    @Test
+    fun `direct join returns 403 for INVITE_ONLY troupe`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-invite")
+        val closedTroupeId = UUID.randomUUID()
+        troupeRepository.save(
+            TroupeEntity(
+                id = closedTroupeId,
+                name = "Closed ${closedTroupeId.toString().take(8)}",
+                slug = "closed-${closedTroupeId.toString().take(8)}",
+                joinPolicy = TroupeJoinPolicy.INVITE_ONLY,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$closedTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .with(csrf()),
             ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `demo self-join enrolls active season participant`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-demo-join-1")
+        val demoTroupeId = UUID.randomUUID()
+        val demoTroupe =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = demoTroupeId,
+                    name = "Démo test",
+                    slug = "demo-join-${demoTroupeId.toString().take(8)}",
+                    joinPolicy = TroupeJoinPolicy.OPEN,
+                    isDemo = true,
+                ),
+            )
+        val season =
+            seasonRepository.save(
+                SeasonEntity(
+                    troupe = demoTroupe,
+                    slug = "demo-season-${demoTroupeId.toString().take(8)}",
+                    title = "Saison démo",
+                    isActive = true,
+                ),
+            )
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$demoTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val user = userRepository.findByGoogleSub("sub-demo-join-1")!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(demoTroupeId, user.id)!!
+        val participants =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(
+                season.id,
+                listOf(membership.id),
+            )
+        assertEquals(1, participants.size)
+        assertEquals(ParticipantStatus.ACTIVE, participants.single().status)
+        assertEquals(membership.id, participants.single().troupeMembership?.id)
+    }
+
+    @Test
+    fun `self-join on flyway demo troupe enrolls saison 2026-2027 participant`() {
+        val demoId = UUID.fromString("a0000001-0000-4000-8000-000000000099")
+        val demoSeasonId = UUID.fromString("b0000001-0000-4000-8000-000000000099")
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-bootstrap-demo-join",
+            )
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$demoId/memberships/me")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val user = userRepository.findByGoogleSub("sub-bootstrap-demo-join")!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(demoId, user.id)!!
+        val participants =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(
+                demoSeasonId,
+                listOf(membership.id),
+            )
+        assertEquals(1, participants.size)
+        assertEquals(ParticipantStatus.ACTIVE, participants.single().status)
     }
 
     @Test
@@ -401,6 +505,57 @@ class TroupeMembershipIntegrationTest {
     }
 
     @Test
+    fun `list members does not N+1 user email`() {
+        val fixture = createN1GuardTroupe("n1-list", memberCount = 8)
+        val stats = hibernateStats()
+        stats.clear()
+
+        val response =
+            mockMvc
+                .perform(
+                    get("/v1/troupes/${fixture.troupeId}/members")
+                        .param("page", "0")
+                        .param("size", "25")
+                        .cookie(fixture.adminCookie),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val content = mapper.readTree(response.response.contentAsString).get("content")
+        assertEquals(9, content.size())
+        assertTrue(content.all { !it.get("email").asText().isNullOrBlank() })
+        assertTrue(content.all { it.get("userSlug").asText().isNotBlank() })
+        // Baseline (2026-05-29, H2, 9 members via GET): auth lookup + count + id page + batch JOIN FETCH users.
+        // N+1 would add one SELECT per member (~11+ total); cap at 6 leaves headroom without masking regression.
+        assertTrue(
+            stats.prepareStatementCount <= 6,
+            "expected batched user fetch, got ${stats.prepareStatementCount} SQL statements",
+        )
+    }
+
+    @Test
+    fun `export members csv does not N+1 user email`() {
+        val fixture = createN1GuardTroupe("n1-export", memberCount = 8)
+        val stats = hibernateStats()
+        stats.clear()
+
+        val response =
+            mockMvc
+                .perform(get("/v1/troupes/${fixture.troupeId}/members/export").cookie(fixture.adminCookie))
+                .andExpect(status().isOk)
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andReturn()
+
+        val exportedCsv = response.response.contentAsString
+        assertTrue(exportedCsv.contains("email,displayName,baselineRole,status"))
+        assertTrue(exportedCsv.contains("n1-export-member-0@example.com"))
+        // Baseline mirrors the list endpoint: authorization + ID page/count + one JOIN FETCH user batch.
+        assertTrue(
+            stats.prepareStatementCount <= 6,
+            "expected batched export user fetch, got ${stats.prepareStatementCount} SQL statements",
+        )
+    }
+
+    @Test
     fun `troupe admin can list add update and deactivate members`() {
         val adminCookie = signInAndJoin("sub-admin-members-1", "admin-members-1@example.com", "Admin Members")
         promoteSeedMemberToAdmin("sub-admin-members-1")
@@ -471,6 +626,126 @@ class TroupeMembershipIntegrationTest {
                     .content("""{"title":"Forbidden season"}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
+    }
+
+    private val platformAdminEmail = "platform-members-admin@hatcast.test"
+
+    @Test
+    fun `platform admin can patch troupe join policy`() {
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-platform-members-admin",
+                email = platformAdminEmail,
+                name = "Platform Join Policy",
+            )
+        val troupeId = UUID.randomUUID()
+        troupeRepository.save(
+            TroupeEntity(
+                id = troupeId,
+                name = "Policy ${troupeId.toString().take(8)}",
+                slug = "policy-${troupeId.toString().take(8)}",
+                joinPolicy = TroupeJoinPolicy.OPEN,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                patch("/v1/admin/troupes/$troupeId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"joinPolicy":"INVITE_ONLY"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.joinPolicy").value("INVITE_ONLY"))
+            .andExpect(jsonPath("$.isDemo").value(false))
+    }
+
+    @Test
+    fun `troupe admin cannot patch join policy without platform admin`() {
+        val cookie = signInAndJoin("sub-troupe-admin-policy", "troupe-admin-policy@example.com", "Troupe Admin Policy")
+        promoteSeedMemberToAdmin("sub-troupe-admin-policy")
+
+        mockMvc
+            .perform(
+                patch("/v1/admin/troupes/$seedTroupeId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"joinPolicy":"INVITE_ONLY"}""")
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `OPEN to INVITE_ONLY preserves active member count`() {
+        val platformCookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-platform-members-admin",
+                email = platformAdminEmail,
+                name = "Platform Preserve",
+            )
+        val troupeId = UUID.randomUUID()
+        val troupe =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = troupeId,
+                    name = "Preserve ${troupeId.toString().take(8)}",
+                    slug = "preserve-${troupeId.toString().take(8)}",
+                    joinPolicy = TroupeJoinPolicy.OPEN,
+                ),
+            )
+        val user = userRepository.findByGoogleSub("sub-platform-members-admin")!!
+        membershipRepository.save(
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.MEMBER,
+                displayName = "Platform Preserve",
+            ),
+        )
+        fun activeMemberCount() =
+            membershipRepository
+                .countActiveMembersByTroupeIds(listOf(troupeId))
+                .firstOrNull()
+                ?.memberCount ?: 0L
+        val countBefore = activeMemberCount()
+
+        mockMvc
+            .perform(
+                patch("/v1/admin/troupes/$troupeId")
+                    .cookie(platformCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"joinPolicy":"INVITE_ONLY"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        assertEquals(countBefore, activeMemberCount())
+    }
+
+    @Test
+    fun `platform admin can manage members without troupe admin role`() {
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-platform-members-admin",
+                email = platformAdminEmail,
+                name = "Platform Admin",
+            )
+
+        mockMvc
+            .perform(get("/v1/auth/me").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.platformAdmin").value(true))
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/members").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content").isArray)
     }
 
     @Test
@@ -818,7 +1093,7 @@ class TroupeMembershipIntegrationTest {
     }
 
     private fun findMemberInAdminList(
-        adminCookie: jakarta.servlet.http.Cookie,
+        adminCookie: Cookie,
         email: String,
     ): JsonNode {
         var page = 0
@@ -844,6 +1119,59 @@ class TroupeMembershipIntegrationTest {
             page++
         }
     }
+
+    private data class N1GuardFixture(
+        val troupeId: UUID,
+        val adminCookie: Cookie,
+    )
+
+    private fun createN1GuardTroupe(
+        prefix: String,
+        memberCount: Int,
+    ): N1GuardFixture {
+        val troupeId = UUID.randomUUID()
+        val suffix = troupeId.toString().take(8)
+        val troupe =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = troupeId,
+                    name = "N+1 guard $suffix",
+                    slug = "$prefix-$suffix",
+                ),
+            )
+        val adminSub = "sub-$prefix-admin-$suffix"
+        val adminCookie = signIn(adminSub, "$prefix-admin-$suffix@example.com", "N1 Guard Admin")
+        val adminUser = userRepository.findByGoogleSub(adminSub)!!
+        membershipRepository.save(
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = adminUser,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.TROUPE_ADMIN,
+                displayName = "N1 Guard Admin",
+            ),
+        )
+        repeat(memberCount) { index ->
+            val sub = "sub-$prefix-member-$index-$suffix"
+            signIn(sub, "$prefix-member-$index@example.com", "N1 Member $index")
+            val memberUser = userRepository.findByGoogleSub(sub)!!
+            membershipRepository.save(
+                TroupeMembershipEntity(
+                    troupe = troupe,
+                    user = memberUser,
+                    status = TroupeMembershipStatus.ACTIVE,
+                    baselineRole = TroupeBaselineRole.MEMBER,
+                    displayName = "N1 Member ${index.toString().padStart(2, '0')}",
+                ),
+            )
+        }
+        return N1GuardFixture(troupeId, adminCookie)
+    }
+
+    private fun hibernateStats() =
+        entityManagerFactory.unwrap(SessionFactory::class.java).statistics.also {
+            it.isStatisticsEnabled = true
+        }
 
     private fun signInAndJoin(
         googleSub: String,

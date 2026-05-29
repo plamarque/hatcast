@@ -1,5 +1,6 @@
 package com.hatcast.api.troupe
 
+import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
 import com.hatcast.api.troupe.dto.MemberImportResultDto
@@ -11,11 +12,16 @@ import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
 import com.hatcast.api.agenda.AgendaTimeBoundary
+import com.hatcast.api.participant.SeasonParticipantMembershipSync
+import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -32,6 +38,9 @@ class TroupeMembershipService(
     private val userRepository: UserRepository,
     private val userAccountService: UserAccountService,
     private val csvImportService: TroupeMemberCsvImportService,
+    private val platformAdminService: PlatformAdminService,
+    private val seasonRepository: SeasonRepository,
+    private val membershipSync: SeasonParticipantMembershipSync,
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
@@ -51,11 +60,9 @@ class TroupeMembershipService(
                 .associate { it.troupeId to it.eventCount }
         return memberships.map { membership ->
             val troupeId = membership.troupe.id
-            TroupeListItemDto(
-                id = troupeId,
-                name = membership.troupe.name,
-                slug = membership.troupe.slug,
-                membership = MembershipSummaryDto.from(membership),
+            TroupeListItemDto.from(
+                troupe = membership.troupe,
+                membership = membership,
                 activeMemberCount = memberCounts[troupeId] ?: 0L,
                 upcomingEventCount = upcomingCounts[troupeId] ?: 0L,
             )
@@ -108,18 +115,15 @@ class TroupeMembershipService(
         size: Int,
         principal: SessionUserPrincipal,
     ): PagedTroupeMembersResponse {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         if (size < 1 || size > 100) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "size doit être entre 1 et 100")
         }
         if (page < 0) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "page invalide")
         }
-        val p =
-            membershipRepository.findByTroupe_Id(
-                troupeId,
-                PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "displayName")),
-            )
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "displayName"))
+        val p = fetchMembershipPageWithUsers(troupeId, pageable)
         return PagedTroupeMembersResponse(
             content = p.content.map(TroupeMemberAdminDto::from),
             page = p.number,
@@ -127,6 +131,21 @@ class TroupeMembershipService(
             totalElements = p.totalElements,
             totalPages = p.totalPages,
         )
+    }
+
+    @Transactional
+    fun selfJoin(
+        userId: UUID,
+        troupeId: UUID,
+    ): TroupeMembershipEntity {
+        val troupe = requireOpenJoinPolicy(troupeId)
+        val membership = ensureActiveMembership(userId, troupeId)
+        if (troupe.isDemo) {
+            seasonRepository.findByTroupe_IdAndIsActiveTrue(troupeId)?.let { season ->
+                membershipSync.ensureForMembership(season, membership)
+            }
+        }
+        return membership
     }
 
     @Transactional
@@ -175,7 +194,7 @@ class TroupeMembershipService(
         body: AddTroupeMemberRequest,
         principal: SessionUserPrincipal,
     ): TroupeMemberAdminDto {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         val troupe =
             troupeRepository
                 .findByIdForMembershipJoin(troupeId)
@@ -244,7 +263,7 @@ class TroupeMembershipService(
         body: UpdateTroupeMemberRequest,
         principal: SessionUserPrincipal,
     ): TroupeMemberAdminDto {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         val membership =
             membershipRepository.findByIdAndTroupe_Id(membershipId, troupeId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Adhésion introuvable.")
@@ -274,22 +293,31 @@ class TroupeMembershipService(
         troupeId: UUID,
         principal: SessionUserPrincipal,
     ): String {
-        requireTroupeAdmin(principal.userId, troupeId)
-        val memberships = sequence {
-            var page = 0
-            while (true) {
-                val batch =
-                    membershipRepository.findByTroupe_IdAndStatusOrderByDisplayNameAsc(
-                        troupeId,
-                        TroupeMembershipStatus.ACTIVE,
-                        PageRequest.of(page, EXPORT_BATCH_SIZE, Sort.by(Sort.Direction.ASC, "displayName")),
-                    )
-                if (batch.isEmpty) break
-                batch.forEach { yield(it) }
-                if (!batch.hasNext()) break
-                page++
+        requireCanManageTroupeMembers(principal, troupeId)
+        val sort = Sort.by(Sort.Direction.ASC, "displayName")
+        val memberships =
+            sequence {
+                var page = 0
+                while (true) {
+                    val idBatch =
+                        membershipRepository.findIdsByTroupe_IdAndStatus(
+                            troupeId,
+                            TroupeMembershipStatus.ACTIVE,
+                            PageRequest.of(page, EXPORT_BATCH_SIZE, sort),
+                        )
+                    if (idBatch.isEmpty) break
+                    val fetched =
+                        membershipRepository.findByTroupe_IdAndStatusAndIdInWithUser(
+                            troupeId,
+                            TroupeMembershipStatus.ACTIVE,
+                            idBatch.content,
+                        )
+                    val byId = fetched.associateBy { it.id }
+                    idBatch.content.forEach { id -> byId[id]?.let { yield(it) } }
+                    if (!idBatch.hasNext()) break
+                    page++
+                }
             }
-        }
         return TroupeMemberCsvCodec.formatExport(memberships)
     }
 
@@ -299,7 +327,7 @@ class TroupeMembershipService(
         csvContent: String,
         principal: SessionUserPrincipal,
     ): MemberImportResultDto {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         troupeRepository.findByIdForMembershipJoin(troupeId)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
         val parsed = TroupeMemberCsvCodec.parse(csvContent)
@@ -331,7 +359,7 @@ class TroupeMembershipService(
         membershipId: UUID,
         principal: SessionUserPrincipal,
     ) {
-        requireTroupeAdmin(principal.userId, troupeId)
+        requireCanManageTroupeMembers(principal, troupeId)
         val membership =
             membershipRepository.findByIdAndTroupe_Id(membershipId, troupeId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Adhésion introuvable.")
@@ -367,8 +395,45 @@ class TroupeMembershipService(
 
     private fun normalizeDisplayName(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }
 
+    private fun requireOpenJoinPolicy(troupeId: UUID): TroupeEntity {
+        val troupe =
+            troupeRepository.findById(troupeId).orElse(null)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        if (troupe.joinPolicy != TroupeJoinPolicy.OPEN) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Adhésion directe non autorisée pour cette troupe.",
+            )
+        }
+        return troupe
+    }
+
+    private fun requireCanManageTroupeMembers(
+        principal: SessionUserPrincipal,
+        troupeId: UUID,
+    ) {
+        if (platformAdminService.isPlatformAdmin(principal)) {
+            return
+        }
+        requireTroupeAdmin(principal.userId, troupeId)
+    }
+
     companion object {
         private const val EXPORT_BATCH_SIZE = 100
+    }
+
+    private fun fetchMembershipPageWithUsers(
+        troupeId: UUID,
+        pageable: Pageable,
+    ): Page<TroupeMembershipEntity> {
+        val idPage = membershipRepository.findIdsByTroupe_Id(troupeId, pageable)
+        if (idPage.isEmpty) {
+            return PageImpl(emptyList(), pageable, idPage.totalElements)
+        }
+        val fetched = membershipRepository.findByIdInWithUser(idPage.content)
+        val byId = fetched.associateBy { it.id }
+        val ordered = idPage.content.mapNotNull { byId[it] }
+        return PageImpl(ordered, pageable, idPage.totalElements)
     }
 
     private fun ensureLastAdminRemains(

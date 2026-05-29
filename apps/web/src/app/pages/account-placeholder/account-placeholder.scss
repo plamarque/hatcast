@@ -170,6 +170,10 @@
   min-height: 3rem;
 }
 
+.account-page__tooltip-row {
+  display: block;
+}
+
 @media (max-width: 480px) {
   .account-page__list a[mat-list-item],
   .account-page__list button[mat-list-item],

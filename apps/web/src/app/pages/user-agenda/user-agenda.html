@@ -43,8 +43,20 @@
   } @else if (items().length === 0 && noParticipation()) {
     <section class="user-agenda__empty" aria-labelledby="agenda-no-participation-heading">
       <h2 id="agenda-no-participation-heading" class="user-agenda__empty-title">Aucune ligue pour l’instant</h2>
-      <p class="user-agenda__empty-text">Tu n'es inscrit·e à aucune ligue pour l'instant.</p>
-      <a mat-stroked-button routerLink="/troupes" fragment="decouvrir">Découvrir les troupes</a>
+      <p class="user-agenda__empty-text">
+        Rejoins la troupe de démonstration pour explorer HatCast en bac à sable.
+      </p>
+      <div class="user-agenda__empty-actions">
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="joiningDemo()"
+          (click)="joinDemoTroupe()"
+        >
+          Rejoindre la troupe de démonstration
+        </button>
+        <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
+      </div>
     </section>
   } @else if (filteredEmpty() && hasActiveFilters()) {
     <section class="user-agenda__empty" aria-labelledby="agenda-filtered-empty-heading">

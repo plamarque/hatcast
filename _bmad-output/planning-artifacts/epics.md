@@ -4,10 +4,10 @@ stepsCompleted:
   - step-02-design-epics
   - step-03-create-stories
   - step-04-final-validation
-lastUpdated: 2026-05-24
+lastUpdated: 2026-05-28
 updateMode: incremental
 status: ready-for-development
-ceRevision: '2026-05-24 — FR53–FR60, Epic 16, Story 13.6, split 3.6/3.6b (ADR 0012)'
+ceRevision: '2026-05-28 — FR61–FR64, Epic 18 Demo troupe & join_policy (V2 prod onboarding)'
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -106,6 +106,13 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - FR58: Personal **season glance** (*Ma saison en un clin d'œil*) via route e.g. `/membre/:userSlug` from member area, with optional troupe/league filters.
 - FR59: Authorized members may open **another participant's** season glance via the same URL (V1 transparency).
 - FR60: In Statistiques, travel-league events count toward **DEPLACEMENT**; show-league events never do; legacy `deplacement` type until migrated.
+
+### Demo troupe onboarding & join policy (V2 production — PRD 2026-05-28)
+
+- FR61: Signed-in user can **self-join** troupes with **`join_policy = OPEN`** (including production **Demo**); creates/reactivates **`MEMBER`** only; enrolls in Demo season roster; rejected for **`INVITE_ONLY`**.
+- FR62: Troupe **`join_policy`**: **`OPEN`** | **`INVITE_ONLY`**; **default `OPEN`** for new troupes; premium paywall deferred.
+- FR63: **Platform administrator** (super-admin email allowlist) can **read/update** join policy; **troupe administrators cannot** in MVP.
+- FR64: **Production seed**: troupe **Démo** (`slug: demo`, `is_demo`), season **Saison 2026-2027** (2026-06-01 → 2027-05-31), ~20 pedagogical events, fictitious participants + dispos, varied composition states; distinct from dev La Malice seed.
 
 ### NonFunctional Requirements
 
@@ -226,6 +233,10 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 | FR56–FR57 | Epic 13 | Ligues déplacements ; tirage par ligue |
 | FR58–FR59 | Epic 16 | Route *clin d'œil* membre + transparence |
 | FR60 | Epic 3 | Stats : DEPLAC. = ligue déplacements |
+| FR61 | Epic 18 | Self-join troupes OPEN (+ Demo) |
+| FR62 | Epic 18 | Modèle join_policy troupe |
+| FR63 | Epic 18 | Super-admin change join_policy |
+| FR64 | Epic 18 | Seed prod Démo + saison pédagogique |
 
 **NFR (adressées au fil des epics / transverses) :** NFR-P1/P2 (perf, pagination) — surtout Epics 3, 5, 6, 10, **12** ; NFR-S1/S2/S3/S4/S5 — Epics 1, 2, 3, 9 ; NFR-R1/R2 — Epics 8, 10 + pipeline ; NFR-SC1 — architecture ; NFR-A1 — Epics 1–9, **12–14** (UI) ; NFR-I1 — Epic 1 ; NFR-Q1 — transverse CI/tests.
 
@@ -338,9 +349,19 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 **Design :** [_bmad-output/design-thinking-2026-05-25.md](../design-thinking-2026-05-25.md) ; **UX :** [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md) (amended 2026-05-25, UX-DR19–21)  
 **Supersedes :** Epic 14 partiel, ADR 0012 §3 (travel league), Story **13.6** (reportée)
 
+### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
+
+Sandbox partagée **Démo** en production, seed pédagogique (~20 spectacles), participants fictifs, **self-join** pour tout utilisateur authentifié, modèle **`join_policy`** (`OPEN` | `INVITE_ONLY`), gouvernance **super-admin** uniquement pour changer la politique. Remplace le branchement provisoire « seed troupe = La Malice » (Story 2.1).
+
+**FRs couverts :** FR61, FR62, FR63, FR64 — étend FR49 (guidance vide), FR6 (adhésion)
+
+**Priorité livraison :** **P0 prod V2** — avant ou avec la première mise en production utilisateurs réels.
+
+**Hors scope Epic 18 :** paywall premium, annuaire « Découvrir », clone sandbox par utilisateur, invitation self-service (Epic 7).
+
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→17.9** (tags + tirage) ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **17.18→17.22** (hub membre À faire, voir [ux-hub-a-faire.md](./ux-hub-a-faire.md)) : **17.18** puis **17.19** ; **17.21** avant **17.22** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→17.9** (tags + tirage) ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **17.18→17.22** (hub membre À faire, voir [ux-hub-a-faire.md](./ux-hub-a-faire.md)) : **17.18** puis **17.19** ; **17.21** avant **17.22** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -1621,6 +1642,156 @@ afin de **libérer l’en-tête** tout en gardant le compte accessible.
 
 ---
 
+### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
+
+**Décisions produit (2026-05-28) :** sandbox **partagée** ; admin contenu par **super-admin** ; participants fictifs obligatoires ; `join_policy` sans paywall premium ; **Démo prod** via **`db/migration` idempotent (Option A)** ; seed dev renommé **Les Improbots** (slug `les-improbots`, emails `@seed.improbots.test`) — **La Malice** réservée à la migration V1 prod réelle.
+
+**Trois troupes (ne pas confondre) :**
+
+| Nom | Environnement | Rôle |
+|-----|---------------|------|
+| **Les Improbots** | Local / CI (`db/seed`) | Fictive — dev & tests |
+| **Démo** | Prod (`db/migration` bootstrap) | Onboarding public |
+| **La Malice** | Staging/prod post-migration | Vraie troupe — import V1 |
+
+**UUID réservés (implémentation) :**
+
+| Entité | UUID |
+|--------|------|
+| Troupe Démo | `a0000001-0000-4000-8000-000000000099` |
+| Saison Saison 2026-2027 | `b0000001-0000-4000-8000-000000000099` |
+
+Seed dev **Les Improbots** garde UUID `…000001` (renommage label only — Story **18.0**). **La Malice** = migration V1 prod, hors seed.
+
+#### Story 18.0 : Renommer le seed dev → Les Improbots *(chore)*
+
+En tant que **développeur**,  
+je veux que la troupe fictive locale s’appelle **Les Improbots**,  
+afin de **ne pas confondre** seed dev, **Démo** prod et **La Malice** migration.
+
+**Acceptance Criteria**
+
+1. Troupe seed `…000001` → nom **Les Improbots**, slug **`les-improbots`** (UUID inchangé).
+2. Saison principale → **Les Improbots 2026-2027** (`les-improbots-2026-2027`).
+3. Emails seed → **`@seed.improbots.test`**.
+4. Scripts/docs/`environment.development.ts` alignés ; plus de référence « La Malice » pour le seed dev.
+5. **UI :** N/A. **Priorité :** P0, parallèle ou avant **18.1**.
+
+#### Story 18.1 : Modèle `join_policy` et flag `is_demo` (persistance)
+
+En tant que **développeur**,  
+je veux persister **`join_policy`** et **`is_demo`** sur les troupes,  
+afin de **remplacer le hack `isSeedTroupe()`** par des règles métier explicites.
+
+**Acceptance Criteria**
+
+1. **Given** migration Flyway, **when** appliquée, **then** colonnes `join_policy` (`OPEN` \| `INVITE_ONLY`, défaut `OPEN`) et `is_demo` (bool, défaut `false`) existent sur `troupes`.
+2. **Given** une troupe existante sans valeur, **when** migration backfill, **then** `join_policy = OPEN`, `is_demo = false`.
+3. **Given** création troupe via API existante, **when** `POST /v1/troupes`, **then** nouvelle troupe a `join_policy = OPEN` et `is_demo = false`.
+4. **Given** DTO liste/détail troupe, **when** exposé, **then** `joinPolicy` et `isDemo` sont documentés dans OpenAPI (`seasons.yaml` ou schéma troupe dédié).
+5. **Couverture :** FR62, FR64 (prérequis).
+
+**Priorité :** P0 — bloque 18.2–18.5.  
+**Depends :** Story 2.1 (table `troupes`).  
+**UI :** N/A.  
+**Story file:** [_bmad-output/implementation-artifacts/18-1-modele-join-policy-is-demo.md](../implementation-artifacts/18-1-modele-join-policy-is-demo.md)
+
+---
+
+#### Story 18.2 : Self-join OPEN + API super-admin join policy
+
+En tant que **membre authentifié**,  
+je veux **rejoindre une troupe OPEN** (dont la Démo) sans invitation,  
+afin de **découvrir le produit** ; en tant que **super-admin**, je veux **modifier la join policy** d’une troupe.
+
+**Acceptance Criteria**
+
+1. **Given** troupe `join_policy = OPEN`, **when** `POST /v1/troupes/{id}/memberships/me`, **then** adhésion active **`MEMBER`** (création ou réactivation) — jamais `TROUPE_ADMIN`.
+2. **Given** troupe `join_policy = INVITE_ONLY`, **when** même appel, **then** **403** avec message français cohérent.
+3. **Given** self-join sur troupe **Démo** (`is_demo = true`), **when** succès, **then** utilisateur inscrit comme **season participant** sur la saison active seed **Saison 2026-2027** (roster ligue, pas seulement membership troupe).
+4. **Given** utilisateur **platform admin** (`PlatformAdminService`), **when** `PATCH /v1/admin/troupes/{id}` (ou endpoint équivalent) avec `{ "joinPolicy": "INVITE_ONLY" }`, **then** politique mise à jour.
+5. **Given** utilisateur **troupe admin** non platform admin, **when** tentative changement join policy, **then** **403**.
+6. **Given** passage `OPEN` → `INVITE_ONLY`, **when** appliqué, **then** adhésions actives existantes **conservées**.
+7. **Given** implémentation, **when** revue, **then** `TroupeController.joinTroupe` n’utilise plus `isSeedTroupe()` seul — autorise toute troupe `OPEN` (Démo incluse).
+8. **Given** config legacy `hatcast.troupe.seed-troupe-id`, **when** documenté, **then** déprécié au profit de `is_demo` + UUID Démo en env prod (voir 18.5).
+9. **Couverture :** FR61, FR62, FR63 ; remplace contrat provisoire Story 2.1.
+
+**Priorité :** P0.  
+**Depends :** 18.1.  
+**UI :** N/A.
+
+---
+
+#### Story 18.3 : Seed production — troupe Démo, saison, ~20 spectacles, participants fictifs
+
+En tant que **nouvel utilisateur**,  
+je veux une **saison Démo déjà peuplée**,  
+afin de **voir des dispos et des statuts de composition crédibles** avant de créer ma troupe.
+
+**Acceptance Criteria**
+
+1. **Given** script **`db/migration/`** idempotent (Option A — s’exécute aussi en prod cloud, pas `db/seed`), **when** migration, **then** troupe **Démo** (`slug: demo`, `is_demo: true`, `join_policy: OPEN`, UUID `a0000001-0000-4000-8000-000000000099`).
+2. **Given** seed, **when** appliqué, **then** saison **Saison 2026-2027** (`slug: saison-2026-2027`, dates 2026-06-01 → 2027-05-31, UUID `b0000001-0000-4000-8000-000000000099`), `is_active` approprié.
+3. **Given** matrice pédagogique PRD (FR64), **when** comptage events actifs, **then** **~20** événements couvrant : preparing (3–4), historique complete (2–3), draft (2), awaiting confirmations (2), gaps (1), complete upcoming (1), longform/travel (2–3), archived/inactive (1–2).
+4. **Given** events, **when** seed, **then** `template_type` et `role_slots` variés (cabaret, match, longform, déplacement/travel).
+5. **Given** **≥ 8 participants fictifs** (prénoms génériques, **sans email réel**), **when** seed roster saison, **then** participants `ACTIVE` avec **disponibilités pré-remplies** sur un sous-ensemble d’événements.
+6. **Given** sous-ensemble d’événements, **when** seed compositions, **then** états FR28 variés (brouillon, validé/en attente, trous, complet) — **sans** verrouiller toute la saison (les joiners peuvent encore saisir leurs dispos sur events « preparing »).
+7. **Given** comptes super-admin prod, **when** seed ou runbook post-deploy, **then** `patrice.lamarque@gmail.com` et optionnellement `impropick@gmail.com` ont **`TROUPE_ADMIN`** sur Démo (adhésion seed, pas via self-join).
+8. **Given** analytics FR47, **when** documenté dans Dev Notes, **then** événements/métriques issus de `is_demo = true` **exclus** des KPI adoption pilote (filtre documenté).
+9. **Couverture :** FR64 ; réutiliser patterns seed **Les Improbots** (ex-V6/V17) comme référence ; **ADR-0015** requis.
+
+**Priorité :** P0 prod.  
+**Depends :** 18.1, ADR-0015, Epic 3, Epic 6.  
+**UI :** N/A.
+
+---
+
+#### Story 18.4 : UX onboarding — rejoindre la Démo, contexte, redirection
+
+En tant que **nouvel utilisateur sans troupe**,  
+je veux un parcours clair **Rejoindre la troupe de démonstration**,  
+afin d’**atterrir sur l’agenda Démo** et comprendre que c’est un bac à sable.
+
+**Acceptance Criteria**
+
+1. **Given** `/troupes` sans adhésion, **when** clic **Rejoindre la troupe de démonstration**, **then** appel API vers UUID Démo (`environment.demoTroupeId` = `…000099`).
+2. **Given** join réussi, **when** fin flux, **then** rechargement contexte troupe + redirection vers **agenda** ou **ligue Démo** (`/ligue/saison-2026-2027` ou équivalent) avec snackbar de succès.
+3. **Given** contexte troupe Démo, **when** membre navigue, **then** indicateur discret **« Démo »** / copy d’aide (« bac à sable — crée ta troupe quand tu es prêt·e ») sur hub ou sélecteur contexte — **Material 3**, tokens `--mat-sys-*`.
+4. **Given** `demoTroupeId` absent en env, **when** clic join, **then** message « Troupe de démonstration indisponible » (comportement actuel préservé).
+5. **Given** FR49 empty agenda, **when** aucune participation, **then** guidance mentionne **rejoindre la Démo** (aligné PRD).
+6. **Couverture :** FR61, FR64, FR49 ; écrans `troupes-list`, `seasons-list` si encore utilisés.
+
+**Acceptance Criteria — Material 3 (UI)**
+
+**M3-1 à M3-5** : conformes [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) ; pas de bottom app bar M2.
+
+**Priorité :** P0.  
+**Depends :** 18.2, 18.3.  
+**Story file:** `_bmad-output/implementation-artifacts/18-4-ux-onboarding-rejoindre-demo.md` (à créer au dev).
+
+---
+
+#### Story 18.5 : Configuration prod, tests, séparation Démo / Improbots / La Malice
+
+En tant que **opérateur déploiement**,  
+je veux une **config prod cohérente** et des **tests de non-régression**,  
+afin que **`demoTroupeId`** pointe vers **Démo** prod et jamais vers le seed dev **Les Improbots**.
+
+**Acceptance Criteria**
+
+1. **Given** `environment.ts` / prod secrets, **when** build prod, **then** `demoTroupeId` = UUID Démo `…000099` ; `HATCAST_SEED_TROUPE_ID` (si conservé) documenté ou retiré.
+2. **Given** `.env.example` / docs deploy, **when** lus, **then** `hatcast.auth.super-admin-emails` inclut les emails opérateur ; note pour second compte admin `impropick@gmail.com`.
+3. **Given** tests intégration `TroupeMembershipIntegrationTest`, **when** self-join, **then** scénarios OPEN vs INVITE_ONLY + Démo enrollment saison.
+4. **Given** tests front `troupes-list.spec.ts`, **when** join demo, **then** mock UUID `…000099`.
+5. **Given** dev local, **when** développeur utilise **Les Improbots** (`db/seed`), **then** distinct de **Démo** prod ; **La Malice** = migration réelle uniquement.
+6. **Couverture :** FR61–FR64, NFR-R1 (smoke post-deploy : join Démo + première dispo).
+
+**Priorité :** P0.  
+**Depends :** 18.2, 18.3, 18.4.  
+**UI :** N/A.
+
+---
+
 ### Epic 15 — Rencontres liées *(post-MVP)*
 
 **FR :** Rencontre inter-troupes optionnelle (PRD post-MVP note).
@@ -1682,3 +1853,12 @@ En tant que **membre connecté**, je veux **reprendre ma dernière ligue** aprè
 | FR56–FR57 | 13.6 ; draw stories Epic 6 (retrait exception déplacement) |
 | FR58–FR59 | 16.1 |
 | FR60 | 3.6, 13.6 |
+
+### Couverture FR61–FR64 (contrôle croisé — Demo onboarding)
+
+| FR | Story(s) principale(s) |
+|----|-------------------------|
+| FR61 | 18.2, 18.4, 18.5 |
+| FR62 | 18.1, 18.2 |
+| FR63 | 18.2 |
+| FR64 | 18.3, 18.5 |

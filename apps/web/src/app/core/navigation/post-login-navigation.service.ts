@@ -29,6 +29,8 @@ export class PostLoginNavigationService {
   private readonly auth = inject(AuthApiService)
   private readonly router = inject(Router)
 
+  private navigateAfterSignInInFlight: Promise<boolean> | null = null
+
   async resolveAuthenticatedEntryUrl(): Promise<PostLoginNavigationTarget> {
     const pending = getPendingPostLoginRedirect()
     if (pending) {
@@ -121,6 +123,19 @@ export class PostLoginNavigationService {
   }
 
   async navigateAfterSignIn(router: Router = this.router): Promise<boolean> {
+    if (this.navigateAfterSignInInFlight) {
+      return this.navigateAfterSignInInFlight
+    }
+    const flight = this.executeNavigateAfterSignIn(router)
+    this.navigateAfterSignInInFlight = flight
+    try {
+      return await flight
+    } finally {
+      this.navigateAfterSignInInFlight = null
+    }
+  }
+
+  private async executeNavigateAfterSignIn(router: Router): Promise<boolean> {
     const target = await this.resolveAuthenticatedEntryUrl()
     if (typeof target === 'string') {
       const navigated = await router.navigateByUrl(target, { replaceUrl: true })

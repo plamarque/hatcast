@@ -5,7 +5,7 @@ Backend **Kotlin / Spring Boot** (cible Cloud Run, **PostgreSQL sur Neon**, Open
 ## Prérequis
 
 - **JDK 21** (toolchain Gradle).
-- **Base PostgreSQL (Neon)** : une branche / base par environnement. **Flyway** s’y connecte pour appliquer les migrations (`classpath:db/migration`) — pas de second Postgres « local » pour valider le schéma.
+- **Base PostgreSQL (Neon)** : branche **`local`** pour le poste (`.env`) ; branches **`development`** / **`staging`** / **primary** pour Cloud Run — voir [ADR-0009](../../docs/adr/0009-neon-postgres-environments.md). **Flyway** s’y connecte pour appliquer les migrations (`classpath:db/migration` ; + `db/seed` en profil `dev` local uniquement).
 - Variables **`HATCAST_DATASOURCE_URL`**, **`HATCAST_DATASOURCE_USERNAME`**, **`HATCAST_DATASOURCE_PASSWORD`** (chaîne JDBC typique Neon : `jdbc:postgresql://…?sslmode=require`).
 - Variable **`HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID`** : identifiant client OAuth 2.0 de type **Application Web** (Google Cloud Console), aligné sur le client V2 ([`apps/web`](../apps/web/)) pour Google Identity Services.
 
@@ -26,11 +26,11 @@ cd services/api
 
 | Profil | Usage |
 |--------|--------|
-| `dev` (défaut) | Même runtime que ci-dessus : **Neon** via `HATCAST_DATASOURCE_*`. |
+| `dev` (défaut) | Poste local : Neon branche **`local`** via `HATCAST_DATASOURCE_*` dans `.env` ; Flyway `db/migration` + `db/seed`. |
 | `cloud` | Cloud Run : en-têtes `Forwarded`, cookie session **Secure**, `HATCAST_CORS_ALLOWED_ORIGINS` obligatoire — voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). |
 | `test` | Réservé à `./gradlew test` : base **H2 en mémoire** isolée (pas de Neon requis en CI). |
 
-En **dev**, Flyway charge `db/migration` + `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)). Si le démarrage échoue avec *« resolved migration not applied … 3.1 »*, la base a été migrée avant l’ajout du seed `V3_1` : le profil `dev` active `out-of-order` + `repair-on-migrate` pour l’appliquer. Sinon, réinitialiser la branche Neon de dev (reset) puis relancer `bootRun`.
+En **dev**, Flyway charge `db/migration` + `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)). Si le démarrage échoue avec *« resolved migration not applied … 3.1 »*, la base a été migrée avant l’ajout du seed `V3_1` : le profil `dev` active `out-of-order` + `repair-on-migrate` pour l’appliquer. Sinon, réinitialiser la branche Neon **`local`** (reset) puis relancer `bootRun`. La branche **`development`** (cloud dev) ne doit pas recevoir les seeds — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §5.
 
 ## CORS
 
@@ -65,7 +65,7 @@ Profil Spring **`test`** (`@ActiveProfiles("test")` sur les suites `@SpringBootT
 | Environnement | Moteur | Config |
 |---------------|--------|--------|
 | **CI** + `./gradlew test` local | **H2** en mémoire | [`src/test/resources/application-test.yml`](src/test/resources/application-test.yml) |
-| **dev** / **cloud** (runtime) | **PostgreSQL** (Neon) | `HATCAST_DATASOURCE_*` + profils `dev` / `cloud` |
+| **dev** (poste, branche Neon `local`) / **cloud** (Cloud Run) | **PostgreSQL** (Neon) | `HATCAST_DATASOURCE_*` + profils `dev` / `cloud` |
 
 La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml)**) exécute `./gradlew test --no-daemon` sur chaque PR/push touchant `services/api/**` (branches `v2`, `main`). Échec du job = check rouge. Relance manuelle : onglet Actions → *services/api (tests)* → *Run workflow*.
 
@@ -73,7 +73,7 @@ La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml
 
 ### Flyway en profil `test`
 
-Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` (données `@seed.la-malice.test` pour `MemberSeasonGlanceIntegrationTest`, etc.). Le profil **cloud** exclut `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
+Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` (données `@seed.improbots.test` pour `MemberSeasonGlanceIntegrationTest`, etc.). Le profil **cloud** exclut `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
 
 ### Compatibilité SQL H2 (shims test uniquement)
 

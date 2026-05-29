@@ -10,9 +10,28 @@ import { getFirestore } from 'firebase-admin/firestore'
 const dbByDatabase = new Map()
 
 /**
+ * Normalize a Firestore database id (BUG-DOC-001).
+ *
+ * The Firestore production default database id is the literal `(default)`.
+ * Docs and CLIs historically pass `--database=default`, but
+ * `getFirestore(app, 'default')` resolves to a non-existent database and fails
+ * with gRPC `5 NOT_FOUND`. Map the human label `default` (and empty) to the
+ * real id `(default)`. `development`, `staging`, `(default)`, etc. pass through.
+ *
+ * @param {string | null | undefined} databaseId
+ * @returns {string}
+ */
+export function normalizeDatabaseId(databaseId) {
+  const id = (databaseId ?? '').trim()
+  if (id === '' || id === 'default') return '(default)'
+  return id
+}
+
+/**
  * @param {string} [databaseId='development']
  */
 export function getDb(databaseId = 'development') {
+  databaseId = normalizeDatabaseId(databaseId)
   if (!dbByDatabase.has(databaseId)) {
     const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
@@ -110,6 +129,58 @@ export async function loadPlayers(seasonId) {
  * @param {Array} players
  * @returns {Promise<Object>}
  */
+/**
+ * Flat availability records for migration (MIG-3). Keyed by V1 player doc id.
+ *
+ * @param {string} seasonId
+ * @param {Array<{ id: string }>} players
+ * @param {string} [databaseId='development']
+ * @returns {Promise<Array<{ v1PlayerId: string, v1EventId: string, available: boolean, roles: string[], comment: string|null }>>}
+ */
+export async function loadAvailabilityRecords(seasonId, players, databaseId = 'development') {
+  const db = getDb(databaseId)
+  const records = []
+  const failures = []
+
+  await Promise.all(
+    players.map(async (player) => {
+      try {
+        const snapshot = await db
+          .collection('seasons')
+          .doc(seasonId)
+          .collection('players')
+          .doc(player.id)
+          .collection('availability')
+          .get()
+
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data() || {}
+          records.push({
+            v1PlayerId: player.id,
+            v1EventId: doc.id,
+            available: data.available === true,
+            roles: Array.isArray(data.roles) ? data.roles : [],
+            comment: typeof data.comment === 'string' ? data.comment : null,
+          })
+        })
+      } catch (err) {
+        // Never silently drop a player's availability: a faithful read-only
+        // migration must surface partial reads so the operator can react.
+        failures.push({ playerId: player.id, message: err?.message || String(err) })
+      }
+    }),
+  )
+
+  if (failures.length > 0) {
+    console.error(
+      `⚠️  loadAvailabilityRecords: ${failures.length} player subcollection(s) unreadable — availability is INCOMPLETE:`,
+    )
+    for (const f of failures) console.error(`   • player ${f.playerId}: ${f.message}`)
+  }
+
+  return records
+}
+
 export async function loadAvailability(seasonId, players) {
   const availability = {}
 
@@ -148,8 +219,8 @@ export async function loadAvailability(seasonId, players) {
  * @param {string} seasonId
  * @returns {Promise<Object>}
  */
-export async function loadCasts(seasonId) {
-  const snapshot = await getDb()
+export async function loadCasts(seasonId, databaseId = 'development') {
+  const snapshot = await getDb(databaseId)
     .collection('seasons')
     .doc(seasonId)
     .collection('casts')

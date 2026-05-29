@@ -126,6 +126,8 @@ function troupe(
     id,
     name,
     slug: id,
+    isDemo: false,
+    joinPolicy: 'OPEN',
     activeMemberCount: 1,
     upcomingEventCount: 0,
     membership: {

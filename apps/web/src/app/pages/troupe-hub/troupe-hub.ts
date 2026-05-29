@@ -11,6 +11,7 @@ import { Subscription } from 'rxjs'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { DEMO_TROUPE_SLUG } from '../../core/troupes/demo-troupe.constants'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   saisonWorkspacePath,
@@ -77,11 +78,19 @@ export class TroupeHub implements OnInit, OnDestroy {
   protected readonly seasonsLoadError = signal(false)
   protected readonly troupe = signal<TroupeListItem | null>(null)
   protected readonly notFound = signal(false)
+  protected readonly isDemoTroupe = computed(
+    () => this.slug() === DEMO_TROUPE_SLUG || this.troupe()?.isDemo === true,
+  )
   protected readonly showArchived = signal(false)
   protected readonly allSeasons = signal<SeasonResponse[]>([])
+  protected readonly platformAdmin = signal(false)
 
   protected readonly isTroupeAdmin = computed(
     () => this.troupe()?.membership.baselineRole === 'TROUPE_ADMIN',
+  )
+
+  protected readonly canManageTroupe = computed(
+    () => this.isTroupeAdmin() || this.platformAdmin(),
   )
 
   protected readonly activeSeasons = computed(() =>
@@ -106,7 +115,7 @@ export class TroupeHub implements OnInit, OnDestroy {
   )
 
   protected readonly troupeAdminItems = computed<ScopeAdminMenuItem[]>(() => {
-    if (!this.isTroupeAdmin()) {
+    if (!this.canManageTroupe()) {
       return []
     }
     const slug = this.slug()
@@ -132,6 +141,7 @@ export class TroupeHub implements OnInit, OnDestroy {
       return
     }
     this.loadingSession.set(false)
+    this.platformAdmin.set(session.data.platformAdmin === true)
 
     const loaded = await this.troupeContext.load()
     if (!loaded) {
@@ -202,7 +212,7 @@ export class TroupeHub implements OnInit, OnDestroy {
 
   protected openCreateSeason(): void {
     const t = this.troupe()
-    if (!t || !this.isTroupeAdmin()) {
+    if (!t || !this.canManageTroupe()) {
       this.snack.open('Vous ne pouvez pas créer de saison dans cette troupe.', 'OK', {
         duration: 5000,
       })

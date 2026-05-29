@@ -56,7 +56,7 @@ Créer **trois environnements** dans **Settings > Environments** : `development`
 |-------------|----------------------|-------------------------|-------------------------------------|
 | `v2` | `development` | `development` ou `dev` | `hatcast-v2-dev` |
 | `staging-v2` | `staging` | `staging` | `hatcast-v2-staging` |
-| `main` | `production` | branche **primary** (prod) | `hatcast-v2` |
+| `production-v2` | `production` | branche **primary** (prod) | `hatcast-v2` |
 
 La branche git **`staging`** reste dédiée au déploiement **V1** (Firebase Hosting, workflow [`.github/workflows/deploy-staging.yml`](../../.github/workflows/deploy-staging.yml)). Pour la V2, utiliser **`staging-v2`** : même environnement GitHub `staging` et mêmes secrets, sans déclencher ni mélanger les pipelines legacy.
 
@@ -118,6 +118,9 @@ Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (
 | `HATCAST_DATASOURCE_USERNAME` | Utilisateur Neon |
 | `HATCAST_DATASOURCE_PASSWORD` | Mot de passe Neon |
 | `HATCAST_CORS_ALLOWED_ORIGINS` | Origine **exacte** du service Cloud Run **de cet env** (schéma `https://`, sans chemin), ex. `https://hatcast-v2-dev-xxxxx-ew.a.run.app` |
+| `HATCAST_SUPER_ADMIN_EMAILS` | Emails séparés par des virgules — admin plateforme (menu Membres, join policy, bootstrap Démo). **Prod/staging :** inclure au minimum `patrice.lamarque@gmail.com` ; `impropick@gmail.com` optionnel (ADR-0015). Ne pas committer les valeurs. |
+
+**Ne pas définir** `HATCAST_SEED_TROUPE_ID` (supprimé en story 18.5). L’onboarding « Rejoindre la troupe de démonstration » cible la troupe **Démo** (`a0000001-0000-4000-8000-000000000099`, Flyway) ; **Les Improbots** (`…000001`) est un seed dev uniquement.
 
 Le workflow utilise `google-github-actions/auth` avec `workload_identity_provider` et `service_account` (secrets dépôt).
 
@@ -178,11 +181,23 @@ Après chaque **premier** déploiement sur un environnement, récupérer l’URL
 
 Voir [V2_GOOGLE_OAUTH_SETUP.md](V2_GOOGLE_OAUTH_SETUP.md) pour le détail multi-environnements.
 
-## 5. PostgreSQL sur Neon (un projet, trois branches)
+## 5. PostgreSQL sur Neon (un projet, quatre branches)
 
 - Créer un **projet Neon** ([console](https://console.neon.tech)).
-- **Branche primary** : données de **production** (alignée avec les déploiements depuis `main`).
-- Créer deux branches enfant (depuis la primary ou selon votre politique Neon), par ex. **`staging`** et **`development`** (ou `dev`), pour isoler données et chaînes de connexion.
+- **Branche primary** : données de **production** (alignée avec les déploiements depuis `production-v2`).
+- Branches enfant (depuis la primary ou selon votre politique Neon) :
+  - **`staging`** — recette V2 (`staging-v2` → Cloud Run staging).
+  - **`development`** — **cloud dev seulement** (`v2` → `hatcast-v2-dev`, secrets GitHub `development`). Profil Spring **`cloud`** : Flyway **`db/migration` uniquement** (ADR-0014) — pas de seeds Les Improbots.
+  - **`local`** — **poste développeur uniquement** (`.env` → `HATCAST_DATASOURCE_*`, jamais dans GitHub Actions). Profil Spring **`dev`** : Flyway `db/migration` + `db/seed` (Les Improbots, MVP, context switcher).
+
+| Cible | Branche Neon | Profil Spring | Flyway | Credentials |
+|-------|--------------|---------------|--------|-------------|
+| `./scripts/start-dev.sh` | **`local`** | `dev` | migration + seed | `.env` local |
+| `hatcast-v2-dev` (push `v2`) | **`development`** | `cloud` | migration seule | GitHub env `development` |
+| `hatcast-v2-staging` | **`staging`** | `cloud` | migration seule | GitHub env `staging` |
+| `hatcast-v2` (prod) | **primary** | `cloud` | migration seule | GitHub env `production` |
+
+**Pourquoi séparer `local` et `development` ?** Le dev local exécute les scripts `db/seed` et peut regénérer Les Improbots ; le cloud dev ne charge pas ces scripts. Partager une branche provoquait des échecs Flyway au démarrage Cloud Run (`Detected applied migration not resolved locally`) et couplait les resets seed locaux au service déployé. Voir [ADR-0009](../../adr/0009-neon-postgres-environments.md).
 
 Chaque branche Neon fournit sa propre **chaîne de connexion** (hôte `*.neon.tech` distinct dans le tableau de bord).
 
@@ -202,7 +217,15 @@ La valeur **`HATCAST_DATASOURCE_URL`** doit être au format JDBC Postgres attend
 
 ### 5.5 Schéma Flyway vs seeds (staging / production)
 
-Sur Cloud Run (`HATCAST_SPRING_PROFILE=cloud`), Flyway n’applique que `classpath:db/migration` — **pas** les scripts sous `db/seed` (données La Malice / MVP). Voir [ADR-0014](../../adr/0014-v2-preprod-migration-no-seed.md) et le runbook [preprod-reset-and-migrate.md](../migration/preprod-reset-and-migrate.md) pour alimenter staging depuis **Firestore V1 production** (`default`).
+Sur Cloud Run (`HATCAST_SPRING_PROFILE=cloud`), Flyway n’applique que `classpath:db/migration` — **pas** les scripts sous `db/seed` (données Les Improbots / MVP). Voir [ADR-0014](../../adr/0014-v2-preprod-migration-no-seed.md) et le runbook [preprod-reset-and-migrate.md](../migration/preprod-reset-and-migrate.md) pour alimenter staging depuis **Firestore V1 production** (`default`).
+
+**Symptôme :** l’UI charge (Nginx) mais l’API ne répond pas ; logs Cloud Run `FlywayValidateException: Detected applied migration not resolved locally` (versions 3.1, 4, 6, 17, … — scripts `db/seed`), puis `exited: api (exit status 1)` en boucle.
+
+**Cause :** la branche Neon **`development`** (cloud dev) avait reçu des migrations **`db/seed`** (profil `dev` ou ancienne config partagée avec le poste local). Le déploiement `cloud` ne charge plus ces scripts.
+
+**Prévention (2026-05-28) :** branche Neon **`local`** pour le poste (`dev` + seeds) ; branche **`development`** réservée à `hatcast-v2-dev` (`cloud`, schéma seul). Ne plus pointer `.env` vers `development`.
+
+**Correctif ops :** reset de la branche Neon concernée (`development`, `staging`, …) puis redeploy — ou purge ciblée des lignes seed dans `flyway_schema_history`. **Pas** de contournement Flyway côté app : le profil `cloud` doit échouer au démarrage si l’historique ne correspond pas au classpath (fail-fast).
 
 ### 5.3 Réseau
 
@@ -245,6 +268,19 @@ Le **domaine au début du lien** dans l’e-mail (variable `%LINK%` du modèle, 
 - Référence : [Create custom email action handlers](https://firebase.google.com/docs/auth/custom-email-handler) (Firebase) — le comportement par défaut du gestionnaire `__/auth/action` suffit en général pour HatCast V2.
 
 ## 7. Vérifications post-déploiement
+
+### Post-deploy smoke (Epic 18 / NFR-R1)
+
+Checklist manuelle après déploiement couplé SPA + API (staging ou production) :
+
+1. Ouvrir l’URL du service → se connecter (Google ou email).
+2. Aller sur `/troupes` (ou CTA vide sur `/agenda`).
+3. Cliquer **Rejoindre la troupe de démonstration**.
+4. Vérifier la redirection vers **`/saison/saison-2026-2027`** et le fil d’Ariane / chip **Démo**.
+5. Ouvrir un spectacle **en préparation** (ex. événement seed bootstrap si visible) → renseigner une première disponibilité → enregistrer.
+6. (Optionnel) Avec `HATCAST_SUPER_ADMIN_EMAILS` incluant l’email opérateur, vérifier l’accès aux surfaces admin plateforme.
+
+### Vérifications techniques
 
 - Pas de **403 Forbidden** sur `/` (IAM `run.invoker` pour `allUsers`, §4.1).
 - `https://<service-url>/` charge l’SPA Angular.

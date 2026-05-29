@@ -15,7 +15,7 @@ import { TroupeHub } from './troupe-hub'
 import { TroupeHubPreferencesSheet } from './troupe-hub-preferences-sheet'
 
 describe('TroupeHub', () => {
-  const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'la-malice' }))
+  const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'les-improbots' }))
 
   const seasons = [
     {
@@ -66,7 +66,10 @@ describe('TroupeHub', () => {
     upcomingEventCount: 0,
   }
 
-  async function setup(baselineRole: 'MEMBER' | 'TROUPE_ADMIN' = 'TROUPE_ADMIN') {
+  async function setup(
+    baselineRole: 'MEMBER' | 'TROUPE_ADMIN' = 'TROUPE_ADMIN',
+    platformAdmin = false,
+  ) {
     const dialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of('new-saison') }),
     }
@@ -74,8 +77,8 @@ describe('TroupeHub', () => {
     const troupes = [
       {
         id: 't1',
-        name: 'La Malice',
-        slug: 'la-malice',
+        name: 'Les Improbots',
+        slug: 'les-improbots',
         membership: {
           id: 'm1',
           displayName: 'Admin',
@@ -105,7 +108,10 @@ describe('TroupeHub', () => {
           useValue: {
             ensureHatcastSession: vi.fn().mockResolvedValue({
               ok: true,
-              data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' } },
+              data: {
+                user: { id: 'u1', email: 'a@b.c', displayName: 'Test' },
+                platformAdmin,
+              },
             }),
             logout: vi.fn(),
           },
@@ -156,7 +162,7 @@ describe('TroupeHub', () => {
     const { fixture } = await setup()
     const breadcrumb = fixture.nativeElement.querySelector('.troupe-hub__breadcrumb')
     expect(breadcrumb?.textContent).toContain('Troupes')
-    expect(breadcrumb?.textContent).toContain('La Malice')
+    expect(breadcrumb?.textContent).toContain('Les Improbots')
     const link = breadcrumb?.querySelector('a') as HTMLAnchorElement
     expect(link.getAttribute('href')).toBe('/troupes')
   })
@@ -200,7 +206,7 @@ describe('TroupeHub', () => {
     expect(bottomSheet.open).toHaveBeenCalledWith(
       TroupeHubPreferencesSheet,
       expect.objectContaining({
-        data: expect.objectContaining({ troupe: expect.objectContaining({ slug: 'la-malice' }) }),
+        data: expect.objectContaining({ troupe: expect.objectContaining({ slug: 'les-improbots' }) }),
       }),
     )
   })
@@ -274,8 +280,8 @@ describe('TroupeHub', () => {
             activeTroupes: () => [
               {
                 id: 't1',
-                name: 'La Malice',
-                slug: 'la-malice',
+                name: 'Les Improbots',
+                slug: 'les-improbots',
                 membership: {
                   id: 'm1',
                   displayName: 'Admin',
@@ -302,12 +308,12 @@ describe('TroupeHub', () => {
       ],
     }).compileComponents()
 
-    paramMap$.next(convertToParamMap({ slug: 'la-malice' }))
+    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
     const fixture = TestBed.createComponent(TroupeHub)
     fixture.detectChanges()
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.troupe-hub__title')?.textContent).toContain(
-        'La Malice',
+        'Les Improbots',
       )
     })
 
@@ -320,7 +326,7 @@ describe('TroupeHub', () => {
       expect(fixture.nativeElement.textContent).toContain('Saison B')
     })
     expect(selectTroupe).toHaveBeenCalledWith('t2')
-    paramMap$.next(convertToParamMap({ slug: 'la-malice' }))
+    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
   })
 
   it('shows only-archived hint before toggle', async () => {
@@ -361,8 +367,8 @@ describe('TroupeHub', () => {
             activeTroupes: () => [
               {
                 id: 't1',
-                name: 'La Malice',
-                slug: 'la-malice',
+                name: 'Les Improbots',
+                slug: 'les-improbots',
                 membership: {
                   id: 'm1',
                   displayName: 'Admin',
@@ -388,7 +394,7 @@ describe('TroupeHub', () => {
       ],
     }).compileComponents()
 
-    paramMap$.next(convertToParamMap({ slug: 'la-malice' }))
+    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
     const fixture = TestBed.createComponent(TroupeHub)
     fixture.detectChanges()
     await vi.waitFor(() => {
@@ -408,7 +414,12 @@ describe('TroupeHub', () => {
     const membresLink = Array.from(
       document.querySelectorAll('.cdk-overlay-container a'),
     ).find((a) => a.textContent?.includes('Membres')) as HTMLAnchorElement | undefined
-    expect(membresLink?.getAttribute('href')).toBe('/troupes/la-malice/admin/membres')
+    expect(membresLink?.getAttribute('href')).toBe('/troupes/les-improbots/admin/membres')
+  })
+
+  it('shows Membres admin menu for platform admin without troupe admin role', async () => {
+    const { fixture } = await setup('MEMBER', true)
+    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeTruthy()
   })
 
   it('shows not found for unknown slug', async () => {
@@ -452,7 +463,7 @@ describe('TroupeHub', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('#troupe-not-found-heading')).not.toBeNull()
     })
-    paramMap$.next(convertToParamMap({ slug: 'la-malice' }))
+    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
   })
 })
 
@@ -465,7 +476,7 @@ describe('TroupeHub session gate', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            paramMap: new BehaviorSubject(convertToParamMap({ slug: 'la-malice' })).asObservable(),
+            paramMap: new BehaviorSubject(convertToParamMap({ slug: 'les-improbots' })).asObservable(),
           },
         },
         {

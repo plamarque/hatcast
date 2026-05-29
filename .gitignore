@@ -57,6 +57,9 @@ scripts/replay/output/
 /members.csv
 /users.csv
 
+# MIG-2/MIG-3 migration dumps + generated SQL/manifest (PII — ADR-0016, keep out of git)
+/export/
+
 # BMad standard skills (installed locally; identical copies — regenerate from BMad if needed)
 .agents/skills/
 .cursor/skills/

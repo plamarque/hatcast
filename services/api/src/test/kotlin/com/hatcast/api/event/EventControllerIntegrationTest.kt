@@ -70,7 +70,7 @@ class EventControllerIntegrationTest {
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
-    private val seedSeasonSlug = "la-malice-2026-2027"
+    private val seedSeasonSlug = "les-improbots-2026-2027"
 
     private val mapper = ObjectMapper()
 

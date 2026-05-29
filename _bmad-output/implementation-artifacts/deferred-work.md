@@ -1,3 +1,40 @@
+## Deferred from: code review of mig-3-availability-compositions-migration-pipeline.md (2026-05-29)
+
+- `comment` > VARCHAR(500) / `role_key` > VARCHAR(64) non validés côté transform → ferait échouer toute la transaction unique au load ; non routé vers rejects. Non déclenché par les données Malice (`comment=null`, role_keys courts). [scripts/v1/maliceAvailabilityCompositions.js:196,283]
+- Rejeu non destructif : `ON CONFLICT DO UPDATE` ne supprime jamais → lignes orphelines (slots/declines/availability) si un joueur est retiré d'un rôle entre deux runs. Atténué par le reset-entre-cycles (staging) et l'apply prod unique ; par conception.
+- AC 9 gate « ≥ 3 cycles propres » + run loggué (date/counts/écarts) : documenté dans le runbook mais aucune entrée `replay-log.jsonl` réelle fournie ; gate opérationnel à exécuter avant tout load prod.
+- Finitions mineures : URL Postgres en `argv` de `psql` (visible dans `ps`), sortie principale « Wrote… » sur stderr, flags mal orthographiés ignorés silencieusement, garde mort `!casts`, écrasement silencieux des fichiers de sortie existants.
+
+## Deferred from: code review of 12-7-agenda-annulation-requetes-obsoletes-verrou-navigation-post-login.md (2026-05-29)
+
+- Test AC2 `loadingAgenda` pendant la course — le test race prouve l’ignorance des données périmées ; l’implémentation respecte AC2 mais le test ne vérifie pas explicitement l’absence de flash `loadingAgenda=false` entre deux requêtes concurrentes.
+
+## Deferred from: code review of 18-4-ux-onboarding-rejoindre-demo.md (2026-05-28)
+
+- Fichiers `demo-troupe-*.ts` encore non suivis git (`??`) — à inclure au prochain commit ; pas un défaut runtime.
+- Pages admin (`admin-membres`, `admin-participants`, etc.) : breadcrumb sans `troupeIsDemo` — hors libellé AC3 « surfaces membre saison » ; aligner si badge souhaité côté orga.
+
+## Deferred from: code review of 18-2-self-join-open-api-super-admin-join-policy.md (2026-05-28)
+
+- `ensureMembershipParticipants` n'utilise pas `ensureSeasonParticipantForMembership` — refactor bulk sync hors scope 18.2, duplication préexistante étendue.
+- Plusieurs saisons actives → `NonUniqueResultException` sur `findByTroupe_IdAndIsActiveTrue` — invariant produit via `SeasonService.activate`, edge case DB directe.
+
+## Deferred from: code review of 18-1-modele-join-policy-is-demo.md (2026-05-28)
+
+- Drift enum `TroupeJoinPolicy` ↔ CHECK `troupes_join_policy_chk` — même pattern que `baseline_role` / V10 ; pas de source de vérité unique.
+
+## Deferred from: code review of 18-0-renommer-seed-dev-les-improbots.md (2026-05-28)
+
+- Venue fiction « Local Malice, Lille » dans V26 — libellé lieu spectacle, pas identité troupe seed.
+- Noms export `buildMalicie*` dans `generate-improbots-seed-sql.js` — aliases npm malice conservés ; renommage cosmétique différé.
+- Checksum Flyway seeds modifiés sur base Neon persistant sans `repair-on-migrate` — V31 compense le contenu ; pattern ops connu.
+- Collision slug `les-improbots` si troupe homonyme créée manuellement avant V31 — edge case dev rare.
+- Fixtures unitaires front « La Malice » génériques dans `troupe-context.service.spec.ts` — non couplées au seed UUID.
+
+## Deferred from: code review of 2-11-creation-troupe-api-ui-minimale.md (2026-05-28)
+
+- `TroupeRepository.findBySlug` ajouté mais non utilisé (optionnel dans la story) — retirer ou utiliser si un flux slug→id apparaît.
+
 ## Deferred from: code review of ops-2-ci-integration-tests-postgres.md (2026-05-28)
 
 - Required status check / branch protection for workflow `services/api (tests)` (`api-test.yml`) not verified in repo settings — configure on `v2`/`main` when enforcing M1 gate.
@@ -249,6 +286,18 @@
 
 - Duplicate eligible-participant loading in `CompositionDrawService` and `CompositionService` — refactor when a shared helper is warranted.
 - `prefers-reduced-motion` read once at `EventEquipeTab` init — user toggling OS reduced-motion without reload will not update until navigation.
+
+## Deferred from: code review of 18-5-configuration-prod-tests-separation-demo.md (2026-05-28)
+
+- Vitest ne couvre pas `inject-google-client-id.mjs` — seul `environment.ts` commité est testé ; hardening optionnel prévu par la story.
+- `seasons-list.spec.ts` mock `DemoTroupeJoinService` sans assert `DEMO_TROUPE_ID` — AC4 satisfait via `troupes-list` + `demo-troupe-join.service` (clause `and/or`).
+- UUID `…000099` dupliqué dans env + inject script sans import `DEMO_TROUPE_ID` — hardening optionnel prévu par la story.
+
+## Deferred from: code review of 5-7-summary-dispos-lecture-sans-ecriture.md (2026-05-29)
+
+- Transient summary/selectors race on first parallel load (`event-dispos-tab.ts:164`) — pre-existing Promise.all pattern; AC3 keeps sync on selectors; microwindow resolves on reload/retry.
+- `reloadSummary()` does not re-fetch selectors (`event-dispos-tab.ts:199`) — pre-existing; out of 5-7 scope; membership changes mid-session are rare.
+- API clients calling GET summary without selectors get stale roster (`AvailabilityController.kt:48`) — intentional AC2 contract; sync paths remain on selectors/listAdmin/composition.
 
 ## Deferred from: code review of 6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy.md (2026-05-25)
 

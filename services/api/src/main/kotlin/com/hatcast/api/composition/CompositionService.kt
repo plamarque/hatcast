@@ -22,6 +22,7 @@ import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -44,6 +45,7 @@ class CompositionService(
     private val troupeAccess: TroupeAccessService,
     private val notificationPort: CompositionNotificationPort,
     private val declineRepository: EventCompositionDeclineRepository,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -99,7 +101,13 @@ class CompositionService(
             composition.publishedAt = now
             composition.updatedAt = now
             compositionRepository.save(composition)
-            notificationPort.publishDraftCompositionShared(eventId, seasonId, principal.userId)
+            eventPublisher.publishEvent(
+                DraftCompositionSharedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    actorUserId = principal.userId,
+                ),
+            )
         }
 
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)

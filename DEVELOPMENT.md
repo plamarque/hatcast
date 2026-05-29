@@ -50,14 +50,25 @@ How to run locally, run tests, build, and deploy. For architecture and product i
 Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`](apps/web/) (**Angular 21** + Material, démo OAuth sur la route par défaut). Ne modifie pas la V1 sous `legacy/`.
 
 1. Créer un client OAuth **Web** dans Google Cloud Console ; ajouter l’origine JavaScript **`https://localhost:4200`** (dev Angular avec TLS par défaut, voir `apps/web/angular.json` → `serve.options.ssl`). Ajouter d’autres origines si vous utilisez `127.0.0.1`, le réseau local (`--host`), ou du HTTP sans SSL.
-2. **API** : `cd services/api && export HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID="…" && ./gradlew bootRun` (port **8080**).
-3. **Client** : dans `apps/web`, éditer `src/environments/environment.development.ts` et renseigner `googleOAuthWebClientId` (même valeur publique que l’API), puis `npm install && npm run dev` (port **4200** en **HTTPS** ; le proxy envoie `/v1` et `/actuator` vers l’API en HTTP, voir `proxy.conf.json`). Routes : **`/`** redirige selon la session ; **`/connexion`** (Google) ; **`/accueil`** une fois connecté. Au premier chargement, le navigateur peut avertir sur le certificat de dev — accepter pour localhost.
+2. **Neon (V2)** : créer ou utiliser la branche **`local`** dans le projet Neon ; renseigner `HATCAST_DATASOURCE_URL`, `HATCAST_DATASOURCE_USERNAME`, `HATCAST_DATASOURCE_PASSWORD` dans **`.env`** (voir [`.env.example`](.env.example)). Cette branche est **distincte** de **`development`**, utilisée par Cloud Run `hatcast-v2-dev` — voir [ADR-0009](docs/adr/0009-neon-postgres-environments.md).
+3. **API** : `cd services/api && export HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID="…" && ./gradlew bootRun` (port **8080**).
+4. **Client** : dans `apps/web`, éditer `src/environments/environment.development.ts` et renseigner `googleOAuthWebClientId` (même valeur publique que l’API), puis `npm install && npm run dev` (port **4200** en **HTTPS** ; le proxy envoie `/v1` et `/actuator` vers l’API en HTTP, voir `proxy.conf.json`). Routes : **`/`** redirige selon la session ; **`/connexion`** (Google) ; **`/accueil`** une fois connecté. Au premier chargement, le navigateur peut avertir sur le certificat de dev — accepter pour localhost.
 
 **Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe.
 
 Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
-**Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) ; branches / environnements : [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
+**Trois troupes en local (`./scripts/start-dev.sh`, profil `dev`, Neon branche `local`) :**
+
+| Troupe | UUID (suffixe) | Source | Cible du bouton « Rejoindre la démo » |
+|--------|----------------|--------|--------------------------------------|
+| **Les Improbots** | `…000001` | `db/seed` (V3_1+, dev/CI) | Non |
+| **Démo** | `…000099` | `db/migration` V33+ (tous profils incl. cloud) | Oui (`environment.demoTroupeId` / `DEMO_TROUPE_ID`) |
+| **La Malice** | variable | migration V1 réelle | Non (jamais seed Flyway) |
+
+**Troupe Démo prod (ADR-0015) :** bootstrap idempotent Flyway `V33`–`V37` + repeatable `R__bootstrap_demo_admin_memberships.sql` (`db/migration`, profil `cloud` inclus). UUID `a0000001-0000-4000-8000-000000000099`. Les liens `TROUPE_ADMIN` pour `patrice.lamarque@gmail.com` / `impropick@gmail.com` sont appliqués idempotent à chaque migrate Flyway dès que les comptes `users` existent (première connexion Google sur Neon vide incluse). Smoke manuel après join : `/saison/saison-2026-2027` — checklist opérateur dans [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) § Post-deploy smoke.
+
+**Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) ; workflow Git (promote / release) : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) ; branches / environnements : [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 
 ---
 
@@ -114,9 +125,11 @@ Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [
 
 ## Release / version
 
+### V1 (Firebase — branche `staging`)
+
 - **Commande (depuis la racine du repo) :**  
   `./scripts/release-version.sh [--dry-run] [--major|--minor|--patch]`  
-  Script principal pour créer une nouvelle version (bump de `package.json`, mise à jour des changelogs, tag Git, etc.). Détails dans [scripts/release-version.sh](scripts/release-version.sh).
+  Script principal pour créer une nouvelle version V1 (bump de `package.json`, mise à jour des changelogs, tag Git, merge vers `main`, etc.). Détails dans [scripts/release-version.sh](scripts/release-version.sh).
 
 - **Options :**
   - `--patch` : 0.43.1 → 0.43.2
@@ -124,7 +137,13 @@ Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [
   - `--major` : 0.43.1 → 1.0.0
   - `--dry-run` : simulation sans modification des fichiers ni création de tag
 
-- **Changelog :** [scripts/generate-changelog.js](scripts/generate-changelog.js) peut être utilisé pour générer le changelog ; voir [scripts/README.md](scripts/README.md) pour la gestion des versions.
+- **Changelog :** [scripts/generate-changelog.js](scripts/generate-changelog.js) peut être utilisé pour générer le changelog ; voir [scripts/README.md](scripts/README.md).
+
+### V2 (Cloud Run — branche `staging-v2`)
+
+- **Promotion staging :** `./scripts/v2/promote-to-staging.sh [--dry-run] [--ff-only]`
+- **Release production :** depuis `staging-v2`, `./scripts/v2/release-production.sh [--dry-run] [--patch|--minor|--major|--version=X.Y.Z]`
+- Guide : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md)
 
 ---
 

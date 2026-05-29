@@ -9,6 +9,7 @@ import com.hatcast.api.participant.dto.ParticipantUpdateRequest
 import com.hatcast.api.participant.dto.SeasonParticipantAdminDto
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserRepository
@@ -28,6 +29,7 @@ class SeasonParticipantService(
     private val userRepository: UserRepository,
     private val participantAccess: ParticipantAccessService,
     private val participantLink: ParticipantLinkService,
+    private val membershipSync: SeasonParticipantMembershipSync,
 ) {
     @Transactional
     fun listAdmin(
@@ -171,6 +173,14 @@ class SeasonParticipantService(
         existing.updatedAt = now
         seasonParticipantRepository.save(existing)
         refreshParticipantCount(season)
+    }
+
+    @Transactional
+    fun ensureSeasonParticipantForMembership(
+        season: SeasonEntity,
+        membership: TroupeMembershipEntity,
+    ) {
+        membershipSync.ensureForMembership(season, membership)
     }
 
     @Transactional

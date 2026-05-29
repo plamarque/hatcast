@@ -17,7 +17,7 @@ import {
   shouldHaveAvailability,
   slugFromDisplayName,
   slotsFor,
-} from './generate-malice-seed-sql.js'
+} from './generate-improbots-seed-sql.js'
 
 const SAMPLE_CSV = `email,displayName,baselineRole,status
 angel.arambel@gmail.com,Angie,MEMBER,active
@@ -25,7 +25,7 @@ maxime.cieutat@gmail.com,Max,TROUPE_ADMIN,active
 patrice.lamarque+auryl@gmail.com,patrice lamarque+auryl,MEMBER,active
 `
 
-describe('generate-malice-seed-sql', () => {
+describe('generate-improbots-seed-sql', () => {
   it('parses members csv without retaining real emails in output', () => {
     const rows = parseMembersCsv(SAMPLE_CSV)
     assert.equal(rows.length, 3)
@@ -72,8 +72,8 @@ describe('generate-malice-seed-sql', () => {
 
   it('sql output contains obfuscated domain and no gmail', () => {
     const sql = buildMalicieSeedSql(SAMPLE_CSV)
-    assert.match(sql, /@seed\.la-malice\.test/)
-    assert.match(sql, /INSERT INTO users/)
+    assert.match(sql, /@seed\.improbots\.test/)
+    assert.match(sql, /INSERT INTO users \(id, google_sub, idp_uid, email, display_name, activated_at/)
     assert.match(sql, /UPDATE events SET template_type/)
     assert.match(sql, /INSERT INTO event_availability/)
     assert.doesNotMatch(sql, /gmail\.com/)

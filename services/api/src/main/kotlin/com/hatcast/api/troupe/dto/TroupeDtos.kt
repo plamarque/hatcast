@@ -4,9 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.troupe.TroupeJoinPolicy
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 import org.openapitools.jackson.nullable.JsonNullable
 import java.time.Instant
@@ -37,6 +40,8 @@ data class TroupeListItemDto(
     val id: UUID,
     val name: String,
     val slug: String,
+    val joinPolicy: TroupeJoinPolicy,
+    val isDemo: Boolean,
     val membership: MembershipSummaryDto,
     /** Active troupe memberships (`TroupeMembershipStatus.ACTIVE`). */
     val activeMemberCount: Long,
@@ -46,7 +51,26 @@ data class TroupeListItemDto(
      * [com.hatcast.api.agenda.UserAgendaRepository.findUpcomingForUser] eligibility per troupe.
      */
     val upcomingEventCount: Long,
-)
+) {
+    companion object {
+        fun from(
+            troupe: TroupeEntity,
+            membership: TroupeMembershipEntity,
+            activeMemberCount: Long,
+            upcomingEventCount: Long,
+        ): TroupeListItemDto =
+            TroupeListItemDto(
+                id = troupe.id,
+                name = troupe.name,
+                slug = troupe.slug,
+                joinPolicy = troupe.joinPolicy,
+                isDemo = troupe.isDemo,
+                membership = MembershipSummaryDto.from(membership),
+                activeMemberCount = activeMemberCount,
+                upcomingEventCount = upcomingEventCount,
+            )
+    }
+}
 
 data class TroupeMemberAdminDto(
     val id: UUID,
@@ -87,6 +111,38 @@ data class PagedTroupeMembersResponse(
     val size: Int,
     val totalElements: Long,
     val totalPages: Int,
+)
+
+data class TroupeAdminSummaryDto(
+    val id: UUID,
+    val name: String,
+    val slug: String,
+    val joinPolicy: TroupeJoinPolicy,
+    val isDemo: Boolean,
+) {
+    companion object {
+        fun from(troupe: TroupeEntity): TroupeAdminSummaryDto =
+            TroupeAdminSummaryDto(
+                id = troupe.id,
+                name = troupe.name,
+                slug = troupe.slug,
+                joinPolicy = troupe.joinPolicy,
+                isDemo = troupe.isDemo,
+            )
+    }
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class UpdateTroupeJoinPolicyRequest(
+    @field:NotNull(message = "La politique d'adhésion est requise.")
+    val joinPolicy: TroupeJoinPolicy,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class CreateTroupeRequest(
+    @field:NotBlank(message = "Le nom de la troupe ne peut pas être vide.")
+    @field:Size(max = 255)
+    val name: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

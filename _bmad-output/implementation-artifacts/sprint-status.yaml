@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-28T12:00:00+02:00
+# last_updated: 2026-05-29T12:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-28T18:00:00+02:00"
+last_updated: "2026-05-29T01:30:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -46,6 +46,10 @@ story_location: "{project-root}/_bmad-output/implementation-artifacts"
 development_status:
   # Hygiene / ops (PLAN backlog — SCP 2026-05-28)
   ops-2-ci-integration-tests-postgres: done
+
+  # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
+  mig-2-export-v1-seasons-events-and-mapping-manifest: done
+  mig-3-availability-compositions-migration-pipeline: done
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
@@ -58,6 +62,7 @@ development_status:
   epic-1-retrospective: optional
 
   epic-2: in-progress
+  2-11-creation-troupe-api-ui-minimale: done
   2-1-adhesion-a-une-troupe-et-profil-membre-minimal: done
   2-2-administration-des-membres-et-roles-de-base: done
   2-3-import-export-csv-des-membres-de-troupe: done
@@ -67,6 +72,7 @@ development_status:
   2-7-popover-profil-membre-stats-saison-grille-mensuelle-roles-favoris: done
   2-8-admin-membres-route-ui-ux-dr10: done
   2-9-post-login-et-derniere-ligue-visitee-v1-parity: done
+  2-10-liste-membres-corriger-n1-emails: done
   epic-2-retrospective: done
 
   epic-3: in-progress
@@ -93,7 +99,7 @@ development_status:
   5-4-commentaire-optionnel-sur-la-disponibilite: done
   5-5-saisie-de-disponibilite-pour-un-autre-membre-proxy-avec-audit: done
   5-6-dispos-onglet-material-3-et-commentaire: done
-  5-7-summary-dispos-lecture-sans-ecriture: review
+  5-7-summary-dispos-lecture-sans-ecriture: done
   epic-5-retrospective: optional
 
   epic-6: in-progress
@@ -109,6 +115,7 @@ development_status:
   6-10-partage-et-annonce-message-editable-canaux: done
   6-11-retour-visuel-et-performances-onglet-equipe: done
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
+  6-13-publish-notifications-hors-transaction: done
   epic-6-retrospective: optional
 
   epic-7: backlog
@@ -142,6 +149,7 @@ development_status:
   12-4-bandeau-contexte-evenement: done
   12-5-routage-post-connexion-agenda: done
   12-6-alias-route-ligue-slug: done
+  12-7-agenda-annulation-requetes-obsoletes-verrou-navigation-post-login: done
   epic-12-retrospective: optional
 
   epic-13: in-progress
@@ -194,6 +202,15 @@ development_status:
   17-22-navigation-bar-m3-membre: done
   17-20-remember-last-member-entry-path: done
   17-23-selecteur-contexte-troupe-saison: done
-  17-24-ecran-mon-compte-alignement-hub-membre: review
+  17-24-ecran-mon-compte-alignement-hub-membre: done
   17-25-menu-compte-rail-desktop-avatar-mobile: done
   epic-17-retrospective: optional
+
+  epic-18: in-progress
+  18-0-renommer-seed-dev-les-improbots: done
+  18-1-modele-join-policy-is-demo: done
+  18-2-self-join-open-api-super-admin-join-policy: done
+  18-3-seed-production-troupe-demo: done
+  18-4-ux-onboarding-rejoindre-demo: done
+  18-5-configuration-prod-tests-separation-demo: review
+  epic-18-retrospective: optional

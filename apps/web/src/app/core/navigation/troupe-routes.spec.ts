@@ -16,7 +16,7 @@ describe('troupe-routes', () => {
   })
 
   it('builds troupe hub path', () => {
-    expect(troupeHubPath('la-malice')).toEqual(['/', 'troupes', 'la-malice'])
+    expect(troupeHubPath('les-improbots')).toEqual(['/', 'troupes', 'les-improbots'])
   })
 
   it('builds saison workspace path', () => {
@@ -51,10 +51,10 @@ describe('troupe-routes', () => {
   })
 
   it('builds troupe admin membres path', () => {
-    expect(troupeAdminMembresPath('la-malice')).toEqual([
+    expect(troupeAdminMembresPath('les-improbots')).toEqual([
       '/',
       'troupes',
-      'la-malice',
+      'les-improbots',
       'admin',
       'membres',
     ])
