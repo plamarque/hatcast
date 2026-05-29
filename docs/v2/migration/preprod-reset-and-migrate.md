@@ -62,13 +62,21 @@ One command from repo root after **Procedure C** Neon reset (and staging deploy 
 # or: npm run migrate:from-v1
 ```
 
-The script loads `.env.local`, checks deps (`pg`, `psql`), creates `export/malice/migrate.config.json` from the example if missing, tests the migration API, prompts for Neon reset confirmation, then runs the full pipeline (`--yes --record-cycle`). No Google sign-in required on staging after reset (operator stub auto-provisioned — ADR-0017).
+The script loads `.env.local`, checks deps (`pg`, `psql`, `gh`), creates `export/malice/migrate.config.json` from the example if missing. On a **Neon reset cycle** it:
+
+1. Prompts you to reset the Neon `staging` branch in the console (manual).
+2. Triggers **GitHub Actions** `Deploy V2 (Cloud Run)` on `staging-v2` via `gh workflow run` (Flyway + `spring_session` on empty DB).
+3. Waits for `/actuator/health` and migration API preflight (201).
+4. Runs the full pipeline (`--yes --record-cycle`).
+
+Requires `gh auth login`. No Google sign-in on staging after reset (operator stub auto-provisioned — ADR-0017).
 
 Options:
 
 ```bash
-./scripts/migrate-from-v1.sh --dry-run          # export + SQL only (smoke skipped)
-./scripts/migrate-from-v1.sh --no-prompt-reset  # skip reset prompt
+./scripts/migrate-from-v1.sh --dry-run              # export + SQL only (smoke skipped)
+./scripts/migrate-from-v1.sh --no-prompt-reset      # skip Neon prompt + redeploy
+./scripts/migrate-from-v1.sh --skip-staging-redeploy  # Neon reset only; you redeployed staging yourself
 ./scripts/migrate-from-v1.sh --help
 ```
 
@@ -235,9 +243,9 @@ Use when migration rules change, imports failed, or you need a clean rehearsal b
 
 **Option 2:** Drop all tables in staging (destructive; only if reset unavailable).
 
-### C2 — Reapply schema
+### C2 — Reapply schema (restart staging API)
 
-Redeploy V2 (push to `staging` or re-run workflow). Flyway runs **migration** scripts only; database ends at latest schema version with **no seed rows**.
+After a Neon reset the running Cloud Run revision may still point at an empty DB without `spring_session` / Flyway. **`./scripts/migrate-from-v1.sh`** triggers `workflow_dispatch` on **Deploy V2 (Cloud Run)** (`staging-v2`) and waits for health before migrating. Manual alternative: GitHub Actions → Run workflow on `staging-v2`, or redeploy via `promote-to-staging.sh` when `services/api/` changed.
 
 ### C3 — Replay migration
 
