@@ -168,25 +168,42 @@
   bottom: 0;
   z-index: 20;
   min-height: var(--member-nav-bottom-height);
+  box-sizing: border-box;
   padding-bottom: env(safe-area-inset-bottom, 0);
   background: var(--mat-sys-surface-container);
   border-block-start: 1px solid
     color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
+  overflow: visible;
 
   @media (min-width: 840px) {
     display: none;
   }
 
   .mat-mdc-tab-link {
+    position: relative;
     flex: 1 1 0;
     min-width: 0;
     min-height: 3rem;
-    padding: 0.35rem 0.25rem;
+    box-sizing: border-box;
+    padding: 0.5rem 0.25rem 0.35rem;
     opacity: 1;
+    overflow: visible;
     color: var(--mat-sys-on-surface-variant);
 
     &.mdc-tab--active {
       color: var(--mat-sys-primary);
+
+      /* Liseret en haut de l’onglet — au-dessus des icônes, hors zone safe-area */
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        inset-inline: 12%;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: var(--mat-sys-primary);
+        pointer-events: none;
+      }
     }
   }
 }

@@ -59,6 +59,12 @@
   .user-agenda__header {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: 0.5rem;
+  }
+
+  /* flex-basis 12rem en colonne forçait ~192px de hauteur vide sous le sous-titre */
+  .user-agenda__titles {
+    flex: 0 0 auto;
   }
 
   .user-agenda__header-actions {
@@ -123,6 +129,10 @@
 
 .user-agenda__month {
   margin-bottom: 1.5rem;
+
+  &:first-child .user-agenda__month-divider {
+    margin-top: 0.35rem;
+  }
 }
 
 .user-agenda__month-divider {

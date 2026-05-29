@@ -19,3 +19,30 @@
     padding-inline-end: calc(var(--member-shell-account-reserve, 3.25rem) + env(safe-area-inset-right, 0px));
   }
 }
+
+/* flex-basis 12rem en colonne → ~192px de hauteur vide sous le sous-titre (Agenda, Stats, …) */
+@media (max-width: 640px) {
+  .member-shell--with-nav {
+    .user-agenda__header,
+    .member-glance-page__header {
+      margin-bottom: 0.5rem;
+    }
+
+    .user-agenda__titles,
+    .member-glance-page__titles {
+      flex: 0 0 auto;
+    }
+  }
+}
+
+/* Barre basse : masquer l’indicateur MDC natif (positionné en bas, chevauche les libellés) */
+.member-nav__bottom {
+  .mdc-tab-indicator {
+    display: none;
+  }
+
+  .mat-mdc-tab-link-container,
+  .mat-mdc-tab-list {
+    overflow: visible;
+  }
+}
