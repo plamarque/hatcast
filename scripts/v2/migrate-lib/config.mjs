@@ -22,6 +22,14 @@ function interpolateEnv(value) {
   return value.replace(/\$\{([A-Z0-9_]+)\}/g, (_, name) => process.env[name] ?? '')
 }
 
+/** Treat blank strings as missing so env fallbacks apply after failed ${VAR} interpolation. */
+function coalesceNonEmpty(...values) {
+  for (const value of values) {
+    if (value != null && String(value).trim() !== '') return String(value).trim()
+  }
+  return ''
+}
+
 function loadJson(path) {
   const raw = readFileSync(path, 'utf8')
   const parsed = JSON.parse(raw)
@@ -52,12 +60,16 @@ export function parseConfig(argv = process.argv.slice(2)) {
 
   return {
     target: parseArgValue(argv, '--target=') ?? base.target ?? 'staging',
-    apiBaseUrl: parseArgValue(argv, '--api-base-url=') ?? base.apiBaseUrl ?? process.env.HATCAST_MIGRATE_API_BASE ?? '',
-    migrationApiKey:
-      parseArgValue(argv, '--migration-api-key=') ??
-      base.migrationApiKey ??
-      process.env.HATCAST_MIGRATION_API_KEY ??
-      '',
+    apiBaseUrl: coalesceNonEmpty(
+      parseArgValue(argv, '--api-base-url='),
+      base.apiBaseUrl,
+      process.env.HATCAST_MIGRATE_API_BASE,
+    ),
+    migrationApiKey: coalesceNonEmpty(
+      parseArgValue(argv, '--migration-api-key='),
+      base.migrationApiKey,
+      process.env.HATCAST_MIGRATION_API_KEY,
+    ),
     v1SeasonId: parseArgValue(argv, '--v1-season=') ?? base.v1SeasonId ?? '',
     v1Database: parseArgValue(argv, '--v1-database=') ?? base.v1Database ?? '(default)',
     troupeName: parseArgValue(argv, '--troupe-name=') ?? base.troupeName ?? '',
@@ -66,12 +78,13 @@ export function parseConfig(argv = process.argv.slice(2)) {
     seasonEndDate: base.seasonEndDate ?? null,
     troupeId: parseArgValue(argv, '--troupe-id=') ?? base.troupeId ?? null,
     seasonV2: parseArgValue(argv, '--season-v2=') ?? base.seasonV2 ?? null,
-    databaseUrl:
-      parseArgValue(argv, '--database-url=') ??
-      base.databaseUrl ??
-      process.env.NEON_STAGING_URL ??
-      process.env.HATCAST_MIGRATE_DATABASE_URL ??
-      '',
+    databaseUrl: coalesceNonEmpty(
+      parseArgValue(argv, '--database-url='),
+      base.databaseUrl,
+      process.env.NEON_STAGING_URL,
+      process.env.HATCAST_MIGRATE_DATABASE_URL,
+      process.env.DATABASE_URL,
+    ),
     expectHost: parseArgValue(argv, '--expect-host=') ?? base.expectHost ?? 'auto',
     exportDir,
     runDir,

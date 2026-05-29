@@ -151,7 +151,11 @@ if [[ "${DRY_RUN}" == false && "${NO_PROMPT_RESET}" == false ]]; then
   fi
 fi
 
-RUN_ARGS=(--config="${CONFIG_PATH}")
+RUN_ARGS=(
+  --config="${CONFIG_PATH}"
+  --database-url="${NEON_STAGING_URL}"
+  --migration-api-key="${HATCAST_MIGRATION_API_KEY}"
+)
 if [[ "${DRY_RUN}" == true ]]; then
   RUN_ARGS+=(--dry-run)
 else
