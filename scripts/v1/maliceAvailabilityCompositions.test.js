@@ -111,6 +111,24 @@ describe('maliceAvailabilityCompositions — transformCompositions (AC3–AC7)',
     }
   })
 
+  it('maps incomplete cast with organizer confirmed like V1 cast.confirmed (understaffed event)', () => {
+    const { compositions } = transformCompositions(
+      [
+        {
+          v1EventId: 'evtB',
+          status: 'incomplete',
+          confirmed: true,
+          confirmedAt: CONFIRMED_AT,
+          roles: { assistant_referee: ['p1'] },
+          playerStatuses: { p1: 'confirmed' },
+        },
+      ],
+      MANIFEST,
+    )
+    assert.equal(compositions[0].validatedAt, CONFIRMED_AT)
+    assert.equal(compositions[0].publishedAt, CONFIRMED_AT)
+  })
+
   it('rejects empty slot player and unknown manifest player (AC7)', () => {
     const { slots, rejects } = transformCompositions(
       [

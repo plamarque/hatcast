@@ -203,6 +203,8 @@ export function emptyRoleSlots(): RoleSlots {
   return Object.fromEntries(ROLE_KEYS.map((k) => [k, 0]))
 }
 
+export const ROLE_COUNT_MAX = 100
+
 export function normalizeRoleSlots(raw: RoleSlots | null | undefined): RoleSlots {
   const base = emptyRoleSlots()
   if (!raw) return base
@@ -217,7 +219,7 @@ export function normalizeRoleSlots(raw: RoleSlots | null | undefined): RoleSlots
 
 export function clampRoleCount(n: number): number {
   if (!Number.isFinite(n)) return 0
-  return Math.min(20, Math.max(0, Math.round(n)))
+  return Math.min(ROLE_COUNT_MAX, Math.max(0, Math.round(n)))
 }
 
 export function applyTemplate(typeId: EventTypeId): RoleSlots {

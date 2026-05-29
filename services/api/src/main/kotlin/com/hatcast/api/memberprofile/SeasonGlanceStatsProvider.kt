@@ -67,9 +67,9 @@ class SeasonGlanceStatsProvider(
 
         for (event in events) {
             val composition = compositions[event.id]
-            val validated = composition?.validatedAt != null
             val slots = slotsByEvent[event.id].orEmpty()
             val declines = declinesByEvent[event.id].orEmpty()
+            val locked = isCompositionLockedForStats(composition, slots)
 
             if (
                 participantIds.any { pid ->
@@ -77,8 +77,9 @@ class SeasonGlanceStatsProvider(
                         event = event,
                         participantId = pid,
                         participants = participants,
-                        validated = validated,
+                        locked = locked,
                         slots = slots,
+                        declines = declines,
                         availabilityIndex = availabilityIndex,
                     )
                 }
@@ -86,7 +87,7 @@ class SeasonGlanceStatsProvider(
                 timesAvailable++
             }
 
-            if (validated) {
+            if (locked) {
                 if (
                     participantIds.any { pid ->
                         hasInitialSelection(slots, declines, pid)
@@ -138,9 +139,10 @@ class SeasonGlanceStatsProvider(
                 ),
             selections =
                 MemberProfileStatDto(
-                    count = totalInitialSelections,
+                    count = participations,
                     percent = selectionPercent,
                     tooltip =
+                        "Sélections non déclinées\n" +
                         "Taux = ($totalInitialSelections ÷ $timesAvailable) × 100",
                 ),
             declines =
@@ -176,9 +178,9 @@ class SeasonGlanceStatsProvider(
         val blocksByMonth = mutableMapOf<String, MutableList<MemberProfileChartBlockDto>>()
         for (event in events.sortedBy { it.startsAt }) {
             val composition = compositions[event.id]
-            val validated = composition?.validatedAt != null
             val slots = slotsByEvent[event.id].orEmpty()
             val declines = declinesByEvent[event.id].orEmpty()
+            val locked = isCompositionLockedForStats(composition, slots)
             val monthKey = event.startsAt.atZone(ZONE).format(MONTH_FORMAT)
 
             val block =
@@ -187,7 +189,7 @@ class SeasonGlanceStatsProvider(
                         event = event,
                         participantId = pid,
                         participants = participants,
-                        validated = validated,
+                        locked = locked,
                         slots = slots,
                         declines = declines,
                         availabilityIndex = availabilityIndex,
@@ -219,11 +221,11 @@ class SeasonGlanceStatsProvider(
 
         val counts = mutableMapOf<String, Int>()
         for (event in events) {
-            val composition = compositions[event.id] ?: continue
-            if (composition.validatedAt == null) {
+            val composition = compositions[event.id]
+            val slots = slotsByEvent[event.id].orEmpty()
+            if (!isCompositionLockedForStats(composition, slots)) {
                 continue
             }
-            val slots = slotsByEvent[event.id].orEmpty()
             val declines = declinesByEvent[event.id].orEmpty()
             for (slot in slots) {
                 val pid = slot.assignedParticipantId() ?: continue
@@ -254,12 +256,25 @@ class SeasonGlanceStatsProvider(
             userId = userId,
         )
 
+    /**
+     * V1 `cast.confirmed` parity for stats (`GridBoard.vue` uses confirmed, not status).
+     * Fallback on assigned slots covers legacy loads before MIG-3 sets `validated_at` on
+     * incomplete-but-confirmed casts (e.g. understaffed Match Cambo).
+     */
+    private fun isCompositionLockedForStats(
+        composition: EventCompositionEntity?,
+        slots: List<EventCompositionSlotEntity>,
+    ): Boolean =
+        composition?.validatedAt != null ||
+            slots.any { it.assignedParticipantId() != null }
+
     private fun effectiveAvailability(
         event: EventEntity,
         participantId: UUID,
         participants: List<SeasonParticipantEntity>,
-        validated: Boolean,
+        locked: Boolean,
         slots: List<EventCompositionSlotEntity>,
+        declines: List<EventCompositionDeclineEntity>,
         availabilityIndex: GlanceAvailabilityIndex,
     ): Boolean {
         val participant = participants.firstOrNull { it.id == participantId } ?: return false
@@ -267,13 +282,23 @@ class SeasonGlanceStatsProvider(
         if (availability?.status == StoredAvailabilityStatus.AVAILABLE) {
             return true
         }
-        if (validated && hasInitialSelection(slots, emptyList(), participantId)) {
+        if (locked && hasSlottedInitialSelection(slots, declines, participantId)) {
             return true
         }
         return false
     }
 
+    /** V1 `countAllInitialSelections` — slot assignment or decline-only (migrated `cast.declined` without `cast.roles`). */
     private fun hasInitialSelection(
+        slots: List<EventCompositionSlotEntity>,
+        declines: List<EventCompositionDeclineEntity>,
+        participantId: UUID,
+    ): Boolean =
+        hasSlottedInitialSelection(slots, declines, participantId) ||
+            hasDeclineOnlyInitialSelection(declines, participantId)
+
+    /** Active slot assignment; used for effective availability (V1 `countEffectiveAvailability`). */
+    private fun hasSlottedInitialSelection(
         slots: List<EventCompositionSlotEntity>,
         declines: List<EventCompositionDeclineEntity>,
         participantId: UUID,
@@ -284,16 +309,30 @@ class SeasonGlanceStatsProvider(
                 !isDeclined(declines, participantId, slot.roleKey)
         }
 
+    private fun hasDeclineOnlyInitialSelection(
+        declines: List<EventCompositionDeclineEntity>,
+        participantId: UUID,
+    ): Boolean =
+        declines.any { row ->
+            row.seasonParticipantId == participantId || row.eventParticipantId == participantId
+        }
+
+    /** V1 `countFinalParticipations` — active slot unless the player appears in any decline at the event. */
     private fun hasFinalParticipation(
         slots: List<EventCompositionSlotEntity>,
         declines: List<EventCompositionDeclineEntity>,
         participantId: UUID,
-    ): Boolean =
-        slots.any { slot ->
-            slot.assignedParticipantId() == participantId &&
-                slot.participationStatus == SlotParticipationStatus.CONFIRMED &&
-                !isDeclined(declines, participantId, slot.roleKey)
+    ): Boolean {
+        if (hasParticipantDeclineAtEvent(declines, participantId)) {
+            return false
         }
+        return hasSlottedInitialSelection(slots, declines, participantId)
+    }
+
+    private fun hasParticipantDeclineAtEvent(
+        declines: List<EventCompositionDeclineEntity>,
+        participantId: UUID,
+    ): Boolean = hasDeclineOnlyInitialSelection(declines, participantId)
 
     private fun isDeclined(
         declines: List<EventCompositionDeclineEntity>,
@@ -309,13 +348,13 @@ class SeasonGlanceStatsProvider(
         event: EventEntity,
         participantId: UUID,
         participants: List<SeasonParticipantEntity>,
-        validated: Boolean,
+        locked: Boolean,
         slots: List<EventCompositionSlotEntity>,
         declines: List<EventCompositionDeclineEntity>,
         availabilityIndex: GlanceAvailabilityIndex,
     ): MemberProfileChartBlockDto? {
         val meta = chartBlockEventMeta(event)
-        if (validated) {
+        if (locked) {
             val declinedSlot =
                 slots.firstOrNull { slot ->
                     slot.assignedParticipantId() == participantId &&
@@ -331,6 +370,19 @@ class SeasonGlanceStatsProvider(
                     eventTitle = meta.title,
                     eventDate = meta.date,
                     roleKey = declinedSlot.roleKey,
+                )
+            }
+            val declineOnly =
+                declines.firstOrNull { row ->
+                    row.seasonParticipantId == participantId || row.eventParticipantId == participantId
+                }
+            if (declineOnly != null) {
+                return MemberProfileChartBlockDto(
+                    eventId = event.id,
+                    status = "declined",
+                    eventTitle = meta.title,
+                    eventDate = meta.date,
+                    roleKey = declineOnly.roleKey,
                 )
             }
             val selectedSlot =

@@ -8,3 +8,13 @@ spring:
     # Seeds déplacés dans db/seed (OPS-1) : V3_1 peut arriver après V4+ sur une base Neon déjà migrée.
     out-of-order: true
     repair-on-migrate: true
+
+# Logs lisibles en dev : stacktrace courte en console, WARN sans stack dans .cursor/hatcast-api-warnings.log
+logging:
+  exception-conversion-word: "%wEx{2}"
+  file:
+    name: ../../.cursor/hatcast-api-dev.log
+  logback:
+    rollingpolicy:
+      max-file-size: 5MB
+      max-history: 3

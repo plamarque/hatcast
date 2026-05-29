@@ -45,7 +45,12 @@ object RoleKeys {
         )
 
     const val MIN_COUNT = 0
-    const val MAX_COUNT = 20
+    /**
+     * Sanity cap for persisted slot counts (abuse / typo guard only).
+     * Not a business rule: V1 [`EventModal.vue`] used `max="20"` on HTML inputs only;
+     * Firestore had no server limit (e.g. « Tous à l'Apérock » with 32 players).
+     */
+    const val MAX_COUNT = 100
 }
 
 object RoleTemplates {
@@ -117,7 +122,7 @@ object RoleTemplates {
             if (count !in RoleKeys.MIN_COUNT..RoleKeys.MAX_COUNT) {
                 throw ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Nombre de slots invalide pour $key : $count (0–20 attendu)",
+                    "Nombre de slots invalide pour $key : $count (0–${RoleKeys.MAX_COUNT} attendu)",
                 )
             }
         }

@@ -32,8 +32,23 @@ class EventRoleSlotsTest {
     @Test
     fun `validate rejects count above max`() {
         assertThrows(ResponseStatusException::class.java) {
-            RoleTemplates.validate(mapOf("player" to 21))
+            RoleTemplates.validate(mapOf("player" to 101))
         }
+    }
+
+    @Test
+    fun `normalize accepts migrated multi-team player counts`() {
+        val n =
+            RoleTemplates.normalize(
+                mapOf(
+                    "player" to 32,
+                    "mc" to 3,
+                    "dj" to 3,
+                ),
+            )
+        assertEquals(32, n["player"])
+        assertEquals(3, n["mc"])
+        assertEquals(3, n["dj"])
     }
 
     @Test
