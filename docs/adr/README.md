@@ -38,6 +38,7 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0014](0014-v2-preprod-migration-no-seed.md) | V2 pre-prod: Flyway schema without dev seeds; V1 Firestore prod as migration source; reset/replay | Accepted |
 | [0015](0015-v2-demo-troupe-product-bootstrap.md) | V2 Demo troupe: idempotent product bootstrap in `db/migration` (cloud); Les Improbots dev seed; La Malice = real migration only | Accepted |
 | [0016](0016-v1-v2-availability-compositions-migration-pipeline.md) | V1→V2 availability & compositions migration (MIG-3): read-only extract → transform → guarded SQL load, with a MIG-2 mapping manifest | Accepted |
+| [0017](0017-v2-migration-api-key.md) | V2 pre-prod migration CLI: optional API key auth for headless orchestrator (`migrate:v2:run`) | Accepted |
 
 ---
 

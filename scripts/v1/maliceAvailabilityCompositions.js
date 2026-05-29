@@ -15,6 +15,7 @@ export { sqlString }
 
 const SLOT_UUID_NAMESPACE = 'hatcast:mig-3:malice:slot'
 const DECLINE_UUID_NAMESPACE = 'hatcast:mig-3:malice:decline'
+const AVAILABILITY_UUID_NAMESPACE = 'hatcast:mig-3:malice:availability'
 
 const PARTICIPATION_STATUS_MAP = {
   confirmed: 'CONFIRMED',
@@ -61,6 +62,14 @@ export function deterministicSlotUuid(v2EventId, roleKey, slotIndex) {
  */
 export function deterministicDeclineUuid(v2EventId, roleKey, v1PlayerId) {
   return deterministicUuid(`${v2EventId}:${roleKey}:${v1PlayerId}`, DECLINE_UUID_NAMESPACE)
+}
+
+/**
+ * @param {string} v2EventId
+ * @param {string} v2UserId
+ */
+export function deterministicAvailabilityUuid(v2EventId, v2UserId) {
+  return deterministicUuid(`${v2EventId}:${v2UserId}`, AVAILABILITY_UUID_NAMESPACE)
 }
 
 /**
@@ -197,6 +206,7 @@ export function transformAvailability(records, manifest) {
     if (!player) continue
 
     rows.push({
+      id: deterministicAvailabilityUuid(event.v2EventId, player.v2UserId),
       eventId: event.v2EventId,
       userId: player.v2UserId,
       status: rec.available === true ? 'AVAILABLE' : 'UNAVAILABLE',
@@ -359,9 +369,9 @@ export function buildAvailabilityCompositionsLoadSql({
   for (const row of availabilityRows) {
     const roleKeysJson = JSON.stringify(row.roleKeys || [])
     lines.push(
-      'INSERT INTO event_availability (event_id, user_id, status, role_keys, comment, created_at, updated_at) VALUES (' +
-        `${sqlString(row.eventId)}, ${sqlString(row.userId)}, '${row.status}', ${sqlString(roleKeysJson)}, ` +
-        `${sqlString(row.comment)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      'INSERT INTO event_availability (id, event_id, user_id, status, role_keys, comment, created_at, updated_at) VALUES (' +
+        `${sqlString(row.id)}, ${sqlString(row.eventId)}, ${sqlString(row.userId)}, ` +
+        `'${row.status}', ${sqlString(roleKeysJson)}, ${sqlString(row.comment)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       'ON CONFLICT (event_id, user_id) DO UPDATE SET ' +
         'status = EXCLUDED.status, role_keys = EXCLUDED.role_keys, comment = EXCLUDED.comment, ' +
         'updated_at = CURRENT_TIMESTAMP;',

@@ -6,12 +6,15 @@ import {
   parseArgs,
   parseDbInfo,
   planLoad,
+  resolveExpectHost,
 } from '../migrate-malice-load.js'
 
 const STAGING_URL =
   'postgresql://u:p@ep-cool-bird-123-pooler.eu-central-1.aws.neon.tech/hatcast_staging?sslmode=require'
 const PROD_URL =
   'postgresql://u:p@ep-prod-night-999-pooler.eu-central-1.aws.neon.tech/hatcast_prod?sslmode=require'
+const NEON_BRANCH_URL =
+  'postgresql://u:p@ep-plain-mode-al95cugr-730278491306.eu-west9.aws.neon.tech/neondb?sslmode=require'
 
 describe('migrate-malice-load — parsing', () => {
   it('parses host + database from a Neon URL', () => {
@@ -126,5 +129,26 @@ describe('migrate-malice-load — planLoad (URL↔target guards)', () => {
     const plan = planLoad(opts, null)
     assert.equal(plan.willWrite, false)
     assert.match(plan.errors.join('\n'), /No database URL/)
+  })
+})
+
+describe('migrate-malice-load — resolveExpectHost', () => {
+  it('returns explicit marker unchanged', () => {
+    assert.equal(resolveExpectHost('staging', STAGING_URL), 'staging')
+  })
+
+  it('derives branch name from Neon host when auto', () => {
+    assert.equal(resolveExpectHost('auto', NEON_BRANCH_URL), 'plain-mode-al95cugr')
+  })
+
+  it('auto marker passes planLoad host check on Neon branch URL', () => {
+    const marker = resolveExpectHost('auto', NEON_BRANCH_URL)
+    const opts = { ...parseArgs([]), databaseUrl: NEON_BRANCH_URL, yes: true, expectHost: marker }
+    const plan = planLoad(opts, parseDbInfo(NEON_BRANCH_URL))
+    assert.equal(plan.willWrite, true)
+  })
+
+  it('throws when auto cannot parse URL', () => {
+    assert.throws(() => resolveExpectHost('auto', 'not-a-url'), /Cannot derive/)
   })
 })

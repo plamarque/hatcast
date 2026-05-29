@@ -29,6 +29,9 @@
     "migrate:malice:transform": "node scripts/migrate-malice-transform.js",
     "migrate:malice:transform:ac": "node scripts/migrate-malice-transform-ac.js",
     "migrate:malice:load": "node scripts/migrate-malice-load.js",
+    "migrate:v2:run": "node scripts/v2/migrate-run.mjs",
+    "migrate:v2:validate-replay": "node scripts/v2/validate-replay-log.mjs",
+    "test:migrate": "node --test scripts/v1/*.test.js scripts/v2/migrate-lib/*.test.mjs",
     "generate:improbots-seed": "node scripts/v2/generate-improbots-seed-sql.js",
     "generate:improbots-composition-seed": "node scripts/v2/generate-improbots-seed-sql.js --composition-only",
     "generate:improbots-mvp-pilot-seed": "node scripts/v2/generate-improbots-seed-sql.js --mvp-pilot-only",
@@ -38,5 +41,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "pg": "^8.16.0"
   }
 }

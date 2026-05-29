@@ -119,6 +119,8 @@ Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (
 | `HATCAST_DATASOURCE_PASSWORD` | Mot de passe Neon |
 | `HATCAST_CORS_ALLOWED_ORIGINS` | Origine **exacte** du service Cloud Run **de cet env** (schéma `https://`, sans chemin), ex. `https://hatcast-v2-dev-xxxxx-ew.a.run.app` |
 | `HATCAST_SUPER_ADMIN_EMAILS` | Emails séparés par des virgules — admin plateforme (menu Membres, join policy, bootstrap Démo). **Prod/staging :** inclure au minimum `patrice.lamarque@gmail.com` ; `impropick@gmail.com` optionnel (ADR-0015). Ne pas committer les valeurs. |
+| `HATCAST_MIGRATION_API_KEY` | **Staging uniquement** — clé longue aléatoire pour l’orchestrateur `migrate:v2:run` ([ADR-0017](../adr/0017-v2-migration-api-key.md)). Jamais activé en prod sans décision explicite. |
+| `HATCAST_MIGRATION_OPERATOR_EMAIL` | **Staging uniquement** — email d’un `UserEntity` existant (super-admin plateforme) utilisé comme opérateur CLI. Pair avec `HATCAST_MIGRATION_API_KEY`. |
 
 **Ne pas définir** `HATCAST_SEED_TROUPE_ID` (supprimé en story 18.5). L’onboarding « Rejoindre la troupe de démonstration » cible la troupe **Démo** (`a0000001-0000-4000-8000-000000000099`, Flyway) ; **Les Improbots** (`…000001`) est un seed dev uniquement.
 

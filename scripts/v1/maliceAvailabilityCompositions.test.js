@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   buildAvailabilityCompositionsLoadSql,
+  deterministicAvailabilityUuid,
   deterministicDeclineUuid,
   deterministicSlotUuid,
   mapCompositionLifecycle,
@@ -39,6 +40,7 @@ describe('maliceAvailabilityCompositions — transformAvailability (AC2, AC7)', 
     assert.equal(rows.length, 2)
     assert.equal(rejects.length, 0)
     assert.deepEqual(rows[0], {
+      id: deterministicAvailabilityUuid('e0000001-0000-4000-8000-000000000001', 'u-1'),
       eventId: 'e0000001-0000-4000-8000-000000000001',
       userId: 'u-1',
       status: 'AVAILABLE',
@@ -171,6 +173,11 @@ describe('maliceAvailabilityCompositions — helpers + SQL (AC4, AC8)', () => {
     assert.match(a, UUID_V5_RE)
     assert.notEqual(a, deterministicSlotUuid(eventId, 'player', 1))
 
+    const av1 = deterministicAvailabilityUuid(eventId, 'user-1')
+    const av2 = deterministicAvailabilityUuid(eventId, 'user-1')
+    assert.equal(av1, av2)
+    assert.match(av1, UUID_V5_RE)
+
     const d1 = deterministicDeclineUuid(eventId, 'player', 'p2')
     const d2 = deterministicDeclineUuid(eventId, 'player', 'p2')
     assert.equal(d1, d2)
@@ -193,7 +200,7 @@ describe('maliceAvailabilityCompositions — helpers + SQL (AC4, AC8)', () => {
       manifest: MANIFEST,
     })
     const sql = result.sql
-    assert.match(sql, /INSERT INTO event_availability/)
+    assert.match(sql, /INSERT INTO event_availability \(id, event_id, user_id, status/)
     assert.match(sql, /ON CONFLICT \(event_id, user_id\) DO UPDATE/)
     assert.match(sql, /INSERT INTO event_compositions/)
     assert.match(sql, /ON CONFLICT \(event_id\) DO UPDATE/)
