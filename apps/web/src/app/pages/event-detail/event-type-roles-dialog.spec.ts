@@ -111,7 +111,7 @@ describe('EventTypeRolesDialog', () => {
     expect(close).toHaveBeenCalledWith(
       expect.objectContaining({
         templateType: expect.any(String),
-        roleSlots: expect.objectContaining({ player: 20 }),
+        roleSlots: expect.objectContaining({ player: 25 }),
       }),
     )
   })

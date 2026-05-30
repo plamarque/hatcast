@@ -11,6 +11,11 @@ import type {
   MemberProfileSummary,
 } from '../../core/member-profile/member-profile-api.service'
 import {
+  participationChartModifier,
+  resolveParticipationChartStatus,
+  type ParticipationChartStatus,
+} from '../../core/participation/participation-status'
+import {
   canDisablePreferredRole,
   orderedRoleKeys,
   roleEmoji,
@@ -90,6 +95,15 @@ export class MemberProfilePanel {
     return roleEmoji(roleKey as RoleKey)
   }
 
+  protected chartBlockResolvedStatus(block: MemberProfileChartBlock): ParticipationChartStatus {
+    return resolveParticipationChartStatus(block.status, block.roleKey)
+  }
+
+  protected chartBlockModifierClass(block: MemberProfileChartBlock): string {
+    const suffix = participationChartModifier(this.chartBlockResolvedStatus(block))
+    return `member-profile__chart-block member-profile__chart-block${suffix}`
+  }
+
   protected chartBlockTooltip(block: MemberProfileChartBlock): string {
     const title = block.eventTitle?.trim() || 'Événement'
     const date = this.formatChartEventDate(block.eventDate)
@@ -106,20 +120,26 @@ export class MemberProfilePanel {
   }
 
   protected chartBlockStatusLabel(block: MemberProfileChartBlock): string {
-    if (block.roleKey && block.status !== 'unavailable') {
+    const status = this.chartBlockResolvedStatus(block)
+    if (block.roleKey && status !== 'unavailable' && status !== 'available') {
       const role = this.roleLabel(block.roleKey as RoleKey)
-      if (block.status === 'declined') {
+      if (status === 'declined') {
         return `${role} — Décliné`
+      }
+      if (status === 'pending') {
+        return `${role} — En attente`
       }
       return role
     }
-    switch (block.status) {
+    switch (status) {
       case 'available':
         return 'Disponible'
       case 'unavailable':
         return 'Indisponible'
       case 'declined':
         return 'Décliné'
+      case 'pending':
+        return 'En attente de confirmation'
       default:
         return 'Non renseigné'
     }

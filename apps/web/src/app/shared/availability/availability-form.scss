@@ -14,18 +14,21 @@
   }
 
   .mat-button-toggle-checked.availability-form__status--available {
-    background: var(--hatcast-availability-available-container);
-    color: var(--hatcast-availability-available-on);
+    background: var(--hatcast-participation-available-surface);
+    color: #fff;
+    border-color: color-mix(in srgb, #fff 32%, transparent);
   }
 
   .mat-button-toggle-checked.availability-form__status--unavailable {
-    background: var(--hatcast-availability-unavailable-container);
-    color: var(--hatcast-availability-unavailable-on);
+    background: var(--hatcast-participation-unavailable-surface);
+    color: #fff;
+    border-color: color-mix(in srgb, #fff 32%, transparent);
   }
 
   .mat-button-toggle-checked.availability-form__status--unknown {
-    background: var(--hatcast-availability-unknown-container);
-    color: var(--hatcast-availability-unknown-on);
+    background: var(--hatcast-participation-neutral-surface);
+    color: #fff;
+    border-color: color-mix(in srgb, #fff 32%, transparent);
   }
 }
 

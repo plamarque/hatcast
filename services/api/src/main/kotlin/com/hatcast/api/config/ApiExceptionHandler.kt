@@ -27,7 +27,6 @@ class ApiExceptionHandler {
     fun handleDataIntegrity(
         ex: DataIntegrityViolationException,
     ): ResponseEntity<ErrorResponseBody> {
-        // Contrainte unique (slug par troupe), clé étrangère, etc.
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
             ErrorResponseBody(
                 code = "CONFLICT",
@@ -35,6 +34,7 @@ class ApiExceptionHandler {
             ),
         )
     }
+
     @ExceptionHandler(JwtException::class)
     fun handleJwt(ex: JwtException): ResponseEntity<ErrorResponseBody> =
         ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(

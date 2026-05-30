@@ -5,7 +5,7 @@
 import { mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, appendFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
-import { createApiClient } from './api-client.mjs'
+import { createApiClient, isLocalApiBase } from './api-client.mjs'
 import {
   assertEqual,
   assertMax,
@@ -101,7 +101,17 @@ export async function runPipeline(config, logger) {
         const seedUsers = await import('./neon.mjs').then((m) =>
           m.queryScalar(config.databaseUrl, "SELECT COUNT(*)::int FROM users WHERE email LIKE '%@seed.improbots.test'"),
         )
-        assertEqual('seed_users', Number(seedUsers), config.thresholds.seedUsers)
+        const seedCount = Number(seedUsers)
+        if (isLocalApiBase(config.apiBaseUrl)) {
+          if (seedCount > 0) {
+            logger.info(
+              'preflight',
+              `Local API: ${seedCount} seed user(s) on DB (Les Improbots) — OK, not a staging-empty check`,
+            )
+          }
+        } else {
+          assertEqual('seed_users', seedCount, config.thresholds.seedUsers)
+        }
       }
       state.stepsCompleted.push('preflight')
       saveState(config, state)

@@ -29,6 +29,41 @@ const profileWithChart: MemberProfileSummary = {
 }
 
 describe('MemberProfilePanel', () => {
+  it('formats chart block tooltip for selected role', async () => {
+    await TestBed.configureTestingModule({
+      imports: [MemberProfilePanel, NoopAnimationsModule],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(MemberProfilePanel)
+    const profile: MemberProfileSummary = {
+      ...profileWithChart,
+      monthlyChart: [
+        {
+          monthKey: '2026-03',
+          blocks: [
+            {
+              eventId: 'e2',
+              status: 'selected',
+              eventTitle: 'Match Cambo',
+              eventDate: '2026-03-15',
+              roleKey: 'player',
+            },
+          ],
+        },
+      ],
+    }
+    fixture.componentRef.setInput('profile', profile)
+    fixture.componentRef.setInput('showPreferredRoles', false)
+    fixture.detectChanges()
+
+    const panel = fixture.componentInstance
+    const block = profile.monthlyChart[0].blocks[0]
+    expect(panel['chartBlockTooltip'](block)).toBe('Match Cambo\n15/03\nComédien·ne')
+    expect(panel['chartBlockModifierClass'](block)).toBe(
+      'member-profile__chart-block member-profile__chart-block--selected',
+    )
+  })
+
   it('formats chart block tooltip like V1', async () => {
     await TestBed.configureTestingModule({
       imports: [MemberProfilePanel, NoopAnimationsModule],

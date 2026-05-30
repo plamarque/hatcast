@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+    <springProfile name="dev">
+        <appender name="COMPACT_WARN_FILE" class="ch.qos.logback.core.FileAppender">
+            <file>${HATCAST_DEV_WARN_LOG:-../../.cursor/hatcast-api-warnings.log}</file>
+            <append>true</append>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{48} - %msg%n</pattern>
+            </encoder>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>WARN</level>
+            </filter>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="COMPACT_WARN_FILE" />
+        </root>
+    </springProfile>
+</configuration>

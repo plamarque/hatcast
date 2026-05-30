@@ -142,20 +142,23 @@ function resolvePlayer(v1PlayerId, playersByV1, rejects, context) {
 }
 
 /**
- * Map V1 cast.status + confirmedAt → composition lifecycle timestamps (AC 6).
+ * Map V1 cast.status + cast.confirmed + confirmedAt → composition lifecycle timestamps (AC 6).
  *
- * A `confirmed` / `pending_confirmation` cast must carry a `validated_at`; when
- * `confirmedAt` is missing we fall back to `updatedAt`, then to the current time,
- * rather than silently downgrading the composition to a draft.
+ * V1 stats use `cast.confirmed` (organizer locked the cast), not `cast.status`. An `incomplete`
+ * cast can still be confirmed when the event runs understaffed — it must carry `validated_at`.
  *
  * @param {string|null|undefined} status
  * @param {unknown} confirmedAt
  * @param {unknown} [updatedAt]
+ * @param {boolean} [organizerConfirmed] V1 `cast.confirmed`
  * @returns {{ validatedAt: string|null, publishedAt: string|null }}
  */
-export function mapCompositionLifecycle(status, confirmedAt, updatedAt) {
+export function mapCompositionLifecycle(status, confirmedAt, updatedAt, organizerConfirmed) {
   const at =
     toIsoTimestamp(confirmedAt) || toIsoTimestamp(updatedAt) || new Date().toISOString()
+  if (organizerConfirmed === true) {
+    return { validatedAt: at, publishedAt: at }
+  }
   switch (status) {
     case 'confirmed':
       return { validatedAt: at, publishedAt: at }
@@ -225,8 +228,9 @@ export function transformAvailability(records, manifest) {
 export function normalizeCastsInput(casts) {
   if (Array.isArray(casts)) {
     return casts.map((c) => ({
-      v1EventId: String(c.v1EventId || c.id || ''),
       ...c,
+      v1EventId: String(c.v1EventId || c.id || ''),
+      confirmed: c.confirmed === true,
     }))
   }
   return Object.entries(casts || {}).map(([v1EventId, data]) => ({
@@ -269,7 +273,12 @@ export function transformCompositions(casts, manifest) {
     }
 
     const v2EventId = event.v2EventId
-    const lifecycle = mapCompositionLifecycle(cast.status, cast.confirmedAt, cast.updatedAt)
+    const lifecycle = mapCompositionLifecycle(
+      cast.status,
+      cast.confirmedAt,
+      cast.updatedAt,
+      cast.confirmed,
+    )
     const declinedAtFallback =
       lifecycle.validatedAt ||
       toIsoTimestamp(cast.confirmedAt) ||

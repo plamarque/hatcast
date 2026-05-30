@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core'
 
 import { csrfHeaders } from '../http/hatcast-csrf'
+import type { ParticipationChartStatus } from '../participation/participation-status'
 
 export interface MemberProfileStat {
   count: number
@@ -16,7 +17,7 @@ export interface MemberProfileStats {
 
 export interface MemberProfileChartBlock {
   eventId: string
-  status: string
+  status: ParticipationChartStatus | (string & {})
   eventTitle: string
   eventDate: string
   roleKey?: string | null

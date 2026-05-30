@@ -154,7 +154,7 @@ Each row is a **single primary click** → **event detail** (full screen or rout
 ### Visual style (V1 mood)
 
 - **Background:** dark **navy / charcoal** (may differ slightly from `/seasons` gradient—still **dark theme** family).
-- **Functional colours:** **orange** (in progress), **green** (confirmed / available), **red** (blocked/unavailable), **purple gradient** (assigned role)—map to **semantic tokens** in V2.
+- **Functional colours:** participation states use **V1 gradient pairs** (see [Participation semantic colors](ux-design-participation-semantic-colors.md)) — **purple→pink** (selection), **orange→yellow** (pending), **red→orange** (decline), **green→emerald** (dispo), **red** (indispo). Lifecycle badges (e.g. « en préparation ») may use pending gradient tokens.
 - **Cards:** rounded, separated by **gaps**; readable hierarchy (date → title → badges).
 
 ### Acceptance hints (for QA / design review)
@@ -407,9 +407,9 @@ Tapping a **person’s avatar** in league workspace **navigates** to [**Personal
 
 | Card (V1 colours) | Meaning |
 |-------------------|---------|
-| **Disponibilités** (green) | Count + **%** of **dispo** responses in the season; **tooltip** explains the formula (e.g. *« Nombre de dispos. Taux = (25 ÷ 37) × 100 »*). |
-| **Sélections** (purple) | Count + **%** — times the person was **selected** / in team for spectacles (definition in SPEC). |
-| **Désistements** (reddish) | Count + **%** — **withdrawals** / declined after commitment (definition in SPEC). |
+| **Disponibilités** (green→emerald gradient) | Count + **%** of **dispo** responses in the season; **tooltip** explains the formula (e.g. *« Nombre de dispos. Taux = (25 ÷ 37) × 100 »*). |
+| **Sélections** (purple→pink gradient) | Count + **%** — times the person was **selected** / in team for spectacles (definition in SPEC). |
+| **Désistements** (red→orange gradient) | Count + **%** — **withdrawals** / declined after commitment (definition in SPEC). |
 
 Percentages are **season-scoped** and **consistent** with DOMAIN definitions (numerator/denominator).
 
@@ -417,11 +417,14 @@ Percentages are **season-scoped** and **consistent** with DOMAIN definitions (nu
 
 - **Horizontal axis:** months of the season (V1: **SEP** → **AOÛ**).
 - **Per month:** a **vertical stack** of **square blocks** — **one block per spectacle** in that month (density shows activity at a glance).
-- **Block colour** encodes **status** for that person on that event, e.g.:
-  - **Green** — available / positive participation context.
-  - **Red** — unavailable or withdrawal as applicable.
-  - **Grey** — no response / neutral / not applicable.
-- **Icons inside blocks** (optional) — **role** or status emoji (e.g. 🎭 joueur·se, 🤝 bénévole) linking to **actual roles** from history.
+- **Block colour** encodes **status** for that person on that event (V1 parity — see [**Participation semantic colors**](ux-design-participation-semantic-colors.md)):
+  - **Green→emerald gradient** — available (dispo only, no selection).
+  - **Purple→pink gradient** — selected / confirmed in team.
+  - **Orange→yellow gradient** — pending confirmation.
+  - **Red→orange gradient** — declined / désistement.
+  - **Red gradient** — unavailable (pas dispo).
+  - **Grey gradient** — no response / neutral.
+- **Icons inside blocks** (optional) — **role** emoji (e.g. 🎭 joueur·se, 🤝 bénévole) when slotted.
 
 **Rôles favoris**
 
@@ -815,15 +818,15 @@ When someone taps **Décliner** in [**Confirmer ma participation**](#pattern-con
 - **Event** — title + date (same as other modals).
 - **Rôle assigné** — recap card, e.g. *« Joueuse »* with emoji — **reminder** of what they are answering for.
 
-**Responses (three large buttons, distinct colours)**
+**Responses (three large buttons — V1 diagonal gradients, 135°)**
 
-| Action | Purpose |
-|--------|---------|
-| **Confirmer** | Accept the role (e.g. **purple** in capture). |
-| **Décliner** | Refuse (e.g. **brown/terracotta**). **Frees the slot** for that role; decline is **recorded** and appears under [Personnes ayant décliné](#declines-audit). |
-| **À confirmer** / later | Explicit **pending** choice — **orange** + check/hourglass in V1; user will decide later. |
+| Action | Gradient (V1) | Purpose |
+|--------|---------------|---------|
+| **Confirmer** | Purple `#a855f7` → pink `#ec4899` | Accept the role. Token: `--hatcast-participation-selected-gradient-strong`. |
+| **Décliner** | Red `#ef4444` → orange `#f97316` | Refuse. **Frees the slot**; decline **recorded** under [Personnes ayant décliné](#declines-audit). Token: `--hatcast-participation-declined-gradient-strong`. |
+| **À confirmer** | Orange `#f97316` → yellow `#eab308` | Explicit **pending** — user will decide later. Token: `--hatcast-participation-pending-gradient-strong`. |
 
-**Colour continuity:** each state’s **colour** should **map to the slot** (border, badge, or fill) so **scanning** the grid shows who **confirmed**, **declined**, or is **still pending**—define **tokens** in SPEC (`--participation-confirmed`, etc.).
+**Colour continuity:** each state’s **gradient** maps to the **Équipe** slot row, Mes Stats chart block, and stat counters — same `-gradient-strong` token per state ([spec](ux-design-participation-semantic-colors.md)).
 
 **Note (optional)**
 

@@ -20,7 +20,11 @@ class RoleKeysJsonConverter : AttributeConverter<List<String>, String> {
         return try {
             mapper.readValue(dbData, typeRef)
         } catch (ex: Exception) {
-            log.warn("event_availability.role_keys JSON invalide, fallback liste vide: {}", dbData, ex)
+            log.warn(
+                "event_availability.role_keys JSON invalide, fallback liste vide: {} ({})",
+                dbData,
+                ex.message ?: ex.javaClass.simpleName,
+            )
             emptyList()
         }
     }

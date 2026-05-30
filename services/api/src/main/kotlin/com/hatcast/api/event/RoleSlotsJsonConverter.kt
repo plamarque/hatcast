@@ -20,7 +20,11 @@ class RoleSlotsJsonConverter : AttributeConverter<Map<String, Int>, String> {
         return try {
             RoleTemplates.normalize(mapper.readValue(dbData, typeRef))
         } catch (ex: Exception) {
-            log.warn("role_slots JSON invalide, fallback slots vides: {}", dbData, ex)
+            log.warn(
+                "role_slots JSON invalide, fallback slots vides: {} ({})",
+                dbData,
+                ex.message ?: ex.javaClass.simpleName,
+            )
             RoleTemplates.emptySlots()
         }
     }

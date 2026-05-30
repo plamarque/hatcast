@@ -73,21 +73,27 @@
 }
 
 .event-equipe-tab__row--pending {
-  border: 1px solid rgba(255, 193, 7, 0.35);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 193, 7, 0.08) 0%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
+  color: #fff;
+  border: 1px solid color-mix(in srgb, #fff 32%, transparent);
+  background: var(--hatcast-participation-pending-gradient-strong);
 }
 
 .event-equipe-tab__row--confirmed {
-  border: 1px solid rgba(76, 175, 80, 0.4);
-  background: linear-gradient(
-    90deg,
-    rgba(76, 175, 80, 0.12) 0%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
+  color: #fff;
+  border: 1px solid color-mix(in srgb, #fff 32%, transparent);
+  background: var(--hatcast-participation-selected-gradient-strong);
+}
+
+.event-equipe-tab__row--pending .event-equipe-tab__avatar,
+.event-equipe-tab__row--confirmed .event-equipe-tab__avatar {
+  background: color-mix(in srgb, #fff 22%, transparent);
+  color: #fff;
+}
+
+.event-equipe-tab__row--pending .event-equipe-tab__clear,
+.event-equipe-tab__row--confirmed .event-equipe-tab__clear {
+  background: color-mix(in srgb, #fff 14%, transparent);
+  color: #fff;
 }
 
 .event-equipe-tab__row--participation .event-equipe-tab__slot-button {
@@ -295,17 +301,17 @@
 .event-equipe-tab__declines-badge {
   align-self: flex-start;
   padding: 0.4rem 0.75rem;
-  border: 1px solid rgba(244, 67, 54, 0.35);
+  border: 1px solid color-mix(in srgb, #fff 32%, transparent);
   border-radius: 999px;
-  background: rgba(244, 67, 54, 0.12);
-  color: #ffab91;
+  background: var(--hatcast-participation-declined-gradient-strong);
+  color: #fff;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    background: rgba(244, 67, 54, 0.2);
+    filter: brightness(1.06);
     outline: none;
   }
 }

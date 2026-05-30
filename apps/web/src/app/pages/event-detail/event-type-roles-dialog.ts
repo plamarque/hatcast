@@ -18,6 +18,7 @@ import {
   getEventTypeIcon,
   getEventTypeLabel,
   normalizeRoleSlots,
+  ROLE_COUNT_MAX,
   type RoleKey,
   ROLE_DISPLAY_ORDER,
   ROLE_EMOJIS,
@@ -52,6 +53,7 @@ export type EventTypeRolesDialogResult =
   styleUrl: './event-type-roles-dialog.scss',
 })
 export class EventTypeRolesDialog implements OnInit {
+  protected readonly roleCountMax = ROLE_COUNT_MAX
   private readonly ref = inject(MatDialogRef<EventTypeRolesDialog, EventTypeRolesDialogResult>)
   protected readonly data = inject<EventTypeRolesDialogData>(MAT_DIALOG_DATA)
 

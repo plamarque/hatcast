@@ -55,7 +55,7 @@ body {
   color: color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
 }
 
-/** Semantic chart: availability (vert / rouge / gris) — see docs/v2/technical/FRONTEND_UI.md */
+/** Semantic participation colours — see docs/v2/technical/FRONTEND_UI.md */
 :root {
   @include hatcast-colors.hatcast-semantic-color-tokens();
 
