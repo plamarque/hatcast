@@ -54,11 +54,7 @@
               <div class="member-profile__chart-blocks">
                 @for (block of month.blocks; track block.eventId) {
                   <span
-                    class="member-profile__chart-block"
-                    [class.member-profile__chart-block--available]="block.status === 'available'"
-                    [class.member-profile__chart-block--unavailable]="block.status === 'unavailable'"
-                    [class.member-profile__chart-block--declined]="block.status === 'declined'"
-                    [class.member-profile__chart-block--neutral]="block.status === 'neutral'"
+                    [class]="chartBlockModifierClass(block)"
                     [matTooltip]="chartBlockTooltip(block)"
                     matTooltipClass="member-profile__chart-tooltip"
                     matTooltipPosition="above"

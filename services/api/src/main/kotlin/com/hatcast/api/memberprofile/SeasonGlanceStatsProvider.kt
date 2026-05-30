@@ -388,12 +388,13 @@ class SeasonGlanceStatsProvider(
             val selectedSlot =
                 slots.firstOrNull { slot ->
                     slot.assignedParticipantId() == participantId &&
-                        slot.participationStatus != SlotParticipationStatus.DECLINED
+                        slot.participationStatus != SlotParticipationStatus.DECLINED &&
+                        !isDeclined(declines, participantId, slot.roleKey)
                 }
             if (selectedSlot != null) {
                 return MemberProfileChartBlockDto(
                     eventId = event.id,
-                    status = "available",
+                    status = chartStatusForSlottedRole(selectedSlot),
                     eventTitle = meta.title,
                     eventDate = meta.date,
                     roleKey = selectedSlot.roleKey,
@@ -419,6 +420,13 @@ class SeasonGlanceStatsProvider(
             null -> null
         }
     }
+
+    private fun chartStatusForSlottedRole(slot: EventCompositionSlotEntity): String =
+        when (slot.participationStatus) {
+            SlotParticipationStatus.PENDING -> "pending"
+            SlotParticipationStatus.DECLINED -> "declined"
+            SlotParticipationStatus.CONFIRMED -> "selected"
+        }
 
     private fun neutralChartBlock(event: EventEntity): MemberProfileChartBlockDto {
         val meta = chartBlockEventMeta(event)

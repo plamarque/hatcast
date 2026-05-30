@@ -198,8 +198,60 @@ class SeasonGlanceStatsProviderTest {
         val chart = provider.loadMonthlyChart(seasonId, userId)
 
         assertEquals(1, chart.size)
-        assertEquals("available", chart[0].blocks.single().status)
+        assertEquals("selected", chart[0].blocks.single().status)
         assertEquals("assistant_referee", chart[0].blocks.single().roleKey)
+    }
+
+    @Test
+    fun `loadMonthlyChart marks pending slot as pending`() {
+        val seasonId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val participantId = UUID.randomUUID()
+        val eventId = UUID.randomUUID()
+        val now = Instant.parse("2025-11-12T20:00:00Z")
+
+        val season = mock<SeasonEntity>()
+        val participant =
+            SeasonParticipantEntity(
+                id = participantId,
+                season = season,
+                displayName = "Patrice",
+                user = null,
+                troupeMembership = null,
+            )
+        val event =
+            EventEntity(
+                id = eventId,
+                season = season,
+                title = "Match Pau",
+                slug = "match-pau",
+                startsAt = now,
+            )
+
+        stubScope(
+            seasonId = seasonId,
+            userId = userId,
+            participant = participant,
+            events = listOf(event),
+            compositions = listOf(EventCompositionEntity(eventId = eventId, validatedAt = now)),
+            slots =
+                listOf(
+                    EventCompositionSlotEntity(
+                        eventId = eventId,
+                        roleKey = "player",
+                        slotIndex = 0,
+                        seasonParticipantId = participantId,
+                        participationStatus = SlotParticipationStatus.PENDING,
+                    ),
+                ),
+            declines = emptyList(),
+        )
+
+        val chart = provider.loadMonthlyChart(seasonId, userId)
+
+        assertEquals(1, chart.size)
+        assertEquals("pending", chart[0].blocks.single().status)
+        assertEquals("player", chart[0].blocks.single().roleKey)
     }
 
     @Test

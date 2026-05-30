@@ -1,5 +1,6 @@
 // Shared agenda / inbox dispo pill — use modifier classes from availability-status.ts
-// (--available | --unavailable | --unknown | --in-team).
+// or participation-status.ts (--available | --unavailable | --unknown | --selected | --declined).
+// Legacy alias: --in-team → same tokens as --selected.
 
 .agenda-card__badge--dispo {
   border: none;
@@ -23,9 +24,16 @@
     opacity: 0.85;
   }
 
-  &--in-team {
-    background: var(--hatcast-availability-badge-bg-in-team);
-    color: var(--hatcast-availability-badge-fg-in-team);
+  &--in-team,
+  &--selected {
+    background: var(--hatcast-participation-selected-badge-bg);
+    color: var(--hatcast-participation-selected-badge-fg);
+    opacity: 1;
+  }
+
+  &--declined {
+    background: var(--hatcast-participation-declined-badge-bg);
+    color: var(--hatcast-participation-declined-badge-fg);
     opacity: 1;
   }
 

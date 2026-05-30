@@ -66,15 +66,15 @@
 }
 
 .composition-participation__action--confirm {
-  background: linear-gradient(135deg, rgba(156, 39, 176, 0.75) 0%, rgba(233, 30, 99, 0.75) 100%);
+  background: var(--hatcast-participation-selected-gradient-strong);
 }
 
 .composition-participation__action--decline {
-  background: linear-gradient(135deg, rgba(198, 40, 40, 0.75) 0%, rgba(255, 87, 34, 0.75) 100%);
+  background: var(--hatcast-participation-declined-gradient-strong);
 }
 
 .composition-participation__action--pending {
-  background: linear-gradient(135deg, rgba(245, 124, 0, 0.75) 0%, rgba(255, 152, 0, 0.75) 100%);
+  background: var(--hatcast-participation-pending-gradient-strong);
 }
 
 .composition-participation__action--active {

@@ -1253,6 +1253,13 @@ components:
           format: uuid
         status:
           type: string
+          enum:
+            - available
+            - selected
+            - pending
+            - declined
+            - unavailable
+            - neutral
         eventTitle:
           type: string
         eventDate:

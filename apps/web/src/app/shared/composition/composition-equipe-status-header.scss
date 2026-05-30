@@ -49,24 +49,20 @@
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid color-mix(in srgb, #fff 32%, transparent);
+  background: var(--hatcast-participation-neutral-gradient-strong);
 
   &--success {
-    background: rgba(76, 175, 80, 0.2);
-    border-color: rgba(76, 175, 80, 0.45);
-    color: #a5d6a7;
+    background: var(--hatcast-participation-selected-gradient-strong);
   }
 
   &--warning {
-    background: rgba(255, 193, 7, 0.15);
-    border-color: rgba(255, 193, 7, 0.4);
-    color: #ffe082;
+    background: var(--hatcast-participation-pending-gradient-strong);
   }
 
   &--info {
-    background: rgba(0, 188, 212, 0.15);
-    border-color: rgba(0, 188, 212, 0.35);
+    background: var(--hatcast-participation-pending-gradient-strong);
   }
 }
 

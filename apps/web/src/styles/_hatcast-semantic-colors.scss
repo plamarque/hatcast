@@ -1,6 +1,6 @@
-// HatCast semantic color chart — availability & positive states (M3).
-// Consume via var(--hatcast-availability-*) or var(--hatcast-sys-positive*).
-// Do not use raw greens/reds/greys in feature SCSS; see docs/v2/technical/FRONTEND_UI.md.
+// HatCast semantic color chart — availability & participation (M3).
+// Consume via var(--hatcast-participation-*) or legacy var(--hatcast-availability-*).
+// Do not use raw greens/reds/greys/oranges in feature SCSS; see docs/v2/technical/FRONTEND_UI.md.
 
 @use '@angular/material' as mat;
 
@@ -18,6 +18,24 @@ $_hatcast-positive-dark: mat.define-theme(
     color: (
       theme-type: dark,
       primary: mat.$green-palette,
+    ),
+  )
+);
+
+$_hatcast-pending-light: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$yellow-palette,
+    ),
+  )
+);
+
+$_hatcast-pending-dark: mat.define-theme(
+  (
+    color: (
+      theme-type: dark,
+      primary: mat.$yellow-palette,
     ),
   )
 );
@@ -40,103 +58,395 @@ $_hatcast-positive-dark: mat.define-theme(
     #{mat.get-theme-color($_hatcast-positive-dark, on-primary-container)}
   );
 
-  // Segmented control / filled surfaces (onglet Dispos, modale)
-  --hatcast-availability-available-container: color-mix(
+  // Pending confirmation — amber/gold palette (distinct from tertiary orange declines)
+  --hatcast-sys-pending: light-dark(
+    #{mat.get-theme-color($_hatcast-pending-light, primary)},
+    #{mat.get-theme-color($_hatcast-pending-dark, primary)}
+  );
+  --hatcast-sys-pending-container: light-dark(
+    #{mat.get-theme-color($_hatcast-pending-light, primary-container)},
+    #{mat.get-theme-color($_hatcast-pending-dark, primary-container)}
+  );
+  --hatcast-sys-on-pending: light-dark(
+    #{mat.get-theme-color($_hatcast-pending-light, on-primary)},
+    #{mat.get-theme-color($_hatcast-pending-dark, on-primary)}
+  );
+  --hatcast-sys-on-pending-container: light-dark(
+    #{mat.get-theme-color($_hatcast-pending-light, on-primary-container)},
+    #{mat.get-theme-color($_hatcast-pending-dark, on-primary-container)}
+  );
+
+  // --- Participation: available (dispo) ---
+  --hatcast-participation-available-container: color-mix(
     in srgb,
     var(--hatcast-sys-positive) 65%,
     var(--mat-sys-surface)
   );
-  --hatcast-availability-available-on: var(--hatcast-sys-on-positive-container);
-
-  --hatcast-availability-unavailable-container: color-mix(
+  --hatcast-participation-available-on: var(--hatcast-sys-on-positive-container);
+  --hatcast-participation-available-stat-bg: color-mix(
     in srgb,
-    var(--mat-sys-error) 65%,
+    var(--hatcast-sys-positive-container) 58%,
     var(--mat-sys-surface)
   );
-  --hatcast-availability-unavailable-on: var(--mat-sys-on-error-container);
-
-  --hatcast-availability-unknown-container: color-mix(
+  --hatcast-participation-available-stat-border: color-mix(
     in srgb,
-    var(--mat-sys-on-surface) 22%,
-    var(--mat-sys-surface)
+    var(--hatcast-sys-positive) 28%,
+    transparent
   );
-  --hatcast-availability-unknown-on: var(--mat-sys-on-surface);
-
-  // Compact badges (agenda, todo, historique)
-  --hatcast-availability-badge-bg-available: color-mix(
+  --hatcast-participation-available-chart-fill: color-mix(
+    in srgb,
+    var(--hatcast-sys-positive-container) 72%,
+    var(--mat-sys-surface-container-low)
+  );
+  --hatcast-participation-available-chart-border: color-mix(
+    in srgb,
+    var(--hatcast-sys-positive) 42%,
+    transparent
+  );
+  --hatcast-participation-available-badge-bg: color-mix(
     in srgb,
     var(--hatcast-sys-positive) 18%,
     transparent
   );
-  --hatcast-availability-badge-fg-available: var(--hatcast-sys-positive);
+  --hatcast-participation-available-badge-fg: var(--hatcast-sys-positive);
 
-  --hatcast-availability-badge-bg-unavailable: color-mix(
+  // --- Participation: selected / in team (violet) ---
+  --hatcast-participation-selected-container: color-mix(
+    in srgb,
+    var(--mat-sys-primary) 18%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-participation-selected-on: var(--mat-sys-on-primary-container);
+  --hatcast-participation-selected-stat-bg: color-mix(
+    in srgb,
+    var(--mat-sys-primary-container) 58%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-participation-selected-stat-border: color-mix(
+    in srgb,
+    var(--mat-sys-primary) 28%,
+    transparent
+  );
+  --hatcast-participation-selected-chart-fill: color-mix(
+    in srgb,
+    var(--mat-sys-primary-container) 72%,
+    var(--mat-sys-surface-container-low)
+  );
+  --hatcast-participation-selected-chart-border: color-mix(
+    in srgb,
+    var(--mat-sys-primary) 42%,
+    transparent
+  );
+  --hatcast-participation-selected-badge-bg: color-mix(
+    in srgb,
+    var(--mat-sys-primary) 18%,
+    transparent
+  );
+  --hatcast-participation-selected-badge-fg: var(--mat-sys-primary);
+
+  // --- Participation: pending confirmation (amber) ---
+  --hatcast-participation-pending-container: color-mix(
+    in srgb,
+    var(--hatcast-sys-pending) 22%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-participation-pending-on: var(--hatcast-sys-on-pending-container);
+  --hatcast-participation-pending-stat-bg: color-mix(
+    in srgb,
+    var(--hatcast-sys-pending-container) 58%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-participation-pending-stat-border: color-mix(
+    in srgb,
+    var(--hatcast-sys-pending) 28%,
+    transparent
+  );
+  --hatcast-participation-pending-chart-fill: color-mix(
+    in srgb,
+    var(--hatcast-sys-pending-container) 72%,
+    var(--mat-sys-surface-container-low)
+  );
+  --hatcast-participation-pending-chart-border: color-mix(
+    in srgb,
+    var(--hatcast-sys-pending) 42%,
+    transparent
+  );
+  --hatcast-participation-pending-badge-bg: color-mix(
+    in srgb,
+    var(--hatcast-sys-pending) 20%,
+    transparent
+  );
+  --hatcast-participation-pending-badge-fg: var(--hatcast-sys-pending);
+
+  // --- Participation: declined / désistement (tertiary orange) ---
+  --hatcast-participation-declined-container: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary) 18%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-participation-declined-on: var(--mat-sys-on-tertiary-container);
+  --hatcast-participation-declined-stat-bg: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary-container) 58%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-participation-declined-stat-border: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary) 30%,
+    transparent
+  );
+  --hatcast-participation-declined-chart-fill: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary-container) 72%,
+    var(--mat-sys-surface-container-low)
+  );
+  --hatcast-participation-declined-chart-border: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary) 44%,
+    transparent
+  );
+  --hatcast-participation-declined-badge-bg: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary) 18%,
+    transparent
+  );
+  --hatcast-participation-declined-badge-fg: var(--mat-sys-tertiary);
+
+  // --- Participation: unavailable (pas dispo) ---
+  --hatcast-participation-unavailable-container: color-mix(
+    in srgb,
+    var(--mat-sys-error) 65%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-participation-unavailable-on: var(--mat-sys-on-error-container);
+  --hatcast-participation-unavailable-chart-fill: color-mix(
+    in srgb,
+    var(--mat-sys-error-container) 72%,
+    var(--mat-sys-surface-container-low)
+  );
+  --hatcast-participation-unavailable-chart-border: color-mix(
+    in srgb,
+    var(--mat-sys-error) 42%,
+    transparent
+  );
+  --hatcast-participation-unavailable-badge-bg: color-mix(
     in srgb,
     var(--mat-sys-error) 18%,
     transparent
   );
-  --hatcast-availability-badge-fg-unavailable: var(--mat-sys-error);
+  --hatcast-participation-unavailable-badge-fg: var(--mat-sys-error);
 
-  --hatcast-availability-badge-bg-unknown: color-mix(
+  // --- Participation: neutral / unknown ---
+  --hatcast-participation-neutral-container: color-mix(
+    in srgb,
+    var(--mat-sys-on-surface) 22%,
+    var(--mat-sys-surface)
+  );
+  --hatcast-participation-neutral-on: var(--mat-sys-on-surface);
+  --hatcast-participation-neutral-chart-fill: color-mix(
+    in srgb,
+    var(--mat-sys-outline-variant) 38%,
+    var(--mat-sys-surface-container-low)
+  );
+  --hatcast-participation-neutral-chart-border: color-mix(
+    in srgb,
+    var(--mat-sys-outline) 48%,
+    transparent
+  );
+  --hatcast-participation-neutral-badge-bg: color-mix(
     in srgb,
     var(--mat-sys-outline) 22%,
     transparent
   );
-  --hatcast-availability-badge-fg-unknown: color-mix(
+  --hatcast-participation-neutral-badge-fg: color-mix(
     in srgb,
     var(--mat-sys-on-surface) 78%,
     transparent
   );
 
-  // Participant in published composition (distinct from dispo states)
-  --hatcast-availability-badge-bg-in-team: color-mix(
-    in srgb,
-    var(--mat-sys-primary) 18%,
-    transparent
-  );
-  --hatcast-availability-badge-fg-in-team: var(--mat-sys-primary);
+  // --- Participation gradients (V1 — ConfirmationModal.vue + status-colors.css) ---
+  // Strong = saturated diagonal (135deg, Tailwind 500→500 / 600 stops).
+  // Soft/row = 60 % mix on surface (équivalent from-*-500/60).
+  --hatcast-participation-surface-tint: var(--mat-sys-surface);
+  --hatcast-participation-chart-tint: var(--mat-sys-surface-container-low);
 
-  // Profile participation chart blocks
-  --hatcast-availability-chart-available: color-mix(
-    in srgb,
-    var(--hatcast-sys-positive) 72%,
-    transparent
+  // Stops Tailwind (legacy V1)
+  --hatcast-v1-purple: #a855f7;
+  --hatcast-v1-pink: #ec4899;
+  --hatcast-v1-red: #ef4444;
+  --hatcast-v1-orange: #f97316;
+  --hatcast-v1-yellow: #eab308;
+  --hatcast-v1-green: #22c55e;
+  --hatcast-v1-emerald: #10b981;
+  --hatcast-v1-gray-mid: #9ca3af;
+  --hatcast-v1-gray: #6b7280;
+
+  // Confirmé / sélection — purple → pink
+  --hatcast-participation-selected-gradient-strong: linear-gradient(
+    135deg,
+    var(--hatcast-v1-purple) 0%,
+    var(--hatcast-v1-pink) 100%
   );
-  --hatcast-availability-chart-available-border: color-mix(
-    in srgb,
-    var(--hatcast-sys-positive) 92%,
-    transparent
+  --hatcast-participation-selected-gradient-medium: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-purple) 72%, var(--hatcast-participation-chart-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-pink) 72%, var(--hatcast-participation-chart-tint)) 100%
   );
-  --hatcast-availability-chart-unavailable: color-mix(
-    in srgb,
-    var(--mat-sys-error) 62%,
-    transparent
+  --hatcast-participation-selected-gradient-soft: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-purple) 60%, var(--hatcast-participation-surface-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-pink) 60%, var(--hatcast-participation-surface-tint)) 100%
   );
-  --hatcast-availability-chart-unavailable-border: color-mix(
-    in srgb,
-    var(--mat-sys-error) 88%,
-    transparent
+  --hatcast-participation-selected-gradient-row: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--hatcast-v1-purple) 60%, var(--hatcast-participation-surface-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-pink) 60%, var(--hatcast-participation-surface-tint)) 100%
   );
-  --hatcast-availability-chart-declined: color-mix(
-    in srgb,
-    var(--mat-sys-error) 78%,
-    transparent
+
+  // À confirmer — orange → yellow
+  --hatcast-participation-pending-gradient-strong: linear-gradient(
+    135deg,
+    var(--hatcast-v1-orange) 0%,
+    var(--hatcast-v1-yellow) 100%
   );
-  --hatcast-availability-chart-declined-border: color-mix(
-    in srgb,
-    var(--mat-sys-error) 92%,
-    transparent
+  --hatcast-participation-pending-gradient-medium: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-orange) 72%, var(--hatcast-participation-chart-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-yellow) 72%, var(--hatcast-participation-chart-tint)) 100%
   );
-  --hatcast-availability-chart-neutral: color-mix(
-    in srgb,
-    var(--mat-sys-outline) 46%,
-    transparent
+  --hatcast-participation-pending-gradient-soft: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-orange) 60%, var(--hatcast-participation-surface-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-yellow) 60%, var(--hatcast-participation-surface-tint)) 100%
   );
-  --hatcast-availability-chart-neutral-border: color-mix(
-    in srgb,
-    var(--mat-sys-outline) 72%,
-    transparent
+  --hatcast-participation-pending-gradient-row: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--hatcast-v1-orange) 60%, var(--hatcast-participation-surface-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-yellow) 60%, var(--hatcast-participation-surface-tint)) 100%
   );
+
+  // Décliné / désistement — red → orange
+  --hatcast-participation-declined-gradient-strong: linear-gradient(
+    135deg,
+    var(--hatcast-v1-red) 0%,
+    var(--hatcast-v1-orange) 100%
+  );
+  --hatcast-participation-declined-gradient-medium: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-red) 72%, var(--hatcast-participation-chart-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-orange) 72%, var(--hatcast-participation-chart-tint)) 100%
+  );
+  --hatcast-participation-declined-gradient-soft: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-red) 60%, var(--hatcast-participation-surface-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-orange) 60%, var(--hatcast-participation-surface-tint)) 100%
+  );
+  --hatcast-participation-declined-gradient-row: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--hatcast-v1-red) 60%, var(--hatcast-participation-surface-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-orange) 60%, var(--hatcast-participation-surface-tint)) 100%
+  );
+
+  // Disponible — green → emerald
+  --hatcast-participation-available-gradient-strong: linear-gradient(
+    135deg,
+    var(--hatcast-v1-green) 0%,
+    var(--hatcast-v1-emerald) 100%
+  );
+  --hatcast-participation-available-gradient-medium: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-green) 72%, var(--hatcast-participation-chart-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-emerald) 72%, var(--hatcast-participation-chart-tint)) 100%
+  );
+  --hatcast-participation-available-gradient-soft: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-green) 60%, var(--hatcast-participation-surface-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-emerald) 60%, var(--hatcast-participation-surface-tint)) 100%
+  );
+
+  // Pas dispo — red → red (darker)
+  --hatcast-participation-unavailable-gradient-strong: linear-gradient(
+    135deg,
+    var(--hatcast-v1-red) 0%,
+    #dc2626 100%
+  );
+  --hatcast-participation-unavailable-gradient-medium: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-red) 72%, var(--hatcast-participation-chart-tint)) 0%,
+    color-mix(in srgb, #dc2626 72%, var(--hatcast-participation-chart-tint)) 100%
+  );
+  --hatcast-participation-unavailable-gradient-soft: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-red) 60%, var(--hatcast-participation-surface-tint)) 0%,
+    color-mix(in srgb, #dc2626 60%, var(--hatcast-participation-surface-tint)) 100%
+  );
+
+  // Non renseigné — gray
+  --hatcast-participation-neutral-gradient-strong: linear-gradient(
+    135deg,
+    var(--hatcast-v1-gray-mid) 0%,
+    var(--hatcast-v1-gray) 100%
+  );
+  --hatcast-participation-neutral-gradient-medium: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hatcast-v1-gray-mid) 72%, var(--hatcast-participation-chart-tint)) 0%,
+    color-mix(in srgb, var(--hatcast-v1-gray) 72%, var(--hatcast-participation-chart-tint)) 100%
+  );
+
+  // Bordures alignées V1 (border-*-500/30)
+  --hatcast-participation-selected-stat-border: color-mix(in srgb, var(--hatcast-v1-purple) 30%, transparent);
+  --hatcast-participation-pending-stat-border: color-mix(in srgb, var(--hatcast-v1-orange) 30%, transparent);
+  --hatcast-participation-declined-stat-border: color-mix(in srgb, var(--hatcast-v1-red) 30%, transparent);
+  --hatcast-participation-available-chart-border: color-mix(in srgb, var(--hatcast-v1-green) 30%, transparent);
+  --hatcast-participation-selected-chart-border: color-mix(in srgb, var(--hatcast-v1-purple) 30%, transparent);
+  --hatcast-participation-pending-chart-border: color-mix(in srgb, var(--hatcast-v1-orange) 30%, transparent);
+  --hatcast-participation-declined-chart-border: color-mix(in srgb, var(--hatcast-v1-red) 30%, transparent);
+  --hatcast-participation-unavailable-chart-border: color-mix(in srgb, var(--hatcast-v1-red) 30%, transparent);
+
+  // Canonical fills — same -gradient-strong as modale confirmation (compteurs, chart, boutons)
+  --hatcast-participation-available-stat-bg: var(--hatcast-participation-available-gradient-strong);
+  --hatcast-participation-selected-stat-bg: var(--hatcast-participation-selected-gradient-strong);
+  --hatcast-participation-pending-stat-bg: var(--hatcast-participation-pending-gradient-strong);
+  --hatcast-participation-declined-stat-bg: var(--hatcast-participation-declined-gradient-strong);
+  --hatcast-participation-available-chart-fill: var(--hatcast-participation-available-gradient-strong);
+  --hatcast-participation-selected-chart-fill: var(--hatcast-participation-selected-gradient-strong);
+  --hatcast-participation-pending-chart-fill: var(--hatcast-participation-pending-gradient-strong);
+  --hatcast-participation-declined-chart-fill: var(--hatcast-participation-declined-gradient-strong);
+  --hatcast-participation-unavailable-chart-fill: var(--hatcast-participation-unavailable-gradient-strong);
+  --hatcast-participation-neutral-chart-fill: var(--hatcast-participation-neutral-gradient-strong);
+
+  // Aliases dispo pure (onglet Dispos — à brancher ; même dégradés strong)
+  --hatcast-participation-available-surface: var(--hatcast-participation-available-gradient-strong);
+  --hatcast-participation-unavailable-surface: var(--hatcast-participation-unavailable-gradient-strong);
+  --hatcast-participation-neutral-surface: var(--hatcast-participation-neutral-gradient-strong);
+
+  // Legacy availability aliases (dispo form / agenda — prefer participation tokens for new code)
+  --hatcast-availability-available-container: var(--hatcast-participation-available-container);
+  --hatcast-availability-available-on: var(--hatcast-participation-available-on);
+  --hatcast-availability-unavailable-container: var(--hatcast-participation-unavailable-container);
+  --hatcast-availability-unavailable-on: var(--hatcast-participation-unavailable-on);
+  --hatcast-availability-unknown-container: var(--hatcast-participation-neutral-container);
+  --hatcast-availability-unknown-on: var(--hatcast-participation-neutral-on);
+
+  --hatcast-availability-badge-bg-available: var(--hatcast-participation-available-badge-bg);
+  --hatcast-availability-badge-fg-available: var(--hatcast-participation-available-badge-fg);
+  --hatcast-availability-badge-bg-unavailable: var(--hatcast-participation-unavailable-badge-bg);
+  --hatcast-availability-badge-fg-unavailable: var(--hatcast-participation-unavailable-badge-fg);
+  --hatcast-availability-badge-bg-unknown: var(--hatcast-participation-neutral-badge-bg);
+  --hatcast-availability-badge-fg-unknown: var(--hatcast-participation-neutral-badge-fg);
+  --hatcast-availability-badge-bg-in-team: var(--hatcast-participation-selected-badge-bg);
+  --hatcast-availability-badge-fg-in-team: var(--hatcast-participation-selected-badge-fg);
+
+  --hatcast-availability-chart-available: var(--hatcast-participation-available-chart-fill);
+  --hatcast-availability-chart-available-border: var(--hatcast-participation-available-chart-border);
+  --hatcast-availability-chart-unavailable: var(--hatcast-participation-unavailable-chart-fill);
+  --hatcast-availability-chart-unavailable-border: var(
+    --hatcast-participation-unavailable-chart-border
+  );
+  --hatcast-availability-chart-declined: var(--hatcast-participation-declined-chart-fill);
+  --hatcast-availability-chart-declined-border: var(--hatcast-participation-declined-chart-border);
+  --hatcast-availability-chart-neutral: var(--hatcast-participation-neutral-chart-fill);
+  --hatcast-availability-chart-neutral-border: var(--hatcast-participation-neutral-chart-border);
 
   // Shared surfaces inside availability forms / panels
   --hatcast-availability-surface: color-mix(
@@ -150,6 +460,7 @@ $_hatcast-positive-dark: mat.define-theme(
     transparent
   );
 
+  // Draw odds in Dispos grid — not a participation outcome; distinct from dispo green
   --hatcast-chance-high: var(--hatcast-sys-positive);
   --hatcast-chance-medium: var(--mat-sys-secondary);
   --hatcast-chance-low: var(--mat-sys-error);

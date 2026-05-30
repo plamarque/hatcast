@@ -60,7 +60,7 @@ Utiliser cette liste **à la fin** de chaque changement sous `apps/web/` (dével
 ### Thème, couleurs, typographie
 
 - [ ] **Tokens système** — couleurs et fonds via `var(--mat-sys-*)` (`primary`, `on-surface`, `surface`, `outline-variant`, `error`, etc.) ; nuances avec `color-mix(in srgb, var(--mat-sys-…) …)` comme dans le code existant.
-- [ ] **Pas de palette ad hoc** — éviter `#rrggbb`, `rgb()` ou gradients en dur dans les composants ; exceptions : mood « spectacle » déjà mappé dans le thème global ou token nommé documenté dans `ux-design-hatcast-v2.md`.
+- [ ] **Pas de palette ad hoc** — éviter `#rrggbb`, `rgb()` ou gradients en dur dans les composants ; **exception** : stops V1 `--hatcast-v1-*` dans `_hatcast-semantic-colors.scss` uniquement (voir § Couleurs sémantiques — participation).
 - [ ] **Typographie** — hiérarchie Material (`--mat-sys-body-medium`, `title-medium`, etc.) ou classes du thème ; pas de `font-size` arbitraire sauf compactage local justifié (toolbar, chip).
 - [ ] **Thème global** — ne pas contourner `mat.theme()` dans `styles.scss` ; personnalisation via palettes / density documentées.
 
@@ -98,21 +98,69 @@ Utiliser cette liste **à la fin** de chaque changement sous `apps/web/` (dével
 
 - Raccourcis membre : [`apps/web/src/app/shared/member-cross-nav/`](../../../apps/web/src/app/shared/member-cross-nav/) — `mat-stroked-button`, `routerLink`, `aria-label`, ellipsis mobile.
 - Thème M3 global : [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss).
-- **Charte sémantique disponibilité** : [`apps/web/src/styles/_hatcast-semantic-colors.scss`](../../../apps/web/src/styles/_hatcast-semantic-colors.scss) (vert = dispo, rouge = pas dispo, gris = non renseigné ; badges agenda dans [`_hatcast-agenda-dispo-badge.scss`](../../../apps/web/src/styles/_hatcast-agenda-dispo-badge.scss)).
-- Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*` ou `--hatcast-availability-*`).
+- **Charte sémantique participation** : [`apps/web/src/styles/_hatcast-semantic-colors.scss`](../../../apps/web/src/styles/_hatcast-semantic-colors.scss) (dispo, sélection, en attente, désistement, indispo ; badges agenda dans [`_hatcast-agenda-dispo-badge.scss`](../../../apps/web/src/styles/_hatcast-agenda-dispo-badge.scss)).
+- Helpers : [`availability-status.ts`](../../../apps/web/src/app/core/availability/availability-status.ts) (dispo pure), [`participation-status.ts`](../../../apps/web/src/app/core/participation/participation-status.ts) (chart, équipe, badges étendus).
+- Spec UX : [`ux-design-participation-semantic-colors.md`](../../../_bmad-output/planning-artifacts/ux-design-participation-semantic-colors.md).
+- Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*`, `--hatcast-participation-*` ou alias `--hatcast-availability-*`).
 
-### Couleurs sémantiques — disponibilité
+### Couleurs sémantiques — participation
 
-Aligné sur [`ux-design-hatcast-v2.md`](../../../_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) (modal dispo) :
+Spec UX normative : [`ux-design-participation-semantic-colors.md`](../../../_bmad-output/planning-artifacts/ux-design-participation-semantic-colors.md).
 
-| État | Signification | Tokens à utiliser |
-|------|---------------|-------------------|
-| Disponible | Vert (positif) | `--hatcast-sys-positive*`, `--hatcast-availability-available-*`, `--hatcast-availability-badge-*-available` |
-| Pas dispo | Rouge (refus) | `--mat-sys-error`, `--hatcast-availability-unavailable-*`, badge `*-unavailable` |
-| Non renseigné | Gris neutre | `--hatcast-availability-unknown-*`, badge `*-unknown` |
-| Dans l’équipe (historique) | Violet (primary) | `--hatcast-availability-badge-*-in-team` |
+#### États et tokens (`-gradient-strong`)
 
-**Règles :** définir / modifier les teintes uniquement dans `_hatcast-semantic-colors.scss` ; les composants consomment les variables CSS. Modificateurs de classe BEM : `availabilityBadgeModifier()` → `--available` \| `--unavailable` \| `--unknown` (voir `availability-status.ts`).
+| État | Signification | Token |
+|------|---------------|-------|
+| Disponible | Dispo saisie (sans sélection) | `--hatcast-participation-available-gradient-strong` |
+| Sélection / dans l'équipe | Slot confirmé ou assigné | `--hatcast-participation-selected-gradient-strong` |
+| En attente de confirmation | Sélectionné, participation non confirmée | `--hatcast-participation-pending-gradient-strong` |
+| Désistement / décliné | Retrait après engagement | `--hatcast-participation-declined-gradient-strong` |
+| Pas dispo | Refus de disponibilité | `--hatcast-participation-unavailable-gradient-strong` |
+| Non renseigné / neutre | Pas de réponse ou N/A | `--hatcast-participation-neutral-gradient-strong` |
+
+#### Dégradés V1 (stops canoniques — 135°)
+
+Source : `legacy/src/components/ConfirmationModal.vue`, `legacy/src/styles/status-colors.css`. Stops définis **une seule fois** dans `_hatcast-semantic-colors.scss` (`--hatcast-v1-*`).
+
+| État | Stop A → Stop B | Hex |
+|------|-----------------|-----|
+| Sélection / confirmé | purple-500 → pink-500 | `#a855f7` → `#ec4899` |
+| En attente | orange-500 → yellow-500 | `#f97316` → `#eab308` |
+| Désistement | red-500 → orange-500 | `#ef4444` → `#f97316` |
+| Disponible | green-500 → emerald-500 | `#22c55e` → `#10b981` |
+| Pas dispo | red-500 → red-600 | `#ef4444` → `#dc2626` |
+| Non renseigné | gray-400 → gray-500 | `#9ca3af` → `#6b7280` |
+
+#### Variantes de dégradé
+
+| Suffixe | Usage |
+|---------|--------|
+| `-gradient-strong` | **Fill par défaut** — compteurs Mes Stats, cases chart, boutons modale participation, toggles Dispos (sélectionné), lignes Équipe, badges statut équipe |
+| `-gradient-medium` | Emphase secondaire (~72 % stop + tint chart) |
+| `-gradient-soft` | Équivalent V1 `from-*-500/60` sur surface claire |
+| `-gradient-row` | 90° — legacy ; lignes Équipe utilisent `-gradient-strong` |
+
+Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
+
+#### Surfaces branchées
+
+| Surface | Fichier |
+|---------|---------|
+| Mes Stats (compteurs + chart) | `member-profile-dialog.scss` |
+| Modale participation | `composition-participation-dialog.scss` |
+| Onglet Dispos | `availability-form.scss` |
+| Onglet Équipe (lignes + badge désistements + header statut) | `event-equipe-tab.scss`, `composition-equipe-status-header.scss` |
+
+#### Règles de rendu sur `-gradient-strong`
+
+- Texte et icônes : `#fff`
+- Bordure : `color-mix(in srgb, #fff 32%, transparent)`
+- **Interdit** dans les features : hex/rgba de participation ; consommer uniquement les variables CSS
+- **Exception** : les hex V1 ci-dessus ne vivent que dans `_hatcast-semantic-colors.scss`
+
+**Chances de tirage (grille Dispos « Tous »)** — sémantique **distincte** : `--hatcast-chance-high` / `-medium` / `-low` (probabilité, pas état de participation).
+
+**Helpers BEM :** `participationChartModifier()`, `participationSlotRowModifier()`, `participationBadgeModifier()`, `availabilityBadgeModifier()` (dispo pure).
 
 ### Stories et agents
 
