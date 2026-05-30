@@ -494,7 +494,7 @@ class EventControllerIntegrationTest {
                         {
                           "title": "Bad count",
                           "startsAt": "${future}",
-                          "roleSlots": { "player": 99 }
+                          "roleSlots": { "player": 101 }
                         }
                         """.trimIndent(),
                     ).with(csrf()),
