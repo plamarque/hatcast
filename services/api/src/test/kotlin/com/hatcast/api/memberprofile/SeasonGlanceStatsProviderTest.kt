@@ -365,6 +365,126 @@ class SeasonGlanceStatsProviderTest {
         assertEquals(1, stats.declines.count)
     }
 
+    @Test
+    fun `loadMonthlyChart orders months school year and blocks by date then title`() {
+        val seasonId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val participantId = UUID.randomUUID()
+
+        val season = mock<SeasonEntity>()
+        val participant =
+            SeasonParticipantEntity(
+                id = participantId,
+                season = season,
+                displayName = "Patrice",
+                user = null,
+                troupeMembership = null,
+            )
+
+        val august =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Jam août",
+                slug = "jam-aout",
+                startsAt = Instant.parse("2026-08-20T19:00:00Z"),
+            )
+        val september =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Jam septembre",
+                slug = "jam-septembre",
+                startsAt = Instant.parse("2026-09-05T19:00:00Z"),
+            )
+        val sameDayEarly =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Apérock A",
+                slug = "aperock-a",
+                startsAt = Instant.parse("2026-03-15T18:00:00Z"),
+            )
+        val sameDayLate =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Apérock B",
+                slug = "aperock-b",
+                startsAt = Instant.parse("2026-03-15T20:00:00Z"),
+            )
+
+        stubScope(
+            seasonId = seasonId,
+            userId = userId,
+            participant = participant,
+            events = listOf(august, sameDayLate, september, sameDayEarly),
+            compositions = emptyList(),
+            slots = emptyList(),
+            declines = emptyList(),
+        )
+
+        val chart = provider.loadMonthlyChart(seasonId, userId)
+
+        assertEquals(listOf("2026-09", "2026-03", "2026-08"), chart.map { it.monthKey })
+        assertEquals(
+            listOf(sameDayEarly.id, sameDayLate.id),
+            chart[1].blocks.map { it.eventId },
+        )
+    }
+
+    @Test
+    fun `loadMonthlyChart orders same calendar day by startsAt not title`() {
+        val seasonId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val participantId = UUID.randomUUID()
+
+        val season = mock<SeasonEntity>()
+        val participant =
+            SeasonParticipantEntity(
+                id = participantId,
+                season = season,
+                displayName = "Patrice",
+                user = null,
+                troupeMembership = null,
+            )
+
+        val punchClub =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Punch club",
+                slug = "punch-club",
+                startsAt = Instant.parse("2025-12-06T18:00:00Z"),
+            )
+        val matchOrthez =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Match Orthez",
+                slug = "match-orthez",
+                startsAt = Instant.parse("2025-12-06T20:00:00Z"),
+            )
+
+        stubScope(
+            seasonId = seasonId,
+            userId = userId,
+            participant = participant,
+            events = listOf(matchOrthez, punchClub),
+            compositions = emptyList(),
+            slots = emptyList(),
+            declines = emptyList(),
+        )
+
+        val chart = provider.loadMonthlyChart(seasonId, userId)
+
+        assertEquals(1, chart.size)
+        assertEquals(
+            listOf(punchClub.id, matchOrthez.id),
+            chart.single().blocks.map { it.eventId },
+        )
+    }
+
     private fun stubScope(
         seasonId: UUID,
         userId: UUID,

@@ -23,8 +23,11 @@ import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
+import java.text.Collator
+import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -175,8 +178,9 @@ class SeasonGlanceStatsProvider(
         val availabilityIndex =
             GlanceAvailabilityIndex.from(availabilityRepository.findByEvent_IdIn(eventIds))
 
+        val startsAtByEventId = events.associate { it.id to it.startsAt }
         val blocksByMonth = mutableMapOf<String, MutableList<MemberProfileChartBlockDto>>()
-        for (event in events.sortedBy { it.startsAt }) {
+        for (event in eventsInChartOrder(events)) {
             val composition = compositions[event.id]
             val slots = slotsByEvent[event.id].orEmpty()
             val declines = declinesByEvent[event.id].orEmpty()
@@ -199,9 +203,49 @@ class SeasonGlanceStatsProvider(
             blocksByMonth.getOrPut(monthKey) { mutableListOf() }.add(block)
         }
 
-        return blocksByMonth.entries.sortedBy { it.key }.map { (monthKey, blocks) ->
-            MemberProfileMonthDto(monthKey = monthKey, blocks = blocks)
+        return blocksByMonth.entries
+            .sortedWith(
+                compareBy<Map.Entry<String, MutableList<MemberProfileChartBlockDto>>> { (monthKey, _) ->
+                    schoolYearMonthDisplayIndex(monthKey)
+                }.thenBy { it.key },
+            ).map { (monthKey, blocks) ->
+                MemberProfileMonthDto(
+                    monthKey = monthKey,
+                    blocks = chartBlocksInDisplayOrder(blocks, startsAtByEventId),
+                )
+            }
+    }
+
+    /** V1 `GridBoard.vue` `allEvents` — timestamp ascending, then French title (`sensitivity: base`). */
+    private fun eventsInChartOrder(events: List<EventEntity>): List<EventEntity> =
+        events.sortedWith(
+            compareBy<EventEntity> { it.startsAt }
+                .thenComparator { a, b -> FRENCH_COLLATOR.compare(a.title, b.title) },
+        )
+
+    /** V1 `getMonthlyActivityWithDetails` — full datetime ascending within each month column. */
+    private fun chartBlocksInDisplayOrder(
+        blocks: List<MemberProfileChartBlockDto>,
+        startsAtByEventId: Map<UUID, Instant>,
+    ): List<MemberProfileChartBlockDto> =
+        blocks.sortedWith(
+            compareBy<MemberProfileChartBlockDto> { startsAtByEventId[it.eventId] ?: Instant.MAX }
+                .thenComparator { a, b -> FRENCH_COLLATOR.compare(a.eventTitle, b.eventTitle) },
+        )
+
+    /**
+     * V1 `PlayerModal.vue` `reorderedMonthlyData` — column order Sept→Aug (calendar month only).
+     * `monthKey` is `yyyy-MM` in Europe/Paris; year breaks ties when the same month appears twice.
+     */
+    private fun schoolYearMonthDisplayIndex(monthKey: String): Int {
+        val parts = monthKey.split("-")
+        if (parts.size != 2) {
+            return Int.MAX_VALUE
         }
+        val year = parts[0].toIntOrNull() ?: return Int.MAX_VALUE
+        val month = parts[1].toIntOrNull() ?: return Int.MAX_VALUE
+        val displayIndex = if (month >= 9) month - 9 else month + 3
+        return displayIndex * 10_000 + year
     }
 
     override fun loadFavoriteRoleCounts(
@@ -482,5 +526,9 @@ class SeasonGlanceStatsProvider(
         private val ZONE: ZoneId = ZoneId.of("Europe/Paris")
         private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM")
         private val EVENT_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        private val FRENCH_COLLATOR: Collator =
+            Collator.getInstance(Locale.FRENCH).apply {
+                strength = Collator.PRIMARY
+            }
     }
 }
