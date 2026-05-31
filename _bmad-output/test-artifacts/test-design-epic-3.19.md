@@ -16,7 +16,7 @@ inputDocuments:
 
 **Date:** 2026-05-31
 **Author:** Patrice
-**Status:** Draft
+**Status:** Recette PASS (2026-05-31) — automated suites green + manual three-surface walkthrough signed off
 **Mode:** Epic-Level (Phase 4) — single-story recette for Epic 3
 **Stack:** Fullstack (Spring/Kotlin API + Angular web)
 
@@ -35,11 +35,13 @@ inputDocuments:
 **Coverage Summary:**
 
 - P0 scenarios: **8** (~10–14 h) — mostly already automated
-- P1 scenarios: **9** — **8 automated**, 1 covered indirectly (gaps closed 2026-05-31)
+- P1 scenarios: **12** — **11 automated**, 1 covered indirectly (gaps closed 2026-05-31; +3 for re-add reactivation)
 - P2/P3 scenarios: **8** (~5–9 h)
 - **Total effort**: ~24–36 h (~3–5 days) if built from scratch; **P0/P1 now fully automated** → residual = manual three-surface recette + optional P2/P3 edges.
 
 > **Update 2026-05-31:** All automatable gaps closed and green. P1 (3.19-INT-009/010/011, 3.19-CMP-003), P2 (3.19-INT-013/014/015), P3 (3.19-INT-016/017) implemented; composition-pool guard now has a dedicated unit test (3.19-INT-012 → `CompositionParticipantPoolTest`). API `ParticipantControllerIntegrationTest` + `CompositionParticipantPoolTest` + `SeasonParticipantServiceTest` BUILD SUCCESSFUL; web `admin-participants.spec.ts` 15/15 pass. Only manual items remain: V38 migration smoke (R-003), tactile-target a11y waiver (R-010), and the three-surface recette walkthrough.
+>
+> **Update 2026-05-31 (re-add reactivation):** Re-inclusion now goes through the **« Ajouter »** flow — `create` reactivates the existing `REMOVED` row (by user/email/name) instead of duplicating it. Added 3.19-INT-018/019/020; 3.19-INT-014 precondition rebuilt via PATCH rename. `ParticipantControllerIntegrationTest` (29 tests) green.
 
 **Recette verdict driver:** PASS requires the two high risks fully covered by green automated tests (they are) **plus** the manual three-surface walkthrough (§ Execution Order) confirming season vs troupe scoping.
 
@@ -99,11 +101,11 @@ inputDocuments:
 
 ## Exit Criteria
 
-- [ ] All P0 tests passing (100%)
-- [ ] All P1 tests passing or failures triaged with waiver
-- [ ] No open high-risk (R-001, R-002) item unmitigated
-- [ ] Manual three-surface recette walkthrough signed off (event / season / troupe scoping)
-- [ ] No hard delete of availability/composition history observed in any path
+- [x] All P0 tests passing (100%)
+- [x] All P1 tests passing or failures triaged with waiver
+- [x] No open high-risk (R-001, R-002) item unmitigated
+- [x] Manual three-surface recette walkthrough signed off (event / season / troupe scoping) — **PASS 2026-05-31** (`scripts/v2/RECETTE-3.19-RETRAIT-ROSTER-SAISON.md`)
+- [x] No hard delete of availability/composition history observed in any path
 
 ---
 
@@ -143,8 +145,13 @@ inputDocuments:
 | 3.19-INT-012 | R-005 — composition pool excludes participant removed at season level | Unit | R-005 | ✅ | `CompositionParticipantPoolTest` — `excludes event row whose user was removed at season scope` + `excludes event row linked to a removed season participant` (added 2026-05-31) |
 | 3.19-CMP-002 | M3 — confirm dialog title/body/snackbar copy match SCP matrix; aria-label `Retirer ce membre de la saison` | Component | R-002 | ✅ | `removes troupe member ...` (snackbar) + `shows delete for troupe member rows ...` (aria-label) |
 | 3.19-CMP-003 | R-007 — removing a member who is a season organizer demotes + refreshes organizers | Component | R-007 | ✅ | `demotes a season organizer when removing them from the season roster` (added 2026-05-31) |
+| 3.19-INT-018 | AC5 — re-adding a season-removed **member** via « Ajouter » (same email) reactivates the **same** row (no duplicate; re-syncs as MEMBER) | API (integration) | R-001 | ✅ | `re-adding a season-removed member by email reactivates the same row` (added 2026-05-31) |
+| 3.19-INT-019 | AC5 — re-adding a season-removed **member** via « Ajouter » while membership INACTIVE returns **400** | API (integration) | R-006 | ✅ | `re-adding a member by email is rejected while troupe membership is inactive` (added 2026-05-31) |
+| 3.19-INT-020 | AC5 — re-adding a removed **name-only** participant via « Ajouter » (same name) reuses the **same** row | API (integration) | R-005 | ✅ | `re-adding a removed name-only participant reuses the same row` (added 2026-05-31) |
 
-**Total P1**: 9 (8 ✅ automated, 1 🟡 covered indirectly)
+**Total P1**: 12 (11 ✅ automated, 1 🟡 covered indirectly)
+
+> **Behavior update 2026-05-31:** re-inclusion is performed through the existing **« Ajouter »** flow (no dedicated "Réintégrer" button). `SeasonParticipantService.create` now detects an existing `REMOVED` row by linked user → email → display-name and **reactivates the same `season_participant_id`** (clearing `SEASON_ADMIN`, re-syncing member name/email from the membership) instead of inserting a duplicate. The dedicated `reinclude` API remains available. This makes availability/composition history reappear on re-inclusion.
 
 ### P2 (Medium) — Run nightly/weekly
 
@@ -153,7 +160,7 @@ inputDocuments:
 | 3.19-UNIT-002 | `ensureMembershipParticipants` idempotent for unchanged member rows | Unit | R-004 | ✅ | `ensureMembershipParticipants is idempotent for existing membership rows` |
 | 3.19-UNIT-003 | `ensureForMembership` idempotent (single-membership path) | Unit | R-004 | ✅ | `ensureSeasonParticipantForMembership is idempotent` |
 | 3.19-INT-013 | `reinclude` resyncs `displayName`/`normalizedEmail`/`user` from membership for member rows | API | R-004 | ✅ | `reinclude resyncs member display name from troupe membership` (added 2026-05-31) |
-| 3.19-INT-014 | `reinclude` enforces display-name uniqueness for explicit participants (`...IgnoreCaseAndIdNot`) | API | — | ✅ | `reinclude of explicit participant conflicts with active duplicate name` (added 2026-05-31) |
+| 3.19-INT-014 | `reinclude` enforces display-name uniqueness for explicit participants (`...IgnoreCaseAndIdNot`) | API | — | ✅ | `reinclude of explicit participant conflicts with active duplicate name` (precondition built via PATCH rename since re-add now reactivates) |
 | 3.19-CMP-004 | Roster split: Externes vs Membres sections render correctly | Component | — | ✅ | `splits roster into Externes and Membres sections` |
 | 3.19-CMP-005 | Delete control hidden for member rows without `canManageMembers` | Component | — | ✅ | `hides delete for troupe member without canManageMembers` |
 | 3.19-CMP-006 | Edit hidden for member rows (synced) | Component | — | ✅ | `hides edit for troupe member row` |

@@ -19,6 +19,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Expected behavior** (future): A fixture system that allows injecting known data sets (or using a dedicated test DB/emulator with seeded data) so E2E tests can assert transitions and statuses reliably without depending on live content.
 - **Notes/context**: This is a **future re-architecture** of how we do E2E tests (fixtures / injectable data), not an immediate functional fix. To be scheduled later (e.g. in PLAN.md) when capacity allows. Specs like `composition-status.spec.js`, `event-details-tabs.spec.js` are the main examples.
 
+### LIMIT-002 — API integration suite shares one DB; `TroupeMembershipIntegrationTest` flaky in full run
+- **ID**: LIMIT-002
+- **Status**: Open
+- **Severity**: Low (not blocking; targeted runs are green, only the full-suite run is affected)
+- **Affected area**: `services/api` Spring integration tests — `@SpringBootTest` with a shared `test` H2 database; `TroupeMembershipIntegrationTest` (platform-admin / join-policy / active-member-count cases).
+- **Observed behavior**: `./gradlew test` (full suite) intermittently fails ~1–3 methods in `TroupeMembershipIntegrationTest` with `expected:<200> but was:<409>`. The same suite passes when run in isolation (`--tests '*TroupeMembershipIntegrationTest*'`). Reproduced on `v2` **without** any participant-service changes (baseline 2026-05-31), so it is pre-existing and independent of Story 3.19.
+- **Expected behavior**: Deterministic results regardless of execution order — per-test isolation (transactional rollback / `@DirtiesContext` / unique fixtures) so shared seed-troupe state cannot leak between tests.
+- **Notes/context**: Likely cross-test state accumulation on the shared seed troupe / reused `sub-platform-members-admin` identity. Discovered 2026-05-31 while validating the re-add reactivation work. Recommend isolating the suite or resetting state between tests before relying on the full-suite gate in CI.
+
 ---
 
 ## Fixed

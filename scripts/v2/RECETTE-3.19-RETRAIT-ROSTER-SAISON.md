@@ -50,7 +50,7 @@ un autre, sauf la cascade descendante troupe → saisons).
 | **Roster saison** (externe X) | `/saison/:slug/admin/participants` | « Retirer » | Titre **« Retirer le participant »** · Corps *« Le participant sera retiré du roster de la saison. L'historique des disponibilités et compositions est conservé. »* · Bouton **« Retirer »** · Snackbar **« Participant retiré. »** |
 | **Roster événement** | `/saison/:slug/event/:eventSlug/admin/participants` | Exclure / inclure pour cet événement | Filtre local événement uniquement |
 | **Membres troupe** | `/troupe/:slug/admin/membres` | « Retirer » (`aria-label="Retirer ce membre de la troupe"`) | Titre **« Retirer ce membre de la troupe ? »** · Corps *« Cette action retire le membre de la troupe et lui enlève l'accès associé. Son compte HatCast n'est pas supprimé. »* · Bouton **« Retirer »** · Snackbar **« Membre retiré de la troupe. »** |
-| **Ré-inclusion** | `POST /v1/seasons/{seasonId}/participants/{participantId}/reinclude` | **API uniquement** (pas de bouton UI) | 400 *« Réactivez d'abord l'adhésion à la troupe. »* si adhésion INACTIVE |
+| **Ré-inclusion** | `/saison/:slug/admin/participants` → **Ajouter** | Ré-ajouter la personne **avec le même email** (ou même nom pour un externe) | Réactive la **même ligne** ; 400 *« Réactivez d'abord l'adhésion à la troupe. »* si l'adhésion troupe est INACTIVE. Endpoint API direct également dispo : `POST .../participants/{id}/reinclude` |
 
 ---
 
@@ -108,27 +108,30 @@ de la **Saison B**. Le retrait n'a touché que la Saison A.
 
 ---
 
-## Scénario 5 — Ré-inclusion (API) + conservation de l'exclusion événement
+## Scénario 5 — Ré-inclusion via « Ajouter » + conservation de l'exclusion événement
 
-Couvre : AC5/AC6 · risques **R-001/R-005** · plan `3.19-INT-006/007`.
+Couvre : AC5/AC6 · risques **R-001/R-005** · plan `3.19-INT-006/007`, `3.19-INT-018/019/020`.
 
-> ⚠️ **Limitation connue (à consigner)** : pas de bouton **Réintégrer** dans l'UI
-> Participants pour cette story ; la ré-inclusion se teste via l'API.
+> Pas de bouton « Réintégrer » dédié : la ré-inclusion se fait avec le bouton **Ajouter**.
+> Tant que c'est **le même email** (membre ou joueur avec compte), le système reconnaît la
+> personne et **réactive la même ligne** (même `season_participant_id`) plutôt que d'en
+> créer une seconde. Pour un externe **sans compte**, c'est le **même nom** qui sert de clé.
 
-1. Récupérer `seasonId` (Saison A) et `participantId` de **M** (réseau / DevTools sur la
-   réponse `GET …/participants`, ou base).
-2. Appeler :
-   ```bash
-   curl -X POST \
-     "http://127.0.0.1:8080/v1/seasons/<seasonId>/participants/<participantId>/reinclude" \
-     -H "Authorization: Bearer <token>"
-   ```
+1. Saison A → `/saison/:slug/admin/participants` → **Ajouter**.
+2. Saisir **M** avec **le même email** qu'à l'origine (le nom saisi est ignoré pour un membre :
+   il revient avec son **nom synchronisé** depuis l'adhésion).
 3. Recharger le roster Saison A.
 
 **Succès :**
-- **M réapparaît** sur le roster / sélecteurs / statistiques de la Saison A (même identité).
+- **M réapparaît** sur le roster / sélecteurs / statistiques de la Saison A, **sur la même
+  ligne** (pas de doublon) → ses **dispos/compositions historiques réapparaissent**.
+- Pour un membre : il revient dans la section **Membres** avec son **nom courant** (synchronisé).
 - L'**exclusion événement** posée au Scénario 1 **s'applique toujours** : M reste masqué sur **E**.
-- Si l'adhésion troupe de M était **INACTIVE**, l'appel renvoie **400** *« Réactivez d'abord l'adhésion à la troupe. »* (tester la variante si pertinent).
+- Si l'adhésion troupe de M est **INACTIVE**, l'ajout est **refusé** avec **400**
+  *« Réactivez d'abord l'adhésion à la troupe. »* (réactiver d'abord côté Membres troupe).
+
+*(Variante : un participant **externe** retiré, ré-ajouté avec **le même nom**, revient sur la
+même ligne. L'API directe `POST .../participants/{id}/reinclude` reste également disponible.)*
 
 ---
 
@@ -194,24 +197,27 @@ historiques** de M restent intactes (aucune ligne supprimée).
 
 ---
 
-## Grille de résultats (à remplir à l'exécution)
+## Grille de résultats
+
+> **Recette exécutée le 2026-05-31 — VERDICT : PASS.** Tous les scénarios passés ;
+> aucun écart consigné.
 
 | # | Scénario | Risque | Résultat (PASS/FAIL) | Notes / écart |
 |---|---|---|---|---|
-| 1 | Exclusion événement | — | | |
-| 2 | Retrait saison membre | R-002 | | |
-| 3 | Garde de sync | **R-001** | | |
-| 4 | Portée saison-locale | R-002 | | |
-| 5 | Ré-inclusion (API) | R-001/R-005 | | |
-| 6 | Cascade troupe + réactivation | R-002/R-008 | | |
-| 7 | Rétrogradation organisateur·ice | R-007 | | |
-| 8 | Externe name-only | — | | |
-| 9 | Conservation historique | DATA | | |
-| M1 | Smoke migration V38 | R-003 | | |
-| M2 | Cible tactile 40dp | R-010 | | |
+| 1 | Exclusion événement | — | PASS | |
+| 2 | Retrait saison membre | R-002 | PASS | |
+| 3 | Garde de sync | **R-001** | PASS | |
+| 4 | Portée saison-locale | R-002 | PASS | |
+| 5 | Ré-inclusion via Ajouter | R-001/R-005 | PASS | réactivation même ligne, dispos/compos OK |
+| 6 | Cascade troupe + réactivation | R-002/R-008 | PASS | |
+| 7 | Rétrogradation organisateur·ice | R-007 | PASS | |
+| 8 | Externe name-only | — | PASS | |
+| 9 | Conservation historique | DATA | PASS | |
+| M1 | Smoke migration V38 | R-003 | PASS | |
+| M2 | Cible tactile 40dp | R-010 | PASS (waiver) | pattern préexistant, < 48dp accepté |
 
 **Verdict de recette :** PASS exige Scénarios **2, 3, 4, 6** au vert (risques hauts
-R-001/R-002 + cascade) et aucune suppression dure observée (Scénario 9).
+R-001/R-002 + cascade) et aucune suppression dure observée (Scénario 9). → **Satisfait.**
 
 Tout écart → ouvrir une entrée dans `ISSUES.md` (et consigner un `*-findings.md` daté).
 
@@ -227,8 +233,8 @@ Une fois ce cahier **passé et stable** :
 2. **Candidats E2E prioritaires** (forte valeur transverse, mappés sur les scénarios) :
    - S2 + S3 + S4 (retrait saison-local + garde de sync + autre saison intacte) → couvre R-001/R-002 de bout en bout.
    - S6 (cascade troupe + réactivation) → couvre R-002/R-008.
-   - S1↔S5 (étanchéité événement vs saison + ré-inclusion) — **bloqué** tant que la ré-inclusion n'a pas de surface UI.
-3. **Ne pas dupliquer** : S5 (ré-inclusion API), S7–S9 et les bords idempotents restent
+   - S1 + S5 (étanchéité événement vs saison + ré-inclusion via **Ajouter**, conservation de l'exclusion événement) → parcours UI complet désormais possible.
+3. **Ne pas dupliquer** : S7–S9 et les bords idempotents restent
    suffisamment couverts par l'intégration API / composant (`3.19-INT-*`, `3.19-CMP-*`)
    et ne justifient pas d'E2E.
 4. Côté BMad : `*atdd` / `*automate` pour générer la couche E2E une fois l'infra fixtures prête.

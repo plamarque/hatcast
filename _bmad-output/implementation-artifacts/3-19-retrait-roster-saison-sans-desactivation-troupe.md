@@ -105,6 +105,7 @@ Composer (Cursor)
 - Integration tests: season-only remove (other season intact), sync no-restore, troupe cascade regression, reinclude + event exclusion compose.
 - Frontend: 14/14 `admin-participants.spec.ts` pass. API: 21 participant tests pass.
 - M3: ConfirmDialog/MatDialog, French aria-label, no new colors; optional Membres link deferred (MVP+).
+- Re-inclusion UX (2026-05-31): no dedicated "Réintégrer" button — re-inclusion is the **« Ajouter »** flow. `SeasonParticipantService.create` detects an existing `REMOVED` row (linked user → email → display-name) and **reactivates the same `season_participant_id`** (clears `SEASON_ADMIN`, re-syncs member name/email from the membership) instead of duplicating; same `400 « Réactivez d'abord l'adhésion à la troupe. »` guard when the membership is INACTIVE. History (dispos/compositions) reappears since the row id is reused. Added `3.19-INT-018/019/020`.
 
 ### File List
 
@@ -150,3 +151,5 @@ _Vérification : `compileKotlin` OK ; front `admin-participants.spec.ts` 14/14 �
 
 - 2026-05-31: Story 3.19 implemented — season-local member removal, sync guard (`removal_source`), reinclude API, UI revert from troupe deactivation.
 - 2026-05-31: Code review — 2 decision-needed (résolues → patch), 8 patch appliqués, 6 deferred, 4 dismissed. Statut → done.
+- 2026-05-31: Re-inclusion via « Ajouter » — `create` réactive la ligne `REMOVED` existante (par utilisateur/email/nom) au lieu de dupliquer ; tests `3.19-INT-018/019/020` ; précondition de `3.19-INT-014` reconstruite via PATCH rename.
+- 2026-05-31: Recette manuelle 3 surfaces **PASS** (`scripts/v2/RECETTE-3.19-RETRAIT-ROSTER-SAISON.md`) — 9 scénarios + 2 contrôles (M2 waiver tactile). Aucun écart.
