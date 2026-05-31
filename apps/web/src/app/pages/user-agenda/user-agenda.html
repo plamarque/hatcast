@@ -105,7 +105,7 @@
               class="agenda-card__clickable"
               role="button"
               tabindex="0"
-              [attr.aria-label]="'Ouvrir ' + ev.title + ' dans ' + ev.seasonTitle"
+              [attr.aria-label]="'Ouvrir ' + ev.title"
               (click)="openEvent(ev)"
               (keydown.enter)="openEvent(ev)"
               (keydown.space)="openEvent(ev); $event.preventDefault()"
@@ -117,27 +117,11 @@
               </div>
               <div class="agenda-card__body">
                 <h2 class="agenda-card__title">{{ ev.title }}</h2>
-                <div class="agenda-card__badges">
-                  @if (ev.teamStatusBadge) {
+                @if (ev.teamStatusBadge) {
+                  <div class="agenda-card__badges">
                     <app-composition-status-badge [badge]="ev.teamStatusBadge" />
-                  }
-                  <a
-                    class="agenda-card__badge agenda-card__badge--meta agenda-card__badge--link"
-                    [routerLink]="troupeHubPath(ev.troupeSlug)"
-                    [attr.aria-label]="'Ouvrir la troupe ' + ev.troupeName"
-                    (click)="$event.stopPropagation()"
-                  >
-                    {{ ev.troupeName }}
-                  </a>
-                  <a
-                    class="agenda-card__badge agenda-card__badge--season agenda-card__badge--link"
-                    [routerLink]="saisonWorkspacePath(ev.seasonSlug)"
-                    [attr.aria-label]="'Ouvrir la saison ' + ev.seasonTitle"
-                    (click)="$event.stopPropagation()"
-                  >
-                    {{ ev.seasonTitle }}
-                  </a>
-                </div>
+                  </div>
+                }
               </div>
             </div>
             <div class="agenda-card__status">

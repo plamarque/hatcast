@@ -53,7 +53,7 @@
 
 - **Pourquoi maintenant :** le gear à une seule entrée (« Membres ») est un anti-pattern discoverability ; la vision troupe-first (ADR 0013, design-thinking) décrit déjà un hub « cockpit » admin.
 - **Wireframe cible :** hero inchangé (logo, nom, **Préférences dans cette troupe**) ; sous le hero, `mat-tab-group` **Saisons** | **Membres** (`TROUPE_ADMIN` seulement pour l’onglet Membres) ; footer « Explorer d’autres troupes » inchangé.
-- **Onglet Saisons :** grille actuelle + **Nouvelle saison** ; ajouter menu ⋮ par carte admin : **Modifier** (`SeasonFormDialog` edit), **Archiver** / **Désarchiver** (parité `/seasons` retirée en 17.5).
+- **Onglet Saisons :** grille actuelle + **Nouvelle saison** ; menu ⋮ par carte admin : **Archiver** / **Désarchiver** (parité `/seasons` retirée en 17.5). **Édition saison** : **PO Option A 2026-05-31** → gear workspace **`/saison/:slug`** (**story 17.31**), pas ⋮ carte hub pour **Modifier**.
 - **Onglet Membres :** embed `app-membres-tab` (existant) ; supprimer le gear troupe ; redirect `/troupes/:slug/admin/membres` → `/troupes/:slug?onglet=membres`.
 - **Hors scope MVP 17.26 :** édition nom/logo troupe (future entrée gear « Paramètres troupe » ou 3ᵉ onglet) ; annuaire public ; roster membres **lecture seule** pour non-admins.
 - **Questions ouvertes :** ~~les membres non-admin doivent-ils voir un annuaire troupe en lecture seule ?~~ **Décision PO 2026-05-28 : Option A** — onglet Membres **admin-only** (`TROUPE_ADMIN`) ; pas d’annuaire lecture seule en 17.26. deep link breadcrumb « Troupe › Membres » disparaît au profit du tab actif ?

@@ -110,6 +110,8 @@ describe('maliceEventsManifest — buildEventsLoadSql (AC7)', () => {
     assert.match(sql, /INSERT INTO events \(id, season_id, title/)
     assert.match(sql, /ON CONFLICT \(id\) DO UPDATE SET/)
     assert.match(sql, /role_slots = EXCLUDED\.role_slots/)
+    assert.match(sql, /UPDATE seasons/)
+    assert.match(sql, /event_count = \(SELECT COUNT\(\*\)::int FROM events e WHERE e\.season_id = seasons\.id AND e\.archived = FALSE\)/)
     // role_slots stored as JSON text
     assert.match(sql, /\{"player":5,"mc":1\}/)
   })

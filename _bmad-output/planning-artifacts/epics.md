@@ -1695,6 +1695,27 @@ afin que **le filtrage scale** sans mega-dialog et retrouve **l’ergonomie V1**
 
 ---
 
+#### Story 17.31 : Modifier la saison — gear workspace *(FR11 gap post-17.5)*
+
+En tant qu’**administrateur de troupe**,  
+je veux **modifier la saison courante** depuis le menu engrenage du workspace `/saison/:slug`,  
+afin de **éditer titre, description et dates** sans l’ancienne liste `/seasons`.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** `canManageSeasons`, **when** workspace saison, **then** gear inclut **Modifier** → `SeasonFormDialog` edit (mêmes champs que création).
+- **Given** save OK, **when** titre change le slug, **then** redirect `/saison/:newSlug` (`replaceUrl`) + snack *Saison mise à jour*.
+- **Given** sans `canManageSeasons`, **then** pas d’entrée **Modifier** (organisateur·ice saison exclus).
+- **Given** ordre menu, **then** **Modifier** → **Nouveau spectacle** → **Participants** → **Organisateur·ices**.
+- **Couverture :** **FR11** ; amendement [ux-design-scope-admin-menu-epic17.md](./ux-design-scope-admin-menu-epic17.md) Screen 1 ; ferme gap [17-5](../implementation-artifacts/17-5-redirects-fin-seasons-hub-troupe.md).
+
+**Priorité :** P2 — correctif discoverability admin.  
+**Depends :** 3.1, 17.2, 17.28.  
+**Hors scope :** archiver / supprimer saison (G-007 / hub cartes).  
+**Story file:** [_17-31-modifier-saison-gear-workspace.md_](../implementation-artifacts/17-31-modifier-saison-gear-workspace.md)
+
+---
+
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 **Décisions produit (2026-05-28) :** sandbox **partagée** ; admin contenu par **super-admin** ; participants fictifs obligatoires ; `join_policy` sans paywall premium ; **Démo prod** via **`db/migration` idempotent (Option A)** ; seed dev renommé **Les Improbots** (slug `les-improbots`, emails `@seed.improbots.test`) — **La Malice** réservée à la migration V1 prod réelle.

@@ -22,11 +22,7 @@ import {
 } from '../../core/agenda/user-agenda-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
-import {
-  saisonEventPath,
-  saisonWorkspacePath,
-  troupeHubPath,
-} from '../../core/navigation/troupe-routes'
+import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import {
   buildAgendaFilterChips,
   buildAgendaFilterDimensions,
@@ -278,9 +274,6 @@ export class UserAgenda implements OnInit {
     await this.syncFilterQueryParams()
     await this.loadAgenda()
   }
-
-  protected readonly troupeHubPath = troupeHubPath
-  protected readonly saisonWorkspacePath = saisonWorkspacePath
 
   protected openEvent(item: UserAgendaItem): void {
     void this.router.navigate(saisonEventPath(item.seasonSlug, item.eventSlug))

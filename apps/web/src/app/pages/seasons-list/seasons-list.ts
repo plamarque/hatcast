@@ -209,15 +209,15 @@ export class SeasonsList implements OnInit {
       this.snack.open('Vous ne pouvez pas modifier cette saison.', 'OK', { duration: 5000 })
       return
     }
-    const ref = this.dialog.open<SeasonFormDialog, SeasonFormDialogData, boolean>(
+    const ref = this.dialog.open<SeasonFormDialog, SeasonFormDialogData, SeasonResponse>(
       SeasonFormDialog,
       {
         data: { mode: 'edit', troupeId: tid, season },
         width: 'min(100vw - 2rem, 28rem)',
       },
     )
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
+    ref.afterClosed().subscribe((updated) => {
+      if (updated) {
         void this.loadTroupeAndSeasons(this.pageIndex())
         this.snack.open('Saison mise à jour.', 'OK', { duration: 4000 })
       }

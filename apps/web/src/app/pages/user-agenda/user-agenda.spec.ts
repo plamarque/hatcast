@@ -108,40 +108,15 @@ describe('UserAgenda', () => {
     expect(fixture.nativeElement.querySelector('app-member-season-shortcut')).toBeNull()
   })
 
-  it('affiche les badges troupe et saison cliquables sur chaque carte', async () => {
+  it('n’affiche pas les badges troupe et saison sur les cartes', async () => {
     await settle(fixture)
 
-    const troupeLink = fixture.nativeElement.querySelector(
-      'a.agenda-card__badge--link[href="/troupes/la-bim"]',
-    ) as HTMLAnchorElement
-    const seasonLink = fixture.nativeElement.querySelector(
-      'a.agenda-card__badge--season[href="/saison/ligue-2026"]',
-    ) as HTMLAnchorElement
-
-    expect(troupeLink).toBeTruthy()
-    expect(troupeLink.getAttribute('aria-label')).toBe('Ouvrir la troupe La BIM')
-    expect(seasonLink).toBeTruthy()
-    expect(seasonLink.getAttribute('aria-label')).toBe('Ouvrir la saison Festibask 2026')
-  })
-
-  it('n’ouvre pas l’événement quand on clique sur le badge saison', async () => {
-    agendaApi.listAgenda.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: agendaResponse([
-        agendaItem('event-badge', 'Cabaret badge', '2026-05-10T18:00:00Z'),
-      ]),
-    })
-
-    await settle(fixture)
-    navigateSpy.mockClear()
-
-    const seasonLink = fixture.nativeElement.querySelector(
-      'a.agenda-card__badge--season',
-    ) as HTMLAnchorElement
-    seasonLink.click()
-
-    expect(navigateSpy).not.toHaveBeenCalled()
+    expect(
+      fixture.nativeElement.querySelector('a.agenda-card__badge--link[href="/troupes/la-bim"]'),
+    ).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('a.agenda-card__badge--season[href="/saison/ligue-2026"]'),
+    ).toBeNull()
   })
 
   it('affiche le badge composition quand teamStatusBadge est présent', async () => {
@@ -167,7 +142,7 @@ describe('UserAgenda', () => {
     expect(badge.textContent?.trim()).toBe('Préparation')
   })
 
-  it('affiche les événements groupés par mois avec les badges troupe, saison et disponibilité', async () => {
+  it('affiche les événements groupés par mois avec le statut de disponibilité', async () => {
     agendaApi.listAgenda.mockResolvedValue({
       ok: true,
       status: 200,
@@ -195,8 +170,8 @@ describe('UserAgenda', () => {
     expect(text).toContain('février 2026')
     expect(text).toContain('Cabaret de janvier')
     expect(fixture.nativeElement.querySelector('.agenda-card__loc')).toBeNull()
-    expect(text).toContain('La BIM')
-    expect(text).toContain('Festibask 2026')
+    expect(text).not.toContain('La BIM')
+    expect(text).not.toContain('Festibask 2026')
     expect(text).toContain('Dispo')
     expect(text).not.toContain('Filtres')
   })
@@ -221,8 +196,9 @@ describe('UserAgenda', () => {
 
     const cards = fixture.nativeElement.querySelectorAll('.agenda-card')
     expect(cards).toHaveLength(2)
-    expect(fixture.nativeElement.textContent).toContain('Troupe A')
-    expect(fixture.nativeElement.textContent).toContain('Troupe B')
+    expect(fixture.nativeElement.textContent).toContain('Rencontre partagée')
+    expect(fixture.nativeElement.textContent).not.toContain('Troupe A')
+    expect(fixture.nativeElement.textContent).not.toContain('Troupe B')
   })
 
   it('affiche l’état vide sans participation', async () => {

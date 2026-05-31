@@ -205,8 +205,29 @@ export function buildEventsLoadSql(events, { generatedBy = 'scripts/migrate-mali
     )
   }
 
+  if (events.length > 0) {
+    lines.push(...buildSeasonEventCountReconcileSqlLines(events[0].seasonV2Id))
+  }
+
   lines.push('')
   return `${lines.join('\n')}\n`
+}
+
+/**
+ * SQL lines reconciling seasons.event_count after bulk event load (BUG-004 / story 17-30).
+ *
+ * @param {string} seasonId V2 season UUID
+ * @returns {string[]}
+ */
+export function buildSeasonEventCountReconcileSqlLines(seasonId) {
+  return [
+    '-- Reconcile denormalized seasons.event_count (non-archived events only)',
+    'UPDATE seasons',
+    'SET',
+    '    event_count = (SELECT COUNT(*)::int FROM events e WHERE e.season_id = seasons.id AND e.archived = FALSE),',
+    '    updated_at = CURRENT_TIMESTAMP',
+    `WHERE id = ${sqlString(seasonId)};`,
+  ]
 }
 
 /**

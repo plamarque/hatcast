@@ -9,9 +9,9 @@ relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-journey-league-agenda.md
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-05-25-scope-admin-menu.md
   - _bmad-output/implementation-artifacts/17-2-bandeau-administration-par-scope.md
-stakeholderSignOff: '2026-05-31 — season + event detail gear in breadcrumb row (UX-DR22.1, ux-design-event-detail-chrome-alignment.md approved)'
+stakeholderSignOff: '2026-05-31 — season + event detail gear in breadcrumb row (UX-DR22.1, ux-design-event-detail-chrome-alignment.md approved); 2026-05-31 PO Option A — Modifier saison in season workspace gear (17.31)'
 amendmentDate: '2026-05-31'
-amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); event detail chrome alignment proposed same day'
+amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); event detail chrome alignment; 17.31 adds Modifier saison (FR11 gap post-17.5)'
 ---
 
 # UX Design — Scope admin menu (`app-scope-admin-menu`)
@@ -80,17 +80,24 @@ amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); e
 
 ### Menu entries (when permitted)
 
+**Order (flat list):** **Modifier** → **Nouveau spectacle** → **Participants** → **Organisateur·ices** (skip rows user cannot use).
+
 | Permission | Label | Destination / action |
 |------------|-------|----------------------|
+| `canManageSeasons` | **Modifier** | Opens `SeasonFormDialog` (`mode: 'edit'`) for current season — **Story 17.31** ; on slug change after title edit, navigate to new `/saison/:slug` with `replaceUrl` |
+| `canManageEvents` | Nouveau spectacle | Opens create `EventFormDialog` (existing) |
 | `canManageSeasonParticipants` | Participants | `/saison/:slug/admin/participants` |
 | `canManageSeasonOrganizersOnly` | Organisateur·ices | `/saison/:slug/admin/membres?onglet=organisateurs` |
+
+**Note:** Season organizers **do not** receive **Modifier** (`canManageSeasons` is troupe-admin only).
 
 ### Acceptance hints
 
 - [ ] Gear **in** `app-season-header` breadcrumb row (season workspace — UX-DR22.1).
 - [ ] No gear in `season-view-toolbar` right cluster (filter occupies that slot).
 - [ ] No `.scope-admin-bar` strip between header and toolbar.
-- [ ] Gear absent when user lacks both permissions above.
+- [ ] Gear absent when user lacks **all** entries above (including **Modifier** when not troupe admin).
+- [ ] **Modifier** re-homes season edit lost when `/seasons` redirect landed (17.5 gap — **17.31**).
 
 ---
 
@@ -229,5 +236,6 @@ Gear uses `settings` icon (consistent with legacy season header menu before 17.1
 
 | Date | Change |
 |------|--------|
+| 2026-05-31 | **17.31** — Screen 1 : add **Modifier** (`canManageSeasons`) first in season workspace gear ; closes 17.5 edit gap (PO Option A) |
 | 2026-05-25 | Event Infos: single gear merges ⋮ + scope admin items |
 | 2026-05-25 | Initial spec — replaces `app-scope-admin-bar` strip per SCP approval |

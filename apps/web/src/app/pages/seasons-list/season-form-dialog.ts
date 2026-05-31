@@ -179,7 +179,7 @@ function defaultEndDateAfterOneSeasonYear(start: Date): Date {
 export class SeasonFormDialog implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder)
   private readonly api = inject(SeasonApiService)
-  private readonly ref = inject(MatDialogRef<SeasonFormDialog, string | boolean>)
+  private readonly ref = inject(MatDialogRef<SeasonFormDialog, SeasonResponse | string | boolean>)
   protected readonly data = inject<SeasonFormDialogData>(MAT_DIALOG_DATA)
   protected readonly saving = signal(false)
 
@@ -254,8 +254,8 @@ export class SeasonFormDialog implements OnInit, OnDestroy {
           startDate: start,
           endDate: end,
         })
-        if (r.ok) {
-          this.ref.close(true)
+        if (r.ok && r.data) {
+          this.ref.close(r.data)
         }
       }
     } finally {
