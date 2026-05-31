@@ -8,7 +8,9 @@ import type {
   ParticipantStatisticsRow,
   SeasonStatisticsResponse,
   StatCounts,
+  StatisticsEventCell,
 } from '../../core/seasons/season-statistics-api.service'
+import { ParticipationEventCell } from '../../shared/participation/participation-event-cell'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { StatRatioDisplay } from './stat-ratio-display'
 import { monthLabel } from './season-statistics.utils'
@@ -24,7 +26,14 @@ export type StatisticsEmptyReason = 'none-selected' | 'no-data' | null
 
 @Component({
   selector: 'app-season-statistics',
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule, StatRatioDisplay, UserAvatarComponent],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    StatRatioDisplay,
+    UserAvatarComponent,
+    ParticipationEventCell,
+  ],
   templateUrl: './season-statistics.html',
   styleUrl: './season-statistics.scss',
 })
@@ -111,8 +120,21 @@ export class SeasonStatistics {
     return row.monthSummary[monthKey]
   }
 
-  protected eventCell(row: ParticipantStatisticsRow, eventId: string): string {
-    return row.eventCells[eventId] ?? '—'
+  protected eventCellDetail(
+    row: ParticipantStatisticsRow,
+    eventId: string,
+  ): StatisticsEventCell {
+    const detail = row.eventCellDetails?.[eventId]
+    if (detail) {
+      return detail
+    }
+    const legacy = row.eventCells[eventId] ?? '—'
+    return {
+      status: 'neutral',
+      label: legacy,
+      roleKey: null,
+      tooltip: legacy,
+    }
   }
 
   protected canOpenMemberProfile(row: ParticipantStatisticsRow): boolean {

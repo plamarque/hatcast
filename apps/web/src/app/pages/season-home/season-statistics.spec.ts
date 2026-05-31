@@ -10,8 +10,17 @@ import { SeasonStatistics } from './season-statistics'
 describe('SeasonStatistics', () => {
   const sampleData: SeasonStatisticsResponse = {
     participants: [],
-    monthKeys: [],
-    events: [],
+    monthKeys: ['2026-03'],
+    events: [
+      {
+        id: 'ev1',
+        title: 'Match test',
+        startsAt: '2026-03-15T19:00:00Z',
+        templateType: 'match',
+        equityTag: null,
+        monthKey: '2026-03',
+      },
+    ],
     rows: [
       {
         participantId: 'p1',
@@ -19,9 +28,17 @@ describe('SeasonStatistics', () => {
         userSlug: 'alice-dupont',
         avatarUrl: null,
         annual: { totalJeu: { selections: 0, dispos: 0, declines: 0 } },
-        monthSummary: {},
+        monthSummary: { '2026-03': { selections: 0, dispos: 0, declines: 0 } },
         byMonth: {},
-        eventCells: {},
+        eventCells: { ev1: 'Comédien·ne' },
+        eventCellDetails: {
+          ev1: {
+            status: 'selected',
+            label: 'Comédien·ne',
+            roleKey: 'player',
+            tooltip: 'Comédien·ne',
+          },
+        },
       },
       {
         participantId: 'p2',
@@ -36,7 +53,10 @@ describe('SeasonStatistics', () => {
     ],
   }
 
-  async function setup(navigateSpy = vi.fn()): Promise<ComponentFixture<SeasonStatistics>> {
+  async function setup(
+    navigateSpy = vi.fn(),
+    data: SeasonStatisticsResponse = sampleData,
+  ): Promise<ComponentFixture<SeasonStatistics>> {
     await TestBed.configureTestingModule({
       imports: [SeasonStatistics, NoopAnimationsModule],
       providers: [
@@ -49,9 +69,10 @@ describe('SeasonStatistics', () => {
     }).compileComponents()
 
     const fixture = TestBed.createComponent(SeasonStatistics)
-    fixture.componentRef.setInput('data', sampleData)
+    fixture.componentRef.setInput('data', data)
     fixture.componentRef.setInput('troupeId', 'troupe-1')
     fixture.componentRef.setInput('leagueId', 'league-1')
+    fixture.componentRef.setInput('detailsExpanded', true)
     fixture.detectChanges()
     return fixture
   }
@@ -116,5 +137,29 @@ describe('SeasonStatistics', () => {
     expect(plainRows.length).toBe(1)
     ;(plainRows[0] as HTMLElement).click()
     expect(navigateSpy).not.toHaveBeenCalled()
+  })
+
+  it('renders participation event cell when month is expanded', async () => {
+    const fixture = await setup()
+    const cells = fixture.nativeElement.querySelectorAll('app-participation-event-cell')
+    expect(cells.length).toBe(2)
+    expect(fixture.nativeElement.querySelector('.participation-event-cell--selected')).toBeTruthy()
+  })
+
+  it('falls back to neutral legacy text when eventCellDetails is absent', async () => {
+    const legacyData: SeasonStatisticsResponse = {
+      ...sampleData,
+      rows: [
+        {
+          ...sampleData.rows[0],
+          eventCellDetails: undefined,
+          eventCells: { ev1: 'Dispo (J)' },
+        },
+      ],
+    }
+    const fixture = await setup(vi.fn(), legacyData)
+    const cell = fixture.nativeElement.querySelector('.participation-event-cell--neutral')
+    expect(cell).toBeTruthy()
+    expect(cell?.textContent).toContain('Dispo (J)')
   })
 })

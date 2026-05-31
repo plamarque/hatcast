@@ -130,10 +130,8 @@
 }
 
 .season-statistics__event-cell {
-  font-size: 0.7rem;
-  max-width: 8rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 0.35rem 0.45rem;
+  vertical-align: middle;
 }
 
 .season-statistics__subhead th {

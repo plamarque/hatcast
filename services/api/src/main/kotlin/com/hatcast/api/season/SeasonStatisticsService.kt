@@ -21,6 +21,7 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.dto.ParticipantStatisticsRowDto
 import com.hatcast.api.season.dto.SeasonStatisticsResponseDto
 import com.hatcast.api.season.dto.StatCountsDto
+import com.hatcast.api.season.dto.StatisticsEventCellDto
 import com.hatcast.api.season.dto.StatisticsEventDto
 import com.hatcast.api.season.dto.StatisticsParticipantDto
 import com.hatcast.api.text.sortedByFrenchDisplayName
@@ -188,6 +189,7 @@ class SeasonStatisticsService(
         val monthSummary = mutableMapOf<String, StatCountBucket>()
         val byMonth = mutableMapOf<String, MutableMap<String, StatCounts>>()
         val eventCells = mutableMapOf<UUID, String>()
+        val eventCellDetails = mutableMapOf<UUID, StatisticsEventCellDto>()
 
         for (event in events) {
             val mk = monthKey(event)
@@ -224,10 +226,10 @@ class SeasonStatisticsService(
                 }
             }
 
-            val selectionRole = if (validated) findSelectionRole(slots, participantId, declines) else null
-            if (selectionRole != null) {
-                bumpSelections(annual, event, selectionRole)
-                bumpSelections(monthBucket, event, selectionRole)
+            val selectionSlot = if (validated) findSelectionSlot(slots, participantId, declines) else null
+            if (selectionSlot != null) {
+                bumpSelections(annual, event, selectionSlot.roleKey)
+                bumpSelections(monthBucket, event, selectionSlot.roleKey)
             }
 
             SeasonStatisticsRules.accumulateMonthEventSummary(
@@ -240,16 +242,18 @@ class SeasonStatisticsService(
                 availableRoleKeys = availableRoleKeys,
             )
 
-            eventCells[event.id] =
-                eventCellExportValue(
+            val cell =
+                buildEventCell(
                     event = event,
                     validated = validated,
                     declines = declines,
                     participantId = participantId,
                     availableRoleKeys = availableRoleKeys,
                     unavailable = unavailable,
-                    selectionRole = selectionRole,
+                    selectionSlot = selectionSlot,
                 )
+            eventCellDetails[event.id] = cell
+            eventCells[event.id] = eventCellExportLabel(cell)
         }
 
         return ParticipantStatisticsRowDto(
@@ -264,6 +268,7 @@ class SeasonStatisticsService(
                     cols.mapValues { (_, c) -> StatCountsDto(c.selections, c.dispos, c.declines) }
                 },
             eventCells = eventCells,
+            eventCellDetails = eventCellDetails,
         )
     }
 
@@ -315,11 +320,16 @@ class SeasonStatisticsService(
         }
     }
 
-    private fun findSelectionRole(
+    internal data class SelectionSlotInfo(
+        val roleKey: String,
+        val participationStatus: SlotParticipationStatus,
+    )
+
+    private fun findSelectionSlot(
         slots: List<EventCompositionSlotEntity>,
         participantId: UUID,
         declines: List<EventCompositionDeclineEntity>,
-    ): String? {
+    ): SelectionSlotInfo? {
         val declinedRoles =
             declines
                 .filter { it.seasonParticipantId == participantId || it.eventParticipantId == participantId }
@@ -335,20 +345,20 @@ class SeasonStatisticsService(
             if (declinedRoles.contains(slot.roleKey)) {
                 continue
             }
-            return slot.roleKey
+            return SelectionSlotInfo(slot.roleKey, slot.participationStatus)
         }
         return null
     }
 
-    private fun eventCellExportValue(
+    internal fun buildEventCell(
         event: EventEntity,
         validated: Boolean,
         declines: List<EventCompositionDeclineEntity>,
         participantId: UUID,
         availableRoleKeys: List<String>,
         unavailable: Boolean,
-        selectionRole: String?,
-    ): String {
+        selectionSlot: SelectionSlotInfo?,
+    ): StatisticsEventCellDto {
         val declinedRoles =
             declines
                 .filter { it.seasonParticipantId == participantId || it.eventParticipantId == participantId }
@@ -358,10 +368,40 @@ class SeasonStatisticsService(
                 ROLE_DISPLAY_ORDER
                     .filter { declinedRoles.contains(it) }
                     .map { ROLE_EXPORT_ABBREVIATIONS[it] ?: it }
-            return "Décliné (${abbrevs.joinToString(", ")})"
+            val primaryRole = ROLE_DISPLAY_ORDER.firstOrNull { declinedRoles.contains(it) }
+            val label = "Décliné (${abbrevs.joinToString(", ")})"
+            return StatisticsEventCellDto(
+                status = "declined",
+                label = label,
+                roleKey = primaryRole,
+                tooltip = primaryRole?.let { "${ROLE_LABELS[it] ?: it} — Décliné" } ?: label,
+            )
         }
-        if (selectionRole != null && validated) {
-            return ROLE_LABELS[selectionRole] ?: selectionRole
+        if (selectionSlot != null && validated) {
+            val roleLabel = ROLE_LABELS[selectionSlot.roleKey] ?: selectionSlot.roleKey
+            return when (selectionSlot.participationStatus) {
+                SlotParticipationStatus.PENDING ->
+                    StatisticsEventCellDto(
+                        status = "pending",
+                        label = roleLabel,
+                        roleKey = selectionSlot.roleKey,
+                        tooltip = "$roleLabel — En attente de confirmation",
+                    )
+                SlotParticipationStatus.CONFIRMED ->
+                    StatisticsEventCellDto(
+                        status = "selected",
+                        label = roleLabel,
+                        roleKey = selectionSlot.roleKey,
+                        tooltip = roleLabel,
+                    )
+                SlotParticipationStatus.DECLINED ->
+                    StatisticsEventCellDto(
+                        status = "declined",
+                        label = roleLabel,
+                        roleKey = selectionSlot.roleKey,
+                        tooltip = "$roleLabel — Décliné",
+                    )
+            }
         }
         if (availableRoleKeys.isNotEmpty()) {
             val abbrevs =
@@ -369,14 +409,33 @@ class SeasonStatisticsService(
                     .filter { availableRoleKeys.contains(it) && SeasonStatisticsRules.eventHasRoleSlot(event, it) }
                     .map { ROLE_EXPORT_ABBREVIATIONS[it] ?: it }
             if (abbrevs.isNotEmpty()) {
-                return "Dispo (${abbrevs.joinToString(", ")})"
+                val label = "Dispo (${abbrevs.joinToString(", ")})"
+                return StatisticsEventCellDto(
+                    status = "available",
+                    label = label,
+                    tooltip = label,
+                )
             }
         }
         if (unavailable) {
-            return "Non dispo"
+            return StatisticsEventCellDto(
+                status = "unavailable",
+                label = "Non dispo",
+                tooltip = "Non dispo",
+            )
         }
-        return "-"
+        return StatisticsEventCellDto(
+            status = "neutral",
+            label = "—",
+        )
     }
+
+    internal fun eventCellExportLabel(cell: StatisticsEventCellDto): String =
+        if (cell.status == "neutral") {
+            "-"
+        } else {
+            cell.label
+        }
 
     private fun monthKey(event: EventEntity): String =
         event.startsAt.atZone(STATS_ZONE).format(MONTH_FORMAT)

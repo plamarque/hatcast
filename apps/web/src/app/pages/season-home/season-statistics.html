@@ -185,7 +185,9 @@
                     />
                   </td>
                   @for (ev of monthEvents(mk); track ev.id) {
-                    <td class="season-statistics__event-cell">{{ eventCell(row, ev.id) }}</td>
+                    <td class="season-statistics__event-cell">
+                      <app-participation-event-cell [cell]="eventCellDetail(row, ev.id)" />
+                    </td>
                   }
                 } @else {
                   <td>

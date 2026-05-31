@@ -150,6 +150,7 @@ Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
 | Modale participation | `composition-participation-dialog.scss` |
 | Onglet Dispos | `availability-form.scss` |
 | Onglet Équipe (lignes + badge désistements + header statut) | `event-equipe-tab.scss`, `composition-equipe-status-header.scss` |
+| Grille Statistiques — cellules événement (mois déplié) | `participation-event-cell.scss` |
 
 #### Règles de rendu sur `-gradient-strong`
 

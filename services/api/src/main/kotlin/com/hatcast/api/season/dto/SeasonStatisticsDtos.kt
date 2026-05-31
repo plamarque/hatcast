@@ -8,6 +8,13 @@ data class StatCountsDto(
     val declines: Int,
 )
 
+data class StatisticsEventCellDto(
+    val status: String,
+    val label: String,
+    val roleKey: String? = null,
+    val tooltip: String? = null,
+)
+
 data class StatisticsEventDto(
     val id: UUID,
     val title: String,
@@ -28,6 +35,7 @@ data class ParticipantStatisticsRowDto(
     val monthSummary: Map<String, StatCountsDto>,
     val byMonth: Map<String, Map<String, StatCountsDto>>,
     val eventCells: Map<UUID, String>,
+    val eventCellDetails: Map<UUID, StatisticsEventCellDto>,
 )
 
 data class SeasonStatisticsResponseDto(

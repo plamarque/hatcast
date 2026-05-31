@@ -1,9 +1,18 @@
 import { Injectable } from '@angular/core'
 
+import type { ParticipationChartStatus } from '../participation/participation-status'
+
 export interface StatCounts {
   selections: number
   dispos: number
   declines: number
+}
+
+export interface StatisticsEventCell {
+  status: ParticipationChartStatus
+  label: string
+  roleKey?: string | null
+  tooltip?: string | null
 }
 
 export interface StatisticsEvent {
@@ -25,6 +34,7 @@ export interface ParticipantStatisticsRow {
   monthSummary: Record<string, StatCounts>
   byMonth: Record<string, Record<string, StatCounts>>
   eventCells: Record<string, string>
+  eventCellDetails?: Record<string, StatisticsEventCell>
 }
 
 export interface SeasonStatisticsResponse {

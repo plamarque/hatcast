@@ -1560,9 +1560,33 @@ components:
           type: string
           description: yyyy-MM (Europe/Paris)
 
+    StatisticsEventCell:
+      type: object
+      required: [status, label]
+      properties:
+        status:
+          type: string
+          enum:
+            - selected
+            - pending
+            - declined
+            - available
+            - unavailable
+            - neutral
+        label:
+          type: string
+          description: French display line (role label, Non dispo, Dispo (J), etc.)
+        roleKey:
+          type: string
+          nullable: true
+        tooltip:
+          type: string
+          nullable: true
+          description: e.g. "Comédien·ne — En attente de confirmation"
+
     ParticipantStatisticsRow:
       type: object
-      required: [participantId, displayName, annual, monthSummary, byMonth, eventCells]
+      required: [participantId, displayName, annual, monthSummary, byMonth, eventCells, eventCellDetails]
       properties:
         participantId:
           type: string
@@ -1595,6 +1619,12 @@ components:
           type: object
           additionalProperties:
             type: string
+          description: Legacy CSV export text (unchanged format).
+        eventCellDetails:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StatisticsEventCell'
+          description: Structured participation metadata for UI event columns (Story 3.20).
 
     SeasonStatisticsResponse:
       type: object
