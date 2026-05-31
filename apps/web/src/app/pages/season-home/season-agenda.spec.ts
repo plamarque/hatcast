@@ -95,6 +95,14 @@ describe('SeasonAgenda', () => {
     expect(badge?.textContent?.trim()).toBe('Collecte')
   })
 
+  it('n’affiche pas le lieu sur les cartes agenda et historique', () => {
+    expect(fixture.nativeElement.querySelector('.agenda-card__loc')).toBeNull()
+
+    fixture.componentRef.setInput('variant', 'history')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.agenda-card__loc')).toBeNull()
+  })
+
   it('shows participation status cell when availability editing is disabled', () => {
     fixture.componentRef.setInput('canEditAvailability', false)
     fixture.detectChanges()
