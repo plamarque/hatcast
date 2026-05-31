@@ -4,6 +4,7 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.dto.EventRosterParticipantDto
 import com.hatcast.api.participant.dto.EventRosterSource
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -110,7 +111,7 @@ class EventRosterService(
         val seenUserIds = mutableSetOf<UUID>()
         val roster = linkedMapOf<String, EventRosterParticipantDto>()
 
-        for (row in seasonRows.sortedBy { it.displayName.lowercase() }) {
+        for (row in seasonRows.sortedByFrenchDisplayName { it.displayName }) {
             val key = "season:${row.id}"
             roster[key] = EventRosterParticipantDto.fromSeason(row, includeEmail)
             row.user?.id?.let { seenUserIds.add(it) }
@@ -118,7 +119,7 @@ class EventRosterService(
 
         val eventRows =
             eventParticipantRepository.findActiveForEventWithAssociations(eventId, ParticipantStatus.ACTIVE)
-        for (row in eventRows.sortedBy { it.displayName.lowercase() }) {
+        for (row in eventRows.sortedByFrenchDisplayName { it.displayName }) {
             val linkedSeasonId = row.seasonParticipant?.id
             if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
                 continue

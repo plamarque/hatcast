@@ -13,6 +13,7 @@ import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.share.dto.ShareNotifyRequestDto
 import com.hatcast.api.share.dto.ShareNotifyResponseDto
 import com.hatcast.api.share.dto.ShareRecipientChannelsDto
@@ -204,7 +205,7 @@ class ShareRecipientsService(
         val rows = loadParticipantRows(eventId, participantIds)
         val recipients =
             rows
-                .sortedBy { it.displayName.lowercase() }
+                .sortedByFrenchDisplayName { it.displayName }
                 .map { row ->
                     val hasEmail = !row.email.isNullOrBlank()
                     ShareRecipientDto(

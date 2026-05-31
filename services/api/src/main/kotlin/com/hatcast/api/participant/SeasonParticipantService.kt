@@ -8,6 +8,7 @@ import com.hatcast.api.participant.dto.ParticipantSelectorDto
 import com.hatcast.api.participant.dto.ParticipantUpdateRequest
 import com.hatcast.api.participant.dto.SeasonParticipantAdminDto
 import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
@@ -42,6 +43,7 @@ class SeasonParticipantService(
         val includeEmail = participantAccess.canViewParticipantEmail(seasonId, principal)
         return seasonParticipantRepository
             .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE)
+            .sortedByFrenchDisplayName { it.displayName }
             .map { SeasonParticipantAdminDto.from(it, includeEmail) }
     }
 
@@ -54,6 +56,7 @@ class SeasonParticipantService(
         ensureMembershipParticipants(season)
         return seasonParticipantRepository
             .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE)
+            .sortedByFrenchDisplayName { it.displayName }
             .filter { row ->
                 row.troupeMembership == null ||
                     row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE

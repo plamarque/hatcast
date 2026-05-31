@@ -3,6 +3,7 @@ package com.hatcast.api.participant
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.dto.EventParticipantAdminDto
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.participant.dto.ParticipantCreateRequest
 import com.hatcast.api.participant.dto.ParticipantUpdateRequest
 import com.hatcast.api.user.UserRepository
@@ -32,6 +33,7 @@ class EventParticipantService(
         val includeEmail = participantAccess.canViewEventParticipantEmail(eventId, seasonId, principal)
         return eventParticipantRepository
             .findByEvent_IdAndStatusOrderByDisplayNameAsc(eventId, ParticipantStatus.ACTIVE)
+            .sortedByFrenchDisplayName { it.displayName }
             .map { EventParticipantAdminDto.from(it, includeEmail) }
     }
 

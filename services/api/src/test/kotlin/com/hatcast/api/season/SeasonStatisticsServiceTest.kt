@@ -189,4 +189,48 @@ class SeasonStatisticsServiceTest {
         val empty = service.loadStatistics(seasonId, principal, equityCompartments = listOf(""))
         assertTrue(empty.events.isEmpty())
     }
+
+    @Test
+    fun `loadStatistics sorts participants with French accent-insensitive order`() {
+        val troupe = mock<TroupeEntity> { whenever(it.id).thenReturn(troupeId) }
+        val season =
+            mock<SeasonEntity>().also {
+                whenever(it.id).thenReturn(seasonId)
+                whenever(it.troupe).thenReturn(troupe)
+            }
+        val veroId = UUID.randomUUID()
+        val vivianeId = UUID.randomUUID()
+        val vero =
+            mock<SeasonParticipantEntity>().also {
+                whenever(it.id).thenReturn(veroId)
+                whenever(it.displayName).thenReturn("Véro")
+                whenever(it.user).thenReturn(null)
+                whenever(it.troupeMembership).thenReturn(null)
+            }
+        val viviane =
+            mock<SeasonParticipantEntity>().also {
+                whenever(it.id).thenReturn(vivianeId)
+                whenever(it.displayName).thenReturn("Viviane")
+                whenever(it.user).thenReturn(null)
+                whenever(it.troupeMembership).thenReturn(null)
+            }
+
+        whenever(seasonRepository.findById(seasonId)).thenReturn(Optional.of(season))
+        whenever(seasonParticipantRepository.findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE))
+            .thenReturn(listOf(viviane, vero))
+        whenever(eventRepository.findNonArchivedBySeasonId(seasonId)).thenReturn(emptyList())
+
+        val principal =
+            SessionUserPrincipal(
+                userId = UUID.randomUUID(),
+                googleSub = "sub",
+                idpUid = null,
+                email = "alice@example.com",
+            )
+
+        val result = service.loadStatistics(seasonId, principal)
+
+        assertEquals(listOf(veroId, vivianeId), result.rows.map { it.participantId })
+        assertEquals(listOf("Véro", "Viviane"), result.participants.map { it.displayName })
+    }
 }

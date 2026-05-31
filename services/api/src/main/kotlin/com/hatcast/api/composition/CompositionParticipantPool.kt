@@ -8,6 +8,7 @@ import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import java.util.UUID
 
@@ -80,7 +81,7 @@ object CompositionParticipantPool {
             userId?.let { seenUserIds.add(it) }
         }
 
-        return byId.values.sortedBy { it.displayName.lowercase() }
+        return byId.values.sortedByFrenchDisplayName { it.displayName }
     }
 
     fun buildRolePool(

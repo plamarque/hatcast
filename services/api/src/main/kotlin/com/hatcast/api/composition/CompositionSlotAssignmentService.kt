@@ -18,6 +18,7 @@ import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.text.FrenchCollator
 import com.hatcast.api.troupe.TroupeAccessService
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -115,7 +116,7 @@ class CompositionSlotAssignmentService(
             scored
                 .sortedWith(
                     compareByDescending<AvailabilityChanceCalculator.ScoredCandidate> { it.chancePercent }
-                        .thenBy { it.displayName.lowercase() },
+                        .thenComparator { a, b -> FrenchCollator.compare(a.displayName, b.displayName) },
                 ).map { row ->
                     CompositionCandidateDto(
                         participantId = row.participantId,

@@ -20,6 +20,7 @@ import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserEntity
@@ -546,7 +547,7 @@ class AvailabilityService(
             userId?.let { seenUserIds.add(it) }
         }
 
-        return byId.values.sortedBy { it.displayName.lowercase() }
+        return byId.values.sortedByFrenchDisplayName { it.displayName }
     }
 
     private fun toEligibleRow(

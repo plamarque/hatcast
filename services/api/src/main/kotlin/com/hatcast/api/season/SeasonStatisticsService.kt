@@ -23,6 +23,7 @@ import com.hatcast.api.season.dto.SeasonStatisticsResponseDto
 import com.hatcast.api.season.dto.StatCountsDto
 import com.hatcast.api.season.dto.StatisticsEventDto
 import com.hatcast.api.season.dto.StatisticsParticipantDto
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.user.UserEntity
 import org.springframework.http.HttpStatus
@@ -105,6 +106,7 @@ class SeasonStatisticsService(
         val allParticipants =
             seasonParticipantRepository
                 .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE)
+                .sortedByFrenchDisplayName { it.displayName }
         val visibleParticipants =
             if (participantId != null) {
                 allParticipants.filter { it.id == participantId }
