@@ -1,6 +1,6 @@
 # Story 3.20 : Statistiques — cellules événement participation (couleur + emoji)
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created (2026-05-31, Sally UX + create-story). -->
 
@@ -233,6 +233,16 @@ Composer (dev-story workflow)
 
 - 2026-05-31 : Story créée (UX gap Statistiques event cells — couleur + emoji, spec participation semantic colors).
 - 2026-05-31 : Implémentation API `eventCellDetails` + composant `participation-event-cell` + intégration grille Statistiques.
+
+- 2026-06-01 : Code review — tests `declined`/`available`, alignement type TS `eventCellDetails` required.
+
+### Review Findings
+
+- [x] [Review][Patch] Tests Vitest incomplets pour `declined` et `available` [participation-event-cell.spec.ts]
+- [x] [Review][Patch] Contrat OpenAPI `eventCellDetails` required vs type TS optionnel [season-statistics-api.service.ts:37]
+- [x] [Review][Defer] Bras `SlotParticipationStatus.DECLINED` dans `buildEventCell` inaccessible via `findSelectionSlot` [SeasonStatisticsService.kt:397] — deferred, exhaustivité Kotlin + garde-fou futur
+- [x] [Review][Defer] `resolveParticipationChartStatus` remappe `available + roleKey → selected` [participation-event-cell.ts:27] — deferred, `buildEventCell` ne renseigne jamais `roleKey` sur `available`
+- [x] [Review][Defer] Fallback cache legacy (`eventCellDetails` absent) affiche toujours neutre gris [season-statistics.ts:131] — deferred, comportement explicitement spécifié dans la story
 
 ---
 

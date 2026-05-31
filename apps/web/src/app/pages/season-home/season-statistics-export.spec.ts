@@ -24,6 +24,7 @@ describe('season-statistics-export', () => {
           monthSummary: { '2026-03': { selections: 1, dispos: 1, declines: 0 } },
           byMonth: {},
           eventCells: { e1: 'Dispo (J, MC)' },
+          eventCellDetails: {},
         },
       ],
     }

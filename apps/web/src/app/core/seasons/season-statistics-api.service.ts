@@ -34,7 +34,7 @@ export interface ParticipantStatisticsRow {
   monthSummary: Record<string, StatCounts>
   byMonth: Record<string, Record<string, StatCounts>>
   eventCells: Record<string, string>
-  eventCellDetails?: Record<string, StatisticsEventCell>
+  eventCellDetails: Record<string, StatisticsEventCell>
 }
 
 export interface SeasonStatisticsResponse {

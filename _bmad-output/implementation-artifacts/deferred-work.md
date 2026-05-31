@@ -1,4 +1,21 @@
-## Deferred from: code review of 17-30-season-event-count-resync.md (2026-06-01)
+## Deferred from: code review of mig-4-deplacements-category-import.md (2026-06-01)
+
+- Gate Malice AC5 non exécuté (count=7 non prouvé sur dump prod) — dry-run/replay documenté mais absent des preuves ; bloquant gate prod, pas défaut code.
+- Replay Procedure C post-MIG-4 non démontré (AC8, ≥3 cycles `migrate:v2:validate-replay`).
+- `smokeCounts()` pipeline (`scripts/v2/migrate-lib/neon.mjs`) n’asserte pas `category='deplacements'` — runbook manuel couvre AC7 ; automatisation recommandée avant cutover.
+- `sprint-status.yaml` inclut des changements hors MIG-4 (3-20→done, epic-14 superseded) — hygiene sprint séparée.
+
+## Deferred from: code review of 3-20-statistiques-cellules-evenement-participation-couleur-emoji.md (2026-06-01)
+
+- Bras `SlotParticipationStatus.DECLINED` dans `buildEventCell` inaccessible via `findSelectionSlot` — exhaustivité Kotlin + garde-fou futur. [SeasonStatisticsService.kt:397]
+- `resolveParticipationChartStatus` remappe `available + roleKey → selected` — `buildEventCell` ne renseigne jamais `roleKey` sur `available`. [participation-event-cell.ts:27]
+- Fallback cache legacy (`eventCellDetails` absent) affiche toujours neutre gris — comportement explicitement spécifié dans la story. [season-statistics.ts:131]
+
+## Deferred from: code review of 17-28-filtres-hub-pickers.md (2026-06-01)
+
+- Event picker capped at 250 events — `EVENT_PICKER_MAX` silently truncates large catalogs. [season-view-toolbar.ts:28,286]
+- API multi-id participant/event for history — documented in Dev Agent Record; server union deferred to follow-up story.
+
 
 - ISSUES BUG-004 mentionne « unarchive lifecycle » — pas d’endpoint unarchive en V2 ; resync à prévoir si feature ajoutée.
 

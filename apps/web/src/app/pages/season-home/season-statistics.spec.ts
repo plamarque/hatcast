@@ -49,6 +49,7 @@ describe('SeasonStatistics', () => {
         monthSummary: {},
         byMonth: {},
         eventCells: {},
+        eventCellDetails: {},
       },
     ],
   }
@@ -147,15 +148,14 @@ describe('SeasonStatistics', () => {
   })
 
   it('falls back to neutral legacy text when eventCellDetails is absent', async () => {
+    const legacyRow = {
+      ...sampleData.rows[0],
+      eventCells: { ev1: 'Dispo (J)' },
+    }
+    delete (legacyRow as { eventCellDetails?: unknown }).eventCellDetails
     const legacyData: SeasonStatisticsResponse = {
       ...sampleData,
-      rows: [
-        {
-          ...sampleData.rows[0],
-          eventCellDetails: undefined,
-          eventCells: { ev1: 'Dispo (J)' },
-        },
-      ],
+      rows: [legacyRow],
     }
     const fixture = await setup(vi.fn(), legacyData)
     const cell = fixture.nativeElement.querySelector('.participation-event-cell--neutral')
