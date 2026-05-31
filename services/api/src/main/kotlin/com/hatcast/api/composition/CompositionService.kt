@@ -45,6 +45,7 @@ class CompositionService(
     private val notificationPort: CompositionNotificationPort,
     private val declineRepository: EventCompositionDeclineRepository,
     private val eventPublisher: ApplicationEventPublisher,
+    private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -336,11 +337,17 @@ class CompositionService(
         if (roleKeysForOdds.isEmpty()) {
             return emptyMap()
         }
+        val historyMode = SelectionHistoryModeResolver.forEvent(event)
+        val snapshotByRoleAndParticipant =
+            if (historyMode == SelectionHistoryMode.RETROSPECTIVE) {
+                drawChanceSnapshots
+                    .findByEventId(eventId)
+                    .associateBy { it.id.roleKey to it.id.participantId }
+            } else {
+                emptyMap()
+            }
         val historyCounts =
-            selectionHistory.pastSelectionCountByParticipantAndRole(
-                event,
-                SelectionHistoryModeResolver.forEvent(event),
-            )
+            selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
         val eligible = loadEligibleForExplainability(seasonId, eventId)
         val availabilityByUserId =
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
@@ -348,31 +355,53 @@ class CompositionService(
         val result = mutableMapOf<Pair<UUID, String>, Pair<Int, Int>>()
         for (roleKey in roleKeysForOdds) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
-            val pastByParticipant =
-                selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
-            val pool =
-                eligible.filter { row ->
-                    val availability = row.userId?.let { availabilityByUserId[it] } ?: return@filter false
-                    if (availability.status != StoredAvailabilityStatus.AVAILABLE) {
-                        return@filter false
-                    }
-                    AvailabilityRoleRules.isCandidateForRole(
-                        AvailabilityStatusMapper.toApi(availability.status),
-                        availability.roleKeys,
-                        roleKey,
-                    )
+            val assignedInRole =
+                assignedSlots.filter { it.roleKey == roleKey && it.hasAssignee() }
+            val needsLiveRecalc =
+                assignedInRole.any { slot ->
+                    val participantId = slot.assignedParticipantId() ?: return@any false
+                    snapshotByRoleAndParticipant[roleKey to participantId] == null
                 }
-            val scored =
-                AvailabilityChanceCalculator.scoreCandidates(
-                    pool.map {
-                        AvailabilityChanceCalculator.Candidate(it.participantId, it.displayName, null)
-                    },
-                    requiredCount,
-                    pastByParticipant,
-                )
-            for (candidate in scored) {
-                result[candidate.participantId to roleKey] =
-                    candidate.chancePercent to candidate.pastSelectionCount
+            val scoredByParticipant =
+                if (needsLiveRecalc) {
+                    val pastByParticipant =
+                        selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+                    val pool =
+                        eligible.filter { row ->
+                            val availability =
+                                row.userId?.let { availabilityByUserId[it] } ?: return@filter false
+                            if (availability.status != StoredAvailabilityStatus.AVAILABLE) {
+                                return@filter false
+                            }
+                            AvailabilityRoleRules.isCandidateForRole(
+                                AvailabilityStatusMapper.toApi(availability.status),
+                                availability.roleKeys,
+                                roleKey,
+                            )
+                        }
+                    AvailabilityChanceCalculator
+                        .scoreCandidates(
+                            pool.map {
+                                AvailabilityChanceCalculator.Candidate(it.participantId, it.displayName, null)
+                            },
+                            requiredCount,
+                            pastByParticipant,
+                        ).associateBy { it.participantId }
+                } else {
+                    emptyMap()
+                }
+            for (slot in assignedInRole) {
+                val participantId = slot.assignedParticipantId() ?: continue
+                val snapshot = snapshotByRoleAndParticipant[roleKey to participantId]
+                if (snapshot != null) {
+                    result[participantId to roleKey] =
+                        snapshot.chancePercent to snapshot.pastSelectionCount
+                } else {
+                    scoredByParticipant[participantId]?.let { candidate ->
+                        result[participantId to roleKey] =
+                            candidate.chancePercent to candidate.pastSelectionCount
+                    }
+                }
             }
         }
         return result

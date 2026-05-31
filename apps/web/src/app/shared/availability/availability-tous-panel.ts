@@ -3,6 +3,7 @@ import { MatExpansionModule } from '@angular/material/expansion'
 import { MatListModule } from '@angular/material/list'
 
 import type {
+  ChanceSource,
   EventAvailabilitySummary,
   SummaryParticipant,
   SummaryRoleCandidate,
@@ -24,6 +25,7 @@ import {
 export class AvailabilityTousPanel {
   readonly summary = input.required<EventAvailabilitySummary>()
   readonly loadingChances = input(false)
+  readonly chanceSource = input<ChanceSource | null>(null)
   readonly canSelectSubject = input(false)
 
   readonly participantSelected = output<SummaryParticipant>()

@@ -44,6 +44,7 @@ class CompositionDrawService(
     private val selectionHistory: CompositionSelectionHistoryService,
     private val compositionService: CompositionService,
     private val notificationPort: CompositionNotificationPort,
+    private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
 ) {
     @Transactional
     fun drawComposition(
@@ -118,6 +119,10 @@ class CompositionDrawService(
         val steps = mutableListOf<CompositionDrawStepDto>()
         val newlyAssignedParticipantIds = mutableListOf<UUID>()
         val slotsToPersist = mutableListOf<EventCompositionSlotEntity>()
+        // Last draw step wins when the same participant appears in multiple slots for one role.
+        val snapshotAccumulator = linkedMapOf<Pair<String, UUID>, DrawChanceSnapshotInput>()
+        // Roles whose existing snapshot rows are safe to replace (fully cleared and redrawn).
+        val fullyRedrawnRoleKeys = mutableSetOf<String>()
 
         for (roleKey in requiredRoles) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
@@ -127,6 +132,9 @@ class CompositionDrawService(
             val filledCount = (0 until requiredCount).count { roleSlots[it]?.hasAssignee() == true }
             val isFullRedraw =
                 mode == DrawMode.FULL && filledCount >= requiredCount
+            if (isFullRedraw) {
+                fullyRedrawnRoleKeys.add(roleKey)
+            }
 
             if (isFullRedraw) {
                 for (index in 0 until requiredCount) {
@@ -193,6 +201,17 @@ class CompositionDrawService(
                         requiredCount,
                         pastByParticipant,
                     )
+                for (candidate in scored) {
+                    snapshotAccumulator[roleKey to candidate.participantId] =
+                        DrawChanceSnapshotInput(
+                            roleKey = roleKey,
+                            participantId = candidate.participantId,
+                            chancePercent = candidate.chancePercent,
+                            pastSelectionCount = candidate.pastSelectionCount,
+                            requiredCount = requiredCount,
+                            candidateCount = pool.size,
+                        )
+                }
                 val drawResult = AvailabilityChanceCalculator.performWeightedDraw(weighted, random)
 
                 if (drawResult == null) {
@@ -263,6 +282,13 @@ class CompositionDrawService(
 
         if (slotsToPersist.isNotEmpty()) {
             slotRepository.saveAll(slotsToPersist.distinctBy { it.id })
+        }
+
+        val snapshotRows = snapshotAccumulator.values.toList()
+        when (mode) {
+            DrawMode.FULL ->
+                drawChanceSnapshots.replaceForFullDraw(eventId, fullyRedrawnRoleKeys, snapshotRows, now)
+            DrawMode.FILL_EMPTY -> drawChanceSnapshots.upsertForFillEmpty(eventId, snapshotRows, now)
         }
 
         compositionRow.updatedAt = now

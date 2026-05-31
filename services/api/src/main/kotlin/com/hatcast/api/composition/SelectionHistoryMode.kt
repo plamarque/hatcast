@@ -8,8 +8,8 @@ import java.time.Instant
  *
  * - [OPERATIONAL]: all validated assignments in the season/compartment except the current event
  *   (includes future confirmed events — supports out-of-order selection).
- * - [RETROSPECTIVE]: only events strictly before the target event (approximation for past-event
- *   Dispos until slice 2 snapshots exist).
+ * - [RETROSPECTIVE]: only events strictly before the target event (used for past-event
+ *   Dispos when no draw snapshot exists; slice 2 snapshots supersede this when present).
  */
 enum class SelectionHistoryMode {
     OPERATIONAL,

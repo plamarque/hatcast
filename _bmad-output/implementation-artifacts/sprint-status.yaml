@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-30T12:00:00+02:00
+# last_updated: 2026-05-31T12:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-30T12:00:00+02:00"
+last_updated: "2026-05-31T12:18:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -116,6 +116,7 @@ development_status:
   6-11-retour-visuel-et-performances-onglet-equipe: done
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
   6-13-publish-notifications-hors-transaction: done
+  6-14-snapshot-chances-au-tirage: done
   epic-6-retrospective: optional
 
   epic-7: backlog

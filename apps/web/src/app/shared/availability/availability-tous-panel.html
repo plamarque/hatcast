@@ -1,4 +1,13 @@
 @if (hasRoles()) {
+  @if (chanceSource() === 'estimated') {
+    <p class="availability-tous__estimated-hint">
+      ⚠️ Pourcentages au moment du tirage estimés.
+    </p>
+  } @else if (chanceSource() === 'snapshot') {
+    <p class="availability-tous__estimated-hint">
+      ℹ️ Pourcentages capturés au moment du tirage.
+    </p>
+  }
   <mat-accordion class="availability-tous" multi>
     @for (role of summary().roles; track role.roleKey) {
       <mat-expansion-panel class="availability-tous__role" [expanded]="isRoleExpanded(role.roleKey)">

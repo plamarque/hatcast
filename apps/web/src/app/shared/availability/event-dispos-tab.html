@@ -49,6 +49,7 @@
     <app-availability-tous-panel
       [summary]="s"
       [loadingChances]="loadingChances()"
+      [chanceSource]="s.chanceSource ?? null"
       [canSelectSubject]="canSwitchSubject()"
       (participantSelected)="onParticipantFromTous($event)"
     />

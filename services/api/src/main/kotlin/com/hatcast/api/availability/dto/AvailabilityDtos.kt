@@ -50,4 +50,6 @@ data class EventAvailabilitySummaryResponse(
     val roleSlots: Map<String, Int>,
     val participants: List<SummaryParticipantDto>,
     val roles: List<SummaryRoleDto>,
+    /** `live` = operational recalc; `snapshot` = draw-time freeze; `estimated` = retrospective without snapshot. */
+    val chanceSource: String? = null,
 )

@@ -8,7 +8,9 @@ import com.hatcast.api.availability.dto.SummaryParticipantDto
 import com.hatcast.api.availability.dto.SummaryRoleCandidateDto
 import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
+import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
 import com.hatcast.api.composition.CompositionSelectionHistoryService
+import com.hatcast.api.composition.SelectionHistoryMode
 import com.hatcast.api.composition.SelectionHistoryModeResolver
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
@@ -44,6 +46,7 @@ class AvailabilityService(
     private val organizerAccess: OrganizerAccessService,
     private val userRepository: UserRepository,
     private val selectionHistory: CompositionSelectionHistoryService,
+    private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -196,15 +199,25 @@ class AvailabilityService(
             }
 
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots)
-        val historyCounts =
-            if (includeChances) {
-                selectionHistory.pastSelectionCountByParticipantAndRole(
-                    event,
-                    SelectionHistoryModeResolver.forEvent(event),
-                )
+        val historyMode = SelectionHistoryModeResolver.forEvent(event)
+        val snapshotByRoleAndParticipant =
+            if (includeChances && historyMode == SelectionHistoryMode.RETROSPECTIVE) {
+                drawChanceSnapshots
+                    .findByEventId(event.id)
+                    .associateBy { it.id.roleKey to it.id.participantId }
             } else {
                 emptyMap()
             }
+        val hasSnapshots = snapshotByRoleAndParticipant.isNotEmpty()
+        // Retrospective fallback: candidates without a snapshot row are recalculated live.
+        val historyCounts =
+            if (includeChances) {
+                selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
+            } else {
+                emptyMap()
+            }
+        // True when at least one displayed % falls back to a recalc instead of a draw snapshot.
+        var usedEstimatedFallback = false
         val roles =
             requiredRoles.map { roleKey ->
                 val requiredCount = event.roleSlots[roleKey] ?: 0
@@ -216,32 +229,55 @@ class AvailabilityService(
                             roleKey,
                         )
                     }
-                val scoredCandidates =
-                    if (includeChances) {
-                        val pastByParticipant =
-                            selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
-                        AvailabilityChanceCalculator.scoreCandidates(
-                            roleCandidates.map {
-                                AvailabilityChanceCalculator.Candidate(
-                                    participantId = it.participantId,
-                                    displayName = it.displayName,
-                                    avatarUrl = it.avatarUrl,
-                                )
-                            },
-                            requiredCount,
-                            pastByParticipant,
-                        )
-                    } else {
-                        emptyList()
-                    }
                 val candidates =
                     if (includeChances) {
-                        scoredCandidates.map { row ->
+                        // Per (roleKey, participant): prefer the draw snapshot, fall back to a
+                        // retrospective recalc for candidates that have no snapshot row.
+                        val roleHasMissingSnapshot =
+                            historyMode == SelectionHistoryMode.RETROSPECTIVE &&
+                                hasSnapshots &&
+                                roleCandidates.any {
+                                    snapshotByRoleAndParticipant[roleKey to it.participantId] == null
+                                }
+                        val needsScoring =
+                            historyMode == SelectionHistoryMode.OPERATIONAL ||
+                                !hasSnapshots ||
+                                roleHasMissingSnapshot
+                        val scoredByParticipant =
+                            if (needsScoring) {
+                                val pastByParticipant =
+                                    selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+                                AvailabilityChanceCalculator
+                                    .scoreCandidates(
+                                        roleCandidates.map {
+                                            AvailabilityChanceCalculator.Candidate(
+                                                participantId = it.participantId,
+                                                displayName = it.displayName,
+                                                avatarUrl = it.avatarUrl,
+                                            )
+                                        },
+                                        requiredCount,
+                                        pastByParticipant,
+                                    ).associateBy { it.participantId }
+                            } else {
+                                emptyMap()
+                            }
+                        roleCandidates.map { row ->
+                            val snapshot = snapshotByRoleAndParticipant[roleKey to row.participantId]
+                            val chancePercent =
+                                if (snapshot != null) {
+                                    snapshot.chancePercent
+                                } else {
+                                    if (historyMode == SelectionHistoryMode.RETROSPECTIVE && hasSnapshots) {
+                                        usedEstimatedFallback = true
+                                    }
+                                    scoredByParticipant[row.participantId]?.chancePercent
+                                }
                             SummaryRoleCandidateDto(
                                 participantId = row.participantId,
                                 displayName = row.displayName,
                                 avatarUrl = row.avatarUrl,
-                                chancePercent = row.chancePercent,
+                                chancePercent = chancePercent,
                             )
                         }
                     } else {
@@ -260,12 +296,23 @@ class AvailabilityService(
                     candidates = candidates,
                 )
             }
+        val chanceSource =
+            if (!includeChances) {
+                null
+            } else if (historyMode == SelectionHistoryMode.OPERATIONAL) {
+                "live"
+            } else if (hasSnapshots && !usedEstimatedFallback) {
+                "snapshot"
+            } else {
+                "estimated"
+            }
 
         return EventAvailabilitySummaryResponse(
             eventId = event.id,
             roleSlots = event.roleSlots,
             participants = participants,
             roles = roles,
+            chanceSource = chanceSource,
         )
     }
 

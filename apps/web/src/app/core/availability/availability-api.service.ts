@@ -40,11 +40,14 @@ export interface SummaryRole {
   candidates: SummaryRoleCandidate[]
 }
 
+export type ChanceSource = 'live' | 'snapshot' | 'estimated'
+
 export interface EventAvailabilitySummary {
   eventId: string
   roleSlots: Record<string, number>
   participants: SummaryParticipant[]
   roles: SummaryRole[]
+  chanceSource?: ChanceSource | null
 }
 
 @Injectable({ providedIn: 'root' })

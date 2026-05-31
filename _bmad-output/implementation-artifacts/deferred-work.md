@@ -1,3 +1,8 @@
+## Deferred from: code review of 6-14-snapshot-chances-au-tirage.md (2026-05-31)
+
+- Participant assigné manuellement hors du pool courant (non AVAILABLE / non éligible) omis de l'explainability passée : `scoredByParticipant[participantId]?.let{}` sans branche `else` → aucune entrée d'odds pour un assigné réel sans snapshot. Gap pré-existant du chemin live, non introduit par la logique snapshot. [CompositionService.kt:393-404]
+- Migration V39 sans FK/cascade sur `participant_id` (FK uniquement sur `event_id ON DELETE CASCADE`) → lignes snapshot orphelines au retrait d'un season participant (croise la story 3-19 en cours). Faible impact : les chemins d'affichage joignent sur les candidats courants ; nettoyé seulement à la suppression de l'événement. [V39__event_draw_chance_snapshots.sql:11-12]
+
 ## Deferred from: code review of mig-3-availability-compositions-migration-pipeline.md (2026-05-29)
 
 - `comment` > VARCHAR(500) / `role_key` > VARCHAR(64) non validés côté transform → ferait échouer toute la transaction unique au load ; non routé vers rejects. Non déclenché par les données Malice (`comment=null`, role_keys courts). [scripts/v1/maliceAvailabilityCompositions.js:196,283]

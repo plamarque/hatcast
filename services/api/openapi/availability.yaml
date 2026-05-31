@@ -308,3 +308,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SummaryRole'
+        chanceSource:
+          type: string
+          enum: [live, snapshot, estimated]
+          nullable: true
+          description: >
+            Source des pourcentages lorsque includeChances=true :
+            live (recalcul opérationnel), snapshot (figé au tirage),
+            estimated (rétrospectif sans archive de tirage).
