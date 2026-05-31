@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core'
 
 import type { AvailabilityStatus } from '../availability/availability-status'
+import type { TeamStatusBadge } from '../composition/composition-lifecycle'
 
 export interface UserAgendaItem {
   eventId: string
@@ -15,6 +16,7 @@ export interface UserAgendaItem {
   leagueSlug: string
   leagueTitle: string
   myAvailabilityStatus: AvailabilityStatus | null
+  teamStatusBadge?: TeamStatusBadge | null
 }
 
 export interface UserAgendaTroupeFilter {

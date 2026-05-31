@@ -207,3 +207,7 @@ components:
           nullable: true
           enum: [available, unavailable, unknown]
           description: Statut de disponibilité de l'utilisateur pour cet événement
+        teamStatusBadge:
+          $ref: './events.yaml#/components/schemas/TeamStatusBadge'
+          nullable: true
+          description: Badge simplifié du cycle de vie composition (Collecte, Préparation, Confirmé)

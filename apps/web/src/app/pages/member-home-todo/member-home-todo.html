@@ -134,7 +134,10 @@
               <p class="agenda-card__loc">{{ next.location }}</p>
             }
             <div class="agenda-card__badges">
-              <span class="agenda-card__badge">{{ next.troupeName }}</span>
+              @if (next.teamStatusBadge) {
+                <app-composition-status-badge [badge]="next.teamStatusBadge" />
+              }
+              <span class="agenda-card__badge agenda-card__badge--meta">{{ next.troupeName }}</span>
               <span class="agenda-card__badge agenda-card__badge--league">{{ next.leagueTitle }}</span>
               @if (next.myAvailabilityStatus) {
                 <span

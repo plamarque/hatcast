@@ -245,24 +245,4 @@
   opacity: 0.8;
 }
 
-.agenda-card__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-}
-
-.agenda-card__badge {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
-}
-
-.agenda-card__badge--league {
-  background: color-mix(in srgb, var(--mat-sys-tertiary) 28%, transparent);
-}
-
-// Disponibilité : styles globaux `.agenda-card__badge--dispo` (styles/_hatcast-agenda-dispo-badge.scss)
+// Badges : styles globaux (_hatcast-agenda-event-badges.scss, _hatcast-agenda-dispo-badge.scss)

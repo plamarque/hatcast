@@ -101,8 +101,11 @@
               </div>
             </div>
             <div class="agenda-card__badges">
+              @if (ev.teamStatusBadge) {
+                <app-composition-status-badge [badge]="ev.teamStatusBadge" />
+              }
               <a
-                class="agenda-card__badge agenda-card__badge--link"
+                class="agenda-card__badge agenda-card__badge--meta agenda-card__badge--link"
                 [routerLink]="troupeHubPath(ev.troupeSlug)"
                 [attr.aria-label]="'Ouvrir la troupe ' + ev.troupeName"
                 (click)="$event.stopPropagation()"

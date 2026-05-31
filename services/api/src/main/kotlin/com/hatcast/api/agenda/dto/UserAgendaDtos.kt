@@ -1,6 +1,7 @@
 package com.hatcast.api.agenda.dto
 
 import com.hatcast.api.agenda.UserAgendaRow
+import com.hatcast.api.composition.TeamStatusBadgeDto
 import java.time.Instant
 import java.util.UUID
 
@@ -17,11 +18,13 @@ data class UserAgendaItemDto(
   val leagueSlug: String,
   val leagueTitle: String,
   val myAvailabilityStatus: String?,
+  val teamStatusBadge: TeamStatusBadgeDto? = null,
 ) {
   companion object {
     fun from(
       row: UserAgendaRow,
       myAvailabilityStatus: String?,
+      teamStatusBadge: TeamStatusBadgeDto? = null,
     ): UserAgendaItemDto {
       return UserAgendaItemDto(
         eventId = row.eventId,
@@ -36,6 +39,7 @@ data class UserAgendaItemDto(
         leagueSlug = row.leagueSlug,
         leagueTitle = row.leagueTitle,
         myAvailabilityStatus = myAvailabilityStatus,
+        teamStatusBadge = teamStatusBadge,
       )
     }
   }

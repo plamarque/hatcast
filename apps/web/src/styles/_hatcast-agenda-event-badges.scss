@@ -1,0 +1,73 @@
+// Shared agenda event pill badges — season, user agenda, member home.
+// Dispo state colours live in _hatcast-agenda-dispo-badge.scss (imported after this file).
+
+.agenda-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.agenda-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+
+// Troupe, tag équité — neutre discret (bordure légère)
+.agenda-card__badge--meta,
+.agenda-card__badge--equity {
+  color: var(--mat-sys-on-surface);
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
+  border-color: color-mix(in srgb, var(--mat-sys-outline) 35%, transparent);
+}
+
+.agenda-card__badge--equity {
+  max-width: 6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Saison / ligue — teinte tertiaire (aligné composition-status-badge --preparing)
+.agenda-card__badge--league {
+  color: var(--mat-sys-on-tertiary-container);
+  background: color-mix(in srgb, var(--mat-sys-tertiary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--mat-sys-tertiary) 35%, transparent);
+}
+
+.agenda-card__badge--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 1px;
+  }
+
+  &.agenda-card__badge--meta:hover,
+  &.agenda-card__badge--meta:focus-visible,
+  &.agenda-card__badge--equity:hover,
+  &.agenda-card__badge--equity:focus-visible {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
+  }
+
+  &.agenda-card__badge--league:hover,
+  &.agenda-card__badge--league:focus-visible {
+    background: color-mix(in srgb, var(--mat-sys-tertiary) 22%, transparent);
+  }
+}

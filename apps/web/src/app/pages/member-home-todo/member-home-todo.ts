@@ -30,6 +30,7 @@ import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redir
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { MemberSeasonShortcut } from '../../shared/member-cross-nav/member-season-shortcut'
+import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 
 @Component({
   selector: 'app-member-home-todo',
@@ -42,6 +43,7 @@ import { MemberSeasonShortcut } from '../../shared/member-cross-nav/member-seaso
     MatSnackBarModule,
     RouterLink,
     MemberSeasonShortcut,
+    CompositionStatusBadge,
   ],
   templateUrl: './member-home-todo.html',
   styleUrl: './member-home-todo.scss',

@@ -2,6 +2,7 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventEntity
+import com.hatcast.api.event.EventRepository
 import com.hatcast.api.organizer.EventOrganizerRepository
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.season.SeasonEntity
@@ -18,7 +19,25 @@ class CompositionLifecycleEnrichmentService(
     private val organizerAccess: OrganizerAccessRules,
     private val eventOrganizerRepository: EventOrganizerRepository,
     private val troupeAccess: TroupeAccessService,
+    private val eventRepository: EventRepository,
 ) {
+    @Transactional(readOnly = true)
+    fun loadViewsByEventIdsAcrossSeasons(
+        eventIds: Collection<UUID>,
+        principal: SessionUserPrincipal,
+    ): Map<UUID, CompositionLifecycleView> {
+        if (eventIds.isEmpty()) {
+            return emptyMap()
+        }
+        val events = eventRepository.findAllById(eventIds.toSet())
+        return events
+            .groupBy { it.season.id }
+            .flatMap { (_, seasonEvents) ->
+                val season = seasonEvents.first().season
+                loadViewsByEventIds(seasonEvents, season, principal).entries
+            }.associate { it.key to it.value }
+    }
+
     @Transactional(readOnly = true)
     fun loadViewsByEventIds(
         events: List<EventEntity>,

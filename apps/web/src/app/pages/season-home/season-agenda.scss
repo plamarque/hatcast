@@ -127,31 +127,7 @@
   opacity: 0.8;
 }
 
-.agenda-card__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-}
-
-.agenda-card__badge {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 500;
-}
-
-.agenda-card__badge--equity {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
-  max-width: 6rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-// Disponibilité : styles globaux `.agenda-card__badge--dispo` (styles/_hatcast-agenda-dispo-badge.scss)
+// Badges : styles globaux (_hatcast-agenda-event-badges.scss, _hatcast-agenda-dispo-badge.scss)
 
 .agenda-card__menu {
   flex-shrink: 0;

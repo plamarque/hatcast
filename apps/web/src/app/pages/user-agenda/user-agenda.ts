@@ -30,6 +30,7 @@ import {
   troupeHubPath,
 } from '../../core/navigation/troupe-routes'
 import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
+import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
 
 const PAGE_SIZE = 50
@@ -48,6 +49,7 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
     MatSnackBarModule,
     RouterLink,
     UserAgendaFilterBar,
+    CompositionStatusBadge,
   ],
   templateUrl: './user-agenda.html',
   styleUrl: './user-agenda.scss',

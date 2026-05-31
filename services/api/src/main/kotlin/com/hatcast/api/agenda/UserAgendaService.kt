@@ -7,6 +7,7 @@ import com.hatcast.api.agenda.dto.UserAgendaLeagueFilterDto
 import com.hatcast.api.agenda.dto.UserAgendaParticipationFiltersDto
 import com.hatcast.api.agenda.dto.UserAgendaResponse
 import com.hatcast.api.agenda.dto.UserAgendaTroupeFilterDto
+import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -22,6 +23,7 @@ enum class UserAgendaScope {
 class UserAgendaService(
   private val userAgendaRepository: UserAgendaRepository,
   private val availabilityService: AvailabilityService,
+  private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
 ) {
   @Transactional(readOnly = true)
   fun list(
@@ -52,6 +54,8 @@ class UserAgendaService(
 
     val eventIds = eventsPage.content.map { it.eventId }
     val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, principal.userId)
+    val lifecycleByEvent =
+      compositionLifecycleEnrichment.loadViewsByEventIdsAcrossSeasons(eventIds, principal)
 
     return UserAgendaResponse(
       content =
@@ -59,6 +63,7 @@ class UserAgendaService(
           UserAgendaItemDto.from(
             row = event,
             myAvailabilityStatus = availabilityByEvent[event.eventId],
+            teamStatusBadge = lifecycleByEvent[event.eventId]?.teamStatusBadge?.toDto(),
           )
         },
       page = eventsPage.number,

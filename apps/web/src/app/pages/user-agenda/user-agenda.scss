@@ -233,44 +233,11 @@
   opacity: 0.8;
 }
 
+// Badges : styles globaux ; décalage sous la colonne date (layout spécifique Mon agenda)
 .agenda-card__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
   padding-left: calc(3.4rem + 0.75rem);
 
   @media (max-width: 480px) {
     padding-left: 0;
   }
 }
-
-.agenda-card__badge {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.agenda-card__badge--link {
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    box-shadow 0.15s ease;
-
-  &:hover,
-  &:focus-visible {
-    background: rgba(255, 255, 255, 0.14);
-    outline: 2px solid var(--mat-sys-primary);
-    outline-offset: 1px;
-  }
-}
-
-.agenda-card__badge--league {
-  background: color-mix(in srgb, var(--mat-sys-tertiary) 28%, transparent);
-}
-
-// Disponibilité : styles globaux `.agenda-card__badge--dispo` (styles/_hatcast-agenda-dispo-badge.scss)

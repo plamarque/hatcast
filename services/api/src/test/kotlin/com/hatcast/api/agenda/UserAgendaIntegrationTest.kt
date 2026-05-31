@@ -307,6 +307,8 @@ class UserAgendaIntegrationTest {
       .andExpect(jsonPath("$.content[0].troupeId").value(seedTroupeId.toString()))
       .andExpect(jsonPath("$.content[0].leagueId").value(seasonId.toString()))
       .andExpect(jsonPath("$.content[0].myAvailabilityStatus").value("unknown"))
+      .andExpect(jsonPath("$.content[0].teamStatusBadge.key").value("collecting"))
+      .andExpect(jsonPath("$.content[0].teamStatusBadge.shortLabel").value("Collecte"))
       .andExpect(jsonPath("$.filterBarVisible").value(false))
       .andExpect(jsonPath("$.noParticipation").value(false))
   }

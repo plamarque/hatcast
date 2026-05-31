@@ -8,6 +8,7 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.composition.CompositionLinkedParticipantResolver
+import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.inbox.dto.InboxActionDto
 import com.hatcast.api.inbox.dto.InboxActionType
@@ -33,6 +34,7 @@ class MeInboxService(
   private val eventRepository: EventRepository,
   private val seasonParticipantRepository: SeasonParticipantRepository,
   private val eventParticipantRepository: EventParticipantRepository,
+  private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
 ) {
   @Transactional(readOnly = true)
   fun getInbox(principal: SessionUserPrincipal): MeInboxResponse {
@@ -54,6 +56,8 @@ class MeInboxService(
 
     val eventIds = upcomingRows.map { it.eventId }
     val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, userId)
+    val lifecycleByEvent =
+      compositionLifecycleEnrichment.loadViewsByEventIdsAcrossSeasons(eventIds, principal)
 
     val availabilityActions =
       upcomingRows
@@ -115,6 +119,7 @@ class MeInboxService(
         UserAgendaItemDto.from(
           row = row,
           myAvailabilityStatus = availabilityByEvent[row.eventId],
+          teamStatusBadge = lifecycleByEvent[row.eventId]?.teamStatusBadge?.toDto(),
         )
       }
 

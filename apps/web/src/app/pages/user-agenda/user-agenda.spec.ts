@@ -144,6 +144,29 @@ describe('UserAgenda', () => {
     expect(navigateSpy).not.toHaveBeenCalled()
   })
 
+  it('affiche le badge composition quand teamStatusBadge est présent', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([
+        agendaItem('event-prep', 'Cabaret préparation', '2026-06-15T19:30:00Z', {
+          teamStatusBadge: {
+            key: 'preparing',
+            label: 'Équipe en préparation',
+            tone: 'preparing',
+            shortLabel: 'Préparation',
+          },
+        }),
+      ]),
+    })
+
+    await settle(fixture)
+
+    const badge = fixture.nativeElement.querySelector('.composition-status-badge--preparing')
+    expect(badge).toBeTruthy()
+    expect(badge.textContent?.trim()).toBe('Préparation')
+  })
+
   it('affiche les événements groupés par mois avec les badges troupe, ligue et disponibilité', async () => {
     agendaApi.listAgenda.mockResolvedValue({
       ok: true,
