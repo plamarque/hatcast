@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 class E2eFixtureController(
     private val fixtureService: E2eFixtureService,
 ) {
-    /** Resets Story 3.19 smoke data (S1 exclusion + shared member on seasons A & B). */
+    /** Resets Story 3.19 recette data (seasons A/B, Max, externe, sans exclusion événement pré-appliquée). */
     @PostMapping("/story-3-19/reset")
     fun resetStory319(): Story319FixtureResponse = fixtureService.resetStory319()
 }

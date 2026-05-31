@@ -29,6 +29,20 @@ Pour réutiliser des processus déjà lancés : `PLAYWRIGHT_REUSE_SERVERS=1 npm 
 - **Fixtures** : `POST /v1/e2e/fixtures/story-3-19/reset` + en-tête `X-Hatcast-E2E-Key: e2e-fixtures-secret`.
 - État auth Playwright : `e2e/.auth/admin.json` (généré par `auth.setup.ts`, gitignored).
 
-## Smoke 3.19
+## Smoke / recette 3.19
 
-`smoke-3.19-season-removal.spec.ts` — scénarios recette **S2, S3, S4, S5** (`scripts/v2/RECETTE-3.19-RETRAIT-ROSTER-SAISON.md`).
+`recette-3.19.spec.ts` — cahier manuel `scripts/v2/RECETTE-3.19-RETRAIT-ROSTER-SAISON.md` :
+
+| Scénario | Couverture E2E |
+|----------|----------------|
+| S1 | Exclusion événement |
+| S2 | Retrait saison membre |
+| S3 | Garde de sync (reload) |
+| S4 | Portée saison-locale |
+| S5 | Ré-inclusion via Ajouter + exclusion événement conservée |
+| S6 | Cascade troupe + réactivation |
+| S7 | Rétrogradation organisateur·ice de saison |
+| S8 | Externe name-only |
+| S9 | Conservation historique composition (API, même `season_participant_id`) |
+
+Fixtures : `POST /v1/e2e/fixtures/story-3-19/reset` (membre Max, externe « Invité Recette E2E », saisons A/B).
