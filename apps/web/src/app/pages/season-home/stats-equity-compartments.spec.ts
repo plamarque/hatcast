@@ -26,14 +26,14 @@ describe('stats-equity-compartments', () => {
   })
 
   it('builds filter labels per UX', () => {
-    expect(statsGroupsFilterLabel({ kind: 'all' }, labels)).toContain('Tous les spectacles')
-    expect(statsGroupsFilterLabel({ kind: 'none' }, labels)).toBe('Groupes : Aucun')
+    expect(statsGroupsFilterLabel({ kind: 'all' }, labels)).toBe('Tous les spectacles')
+    expect(statsGroupsFilterLabel({ kind: 'none' }, labels)).toBe('Aucun')
     expect(
       statsGroupsFilterLabel({ kind: 'selected', slugs: ['deplacements'] }, labels),
-    ).toBe('Groupes : Déplacements')
+    ).toBe('Déplacements')
     expect(
       statsGroupsFilterLabel({ kind: 'selected', slugs: ['principal', 'deplacements'] }, labels),
-    ).toBe('Groupes : 2 sélectionnés')
+    ).toBe('2 groupes')
   })
 
   it('toggles all and individual slugs', () => {

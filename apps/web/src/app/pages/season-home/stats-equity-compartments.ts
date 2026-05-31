@@ -83,10 +83,10 @@ export function statsGroupsFilterLabel(
   labels: Record<string, string>,
 ): string {
   if (compartments.kind === 'all') {
-    return 'Groupes : Tous les spectacles'
+    return 'Tous les spectacles'
   }
   if (compartments.kind === 'none') {
-    return 'Groupes : Aucun'
+    return 'Aucun'
   }
   if (compartments.slugs.length === 1) {
     const slug = compartments.slugs[0]!
@@ -94,9 +94,9 @@ export function statsGroupsFilterLabel(
       slug === PRINCIPAL_COMPARTMENT
         ? 'Spectacles ordinaires'
         : (labels[slug] ?? slug)
-    return `Groupes : ${label}`
+    return label
   }
-  return `Groupes : ${compartments.slugs.length} sélectionnés`
+  return `${compartments.slugs.length} groupes`
 }
 
 export function statsGroupsExportLabel(
