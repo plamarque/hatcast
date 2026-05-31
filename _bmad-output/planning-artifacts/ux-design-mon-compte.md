@@ -77,14 +77,14 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 ```
 ┌────────────────────────────────────────────────────────────┐
 │  Mon compte                                                 │
-│  Identité et sécurité de ton compte HatCast.                │
+│  Identité et sécurité du compte HatCast.                    │
 └────────────────────────────────────────────────────────────┘
 ```
 
 | Élément | Valeur |
 |---------|--------|
 | **Titre (`h1`)** | `Mon compte` |
-| **Sous-titre** | `Identité et sécurité de ton compte HatCast.` (une ligne ; pas de paragraphe marketing) |
+| **Sous-titre** | `Identité et sécurité du compte HatCast.` (une ligne ; pas de paragraphe marketing) — voir [ux-voice-and-tone.md](./ux-voice-and-tone.md) |
 | **Actions header** | **Aucun** menu avatar sur cette route (C8) |
 | **Typo** | `font-size: 1.75rem` titre ; sous-titre `opacity: 0.85`, `0.95rem` — tokens existants |
 

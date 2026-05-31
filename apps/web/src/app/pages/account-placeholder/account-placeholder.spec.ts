@@ -79,7 +79,7 @@ describe('AccountPlaceholder', () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
     expect(text).toContain('Mon compte')
-    expect(text).toContain('Identité et sécurité de ton compte HatCast.')
+    expect(text).toContain('Identité et sécurité du compte HatCast.')
   })
 
   it('propose un menu sur l’avatar pour la photo', async () => {

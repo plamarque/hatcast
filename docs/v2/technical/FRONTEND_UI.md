@@ -80,7 +80,7 @@ Utiliser cette liste **à la fin** de chaque changement sous `apps/web/` (dével
 
 ### Copy et cohérence produit
 
-- [ ] **UI en français** — tutoiement aligné agenda / membre sauf spec contraire (admin peut rester neutre).
+- [ ] **UI en français** — tutoiement ; possessifs et couples titre/sous-titre : [ux-voice-and-tone.md](../../../_bmad-output/planning-artifacts/ux-voice-and-tone.md).
 - [ ] **Réutilisation** — avant un nouveau bloc UI, chercher un composant partagé (`shared/`, `member-cross-nav`, cartes agenda, headers saison/événement).
 
 ### Anti-patterns (rejeter en revue)

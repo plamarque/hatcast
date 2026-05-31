@@ -85,7 +85,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       return 'Disponibilités, sélections et rôles sur la saison.'
     }
     return g.isSelf
-      ? 'Tes disponibilités, sélections et rôles sur la saison.'
+      ? 'Mes disponibilités, sélections et rôles sur la saison.'
       : 'Saison en un clin d\'œil'
   }
 

@@ -202,7 +202,7 @@ Rangée de **chips** ou **list items** (pas des onglets de nav).
 | 0 action, ≥1 événement | Tout est à jour | Prochain spectacle ci-dessous. | — | Mon agenda complet |
 | Erreur chargement | Impossible de charger | Réessayer | — | — |
 
-**Ton :** tutoiement, aligné agenda actuel.
+**Ton :** tutoiement, aligné agenda actuel — règles détaillées (possessifs, titres vs messages) : [ux-voice-and-tone.md](./ux-voice-and-tone.md).
 
 ---
 
