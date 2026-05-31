@@ -33,6 +33,9 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Magic link:** Passwordless auth link; stored in `magicLinks` or `accountMagicLinks`, processed in `magicLinks.js` and auth views.
 - **Push queue / reminder queue:** Firestore collections (`pushQueue`, `reminderQueue`) consumed by Cloud Functions to send push notifications or email reminders (see `functions/index.js`).
 - **Display filter (participants / events):** User-selected subset of players or events to display in the grid views. `null` = all; `Set<id>` = only those IDs. State in GridBoard (`selectedPlayerIds`, `selectedEventIds`); UI in PlayerSelectorModal, EventSelectorModal, ViewHeader.
+- **Season participant (V2):** Person on a season roster (`season_participants`). May be synced from an active troupe membership or added explicitly (name-only, linked user, prelinked email). Distinct from troupe membership.
+- **Event roster exclusion (V2):** Local filter (`event_participant_exclusions`) — hides a season participant from one event’s roster only. Does not change troupe membership or season participant status.
+- **Season roster removal (V2):** Soft removal from one season’s active roster (`season_participants.status = REMOVED`, or equivalent). Does not deactivate troupe membership. Other seasons of the same troupe are unaffected.
 
 ---
 
@@ -67,7 +70,12 @@ User 1──* userPreferences, userPushTokens, userNavigation
 - **User agenda scope:** The member agenda includes an event **only if** the user is a **league participant** for that event’s league (or event-scoped participant where applicable). **Inter-troupe encounters** appear as **separate events** (one row per troupe’s event); the product does not merge them in the agenda. Users may **exclude travel leagues** (or any league) via filters when multiple leagues exist.
 - **Travel vs show leagues:** **Déplacements** are modeled as events in a **travel league**, not as a separate spectacle template on show leagues (V2 target). Draw and statistics run **per league**; no special-case draw branch for `templateType = deplacement` on show leagues once travel leagues are adopted. Legacy `deplacement` events remain valid until migrated.
 - **At least one active troupe admin (V2):** A troupe must keep at least one active membership with `baseline_role = TROUPE_ADMIN`; demoting or deactivating the last active admin is rejected.
-- **Soft deactivation for members (V2):** Removing a member sets `troupe_memberships.status = INACTIVE`; membership rows are not hard-deleted by the member-admin flow.
+- **Soft deactivation for members (V2):** Removing a member from the **troupe** (admin Membres only) sets `troupe_memberships.status = INACTIVE`; membership rows are not hard-deleted by the member-admin flow.
+- **Three-level participant removal (V2):** Roster visibility is scoped at event, season, or troupe level. None of these delete historical availability, composition, or audit data; re-inclusion reuses the same domain identities (`season_participant_id`, `troupe_membership_id`, `users.id`).
+  - **Event exclusion:** `event_participant_exclusions` hides a season participant from one event’s roster only. Does not change troupe membership or season participant status. Season-level statistics still include the participant unless they are also removed at season level.
+  - **Season roster removal:** Sets `season_participants.status = REMOVED` for that season only (admin Participants). Does not change `troupe_memberships`. Membership sync must not re-activate season-admin removals while membership stays `ACTIVE`.
+  - **Troupe membership removal:** Sets `troupe_memberships.status = INACTIVE` and cascades `REMOVED` on all linked season participants for that troupe. Revokes troupe app access. Reactivation reuses the same rows so historical data becomes visible again.
+- **Season participant roster vs troupe membership:** A troupe member may be absent from one season’s roster while remaining an active troupe member and present on other seasons.
 - **Demo direct join limitation (V2):** Direct self-join is limited to troupes with **`join_policy = OPEN`** (including the production **Démo** troupe per [ADR-0015](docs/adr/0015-v2-demo-troupe-product-bootstrap.md)) and creates/reactivates `MEMBER` memberships only. Dev seed fiction uses troupe **Les Improbots** (`db/seed`); **La Malice** is reserved for real V1 migration data — not Flyway seed.
 - **One cast per event:** For a given event there is at most one cast; the draw produces or updates it (observed in storage/cast usage).
 - **Cast status values:** Player status in a cast is one of: pending, confirmed, declined (see `castService.getPlayerCastStatus`).

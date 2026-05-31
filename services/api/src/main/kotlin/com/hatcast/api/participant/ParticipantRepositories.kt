@@ -61,6 +61,33 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
         troupeMembershipIds: Collection<UUID>,
     ): List<SeasonParticipantEntity>
 
+    fun findByTroupeMembership_Id(troupeMembershipId: UUID): List<SeasonParticipantEntity>
+
+    @Query(
+        """
+        SELECT p FROM SeasonParticipantEntity p
+        JOIN FETCH p.troupeMembership tm
+        WHERE p.season.id = :seasonId
+          AND p.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+          AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.INACTIVE
+        """,
+    )
+    fun findActiveLinkedToInactiveMembershipsForSeason(
+        @Param("seasonId") seasonId: UUID,
+    ): List<SeasonParticipantEntity>
+
+    @Query(
+        """
+        SELECT p.user.id FROM SeasonParticipantEntity p
+        WHERE p.season.id = :seasonId
+          AND p.status = com.hatcast.api.participant.ParticipantStatus.REMOVED
+          AND p.user.id IS NOT NULL
+        """,
+    )
+    fun findRemovedUserIdsForSeason(
+        @Param("seasonId") seasonId: UUID,
+    ): List<UUID>
+
     fun findByIdAndSeason_Id(
         id: UUID,
         seasonId: UUID,

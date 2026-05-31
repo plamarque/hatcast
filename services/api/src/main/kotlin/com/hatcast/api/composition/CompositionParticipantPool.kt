@@ -40,6 +40,7 @@ object CompositionParticipantPool {
                 .map { it.id.seasonParticipantId }
                 .toSet()
         val seasonParticipantIds = seasonRows.map { it.id }.toSet()
+        val removedSeasonUserIds = seasonParticipantRepository.findRemovedUserIdsForSeason(seasonId).toSet()
         val byId = linkedMapOf<UUID, CompositionEligibleParticipant>()
         val seenUserIds = mutableSetOf<UUID>()
 
@@ -67,8 +68,14 @@ object CompositionParticipantPool {
             if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
                 continue
             }
+            if (row.seasonParticipant?.status == ParticipantStatus.REMOVED) {
+                continue
+            }
             val userId = row.user?.id
             if (userId != null && userId in seenUserIds) {
+                continue
+            }
+            if (userId != null && userId in removedSeasonUserIds) {
                 continue
             }
             byId[row.id] =

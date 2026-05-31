@@ -299,7 +299,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
 
   protected removeAriaLabel(participant: SeasonParticipantAdmin): string {
     return this.isTroupeMemberRow(participant)
-      ? 'Retirer ce membre de la troupe'
+      ? 'Retirer ce membre de la saison'
       : 'Retirer le participant'
   }
 
@@ -329,51 +329,26 @@ export class AdminParticipants implements OnDestroy, OnInit {
     })
     ref.afterClosed().subscribe((ok) => {
       if (ok) {
-        void this.removeParticipant(participant.id)
+        void this.removeParticipant(participant)
       }
     })
   }
 
   private confirmRemoveTroupeMember(participant: SeasonParticipantAdmin): void {
-    const membershipId = participant.troupeMembershipId
-    const troupeId = this.troupeId()
-    if (!membershipId || !troupeId) {
-      return
-    }
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
       data: {
-        title: 'Retirer ce membre de la troupe ?',
+        title: 'Retirer de cette saison ?',
         message:
-          'Ce membre sera retiré de la troupe (et des rosters saison synchronisés). Son compte HatCast n’est pas supprimé.',
+          'Il disparaîtra du roster, des statistiques et des sélecteurs de cette saison. Son adhésion à la troupe est conservée.',
         confirmLabel: 'Retirer',
       },
       width: 'min(100vw - 2rem, 28rem)',
     })
     ref.afterClosed().subscribe((ok) => {
       if (ok) {
-        void this.removeTroupeMember(membershipId)
+        void this.removeParticipant(participant, 'Membre retiré de la saison.')
       }
     })
-  }
-
-  private async removeTroupeMember(membershipId: string): Promise<void> {
-    const troupeId = this.troupeId()
-    if (!troupeId) {
-      return
-    }
-    this.saving.set(true)
-    try {
-      const r = await this.troupeApi.deactivateMember(troupeId, membershipId)
-      if (!r.ok) {
-        this.snack.open('Retrait impossible.', 'OK', { duration: 5000 })
-        return
-      }
-      this.snack.open('Membre retiré de la troupe.', 'OK', { duration: 4000 })
-      await this.reloadParticipants()
-      await this.reloadSeasonOrganizers()
-    } finally {
-      this.saving.set(false)
-    }
   }
 
   private async demoteSeasonOrganizer(participant: SeasonParticipantAdmin): Promise<void> {
@@ -409,17 +384,29 @@ export class AdminParticipants implements OnDestroy, OnInit {
     }
   }
 
-  private async removeParticipant(participantId: string): Promise<void> {
+  private async removeParticipant(
+    participant: SeasonParticipantAdmin,
+    successMessage = 'Participant retiré.',
+  ): Promise<void> {
     const s = this.season()
     if (!s) return
     this.saving.set(true)
     try {
-      const r = await this.participantApi.removeSeasonParticipant(s.id, participantId)
+      const r = await this.participantApi.removeSeasonParticipant(s.id, participant.id)
       if (!r.ok) {
         this.snack.open('Retrait impossible.', 'OK', { duration: 5000 })
         return
       }
-      await this.reloadParticipants('Participant retiré.')
+      const organizer = findRowOrganizer(
+        participant.userId,
+        participant.email,
+        this.seasonOrganizers(),
+      )
+      if (organizer) {
+        await this.organizerApi.removeSeasonOrganizer(s.id, organizer.userId)
+        await this.reloadSeasonOrganizers()
+      }
+      await this.reloadParticipants(successMessage)
     } finally {
       this.saving.set(false)
     }

@@ -108,6 +108,7 @@ class EventRosterService(
                 }
                 .filter { it.id !in excluded }
         val seasonParticipantIds = seasonRows.map { it.id }.toSet()
+        val removedSeasonUserIds = seasonParticipantRepository.findRemovedUserIdsForSeason(seasonId).toSet()
         val seenUserIds = mutableSetOf<UUID>()
         val roster = linkedMapOf<String, EventRosterParticipantDto>()
 
@@ -124,8 +125,14 @@ class EventRosterService(
             if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
                 continue
             }
+            if (row.seasonParticipant?.status == ParticipantStatus.REMOVED) {
+                continue
+            }
             val userId = row.user?.id
             if (userId != null && userId in seenUserIds) {
+                continue
+            }
+            if (userId != null && userId in removedSeasonUserIds) {
                 continue
             }
             val key = "event:${row.id}"

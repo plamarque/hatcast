@@ -78,7 +78,11 @@ paths:
           description: Inconnu
     delete:
       tags: [Participants]
-      summary: Retirer (soft delete) un participant explicite
+      summary: Retirer (soft delete) un participant de saison
+      description: >
+        Retire un participant explicite ou un membre synchronisé depuis la troupe.
+        Pour les membres (`troupeMembershipId`), l'adhésion troupe reste active ;
+        seul le roster de cette saison est filtré (`removal_source = SEASON_ADMIN`).
       security:
         - cookieAuth: []
       parameters:
@@ -87,10 +91,32 @@ paths:
       responses:
         '204':
           description: Retiré
-        '400':
-          description: Participant synchronisé depuis Membres
         '403':
           description: Accès refusé
+        '404':
+          description: Inconnu
+
+  /seasons/{seasonId}/participants/{participantId}/reinclude:
+    post:
+      tags: [Participants]
+      summary: Réintégrer un participant retiré de la saison
+      description: >
+        Réactive le même `season_participant_id` (historique conservé).
+        Idempotent si déjà actif.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+        - $ref: '#/components/parameters/participantId'
+      responses:
+        '204':
+          description: Réintégré
+        '400':
+          description: Adhésion troupe inactive
+        '403':
+          description: Accès refusé
+        '404':
+          description: Inconnu
 
   /seasons/{seasonId}/participants/selectors:
     get:

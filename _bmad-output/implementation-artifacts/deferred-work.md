@@ -8,6 +8,15 @@
 - Participant assigné manuellement hors du pool courant (non AVAILABLE / non éligible) omis de l'explainability passée : `scoredByParticipant[participantId]?.let{}` sans branche `else` → aucune entrée d'odds pour un assigné réel sans snapshot. Gap pré-existant du chemin live, non introduit par la logique snapshot. [CompositionService.kt:393-404]
 - Migration V39 sans FK/cascade sur `participant_id` (FK uniquement sur `event_id ON DELETE CASCADE`) → lignes snapshot orphelines au retrait d'un season participant (croise la story 3-19 en cours). Faible impact : les chemins d'affichage joignent sur les candidats courants ; nettoyé seulement à la suppression de l'événement. [V39__event_draw_chance_snapshots.sql:11-12]
 
+## Deferred from: code review of 3-19-retrait-roster-saison-sans-desactivation-troupe.md (2026-05-31)
+
+- Migration V38 sans backfill des rows REMOVED préexistantes (`removal_source` NULL) — probablement aucune row membre concernée en pratique (le retrait season-local de membres n'existait pas avant); à vérifier avant prod. [V38__season_participant_removal_source.sql]
+- N+1 dans `removeForMembershipAcrossTroupe`/`ensureForMembershipAcrossToupe` : une requête `findBySeason_IdAndTroupeMembership_Id` + save/count par saison. Acceptable à l'échelle actuelle. [SeasonParticipantMembershipSync.kt:337-354]
+- Course `reinclude` vs désactivation d'adhésion concurrente : sans verrou, peut laisser un participant ACTIVE lié à une adhésion INACTIVE; auto-réparé au prochain list via `findActiveLinkedToInactiveMembershipsForSeason`. [SeasonParticipantService.kt:193-207]
+- Cible tactile du bouton « Retirer » (`mat-icon-button` ~40dp) potentiellement < 48dp (M3-3) — pattern préexistant dans l'écran, non introduit par la story. [admin-participants.html]
+- Logique de réconciliation `SEASON_ADMIN` (skip + réactivation par égalité de champs) dupliquée entre `SeasonParticipantMembershipSync` et `SeasonParticipantService` — risque de drift; candidate à extraction. [SeasonParticipantMembershipSync.kt:317 / SeasonParticipantService.kt:465]
+- Méthode repository `findByTroupeMembership_Id` ajoutée mais non appelée (code mort). [ParticipantRepositories.kt:271]
+
 ## Deferred from: code review of mig-3-availability-compositions-migration-pipeline.md (2026-05-29)
 
 - `comment` > VARCHAR(500) / `role_key` > VARCHAR(64) non validés côté transform → ferait échouer toute la transaction unique au load ; non routé vers rejects. Non déclenché par les données Malice (`comment=null`, role_keys courts). [scripts/v1/maliceAvailabilityCompositions.js:196,283]

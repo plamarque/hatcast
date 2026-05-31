@@ -81,6 +81,15 @@ export class ParticipantApiService {
     )
   }
 
+  async reincludeSeasonParticipant(
+    seasonId: string,
+    participantId: string,
+  ): ApiResult<void> {
+    return this.postNoContent(
+      `/v1/seasons/${encodeURIComponent(seasonId)}/participants/${encodeURIComponent(participantId)}/reinclude`,
+    )
+  }
+
   async listSeasonParticipantSelectors(seasonId: string): ApiResult<ParticipantSelector[]> {
     return this.getList(`/v1/seasons/${encodeURIComponent(seasonId)}/participants/selectors`)
   }
@@ -190,6 +199,19 @@ export class ParticipantApiService {
     try {
       const res = await fetch(url, {
         method: 'DELETE',
+        credentials: 'include',
+        headers: { ...csrfHeaders() },
+      })
+      return { ok: res.ok, status: res.status }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  private async postNoContent(url: string): ApiResult<void> {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
         credentials: 'include',
         headers: { ...csrfHeaders() },
       })

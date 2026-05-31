@@ -61,6 +61,12 @@ describe('AdminParticipants', () => {
     })
     const removeSeasonParticipant = vi.fn().mockResolvedValue({ ok: true, status: 204 })
     const deactivateMember = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    const removeSeasonOrganizer = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    const listSeasonOrganizers = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: options.organizers ?? [],
+    })
     const dialogRef = { afterClosed: () => of(options.dialogAfterClosed ?? false) }
     const dialog = options.dialog ?? { open: vi.fn().mockReturnValue(dialogRef) }
 
@@ -122,13 +128,9 @@ describe('AdminParticipants', () => {
               status: 200,
               data: permissions,
             }),
-            listSeasonOrganizers: vi.fn().mockResolvedValue({
-              ok: true,
-              status: 200,
-              data: options.organizers ?? [],
-            }),
+            listSeasonOrganizers,
             addSeasonOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 201 }),
-            removeSeasonOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
+            removeSeasonOrganizer,
           },
         },
         {
@@ -159,6 +161,8 @@ describe('AdminParticipants', () => {
       listSeasonParticipants,
       removeSeasonParticipant,
       deactivateMember,
+      removeSeasonOrganizer,
+      listSeasonOrganizers,
     }
   }
 
@@ -344,12 +348,12 @@ describe('AdminParticipants', () => {
     })
 
     const deleteBtn = fixture.nativeElement.querySelector(
-      'button[aria-label="Retirer ce membre de la troupe"]',
+      'button[aria-label="Retirer ce membre de la saison"]',
     )
     expect(deleteBtn).toBeTruthy()
   })
 
-  it('deactivates troupe member after confirm', async () => {
+  it('removes troupe member from season after confirm without deactivating membership', async () => {
     const member: SeasonParticipantAdmin = {
       ...guest,
       id: 'p-member',
@@ -358,15 +362,64 @@ describe('AdminParticipants', () => {
       troupeMembershipId: 'm-2',
       removable: false,
     }
-    const { fixture, deactivateMember, removeSeasonParticipant } = await setup(
+    const { fixture, deactivateMember, removeSeasonParticipant, snack } = await setup(
       participantsAdmin(),
       { participants: [member], dialogAfterClosed: true },
     )
     const cmp = fixture.componentInstance as AdminParticipants
-    await cmp['removeTroupeMember']('m-2')
+    cmp['confirmRemove'](member)
 
-    expect(deactivateMember).toHaveBeenCalledWith('t1', 'm-2')
-    expect(removeSeasonParticipant).not.toHaveBeenCalled()
+    await vi.waitFor(() => {
+      expect(removeSeasonParticipant).toHaveBeenCalledWith('s1', 'p-member')
+    })
+    expect(deactivateMember).not.toHaveBeenCalled()
+    await vi.waitFor(() => {
+      expect(snack.open).toHaveBeenCalledWith('Membre retiré de la saison.', 'OK', {
+        duration: 4000,
+      })
+    })
+  })
+
+  it('demotes a season organizer when removing them from the season roster', async () => {
+    const organizerMember: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-orga',
+      displayName: 'Orga Member',
+      email: 'orga@example.com',
+      userId: 'u-orga',
+      kind: 'MEMBER',
+      troupeMembershipId: 'm-orga',
+      removable: false,
+    }
+    const {
+      fixture,
+      removeSeasonParticipant,
+      removeSeasonOrganizer,
+      listSeasonOrganizers,
+    } = await setup(participantsAdmin(), {
+      participants: [organizerMember],
+      organizers: [
+        {
+          userId: 'u-orga',
+          email: 'orga@example.com',
+          displayName: 'Orga Member',
+          grantedAt: '',
+        },
+      ],
+      dialogAfterClosed: true,
+    })
+    const cmp = fixture.componentInstance as AdminParticipants
+    cmp['confirmRemove'](organizerMember)
+
+    await vi.waitFor(() => {
+      expect(removeSeasonParticipant).toHaveBeenCalledWith('s1', 'p-orga')
+    })
+    await vi.waitFor(() => {
+      expect(removeSeasonOrganizer).toHaveBeenCalledWith('s1', 'u-orga')
+    })
+    await vi.waitFor(() => {
+      expect(listSeasonOrganizers.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
   })
 
   it('shows edit for external season participant and opens edit dialog', async () => {

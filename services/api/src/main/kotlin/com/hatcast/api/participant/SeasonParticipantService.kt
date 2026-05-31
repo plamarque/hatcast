@@ -164,18 +164,67 @@ class SeasonParticipantService(
         if (existing.status != ParticipantStatus.ACTIVE) {
             return
         }
-        if (existing.troupeMembership != null) {
-            throw ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Retirez ce membre depuis l'écran Membres.",
-            )
-        }
         val now = Instant.now()
         existing.status = ParticipantStatus.REMOVED
         existing.removedAt = now
         existing.updatedAt = now
+        if (existing.troupeMembership != null) {
+            existing.removalSource = SeasonParticipantRemovalSource.SEASON_ADMIN
+        }
         seasonParticipantRepository.save(existing)
         refreshParticipantCount(season)
+        MembershipParticipantSyncCache.invalidate(season.id)
+    }
+
+    @Transactional
+    fun reinclude(
+        seasonId: UUID,
+        participantId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        participantAccess.requireCanManageSeasonParticipants(seasonId, principal)
+        val season = participantAccess.loadSeasonForMember(seasonId, principal)
+        val existing =
+            seasonParticipantRepository.findByIdAndSeason_Id(participantId, seasonId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
+        if (existing.status == ParticipantStatus.ACTIVE) {
+            return
+        }
+        val membership = existing.troupeMembership
+        if (membership != null) {
+            if (membership.status != TroupeMembershipStatus.ACTIVE) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Réactivez d'abord l'adhésion à la troupe.",
+                )
+            }
+        } else if (
+            seasonParticipantRepository
+                .existsBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndDisplayNameIgnoreCaseAndIdNot(
+                    seasonId,
+                    ParticipantStatus.ACTIVE,
+                    existing.displayName,
+                    participantId,
+                )
+        ) {
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Un participant avec ce nom existe déjà dans la saison.",
+            )
+        }
+        val now = Instant.now()
+        if (membership != null) {
+            existing.displayName = membership.displayName
+            existing.user = membership.user
+            existing.normalizedEmail = participantLink.normalizeEmail(membership.user.email)
+        }
+        existing.status = ParticipantStatus.ACTIVE
+        existing.removedAt = null
+        existing.removalSource = null
+        existing.updatedAt = now
+        seasonParticipantRepository.save(existing)
+        refreshParticipantCount(season)
+        MembershipParticipantSyncCache.invalidate(season.id)
     }
 
     @Transactional
@@ -195,12 +244,12 @@ class SeasonParticipantService(
             return
         }
         val troupeId = season.troupe.id
-        val allMemberships =
+        val activeMemberships =
             troupeMembershipRepository.findByTroupe_IdAndStatusIn(
                 troupeId,
-                listOf(TroupeMembershipStatus.ACTIVE, TroupeMembershipStatus.INACTIVE),
+                listOf(TroupeMembershipStatus.ACTIVE),
             )
-        val membershipIds = allMemberships.map { it.id }
+        val membershipIds = activeMemberships.map { it.id }
         val existingByMembershipId =
             if (membershipIds.isEmpty()) {
                 emptyMap()
@@ -212,10 +261,13 @@ class SeasonParticipantService(
             }
         val now = Instant.now()
         val toSave = mutableListOf<SeasonParticipantEntity>()
-        for (membership in allMemberships) {
+        for (membership in activeMemberships) {
             val normalizedEmail = participantLink.normalizeEmail(membership.user.email)
             val existing = existingByMembershipId[membership.id]
             if (existing != null) {
+                if (existing.removalSource == SeasonParticipantRemovalSource.SEASON_ADMIN) {
+                    continue
+                }
                 if (
                     existing.displayName == membership.displayName &&
                         existing.user?.id == membership.user.id &&
@@ -230,6 +282,7 @@ class SeasonParticipantService(
                 existing.normalizedEmail = normalizedEmail
                 existing.status = ParticipantStatus.ACTIVE
                 existing.removedAt = null
+                existing.removalSource = null
                 existing.updatedAt = now
                 toSave.add(existing)
             } else {
@@ -247,13 +300,26 @@ class SeasonParticipantService(
                 )
             }
         }
+        val staleParticipants =
+            seasonParticipantRepository.findActiveLinkedToInactiveMembershipsForSeason(season.id)
+        for (participant in staleParticipants) {
+            if (participant.status != ParticipantStatus.ACTIVE) {
+                continue
+            }
+            participant.status = ParticipantStatus.REMOVED
+            participant.removedAt = now
+            participant.removalSource = SeasonParticipantRemovalSource.MEMBERSHIP_INACTIVE
+            participant.updatedAt = now
+            toSave.add(participant)
+        }
         if (toSave.isNotEmpty()) {
             seasonParticipantRepository.saveAll(toSave)
             refreshParticipantCount(season)
             MembershipParticipantSyncCache.invalidate(season.id)
         } else if (
-            allMemberships.isNotEmpty() &&
-                existingByMembershipId.keys.containsAll(membershipIds)
+            activeMemberships.isNotEmpty() &&
+                existingByMembershipId.keys.containsAll(membershipIds) &&
+                staleParticipants.isEmpty()
         ) {
             MembershipParticipantSyncCache.markInSync(season.id)
         }

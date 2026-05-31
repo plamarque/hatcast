@@ -45,6 +45,9 @@ class SeasonParticipantEntity(
     var updatedAt: Instant = Instant.now(),
     @Column(name = "removed_at")
     var removedAt: Instant? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "removal_source", length = 32)
+    var removalSource: SeasonParticipantRemovalSource? = null,
 ) {
     fun kind(): ParticipantKind =
         when {

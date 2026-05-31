@@ -300,6 +300,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
 | **2.11** | Création d’une troupe (API + UI minimale) | **P0** | [x] | **Gate MIG-0** ; créateur → `TROUPE_ADMIN` ; slug unique ; remplace bootstrap SQL manuel |
+| **3.19** | Retrait roster saison (sans désactivation troupe) | **P1** | ready-for-dev | SCP [2026-05-31 participant removal](../planning-artifacts/sprint-change-proposal-2026-05-31-participant-removal-three-levels.md) ; corrige dérive UI Participants → `deactivateMember` ; garde sync ; avant nettoyage roster migration |
 
 **Explicitement hors MVP V2 (backlog post-pilote) :**
 

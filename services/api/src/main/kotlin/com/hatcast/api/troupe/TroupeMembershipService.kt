@@ -203,6 +203,7 @@ class TroupeMembershipService(
         val now = Instant.now()
         val existing = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id)
         if (existing != null) {
+            val previousStatus = existing.status
             val targetStatus =
                 if (existing.status != TroupeMembershipStatus.ACTIVE) {
                     TroupeMembershipStatus.ACTIVE
@@ -222,7 +223,9 @@ class TroupeMembershipService(
             val displayName = normalizeDisplayName(body.displayName)
             if (displayName != null) existing.displayName = displayName
             existing.updatedAt = now
-            return TroupeMemberAdminDto.from(membershipRepository.save(existing))
+            val saved = membershipRepository.save(existing)
+            syncSeasonParticipantsAfterStatusChange(saved, previousStatus, targetStatus)
+            return TroupeMemberAdminDto.from(saved)
         }
         val membership =
             TroupeMembershipEntity(
@@ -282,10 +285,13 @@ class TroupeMembershipService(
                 normalizeDisplayName(raw)
                     ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
         }
+        val previousStatus = membership.status
         membership.status = targetStatus
         membership.baselineRole = targetRole
         membership.updatedAt = Instant.now()
-        return TroupeMemberAdminDto.from(membershipRepository.save(membership))
+        val saved = membershipRepository.save(membership)
+        syncSeasonParticipantsAfterStatusChange(saved, previousStatus, targetStatus)
+        return TroupeMemberAdminDto.from(saved)
     }
 
     @Transactional(readOnly = true)
@@ -367,7 +373,23 @@ class TroupeMembershipService(
         if (membership.status != TroupeMembershipStatus.INACTIVE) {
             membership.status = TroupeMembershipStatus.INACTIVE
             membership.updatedAt = Instant.now()
-            membershipRepository.save(membership)
+            val saved = membershipRepository.save(membership)
+            membershipSync.removeForMembershipAcrossTroupe(saved)
+        }
+    }
+
+    private fun syncSeasonParticipantsAfterStatusChange(
+        membership: TroupeMembershipEntity,
+        previousStatus: TroupeMembershipStatus,
+        targetStatus: TroupeMembershipStatus,
+    ) {
+        if (previousStatus == targetStatus) {
+            return
+        }
+        when (targetStatus) {
+            TroupeMembershipStatus.INACTIVE -> membershipSync.removeForMembershipAcrossTroupe(membership)
+            TroupeMembershipStatus.ACTIVE -> membershipSync.ensureForMembershipAcrossTroupe(membership)
+            else -> Unit
         }
     }
 
