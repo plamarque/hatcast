@@ -222,4 +222,27 @@ export class EventApiService {
       return { ok: false, status: 0 }
     }
   }
+
+  async unarchiveEvent(
+    seasonId: string,
+    eventId: string,
+  ): Promise<{ ok: boolean; status: number; data?: EventResponse }> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/actions/unarchive`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
 }

@@ -50,6 +50,7 @@ describe('EventDetail', () => {
   let queryParamMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   let loadEventMock: ReturnType<typeof vi.fn>
   let archiveEvent: ReturnType<typeof vi.fn>
+  let unarchiveEvent: ReturnType<typeof vi.fn>
   let mySeasonPermissions: ReturnType<typeof vi.fn>
   let listMyTroupes: ReturnType<typeof vi.fn>
   let getSeasonBySlug: ReturnType<typeof vi.fn>
@@ -62,6 +63,7 @@ describe('EventDetail', () => {
     queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
     loadEventMock = vi.fn().mockResolvedValue({ ok: true, status: 200, data: ev('event-2') })
     archiveEvent = vi.fn().mockResolvedValue({ ok: true })
+    unarchiveEvent = vi.fn().mockResolvedValue({ ok: true, data: ev('event-2', { archived: false }) })
     mySeasonPermissions = vi.fn().mockResolvedValue({
       ok: true,
       data: {
@@ -164,6 +166,7 @@ describe('EventDetail', () => {
             getEvent: loadEventMock,
             getEventBySlug: loadEventMock,
             archiveEvent,
+            unarchiveEvent,
           },
         },
         {
@@ -282,7 +285,7 @@ describe('EventDetail', () => {
     const cmp = fixture.componentInstance as unknown as {
       eventAdminItems: () => Array<{ label: string }>
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Participants', 'Archiver'])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Participants', 'Désactiver'])
   })
 
   it('selects Dispos tab when showAvailability=true', async () => {
@@ -387,7 +390,7 @@ describe('EventDetail', () => {
     )
   })
 
-  it('hides Modifier and Archiver when event is archived', async () => {
+  it('hides Modifier and Désactiver when event is inactive', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {
@@ -417,8 +420,46 @@ describe('EventDetail', () => {
       }
       const labels = cmp.eventAdminItems().map((i) => i.label)
       expect(labels).not.toContain('Modifier')
-      expect(labels).not.toContain('Archiver')
+      expect(labels).not.toContain('Désactiver')
+      expect(labels).toContain('Réactiver')
     })
+  })
+
+  it('reactivates inactive event after confirm', async () => {
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: true,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: [],
+        canManageEvents: true,
+        canManageSeasonParticipants: false,
+        canManageSeasonOrganizers: false,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { archived: true }),
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => expect(loadEventMock).toHaveBeenCalled())
+
+    await (
+      fixture.componentInstance as unknown as { runUnarchive(ev: EventResponse): Promise<void> }
+    ).runUnarchive(ev('event-2', { archived: true }))
+
+    await vi.waitFor(() => {
+      expect(unarchiveEvent).toHaveBeenCalledWith('season-1', 'event-2')
+    })
+    const cmp = fixture.componentInstance as unknown as EventDetailHarness
+    expect(cmp.event()?.archived).toBe(false)
   })
 
   it('selects Équipe and auto-opens participation modal when showConfirm=true', async () => {
@@ -659,7 +700,7 @@ describe('EventDetail', () => {
     expect(seasonLink.getAttribute('href')).toBe('/saison/season-a')
   })
 
-  it('navigates to season agenda after archive confirm', async () => {
+  it('navigates to season agenda after deactivate confirm', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => expect(loadEventMock).toHaveBeenCalled())

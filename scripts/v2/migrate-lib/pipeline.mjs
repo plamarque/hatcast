@@ -239,6 +239,11 @@ export async function runPipeline(config, logger) {
       if (config.yes && !config.dryRun) {
         runNpmScript('migrate:malice:load', loadArgs(config, [join(state.artifactDir, 'load.sql')]))
       }
+      if (config.databaseUrl && state.seasonV2 && !config.dryRun) {
+        const { reconcileSeasonEventCount } = await import('./neon.mjs')
+        await reconcileSeasonEventCount(config.databaseUrl, state.seasonV2)
+        logger.info('b4', 'Reconciled seasons.event_count after event load')
+      }
       state.stepsCompleted.push('b4')
       saveState(config, state)
     })
@@ -268,6 +273,11 @@ export async function runPipeline(config, logger) {
       if (config.yes && !config.dryRun) {
         runNpmScript('migrate:malice:load', loadArgs(config, sqlFiles))
       }
+      if (config.databaseUrl && state.seasonV2 && !config.dryRun) {
+        const { reconcileSeasonEventCount } = await import('./neon.mjs')
+        await reconcileSeasonEventCount(config.databaseUrl, state.seasonV2)
+        logger.info('b5', 'Reconciled seasons.event_count after availability/composition load')
+      }
       state.stepsCompleted.push('b5')
       saveState(config, state)
     })
@@ -278,8 +288,11 @@ export async function runPipeline(config, logger) {
       logger.info('smoke', 'Skipped in dry-run (no Neon writes)')
     } else {
     await logger.runStep('smoke', async () => {
+      const { reconcileSeasonEventCount } = await import('./neon.mjs')
+      await reconcileSeasonEventCount(config.databaseUrl, state.seasonV2)
       const counts = await smokeCounts(config.databaseUrl, state.seasonV2)
       assertEqual('events', counts.events, config.thresholds.events)
+      assertEqual('season_event_count', counts.season_event_count, counts.events_non_archived)
       assertMin(
         'availability',
         counts.availability,

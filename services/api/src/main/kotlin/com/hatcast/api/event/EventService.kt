@@ -7,6 +7,7 @@ import com.hatcast.api.event.dto.CreateEventRequest
 import com.hatcast.api.event.dto.EventResponseDto
 import com.hatcast.api.event.dto.PagedEventsResponse
 import com.hatcast.api.event.dto.UpdateEventRequest
+import com.hatcast.api.season.SeasonEventCountSync
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeCategoryService
@@ -30,6 +31,7 @@ class EventService(
     private val participantFocusService: EventParticipantFocusService,
     private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
     private val troupeCategoryService: TroupeCategoryService,
+    private val seasonEventCountSync: SeasonEventCountSync,
 ) {
     companion object {
         /** Fuseau pour la borne « début du jour civil » (liste à venir / agenda). */
@@ -338,9 +340,30 @@ class EventService(
     ): EventResponseDto {
         val e = loadEventInSeason(seasonId, eventId)
         troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
-        e.archived = true
-        e.updatedAt = Instant.now()
-        return EventResponseDto.from(eventRepository.save(e))
+        if (!e.archived) {
+            e.archived = true
+            e.updatedAt = Instant.now()
+            eventRepository.save(e)
+            seasonEventCountSync.recountEvents(seasonId)
+        }
+        return EventResponseDto.from(e)
+    }
+
+    @Transactional
+    fun unarchive(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): EventResponseDto {
+        val e = loadEventInSeason(seasonId, eventId)
+        troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
+        if (e.archived) {
+            e.archived = false
+            e.updatedAt = Instant.now()
+            eventRepository.save(e)
+            seasonEventCountSync.recountEvents(seasonId)
+        }
+        return EventResponseDto.from(e)
     }
 
     private fun loadEventInSeason(

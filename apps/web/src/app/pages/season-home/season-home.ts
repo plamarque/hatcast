@@ -1,6 +1,7 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   model,
   OnDestroy,
@@ -25,8 +26,10 @@ import {
 import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import {
+  saisonAdminMembresPath,
   saisonAdminParticipantsPath,
   saisonEventPath,
+  saisonWorkspacePath,
 } from '../../core/navigation/troupe-routes'
 import type { ScopeAdminMenuItem } from '../../shared/scope-admin-menu/scope-admin-menu'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
@@ -90,6 +93,10 @@ import {
   type EventFormDialogData,
 } from './event-form-dialog'
 import {
+  SeasonFormDialog,
+  type SeasonFormDialogData,
+} from '../seasons-list/season-form-dialog'
+import {
   AvailabilityDialog,
   type AvailabilityDialogData,
   type AvailabilityDialogResult,
@@ -133,6 +140,20 @@ export class SeasonHome implements OnDestroy, OnInit {
   private eventLoadRequestId = 0
   private pastEventLoadRequestId = 0
   private statisticsLoadRequestId = 0
+  private pinnedFilterLoadRequestId = 0
+
+  private readonly pinnedFilterEvents = signal<EventResponse[]>([])
+
+  constructor() {
+    effect(() => {
+      const view = this.seasonView()
+      const seasonId = this.season()?.id
+      const selectedIds =
+        view === 'history' ? this.selectedHistoryEventIds() : this.selectedEventIds()
+      const loaded = view === 'history' ? this.pastEvents() : this.events()
+      void this.syncPinnedFilterEvents(seasonId, selectedIds, loaded)
+    })
+  }
 
   private readonly statisticsPanel = viewChild(SeasonStatistics)
 
@@ -194,7 +215,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   )
 
   protected readonly filteredEvents = computed(() =>
-    filterEventsByIds(this.events(), this.selectedEventIds()),
+    filterEventsByIds(this.agendaEventsForFilter(), this.selectedEventIds()),
   )
 
   protected readonly monthGroups = computed(() =>
@@ -206,7 +227,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   )
 
   protected readonly filteredPastEvents = computed(() =>
-    filterEventsByIds(this.pastEvents(), this.selectedHistoryEventIds()),
+    filterEventsByIds(this.historyEventsForFilter(), this.selectedHistoryEventIds()),
   )
 
   protected readonly historyMonthGroups = computed(() =>
@@ -269,28 +290,27 @@ export class SeasonHome implements OnDestroy, OnInit {
   )
 
   protected readonly filterTriggerVisible = computed(() => {
+    if (!this.season()) {
+      return false
+    }
     const view = this.seasonView()
     if (view === 'stats') {
       return (
         this.categoryGlossarySlugs().length > 0 ||
         this.participantOptions().length > 1 ||
-        this.statsEventFilterOptions().length > 0
+        this.statsEventFilterOptions().length > 0 ||
+        true
       )
     }
-    if (view === 'history') {
-      return (
-        this.participantOptions().length > 1 ||
-        this.historyEventFilterOptions().length > 0
-      )
-    }
-    return (
-      this.participantOptions().length > 1 ||
-      this.eventFilterOptions().length > 0
-    )
+    // Agenda / historique : filtre spectacles toujours utile (picker scope=all, inactifs inclus).
+    return true
   })
 
   private readonly categories = signal<TroupeCategory[]>([])
   protected readonly canManageMembers = computed(() => this.seasonPermissions()?.canManageMembers === true)
+  protected readonly canManageSeasons = computed(
+    () => this.seasonPermissions()?.canManageSeasons === true,
+  )
   protected readonly canManageEvents = computed(() => this.seasonPermissions()?.canManageEvents === true)
   protected readonly canManageSeasonParticipants = computed(
     () => this.seasonPermissions()?.canManageSeasonParticipants === true,
@@ -314,6 +334,13 @@ export class SeasonHome implements OnDestroy, OnInit {
       return []
     }
     const items: ScopeAdminMenuItem[] = []
+    if (this.canManageSeasons()) {
+      items.push({
+        label: 'Modifier',
+        icon: 'edit',
+        action: () => this.openEditSeason(),
+      })
+    }
     if (this.canManageEvents()) {
       items.push({
         label: 'Nouveau spectacle',
@@ -326,6 +353,14 @@ export class SeasonHome implements OnDestroy, OnInit {
         label: 'Participants',
         icon: 'groups',
         routerLink: saisonAdminParticipantsPath(slug),
+      })
+    }
+    if (this.canManageSeasonOrganizersOnly()) {
+      items.push({
+        label: 'Organisateur·ices',
+        icon: 'supervisor_account',
+        routerLink: saisonAdminMembresPath(slug),
+        queryParams: { onglet: 'organisateurs' },
       })
     }
     return items
@@ -885,6 +920,37 @@ export class SeasonHome implements OnDestroy, OnInit {
     void this.loadUpcomingEvents()
   }
 
+  protected openEditSeason(): void {
+    const s = this.season()
+    if (!s) {
+      return
+    }
+    if (!this.canManageSeasons()) {
+      this.snack.open('Vous ne pouvez pas modifier cette saison.', 'OK', { duration: 5000 })
+      return
+    }
+    const ref = this.dialog.open<SeasonFormDialog, SeasonFormDialogData, SeasonResponse>(
+      SeasonFormDialog,
+      {
+        data: { mode: 'edit', troupeId: s.troupeId, season: s },
+        width: 'min(100vw - 2rem, 28rem)',
+      },
+    )
+    ref.afterClosed().subscribe((updated) => {
+      if (!updated) {
+        return
+      }
+      this.season.set(updated)
+      if (updated.slug !== this.slug()) {
+        void this.router.navigate(saisonWorkspacePath(updated.slug), {
+          replaceUrl: true,
+          queryParams: { view: this.seasonView() },
+        })
+      }
+      this.snack.open('Saison mise à jour.', 'OK', { duration: 4000 })
+    })
+  }
+
   protected openCreate(): void {
     const s = this.season()
     if (!s) {
@@ -919,12 +985,16 @@ export class SeasonHome implements OnDestroy, OnInit {
   }
 
   private resetStaleEventFilter(events: EventResponse[]): void {
-    this.pruneStaleEventIds(events, this.selectedEventIds, (ids) => this.selectedEventIds.set(ids))
+    this.pruneStaleEventIds(
+      [...events, ...this.pinnedFilterEvents()],
+      this.selectedEventIds,
+      (ids) => this.selectedEventIds.set(ids),
+    )
   }
 
   private resetStaleHistoryEventFilter(events: EventResponse[]): void {
     this.pruneStaleEventIds(
-      events,
+      [...events, ...this.pinnedFilterEvents()],
       this.selectedHistoryEventIds,
       (ids) => this.selectedHistoryEventIds.set(ids),
     )
@@ -955,6 +1025,54 @@ export class SeasonHome implements OnDestroy, OnInit {
   private toEventFilterOption(e: EventResponse, forcePast = false): EventFilterOption {
     const opt = eventFilterOptionFromResponse(e)
     return forcePast ? { ...opt, past: true } : opt
+  }
+
+  private agendaEventsForFilter(): EventResponse[] {
+    return this.mergeEventsForFilter(this.events())
+  }
+
+  private historyEventsForFilter(): EventResponse[] {
+    return this.mergeEventsForFilter(this.pastEvents())
+  }
+
+  private mergeEventsForFilter(base: EventResponse[]): EventResponse[] {
+    const byId = new Map(base.map((e) => [e.id, e]))
+    for (const e of this.pinnedFilterEvents()) {
+      byId.set(e.id, e)
+    }
+    return [...byId.values()]
+  }
+
+  private async syncPinnedFilterEvents(
+    seasonId: string | undefined,
+    selectedIds: string[],
+    loaded: EventResponse[],
+  ): Promise<void> {
+    const view = this.seasonView()
+    if (view !== 'agenda' && view !== 'history') {
+      this.pinnedFilterEvents.set([])
+      return
+    }
+    const loadedIds = new Set(loaded.map((e) => e.id))
+    const missing = selectedIds.filter((id) => !loadedIds.has(id))
+    if (!seasonId || missing.length === 0) {
+      this.pinnedFilterEvents.set([])
+      return
+    }
+    const requestId = ++this.pinnedFilterLoadRequestId
+    const fetched: EventResponse[] = []
+    for (const id of missing) {
+      const r = await this.eventsApi.getEvent(seasonId, id)
+      if (requestId !== this.pinnedFilterLoadRequestId) {
+        return
+      }
+      if (r.ok && r.data) {
+        fetched.push(r.data)
+      }
+    }
+    if (requestId === this.pinnedFilterLoadRequestId) {
+      this.pinnedFilterEvents.set(fetched)
+    }
   }
 
   private async refreshSeasonCounts(): Promise<void> {

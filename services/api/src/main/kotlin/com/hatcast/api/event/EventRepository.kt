@@ -71,4 +71,6 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
     fun findNonArchivedBySeasonId(
         @Param("seasonId") seasonId: UUID,
     ): List<EventEntity>
+
+    fun countBySeason_IdAndArchivedFalse(seasonId: UUID): Long
 }

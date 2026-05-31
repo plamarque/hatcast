@@ -16,6 +16,7 @@ import { SeasonStatisticsApiService } from '../../core/seasons/season-statistics
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { AGENDA_UPCOMING_CAP } from './season-events.utils'
 import { SeasonHome } from './season-home'
+import { SeasonFormDialog } from '../seasons-list/season-form-dialog'
 import { emptyRoleSlots } from '../../core/events/event-types'
 
 type SeasonHomeHarness = {
@@ -297,7 +298,7 @@ describe('SeasonHome', () => {
       }>
     }
     const items = cmp.seasonAdminItems()
-    expect(items.map((i) => i.label)).toEqual(['Participants'])
+    expect(items.map((i) => i.label)).toEqual(['Participants', 'Organisateur·ices'])
     expect(items[0]?.routerLink).toEqual(['/saison', 'season-a', 'admin', 'participants'])
 
     const trigger = fixture.nativeElement.querySelector(
@@ -331,8 +332,127 @@ describe('SeasonHome', () => {
     fixture.detectChanges()
 
     expect(cmp.canManageSettings()).toBe(false)
-    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual(['Nouveau spectacle'])
+    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Nouveau spectacle'])
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).not.toBeNull()
+  })
+
+  it('inclut Modifier en tête du menu admin pour canManageSeasons', () => {
+    const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
+      seasonPermissions: { set: (v: MySeasonPermissions) => void }
+      seasonAdminItems: () => Array<{ label: string; icon?: string }>
+      openEditSeason: () => void
+    }
+    cmp.loadingSession.set(false)
+    cmp.season.set(season('season-1', 'troupe-1'))
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: true,
+      canManageSeasons: true,
+      canManageEvents: false,
+      canManageSeasonParticipants: true,
+      canManageEventParticipants: false,
+      isTroupeAdmin: true,
+      isSeasonOrganizer: false,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+    fixture.detectChanges()
+
+    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Participants'])
+    expect(cmp.seasonAdminItems()[0]?.icon).toBe('edit')
+
+    dialog.open.mockReturnValue({
+      afterClosed: () => ({
+        subscribe: () => undefined,
+      }),
+    })
+    cmp.openEditSeason()
+    expect(dialog.open).toHaveBeenCalledWith(SeasonFormDialog, {
+      data: { mode: 'edit', troupeId: 'troupe-1', season: cmp.season() },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+  })
+
+  it('ne navigue pas après édition si le slug est inchangé', () => {
+    const updated = season('season-1', 'troupe-1')
+    updated.title = 'Titre mis à jour'
+    dialog.open.mockReturnValue({
+      afterClosed: () => ({
+        subscribe: (fn: (value: SeasonResponse) => void) => fn(updated),
+      }),
+    })
+
+    const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
+      openEditSeason: () => void
+      seasonPermissions: WritableSignal<MySeasonPermissions | null>
+    }
+    cmp.loadingSession.set(false)
+    cmp.season.set(season('season-1', 'troupe-1'))
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: true,
+      canManageSeasons: true,
+      canManageEvents: false,
+      canManageSeasonParticipants: false,
+      canManageEventParticipants: false,
+      isTroupeAdmin: true,
+      isSeasonOrganizer: false,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+    fixture.detectChanges()
+
+    cmp.openEditSeason()
+
+    expect(router.navigate).not.toHaveBeenCalled()
+    expect(snack.open).toHaveBeenCalledWith('Saison mise à jour.', 'OK', { duration: 4000 })
+    expect(cmp.season()?.title).toBe('Titre mis à jour')
+  })
+
+  it('navigue vers le nouveau slug après édition si le titre change', () => {
+    const updated = season('season-1', 'troupe-1')
+    updated.slug = 'nouveau-slug'
+    updated.title = 'Nouveau titre'
+    dialog.open.mockReturnValue({
+      afterClosed: () => ({
+        subscribe: (fn: (value: SeasonResponse) => void) => fn(updated),
+      }),
+    })
+
+    const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
+      seasonView: WritableSignal<'agenda' | 'history' | 'stats'>
+      openEditSeason: () => void
+      canManageSeasons: () => boolean
+      seasonPermissions: WritableSignal<MySeasonPermissions | null>
+    }
+    cmp.loadingSession.set(false)
+    cmp.season.set(season('season-1', 'troupe-1'))
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: true,
+      canManageSeasons: true,
+      canManageEvents: false,
+      canManageSeasonParticipants: false,
+      canManageEventParticipants: false,
+      isTroupeAdmin: true,
+      isSeasonOrganizer: false,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+    cmp.seasonView.set('stats')
+    fixture.detectChanges()
+
+    cmp.openEditSeason()
+
+    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'nouveau-slug'], {
+      replaceUrl: true,
+      queryParams: { view: 'stats' },
+    })
+    expect(snack.open).toHaveBeenCalledWith('Saison mise à jour.', 'OK', { duration: 4000 })
+    expect(cmp.season()?.title).toBe('Nouveau titre')
   })
 
   it('affiche le menu réglages pour participants ou orga saison sans admin troupe', () => {

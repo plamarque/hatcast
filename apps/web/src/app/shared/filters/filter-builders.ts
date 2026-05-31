@@ -143,7 +143,7 @@ export function eventFilterOptionFromResponse(
   }
 }
 
-/** Masque passés / inactifs tant que les cases ne sont pas cochées (comportement V1). */
+/** Masque passés / inactifs tant que les cases ne sont pas cochées (matrice V1 GridBoard). */
 export function filterEventPickerVisibleOptions(
   options: EventPickerOption[],
   showPast: boolean,
@@ -151,14 +151,19 @@ export function filterEventPickerVisibleOptions(
   now: Date = new Date(),
 ): EventPickerOption[] {
   return options.filter((o) => {
-    if (o.archived && !showArchived) {
-      return false
-    }
+    const isArchived = !!o.archived
     const isPast = o.past ?? (o.startsAt ? isEventPastParis(o.startsAt, now) : false)
-    if (isPast && !showPast) {
-      return false
+
+    if (showPast && showArchived) {
+      return true
     }
-    return true
+    if (showArchived) {
+      return isArchived
+    }
+    if (showPast) {
+      return isPast
+    }
+    return !isArchived && !isPast
   })
 }
 
@@ -256,14 +261,13 @@ export function buildSeasonHubDimensions(input: {
     })
   }
 
-  if (input.eventOptions.length > 0) {
-    dimensions.push({
-      key: 'spectacle',
-      icon: 'event',
-      title: 'Spectacles',
-      summary: spectacleHubSummary(input.selectedEventIds, input.eventOptions),
-    })
-  }
+  // Picker loads scope=all — show even when agenda/history lists are empty (inactive-only).
+  dimensions.push({
+    key: 'spectacle',
+    icon: 'event',
+    title: 'Spectacles',
+    summary: spectacleHubSummary(input.selectedEventIds, input.eventOptions),
+  })
 
   if (input.view === 'stats' && input.categoryGlossarySlugs.length > 0) {
     dimensions.push({

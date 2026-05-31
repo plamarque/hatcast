@@ -6,6 +6,7 @@ import {
   buildAgendaFilterChips,
   buildAgendaHubDimensions,
   buildSeasonFilterChips,
+  buildSeasonHubDimensions,
   filterEventPickerVisibleOptions,
   participantHubSummary,
   resolveAgendaPanelSeason,
@@ -83,28 +84,44 @@ describe('filter-builders', () => {
     expect(resolveApiParticipantId(['p1', 'p2'])).toBeNull()
   })
 
-  it('filterEventPickerVisibleOptions masque passés et inactifs par défaut', () => {
+  it('buildSeasonHubDimensions includes spectacle when eventOptions empty', () => {
+    const dimensions = buildSeasonHubDimensions({
+      view: 'agenda',
+      participantOptions: [{ id: null, label: 'Tous' }],
+      selectedParticipantIds: [],
+      eventOptions: [],
+      selectedEventIds: [],
+      statsCategoryFilter: { kind: 'all' },
+      categoryLabels: {},
+      categoryGlossarySlugs: [],
+    })
+    expect(dimensions.map((d) => d.key)).toContain('spectacle')
+  })
+
+  it('filterEventPickerVisibleOptions suit la matrice V1 GridBoard', () => {
     const now = new Date('2024-06-15T12:00:00.000Z')
     const options: EventPickerOption[] = [
       { id: '1', title: 'Futur', startsAt: '2024-06-20', archived: false, past: false },
       { id: '2', title: 'Passé', startsAt: '2024-06-10', archived: false, past: true },
-      { id: '3', title: 'Inactif', startsAt: '2024-06-20', archived: true, past: false },
+      { id: '3', title: 'Inactif futur', startsAt: '2024-06-20', archived: true, past: false },
+      { id: '4', title: 'Inactif passé', startsAt: '2024-06-10', archived: true, past: true },
     ]
     expect(filterEventPickerVisibleOptions(options, false, false, now).map((o) => o.id)).toEqual([
       '1',
     ])
     expect(filterEventPickerVisibleOptions(options, true, false, now).map((o) => o.id)).toEqual([
-      '1',
       '2',
+      '4',
     ])
     expect(filterEventPickerVisibleOptions(options, false, true, now).map((o) => o.id)).toEqual([
-      '1',
       '3',
+      '4',
     ])
     expect(filterEventPickerVisibleOptions(options, true, true, now).map((o) => o.id)).toEqual([
       '1',
       '2',
       '3',
+      '4',
     ])
   })
 })

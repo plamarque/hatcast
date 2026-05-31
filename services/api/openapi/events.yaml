@@ -188,7 +188,40 @@ paths:
   /seasons/{seasonId}/events/{eventId}/actions/archive:
     post:
       tags: [Événements]
-      summary: Archiver un spectacle
+      summary: Désactiver un spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Gestion refusée (hors règle provisoire seed/admin)
+        '404':
+          description: Événement ou saison inconnue
+
+  /seasons/{seasonId}/events/{eventId}/actions/unarchive:
+    post:
+      tags: [Événements]
+      summary: Réactiver un spectacle
       security:
         - cookieAuth: []
       parameters:

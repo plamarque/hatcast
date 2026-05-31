@@ -1,3 +1,11 @@
+## Deferred from: code review of 17-30-season-event-count-resync.md (2026-06-01)
+
+- ISSUES BUG-004 mentionne « unarchive lifecycle » — pas d’endpoint unarchive en V2 ; resync à prévoir si feature ajoutée.
+
+## Deferred from: code review of 17-31-modifier-saison-gear-workspace.md (2026-05-31)
+
+- Slug change after edit triggers full `loadTroupeAndSeason` reload (loading spinner flash) — pre-existing route param subscription pattern, not introduced by 17.31. [season-home.ts:933]
+
 ## Deferred from: align home next-event card with agenda (2026-05-31)
 
 - Badges troupe/saison statiques (`<span>`) vs liens `routerLink` dans user-agenda — parité navigation préexistante.

@@ -10,14 +10,14 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
-### BUG-004 — Season `event_count` drift after bulk import and archive
-- **ID**: BUG-004
-- **Status**: Open
-- **Severity**: Medium (misleading hub troupe season cards; data trust)
-- **Affected area**: `seasons.event_count` denormalized column; V1→V2 migration SQL load; `EventService.archive`; `app-season-card` / troupe hub
-- **Observed behavior**: After troupe/season import (bulk `INSERT INTO events`), season list cards show **0 spectacles** while the season workspace agenda lists events. Creating events via API increments the counter; archiving does not decrement it. Seeds manually run `UPDATE seasons SET event_count = COUNT(*)` but migration pipeline does not.
-- **Expected behavior**: `SeasonResponse.eventCount` matches the number of **non-archived** events for the season, including after import and after archive/unarchive lifecycle changes.
-- **Notes/context**: Discovered 2026-05-31 on imported troupe (La Malice). UX spec [ux-design-troupe-hub.md](_bmad-output/planning-artifacts/ux-design-troupe-hub.md) T14. Related: `participant_count` sync exists via `SeasonParticipantService` / membership sync; `event_count` lacks equivalent maintenance on archive.
+### BUG-005 — Archived events unreachable for reactivation in season workspace
+- **ID**: BUG-005
+- **Status**: Fixed (2026-06-01)
+- **Severity**: High (functional dead-end for organizers)
+- **Affected area**: Season workspace spectacle picker (`filter-event-picker`), agenda filtering (`season-home`), event detail admin menu, API events lifecycle
+- **Observed behavior**: After archiving an event, it disappeared from the agenda and did not appear in the spectacle picker when checking « Inactifs » (especially archived past events). There was no API/UI path to unarchive.
+- **Expected behavior**: Picker « Inactifs » lists all inactive events (V1 GridBoard matrix); selecting an inactive event shows it in the agenda/history grid; organizers can **Réactiver** from event detail to restore it to the agenda.
+- **Fix**: V1 filter matrix in `filterEventPickerVisibleOptions`; pinned fetch of selected out-of-scope events in `season-home`; `POST …/actions/unarchive` + menu **Réactiver** on inactive event detail.
 
 ### LIMIT-001 — E2E tests depend on live base state; need fixture re-architecture
 - **ID**: LIMIT-001
@@ -40,6 +40,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 ---
 
 ## Fixed
+
+### BUG-004 — Season `event_count` drift after bulk import and archive
+- **ID**: BUG-004
+- **Status**: Fixed
+- **Severity**: Medium (misleading hub troupe season cards; data trust)
+- **Affected area**: `seasons.event_count` denormalized column; V1→V2 migration SQL load; `EventService.archive`; `app-season-card` / troupe hub
+- **Observed behavior**: After troupe/season import (bulk `INSERT INTO events`), season list cards show **0 spectacles** while the season workspace agenda lists events. Creating events via API increments the counter; archiving does not decrement it. Seeds manually run `UPDATE seasons SET event_count = COUNT(*)` but migration pipeline does not.
+- **Expected behavior**: `SeasonResponse.eventCount` matches the number of **non-archived** events for the season, including after import and after archive/unarchive lifecycle changes.
+- **Fix**: Story **17-30** — `SeasonEventCountSync.recountEvents()` on archive; reconcile SQL appended to MIG-2 `load.sql`; migration pipeline smoke reconciles and asserts `season_event_count`; admin script `scripts/v2/reconcile-season-event-counts.mjs` for imported troupes. Canonical rule: non-archived events only (seeds V6/V26/V34 aligned).
+- **Notes/context**: Discovered 2026-05-31 on imported troupe (La Malice). UX spec [ux-design-troupe-hub.md](_bmad-output/planning-artifacts/ux-design-troupe-hub.md) T14.
 
 ### BUG-003 — Dispos « Tous » hint « estimés » trompeur après tirage multi-rôles
 - **ID**: BUG-003

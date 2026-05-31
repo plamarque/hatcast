@@ -82,4 +82,11 @@ class EventController(
         @PathVariable eventId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): EventResponseDto = eventService.archive(seasonId, eventId, principal)
+
+    @PostMapping("/{eventId}/actions/unarchive")
+    fun unarchive(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto = eventService.unarchive(seasonId, eventId, principal)
 }

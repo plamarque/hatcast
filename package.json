@@ -33,6 +33,7 @@
     "migrate:from-v1": "./scripts/migrate-from-v1.sh",
     "migrate:v2:run": "node scripts/v2/migrate-run.mjs",
     "migrate:v2:validate-replay": "node scripts/v2/validate-replay-log.mjs",
+    "reconcile:season-event-counts": "node scripts/v2/reconcile-season-event-counts.mjs",
     "test:migrate": "node --test scripts/v1/*.test.js scripts/v2/migrate-lib/*.test.mjs",
     "generate:improbots-seed": "node scripts/v2/generate-improbots-seed-sql.js",
     "generate:improbots-composition-seed": "node scripts/v2/generate-improbots-seed-sql.js --composition-only",

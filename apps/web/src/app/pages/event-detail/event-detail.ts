@@ -140,9 +140,16 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     if (this.canManageEvents() && !ev.archived) {
       items.push({
-        label: 'Archiver',
+        label: 'Désactiver',
         icon: 'archive',
         action: () => this.confirmArchive(),
+      })
+    }
+    if (this.canManageEvents() && ev.archived) {
+      items.push({
+        label: 'Réactiver',
+        icon: 'unarchive',
+        action: () => this.confirmUnarchive(),
       })
     }
     return items
@@ -267,14 +274,14 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     if (!this.canManageEvents()) {
-      this.snack.open('Vous ne pouvez pas archiver ce spectacle.', 'OK', { duration: 5000 })
+      this.snack.open('Vous ne pouvez pas désactiver ce spectacle.', 'OK', { duration: 5000 })
       return
     }
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
       data: {
-        title: 'Archiver le spectacle',
-        message: `Archiver « ${ev.title} » ? Il disparaîtra de l’agenda.`,
-        confirmLabel: 'Archiver',
+        title: 'Désactiver le spectacle',
+        message: `Désactiver « ${ev.title} » ? Il disparaîtra de l’agenda.`,
+        confirmLabel: 'Désactiver',
       },
     })
     ref.afterClosed().subscribe((ok) => {
@@ -292,10 +299,47 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     const r = await this.eventsApi.archiveEvent(seasonId, ev.id)
     if (r.ok) {
-      this.snack.open('Spectacle archivé.', 'OK', { duration: 4000 })
+      this.snack.open('Spectacle désactivé.', 'OK', { duration: 4000 })
       await this.router.navigate(saisonWorkspacePath(slug))
     } else {
-      this.snack.open('Archivage impossible.', 'OK', { duration: 6000 })
+      this.snack.open('Désactivation impossible.', 'OK', { duration: 6000 })
+    }
+  }
+
+  protected confirmUnarchive(): void {
+    const ev = this.event()
+    if (!ev) {
+      return
+    }
+    if (!this.canManageEvents()) {
+      this.snack.open('Vous ne pouvez pas réactiver ce spectacle.', 'OK', { duration: 5000 })
+      return
+    }
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Réactiver le spectacle',
+        message: `Réactiver « ${ev.title} » ? Il réapparaîtra dans l’agenda.`,
+        confirmLabel: 'Réactiver',
+      },
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.runUnarchive(ev)
+      }
+    })
+  }
+
+  private async runUnarchive(ev: EventResponse): Promise<void> {
+    const seasonId = this.seasonId()
+    if (!seasonId) {
+      return
+    }
+    const r = await this.eventsApi.unarchiveEvent(seasonId, ev.id)
+    if (r.ok && r.data) {
+      this.event.set(r.data)
+      this.snack.open('Spectacle réactivé.', 'OK', { duration: 4000 })
+    } else {
+      this.snack.open('Réactivation impossible.', 'OK', { duration: 6000 })
     }
   }
 

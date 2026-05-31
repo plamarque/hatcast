@@ -4,6 +4,7 @@ import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import com.hatcast.api.event.dto.UpdateEventRequest
 import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.season.SeasonEventCountSync
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeAccessService
@@ -33,6 +34,7 @@ class EventServiceUpdateTest {
     private val participantFocusService = mock<EventParticipantFocusService>()
     private val compositionLifecycleEnrichment = mock<CompositionLifecycleEnrichmentService>()
     private val troupeCategoryService = mock<TroupeCategoryService>()
+    private val seasonEventCountSync = mock<SeasonEventCountSync>()
     private val service =
         EventService(
             eventRepository,
@@ -42,6 +44,7 @@ class EventServiceUpdateTest {
             participantFocusService,
             compositionLifecycleEnrichment,
             troupeCategoryService,
+            seasonEventCountSync,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

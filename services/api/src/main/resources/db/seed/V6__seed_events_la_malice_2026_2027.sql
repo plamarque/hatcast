@@ -50,6 +50,6 @@ VALUES
 -- Maintenir les stats saison cohérentes avec les seeds.
 UPDATE seasons
 SET
-    event_count = (SELECT COUNT(*) FROM events e WHERE e.season_id = seasons.id),
+    event_count = (SELECT COUNT(*) FROM events e WHERE e.season_id = seasons.id AND e.archived = FALSE),
     updated_at = CURRENT_TIMESTAMP
 WHERE id = 'b0000001-0000-4000-8000-000000000001';

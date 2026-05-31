@@ -265,6 +265,60 @@ class EventControllerIntegrationTest {
     }
 
     @Test
+    fun `unarchive restores event in upcoming scope and scope all keeps archived flag`() {
+        val cookie = memberCookie("sub-event-unarchive")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-01T19:00:00Z")
+
+        val createFuture =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Spectacle réactivable",
+                              "startsAt": "${future}"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val eventId = mapper.readTree(createFuture.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/archive")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.archived").value(true))
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=all").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.id == '$eventId')].archived").value(true))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/unarchive")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.archived").value(false))
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=upcoming").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.content[0].id").value(eventId))
+    }
+
+    @Test
     fun `scope past with participantId returns focus availability for that participant`() {
         val cookie = memberCookie("sub-event-past-participant")
         val seasonId = createSeasonForEventsTests(cookie)
