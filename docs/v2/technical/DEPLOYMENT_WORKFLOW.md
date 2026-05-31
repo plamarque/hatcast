@@ -31,7 +31,7 @@ flowchart LR
 |-------|-------------|--------|----------------|
 | Dev local | — | `./scripts/start-dev.sh` | Neon branche **`local`** (`.env`), pas de push requis |
 | Dev cloud | `v2` | `git push origin v2` | Env GitHub `development` → `hatcast-v2-dev` |
-| Staging | `staging-v2` | `./scripts/v2/promote-to-staging.sh` | Env `staging` → `hatcast-v2-staging` |
+| Staging | `staging-v2` | `./scripts/v2/promote-to-staging.sh` | Env `staging` → `hatcast-v2-staging` ; **gate E2E smoke** avant deploy (pas sur `v2` dev cloud) |
 | Production | `production-v2` | `./scripts/v2/release-production.sh` | Env `production` → `hatcast-v2` |
 
 ## Configuration des branches
@@ -96,7 +96,8 @@ Comportement :
 1. Arbre de travail propre, `git fetch origin`
 2. Liste les commits `origin/staging-v2..origin/v2` ; si vide → exit 0
 3. `checkout staging-v2`, `pull`, `merge origin/v2`, `push origin staging-v2`
-4. Rappel URL Actions + service `hatcast-v2-staging`
+4. CI : smoke E2E Playwright (recette 3.19) puis deploy Cloud Run — le deploy staging **échoue** si le smoke est rouge
+5. Rappel URL Actions + service `hatcast-v2-staging`
 
 **Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) (flux V1 Firebase / `staging` → `main`).
 

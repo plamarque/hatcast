@@ -62,6 +62,18 @@ La branche git **`staging`** reste dédiée au déploiement **V1** (Firebase Hos
 
 Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) applique cet environnement selon la branche ; les secrets ci-dessous doivent être **définis dans chaque environnement** (valeurs différentes par cible).
 
+#### Gate CI E2E avant déploiement staging Cloud Run
+
+Sur **`staging-v2` uniquement**, le workflow de déploiement exécute d’abord le smoke Playwright ([`.github/workflows/e2e-smoke.yml`](../../.github/workflows/e2e-smoke.yml), profil API `e2e`, recette 3.19 S2–S5). Le job **deploy** ne démarre que si ce smoke est **vert**.
+
+| Branche | Cloud Run cible | Gate E2E avant deploy |
+|---------|-----------------|------------------------|
+| `v2` | `hatcast-v2-dev` (development) | **Non** |
+| `staging-v2` | `hatcast-v2-staging` | **Oui** |
+| `production-v2` | `hatcast-v2` (production) | **Non** |
+
+Le même workflow `e2e-smoke.yml` reste aussi déclenché en **standalone** sur les PR et les push vers `v2` (palier 2 CI, sans bloquer le deploy dev cloud).
+
 #### Environnement GitHub `staging` — branche de déploiement
 
 Dans **Settings → Environments → staging → Deployment branches**, choisir **Selected branch** et indiquer **`staging-v2`** (pas `staging`, réservée à la V1). Les secrets `HATCAST_DATASOURCE_*` et le reste du tableau « par environnement » restent sur l’environnement nommé `staging`.

@@ -18,7 +18,7 @@ import java.io.FileInputStream
  *   du **compte de service d’exécution** + identifiant de projet ([GOOGLE_CLOUD_PROJECT], etc.).
  */
 @Component
-@Profile("!test")
+@Profile("!test & !e2e")
 class IdentityPlatformFirebaseInitializer {
     private val log = LoggerFactory.getLogger(javaClass)
 

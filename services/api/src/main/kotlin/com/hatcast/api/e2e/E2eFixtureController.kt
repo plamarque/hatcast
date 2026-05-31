@@ -1,0 +1,19 @@
+package com.hatcast.api.e2e
+
+import com.hatcast.api.e2e.dto.Story319FixtureResponse
+import org.springframework.context.annotation.Profile
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+
+/** Fixture setup for Playwright E2E — profile `e2e` only; gated by [E2eApiKeyService]. */
+@RestController
+@RequestMapping("/v1/e2e/fixtures")
+@Profile("e2e")
+class E2eFixtureController(
+    private val fixtureService: E2eFixtureService,
+) {
+    /** Resets Story 3.19 smoke data (S1 exclusion + shared member on seasons A & B). */
+    @PostMapping("/story-3-19/reset")
+    fun resetStory319(): Story319FixtureResponse = fixtureService.resetStory319()
+}

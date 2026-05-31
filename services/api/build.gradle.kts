@@ -36,6 +36,7 @@ dependencies {
     implementation("com.google.firebase:firebase-admin:9.4.3")
 
     runtimeOnly("org.postgresql:postgresql")
+    developmentOnly("com.h2database:h2")
     testRuntimeOnly("com.h2database:h2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

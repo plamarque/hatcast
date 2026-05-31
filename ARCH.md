@@ -94,10 +94,21 @@ No separate API server; backend is Firebase (Firestore + Auth + Functions).
 
 ## Testing strategy (as-is + minimal improvements)
 
+### V1 (legacy)
+
 - **E2E (Playwright):** Default test runner. Config: [`legacy/playwright.config.js`](legacy/playwright.config.js); baseURL from env or `legacy/playwright.config.local.js`. Runs full app against a URL (dev server started by Playwright or existing server with `SKIP_WEBSERVER=1`). Specs in [`legacy/tests/*.spec.js`](legacy/tests/). Global setup/teardown in [`legacy/tests/global-setup.js`](legacy/tests/global-setup.js), [`legacy/tests/global-teardown.js`](legacy/tests/global-teardown.js).
 - **Custom runners:** [`legacy/tests/run-tests.js`](legacy/tests/run-tests.js), `run-manual.js`, email interceptor for flows that need controlled email/push behaviour. Not part of default `npm test`.
-- **CI:** `test:ci` uses `BASE_URL=http://localhost:5173`; Playwright typically starts the dev server unless disabled. For agent/sandbox environments that cannot bind ports, `test:with-server` with an already-running server is an option.
+- **CI:** `test:ci` uses `BASE_URL=http://localhost:5173`; Playwright typically starts the dev server unless disabled.
 - **Unit (Vitest):** Logic tests in [`legacy/tests/unit/*.spec.js`](legacy/tests/unit/). Run with `npm run test:unit`. Playwright ignores `tests/unit/**` via `testIgnore`.
+
+### V2 (Angular + Spring — cible)
+
+- **Unit (Vitest):** `apps/web` — `ng test` / Vitest component tests (`*.spec.ts`).
+- **API integration (H2):** `services/api` — `./gradlew test`, profil Spring `test`, CI [`api-test.yml`](.github/workflows/api-test.yml) (palier 1 PR).
+- **E2E (Playwright):** `apps/web/e2e/` + [`playwright.config.ts`](apps/web/playwright.config.ts). Playwright démarre l’API en profil **`e2e`** (H2 + seeds Flyway, **CSRF désactivé**, auth Google mockée via `E2eGoogleIdTokenService`, fixtures hybrides `POST /v1/e2e/fixtures/story-3-19/reset`) et le front `ng serve` (TLS). Auth Playwright : `storageState` (`e2e/.auth/admin.json`). Smoke recette 3.19 : `smoke-3.19-season-removal.spec.ts` (S2–S5). CI palier 2 : [`.github/workflows/e2e-smoke.yml`](.github/workflows/e2e-smoke.yml). Voir [`apps/web/e2e/README.md`](apps/web/e2e/README.md) et `services/api/README.md` § Profil `e2e`.
+- **Hors scope E2E V2 :** porter `legacy/tests/` tel quel ; exécuter E2E contre Neon prod / troupe La Malice (données migration réelles).
+- **Gate deploy staging Cloud Run :** sur branche `staging-v2` uniquement, [`deploy-v2-cloud-run.yml`](.github/workflows/deploy-v2-cloud-run.yml) appelle [`e2e-smoke.yml`](.github/workflows/e2e-smoke.yml) (`workflow_call`) avant le déploiement ; **pas** de gate E2E sur `v2` (dev cloud) ni `production-v2`. Le workflow standalone `e2e-smoke.yml` reste actif sur PR / push `v2` (palier 2 CI).
+
 - **Improvements (minimal, non-invasive):** Keep a single "smoke" suite that loads home and one season route; avoid disabling tests to fix CI; document test:with-server and env requirements in DEVELOPMENT.md. No refactor of test architecture required for v0.1.
 
 ---

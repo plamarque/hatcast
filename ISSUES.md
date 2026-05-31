@@ -12,12 +12,12 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### LIMIT-001 — E2E tests depend on live base state; need fixture re-architecture
 - **ID**: LIMIT-001
-- **Status**: Open
+- **Status**: Open (V1 legacy) / **mitigated for V2** (2026-05-31 — TEST-1)
 - **Severity**: Medium (tests are runnable but flaky / high maintenance, not blocking delivery)
 - **Affected area**: E2E tests (Playwright); fixtures / test data
 - **Observed behavior**: State-dependent E2E tests (e.g. composition status flows, event-details tabs, undo/transition scenarios) are unstable and difficult to pass. They rely heavily on the current state of the database (seasons, events, composition status, casts). Results vary with data; many tests end up skipped or failing depending on the base.
 - **Expected behavior** (future): A fixture system that allows injecting known data sets (or using a dedicated test DB/emulator with seeded data) so E2E tests can assert transitions and statuses reliably without depending on live content.
-- **Notes/context**: This is a **future re-architecture** of how we do E2E tests (fixtures / injectable data), not an immediate functional fix. To be scheduled later (e.g. in PLAN.md) when capacity allows. Specs like `composition-status.spec.js`, `event-details-tabs.spec.js` are the main examples.
+- **Notes/context**: **V2 (2026-05-31):** infra E2E under `apps/web/e2e/` + API profile `e2e` (H2 + seeds + mock Google auth + `POST /v1/e2e/fixtures/story-3-19/reset`) + smoke 3.19 green target in CI (`e2e-smoke.yml`). Legacy V1 Playwright (`legacy/tests/`) still state-dependent — not migrated in this slice. See PLAN **TEST-1**, ARCH.md § Testing V2.
 
 ### LIMIT-002 — API integration suite shares one DB; `TroupeMembershipIntegrationTest` flaky in full run
 - **ID**: LIMIT-002

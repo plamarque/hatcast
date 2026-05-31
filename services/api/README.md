@@ -65,6 +65,7 @@ Profil Spring **`test`** (`@ActiveProfiles("test")` sur les suites `@SpringBootT
 | Environnement | Moteur | Config |
 |---------------|--------|--------|
 | **CI** + `./gradlew test` local | **H2** en mémoire | [`src/test/resources/application-test.yml`](src/test/resources/application-test.yml) |
+| **E2E Playwright V2** | **H2** en mémoire + seeds | [`src/main/resources/application-e2e.yml`](src/main/resources/application-e2e.yml) — profil **`e2e`** |
 | **dev** (poste, branche Neon `local`) / **cloud** (Cloud Run) | **PostgreSQL** (Neon) | `HATCAST_DATASOURCE_*` + profils `dev` / `cloud` |
 
 La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml)**) exécute `./gradlew test --no-daemon` sur chaque PR/push touchant `services/api/**` (branches `v2`, `main`). Échec du job = check rouge. Relance manuelle : onglet Actions → *services/api (tests)* → *Run workflow*.
@@ -74,6 +75,20 @@ La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml
 ### Flyway en profil `test`
 
 Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` (données `@seed.improbots.test` pour `MemberSeasonGlanceIntegrationTest`, etc.). Le profil **cloud** exclut `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
+
+### Profil `e2e` (Playwright V2)
+
+Démarrage local (ou via `apps/web/playwright.config.ts` `webServer`) :
+
+```bash
+HATCAST_SPRING_PROFILE=e2e ./gradlew bootRun
+```
+
+- Base **H2** isolée, Flyway **migration + seed** (Les Improbots).
+- **Auth Google mockée** : `E2eGoogleIdTokenService` — token `e2e-admin` → `patrice@seed.improbots.test` (TROUPE_ADMIN Les Improbots ; super-admin plateforme).
+- **CSRF désactivé** (`hatcast.e2e.api-enabled=true`) pour les mutations Playwright sans bootstrap `XSRF-TOKEN`.
+- **Fixtures hybrides** (option C) : seed minimal + `POST /v1/e2e/fixtures/story-3-19/reset` (en-tête `X-Hatcast-E2E-Key`, clé par défaut `e2e-fixtures-secret` dans `application-e2e.yml`).
+- Package : [`src/main/kotlin/com/hatcast/api/e2e/`](src/main/kotlin/com/hatcast/api/e2e/). CI : [`.github/workflows/e2e-smoke.yml`](../../.github/workflows/e2e-smoke.yml).
 
 ### Compatibilité SQL H2 (shims test uniquement)
 

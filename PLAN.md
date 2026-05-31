@@ -277,6 +277,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **OPS-1** | Séparer Flyway schema / seed (profils dev vs cloud) | P0 | [x] |
 | **OPS-2** | CI : tests d’intégration API (H2, `api-test.yml`) / profil test documenté (**DW-099**) | P0 | [x] | **Gate M1** — workflow `api-test.yml`, profil H2 documenté |
 | **OPS-3** | Smoke PWA — `BASE_URL` staging V2 (**DW-002**) | P2 | backlog | |
+| **TEST-1** | Infra E2E V2 — Playwright (`apps/web/e2e/`) + profil API `e2e` (auth mock + fixtures hybrides) + smoke 3.19 (S2–S5) + workflow `e2e-smoke.yml` | P1 | [x] | Clôture **LIMIT-001** (V2) ; palier 2 CI ; gate deploy Cloud Run **staging-v2** via `e2e-smoke` dans `deploy-v2-cloud-run.yml` (pas dev cloud `v2`) |
 | **MIG-1** | Runbook reset Neon staging | P0 | [x] |
 | **MIG-0** | Bootstrap troupe sur staging/prod vide (sans `db/seed`) | P0 | [x] | Story **2.11** — prérequis import CSV [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md) |
 | **MIG-2** | Export V1 → import V2 : saisons + événements **+ `manifest.json` (mapping joueurs/events)** | P1 | ready-for-dev | **Après 2.11** + imports users/membres (2.3) ; [ADR-0016](docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md) ; story [mig-2](_bmad-output/implementation-artifacts/mig-2-export-v1-seasons-events-and-mapping-manifest.md) |
