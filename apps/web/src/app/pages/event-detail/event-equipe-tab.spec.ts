@@ -150,6 +150,36 @@ describe('EventEquipeTab', () => {
     })
   })
 
+  it('lists composition slots in V1 draw order (priority, not display order)', async () => {
+    fixture.componentRef.setInput(
+      'event',
+      ev({
+        templateType: 'cabaret',
+        roleSlots: { ...emptyRoleSlots(), player: 2, mc: 1, dj: 1 },
+      }),
+    )
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelectorAll('.event-equipe-tab__row').length).toBe(4)
+    })
+
+    const roleEmojis = [
+      ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role'),
+    ].map((el: Element) => el.textContent?.trim())
+    expect(roleEmojis).toEqual(['🎧', '🎤', '🎭', '🎭'])
+  })
+
   it('shows composition draft banner for organizer unvalidated draft', async () => {
     getComposition.mockResolvedValue({
       ok: true,
@@ -1030,6 +1060,9 @@ describe('EventEquipeTab', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Personnes ayant décliné')
     expect(fixture.nativeElement.textContent).toContain('Alice')
+    expect(
+      fixture.nativeElement.querySelector('.event-equipe-tab__row--declined'),
+    ).not.toBeNull()
   })
 
   it('applies confirmed row styling class', async () => {
