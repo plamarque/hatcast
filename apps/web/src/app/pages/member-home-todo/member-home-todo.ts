@@ -2,7 +2,6 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatIconModule } from '@angular/material/icon'
-import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
@@ -22,10 +21,9 @@ import {
   type AgendaCardEnrichedItem,
 } from '../../core/member-home/member-home-todo.utils'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { LastVisitedSeasonShortcutService } from '../../core/navigation/last-visited-season-shortcut.service'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
-import { saisonEventPath } from '../../core/navigation/troupe-routes'
-import { MemberSeasonShortcut } from '../../shared/member-cross-nav/member-season-shortcut'
-import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
+import { saisonEventPath, troupeHubPath } from '../../core/navigation/troupe-routes'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 
 @Component({
@@ -34,12 +32,9 @@ import { AgendaParticipationStatus } from '../../shared/participation/agenda-par
     MatButtonModule,
     MatChipsModule,
     MatIconModule,
-    MatListModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
-    MemberSeasonShortcut,
-    CompositionStatusBadge,
     AgendaParticipationStatus,
   ],
   templateUrl: './member-home-todo.html',
@@ -49,6 +44,7 @@ export class MemberHomeTodo implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly inboxApi = inject(MeInboxApiService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
+  protected readonly seasonShortcut = inject(LastVisitedSeasonShortcutService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
@@ -62,6 +58,25 @@ export class MemberHomeTodo implements OnInit {
   protected readonly nextEvent = signal<AgendaCardEnrichedItem | null>(null)
   protected readonly noParticipation = signal(false)
   protected readonly referenceNow = signal(new Date())
+  protected readonly seasonStatsLink = computed(() => {
+    const slug = this.seasonShortcut.seasonSlug()?.trim()
+    return slug ? this.seasonShortcut.link() : null
+  })
+
+  protected readonly seasonStatsShortcutLabel = computed(() => {
+    const title = this.seasonShortcut.seasonTitle()?.trim()
+    return title ? `Stats · ${title}` : 'Stats saison'
+  })
+
+  protected readonly seasonStatsAriaLabel = computed(() => {
+    const title = this.seasonShortcut.seasonTitle()?.trim()
+    return title ? `Statistiques de la saison ${title}` : 'Statistiques saison'
+  })
+
+  protected readonly troupeHubLink = computed(() => {
+    const slug = this.seasonShortcut.troupeSlug()?.trim()
+    return slug ? troupeHubPath(slug) : null
+  })
   protected readonly visibleActions = computed(() =>
     this.actions().slice(0, MAX_VISIBLE_ACTIONS),
   )
@@ -90,6 +105,7 @@ export class MemberHomeTodo implements OnInit {
       return
     }
     this.loadingSession.set(false)
+    void this.seasonShortcut.refresh()
     await this.loadInbox()
   }
 
@@ -170,6 +186,32 @@ export class MemberHomeTodo implements OnInit {
 
   protected isConfirmAction(action: InboxAction): boolean {
     return action.type === 'composition_confirm_pending'
+  }
+
+  protected actionKindLabel(action: InboxAction): string {
+    return this.isConfirmAction(action) ? 'À confirmer' : 'Dispo'
+  }
+
+  protected actionMetaLine(action: InboxAction): string {
+    return this.actionSubline(action)
+  }
+
+  protected actionLeadingIcon(action: InboxAction): string {
+    return this.isConfirmAction(action) ? 'how_to_reg' : 'edit_calendar'
+  }
+
+  protected eventDetailText(
+    item: AgendaCardEnrichedItem,
+  ): { description?: string; location?: string } | null {
+    const description = item.description?.trim()
+    const location = item.location?.trim()
+    if (!description && !location) {
+      return null
+    }
+    return {
+      ...(description ? { description } : {}),
+      ...(location ? { location } : {}),
+    }
   }
 
   private async redirectToLogin(): Promise<void> {

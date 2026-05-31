@@ -149,7 +149,7 @@ flowchart TB
 
 ### Zone 1 — Actions requises (priorité haute)
 
-Liste **compacte** (max 5 visibles + « Voir tout dans l’agenda » si plus). Une ligne = une action claire + CTA implicite au tap.
+**Cartes d’action** empilées (max 5 visibles + « Voir tout dans l’agenda » si plus) — **pas** `mat-nav-list` : une carte = verbe + titre spectacle + métadonnées sur **2 lignes max** (sans ellipsis) + CTA visuel (**Confirmer** / **Dispo**). Spec détaillée : [`ux-design-accueil-actions-requises.md`](./ux-design-accueil-actions-requises.md).
 
 | Type d’action | Condition (MVP) | Libellé ligne | Tap → |
 |---------------|-------------------|---------------|-------|
@@ -198,8 +198,8 @@ Rangée de **chips** ou **list items** (pas des onglets de nav).
 | Cas | Titre | Corps | CTA primaire | CTA secondaire |
 |-----|-------|-------|--------------|----------------|
 | Pas de participation | Rien en attente pour l’instant | Tu n’es inscrit·e à aucune ligue. | Découvrir les troupes → `/troupes#decouvrir` | — |
-| Participation mais 0 action et 0 événement | Tout est à jour | Aucun spectacle à venir. On te préviendra quand ce sera le cas. | Mes troupes | Mon agenda (vide) |
-| 0 action, ≥1 événement | Tout est à jour | Prochain spectacle ci-dessous. | — | Mon agenda complet |
+| Participation mais 0 action et 0 événement | Tout est à jour | **Rien ne te retient pour l'instant.** On te préviendra dès qu'un spectacle arrive. | Mes troupes | Mon agenda (vide) |
+| 0 action, ≥1 événement | Tout est à jour | **Tu es à jour pour tes spectacles.** Le prochain est juste en dessous. | — | Mon agenda complet |
 | Erreur chargement | Impossible de charger | Réessayer | — | — |
 
 **Ton :** tutoiement, aligné agenda actuel — règles détaillées (possessifs, titres vs messages) : [ux-voice-and-tone.md](./ux-voice-and-tone.md).

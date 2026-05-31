@@ -63,6 +63,7 @@ export function inboxActionAsAgendaItem(action: InboxAction): UserAgendaItem {
     title: action.title,
     startsAt: action.startsAt,
     location: action.location,
+    description: null,
     troupeId: action.troupeId,
     troupeName: action.troupeName,
     troupeSlug: action.troupeSlug,

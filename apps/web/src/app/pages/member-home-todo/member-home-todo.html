@@ -50,53 +50,66 @@
     </section>
   } @else {
     @if (showAllCaughtUpBanner()) {
-      <section class="member-home-todo__status-banner" aria-labelledby="todo-caught-up-heading">
-        <h2 id="todo-caught-up-heading" class="member-home-todo__status-banner-title">Tout est à jour</h2>
+      <section class="member-home-todo__celebration" aria-labelledby="todo-caught-up-heading">
+        <mat-icon class="member-home-todo__celebration-icon" aria-hidden="true">check_circle</mat-icon>
+        <h2 id="todo-caught-up-heading" class="member-home-todo__celebration-title">Tout est à jour</h2>
         @if (showNoUpcomingEventsEmpty()) {
-          <p class="member-home-todo__status-banner-text">
-            Aucun spectacle à venir. On te préviendra quand ce sera le cas.
+          <p class="member-home-todo__celebration-text">
+            Rien ne te retient pour l'instant. On te préviendra dès qu'un spectacle arrive.
           </p>
-          <div class="member-home-todo__status-banner-actions">
+          <div class="member-home-todo__celebration-actions">
             <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
           </div>
         } @else {
-          <p class="member-home-todo__status-banner-text">Prochain spectacle ci-dessous.</p>
+          <p class="member-home-todo__celebration-text">
+            Tu es à jour pour tes spectacles. Le prochain est juste en dessous.
+          </p>
         }
       </section>
     }
 
     @if (showActionsSection()) {
       <section class="member-home-todo__section" aria-labelledby="todo-actions-heading">
-        <h2 id="todo-actions-heading" class="member-home-todo__section-title">Actions requises</h2>
-        <mat-nav-list class="member-home-todo__action-list">
+        <h2 id="todo-actions-heading" class="member-home-todo__section-title">
+          Actions requises
+          @if (actions().length > 1) {
+            <span class="member-home-todo__section-count" aria-hidden="true">· {{ actions().length }}</span>
+          }
+        </h2>
+        <div class="member-home-todo__action-cards">
           @for (action of visibleActions(); track action.type + action.eventId + (action.roleKey ?? '')) {
             <button
               type="button"
-              mat-list-item
-              class="member-home-todo__action-item"
+              class="member-home-todo__action-card"
+              [class.member-home-todo__action-card--confirm]="isConfirmAction(action)"
+              [class.member-home-todo__action-card--dispo]="isAvailabilityAction(action)"
               [attr.aria-label]="actionAriaLabel(action)"
               [attr.data-testid]="
                 isConfirmAction(action) ? 'todo-action-confirm' : 'todo-action-dispo'
               "
               (click)="openAction(action)"
             >
-              <span matListItemTitle class="member-home-todo__action-title">
-                @if (isConfirmAction(action)) {
-                  Confirmer ta participation —
-                } @else {
-                  Indiquer ta dispo —
-                }
-                <em>{{ action.title }}</em>
+              <span class="member-home-todo__action-card-icon" aria-hidden="true">
+                <mat-icon>{{ actionLeadingIcon(action) }}</mat-icon>
               </span>
-              <span matListItemLine class="member-home-todo__action-subline">
-                {{ actionSubline(action) }}
+              <span class="member-home-todo__action-card-main">
+                <span class="member-home-todo__action-card-head">
+                  <span class="member-home-todo__action-event-title">{{ action.title }}</span>
+                  @if (isActionSoon(action)) {
+                    <mat-chip class="member-home-todo__soon-chip">Bientôt</mat-chip>
+                  }
+                </span>
+                <span class="member-home-todo__action-card-detail">
+                  <span class="member-home-todo__action-kind">{{ actionKindLabel(action) }}</span>
+                  <span class="member-home-todo__action-meta">{{ actionMetaLine(action) }}</span>
+                </span>
               </span>
-              @if (isAvailabilityAction(action) && isActionSoon(action)) {
-                <mat-chip matListItemMeta class="member-home-todo__soon-chip">Bientôt</mat-chip>
-              }
+              <mat-icon class="member-home-todo__action-card-chevron" aria-hidden="true">
+                chevron_right
+              </mat-icon>
             </button>
           }
-        </mat-nav-list>
+        </div>
         @if (showSeeAllInAgenda()) {
           <a
             mat-stroked-button
@@ -130,13 +143,19 @@
             </div>
             <div class="agenda-card__body">
               <h3 class="agenda-card__title">{{ next.title }}</h3>
-              <div class="agenda-card__badges">
-                @if (next.teamStatusBadge) {
-                  <app-composition-status-badge [badge]="next.teamStatusBadge" />
-                }
-                <span class="agenda-card__badge agenda-card__badge--meta">{{ next.troupeName }}</span>
-                <span class="agenda-card__badge agenda-card__badge--season">{{ next.seasonTitle }}</span>
-              </div>
+              @if (eventDetailText(next); as detail) {
+                <div class="agenda-card__details">
+                  @if (detail.description) {
+                    <p class="agenda-card__meta-desc">{{ detail.description }}</p>
+                  }
+                  @if (detail.location) {
+                    <p class="agenda-card__meta-loc">
+                      <mat-icon aria-hidden="true">place</mat-icon>
+                      <span>{{ detail.location }}</span>
+                    </p>
+                  }
+                </div>
+              }
             </div>
           </div>
           <div class="agenda-card__status">
@@ -151,16 +170,54 @@
 
     <section class="member-home-todo__section" aria-labelledby="todo-shortcuts-heading">
       <h2 id="todo-shortcuts-heading" class="member-home-todo__section-title">Accès rapides</h2>
-      <div class="member-home-todo__shortcuts member-cross-nav">
-        <app-member-season-shortcut />
+      <div class="member-home-todo__quick-links">
+        <a
+          mat-flat-button
+          color="primary"
+          [routerLink]="seasonShortcut.link()"
+          class="member-home-todo__quick-link-primary"
+          [class.member-home-todo__quick-link--pending]="seasonShortcut.loading()"
+          [attr.aria-label]="seasonShortcut.ariaLabel()"
+          [attr.aria-busy]="seasonShortcut.loading() ? 'true' : null"
+          data-testid="todo-shortcut-season"
+        >
+          <mat-icon aria-hidden="true">calendar_view_week</mat-icon>
+          <span class="member-home-todo__quick-link-label">{{ seasonShortcut.label() }}</span>
+        </a>
+        @if (seasonStatsLink(); as statsLink) {
+          <a
+            mat-stroked-button
+            [routerLink]="statsLink"
+            [queryParams]="{ view: 'stats' }"
+            class="member-home-todo__quick-link-secondary"
+            [attr.aria-label]="seasonStatsAriaLabel()"
+            data-testid="todo-shortcut-season-stats"
+          >
+            <mat-icon aria-hidden="true">insights</mat-icon>
+            <span class="member-home-todo__quick-link-label">{{ seasonStatsShortcutLabel() }}</span>
+          </a>
+        }
+        @if (troupeHubLink(); as troupeLink) {
+          <a
+            mat-stroked-button
+            [routerLink]="troupeLink"
+            class="member-home-todo__quick-link-secondary"
+            [attr.aria-label]="'Troupe ' + (seasonShortcut.troupeName() ?? '')"
+            data-testid="todo-shortcut-troupe"
+          >
+            <mat-icon aria-hidden="true">groups</mat-icon>
+            <span class="member-home-todo__quick-link-label">{{ seasonShortcut.troupeName() }}</span>
+          </a>
+        }
         <a
           mat-stroked-button
           routerLink="/troupes"
-          class="member-cross-nav__btn"
-          aria-label="Mes troupes"
+          class="member-home-todo__quick-link-tertiary"
+          aria-label="Toutes mes troupes"
+          data-testid="todo-shortcut-troupes-list"
         >
-          <mat-icon aria-hidden="true">groups</mat-icon>
-          <span class="member-cross-nav__label">Mes troupes</span>
+          <mat-icon aria-hidden="true">apps</mat-icon>
+          <span class="member-home-todo__quick-link-label">Toutes mes troupes</span>
         </a>
       </div>
     </section>

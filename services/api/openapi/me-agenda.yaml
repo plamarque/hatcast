@@ -187,6 +187,10 @@ components:
         location:
           type: string
           nullable: true
+        description:
+          type: string
+          nullable: true
+          description: Description courte du spectacle (affichage agenda / accueil)
         troupeId:
           type: string
           format: uuid

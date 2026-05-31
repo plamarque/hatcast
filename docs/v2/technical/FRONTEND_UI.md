@@ -41,6 +41,7 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-design-hatcast-v2.md`](../../../_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) | Continuité V1, tokens, écrans de référence |
 | [`_bmad-output/planning-artifacts/ux-hub-a-faire.md`](../../../_bmad-output/planning-artifacts/ux-hub-a-faire.md) | Top app bar M3, nav rail desktop (≥ 840 px), interdits M2 |
 | [`_bmad-output/planning-artifacts/ux-design-hub-section-headers.md`](../../../_bmad-output/planning-artifacts/ux-design-hub-section-headers.md) | Titres L1/L2 hub membre (typo, espacements, anti-dérive dialogue → page) |
+| [`_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md`](../../../_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md) | Accueil — cartes Actions requises + moment « Tout est à jour » |
 | [`_bmad-output/planning-artifacts/ux-design-specification.md`](../../../_bmad-output/planning-artifacts/ux-design-specification.md) | Surfaces admin (Material defaults + tokens) |
 
 Avant toute story UI, lire la section **checklist** ci-dessous et les **Dev Notes** / AC de la story (souvent sous `_bmad-output/implementation-artifacts/`).

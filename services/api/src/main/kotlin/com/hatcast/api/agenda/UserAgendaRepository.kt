@@ -29,6 +29,7 @@ interface UserAgendaRow {
   val title: String
   val startsAt: Instant
   val location: String?
+  val description: String?
   val troupeId: UUID
   val troupeName: String
   val troupeSlug: String
@@ -47,6 +48,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       e.title AS title,
       e.startsAt AS startsAt,
       e.location AS location,
+      e.description AS description,
       t.id AS troupeId,
       t.name AS troupeName,
       t.slug AS troupeSlug,
@@ -152,6 +154,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       e.title AS title,
       e.startsAt AS startsAt,
       e.location AS location,
+      e.description AS description,
       t.id AS troupeId,
       t.name AS troupeName,
       t.slug AS troupeSlug,

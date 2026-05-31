@@ -9,6 +9,7 @@ export interface UserAgendaItem {
   title: string
   startsAt: string
   location: string | null
+  description?: string | null
   troupeId: string
   troupeName: string
   troupeSlug: string

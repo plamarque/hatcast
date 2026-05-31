@@ -11,6 +11,9 @@ import {
   type InboxAction,
   type MeInboxResponse,
 } from '../../core/inbox/me-inbox-api.service'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
+import type { SeasonResponse } from '../../core/seasons/season-api.service'
+import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { MemberHomeTodo } from './member-home-todo'
 
 async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> {
@@ -33,9 +36,13 @@ describe('MemberHomeTodo', () => {
   let navigateByUrlSpy: ReturnType<typeof vi.fn>
   let navigateSpy: ReturnType<typeof vi.fn>
   let snack: { open: ReturnType<typeof vi.fn> }
+  let seasonResolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
 
   beforeEach(async () => {
     localStorage.clear()
+    seasonResolver = {
+      resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }),
+    }
     inboxApi = {
       getInbox: vi.fn().mockResolvedValue({
         ok: true,
@@ -67,6 +74,7 @@ describe('MemberHomeTodo', () => {
         provideRouter([]),
         { provide: AuthApiService, useValue: auth },
         { provide: MeInboxApiService, useValue: inboxApi },
+        { provide: TroupeSeasonResolverService, useValue: seasonResolver },
         { provide: MatSnackBar, useValue: snack },
       ],
     }).compileComponents()
@@ -102,9 +110,9 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    const rows = fixture.nativeElement.querySelectorAll('.member-home-todo__action-item')
+    const rows = fixture.nativeElement.querySelectorAll('.member-home-todo__action-card')
     expect(rows.length).toBe(2)
-    expect(fixture.nativeElement.textContent).toContain('Indiquer ta dispo')
+    expect(fixture.nativeElement.textContent).toContain('Dispo')
     expect(fixture.nativeElement.textContent).toContain('Match A')
   })
 
@@ -120,7 +128,7 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelectorAll('.member-home-todo__action-item').length).toBe(5)
+    expect(fixture.nativeElement.querySelectorAll('.member-home-todo__action-card').length).toBe(5)
     expect(fixture.nativeElement.querySelector('[data-testid="todo-see-all-agenda"]')).toBeTruthy()
   })
 
@@ -138,6 +146,7 @@ describe('MemberHomeTodo', () => {
 
     expect(fixture.nativeElement.querySelector('#todo-actions-heading')).toBeFalsy()
     expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
+    expect(fixture.nativeElement.textContent).toContain('Tu es à jour pour tes spectacles')
     expect(fixture.nativeElement.querySelector('[data-testid="todo-next-event-card"]')).toBeTruthy()
   })
 
@@ -187,7 +196,7 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.textContent).toContain('Confirmer ta participation')
+    expect(fixture.nativeElement.textContent).toContain('À confirmer')
     expect(fixture.nativeElement.textContent).toContain('Comédien·ne')
 
     const row = fixture.nativeElement.querySelector(
@@ -199,6 +208,25 @@ describe('MemberHomeTodo', () => {
     expect(navigateByUrlSpy).toHaveBeenCalledWith(
       '/saison/ligue-2026/event/ev-c?showConfirm=true',
     )
+  })
+
+  it('affiche la métadonnée complète sans la couper sur une carte confirmation', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([
+        confirmAction('ev-c', 'Apérock Juin', isoInDays(3), 'player', 'Comédien·ne'),
+      ]),
+    })
+
+    await settle(fixture)
+
+    const meta = fixture.nativeElement.querySelector(
+      '.member-home-todo__action-meta',
+    ) as HTMLElement
+    expect(meta?.textContent).toContain('La BIM')
+    expect(meta?.textContent).toContain('Comédien·ne')
+    expect(meta.scrollHeight).toBeLessThanOrEqual(meta.clientHeight + 2)
   })
 
   it('affiche le badge Bientôt pour une action dispo dans les 7 jours', async () => {
@@ -225,11 +253,50 @@ describe('MemberHomeTodo', () => {
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
-    expect(fixture.nativeElement.textContent).toContain('Aucun spectacle à venir')
-    expect(fixture.nativeElement.textContent).toContain('Mes troupes')
-    const shortcuts = fixture.nativeElement.querySelector('.member-home-todo__shortcuts')
-    expect(shortcuts?.querySelector('app-member-agenda-shortcut')).toBeNull()
-    expect(shortcuts?.textContent).not.toContain("Saison en un clin d'œil")
+    expect(fixture.nativeElement.textContent).toContain('Rien ne te retient')
+    expect(fixture.nativeElement.textContent).toContain('Toutes mes troupes')
+    expect(fixture.nativeElement.querySelector('.member-home-todo__celebration-icon')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-season-stats"]')).toBeFalsy()
+  })
+
+  it('met en avant Ma saison et les raccourcis contextuels quand une saison est mémorisée', async () => {
+    rememberLastVisitedSeasonSlug('ligue-2026', 'troupe-1')
+    seasonResolver.resolveSeasonSlug.mockResolvedValue({
+      kind: 'resolved',
+      troupe: { id: 'troupe-1', name: 'La Malice', slug: 'la-malice' },
+      season: {
+        id: 'league-1',
+        slug: 'ligue-2026',
+        title: 'Malice 2025-2026',
+      } as SeasonResponse,
+    })
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([]),
+    })
+
+    await settle(fixture)
+
+    const seasonLink = fixture.nativeElement.querySelector(
+      '[data-testid="todo-shortcut-season"]',
+    ) as HTMLAnchorElement
+    expect(seasonLink.textContent).toContain('Ma saison')
+    expect(seasonLink.textContent).toContain('Malice 2025-2026')
+    expect(seasonLink.getAttribute('href')).toContain('/saison/ligue-2026')
+
+    const statsLink = fixture.nativeElement.querySelector(
+      '[data-testid="todo-shortcut-season-stats"]',
+    ) as HTMLAnchorElement
+    expect(statsLink.textContent).toContain('Stats · Malice 2025-2026')
+    expect(statsLink.getAttribute('href')).toContain('/saison/ligue-2026')
+    expect(statsLink.getAttribute('href')).toContain('view=stats')
+
+    const troupeLink = fixture.nativeElement.querySelector(
+      '[data-testid="todo-shortcut-troupe"]',
+    ) as HTMLAnchorElement
+    expect(troupeLink.textContent).toContain('La Malice')
+    expect(troupeLink.getAttribute('href')).toContain('/troupes/la-malice')
   })
 
   it('redirige vers connexion quand la session est absente', async () => {
@@ -276,6 +343,29 @@ describe('MemberHomeTodo', () => {
 
     expect(inboxApi.getInbox).toHaveBeenCalledTimes(2)
     expect(fixture.nativeElement.textContent).toContain('Retour hub')
+  })
+
+  it('affiche description et lieu sur la carte prochain spectacle sans chips troupe/saison', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse(
+        [],
+        agendaItem('detail-ev', 'Apérock Juin', isoInDays(2), 'available', {
+          description: 'Soirée détente après le match',
+          location: 'La Malice, Lyon',
+        }),
+      ),
+    })
+
+    await settle(fixture)
+
+    const card = fixture.nativeElement.querySelector('[data-testid="todo-next-event-card"]')
+    expect(card?.textContent).toContain('Soirée détente')
+    expect(card?.textContent).toContain('La Malice, Lyon')
+    expect(card?.querySelector('.agenda-card__badge--meta')).toBeFalsy()
+    expect(card?.querySelector('.agenda-card__badge--season')).toBeFalsy()
+    expect(card?.querySelector('.agenda-card__meta-loc mat-icon')).toBeTruthy()
   })
 
   it('affiche la carte prochain spectacle depuis nextEvent inbox', async () => {
@@ -370,12 +460,12 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    const titles = Array.from(
-      fixture.nativeElement.querySelectorAll('.member-home-todo__action-title'),
+    const kinds = Array.from(
+      fixture.nativeElement.querySelectorAll('.member-home-todo__action-kind'),
       (el) => (el as HTMLElement).textContent ?? '',
     )
-    expect(titles[0]).toContain('Confirmer ta participation')
-    expect(titles[1]).toContain('Indiquer ta dispo')
+    expect(kinds[0]).toContain('À confirmer')
+    expect(kinds[1]).toContain('Dispo')
   })
 })
 
