@@ -10,10 +10,16 @@ Tracking: [PLAN.md](../../../PLAN.md) § « Pre-prod V2 + migration V1 ».
 |------------------|-------------------------------|
 | Flyway **schema only** on staging (no dev seeds) | Firebase Auth bulk import (optional, separate) |
 | Export users + members from **V1 Firestore production** (`(default)`) | Production cutover / DNS / Hosting switch |
-| CSV import via V2 admin UI (Story 2.3) | `template_type=deplacement` → category (**MIG-4**) |
-| **Events + mapping manifest** export/load (**MIG-2**, ADR-0016) | Full season/league model migration |
+| CSV import via V2 admin UI (Story 2.3) | Full season/league model migration |
+| **Events + mapping manifest** export/load (**MIG-2**, ADR-0016) | |
+| **`template_type=deplacement` → `category=deplacements`** (**MIG-4**) | |
 | **Availability + compositions** export/load (**MIG-3**, ADR-0016) | |
 | Repeatable Neon staging reset | |
+
+> **MIG-4 (post-2026-06-01):** `transformEvents()` sets `category='deplacements'` for V1
+> `templateType=deplacement`; `load.sql` also idempotently seeds `troupe_categories` for the
+> target troupe. Staging branches migrated **before** MIG-4 need a full Procedure C replay — no
+> separate backfill script.
 
 ## Prerequisites
 
@@ -192,6 +198,22 @@ aborts the run. The `manifest.json` is the **input contract for MIG-3**.
 - [ ] `events` row count matches `manifest.json.counts.events` (and non-rejected V1 events).
 - [ ] Each migrated event has a unique `slug` within the season.
 - [ ] `manifest.json.players[]` resolves expected members; review any `PLAYER_UNRESOLVED` rejects.
+- [ ] **MIG-4:** `manifest.json.counts.deplacements` matches V1 `templateType=deplacement` count in `raw.json`.
+- [ ] **MIG-4:** after load, `SELECT COUNT(*) FROM events WHERE season_id = '<V2_SEASON_UUID>' AND category = 'deplacements'` equals `manifest.json.counts.deplacements` (Malice: **7** expected).
+- [ ] **MIG-4:** `troupe_categories` contains `{ slug: 'deplacements', label: 'Déplacements' }` for the target troupe when `counts.deplacements > 0`.
+
+Compare V1 deplacement count:
+
+```bash
+node -e "const r=require('./export/malice/<ts>/raw.json'); console.log(r.events.filter(e=>e.templateType==='deplacement').length)"
+```
+
+Post-load SQL:
+
+```sql
+SELECT COUNT(*)::int FROM events
+WHERE season_id = '<V2_SEASON_UUID>' AND category = 'deplacements';
+```
 
 ### B5 — Migrate availability + compositions (MIG-3, ADR-0016)
 

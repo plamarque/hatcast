@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * MIG-2 transform — V1 raw dump → V2 load.sql + manifest.json + rejects.json.
+ * MIG-2 / MIG-4 transform — V1 raw dump → V2 load.sql + manifest.json + rejects.json.
  *
  * ADR-0016 §Decision.3/4: produce the authoritative V1→V2 mapping manifest that
- * MIG-3 consumes. Pure logic lives in scripts/v1/maliceEventsManifest.js; this
- * CLI only wires file I/O. Nothing here writes to a database (see :load).
+ * MIG-3 consumes. MIG-4 adds `category=deplacements` for V1 `templateType=deplacement`
+ * and idempotent `troupe_categories` glossaire in load.sql. Pure logic lives in
+ * scripts/v1/maliceEventsManifest.js; this CLI only wires file I/O.
+ * Nothing here writes to a database (see :load).
  *
  * Inputs:
  *   --raw=<path>            raw.json from migrate-malice-extract.mjs (required)
@@ -126,8 +128,8 @@ function main() {
   )
 
   console.error(
-    `Wrote:\n  ${sqlPath} (${events.length} events)\n  ${manifestPath} ` +
-      `(players=${manifest.counts.players}, events=${manifest.counts.events})\n  ${rejectsPath} (${rejects.length} reject(s))`,
+    `Wrote:\n  ${sqlPath} (${events.length} events, deplacements=${manifest.counts.deplacements})\n  ${manifestPath} ` +
+      `(players=${manifest.counts.players}, events=${manifest.counts.events}, deplacements=${manifest.counts.deplacements})\n  ${rejectsPath} (${rejects.length} reject(s))`,
   )
   if (participantRows.length === 0) {
     console.error(

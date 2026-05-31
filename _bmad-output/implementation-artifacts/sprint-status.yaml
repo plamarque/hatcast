@@ -51,6 +51,7 @@ development_status:
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: done
   mig-4-deplacements-category-import: done
+  mig-4-deplacements-category-import: done
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done

@@ -6,6 +6,7 @@ import {
   buildEventsManifest,
   buildManifest,
   buildPlayersManifest,
+  buildTroupeDeplacementsCategorySqlLines,
   deterministicEventUuid,
   slugBaseFromTitle,
   transformEvents,
@@ -74,6 +75,23 @@ describe('maliceEventsManifest — transformEvents (AC2, AC3)', () => {
     assert.equal(archived.length, 1)
   })
 
+  it('maps templateType=deplacement to category=deplacements (MIG-4 AC1)', () => {
+    const { events } = transformEvents(V1_EVENTS, { seasonV2Id: SEASON_V2 })
+    const deplacement = events.find((e) => e.templateType === 'deplacement')
+    assert.ok(deplacement)
+    assert.equal(deplacement.category, 'deplacements')
+    assert.equal(deplacement.templateType, 'deplacement')
+  })
+
+  it('keeps category null for non-deplacement events (MIG-4 AC2)', () => {
+    const { events } = transformEvents(V1_EVENTS, { seasonV2Id: SEASON_V2 })
+    const nonDeplacement = events.filter((e) => e.templateType !== 'deplacement')
+    assert.ok(nonDeplacement.length >= 1)
+    for (const ev of nonDeplacement) {
+      assert.equal(ev.category, null)
+    }
+  })
+
   it('honors a configurable default time', () => {
     const { events } = transformEvents([V1_EVENTS[1]], {
       seasonV2Id: SEASON_V2,
@@ -103,17 +121,50 @@ describe('maliceEventsManifest — slug + uuid helpers', () => {
   })
 })
 
-describe('maliceEventsManifest — buildEventsLoadSql (AC7)', () => {
+describe('maliceEventsManifest — buildEventsLoadSql (AC7, MIG-4 AC3–4)', () => {
   it('emits idempotent INSERT … ON CONFLICT DO UPDATE', () => {
     const { events } = transformEvents(V1_EVENTS, { seasonV2Id: SEASON_V2 })
     const sql = buildEventsLoadSql(events)
     assert.match(sql, /INSERT INTO events \(id, season_id, title/)
     assert.match(sql, /ON CONFLICT \(id\) DO UPDATE SET/)
     assert.match(sql, /role_slots = EXCLUDED\.role_slots/)
+    assert.match(sql, /category = EXCLUDED\.category/)
     assert.match(sql, /UPDATE seasons/)
     assert.match(sql, /event_count = \(SELECT COUNT\(\*\)::int FROM events e WHERE e\.season_id = seasons\.id AND e\.archived = FALSE\)/)
     // role_slots stored as JSON text
     assert.match(sql, /\{"player":5,"mc":1\}/)
+  })
+
+  it('persists category=deplacements in SQL for deplacement events (MIG-4 AC3)', () => {
+    const { events } = transformEvents(V1_EVENTS, { seasonV2Id: SEASON_V2 })
+    const sql = buildEventsLoadSql(events)
+    assert.match(sql, /'deplacement'.*'deplacements'/)
+    assert.match(sql, /, NULL, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP\)/)
+  })
+
+  it('emits idempotent troupe_categories glossaire when deplacements exist (MIG-4 AC4)', () => {
+    const { events } = transformEvents(V1_EVENTS, { seasonV2Id: SEASON_V2 })
+    const sql = buildEventsLoadSql(events)
+    assert.match(sql, /INSERT INTO troupe_categories \(id, troupe_id, slug, label\)/)
+    assert.match(sql, /'deplacements', 'Déplacements'/)
+    assert.match(sql, /AND NOT EXISTS/)
+  })
+
+  it('omits troupe_categories SQL when no deplacement events', () => {
+    const { events } = transformEvents(
+      [{ id: 'x', date: '2025-01-01', title: 'Cabaret', templateType: 'cabaret', roles: {} }],
+      { seasonV2Id: SEASON_V2 },
+    )
+    const sql = buildEventsLoadSql(events)
+    assert.doesNotMatch(sql, /INSERT INTO troupe_categories/)
+  })
+
+  it('buildTroupeDeplacementsCategorySqlLines uses deterministic UUID from season', () => {
+    const lines = buildTroupeDeplacementsCategorySqlLines(SEASON_V2)
+    const sql = lines.join('\n')
+    const expectedId = deterministicEventUuid(SEASON_V2, 'hatcast:mig-4:troupe-category')
+    assert.match(sql, new RegExp(`'${expectedId}'`))
+    assert.match(sql, /EXISTS \(SELECT 1 FROM events e WHERE e\.season_id = s\.id AND e\.category = 'deplacements'\)/)
   })
 
   it('escapes single quotes in titles', () => {
@@ -188,6 +239,7 @@ describe('maliceEventsManifest — manifest (AC4, AC5, AC6)', () => {
     })
     assert.equal(manifest.counts.players, 2)
     assert.equal(manifest.counts.events, 3)
+    assert.equal(manifest.counts.deplacements, 1)
     assert.equal(manifest.v1SeasonId, 'o0kD2IJekMdGdiJeIg4O')
     // event reject + 2 player rejects
     assert.equal(rejects.length, 3)
