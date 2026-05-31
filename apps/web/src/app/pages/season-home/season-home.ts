@@ -312,6 +312,10 @@ export class SeasonHome implements OnDestroy, OnInit {
     () =>
       this.canManageSeasonParticipants() || this.canManageSeasonOrganizers(),
   )
+  protected readonly canExportSeasonStatistics = computed(() => {
+    const permissions = this.seasonPermissions()
+    return permissions?.isTroupeAdmin === true || permissions?.isSeasonOrganizer === true
+  })
 
   protected readonly seasonAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     const slug = this.slug()
@@ -348,7 +352,7 @@ export class SeasonHome implements OnDestroy, OnInit {
         queryParams: { onglet: 'organisateurs' },
       })
     }
-    if (this.hasSeasonAdminMenuAccess()) {
+    if (this.canExportSeasonStatistics()) {
       items.push({
         label: 'Exporter',
         icon: 'download',
@@ -877,6 +881,10 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (!s) {
       return
     }
+    if (!this.canExportSeasonStatistics()) {
+      this.snack.open('Vous ne pouvez pas exporter ces statistiques.', 'OK', { duration: 5000 })
+      return
+    }
     const r = await this.statisticsApi.loadStatistics(s.id, { categories: 'all' })
     if (!r.ok || !r.data) {
       this.snack.open('Impossible de charger les statistiques.', 'OK', { duration: 6000 })
@@ -1058,15 +1066,6 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (next.length !== current().length) {
       apply(next)
     }
-  }
-
-  private hasSeasonAdminMenuAccess(): boolean {
-    return (
-      this.canManageSeasons() ||
-      this.canManageEvents() ||
-      this.canManageSeasonParticipants() ||
-      this.canManageSeasonOrganizersOnly()
-    )
   }
 
   private toEventFilterOption(e: EventResponse, forcePast = false): EventFilterOption {

@@ -13,9 +13,9 @@ afin de parcourir le programme passé **sans** la grille de statistiques de part
 1. **Given** des événements passés non archivés pour la ligue, **when** l'utilisateur ouvre **Historique** depuis le shell ligue (story **3.3**), **then** une liste chronologique groupée par mois s'affiche (cartes alignées sur l'Agenda : date, titre, statut composition, résumé dispo/rôle utilisateur) — **sans** colonnes JEU/DECORUM/DEPLAC./BÉNÉVOLE (UX-DR19).
 2. **Given** la règle « passé », **when** la liste est chargée, **then** seuls les événements dont le jour civil est **strictement avant aujourd'hui** apparaissent (même fuseau que UX-DR12 / Agenda) ; événements archivés exclus sauf décision produit contraire documentée.
 3. **Given** un clic sur une carte, **when** l'utilisateur interagit, **then** navigation vers le **détail événement** (FR51).
-4. **Given** l'action **Exporter**, **when** l'utilisateur télécharge, **then** le CSV reflète la **chronologie visible** (colonnes événement/date/statut/rôle utilisateur selon spec) — **fichier distinct** de l'export Statistiques (story **3.6**, FR54).
+4. **Given** la vue Historique, **when** rendue, **then** **aucune** action **Exporter** n'est disponible (chronologie en lecture seule ; FR54 amendé 2026-06-01, story **17.32**).
 5. **Given** un utilisateur autorisé sur la ligue, **when** il consulte Historique, **then** l'écran est accessible à **tous les membres** avec accès ligue (cohérent story 3.6).
-6. **Couverture :** FR53–FR54 ; UX-DR19 ; NFR-P1.
+6. **Couverture :** FR53 ; UX-DR19 ; NFR-P1.
 
 ## Dependencies
 
@@ -33,9 +33,9 @@ afin de parcourir le programme passé **sans** la grille de statistiques de part
 - [x] **API :** `scope=past` (non archivés, `startsAt` &lt; début jour Paris, tri desc) + query `participantId` pour badge dispo filtré
 - [x] **OpenAPI :** `events.yaml` — scope `past`, param `participantId`
 - [x] **Angular :** remplacer `season-history-shell` par `season-agenda` `variant="history"` + chargement paginé `past`
-- [x] **Toolbar :** filtres Participant / Spectacle + **Exporter** sur vue Historique (`?view=history`)
-- [x] **Export CSV client :** `season-history-export.ts` (fichier `historique-{slug}-{date}.csv`, distinct stats)
-- [x] **Tests :** intégration API `scope=past` ; unitaires utils/export/agenda/toolbar ; `ng test` OK
+- [x] **Toolbar :** filtres Participant / Spectacle sur vue Historique (`?view=history`) — sans **Exporter** (retiré story **17.32**)
+- [x] ~~**Export CSV client :** `season-history-export.ts`~~ — **supprimé** (Correct Course FR54 / **17.32**)
+- [x] **Tests :** intégration API `scope=past` ; unitaires utils/agenda/toolbar ; `ng test` OK
 
 ## Dev Agent Record
 
@@ -51,9 +51,9 @@ _(aucun)_
 
 - Liste passée via `GET …/events?scope=past` (borne Europe/Paris, non archivés, tri descendant).
 - Filtre participant : `participantId` sur la liste ; défaut = dispo de l’utilisateur connecté.
-- Export CSV colonnes Date, Titre, Statut composition, Participant (résumé dispo).
 - Placeholder `season-history-shell` supprimé.
-- Code review 2026-05-25 : `participantFocus` API (dispo + rôle composition), pill Historique/CSV, tests intégration + unitaires.
+- Code review 2026-05-25 : `participantFocus` API (dispo + rôle composition), pill Historique, tests intégration + unitaires.
+- **2026-06-01 (17.32) :** export CSV Historique retiré (`season-history-export*` supprimé) ; export Statistiques déplacé vers menu admin saison (FR54).
 
 ### File List
 
@@ -72,8 +72,8 @@ _(aucun)_
 - `apps/web/src/app/pages/season-home/season-agenda.spec.ts`
 - `apps/web/src/app/pages/season-home/season-events.utils.ts`
 - `apps/web/src/app/pages/season-home/season-events.utils.spec.ts`
-- `apps/web/src/app/pages/season-home/season-history-export.ts`
-- `apps/web/src/app/pages/season-home/season-history-export.spec.ts`
+- ~~`apps/web/src/app/pages/season-home/season-history-export.ts`~~ (supprimé **17.32**)
+- ~~`apps/web/src/app/pages/season-home/season-history-export.spec.ts`~~ (supprimé **17.32**)
 - `services/api/src/main/kotlin/com/hatcast/api/event/EventParticipantFocusService.kt`
 - `apps/web/src/app/pages/season-home/season-participant-focus.ts`
 - `apps/web/src/app/pages/season-home/season-participant-focus.spec.ts`
@@ -86,7 +86,8 @@ _(aucun)_
 
 ### Change Log
 
-- 2026-05-25: Story 3.6b — chronologie Historique, API `scope=past`, export CSV, filtres toolbar.
+- 2026-05-25: Story 3.6b — chronologie Historique, API `scope=past`, filtres toolbar.
+- 2026-06-01: Correct Course **17.32** — export CSV Historique retiré ; FR54 couvre export Statistiques via menu admin uniquement.
 - 2026-05-25: Code review — `participantFocus`, tests intégration, aria-label Historique.
 
 ### Product reserve (PO, 2026-05-25 — validation avec réserve)

@@ -14,7 +14,7 @@ afin d'**analyser la participation** sur la ligue (taux de sélection vs disponi
 
 ### Grille et chrome (UX-DR9)
 
-1. **Given** des données disponibles pour la ligue (participants, événements, dispos, compositions), **when** l'utilisateur ouvre la vue **Statistiques** depuis le shell ligue (story **3.3**), **then** la grille **joueurs × familles de rôles × mois** s'affiche avec expand/collapse des détails (JEU, DECORUM, DEPLAC., BÉNÉVOLE — cf. [DOMAIN.md](../../DOMAIN.md) § Statistiques de composition), colonne participant **sticky**, scroll horizontal pour les mois, boutons **Exporter** et **Masquer** — **UX-DR9**, **FR53–FR54**, **NFR-P1**. **Not** the past-events chronology list (Story **3.6b**).
+1. **Given** des données disponibles pour la ligue (participants, événements, dispos, compositions), **when** l'utilisateur ouvre la vue **Statistiques** depuis le shell ligue (story **3.3**), **then** la grille **joueurs × familles de rôles × mois** s'affiche avec expand/collapse des détails (JEU, DECORUM, DEPLAC., BÉNÉVOLE — cf. [DOMAIN.md](../../DOMAIN.md) § Statistiques de composition), colonne participant **sticky**, scroll horizontal pour les mois, bouton **Masquer/Détails** sur la toolbar — **UX-DR9**, **FR53–FR54**, **NFR-P1**. **Not** the past-events chronology list (Story **3.6b**). Export CSV via menu admin saison (**17.32**).
 2. **Given** un utilisateur autorisé sur la ligue, **when** il consulte Statistiques, **then** l'écran est accessible à **tous les membres** (pas admin-only), sauf restriction explicite future dans SPEC.
 3. **Given** les définitions DOMAIN (spectacle local vs déplacement, sous-colonnes JEU MATCH/CAB/LONG/AUTRE, etc.), **when** les stats sont calculées, **then** les comptages de **sélections** suivent `calculatePlayerRoleStats` V1 ([`legacy/src/components/CastsView.vue`](../../legacy/src/components/CastsView.vue)) : événements **non archivés** ; sélections **hors désistements**.
 
@@ -36,7 +36,7 @@ afin d'**analyser la participation** sur la ligue (taux de sélection vs disponi
 
 ### Export CSV (V1 0.48)
 
-9. **Given** l'action **Exporter**, **when** l'utilisateur télécharge le CSV, **then** le fichier est **aligné** avec la grille visible (colonnes stats, mois, événements) — **SPEC.md** § CSV export.
+9. **Given** un organisateur ou admin saison, **when** il choisit **Exporter** dans le menu admin, **then** le CSV **saison complète** est téléchargé (`statistiques-{slug}-{date}.csv`) — format inchangé, **indépendant** des filtres toolbar (**FR54**, **17.32**).
 10. **Given** une colonne stats ou mois dans l'export, **when** `selections > 0` ou `dispos > 0`, **then** la valeur est `sel/avail (pct%)` (ex. `2/7 (29%)`) ; **vide** si les deux comptes sont zéro.
 11. **Given** une colonne événement dans l'export, **when** la cellule est sérialisée, **then** (priorité V1) :
     - libellé rôle complet si **sélectionné** ;
@@ -147,7 +147,7 @@ _(aucun)_
 ### Completion Notes List
 
 - **Option A** retenue : agrégats serveur `GET /v1/seasons/{seasonId}/statistics` (`SeasonStatisticsService` + règles V1 dans `SeasonStatisticsRules`).
-- Onglet **Statistiques** dans le switcher (`?view=stats`) ; filtres **Membres** / **Spectacles** ; **Exporter** (`statistiques-{slug}-{date}.csv`) et **Masquer/Détails** (expansion globale + par bande/mois).
+- Onglet **Statistiques** dans le switcher (`?view=stats`) ; filtres **Membres** / **Spectacles** ; **Masquer/Détails** sur toolbar ; export CSV via menu admin (`statistiques-{slug}-{date}.csv`, saison complète — **17.32**).
 - Grille `app-season-statistics` : colonnes JEU/DECORUM/DEPLAC./BÉNÉVOLE, mois, sticky participant, `app-stat-ratio-display`.
 - DEPLAC. : `equity_tag = deplacements` ou `templateType = deplacement`.
 - Formules sel/dispo dupliquées en TS (`season-statistics.utils.ts`) pour tests et export client aligné API.
@@ -187,6 +187,7 @@ _(aucun)_
 - 2026-05-25 : Story 3.6 — API statistics, vue Statistiques, export CSV, onglet shell, tests.
 - 2026-05-25 : Code review — monthSummary V1, expansion DEPLAC./BÉNÉVOLE, export aligné, OpenAPI, tests service/rules.
 - 2026-05-25 : Post-review — export CSV toutes colonnes spectacle (V1) ; index dispos `user_id` pour `eventCells` et stats.
+- 2026-06-01 : Correct Course **17.32** — export toolbar retiré ; CSV Statistiques via menu admin (saison complète, FR54).
 
 ---
 

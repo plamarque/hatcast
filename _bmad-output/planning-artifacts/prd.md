@@ -556,7 +556,7 @@ Requirements are listed in numeric order (FR1–FR52).
 ### League workspace views, exports & cross-scope filters (ADR 0012)
 
 - FR53: Within a **league workspace**, the product exposes **three distinct views**: **Agenda** (upcoming events only, per UX-DR12), **Historique** (past, non-archived events in a **chronological**, month-grouped list — **no** participation-statistics grid), and **Statistiques** (V1-style participation statistics grid per DOMAIN.md § Statistiques de composition). A view switcher keeps the user in league context.
-- FR54: **Historique** and **Statistiques** each provide a dedicated **CSV export** aligned with the **visible** content. Exports are **not** combined into a single file.
+- FR54: The season workspace provides a **single CSV export** of **Statistiques** data (participation grid per SPEC § CSV export). Export is available from the **season administration menu** (⚙) to **season organizers and administrators** only; it reflects the **full season** dataset. **Historique** has **no** CSV export.
 - FR55: Member surfaces that aggregate **multiple troupes or leagues** — **user agenda** (FR48), **personal season glance** (FR58), and any **cross-league Statistiques** view — expose **troupe** and **league** filters. **Filter controls are hidden** when the signed-in user has exactly **one** troupe or exactly **one** league in scope (RES-001).
 
 ### Travel (déplacement) leagues

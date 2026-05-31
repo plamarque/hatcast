@@ -68,8 +68,6 @@ export class SeasonViewToolbar {
   readonly statsCategoryFilter = input<StatsCategoryFilter>({ kind: 'all' })
   readonly statsCategoryFilterChange = output<StatsCategoryFilter>()
 
-  readonly exportClick = output<void>()
-
   protected readonly filterPanelOpen = signal(false)
   private readonly eventPickerShowPast = signal(false)
   private readonly eventPickerShowArchived = signal(false)
@@ -103,10 +101,6 @@ export class SeasonViewToolbar {
       categoryLabels: this.categoryLabels(),
     }),
   )
-
-  protected showExport(): boolean {
-    return this.seasonView() === 'history' || this.seasonView() === 'stats'
-  }
 
   protected showDetailsToggle(): boolean {
     return this.seasonView() === 'stats'

@@ -9,7 +9,7 @@ export interface ParticipantFocusSummary {
   slotParticipationStatus?: 'pending' | 'confirmed' | 'declined' | null
 }
 
-/** Pill Historique / export CSV (UX-DR19 — ex. « Comédien·ne · dans l'équipe »). */
+/** Pill Historique (UX-DR19 — ex. « Comédien·ne · dans l'équipe »). */
 export function formatParticipantFocusLabel(focus: ParticipantFocusSummary): string {
   if (focus.inTeam && focus.compositionRoleKey) {
     const role = roleLabelSingular(focus.compositionRoleKey as RoleKey)

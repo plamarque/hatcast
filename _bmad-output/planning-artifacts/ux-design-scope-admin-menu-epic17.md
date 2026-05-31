@@ -66,7 +66,7 @@ amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); e
 ├─────────────────────────────────────────────────────────────────┤
 │ (mobile only: H1 saison title)                                   │
 ├─────────────────────────────────────────────────────────────────┤
-│ [Exporter] [Détails]          [Agenda|Historique|Stats] [filter]│  ← filter right (UX-DR22.1)
+│ [Détails]                     [Agenda|Historique|Stats] [filter]│  ← filter right (UX-DR22.1)
 ├─────────────────────────────────────────────────────────────────┤
 │ agenda / history content…                                        │
 └─────────────────────────────────────────────────────────────────┘
@@ -76,11 +76,11 @@ amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); e
 
 - **Component host (season workspace):** `app-season-header` — **end of breadcrumb row** (after context switcher / season title).
 - **Filter trigger:** `app-season-view-toolbar` **right cluster** (after view toggles) — see [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md) UX-DR22.1.
-- **Mobile (≤480px):** gear stays in **breadcrumb row** (not on view-toggle row). Filter on action row with Exporter/Détails when visible.
+- **Mobile (≤480px):** gear stays in **breadcrumb row** (not on view-toggle row). Filter on action row with **Détails** when visible (Stats view).
 
 ### Menu entries (when permitted)
 
-**Order (flat list):** **Modifier** → **Nouveau spectacle** → **Participants** → **Organisateur·ices** (skip rows user cannot use).
+**Order (flat list):** **Modifier** → **Nouveau spectacle** → **Participants** → **Organisateur·ices** → **Exporter** (skip rows user cannot use).
 
 | Permission | Label | Destination / action |
 |------------|-------|----------------------|
@@ -88,6 +88,7 @@ amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); e
 | `canManageEvents` | Nouveau spectacle | Opens create `EventFormDialog` (existing) |
 | `canManageSeasonParticipants` | Participants | `/saison/:slug/admin/participants` |
 | `canManageSeasonOrganizersOnly` | Organisateur·ices | `/saison/:slug/admin/membres?onglet=organisateurs` |
+| `isSeasonOrganizer` or `isTroupeAdmin` | **Exporter** | Download full-season Statistiques CSV (`download` icon) — **Story 17.32** |
 
 **Note:** Season organizers **do not** receive **Modifier** (`canManageSeasons` is troupe-admin only).
 

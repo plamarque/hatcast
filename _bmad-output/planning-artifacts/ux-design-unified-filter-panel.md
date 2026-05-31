@@ -45,7 +45,7 @@ uxDr: UX-DR22.1
 | P2 | **Icon-only entry** | Never show inline `mat-stroked-button` filter pulldowns in page chrome. One `filter_list` trigger toggles the **inline criteria bar** (summary rows). |
 | P3 | **Chips anchored to trigger** | When any dimension ≠ default, show removable chips **in the filter column** (right cluster), visually connected to the trigger — not a disconnected full-width row on the opposite side of the toolbar. |
 | P4 | **Feedback without reopening hub** | Chips let users see and clear filters; chip click reopens the **picker for that dimension**. |
-| P5 | **Actions ≠ filters** | **Exporter**, **Détails**, view toggles stay **outside** filter UI. **Scope admin gear** lives in the **breadcrumb row** (see D14). |
+| P5 | **Actions ≠ filters** | **Détails** and view toggles stay **outside** filter UI. **Scope admin gear** lives in the **breadcrumb row** (see D14) and hosts the Statistiques CSV export for season organizers/admins. |
 | P6 | **French UI, M3** | Tutoiement; Material components + `--mat-sys-*` tokens (UX-DR11). |
 | P7 | **Same vocabulary everywhere** | Hub rows show closed-state summary; pickers use explicit “all” rows (see Lexicon). |
 | P8 | **Scale by design** | Hub never embeds long scrollable lists. Heavy selection happens in **dedicated picker modals** with search and bounded viewport height. |
@@ -175,8 +175,8 @@ Modal hub superseded by **`app-filter-criteria-bar`** inline pattern (Story 17.2
 **Example (season Stats, desktop):**
 
 ```
-[Exporter] [Détails]     [Agenda | Historique | Stats]  [filter_list]
-                                                          Aurélien ✕  2 spectacles ✕  Tout effacer
+[Détails]                [Agenda | Historique | Stats]  [filter_list]
+                                                         Aurélien ✕  2 spectacles ✕  Tout effacer
 ```
 
 ---
@@ -233,21 +233,21 @@ Unchanged placement (header top-right). **Hub** replaces mega-dialog:
 ┌──────────────────────────────────────────────────────────────────────┐
 │ [logo] La Malice › Malice 2025-26                              [⚙] │  ← gear in breadcrumb row (D14)
 ├──────────────────────────────────────────────────────────────────────┤
-│ [Exporter] [Détails]          [Agenda | Historique | Stats] [filter]│  ← filter right (D15)
+│ [Détails]                     [Agenda | Historique | Stats] [filter]│  ← filter right (D15)
 │                                                         (chips here) │
 ├──────────────────────────────────────────────────────────────────────┤
 │ content…                                                             │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Historique Row A:** `[Exporter]` + filter column (right, with toggles row).
+**Historique Row A:** filter column only (right, with toggles row).
 
-**Statistiques Row A:** `[Exporter]` + `[Détails]` + filter column.
+**Statistiques Row A:** `[Détails]` + filter column. `Exporter` is in the breadcrumb-row admin gear.
 
 **Mobile (≤480px):**
 
 ```
-Row 1: [Exporter] [Détails]                    [filter + chips column]
+Row 1: [Détails]                               [filter + chips column]
 Row 2: [ Agenda | Historique | Statistiques ]
 (breadcrumb row: logo … switcher … [⚙])
 ```
@@ -331,7 +331,7 @@ Categories hub row opens isolated **17.10** picker modal. Warn tint on trigger w
 **Non-goals (17.28):**
 
 - RES-001 algorithm changes
-- Moving Exporter / Détails / view toggles into filter UI
+- Moving Détails / view toggles into filter UI, or moving Exporter out of the admin gear
 - Filter icon for mono-context users
 
 ---

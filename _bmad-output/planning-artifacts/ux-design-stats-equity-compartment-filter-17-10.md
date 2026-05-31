@@ -12,7 +12,7 @@ relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-season-historique-statistiques.md
   - docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md
   - PLAN.md
-stakeholderScope: Replace DEPLACEMENT column band with multi-select spectacle group filter on Statistiques view and CSV export
+stakeholderScope: Replace DEPLACEMENT column band with multi-select spectacle group filter on Statistiques view
 ---
 
 # UX Design — Statistiques: filter by spectacle groups (compartments)
@@ -25,7 +25,7 @@ stakeholderScope: Replace DEPLACEMENT column band with multi-select spectacle gr
 
 ## User story
 
-**Marie**, trésorière de La Malice, opens **Statistiques** for the season. She wants February participation for **away shows only** — not mixed with home match nights. She opens **Groupes de spectacles**, unchecks **Spectacles ordinaires**, keeps **Déplacements** checked, and reads the same JEU/DECORUM columns she already knows. In March she checks **Tous les spectacles** to see the full season picture before export.
+**Marie**, trésorière de La Malice, opens **Statistiques** for the season. She wants February participation for **away shows only** — not mixed with home match nights. She opens **Groupes de spectacles**, unchecks **Spectacles ordinaires**, keeps **Déplacements** checked, and reads the same JEU/DECORUM columns she already knows. For archival export, she uses **Exporter** from the season admin menu, which downloads the full-season CSV.
 
 ---
 
@@ -39,7 +39,7 @@ stakeholderScope: Replace DEPLACEMENT column band with multi-select spectacle gr
 | F4 | **Troupe tags** | One checkbox per glossary entry (17.7), label from troupe glossary |
 | F5 | **Tous les spectacles** | Master toggle: when ON, all compartments included; disables individual boxes OR syncs all checked |
 | F6 | **Default** | **Tous les spectacles** ON on first visit / no query param |
-| F7 | **Export** | CSV uses same event set as grid after group filter (+ Membres / Spectacle filters) |
+| F7 | **Export** | CSV export is outside this filter surface: admin menu export uses full-season data and ignores toolbar filters (FR54, Story 17.32) |
 | F8 | **Legacy read** | `template_type = deplacement` without tag counts as **Déplacements** compartment until MIG-4 |
 | F9 | **Empty selection** | If user unchecks all (and Tous OFF): empty state, not a zeroed grid |
 | F10 | **Deep link** | Optional `?statsGroups=principal,deplacements` or `?statsGroups=all` (implementation choice) |
@@ -50,12 +50,12 @@ stakeholderScope: Replace DEPLACEMENT column band with multi-select spectacle gr
 
 ### Placement
 
-> **Amended 2026-05-31:** Groupes filter moves **inside** the unified filter panel — [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md). Statistiques Row A: **`filter_list`** + **Exporter** + **Détails** only.
+> **Amended 2026-06-01:** Groupes filter moves **inside** the unified filter panel — [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md). Statistiques Row A: **`filter_list`** + **Détails** only; **Exporter** lives in the season admin menu.
 
 Statistiques toolbar **Row A**:
 
 ```
-[ filter_list (badge if active) ] [ Exporter ] [ Détails ]
+[ filter_list (badge if active) ] [ Détails ]
 ```
 
 ### Trigger label (closed state)
@@ -145,9 +145,10 @@ Server filters **events before** aggregation. Client sends selection on load and
 
 ## Export
 
-- Filename hint optional: `stats-{seasonSlug}-{groups}.csv`
+- Export is handled by Story 17.32 from the season admin menu.
+- Filename pattern: `statistiques-{seasonSlug}-{date}.csv`
 - Header row: no DEPLAC columns
-- Metadata row or comment (optional): `Groupes: Tous les spectacles` or `Groupes: Déplacements, Apérock`
+- Dataset: full season, independent of the Groupes/Membres/Spectacles toolbar filters.
 
 ---
 
@@ -155,7 +156,7 @@ Server filters **events before** aggregation. Client sends selection on load and
 
 - **Groupes de spectacles** opens **bottom sheet** with same checklist + **Appliquer**.
 - Sticky first column unchanged.
-- Filter row may wrap: Row A1 Membres + Spectacles; Row A2 Groupes + Exporter + Détails.
+- Filter row may wrap: Row A1 trigger/chips; Row A2 Détails if needed.
 
 ---
 

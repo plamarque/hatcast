@@ -36,10 +36,10 @@ stakeholderScope: Refine wireframes and interaction spec for league workspace Hi
 | D1 | **Three views** | Toolbar toggles: **Agenda \| Historique \| Statistiques** | ADR 0012; replaces current 2-tab UI and stats placeholder under “Historique”. |
 | D2 | **Participants / Spectacles tabs** | **Not** in MVP toolbar (unchanged from 3.3) | Separate admin routes + hub; avoid 5-tab clutter until dedicated stories. |
 | D3 | **Historique content** | Reuse **agenda card** layout; **past** events only (`scope=past`) | Same scan pattern as Agenda; no stats columns. |
-| D4 | **Statistiques content** | V1 **mat-table** grid (role families + months) | Parity with `CastsView.vue`; distinct CSV export. |
+| D4 | **Statistiques content** | V1 **mat-table** grid (role families + months) | Parity with `CastsView.vue`; CSV export lives in the admin menu. |
 | D5 | **Filters on Historique** | **Same** participant + event dropdowns as Agenda | Participant = whose dispo/role badge is shown on cards; event = subset of past spectacles. |
 | D6 | **Filters on Statistiques** | **Membres** + **Spectacles** + **Groupes de spectacles** (multi, incl. **Spectacles ordinaires** + tags + **Tous les spectacles**) | Story **17.10**; see [ux-design-stats-equity-compartment-filter-17-10.md](ux-design-stats-equity-compartment-filter-17-10.md). |
-| D7 | **Export placement** | **Historique:** `Exporter` in filter row (left cluster). **Statistiques:** `Exporter` + **Détails** in filter row | Keeps gear menu for admin only (Epic 17.2). |
+| D7 | **Export placement** | **Historique:** no CSV export. **Statistiques:** `Exporter` in the season admin menu; toolbar keeps **Détails/Masquer** only | FR54 Correct Course 2026-06-01; export is organizer/admin-only and full-season. |
 | D8 | **Détails** | Toggles **expanded** month columns and **expanded** JEU sub-columns | Matches V1 “voir / masquer les détails”; **no DEPLACEMENT band** after 17.10. |
 | D9 | **Compartments in stats** | **Superseded 2026-05-25** — filter by spectacle group, not DEPLACEMENT column | Was: DEPLACEMENT column; now **17.10** filter spec linked above. |
 | D10 | **Deep link** | `?view=history` \| `?view=stats` syncs toolbar | Bookmarkable; post-login may default to `agenda`. |
@@ -60,7 +60,7 @@ Align with [ux-design-scope-admin-menu-epic17.md](ux-design-scope-admin-menu-epi
 ├──────────────────────────────────────────────────────────────────────────┤
 │ (mobile only: H1 season title)                                            │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ ROW A — actions (Exporter, Détails on Stats/Hist)                         │
+│ ROW A — actions (Détails on Stats only)                                    │
 │ ROW B — [ Agenda | Historique | Statistiques ]              [filter_list]│  filter right + chips column
 ├──────────────────────────────────────────────────────────────────────────┤
 │ MAIN — agenda list | past chronology | stats table                        │
@@ -91,7 +91,7 @@ Chronological **past** programme: *what happened, in what order*. No participati
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ [👥 Participant ▾]  [📅 Spectacle ▾]  [ Exporter ]                        │
+│ [filter_list]                                                              │
 │     (flex left)                                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -100,7 +100,7 @@ Chronological **past** programme: *what happened, in what order*. No participati
 |---------|---------|-----------|
 | **Participant** | `Tous` + each season participant (roster) | **Tous:** cards show **connected user** dispo/role summary (default). **One member:** cards show **that member’s** summary (read-only; no proxy edit from Historique). |
 | **Spectacle** | `Tous` + each **past** event in loaded set | Restricts visible cards to selected spectacle(s). |
-| **Exporter** | `mat-stroked-button` + `download` icon | Downloads CSV of **visible** chronology (columns: date, title, composition status, focused participant role/dispo summary). **Distinct file** from Statistiques export. |
+| Export | — | Historique is read-only chronology; no CSV export. |
 
 **Filters hidden** on Agenda and Statistiques rows use their own Row A (below).
 
@@ -145,7 +145,7 @@ Chronological **past** programme: *what happened, in what order*. No participati
 
 - [ ] No JEU/DECORUM/DEPLAC./BÉNÉVOLE columns.
 - [ ] Participant + spectacle filters active on Historique.
-- [ ] Exporter produces history CSV ≠ stats CSV.
+- [ ] No Exporter action on Historique.
 - [ ] Third tab Statistiques does not show stats placeholder text.
 
 ---
@@ -160,7 +160,7 @@ Participation analytics: *how often* each member played in role families and per
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ [👥 Membres ▾]  [📅 Spectacles ▾]     [ Exporter ]  [ Masquer ]           │
+│ [filter_list]                                      [ Masquer ]             │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -168,8 +168,8 @@ Participation analytics: *how often* each member played in role families and per
 |---------|---------|-----------|
 | **Membres** | `Tous` + participants | **Tous:** all roster rows. **One:** single row (quick focus). |
 | **Spectacles** | `Tous` + events (season, non-archived) | Limits which events feed aggregates and month columns. |
-| **Exporter** | Primary stroked button | CSV aligned with **visible** grid (stats + months + event cells per story 3.6 AC9–12). |
 | **Masquer** | Toggle (or stroked; V1 purple accent via theme token) | **Off:** collapsed month columns + collapsed JEU sub-columns. **On:** expanded details per V1. |
+| **Exporter** | Admin menu item (`download`) | CSV full-season (all active participants, all non-archived events, all spectacle categories), available to season organizers/admins only. |
 
 ### Main content — wireframe (summary collapsed)
 
@@ -216,7 +216,7 @@ Map V1 band colours to theme tokens (do not hardcode hex in components):
 ### Responsive (≤768px)
 
 - Table wrapper `overflow-x: auto`; first column `position: sticky; left: 0; z-index: 2`.
-- Toolbar: filters full width; Exporter + Masquer on second row if needed.
+- Toolbar: filters full width; Détails/Masquer on second row if needed.
 - Optional MVP fallback (document only if built): card-per-member summary without month columns — **not** default; full table preferred with scroll.
 
 ### States
@@ -229,7 +229,7 @@ Map V1 band colours to theme tokens (do not hardcode hex in components):
 
 ### Spectacle groups filter (Story 17.10)
 
-See **[ux-design-stats-equity-compartment-filter-17-10.md](ux-design-stats-equity-compartment-filter-17-10.md)**. Summary: multi-select **Groupes de spectacles** (**Spectacles ordinaires** + troupe tags + **Tous les spectacles**); same JEU/DECORUM/BÉNÉVOLE columns; export respects selection. Data migration `deplacement` → tag: **MIG-4**, not 17.10.
+See **[ux-design-stats-equity-compartment-filter-17-10.md](ux-design-stats-equity-compartment-filter-17-10.md)**. Summary: multi-select **Groupes de spectacles** (**Spectacles ordinaires** + troupe tags + **Tous les spectacles**) for the on-screen grid; same JEU/DECORUM/BÉNÉVOLE columns. Admin export ignores toolbar filters and uses the full-season dataset. Data migration `deplacement` → tag: **MIG-4**, not 17.10.
 
 ---
 
@@ -240,10 +240,10 @@ See **[ux-design-stats-equity-compartment-filter-17-10.md](ux-design-stats-equit
 | View | Row A (filters/actions) | Row B (toggles + gear) |
 |------|-------------------------|-------------------------|
 | Agenda | **`filter_list`** (when >1 option on any dimension) | Agenda \| Historique \| Statistiques + ⚙ |
-| Historique | **`filter_list`** + **Exporter** | same |
-| Statistiques | **`filter_list`** + **Exporter** + **Détails** | same |
+| Historique | **`filter_list`** | same |
+| Statistiques | **`filter_list`** + **Détails** | same |
 
-**Gear menu** unchanged — never hosts Exporter/Masquer.
+**Gear menu:** hosts **Exporter** for Statistiques full-season CSV when the user is a season organizer/admin. It never hosts **Masquer/Détails**.
 
 ---
 

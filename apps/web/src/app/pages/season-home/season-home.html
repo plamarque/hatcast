@@ -36,9 +36,6 @@
       [statsCategoryFilter]="statsCategoryFilter()"
       (statsCategoryFilterChange)="onStatsCategoryFilterChange($event)"
       [(detailsExpanded)]="statsDetailsExpanded"
-      (exportClick)="
-        seasonView() === 'stats' ? exportStatisticsCsv() : exportHistoryCsv()
-      "
     />
 
     @if (seasonView() === 'agenda') {

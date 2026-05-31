@@ -22,8 +22,10 @@ Story **3.6** was ready-for-dev with the old combined « Historique » naming.
 | View | Content | Export |
 |------|---------|--------|
 | **Agenda** | Upcoming events only (UX-DR12) | — |
-| **Historique** | Past events, month-grouped chronology (no stats grid) | History CSV |
-| **Statistiques** | V1 participation grid (JEU, DECORUM, DEPLAC., BÉNÉVOLE, months) | Stats CSV |
+| **Historique** | Past events, month-grouped chronology (no stats grid) | — |
+| **Statistiques** | V1-style participation statistics grid (on-screen for all active members) | Stats CSV via **season admin menu** (organizers/admins only; full season) |
+
+*Amended 2026-06-01 — export placement Correct Course ([sprint-change-proposal-2026-06-01-season-stats-export-admin-menu.md](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-season-stats-export-admin-menu.md)).*
 
 View switcher remains in league shell (Participants, Spectacles, Agenda, Historique, Statistiques).
 

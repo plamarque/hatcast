@@ -1,3 +1,7 @@
+## Deferred from: code review of 17-32-season-stats-export-admin-menu.md (2026-06-01)
+
+- Autorisation serveur dédiée pour l'export CSV — l'endpoint statistiques reste lisible par tout membre actif pour la grille; une route export admin-only dédiée durcirait le téléchargement mais le SCP 17.32 l'a explicitement classée hors périmètre.
+
 ## Deferred from: code review of 17-29-refonte-hub-troupe-mon-compte-preferences.md (2026-06-01)
 
 - Persistance multi-troupes non atomique + rôles divergents — **story 17.33** (préférences compte utilisateur ; supprimer propagation per-troupe).

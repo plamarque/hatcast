@@ -1666,7 +1666,7 @@ afin de **garder le filtrage accessible sans rangées permanentes de pulldowns**
 - **Given** `filterBarVisible: true` sur agenda ou glance, **when** page chargée, **then** seul un **`mat-icon-button`** `filter_list` (pas de pulldowns inline, **pas de badge** MVP).
 - **Given** filtre troupe ou saison actif (surfaces cross-troupe), **when** affichage, **then** rangée de **chips** amovibles + **Tout effacer** sous le header ; icône sans badge.
 - **Given** workspace saison Agenda/Historique avec **>1** option participant ou spectacle, **when** toolbar, **then** pulldowns inline retirés ; trigger + chips ; toggles de vue et engrenage admin inchangés.
-- **Given** vue Statistiques, **when** toolbar, **then** **Exporter** et **Détails/Masquer** **hors** panneau ; filtre groupes (17.10) **dans** le panneau (checkboxes, **Tous les spectacles**).
+- **Given** vue Statistiques, **when** toolbar, **then** **Détails/Masquer** **hors** panneau ; filtre groupes (17.10) **dans** le panneau (checkboxes, **Tous les spectacles**) ; export CSV **Exporter** dans le menu admin saison (17.32, FR54).
 - **Given** viewport **≤ 480px**, **when** tap sur l’icône, **then** **`MatBottomSheet`** titre **Filtres**, sections par dimension, footer **Réinitialiser** + **Appliquer**.
 - **Given** viewport **≥ 481px**, **when** tap, **then** **`MatDialog`** même contenu ; single-select appliqué immédiatement ; multi-select catégories via footer **Appliquer** si besoin.
 - **Given** tout chrome filtre, **when** styles, **then** checklist M3 (`--mat-sys-*`, `aria-label` FR, cible tactile ≥ 48 dp sur le trigger).

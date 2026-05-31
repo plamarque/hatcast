@@ -1,19 +1,6 @@
 <div class="season-view-toolbar">
   <div class="season-toolbar">
     <div class="season-toolbar__left">
-      @if (showExport()) {
-        <button
-          type="button"
-          mat-stroked-button
-          class="season-toolbar__export"
-          aria-label="Exporter"
-          (click)="exportClick.emit()"
-        >
-          <mat-icon>download</mat-icon>
-          <span>Exporter</span>
-        </button>
-      }
-
       @if (showDetailsToggle()) {
         <button
           type="button"

@@ -309,6 +309,31 @@ describe('SeasonHome', () => {
     expect(fixture.nativeElement.querySelector('.scope-admin-bar')).toBeNull()
   })
 
+  it("affiche Exporter pour un organisateur saison sans droits d'administration troupe", () => {
+    const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
+      seasonAdminItems: () => Array<{ label: string }>
+    }
+    cmp.loadingSession.set(false)
+    cmp.season.set(season('season-1', 'troupe-1'))
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: false,
+      canManageSeasons: false,
+      canManageEvents: false,
+      canManageSeasonParticipants: false,
+      canManageEventParticipants: false,
+      isTroupeAdmin: false,
+      isSeasonOrganizer: true,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+    fixture.detectChanges()
+
+    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual(['Exporter'])
+    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).not.toBeNull()
+  })
+
   it('affiche le menu réglages avec Nouveau spectacle pour un admin événements sans droit participants', () => {
     const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
       canManageSettings: () => boolean
@@ -421,7 +446,7 @@ describe('SeasonHome', () => {
       canManageMembers: false,
       canManageSeasons: false,
       canManageEvents: false,
-      canManageSeasonParticipants: true,
+      canManageSeasonParticipants: false,
       canManageEventParticipants: false,
       isTroupeAdmin: false,
       isSeasonOrganizer: true,
@@ -435,6 +460,75 @@ describe('SeasonHome', () => {
     expect(statisticsApi.loadStatistics).toHaveBeenCalledWith('season-1', { categories: 'all' })
     expect(createElementSpy).toHaveBeenCalledWith('a')
     createElementSpy.mockRestore()
+  })
+
+  it('affiche un snack quand l export statistiques n a aucune donnée', async () => {
+    statisticsApi.loadStatistics.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        participants: [],
+        monthKeys: [],
+        events: [],
+        rows: [],
+      },
+    })
+    const createElementSpy = vi.spyOn(document, 'createElement')
+    const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
+      exportSeasonStatisticsCsv: () => Promise<void>
+      seasonPermissions: WritableSignal<MySeasonPermissions | null>
+    }
+    cmp.loadingSession.set(false)
+    cmp.season.set(season('season-1', 'troupe-1'))
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: false,
+      canManageSeasons: false,
+      canManageEvents: false,
+      canManageSeasonParticipants: false,
+      canManageEventParticipants: false,
+      isTroupeAdmin: false,
+      isSeasonOrganizer: true,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+
+    await cmp.exportSeasonStatisticsCsv()
+
+    expect(statisticsApi.loadStatistics).toHaveBeenCalledWith('season-1', { categories: 'all' })
+    expect(snack.open).toHaveBeenCalledWith('Aucune donnée à exporter.', 'OK', { duration: 4000 })
+    expect(createElementSpy).not.toHaveBeenCalledWith('a')
+    createElementSpy.mockRestore()
+  })
+
+  it("n'exporte pas les statistiques pour un membre sans droit admin saison", async () => {
+    const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
+      exportSeasonStatisticsCsv: () => Promise<void>
+      seasonPermissions: WritableSignal<MySeasonPermissions | null>
+    }
+    cmp.loadingSession.set(false)
+    cmp.season.set(season('season-1', 'troupe-1'))
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: false,
+      canManageSeasons: false,
+      canManageEvents: false,
+      canManageSeasonParticipants: false,
+      canManageEventParticipants: false,
+      isTroupeAdmin: false,
+      isSeasonOrganizer: false,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+
+    await cmp.exportSeasonStatisticsCsv()
+
+    expect(statisticsApi.loadStatistics).not.toHaveBeenCalled()
+    expect(snack.open).toHaveBeenCalledWith('Vous ne pouvez pas exporter ces statistiques.', 'OK', {
+      duration: 5000,
+    })
   })
 
   it('ne navigue pas après édition si le slug est inchangé', () => {
