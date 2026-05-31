@@ -112,7 +112,7 @@ function defaultEndDateAfterOneSeasonYear(start: Date): Date {
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button type="button" mat-button mat-dialog-close [disabled]="saving()">Annuler</button>
+      <button type="button" mat-button (click)="cancel()" [disabled]="saving()">Annuler</button>
       <button
         type="button"
         mat-flat-button
@@ -220,6 +220,10 @@ export class SeasonFormDialog implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.startDateSub?.unsubscribe()
+  }
+
+  protected cancel(): void {
+    this.ref.close()
   }
 
   protected async submit(): Promise<void> {

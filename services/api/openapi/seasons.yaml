@@ -75,6 +75,45 @@ paths:
         '409':
           description: Conflit d'unicité slug après plusieurs tentatives
 
+  /troupes/{troupeId}:
+    patch:
+      tags: [Troupes]
+      summary: Modifier le nom d'une troupe (admin troupe ou plateforme)
+      description: >
+        Met à jour le nom affiché sans modifier le slug URL.
+        Réservé aux administrateurs de troupe (`TROUPE_ADMIN`) ou aux admins plateforme.
+        Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTroupeRequest'
+      responses:
+        '200':
+          description: Troupe mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeListItem'
+        '400':
+          description: Nom vide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé
+        '404':
+          description: Troupe inconnue
+
   /admin/troupes/{troupeId}:
     patch:
       tags: [Troupes]
@@ -1249,6 +1288,15 @@ components:
           type: string
           maxLength: 255
           description: Nom affiché de la troupe (trim côté serveur ; slug calculé automatiquement).
+
+    UpdateTroupeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Nouveau nom affiché de la troupe (trim côté serveur ; slug inchangé).
 
     AddTroupeMemberRequest:
       type: object

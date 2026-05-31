@@ -5,7 +5,10 @@ import { provideRouter, Router } from '@angular/router'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { AccountPlaceholder } from './account-placeholder'
 
 describe('AccountPlaceholder', () => {
@@ -31,6 +34,51 @@ describe('AccountPlaceholder', () => {
       providers: [
         provideRouter([]),
         { provide: MatSnackBar, useValue: snack },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            load: vi.fn().mockResolvedValue(true),
+            activeTroupes: () => [
+              {
+                id: 't1',
+                name: 'Les Improbots',
+                slug: 'les-improbots',
+                isDemo: false,
+                joinPolicy: 'OPEN' as const,
+                membership: {
+                  id: 'm1',
+                  displayName: 'Léa',
+                  status: 'ACTIVE' as const,
+                  baselineRole: 'MEMBER' as const,
+                  createdAt: '',
+                  updatedAt: '',
+                },
+                activeMemberCount: 3,
+                upcomingEventCount: 1,
+              },
+            ],
+            patchMembershipDisplayName: vi.fn(),
+          },
+        },
+        {
+          provide: TroupeApiService,
+          useValue: { updateMyMembership: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { displayName: 'Léa' } }) },
+        },
+        {
+          provide: MemberProfileApiService,
+          useValue: {
+            getPreferredRoles: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { preferredRoleKeys: ['volunteer', 'player'] },
+            }),
+            updatePreferredRoles: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { preferredRoleKeys: ['volunteer', 'player'] },
+            }),
+          },
+        },
         { provide: AuthApiService, useValue: {} },
       ],
     }).compileComponents()
@@ -115,16 +163,16 @@ describe('AccountPlaceholder', () => {
     expect(text).not.toContain('prochaine livraison')
   })
 
-  it('affiche un lien vers les préférences par troupe', async () => {
+  it('affiche la section Préférences membre avec pseudo et rôles', async () => {
     const { fixture } = await setup()
-    const link = fixture.nativeElement.querySelector(
-      '[data-testid="account-troupe-preferences"]',
-    ) as HTMLAnchorElement
-    expect(link).toBeTruthy()
-    expect(link.getAttribute('href')).toBe('/troupes')
-    expect(link.textContent).toContain('Préférences par troupe')
-    expect(link.textContent).toContain('Pseudo et rôles par défaut')
-    expect(link.querySelector('mat-icon')?.textContent?.trim()).toBe('groups')
+    const text = fixture.nativeElement.textContent ?? ''
+    expect(text).toContain('Préférences membre')
+    expect(text).toContain('Nom affiché dans toutes vos troupes.')
+    expect(text).toContain('Rôles préférés')
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="member-preferences-save"]'),
+    ).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-troupe-preferences"]')).toBeNull()
   })
 
   it('garde le changement de mot de passe en placeholder', async () => {

@@ -10,6 +10,7 @@ import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { MemberPreferencesForm } from '../../shared/member-preferences-form/member-preferences-form'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024
@@ -30,6 +31,7 @@ const PASSWORD_COMING_SOON_TOOLTIP =
     MatSnackBarModule,
     MatTooltipModule,
     RouterLink,
+    MemberPreferencesForm,
     UserAvatarComponent,
   ],
   templateUrl: './account-placeholder.html',

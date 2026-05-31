@@ -108,18 +108,35 @@ export class TroupeContextService {
   }
 
   patchMembershipDisplayName(troupeId: string, displayName: string): void {
-    const active = this.activeTroupes().map((troupe) =>
-      troupe.id === troupeId
-        ? { ...troupe, membership: { ...troupe.membership, displayName } }
-        : troupe,
+    this.patchTroupeInCaches(troupeId, (troupe) => ({
+      ...troupe,
+      membership: { ...troupe.membership, displayName },
+    }))
+  }
+
+  patchTroupeName(troupeId: string, name: string): void {
+    this.patchTroupeInCaches(troupeId, (troupe) => ({ ...troupe, name }))
+  }
+
+  private patchTroupeInCaches(
+    troupeId: string,
+    patch: (troupe: TroupeListItem) => TroupeListItem,
+  ): void {
+    this.activeTroupes.set(
+      this.activeTroupes().map((troupe) => (troupe.id === troupeId ? patch(troupe) : troupe)),
     )
-    this.activeTroupes.set(active)
+    this.supplementalTroupes.update((current) => {
+      const existing = current.get(troupeId)
+      if (!existing) {
+        return current
+      }
+      const next = new Map(current)
+      next.set(troupeId, patch(existing))
+      return next
+    })
     const selected = this.selectedTroupe()
     if (selected?.id === troupeId) {
-      this.selectedTroupe.set({
-        ...selected,
-        membership: { ...selected.membership, displayName },
-      })
+      this.selectedTroupe.set(patch(selected))
     }
   }
 

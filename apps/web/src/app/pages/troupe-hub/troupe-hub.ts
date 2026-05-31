@@ -1,5 +1,4 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
-import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
@@ -22,8 +21,8 @@ import {
   type SeasonResponse,
   SeasonApiService,
 } from '../../core/seasons/season-api.service'
-import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { type TroupeListItem } from '../../core/troupes/troupe-api.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
   ScopeAdminMenu,
   type ScopeAdminMenuItem,
@@ -33,17 +32,13 @@ import {
   SeasonFormDialog,
   type SeasonFormDialogData,
 } from '../seasons-list/season-form-dialog'
-import {
-  TroupeHubPreferencesSheet,
-  type TroupeHubPreferencesSheetData,
-} from './troupe-hub-preferences-sheet'
+import { TroupeEditDialog, type TroupeEditDialogData } from './troupe-edit-dialog'
 
 const SEASONS_PAGE_SIZE = 50
 
 @Component({
   selector: 'app-troupe-hub',
   imports: [
-    MatBottomSheetModule,
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
@@ -64,7 +59,6 @@ export class TroupeHub implements OnInit, OnDestroy {
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
-  private readonly bottomSheet = inject(MatBottomSheet)
 
   private slugSubscription?: Subscription
 
@@ -123,6 +117,16 @@ export class TroupeHub implements OnInit, OnDestroy {
       return []
     }
     return [
+      {
+        label: 'Modifier',
+        icon: 'edit',
+        action: () => this.openEditTroupe(),
+      },
+      {
+        label: 'Nouvelle saison',
+        icon: 'add',
+        action: () => this.openCreateSeason(),
+      },
       {
         label: 'Membres',
         icon: 'groups',
@@ -196,18 +200,25 @@ export class TroupeHub implements OnInit, OnDestroy {
       : 'Afficher les saisons archivées'
   }
 
-  protected openPreferences(): void {
+  protected openEditTroupe(): void {
     const t = this.troupe()
-    if (!t) {
+    if (!t || !this.canManageTroupe()) {
       return
     }
-    this.bottomSheet.open<TroupeHubPreferencesSheet, TroupeHubPreferencesSheetData>(
-      TroupeHubPreferencesSheet,
+    const ref = this.dialog.open<TroupeEditDialog, TroupeEditDialogData, TroupeListItem | undefined>(
+      TroupeEditDialog,
       {
         data: { troupe: t },
-        panelClass: 'troupe-hub-preferences-panel',
+        width: 'min(100vw - 2rem, 28rem)',
       },
     )
+    ref.afterClosed().subscribe((updated) => {
+      if (!updated) {
+        return
+      }
+      this.troupe.set({ ...t, name: updated.name })
+      this.troupeContext.patchTroupeName(t.id, updated.name)
+    })
   }
 
   protected openCreateSeason(): void {
@@ -226,9 +237,9 @@ export class TroupeHub implements OnInit, OnDestroy {
       },
     )
     ref.afterClosed().subscribe((result) => {
-      if (typeof result === 'string') {
+      if (typeof result === 'string' && result.trim().length > 0) {
         void this.router.navigate(saisonWorkspacePath(result))
-      } else if (result) {
+      } else if (result === true) {
         void this.loadSeasons(t.id)
         this.snack.open('Saison créée.', 'OK', { duration: 4000 })
       }

@@ -1,9 +1,26 @@
 .season-card {
   height: 100%;
+  padding: 0;
+}
+
+.season-card__surface {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 3rem;
   padding: 1rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: inherit;
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: -2px;
+  }
 }
 
 .season-card__header {
@@ -39,6 +56,12 @@
   min-width: 0;
 }
 
+.season-card__period {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
 .season-card__status {
   margin: 0;
   font-size: 0.8rem;
@@ -50,9 +73,4 @@
   margin: 0;
   font-size: 0.9rem;
   opacity: 0.85;
-}
-
-.season-card__actions {
-  margin-top: auto;
-  padding-top: 0.25rem;
 }

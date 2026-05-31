@@ -70,6 +70,10 @@ export interface CreateTroupeRequest {
   name: string
 }
 
+export interface UpdateTroupeRequest {
+  name: string
+}
+
 export interface UpdateMyMembershipRequest {
   displayName: string
 }
@@ -149,6 +153,27 @@ export class TroupeApiService {
     try {
       const res = await fetch('/v1/troupes', {
         method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders(),
+        },
+        body: JSON.stringify({ name: body.name.trim() }),
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as TroupeListItem
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async updateTroupe(troupeId: string, body: UpdateTroupeRequest): ApiResult<TroupeListItem> {
+    try {
+      const res = await fetch(`/v1/troupes/${encodeURIComponent(troupeId)}`, {
+        method: 'PATCH',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',

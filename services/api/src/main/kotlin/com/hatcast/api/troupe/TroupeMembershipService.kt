@@ -69,6 +69,68 @@ class TroupeMembershipService(
         }
     }
 
+    /** Résumé troupe pour l'utilisateur courant après mutation (adhésion active ou admin plateforme). */
+    @Transactional(readOnly = true)
+    fun buildTroupeListItemForViewer(
+        principal: SessionUserPrincipal,
+        troupe: TroupeEntity,
+    ): TroupeListItemDto {
+        val membership = getActiveMembershipForUser(principal.userId, troupe.id)
+        if (membership != null) {
+            return buildTroupeListItemForMembership(principal.userId, troupe, membership)
+        }
+        if (!platformAdminService.isPlatformAdmin(principal)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès réservé aux administrateurs de troupe.")
+        }
+        val memberCount =
+            membershipRepository
+                .countActiveMembersByTroupeIds(listOf(troupe.id))
+                .firstOrNull()
+                ?.memberCount ?: 0L
+        val placeholderMembership =
+            TroupeMembershipEntity(
+                id = UUID.fromString("00000000-0000-4000-8000-000000000001"),
+                troupe = troupe,
+                user = userRepository.getReferenceById(principal.userId),
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.MEMBER,
+                displayName = "Administration plateforme",
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            )
+        return TroupeListItemDto.from(
+            troupe = troupe,
+            membership = placeholderMembership,
+            activeMemberCount = memberCount,
+            upcomingEventCount = 0L,
+        )
+    }
+
+    private fun buildTroupeListItemForMembership(
+        userId: UUID,
+        troupe: TroupeEntity,
+        membership: TroupeMembershipEntity,
+    ): TroupeListItemDto {
+        val troupeId = troupe.id
+        val memberCount =
+            membershipRepository
+                .countActiveMembersByTroupeIds(listOf(troupeId))
+                .firstOrNull()
+                ?.memberCount ?: 0L
+        val fromInclusive = AgendaTimeBoundary.startOfTodayInclusive()
+        val upcomingCount =
+            troupeListStatsRepository
+                .countUpcomingEventsByTroupeIdsForUser(userId, listOf(troupeId), fromInclusive)
+                .firstOrNull()
+                ?.eventCount ?: 0L
+        return TroupeListItemDto.from(
+            troupe = troupe,
+            membership = membership,
+            activeMemberCount = memberCount,
+            upcomingEventCount = upcomingCount,
+        )
+    }
+
     @Transactional(readOnly = true)
     fun getActiveMembershipForUser(
         userId: UUID,

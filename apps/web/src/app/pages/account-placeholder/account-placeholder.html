@@ -91,15 +91,13 @@
       </div>
     </section>
 
-    <section class="account-page__section" aria-labelledby="account-troupe-preferences-heading">
-      <h2 id="account-troupe-preferences-heading" class="account-page__section-title">Préférences troupe</h2>
-      <mat-nav-list class="account-page__list">
-        <a mat-list-item routerLink="/troupes" data-testid="account-troupe-preferences">
-          <mat-icon matListItemIcon aria-hidden="true">groups</mat-icon>
-          <span matListItemTitle>Préférences par troupe</span>
-          <span matListItemLine>Pseudo et rôles par défaut, troupe par troupe.</span>
-        </a>
-      </mat-nav-list>
+    <section class="account-page__section" aria-labelledby="account-member-preferences-heading">
+      <h2 id="account-member-preferences-heading" class="account-page__section-title">
+        Préférences membre
+      </h2>
+      <div class="account-page__preferences-panel">
+        <app-member-preferences-form />
+      </div>
     </section>
 
     <section class="account-page__section" aria-labelledby="account-security-heading">

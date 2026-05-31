@@ -5,6 +5,7 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.CreateTroupeRequest
 import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
+import com.hatcast.api.troupe.dto.UpdateTroupeRequest
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
@@ -20,6 +21,8 @@ class TroupeService(
     private val membershipRepository: TroupeMembershipRepository,
     private val userRepository: UserRepository,
     private val platformAdminService: PlatformAdminService,
+    private val troupeAccess: TroupeAccessService,
+    private val membershipService: TroupeMembershipService,
 ) {
     @Transactional
     fun create(
@@ -103,6 +106,25 @@ class TroupeService(
             troupeRepository.findBySlug(normalized)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
         return TroupeAdminSummaryDto.from(troupe)
+    }
+
+    @Transactional
+    fun update(
+        troupeId: UUID,
+        body: UpdateTroupeRequest,
+        principal: SessionUserPrincipal,
+    ): TroupeListItemDto {
+        troupeAccess.requireCanManageTroupe(principal, troupeId)
+        val nameTrim = body.name.trim()
+        if (nameTrim.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de la troupe ne peut pas être vide.")
+        }
+        val troupe =
+            troupeRepository.findById(troupeId).orElse(null)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        troupe.name = nameTrim
+        val saved = troupeRepository.save(troupe)
+        return membershipService.buildTroupeListItemForViewer(principal, saved)
     }
 
     @Transactional

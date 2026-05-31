@@ -207,6 +207,12 @@
   cursor: default;
 }
 
+.account-page__preferences-panel {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 55%, transparent);
+}
+
 .account-page__footer {
   margin-top: 0.5rem;
 }

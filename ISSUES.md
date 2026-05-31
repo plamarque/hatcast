@@ -10,6 +10,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-004 — Season `event_count` drift after bulk import and archive
+- **ID**: BUG-004
+- **Status**: Open
+- **Severity**: Medium (misleading hub troupe season cards; data trust)
+- **Affected area**: `seasons.event_count` denormalized column; V1→V2 migration SQL load; `EventService.archive`; `app-season-card` / troupe hub
+- **Observed behavior**: After troupe/season import (bulk `INSERT INTO events`), season list cards show **0 spectacles** while the season workspace agenda lists events. Creating events via API increments the counter; archiving does not decrement it. Seeds manually run `UPDATE seasons SET event_count = COUNT(*)` but migration pipeline does not.
+- **Expected behavior**: `SeasonResponse.eventCount` matches the number of **non-archived** events for the season, including after import and after archive/unarchive lifecycle changes.
+- **Notes/context**: Discovered 2026-05-31 on imported troupe (La Malice). UX spec [ux-design-troupe-hub.md](_bmad-output/planning-artifacts/ux-design-troupe-hub.md) T14. Related: `participant_count` sync exists via `SeasonParticipantService` / membership sync; `event_count` lacks equivalent maintenance on archive.
+
 ### LIMIT-001 — E2E tests depend on live base state; need fixture re-architecture
 - **ID**: LIMIT-001
 - **Status**: Open (V1 legacy) / **mitigated for V2** (2026-05-31 — TEST-1)

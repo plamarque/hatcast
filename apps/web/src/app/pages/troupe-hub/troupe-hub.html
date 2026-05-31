@@ -31,16 +31,6 @@
         <div class="troupe-hub__hero-row">
           <h1 class="troupe-hub__title">{{ t.name }}</h1>
           <div class="troupe-hub__hero-actions">
-            <button
-              type="button"
-              mat-stroked-button
-              class="troupe-hub__prefs-btn"
-              aria-label="Préférences dans cette troupe"
-              (click)="openPreferences()"
-            >
-              <mat-icon>tune</mat-icon>
-              <span class="troupe-hub__prefs-label">Préférences dans cette troupe</span>
-            </button>
             <app-scope-admin-menu scope="troupe" [items]="troupeAdminItems()" />
           </div>
         </div>
@@ -54,15 +44,7 @@
     }
 
     <section class="troupe-hub__seasons" aria-labelledby="saisons-heading">
-      <div class="troupe-hub__seasons-header">
-        <h2 id="saisons-heading" class="troupe-hub__section-title">Saisons</h2>
-        @if (canManageTroupe()) {
-          <button mat-flat-button color="primary" type="button" (click)="openCreateSeason()">
-            <mat-icon>add</mat-icon>
-            Nouvelle saison
-          </button>
-        }
-      </div>
+      <h2 id="saisons-heading" class="troupe-hub__section-title">Saisons</h2>
 
       @if (loadingSeasons()) {
         <div class="troupe-hub__spinner" role="status">
@@ -84,6 +66,8 @@
             <app-season-card
               [title]="season.title"
               [slug]="season.slug"
+              [startDate]="season.startDate"
+              [endDate]="season.endDate"
               [eventCount]="season.eventCount"
               [participantCount]="season.participantCount"
               [archived]="season.archived"
@@ -97,9 +81,5 @@
         }
       }
     </section>
-
-    <footer class="troupe-hub__footer">
-      <a mat-button routerLink="/troupes" fragment="decouvrir">Explorer d’autres troupes</a>
-    </footer>
   }
 </div>

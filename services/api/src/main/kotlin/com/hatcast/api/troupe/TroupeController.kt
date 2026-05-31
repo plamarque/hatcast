@@ -11,6 +11,7 @@ import com.hatcast.api.troupe.dto.TroupeCategoryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
+import com.hatcast.api.troupe.dto.UpdateTroupeRequest
 import com.hatcast.api.user.UserImportService
 import com.hatcast.api.user.dto.UserImportResultDto
 import jakarta.validation.Valid
@@ -57,6 +58,14 @@ class TroupeController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): ResponseEntity<TroupeListItemDto> =
         ResponseEntity.status(HttpStatus.CREATED).body(troupeService.create(body, principal))
+
+    /** Met à jour le nom affiché de la troupe (admin troupe ou plateforme). Le slug reste inchangé. */
+    @PatchMapping("/{troupeId}")
+    fun updateTroupe(
+        @PathVariable troupeId: UUID,
+        @Valid @RequestBody body: UpdateTroupeRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeListItemDto = troupeService.update(troupeId, body, principal)
 
     /**
      * Rejoindre (ou réactiver) l'adhésion courante lorsque la troupe a `join_policy = OPEN`.
