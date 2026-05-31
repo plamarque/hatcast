@@ -344,6 +344,10 @@ class TroupeMembershipIntegrationTest {
             )
         assertEquals(1, participants.size)
         assertEquals(ParticipantStatus.ACTIVE, participants.single().status)
+        assertEquals(
+            "saison-2026-2027",
+            seasonRepository.findById(demoSeasonId).orElseThrow().slug,
+        )
     }
 
     @Test

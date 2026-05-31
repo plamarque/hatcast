@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-31T12:00:00+02:00
+# last_updated: 2026-05-31T18:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -214,5 +214,5 @@ development_status:
   18-2-self-join-open-api-super-admin-join-policy: done
   18-3-seed-production-troupe-demo: done
   18-4-ux-onboarding-rejoindre-demo: done
-  18-5-configuration-prod-tests-separation-demo: review
+  18-5-configuration-prod-tests-separation-demo: done
   epic-18-retrospective: optional

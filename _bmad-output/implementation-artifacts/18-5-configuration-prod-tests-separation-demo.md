@@ -1,6 +1,6 @@
 # Story 18.5: Prod config, tests, Démo / Improbots / La Malice separation
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -243,30 +243,43 @@ Composer (Cursor)
 - `services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeAccessService.kt`
 - `services/api/src/main/resources/application.yml`
 - `services/api/src/test/resources/application-test.yml`
+- `services/api/src/main/resources/db/migration/R__bootstrap_demo_admin_memberships.sql`
+- `services/api/src/main/resources/db/migration/V34__bootstrap_demo_events.sql`
+- `services/api/src/main/resources/db/migration/V35__bootstrap_demo_roster.sql`
+- `services/api/src/main/resources/db/migration/V36__bootstrap_demo_compositions.sql`
+- `services/api/src/main/resources/db/migration/V37__bootstrap_demo_admin_memberships.sql`
 - `services/api/src/main/resources/db/seed/V3_1__seed_troupe_la_malice.sql`
 - `services/api/src/main/resources/db/seed/V4__seed_season_la_malice_2026_2027.sql`
 - `services/api/src/test/kotlin/com/hatcast/api/troupe/TroupeMembershipIntegrationTest.kt`
+- `services/api/src/test/kotlin/com/hatcast/api/troupe/DemoBootstrapIntegrationTest.kt`
 - `.env.example`
 - `DEVELOPMENT.md`
 - `docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`
 - `scripts/v2/CONTEXT-SWITCHER-DEV.md`
+- `apps/web/scripts/inject-google-client-id.mjs`
+- `apps/web/src/app/core/troupes/demo-troupe-join.service.ts`
 - `apps/web/src/app/pages/troupes-list/troupes-list.spec.ts`
 - `apps/web/src/environments/demo-troupe-id.prod.spec.ts`
+- `apps/web/src/environments/environment.ts`
+- `apps/web/src/environments/environment.development.ts`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ### Change Log
 
 - 2026-05-28 : Story **18.5** created via `bmad-create-story` — prod config cleanup, legacy seed-troupe removal, integration/front tests, deploy smoke runbook (FR61–FR64, NFR-R1).
 - 2026-05-28 : Story **18.5** implemented — legacy config removed, bootstrap Démo join test, docs/smoke runbook, front UUID guards (686 web tests).
+- 2026-05-31 : Code review — décisions acceptées (bootstrap SQL + commit Epic 18 monolithique) ; patch slug AC3 appliqué ; File List complété.
 
 ---
 
 ### Review Findings
 
-- [ ] [Review][Decision] Changements bootstrap SQL hors scope 18.5 — `V36__bootstrap_demo_compositions.sql` modifié après déploiement (`d72422f`), nouveau `R__bootstrap_demo_admin_memberships.sql`, et durcissement `DemoBootstrapIntegrationTest` : la story interdit explicitement de toucher au bootstrap SQL. Risque Flyway checksum sur envs déjà migrés. Séparer en story/commit 18.3 ou revert ?
-- [ ] [Review][Decision] Working tree mixte 18.4 + 18.5 — ~40 fichiers UI (badges Démo, breadcrumb, member-home-todo…) absents du File List 18.5 mais présents dans `git diff`. Revue et merge : une PR Epic 18 combinée ou split avant merge ?
-- [ ] [Review][Patch] Test join bootstrap sans assertion slug AC3 [`TroupeMembershipIntegrationTest.kt`:315-341] — ajouter `assertEquals("saison-2026-2027", seasonRepository.findById(demoSeasonId).orElseThrow().slug)` (ou équivalent jsonPath).
-- [ ] [Review][Patch] File List story incomplet — ajouter `R__bootstrap_demo_admin_memberships.sql`, `V36__bootstrap_demo_compositions.sql`, `V37__bootstrap_demo_admin_memberships.sql`, `DemoBootstrapIntegrationTest.kt`, `environment.ts`, `environment.development.ts`, `inject-google-client-id.mjs` si ces diffs restent dans le commit.
+_Revue BMAD 2026-05-31 — commit `773f40b2` (Epic 18 combiné 18.4+18.5), diff ciblé `d72422fd..773f40b2`._
+
+- [x] [Review][Decision] Changements bootstrap SQL hors scope 18.5 — **accepté** : considérés correctif Epic 18 / 18.3 dans l’historique `773f40b2` ; risque checksum V36 documenté (note opérateur si Neon déjà migré).
+- [x] [Review][Decision] Commit Epic 18 monolithique — **accepté** : clôture Epic 18 en un bloc sur `v2` ; File List complété pour traçabilité.
+- [x] [Review][Patch] Test join bootstrap sans assertion slug AC3 [`TroupeMembershipIntegrationTest.kt`:320-347] — assertion slug `saison-2026-2027` ajoutée.
+- [x] [Review][Patch] File List story incomplet — Dev Agent Record complété (bootstrap SQL, env, demo-troupe-join.service.ts).
 - [x] [Review][Defer] Vitest ne couvre pas `inject-google-client-id.mjs` — [`demo-troupe-id.prod.spec.ts`] — deferred, optional hardening per story task
 - [x] [Review][Defer] `seasons-list.spec.ts` mock `DemoTroupeJoinService` sans assert UUID — deferred, AC4 satisfied via `troupes-list` + `demo-troupe-join.service` (`and/or`)
 - [x] [Review][Defer] UUID `…000099` dupliqué dans env + inject script sans import `DEMO_TROUPE_ID` — deferred, optional hardening per story
