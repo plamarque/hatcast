@@ -1,20 +1,42 @@
 <div class="user-agenda">
   <header class="user-agenda__header">
-    <div class="user-agenda__titles">
+    <div class="user-agenda__header-row">
       <h1 class="user-agenda__title">Mon agenda</h1>
-      <p class="user-agenda__subtitle">Mes prochains spectacles, toutes saisons confondues.</p>
+      @if (!loadingSession() && !loadError() && filterBarVisible()) {
+        <div class="user-agenda__header-actions" data-testid="filter-trigger-column">
+          <app-filter-trigger
+            [visible]="true"
+            [activeCount]="activeFilterChips().length"
+            [expanded]="filterPanelOpen()"
+            (open)="toggleCriteriaPanel()"
+          />
+        </div>
+      }
     </div>
+    <p class="user-agenda__subtitle">Mes prochains spectacles, toutes saisons confondues.</p>
   </header>
 
-  @if (!loadingSession() && !loadError() && filterBarCatalog(); as filters) {
-    <app-user-agenda-filter-bar
-      [participationFilters]="filters"
-      [selectedTroupeId]="selectedTroupeId()"
-      [selectedSeasonId]="selectedSeasonId()"
-      (troupeChange)="onTroupeFilterChange($event)"
-      (seasonChange)="onSeasonFilterChange($event)"
-      (clearFilters)="onClearFilters()"
-    />
+  @if (!loadingSession() && !loadError() && filterBarVisible()) {
+    @if (filterPanelOpen()) {
+      <div class="user-agenda__criteria-panel" data-testid="user-agenda-criteria-panel">
+        <app-filter-criteria-bar
+          [dimensions]="hubDimensions()"
+          [chips]="activeFilterChips()"
+          (openDimension)="onOpenFilterDimension($event)"
+          (removeDimension)="onRemoveFilterDimension($event)"
+          (clearAll)="onClearFilters()"
+        />
+      </div>
+    } @else if (activeFilterChips().length > 0) {
+      <div class="user-agenda__chips-row" data-testid="user-agenda-chips-row">
+        <app-active-filter-chips
+          [chips]="activeFilterChips()"
+          (removeDimension)="onRemoveFilterDimension($event)"
+          (openDimension)="onOpenFilterDimension($event)"
+          (clearAll)="onClearFilters()"
+        />
+      </div>
+    }
   }
 
   @if (loadingSession()) {
@@ -95,9 +117,6 @@
               </div>
               <div class="agenda-card__body">
                 <h2 class="agenda-card__title">{{ ev.title }}</h2>
-                @if (ev.location) {
-                  <p class="agenda-card__loc">{{ ev.location }}</p>
-                }
                 <div class="agenda-card__badges">
                   @if (ev.teamStatusBadge) {
                     <app-composition-status-badge [badge]="ev.teamStatusBadge" />

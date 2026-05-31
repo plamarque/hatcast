@@ -194,7 +194,7 @@ describe('UserAgenda', () => {
     expect(text).toContain('janvier 2026')
     expect(text).toContain('février 2026')
     expect(text).toContain('Cabaret de janvier')
-    expect(text).toContain('Salle A')
+    expect(fixture.nativeElement.querySelector('.agenda-card__loc')).toBeNull()
     expect(text).toContain('La BIM')
     expect(text).toContain('Festibask 2026')
     expect(text).toContain('Dispo')
@@ -355,8 +355,8 @@ describe('UserAgenda', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('Effacer filtres')
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Tout effacer')
   })
 
   it('affiche la barre de filtres et appelle l’API avec troupeId', async () => {
@@ -371,8 +371,8 @@ describe('UserAgenda', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('Toutes les troupes')
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="agenda-troupe-filter"]')).toBeNull()
 
     agendaApi.listAgenda.mockClear()
     await fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
@@ -529,7 +529,7 @@ describe('UserAgenda', () => {
     })
 
     await settle(fixture)
-    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull()
 
     let resolveReload: ((value: unknown) => void) | undefined
     agendaApi.listAgenda.mockReturnValue(
@@ -541,7 +541,7 @@ describe('UserAgenda', () => {
     void fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull()
 
     resolveReload?.({
       ok: true,
