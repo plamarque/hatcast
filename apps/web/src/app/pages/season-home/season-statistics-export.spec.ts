@@ -36,10 +36,10 @@ describe('season-statistics-export', () => {
         showBenevoleDetails: false,
         expandedMonths: new Set(),
       },
-      { groupsLabel: 'Tous les spectacles' },
+      { groupsLabel: 'Toutes' },
     )
 
-    expect(csv).toContain('Catégories: Tous les spectacles')
+    expect(csv).toContain('Catégories: Toutes')
     expect(csv).toContain('Match mars')
     expect(csv).toContain('Dispo (J, MC)')
     expect(csv).toContain('1/2 (50%)')

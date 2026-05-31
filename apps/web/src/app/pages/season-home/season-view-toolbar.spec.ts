@@ -60,7 +60,7 @@ describe('SeasonViewToolbar', () => {
     fixture.componentRef.setInput('categoryLabels', { deplacements: 'Déplacements' })
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
-    expect(el.textContent).toContain('Tous les spectacles')
+    expect(el.textContent).toContain('Toutes')
     expect(el.querySelector('[aria-label="Filtrer par catégories"]')).toBeTruthy()
   })
 })

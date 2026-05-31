@@ -98,16 +98,11 @@
       <mat-menu #statsCategoriesMenu="matMenu" class="season-toolbar__categories-menu">
         <div class="season-toolbar__categories-panel" (click)="$event.stopPropagation()">
           <p class="season-toolbar__categories-title">Catégories</p>
-          <p class="season-toolbar__categories-hint">
-            Les stats ne comptent que les spectacles des catégories cochées. Choisissez quels spectacles
-            entrent dans le tableau. <em>Spectacles ordinaires</em> = spectacles sans catégorie. Pour les
-            stats d’un seul programme (ex. bus), cochez uniquement cette catégorie.
-          </p>
           <mat-checkbox
             [checked]="isAllCategoriesSelected()"
             (change)="toggleAllCategories($event.checked)"
           >
-            Tous les spectacles
+            Toutes
           </mat-checkbox>
           <mat-checkbox
             [checked]="isCategoryChecked('principal')"

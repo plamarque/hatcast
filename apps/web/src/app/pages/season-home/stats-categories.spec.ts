@@ -26,7 +26,7 @@ describe('stats-categories', () => {
   })
 
   it('builds filter labels per UX', () => {
-    expect(statsCategoriesFilterLabel({ kind: 'all' }, labels)).toBe('Tous les spectacles')
+    expect(statsCategoriesFilterLabel({ kind: 'all' }, labels)).toBe('Toutes')
     expect(statsCategoriesFilterLabel({ kind: 'none' }, labels)).toBe('Aucun')
     expect(
       statsCategoriesFilterLabel({ kind: 'selected', slugs: ['deplacements'] }, labels),

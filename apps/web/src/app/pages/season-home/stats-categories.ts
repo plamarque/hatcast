@@ -83,7 +83,7 @@ export function statsCategoriesFilterLabel(
   labels: Record<string, string>,
 ): string {
   if (compartments.kind === 'all') {
-    return 'Tous les spectacles'
+    return 'Toutes'
   }
   if (compartments.kind === 'none') {
     return 'Aucun'
@@ -104,7 +104,7 @@ export function statsCategoriesExportLabel(
   labels: Record<string, string>,
 ): string {
   if (compartments.kind === 'all') {
-    return 'Tous les spectacles'
+    return 'Toutes'
   }
   if (compartments.kind === 'none') {
     return 'Aucun'
