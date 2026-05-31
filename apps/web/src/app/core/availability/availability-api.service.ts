@@ -38,6 +38,8 @@ export interface SummaryRole {
   roleKey: string
   requiredCount: number
   candidates: SummaryRoleCandidate[]
+  /** Some candidate % use retrospective recalc instead of draw snapshot. */
+  hasPartialEstimatedChances?: boolean
 }
 
 export type ChanceSource = 'live' | 'snapshot' | 'estimated'

@@ -16,6 +16,15 @@
             <span aria-hidden="true">{{ roleEmoji(role.roleKey) }}</span>
             {{ roleLabel(role.roleKey) }}
             ({{ role.candidates.length }}/{{ role.requiredCount }})
+            @if (role.hasPartialEstimatedChances) {
+              <mat-icon
+                class="availability-tous__partial-warning"
+                [matTooltip]="partialRoleTooltip"
+                aria-label="Pourcentages partiellement estimés pour ce rôle"
+              >
+                warning
+              </mat-icon>
+            }
           </mat-panel-title>
         </mat-expansion-panel-header>
 

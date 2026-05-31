@@ -3,6 +3,7 @@ package com.hatcast.api.composition
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
+import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.associateByLinkedUserId
 import com.hatcast.api.composition.dto.CompositionDrawResponseDto
@@ -124,6 +125,18 @@ class CompositionDrawService(
         // Roles whose existing snapshot rows are safe to replace (fully cleared and redrawn).
         val fullyRedrawnRoleKeys = mutableSetOf<String>()
 
+        val openingCrossRoleExcluded =
+            allSlots.mapNotNull { it.assignedParticipantId() }.toMutableSet()
+        captureOpeningDrawSnapshots(
+            requiredRoles = requiredRoles,
+            normalizedSlots = normalizedSlots,
+            eligible = eligible,
+            availabilityByUserId = availabilityByUserId,
+            historyCounts = historyCounts,
+            crossRoleExcluded = openingCrossRoleExcluded,
+            snapshotAccumulator = snapshotAccumulator,
+        )
+
         for (roleKey in requiredRoles) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
             if (requiredCount <= 0) continue
@@ -201,17 +214,6 @@ class CompositionDrawService(
                         requiredCount,
                         pastByParticipant,
                     )
-                for (candidate in scored) {
-                    snapshotAccumulator[roleKey to candidate.participantId] =
-                        DrawChanceSnapshotInput(
-                            roleKey = roleKey,
-                            participantId = candidate.participantId,
-                            chancePercent = candidate.chancePercent,
-                            pastSelectionCount = candidate.pastSelectionCount,
-                            requiredCount = requiredCount,
-                            candidateCount = pool.size,
-                        )
-                }
                 val drawResult = AvailabilityChanceCalculator.performWeightedDraw(weighted, random)
 
                 if (drawResult == null) {
@@ -339,4 +341,60 @@ class CompositionDrawService(
             "fillempty", "fill_empty", "fill-empty" -> DrawMode.FILL_EMPTY
             else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "mode de tirage invalide")
         }
+
+    /**
+     * Freeze % for every role at draw opening — before cross-role exclusions accumulate during
+     * the same request (dj → mc → player order). Matches Dispos « Tous » fairness narrative.
+     */
+    private fun captureOpeningDrawSnapshots(
+        requiredRoles: List<String>,
+        normalizedSlots: Map<String, Int>,
+        eligible: List<CompositionEligibleParticipant>,
+        availabilityByUserId: Map<UUID, EventAvailabilityEntity>,
+        historyCounts: Map<Pair<UUID, String>, Int>,
+        crossRoleExcluded: Set<UUID>,
+        snapshotAccumulator: MutableMap<Pair<String, UUID>, DrawChanceSnapshotInput>,
+    ) {
+        for (roleKey in requiredRoles) {
+            val requiredCount = normalizedSlots[roleKey] ?: 0
+            if (requiredCount <= 0) {
+                continue
+            }
+            val pool =
+                CompositionParticipantPool.buildRolePool(
+                    eligible = eligible,
+                    availabilityByUserId = availabilityByUserId,
+                    roleKey = roleKey,
+                    excluded = crossRoleExcluded,
+                )
+            if (pool.isEmpty()) {
+                continue
+            }
+            val pastByParticipant =
+                selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+            val scored =
+                AvailabilityChanceCalculator.scoreCandidates(
+                    pool.map {
+                        AvailabilityChanceCalculator.Candidate(
+                            participantId = it.participantId,
+                            displayName = it.displayName,
+                            avatarUrl = null,
+                        )
+                    },
+                    requiredCount,
+                    pastByParticipant,
+                )
+            for (candidate in scored) {
+                snapshotAccumulator[roleKey to candidate.participantId] =
+                    DrawChanceSnapshotInput(
+                        roleKey = roleKey,
+                        participantId = candidate.participantId,
+                        chancePercent = candidate.chancePercent,
+                        pastSelectionCount = candidate.pastSelectionCount,
+                        requiredCount = requiredCount,
+                        candidateCount = pool.size,
+                    )
+            }
+        }
+    }
 }

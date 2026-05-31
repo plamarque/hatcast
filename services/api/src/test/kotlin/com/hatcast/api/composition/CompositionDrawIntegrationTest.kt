@@ -210,24 +210,22 @@ class CompositionDrawIntegrationTest {
             .asInt()
     }
 
-    /** Last draw step wins — same rule as snapshot persistence. */
+    /** Opening draw snapshot — first slot iteration per role (full pool at role start). */
     private fun expectedSnapshotFromDraw(
         drawBody: JsonNode,
         roleKey: String,
         participantId: String,
     ): Pair<Int, Int>? {
-        var last: Pair<Int, Int>? = null
-        for (step in drawBody.get("steps")) {
-            if (step.get("roleKey").asText() != roleKey) continue
-            val candidates = step.get("candidates")
-            for (index in 0 until candidates.size()) {
-                val candidate = candidates.get(index)
-                if (candidate.get("participantId").asText() == participantId) {
-                    last = candidate.get("chancePercent").asInt() to candidates.size()
-                }
+        val firstStep =
+            drawBody.get("steps").firstOrNull { it.get("roleKey").asText() == roleKey } ?: return null
+        val candidates = firstStep.get("candidates")
+        for (index in 0 until candidates.size()) {
+            val candidate = candidates.get(index)
+            if (candidate.get("participantId").asText() == participantId) {
+                return candidate.get("chancePercent").asInt() to candidates.size()
             }
         }
-        return last
+        return null
     }
 
     private fun participantIdForUser(
@@ -809,6 +807,30 @@ class CompositionDrawIntegrationTest {
         assertEquals(expectedRookie.first, byParticipant[rookieId]?.chancePercent)
         assertEquals(expectedVeteran.second, byParticipant[veteranId]?.candidateCount)
         assertEquals(expectedRookie.second, byParticipant[rookieId]?.candidateCount)
+    }
+
+    @Test
+    @Tag("FR20")
+    fun `opening draw snapshot captures player odds for mc assignee excluded later in draw order`() {
+        val adminCookie = memberCookie("sub-opening-snap-admin", admin = true)
+        val mcPlayer = memberCookie("sub-opening-snap-mc")
+        val playerOnly = memberCookie("sub-opening-snap-p1")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, """{ "player": 1, "mc": 1 }""")
+        setAvailability(mcPlayer, seasonId, eventId, "available", listOf("player", "mc"))
+        setAvailability(playerOnly, seasonId, eventId, "available", listOf("player"))
+
+        draw(adminCookie, seasonId, eventId)
+
+        val mcPlayerId = participantIdForUser(seasonId, "sub-opening-snap-mc")
+        val playerSnapshot =
+            drawChanceSnapshotRepository
+                .findByIdEventId(eventId)
+                .firstOrNull { it.id.participantId == mcPlayerId && it.id.roleKey == "player" }
+        assertTrue(
+            playerSnapshot != null,
+            "Multi-role assignee must have opening player snapshot even when picked for mc first",
+        )
     }
 
     @Test

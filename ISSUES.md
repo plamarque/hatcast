@@ -23,6 +23,17 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Fixed
 
+### BUG-003 — Dispos « Tous » hint « estimés » trompeur après tirage multi-rôles
+- **ID**: BUG-003
+- **Status**: Fixed
+- **Severity**: Medium (recette manuelle 2026-05-31)
+- **Affected area**: `CompositionDrawService` ; `AvailabilityService` ; UI `availability-tous-panel`
+- **Observed behavior**: Après tirage sur événement passé **AAAA**, hint global **« estimés »** alors que la majorité des % étaient capturés ; candidats multi-rôles (Max mc, Sophie dj) sans snapshot **player**.
+- **Expected behavior**: Snapshots à l'**ouverture** du tirage par rôle ; hint **« capturés »** si snapshots existent ; avertissement **par rôle** seulement en cas de repli partiel.
+- **Cause**: Snapshots pris par itération de slot avec `crossRoleExcluded` cumulatif (ordre dj→mc→player) ; `chanceSource` global `estimated` dès un candidat sans snapshot.
+- **Fix**: `captureOpeningDrawSnapshots()` ; `chanceSource=snapshot` si snapshots ; `hasPartialEstimatedChances` + icône/tooltip par rôle.
+- **Notes/context**: Story **6.14** ; re-draw nécessaire sur événements déjà tirés pour régénérer les snapshots.
+
 ### BUG-002 — Member glance stats ignore decline-only compositions (V1 parity gap)
 - **ID**: BUG-002
 - **Status**: Fixed

@@ -61,6 +61,30 @@ describe('AvailabilityTousPanel', () => {
     )
   })
 
+  it('shows per-role warning when role has partial estimated chances', async () => {
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityTousPanel, NoopAnimationsModule],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', {
+      ...mockSummary,
+      roles: [
+        {
+          ...mockSummary.roles[0],
+          hasPartialEstimatedChances: true,
+        },
+      ],
+    })
+    fixture.componentRef.setInput('chanceSource', 'snapshot')
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'ℹ️ Pourcentages capturés au moment du tirage.',
+    )
+    expect(fixture.nativeElement.querySelector('.availability-tous__partial-warning')).toBeTruthy()
+  })
+
   it('hides chance hint for live source', async () => {
     await TestBed.configureTestingModule({
       imports: [AvailabilityTousPanel, NoopAnimationsModule],

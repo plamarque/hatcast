@@ -1,6 +1,8 @@
 import { Component, effect, input, output, signal } from '@angular/core'
 import { MatExpansionModule } from '@angular/material/expansion'
+import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 import type {
   ChanceSource,
@@ -18,7 +20,7 @@ import {
 
 @Component({
   selector: 'app-availability-tous-panel',
-  imports: [MatExpansionModule, MatListModule],
+  imports: [MatExpansionModule, MatIconModule, MatListModule, MatTooltipModule],
   templateUrl: './availability-tous-panel.html',
   styleUrl: './availability-tous-panel.scss',
 })
@@ -58,6 +60,9 @@ export class AvailabilityTousPanel {
   protected roleEmoji(roleKey: string): string {
     return ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
   }
+
+  protected readonly partialRoleTooltip =
+    'Certains pourcentages de ce rôle sont estimés (pas capturés au tirage pour ces candidats).'
 
   /** M3 tokens — inline color beats mat-list-item meta defaults. */
   protected chanceColorVar(percent: number): string {

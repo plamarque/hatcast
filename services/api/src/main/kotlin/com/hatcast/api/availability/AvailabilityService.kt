@@ -216,8 +216,6 @@ class AvailabilityService(
             } else {
                 emptyMap()
             }
-        // True when at least one displayed % falls back to a recalc instead of a draw snapshot.
-        var usedEstimatedFallback = false
         val roles =
             requiredRoles.map { roleKey ->
                 val requiredCount = event.roleSlots[roleKey] ?: 0
@@ -229,6 +227,7 @@ class AvailabilityService(
                             roleKey,
                         )
                     }
+                var roleUsedEstimatedFallback = false
                 val candidates =
                     if (includeChances) {
                         // Per (roleKey, participant): prefer the draw snapshot, fall back to a
@@ -269,7 +268,7 @@ class AvailabilityService(
                                     snapshot.chancePercent
                                 } else {
                                     if (historyMode == SelectionHistoryMode.RETROSPECTIVE && hasSnapshots) {
-                                        usedEstimatedFallback = true
+                                        roleUsedEstimatedFallback = true
                                     }
                                     scoredByParticipant[row.participantId]?.chancePercent
                                 }
@@ -294,6 +293,7 @@ class AvailabilityService(
                     roleKey = roleKey,
                     requiredCount = requiredCount,
                     candidates = candidates,
+                    hasPartialEstimatedChances = roleUsedEstimatedFallback,
                 )
             }
         val chanceSource =
@@ -301,7 +301,7 @@ class AvailabilityService(
                 null
             } else if (historyMode == SelectionHistoryMode.OPERATIONAL) {
                 "live"
-            } else if (hasSnapshots && !usedEstimatedFallback) {
+            } else if (hasSnapshots) {
                 "snapshot"
             } else {
                 "estimated"

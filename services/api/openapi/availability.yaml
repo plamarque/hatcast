@@ -288,6 +288,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SummaryRoleCandidate'
+        hasPartialEstimatedChances:
+          type: boolean
+          description: >
+            True when at least one candidate % in this role uses retrospective recalc
+            instead of a draw snapshot (partial archive).
 
     EventAvailabilitySummaryResponse:
       type: object

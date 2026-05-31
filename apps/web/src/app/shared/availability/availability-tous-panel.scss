@@ -23,6 +23,14 @@
   font-weight: 700;
 }
 
+.availability-tous__partial-warning {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  color: var(--mat-sys-error);
+  flex-shrink: 0;
+}
+
 .availability-tous__list {
   display: flex;
   flex-direction: column;
