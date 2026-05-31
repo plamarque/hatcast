@@ -18,6 +18,8 @@ export interface StatisticsEvent {
 export interface ParticipantStatisticsRow {
   participantId: string
   displayName: string
+  userSlug?: string | null
+  avatarUrl?: string | null
   annual: Record<string, StatCounts>
   /** V1 month rollup — participations / dispos / declines per validated event. */
   monthSummary: Record<string, StatCounts>

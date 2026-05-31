@@ -498,15 +498,27 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.season.set(resolved.season)
     rememberLastVisitedSeasonSlug(slug, resolved.troupe.id)
     rememberLastMemberEntryPath(saisonMemberEntryPath(slug))
+    if (this.seasonView() === 'stats') {
+      this.loadingStatistics.set(true)
+      this.statisticsEmptyReason.set(null)
+    }
+    if (this.seasonView() === 'history') {
+      this.loadingPastEvents.set(true)
+    }
+    const viewLoads: Promise<void>[] = []
+    if (this.seasonView() === 'stats') {
+      viewLoads.push(this.loadStatistics())
+    }
+    if (this.seasonView() === 'history') {
+      viewLoads.push(this.loadPastEvents())
+    }
     await Promise.all([
       this.loadSeasonPermissions(resolved.season.id, requestId),
       this.loadParticipantSelectors(resolved.season.id, requestId),
       this.loadEquityTags(resolved.troupe.id, requestId),
       this.loadUpcomingEvents(),
+      ...viewLoads,
     ])
-    if (requestId === this.seasonLoadRequestId && this.seasonView() === 'history') {
-      await this.loadPastEvents()
-    }
   }
 
   private async loadParticipantSelectors(seasonId: string, requestId: number): Promise<void> {
@@ -602,7 +614,7 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   private async loadPastEvents(options: { force?: boolean } = {}): Promise<void> {
     const s = this.season()
-    if (!s || (this.loadingPastEvents() && !options.force)) {
+    if (!s) {
       return
     }
     const requestId = ++this.pastEventLoadRequestId
@@ -676,7 +688,7 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   private async loadStatistics(options: { force?: boolean } = {}): Promise<void> {
     const s = this.season()
-    if (!s || (this.loadingStatistics() && !options.force)) {
+    if (!s) {
       return
     }
     const compartments = this.statsEquityCompartments()

@@ -117,7 +117,37 @@
           @for (row of rows(); track row.participantId) {
             <tr>
               <th class="season-statistics__sticky season-statistics__name" scope="row">
-                {{ row.displayName }}
+                @if (canOpenMemberProfile(row)) {
+                  <button
+                    type="button"
+                    class="season-statistics__participant season-statistics__participant--link"
+                    [attr.aria-label]="memberProfileAriaLabel(row)"
+                    (click)="openMemberProfile(row)"
+                  >
+                    <app-user-avatar
+                      class="season-statistics__avatar"
+                      [style.--user-avatar-size.px]="32"
+                      [displayName]="row.displayName"
+                      [avatarUrl]="row.avatarUrl ?? null"
+                      [size]="32"
+                    />
+                    <span class="season-statistics__participant-name">{{ row.displayName }}</span>
+                  </button>
+                } @else {
+                  <div
+                    class="season-statistics__participant"
+                    [matTooltip]="profileUnavailableTooltip(row)"
+                  >
+                    <app-user-avatar
+                      class="season-statistics__avatar"
+                      [style.--user-avatar-size.px]="32"
+                      [displayName]="row.displayName"
+                      [avatarUrl]="row.avatarUrl ?? null"
+                      [size]="32"
+                    />
+                    <span class="season-statistics__participant-name">{{ row.displayName }}</span>
+                  </div>
+                }
               </th>
               @if (jeuDetailsVisible()) {
                 <td><app-stat-ratio-display [counts]="annualCounts(row, 'jeuMatch')" /></td>

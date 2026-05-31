@@ -1,6 +1,7 @@
 package com.hatcast.api.season
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.StoredAvailabilityStatus
@@ -23,6 +24,7 @@ import com.hatcast.api.season.dto.StatCountsDto
 import com.hatcast.api.season.dto.StatisticsEventDto
 import com.hatcast.api.season.dto.StatisticsParticipantDto
 import com.hatcast.api.troupe.TroupeAccessService
+import com.hatcast.api.user.UserEntity
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -179,6 +181,7 @@ class SeasonStatisticsService(
     ): ParticipantStatisticsRowDto {
         val participantId = participant.id
         val displayName = participant.displayName
+        val (userSlug, avatarUrl) = participantProfileIdentity(participant)
         val annual = emptyCountsMap()
         val monthSummary = mutableMapOf<String, StatCountBucket>()
         val byMonth = mutableMapOf<String, MutableMap<String, StatCounts>>()
@@ -250,6 +253,8 @@ class SeasonStatisticsService(
         return ParticipantStatisticsRowDto(
             participantId = participantId,
             displayName = displayName,
+            userSlug = userSlug,
+            avatarUrl = avatarUrl,
             annual = annual.mapValues { (_, c) -> StatCountsDto(c.selections, c.dispos, c.declines) },
             monthSummary = monthSummary.mapValues { (_, c) -> StatCountsDto(c.selections, c.dispos, c.declines) },
             byMonth =
@@ -259,6 +264,16 @@ class SeasonStatisticsService(
             eventCells = eventCells,
         )
     }
+
+    private fun participantProfileIdentity(participant: SeasonParticipantEntity): Pair<String?, String?> {
+        val user = linkedUser(participant) ?: return null to null
+        val slug = user.slug?.trim()?.takeIf { it.isNotEmpty() } ?: return null to null
+        val avatarUrl = AvatarService.publicAvatarUrl(user.id, user.avatarUpdatedAt)
+        return slug to avatarUrl
+    }
+
+    private fun linkedUser(participant: SeasonParticipantEntity): UserEntity? =
+        participant.user ?: participant.troupeMembership?.user
 
     private class StatCounts(
         var selections: Int = 0,

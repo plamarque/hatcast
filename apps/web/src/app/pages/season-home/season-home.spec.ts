@@ -12,6 +12,7 @@ import { OrganizerApiService, type MySeasonPermissions } from '../../core/permis
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
+import { SeasonStatisticsApiService } from '../../core/seasons/season-statistics-api.service'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { AGENDA_UPCOMING_CAP } from './season-events.utils'
 import { SeasonHome } from './season-home'
@@ -60,6 +61,7 @@ describe('SeasonHome', () => {
   }
   let seasonsApi: { getSeasonBySlug: ReturnType<typeof vi.fn>; getSeason: ReturnType<typeof vi.fn> }
   let eventsApi: { listEvents: ReturnType<typeof vi.fn> }
+  let statisticsApi: { loadStatistics: ReturnType<typeof vi.fn> }
   const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
   const queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
 
@@ -96,6 +98,13 @@ describe('SeasonHome', () => {
         ok: true,
         status: 200,
         data: { content: [], page: 0, size: 50, totalElements: 0, totalPages: 0 },
+      }),
+    }
+    statisticsApi = {
+      loadStatistics: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: { participants: [], monthKeys: [], events: [], rows: [] },
       }),
     }
     organizerApi = {
@@ -143,6 +152,7 @@ describe('SeasonHome', () => {
         { provide: TroupeApiService, useValue: troupeApi },
         { provide: OrganizerApiService, useValue: organizerApi },
         { provide: ParticipantApiService, useValue: participantApi },
+        { provide: SeasonStatisticsApiService, useValue: statisticsApi },
       ],
     }).compileComponents()
     TestBed.overrideProvider(MatSnackBar, { useValue: snack })
@@ -402,6 +412,59 @@ describe('SeasonHome', () => {
     )
     expect(organizerApi.mySeasonPermissions).not.toHaveBeenCalled()
     expect(eventsApi.listEvents).not.toHaveBeenCalled()
+  })
+
+  it('charge les statistiques quand la saison se charge avec view=stats (retour navigateur)', async () => {
+    statisticsApi.loadStatistics.mockClear()
+    statisticsApi.loadStatistics.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        participants: [],
+        monthKeys: ['2026-05'],
+        events: [
+          {
+            id: 'e1',
+            title: 'Spectacle',
+            startsAt: '2026-05-12T19:00:00.000Z',
+            templateType: 'custom',
+            equityTag: null,
+            monthKey: '2026-05',
+          },
+        ],
+        rows: [
+          {
+            participantId: 'p-1',
+            displayName: 'Alice',
+            userSlug: 'alice',
+            avatarUrl: null,
+            annual: { totalJeu: { selections: 1, dispos: 0, declines: 0 } },
+            monthSummary: {},
+            byMonth: {},
+            eventCells: { e1: '1/0/0' },
+          },
+        ],
+      },
+    })
+    queryParamMap$.next(convertToParamMap({ view: 'stats' }))
+    const activatedRoute = TestBed.inject(ActivatedRoute) as {
+      snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> }
+    }
+    activatedRoute.snapshot.queryParamMap = convertToParamMap({ view: 'stats' })
+
+    const statsFixture = TestBed.createComponent(SeasonHome)
+    statsFixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(statisticsApi.loadStatistics).toHaveBeenCalledWith('season-1', expect.any(Object))
+    })
+
+    const cmp = statsFixture.componentInstance as unknown as {
+      statisticsData: () => { rows: unknown[] } | null
+      seasonView: () => string
+    }
+    expect(cmp.seasonView()).toBe('stats')
+    expect(cmp.statisticsData()?.rows.length).toBe(1)
   })
 })
 

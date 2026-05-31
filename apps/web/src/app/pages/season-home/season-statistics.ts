@@ -1,12 +1,15 @@
-import { Component, computed, input, signal } from '@angular/core'
+import { Component, computed, inject, input, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
+import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import type {
   ParticipantStatisticsRow,
   SeasonStatisticsResponse,
   StatCounts,
 } from '../../core/seasons/season-statistics-api.service'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { StatRatioDisplay } from './stat-ratio-display'
 import { monthLabel } from './season-statistics.utils'
 
@@ -21,7 +24,7 @@ export type StatisticsEmptyReason = 'none-selected' | 'no-data' | null
 
 @Component({
   selector: 'app-season-statistics',
-  imports: [MatButtonModule, MatIconModule, StatRatioDisplay],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, StatRatioDisplay, UserAvatarComponent],
   templateUrl: './season-statistics.html',
   styleUrl: './season-statistics.scss',
 })
@@ -30,6 +33,10 @@ export class SeasonStatistics {
   readonly loading = input(false)
   readonly detailsExpanded = input(false)
   readonly emptyReason = input<StatisticsEmptyReason>(null)
+  readonly troupeId = input<string | null>(null)
+  readonly leagueId = input<string | null>(null)
+
+  private readonly memberProfile = inject(MemberProfileService)
 
   protected readonly jeuExpanded = signal(false)
   protected readonly decorumExpanded = signal(false)
@@ -106,6 +113,30 @@ export class SeasonStatistics {
 
   protected eventCell(row: ParticipantStatisticsRow, eventId: string): string {
     return row.eventCells[eventId] ?? '—'
+  }
+
+  protected canOpenMemberProfile(row: ParticipantStatisticsRow): boolean {
+    return !!row.userSlug?.trim()
+  }
+
+  protected memberProfileAriaLabel(row: ParticipantStatisticsRow): string {
+    return `Voir la saison en un clin d'œil de ${row.displayName}`
+  }
+
+  protected profileUnavailableTooltip(row: ParticipantStatisticsRow): string {
+    return 'Profil indisponible — aucun compte lié'
+  }
+
+  protected openMemberProfile(row: ParticipantStatisticsRow): void {
+    const userSlug = row.userSlug?.trim()
+    if (!userSlug) {
+      return
+    }
+    this.memberProfile.navigateToMemberGlance({
+      userSlug,
+      troupeId: this.troupeId() ?? undefined,
+      leagueId: this.leagueId() ?? undefined,
+    })
   }
 
   protected jeuDetailsVisible(): boolean {

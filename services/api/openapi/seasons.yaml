@@ -1502,6 +1502,14 @@ components:
           format: uuid
         displayName:
           type: string
+        userSlug:
+          type: string
+          nullable: true
+          description: Account slug for member season glance navigation (Story 16.2).
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Public avatar URL when participant is linked to a user account.
         annual:
           type: object
           additionalProperties:

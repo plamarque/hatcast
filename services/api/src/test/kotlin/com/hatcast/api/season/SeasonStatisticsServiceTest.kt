@@ -62,7 +62,12 @@ class SeasonStatisticsServiceTest {
                 whenever(it.id).thenReturn(seasonId)
                 whenever(it.troupe).thenReturn(troupe)
             }
-        val user = mock<UserEntity> { whenever(it.id).thenReturn(userId) }
+        val user =
+            mock<UserEntity>().also {
+                whenever(it.id).thenReturn(userId)
+                whenever(it.slug).thenReturn("alice-dupont")
+                whenever(it.avatarUpdatedAt).thenReturn(null)
+            }
         val membership =
             mock<TroupeMembershipEntity>().also {
                 whenever(it.user).thenReturn(user)
@@ -113,7 +118,9 @@ class SeasonStatisticsServiceTest {
         val result = service.loadStatistics(seasonId, principal)
 
         assertEquals(1, result.rows.size)
-        val cell = result.rows.first().eventCells[eventId]
+        val row = result.rows.first()
+        assertEquals("alice-dupont", row.userSlug)
+        val cell = row.eventCells[eventId]
         assertTrue(cell?.startsWith("Dispo (") == true, "expected Dispo export, got: $cell")
     }
 
@@ -129,6 +136,8 @@ class SeasonStatisticsServiceTest {
             mock<SeasonParticipantEntity>().also {
                 whenever(it.id).thenReturn(participantId)
                 whenever(it.displayName).thenReturn("Alice")
+                whenever(it.user).thenReturn(null)
+                whenever(it.troupeMembership).thenReturn(null)
             }
         val ordinary =
             mock<EventEntity>().also {
@@ -171,6 +180,7 @@ class SeasonStatisticsServiceTest {
         val principalOnly = service.loadStatistics(seasonId, principal, equityCompartments = listOf("principal"))
         assertEquals(1, principalOnly.events.size)
         assertEquals("Match local", principalOnly.events.first().title)
+        assertEquals(null, principalOnly.rows.first().userSlug)
 
         val deplOnly = service.loadStatistics(seasonId, principal, equityCompartments = listOf("deplacements"))
         assertEquals(1, deplOnly.events.size)

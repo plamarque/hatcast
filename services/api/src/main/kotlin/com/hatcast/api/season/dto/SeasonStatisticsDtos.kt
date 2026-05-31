@@ -20,6 +20,9 @@ data class StatisticsEventDto(
 data class ParticipantStatisticsRowDto(
     val participantId: UUID,
     val displayName: String,
+    /** Account slug for `/membre/:userSlug` when participant is linked to a user. Story 16.2. */
+    val userSlug: String? = null,
+    val avatarUrl: String? = null,
     val annual: Map<String, StatCountsDto>,
     /** V1 `calculatePlayerMonthStats` — participations / dispos / declines par mois (événement validé). */
     val monthSummary: Map<String, StatCountsDto>,
