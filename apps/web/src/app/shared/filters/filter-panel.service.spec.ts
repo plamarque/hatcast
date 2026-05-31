@@ -38,35 +38,13 @@ describe('FilterPanelService', () => {
     service = TestBed.inject(FilterPanelService)
   })
 
-  it('opens filter hub via MatDialog on desktop breakpoint', async () => {
+  it('opens participant picker via MatDialog on desktop breakpoint', async () => {
     breakpointObserver.isMatched.mockReturnValue(false)
 
-    await service.openHub({ dimensions: [] })
+    await service.openParticipantPicker({ options: [], selectedIds: [] })
 
     expect(dialog.open).toHaveBeenCalled()
     expect(bottomSheet.open).not.toHaveBeenCalled()
-  })
-
-  it('opens MatDialog on desktop breakpoint (legacy panel)', async () => {
-    breakpointObserver.isMatched.mockReturnValue(false)
-
-    await service.openPanel({
-      dimensions: [],
-      values: {},
-      categoryGlossarySlugs: [],
-      categoryLabels: {},
-    })
-
-    expect(dialog.open).toHaveBeenCalled()
-  })
-
-  it('opens filter hub via MatBottomSheet on mobile breakpoint', async () => {
-    breakpointObserver.isMatched.mockReturnValue(true)
-
-    await service.openHub({ dimensions: [] })
-
-    expect(bottomSheet.open).toHaveBeenCalled()
-    expect(dialog.open).not.toHaveBeenCalled()
   })
 
   it('opens participant picker sheet with capped height on mobile', async () => {
@@ -81,6 +59,19 @@ describe('FilterPanelService', () => {
         maxHeight: 'min(28rem, 55dvh)',
       }),
     )
+  })
+
+  it('opens MatDialog on desktop breakpoint (legacy panel)', async () => {
+    breakpointObserver.isMatched.mockReturnValue(false)
+
+    await service.openPanel({
+      dimensions: [],
+      values: {},
+      categoryGlossarySlugs: [],
+      categoryLabels: {},
+    })
+
+    expect(dialog.open).toHaveBeenCalled()
   })
 
   it('opens MatBottomSheet on mobile breakpoint (legacy panel)', async () => {

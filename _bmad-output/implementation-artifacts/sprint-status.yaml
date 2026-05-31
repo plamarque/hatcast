@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-31T19:45:00+02:00
+# last_updated: 2026-06-01T01:20:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-01T12:00:00+02:00"
+last_updated: "2026-06-01T01:20:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -50,6 +50,7 @@ development_status:
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: done
+  mig-4-deplacements-category-import: done
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
@@ -164,12 +165,12 @@ development_status:
   13-6-ligues-deplacements-creation-conventions: backlog
   epic-13-retrospective: optional
 
-  epic-14: backlog
-  14-1-page-hub-troupe: backlog
-  14-2-ligues-actives-et-archivees: backlog
-  14-3-pseudo-sur-hub-troupe: backlog
-  14-4-redirection-seasons: backlog
-  14-5-lien-annuaire-public: backlog
+  epic-14: backlog  # SUPERSEDED by Epic 17 — SCP 2026-06-01 ; do not schedule 14.x
+  14-1-page-hub-troupe: backlog  # → 17.4, 17-29
+  14-2-ligues-actives-et-archivees: backlog  # → 17.4
+  14-3-pseudo-sur-hub-troupe: backlog  # → 17.4, 2.5
+  14-4-redirection-seasons: backlog  # → 17.5
+  14-5-lien-annuaire-public: backlog  # → 17.3 ; Epic 4 public
   epic-14-retrospective: optional
 
   epic-15: backlog
@@ -209,10 +210,11 @@ development_status:
   17-24-ecran-mon-compte-alignement-hub-membre: done
   17-25-menu-compte-rail-desktop-avatar-mobile: done
   17-27-panneau-filtres-unifie: done
-  17-28-filtres-hub-pickers: review
-  17-29-refonte-hub-troupe-mon-compte-preferences: review
+  17-28-filtres-hub-pickers: done
+  17-29-refonte-hub-troupe-mon-compte-preferences: done
   17-30-season-event-count-resync: done
   17-31-modifier-saison-gear-workspace: done
+  17-33-preferences-membre-compte-utilisateur: backlog
   epic-17-retrospective: optional
 
   epic-18: in-progress

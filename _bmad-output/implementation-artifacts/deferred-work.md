@@ -1,3 +1,11 @@
+## Deferred from: code review of 17-29-refonte-hub-troupe-mon-compte-preferences.md (2026-06-01)
+
+- Persistance multi-troupes non atomique + rôles divergents — **story 17.33** (préférences compte utilisateur ; supprimer propagation per-troupe).
+- Appels API 2×N séquentiels à l’enregistrement — résolu par 17.33 (endpoint compte unique).
+- Messages d’erreur PATCH génériques côté client — amélioration UX non exigée par AC4.
+- Doc `ux-design-scope-admin-menu-epic17.md` Screen 3 non amendée — task optionnelle laissée ouverte dans la story.
+- Tests API PATCH 401/404/idempotence — couverture standard au-delà de AC10 minimal (admin/membre/blanc).
+
 ## Deferred from: code review of mig-4-deplacements-category-import.md (2026-06-01)
 
 - Gate Malice AC5 non exécuté (count=7 non prouvé sur dump prod) — dry-run/replay documenté mais absent des preuves ; bloquant gate prod, pas défaut code.

@@ -8,7 +8,6 @@ import { SeasonViewToolbar } from './season-view-toolbar'
 describe('SeasonViewToolbar', () => {
   let fixture: ComponentFixture<SeasonViewToolbar>
   let filterPanel: {
-    openHub: ReturnType<typeof vi.fn>
     openParticipantPicker: ReturnType<typeof vi.fn>
     openEventPicker: ReturnType<typeof vi.fn>
     openCategoriesPicker: ReturnType<typeof vi.fn>
@@ -16,7 +15,6 @@ describe('SeasonViewToolbar', () => {
 
   beforeEach(async () => {
     filterPanel = {
-      openHub: vi.fn().mockResolvedValue(undefined),
       openParticipantPicker: vi.fn().mockResolvedValue(undefined),
       openEventPicker: vi.fn().mockResolvedValue(undefined),
       openCategoriesPicker: vi.fn().mockResolvedValue(undefined),
@@ -52,12 +50,12 @@ describe('SeasonViewToolbar', () => {
     expect(fixture.nativeElement.querySelector('mat-menu')).toBeNull()
   })
 
-  it('shows export on history view outside filter panel', () => {
+  it('does not show export on history view toolbar', () => {
     fixture.componentRef.setInput('seasonView', 'history')
     fixture.componentRef.setInput('filterTriggerVisible', true)
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
-    expect(el.textContent).toContain('Exporter')
+    expect(el.textContent).not.toContain('Exporter')
   })
 
   it('renders agenda, history and statistics toggles', () => {
@@ -69,12 +67,12 @@ describe('SeasonViewToolbar', () => {
     expect(el.textContent).toContain('Statistiques')
   })
 
-  it('shows export and details on stats view outside filter panel', () => {
+  it('shows details on stats view without export button', () => {
     fixture.componentRef.setInput('seasonView', 'stats')
     fixture.componentRef.setInput('filterTriggerVisible', true)
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
-    expect(el.textContent).toContain('Exporter')
+    expect(el.textContent).not.toContain('Exporter')
     expect(el.textContent).toContain('Détails')
   })
 
@@ -93,7 +91,6 @@ describe('SeasonViewToolbar', () => {
 
     expect(fixture.nativeElement.querySelector('[data-testid="filter-criteria-bar"]')).toBeTruthy()
     expect(fixture.nativeElement.textContent).toContain('Participants')
-    expect(filterPanel.openHub).not.toHaveBeenCalled()
   })
 
   it('shows collapsed chips row when participant is selected and panel is closed', () => {

@@ -7,7 +7,6 @@ import {
   OnDestroy,
   OnInit,
   signal,
-  viewChild,
 } from '@angular/core'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -60,15 +59,12 @@ import {
 import {
   AGENDA_UPCOMING_CAP,
   filterEventsByIds,
+  filterEventsByParticipantFocus,
   groupEventsByMonth,
   groupPastEventsByMonth,
   HISTORY_PAST_CAP,
+  mergeEventsById,
 } from './season-events.utils'
-import {
-  buildHistoryCsv,
-  downloadHistoryCsv,
-  historyCsvRowFromEvent,
-} from './season-history-export'
 import {
   SeasonStatisticsApiService,
   type SeasonStatisticsResponse,
@@ -155,8 +151,6 @@ export class SeasonHome implements OnDestroy, OnInit {
     })
   }
 
-  private readonly statisticsPanel = viewChild(SeasonStatistics)
-
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
     { initialValue: '' },
@@ -214,9 +208,10 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.events().map((e) => this.toEventFilterOption(e)),
   )
 
-  protected readonly filteredEvents = computed(() =>
-    filterEventsByIds(this.agendaEventsForFilter(), this.selectedEventIds()),
-  )
+  protected readonly filteredEvents = computed(() => {
+    const bySpectacle = filterEventsByIds(this.agendaEventsForFilter(), this.selectedEventIds())
+    return filterEventsByParticipantFocus(bySpectacle, this.selectedParticipantIds())
+  })
 
   protected readonly monthGroups = computed(() =>
     groupEventsByMonth(this.filteredEvents()),
@@ -226,9 +221,13 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.pastEvents().map((e) => this.toEventFilterOption(e, true)),
   )
 
-  protected readonly filteredPastEvents = computed(() =>
-    filterEventsByIds(this.historyEventsForFilter(), this.selectedHistoryEventIds()),
-  )
+  protected readonly filteredPastEvents = computed(() => {
+    const bySpectacle = filterEventsByIds(
+      this.historyEventsForFilter(),
+      this.selectedHistoryEventIds(),
+    )
+    return filterEventsByParticipantFocus(bySpectacle, this.selectedParticipantIds())
+  })
 
   protected readonly historyMonthGroups = computed(() =>
     groupPastEventsByMonth(this.filteredPastEvents()),
@@ -238,7 +237,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     () =>
       this.pastEvents().length > 0 &&
       this.filteredPastEvents().length === 0 &&
-      this.selectedHistoryEventIds().length > 0,
+      (this.selectedHistoryEventIds().length > 0 || this.selectedParticipantIds().length > 0),
   )
 
   protected readonly statsEventFilterOptions = computed<EventFilterOption[]>(() =>
@@ -264,19 +263,6 @@ export class SeasonHome implements OnDestroy, OnInit {
     return { ...data, rows, events }
   })
 
-  protected readonly historyParticipantLabel = computed(() => {
-    const ids = this.selectedParticipantIds()
-    if (!ids.length) {
-      return this.myDisplayName()
-    }
-    if (ids.length === 1) {
-      return (
-        this.participantOptions().find((o) => o.id === ids[0])?.label ?? this.myDisplayName()
-      )
-    }
-    return `${ids.length} membres`
-  })
-
   protected readonly categoryLabels = computed(() => {
     const map: Record<string, string> = {}
     for (const tag of this.categories()) {
@@ -298,8 +284,7 @@ export class SeasonHome implements OnDestroy, OnInit {
       return (
         this.categoryGlossarySlugs().length > 0 ||
         this.participantOptions().length > 1 ||
-        this.statsEventFilterOptions().length > 0 ||
-        true
+        this.statsEventFilterOptions().length > 0
       )
     }
     // Agenda / historique : filtre spectacles toujours utile (picker scope=all, inactifs inclus).
@@ -361,6 +346,13 @@ export class SeasonHome implements OnDestroy, OnInit {
         icon: 'supervisor_account',
         routerLink: saisonAdminMembresPath(slug),
         queryParams: { onglet: 'organisateurs' },
+      })
+    }
+    if (this.hasSeasonAdminMenuAccess()) {
+      items.push({
+        label: 'Exporter',
+        icon: 'download',
+        action: () => void this.exportSeasonStatisticsCsv(),
       })
     }
     return items
@@ -439,6 +431,9 @@ export class SeasonHome implements OnDestroy, OnInit {
         lastStatsGroupsKey = statsCategoriesKeyValue
         if (view === 'history' && this.season()) {
           void this.loadPastEvents()
+        }
+        if (view === 'agenda' && this.season()) {
+          void this.loadUpcomingEvents()
         }
         if (view === 'stats' && this.season()) {
           void this.loadStatistics()
@@ -635,119 +630,176 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   /** Loads upcoming events up to the current cap (story 3.3 option C). */
   private async loadUpcomingEvents(options: { force?: boolean } = {}): Promise<void> {
-    const s = this.season()
-    if (!s || (this.loadingEvents() && !options.force)) {
-      return
-    }
-    const requestId = ++this.eventLoadRequestId
-    const seasonId = s.id
-    this.loadingEvents.set(true)
-    try {
-      let page = 0
-      let collected: EventResponse[] = []
-      let total = 0
-
-      const limit = this.eventLoadLimit()
-      while (collected.length < limit) {
-        const r = await this.eventsApi.listEvents(
-          seasonId,
-          page,
-          FETCH_PAGE_SIZE,
-          'upcoming',
-        )
-        if (requestId !== this.eventLoadRequestId) {
-          return
-        }
-        if (!r.ok || !r.data) {
-          this.snack.open('Impossible de charger les spectacles.', 'OK', { duration: 6000 })
-          return
-        }
-        total = r.data.totalElements
-        collected = collected.concat(r.data.content)
-        if (
-          collected.length >= total ||
-          r.data.content.length === 0 ||
-          page >= r.data.totalPages - 1
-        ) {
-          break
-        }
-        page += 1
-      }
-
-      if (requestId !== this.eventLoadRequestId) {
-        return
-      }
-
-      const visibleEvents = collected.slice(0, limit)
-      const truncated = total > visibleEvents.length
-      this.eventsTruncated.set(truncated)
-      this.events.set(visibleEvents)
-      this.totalElements.set(total)
-      this.resetStaleEventFilter(visibleEvents)
-    } finally {
-      if (requestId === this.eventLoadRequestId) {
-        this.loadingEvents.set(false)
-      }
-    }
+    await this.loadSeasonEventsForScope('upcoming', options)
   }
 
   private async loadPastEvents(options: { force?: boolean } = {}): Promise<void> {
+    await this.loadSeasonEventsForScope('past', options)
+  }
+
+  private async loadSeasonEventsForScope(
+    scope: 'upcoming' | 'past',
+    options: { force?: boolean } = {},
+  ): Promise<void> {
     const s = this.season()
     if (!s) {
       return
     }
-    const requestId = ++this.pastEventLoadRequestId
+    if (scope === 'upcoming' && this.loadingEvents() && !options.force) {
+      return
+    }
+
+    const requestId =
+      scope === 'upcoming'
+        ? ++this.eventLoadRequestId
+        : ++this.pastEventLoadRequestId
     const seasonId = s.id
-    const participantId = resolveApiParticipantId(this.selectedParticipantIds())
-    this.loadingPastEvents.set(true)
+    const participantIds = this.selectedParticipantIds()
+    const limit = scope === 'upcoming' ? this.eventLoadLimit() : this.pastEventLoadLimit()
+
+    if (scope === 'upcoming') {
+      this.loadingEvents.set(true)
+    } else {
+      this.loadingPastEvents.set(true)
+    }
+
     try {
-      let page = 0
       let collected: EventResponse[] = []
       let total = 0
-      const limit = this.pastEventLoadLimit()
 
-      while (collected.length < limit) {
-        const r = await this.eventsApi.listEvents(
+      if (participantIds.length > 1) {
+        collected = await this.collectMergedEventsForParticipants(
           seasonId,
-          page,
-          FETCH_PAGE_SIZE,
-          'past',
-          { participantId },
+          scope,
+          participantIds,
+          limit,
+          requestId,
+          scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId,
         )
-        if (requestId !== this.pastEventLoadRequestId) {
-          return
-        }
-        if (!r.ok || !r.data) {
-          this.snack.open('Impossible de charger l’historique.', 'OK', { duration: 6000 })
-          return
-        }
-        total = r.data.totalElements
-        collected = collected.concat(r.data.content)
-        if (
-          collected.length >= total ||
-          r.data.content.length === 0 ||
-          page >= r.data.totalPages - 1
-        ) {
-          break
-        }
-        page += 1
+        total = collected.length
+      } else {
+        const participantId = resolveApiParticipantId(participantIds)
+        const result = await this.collectPagedSeasonEvents(
+          seasonId,
+          scope,
+          limit,
+          { participantId },
+          requestId,
+          scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId,
+        )
+        collected = result.events
+        total = result.totalElements
       }
 
-      if (requestId !== this.pastEventLoadRequestId) {
+      if (
+        requestId !==
+        (scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId)
+      ) {
         return
       }
 
       const visibleEvents = collected.slice(0, limit)
       const truncated = total > visibleEvents.length
-      this.pastEventsTruncated.set(truncated)
-      this.pastEvents.set(visibleEvents)
-      this.pastTotalElements.set(total)
-      this.resetStaleHistoryEventFilter(visibleEvents)
+
+      if (scope === 'upcoming') {
+        this.eventsTruncated.set(truncated)
+        this.events.set(visibleEvents)
+        this.totalElements.set(total)
+        this.resetStaleEventFilter(visibleEvents)
+      } else {
+        this.pastEventsTruncated.set(truncated)
+        this.pastEvents.set(visibleEvents)
+        this.pastTotalElements.set(total)
+        this.resetStaleHistoryEventFilter(visibleEvents)
+      }
     } finally {
-      if (requestId === this.pastEventLoadRequestId) {
-        this.loadingPastEvents.set(false)
+      if (
+        requestId ===
+        (scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId)
+      ) {
+        if (scope === 'upcoming') {
+          this.loadingEvents.set(false)
+        } else {
+          this.loadingPastEvents.set(false)
+        }
       }
     }
+  }
+
+  private async collectPagedSeasonEvents(
+    seasonId: string,
+    scope: 'upcoming' | 'past',
+    limit: number,
+    options: { participantId?: string | null },
+    requestId: number,
+    activeRequestId: number,
+  ): Promise<{ events: EventResponse[]; totalElements: number }> {
+    let page = 0
+    let collected: EventResponse[] = []
+    let total = 0
+    const listScope = scope === 'past' ? 'past' : 'upcoming'
+
+    while (collected.length < limit) {
+      const r = await this.eventsApi.listEvents(
+        seasonId,
+        page,
+        FETCH_PAGE_SIZE,
+        listScope,
+        options,
+      )
+      if (requestId !== activeRequestId) {
+        return { events: [], totalElements: 0 }
+      }
+      if (!r.ok || !r.data) {
+        const message =
+          scope === 'past'
+            ? 'Impossible de charger l’historique.'
+            : 'Impossible de charger les spectacles.'
+        this.snack.open(message, 'OK', { duration: 6000 })
+        return { events: [], totalElements: 0 }
+      }
+      total = r.data.totalElements
+      collected = collected.concat(r.data.content)
+      if (
+        collected.length >= total ||
+        r.data.content.length === 0 ||
+        page >= r.data.totalPages - 1
+      ) {
+        break
+      }
+      page += 1
+    }
+
+    return { events: collected, totalElements: total }
+  }
+
+  private async collectMergedEventsForParticipants(
+    seasonId: string,
+    scope: 'upcoming' | 'past',
+    participantIds: string[],
+    limit: number,
+    requestId: number,
+    activeRequestId: number,
+  ): Promise<EventResponse[]> {
+    const perParticipant = await Promise.all(
+      participantIds.map(async (participantId) => {
+        const result = await this.collectPagedSeasonEvents(
+          seasonId,
+          scope,
+          limit,
+          { participantId },
+          requestId,
+          activeRequestId,
+        )
+        return filterEventsByParticipantFocus(result.events, [participantId])
+      }),
+    )
+
+    if (requestId !== activeRequestId) {
+      return []
+    }
+
+    return mergeEventsById(perParticipant.flat()).slice(0, limit)
   }
 
   protected onStatsCategoryFilterChange(compartments: StatsCategoryFilter): void {
@@ -820,50 +872,36 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
   }
 
-  protected exportStatisticsCsv(): void {
-    const data = this.statisticsData()
-    if (
-      !data ||
-      data.rows.length === 0 ||
-      data.events.length === 0 ||
-      this.statsCategoryFilter().kind === 'none'
-    ) {
+  protected async exportSeasonStatisticsCsv(): Promise<void> {
+    const s = this.season()
+    if (!s) {
+      return
+    }
+    const r = await this.statisticsApi.loadStatistics(s.id, { categories: 'all' })
+    if (!r.ok || !r.data) {
+      this.snack.open('Impossible de charger les statistiques.', 'OK', { duration: 6000 })
+      return
+    }
+    const data = r.data
+    if (data.rows.length === 0 || data.events.length === 0) {
       this.snack.open('Aucune donnée à exporter.', 'OK', { duration: 4000 })
       return
     }
-    const panel = this.statisticsPanel()
     const csv = buildStatisticsCsv(
       data,
-      panel?.columnVisibility() ?? {
-        showJeuDetails: this.statsDetailsExpanded(),
-        showDecorumDetails: this.statsDetailsExpanded(),
-        showBenevoleDetails: this.statsDetailsExpanded(),
+      {
+        showJeuDetails: true,
+        showDecorumDetails: true,
+        showBenevoleDetails: true,
         expandedMonths: new Set(),
       },
       {
-        groupsLabel: statsCategoriesExportLabel(
-          this.statsCategoryFilter(),
-          this.categoryLabels(),
-        ),
+        groupsLabel: statsCategoriesExportLabel({ kind: 'all' }, this.categoryLabels()),
       },
     )
     const slug = this.slug() || 'saison'
     const date = new Date().toISOString().slice(0, 10)
     downloadStatisticsCsv(`statistiques-${slug}-${date}.csv`, csv)
-  }
-
-  protected exportHistoryCsv(): void {
-    const events = this.filteredPastEvents()
-    if (events.length === 0) {
-      this.snack.open('Aucun spectacle à exporter.', 'OK', { duration: 4000 })
-      return
-    }
-    const rows = events.map((ev) =>
-      historyCsvRowFromEvent(ev, this.historyParticipantLabel()),
-    )
-    const slug = this.slug() || 'saison'
-    const date = new Date().toISOString().slice(0, 10)
-    downloadHistoryCsv(`historique-${slug}-${date}.csv`, buildHistoryCsv(rows))
   }
 
   protected openEvent(eventSlug: string): void {
@@ -1020,6 +1058,15 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (next.length !== current().length) {
       apply(next)
     }
+  }
+
+  private hasSeasonAdminMenuAccess(): boolean {
+    return (
+      this.canManageSeasons() ||
+      this.canManageEvents() ||
+      this.canManageSeasonParticipants() ||
+      this.canManageSeasonOrganizersOnly()
+    )
   }
 
   private toEventFilterOption(e: EventResponse, forcePast = false): EventFilterOption {

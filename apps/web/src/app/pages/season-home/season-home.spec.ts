@@ -298,7 +298,7 @@ describe('SeasonHome', () => {
       }>
     }
     const items = cmp.seasonAdminItems()
-    expect(items.map((i) => i.label)).toEqual(['Participants', 'Organisateur·ices'])
+    expect(items.map((i) => i.label)).toEqual(['Participants', 'Organisateur·ices', 'Exporter'])
     expect(items[0]?.routerLink).toEqual(['/saison', 'season-a', 'admin', 'participants'])
 
     const trigger = fixture.nativeElement.querySelector(
@@ -332,7 +332,11 @@ describe('SeasonHome', () => {
     fixture.detectChanges()
 
     expect(cmp.canManageSettings()).toBe(false)
-    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Nouveau spectacle'])
+    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual([
+      'Modifier',
+      'Nouveau spectacle',
+      'Exporter',
+    ])
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).not.toBeNull()
   })
 
@@ -359,7 +363,7 @@ describe('SeasonHome', () => {
     })
     fixture.detectChanges()
 
-    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Participants'])
+    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Participants', 'Exporter'])
     expect(cmp.seasonAdminItems()[0]?.icon).toBe('edit')
 
     dialog.open.mockReturnValue({
@@ -372,6 +376,65 @@ describe('SeasonHome', () => {
       data: { mode: 'edit', troupeId: 'troupe-1', season: cmp.season() },
       width: 'min(100vw - 2rem, 28rem)',
     })
+  })
+
+  it('exporte les statistiques complètes depuis le menu admin', async () => {
+    statisticsApi.loadStatistics.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        participants: [{ id: 'p-1', displayName: 'Alice' }],
+        monthKeys: ['2026-05'],
+        events: [
+          {
+            id: 'e1',
+            title: 'Show',
+            startsAt: '2026-05-12T19:00:00.000Z',
+            templateType: 'custom',
+            category: null,
+            monthKey: '2026-05',
+          },
+        ],
+        rows: [
+          {
+            participantId: 'p-1',
+            displayName: 'Alice',
+            annual: { totalJeu: { selections: 1, dispos: 1, declines: 0 } },
+            monthSummary: {},
+            byMonth: {},
+            eventCells: { e1: 'Comédien·ne' },
+            eventCellDetails: {},
+          },
+        ],
+      },
+    })
+    const createElementSpy = vi.spyOn(document, 'createElement')
+    const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
+      exportSeasonStatisticsCsv: () => Promise<void>
+      seasonPermissions: WritableSignal<MySeasonPermissions | null>
+    }
+    cmp.loadingSession.set(false)
+    cmp.season.set(season('season-1', 'troupe-1'))
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: false,
+      canManageSeasons: false,
+      canManageEvents: false,
+      canManageSeasonParticipants: true,
+      canManageEventParticipants: false,
+      isTroupeAdmin: false,
+      isSeasonOrganizer: true,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+    fixture.detectChanges()
+
+    await cmp.exportSeasonStatisticsCsv()
+
+    expect(statisticsApi.loadStatistics).toHaveBeenCalledWith('season-1', { categories: 'all' })
+    expect(createElementSpy).toHaveBeenCalledWith('a')
+    createElementSpy.mockRestore()
   })
 
   it('ne navigue pas après édition si le slug est inchangé', () => {
@@ -510,7 +573,13 @@ describe('SeasonHome', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(eventsApi.listEvents).toHaveBeenCalledWith('season-1', 0, 50, 'upcoming')
+      expect(eventsApi.listEvents).toHaveBeenCalledWith(
+        'season-1',
+        0,
+        50,
+        'upcoming',
+        { participantId: null },
+      )
     })
 
     const cmp = fixture.componentInstance as unknown as {
@@ -567,6 +636,7 @@ describe('SeasonHome', () => {
             monthSummary: {},
             byMonth: {},
             eventCells: { e1: '1/0/0' },
+            eventCellDetails: {},
           },
         ],
       },

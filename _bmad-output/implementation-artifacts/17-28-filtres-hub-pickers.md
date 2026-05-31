@@ -1,6 +1,6 @@
 # Story 17.28: Filter hub + individual pickers (UX-DR22.1)
 
-Status: review
+Status: done
 
 <!-- Course correction after 17.27 field feedback — Patrice 2026-05-31 -->
 
@@ -12,7 +12,7 @@ so that **filtering scales** without an enormous combined dialog and matches **V
 
 ## Acceptance Criteria
 
-1. **Given** season workspace with **>1** participant or spectacle option, **when** the user taps `filter_list`, **then** a **hub panel** opens showing **summary rows only** (Membre, Spectacle, Catégories on Stats) — **no** fully expanded option lists inside the hub. [Source: UX-DR22.1 D10, D11 ; AC2]
+1. **Given** season workspace with **>1** participant or spectacle option, **when** the user taps `filter_list`, **then** an **inline criteria bar** expands showing **summary rows only** (Membre, Spectacle, Catégories on Stats) — **no** fully expanded option lists inside the bar. [Source: UX-DR22.1 D10, D11 ; AC2 ; review 1A 2026-06-01]
 2. **Given** the hub open on season workspace, **when** the user taps **Membre**, **then** a **participant picker** opens titled **Filtrer les participants** with search (`Rechercher un participant…`), **Tous** master row, and **multi-select checkboxes** per member. [Source: UX-DR22.1 D11, D12 ; V1 `PlayerSelectorModal`]
 3. **Given** the participant picker, **when** the user selects multiple members and taps **Appliquer**, **then** the view filters to those members and chips show an aggregate label (`Name` / `Name1, Name2` / `N membres`). [Source: UX-DR22.1 Lexicon]
 4. **Given** the hub open, **when** the user taps **Spectacle**, **then** an **event picker** opens titled **Filtrer les événements** with search, multi-select checkboxes, and a scope **mat-menu** with toggles **Passés** and **Archivés**. [Source: UX-DR22.1 D13 ; V1 `EventSelectorModal`]
@@ -20,8 +20,8 @@ so that **filtering scales** without an enormous combined dialog and matches **V
 6. **Given** season workspace desktop, **when** chrome renders, **then** `app-scope-admin-menu` (gear) is in the **breadcrumb row** (`season-header`) and the filter trigger is **to the right of view toggles** in `season-view-toolbar`. [Source: UX-DR22.1 D14, D15 ; amends Epic 17.2 placement]
 7. **Given** Statistiques view, **when** the user opens filters, **then** the **Catégories** hub row opens the existing **17.10** checkbox picker as an **isolated modal** (not stacked with participant/event lists). [Source: UX-DR22.1 Screen D]
 8. **Given** cross-troupe `/agenda` or glance with `filterBarVisible: true`, **when** the user opens filters, **then** hub shows Troupe + Saison rows opening **compact single-select** pickers (not mega-dialog). [Source: UX-DR22.1 D16]
-9. **Given** viewport **≤ 480px**, **when** hub or pickers open, **then** use **`MatBottomSheet`** with **Appliquer** / **Réinitialiser** footers on pickers. [Source: UX-DR22.1 D5]
-10. **Given** viewport **≥ 481px**, **when** hub opens, **then** compact menu or dialog (~320px); pickers use **`MatDialog`** with internal scroll (`max-height: 85vh`). [Source: UX-DR22.1 P8]
+9. **Given** viewport **≤ 480px**, **when** pickers open, **then** use **`MatBottomSheet`** with **Appliquer** / **Réinitialiser** footers. Criteria bar expands inline (not a sheet). [Source: UX-DR22.1 D5 ; review 1A]
+10. **Given** viewport **≥ 481px**, **when** criteria bar or pickers open, **then** bar expands inline below toolbar; pickers use **`MatDialog`** with internal scroll (`max-height: 85vh`). [Source: UX-DR22.1 P8 ; review 1A]
 11. **Given** stats categories `{ kind: 'none' }`, **when** Statistiques renders, **then** warn outline on filter trigger unchanged (17.10 F9). [Source: 17.27 AC10]
 12. **Given** RES-001 (`filterBarVisible: false`), **when** page loads, **then** no filter chrome (unchanged). [Source: UX-DR22.1 D2]
 13. **Given** chip remove or **Tout effacer**, **when** triggered, **then** dimension reset behaviour matches 17.27 semantics. [Source: UX-DR22.1 interaction flows]
@@ -50,8 +50,8 @@ so that **filtering scales** without an enormous combined dialog and matches **V
 ## Tasks / Subtasks
 
 - [x] **Hub panel** (AC: 1, 8, 9, 10)
-  - [x] Replace `filter-panel-content` mega-dialog with `filter-hub` (summary rows + chevron)
-  - [x] Route `FilterPanelService.openHub()` — breakpoint split unchanged
+  - [x] Replace `filter-panel-content` mega-dialog with inline `filter-criteria-bar` (summary rows)
+  - [x] Toggle criteria bar from `filter_list` trigger — pickers via `FilterPanelService`
   - [x] Wire cross-troupe compact single-select pickers for troupe/season
 
 - [x] **Participant picker** (AC: 2, 3)
@@ -120,8 +120,8 @@ Composer
 
 ### Completion Notes List
 
-- Hub + pickers (`filter-hub`, `filter-participant-picker`, `filter-event-picker`, `filter-categories-picker`, `filter-single-picker`) ; `FilterPanelService.openHub()` et méthodes picker par dimension.
-- Saison : état `selectedParticipantIds` / `selectedEventIds` (tableaux) ; spectacles filtrés côté client via `filterEventsByIds` ; stats : lignes filtrées client si plusieurs membres, API `participantId`/`eventId` uniquement quand un seul id (`resolveApiParticipantId`).
+- Criteria bar inline (`filter-criteria-bar`) + pickers ; `FilterPanelService` picker methods par dimension. Modal `FilterHub` / `openHub()` retirés (review 1A).
+- Saison : état `selectedParticipantIds` / `selectedEventIds` ; union client multi-membre agenda/historique via `collectMergedEventsForParticipants` + `filterEventsByParticipantFocus` (review 2A).
 - Chrome : engrenage dans `season-header` ; trigger + chips dans colonne droite `filter-trigger-column` ; clic chip rouvre le picker.
 - Agenda / glance : hub Troupe+Saison + `openSinglePicker` (plus de mega-dialog).
 - **API multi-id** : pas de support backend — story follow-up si union serveur requise pour historique multi-membres.
@@ -129,9 +129,9 @@ Composer
 
 ### File List
 
-- apps/web/src/app/shared/filters/filter-hub.ts
-- apps/web/src/app/shared/filters/filter-hub.html
-- apps/web/src/app/shared/filters/filter-hub.scss
+- apps/web/src/app/shared/filters/filter-criteria-bar.ts
+- apps/web/src/app/shared/filters/filter-criteria-bar.html
+- apps/web/src/app/shared/filters/filter-criteria-bar.scss
 - apps/web/src/app/shared/filters/filter-participant-picker.ts
 - apps/web/src/app/shared/filters/filter-participant-picker.html
 - apps/web/src/app/shared/filters/filter-event-picker.ts
@@ -171,4 +171,22 @@ Composer
 ### Change Log
 
 - 2026-05-31 : Story created from UX-DR22.1 amendment (Patrice sign-off).
-- 2026-05-31 : Implemented hub + pickers, toolbar layout, multi-select state (Composer).
+- 2026-06-01 : Code review — 1A criteria bar canonized, 2A multi-participant union filter (Composer).
+
+### Review Findings
+
+- [x] [Review][Decision] Inline criteria bar vs modal hub — **Resolved: 1A** — Canoniser `app-filter-criteria-bar` inline ; amender UX-DR22.1 + AC story ; nettoyer `FilterHub` / `openHub` morts.
+
+- [x] [Review][Decision] Multi-participant filter on agenda/history — **Resolved: 2A** — Filtrage union côté client (agenda + historique) quand plusieurs membres sélectionnés.
+
+- [x] [Review][Patch] Chips not anchored to filter column — **Dismissed (voulu)** — chips en ligne pleine largeur sous la toolbar ; placement validé Patrice 2026-06-01. [season-view-toolbar.html:33-65]
+
+- [x] [Review][Patch] Lexicon « N membres » — **Dismissed (voulu)** — « Participants » / « N participants » validé Patrice 2026-06-01. [filter-builders.ts]
+
+- [x] [Review][Patch] Event picker copy vs AC4 — **Dismissed (voulu)** — « spectacles » / « Inactifs » validé Patrice 2026-06-01. [filter-event-picker.html]
+
+- [x] [Review][Patch] Redundant `|| true` in filterTriggerVisible stats branch — fixed 2026-06-01. [season-home.ts]
+
+- [x] [Review][Defer] Event picker capped at 250 events — `EVENT_PICKER_MAX` silently truncates large catalogs. [season-view-toolbar.ts:28,286] — deferred, document or raise follow-up if seasons exceed cap.
+
+- [x] [Review][Defer] API multi-id participant/event for history — documented in Dev Agent Record; server union deferred to follow-up story.

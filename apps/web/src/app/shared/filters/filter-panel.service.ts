@@ -6,7 +6,6 @@ import { firstValueFrom } from 'rxjs'
 
 import { FilterCategoriesPicker } from './filter-categories-picker'
 import { FilterEventPicker } from './filter-event-picker'
-import { FilterHub } from './filter-hub'
 import { FilterParticipantPicker } from './filter-participant-picker'
 import { FilterSinglePicker } from './filter-single-picker'
 import {
@@ -15,8 +14,6 @@ import {
   type CategoriesPickerResult,
   type EventPickerData,
   type EventPickerResult,
-  type FilterDimensionKey,
-  type FilterHubData,
   type FilterPanelData,
   type FilterPanelResult,
   type ParticipantPickerData,
@@ -34,41 +31,6 @@ export class FilterPanelService {
 
   isMobile(): boolean {
     return this.breakpointObserver.isMatched(FILTER_MOBILE_BREAKPOINT)
-  }
-
-  /** Lightweight hub — summary rows only (UX-DR22.1). */
-  async openHub(data: Omit<FilterHubData, 'isMobile'>): Promise<FilterDimensionKey | undefined> {
-    if (this.overlayOpen) {
-      return undefined
-    }
-    this.overlayOpen = true
-    try {
-      const isMobile = this.isMobile()
-      const hubData: FilterHubData = { ...data, isMobile }
-
-      if (isMobile) {
-        return await firstValueFrom(
-          this.bottomSheet
-            .open(FilterHub, {
-              data: hubData,
-              panelClass: 'filter-hub-sheet',
-            })
-            .afterDismissed(),
-        )
-      }
-
-      return await firstValueFrom(
-        this.dialog
-          .open(FilterHub, {
-            data: hubData,
-            width: 'min(100vw - 2rem, 20rem)',
-            panelClass: 'filter-hub-dialog',
-          })
-          .afterClosed(),
-      )
-    } finally {
-      this.overlayOpen = false
-    }
   }
 
   async openParticipantPicker(
@@ -95,7 +57,7 @@ export class FilterPanelService {
     return this.openPickerOverlay(FilterSinglePicker, data)
   }
 
-  /** @deprecated 17.27 mega-panel — use openHub + pickers. Kept for gradual migration tests. */
+  /** @deprecated 17.27 mega-panel — use inline criteria bar + pickers. Kept for gradual migration tests. */
   async openPanel(data: Omit<FilterPanelData, 'isMobile'>): Promise<FilterPanelResult | undefined> {
     const { FilterPanelContent } = await import('./filter-panel-content')
     if (this.overlayOpen) {

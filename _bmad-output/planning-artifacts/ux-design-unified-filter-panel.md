@@ -4,8 +4,8 @@ author: Sally (UX) + Patrice
 date: '2026-05-31'
 status: approved
 stakeholderSignOff: '2026-05-31 — UX-DR22.1 hub + individual pickers; filter trigger right; gear in breadcrumb; multi-select participant/spectacle (season); RES-001 unchanged'
-amendmentDate: '2026-05-31'
-amendmentNote: 'Patrice — post-17-27 field feedback: mega-dialog with expanded lists does not scale; restore V1 searchable multi-select pickers; hub panel; chips anchored to trigger; gear moves to breadcrumb row'
+amendmentDate: '2026-06-01'
+amendmentNote: 'Patrice — post-17-27 field feedback: mega-dialog with expanded lists does not scale; restore V1 searchable multi-select pickers; inline criteria bar (not modal hub); chips anchored to trigger; gear moves to breadcrumb row. 2026-06-01 code review 1A: criteria bar inline canonized over modal hub.'
 supersedes:
   - ux-design-journey-league-agenda.md § Filters (inline bar wireframe)
   - ux-design-season-historique-statistiques.md § Toolbar layout matrix Row A (inline filters)
@@ -27,9 +27,9 @@ relatedArtifacts:
 uxDr: UX-DR22.1
 ---
 
-# UX Design — Unified filter panel (`app-filter-hub`)
+# UX Design — Unified filter panel (`app-filter-criteria-bar`)
 
-**Purpose:** Single reference for **how members access filters** across V2 surfaces — a discreet **icon trigger**, a lightweight **hub panel** (dimension summary rows), **individual picker modals** per dimension (search + multi-select at scale), and **active filter chips anchored to the trigger**.
+**Purpose:** Single reference for **how members access filters** across V2 surfaces — a discreet **icon trigger**, an **inline criteria bar** (dimension summary rows, toggled from trigger), **individual picker modals** per dimension (search + multi-select at scale), and **active filter chips anchored to the trigger**.
 
 **Product rationale (Patrice, 2026-05-31):** Most members have **one troupe** and **one season**; filtering is irrelevant noise for them. Multi-context users are a minority; a discreet **filter icon** is enough — no permanent filter row.
 
@@ -42,7 +42,7 @@ uxDr: UX-DR22.1
 | ID | Rule | Detail |
 |----|------|--------|
 | P1 | **Zero chrome when nothing to filter** | No icon, no chips, no extra vertical space when every dimension has ≤1 option **or** RES-001 applies (1 troupe + 1 saison on cross-troupe screens). |
-| P2 | **Icon-only entry** | Never show inline `mat-stroked-button` filter pulldowns in page chrome. One `filter_list` trigger opens the **hub**. |
+| P2 | **Icon-only entry** | Never show inline `mat-stroked-button` filter pulldowns in page chrome. One `filter_list` trigger toggles the **inline criteria bar** (summary rows). |
 | P3 | **Chips anchored to trigger** | When any dimension ≠ default, show removable chips **in the filter column** (right cluster), visually connected to the trigger — not a disconnected full-width row on the opposite side of the toolbar. |
 | P4 | **Feedback without reopening hub** | Chips let users see and clear filters; chip click reopens the **picker for that dimension**. |
 | P5 | **Actions ≠ filters** | **Exporter**, **Détails**, view toggles stay **outside** filter UI. **Scope admin gear** lives in the **breadcrumb row** (see D14). |
@@ -57,17 +57,17 @@ uxDr: UX-DR22.1
 
 | ID | Decision |
 |----|----------|
-| D1 | Replace inline filter bars with **`app-filter-trigger`** + **`app-filter-hub`**. |
+| D1 | Replace inline filter bars with **`app-filter-trigger`** + **`app-filter-criteria-bar`** (inline expand, not modal). |
 | D2 | **RES-001 preserved:** cross-troupe screens (`/agenda`, `/membre/:userSlug` glance) — **no filter chrome at all** when exactly **1 troupe + 1 saison** participation. |
 | D3 | When RES-001 does **not** apply but user has **>1 option on any dimension**, show **filter icon only** (not inline pulldowns). |
 | D4 | Season workspace (`/saison/:slug`) — filter icon when **any** filter dimension has **>1 option** (participant, spectacle, categories on Stats). |
-| D5 | Mobile (≤480px): **hub** = **`MatBottomSheet`**. Desktop (≥481px): **hub** = compact **`mat-menu`** panel (~320px) or small **`MatDialog`** — **never** a tall dialog stacking expanded lists. |
+| D5 | Mobile (≤480px): **pickers** = **`MatBottomSheet`**. Desktop (≥481px): pickers = **`MatDialog`**. **Criteria bar** expands inline below toolbar (full width on mobile, compact panel on desktop) — not a modal hub. |
 | D6 | Active filter **chips** shown when any dimension ≠ default; hidden when all defaults. **No `matBadge` on icon** (phase 2 optional, unchanged). |
 | D7 | Sticky filter chrome **removed** from agenda; header/toolbar stays compact. |
 | D8 | Persist filter selections via existing storage keys where possible; **season participant/spectacle multi-select** may extend storage shape in **17.28** (see Data model). |
 | D9 | **Phase 2 (optional):** numeric badge on filter icon if usability testing warrants it. |
-| **D10** | **Hub panel:** ordered **summary rows** (icon + dimension label + current value + chevron). **No option lists inside the hub.** |
-| **D11** | **Picker modal per dimension:** tap hub row → dedicated modal/sheet (`Filtrer les participants`, `Filtrer les événements`, etc.). |
+| **D10** | **Criteria bar:** ordered **summary rows** (icon + dimension label + chip when active). **No option lists inside the bar.** Toggled by filter trigger. |
+| **D11** | **Picker modal per dimension:** tap criteria row → dedicated modal/sheet (`Filtrer les participants`, `Filtrer les événements`, etc.). |
 | **D12** | **Season participant + spectacle:** **multi-select** with search + checkboxes (V1 parity — `PlayerSelectorModal`, `EventSelectorModal`). |
 | **D13** | **Event picker extensibility:** funnel menu with toggles **Inclure les événements passés** and **Inclure les archivés** (default: view-dependent — see Event picker). |
 | **D14** | **Gear placement:** `app-scope-admin-menu` moves to **end of breadcrumb row** (`season-header` / `context-breadcrumb` host). **Amends** Epic 17.2 sign-off (gear was in toolbar). |
@@ -80,7 +80,7 @@ uxDr: UX-DR22.1
 
 ### `app-filter-trigger`
 
-**Role:** Icon button opening the **hub**. Unbadged in MVP.
+**Role:** Icon button toggling the **inline criteria bar**. Unbadged in MVP.
 
 | Property | Value |
 |----------|-------|
@@ -92,33 +92,35 @@ uxDr: UX-DR22.1
 | Placement (season) | **Right cluster**, after view toggles (D15) |
 | Placement (agenda / glance) | Header top-right (unchanged) |
 
-### `app-filter-hub`
+### `app-filter-criteria-bar`
 
-**Role:** Lightweight launcher — **summary rows only**.
+**Role:** Lightweight inline launcher — **summary rows only** (replaces modal `app-filter-hub` per code review 2026-06-01).
 
-**Container:** `MatBottomSheet` (mobile) / `mat-menu` or compact dialog (desktop). Fixed modest height (~auto, max **~280px** for 3 rows).
+**Container:** expands below toolbar when trigger is active; collapses to chips-only row when filters active and bar closed.
 
 **Row anatomy:**
 
 ```
-[mat-icon]  Dimension label          Current summary value     chevron_right
+[mat-icon]  Dimension label     [chip when active]
 ```
 
-**Inputs:** `dimensions: FilterHubDimension[]`, `values: FilterValues`, `labels`
+**Inputs:** `dimensions: FilterHubDimension[]`, `chips: ActiveFilterChip[]`
 
-**Outputs:** `openPicker(dimensionKey)`, `close`
+**Outputs:** `openDimension`, `removeDimension`, `clearAll`
 
-**No footer** on hub (pickers own Apply/Reset). Optional **Fermer** / backdrop dismiss.
+**Pickers** own Apply/Reset footers. Collapse bar via trigger or backdrop-free dismiss (toggle trigger again).
 
-**Example (Stats, nothing filtered yet):**
+**Example (Stats, bar open, nothing filtered yet):**
 
 ```
-┌─ Filtres ──────────────────────────────── ✕ ┐
-│ person     Membre          Tous les membres › │
-│ event      Spectacle       Tous les spectacles › │
-│ category   Catégories      Toutes            › │
-└─────────────────────────────────────────────┘
+┌─ season toolbar ────────────────────────────────────────────────┐
+│ person Participants   event Spectacles   category Catégories   │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+### ~~`app-filter-hub`~~ (removed)
+
+Modal hub superseded by **`app-filter-criteria-bar`** inline pattern (Story 17.28 review 1A).
 
 ### `app-filter-participant-picker`
 

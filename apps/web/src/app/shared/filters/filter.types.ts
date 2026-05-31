@@ -20,7 +20,7 @@ export interface FilterSingleSelectOption {
   label: string
 }
 
-/** Summary row in the filter hub (no embedded option lists). */
+/** Summary row in the inline criteria bar (no embedded option lists). */
 export interface FilterHubDimension {
   key: FilterDimensionKey
   icon: string
@@ -50,11 +50,6 @@ export type FilterValues = Partial<{
 export interface ActiveFilterChip {
   dimensionKey: FilterDimensionKey
   label: string
-}
-
-export interface FilterHubData {
-  dimensions: FilterHubDimension[]
-  isMobile: boolean
 }
 
 export interface FilterPanelData {
