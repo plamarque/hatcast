@@ -1,0 +1,15 @@
+// Hub member L2 section rhythm — see ux-design-hub-section-headers.md
+@mixin hub-section {
+  margin-bottom: 1.5rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+@mixin hub-section-title {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}

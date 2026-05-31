@@ -1,3 +1,5 @@
+@use '../hub-section/hub-section.scss' as hub-section;
+
 :host {
   display: block;
 }
@@ -33,7 +35,7 @@
 }
 
 .member-profile__empty-stats {
-  margin: 0;
+  margin: 0 0 1.25rem;
   color: var(--mat-sys-on-surface-variant, rgba(255, 255, 255, 0.7));
   font-size: 0.9rem;
 }
@@ -42,6 +44,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .member-profile__stat {
@@ -81,10 +84,12 @@
   font-size: 1rem;
 }
 
+.member-profile__section {
+  @include hub-section.hub-section;
+}
+
 .member-profile__section-title {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
-  font-weight: 600;
+  @include hub-section.hub-section-title;
 }
 
 .member-profile__helper {
