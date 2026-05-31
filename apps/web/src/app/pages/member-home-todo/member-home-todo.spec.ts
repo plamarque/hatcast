@@ -289,6 +289,72 @@ describe('MemberHomeTodo', () => {
 
     const card = fixture.nativeElement.querySelector('[data-testid="todo-next-event-card"]')
     expect(card?.textContent).toContain('Le prochain')
+    expect(card?.querySelector('app-agenda-participation-status')).toBeTruthy()
+    expect(card?.querySelector('.agenda-card__loc')).toBeFalsy()
+  })
+
+  it('ouvre le prochain spectacle au clic sur la zone cliquable', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([], agendaItem('next-click', 'Cabaret accueil', isoInDays(2), 'available')),
+    })
+
+    await settle(fixture)
+
+    const clickable = fixture.nativeElement.querySelector(
+      '[data-testid="todo-next-event-card"] .agenda-card__clickable',
+    ) as HTMLElement
+    clickable.click()
+    await fixture.whenStable()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-click'])
+  })
+
+  it('affiche le rôle et la confirmation en attente via participantFocus', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse(
+        [],
+        agendaItem('composed', 'Gala composé', isoInDays(4), 'available', {
+          participantFocus: {
+            availabilityStatus: 'available',
+            compositionRoleKey: 'player',
+            inTeam: true,
+            slotParticipationStatus: 'pending',
+          },
+        }),
+      ),
+    })
+
+    await settle(fixture)
+
+    const statusCell = fixture.nativeElement.querySelector(
+      '[data-testid="todo-next-event-card"] app-participation-event-cell',
+    )
+    expect(statusCell?.textContent).toContain('Comédien')
+  })
+
+  it('ouvre le prochain spectacle au clavier Enter/Space', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([], agendaItem('next-key', 'Cabaret clavier', isoInDays(3), 'unknown')),
+    })
+
+    await settle(fixture)
+
+    const clickable = fixture.nativeElement.querySelector(
+      '[data-testid="todo-next-event-card"] .agenda-card__clickable',
+    ) as HTMLElement
+
+    clickable.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-key'])
+
+    navigateSpy.mockClear()
+    clickable.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-key'])
   })
 
   it('affiche confirm avant dispo quand le tri serveur le fournit', async () => {
@@ -382,7 +448,7 @@ function agendaItem(
   title: string,
   startsAt: string,
   myAvailabilityStatus: UserAgendaItem['myAvailabilityStatus'] = 'unknown',
-  ids: { troupeId?: string; seasonId?: string } = {},
+  overrides: Partial<UserAgendaItem> = {},
 ): UserAgendaItem {
   return {
     eventId,
@@ -390,12 +456,13 @@ function agendaItem(
     title,
     startsAt,
     location: null,
-    troupeId: ids.troupeId ?? 'troupe-1',
+    troupeId: overrides.troupeId ?? 'troupe-1',
     troupeName: 'La BIM',
     troupeSlug: 'la-bim',
-    seasonId: ids.seasonId ?? 'league-1',
+    seasonId: overrides.seasonId ?? 'league-1',
     seasonSlug: 'ligue-2026',
     seasonTitle: 'Ligue 2026',
     myAvailabilityStatus,
+    ...overrides,
   }
 }

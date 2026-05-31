@@ -1,3 +1,18 @@
+## Deferred from: align home next-event card with agenda (2026-05-31)
+
+- Badges troupe/saison statiques (`<span>`) vs liens `routerLink` dans user-agenda — parité navigation préexistante.
+- Hover featured carte accueil — `agenda-card--interactive` retiré ; hover limité à `agenda-card__clickable`. [_hatcast-agenda-event-card.scss:40-43]
+
+## Deferred from: code review of 17-27-panneau-filtres-unifie.md (2026-05-31)
+
+- Couverture tests flux panel troupe→saison — pas de `filter-panel-content.spec.ts` ni test page-level `openFilterPanel` cross-troupe ; test gap non bloquant build.
+- Glance sans `loadGeneration` — courses concurrentes `loadGlance()` possibles ; préexistant, aggravé par panel. [member-season-glance.ts:259-310]
+- `loadingAgenda` si requête stale — early return sans `loadingAgenda.set(false)` si génération obsolète. [user-agenda.ts:144-146] — préexistant.
+- Input `immediateApply` non câblé — `FilterDimensionSingle.immediateApply` jamais passé depuis le panel ; cleanup.
+- Couplage `shared/filters` → `pages/season-home/stats-categories` — dépendance page dans module shared ; accepté story.
+- Breakpoint figé à l'ouverture du panel — pas de bascule sheet↔dialog au resize. [filter-panel.service.ts:21] — edge rare.
+- Test availability tri `.sort()` — assertion ordre-indépendante masque ordre UI potentiel. [availability-role-rules.spec.ts] — flaky préexistant.
+
 ## Deferred from: platform admin troupe navigation by URL (2026-05-31)
 
 - Hub troupe **« Préférences dans cette troupe »** (`troupe-hub-preferences-sheet`) appelle `PATCH …/memberships/me` — échoue sans adhésion réelle ; masquer ou adapter pour le contexte admin plateforme sans membership. [troupe-hub-preferences-sheet.ts]

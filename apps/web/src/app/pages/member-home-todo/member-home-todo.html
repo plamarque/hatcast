@@ -113,40 +113,37 @@
     @if (nextEvent(); as next) {
       <section class="member-home-todo__section" aria-labelledby="todo-next-event-heading">
         <h2 id="todo-next-event-heading" class="member-home-todo__section-title">Prochain spectacle</h2>
-        <article
-          class="agenda-card agenda-card--featured agenda-card--row agenda-card--interactive"
-          role="button"
-          tabindex="0"
-          data-testid="todo-next-event-card"
-          [attr.aria-label]="'Ouvrir ' + next.title + ' dans ' + next.seasonTitle"
-          (click)="openNextEvent(next)"
-          (keydown.enter)="openNextEvent(next)"
-          (keydown.space)="openNextEvent(next); $event.preventDefault()"
-        >
-          <div class="agenda-card__date">
-            <span class="agenda-card__day">{{ next.dayNumber }}</span>
-            <span class="agenda-card__weekday">{{ next.dayName }}</span>
-            <span class="agenda-card__time">{{ timeLabel(next) }}</span>
-          </div>
-          <div class="agenda-card__body">
-            <h3 class="agenda-card__title">{{ next.title }}</h3>
-            @if (next.location) {
-              <p class="agenda-card__loc">{{ next.location }}</p>
-            }
-            <div class="agenda-card__badges">
-              @if (next.teamStatusBadge) {
-                <app-composition-status-badge [badge]="next.teamStatusBadge" />
-              }
-              <span class="agenda-card__badge agenda-card__badge--meta">{{ next.troupeName }}</span>
-              <span class="agenda-card__badge agenda-card__badge--season">{{ next.seasonTitle }}</span>
-              @if (next.myAvailabilityStatus) {
-                <span
-                  class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(next.myAvailabilityStatus) }}"
-                >
-                  {{ dispoLabel(next.myAvailabilityStatus) }}
-                </span>
-              }
+        <article class="agenda-card agenda-card--featured agenda-card--row" data-testid="todo-next-event-card">
+          <div
+            class="agenda-card__clickable"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'Ouvrir ' + next.title + ' dans ' + next.seasonTitle"
+            (click)="openNextEvent(next)"
+            (keydown.enter)="openNextEvent(next)"
+            (keydown.space)="openNextEvent(next); $event.preventDefault()"
+          >
+            <div class="agenda-card__date">
+              <span class="agenda-card__day">{{ next.dayNumber }}</span>
+              <span class="agenda-card__weekday">{{ next.dayName }}</span>
+              <span class="agenda-card__time">{{ timeLabel(next) }}</span>
             </div>
+            <div class="agenda-card__body">
+              <h3 class="agenda-card__title">{{ next.title }}</h3>
+              <div class="agenda-card__badges">
+                @if (next.teamStatusBadge) {
+                  <app-composition-status-badge [badge]="next.teamStatusBadge" />
+                }
+                <span class="agenda-card__badge agenda-card__badge--meta">{{ next.troupeName }}</span>
+                <span class="agenda-card__badge agenda-card__badge--season">{{ next.seasonTitle }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="agenda-card__status">
+            <app-agenda-participation-status
+              [myAvailabilityStatus]="next.myAvailabilityStatus"
+              [participantFocus]="next.participantFocus"
+            />
           </div>
         </article>
       </section>

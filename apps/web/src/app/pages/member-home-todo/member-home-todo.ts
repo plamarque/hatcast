@@ -7,11 +7,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
-import {
-  availabilityBadgeLabel,
-  availabilityBadgeModifier,
-  type AvailabilityStatus,
-} from '../../core/availability/availability-status'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
 import {
@@ -31,6 +26,7 @@ import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.servi
 import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { MemberSeasonShortcut } from '../../shared/member-cross-nav/member-season-shortcut'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
+import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 
 @Component({
   selector: 'app-member-home-todo',
@@ -44,6 +40,7 @@ import { CompositionStatusBadge } from '../../shared/composition/composition-sta
     RouterLink,
     MemberSeasonShortcut,
     CompositionStatusBadge,
+    AgendaParticipationStatus,
   ],
   templateUrl: './member-home-todo.html',
   styleUrl: './member-home-todo.scss',
@@ -173,14 +170,6 @@ export class MemberHomeTodo implements OnInit {
 
   protected isConfirmAction(action: InboxAction): boolean {
     return action.type === 'composition_confirm_pending'
-  }
-
-  protected dispoLabel(status: AvailabilityStatus): string {
-    return availabilityBadgeLabel(status)
-  }
-
-  protected dispoModifier(status: AvailabilityStatus): string {
-    return availabilityBadgeModifier(status)
   }
 
   private async redirectToLogin(): Promise<void> {

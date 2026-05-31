@@ -368,6 +368,10 @@ class MeInboxIntegrationTest {
       .andExpect(
         jsonPath("$.actions[0].deepLink").value(org.hamcrest.Matchers.containsString("showConfirm=true")),
       )
+      .andExpect(jsonPath("$.nextEvent.title").value("Confirm match"))
+      .andExpect(jsonPath("$.nextEvent.participantFocus.inTeam").value(true))
+      .andExpect(jsonPath("$.nextEvent.participantFocus.compositionRoleKey").value("player"))
+      .andExpect(jsonPath("$.nextEvent.participantFocus.slotParticipationStatus").value("pending"))
   }
 
   @Test
