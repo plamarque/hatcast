@@ -57,8 +57,9 @@ export class AvailabilityTousPanel {
     return ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
   }
 
-  protected chanceClass(percent: number): string {
-    return `availability-tous__chance--${chanceColorClass(percent)}`
+  /** M3 tokens — inline color beats mat-list-item meta defaults. */
+  protected chanceColorVar(percent: number): string {
+    return `var(--hatcast-chance-${chanceColorClass(percent)})`
   }
 
   protected statusLabel(status: SummaryParticipant['status']): string {

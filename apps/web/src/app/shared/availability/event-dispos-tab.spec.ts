@@ -187,6 +187,9 @@ describe('EventDisposTab', () => {
     expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', true)
     expect(fixture.nativeElement.querySelector('mat-expansion-panel')).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('100 %')
+    const chanceEl = fixture.nativeElement.querySelector('.availability-tous__chance') as HTMLElement
+    expect(chanceEl?.classList.contains('availability-tous__chance--high')).toBe(true)
+    expect(chanceEl?.style.color).toBe('var(--hatcast-chance-high)')
   })
 
   it('does not show Afficher les chances toggle', async () => {

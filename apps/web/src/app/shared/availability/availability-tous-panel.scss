@@ -76,18 +76,19 @@
 .availability-tous__chance {
   font-size: 0.82rem;
   font-weight: 700;
+}
 
-  &--high {
-    color: var(--hatcast-chance-high);
-  }
+/* mat-list-item meta applies on-surface color with higher specificity than nested BEM. */
+.availability-tous__person [matListItemMeta].availability-tous__chance--high {
+  color: var(--hatcast-chance-high);
+}
 
-  &--medium {
-    color: var(--hatcast-chance-medium);
-  }
+.availability-tous__person [matListItemMeta].availability-tous__chance--medium {
+  color: var(--hatcast-chance-medium);
+}
 
-  &--low {
-    color: var(--hatcast-chance-low);
-  }
+.availability-tous__person [matListItemMeta].availability-tous__chance--low {
+  color: var(--hatcast-chance-low);
 }
 
 .availability-tous__chance-skeleton {

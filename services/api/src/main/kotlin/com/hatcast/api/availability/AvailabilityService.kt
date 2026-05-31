@@ -217,7 +217,7 @@ class AvailabilityService(
                             roleKey,
                         )
                     }
-                val chanceByParticipantId =
+                val scoredCandidates =
                     if (includeChances) {
                         val pastByParticipant =
                             selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
@@ -231,18 +231,29 @@ class AvailabilityService(
                             },
                             requiredCount,
                             pastByParticipant,
-                        ).associate { it.participantId to it.chancePercent }
+                        )
                     } else {
-                        emptyMap()
+                        emptyList()
                     }
                 val candidates =
-                    roleCandidates.map { row ->
-                        SummaryRoleCandidateDto(
-                            participantId = row.participantId,
-                            displayName = row.displayName,
-                            avatarUrl = row.avatarUrl,
-                            chancePercent = chanceByParticipantId[row.participantId],
-                        )
+                    if (includeChances) {
+                        scoredCandidates.map { row ->
+                            SummaryRoleCandidateDto(
+                                participantId = row.participantId,
+                                displayName = row.displayName,
+                                avatarUrl = row.avatarUrl,
+                                chancePercent = row.chancePercent,
+                            )
+                        }
+                    } else {
+                        roleCandidates.map { row ->
+                            SummaryRoleCandidateDto(
+                                participantId = row.participantId,
+                                displayName = row.displayName,
+                                avatarUrl = row.avatarUrl,
+                                chancePercent = null,
+                            )
+                        }
                     }
                 SummaryRoleDto(
                     roleKey = roleKey,

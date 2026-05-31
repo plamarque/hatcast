@@ -8,10 +8,10 @@ import org.springframework.web.server.ResponseStatusException
 
 class AvailabilityRoleRulesTest {
     @Test
-    fun `rolesRequiredForEvent keeps only roles with positive slots in display order`() {
+    fun `rolesRequiredForEvent keeps only roles with positive slots in draw order`() {
         val roles = AvailabilityRoleRules.rolesRequiredForEvent(RoleTemplates.slotsFor("match"))
 
-        assertEquals(listOf("player", "volunteer", "mc", "referee", "assistant_referee"), roles)
+        assertEquals(listOf("referee", "mc", "player", "assistant_referee", "volunteer"), roles)
     }
 
     @Test

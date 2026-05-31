@@ -104,6 +104,19 @@ export const ROLE_DISPLAY_ORDER: RoleKey[] = [
   'stage_manager',
 ]
 
+/** V1 `ROLE_PRIORITY_ORDER` — draw order (Dispos « Tous », composition draw). */
+export const ROLE_PRIORITY_ORDER: RoleKey[] = [
+  'referee',
+  'dj',
+  'mc',
+  'player',
+  'assistant_referee',
+  'coach',
+  'stage_manager',
+  'lighting',
+  'volunteer',
+]
+
 export const DEFAULT_CREATE_EVENT_TYPE: EventTypeId = 'cabaret'
 
 export const ROLE_TEMPLATES: Record<EventTypeId, Record<RoleKey, number>> = {
@@ -240,7 +253,7 @@ export function detectTemplateFromRoles(slots: RoleSlots): EventTypeId {
 }
 
 export function rolesWithSlots(roleSlots: RoleSlots): RoleKey[] {
-  return ROLE_DISPLAY_ORDER.filter((k) => (roleSlots[k] ?? 0) > 0)
+  return ROLE_PRIORITY_ORDER.filter((k) => (roleSlots[k] ?? 0) > 0)
 }
 
 export function rolesRequiredForEvent(roleSlots: RoleSlots): RoleKey[] {
