@@ -1,5 +1,4 @@
 import { Component, computed, inject, input } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatIconModule } from '@angular/material/icon'
 import { RouterLink } from '@angular/router'
@@ -16,7 +15,7 @@ export type ContextBreadcrumbLayout = 'season' | 'event' | 'troupe'
 
 @Component({
   selector: 'app-context-breadcrumb',
-  imports: [ContextSwitcher, MatButtonModule, MatChipsModule, MatIconModule, RouterLink],
+  imports: [ContextSwitcher, MatChipsModule, MatIconModule, RouterLink],
   templateUrl: './context-breadcrumb.html',
   styleUrl: './context-breadcrumb.scss',
 })

@@ -18,24 +18,3 @@
   justify-content: center;
   padding: 2rem;
 }
-
-.season__mobile-context {
-  display: none;
-}
-
-@media (max-width: 480px) {
-  .season__mobile-context {
-    display: block;
-    padding: 0 0 0.5rem;
-    min-width: 0;
-  }
-
-  .season__mobile-context-title {
-    margin: 0;
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-  }
-}

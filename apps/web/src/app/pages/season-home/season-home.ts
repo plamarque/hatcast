@@ -151,12 +151,6 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly troupeSlug = signal<string | null>(null)
   protected readonly troupeIsDemo = signal(false)
 
-  protected readonly showMobileSeasonTitle = computed(() => {
-    if (!this.contextSwitcherData.initialized()) {
-      return true
-    }
-    return !this.contextSwitcherData.showSwitcher()
-  })
   protected readonly season = signal<SeasonResponse | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)

@@ -18,12 +18,6 @@
       [troupeIsDemo]="troupeIsDemo()"
     />
 
-    @if (troupeName() && troupeSlug() && showMobileSeasonTitle()) {
-      <div class="season__mobile-context">
-        <h1 class="season__mobile-context-title">{{ se.title }}</h1>
-      </div>
-    }
-
     <app-season-view-toolbar
       [(seasonView)]="seasonView"
       [adminItems]="seasonAdminItems()"

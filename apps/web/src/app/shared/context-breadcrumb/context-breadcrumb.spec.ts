@@ -172,6 +172,13 @@ describe('ContextBreadcrumb', () => {
     expect(mobileRow?.querySelector('app-context-switcher.context-switcher__trigger--compact, app-context-switcher')).toBeTruthy()
   })
 
+  it('renders season title inline on mobile row when switcher is unavailable', async () => {
+    const fixture = await setup('season', { initialized: true, showSwitcher: false })
+    const mobileRow = fixture.nativeElement.querySelector('.context-breadcrumb__mobile-row')
+    expect(mobileRow?.querySelector('.context-breadcrumb__mobile-title')?.textContent).toContain('Saison 2025-26')
+    expect(mobileRow?.querySelector('app-context-switcher')).toBeNull()
+  })
+
   it('keeps hub link when switcher data fails to load', async () => {
     const fixture = await setup('season', { initialized: true, loadError: true })
     const el = fixture.nativeElement as HTMLElement

@@ -79,7 +79,6 @@
   <div class="context-breadcrumb__mobile-row">
     <a
       class="context-breadcrumb__mobile-logo"
-      mat-icon-button
       [routerLink]="troupeHubPath(troupeSlug())"
       [attr.aria-label]="troupeAriaLabel()"
     >
@@ -111,6 +110,8 @@
         [seasonSlug]="seasonSlug()"
         [seasonTitle]="seasonTitle()"
       />
+    } @else if (layout() !== 'troupe' && seasonTitle()) {
+      <span class="context-breadcrumb__mobile-title" aria-current="page">{{ seasonTitle() }}</span>
     }
   </div>
 </nav>
