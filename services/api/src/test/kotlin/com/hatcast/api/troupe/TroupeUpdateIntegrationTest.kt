@@ -113,6 +113,31 @@ class TroupeUpdateIntegrationTest {
             ).andExpect(status().isBadRequest)
     }
 
+    @Test
+    fun `PATCH name as platform admin updates name without membership`() {
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-troupe-update-platform-admin",
+                email = "platform-members-admin@hatcast.test",
+                name = "Platform Troupe Update",
+            )
+        val seedSlug = troupeRepository.findById(seedTroupeId).orElseThrow().slug
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId")
+                    .cookie(cookie)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"Nom plateforme"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.name").value("Nom plateforme"))
+            .andExpect(jsonPath("$.slug").value(seedSlug))
+            .andExpect(jsonPath("$.membership.displayName").value("Administration plateforme"))
+    }
+
     private fun promoteSeedMemberToAdmin(googleSub: String) {
         val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing test user $googleSub")
         val membership =

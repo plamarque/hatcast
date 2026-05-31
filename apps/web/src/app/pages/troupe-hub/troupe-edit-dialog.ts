@@ -41,17 +41,15 @@ export interface TroupeEditDialogData {
         </mat-form-field>
         <p class="troupe-edit-dialog__help">L’adresse web de la troupe ne change pas.</p>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="troupe-edit-dialog__field">
-          <mat-label>Logo</mat-label>
-          <input matInput disabled value="" />
-          <span matTextSuffix class="troupe-edit-dialog__soon">Bientôt</span>
-        </mat-form-field>
+        <div class="troupe-edit-dialog__soon-row" aria-hidden="true">
+          <span class="troupe-edit-dialog__soon-label">Logo</span>
+          <span class="troupe-edit-dialog__soon">Bientôt</span>
+        </div>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="troupe-edit-dialog__field">
-          <mat-label>Description</mat-label>
-          <textarea matInput disabled rows="2"></textarea>
-          <span matTextSuffix class="troupe-edit-dialog__soon">Bientôt</span>
-        </mat-form-field>
+        <div class="troupe-edit-dialog__soon-row" aria-hidden="true">
+          <span class="troupe-edit-dialog__soon-label">Description</span>
+          <span class="troupe-edit-dialog__soon">Bientôt</span>
+        </div>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -87,9 +85,19 @@ export interface TroupeEditDialogData {
       font-size: 0.85rem;
       opacity: 0.85;
     }
+    .troupe-edit-dialog__soon-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.35rem 0;
+      opacity: 0.75;
+    }
+    .troupe-edit-dialog__soon-label {
+      font-size: 0.875rem;
+    }
     .troupe-edit-dialog__soon {
       font-size: 0.75rem;
-      opacity: 0.75;
       white-space: nowrap;
     }
   `,

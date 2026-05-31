@@ -61,6 +61,7 @@ export class TroupeHub implements OnInit, OnDestroy {
   private readonly dialog = inject(MatDialog)
 
   private slugSubscription?: Subscription
+  private readonly dialogSubscriptions = new Subscription()
 
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
@@ -165,6 +166,7 @@ export class TroupeHub implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.slugSubscription?.unsubscribe()
+    this.dialogSubscriptions.unsubscribe()
   }
 
   private async applySlug(slug: string): Promise<void> {
@@ -212,13 +214,15 @@ export class TroupeHub implements OnInit, OnDestroy {
         width: 'min(100vw - 2rem, 28rem)',
       },
     )
-    ref.afterClosed().subscribe((updated) => {
-      if (!updated) {
-        return
-      }
-      this.troupe.set({ ...t, name: updated.name })
-      this.troupeContext.patchTroupeName(t.id, updated.name)
-    })
+    this.dialogSubscriptions.add(
+      ref.afterClosed().subscribe((updated) => {
+        if (!updated) {
+          return
+        }
+        this.troupe.set({ ...t, name: updated.name })
+        this.troupeContext.patchTroupeName(t.id, updated.name)
+      }),
+    )
   }
 
   protected openCreateSeason(): void {
@@ -236,14 +240,16 @@ export class TroupeHub implements OnInit, OnDestroy {
         width: 'min(100vw - 2rem, 28rem)',
       },
     )
-    ref.afterClosed().subscribe((result) => {
-      if (typeof result === 'string' && result.trim().length > 0) {
-        void this.router.navigate(saisonWorkspacePath(result))
-      } else if (result === true) {
-        void this.loadSeasons(t.id)
-        this.snack.open('Saison créée.', 'OK', { duration: 4000 })
-      }
-    })
+    this.dialogSubscriptions.add(
+      ref.afterClosed().subscribe((result) => {
+        if (typeof result === 'string' && result.trim().length > 0) {
+          void this.router.navigate(saisonWorkspacePath(result))
+        } else if (result === true) {
+          void this.loadSeasons(t.id)
+          this.snack.open('Saison créée.', 'OK', { duration: 4000 })
+        }
+      }),
+    )
   }
 
   private async loadSeasons(troupeId: string): Promise<void> {

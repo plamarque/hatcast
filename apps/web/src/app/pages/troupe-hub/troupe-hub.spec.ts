@@ -67,10 +67,12 @@ describe('TroupeHub', () => {
   async function setup(
     baselineRole: 'MEMBER' | 'TROUPE_ADMIN' = 'TROUPE_ADMIN',
     platformAdmin = false,
+    options: { patchTroupeName?: ReturnType<typeof vi.fn> } = {},
   ) {
     const dialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of('new-saison') }),
     }
+    const patchTroupeName = options.patchTroupeName ?? vi.fn()
     const troupes = [
       {
         id: 't1',
@@ -118,7 +120,7 @@ describe('TroupeHub', () => {
           useValue: {
             load: vi.fn().mockResolvedValue(true),
             selectTroupe: vi.fn(),
-            patchTroupeName: vi.fn(),
+            patchTroupeName,
             currentUserDisplayLabel: (u: { displayName: string }) => u.displayName,
             activeTroupes: () => troupes,
             resolveTroupeBySlug: vi.fn().mockImplementation(async (slug: string) =>
@@ -150,7 +152,7 @@ describe('TroupeHub', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.troupe-hub__title')).not.toBeNull()
     })
-    return { fixture, dialog }
+    return { fixture, dialog, patchTroupeName }
   }
 
   it('shows breadcrumb Troupes › troupe name', async () => {
@@ -240,6 +242,21 @@ describe('TroupeHub', () => {
         data: expect.objectContaining({ troupe: expect.objectContaining({ slug: 'les-improbots' }) }),
       }),
     )
+  })
+
+  it('updates troupe hero name after edit dialog closes', async () => {
+    const patchTroupeName = vi.fn()
+    const { fixture, dialog } = await setup('TROUPE_ADMIN', false, { patchTroupeName })
+    dialog.open.mockReturnValueOnce({
+      afterClosed: () => of({ id: 't1', name: 'Nom modifié', slug: 'les-improbots' }),
+    })
+    ;(fixture.componentInstance as unknown as { openEditTroupe(): void }).openEditTroupe()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__title')?.textContent).toContain(
+        'Nom modifié',
+      )
+    })
+    expect(patchTroupeName).toHaveBeenCalledWith('t1', 'Nom modifié')
   })
 
   it('reloads troupe when slug param changes', async () => {
@@ -440,6 +457,14 @@ describe('TroupeHub', () => {
   it('shows Membres admin menu for platform admin without troupe admin role', async () => {
     const { fixture } = await setup('MEMBER', true)
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeTruthy()
+  })
+
+  it('builds admin menu items for platform admin in order', async () => {
+    const { fixture } = await setup('MEMBER', true)
+    const items = (fixture.componentInstance as unknown as { troupeAdminItems(): { label: string }[] })
+      .troupeAdminItems()
+      .map((item) => item.label)
+    expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres'])
   })
 
   it('shows not found for unknown slug', async () => {

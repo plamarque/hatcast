@@ -1,6 +1,6 @@
 # Story 17.29: Refonte hub troupe + préférences membre Mon compte
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -164,6 +164,7 @@ Composer (Cursor)
 
 - 2026-05-31 : Story created from ux-design-troupe-hub.md (Patrice — compteurs deferred to 17-30).
 - 2026-05-31 : Implémentation hub refonte + Mon compte préférences membre + PATCH troupe name.
+- 2026-06-01 : Code review — 11 patches appliqués ; décisions atomicité/rôles → story **17.33** ; status **done**.
 
 ---
 
@@ -174,3 +175,23 @@ Composer (Cursor)
 - [x] Tasks référencent AC
 - [x] Liens fichiers existants
 - [x] Tests web + API mentionnés
+
+### Review Findings
+
+- [x] [Review][Decision] Persistance multi-troupes non atomique — **reporté story 17.33** (préférences compte utilisateur unique ; supprimer propagation per-troupe).
+- [x] [Review][Decision] Rôles préférés divergents inter-troupes — **reporté story 17.33** (source de vérité compte ; plus de prefill/écrasement par première troupe).
+- [x] [Review][Patch] Copie « Jusqu'à » vs spec UX « Jusqu'en » [apps/web/src/app/shared/format-season-period.ts:22]
+- [x] [Review][Patch] Dates ISO invalides affichent « Invalid Date » [apps/web/src/app/shared/format-season-period.ts:6-9]
+- [x] [Review][Patch] Couverture tests `formatSeasonPeriod` insuffisante [apps/web/src/app/shared/format-season-period.spec.ts]
+- [x] [Review][Patch] `troupeContext.load()` ignoré si échec [apps/web/src/app/shared/member-preferences-form/member-preferences-form.ts:174]
+- [x] [Review][Patch] Spec `member-preferences-form` absent [apps/web/src/app/shared/member-preferences-form/member-preferences-form.spec.ts]
+- [x] [Review][Patch] Spec `troupe-edit-dialog` absent [apps/web/src/app/pages/troupe-hub/troupe-edit-dialog.spec.ts]
+- [x] [Review][Patch] Rafraîchissement hero après Modifier non testé [apps/web/src/app/pages/troupe-hub/troupe-hub.spec.ts]
+- [x] [Review][Patch] Test API PATCH admin plateforme manquant [TroupeUpdateIntegrationTest.kt]
+- [x] [Review][Patch] Menu engrenage admin plateforme : ordre non testé [apps/web/src/app/pages/troupe-hub/troupe-hub.spec.ts]
+- [x] [Review][Patch] Abonnements `afterClosed()` sans teardown [apps/web/src/app/pages/troupe-hub/troupe-hub.ts:215]
+- [x] [Review][Patch] Champs logo/description « Bientôt » focusables [apps/web/src/app/pages/troupe-hub/troupe-edit-dialog.ts:44]
+- [x] [Review][Defer] Appels API 2×N séquentiels — **story 17.33**.
+- [x] [Review][Defer] Messages d’erreur PATCH génériques côté client.
+- [x] [Review][Defer] Doc `ux-design-scope-admin-menu-epic17.md` Screen 3 non amendée.
+- [x] [Review][Defer] Tests API PATCH 401/404/idempotence.
