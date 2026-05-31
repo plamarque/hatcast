@@ -260,12 +260,12 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 **Added:** 2026-05-25 — [ADR-0014](docs/adr/0014-v2-preprod-migration-no-seed.md), runbook [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md).  
 **Objectif :** déployer V2 en **staging** (sans données seed), alimenter Neon depuis **Firestore V1 production** (`default`), pouvoir **reset + rejouer** la migration jusqu’à la bascule prod (date non fixée).
 
-**Hygiène & ordre d’exécution (2026-05-28) :** [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md), SCP [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md). **Gate M1 (PO : option B) :** **OPS-2** (check `services/api (tests)` vert — H2, `api-test.yml`) puis **M1** ; le reste de la vague **Hygiene H1** peut avancer en parallèle avec **M1** ; viser clôture **5-7**, **2-10**, **12-7**, **6-13** avant le premier import **MIG-2** complet. **Gate migration (staging vide) :** **Story 2.11** (création troupe) **avant** proc. B du runbook (import CSV 2.3) — pas de seed sur profil `cloud` ([ADR-0014](docs/adr/0014-v2-preprod-migration-no-seed.md)).
+**Hygiène & ordre d’exécution (2026-05-28, MAJ 2026-06-01) :** [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md), SCP [sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-28-deferred-hygiene-before-staging.md). **Hygiene H1 :** **done** (OPS-2, 5-7, 2-10, 12-7, 6-13). **Migration staging :** recette Malice 2025-26 **stats + dispos + compos** validée V1=V2 ; **≥3 cycles** replay déjà joués — **à rejouer from scratch** avant prod (évolutions schéma/data depuis). **Gate prod :** replay frais + **MIG-4** + iso-V1 (§ Wave iso-V1 ci-dessous).
 
 | Slice | Statut | Livrable | DoD |
 |-------|--------|----------|-----|
 | **M0** Décision & garde-fous | [x] | ADR-0014 ; Flyway `db/seed` hors profil `cloud` | Deploy staging n’insère pas `@seed.improbots.test` |
-| **M1** Infra pre-prod | [ ] | Env GitHub `staging`, Neon branch, premier deploy `staging` | SPA + API + schéma Flyway OK ; **après OPS-2** |
+| **M1** Infra pre-prod | [x] | Env GitHub `staging`, Neon branch, deploy `staging-v2` | SPA + API + Flyway OK ; E2E gate TEST-1 sur staging |
 | **M2** Playbook migration (périmètre actuel) | [x] doc | Runbook + scripts `export:v1-*:prod` ; imports CSV 2.3 | Users + membres prod → staging |
 | **M3** Boucle reset / rejouer | [x] doc | Procédure C du runbook | ≥ 1 cycle reset documenté (cible : 3 avant cutover) |
 | **M4** Cutover production | [ ] | Checklist merge / go-live | Hors scope jusqu’à décision produit |
@@ -280,9 +280,9 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **TEST-1** | Infra E2E V2 — Playwright (`apps/web/e2e/`) + profil API `e2e` (auth mock + fixtures hybrides) + smoke 3.19 (S2–S5) + workflow `e2e-smoke.yml` | P1 | [x] | Clôture **LIMIT-001** (V2) ; palier 2 CI ; gate deploy Cloud Run **staging-v2** via `e2e-smoke` dans `deploy-v2-cloud-run.yml` (pas dev cloud `v2`) |
 | **MIG-1** | Runbook reset Neon staging | P0 | [x] |
 | **MIG-0** | Bootstrap troupe sur staging/prod vide (sans `db/seed`) | P0 | [x] | Story **2.11** — prérequis import CSV [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md) |
-| **MIG-2** | Export V1 → import V2 : saisons + événements **+ `manifest.json` (mapping joueurs/events)** | P1 | ready-for-dev | **Après 2.11** + imports users/membres (2.3) ; [ADR-0016](docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md) ; story [mig-2](_bmad-output/implementation-artifacts/mig-2-export-v1-seasons-events-and-mapping-manifest.md) |
-| **MIG-3** | Export dispos / compositions (pipeline rejouable `extract → transform → load`) | P2 | ready-for-dev | **Bloqué par manifest MIG-2** ; [ADR-0016](docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md) ; story [mig-3](_bmad-output/implementation-artifacts/mig-3-availability-compositions-migration-pipeline.md) |
-| **MIG-4** | À l’import / post-import : `template_type=deplacement` → `category=deplacements` ; retrait progressif du format `deplacement` | P2 | backlog | Après **MIG-2** (données prod) |
+| **MIG-2** | Export V1 → import V2 : saisons + événements **+ `manifest.json`** | P1 | [x] | Story [mig-2](_bmad-output/implementation-artifacts/mig-2-export-v1-seasons-events-and-mapping-manifest.md) ; recette staging OK |
+| **MIG-3** | Dispos / compositions (`extract → transform → load`) | P1 | [x] | Story [mig-3](_bmad-output/implementation-artifacts/mig-3-availability-compositions-migration-pipeline.md) ; recette staging OK |
+| **MIG-4** | Import : `template_type=deplacement` → **`category=deplacements`** (+ retrait progressif format `deplacement`) | **P1** | backlog | **Gate iso-V1 / prod** — avant cutover ; stats/tirage filtrent « Déplacements » |
 | **MIG-5** | Orchestrateur headless `migrate:v2:run` + clé API migration (ADR-0017) | P1 | [x] | Bootstrap API → B1–B5 → smoke ; reprise `--from-step` ; gate replay `migrate:v2:validate-replay` |
 | **MIG-6** | Script unique `./scripts/migrate-from-v1.sh` + auto-provision opérateur + CLI `.mjs` | P1 | [x] | Charge `.env.local` ; prompt reset Neon ; `npm run migrate:from-v1` ; dry-run sans faux échec smoke |
 
@@ -291,9 +291,9 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | ID | Titre | Priorité | Statut | Source triage |
 |----|-------|----------|--------|---------------|
 | **5-7** | Summary dispos : lecture sans écriture sur GET (`ensureMembershipParticipants`) | P0 | done | **G-003**, DW-079 — story [5-7](_bmad-output/implementation-artifacts/5-7-summary-dispos-lecture-sans-ecriture.md) |
-| **2-10** | Liste membres : corriger N+1 emails | P1 | backlog | DW-068 |
+| **2-10** | Liste membres : corriger N+1 emails | P1 | done | DW-068 |
 | **12-7** | Agenda : annulation requêtes obsolètes + verrou navigation post-login | P1 | done | DW-044, DW-054 |
-| **6-13** | Publish : notifications hors transaction | P2 | backlog | DW-085 |
+| **6-13** | Publish : notifications hors transaction | P2 | done | DW-085 |
 | **DOC-1** | Archive deferred (en-tête + IDs triage 2026-05-28) | P2 | backlog | H-ARCHIVE |
 
 **Pre-prod / migration (PLAN, pas SPEC) — story produit :**
@@ -309,7 +309,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 |-----------------|--------|
 | **3.6**, **3.6b** | Statistiques / Historique ligue (FR53–54) |
 | **Epic 13** (13.1–13.5 ; **13.6 reporté**) | Multi-saisons actives, roster — **13.6 ligue déplacements** remplacé par tags (ADR 0013) |
-| **Epic 14** (14.1–14.5) | Partiellement recouvert par **Epic 17** — préférer 17.x pour `/troupes` et hub |
+| **Epic 14** (14.1–14.5) | **Superseded** par **Epic 17** — SCP [2026-06-01](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-epic14-superseded-by-epic17.md) ; ne pas planifier 14.x |
 | **Epic 17** (17.1–17.15) | Navigation troupe-first, catégories spectacle, slugs, polish formulaire/Infos — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 |
 | **Epic 16** (16.1) | Clin d’œil `/membre/:slug` |
 | **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Annuaire, invités, notifications, audit UI, PWA, analytics, **15 = rencontres liées** |
@@ -344,7 +344,46 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 5. **6.9** + **12.3** ou **12.6**  
 6. Puis backlog post-MVP (17.x navigation, 3.6, …)
 
-### Execution order revised (2026-05-28)
+### Execution order revised (2026-06-01)
+
+| Phase | Scope | Outcome |
+|-------|--------|---------|
+| **Stabilisation hub** | **[CR]** **17-29**, **17-28**, **3-20** → done | Hub / filtres / stats UI alignés post-refonte |
+| **MIG-4** | Déplacements V1 → `category=deplacements` à l’import | Stats/tirage « Déplacements » corrects après migration |
+| **Iso-V1** | § Wave iso-V1 (gaps restants) | Parité produit V1 pour cutover La Malice |
+| **Replay prod gate** | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** cycles | Après MIG-4 + schéma stable ; `migrate:v2:validate-replay --min=3` |
+| **M4 cutover** | production-v2, DNS, bascule | Décision PO |
+| **Post-iso** | Epics 8, 7, 9, 13, 11, 15, growth | Backlog |
+
+**Ordre de session actuel (2 stories max) :**
+
+1. **`bmad-code-review`** — **17-29**, puis **17-28**, puis **3-20**  
+2. **`bmad-create-story` + dev** — **MIG-4** (ou story dédiée import déplacements)  
+3. Gaps iso-V1 restants (Epic **4** si requis, **1.6/1.7** si légal)  
+4. Replay migration from scratch (proc. C) — **juste avant prod**  
+5. **M4** cutover
+
+### Wave iso-V1 (2026-06-01)
+
+Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity exhaustive V1 Firebase). Réf. triage [§5](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md).
+
+| Statut | Epics / slices | Action PLAN |
+|--------|----------------|-------------|
+| **Done — clôturer epic** | **2**, **5**, **6**, **12**, **16**, **18** ; MIG-0/2/3/5/6 ; hygiene H1 | Marquer epics **done** + retros optionnelles |
+| **Done — clôturer après review** | **17** (reste **17-28**, **17-29** en review ; **17.26** = growth post-iso) | **[CR]** puis epic **done** |
+| **Done — clôturer** | **3** (reste **3-20** en review) | **[CR]** 3-20 puis epic **done** sauf stories futures |
+| **Archiver / ne pas rouvrir** | **14** (**superseded** → **17.x**, SCP 2026-06-01), **13.6** (ADR 0013) | Retirer du chemin iso-V1 ; voir `epics.md` |
+| **Backlog iso-V1 (prioriser)** | **MIG-4** | P1 — déplacements → catégorie **Déplacements** |
+| **Backlog iso-V1 (à trancher PO)** | **4** (annuaire / pages publiques) | Si V1 prod exposait déjà — sinon post-iso marketing |
+| **Backlog iso-V1 (optionnel)** | **1.6**, **1.7** (compte) ; **10.2** (PWA update) | Légal / confort — pas bloquant recette troupe |
+| **Post-iso explicite** | **7**, **8**, **9**, **11**, **13** (multi-active sans 13.6), **15** | Notifications, invités, audit UI, analytics, rencontres |
+| **Réserve produit (SPEC)** | Historique compositions passées (DW-020–021) | Story dédiée si exigé pour iso — pas dans MVP actuel |
+
+**Gate iso-V1 proposé :** recette staging Malice (stats + dispos + compos) **+** MIG-4 **+** reviews 17-28/29 et 3-20 fermées **+** 1 cycle replay complet post-MIG-4.
+
+---
+
+### Execution order revised (2026-05-28) — historique
 
 | Phase | Scope | Outcome |
 |-------|--------|---------|
@@ -355,15 +394,15 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **Iso-V1** | Liste §5 [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md) (pas le deferred brut) | Parité produit ciblée ; ex. **17.24**, Epic **4** |
 | **Hygiene H2 + growth** | Deferred D/C restant, [growth-backlog.md](_bmad-output/planning-artifacts/growth-backlog.md) | Post-staging |
 
-**Ordre de session actuel (2 stories max) :**
+~~**Ordre de session actuel (2 stories max) :**~~ *(remplacé par § 2026-06-01)*
 
-1. **OPS-2** (+ **DOC-1** si doc seul)  
-2. **M1** (ops, dès gate CI) en parallèle possible avec **5-7**  
-3. **5-7** + **2-10**  
-4. **12-7** + **6-13** (avant premier **MIG-2** complet)  
-5. **2.11** (création troupe) — **avant** import migration staging  
-6. **MIG-2** (exports + import) puis **MIG-3** / **MIG-4**  
-7. Vague **iso-V1** puis **H2**
+~~1. **OPS-2** (+ **DOC-1** si doc seul)~~  
+~~2. **M1** (ops, dès gate CI) en parallèle possible avec **5-7**~~  
+~~3. **5-7** + **2-10**~~  
+~~4. **12-7** + **6-13** (avant premier **MIG-2** complet)~~  
+~~5. **2.11** (création troupe) — **avant** import migration staging~~  
+~~6. **MIG-2** (exports + import) puis **MIG-3** / **MIG-4**~~  
+~~7. Vague **iso-V1** puis **H2**~~
 
 ---
 
@@ -425,6 +464,8 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **MVP composition** | **Done 2026-05-25** | **6.5** + **6.6** + **6.7** done (minimum) |
 | **MVP pilote** | **Done 2026-05-25** | DoD MVP validée (recette `[MVP]` ; admin seul) |
 | Post-MVP Epic 13 | Open | Après MVP pilote — priorité produit |
+| **Migration staging recette** | **Done 2026-06** | Malice 2025-26 : stats + dispos + compos V1=V2 |
+| **Iso-V1 gate** | **Open** | MIG-4 + reviews 17-28/29/3-20 + replay frais pre-prod |
 
 ### PRD / UX references (V2)
 

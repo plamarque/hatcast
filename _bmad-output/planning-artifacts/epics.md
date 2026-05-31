@@ -99,7 +99,7 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 ### League workspace views, travel leagues & personal glance (ADR 0012)
 
 - FR53: League workspace exposes **Agenda**, **Historique** (past events chronology), and **Statistiques** (participation stats grid) as **distinct views**.
-- FR54: **Historique** and **Statistiques** each provide a dedicated **CSV export** aligned with visible content (separate files).
+- FR54: Single **Statistiques** CSV export via season admin menu (organizers/admins; full season). Historique: no export.
 - FR55: Cross-scope surfaces (user agenda, personal season glance, cross-league Statistiques) expose troupe/league filters; **hidden** when exactly one troupe or one league in scope (RES-001).
 - FR56: Away shows (**déplacements**) are managed in a **dedicated travel league** per troupe; new events must not use legacy `deplacement` template on show leagues.
 - FR57: Weighted draw runs **within a single league**; cross-league fairness is post-MVP.
@@ -159,8 +159,8 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 - **UX-DR6:** **Équipe tab:** slots per role; manual pick from ordered list; draw animation (proportional bar + cursor); draft vs validated; declined section; participation modal (Confirmer / Décliner / À confirmer); share/validate/announce flows per spec.
 - **UX-DR7:** **Share & announce modal:** editable generated message, WhatsApp, push/email recipient list — reusable for spectacle / tirage / compo.
 - **UX-DR8:** **Personal season glance** (`/membre/:userSlug`): V1 *Ma saison en un clin d'œil* — summary cards, month grid, favourite roles; optional troupe/league filters (FR55); Planning CTA; avatar shortcuts navigate here. Popover optional shortcut only.
-- **UX-DR9:** **League Statistiques view:** role columns (JEU, DECORUM, DEPLAC., BÉNÉVOLE) + monthly columns; expand/collapse; **Exporter** (stats CSV) / **Masquer** — distinct from Historique.
-- **UX-DR19:** **League Historique view:** past events only, month-grouped chronological list (no stats grid); **Exporter** (history CSV) when specified.
+- **UX-DR9:** **League Statistiques view:** role columns (JEU, DECORUM, DEPLAC., BÉNÉVOLE) + monthly columns; expand/collapse; **Masquer/Détails** on toolbar; stats CSV **Exporter** in season admin menu (organizers/admins).
+- **UX-DR19:** **League Historique view:** past events only, month-grouped chronological list (no stats grid); no CSV export.
 - **UX-DR20:** **Travel league:** déplacements as dedicated league per troupe; no `deplacement` template on new show-league events (FR56).
 - **UX-DR10:** **Admin surfaces:** Route **`/saison/:slug/admin/membres`** (menu **Membres**) — troupe **members** + season **organizers**; compact list, search, add modal, active **slide toggle**, inactive **hidden by default**, CSV **Exporter** + **Importer ▾**. Label **Participants** reserved for season/event participant rosters (Story 3.8). Spec: [ux-design-specification.md](./ux-design-specification.md), [ux-design-hatcast-v2.md § Admin Membres](./ux-design-hatcast-v2.md#screen-admin-membres).
 - **UX-DR11:** **Theming:** Angular Material + design tokens; do not use Tailwind as primary styling surface (PRD); preserve V1 mood where referenced.
@@ -227,7 +227,7 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 | FR49 | Epic 12 | Routage post-connexion |
 | FR50 | Epic 13 | Roster ligue à la création |
 | FR51 | Epic 12 | Navigation événement → ligue/troupe |
-| FR52 | Epic 14 | Hub troupe |
+| FR52 | Epic 17 *(was Epic 14)* | Hub troupe |
 | FR53–FR54 | Epic 3 | Workspace ligue : Agenda / Historique / Statistiques + exports |
 | FR55 | Epics 12, 16 | Filtres troupe/ligue (masqués si un seul) |
 | FR56–FR57 | Epic 13 | Ligues déplacements ; tirage par ligue |
@@ -322,11 +322,21 @@ Plusieurs ligues actives par troupe, modes de roster à la création, **ligues d
 
 **FRs couverts :** FR11 (étendu), FR50, **FR56–FR57**
 
-### Epic 14 — Hub troupe & découverte
+### Epic 14 — Hub troupe & découverte *(SUPERSEDED — Epic 17)*
 
-Hub troupe (ligues, pseudo, admin), annuaire, démotion de `/seasons` pour les membres.
+> **Status (2026-06-01):** **Superseded** by **Epic 17** ([ADR 0013](../../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md)). Do **not** schedule stories **14.x**. SCP : [sprint-change-proposal-2026-06-01-epic14-superseded-by-epic17.md](./sprint-change-proposal-2026-06-01-epic14-superseded-by-epic17.md).
+>
+> | 14.x | → Epic 17 (or related) |
+> |------|-------------------------|
+> | 14.1 hub | **17.4**, **17-29** |
+> | 14.2 ligues archivées | **17.4** |
+> | 14.3 pseudo | **17.4**, **2.5** |
+> | 14.4 `/seasons` redirect | **17.5** |
+> | 14.5 lien annuaire | **17.3** ; public directory = **Epic 4** |
 
-**FRs couverts :** FR52, FR9, FR32
+Hub troupe (ligues, pseudo, admin), annuaire, démotion de `/seasons` pour les membres — *intent preserved under Epic 17 routes `/troupes`*.
+
+**FRs couverts :** FR52, FR9, FR32 — *trace via Epic **17** (+ **4** for public annuaire)*
 
 ### Epic 16 — Profil membre & saison en un clin d'œil
 
@@ -347,7 +357,7 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 **FRs couverts :** FR51 (navigation), FR52 (troupe hub), FR8 ; étend FR11–FR12 (saison + événement)  
 **ADR :** [0013](../../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md)  
 **Design :** [_bmad-output/design-thinking-2026-05-25.md](../design-thinking-2026-05-25.md) ; **UX :** [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md) (amended 2026-05-25, UX-DR19–21)  
-**Supersedes :** Epic 14 partiel, ADR 0012 §3 (travel league), Story **13.6** (reportée)
+**Supersedes :** **Epic 14** (hub troupe — stories 14.1–14.5), ADR 0012 §3 (travel league), Story **13.6** (reportée)
 
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
@@ -361,7 +371,7 @@ Sandbox partagée **Démo** en production, seed pédagogique (~20 spectacles), p
 
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) avant ou // **14.x** ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→17.9** (tags + tirage) ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **17.18→17.22** (hub membre À faire, voir [ux-hub-a-faire.md](./ux-hub-a-faire.md)) : **17.18** puis **17.19** ; **17.21** avant **17.22** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→17.9** (tags + tirage) ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** (polish formulaire/Infos) après **17.8** recommandé ; **17.18→17.22** (hub membre À faire, voir [ux-hub-a-faire.md](./ux-hub-a-faire.md)) : **17.18** puis **17.19** ; **17.21** avant **17.22** recommandé ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -690,7 +700,8 @@ afin d’analyser la participation sur la ligue (FR53–FR54, FR60).
 
 - **Given** des données disponibles pour la ligue, **when** l’utilisateur ouvre **Statistiques** depuis le workspace ligue, **then** la grille colonnes rôles × mois est affichée avec lignes expand/collapse (UX-DR9) — **pas** la liste chronologique des événements passés.
 - **Given** les colonnes stats (JEU, DECORUM, DEPLAC., BÉNÉVOLE) et mois, **when** dispos et sélections existent, **then** chaque cellule affiche le ratio **sélectionné/disponible** avec **pourcentage arrondi** (ex. `2/7 (29%)`) — règles détaillées SPEC slice 12 et story file 3.6.
-- **Given** l’action **Exporter**, **when** l’utilisateur télécharge le CSV, **then** le format suit SPEC (stats/mois `sel/avail (%)`, cellules événement) — export **Statistiques** distinct de l’export Historique (FR54).
+- **Given** l’action **Exporter** (menu admin saison), **when** un organisateur ou admin télécharge le CSV, **then** le format suit SPEC (stats/mois `sel/avail (%)`, cellules événement) — export **saison complète** (FR54).
+- **Given** la toolbar Statistiques, **when** rendue, **then** **Détails/Masquer** est affiché et **Exporter** ne l’est **pas**.
 - **Given** les actions « masquer », **when** l’utilisateur les déclenche, **then** le comportement suit SPEC (formats, permissions).
 - **Couverture :** FR53–FR54, FR60 ; UX-DR9 ; NFR-P1.
 
@@ -707,8 +718,7 @@ afin de parcourir le programme passé sans la grille de statistiques (FR53).
 **Acceptance Criteria**
 
 - **Given** des événements passés non archivés pour la ligue, **when** l’utilisateur ouvre **Historique**, **then** une liste chronologique groupée par mois s’affiche (cartes légères, statut composition, rôle utilisateur) — **sans** grille JEU/DECORUM (UX-DR19).
-- **Given** l’action **Exporter** Historique, **when** l’utilisateur télécharge, **then** le CSV reflète la chronologie visible — **fichier distinct** de l’export Statistiques (FR54).
-- **Couverture :** FR53–FR54 ; UX-DR19.
+- **Couverture :** FR53 ; UX-DR19.
 
 **Story file:** `3-6b-vue-historique-ligue-chronologie-export.md`
 
@@ -1258,37 +1268,39 @@ afin d’y planifier les bus et spectacles à l’extérieur sans type `deplacem
 
 ---
 
-### Epic 14 — Hub troupe & découverte
+### Epic 14 — Hub troupe & découverte *(SUPERSEDED — Epic 17, 2026-06-01)*
 
-Les utilisateurs accèdent au **hub troupe** (ligues, pseudo, admin) et à l’**annuaire** depuis un parcours cohérent.
+> **Do not implement 14.x.** See mapping in Epic list § Epic 14 and SCP [sprint-change-proposal-2026-06-01-epic14-superseded-by-epic17.md](./sprint-change-proposal-2026-06-01-epic14-superseded-by-epic17.md).
 
-**FRs couverts :** FR52, FR9 (pseudo), FR32 (lien)
+Les utilisateurs accèdent au **hub troupe** (ligues, pseudo, admin) et à l’**annuaire** depuis un parcours cohérent — **livré sous Epic 17** (`/troupes`, `/troupes/:slug`, **17.5** redirects).
 
-#### Story 14.1 : Page hub troupe
+**FRs couverts :** FR52, FR9 (pseudo), FR32 (lien) — *via Epic **17** + **4***
+
+#### Story 14.1 : Page hub troupe *(superseded → **17.4**, **17-29**)*
 
 **Acceptance Criteria**
 
 - **Given** membre d’une troupe, **when** `/troupe/:slug` ouvert, **then** UX-DR16 (identité, ligues, admin gated).
 
-#### Story 14.2 : Ligues actives et archivées
+#### Story 14.2 : Ligues actives et archivées *(superseded → **17.4**)*
 
 **Acceptance Criteria**
 
 - **Given** ligues archivées, **when** toggle « Afficher archivées », **then** liste complète.
 
-#### Story 14.3 : Pseudo sur hub troupe
+#### Story 14.3 : Pseudo sur hub troupe *(superseded → **17.4**, **2.5**)*
 
 **Acceptance Criteria**
 
 - **Given** membre, **when** édition pseudo, **then** FR9 persisté scope troupe.
 
-#### Story 14.4 : Redirection `/seasons`
+#### Story 14.4 : Redirection `/seasons` *(superseded → **17.5**)*
 
 **Acceptance Criteria**
 
 - **Given** membre non-admin, **when** `/seasons`, **then** redirect `/agenda` ou hub troupe unique si applicable.
 
-#### Story 14.5 : Lien annuaire public
+#### Story 14.5 : Lien annuaire public *(superseded → **17.3** ; annuaire = **Epic 4**)*
 
 **Acceptance Criteria**
 
@@ -1716,6 +1728,23 @@ afin de **éditer titre, description et dates** sans l’ancienne liste `/season
 
 ---
 
+#### Story 17.32 : Exporter statistiques — menu admin saison *(FR54 Correct Course 2026-06-01)*
+
+En tant qu’**organisateur ou administrateur de saison**,  
+je veux **Exporter** les statistiques complètes depuis le menu administration,  
+afin d’obtenir le CSV sans bouton dans la toolbar membre.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** accès menu admin saison, **when** **Exporter**, **then** CSV saison complète (`statistiques-{slug}-{date}.csv`).
+- **Given** toolbar Historique ou Statistiques, **then** pas de bouton **Exporter** ; **Détails** reste sur Stats.
+- **Given** export Historique, **then** supprimé.
+- **Couverture :** **FR54** ; [sprint-change-proposal-2026-06-01-season-stats-export-admin-menu.md](./sprint-change-proposal-2026-06-01-season-stats-export-admin-menu.md).
+
+**Story file:** [_17-32-season-stats-export-admin-menu.md_](../implementation-artifacts/17-32-season-stats-export-admin-menu.md)
+
+---
+
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 **Décisions produit (2026-05-28) :** sandbox **partagée** ; admin contenu par **super-admin** ; participants fictifs obligatoires ; `join_policy` sans paywall premium ; **Démo prod** via **`db/migration` idempotent (Option A)** ; seed dev renommé **Les Improbots** (slug `les-improbots`, emails `@seed.improbots.test`) — **La Malice** réservée à la migration V1 prod réelle.
@@ -1910,9 +1939,9 @@ En tant que **membre connecté**, je veux **reprendre ma dernière ligue** aprè
 | UX-DR13 | 2.9, 12.5 |
 | UX-DR14 | 12.2, 12.3 |
 | UX-DR15 | 12.4 |
-| UX-DR16 | 14.1 |
+| UX-DR16 | 17.4 *(was 14.1)* |
 | UX-DR17 | 13.3, 13.4 |
-| UX-DR18 | 13.4, 14.2 |
+| UX-DR18 | 13.4, 17.4 *(was 14.2)* |
 | UX-DR20 | 13.6 |
 
 ---

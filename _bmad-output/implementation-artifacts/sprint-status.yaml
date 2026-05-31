@@ -51,7 +51,6 @@ development_status:
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: done
   mig-4-deplacements-category-import: done
-  mig-4-deplacements-category-import: done
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
@@ -215,7 +214,7 @@ development_status:
   17-29-refonte-hub-troupe-mon-compte-preferences: done
   17-30-season-event-count-resync: done
   17-31-modifier-saison-gear-workspace: done
-  17-33-preferences-membre-compte-utilisateur: backlog
+  17-33-preferences-membre-compte-utilisateur: review
   epic-17-retrospective: optional
 
   epic-18: in-progress
