@@ -10,10 +10,10 @@ import com.hatcast.api.memberglance.dto.MemberSeasonGlanceResponseDto
 import com.hatcast.api.memberprofile.MemberProfileStatsProvider
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
-import com.hatcast.api.troupe.PreferredRoleKeys
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.user.UserMemberPreferencesService
 import com.hatcast.api.user.UserRepository
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -30,6 +30,7 @@ class MemberSeasonGlanceService(
     private val userAgendaRepository: UserAgendaRepository,
     private val statsProvider: MemberProfileStatsProvider,
     private val troupeAccess: TroupeAccessService,
+    private val userMemberPreferencesService: UserMemberPreferencesService,
 ) {
     @Transactional(readOnly = true)
     fun getSeasonGlance(
@@ -74,11 +75,17 @@ class MemberSeasonGlanceService(
         val stats = statsProvider.loadStats(seasonId, targetUserId)
         val monthlyChart = statsProvider.loadMonthlyChart(seasonId, targetUserId)
         val favoriteRoleCounts = statsProvider.loadFavoriteRoleCounts(seasonId, targetUserId)
+        val selfPreferences =
+            if (isSelf) {
+                userMemberPreferencesService.getPreferences(targetUserId)
+            } else {
+                null
+            }
 
         return MemberSeasonGlanceResponseDto(
             userId = targetUserId,
             userSlug = targetUser.slug ?: userSlug,
-            displayName = troupeMembership.displayName,
+            displayName = selfPreferences?.memberDisplayName ?: troupeMembership.displayName,
             avatarUrl = AvatarService.publicAvatarUrl(targetUser.id, targetUser.avatarUpdatedAt),
             isSelf = isSelf,
             resolvedSeasonId = seasonId,
@@ -95,11 +102,7 @@ class MemberSeasonGlanceService(
             monthlyChart = monthlyChart,
             favoriteRoleCounts = favoriteRoleCounts,
             preferredRoleKeys =
-                if (isSelf) {
-                    PreferredRoleKeys.effectiveKeys(troupeMembership.preferredRoleKeys)
-                } else {
-                    null
-                },
+                selfPreferences?.preferredRoleKeys,
         )
     }
 

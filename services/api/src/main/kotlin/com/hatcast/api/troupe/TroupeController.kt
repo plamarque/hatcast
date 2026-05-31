@@ -101,6 +101,7 @@ class TroupeController(
     }
 
     @PatchMapping("/{troupeId}/memberships/me")
+    @Deprecated("Use PATCH /v1/me/preferences.")
     fun updateMyMembership(
         @PathVariable troupeId: UUID,
         @Valid @RequestBody body: UpdateMyMembershipRequest,

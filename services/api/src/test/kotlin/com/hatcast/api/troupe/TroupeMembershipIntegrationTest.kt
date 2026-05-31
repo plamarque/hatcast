@@ -447,7 +447,7 @@ class TroupeMembershipIntegrationTest {
     }
 
     @Test
-    fun `self patch display name in troupe A does not change troupe B`() {
+    fun `self patch display name syncs account pseudo across active troupes`() {
         val troupeBId = UUID.randomUUID()
         val troupeB =
             troupeRepository.save(
@@ -481,7 +481,11 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.displayName").value("Troupe A Name"))
 
         val troupeBMembership = membershipRepository.findByTroupe_IdAndUser_Id(troupeBId, user.id)!!
-        org.junit.jupiter.api.Assertions.assertEquals("Troupe B Name", troupeBMembership.displayName)
+        org.junit.jupiter.api.Assertions.assertEquals("Troupe A Name", troupeBMembership.displayName)
+        org.junit.jupiter.api.Assertions.assertEquals(
+            "Troupe A Name",
+            userRepository.findById(user.id).orElseThrow().memberDisplayName,
+        )
     }
 
     @Test

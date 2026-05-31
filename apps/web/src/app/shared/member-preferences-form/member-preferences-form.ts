@@ -7,8 +7,7 @@ import { MatInputModule } from '@angular/material/input'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
-import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
-import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
   canDisablePreferredRole,
@@ -31,12 +30,6 @@ import {
   ],
   template: `
     <div class="member-preferences-form">
-      @if (pseudoDiffersAcrossTroupes()) {
-        <p class="member-preferences-form__hint member-preferences-form__hint--warn">
-          Vos pseudos diffèrent selon les troupes ; l’enregistrement les harmonisera.
-        </p>
-      }
-
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="member-preferences-form__field">
         <mat-label>Pseudo</mat-label>
         <input
@@ -81,7 +74,7 @@ import {
         type="button"
         class="member-preferences-form__save"
         data-testid="member-preferences-save"
-        [disabled]="saving() || preferredRolesLoading() || !canSave()"
+        [disabled]="saving() || preferredRolesLoading() || loadFailed() || !canSave()"
         (click)="save()"
       >
         @if (saving()) {
@@ -106,10 +99,6 @@ import {
       font-size: 0.85rem;
       opacity: 0.85;
       line-height: 1.4;
-    }
-    .member-preferences-form__hint--warn {
-      color: var(--mat-sys-error);
-      opacity: 1;
     }
     .member-preferences-form__roles-heading {
       margin: 0.25rem 0 0;
@@ -140,8 +129,7 @@ import {
   `,
 })
 export class MemberPreferencesForm implements OnInit {
-  private readonly troupeApi = inject(TroupeApiService)
-  private readonly memberProfileApi = inject(MemberProfileApiService)
+  private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly troupeContext = inject(TroupeContextService)
   private readonly snack = inject(MatSnackBar)
 
@@ -151,17 +139,10 @@ export class MemberPreferencesForm implements OnInit {
   protected readonly preferredRoles = signal<string[]>([])
   protected readonly preferredRolesLoading = signal(true)
   protected readonly saving = signal(false)
+  protected readonly loadFailed = signal(false)
 
   private initialPseudo = ''
   private initialRoles: string[] = []
-
-  protected readonly pseudoDiffersAcrossTroupes = computed(() => {
-    const names = this.troupeContext
-      .activeTroupes()
-      .map((t) => t.membership.displayName.trim())
-      .filter(Boolean)
-    return names.length > 1 && new Set(names).size > 1
-  })
 
   protected readonly canSave = computed(() => {
     const pseudoChanged = this.pseudo().trim() !== this.initialPseudo
@@ -171,14 +152,7 @@ export class MemberPreferencesForm implements OnInit {
   })
 
   async ngOnInit(): Promise<void> {
-    await this.troupeContext.load()
-    const troupes = this.troupeContext.activeTroupes()
-    const first = troupes[0]
-    if (first) {
-      this.initialPseudo = first.membership.displayName.trim()
-      this.pseudo.set(this.initialPseudo)
-    }
-    await this.loadPreferredRoles(first?.id)
+    await this.loadPreferences()
   }
 
   protected onPseudoInput(value: string): void {
@@ -224,65 +198,59 @@ export class MemberPreferencesForm implements OnInit {
       this.pseudoError.set(true)
       return
     }
-    const troupes = this.troupeContext.activeTroupes()
-    if (troupes.length === 0) {
-      this.snack.open('Aucune troupe active.', 'OK', { duration: 4000 })
-      return
+
+    const pseudoChanged = nextPseudo !== this.initialPseudo
+    const rolesChanged =
+      [...this.preferredRoles()].sort().join(',') !== [...this.initialRoles].sort().join(',')
+    const body: { memberDisplayName?: string; preferredRoleKeys?: string[] } = {}
+    if (pseudoChanged) {
+      body.memberDisplayName = nextPseudo
+    }
+    if (rolesChanged) {
+      body.preferredRoleKeys = this.preferredRoles()
     }
 
     this.saving.set(true)
     try {
-      const pseudoChanged = nextPseudo !== this.initialPseudo
-      const rolesChanged =
-        [...this.preferredRoles()].sort().join(',') !== [...this.initialRoles].sort().join(',')
-
-      for (const troupe of troupes) {
-        if (pseudoChanged) {
-          const membershipResult = await this.troupeApi.updateMyMembership(troupe.id, {
-            displayName: nextPseudo,
-          })
-          if (!membershipResult.ok || !membershipResult.data) {
-            this.snack.open('Enregistrement impossible', 'OK', { duration: 5000 })
-            return
-          }
-          this.troupeContext.patchMembershipDisplayName(
-            troupe.id,
-            membershipResult.data.displayName,
-          )
-        }
-        if (rolesChanged) {
-          const rolesResult = await this.memberProfileApi.updatePreferredRoles(
-            troupe.id,
-            this.preferredRoles(),
-          )
-          if (!rolesResult.ok || !rolesResult.data) {
-            this.snack.open('Enregistrement des rôles impossible', 'OK', { duration: 5000 })
-            return
-          }
-        }
+      const result = await this.mePreferencesApi.patchPreferences(body)
+      if (!result.ok || !result.data) {
+        this.snack.open('Enregistrement impossible', 'OK', { duration: 5000 })
+        return
       }
 
-      this.initialPseudo = nextPseudo
-      this.initialRoles = [...this.preferredRoles()]
-      this.pseudo.set(nextPseudo)
+      this.initialPseudo = result.data.memberDisplayName
+      this.initialRoles = [...result.data.preferredRoleKeys]
+      this.pseudo.set(result.data.memberDisplayName)
+      this.preferredRoles.set(result.data.preferredRoleKeys)
+
+      const troupes = this.troupeContext.activeTroupes()
+      for (const troupe of troupes) {
+        this.troupeContext.patchMembershipDisplayName(
+          troupe.id,
+          result.data.memberDisplayName,
+        )
+      }
+
       this.snack.open('Préférences enregistrées', 'OK', { duration: 3000 })
     } finally {
       this.saving.set(false)
     }
   }
 
-  private async loadPreferredRoles(troupeId: string | undefined): Promise<void> {
+  private async loadPreferences(): Promise<void> {
     this.preferredRolesLoading.set(true)
+    this.loadFailed.set(false)
     try {
-      if (!troupeId) {
-        this.preferredRoles.set([])
-        this.initialRoles = []
+      const result = await this.mePreferencesApi.getPreferences()
+      if (!result.ok || !result.data) {
+        this.loadFailed.set(true)
+        this.snack.open('Impossible de charger vos préférences.', 'OK', { duration: 5000 })
         return
       }
-      const result = await this.memberProfileApi.getPreferredRoles(troupeId)
-      const keys = result?.ok && result.data ? result.data.preferredRoleKeys : []
-      this.preferredRoles.set(keys)
-      this.initialRoles = [...keys]
+      this.initialPseudo = result.data.memberDisplayName.trim()
+      this.pseudo.set(this.initialPseudo)
+      this.preferredRoles.set(result.data.preferredRoleKeys)
+      this.initialRoles = [...result.data.preferredRoleKeys]
     } finally {
       this.preferredRolesLoading.set(false)
     }

@@ -1,6 +1,8 @@
 package com.hatcast.api.user
 
+import com.hatcast.api.troupe.PreferredRoleKeysJsonConverter
 import jakarta.persistence.Column
+import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.PrePersist
@@ -23,6 +25,12 @@ class UserEntity(
     var email: String? = null,
     @Column(name = "display_name", length = 255)
     var displayName: String? = null,
+    /** Pseudo membre partagé entre troupes (story 17.33). Null → résolution via displayName/email. */
+    @Column(name = "member_display_name", length = 255)
+    var memberDisplayName: String? = null,
+    @Convert(converter = PreferredRoleKeysJsonConverter::class)
+    @Column(name = "preferred_role_keys", nullable = false, length = 1024)
+    var preferredRoleKeys: List<String> = emptyList(),
     /** Identifiant URL global (`/membre/:userSlug`). Story 16.1. */
     @Column(length = 128, nullable = true)
     var slug: String? = null,

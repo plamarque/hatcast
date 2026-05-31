@@ -7,6 +7,18 @@ import java.util.UUID
 
 class MemberDisplayNameResolverTest {
     @Test
+    fun `prefers member display name when set`() {
+        val user =
+            UserEntity(
+                id = UUID.randomUUID(),
+                memberDisplayName = "  Léa  ",
+                displayName = "Patrice",
+                email = "pat@example.com",
+            )
+        assertEquals("Léa", MemberDisplayNameResolver.resolve(user))
+    }
+
+    @Test
     fun `prefers display name when set`() {
         val user =
             UserEntity(

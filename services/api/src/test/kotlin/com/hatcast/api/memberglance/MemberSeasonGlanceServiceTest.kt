@@ -10,7 +10,9 @@ import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserEntity
+import com.hatcast.api.user.UserMemberPreferencesService
 import com.hatcast.api.user.UserRepository
+import com.hatcast.api.user.dto.UserMemberPreferencesResponseDto
 import com.hatcast.api.agenda.UserAgendaRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -38,6 +40,7 @@ class MemberSeasonGlanceServiceTest {
     private val userAgendaRepository: UserAgendaRepository = mock()
     private val statsProvider: MemberProfileStatsProvider = mock()
     private val troupeAccess: TroupeAccessService = mock()
+    private val userMemberPreferencesService: UserMemberPreferencesService = mock()
 
     private val service =
         MemberSeasonGlanceService(
@@ -47,6 +50,7 @@ class MemberSeasonGlanceServiceTest {
             userAgendaRepository = userAgendaRepository,
             statsProvider = statsProvider,
             troupeAccess = troupeAccess,
+            userMemberPreferencesService = userMemberPreferencesService,
         )
 
     @Test
@@ -63,6 +67,9 @@ class MemberSeasonGlanceServiceTest {
         whenever(statsProvider.loadStats(seedSeasonId, userId)).thenReturn(null)
         whenever(statsProvider.loadMonthlyChart(seedSeasonId, userId)).thenReturn(emptyList())
         whenever(statsProvider.loadFavoriteRoleCounts(seedSeasonId, userId)).thenReturn(emptyList())
+        whenever(userMemberPreferencesService.getPreferences(userId)).thenReturn(
+            UserMemberPreferencesResponseDto(memberDisplayName = "Self", preferredRoleKeys = emptyList()),
+        )
 
         val result =
             service.getSeasonGlance(
@@ -112,6 +119,9 @@ class MemberSeasonGlanceServiceTest {
         whenever(statsProvider.loadStats(primarySeasonId, userId)).thenReturn(null)
         whenever(statsProvider.loadMonthlyChart(primarySeasonId, userId)).thenReturn(emptyList())
         whenever(statsProvider.loadFavoriteRoleCounts(primarySeasonId, userId)).thenReturn(emptyList())
+        whenever(userMemberPreferencesService.getPreferences(userId)).thenReturn(
+            UserMemberPreferencesResponseDto(memberDisplayName = "Multi", preferredRoleKeys = emptyList()),
+        )
 
         val result =
             service.getSeasonGlance(

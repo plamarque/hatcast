@@ -16,6 +16,7 @@ import com.hatcast.api.participant.SeasonParticipantMembershipSync
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
+import com.hatcast.api.user.UserMemberPreferencesService
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Page
@@ -41,6 +42,7 @@ class TroupeMembershipService(
     private val platformAdminService: PlatformAdminService,
     private val seasonRepository: SeasonRepository,
     private val membershipSync: SeasonParticipantMembershipSync,
+    private val userMemberPreferencesService: UserMemberPreferencesService,
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
@@ -228,6 +230,7 @@ class TroupeMembershipService(
         if (existing != null) {
             if (existing.status != TroupeMembershipStatus.ACTIVE) {
                 existing.status = TroupeMembershipStatus.ACTIVE
+                applyAccountPreferences(existing, user, now)
                 existing.updatedAt = now
             }
             return membershipRepository.save(existing)
@@ -238,7 +241,8 @@ class TroupeMembershipService(
                 user = user,
                 status = TroupeMembershipStatus.ACTIVE,
                 baselineRole = TroupeBaselineRole.MEMBER,
-                displayName = MemberDisplayNameResolver.resolve(user),
+                displayName = resolveDefaultDisplayName(user),
+                preferredRoleKeys = user.preferredRoleKeys,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -283,11 +287,21 @@ class TroupeMembershipService(
             existing.status = targetStatus
             existing.baselineRole = targetRole
             val displayName = normalizeDisplayName(body.displayName)
-            if (displayName != null) existing.displayName = displayName
+            if (targetStatus == TroupeMembershipStatus.ACTIVE && displayName == null) {
+                applyAccountPreferences(existing, user, now)
+            }
             existing.updatedAt = now
-            val saved = membershipRepository.save(existing)
+            var saved = membershipRepository.save(existing)
+            if (displayName != null) {
+                userMemberPreferencesService.updateMemberDisplayName(user.id, displayName)
+                saved = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id) ?: saved
+            }
             syncSeasonParticipantsAfterStatusChange(saved, previousStatus, targetStatus)
             return TroupeMemberAdminDto.from(saved)
+        }
+        val displayName = normalizeDisplayName(body.displayName)
+        if (displayName != null) {
+            userMemberPreferencesService.updateMemberDisplayName(user.id, displayName)
         }
         val membership =
             TroupeMembershipEntity(
@@ -295,7 +309,8 @@ class TroupeMembershipService(
                 user = user,
                 status = TroupeMembershipStatus.ACTIVE,
                 baselineRole = body.baselineRole ?: TroupeBaselineRole.MEMBER,
-                displayName = normalizeDisplayName(body.displayName) ?: resolveDefaultDisplayName(user),
+                displayName = displayName ?: resolveDefaultDisplayName(user),
+                preferredRoleKeys = user.preferredRoleKeys,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -313,12 +328,12 @@ class TroupeMembershipService(
         troupeId: UUID,
         body: UpdateMyMembershipRequest,
     ): MembershipSummaryDto {
-        val membership = requireActiveMembership(userId, troupeId)
-        membership.displayName =
+        requireActiveMembership(userId, troupeId)
+        val displayName =
             normalizeDisplayName(body.displayName)
                 ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
-        membership.updatedAt = Instant.now()
-        return MembershipSummaryDto.from(membershipRepository.save(membership))
+        userMemberPreferencesService.updateMemberDisplayName(userId, displayName)
+        return MembershipSummaryDto.from(requireActiveMembership(userId, troupeId))
     }
 
     @Transactional
@@ -343,15 +358,22 @@ class TroupeMembershipService(
         ensureLastAdminRemains(membership, targetStatus, targetRole)
         if (body.displayName.isPresent) {
             val raw = body.displayName.get()
-            membership.displayName =
-                normalizeDisplayName(raw)
-                    ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
+            normalizeDisplayName(raw)
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
         }
         val previousStatus = membership.status
         membership.status = targetStatus
         membership.baselineRole = targetRole
+        if (targetStatus == TroupeMembershipStatus.ACTIVE && !body.displayName.isPresent) {
+            applyAccountPreferences(membership, membership.user, Instant.now())
+        }
         membership.updatedAt = Instant.now()
-        val saved = membershipRepository.save(membership)
+        var saved = membershipRepository.save(membership)
+        if (body.displayName.isPresent) {
+            val displayName = normalizeDisplayName(body.displayName.get())!!
+            userMemberPreferencesService.updateMemberDisplayName(membership.user.id, displayName)
+            saved = membershipRepository.findByIdAndTroupe_Id(membershipId, troupeId) ?: saved
+        }
         syncSeasonParticipantsAfterStatusChange(saved, previousStatus, targetStatus)
         return TroupeMemberAdminDto.from(saved)
     }
@@ -467,7 +489,18 @@ class TroupeMembershipService(
         return membership
     }
 
-    fun resolveDefaultDisplayName(user: UserEntity): String = MemberDisplayNameResolver.resolve(user)
+    fun resolveDefaultDisplayName(user: UserEntity): String =
+        userMemberPreferencesService.resolvedMemberDisplayName(user)
+
+    private fun applyAccountPreferences(
+        membership: TroupeMembershipEntity,
+        user: UserEntity,
+        now: Instant,
+    ) {
+        membership.displayName = resolveDefaultDisplayName(user)
+        membership.preferredRoleKeys = user.preferredRoleKeys
+        membership.updatedAt = now
+    }
 
     private fun resolveUserByEmail(rawEmail: String): UserEntity {
         val email = rawEmail.trim().lowercase()
