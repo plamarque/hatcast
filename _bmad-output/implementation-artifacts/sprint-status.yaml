@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-31T18:00:00+02:00
+# last_updated: 2026-05-31T12:50:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -177,7 +177,7 @@ development_status:
 
   epic-16: in-progress
   16-1-route-membre-saison-clin-oeil-filtres: done
-  16-2-statistiques-avatar-navigation-profil-membre: review
+  16-2-statistiques-avatar-navigation-profil-membre: done
   epic-16-retrospective: optional
 
   epic-17: in-progress
@@ -214,5 +214,5 @@ development_status:
   18-2-self-join-open-api-super-admin-join-policy: done
   18-3-seed-production-troupe-demo: done
   18-4-ux-onboarding-rejoindre-demo: done
-  18-5-configuration-prod-tests-separation-demo: done
+  18-5-configuration-prod-tests-separation-demo: review
   epic-18-retrospective: optional

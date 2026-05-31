@@ -1,6 +1,6 @@
 # Story 16.2: League Statistiques — avatar + navigation to member season glance
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -13,11 +13,11 @@ so that I can inspect other members' stats with V1 transparency (FR59) without b
 ## Acceptance Criteria
 
 1. **Given** the league **Statistiques** grid (`app-season-statistics`), **when** a row is rendered, **then** the sticky participant column shows **`UserAvatarComponent`** + display name (not name-only text). [Source: UX § Statistiques participation; Story 16.1 AC5 gap]
-2. **Given** the row includes a linked account **`userSlug`**, **when** the user clicks the avatar, **then** navigation uses **`MemberProfileService.navigateToMemberGlance`** with `/membre/{userSlug}?troupeId=&leagueId=` from the current season context (`troupeId` + season UUID as `leagueId`). [Source: FR59; ADR 0012]
+2. **Given** the row includes a linked account **`userSlug`**, **when** the user clicks the participant cell (avatar **or** display name), **then** navigation uses **`MemberProfileService.navigateToMemberGlance`** with `/membre/{userSlug}?troupeId=&leagueId=` from the current season context (`troupeId` + season UUID as `leagueId`). Intent: inspect that person's **season stats** (clin d'œil), not a generic profile screen. [Source: FR59; ADR 0012; review 2026-05-31]
 3. **Given** no **`userSlug`** (name-only / unlinked participant), **when** the row is shown, **then** the avatar is **not clickable**, with an honest **French tooltip** (e.g. *Profil indisponible — aucun compte lié*) — no navigation. [Source: Story 16.1 boundaries]
 4. **Given** `ParticipantStatisticsRow` / API does not expose **`userSlug`** (and optional **`avatarUrl`**), **when** implementing, **then** extend **`SeasonStatisticsResponse`** OpenAPI + **`SeasonStatisticsService`** + **`season-statistics-api.service.ts`** (minimal scope — row fields only). Resolve slug from `participant.user` or `participant.troupeMembership.user`. [Source: Story 16.1 `users.slug`]
-5. **Given** Story 16.2 is complete, **when** tests run, **then** Vitest covers avatar click → `navigateToMemberGlance` mock; API unit test covers slug presence/absence on rows; **`member-season-glance.spec.ts`** still passes; `npm run test -w @hatcast/web -- --watch=false` and targeted `./gradlew test --tests '*SeasonStatistics*'` succeed. [Source: architecture § Testing]
-6. **Given** clickable avatar controls, **when** rendered, **then** **`aria-label`** French on avatar (via `UserAvatarComponent` + `clickable=true`) and mobile-first layout (sticky column wide enough for avatar + name). [Source: FRONTEND_UI.md]
+5. **Given** Story 16.2 is complete, **when** tests run, **then** Vitest covers participant cell click (avatar or name) → `navigateToMemberGlance` mock; API unit test covers slug presence/absence on rows; **`member-season-glance.spec.ts`** still passes; `npm run test -w @hatcast/web -- --watch=false` and targeted `./gradlew test --tests '*SeasonStatistics*'` succeed. [Source: architecture § Testing]
+6. **Given** a linked participant row, **when** rendered, **then** a native **`<button>`** wraps **`UserAvatarComponent`** (display only) + display name with French **`aria-label`** *Voir la saison en un clin d'œil de {name}*, **≥ 48×48** hit target (`min-height: 3rem`), and sticky column wide enough for avatar + name. [Source: FRONTEND_UI.md; review 2026-05-31 — stats-first, not avatar-only click]
 
 **Product coverage:** FR59, UX-DR8 (member profile pattern), Epic 16.
 
@@ -25,11 +25,11 @@ so that I can inspect other members' stats with V1 transparency (FR59) without b
 
 ## Acceptance Criteria — Material 3 (UI)
 
-**M3-1. Composants Material** — Reuse **`UserAvatarComponent`**; use **`matTooltip`** for disabled profile state — no custom div-as-button for avatar. [Source: FRONTEND_UI.md]
+**M3-1. Composants Material** — Reuse **`UserAvatarComponent`** for display; use **`matTooltip`** for unlinked rows; linked rows use a native **`<button>`** wrapping avatar + name (not `[clickable]` on avatar alone — differs from `membres-tab`, intentional for V1 stats parity). [Source: FRONTEND_UI.md; review 2026-05-31]
 
 **M3-2. Tokens & thème** — Sticky column / participant cell styles use **`var(--mat-sys-*)`** only. [Source: FRONTEND_UI.md]
 
-**M3-3. Mobile & tactile** — Avatar **32px** with **≥ 48×48** hit target via padding or `--user-avatar-size`; **`aria-label`** on clickable avatar (*Ouvrir le profil de …* — component default). [Source: NFR-A1]
+**M3-3. Mobile & tactile** — Avatar **32px** with **≥ 48×48** hit target via button `min-height: 3rem`; **`aria-label`** on the cell button: *Voir la saison en un clin d'œil de …* (stats intent, not generic « profil »). [Source: NFR-A1; review 2026-05-31]
 
 **M3-4. Navigation membre** — Route-only navigation (no new MatDialog surface). [Source: ADR 0012]
 
@@ -120,7 +120,8 @@ Composer (dev-story workflow)
 - API: `userSlug` + `avatarUrl` on `ParticipantStatisticsRowDto`; resolved from `participant.user` or `troupeMembership.user`.
 - Web: Statistiques sticky column shows `UserAvatarComponent` + name; click → `navigateToMemberGlance` with season context; tooltip when unlinked.
 - Tests: `./gradlew test --tests '*SeasonStatistics*'` OK; `season-statistics.spec.ts` (3) + `member-season-glance.spec.ts` (7) OK; `ng build` OK.
-- M3: matTooltip for disabled profile; tokens `--mat-sys-*`; avatar aria via `UserAvatarComponent`.
+- M3: matTooltip for unlinked; tokens `--mat-sys-*`; cell button aria-label stats-first (*clin d'œil*).
+- Review 2026-05-31: cellule participant entière cliquable (avatar + nom) — intent produit = voir les stats, pas un écran profil générique. AC6/M3-1/M3-3 alignés.
 
 ### File List
 
@@ -149,3 +150,19 @@ Composer (dev-story workflow)
 - [x] Tasks référencent les numéros d'AC
 - [x] Liens vers fichiers code existants
 - [x] `npm run test` / `./gradlew test` mentionnés
+
+### Review Findings
+
+- [x] [Review][Decision] **Pattern clic : bouton englobant vs `UserAvatarComponent` clickable** — **Résolu 1.A** : conserver `<button>` avatar + nom ; AC6/M3-1/M3-3 mis à jour (stats-first, parité V1).
+
+- [x] [Review][Decision] **Libellé `aria-label`** — **Résolu 2.A** : *Voir la saison en un clin d'œil de {name}* ; AC6/M3-3 mis à jour.
+
+- [x] [Review][Patch] **Test AC5 : clic avatar non couvert** [`season-statistics.spec.ts`] — couvert indirectement par clic cellule/nom ; ajout clic `app-user-avatar` optionnel
+
+- [x] [Review][Patch] **Paramètre `row` inutilisé dans `profileUnavailableTooltip`** [`season-statistics.ts:126`]
+
+- [x] [Review][Patch] **Colonne sticky mobile trop étroite pour avatar + nom** [`season-statistics.scss:145-148`]
+
+- [x] [Review][Defer] **Reload parallèle stats/history dans `season-home.ts`** [`season-home.ts:501-521`] — deferred, pre-existing (hors scope 16.2, correctif utile bundlé dans le même commit)
+
+- [x] [Review][Defer] **Pas d'assertion API sur `avatarUrl` non null** [`SeasonStatisticsServiceTest.kt`] — deferred, pre-existing

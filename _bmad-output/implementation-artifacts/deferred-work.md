@@ -1,3 +1,8 @@
+## Deferred from: code review of 16-2-statistiques-avatar-navigation-profil-membre.md (2026-05-31)
+
+- Reload parallèle stats/history dans `season-home.ts` (commit 85d5b48d) — correctif utile pour retour navigateur `view=stats`, hors scope story 16.2 mais bundlé intentionnellement. [season-home.ts:501-521]
+- Pas d'assertion API sur `avatarUrl` non null quand user lié — seul `userSlug` est vérifié ; faible risque. [SeasonStatisticsServiceTest.kt]
+
 ## Deferred from: code review of 6-14-snapshot-chances-au-tirage.md (2026-05-31)
 
 - Participant assigné manuellement hors du pool courant (non AVAILABLE / non éligible) omis de l'explainability passée : `scoredByParticipant[participantId]?.let{}` sans branche `else` → aucune entrée d'odds pour un assigné réel sans snapshot. Gap pré-existant du chemin live, non introduit par la logique snapshot. [CompositionService.kt:393-404]

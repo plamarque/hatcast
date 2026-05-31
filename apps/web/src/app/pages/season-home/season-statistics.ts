@@ -123,9 +123,8 @@ export class SeasonStatistics {
     return `Voir la saison en un clin d'œil de ${row.displayName}`
   }
 
-  protected profileUnavailableTooltip(row: ParticipantStatisticsRow): string {
-    return 'Profil indisponible — aucun compte lié'
-  }
+  protected readonly profileUnavailableTooltip =
+    'Profil indisponible — aucun compte lié'
 
   protected openMemberProfile(row: ParticipantStatisticsRow): void {
     const userSlug = row.userSlug?.trim()

@@ -81,6 +81,21 @@ describe('SeasonStatistics', () => {
     })
   })
 
+  it('navigates when avatar is clicked', async () => {
+    const navigateSpy = vi.fn()
+    const fixture = await setup(navigateSpy)
+    const avatar = fixture.nativeElement.querySelector(
+      '.season-statistics__participant--link app-user-avatar',
+    ) as HTMLElement
+    expect(avatar).toBeTruthy()
+    avatar.click()
+    expect(navigateSpy).toHaveBeenCalledWith({
+      userSlug: 'alice-dupont',
+      troupeId: 'troupe-1',
+      leagueId: 'league-1',
+    })
+  })
+
   it('navigates when participant name is clicked (V1 parity)', async () => {
     const navigateSpy = vi.fn()
     const fixture = await setup(navigateSpy)
