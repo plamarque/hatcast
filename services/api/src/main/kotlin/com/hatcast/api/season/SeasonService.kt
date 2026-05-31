@@ -1,12 +1,15 @@
 package com.hatcast.api.season
 
+import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.season.dto.CreateSeasonRequest
 import com.hatcast.api.season.dto.PagedSeasonsResponse
+import com.hatcast.api.season.dto.PlatformAdminSeasonResolutionDto
 import com.hatcast.api.season.dto.SeasonResponseDto
 import com.hatcast.api.season.dto.UpdateSeasonRequest
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeRepository
+import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -25,6 +28,7 @@ class SeasonService(
     private val troupeRepository: TroupeRepository,
     private val troupeAccess: TroupeAccessService,
     private val seasonAccess: SeasonAccessService,
+    private val platformAdminService: PlatformAdminService,
 ) {
     private val log = LoggerFactory.getLogger(SeasonService::class.java)
     @Transactional(readOnly = true)
@@ -117,6 +121,33 @@ class SeasonService(
             seasonRepository.findByTroupe_IdAndSlug(troupeId, slug)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue")
         return SeasonResponseDto.from(s)
+    }
+
+    @Transactional(readOnly = true)
+    fun resolveBySlugForPlatformAdmin(
+        slug: String,
+        principal: SessionUserPrincipal,
+    ): List<PlatformAdminSeasonResolutionDto> {
+        if (!platformAdminService.isPlatformAdmin(principal)) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Accès réservé aux administrateurs de la plateforme.",
+            )
+        }
+        val normalized = slug.trim()
+        if (normalized.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Slug de saison invalide.")
+        }
+        val seasons = seasonRepository.findAllBySlug(normalized)
+        if (seasons.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue")
+        }
+        return seasons.map { season ->
+            PlatformAdminSeasonResolutionDto(
+                troupe = TroupeAdminSummaryDto.from(season.troupe),
+                season = SeasonResponseDto.from(season),
+            )
+        }
     }
 
     @Transactional

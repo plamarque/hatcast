@@ -173,7 +173,7 @@ export class TroupeHub implements OnInit, OnDestroy {
       return
     }
 
-    const match = this.troupeContext.activeTroupes().find((t) => t.slug === slug)
+    const match = await this.troupeContext.resolveTroupeBySlug(slug)
     if (!match) {
       this.troupe.set(null)
       this.allSeasons.set([])

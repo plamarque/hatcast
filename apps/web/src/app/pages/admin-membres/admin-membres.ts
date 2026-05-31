@@ -150,7 +150,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     let legacySeason: SeasonResponse | null = null
 
     if (troupeSlug) {
-      const match = this.troupeContext.activeTroupes().find((t) => t.slug === troupeSlug)
+      const match = await this.troupeContext.resolveTroupeBySlug(troupeSlug)
       if (!match) {
         this.loading.set(false)
         this.snack.open('Troupe introuvable.', 'OK', { duration: 6000 })

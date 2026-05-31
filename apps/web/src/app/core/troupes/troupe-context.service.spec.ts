@@ -1,20 +1,35 @@
 import { TestBed } from '@angular/core/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { AuthApiService } from '../auth/auth-api.service'
 import type { TroupeListItem } from './troupe-api.service'
 import { TroupeApiService } from './troupe-api.service'
 import { TroupeContextService } from './troupe-context.service'
 
 describe('TroupeContextService', () => {
-  let api: { listMyTroupes: ReturnType<typeof vi.fn> }
+  let api: {
+    listMyTroupes: ReturnType<typeof vi.fn>
+    getAdminTroupeBySlug: ReturnType<typeof vi.fn>
+  }
+  let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     localStorage.clear()
-    api = { listMyTroupes: vi.fn() }
+    api = {
+      listMyTroupes: vi.fn(),
+      getAdminTroupeBySlug: vi.fn(),
+    }
+    auth = {
+      ensureHatcastSession: vi.fn().mockResolvedValue({
+        ok: true,
+        data: { platformAdmin: true },
+      }),
+    }
     TestBed.configureTestingModule({
       providers: [
         TroupeContextService,
         { provide: TroupeApiService, useValue: api },
+        { provide: AuthApiService, useValue: auth },
       ],
     })
   })
@@ -109,6 +124,40 @@ describe('TroupeContextService', () => {
 
     expect(service().selectedTroupe()?.membership.displayName).toBe('Après')
     expect(service().activeTroupes()[0].membership.displayName).toBe('Après')
+  })
+
+  it('résout une troupe par slug via admin plateforme sans adhésion', async () => {
+    api.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
+    api.getAdminTroupeBySlug.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        id: 'troupe-improbots',
+        name: 'Les Improbots',
+        slug: 'les-improbots',
+        isDemo: false,
+        joinPolicy: 'OPEN',
+      },
+    })
+
+    const resolved = await service().resolveTroupeBySlug('les-improbots')
+
+    expect(resolved?.slug).toBe('les-improbots')
+    expect(service().selectTroupe('troupe-improbots')).toBe(true)
+    expect(api.getAdminTroupeBySlug).toHaveBeenCalledWith('les-improbots')
+  })
+
+  it('ne résout pas une troupe hors adhésion sans droit admin plateforme', async () => {
+    auth.ensureHatcastSession.mockResolvedValue({
+      ok: true,
+      data: { platformAdmin: false },
+    })
+    api.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
+
+    const resolved = await service().resolveTroupeBySlug('les-improbots')
+
+    expect(resolved).toBeNull()
+    expect(api.getAdminTroupeBySlug).not.toHaveBeenCalled()
   })
 
   function service(): TroupeContextService {

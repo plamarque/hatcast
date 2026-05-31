@@ -30,6 +30,15 @@ export interface TroupeListItem {
   upcomingEventCount: number
 }
 
+/** Troupe summary for platform-admin navigation (no membership). */
+export interface TroupeAdminSummary {
+  id: string
+  name: string
+  slug: string
+  isDemo: boolean
+  joinPolicy: 'OPEN' | 'INVITE_ONLY'
+}
+
 export interface TroupeMemberAdmin {
   id: string
   userId: string
@@ -164,6 +173,23 @@ export class TroupeApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as TroupeListItem[]
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  /** Admin plateforme : résout une troupe par slug sans adhésion (navigation directe par URL). */
+  async getAdminTroupeBySlug(slug: string): ApiResult<TroupeAdminSummary> {
+    try {
+      const res = await fetch(
+        `/v1/admin/troupes/by-slug/${encodeURIComponent(slug)}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as TroupeAdminSummary
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

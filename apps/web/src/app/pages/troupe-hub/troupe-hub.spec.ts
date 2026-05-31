@@ -123,6 +123,9 @@ describe('TroupeHub', () => {
             selectTroupe: vi.fn(),
             currentUserDisplayLabel: (u: { displayName: string }) => u.displayName,
             activeTroupes: () => troupes,
+            resolveTroupeBySlug: vi.fn().mockImplementation(async (slug: string) =>
+              troupes.find((t) => t.slug === slug) ?? null,
+            ),
           },
         },
         {
@@ -253,6 +256,24 @@ describe('TroupeHub', () => {
       },
     }))
     const selectTroupe = vi.fn()
+    const hubTroupes = [
+      {
+        id: 't1',
+        name: 'Les Improbots',
+        slug: 'les-improbots',
+        membership: {
+          id: 'm1',
+          displayName: 'Admin',
+          status: 'ACTIVE' as const,
+          baselineRole: 'TROUPE_ADMIN' as const,
+          createdAt: '',
+          updatedAt: '',
+        },
+        activeMemberCount: 4,
+        upcomingEventCount: 2,
+      },
+      secondTroupe,
+    ]
 
     await TestBed.configureTestingModule({
       imports: [TroupeHub, NoopAnimationsModule],
@@ -277,24 +298,10 @@ describe('TroupeHub', () => {
             load: vi.fn().mockResolvedValue(true),
             selectTroupe,
             currentUserDisplayLabel: (u: { displayName: string }) => u.displayName,
-            activeTroupes: () => [
-              {
-                id: 't1',
-                name: 'Les Improbots',
-                slug: 'les-improbots',
-                membership: {
-                  id: 'm1',
-                  displayName: 'Admin',
-                  status: 'ACTIVE',
-                  baselineRole: 'TROUPE_ADMIN',
-                  createdAt: '',
-                  updatedAt: '',
-                },
-                activeMemberCount: 4,
-                upcomingEventCount: 2,
-              },
-              secondTroupe,
-            ],
+            activeTroupes: () => hubTroupes,
+            resolveTroupeBySlug: vi.fn().mockImplementation(async (slug: string) =>
+              hubTroupes.find((t) => t.slug === slug) ?? null,
+            ),
           },
         },
         { provide: SeasonApiService, useValue: { listSeasons } },
@@ -341,6 +348,23 @@ describe('TroupeHub', () => {
         totalPages: 1,
       },
     })
+    const archivedTroupes = [
+      {
+        id: 't1',
+        name: 'Les Improbots',
+        slug: 'les-improbots',
+        membership: {
+          id: 'm1',
+          displayName: 'Admin',
+          status: 'ACTIVE' as const,
+          baselineRole: 'TROUPE_ADMIN' as const,
+          createdAt: '',
+          updatedAt: '',
+        },
+        activeMemberCount: 4,
+        upcomingEventCount: 2,
+      },
+    ]
     await TestBed.configureTestingModule({
       imports: [TroupeHub, NoopAnimationsModule],
       providers: [
@@ -364,23 +388,10 @@ describe('TroupeHub', () => {
             load: vi.fn().mockResolvedValue(true),
             selectTroupe: vi.fn(),
             currentUserDisplayLabel: () => 'Test',
-            activeTroupes: () => [
-              {
-                id: 't1',
-                name: 'Les Improbots',
-                slug: 'les-improbots',
-                membership: {
-                  id: 'm1',
-                  displayName: 'Admin',
-                  status: 'ACTIVE',
-                  baselineRole: 'TROUPE_ADMIN',
-                  createdAt: '',
-                  updatedAt: '',
-                },
-                activeMemberCount: 4,
-                upcomingEventCount: 2,
-              },
-            ],
+            activeTroupes: () => archivedTroupes,
+            resolveTroupeBySlug: vi.fn().mockImplementation(async (slug: string) =>
+              archivedTroupes.find((t) => t.slug === slug) ?? null,
+            ),
           },
         },
         { provide: SeasonApiService, useValue: { listSeasons } },
@@ -448,6 +459,7 @@ describe('TroupeHub', () => {
             selectTroupe: vi.fn(),
             currentUserDisplayLabel: () => 'Test',
             activeTroupes: () => [],
+            resolveTroupeBySlug: vi.fn().mockResolvedValue(null),
           },
         },
         {

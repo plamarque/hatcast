@@ -48,6 +48,8 @@ interface SeasonRepository : JpaRepository<SeasonEntity, UUID> {
         slug: String,
     ): SeasonEntity?
 
+    fun findAllBySlug(slug: String): List<SeasonEntity>
+
     fun findByTroupe_IdAndIsActiveTrue(troupeId: UUID): SeasonEntity?
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

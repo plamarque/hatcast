@@ -251,6 +251,7 @@ Composer
 
 - 2026-05-28 : Story **18.2** created via `bmad-create-story` — self-join OPEN, demo season enrollment, platform admin PATCH join policy.
 - 2026-05-28 : Code review — decision B (réactivation conserve le rôle) ; patches : retrait dead code, `SeasonParticipantMembershipSync` extrait (évite cycle Spring).
+- 2026-05-31 : Extension admin plateforme — navigation par URL sans adhésion (`GET /admin/troupes/by-slug/{slug}`, `GET /admin/seasons/by-slug/{slug}` ; bypass `requireActiveMember` ; front `resolveTroupeBySlug`). Hors scope story originale ; voir `deferred-work.md` § preferences sheet.
 
 ---
 

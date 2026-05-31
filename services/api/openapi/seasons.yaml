@@ -9,7 +9,9 @@ info:
     Les mutations exigent le cookie de session et l’en-tête CSRF `X-XSRF-TOKEN` (voir Spring Security).
     Les mutations d'administration de troupe exigent une adhésion active avec le rôle de base `TROUPE_ADMIN`.
     L'auto-adhésion (`POST …/memberships/me`) est autorisée pour les troupes `joinPolicy = OPEN` (rôle `MEMBER`).
-    La troupe démo (`isDemo`) inscrit aussi le membre sur la saison active. Les admins plateforme peuvent modifier `joinPolicy` via `PATCH /admin/troupes/{id}`.
+    Les admins plateforme peuvent modifier `joinPolicy` via `PATCH /admin/troupes/{id}`.
+    Les admins plateforme peuvent **résoudre une troupe ou une saison par slug** (navigation directe par URL, sans adhésion) via
+    `GET /admin/troupes/by-slug/{slug}` et `GET /admin/seasons/by-slug/{slug}` ; la liste `GET /troupes` reste limitée aux adhésions actives.
   version: 0.1.0
 
 servers:
@@ -106,6 +108,62 @@ paths:
           description: Non admin plateforme ou CSRF invalide
         '404':
           description: Troupe inconnue
+
+  /admin/troupes/by-slug/{slug}:
+    get:
+      tags: [Troupes]
+      summary: Résoudre une troupe par slug (admin plateforme)
+      description: >
+        Retourne le résumé admin d'une troupe sans exiger d'adhésion active.
+        Permet la navigation directe par URL (`/troupes/:slug`) pour les super-admins.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeAdminSummary'
+        '403':
+          description: Non admin plateforme
+        '404':
+          description: Troupe inconnue
+
+  /admin/seasons/by-slug/{slug}:
+    get:
+      tags: [Saisons]
+      summary: Résoudre une saison par slug dans toutes les troupes (admin plateforme)
+      description: >
+        Retourne une liste de paires `{ troupe, season }` (plusieurs entrées si slug homonyme).
+        Permet la navigation directe par URL (`/saison/:slug`) pour les super-admins sans adhésion.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlatformAdminSeasonResolution'
+        '403':
+          description: Non admin plateforme
+        '404':
+          description: Saison inconnue
 
   /troupes/{troupeId}/memberships/me:
     get:
@@ -998,6 +1056,15 @@ components:
           $ref: '#/components/schemas/TroupeJoinPolicy'
         isDemo:
           type: boolean
+
+    PlatformAdminSeasonResolution:
+      type: object
+      required: [troupe, season]
+      properties:
+        troupe:
+          $ref: '#/components/schemas/TroupeAdminSummary'
+        season:
+          $ref: '#/components/schemas/SeasonResponse'
 
     MembershipSummary:
       type: object

@@ -1,5 +1,6 @@
 package com.hatcast.api.season
 
+import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.season.dto.UpdateSeasonRequest
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeAccessService
@@ -29,7 +30,15 @@ class SeasonServiceUpdateTest {
     private val troupeRepository = mock<TroupeRepository>()
     private val troupeAccess = mock<TroupeAccessService>()
     private val seasonAccess = mock<SeasonAccessService>()
-    private val service = SeasonService(seasonRepository, troupeRepository, troupeAccess, seasonAccess)
+    private val platformAdminService = mock<PlatformAdminService>()
+    private val service =
+        SeasonService(
+            seasonRepository,
+            troupeRepository,
+            troupeAccess,
+            seasonAccess,
+            platformAdminService,
+        )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seasonId = UUID.fromString("22222222-2222-2222-2222-222222222222")

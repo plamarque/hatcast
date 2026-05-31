@@ -1,5 +1,6 @@
 package com.hatcast.api.troupe
 
+import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.CreateTroupeRequest
 import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
@@ -18,6 +19,7 @@ class TroupeService(
     private val troupeRepository: TroupeRepository,
     private val membershipRepository: TroupeMembershipRepository,
     private val userRepository: UserRepository,
+    private val platformAdminService: PlatformAdminService,
 ) {
     @Transactional
     fun create(
@@ -80,6 +82,27 @@ class TroupeService(
             HttpStatus.CONFLICT,
             "Impossible de créer la troupe, réessayez.",
         )
+    }
+
+    @Transactional(readOnly = true)
+    fun getBySlugForPlatformAdmin(
+        slug: String,
+        principal: SessionUserPrincipal,
+    ): TroupeAdminSummaryDto {
+        if (!platformAdminService.isPlatformAdmin(principal)) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Accès réservé aux administrateurs de la plateforme.",
+            )
+        }
+        val normalized = slug.trim()
+        if (normalized.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Slug de troupe invalide.")
+        }
+        val troupe =
+            troupeRepository.findBySlug(normalized)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        return TroupeAdminSummaryDto.from(troupe)
     }
 
     @Transactional

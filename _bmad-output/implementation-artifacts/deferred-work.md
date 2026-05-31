@@ -1,3 +1,8 @@
+## Deferred from: platform admin troupe navigation by URL (2026-05-31)
+
+- Hub troupe **« Préférences dans cette troupe »** (`troupe-hub-preferences-sheet`) appelle `PATCH …/memberships/me` — échoue sans adhésion réelle ; masquer ou adapter pour le contexte admin plateforme sans membership. [troupe-hub-preferences-sheet.ts]
+- Pas de liste « toutes les troupes » pour super-admin dans `/troupes` (volontaire) ; navigation par URL ou future story dédiée.
+
 ## Deferred from: code review of 16-2-statistiques-avatar-navigation-profil-membre.md (2026-05-31)
 
 - Reload parallèle stats/history dans `season-home.ts` (commit 85d5b48d) — correctif utile pour retour navigateur `view=stats`, hors scope story 16.2 mais bundlé intentionnellement. [season-home.ts:501-521]

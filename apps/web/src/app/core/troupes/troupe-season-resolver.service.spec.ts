@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { AuthApiService } from '../auth/auth-api.service'
 import type { SeasonResponse } from '../seasons/season-api.service'
 import { SeasonApiService } from '../seasons/season-api.service'
 import type { TroupeListItem } from './troupe-api.service'
@@ -10,18 +11,32 @@ import { TroupeSeasonResolverService } from './troupe-season-resolver.service'
 
 describe('TroupeSeasonResolverService', () => {
   let troupeApi: { listMyTroupes: ReturnType<typeof vi.fn> }
-  let seasonsApi: { getSeasonBySlug: ReturnType<typeof vi.fn> }
+  let seasonsApi: {
+    getSeasonBySlug: ReturnType<typeof vi.fn>
+    resolveAdminSeasonBySlug: ReturnType<typeof vi.fn>
+  }
+  let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     localStorage.clear()
     troupeApi = { listMyTroupes: vi.fn() }
-    seasonsApi = { getSeasonBySlug: vi.fn() }
+    seasonsApi = {
+      getSeasonBySlug: vi.fn(),
+      resolveAdminSeasonBySlug: vi.fn(),
+    }
+    auth = {
+      ensureHatcastSession: vi.fn().mockResolvedValue({
+        ok: true,
+        data: { platformAdmin: false },
+      }),
+    }
     TestBed.configureTestingModule({
       providers: [
         TroupeContextService,
         TroupeSeasonResolverService,
         { provide: TroupeApiService, useValue: troupeApi },
         { provide: SeasonApiService, useValue: seasonsApi },
+        { provide: AuthApiService, useValue: auth },
       ],
     })
   })
@@ -114,6 +129,40 @@ describe('TroupeSeasonResolverService', () => {
 
     expect(result.kind).toBe('error')
     expect(seasonsApi.getSeasonBySlug).toHaveBeenCalledTimes(1)
+  })
+
+  it('résout une saison via admin plateforme sans adhésion troupe', async () => {
+    auth.ensureHatcastSession.mockResolvedValue({
+      ok: true,
+      data: { platformAdmin: true },
+    })
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [],
+    })
+    seasonsApi.resolveAdminSeasonBySlug.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [
+        {
+          troupe: {
+            id: 'troupe-improbots',
+            name: 'Les Improbots',
+            slug: 'les-improbots',
+            isDemo: false,
+            joinPolicy: 'OPEN',
+          },
+          season: season('s-improbots', 'troupe-improbots'),
+        },
+      ],
+    })
+
+    const result = await resolver().resolveSeasonSlug('les-improbots-2026-2027')
+
+    expect(result.kind).toBe('resolved')
+    expect(result.kind === 'resolved' ? result.troupe.slug : null).toBe('les-improbots')
+    expect(seasonsApi.resolveAdminSeasonBySlug).toHaveBeenCalledWith('les-improbots-2026-2027')
   })
 
   function resolver(): TroupeSeasonResolverService {

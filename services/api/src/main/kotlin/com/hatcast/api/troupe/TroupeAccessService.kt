@@ -16,11 +16,14 @@ class TroupeAccessService(
     private val membershipService: TroupeMembershipService,
     private val platformAdminService: PlatformAdminService,
 ) {
-    /** Lecture : saisons, événements, contexte troupe pour un membre actif. */
+    /** Lecture : saisons, événements, contexte troupe pour un membre actif (ou admin plateforme). */
     fun requireActiveMember(
         principal: SessionUserPrincipal,
         troupeId: UUID,
     ) {
+        if (platformAdminService.isPlatformAdmin(principal)) {
+            return
+        }
         membershipService.requireActiveMembership(principal.userId, troupeId)
     }
 
