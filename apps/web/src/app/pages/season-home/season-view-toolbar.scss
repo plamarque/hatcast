@@ -1,67 +1,68 @@
+:host {
+  display: block;
+}
+
+.season-view-toolbar {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+}
+
 .season-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.season-toolbar__filters {
+.season-toolbar__left {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   min-width: 0;
   flex: 1;
 }
 
-.season-toolbar__filter {
-  max-width: 100%;
-
-  span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 9rem;
-  }
-}
-
-.season-toolbar__caret {
-  margin-left: auto;
-  font-size: 1.1rem;
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.season-toolbar__filter--warn {
-  border-color: var(--mat-sys-error, #f44336);
-  color: var(--mat-sys-error, #f44336);
-}
-
-.season-toolbar__categories-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  max-width: 22rem;
-}
-
-.season-toolbar__categories-title {
-  margin: 0;
-  font-weight: 600;
-}
-
 .season-toolbar__right {
   display: flex;
   flex-shrink: 0;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .season-toolbar__views {
   flex-shrink: 0;
+}
+
+.season-toolbar__criteria-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 0.5rem;
+  overflow-x: clip;
+}
+
+.season-toolbar__criteria-panel app-filter-criteria-bar {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.season-toolbar__chips-row {
+  display: flex;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.season-toolbar__chips-row app-active-filter-chips {
+  width: 100%;
 }
 
 @media (max-width: 480px) {
@@ -82,4 +83,5 @@
       flex: 1;
     }
   }
+
 }

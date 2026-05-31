@@ -158,13 +158,13 @@ describe('MemberSeasonGlance', () => {
       },
     })
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('app-user-agenda-filter-bar')).toBeTruthy()
+      expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).toBeTruthy()
     })
   })
 
-  it('hides filter bar when API reports filterBarVisible false', async () => {
+  it('hides filter trigger when API reports filterBarVisible false', async () => {
     const { fixture } = await setup({ glance: glanceSelf })
-    expect(fixture.nativeElement.querySelector('app-user-agenda-filter-bar')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).toBeNull()
   })
 
   it('does not show preferred roles editor on glance page', async () => {

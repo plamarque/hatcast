@@ -11,6 +11,9 @@ stakeholderReservations:
   - id: RES-001
     topic: Agenda filter chrome
     decision: Hide troupe/season filter bar when user has exactly one troupe membership and one season participation; show when either dimension has >1 option.
+  - id: RES-002
+    topic: Unified filter panel (2026-05-31)
+    decision: When RES-001 does not apply, show filter_list icon only (no inline pulldowns). See ux-design-unified-filter-panel.md.
 relatedADR:
   - docs/adr/0011-league-model-and-user-agenda.md
   - docs/adr/0012-league-views-travel-leagues-member-stats.md
@@ -148,23 +151,20 @@ flowchart TB
 | **Top-right** | User avatar menu (Compte, Déconnexion) |
 | **No back** | This is root for signed-in members |
 
-### Filters (sticky below title)
+### Filters (header / toolbar — amended 2026-05-31)
+
+> **Superseded inline bar:** [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md) (UX-DR22). Icon trigger + bottom sheet + active chips — no sticky pulldown row.
 
 **Visibility (RES-001 — locked):**
 
-| User context | Filter bar |
-|--------------|------------|
-| **1 troupe** + **1 saison** (participant) | **Hidden** |
-| **>1 troupe** and/or **>1 saison** | **Shown** |
+| User context | Filter chrome |
+|--------------|---------------|
+| **1 troupe** + **1 saison** (participant) | **Hidden** (no icon) |
+| **>1 troupe** and/or **>1 saison** | **`filter_list` icon only**; badge + chips when active |
 
-When shown:
+When icon shown: tap opens panel (Troupe + Saison sections). Season filter scoped to selected troupe; lists seasons where user is participant.
 
-```
-[ Toutes les troupes ▾ ]  [ Toutes les saisons ▾ ]     [ Effacer filtres ]
-```
-
-- Season filter: scoped to selected troupe(s); lists seasons where user is participant.
-- When hidden: troupe + saison remain on **each event row** (badges).
+When hidden: troupe + saison remain on **each event row** (badges).
 
 ### Event list (UX-DR14)
 
@@ -341,11 +341,14 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 ### Chrome
 
+> **2026-05-31 (approved):** [ux-design-event-detail-chrome-alignment.md](./ux-design-event-detail-chrome-alignment.md) — breadcrumb-only header, gear top-right, no mobile title/date duplicate, agenda ⋮ removed.
+
 | Zone | Content |
 |------|---------|
-| **Breadcrumb** | `[logo] Troupe › Saison › Event title` (mobile: logo + titles in body) |
-| **Top-right** | Avatar; event overflow ⋮ if needed (not global ⚙) |
-| **Infos tab** (top-right) | Single `app-scope-admin-menu` — gear merges season admin + Modifier/Archiver (no ⋮ kebab) |
+| **Breadcrumb** | `[logo] Troupe › Saison › Event title` — **mobile:** event title in breadcrumb row (no second title block) |
+| **Header right** | `app-scope-admin-menu` (when permitted) + avatar |
+| **Removed** | Mobile `event-detail__mobile-context` (title + date); agenda card `more_vert` (Modifier/Archiver) |
+| **Infos tab** | Centered composition status badge; date in Date field only |
 
 **Removed vs 2026-05-24:** chevron back; **context strip** (`La Malice · Ligue…`) — redundant with breadcrumb.
 

@@ -1,60 +1,67 @@
-import { Component, computed, input, model, output } from '@angular/core'
+import { Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
 
+import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import {
-  ScopeAdminMenu,
-  type ScopeAdminMenuItem,
-  type ScopeAdminMenuScope,
-} from '../../shared/scope-admin-menu/scope-admin-menu'
+  buildSeasonFilterChips,
+  buildSeasonHubDimensions,
+  defaultEventPickerScope,
+  eventFilterOptionFromResponse,
+  eventOptionsForPicker,
+  participantOptionsForPicker,
+  resetSeasonFilterDimension,
+} from '../../shared/filters/filter-builders'
+import { ActiveFilterChips } from '../../shared/filters/active-filter-chips'
+import { FilterCriteriaBar } from '../../shared/filters/filter-criteria-bar'
+import { FilterPanelService } from '../../shared/filters/filter-panel.service'
+import { FilterTrigger } from '../../shared/filters/filter-trigger'
+import type { FilterDimensionKey } from '../../shared/filters/filter.types'
 import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './season-view.types'
 import {
-  PRINCIPAL_CATEGORY,
-  allCategorySlugs,
-  isSlugSelected,
-  statsCategoriesFilterLabel,
-  toggleAllCategories,
-  toggleCategorySlug,
+  defaultStatsCategoryFilter,
   type StatsCategoryFilter,
 } from './stats-categories'
+
+const EVENT_PICKER_PAGE_SIZE = 50
+const EVENT_PICKER_MAX = 250
 
 @Component({
   selector: 'app-season-view-toolbar',
   imports: [
     MatButtonModule,
     MatButtonToggleModule,
-    MatCheckboxModule,
     MatIconModule,
-    MatMenuModule,
-    ScopeAdminMenu,
+    ActiveFilterChips,
+    FilterCriteriaBar,
+    FilterTrigger,
   ],
   templateUrl: './season-view-toolbar.html',
   styleUrl: './season-view-toolbar.scss',
 })
 export class SeasonViewToolbar {
+  private readonly filterPanel = inject(FilterPanelService)
+  private readonly eventsApi = inject(EventApiService)
+
   readonly seasonView = model.required<SeasonView>()
-  readonly showAgendaFilters = input(true)
-  readonly showHistoryFilters = input(false)
-  readonly showStatsFilters = input(false)
+  readonly seasonId = input<string | null>(null)
+  readonly filterTriggerVisible = input(false)
   readonly detailsExpanded = model(false)
 
-  /** Participant filter — MVP: only Tous until player/availability data exists. */
   readonly participantOptions = input<ParticipantFilterOption[]>([
     { id: null, label: 'Tous' },
   ])
-  readonly selectedParticipantId = model<string | null>(null)
+  readonly selectedParticipantIds = model<string[]>([])
 
   readonly eventOptions = input<EventFilterOption[]>([])
-  readonly selectedEventId = model<string | null>(null)
+  readonly selectedEventIds = model<string[]>([])
 
   readonly historyEventOptions = input<EventFilterOption[]>([])
-  readonly selectedHistoryEventId = model<string | null>(null)
+  readonly selectedHistoryEventIds = model<string[]>([])
 
   readonly statsEventOptions = input<EventFilterOption[]>([])
-  readonly selectedStatsEventId = model<string | null>(null)
+  readonly selectedStatsEventIds = model<string[]>([])
 
   readonly categoryGlossarySlugs = input<string[]>([])
   readonly categoryLabels = input<Record<string, string>>({})
@@ -63,113 +70,226 @@ export class SeasonViewToolbar {
 
   readonly exportClick = output<void>()
 
-  readonly adminScope = input<ScopeAdminMenuScope>('saison')
-  readonly adminItems = input<ScopeAdminMenuItem[]>([])
-
-  protected readonly allCategorySlugs = computed(() =>
-    allCategorySlugs(this.categoryGlossarySlugs()),
-  )
-
-  protected readonly statsCategoriesLabel = computed(() =>
-    statsCategoriesFilterLabel(this.statsCategoryFilter(), this.categoryLabels()),
-  )
+  protected readonly filterPanelOpen = signal(false)
+  private readonly eventPickerShowPast = signal(false)
+  private readonly eventPickerShowArchived = signal(false)
 
   protected readonly statsCategoriesNoneSelected = computed(
     () => this.statsCategoryFilter().kind === 'none',
   )
 
-  protected participantLabel(): string {
-    const id = this.selectedParticipantId()
-    const opt = this.participantOptions().find((o) => o.id === id)
-    return opt?.label ?? 'Tous'
+  protected readonly hubDimensions = computed(() =>
+    buildSeasonHubDimensions({
+      view: this.seasonView(),
+      participantOptions: this.participantOptions(),
+      selectedParticipantIds: this.selectedParticipantIds(),
+      eventOptions: this.currentEventOptions(),
+      selectedEventIds: this.currentEventIds(),
+      statsCategoryFilter:
+        this.seasonView() === 'stats' ? this.statsCategoryFilter() : { kind: 'all' },
+      categoryLabels: this.categoryLabels(),
+      categoryGlossarySlugs: this.categoryGlossarySlugs(),
+    }),
+  )
+
+  protected readonly activeFilterChips = computed(() =>
+    buildSeasonFilterChips({
+      participantOptions: this.participantOptions(),
+      selectedParticipantIds: this.selectedParticipantIds(),
+      eventOptions: this.currentEventOptions(),
+      selectedEventIds: this.currentEventIds(),
+      statsCategoryFilter:
+        this.seasonView() === 'stats' ? this.statsCategoryFilter() : { kind: 'all' },
+      categoryLabels: this.categoryLabels(),
+    }),
+  )
+
+  protected showExport(): boolean {
+    return this.seasonView() === 'history' || this.seasonView() === 'stats'
   }
 
-  protected eventLabel(): string {
-    const id = this.selectedEventId()
-    if (!id) {
-      return 'Tous'
+  protected showDetailsToggle(): boolean {
+    return this.seasonView() === 'stats'
+  }
+
+  protected toggleCriteriaPanel(): void {
+    if (!this.filterTriggerVisible()) {
+      return
     }
-    return this.eventOptions().find((o) => o.id === id)?.title ?? 'Tous'
+    this.filterPanelOpen.update((open) => !open)
   }
 
-  protected historyEventLabel(): string {
-    const id = this.selectedHistoryEventId()
-    if (!id) {
-      return 'Tous'
+  protected async onOpenFilterDimension(key: FilterDimensionKey): Promise<void> {
+    await this.openPickerForDimension(key)
+  }
+
+  protected onRemoveFilterDimension(key: FilterDimensionKey): void {
+    const reset = resetSeasonFilterDimension(key, {
+      statsCategoryFilter: this.statsCategoryFilter(),
+    })
+    if (reset.participant) {
+      this.selectedParticipantIds.set([])
     }
-    return this.historyEventOptions().find((o) => o.id === id)?.title ?? 'Tous'
-  }
-
-  protected statsEventLabel(): string {
-    const id = this.selectedStatsEventId()
-    if (!id) {
-      return 'Tous'
+    if (reset.spectacle) {
+      this.setCurrentEventIds([])
     }
-    return this.statsEventOptions().find((o) => o.id === id)?.title ?? 'Tous'
+    if (reset.categories && this.seasonView() === 'stats') {
+      this.statsCategoryFilterChange.emit(reset.categories)
+    }
   }
 
-  protected isAllCategoriesSelected(): boolean {
-    return this.statsCategoryFilter().kind === 'all'
-  }
-
-  protected isCategoryChecked(slug: string): boolean {
-    return isSlugSelected(this.statsCategoryFilter(), slug)
-  }
-
-  protected principalLabel(): string {
-    return 'Spectacles ordinaires'
-  }
-
-  protected glossaryLabel(slug: string): string {
-    return this.categoryLabels()[slug] ?? slug
-  }
-
-  protected toggleAllCategories(checked: boolean): void {
-    this.emitCategoryFilter(
-      toggleAllCategories(this.statsCategoryFilter(), this.allCategorySlugs(), checked),
-    )
-  }
-
-  protected togglePrincipal(checked: boolean): void {
-    this.toggleCategory(PRINCIPAL_CATEGORY, checked)
-  }
-
-  protected toggleGlossarySlug(slug: string, checked: boolean): void {
-    this.toggleCategory(slug, checked)
-  }
-
-  private toggleCategory(slug: string, checked: boolean): void {
-    this.emitCategoryFilter(
-      toggleCategorySlug(
-        this.statsCategoryFilter(),
-        this.allCategorySlugs(),
-        slug,
-        checked,
-      ),
-    )
-  }
-
-  private emitCategoryFilter(next: StatsCategoryFilter): void {
-    this.statsCategoryFilterChange.emit(next)
-  }
-
-  protected selectParticipant(id: string | null): void {
-    this.selectedParticipantId.set(id)
-  }
-
-  protected selectEvent(id: string | null): void {
-    this.selectedEventId.set(id)
-  }
-
-  protected selectHistoryEvent(id: string | null): void {
-    this.selectedHistoryEventId.set(id)
-  }
-
-  protected selectStatsEvent(id: string | null): void {
-    this.selectedStatsEventId.set(id)
+  protected onClearAllFilters(): void {
+    this.selectedParticipantIds.set([])
+    this.setCurrentEventIds([])
+    if (this.seasonView() === 'stats') {
+      this.statsCategoryFilterChange.emit(defaultStatsCategoryFilter())
+    }
   }
 
   protected toggleDetails(): void {
     this.detailsExpanded.update((v) => !v)
+  }
+
+  private async openPickerForDimension(key: FilterDimensionKey): Promise<void> {
+    if (key === 'participant') {
+      await this.openParticipantPicker()
+      return
+    }
+    if (key === 'spectacle') {
+      await this.openEventPicker()
+      return
+    }
+    if (key === 'categories') {
+      await this.openCategoriesPicker()
+    }
+  }
+
+  private async openParticipantPicker(): Promise<void> {
+    const result = await this.filterPanel.openParticipantPicker({
+      options: participantOptionsForPicker(this.participantOptions()),
+      selectedIds: [...this.selectedParticipantIds()],
+    })
+    if (!result) {
+      return
+    }
+    if (result.action === 'reset') {
+      this.selectedParticipantIds.set([])
+      return
+    }
+    this.selectedParticipantIds.set([...result.selectedIds])
+  }
+
+  private async openEventPicker(): Promise<void> {
+    const view = this.seasonView()
+    const defaults = defaultEventPickerScope(view)
+    const pickerOptions = await this.loadEventPickerOptions()
+    const result = await this.filterPanel.openEventPicker({
+      options: pickerOptions,
+      selectedIds: [...this.currentEventIds()],
+      showPast: this.eventPickerShowPast() || defaults.showPast,
+      showArchived: this.eventPickerShowArchived() || defaults.showArchived,
+    })
+    if (!result) {
+      return
+    }
+    this.eventPickerShowPast.set(result.showPast)
+    this.eventPickerShowArchived.set(result.showArchived)
+    if (result.action === 'reset') {
+      this.setCurrentEventIds([])
+      return
+    }
+    this.setCurrentEventIds([...result.selectedIds])
+  }
+
+  private async openCategoriesPicker(): Promise<void> {
+    const result = await this.filterPanel.openCategoriesPicker({
+      value: this.statsCategoryFilter(),
+      glossarySlugs: this.categoryGlossarySlugs(),
+      labels: this.categoryLabels(),
+    })
+    if (!result) {
+      return
+    }
+    if (result.action === 'reset') {
+      this.statsCategoryFilterChange.emit(defaultStatsCategoryFilter())
+      return
+    }
+    this.statsCategoryFilterChange.emit(result.value)
+  }
+
+  private currentEventOptions(): EventFilterOption[] {
+    const view = this.seasonView()
+    if (view === 'history') {
+      return this.historyEventOptions()
+    }
+    if (view === 'stats') {
+      return this.statsEventOptions()
+    }
+    return this.eventOptions()
+  }
+
+  private currentEventIds(): string[] {
+    const view = this.seasonView()
+    if (view === 'history') {
+      return this.selectedHistoryEventIds()
+    }
+    if (view === 'stats') {
+      return this.selectedStatsEventIds()
+    }
+    return this.selectedEventIds()
+  }
+
+  private setCurrentEventIds(ids: string[]): void {
+    const view = this.seasonView()
+    if (view === 'history') {
+      this.selectedHistoryEventIds.set(ids)
+      return
+    }
+    if (view === 'stats') {
+      this.selectedStatsEventIds.set(ids)
+      return
+    }
+    this.selectedEventIds.set(ids)
+  }
+
+  private async loadEventPickerOptions(): Promise<
+    ReturnType<typeof eventOptionsForPicker>
+  > {
+    const seasonId = this.seasonId()
+    if (!seasonId) {
+      return eventOptionsForPicker(this.currentEventOptions())
+    }
+
+    const collected: EventResponse[] = []
+    let page = 0
+    while (collected.length < EVENT_PICKER_MAX) {
+      const r = await this.eventsApi.listEvents(
+        seasonId,
+        page,
+        EVENT_PICKER_PAGE_SIZE,
+        'all',
+      )
+      if (!r.ok || !r.data) {
+        break
+      }
+      collected.push(...r.data.content)
+      if (
+        r.data.content.length === 0 ||
+        page >= r.data.totalPages - 1 ||
+        collected.length >= r.data.totalElements
+      ) {
+        break
+      }
+      page += 1
+    }
+
+    if (collected.length === 0) {
+      return eventOptionsForPicker(this.currentEventOptions())
+    }
+
+    const now = new Date()
+    return eventOptionsForPicker(
+      collected.slice(0, EVENT_PICKER_MAX).map((e) => eventFilterOptionFromResponse(e, now)),
+    )
   }
 }

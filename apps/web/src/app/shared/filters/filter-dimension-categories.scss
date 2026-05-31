@@ -1,0 +1,29 @@
+.filter-dimension-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-dimension-categories__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-dimension-categories__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.filter-dimension-categories__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.filter-dimension-categories__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}

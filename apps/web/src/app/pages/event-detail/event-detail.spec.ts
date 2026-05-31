@@ -251,7 +251,7 @@ describe('EventDetail', () => {
     await vi.waitFor(() => {
       expect(loadEventMock).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger')).toBeNull()
   })
 
   it('shows unified admin gear on Infos when canManageEvents', async () => {
@@ -275,15 +275,14 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+        fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger'),
       ).not.toBeNull()
     })
 
     const cmp = fixture.componentInstance as unknown as {
       eventAdminItems: () => Array<{ label: string }>
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toContain('Modifier')
-    expect(cmp.eventAdminItems().map((i) => i.label)).toContain('Archiver')
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Participants', 'Archiver'])
   })
 
   it('selects Dispos tab when showAvailability=true', async () => {
@@ -482,7 +481,7 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+        fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger'),
       ).not.toBeNull()
     })
 
@@ -491,12 +490,12 @@ describe('EventDetail', () => {
       eventAdminItems: () => Array<{ label: string }>
       openEventParticipantsAdmin: () => void
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants du spectacle'])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants'])
     cmp.openEventParticipantsAdmin()
     expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-2', 'admin', 'participants'])
 
     const trigger = fixture.nativeElement.querySelector(
-      '.event-infos__admin-menu .scope-admin-menu__trigger',
+      '.event-detail-header__admin .scope-admin-menu__trigger',
     ) as HTMLButtonElement
     expect(trigger.getAttribute('aria-label')).toBe('Administration du spectacle')
     expect(fixture.nativeElement.querySelector('[aria-label="Réglages saison"]')).toBeNull()
@@ -523,7 +522,7 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+        fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger'),
       ).not.toBeNull()
     })
 
@@ -532,12 +531,12 @@ describe('EventDetail', () => {
       eventAdminItems: () => Array<{ label: string; action?: () => void }>
       openEventParticipantsAdmin: () => void
     }
-    expect(cmp.eventAdminItems()[0]?.label).toBe('Participants du spectacle')
+    expect(cmp.eventAdminItems()[0]?.label).toBe('Participants')
     cmp.openEventParticipantsAdmin()
     expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-2', 'admin', 'participants'])
   })
 
-  it('does not show admin gear on Dispos tab', async () => {
+  it('shows admin gear in header on Dispos tab when permitted', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {
@@ -560,10 +559,12 @@ describe('EventDetail', () => {
     ;(fixture.componentInstance as unknown as { onTabChange(index: number): void }).onTabChange(1)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('.event-infos__admin-menu')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger'),
+    ).not.toBeNull()
   })
 
-  it('links spectacle organizers to participants admin for event-only organizer', async () => {
+  it('links event organizers to participants admin via Participants menu item', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {
@@ -584,25 +585,21 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+        fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger'),
       ).not.toBeNull()
     })
 
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
     const cmp = fixture.componentInstance as unknown as {
-      eventAdminItems: () => Array<{ label: string; routerLink?: string[] }>
+      eventAdminItems: () => Array<{ label: string; action?: () => void }>
+      openEventParticipantsAdmin: () => void
     }
-    expect(cmp.eventAdminItems()[0]?.label).toBe('Organisateur·ices')
-    expect(cmp.eventAdminItems()[0]?.routerLink).toEqual([
-      '/saison',
-      'season-a',
-      'event',
-      'event-2',
-      'admin',
-      'participants',
-    ])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants'])
+    cmp.openEventParticipantsAdmin()
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-2', 'admin', 'participants'])
   })
 
-  it('shows spectacle organizers link for season organizer on event admin menu', async () => {
+  it('shows Participants for season organizer on event admin menu', async () => {
     mySeasonPermissions.mockResolvedValue({
       ok: true,
       data: {
@@ -623,14 +620,14 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('.event-infos__admin-menu .scope-admin-menu__trigger'),
+        fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger'),
       ).not.toBeNull()
     })
 
     const cmp = fixture.componentInstance as unknown as {
       eventAdminItems: () => Array<{ label: string }>
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Organisateur·ices'])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants'])
   })
 
   it('does not render header settings or back chevron after breadcrumb refactor', async () => {
@@ -722,42 +719,41 @@ describe('EventDetail', () => {
     })
   })
 
-  it('shows mobile title and when block after successful load', async () => {
+  it('shows event title in mobile breadcrumb after successful load', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-detail__mobile-context-title')?.textContent?.trim()).toBe(
-        'Spectacle event-2',
-      )
+      expect(
+        fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')?.textContent?.trim(),
+      ).toBe('Spectacle event-2')
     })
-    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context-when')?.textContent?.trim()).not.toBe(
-      '',
-    )
-  })
-
-  it('does not render mobile context while loading', () => {
-    fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
   })
 
-  it('does not render mobile context after season resolver failure', async () => {
+  it('does not render duplicate mobile title block while loading', () => {
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
+  })
+
+  it('does not render mobile event breadcrumb after season resolver failure', async () => {
     getSeasonBySlug.mockResolvedValue({ ok: false, status: 404 })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(getSeasonBySlug).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
   })
 
-  it('does not render mobile context when event is not found', async () => {
+  it('does not render mobile event breadcrumb when event is not found', async () => {
     loadEventMock.mockResolvedValue({ ok: false, status: 404 })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(loadEventMock).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
   })
 
   it('syncCompositionFromEquipe patches lifecycle without reloading event', async () => {

@@ -56,18 +56,18 @@ Align with [ux-design-scope-admin-menu-epic17.md](ux-design-scope-admin-menu-epi
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ [logo] Troupe › Saison title                                    [avatar ▾] │  breadcrumb — NO back chevron, NO gear
+│ [logo] Troupe › Saison title                                        [⚙] │  breadcrumb — gear (UX-DR22.1)
 ├──────────────────────────────────────────────────────────────────────────┤
 │ (mobile only: H1 season title)                                            │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ ROW A — filters + actions (varies by view, see below)                     │
-│ ROW B — [ Agenda | Historique | Statistiques ]                    [ ⚙ ]   │  mat-button-toggle-group + scope admin
+│ ROW A — actions (Exporter, Détails on Stats/Hist)                         │
+│ ROW B — [ Agenda | Historique | Statistiques ]              [filter_list]│  filter right + chips column
 ├──────────────────────────────────────────────────────────────────────────┤
 │ MAIN — agenda list | past chronology | stats table                        │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Note:** Row order — **filters/actions above view toggles** on desktop when space allows; on mobile, **view toggles + gear** stay on one row (Epic 17.2), filters stack above.
+**Note:** Filter hub + pickers per [ux-design-unified-filter-panel.md](ux-design-unified-filter-panel.md) **UX-DR22.1** (Story **17.28**). On mobile, **view toggles** on their own row; gear in breadcrumb row only.
 
 ### View switcher
 
@@ -235,11 +235,13 @@ See **[ux-design-stats-equity-compartment-filter-17-10.md](ux-design-stats-equit
 
 ## Toolbar layout matrix (implementation)
 
+> **Amended 2026-05-31:** Inline filter pulldowns superseded by unified filter icon — [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md) (UX-DR22). Participant, Spectacle, and Groupes de spectacles live **inside** the filter panel.
+
 | View | Row A (filters/actions) | Row B (toggles + gear) |
 |------|-------------------------|-------------------------|
-| Agenda | Participant + Spectacle | Agenda \| Historique \| Statistiques + ⚙ |
-| Historique | Participant + Spectacle + **Exporter** | same |
-| Statistiques | Membres + Spectacles + **Groupes de spectacles** + **Exporter** + **Détails** | same |
+| Agenda | **`filter_list`** (when >1 option on any dimension) | Agenda \| Historique \| Statistiques + ⚙ |
+| Historique | **`filter_list`** + **Exporter** | same |
+| Statistiques | **`filter_list`** + **Exporter** + **Détails** | same |
 
 **Gear menu** unchanged — never hosts Exporter/Masquer.
 

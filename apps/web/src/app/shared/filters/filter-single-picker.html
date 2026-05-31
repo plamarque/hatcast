@@ -1,0 +1,31 @@
+<div
+  class="filter-picker-shell"
+  [class.filter-picker-shell--sheet]="isBottomSheet"
+  [class.filter-picker-shell--dialog]="!isBottomSheet"
+>
+  <div class="filter-picker-shell__header">
+    <h2 class="filter-picker-shell__title" cdkFocusInitial>{{ data.dimension.title }}</h2>
+    <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="filter-picker-shell__list filter-picker-shell__list--single">
+    <app-filter-dimension-single
+      [dimension]="effectiveDimension()"
+      [selectedId]="draftId()"
+      (selectionChange)="onSelect($event)"
+    />
+  </div>
+
+  @if (data.isMobile) {
+    <div class="filter-picker-shell__footer">
+      <button mat-button type="button" data-testid="single-picker-reset" (click)="onReset()">
+        Réinitialiser
+      </button>
+      <button mat-flat-button color="primary" type="button" data-testid="single-picker-apply" (click)="onApply()">
+        Appliquer
+      </button>
+    </div>
+  }
+</div>

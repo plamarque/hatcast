@@ -1,0 +1,31 @@
+<section class="filter-dimension-categories">
+  <div class="filter-dimension-categories__header">
+    <mat-icon aria-hidden="true">category</mat-icon>
+    <h3 class="filter-dimension-categories__title">Catégories</h3>
+  </div>
+  <p class="filter-dimension-categories__hint">
+    Filtre les spectacles inclus dans les statistiques.
+  </p>
+  <div class="filter-dimension-categories__options">
+    <mat-checkbox
+      [checked]="isAllSelected()"
+      (change)="onToggleAll($event.checked)"
+    >
+      Tous les spectacles
+    </mat-checkbox>
+    <mat-checkbox
+      [checked]="isChecked('principal')"
+      (change)="onTogglePrincipal($event.checked)"
+    >
+      {{ principalLabel() }}
+    </mat-checkbox>
+    @for (slug of glossarySlugs(); track slug) {
+      <mat-checkbox
+        [checked]="isChecked(slug)"
+        (change)="onToggleGlossarySlug(slug, $event.checked)"
+      >
+        {{ glossaryLabel(slug) }}
+      </mat-checkbox>
+    }
+  </div>
+</section>

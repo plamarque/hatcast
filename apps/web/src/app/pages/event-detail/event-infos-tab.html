@@ -11,15 +11,6 @@
           >
             {{ status.label }}
           </span>
-          <div class="composition-equipe-status__actions">
-            @if (adminItems().length > 0) {
-              <app-scope-admin-menu
-                class="event-infos__admin-menu"
-                scope="event"
-                [items]="adminItems()"
-              />
-            }
-          </div>
         </div>
       </div>
     }

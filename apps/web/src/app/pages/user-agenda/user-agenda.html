@@ -1,7 +1,8 @@
 <div class="user-agenda">
   <header class="user-agenda__header">
-    <div class="user-agenda__header-row">
-      <h1 class="user-agenda__title">Mon agenda</h1>
+    <h1 class="user-agenda__title">Mon agenda</h1>
+    <div class="user-agenda__header-subline">
+      <p class="user-agenda__subtitle">Mes prochains spectacles, toutes saisons confondues.</p>
       @if (!loadingSession() && !loadError() && filterBarVisible()) {
         <div class="user-agenda__header-actions" data-testid="filter-trigger-column">
           <app-filter-trigger
@@ -13,7 +14,6 @@
         </div>
       }
     </div>
-    <p class="user-agenda__subtitle">Mes prochains spectacles, toutes saisons confondues.</p>
   </header>
 
   @if (!loadingSession() && !loadError() && filterBarVisible()) {

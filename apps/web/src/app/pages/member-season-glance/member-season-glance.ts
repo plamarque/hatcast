@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core'
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -21,7 +21,17 @@ import {
 } from '../../core/member-glance/member-season-glance-api.service'
 import type { MemberProfileSummary } from '../../core/member-profile/member-profile-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
+import {
+  buildAgendaFilterChips,
+  buildAgendaFilterDimensions,
+  buildAgendaHubDimensions,
+  resolveAgendaPanelSeason,
+} from '../../shared/filters/filter-builders'
+import { ActiveFilterChips } from '../../shared/filters/active-filter-chips'
+import { FilterCriteriaBar } from '../../shared/filters/filter-criteria-bar'
+import { FilterPanelService } from '../../shared/filters/filter-panel.service'
+import { FilterTrigger } from '../../shared/filters/filter-trigger'
+import type { FilterDimensionKey } from '../../shared/filters/filter.types'
 import { MemberProfilePanel } from '../../shared/member-profile/member-profile-panel'
 
 const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
@@ -36,7 +46,9 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    UserAgendaFilterBar,
+    ActiveFilterChips,
+    FilterCriteriaBar,
+    FilterTrigger,
     MemberProfilePanel,
   ],
   templateUrl: './member-season-glance.html',
@@ -48,6 +60,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   private readonly router = inject(Router)
   private readonly route = inject(ActivatedRoute)
   private readonly snack = inject(MatSnackBar)
+  private readonly filterPanel = inject(FilterPanelService)
 
   private routeSubscription?: Subscription
   private skipNextParamReload = false
@@ -106,15 +119,35 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     }
   }
 
-  protected readonly filterBarCatalog = () => {
-    if (!this.filterBarVisible()) {
-      return null
-    }
-    return this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
-  }
+  protected readonly filterPanelOpen = signal(false)
 
-  protected readonly hasActiveFilters = () =>
-    this.selectedTroupeId() != null || this.selectedSeasonId() != null
+  protected readonly hubDimensions = computed(() => {
+    if (!this.filterBarVisible()) {
+      return []
+    }
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    return buildAgendaHubDimensions(
+      filters,
+      this.selectedTroupeId(),
+      this.selectedSeasonId(),
+    )
+  })
+
+  protected readonly activeFilterChips = computed(() => {
+    if (!this.filterBarVisible()) {
+      return []
+    }
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    return buildAgendaFilterChips(
+      filters,
+      this.selectedTroupeId(),
+      this.selectedSeasonId(),
+    )
+  })
+
+  protected readonly hasActiveFilters = computed(
+    () => this.selectedTroupeId() != null || this.selectedSeasonId() != null,
+  )
 
   async ngOnInit(): Promise<void> {
     const r = await this.auth.ensureHatcastSession()
@@ -173,6 +206,69 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   protected async onSeasonFilterChange(seasonId: string | null): Promise<void> {
     this.selectedSeasonId.set(seasonId)
     await this.applyFilterChange()
+  }
+
+  protected toggleCriteriaPanel(): void {
+    if (!this.filterBarVisible()) {
+      return
+    }
+    this.filterPanelOpen.update((open) => !open)
+  }
+
+  protected async onOpenFilterDimension(key: FilterDimensionKey): Promise<void> {
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    await this.openAgendaDimensionPicker(key, filters)
+  }
+
+  private async openAgendaDimensionPicker(
+    key: FilterDimensionKey,
+    filters: UserAgendaParticipationFilters,
+  ): Promise<void> {
+    const dimension = buildAgendaFilterDimensions(filters, this.selectedTroupeId()).find(
+      (d) => d.key === key,
+    )
+    if (!dimension) {
+      return
+    }
+    const selectedId =
+      key === 'troupe' ? this.selectedTroupeId() : this.selectedSeasonId()
+    const result = await this.filterPanel.openSinglePicker({
+      dimension,
+      selectedId,
+      participationFilters: filters,
+      draftTroupeId: this.selectedTroupeId(),
+    })
+    if (!result) {
+      return
+    }
+    if (result.action === 'reset') {
+      if (key === 'troupe') {
+        await this.onTroupeFilterChange(null)
+        return
+      }
+      await this.onSeasonFilterChange(null)
+      return
+    }
+    if (key === 'troupe') {
+      await this.onTroupeFilterChange(result.selectedId)
+      return
+    }
+    const seasonId = resolveAgendaPanelSeason(
+      filters,
+      this.selectedTroupeId(),
+      result.selectedId,
+    )
+    await this.onSeasonFilterChange(seasonId)
+  }
+
+  protected async onRemoveFilterDimension(key: FilterDimensionKey): Promise<void> {
+    if (key === 'troupe') {
+      await this.onTroupeFilterChange(null)
+      return
+    }
+    if (key === 'season') {
+      await this.onSeasonFilterChange(null)
+    }
   }
 
   protected async onClearFilters(): Promise<void> {

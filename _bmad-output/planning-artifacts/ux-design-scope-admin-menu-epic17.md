@@ -9,7 +9,9 @@ relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-journey-league-agenda.md
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-05-25-scope-admin-menu.md
   - _bmad-output/implementation-artifacts/17-2-bandeau-administration-par-scope.md
-stakeholderSignOff: '2026-05-25 — gear + mat-menu inline in view chrome (not breadcrumb row, not admin strip)'
+stakeholderSignOff: '2026-05-31 — season + event detail gear in breadcrumb row (UX-DR22.1, ux-design-event-detail-chrome-alignment.md approved)'
+amendmentDate: '2026-05-31'
+amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); event detail chrome alignment proposed same day'
 ---
 
 # UX Design — Scope admin menu (`app-scope-admin-menu`)
@@ -22,8 +24,8 @@ stakeholderSignOff: '2026-05-25 — gear + mat-menu inline in view chrome (not b
 
 | Rule | Detail |
 |------|--------|
-| **Separation** | Breadcrumb row = **context navigation** (troupe → saison → spectacle) + **account** menu only. |
-| **Admin entry** | **One gear per screen** in **view chrome** (toolbar / tab row / hero actions). |
+| **Separation** | Breadcrumb row = **context navigation** (troupe → saison → spectacle) + **account** menu. **Season workspace:** scope admin gear also lives here (UX-DR22.1). |
+| **Admin entry** | **One gear per screen** — **season workspace + event detail:** breadcrumb row end ; **other screens:** view chrome (toolbar / tab row / hero actions). |
 | **Density** | No dedicated full-width row for administration. |
 | **Discoverability** | Material `settings` icon; `aria-label` includes scope in French. |
 | **Gating** | Gear **hidden** when `items.length === 0` (no empty or disabled gear). |
@@ -60,11 +62,11 @@ stakeholderSignOff: '2026-05-25 — gear + mat-menu inline in view chrome (not b
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ [logo] Troupe › Saison title                          [avatar ▾] │  ← breadcrumb row (NO gear)
+│ [logo] Troupe › Saison title                              [⚙]   │  ← breadcrumb row (gear here — UX-DR22.1)
 ├─────────────────────────────────────────────────────────────────┤
 │ (mobile only: H1 saison title)                                   │
 ├─────────────────────────────────────────────────────────────────┤
-│ [Participant ▾] [Spectacle ▾]     [Agenda|Historique]  [⚙]    │  ← season-view-toolbar
+│ [Exporter] [Détails]          [Agenda|Historique|Stats] [filter]│  ← filter right (UX-DR22.1)
 ├─────────────────────────────────────────────────────────────────┤
 │ agenda / history content…                                        │
 └─────────────────────────────────────────────────────────────────┘
@@ -72,9 +74,9 @@ stakeholderSignOff: '2026-05-25 — gear + mat-menu inline in view chrome (not b
 
 ### Gear placement
 
-- **Component host:** inside `app-season-view-toolbar`, **right cluster**.
-- **Order (LTR):** filters (left, flex) → `mat-button-toggle-group` (Agenda | Historique) → **gear** (last, `flex-shrink: 0`).
-- **Mobile (≤480px):** toolbar stacks vertically; gear stays on the **same row as view toggles** when possible (row: toggles + gear); filters above.
+- **Component host (season workspace):** `app-season-header` — **end of breadcrumb row** (after context switcher / season title).
+- **Filter trigger:** `app-season-view-toolbar` **right cluster** (after view toggles) — see [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md) UX-DR22.1.
+- **Mobile (≤480px):** gear stays in **breadcrumb row** (not on view-toggle row). Filter on action row with Exporter/Détails when visible.
 
 ### Menu entries (when permitted)
 
@@ -85,7 +87,8 @@ stakeholderSignOff: '2026-05-25 — gear + mat-menu inline in view chrome (not b
 
 ### Acceptance hints
 
-- [ ] No gear in `app-season-header` breadcrumb row.
+- [ ] Gear **in** `app-season-header` breadcrumb row (season workspace — UX-DR22.1).
+- [ ] No gear in `season-view-toolbar` right cluster (filter occupies that slot).
 - [ ] No `.scope-admin-bar` strip between header and toolbar.
 - [ ] Gear absent when user lacks both permissions above.
 
@@ -97,23 +100,25 @@ stakeholderSignOff: '2026-05-25 — gear + mat-menu inline in view chrome (not b
 
 ### Chrome layout
 
+> **2026-05-31 (approved):** [ux-design-event-detail-chrome-alignment.md](./ux-design-event-detail-chrome-alignment.md) — gear in breadcrumb row; mobile duplicate title/date removed; agenda card ⋮ removed.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ [logo] Troupe › Saison › Event title                  [avatar ▾] │  ← NO gear
+│ [logo] Troupe › Saison › Event title              [ ⚙ ] [avatar ▾] │  ← gear here
 ├─────────────────────────────────────────────────────────────────┤
 │ [ Infos | Dispos | Équipe ]                                      │
 ├─────────────────────────────────────────────────────────────────┤
 │ Infos tab panel:                                                 │
-│  [badge statut …]                                    [ ⚙ ]      │  ← gear top-right
+│              [ badge statut … ]          ← centered               │
 │  Titre / Description / Date / Lieu…                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Gear placement
 
-- **Only on the Infos tab** — top-right of `app-event-infos-tab` header (`event-infos__header`).
-- **Not** beside tab labels; **not** on Dispos or Équipe.
-- **Single gear** replaces the former Infos **⋮ kebab** (`more_vert`).
+- **Approved (E1/E2):** `app-event-detail-header` breadcrumb row end — mirror `season-header__admin`; visible on **all tabs** when `items.length > 0`.
+- **Supersedes:** Infos-tab-only placement in `event-infos__header` (2026-05-25 sign-off).
+- **Agenda (E3):** Remove card `more_vert` menu; **Modifier** / **Archiver** live only in this gear menu.
 
 ### Unified menu entries (one `mat-menu`)
 
@@ -130,9 +135,10 @@ stakeholderSignOff: '2026-05-25 — gear + mat-menu inline in view chrome (not b
 
 ### Acceptance hints
 
-- [ ] No `more_vert` kebab on Infos.
-- [ ] No gear on Dispos / Équipe tabs.
-- [ ] No gear in `app-event-detail-header` row.
+- [ ] Gear in `app-event-detail-header` row when admin items exist (E1).
+- [ ] Gear visible on Infos, Dispos, and Équipe tabs (E2).
+- [ ] No `more_vert` on Infos tab or agenda cards (E3).
+- [ ] No duplicate mobile title/date block under header (E4/E5).
 
 ---
 

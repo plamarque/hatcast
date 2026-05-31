@@ -1,0 +1,44 @@
+<div class="filter-panel-content">
+  <div class="filter-panel-content__header">
+    <h2 class="filter-panel-content__title" cdkFocusInitial>Filtres</h2>
+    <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="filter-panel-content__body">
+    @for (dim of effectiveDimensions(); track dim.key) {
+      @if (dim.type === 'single-select') {
+        <app-filter-dimension-single
+          [dimension]="dim"
+          [selectedId]="$any(draft()[dim.key] ?? null)"
+          (selectionChange)="onSingleSelect(dim.key, $event)"
+        />
+      } @else if (dim.key === 'categories') {
+        <app-filter-dimension-categories
+          [value]="draft().categories ?? { kind: 'all' }"
+          [glossarySlugs]="data.categoryGlossarySlugs"
+          [labels]="data.categoryLabels"
+          (valueChange)="onCategoriesChange($event)"
+        />
+      }
+    }
+  </div>
+
+  @if (showFooter) {
+    <div class="filter-panel-content__footer">
+      <button mat-button type="button" data-testid="filter-panel-reset" (click)="onReset()">
+        Réinitialiser
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        data-testid="filter-panel-apply"
+        (click)="onApply()"
+      >
+        Appliquer
+      </button>
+    </div>
+  }
+</div>

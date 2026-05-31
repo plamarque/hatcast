@@ -129,10 +129,10 @@ export function groupPastEventsByMonth<T extends EventDateSource>(
   return Array.from(groups.values())
 }
 
-export function filterEventsByIds(
-  events: EventResponse[],
-  selectedEventIds: string[] | null,
-): EventResponse[] {
+export function filterEventsByIds<T extends { id: string }>(
+  events: T[],
+  selectedEventIds: string[] | null | undefined,
+): T[] {
   if (!selectedEventIds?.length) {
     return events
   }

@@ -1,13 +1,4 @@
 <div class="season-agenda">
-  @if (variant() === 'agenda' && canManageEvents()) {
-    <div class="season-agenda__admin">
-      <button mat-flat-button color="primary" type="button" (click)="createClick.emit()">
-        <mat-icon>add</mat-icon>
-        Nouveau spectacle
-      </button>
-    </div>
-  }
-
   @if (loading() && monthGroups().length === 0) {
     <p class="season-agenda__status" role="status">
       {{ variant() === 'history' ? 'Chargement de l’historique…' : 'Chargement de l’agenda…' }}
@@ -49,7 +40,6 @@
         @for (ev of group.events; track ev.id) {
           <article
             class="agenda-card agenda-card--row agenda-card--interactive"
-            [class.agenda-card--with-menu]="variant() === 'agenda' && canManageEvents()"
             role="button"
             tabindex="0"
             [attr.aria-label]="variant() === 'history' ? historyCardAriaLabel(ev) : null"
@@ -81,30 +71,6 @@
                 (availabilityClick)="onStatusAvailabilityClick(ev.id, $event.status)"
               />
             </div>
-            @if (variant() === 'agenda' && canManageEvents()) {
-              <button
-                mat-icon-button
-                type="button"
-                class="agenda-card__menu"
-                [matMenuTriggerFor]="menu"
-                aria-label="Actions spectacle"
-                (click)="$event.stopPropagation()"
-              >
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #menu="matMenu">
-                <button mat-menu-item type="button" (click)="onEdit(ev.id, $event)">
-                  <mat-icon>edit</mat-icon>
-                  <span>Modifier</span>
-                </button>
-                @if (!ev.archived) {
-                  <button mat-menu-item type="button" (click)="onArchive(ev.id, $event)">
-                    <mat-icon>archive</mat-icon>
-                    <span>Archiver</span>
-                  </button>
-                }
-              </mat-menu>
-            }
           </article>
         }
       </section>

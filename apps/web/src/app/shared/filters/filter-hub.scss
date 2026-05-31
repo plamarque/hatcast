@@ -1,0 +1,34 @@
+.filter-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0 0.75rem;
+  max-width: 20rem;
+}
+
+.filter-hub__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+}
+
+.filter-hub__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.filter-hub__list {
+  padding: 0;
+}
+
+.filter-hub__row {
+  min-height: 3rem;
+}
+
+.filter-hub__summary {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}

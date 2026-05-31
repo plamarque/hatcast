@@ -1,0 +1,54 @@
+<div
+  class="filter-criteria-bar"
+  data-testid="filter-criteria-bar"
+  role="toolbar"
+  aria-label="Critères de filtre"
+>
+  <div class="filter-criteria-bar__segments">
+    @for (dim of dimensions(); track dim.key) {
+      <div class="filter-criteria-bar__segment" [attr.data-testid]="'filter-criteria-' + dim.key">
+        <button
+          type="button"
+          class="filter-criteria-bar__dimension"
+          [attr.aria-label]="'Modifier le filtre ' + dim.title"
+          (click)="onOpen(dim.key)"
+        >
+          <mat-icon aria-hidden="true">{{ dim.icon }}</mat-icon>
+          <span class="filter-criteria-bar__title">{{ dim.title }}</span>
+        </button>
+
+        @if (chipFor(dim.key); as chip) {
+          <mat-chip-set aria-label="Valeur du filtre {{ dim.title }}">
+            <mat-chip
+              class="filter-criteria-bar__value-chip"
+              [removable]="true"
+              (removed)="onRemove(dim.key)"
+              (click)="onOpen(dim.key)"
+            >
+              {{ chip.label }}
+              <button
+                matChipRemove
+                type="button"
+                [attr.aria-label]="'Retirer le filtre ' + chip.label"
+              >
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip>
+          </mat-chip-set>
+        }
+      </div>
+    }
+  </div>
+
+  @if (hasActiveFilters()) {
+    <button
+      mat-button
+      type="button"
+      class="filter-criteria-bar__clear"
+      data-testid="filter-clear-all"
+      (click)="onClearAll()"
+    >
+      Tout effacer
+    </button>
+  }
+</div>

@@ -16,22 +16,21 @@
       [troupeName]="troupeName()"
       [troupeSlug]="troupeSlug()"
       [troupeIsDemo]="troupeIsDemo()"
+      [adminItems]="seasonAdminItems()"
     />
 
     <app-season-view-toolbar
       [(seasonView)]="seasonView"
-      [adminItems]="seasonAdminItems()"
-      [showAgendaFilters]="true"
-      [showHistoryFilters]="seasonView() === 'history'"
-      [showStatsFilters]="seasonView() === 'stats'"
+      [seasonId]="se.id"
+      [filterTriggerVisible]="filterTriggerVisible()"
       [participantOptions]="participantOptions()"
-      [(selectedParticipantId)]="selectedParticipantId"
+      [(selectedParticipantIds)]="selectedParticipantIds"
       [eventOptions]="eventFilterOptions()"
-      [(selectedEventId)]="selectedEventId"
+      [(selectedEventIds)]="selectedEventIds"
       [historyEventOptions]="historyEventFilterOptions()"
-      [(selectedHistoryEventId)]="selectedHistoryEventId"
+      [(selectedHistoryEventIds)]="selectedHistoryEventIds"
       [statsEventOptions]="statsEventFilterOptions()"
-      [(selectedStatsEventId)]="selectedStatsEventId"
+      [(selectedStatsEventIds)]="selectedStatsEventIds"
       [categoryGlossarySlugs]="categoryGlossarySlugs()"
       [categoryLabels]="categoryLabels()"
       [statsCategoryFilter]="statsCategoryFilter()"
@@ -53,9 +52,6 @@
         [canEditAvailability]="canEditAvailability()"
         [categoryLabels]="categoryLabels()"
         (eventClick)="openEvent($event)"
-        (editClick)="openEdit($event)"
-        (archiveClick)="confirmArchive($event)"
-        (createClick)="openCreate()"
         (loadMoreClick)="loadMoreEvents()"
         (availabilityClick)="openAvailability($event)"
       />
@@ -74,7 +70,7 @@
       />
     } @else {
       <app-season-statistics
-        [data]="statisticsData()"
+        [data]="displayStatisticsData()"
         [loading]="loadingStatistics()"
         [emptyReason]="statisticsEmptyReason()"
         [detailsExpanded]="statsDetailsExpanded()"

@@ -119,11 +119,13 @@ After the user **opens a season** (from `/seasons`), show a **time-ordered** lis
 
 ### Filter and view controls (below header)
 
-- **Participant filter** — dropdown showing **current user** (avatar + name) or “focus” selection for **who** the grid reflects (e.g. self vs other member when applicable). Elsewhere, tapping a **member avatar** opens the [**Member profile**](#pattern-member-profile) popover (season stats + chart).
-- **Event filter** — dropdown, e.g. **“Tous”** (all events) vs subset of spectacles.
+> **Amended 2026-05-31:** Inline filter dropdowns superseded — [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md) (**UX-DR22.1**). **`filter_list` icon** opens **hub** → individual pickers (search + multi-select at scale); **chips anchored to trigger**; season **gear in breadcrumb row**; **no chrome** when mono-context (RES-001).
+
+- **Participant filter** — inside filter panel; default **Tous**; future avatar + name when multi-member.
+- **Event filter** — inside filter panel; default **Tous**.
 - **View switcher** — tabs or pills: **Participants**, **Spectacles**, **Agenda**, **Historique**, **Statistiques** (ADR 0012). **Agenda** = [calendar / upcoming list](#screen-season-calendar); **Historique** = [past events chronology](#screen-league--historique-chronology); **Statistiques** = [participation statistics table](#screen-league--statistiques-participation).
 
-**Continuity:** keep **one compact toolbar row** under the header so filters + view switch stay **visible without scrolling** on mobile.
+**Continuity:** one compact toolbar row — **filter icon** (when needed) + view switch + gear; no permanent pulldown row on mobile.
 
 ### Main content: events by month
 

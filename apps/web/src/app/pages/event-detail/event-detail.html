@@ -8,14 +8,8 @@
     [troupeIsDemo]="contextTroupeIsDemo()"
     [seasonTitle]="contextLeagueTitle()"
     [eventTitle]="event()?.title ?? null"
+    [adminItems]="eventAdminItems()"
   />
-
-  @if (showMobileEventContext() && event(); as ev) {
-    <div class="event-detail__mobile-context">
-      <h1 class="event-detail__mobile-context-title">{{ ev.title }}</h1>
-      <p class="event-detail__mobile-context-when">{{ formatEventStart(ev.startsAt) }}</p>
-    </div>
-  }
 
   @if (loading()) {
     <div class="event-detail__spinner" role="status">
@@ -42,7 +36,6 @@
             [canManageEvents]="canManageEvents()"
             [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
             [canManageComposition]="canManageComposition()"
-            [adminItems]="eventAdminItems()"
             [organizersReloadTrigger]="organizersReloadTrigger()"
             (eventUpdated)="onEventInfosUpdated($event)"
           />

@@ -27,7 +27,17 @@ import {
   saisonWorkspacePath,
   troupeHubPath,
 } from '../../core/navigation/troupe-routes'
-import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
+import {
+  buildAgendaFilterChips,
+  buildAgendaFilterDimensions,
+  buildAgendaHubDimensions,
+  resolveAgendaPanelSeason,
+} from '../../shared/filters/filter-builders'
+import { ActiveFilterChips } from '../../shared/filters/active-filter-chips'
+import { FilterCriteriaBar } from '../../shared/filters/filter-criteria-bar'
+import { FilterPanelService } from '../../shared/filters/filter-panel.service'
+import { FilterTrigger } from '../../shared/filters/filter-trigger'
+import type { FilterDimensionKey } from '../../shared/filters/filter.types'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
@@ -47,7 +57,9 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
-    UserAgendaFilterBar,
+    ActiveFilterChips,
+    FilterCriteriaBar,
+    FilterTrigger,
     CompositionStatusBadge,
     AgendaParticipationStatus,
   ],
@@ -61,6 +73,7 @@ export class UserAgenda implements OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
+  private readonly filterPanel = inject(FilterPanelService)
 
   private loadGeneration = 0
 
@@ -76,11 +89,30 @@ export class UserAgenda implements OnInit {
   protected readonly selectedTroupeId = signal<string | null>(null)
   protected readonly selectedSeasonId = signal<string | null>(null)
 
-  protected readonly filterBarCatalog = computed(() => {
+  protected readonly filterPanelOpen = signal(false)
+
+  protected readonly hubDimensions = computed(() => {
     if (!this.filterBarVisible()) {
-      return null
+      return []
     }
-    return this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    return buildAgendaHubDimensions(
+      filters,
+      this.selectedTroupeId(),
+      this.selectedSeasonId(),
+    )
+  })
+
+  protected readonly activeFilterChips = computed(() => {
+    if (!this.filterBarVisible()) {
+      return []
+    }
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    return buildAgendaFilterChips(
+      filters,
+      this.selectedTroupeId(),
+      this.selectedSeasonId(),
+    )
   })
 
   protected readonly hasActiveFilters = computed(
@@ -174,6 +206,69 @@ export class UserAgenda implements OnInit {
   protected async onSeasonFilterChange(seasonId: string | null): Promise<void> {
     this.selectedSeasonId.set(seasonId)
     await this.applyFilterChange()
+  }
+
+  protected toggleCriteriaPanel(): void {
+    if (!this.filterBarVisible()) {
+      return
+    }
+    this.filterPanelOpen.update((open) => !open)
+  }
+
+  protected async onOpenFilterDimension(key: FilterDimensionKey): Promise<void> {
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    await this.openAgendaDimensionPicker(key, filters)
+  }
+
+  private async openAgendaDimensionPicker(
+    key: FilterDimensionKey,
+    filters: UserAgendaParticipationFilters,
+  ): Promise<void> {
+    const dimension = buildAgendaFilterDimensions(filters, this.selectedTroupeId()).find(
+      (d) => d.key === key,
+    )
+    if (!dimension) {
+      return
+    }
+    const selectedId =
+      key === 'troupe' ? this.selectedTroupeId() : this.selectedSeasonId()
+    const result = await this.filterPanel.openSinglePicker({
+      dimension,
+      selectedId,
+      participationFilters: filters,
+      draftTroupeId: this.selectedTroupeId(),
+    })
+    if (!result) {
+      return
+    }
+    if (result.action === 'reset') {
+      if (key === 'troupe') {
+        await this.onTroupeFilterChange(null)
+        return
+      }
+      await this.onSeasonFilterChange(null)
+      return
+    }
+    if (key === 'troupe') {
+      await this.onTroupeFilterChange(result.selectedId)
+      return
+    }
+    const seasonId = resolveAgendaPanelSeason(
+      filters,
+      this.selectedTroupeId(),
+      result.selectedId,
+    )
+    await this.onSeasonFilterChange(seasonId)
+  }
+
+  protected async onRemoveFilterDimension(key: FilterDimensionKey): Promise<void> {
+    if (key === 'troupe') {
+      await this.onTroupeFilterChange(null)
+      return
+    }
+    if (key === 'season') {
+      await this.onSeasonFilterChange(null)
+    }
   }
 
   protected async onClearFilters(): Promise<void> {

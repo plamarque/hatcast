@@ -23,10 +23,6 @@ import {
 } from '../../core/composition/composition-api.service'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import {
-  ScopeAdminMenu,
-  type ScopeAdminMenuItem,
-} from '../../shared/scope-admin-menu/scope-admin-menu'
-import {
   type TroupeCategory,
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
@@ -58,7 +54,6 @@ import {
     MatDialogModule,
     MatIconModule,
     MatSnackBarModule,
-    ScopeAdminMenu,
   ],
   templateUrl: './event-infos-tab.html',
   styleUrls: ['./event-infos-tab.scss', '../../shared/composition/composition-equipe-status-header.scss'],
@@ -77,7 +72,6 @@ export class EventInfosTab {
   readonly canManageEvents = input(false)
   readonly canManageEventOrganizers = input(false)
   readonly canManageComposition = input(false)
-  readonly adminItems = input<ScopeAdminMenuItem[]>([])
   /** Incremented by parent when organizers change via admin menu dialog. */
   readonly organizersReloadTrigger = input(0)
 

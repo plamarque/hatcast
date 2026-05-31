@@ -1,7 +1,5 @@
 import { Component, input, output } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
 
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import type { MonthEventGroup } from './season-events.utils'
@@ -18,8 +16,6 @@ import { participantFocusFromEvent, type ParticipantFocusSummary } from './seaso
   selector: 'app-season-agenda',
   imports: [
     MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
     CompositionStatusBadge,
     AgendaParticipationStatus,
   ],
@@ -42,24 +38,11 @@ export class SeasonAgenda {
   readonly categoryLabels = input<Record<string, string>>({})
 
   readonly eventClick = output<string>()
-  readonly editClick = output<string>()
-  readonly archiveClick = output<string>()
-  readonly createClick = output<void>()
   readonly loadMoreClick = output<void>()
   readonly availabilityClick = output<{ eventId: string; status: AvailabilityStatus }>()
 
   protected openEvent(id: string): void {
     this.eventClick.emit(id)
-  }
-
-  protected onEdit(id: string, event: Event): void {
-    event.stopPropagation()
-    this.editClick.emit(id)
-  }
-
-  protected onArchive(id: string, event: Event): void {
-    event.stopPropagation()
-    this.archiveClick.emit(id)
   }
 
   protected onStatusAvailabilityClick(eventId: string, status: AvailabilityStatus): void {

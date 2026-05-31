@@ -28,10 +28,14 @@
 .composition-equipe-status__head {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.5rem;
   min-width: 0;
   width: 100%;
+
+  &:has(.composition-equipe-status__actions:not(:empty)) {
+    justify-content: space-between;
+  }
 }
 
 .composition-equipe-status__actions {

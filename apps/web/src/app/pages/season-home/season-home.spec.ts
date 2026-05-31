@@ -20,9 +20,10 @@ import { emptyRoleSlots } from '../../core/events/event-types'
 
 type SeasonHomeHarness = {
   loadingEvents: WritableSignal<boolean>
+  loadingSession: WritableSignal<boolean>
   eventsTruncated: WritableSignal<boolean>
   eventLoadLimit: WritableSignal<number>
-  selectedEventId: WritableSignal<string | null>
+  selectedEventIds: WritableSignal<string[]>
   season: WritableSignal<SeasonResponse | null>
   seasonPermissions: WritableSignal<MySeasonPermissions | null>
   openEvent(eventId: string): void
@@ -200,10 +201,10 @@ describe('SeasonHome', () => {
   it('clears an event filter when the selected event disappears', () => {
     const component = fixture.componentInstance as unknown as SeasonHomeHarness
 
-    component.selectedEventId.set('missing')
+    component.selectedEventIds.set(['missing'])
     component.resetStaleEventFilter([ev('kept')])
 
-    expect(component.selectedEventId()).toBeNull()
+    expect(component.selectedEventIds()).toEqual([])
   })
 
   it('mémorise la dernière saison visitée après chargement réussi', async () => {
@@ -284,7 +285,7 @@ describe('SeasonHome', () => {
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('app-season-view-toolbar app-scope-admin-menu'),
+        fixture.nativeElement.querySelector('app-season-header app-scope-admin-menu'),
       ).not.toBeNull()
     })
 
@@ -307,11 +308,13 @@ describe('SeasonHome', () => {
     expect(fixture.nativeElement.querySelector('.scope-admin-bar')).toBeNull()
   })
 
-  it('masque le menu réglages pour un admin troupe sans droit participants ni orga saison', () => {
-    const cmp = fixture.componentInstance as unknown as {
-      seasonPermissions: { set: (v: MySeasonPermissions) => void }
+  it('affiche le menu réglages avec Nouveau spectacle pour un admin événements sans droit participants', () => {
+    const cmp = fixture.componentInstance as unknown as SeasonHomeHarness & {
       canManageSettings: () => boolean
+      seasonAdminItems: () => Array<{ label: string }>
     }
+    cmp.loadingSession.set(false)
+    cmp.season.set(season('season-1', 'troupe-1'))
     cmp.seasonPermissions.set({
       canManageSeasonOrganizers: false,
       canManageEventOrganizers: false,
@@ -325,9 +328,11 @@ describe('SeasonHome', () => {
       eventOrganizerFor: [],
       eventParticipantAdminFor: [],
     })
+    fixture.detectChanges()
 
     expect(cmp.canManageSettings()).toBe(false)
-    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeNull()
+    expect(cmp.seasonAdminItems().map((i) => i.label)).toEqual(['Nouveau spectacle'])
+    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).not.toBeNull()
   })
 
   it('affiche le menu réglages pour participants ou orga saison sans admin troupe', () => {

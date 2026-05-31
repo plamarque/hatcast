@@ -50,20 +50,24 @@ stakeholderScope: Replace DEPLACEMENT column band with multi-select spectacle gr
 
 ### Placement
 
-Statistiques toolbar **Row A**, after **Membres** and **Spectacles**, before **Exporter** and **Détails**:
+> **Amended 2026-05-31:** Groupes filter moves **inside** the unified filter panel — [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md). Statistiques Row A: **`filter_list`** + **Exporter** + **Détails** only.
+
+Statistiques toolbar **Row A**:
 
 ```
-[ Membres ▾ ] [ Spectacles ▾ ] [ Groupes de spectacles ▾ ] [ Exporter ] [ Détails ]
+[ filter_list (badge if active) ] [ Exporter ] [ Détails ]
 ```
 
 ### Trigger label (closed state)
 
-| Selection | Button label |
-|-----------|----------------|
-| Tous ON | `Groupes : Tous les spectacles` |
-| 1 compartment | `Groupes : Déplacements` (glossary label) |
-| 2+ compartments | `Groupes : 2 sélectionnés` |
-| None | `Groupes : Aucun` (warning tone) |
+Toolbar shows **badge count only** (no inline `Groupes : …` button). Inside filter panel, section title **Groupes de spectacles** with checkbox panel below.
+
+| Selection | Chip / panel summary |
+|-----------|----------------------|
+| Tous ON | No category chip; badge excludes default all |
+| 1 compartment | Chip = glossary label (e.g. `Déplacements`) |
+| 2+ compartments | Chip = `2 catégories` |
+| None | Warning on filter trigger; empty state F9 |
 
 ### Panel content (menu or bottom sheet on mobile)
 

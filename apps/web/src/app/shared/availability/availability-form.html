@@ -23,9 +23,11 @@
     <mat-button-toggle
       class="availability-form__status--unknown"
       value="unknown"
+      aria-label="Non renseigné"
       (click)="onStatusClick('unknown')"
     >
-      Non renseigné
+      <span class="availability-form__status-label availability-form__status-label--long">Non renseigné</span>
+      <span class="availability-form__status-label availability-form__status-label--short">N/R</span>
     </mat-button-toggle>
   </mat-button-toggle-group>
 

@@ -1,0 +1,25 @@
+<div class="filter-hub">
+  <div class="filter-hub__header">
+    <h2 class="filter-hub__title" cdkFocusInitial>Filtres</h2>
+    <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-action-list class="filter-hub__list" aria-label="Critères de filtre">
+    @for (dim of data.dimensions; track dim.key) {
+      <button
+        mat-list-item
+        type="button"
+        class="filter-hub__row"
+        [attr.data-testid]="'filter-hub-row-' + dim.key"
+        (click)="openDimension(dim.key)"
+      >
+        <mat-icon matListItemIcon aria-hidden="true">{{ dim.icon }}</mat-icon>
+        <span matListItemTitle>{{ dim.title }}</span>
+        <span matListItemLine class="filter-hub__summary">{{ dim.summary }}</span>
+        <mat-icon matListItemMeta aria-hidden="true">chevron_right</mat-icon>
+      </button>
+    }
+  </mat-action-list>
+</div>

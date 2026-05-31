@@ -1,0 +1,205 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.filter-picker-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: 0.35rem 0 0;
+}
+
+.filter-picker-shell--dialog {
+  max-height: 85vh;
+  overflow: hidden;
+  padding-bottom: 0.75rem;
+}
+
+.filter-picker-shell--sheet {
+  height: 100%;
+  max-height: 100%;
+}
+
+.filter-picker-shell__header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 0 0.5rem;
+}
+
+.filter-picker-shell__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.filter-picker-shell__search {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  padding: 0 0.5rem;
+}
+
+.filter-picker-shell__search-row {
+  display: flex;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+}
+
+.filter-picker-shell__search-row .filter-picker-shell__search {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+
+:host ::ng-deep .filter-picker-shell__search.mat-mdc-form-field {
+  width: 100%;
+  max-width: 100%;
+}
+
+:host ::ng-deep .filter-picker-shell__search .mat-mdc-text-field-wrapper,
+:host ::ng-deep .filter-picker-shell__search .mat-mdc-form-field-flex {
+  max-width: 100%;
+}
+
+.filter-picker-shell__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0 0.35rem;
+  margin: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.filter-picker-shell__row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 2.75rem;
+  align-items: center;
+  column-gap: 0.65rem;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.5rem;
+  overflow: hidden;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
+  }
+}
+
+.filter-picker-shell__row-icon {
+  grid-column: 1;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 1.5rem;
+  color: var(--mat-sys-primary);
+}
+
+.filter-picker-shell__row-text {
+  display: flex;
+  flex-direction: column;
+  grid-column: 2;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.filter-picker-shell__row-title {
+  grid-column: 2;
+  min-width: 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-picker-shell__row-text .filter-picker-shell__row-title {
+  grid-column: auto;
+}
+
+.filter-picker-shell__row-sub {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-picker-shell__row-check {
+  grid-column: 3;
+  justify-self: end;
+  flex-shrink: 0;
+  max-width: 2.75rem;
+  margin: 0;
+  overflow: hidden;
+}
+
+.filter-picker-shell__footer {
+  display: flex;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem max(0.65rem, env(safe-area-inset-bottom, 0px));
+  background: var(--mat-sys-surface-container-low);
+  border-top: 1px solid color-mix(in srgb, var(--mat-sys-outline) 40%, transparent);
+}
+
+@media (max-width: 480px) {
+  .filter-picker-shell__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .filter-picker-shell__footer button {
+    width: 100%;
+  }
+}

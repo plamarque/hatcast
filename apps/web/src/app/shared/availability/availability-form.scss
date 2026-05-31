@@ -10,7 +10,17 @@
 
   mat-button-toggle {
     flex: 1;
-    min-height: 3rem;
+    min-width: 0;
+    min-height: 2.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .mat-button-toggle-label-content {
+    padding-inline: 0.35rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .mat-button-toggle-checked.availability-form__status--available {
@@ -29,6 +39,20 @@
     background: var(--hatcast-participation-neutral-surface);
     color: #fff;
     border-color: color-mix(in srgb, #fff 32%, transparent);
+  }
+}
+
+.availability-form__status-label--short {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .availability-form__status-label--long {
+    display: none;
+  }
+
+  .availability-form__status-label--short {
+    display: inline;
   }
 }
 
@@ -109,11 +133,11 @@
 }
 
 .availability-form__details-save {
-  min-height: 3rem;
+  min-height: 2.5rem;
 }
 
 @media (max-width: 480px) {
   .availability-form__status-toggle mat-button-toggle {
-    min-height: 3rem;
+    min-height: 2.5rem;
   }
 }

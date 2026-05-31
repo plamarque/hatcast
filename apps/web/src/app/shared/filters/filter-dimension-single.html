@@ -1,0 +1,20 @@
+<section class="filter-dimension-single">
+  <div class="filter-dimension-single__header">
+    <mat-icon aria-hidden="true">{{ dimension().icon }}</mat-icon>
+    <h3 class="filter-dimension-single__title">{{ dimension().title }}</h3>
+  </div>
+  <mat-selection-list
+    [multiple]="false"
+    [hideSingleSelectionIndicator]="true"
+    aria-label="{{ dimension().title }}"
+  >
+    @for (opt of dimension().options ?? []; track opt.id ?? 'all') {
+      <mat-list-option
+        [selected]="selectedId() === opt.id"
+        (click)="onSelect(opt.id)"
+      >
+        {{ opt.label }}
+      </mat-list-option>
+    }
+  </mat-selection-list>
+</section>

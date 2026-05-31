@@ -1640,6 +1640,59 @@ afin de **libérer l’en-tête** tout en gardant le compte accessible.
 
 **UX spec hub :** [ux-hub-a-faire.md](./ux-hub-a-faire.md) (décisions 2026-05-27 : route `/accueil` dédiée, post-login = remember last visit ; 2026-05-28 : menu compte rail / avatar shell).
 
+#### Story 17.27 : Panneau de filtres unifié (icône + chips)
+
+> **2026-05-31 (PO + UX) :** Remplace les barres de filtres inline (`mat-stroked-button` + menus) par un **trigger `filter_list`**, un **panneau** (bottom sheet mobile / dialog desktop) et une **rangée de chips** pour le feedback actif. **RES-001** inchangé ; **pas de `matBadge`** sur l’icône en MVP (phase 2 optionnelle).
+
+En tant que **membre** multi-troupes, multi-saisons ou avec vues saison filtrables,  
+je veux **une icône filtre discrète** ouvrant toutes les dimensions de filtre de l’écran, avec **des chips** sous la barre d’outils quand un filtre est actif,  
+afin de **garder le filtrage accessible sans rangées permanentes de pulldowns** pour les utilisateurs mono-contexte.
+
+**Acceptance Criteria**
+
+- **Given** exactement **1 troupe + 1 saison** sur `/agenda` ou `/membre/:userSlug`, **when** API `filterBarVisible: false`, **then** **aucune** icône filtre, chip ni barre sticky (RES-001 inchangé).
+- **Given** `filterBarVisible: true` sur agenda ou glance, **when** page chargée, **then** seul un **`mat-icon-button`** `filter_list` (pas de pulldowns inline, **pas de badge** MVP).
+- **Given** filtre troupe ou saison actif (surfaces cross-troupe), **when** affichage, **then** rangée de **chips** amovibles + **Tout effacer** sous le header ; icône sans badge.
+- **Given** workspace saison Agenda/Historique avec **>1** option participant ou spectacle, **when** toolbar, **then** pulldowns inline retirés ; trigger + chips ; toggles de vue et engrenage admin inchangés.
+- **Given** vue Statistiques, **when** toolbar, **then** **Exporter** et **Détails/Masquer** **hors** panneau ; filtre groupes (17.10) **dans** le panneau (checkboxes, **Tous les spectacles**).
+- **Given** viewport **≤ 480px**, **when** tap sur l’icône, **then** **`MatBottomSheet`** titre **Filtres**, sections par dimension, footer **Réinitialiser** + **Appliquer**.
+- **Given** viewport **≥ 481px**, **when** tap, **then** **`MatDialog`** même contenu ; single-select appliqué immédiatement ; multi-select catégories via footer **Appliquer** si besoin.
+- **Given** tout chrome filtre, **when** styles, **then** checklist M3 (`--mat-sys-*`, `aria-label` FR, cible tactile ≥ 48 dp sur le trigger).
+- **Given** catégories stats `{ kind: 'none' }`, **when** Statistiques, **then** contour d’erreur sur le trigger (`--mat-sys-error`) ; message vide stats inchangé (17.10 F9).
+- **Given** changement de filtre, **when** navigation, **then** persistance inchangée (`user-agenda-filters-storage`, `member-glance-filters-storage`, état toolbar saison) — **chrome seul**, pas de changement API.
+- **Hors scope :** badge numérique sur l’icône (phase 2) ; déplacer Exporter, Détails, toggles ou gear dans le panneau.
+- **Couverture :** **UX-DR22** — [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md) (2026-05-31) ; remplace wireframes inline dans journey, historique/stats, hatcast-v2 et placement 17.10.
+
+**Priorité :** P2 — après **12.1/12.3** (RES-001), **16.1** (glance), **17.10** (catégories stats), **17.22/17.25** (chrome header).  
+**Depends :** 12.1, 12.3, 16.1, 17.10, 17.22, 17.25.  
+**Story file:** [_bmad-output/implementation-artifacts/17-27-panneau-filtres-unifie.md](../implementation-artifacts/17-27-panneau-filtres-unifie.md)
+
+**Amendment (2026-05-31):** Field feedback → **UX-DR22.1** hub + individual pickers, filter right, gear in breadcrumb. Corrective story **17.28** — [_17-28-filtres-hub-pickers.md_](../implementation-artifacts/17-28-filtres-hub-pickers.md).
+
+---
+
+#### Story 17.28 : Filtres hub + pickers individuels (correctif UX-DR22.1)
+
+En tant que **membre ou organisateur** sur une saison avec de nombreux participants et spectacles,  
+je veux un **hub filtre léger** ouvrant des **pickers searchable multi-sélection** par critère, avec **chips à côté du bouton filtre**,  
+afin que **le filtrage scale** sans mega-dialog et retrouve **l’ergonomie V1**.
+
+**Acceptance Criteria**
+
+- **Given** workspace saison avec **>1** participant ou spectacle, **when** ouverture filtre, **then** **hub** avec lignes résumé uniquement (pas de listes dépliées).
+- **Given** tap **Membre**, **when** picker ouvert, **then** **Filtrer les participants** : recherche + cases multi-sélection (V1).
+- **Given** tap **Spectacle**, **when** picker ouvert, **then** **Filtrer les événements** : recherche + multi-sélection + toggles **Passés** / **Archivés**.
+- **Given** filtres actifs, **when** toolbar, **then** chips **colonne droite** (adjacentes au trigger), pas row isolée à gauche.
+- **Given** desktop saison, **when** chrome, **then** gear dans **breadcrumb row** ; filtre **à droite** des toggles de vue.
+- **Given** Statistiques, **when** catégories, **then** picker **17.10** isolé depuis hub (inchangé sémantiquement).
+- **Given** `/agenda` / glance multi-contexte, **when** hub, **then** Troupe + Saison en pickers **single-select** compacts.
+- **Given** implémentation, **when** tests + build web, **then** OK.
+- **Couverture :** **UX-DR22.1** — [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md) (2026-05-31).
+
+**Priorité :** P2 — correctif post-**17.27**.  
+**Depends :** 17.27, 17.10, 17.2.  
+**Story file:** [_bmad-output/implementation-artifacts/17-28-filtres-hub-pickers.md](../implementation-artifacts/17-28-filtres-hub-pickers.md)
+
 ---
 
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)

@@ -74,7 +74,9 @@ body {
   --hatcast-proxy-banner-icon: var(--mat-sys-tertiary);
 }
 
+
 @import 'styles/hatcast-agenda-event-card';
 @import 'styles/hatcast-agenda-event-badges';
 @import 'styles/hatcast-agenda-dispo-badge';
 @import 'app/layout/member-shell/member-shell-mobile-chrome.scss';
+@import 'styles/hatcast-filter-picker-overlays.scss';

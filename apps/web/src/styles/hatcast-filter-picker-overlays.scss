@@ -1,0 +1,53 @@
+/**
+ * Filter pickers — mobile bottom sheet with a fixed moderate height so the panel stays
+ * above the on-screen keyboard (header, search, results, footer) without dynamic resizing.
+ */
+$filter-picker-sheet-mobile-max-height: min(28rem, 55dvh);
+
+.mat-bottom-sheet-container.filter-picker-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: $filter-picker-sheet-mobile-max-height;
+  height: $filter-picker-sheet-mobile-max-height;
+  overflow: hidden;
+  padding: 0.35rem 0 0;
+  border-radius: 1rem 1rem 0 0;
+}
+
+.mat-bottom-sheet-container.filter-picker-sheet app-filter-participant-picker,
+.mat-bottom-sheet-container.filter-picker-sheet app-filter-event-picker,
+.mat-bottom-sheet-container.filter-picker-sheet app-filter-categories-picker,
+.mat-bottom-sheet-container.filter-picker-sheet app-filter-single-picker {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.mat-mdc-dialog-container.filter-picker-dialog {
+  overflow-x: hidden;
+  max-width: min(100vw - 2rem, 24rem);
+}
+
+.mat-mdc-dialog-container.filter-picker-dialog .mat-mdc-dialog-surface {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.mat-mdc-dialog-container.filter-picker-dialog .mat-mdc-dialog-content {
+  overflow-x: hidden;
+  max-width: 100%;
+  padding-inline: 0.75rem;
+}
+
+.mat-mdc-dialog-container.filter-picker-dialog app-filter-participant-picker,
+.mat-mdc-dialog-container.filter-picker-dialog app-filter-event-picker,
+.mat-mdc-dialog-container.filter-picker-dialog app-filter-categories-picker,
+.mat-mdc-dialog-container.filter-picker-dialog app-filter-single-picker {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  min-width: 0;
+}

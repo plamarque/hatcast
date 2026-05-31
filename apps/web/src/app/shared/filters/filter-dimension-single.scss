@@ -1,0 +1,17 @@
+.filter-dimension-single {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filter-dimension-single__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-dimension-single__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}

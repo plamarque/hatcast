@@ -46,7 +46,6 @@ import { computeCompositionLifecycleView } from '../../core/composition/composit
 import { normalizeRoleSlots } from '../../core/events/event-types'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
-import { formatEventStartLong } from '../season-home/season-events.utils'
 
 @Component({
   selector: 'app-event-detail',
@@ -101,18 +100,6 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly contextTroupeIsDemo = signal(false)
   protected readonly contextLeagueTitle = signal('')
   protected readonly contextSeasonSlug = signal('')
-  protected formatEventStart(iso: string): string {
-    return formatEventStartLong(iso)
-  }
-
-  protected readonly showMobileEventContext = computed(
-    () =>
-      !this.loading() &&
-      this.event() !== null &&
-      this.contextSeasonSlug() !== '' &&
-      this.contextTroupeName() !== '' &&
-      this.contextLeagueTitle() !== '',
-  )
 
   protected readonly canManageEvents = computed(
     () => this.seasonPermissions()?.canManageEvents === true,
@@ -137,26 +124,21 @@ export class EventDetail implements OnDestroy, OnInit {
       return []
     }
     const items: ScopeAdminMenuItem[] = []
-    if (this.canOpenEventParticipantsAdmin(ev.id)) {
-      items.push({
-        label: 'Participants du spectacle',
-        icon: 'groups',
-        action: () => this.openEventParticipantsAdmin(),
-      })
-    }
-    if (this.canManageEventOrganizersFor(ev.id)) {
-      items.push({
-        label: 'Organisateur·ices',
-        icon: 'badge',
-        routerLink: saisonEventParticipantsAdminPath(slug, ev.slug ?? ev.id),
-      })
-    }
     if (this.canManageEvents() && !ev.archived) {
       items.push({
         label: 'Modifier',
         icon: 'edit',
         action: () => this.openEdit(),
       })
+    }
+    if (this.canOpenEventParticipantsAdmin(ev.id)) {
+      items.push({
+        label: 'Participants',
+        icon: 'groups',
+        action: () => this.openEventParticipantsAdmin(),
+      })
+    }
+    if (this.canManageEvents() && !ev.archived) {
       items.push({
         label: 'Archiver',
         icon: 'archive',
@@ -459,7 +441,9 @@ export class EventDetail implements OnDestroy, OnInit {
 
   protected canOpenEventParticipantsAdmin(eventId: string): boolean {
     return (
-      this.canManageEventParticipantsFor(eventId) || this.canManageSeasonParticipants()
+      this.canManageEventParticipantsFor(eventId) ||
+      this.canManageSeasonParticipants() ||
+      this.canManageEventOrganizersFor(eventId)
     )
   }
 }

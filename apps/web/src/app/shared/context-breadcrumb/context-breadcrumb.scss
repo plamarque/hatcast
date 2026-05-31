@@ -207,6 +207,11 @@
   flex: 1 1 0;
 }
 
+a.context-breadcrumb__mobile-title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
 .context-breadcrumb__mobile-title {
   flex: 1 1 0;
   min-width: 0;
@@ -218,6 +223,23 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.context-breadcrumb__mobile-event-title {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 2.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.context-breadcrumb__sep--mobile {
+  flex-shrink: 0;
 }
 
 .context-breadcrumb__mobile-logo {

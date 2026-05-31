@@ -51,9 +51,9 @@ import {
   type ParticipantSelector,
 } from '../../core/participants/participant-api.service'
 import {
-  ConfirmDialog,
-  type ConfirmDialogData,
-} from '../seasons-list/confirm-dialog'
+  eventFilterOptionFromResponse,
+  resolveApiParticipantId,
+} from '../../shared/filters/filter-builders'
 import {
   AGENDA_UPCOMING_CAP,
   filterEventsByIds,
@@ -166,10 +166,10 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly loadingPastEvents = signal(false)
 
   protected readonly seasonView = model<SeasonView>('agenda')
-  protected readonly selectedParticipantId = model<string | null>(null)
-  protected readonly selectedEventId = model<string | null>(null)
-  protected readonly selectedHistoryEventId = model<string | null>(null)
-  protected readonly selectedStatsEventId = model<string | null>(null)
+  protected readonly selectedParticipantIds = model<string[]>([])
+  protected readonly selectedEventIds = model<string[]>([])
+  protected readonly selectedHistoryEventIds = model<string[]>([])
+  protected readonly selectedStatsEventIds = model<string[]>([])
   protected readonly statsDetailsExpanded = model(false)
   protected readonly statsCategoryFilter = signal<StatsCategoryFilter>(
     defaultStatsCategoryFilter(),
@@ -190,26 +190,24 @@ export class SeasonHome implements OnDestroy, OnInit {
   })
 
   protected readonly eventFilterOptions = computed<EventFilterOption[]>(() =>
-    this.events().map((e) => ({ id: e.id, title: e.title })),
+    this.events().map((e) => this.toEventFilterOption(e)),
   )
 
-  protected readonly filteredEvents = computed(() => {
-    const ids = this.selectedEventId()
-    return filterEventsByIds(this.events(), ids ? [ids] : null)
-  })
+  protected readonly filteredEvents = computed(() =>
+    filterEventsByIds(this.events(), this.selectedEventIds()),
+  )
 
   protected readonly monthGroups = computed(() =>
     groupEventsByMonth(this.filteredEvents()),
   )
 
   protected readonly historyEventFilterOptions = computed<EventFilterOption[]>(() =>
-    this.pastEvents().map((e) => ({ id: e.id, title: e.title })),
+    this.pastEvents().map((e) => this.toEventFilterOption(e, true)),
   )
 
-  protected readonly filteredPastEvents = computed(() => {
-    const ids = this.selectedHistoryEventId()
-    return filterEventsByIds(this.pastEvents(), ids ? [ids] : null)
-  })
+  protected readonly filteredPastEvents = computed(() =>
+    filterEventsByIds(this.pastEvents(), this.selectedHistoryEventIds()),
+  )
 
   protected readonly historyMonthGroups = computed(() =>
     groupPastEventsByMonth(this.filteredPastEvents()),
@@ -219,21 +217,43 @@ export class SeasonHome implements OnDestroy, OnInit {
     () =>
       this.pastEvents().length > 0 &&
       this.filteredPastEvents().length === 0 &&
-      this.selectedHistoryEventId() != null,
+      this.selectedHistoryEventIds().length > 0,
   )
 
   protected readonly statsEventFilterOptions = computed<EventFilterOption[]>(() =>
-    (this.statisticsData()?.events ?? []).map((e) => ({ id: e.id, title: e.title })),
+    (this.statisticsData()?.events ?? []).map((e) => ({
+      id: e.id,
+      title: e.title,
+    })),
   )
 
+  protected readonly displayStatisticsData = computed(() => {
+    const data = this.statisticsData()
+    if (!data) {
+      return null
+    }
+    const participantIds = this.selectedParticipantIds()
+    let rows = data.rows
+    if (participantIds.length > 0) {
+      const allowed = new Set(participantIds)
+      rows = rows.filter((row) => allowed.has(row.participantId))
+    }
+    const eventIds = this.selectedStatsEventIds()
+    const events = filterEventsByIds(data.events, eventIds)
+    return { ...data, rows, events }
+  })
+
   protected readonly historyParticipantLabel = computed(() => {
-    const id = this.selectedParticipantId()
-    if (!id) {
+    const ids = this.selectedParticipantIds()
+    if (!ids.length) {
       return this.myDisplayName()
     }
-    return (
-      this.participantOptions().find((o) => o.id === id)?.label ?? this.myDisplayName()
-    )
+    if (ids.length === 1) {
+      return (
+        this.participantOptions().find((o) => o.id === ids[0])?.label ?? this.myDisplayName()
+      )
+    }
+    return `${ids.length} membres`
   })
 
   protected readonly categoryLabels = computed(() => {
@@ -247,6 +267,27 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly categoryGlossarySlugs = computed(() =>
     this.categories().map((t) => t.slug),
   )
+
+  protected readonly filterTriggerVisible = computed(() => {
+    const view = this.seasonView()
+    if (view === 'stats') {
+      return (
+        this.categoryGlossarySlugs().length > 0 ||
+        this.participantOptions().length > 1 ||
+        this.statsEventFilterOptions().length > 0
+      )
+    }
+    if (view === 'history') {
+      return (
+        this.participantOptions().length > 1 ||
+        this.historyEventFilterOptions().length > 0
+      )
+    }
+    return (
+      this.participantOptions().length > 1 ||
+      this.eventFilterOptions().length > 0
+    )
+  })
 
   private readonly categories = signal<TroupeCategory[]>([])
   protected readonly canManageMembers = computed(() => this.seasonPermissions()?.canManageMembers === true)
@@ -273,6 +314,13 @@ export class SeasonHome implements OnDestroy, OnInit {
       return []
     }
     const items: ScopeAdminMenuItem[] = []
+    if (this.canManageEvents()) {
+      items.push({
+        label: 'Nouveau spectacle',
+        icon: 'add',
+        action: () => this.openCreate(),
+      })
+    }
     if (this.canManageSeasonParticipants()) {
       items.push({
         label: 'Participants',
@@ -336,23 +384,23 @@ export class SeasonHome implements OnDestroy, OnInit {
         c.kind === 'selected' ? `selected:${c.slugs.join(',')}` : c.kind
       const syncViewLoads = (): void => {
         const view = this.seasonView()
-        const participant = this.selectedParticipantId()
-        const statsEvent = this.selectedStatsEventId()
+        const participantKey = this.selectedParticipantIds().join(',')
+        const statsEventKey = this.selectedStatsEventIds().join(',')
         const statsCategoriesKeyValue = statsCategoriesKey(this.statsCategoryFilter())
         if (view !== lastView) {
           this.syncViewQueryParam()
         }
         if (
           view === lastView &&
-          participant === lastParticipant &&
+          participantKey === lastParticipant &&
           (view !== 'stats' ||
-            (statsEvent === lastStatsEvent && statsCategoriesKeyValue === lastStatsGroupsKey))
+            (statsEventKey === lastStatsEvent && statsCategoriesKeyValue === lastStatsGroupsKey))
         ) {
           return
         }
         lastView = view
-        lastParticipant = participant
-        lastStatsEvent = statsEvent
+        lastParticipant = participantKey
+        lastStatsEvent = statsEventKey
         lastStatsGroupsKey = statsCategoriesKeyValue
         if (view === 'history' && this.season()) {
           void this.loadPastEvents()
@@ -363,8 +411,8 @@ export class SeasonHome implements OnDestroy, OnInit {
       }
       syncViewLoads()
       this.seasonView.subscribe(syncViewLoads)
-      this.selectedParticipantId.subscribe(syncViewLoads)
-      this.selectedStatsEventId.subscribe(syncViewLoads)
+      this.selectedParticipantIds.subscribe(syncViewLoads)
+      this.selectedStatsEventIds.subscribe(syncViewLoads)
     } finally {
       this.loadingSession.set(false)
     }
@@ -406,7 +454,9 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
     const participant = params.get('participant')
     if (participant) {
-      this.selectedParticipantId.set(participant)
+      this.selectedParticipantIds.set(
+        participant.split(',').map((id) => id.trim()).filter(Boolean),
+      )
     }
   }
 
@@ -433,14 +483,14 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.eventsTruncated.set(false)
     this.loadingEvents.set(false)
     this.eventLoadLimit.set(AGENDA_UPCOMING_CAP)
-    this.selectedEventId.set(null)
+    this.selectedEventIds.set([])
     this.pastEvents.set([])
     this.pastTotalElements.set(0)
     this.pastEventsTruncated.set(false)
     this.loadingPastEvents.set(false)
     this.pastEventLoadLimit.set(HISTORY_PAST_CAP)
-    this.selectedHistoryEventId.set(null)
-    this.selectedStatsEventId.set(null)
+    this.selectedHistoryEventIds.set([])
+    this.selectedStatsEventIds.set([])
     this.statisticsData.set(null)
     this.loadingStatistics.set(false)
     this.statisticsEmptyReason.set(null)
@@ -613,7 +663,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
     const requestId = ++this.pastEventLoadRequestId
     const seasonId = s.id
-    const participantId = this.selectedParticipantId()
+    const participantId = resolveApiParticipantId(this.selectedParticipantIds())
     this.loadingPastEvents.set(true)
     try {
       let page = 0
@@ -707,8 +757,8 @@ export class SeasonHome implements OnDestroy, OnInit {
             : queryValue!.split(',')
 
       const r = await this.statisticsApi.loadStatistics(seasonId, {
-        eventId: this.selectedStatsEventId(),
-        participantId: this.selectedParticipantId(),
+        eventId: resolveApiParticipantId(this.selectedStatsEventIds()),
+        participantId: resolveApiParticipantId(this.selectedParticipantIds()),
         categories,
       })
       if (requestId !== this.statisticsLoadRequestId) {
@@ -862,70 +912,6 @@ export class SeasonHome implements OnDestroy, OnInit {
     })
   }
 
-  protected openEdit(eventId: string): void {
-    const s = this.season()
-    const ev = this.events().find((e) => e.id === eventId)
-    if (!s || !ev) {
-      return
-    }
-    if (!this.canManageEvents()) {
-      this.snack.open('Vous ne pouvez pas modifier ce spectacle.', 'OK', { duration: 5000 })
-      return
-    }
-    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(
-      EventFormDialog,
-      {
-        data: {
-          mode: 'edit',
-          seasonId: s.id,
-          event: ev,
-        },
-        width: 'min(100vw - 2rem, 28rem)',
-      },
-    )
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.reloadAfterMutation('Spectacle mis à jour.')
-      }
-    })
-  }
-
-  protected confirmArchive(eventId: string): void {
-    const ev = this.events().find((e) => e.id === eventId)
-    if (!ev) {
-      return
-    }
-    if (!this.canManageEvents()) {
-      this.snack.open('Vous ne pouvez pas archiver ce spectacle.', 'OK', { duration: 5000 })
-      return
-    }
-    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
-      data: {
-        title: 'Archiver le spectacle',
-        message: `Archiver « ${ev.title} » ? Il disparaîtra de l’agenda.`,
-        confirmLabel: 'Archiver',
-      },
-    })
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.runArchive(ev)
-      }
-    })
-  }
-
-  private async runArchive(ev: EventResponse): Promise<void> {
-    const s = this.season()
-    if (!s) {
-      return
-    }
-    const r = await this.eventsApi.archiveEvent(s.id, ev.id)
-    if (r.ok) {
-      await this.reloadAfterMutation('Spectacle archivé.')
-    } else {
-      this.snack.open('Archivage impossible.', 'OK', { duration: 6000 })
-    }
-  }
-
   private async reloadAfterMutation(message: string): Promise<void> {
     await this.loadUpcomingEvents({ force: true })
     await this.refreshSeasonCounts()
@@ -933,26 +919,42 @@ export class SeasonHome implements OnDestroy, OnInit {
   }
 
   private resetStaleEventFilter(events: EventResponse[]): void {
-    const selected = this.selectedEventId()
-    if (selected && !events.some((e) => e.id === selected)) {
-      this.selectedEventId.set(null)
-    }
+    this.pruneStaleEventIds(events, this.selectedEventIds, (ids) => this.selectedEventIds.set(ids))
   }
 
   private resetStaleHistoryEventFilter(events: EventResponse[]): void {
-    const selected = this.selectedHistoryEventId()
-    if (selected && !events.some((e) => e.id === selected)) {
-      this.selectedHistoryEventId.set(null)
-    }
+    this.pruneStaleEventIds(
+      events,
+      this.selectedHistoryEventIds,
+      (ids) => this.selectedHistoryEventIds.set(ids),
+    )
   }
 
   private resetStaleStatsEventFilter(
     events: SeasonStatisticsResponse['events'],
   ): void {
-    const selected = this.selectedStatsEventId()
-    if (selected && !events.some((e) => e.id === selected)) {
-      this.selectedStatsEventId.set(null)
+    const allowed = new Set(events.map((e) => e.id))
+    const next = this.selectedStatsEventIds().filter((id) => allowed.has(id))
+    if (next.length !== this.selectedStatsEventIds().length) {
+      this.selectedStatsEventIds.set(next)
     }
+  }
+
+  private pruneStaleEventIds(
+    events: { id: string }[],
+    current: () => string[],
+    apply: (ids: string[]) => void,
+  ): void {
+    const allowed = new Set(events.map((e) => e.id))
+    const next = current().filter((id) => allowed.has(id))
+    if (next.length !== current().length) {
+      apply(next)
+    }
+  }
+
+  private toEventFilterOption(e: EventResponse, forcePast = false): EventFilterOption {
+    const opt = eventFilterOptionFromResponse(e)
+    return forcePast ? { ...opt, past: true } : opt
   }
 
   private async refreshSeasonCounts(): Promise<void> {

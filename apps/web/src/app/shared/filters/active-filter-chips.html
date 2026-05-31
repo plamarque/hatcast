@@ -1,0 +1,31 @@
+@if (chips().length > 0) {
+  <div class="active-filter-chips" data-testid="active-filter-chips">
+    <mat-chip-set aria-label="Filtres actifs">
+      @for (chip of chips(); track chip.dimensionKey) {
+        <mat-chip
+          [removable]="true"
+          (removed)="onRemove(chip.dimensionKey)"
+          (click)="onChipClick(chip.dimensionKey)"
+        >
+          {{ chip.label }}
+          <button
+            matChipRemove
+            type="button"
+            [attr.aria-label]="'Retirer le filtre ' + chip.label"
+          >
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </mat-chip>
+      }
+    </mat-chip-set>
+    <button
+      mat-button
+      type="button"
+      class="active-filter-chips__clear"
+      data-testid="filter-clear-all"
+      (click)="onClearAll()"
+    >
+      Tout effacer
+    </button>
+  </div>
+}

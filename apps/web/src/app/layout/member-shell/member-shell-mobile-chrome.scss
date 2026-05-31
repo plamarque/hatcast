@@ -3,6 +3,31 @@
 @media (max-width: 839px) {
   .member-shell--with-nav .member-shell__content {
     --member-shell-account-reserve: 3.25rem;
+    --member-shell-corner-size: 3rem;
+    --member-shell-corner-gap: 0.35rem;
+    --member-shell-corner-inset: max(0.5rem, env(safe-area-inset-right, 0px));
+    --member-shell-corner-top: max(0.25rem, env(safe-area-inset-top, 0px));
+  }
+
+  /* Engrenage admin saison / spectacle : même rangée que l’avatar fixe (UX-DR22.1 mobile). */
+  .member-shell--with-nav .season-header.season-header--with-admin,
+  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin {
+    padding-inline-end: calc(
+      var(--member-shell-account-reserve, 3.25rem) + var(--member-shell-corner-size, 3rem) +
+        var(--member-shell-corner-gap, 0.35rem) + env(safe-area-inset-right, 0px)
+    );
+  }
+
+  .member-shell--with-nav .season-header.season-header--with-admin .season-header__admin,
+  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin .event-detail-header__admin {
+    position: fixed;
+    z-index: 1100;
+    top: var(--member-shell-corner-top, max(0.25rem, env(safe-area-inset-top, 0px)));
+    inset-inline-end: calc(
+      var(--member-shell-corner-inset, max(0.5rem, env(safe-area-inset-right, 0px))) +
+        var(--member-shell-corner-size, 3rem) + var(--member-shell-corner-gap, 0.35rem)
+    );
+    margin: 0;
   }
 
   .member-shell--with-nav .season-header,
@@ -18,19 +43,33 @@
     box-sizing: border-box;
     padding-inline-end: calc(var(--member-shell-account-reserve, 3.25rem) + env(safe-area-inset-right, 0px));
   }
+
+  /* Filtre : même colonne que l’avatar fixe (sous-titre à gauche, trigger sous l’avatar). */
+  .member-shell--with-nav .user-agenda__header-subline:has([data-testid='filter-trigger-column']),
+  .member-shell--with-nav .member-glance-page__header-subline:has([data-testid='filter-trigger-column']) {
+    display: block;
+    min-height: var(--member-shell-corner-size, 3rem);
+    padding-inline-end: calc(var(--member-shell-corner-size, 3rem) + 0.5rem);
+  }
+
+  .member-shell--with-nav .user-agenda__header-actions,
+  .member-shell--with-nav .member-glance-page__header-actions {
+    position: fixed;
+    z-index: 1090;
+    top: calc(
+      var(--member-shell-corner-top, 0.25rem) + var(--member-shell-corner-size, 3rem) +
+        var(--member-shell-corner-gap, 0.35rem)
+    );
+    inset-inline-end: var(--member-shell-corner-inset, 0.5rem);
+    margin: 0;
+  }
 }
 
-/* flex-basis 12rem en colonne → ~192px de hauteur vide sous le sous-titre (Agenda, Stats, …) */
 @media (max-width: 640px) {
   .member-shell--with-nav {
     .user-agenda__header,
     .member-glance-page__header {
       margin-bottom: 0.5rem;
-    }
-
-    .user-agenda__titles,
-    .member-glance-page__titles {
-      flex: 0 0 auto;
     }
   }
 }

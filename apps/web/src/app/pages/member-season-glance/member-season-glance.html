@@ -1,21 +1,42 @@
 <div class="member-glance-page">
   <header class="member-glance-page__header">
-    <div class="member-glance-page__titles">
-      <h1 class="member-glance-page__title">{{ headerTitle() }}</h1>
+    <h1 class="member-glance-page__title">{{ headerTitle() }}</h1>
+    <div class="member-glance-page__header-subline">
       <p class="member-glance-page__subtitle">{{ headerSubtitle() }}</p>
+      @if (!loadingSession() && !loadError() && filterBarVisible()) {
+        <div class="member-glance-page__header-actions" data-testid="filter-trigger-column">
+          <app-filter-trigger
+            [visible]="true"
+            [activeCount]="activeFilterChips().length"
+            [expanded]="filterPanelOpen()"
+            (open)="toggleCriteriaPanel()"
+          />
+        </div>
+      }
     </div>
   </header>
 
-  @if (filterBarVisible() && filterBarCatalog()) {
-    <app-user-agenda-filter-bar
-      class="member-glance-page__filters"
-      [participationFilters]="filterBarCatalog()!"
-      [selectedTroupeId]="selectedTroupeId()"
-      [selectedSeasonId]="selectedSeasonId()"
-      (troupeChange)="onTroupeFilterChange($event)"
-      (seasonChange)="onSeasonFilterChange($event)"
-      (clearFilters)="onClearFilters()"
-    />
+  @if (!loadingSession() && !loadError() && filterBarVisible()) {
+    @if (filterPanelOpen()) {
+      <div class="member-glance-page__criteria-panel" data-testid="member-glance-criteria-panel">
+        <app-filter-criteria-bar
+          [dimensions]="hubDimensions()"
+          [chips]="activeFilterChips()"
+          (openDimension)="onOpenFilterDimension($event)"
+          (removeDimension)="onRemoveFilterDimension($event)"
+          (clearAll)="onClearFilters()"
+        />
+      </div>
+    } @else if (activeFilterChips().length > 0) {
+      <div class="member-glance-page__chips-row" data-testid="member-glance-chips-row">
+        <app-active-filter-chips
+          [chips]="activeFilterChips()"
+          (removeDimension)="onRemoveFilterDimension($event)"
+          (openDimension)="onOpenFilterDimension($event)"
+          (clearAll)="onClearFilters()"
+        />
+      </div>
+    }
   }
 
   <main class="member-glance-page__main" aria-labelledby="member-glance-main-title">
@@ -28,7 +49,11 @@
     } @else if (loadError()) {
       <p class="member-glance-page__error" role="alert">Impossible de charger le profil saison.</p>
     } @else if (panelProfile(); as profile) {
-      <app-member-profile-panel [profile]="profile" [loading]="false" [showPreferredRoles]="false" />
+      <app-member-profile-panel
+        [profile]="profile"
+        [loading]="false"
+        [showPreferredRoles]="false"
+      />
     }
   </main>
 </div>

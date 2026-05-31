@@ -156,6 +156,14 @@ describe('SeasonAgenda', () => {
     expect(eventSpy).not.toHaveBeenCalled()
   })
 
+  it('does not render agenda card overflow menu when user can manage events', () => {
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.agenda-card__menu')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[aria-label="Actions spectacle"]')).toBeNull()
+  })
+
   it('keeps cards visible and disables load more while refreshing', () => {
     fixture.componentRef.setInput('loading', true)
     fixture.componentRef.setInput('truncated', true)
