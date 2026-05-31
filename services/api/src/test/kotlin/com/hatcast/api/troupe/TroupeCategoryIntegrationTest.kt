@@ -26,12 +26,12 @@ import java.util.UUID
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class TroupeEquityTagIntegrationTest {
+class TroupeCategoryIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
 
     @Autowired
-    private lateinit var troupeEquityTagRepository: TroupeEquityTagRepository
+    private lateinit var troupeCategoryRepository: TroupeCategoryRepository
 
     @Autowired
     private lateinit var membershipRepository: TroupeMembershipRepository
@@ -55,7 +55,7 @@ class TroupeEquityTagIntegrationTest {
                 googleIdTokenService,
                 googleSub,
                 email = "$googleSub@example.com",
-                name = "Equity Tag Test",
+                name = "Category Test",
             )
         val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing test user $googleSub")
         val membership =
@@ -73,7 +73,7 @@ class TroupeEquityTagIntegrationTest {
                     post("/v1/troupes/$seedTroupeId/seasons")
                         .cookie(cookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{ "title": "Saison equity tags" }""")
+                        .content("""{ "title": "Saison categories" }""")
                         .with(csrf()),
                 ).andExpect(status().isOk)
                 .andReturn()
@@ -82,7 +82,7 @@ class TroupeEquityTagIntegrationTest {
 
     @Test
     fun `list glossary and auto-create on event is idempotent`() {
-        val cookie = adminCookie("sub-equity-1")
+        val cookie = adminCookie("sub-category-1")
         val seasonId = createSeason(cookie)
         val startsAt = Instant.parse("2031-06-01T20:00:00Z")
 
@@ -96,19 +96,19 @@ class TroupeEquityTagIntegrationTest {
                         {
                           "title": "Spectacle déplacement",
                           "startsAt": "$startsAt",
-                          "equityTag": "Déplacements"
+                          "category": "Déplacements"
                         }
                         """.trimIndent(),
                     ).with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.equityTag").value("deplacements"))
+            .andExpect(jsonPath("$.category").value("deplacements"))
 
         mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/equity-tags").cookie(cookie))
+            .perform(get("/v1/troupes/$seedTroupeId/categories").cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[?(@.slug == 'deplacements')].label").value("Déplacements"))
 
-        val countAfterFirst = troupeEquityTagRepository.findByTroupe_IdOrderByLabelAsc(seedTroupeId).size
+        val countAfterFirst = troupeCategoryRepository.findByTroupe_IdOrderByLabelAsc(seedTroupeId).size
 
         mockMvc
             .perform(
@@ -120,14 +120,14 @@ class TroupeEquityTagIntegrationTest {
                         {
                           "title": "Autre déplacement",
                           "startsAt": "${startsAt.plusSeconds(3600)}",
-                          "equityTag": "deplacements"
+                          "category": "deplacements"
                         }
                         """.trimIndent(),
                     ).with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.equityTag").value("deplacements"))
+            .andExpect(jsonPath("$.category").value("deplacements"))
 
-        val tags = troupeEquityTagRepository.findByTroupe_IdOrderByLabelAsc(seedTroupeId)
+        val tags = troupeCategoryRepository.findByTroupe_IdOrderByLabelAsc(seedTroupeId)
         assertEquals(countAfterFirst, tags.size)
         val deplacements = tags.single { it.slug == "deplacements" }
         assertEquals("Déplacements", deplacements.label)

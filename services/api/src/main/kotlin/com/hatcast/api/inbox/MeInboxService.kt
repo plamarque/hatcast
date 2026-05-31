@@ -48,7 +48,7 @@ class MeInboxService(
         userId = userId,
         fromInclusive = from,
         troupeId = null,
-        leagueId = null,
+        seasonId = null,
         pageable = PageRequest.of(0, INBOX_UPCOMING_PAGE_SIZE),
       )
     val upcomingRows = upcomingPage.content
@@ -126,11 +126,11 @@ class MeInboxService(
     val glanceSource = nextEventRow ?: upcomingRows.firstOrNull()
     val shortcuts =
       InboxShortcutsDto(
-        lastSeasonSlug = glanceSource?.leagueSlug,
+        lastSeasonSlug = glanceSource?.seasonSlug,
         seasonGlanceQuery =
           InboxSeasonGlanceQueryDto(
             troupeId = glanceSource?.troupeId,
-            leagueId = glanceSource?.leagueId,
+            seasonId = glanceSource?.seasonId,
           ),
       )
 
@@ -155,12 +155,12 @@ class MeInboxService(
     }
 
   private fun participationContext(userId: UUID): ParticipationContext {
-    val leagueIds =
+    val seasonIds =
       (
-        userAgendaRepository.findParticipatingLeagueIdsFromSeason(userId) +
-          userAgendaRepository.findParticipatingLeagueIdsFromEventOnly(userId)
+        userAgendaRepository.findParticipatingSeasonIdsFromSeason(userId) +
+          userAgendaRepository.findParticipatingSeasonIdsFromEventOnly(userId)
       ).toSet()
-    return ParticipationContext(noParticipation = leagueIds.isEmpty())
+    return ParticipationContext(noParticipation = seasonIds.isEmpty())
   }
 }
 

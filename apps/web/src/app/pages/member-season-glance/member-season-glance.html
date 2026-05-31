@@ -11,9 +11,9 @@
       class="member-glance-page__filters"
       [participationFilters]="filterBarCatalog()!"
       [selectedTroupeId]="selectedTroupeId()"
-      [selectedLeagueId]="selectedLeagueId()"
+      [selectedSeasonId]="selectedSeasonId()"
       (troupeChange)="onTroupeFilterChange($event)"
-      (leagueChange)="onLeagueFilterChange($event)"
+      (seasonChange)="onSeasonFilterChange($event)"
       (clearFilters)="onClearFilters()"
     />
   }

@@ -13,12 +13,12 @@ import java.util.UUID
 
 @Entity
 @Table(
-    name = "troupe_equity_tags",
+    name = "troupe_categories",
     uniqueConstraints = [
-        UniqueConstraint(name = "troupe_equity_tags_troupe_slug", columnNames = ["troupe_id", "slug"]),
+        UniqueConstraint(name = "troupe_categories_troupe_slug", columnNames = ["troupe_id", "slug"]),
     ],
 )
-class TroupeEquityTagEntity(
+class TroupeCategoryEntity(
     @Id
     val id: UUID = UUID.randomUUID(),
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

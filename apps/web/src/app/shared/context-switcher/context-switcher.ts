@@ -11,7 +11,7 @@ import {
   getLastVisitedSeasonSlug,
   getLastVisitedSeasonSlugForTroupe,
   rememberLastVisitedSeasonSlug,
-} from '../../core/navigation/last-visited-league-storage'
+} from '../../core/navigation/last-visited-season-storage'
 import {
   saisonWorkspacePath,
   troupeHubPath,

@@ -128,7 +128,7 @@ export class MemberHomeTodo implements OnInit {
   }
 
   protected openNextEvent(item: AgendaCardEnrichedItem): void {
-    void this.router.navigate(saisonEventPath(item.leagueSlug, item.eventSlug))
+    void this.router.navigate(saisonEventPath(item.seasonSlug, item.eventSlug))
   }
 
   protected actionAriaLabel(action: InboxAction): string {

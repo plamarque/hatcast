@@ -26,7 +26,7 @@ import { MemberProfilePanel } from '../../shared/member-profile/member-profile-p
 
 const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
   troupes: [],
-  leagues: [],
+  seasons: [],
 }
 
 @Component({
@@ -60,7 +60,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   protected readonly filterBarVisible = signal(false)
   protected readonly participationFilters = signal<UserAgendaParticipationFilters | null>(null)
   protected readonly selectedTroupeId = signal<string | null>(null)
-  protected readonly selectedLeagueId = signal<string | null>(null)
+  protected readonly selectedSeasonId = signal<string | null>(null)
   protected readonly userSlug = signal('')
 
   protected readonly pageTitle = () => {
@@ -114,7 +114,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   }
 
   protected readonly hasActiveFilters = () =>
-    this.selectedTroupeId() != null || this.selectedLeagueId() != null
+    this.selectedTroupeId() != null || this.selectedSeasonId() != null
 
   async ngOnInit(): Promise<void> {
     const r = await this.auth.ensureHatcastSession()
@@ -158,26 +158,26 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
 
   protected async onTroupeFilterChange(troupeId: string | null): Promise<void> {
     this.selectedTroupeId.set(troupeId)
-    if (troupeId && this.selectedLeagueId()) {
-      const leagues = this.participationFilters()?.leagues ?? []
-      const leagueStillValid = leagues.some(
-        (l) => l.id === this.selectedLeagueId() && l.troupeId === troupeId,
+    if (troupeId && this.selectedSeasonId()) {
+      const seasons = this.participationFilters()?.seasons ?? []
+      const seasonStillValid = seasons.some(
+        (l) => l.id === this.selectedSeasonId() && l.troupeId === troupeId,
       )
-      if (!leagueStillValid) {
-        this.selectedLeagueId.set(null)
+      if (!seasonStillValid) {
+        this.selectedSeasonId.set(null)
       }
     }
     await this.applyFilterChange()
   }
 
-  protected async onLeagueFilterChange(leagueId: string | null): Promise<void> {
-    this.selectedLeagueId.set(leagueId)
+  protected async onSeasonFilterChange(seasonId: string | null): Promise<void> {
+    this.selectedSeasonId.set(seasonId)
     await this.applyFilterChange()
   }
 
   protected async onClearFilters(): Promise<void> {
     this.selectedTroupeId.set(null)
-    this.selectedLeagueId.set(null)
+    this.selectedSeasonId.set(null)
     clearStoredMemberGlanceFilters()
     await this.syncFilterQueryParams()
     await this.loadGlance()
@@ -204,7 +204,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     this.loadError.set(false)
     const r = await this.glanceApi.getSeasonGlance(slug, {
       troupeId: this.selectedTroupeId() ?? undefined,
-      leagueId: this.selectedLeagueId() ?? undefined,
+      seasonId: this.selectedSeasonId() ?? undefined,
     })
     this.loadingGlance.set(false)
 
@@ -215,7 +215,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
 
       if (!r.data.filterBarVisible) {
         this.selectedTroupeId.set(null)
-        this.selectedLeagueId.set(null)
+        this.selectedSeasonId.set(null)
         clearStoredMemberGlanceFilters()
         await this.syncFilterQueryParams()
       } else {
@@ -250,16 +250,16 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   private bootstrapFiltersFromRoute(): void {
     const query = this.route.snapshot.queryParamMap
     const queryTroupe = parseAgendaFilterUuid(query.get('troupeId'))
-    const queryLeague = parseAgendaFilterUuid(query.get('leagueId'))
+    const queryLeague = parseAgendaFilterUuid(query.get('seasonId'))
     if (queryTroupe || queryLeague) {
       this.selectedTroupeId.set(queryTroupe)
-      this.selectedLeagueId.set(queryLeague)
+      this.selectedSeasonId.set(queryLeague)
       return
     }
     const stored = readStoredMemberGlanceFilters()
     if (stored) {
       this.selectedTroupeId.set(parseAgendaFilterUuid(stored.troupeId))
-      this.selectedLeagueId.set(parseAgendaFilterUuid(stored.leagueId))
+      this.selectedSeasonId.set(parseAgendaFilterUuid(stored.seasonId))
     }
   }
 
@@ -267,7 +267,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     const query = this.route.snapshot.queryParamMap
     const hasQueryFilters =
       parseAgendaFilterUuid(query.get('troupeId')) != null ||
-      parseAgendaFilterUuid(query.get('leagueId')) != null
+      parseAgendaFilterUuid(query.get('seasonId')) != null
     if (!hasQueryFilters && this.hasActiveFilters()) {
       await this.syncFilterQueryParams()
     }
@@ -280,13 +280,13 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   }
 
   private persistFilterSelection(): void {
-    if (this.selectedTroupeId() == null && this.selectedLeagueId() == null) {
+    if (this.selectedTroupeId() == null && this.selectedSeasonId() == null) {
       clearStoredMemberGlanceFilters()
       return
     }
     writeStoredMemberGlanceFilters({
       troupeId: this.selectedTroupeId(),
-      leagueId: this.selectedLeagueId(),
+      seasonId: this.selectedSeasonId(),
     })
   }
 
@@ -297,7 +297,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
         relativeTo: this.route,
         queryParams: {
           troupeId: this.selectedTroupeId(),
-          leagueId: this.selectedLeagueId(),
+          seasonId: this.selectedSeasonId(),
         },
         queryParamsHandling: 'merge',
         replaceUrl: true,
@@ -313,21 +313,21 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       return
     }
     let troupeId = this.selectedTroupeId()
-    let leagueId = this.selectedLeagueId()
+    let seasonId = this.selectedSeasonId()
     if (troupeId && !catalog.troupes.some((t) => t.id === troupeId)) {
       troupeId = null
     }
-    if (leagueId && !catalog.leagues.some((l) => l.id === leagueId)) {
-      leagueId = null
+    if (seasonId && !catalog.seasons.some((l) => l.id === seasonId)) {
+      seasonId = null
     }
-    if (troupeId && leagueId) {
-      const league = catalog.leagues.find((l) => l.id === leagueId)
-      if (league && league.troupeId !== troupeId) {
-        leagueId = null
+    if (troupeId && seasonId) {
+      const season = catalog.seasons.find((s) => s.id === seasonId)
+      if (season && season.troupeId !== troupeId) {
+        seasonId = null
       }
     }
     this.selectedTroupeId.set(troupeId)
-    this.selectedLeagueId.set(leagueId)
+    this.selectedSeasonId.set(seasonId)
     this.persistFilterSelection()
     await this.syncFilterQueryParams()
   }

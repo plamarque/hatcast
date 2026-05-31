@@ -19,13 +19,13 @@ class MemberSeasonGlanceController(
     fun getSeasonGlance(
         @PathVariable userSlug: String,
         @RequestParam(required = false) troupeId: UUID?,
-        @RequestParam(required = false) leagueId: UUID?,
+        @RequestParam(required = false) seasonId: UUID?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): MemberSeasonGlanceResponseDto =
         memberSeasonGlanceService.getSeasonGlance(
             userSlug = userSlug,
             principal = principal,
             troupeId = troupeId,
-            leagueId = leagueId,
+            seasonId = seasonId,
         )
 }

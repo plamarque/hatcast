@@ -21,7 +21,7 @@ function item(
   id: string,
   startsAt: string,
   status: UserAgendaItem['myAvailabilityStatus'] = 'unknown',
-  ids: { troupeId?: string; leagueId?: string } = {},
+  ids: { troupeId?: string; seasonId?: string } = {},
 ): UserAgendaItem {
   return {
     eventId: id,
@@ -32,9 +32,9 @@ function item(
     troupeId: ids.troupeId ?? 'troupe-1',
     troupeName: 'La BIM',
     troupeSlug: 'la-bim',
-    leagueId: ids.leagueId ?? 'league-1',
-    leagueSlug: 'ligue-2026',
-    leagueTitle: 'Ligue 2026',
+    seasonId: ids.seasonId ?? 'league-1',
+    seasonSlug: 'ligue-2026',
+    seasonTitle: 'Ligue 2026',
     myAvailabilityStatus: status,
   }
 }
@@ -93,31 +93,31 @@ describe('member-home-todo.utils', () => {
     const items = [
       item('a', '2026-06-01T18:00:00+02:00', 'available', {
         troupeId: 'troupe-agenda',
-        leagueId: 'league-agenda',
+        seasonId: 'league-agenda',
       }),
     ]
     expect(
       deriveSeasonGlanceQueryParams(items, {
         troupeId: 'troupe-stored',
-        leagueId: 'league-stored',
+        seasonId: 'league-stored',
       }),
-    ).toEqual({ troupeId: 'troupe-stored', leagueId: 'league-stored' })
+    ).toEqual({ troupeId: 'troupe-stored', seasonId: 'league-stored' })
   })
 
   it('deriveSeasonGlanceQueryParams falls back to first agenda row, not earliest event', () => {
     const items = [
       item('later', '2026-06-10T18:00:00+02:00', 'available', {
         troupeId: 'troupe-first-row',
-        leagueId: 'league-first-row',
+        seasonId: 'league-first-row',
       }),
       item('earlier', '2026-06-01T18:00:00+02:00', 'available', {
         troupeId: 'troupe-earliest',
-        leagueId: 'league-earliest',
+        seasonId: 'league-earliest',
       }),
     ]
     expect(deriveSeasonGlanceQueryParams(items, null)).toEqual({
       troupeId: 'troupe-first-row',
-      leagueId: 'league-first-row',
+      seasonId: 'league-first-row',
     })
   })
 
@@ -128,10 +128,10 @@ describe('member-home-todo.utils', () => {
   it('deriveSeasonGlanceQueryParamsFromInbox uses inbox hints when lastVisited absent', () => {
     expect(
       deriveSeasonGlanceQueryParamsFromInbox(
-        { lastSeasonSlug: 'ligue-x', seasonGlanceQuery: { troupeId: 't-inbox', leagueId: 'l-inbox' } },
+        { lastSeasonSlug: 'ligue-x', seasonGlanceQuery: { troupeId: 't-inbox', seasonId: 'l-inbox' } },
         null,
       ),
-    ).toEqual({ troupeId: 't-inbox', leagueId: 'l-inbox' })
+    ).toEqual({ troupeId: 't-inbox', seasonId: 'l-inbox' })
   })
 
   it('resolveLastVisitedSeasonGlanceIds returns ids when season resolves', async () => {
@@ -146,7 +146,7 @@ describe('member-home-todo.utils', () => {
 
     await expect(resolveLastVisitedSeasonGlanceIds(resolver as never)).resolves.toEqual({
       troupeId: 'troupe-x',
-      leagueId: 'league-y',
+      seasonId: 'league-y',
     })
   })
 })

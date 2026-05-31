@@ -323,7 +323,7 @@ components:
           type: string
           maxLength: 128
           description: Identifiant URL unique dans la saison
-        equityTag:
+        category:
           type: string
           nullable: true
           maxLength: 64
@@ -344,6 +344,7 @@ components:
         templateType:
           type: string
           enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
+          description: Format du spectacle (cabaret, match, …)
         roleSlots:
           type: object
           additionalProperties:
@@ -372,6 +373,10 @@ components:
               nullable: true
             inTeam:
               type: boolean
+            slotParticipationStatus:
+              type: string
+              nullable: true
+              enum: [pending, confirmed, declined]
         compositionLifecycle:
           type: string
           enum: [preparing, draftComposition, awaitingConfirmations, gapsToFill, complete]
@@ -413,20 +418,20 @@ components:
         templateType:
           type: string
           enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
-          description: Défaut serveur cabaret si absent
+          description: Format du spectacle (cabaret, match, …). Défaut serveur cabaret si absent.
         roleSlots:
           type: object
           additionalProperties:
             type: integer
             minimum: 0
             maximum: 20
-          description: Défaut = slots du templateType
+          description: Défaut = slots du format (`templateType`)
         slug:
           type: string
           maxLength: 128
           description: >
             Identifiant URL optionnel (sinon dérivé du titre). Lettres minuscules, chiffres et tirets.
-        equityTag:
+        category:
           type: string
           maxLength: 64
           description: Tag d'équité optionnel (un seul slug ; absent = principal)
@@ -446,6 +451,7 @@ components:
         templateType:
           type: string
           enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
+          description: Format du spectacle (cabaret, match, …)
         roleSlots:
           type: object
           additionalProperties:
@@ -457,7 +463,7 @@ components:
           type: string
           maxLength: 128
           description: Nouvel identifiant URL (unicité par saison ; absent = inchangé)
-        equityTag:
+        category:
           type: string
           nullable: true
           maxLength: 64

@@ -14,7 +14,7 @@ import { Router, RouterLink } from '@angular/router'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import { saisonWorkspacePath } from '../../core/navigation/troupe-routes'
 import {
   type SeasonResponse,

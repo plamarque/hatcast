@@ -6,7 +6,7 @@ import { AuthApiService } from '../auth/auth-api.service'
 import type { SeasonResponse } from '../seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
 import { rememberLastMemberEntryPath } from './last-member-entry-path-storage'
-import { rememberLastVisitedSeasonSlug } from './last-visited-league-storage'
+import { rememberLastVisitedSeasonSlug } from './last-visited-season-storage'
 import { PostLoginNavigationService } from './post-login-navigation.service'
 import { rememberPendingPostLoginRedirect } from './post-login-redirect-storage'
 

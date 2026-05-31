@@ -1,6 +1,6 @@
 package com.hatcast.api.composition
 
-import com.hatcast.api.event.EquityCompartment
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.event.EventEntity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -44,10 +44,10 @@ class CompositionSelectionHistoryServiceTest {
                 override fun getSelectionCount(): Long = 3
             }
         whenever(
-            slotRepository.countValidatedSelectionsBySeasonAndCompartment(
+            slotRepository.countValidatedSelectionsBySeasonAndCategory(
                 target.season.id,
                 target.id,
-                EquityCompartment.PRINCIPAL,
+                SpectacleCategory.PRINCIPAL,
             ),
         ).thenReturn(listOf(projection))
 
@@ -73,7 +73,7 @@ class CompositionSelectionHistoryServiceTest {
                 target.id,
                 target.startsAt,
                 target.createdAt,
-                EquityCompartment.PRINCIPAL,
+                SpectacleCategory.PRINCIPAL,
             ),
         ).thenReturn(emptyList())
 
@@ -87,7 +87,7 @@ class CompositionSelectionHistoryServiceTest {
             target.id,
             target.startsAt,
             target.createdAt,
-            EquityCompartment.PRINCIPAL,
+            SpectacleCategory.PRINCIPAL,
         )
     }
 
@@ -106,10 +106,10 @@ class CompositionSelectionHistoryServiceTest {
                 templateType = "deplacement",
             )
         whenever(
-            slotRepository.countValidatedSelectionsBySeasonAndCompartment(
+            slotRepository.countValidatedSelectionsBySeasonAndCategory(
                 seasonId,
                 target.id,
-                EquityCompartment.DEPLACEMENTS,
+                SpectacleCategory.DEPLACEMENTS,
             ),
         ).thenReturn(emptyList())
 
@@ -118,10 +118,10 @@ class CompositionSelectionHistoryServiceTest {
             SelectionHistoryMode.OPERATIONAL,
         )
 
-        verify(slotRepository).countValidatedSelectionsBySeasonAndCompartment(
+        verify(slotRepository).countValidatedSelectionsBySeasonAndCategory(
             seasonId,
             target.id,
-            EquityCompartment.DEPLACEMENTS,
+            SpectacleCategory.DEPLACEMENTS,
         )
     }
 }

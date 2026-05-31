@@ -396,7 +396,7 @@ export class MembresTab implements OnInit, OnDestroy {
     this.memberProfile.navigateToMemberGlance({
       userSlug: member.userSlug,
       troupeId: this.troupeId(),
-      leagueId: seasonId,
+      seasonId: seasonId,
     })
   }
 

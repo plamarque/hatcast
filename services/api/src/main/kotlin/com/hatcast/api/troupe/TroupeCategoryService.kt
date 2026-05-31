@@ -1,8 +1,8 @@
 package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
-import com.hatcast.api.event.EquityTagNormalizer
-import com.hatcast.api.troupe.dto.TroupeEquityTagDto
+import com.hatcast.api.event.CategorySlugNormalizer
+import com.hatcast.api.troupe.dto.TroupeCategoryDto
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -11,21 +11,21 @@ import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 @Service
-class TroupeEquityTagService(
+class TroupeCategoryService(
     private val troupeRepository: TroupeRepository,
-    private val troupeEquityTagRepository: TroupeEquityTagRepository,
+    private val troupeCategoryRepository: TroupeCategoryRepository,
     private val troupeAccess: TroupeAccessService,
 ) {
     @Transactional(readOnly = true)
     fun listForTroupe(
         troupeId: UUID,
         principal: SessionUserPrincipal,
-    ): List<TroupeEquityTagDto> {
+    ): List<TroupeCategoryDto> {
         requireTroupeExists(troupeId)
         troupeAccess.requireActiveMember(principal, troupeId)
-        return troupeEquityTagRepository
+        return troupeCategoryRepository
             .findByTroupe_IdOrderByLabelAsc(troupeId)
-            .map { TroupeEquityTagDto.from(it) }
+            .map { TroupeCategoryDto.from(it) }
     }
 
     /**
@@ -37,8 +37,8 @@ class TroupeEquityTagService(
         troupeId: UUID,
         rawInput: String,
     ): String {
-        val slug = EquityTagNormalizer.normalizeSlug(rawInput)
-        if (troupeEquityTagRepository.existsByTroupe_IdAndSlug(troupeId, slug)) {
+        val slug = CategorySlugNormalizer.normalizeSlug(rawInput)
+        if (troupeCategoryRepository.existsByTroupe_IdAndSlug(troupeId, slug)) {
             return slug
         }
         val troupe =
@@ -46,16 +46,16 @@ class TroupeEquityTagService(
                 .findById(troupeId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue") }
         val entity =
-            TroupeEquityTagEntity(
+            TroupeCategoryEntity(
                 troupe = troupe,
                 slug = slug,
-                label = EquityTagNormalizer.labelForAutoCreate(rawInput),
+                label = CategorySlugNormalizer.labelForAutoCreate(rawInput),
             )
         return try {
-            troupeEquityTagRepository.saveAndFlush(entity)
+            troupeCategoryRepository.saveAndFlush(entity)
             slug
         } catch (ex: DataIntegrityViolationException) {
-            troupeEquityTagRepository.findByTroupe_IdAndSlug(troupeId, slug)?.let { return slug }
+            troupeCategoryRepository.findByTroupe_IdAndSlug(troupeId, slug)?.let { return slug }
             throw ex
         }
     }

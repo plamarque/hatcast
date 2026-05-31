@@ -282,7 +282,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **MIG-0** | Bootstrap troupe sur staging/prod vide (sans `db/seed`) | P0 | [x] | Story **2.11** — prérequis import CSV [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md) |
 | **MIG-2** | Export V1 → import V2 : saisons + événements **+ `manifest.json` (mapping joueurs/events)** | P1 | ready-for-dev | **Après 2.11** + imports users/membres (2.3) ; [ADR-0016](docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md) ; story [mig-2](_bmad-output/implementation-artifacts/mig-2-export-v1-seasons-events-and-mapping-manifest.md) |
 | **MIG-3** | Export dispos / compositions (pipeline rejouable `extract → transform → load`) | P2 | ready-for-dev | **Bloqué par manifest MIG-2** ; [ADR-0016](docs/adr/0016-v1-v2-availability-compositions-migration-pipeline.md) ; story [mig-3](_bmad-output/implementation-artifacts/mig-3-availability-compositions-migration-pipeline.md) |
-| **MIG-4** | À l’import / post-import : `template_type=deplacement` → `equity_tag=deplacements` ; retrait progressif du type `deplacement` | P2 | backlog | Après **MIG-2** (données prod) |
+| **MIG-4** | À l’import / post-import : `template_type=deplacement` → `category=deplacements` ; retrait progressif du format `deplacement` | P2 | backlog | Après **MIG-2** (données prod) |
 | **MIG-5** | Orchestrateur headless `migrate:v2:run` + clé API migration (ADR-0017) | P1 | [x] | Bootstrap API → B1–B5 → smoke ; reprise `--from-step` ; gate replay `migrate:v2:validate-replay` |
 | **MIG-6** | Script unique `./scripts/migrate-from-v1.sh` + auto-provision opérateur + CLI `.mjs` | P1 | [x] | Charge `.env.local` ; prompt reset Neon ; `npm run migrate:from-v1` ; dry-run sans faux échec smoke |
 
@@ -301,7 +301,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
 | **2.11** | Création d’une troupe (API + UI minimale) | **P0** | [x] | **Gate MIG-0** ; créateur → `TROUPE_ADMIN` ; slug unique ; remplace bootstrap SQL manuel |
-| **3.19** | Retrait roster saison (sans désactivation troupe) | **P1** | ready-for-dev | SCP [2026-05-31 participant removal](../planning-artifacts/sprint-change-proposal-2026-05-31-participant-removal-three-levels.md) ; corrige dérive UI Participants → `deactivateMember` ; garde sync ; avant nettoyage roster migration |
+| **3.19** | Retrait roster saison (sans désactivation troupe) | **P1** | [x] | SCP [2026-05-31 participant removal](../planning-artifacts/sprint-change-proposal-2026-05-31-participant-removal-three-levels.md) ; recette manuelle PASS ; E2E `recette-3.19.spec.ts` gate `staging-v2` (TEST-1) |
 
 **Explicitement hors MVP V2 (backlog post-pilote) :**
 
@@ -310,7 +310,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **3.6**, **3.6b** | Statistiques / Historique ligue (FR53–54) |
 | **Epic 13** (13.1–13.5 ; **13.6 reporté**) | Multi-saisons actives, roster — **13.6 ligue déplacements** remplacé par tags (ADR 0013) |
 | **Epic 14** (14.1–14.5) | Partiellement recouvert par **Epic 17** — préférer 17.x pour `/troupes` et hub |
-| **Epic 17** (17.1–17.15) | Navigation troupe-first, tags d’équité, slugs, polish formulaire/Infos — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 |
+| **Epic 17** (17.1–17.15) | Navigation troupe-first, catégories spectacle, slugs, polish formulaire/Infos — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 |
 | **Epic 16** (16.1) | Clin d’œil `/membre/:slug` |
 | **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Annuaire, invités, notifications, audit UI, PWA, analytics, **15 = rencontres liées** |
 | **5.4**, **5.5**, **6.8**, **6.10** | Commentaire dispo, proxy dispo, proxy confirmation, partage WhatsApp |
@@ -328,7 +328,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **MVP-C** | Composition (// avec A dès baseline OK) | **6.5**, **6.6**, **6.7**, **6.4**, **6.9** | Boucle compo complète |
 | **Polish MVP** | Confort | **12.6** ; **12.3** si reporté | Alias `/ligue/:slug` |
 | **Post-MVP** | Navigation troupe-first | **Epic 17** **17.1→17.5** | `/troupes`, hub, breadcrumb (ADR 0013) |
-| **Post-MVP** | URLs & équité | **Epic 17** **17.6→17.15** | Slugs, `equity_tag`, tirages/stats, UX formulaire/Infos |
+| **Post-MVP** | URLs & catégories | **Epic 17** **17.6→17.15** | Slugs, `category`, tirages/stats, UX formulaire/Infos |
 | **Post-MVP** | Multi-saisons | **Epic 13** (sans **13.6** travel) | Activation concurrente |
 | **Post-MVP** | Clin d’œil | **Epic 16** | `/membre/:slug` |
 | **Post-MVP** | Stats & exports | **3.6**, **3.6b**, **17.10** | Statistiques / Historique (ADR 0012) ; filtre compartiments (**17.10**) |
@@ -384,9 +384,9 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **17.5** | Redirects `/seasons`, `/ligue/*` ; liens événement → hub troupe ; breadcrumb sur `/troupes` | P0 | 17.4 |
 | **17.11** | Breadcrumb pages admin (Participants saison/spectacle, Membres troupe) — clôture LIMIT-002 | P1 | 17.1, 17.2 ; 17.5 recommandé |
 | **17.6** | `events.slug` — migration, API, routes `/saison/:slug/event/:eventSlug`, redirect UUID | P1 | — |
-| **17.7** | `equity_tag` + glossaire tags par troupe (API) | P1 | ADR 0013 |
+| **17.7** | `category` + glossaire catégories par troupe (API) | P1 | ADR 0013 |
 | **17.8** | Onglet **Infos** — tag optionnel, autocomplete, aide (pas dans modale spectacle) | P1 | 17.7 |
-| **17.9** | Tirage / chances partitionnés par `(saison, equity_tag)` | P2 | 17.7 |
+| **17.9** | Tirage / chances partitionnés par `(saison, category)` | P2 | 17.7 |
 | **17.10** | Stats : filtre multi **groupes de spectacles** (principal + tags) ; retrait bandeau DEPLACEMENT ; export aligné ; lecture legacy `deplacement` sans backfill DB | P2 | 3.6, 17.7, 17.8 ; 17.9 recommandé avant |
 | **17.12** | Slug spectacle auto — retirer champ « Identifiant URL » du formulaire | P2 | 17.6 |
 | **17.13** | Formulaire spectacle — datepicker + heure/minute Material | P2 | — |

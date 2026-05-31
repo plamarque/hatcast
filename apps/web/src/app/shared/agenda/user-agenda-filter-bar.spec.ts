@@ -13,10 +13,10 @@ describe('UserAgendaFilterBar', () => {
       { id: 'troupe-a', name: 'Troupe A', slug: 'troupe-a' },
       { id: 'troupe-b', name: 'Troupe B', slug: 'troupe-b' },
     ],
-    leagues: [
-      { id: 'league-a1', title: 'Ligue A1', slug: 'ligue-a1', troupeId: 'troupe-a' },
-      { id: 'league-a2', title: 'Ligue A2', slug: 'ligue-a2', troupeId: 'troupe-a' },
-      { id: 'league-b1', title: 'Ligue B1', slug: 'ligue-b1', troupeId: 'troupe-b' },
+    seasons: [
+      { id: 'season-a1', title: 'Saison A1', slug: 'saison-a1', troupeId: 'troupe-a' },
+      { id: 'season-a2', title: 'Saison A2', slug: 'saison-a2', troupeId: 'troupe-a' },
+      { id: 'season-b1', title: 'Saison B1', slug: 'saison-b1', troupeId: 'troupe-b' },
     ],
   }
 
@@ -33,7 +33,7 @@ describe('UserAgendaFilterBar', () => {
   it('affiche les libellés par défaut et masque Effacer filtres sans sélection', () => {
     const text = fixture.nativeElement.textContent
     expect(text).toContain('Toutes les troupes')
-    expect(text).toContain('Tous les groupes')
+    expect(text).toContain('Toutes les saisons')
     expect(fixture.nativeElement.querySelector('[data-testid="agenda-clear-filters"]')).toBeNull()
   })
 
@@ -54,7 +54,7 @@ describe('UserAgendaFilterBar', () => {
   })
 
   it('émet clearFilters au clic Effacer filtres', () => {
-    fixture.componentRef.setInput('selectedLeagueId', 'league-b1')
+    fixture.componentRef.setInput('selectedSeasonId', 'season-b1')
     fixture.detectChanges()
 
     const handler = vi.fn()
@@ -63,19 +63,19 @@ describe('UserAgendaFilterBar', () => {
     expect(handler).toHaveBeenCalled()
   })
 
-  it('restreint les ligues au menu quand une troupe est sélectionnée', () => {
+  it('restreint les saisons au menu quand une troupe est sélectionnée', () => {
     fixture.componentRef.setInput('selectedTroupeId', 'troupe-b')
     fixture.detectChanges()
 
-    const scoped = fixture.componentInstance['scopedLeagues']()
+    const scoped = fixture.componentInstance['scopedSeasons']()
     expect(scoped).toHaveLength(1)
-    expect(scoped[0].id).toBe('league-b1')
+    expect(scoped[0].id).toBe('season-b1')
   })
 
-  it('affiche un libellé explicite pour une ligue hors scope', () => {
-    fixture.componentRef.setInput('selectedLeagueId', 'league-b1')
+  it('affiche un libellé explicite pour une saison hors scope', () => {
+    fixture.componentRef.setInput('selectedSeasonId', 'season-b1')
     fixture.detectChanges()
 
-    expect(fixture.componentInstance['leagueLabel']()).toBe('Ligue B1')
+    expect(fixture.componentInstance['seasonLabel']()).toBe('Saison B1')
   })
 })

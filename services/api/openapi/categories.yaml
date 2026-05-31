@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: HatCast API — Tags d'équité troupe (fragment)
-  description: Glossaire des tags d'équité par troupe (compartiments d'équité ADR 0013).
+  title: HatCast API — Catégories troupe (fragment)
+  description: Glossaire des catégories de spectacle par troupe (ADR 0013).
   version: 0.1.0
 
 servers:
@@ -11,13 +11,13 @@ servers:
         default: localhost:8080
 
 tags:
-  - name: Tags d'équité
+  - name: Catégories
 
 paths:
-  /troupes/{troupeId}/equity-tags:
+  /troupes/{troupeId}/categories:
     get:
-      tags: [Tags d'équité]
-      summary: Liste le glossaire des tags d'équité d'une troupe
+      tags: [Catégories]
+      summary: Liste le glossaire des catégories d'une troupe
       security:
         - cookieAuth: []
       parameters:
@@ -35,7 +35,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TroupeEquityTag'
+                  $ref: '#/components/schemas/TroupeCategory'
         '401':
           description: Non authentifié
         '403':
@@ -51,7 +51,7 @@ components:
       name: HATCAST_SESSION
 
   schemas:
-    TroupeEquityTag:
+    TroupeCategory:
       type: object
       required: [slug, label]
       properties:

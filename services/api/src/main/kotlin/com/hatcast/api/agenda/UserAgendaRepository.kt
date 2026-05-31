@@ -16,7 +16,7 @@ interface ParticipatingTroupeCatalogRow {
   val slug: String
 }
 
-interface ParticipatingLeagueCatalogRow {
+interface ParticipatingSeasonCatalogRow {
   val id: UUID
   val title: String
   val slug: String
@@ -32,9 +32,9 @@ interface UserAgendaRow {
   val troupeId: UUID
   val troupeName: String
   val troupeSlug: String
-  val leagueId: UUID
-  val leagueSlug: String
-  val leagueTitle: String
+  val seasonId: UUID
+  val seasonSlug: String
+  val seasonTitle: String
 }
 
 interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
@@ -50,9 +50,9 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       t.id AS troupeId,
       t.name AS troupeName,
       t.slug AS troupeSlug,
-      s.id AS leagueId,
-      s.slug AS leagueSlug,
-      s.title AS leagueTitle
+      s.id AS seasonId,
+      s.slug AS seasonSlug,
+      s.title AS seasonTitle
     FROM EventEntity e
     JOIN e.season s
     JOIN s.troupe t
@@ -90,7 +90,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
         )
       )
       AND (:troupeId IS NULL OR t.id = :troupeId)
-      AND (:leagueId IS NULL OR s.id = :leagueId)
+      AND (:seasonId IS NULL OR s.id = :seasonId)
     ORDER BY e.startsAt ASC, e.id ASC
     """,
     countQuery =
@@ -132,14 +132,14 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
         )
       )
       AND (:troupeId IS NULL OR t.id = :troupeId)
-      AND (:leagueId IS NULL OR s.id = :leagueId)
+      AND (:seasonId IS NULL OR s.id = :seasonId)
     """,
   )
   fun findUpcomingForUser(
     @Param("userId") userId: UUID,
     @Param("fromInclusive") fromInclusive: Instant,
     @Param("troupeId") troupeId: UUID?,
-    @Param("leagueId") leagueId: UUID?,
+    @Param("seasonId") seasonId: UUID?,
     pageable: Pageable,
   ): Page<UserAgendaRow>
 
@@ -155,9 +155,9 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       t.id AS troupeId,
       t.name AS troupeName,
       t.slug AS troupeSlug,
-      s.id AS leagueId,
-      s.slug AS leagueSlug,
-      s.title AS leagueTitle
+      s.id AS seasonId,
+      s.slug AS seasonSlug,
+      s.title AS seasonTitle
     FROM EventEntity e
     JOIN e.season s
     JOIN s.troupe t
@@ -233,7 +233,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       )
     """,
   )
-  fun findParticipatingLeagueIdsFromSeason(
+  fun findParticipatingSeasonIdsFromSeason(
     @Param("userId") userId: UUID,
     @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
   ): List<UUID>
@@ -277,7 +277,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       )
     """,
   )
-  fun findParticipatingLeagueIdsFromEventOnly(
+  fun findParticipatingSeasonIdsFromEventOnly(
     @Param("userId") userId: UUID,
     @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
   ): List<UUID>
@@ -303,7 +303,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
     ORDER BY s.title ASC
     """,
   )
-  fun findLeagueCatalogByIds(
+  fun findSeasonCatalogByIds(
     @Param("ids") ids: Collection<UUID>,
-  ): List<ParticipatingLeagueCatalogRow>
+  ): List<ParticipatingSeasonCatalogRow>
 }

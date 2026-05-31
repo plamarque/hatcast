@@ -39,7 +39,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
   }
 }
 
@@ -50,86 +50,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: capitalize;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 55%, transparent);
 }
 
-.agenda-card {
-  display: flex;
-  align-items: stretch;
-  gap: 0.75rem;
-  margin-bottom: 0.65rem;
-  padding: 0.85rem 0.65rem 0.85rem 0.85rem;
-  border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  transition: background 0.15s ease;
-
-  &:hover,
-  &:focus-visible {
-    background: rgba(255, 255, 255, 0.07);
-    outline: none;
-  }
-}
-
-.agenda-card__date {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 3rem;
-  padding-right: 0.65rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.agenda-card__day {
-  font-size: 1.65rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.agenda-card__weekday {
-  font-size: 0.75rem;
-  opacity: 0.85;
-  text-transform: capitalize;
-}
-
-.agenda-card__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.agenda-card__title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.agenda-card__type-icon {
-  flex-shrink: 0;
-  opacity: 0.85;
-  font-size: 1.2rem;
-  width: 1.2rem;
-  height: 1.2rem;
-}
-
-.agenda-card__title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-.agenda-card__loc {
-  margin: 0.25rem 0 0;
-  font-size: 0.85rem;
-  opacity: 0.8;
-}
-
-// Badges : styles globaux (_hatcast-agenda-event-badges.scss, _hatcast-agenda-dispo-badge.scss)
-
-.agenda-card__menu {
-  flex-shrink: 0;
-  align-self: flex-start;
-}
+// Cartes événement : styles globaux (_hatcast-agenda-event-card.scss)

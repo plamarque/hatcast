@@ -22,12 +22,13 @@ export interface EventResponse {
     availabilityStatus: AvailabilityStatus
     compositionRoleKey?: string | null
     inTeam: boolean
+    slotParticipationStatus?: 'pending' | 'confirmed' | 'declined' | null
   }
   compositionLifecycle?: string
   teamStatusBadge?: TeamStatusBadge
   compositionPublishedAt?: string | null
-  /** Null = principal equity compartment (ADR-0013). */
-  equityTag?: string | null
+    /** Null = principal category (ADR-0013). */
+  category?: string | null
 }
 
 export interface PagedEventsResponse {
@@ -46,7 +47,7 @@ export interface CreateEventBody {
   templateType?: string
   roleSlots?: Record<string, number>
   slug?: string
-  equityTag?: string | null
+  category?: string | null
 }
 
 export interface UpdateEventBody {
@@ -58,7 +59,7 @@ export interface UpdateEventBody {
   roleSlots?: Record<string, number>
   slug?: string
   /** Send JSON `null` to clear; omit field to leave unchanged. */
-  equityTag?: string | null
+  category?: string | null
 }
 
 export type EventListScope = 'all' | 'upcoming' | 'past'

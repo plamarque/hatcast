@@ -23,7 +23,6 @@ const glanceSelf: MemberSeasonGlanceData = {
   isSelf: true,
   resolvedSeasonId: 'season-1',
   troupeId: 'troupe-1',
-  leagueId: 'season-1',
   preferredRolesTroupeId: 'troupe-1',
   filterBarVisible: false,
   participationFilters: null,
@@ -141,7 +140,7 @@ describe('MemberSeasonGlance', () => {
         filterBarVisible: true,
         participationFilters: {
           troupes: [{ id: 'troupe-1', name: 'La BIM', slug: 'la-bim' }],
-          leagues: [
+          seasons: [
             {
               id: 'season-1',
               title: 'Ligue A',

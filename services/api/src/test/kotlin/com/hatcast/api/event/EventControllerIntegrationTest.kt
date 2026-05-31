@@ -456,7 +456,7 @@ class EventControllerIntegrationTest {
     }
 
     @Test
-    fun `create event rejects invalid template type`() {
+    fun `create event rejects invalid format`() {
         val cookie = memberCookie("sub-event-5")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-06-15T18:00:00Z")
@@ -670,8 +670,8 @@ class EventControllerIntegrationTest {
     }
 
     @Test
-    fun `equity tag create get patch clear and reject multi`() {
-        val cookie = memberCookie("sub-event-equity-1")
+    fun `category create get patch clear and reject multi`() {
+        val cookie = memberCookie("sub-event-category-1")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-07-01T20:00:00Z")
 
@@ -686,29 +686,29 @@ class EventControllerIntegrationTest {
                             {
                               "title": "Apérock extérieur",
                               "startsAt": "$future",
-                              "equityTag": "Apérock"
+                              "category": "Apérock"
                             }
                             """.trimIndent(),
                         ).with(csrf()),
                 ).andExpect(status().isOk)
-                .andExpect(jsonPath("$.equityTag").value("aperock"))
+                .andExpect(jsonPath("$.category").value("aperock"))
                 .andReturn()
         val eventId = mapper.readTree(createRes.response.contentAsString).get("id").asText()
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(cookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.equityTag").value("aperock"))
+            .andExpect(jsonPath("$.category").value("aperock"))
 
         mockMvc
             .perform(
                 patch("/v1/seasons/$seasonId/events/$eventId")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{ "equityTag": null }""")
+                    .content("""{ "category": null }""")
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.equityTag").value(nullValue()))
+            .andExpect(jsonPath("$.category").value(nullValue()))
 
         mockMvc
             .perform(
@@ -720,7 +720,7 @@ class EventControllerIntegrationTest {
                         {
                           "title": "Multi tag",
                           "startsAt": "$future",
-                          "equityTag": ["deplacements"]
+                          "category": ["deplacements"]
                         }
                         """.trimIndent(),
                     ).with(csrf()),
@@ -736,7 +736,7 @@ class EventControllerIntegrationTest {
                         {
                           "title": "Virgule tag",
                           "startsAt": "${future.plusSeconds(7200)}",
-                          "equityTag": "deplacements,aperock"
+                          "category": "deplacements,aperock"
                         }
                         """.trimIndent(),
                     ).with(csrf()),

@@ -96,7 +96,7 @@ class SeasonStatisticsService(
         principal: SessionUserPrincipal,
         eventId: UUID? = null,
         participantId: UUID? = null,
-        equityCompartments: List<String>? = null,
+        categories: List<String>? = null,
     ): SeasonStatisticsResponseDto {
         val season =
             seasonRepository
@@ -116,8 +116,8 @@ class SeasonStatisticsService(
             }
 
         var events = eventRepository.findNonArchivedBySeasonId(seasonId)
-        val compartmentFilter = SeasonStatisticsCompartments.parse(equityCompartments)
-        events = events.filter { SeasonStatisticsCompartments.matches(it, compartmentFilter) }
+        val compartmentFilter = SeasonStatisticsCategoryFilter.parse(categories)
+        events = events.filter { SeasonStatisticsCategoryFilter.matches(it, compartmentFilter) }
         if (eventId != null) {
             events = events.filter { it.id == eventId }
         }
@@ -146,7 +146,7 @@ class SeasonStatisticsService(
                     title = event.title,
                     startsAt = event.startsAt.toString(),
                     templateType = event.templateType,
-                    equityTag = event.equityTag,
+                    category = event.category,
                     monthKey = monthKey(event),
                 )
             }

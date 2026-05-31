@@ -23,7 +23,7 @@ import {
   saisonMemberEntryPath,
 } from '../../core/navigation/last-member-entry-path-storage'
 import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
-import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import {
   saisonAdminParticipantsPath,
   saisonEventPath,
@@ -39,7 +39,7 @@ import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
   TroupeApiService,
-  type TroupeEquityTag,
+  type TroupeCategory,
 } from '../../core/troupes/troupe-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import {
@@ -79,11 +79,11 @@ import {
 import { SeasonStatistics, type StatisticsEmptyReason } from './season-statistics'
 import { SeasonViewToolbar } from './season-view-toolbar'
 import {
-  compartmentsToQueryValue,
-  defaultStatsEquityCompartments,
-  statsGroupsExportLabel,
-  type StatsEquityCompartments,
-} from './stats-equity-compartments'
+  categoriesToQueryValue,
+  defaultStatsCategoryFilter,
+  statsCategoriesExportLabel,
+  type StatsCategoryFilter,
+} from './stats-categories'
 import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './season-view.types'
 import {
   EventFormDialog,
@@ -177,8 +177,8 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly selectedHistoryEventId = model<string | null>(null)
   protected readonly selectedStatsEventId = model<string | null>(null)
   protected readonly statsDetailsExpanded = model(false)
-  protected readonly statsEquityCompartments = signal<StatsEquityCompartments>(
-    defaultStatsEquityCompartments(),
+  protected readonly statsCategoryFilter = signal<StatsCategoryFilter>(
+    defaultStatsCategoryFilter(),
   )
 
   protected readonly statisticsData = signal<SeasonStatisticsResponse | null>(null)
@@ -242,19 +242,19 @@ export class SeasonHome implements OnDestroy, OnInit {
     )
   })
 
-  protected readonly equityTagLabels = computed(() => {
+  protected readonly categoryLabels = computed(() => {
     const map: Record<string, string> = {}
-    for (const tag of this.equityTags()) {
+    for (const tag of this.categories()) {
       map[tag.slug] = tag.label
     }
     return map
   })
 
-  protected readonly equityGlossarySlugs = computed(() =>
-    this.equityTags().map((t) => t.slug),
+  protected readonly categoryGlossarySlugs = computed(() =>
+    this.categories().map((t) => t.slug),
   )
 
-  private readonly equityTags = signal<TroupeEquityTag[]>([])
+  private readonly categories = signal<TroupeCategory[]>([])
   protected readonly canManageMembers = computed(() => this.seasonPermissions()?.canManageMembers === true)
   protected readonly canManageEvents = computed(() => this.seasonPermissions()?.canManageEvents === true)
   protected readonly canManageSeasonParticipants = computed(
@@ -338,13 +338,13 @@ export class SeasonHome implements OnDestroy, OnInit {
       let lastParticipant: string | null | undefined
       let lastStatsEvent: string | null | undefined
       let lastStatsGroupsKey: string | undefined
-      const statsGroupsKey = (c: StatsEquityCompartments): string =>
+      const statsCategoriesKey = (c: StatsCategoryFilter): string =>
         c.kind === 'selected' ? `selected:${c.slugs.join(',')}` : c.kind
       const syncViewLoads = (): void => {
         const view = this.seasonView()
         const participant = this.selectedParticipantId()
         const statsEvent = this.selectedStatsEventId()
-        const statsGroupsKeyValue = statsGroupsKey(this.statsEquityCompartments())
+        const statsCategoriesKeyValue = statsCategoriesKey(this.statsCategoryFilter())
         if (view !== lastView) {
           this.syncViewQueryParam()
         }
@@ -352,14 +352,14 @@ export class SeasonHome implements OnDestroy, OnInit {
           view === lastView &&
           participant === lastParticipant &&
           (view !== 'stats' ||
-            (statsEvent === lastStatsEvent && statsGroupsKeyValue === lastStatsGroupsKey))
+            (statsEvent === lastStatsEvent && statsCategoriesKeyValue === lastStatsGroupsKey))
         ) {
           return
         }
         lastView = view
         lastParticipant = participant
         lastStatsEvent = statsEvent
-        lastStatsGroupsKey = statsGroupsKeyValue
+        lastStatsGroupsKey = statsCategoriesKeyValue
         if (view === 'history' && this.season()) {
           void this.loadPastEvents()
         }
@@ -451,8 +451,8 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.loadingStatistics.set(false)
     this.statisticsEmptyReason.set(null)
     this.statsDetailsExpanded.set(false)
-    this.statsEquityCompartments.set(defaultStatsEquityCompartments())
-    this.equityTags.set([])
+    this.statsCategoryFilter.set(defaultStatsCategoryFilter())
+    this.categories.set([])
   }
 
   private async loadTroupeAndSeason(slug: string): Promise<void> {
@@ -515,7 +515,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     await Promise.all([
       this.loadSeasonPermissions(resolved.season.id, requestId),
       this.loadParticipantSelectors(resolved.season.id, requestId),
-      this.loadEquityTags(resolved.troupe.id, requestId),
+      this.loadCategories(resolved.troupe.id, requestId),
       this.loadUpcomingEvents(),
       ...viewLoads,
     ])
@@ -531,12 +531,12 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
   }
 
-  private async loadEquityTags(troupeId: string, requestId: number): Promise<void> {
-    const r = await this.troupeApi.listEquityTags(troupeId)
+  private async loadCategories(troupeId: string, requestId: number): Promise<void> {
+    const r = await this.troupeApi.listCategories(troupeId)
     if (requestId !== this.seasonLoadRequestId) {
       return
     }
-    this.equityTags.set(r.ok && r.data ? r.data : [])
+    this.categories.set(r.ok && r.data ? r.data : [])
   }
 
   private async loadSeasonPermissions(seasonId: string, requestId: number): Promise<void> {
@@ -671,8 +671,8 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
   }
 
-  protected onStatsEquityCompartmentsChange(compartments: StatsEquityCompartments): void {
-    this.statsEquityCompartments.set(compartments)
+  protected onStatsCategoryFilterChange(compartments: StatsCategoryFilter): void {
+    this.statsCategoryFilter.set(compartments)
     if (this.seasonView() === 'stats' && this.season()) {
       void this.loadStatistics({ force: true })
     }
@@ -691,7 +691,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (!s) {
       return
     }
-    const compartments = this.statsEquityCompartments()
+    const compartments = this.statsCategoryFilter()
     if (compartments.kind === 'none') {
       this.statisticsData.set(null)
       this.statisticsEmptyReason.set('none-selected')
@@ -704,8 +704,8 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.loadingStatistics.set(true)
     this.statisticsEmptyReason.set(null)
     try {
-      const queryValue = compartmentsToQueryValue(compartments)
-      const equityCompartments =
+      const queryValue = categoriesToQueryValue(compartments)
+      const categories =
         queryValue === 'all'
           ? ('all' as const)
           : queryValue === ''
@@ -715,7 +715,7 @@ export class SeasonHome implements OnDestroy, OnInit {
       const r = await this.statisticsApi.loadStatistics(seasonId, {
         eventId: this.selectedStatsEventId(),
         participantId: this.selectedParticipantId(),
-        equityCompartments,
+        categories,
       })
       if (requestId !== this.statisticsLoadRequestId) {
         return
@@ -747,7 +747,7 @@ export class SeasonHome implements OnDestroy, OnInit {
       !data ||
       data.rows.length === 0 ||
       data.events.length === 0 ||
-      this.statsEquityCompartments().kind === 'none'
+      this.statsCategoryFilter().kind === 'none'
     ) {
       this.snack.open('Aucune donnée à exporter.', 'OK', { duration: 4000 })
       return
@@ -762,9 +762,9 @@ export class SeasonHome implements OnDestroy, OnInit {
         expandedMonths: new Set(),
       },
       {
-        groupsLabel: statsGroupsExportLabel(
-          this.statsEquityCompartments(),
-          this.equityTagLabels(),
+        groupsLabel: statsCategoriesExportLabel(
+          this.statsCategoryFilter(),
+          this.categoryLabels(),
         ),
       },
     )

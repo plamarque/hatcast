@@ -24,7 +24,6 @@ export interface MemberProfileDialogData {
   userId: string
   seasonSlug: string
   userSlug?: string
-  leagueId?: string
 }
 
 @Component({
@@ -99,8 +98,8 @@ export class MemberProfileDialog implements OnInit {
     if (this.data.troupeId) {
       queryParams['troupeId'] = this.data.troupeId
     }
-    if (this.data.leagueId ?? this.data.seasonId) {
-      queryParams['leagueId'] = this.data.leagueId ?? this.data.seasonId
+    if (this.data.seasonId) {
+      queryParams['seasonId'] = this.data.seasonId
     }
     void this.router.navigate(['/agenda'], { queryParams })
     this.dialogRef.close()

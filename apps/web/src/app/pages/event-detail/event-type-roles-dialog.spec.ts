@@ -66,7 +66,7 @@ describe('EventTypeRolesDialog', () => {
     fixture.detectChanges()
 
     expect(h.showTemplateChangeConfirmation).toBe(true)
-    expect(fixture.nativeElement.textContent).toContain('Changement de type de spectacle')
+    expect(fixture.nativeElement.textContent).toContain('Changement de format')
   })
 
   it('keeps selected template after canceling template change', async () => {

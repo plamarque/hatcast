@@ -48,7 +48,8 @@
 
         @for (ev of group.events; track ev.id) {
           <article
-            class="agenda-card"
+            class="agenda-card agenda-card--row agenda-card--interactive"
+            [class.agenda-card--with-menu]="variant() === 'agenda' && canManageEvents()"
             role="button"
             tabindex="0"
             [attr.aria-label]="variant() === 'history' ? historyCardAriaLabel(ev) : null"
@@ -70,27 +71,18 @@
               }
               <div class="agenda-card__badges">
                 <app-composition-status-badge [badge]="ev.teamStatusBadge" />
-                @if (equityTagBadgeLabel(ev); as tagLabel) {
-                  <span class="agenda-card__badge agenda-card__badge--equity">{{ tagLabel }}</span>
-                }
-                @if (variant() === 'history' || !canEditAvailability()) {
-                  <span
-                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ variant() === 'history' ? focusModifier(ev) : dispoModifier(dispoStatus(ev)) }}"
-                  >
-                    {{ variant() === 'history' ? focusLabel(ev) : dispoLabel(dispoStatus(ev)) }}
-                  </span>
-                } @else {
-                  <button
-                    type="button"
-                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(dispoStatus(ev)) }}"
-                    (click)="onAvailabilityClick(ev.id, dispoStatus(ev), $event)"
-                    (keydown.enter)="onAvailabilityClick(ev.id, dispoStatus(ev), $event)"
-                    (keydown.space)="onAvailabilityClick(ev.id, dispoStatus(ev), $event); $event.preventDefault()"
-                  >
-                    {{ dispoLabel(dispoStatus(ev)) }}
-                  </button>
+                @if (categoryBadgeLabel(ev); as tagLabel) {
+                  <span class="agenda-card__badge agenda-card__badge--category">{{ tagLabel }}</span>
                 }
               </div>
+            </div>
+            <div class="agenda-card__status">
+              <app-agenda-participation-status
+                [myAvailabilityStatus]="ev.myAvailabilityStatus"
+                [participantFocus]="ev.participantFocus"
+                [canEditAvailability]="canEditAvailabilityOnCard(ev)"
+                (availabilityClick)="onStatusAvailabilityClick(ev.id, $event.status)"
+              />
             </div>
             @if (variant() === 'agenda' && canManageEvents()) {
               <button

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
-import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import { MemberSeasonShortcut } from './member-season-shortcut'
 
 describe('MemberSeasonShortcut', () => {

@@ -46,7 +46,7 @@ describe('UserAgendaApiService', () => {
     )
   })
 
-  it('sérialise troupeId et leagueId dans la query', async () => {
+  it('sérialise troupeId et seasonId dans la query', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -65,11 +65,11 @@ describe('UserAgendaApiService', () => {
 
     await service().listAgenda({
       troupeId: 'a0000001-0000-4000-8000-000000000001',
-      leagueId: 'b0000001-0000-4000-8000-000000000001',
+      seasonId: 'b0000001-0000-4000-8000-000000000001',
     })
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/v1/me/agenda?page=0&size=50&scope=upcoming&troupeId=a0000001-0000-4000-8000-000000000001&leagueId=b0000001-0000-4000-8000-000000000001',
+      '/v1/me/agenda?page=0&size=50&scope=upcoming&troupeId=a0000001-0000-4000-8000-000000000001&seasonId=b0000001-0000-4000-8000-000000000001',
       expect.objectContaining({ credentials: 'include' }),
     )
   })

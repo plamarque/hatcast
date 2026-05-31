@@ -14,7 +14,7 @@ export interface MembershipSummary {
   updatedAt: string
 }
 
-export interface TroupeEquityTag {
+export interface TroupeCategory {
   slug: string
   label: string
 }
@@ -132,14 +132,14 @@ type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>
 
 @Injectable({ providedIn: 'root' })
 export class TroupeApiService {
-  async listEquityTags(troupeId: string): ApiResult<TroupeEquityTag[]> {
+  async listCategories(troupeId: string): ApiResult<TroupeCategory[]> {
     try {
       const res = await fetch(
-        `/v1/troupes/${encodeURIComponent(troupeId)}/equity-tags`,
+        `/v1/troupes/${encodeURIComponent(troupeId)}/categories`,
         { credentials: 'include' },
       )
       if (!res.ok) return { ok: false, status: res.status }
-      return { ok: true, status: res.status, data: (await res.json()) as TroupeEquityTag[] }
+      return { ok: true, status: res.status, data: (await res.json()) as TroupeCategory[] }
     } catch {
       return { ok: false, status: 0 }
     }

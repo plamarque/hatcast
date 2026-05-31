@@ -4,7 +4,7 @@ import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
-import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { ContextSwitcher } from './context-switcher'

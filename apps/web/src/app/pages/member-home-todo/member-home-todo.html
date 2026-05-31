@@ -114,11 +114,11 @@
       <section class="member-home-todo__section" aria-labelledby="todo-next-event-heading">
         <h2 id="todo-next-event-heading" class="member-home-todo__section-title">Prochain spectacle</h2>
         <article
-          class="agenda-card"
+          class="agenda-card agenda-card--featured agenda-card--row agenda-card--interactive"
           role="button"
           tabindex="0"
           data-testid="todo-next-event-card"
-          [attr.aria-label]="'Ouvrir ' + next.title + ' dans ' + next.leagueTitle"
+          [attr.aria-label]="'Ouvrir ' + next.title + ' dans ' + next.seasonTitle"
           (click)="openNextEvent(next)"
           (keydown.enter)="openNextEvent(next)"
           (keydown.space)="openNextEvent(next); $event.preventDefault()"
@@ -138,7 +138,7 @@
                 <app-composition-status-badge [badge]="next.teamStatusBadge" />
               }
               <span class="agenda-card__badge agenda-card__badge--meta">{{ next.troupeName }}</span>
-              <span class="agenda-card__badge agenda-card__badge--league">{{ next.leagueTitle }}</span>
+              <span class="agenda-card__badge agenda-card__badge--season">{{ next.seasonTitle }}</span>
               @if (next.myAvailabilityStatus) {
                 <span
                   class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(next.myAvailabilityStatus) }}"

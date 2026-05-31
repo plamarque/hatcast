@@ -52,15 +52,15 @@ describe('SeasonViewToolbar', () => {
     expect(el.textContent).toContain('Détails')
   })
 
-  it('shows groupes de spectacles filter trigger on stats view', () => {
+  it('shows catégories filter trigger on stats view', () => {
     fixture.componentRef.setInput('seasonView', 'stats')
     fixture.componentRef.setInput('showStatsFilters', true)
-    fixture.componentRef.setInput('statsEquityCompartments', { kind: 'all' })
-    fixture.componentRef.setInput('equityGlossarySlugs', ['deplacements'])
-    fixture.componentRef.setInput('equityTagLabels', { deplacements: 'Déplacements' })
+    fixture.componentRef.setInput('statsCategoryFilter', { kind: 'all' })
+    fixture.componentRef.setInput('categoryGlossarySlugs', ['deplacements'])
+    fixture.componentRef.setInput('categoryLabels', { deplacements: 'Déplacements' })
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
     expect(el.textContent).toContain('Tous les spectacles')
-    expect(el.querySelector('[aria-label="Filtrer par groupes de spectacles"]')).toBeTruthy()
+    expect(el.querySelector('[aria-label="Filtrer par catégories"]')).toBeTruthy()
   })
 })

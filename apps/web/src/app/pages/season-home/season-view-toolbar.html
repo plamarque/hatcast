@@ -87,37 +87,37 @@
         type="button"
         mat-stroked-button
         class="season-toolbar__filter"
-        [class.season-toolbar__filter--warn]="statsGroupsNoneSelected()"
-        [matMenuTriggerFor]="statsGroupsMenu"
-        aria-label="Filtrer par groupes de spectacles"
+        [class.season-toolbar__filter--warn]="statsCategoriesNoneSelected()"
+        [matMenuTriggerFor]="statsCategoriesMenu"
+        aria-label="Filtrer par catégories"
       >
         <mat-icon>category</mat-icon>
-        <span>{{ statsGroupsLabel() }}</span>
+        <span>{{ statsCategoriesLabel() }}</span>
         <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
       </button>
-      <mat-menu #statsGroupsMenu="matMenu" class="season-toolbar__groups-menu">
-        <div class="season-toolbar__groups-panel" (click)="$event.stopPropagation()">
-          <p class="season-toolbar__groups-title">Groupes de spectacles</p>
-          <p class="season-toolbar__groups-hint">
-            Les stats ne comptent que les spectacles des groupes cochés. Choisissez quels spectacles
-            entrent dans le tableau. <em>Spectacles ordinaires</em> = spectacles sans groupe. Pour les
-            stats d’un seul programme (ex. bus), cochez uniquement ce groupe.
+      <mat-menu #statsCategoriesMenu="matMenu" class="season-toolbar__categories-menu">
+        <div class="season-toolbar__categories-panel" (click)="$event.stopPropagation()">
+          <p class="season-toolbar__categories-title">Catégories</p>
+          <p class="season-toolbar__categories-hint">
+            Les stats ne comptent que les spectacles des catégories cochées. Choisissez quels spectacles
+            entrent dans le tableau. <em>Spectacles ordinaires</em> = spectacles sans catégorie. Pour les
+            stats d’un seul programme (ex. bus), cochez uniquement cette catégorie.
           </p>
           <mat-checkbox
-            [checked]="isAllCompartmentsSelected()"
-            (change)="toggleAllGroups($event.checked)"
+            [checked]="isAllCategoriesSelected()"
+            (change)="toggleAllCategories($event.checked)"
           >
             Tous les spectacles
           </mat-checkbox>
           <mat-checkbox
-            [checked]="isCompartmentChecked('principal')"
+            [checked]="isCategoryChecked('principal')"
             (change)="togglePrincipal($event.checked)"
           >
             {{ principalLabel() }}
           </mat-checkbox>
-          @for (slug of equityGlossarySlugs(); track slug) {
+          @for (slug of categoryGlossarySlugs(); track slug) {
             <mat-checkbox
-              [checked]="isCompartmentChecked(slug)"
+              [checked]="isCategoryChecked(slug)"
               (change)="toggleGlossarySlug(slug, $event.checked)"
             >
               {{ glossaryLabel(slug) }}

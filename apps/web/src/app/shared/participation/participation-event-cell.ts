@@ -13,9 +13,15 @@ import { roleEmoji, type RoleKey } from '../event-roles/event-roles'
   imports: [MatTooltipModule],
   templateUrl: './participation-event-cell.html',
   styleUrl: './participation-event-cell.scss',
+  host: {
+    class: 'participation-event-cell-host',
+    '[class.participation-event-cell-host--square]': 'square()',
+  },
 })
 export class ParticipationEventCell {
   readonly cell = input.required<StatisticsEventCell>()
+  /** Fixed square size for agenda cards (inherits --agenda-participation-cell-size). */
+  readonly square = input(false)
 
   protected readonly resolvedStatus = computed(() =>
     resolveParticipationChartStatus(this.cell().status, this.cell().roleKey),

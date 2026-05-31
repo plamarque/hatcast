@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core'
 
 import { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
-import { getLastVisitedSeasonSlug } from './last-visited-league-storage'
+import { getLastVisitedSeasonSlug } from './last-visited-season-storage'
 import { saisonWorkspacePath, troupesListPath } from './troupe-routes'
 
 export type LastVisitedSeasonLinkTarget = 'season' | 'troupes'

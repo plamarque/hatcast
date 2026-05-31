@@ -40,7 +40,7 @@
   color: var(--mat-sys-error, #f44336);
 }
 
-.season-toolbar__groups-panel {
+.season-toolbar__categories-panel {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -48,12 +48,12 @@
   max-width: 22rem;
 }
 
-.season-toolbar__groups-title {
+.season-toolbar__categories-title {
   margin: 0;
   font-weight: 600;
 }
 
-.season-toolbar__groups-hint {
+.season-toolbar__categories-hint {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.35;

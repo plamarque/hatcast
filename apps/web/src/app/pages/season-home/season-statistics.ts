@@ -43,7 +43,7 @@ export class SeasonStatistics {
   readonly detailsExpanded = input(false)
   readonly emptyReason = input<StatisticsEmptyReason>(null)
   readonly troupeId = input<string | null>(null)
-  readonly leagueId = input<string | null>(null)
+  readonly seasonId = input<string | null>(null)
 
   private readonly memberProfile = inject(MemberProfileService)
 
@@ -59,10 +59,10 @@ export class SeasonStatistics {
   protected readonly emptyMessage = computed(() => {
     const reason = this.emptyReason()
     if (reason === 'none-selected') {
-      return 'Sélectionnez au moins un groupe de spectacles pour afficher les statistiques.'
+      return 'Sélectionnez au moins un catégorie pour afficher les statistiques.'
     }
     if (reason === 'no-data') {
-      return 'Aucune donnée pour les groupes sélectionnés sur cette saison.'
+      return 'Aucune donnée pour les catégories sélectionnés sur cette saison.'
     }
     if (!this.data() || this.rows().length === 0) {
       return 'Pas encore de données pour cette saison.'
@@ -156,7 +156,7 @@ export class SeasonStatistics {
     this.memberProfile.navigateToMemberGlance({
       userSlug,
       troupeId: this.troupeId() ?? undefined,
-      leagueId: this.leagueId() ?? undefined,
+      seasonId: this.seasonId() ?? undefined,
     })
   }
 

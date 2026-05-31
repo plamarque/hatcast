@@ -1,10 +1,10 @@
 package com.hatcast.api.season
 
-import com.hatcast.api.event.EquityCompartment
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.event.EventEntity
 
 /** Story 17.10 — filter stats events by spectacle group (compartment) before aggregation. */
-object SeasonStatisticsCompartments {
+object SeasonStatisticsCategoryFilter {
     sealed interface Filter {
         data object All : Filter
 
@@ -33,8 +33,8 @@ object SeasonStatisticsCompartments {
         return Filter.Selected(tokens.toSet())
     }
 
-    /** Compartment slug for filtering: `principal`, glossary slug, or legacy `deplacements` bucket. */
-    fun compartmentSlug(event: EventEntity): String = EquityCompartment.slug(event)
+    /** Category slug for filtering: `principal`, glossary slug, or legacy `deplacements` bucket. */
+    fun categorySlug(event: EventEntity): String = SpectacleCategory.slug(event)
 
     fun matches(
         event: EventEntity,
@@ -43,6 +43,6 @@ object SeasonStatisticsCompartments {
         when (filter) {
             Filter.All -> true
             Filter.None -> false
-            is Filter.Selected -> compartmentSlug(event) in filter.slugs
+            is Filter.Selected -> categorySlug(event) in filter.slugs
         }
 }

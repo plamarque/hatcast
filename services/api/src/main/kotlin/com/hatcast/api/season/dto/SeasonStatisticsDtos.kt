@@ -20,7 +20,7 @@ data class StatisticsEventDto(
     val title: String,
     val startsAt: String,
     val templateType: String,
-    val equityTag: String?,
+    val category: String?,
     val monthKey: String,
 )
 

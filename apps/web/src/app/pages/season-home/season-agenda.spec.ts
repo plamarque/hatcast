@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SeasonAgenda } from './season-agenda'
 import type { MonthEventGroup } from './season-events.utils'
@@ -70,23 +70,23 @@ describe('SeasonAgenda', () => {
     expect(spy).toHaveBeenCalledWith('aperock-mai')
   })
 
-  it('shows an equity tag badge when the event has a tag', () => {
+  it('shows a category badge when the event has a category', () => {
     const withTag: MonthEventGroup[] = [
       {
         ...monthGroups[0],
         events: [
           {
             ...monthGroups[0].events[0],
-            equityTag: 'deplacements',
+            category: 'deplacements',
           },
         ],
       },
     ]
     fixture.componentRef.setInput('monthGroups', withTag)
-    fixture.componentRef.setInput('equityTagLabels', { deplacements: 'Dépl.' })
+    fixture.componentRef.setInput('categoryLabels', { deplacements: 'Dépl.' })
     fixture.detectChanges()
 
-    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--equity')
+    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--category')
     expect(badge?.textContent?.trim()).toBe('Dépl.')
   })
 
@@ -95,25 +95,16 @@ describe('SeasonAgenda', () => {
     expect(badge?.textContent?.trim()).toBe('Collecte')
   })
 
-  it('shows a read-only dispo badge when availability editing is disabled', () => {
+  it('shows participation status cell when availability editing is disabled', () => {
     fixture.componentRef.setInput('canEditAvailability', false)
     fixture.detectChanges()
 
-    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo')
-    expect(badge?.tagName).toBe('SPAN')
-    expect(badge?.textContent?.trim()).toBe('Non renseigné')
+    const cell = fixture.nativeElement.querySelector('.participation-event-cell--neutral')
+    expect(cell).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('.agenda-participation-status__hint')).toBeNull()
   })
 
-  it('shows read-only dispo on history cards', () => {
-    fixture.componentRef.setInput('variant', 'history')
-    fixture.componentRef.setInput('canEditAvailability', true)
-    fixture.detectChanges()
-
-    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo')
-    expect(badge?.tagName).toBe('SPAN')
-  })
-
-  it('shows in-team focus label on history cards when participantFocus is set', () => {
+  it('shows selected participation cell on history cards when participantFocus is set', () => {
     const withFocus: MonthEventGroup[] = [
       {
         ...monthGroups[0],
@@ -124,6 +115,7 @@ describe('SeasonAgenda', () => {
               availabilityStatus: 'available',
               compositionRoleKey: 'player',
               inTeam: true,
+              slotParticipationStatus: 'confirmed',
             },
           },
         ],
@@ -133,13 +125,13 @@ describe('SeasonAgenda', () => {
     fixture.componentRef.setInput('variant', 'history')
     fixture.detectChanges()
 
-    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo')
-    expect(badge?.textContent?.trim()).toBe("Comédien·ne · dans l'équipe")
+    const cell = fixture.nativeElement.querySelector('.participation-event-cell--selected')
+    expect(cell?.textContent).toContain('Comédien·ne')
     const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
-    expect(card.getAttribute('aria-label')).toContain("Comédien·ne · dans l'équipe")
+    expect(card.getAttribute('aria-label')).toContain('Comédien·ne')
   })
 
-  it('emits availabilityClick without opening the event when the badge is clicked', () => {
+  it('emits availabilityClick without opening the event when the status cell is clicked', () => {
     const eventSpy = vi.fn()
     const availabilitySpy = vi.fn()
     fixture.componentRef.setInput('canEditAvailability', true)
@@ -147,26 +139,11 @@ describe('SeasonAgenda', () => {
     fixture.componentInstance.eventClick.subscribe(eventSpy)
     fixture.componentInstance.availabilityClick.subscribe(availabilitySpy)
 
-    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo') as HTMLElement
-    badge.click()
+    const trigger = fixture.nativeElement.querySelector(
+      '.agenda-participation-status__trigger',
+    ) as HTMLButtonElement
+    trigger.click()
 
-    expect(availabilitySpy).toHaveBeenCalledWith({ eventId: 'event-1', status: 'unknown' })
-    expect(eventSpy).not.toHaveBeenCalled()
-  })
-
-  it('emits availabilityClick without opening the event when the badge is activated by keyboard', () => {
-    const eventSpy = vi.fn()
-    const availabilitySpy = vi.fn()
-    fixture.componentRef.setInput('canEditAvailability', true)
-    fixture.detectChanges()
-    fixture.componentInstance.eventClick.subscribe(eventSpy)
-    fixture.componentInstance.availabilityClick.subscribe(availabilitySpy)
-
-    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo') as HTMLElement
-    badge.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-    badge.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
-
-    expect(availabilitySpy).toHaveBeenCalledTimes(2)
     expect(availabilitySpy).toHaveBeenCalledWith({ eventId: 'event-1', status: 'unknown' })
     expect(eventSpy).not.toHaveBeenCalled()
   })

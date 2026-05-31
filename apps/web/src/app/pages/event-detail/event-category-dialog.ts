@@ -10,24 +10,24 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 
 import {
-  type TroupeEquityTag,
+  type TroupeCategory,
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
 
-export const EQUITY_TAG_HELP =
-  'Les participations à ce spectacle comptent dans un groupe de spectacles séparé pour calculer les chances au tirage et les statistiques.'
+export const CATEGORY_HELP =
+  'Les participations à ce spectacle comptent dans une catégorie séparée pour calculer les chances au tirage et les statistiques.'
 
-export interface EventEquityTagDialogData {
+export interface EventCategoryDialogData {
   troupeId: string
   /** Prefilled display value (label or slug). */
   initialQuery?: string
 }
 
 /** `undefined` = cancelled; `null` = clear tag; `string` = set tag (trimmed). */
-export type EventEquityTagDialogResult = string | null | undefined
+export type EventCategoryDialogResult = string | null | undefined
 
 @Component({
-  selector: 'app-event-equity-tag-dialog',
+  selector: 'app-event-category-dialog',
   imports: [
     MatAutocompleteModule,
     MatButtonModule,
@@ -36,10 +36,10 @@ export type EventEquityTagDialogResult = string | null | undefined
     MatInputModule,
   ],
   template: `
-    <h2 mat-dialog-title>Groupe de spectacles</h2>
-    <mat-dialog-content class="equity-tag-dialog">
-      <mat-form-field appearance="outline" class="equity-tag-dialog__field">
-        <mat-label>Groupe (optionnel)</mat-label>
+    <h2 mat-dialog-title>Catégorie</h2>
+    <mat-dialog-content class="category-dialog">
+      <mat-form-field appearance="outline" class="category-dialog__field">
+        <mat-label>Catégorie (optionnelle)</mat-label>
         <input
           matInput
           autofocus
@@ -65,29 +65,29 @@ export type EventEquityTagDialogResult = string | null | undefined
   `,
   styles: [
     `
-      .equity-tag-dialog {
+      .category-dialog {
         display: grid;
         gap: 0.5rem;
         min-width: min(32rem, calc(100vw - 3rem));
       }
-      .equity-tag-dialog__field {
+      .category-dialog__field {
         width: 100%;
       }
-      .equity-tag-dialog__field ::ng-deep .mat-mdc-form-field-hint {
+      .category-dialog__field ::ng-deep .mat-mdc-form-field-hint {
         white-space: normal;
         line-height: 1.35;
       }
     `,
   ],
 })
-export class EventEquityTagDialog implements OnInit {
+export class EventCategoryDialog implements OnInit {
   private readonly troupeApi = inject(TroupeApiService)
-  private readonly ref = inject(MatDialogRef<EventEquityTagDialog, EventEquityTagDialogResult>)
-  protected readonly data = inject<EventEquityTagDialogData>(MAT_DIALOG_DATA)
+  private readonly ref = inject(MatDialogRef<EventCategoryDialog, EventCategoryDialogResult>)
+  protected readonly data = inject<EventCategoryDialogData>(MAT_DIALOG_DATA)
 
-  protected readonly helpText = EQUITY_TAG_HELP
+  protected readonly helpText = CATEGORY_HELP
   protected readonly query = signal('')
-  protected readonly glossary = signal<TroupeEquityTag[]>([])
+  protected readonly glossary = signal<TroupeCategory[]>([])
 
   protected readonly filteredTags = computed(() => {
     const q = this.query().trim().toLowerCase()
@@ -113,7 +113,7 @@ export class EventEquityTagDialog implements OnInit {
     this.query.set(value)
   }
 
-  protected onOptionSelected(tag: TroupeEquityTag): void {
+  protected onOptionSelected(tag: TroupeCategory): void {
     this.query.set(tag.label)
   }
 
@@ -123,7 +123,7 @@ export class EventEquityTagDialog implements OnInit {
   }
 
   private async loadGlossary(): Promise<void> {
-    const r = await this.troupeApi.listEquityTags(this.data.troupeId)
+    const r = await this.troupeApi.listCategories(this.data.troupeId)
     if (r.ok && r.data) {
       this.glossary.set(r.data)
     }

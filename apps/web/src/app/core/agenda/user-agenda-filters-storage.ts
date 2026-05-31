@@ -2,7 +2,7 @@ export const USER_AGENDA_FILTERS_STORAGE_KEY = 'hatcast.agenda.filters'
 
 export interface StoredUserAgendaFilters {
   troupeId: string | null
-  leagueId: string | null
+  seasonId: string | null
 }
 
 export function readStoredUserAgendaFilters(): StoredUserAgendaFilters | null {
@@ -14,7 +14,7 @@ export function readStoredUserAgendaFilters(): StoredUserAgendaFilters | null {
     const parsed = JSON.parse(raw) as Partial<StoredUserAgendaFilters>
     return {
       troupeId: typeof parsed.troupeId === 'string' ? parsed.troupeId : null,
-      leagueId: typeof parsed.leagueId === 'string' ? parsed.leagueId : null,
+      seasonId: typeof parsed.seasonId === 'string' ? parsed.seasonId : null,
     }
   } catch {
     return null

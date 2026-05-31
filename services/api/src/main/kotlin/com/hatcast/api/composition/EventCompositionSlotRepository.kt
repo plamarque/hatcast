@@ -30,17 +30,17 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
           AND COALESCE(s.seasonParticipantId, s.eventParticipantId) IS NOT NULL
           AND s.participationStatus <> com.hatcast.api.composition.SlotParticipationStatus.DECLINED
           AND (
-            (:compartmentSlug = 'principal' AND e.equityTag IS NULL AND e.templateType <> 'deplacement')
-            OR (:compartmentSlug = 'deplacements' AND (e.equityTag = 'deplacements' OR (e.equityTag IS NULL AND e.templateType = 'deplacement')))
-            OR (:compartmentSlug NOT IN ('principal', 'deplacements') AND e.equityTag = :compartmentSlug)
+            (:categorySlug = 'principal' AND e.category IS NULL AND e.templateType <> 'deplacement')
+            OR (:categorySlug = 'deplacements' AND (e.category = 'deplacements' OR (e.category IS NULL AND e.templateType = 'deplacement')))
+            OR (:categorySlug NOT IN ('principal', 'deplacements') AND e.category = :categorySlug)
           )
         GROUP BY COALESCE(s.seasonParticipantId, s.eventParticipantId), s.roleKey
         """,
     )
-    fun countValidatedSelectionsBySeasonAndCompartment(
+    fun countValidatedSelectionsBySeasonAndCategory(
         @Param("seasonId") seasonId: UUID,
         @Param("excludeEventId") excludeEventId: UUID,
-        @Param("compartmentSlug") compartmentSlug: String,
+        @Param("categorySlug") categorySlug: String,
     ): List<RoleSelectionCountProjection>
 
     @Query(
@@ -60,9 +60,9 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
             OR (e.startsAt = :beforeStartsAt AND e.createdAt = :beforeCreatedAt AND e.id < :beforeEventId)
           )
           AND (
-            (:compartmentSlug = 'principal' AND e.equityTag IS NULL AND e.templateType <> 'deplacement')
-            OR (:compartmentSlug = 'deplacements' AND (e.equityTag = 'deplacements' OR (e.equityTag IS NULL AND e.templateType = 'deplacement')))
-            OR (:compartmentSlug NOT IN ('principal', 'deplacements') AND e.equityTag = :compartmentSlug)
+            (:categorySlug = 'principal' AND e.category IS NULL AND e.templateType <> 'deplacement')
+            OR (:categorySlug = 'deplacements' AND (e.category = 'deplacements' OR (e.category IS NULL AND e.templateType = 'deplacement')))
+            OR (:categorySlug NOT IN ('principal', 'deplacements') AND e.category = :categorySlug)
           )
         GROUP BY COALESCE(s.seasonParticipantId, s.eventParticipantId), s.roleKey
         """,
@@ -72,6 +72,6 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
         @Param("beforeEventId") beforeEventId: UUID,
         @Param("beforeStartsAt") beforeStartsAt: Instant,
         @Param("beforeCreatedAt") beforeCreatedAt: Instant,
-        @Param("compartmentSlug") compartmentSlug: String,
+        @Param("categorySlug") categorySlug: String,
     ): List<RoleSelectionCountProjection>
 }

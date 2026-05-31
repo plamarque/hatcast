@@ -25,21 +25,21 @@
 
 // Troupe, tag équité — neutre discret (bordure légère)
 .agenda-card__badge--meta,
-.agenda-card__badge--equity {
+.agenda-card__badge--category {
   color: var(--mat-sys-on-surface);
   background: color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
   border-color: color-mix(in srgb, var(--mat-sys-outline) 35%, transparent);
 }
 
-.agenda-card__badge--equity {
+.agenda-card__badge--category {
   max-width: 6rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-// Saison / ligue — teinte tertiaire (aligné composition-status-badge --preparing)
-.agenda-card__badge--league {
+// Saison — teinte tertiaire (aligné composition-status-badge --preparing)
+.agenda-card__badge--season {
   color: var(--mat-sys-on-tertiary-container);
   background: color-mix(in srgb, var(--mat-sys-tertiary) 14%, transparent);
   border-color: color-mix(in srgb, var(--mat-sys-tertiary) 35%, transparent);
@@ -61,13 +61,13 @@
 
   &.agenda-card__badge--meta:hover,
   &.agenda-card__badge--meta:focus-visible,
-  &.agenda-card__badge--equity:hover,
-  &.agenda-card__badge--equity:focus-visible {
+  &.agenda-card__badge--category:hover,
+  &.agenda-card__badge--category:focus-visible {
     background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
   }
 
-  &.agenda-card__badge--league:hover,
-  &.agenda-card__badge--league:focus-visible {
+  &.agenda-card__badge--season:hover,
+  &.agenda-card__badge--season:focus-visible {
     background: color-mix(in srgb, var(--mat-sys-tertiary) 22%, transparent);
   }
 }

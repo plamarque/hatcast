@@ -14,7 +14,6 @@ data class MemberSeasonGlanceResponseDto(
     val isSelf: Boolean,
     val resolvedSeasonId: UUID,
     val troupeId: UUID,
-    val leagueId: UUID,
     val preferredRolesTroupeId: UUID,
     val filterBarVisible: Boolean,
     val participationFilters: UserAgendaParticipationFiltersDto?,

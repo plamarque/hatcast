@@ -34,7 +34,7 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0010](0010-v2-auth-identity-platform.md) | V2 auth: Google Cloud Identity Platform (IdP managé GCP ; pas Firebase comme stack V1) | Accepted |
 | [0011](0011-league-model-and-user-agenda.md) | V2 product model: League (multi-active), user agenda hub, inter-troupe events | Accepted |
 | [0012](0012-league-views-travel-leagues-member-stats.md) | League views (Agenda/Historique/Statistiques), travel leagues, personal glance route | Accepted — §3 superseded by **0013** |
-| [0013](0013-troupe-navigation-equity-tags-event-slugs.md) | Troupe-first IA (`/troupes`), saison workspace, equity tags, event slugs | Accepted |
+| [0013](0013-troupe-navigation-equity-tags-event-slugs.md) | Troupe-first IA (`/troupes`), saison workspace, catégories spectacle, event slugs | Accepted |
 | [0014](0014-v2-preprod-migration-no-seed.md) | V2 pre-prod: Flyway schema without dev seeds; V1 Firestore prod as migration source; reset/replay | Accepted |
 | [0015](0015-v2-demo-troupe-product-bootstrap.md) | V2 Demo troupe: idempotent product bootstrap in `db/migration` (cloud); Les Improbots dev seed; La Malice = real migration only | Accepted |
 | [0016](0016-v1-v2-availability-compositions-migration-pipeline.md) | V1→V2 availability & compositions migration (MIG-3): read-only extract → transform → guarded SQL load, with a MIG-2 mapping manifest | Accepted |

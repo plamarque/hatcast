@@ -5,7 +5,7 @@ import {
   getLastVisitedSeasonSlug,
   getLastVisitedSeasonSlugForTroupe,
   rememberLastVisitedSeasonSlug,
-} from './last-visited-league-storage'
+} from './last-visited-season-storage'
 
 describe('lastVisitedLeagueStorage', () => {
   beforeEach(() => {

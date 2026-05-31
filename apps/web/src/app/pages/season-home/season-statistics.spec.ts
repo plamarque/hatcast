@@ -17,7 +17,7 @@ describe('SeasonStatistics', () => {
         title: 'Match test',
         startsAt: '2026-03-15T19:00:00Z',
         templateType: 'match',
-        equityTag: null,
+        category: null,
         monthKey: '2026-03',
       },
     ],
@@ -71,7 +71,7 @@ describe('SeasonStatistics', () => {
     const fixture = TestBed.createComponent(SeasonStatistics)
     fixture.componentRef.setInput('data', data)
     fixture.componentRef.setInput('troupeId', 'troupe-1')
-    fixture.componentRef.setInput('leagueId', 'league-1')
+    fixture.componentRef.setInput('seasonId', 'league-1')
     fixture.componentRef.setInput('detailsExpanded', true)
     fixture.detectChanges()
     return fixture
@@ -98,7 +98,7 @@ describe('SeasonStatistics', () => {
     expect(navigateSpy).toHaveBeenCalledWith({
       userSlug: 'alice-dupont',
       troupeId: 'troupe-1',
-      leagueId: 'league-1',
+      seasonId: 'league-1',
     })
   })
 
@@ -113,7 +113,7 @@ describe('SeasonStatistics', () => {
     expect(navigateSpy).toHaveBeenCalledWith({
       userSlug: 'alice-dupont',
       troupeId: 'troupe-1',
-      leagueId: 'league-1',
+      seasonId: 'league-1',
     })
   })
 

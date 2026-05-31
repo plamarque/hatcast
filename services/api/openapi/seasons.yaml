@@ -1553,7 +1553,8 @@ components:
           format: date-time
         templateType:
           type: string
-        equityTag:
+          description: Format du spectacle (cabaret, match, …)
+        category:
           type: string
           nullable: true
         monthKey:

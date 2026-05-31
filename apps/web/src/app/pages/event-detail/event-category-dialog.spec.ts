@@ -4,7 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { describe, expect, it, vi } from 'vitest'
 
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
-import { EventEquityTagDialog } from './event-equity-tag-dialog'
+import { EventCategoryDialog } from './event-category-dialog'
 
 const glossary = [
   { slug: 'deplacements', label: 'Déplacements' },
@@ -12,7 +12,7 @@ const glossary = [
 ]
 
 async function setup(initialQuery = '') {
-  const listEquityTags = vi.fn().mockResolvedValue({
+  const listCategories = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     data: glossary,
@@ -20,29 +20,29 @@ async function setup(initialQuery = '') {
   const close = vi.fn()
 
   await TestBed.configureTestingModule({
-    imports: [EventEquityTagDialog, NoopAnimationsModule],
+    imports: [EventCategoryDialog, NoopAnimationsModule],
     providers: [
       { provide: MatDialogRef, useValue: { close } },
       {
         provide: MAT_DIALOG_DATA,
         useValue: { troupeId: 'troupe-1', initialQuery },
       },
-      { provide: TroupeApiService, useValue: { listEquityTags } },
+      { provide: TroupeApiService, useValue: { listCategories } },
     ],
   }).compileComponents()
 
-  const fixture = TestBed.createComponent(EventEquityTagDialog)
+  const fixture = TestBed.createComponent(EventCategoryDialog)
   fixture.detectChanges()
   await fixture.whenStable()
 
-  return { fixture, close, listEquityTags }
+  return { fixture, close, listCategories }
 }
 
-describe('EventEquityTagDialog', () => {
+describe('EventCategoryDialog', () => {
   it('loads glossary on init', async () => {
-    const { listEquityTags } = await setup()
+    const { listCategories } = await setup()
     await vi.waitFor(() => {
-      expect(listEquityTags).toHaveBeenCalledWith('troupe-1')
+      expect(listCategories).toHaveBeenCalledWith('troupe-1')
     })
   })
 

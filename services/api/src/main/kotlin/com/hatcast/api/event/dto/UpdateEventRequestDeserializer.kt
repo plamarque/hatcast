@@ -30,7 +30,7 @@ class UpdateEventRequestDeserializer : JsonDeserializer<UpdateEventRequest>() {
             templateType = stringField(p, node, "templateType"),
             roleSlots = roleSlotsField(p, node, "roleSlots"),
             slug = stringField(p, node, "slug"),
-            equityTag = stringField(p, node, "equityTag"),
+            category = stringField(p, node, "category"),
         )
     }
 

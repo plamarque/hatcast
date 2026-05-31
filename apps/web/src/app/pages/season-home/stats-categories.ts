@@ -1,25 +1,25 @@
 /** API/query token for spectacles ordinaires (UI label differs). */
-export const PRINCIPAL_COMPARTMENT = 'principal'
+export const PRINCIPAL_CATEGORY = 'principal'
 
-export type StatsEquityCompartmentOption = {
+export type StatsSpectacleCategoryOption = {
   slug: string
   label: string
 }
 
-export type StatsEquityCompartments =
+export type StatsCategoryFilter =
   | { kind: 'all' }
   | { kind: 'none' }
   | { kind: 'selected'; slugs: string[] }
 
-export function defaultStatsEquityCompartments(): StatsEquityCompartments {
+export function defaultStatsCategoryFilter(): StatsCategoryFilter {
   return { kind: 'all' }
 }
 
-export function allCompartmentSlugs(glossarySlugs: string[]): string[] {
-  return [PRINCIPAL_COMPARTMENT, ...glossarySlugs]
+export function allCategorySlugs(glossarySlugs: string[]): string[] {
+  return [PRINCIPAL_CATEGORY, ...glossarySlugs]
 }
 
-export function compartmentsToQueryValue(compartments: StatsEquityCompartments): string | null {
+export function categoriesToQueryValue(compartments: StatsCategoryFilter): string | null {
   if (compartments.kind === 'all') {
     return 'all'
   }
@@ -29,7 +29,7 @@ export function compartmentsToQueryValue(compartments: StatsEquityCompartments):
   return compartments.slugs.join(',')
 }
 
-export function isSlugSelected(compartments: StatsEquityCompartments, slug: string): boolean {
+export function isSlugSelected(compartments: StatsCategoryFilter, slug: string): boolean {
   if (compartments.kind === 'all') {
     return true
   }
@@ -39,23 +39,23 @@ export function isSlugSelected(compartments: StatsEquityCompartments, slug: stri
   return compartments.slugs.includes(slug)
 }
 
-export function toggleAllCompartments(
-  compartments: StatsEquityCompartments,
+export function toggleAllCategories(
+  compartments: StatsCategoryFilter,
   allSlugs: string[],
   checked: boolean,
-): StatsEquityCompartments {
+): StatsCategoryFilter {
   if (checked) {
     return { kind: 'all' }
   }
   return { kind: 'none' }
 }
 
-export function toggleCompartmentSlug(
-  compartments: StatsEquityCompartments,
+export function toggleCategorySlug(
+  compartments: StatsCategoryFilter,
   allSlugs: string[],
   slug: string,
   checked: boolean,
-): StatsEquityCompartments {
+): StatsCategoryFilter {
   const selected =
     compartments.kind === 'selected'
       ? new Set(compartments.slugs)
@@ -78,8 +78,8 @@ export function toggleCompartmentSlug(
   return { kind: 'selected', slugs: [...selected] }
 }
 
-export function statsGroupsFilterLabel(
-  compartments: StatsEquityCompartments,
+export function statsCategoriesFilterLabel(
+  compartments: StatsCategoryFilter,
   labels: Record<string, string>,
 ): string {
   if (compartments.kind === 'all') {
@@ -91,16 +91,16 @@ export function statsGroupsFilterLabel(
   if (compartments.slugs.length === 1) {
     const slug = compartments.slugs[0]!
     const label =
-      slug === PRINCIPAL_COMPARTMENT
+      slug === PRINCIPAL_CATEGORY
         ? 'Spectacles ordinaires'
         : (labels[slug] ?? slug)
     return label
   }
-  return `${compartments.slugs.length} groupes`
+  return `${compartments.slugs.length} catégories`
 }
 
-export function statsGroupsExportLabel(
-  compartments: StatsEquityCompartments,
+export function statsCategoriesExportLabel(
+  compartments: StatsCategoryFilter,
   labels: Record<string, string>,
 ): string {
   if (compartments.kind === 'all') {
@@ -111,7 +111,7 @@ export function statsGroupsExportLabel(
   }
   return compartments.slugs
     .map((slug) =>
-      slug === PRINCIPAL_COMPARTMENT ? 'Spectacles ordinaires' : (labels[slug] ?? slug),
+      slug === PRINCIPAL_CATEGORY ? 'Spectacles ordinaires' : (labels[slug] ?? slug),
     )
     .join(', ')
 }

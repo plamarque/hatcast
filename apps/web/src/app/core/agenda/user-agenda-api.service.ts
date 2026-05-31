@@ -12,11 +12,17 @@ export interface UserAgendaItem {
   troupeId: string
   troupeName: string
   troupeSlug: string
-  leagueId: string
-  leagueSlug: string
-  leagueTitle: string
+  seasonId: string
+  seasonSlug: string
+  seasonTitle: string
   myAvailabilityStatus: AvailabilityStatus | null
   teamStatusBadge?: TeamStatusBadge | null
+  participantFocus?: {
+    availabilityStatus: AvailabilityStatus
+    compositionRoleKey?: string | null
+    inTeam: boolean
+    slotParticipationStatus?: 'pending' | 'confirmed' | 'declined' | null
+  } | null
 }
 
 export interface UserAgendaTroupeFilter {
@@ -25,7 +31,7 @@ export interface UserAgendaTroupeFilter {
   slug: string
 }
 
-export interface UserAgendaLeagueFilter {
+export interface UserAgendaSeasonFilter {
   id: string
   title: string
   slug: string
@@ -34,7 +40,7 @@ export interface UserAgendaLeagueFilter {
 
 export interface UserAgendaParticipationFilters {
   troupes: UserAgendaTroupeFilter[]
-  leagues: UserAgendaLeagueFilter[]
+  seasons: UserAgendaSeasonFilter[]
 }
 
 export interface UserAgendaResponse {
@@ -53,7 +59,7 @@ export interface UserAgendaListParams {
   size?: number
   scope?: 'upcoming'
   troupeId?: string
-  leagueId?: string
+  seasonId?: string
 }
 
 @Injectable({ providedIn: 'root' })
@@ -69,8 +75,8 @@ export class UserAgendaApiService {
     if (params.troupeId) {
       q.set('troupeId', params.troupeId)
     }
-    if (params.leagueId) {
-      q.set('leagueId', params.leagueId)
+    if (params.seasonId) {
+      q.set('seasonId', params.seasonId)
     }
 
     try {

@@ -2,12 +2,16 @@ package com.hatcast.api.agenda
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityService
+import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.agenda.dto.UserAgendaItemDto
-import com.hatcast.api.agenda.dto.UserAgendaLeagueFilterDto
+import com.hatcast.api.agenda.dto.UserAgendaSeasonFilterDto
 import com.hatcast.api.agenda.dto.UserAgendaParticipationFiltersDto
 import com.hatcast.api.agenda.dto.UserAgendaResponse
 import com.hatcast.api.agenda.dto.UserAgendaTroupeFilterDto
 import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
+import com.hatcast.api.event.EventParticipantFocusService
+import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.dto.ParticipantFocusSummaryDto
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -24,6 +28,8 @@ class UserAgendaService(
   private val userAgendaRepository: UserAgendaRepository,
   private val availabilityService: AvailabilityService,
   private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
+  private val participantFocusService: EventParticipantFocusService,
+  private val eventRepository: EventRepository,
 ) {
   @Transactional(readOnly = true)
   fun list(
@@ -32,7 +38,7 @@ class UserAgendaService(
     size: Int,
     scope: UserAgendaScope,
     troupeId: UUID?,
-    leagueId: UUID?,
+    seasonId: UUID?,
   ): UserAgendaResponse {
     validatePagination(page, size)
     if (scope != UserAgendaScope.UPCOMING) {
@@ -48,7 +54,7 @@ class UserAgendaService(
         userId = principal.userId,
         fromInclusive = from,
         troupeId = troupeId,
-        leagueId = leagueId,
+        seasonId = seasonId,
         pageable = pageable,
       )
 
@@ -56,6 +62,12 @@ class UserAgendaService(
     val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, principal.userId)
     val lifecycleByEvent =
       compositionLifecycleEnrichment.loadViewsByEventIdsAcrossSeasons(eventIds, principal)
+    val focusByEvent =
+      participantFocusByEventIds(
+        rows = eventsPage.content,
+        availabilityByEvent = availabilityByEvent,
+        principal = principal,
+      )
 
     return UserAgendaResponse(
       content =
@@ -64,6 +76,7 @@ class UserAgendaService(
             row = event,
             myAvailabilityStatus = availabilityByEvent[event.eventId],
             teamStatusBadge = lifecycleByEvent[event.eventId]?.teamStatusBadge?.toDto(),
+            participantFocus = focusByEvent[event.eventId],
           )
         },
       page = eventsPage.number,
@@ -76,7 +89,7 @@ class UserAgendaService(
         if (filterBarVisible) {
           participationFilters(
             troupeIds = participationContext.troupeIds,
-            leagueIds = participationContext.leagueIds,
+            seasonIds = participationContext.seasonIds,
           )
         } else {
           null
@@ -86,7 +99,7 @@ class UserAgendaService(
 
   private fun participationFilters(
     troupeIds: Set<UUID>,
-    leagueIds: Set<UUID>,
+    seasonIds: Set<UUID>,
   ): UserAgendaParticipationFiltersDto {
     val troupes =
       if (troupeIds.isEmpty()) {
@@ -100,12 +113,12 @@ class UserAgendaService(
           )
         }
       }
-    val leagues =
-      if (leagueIds.isEmpty()) {
+    val seasons =
+      if (seasonIds.isEmpty()) {
         emptyList()
       } else {
-        userAgendaRepository.findLeagueCatalogByIds(leagueIds).map { row ->
-          UserAgendaLeagueFilterDto(
+        userAgendaRepository.findSeasonCatalogByIds(seasonIds).map { row ->
+          UserAgendaSeasonFilterDto(
             id = row.id,
             title = row.title,
             slug = row.slug,
@@ -115,7 +128,7 @@ class UserAgendaService(
       }
     return UserAgendaParticipationFiltersDto(
       troupes = troupes,
-      leagues = leagues,
+      seasons = seasons,
     )
   }
 
@@ -125,16 +138,16 @@ class UserAgendaService(
         userAgendaRepository.findParticipatingTroupeIdsFromSeason(userId) +
           userAgendaRepository.findParticipatingTroupeIdsFromEventOnly(userId)
       ).toSet()
-    val leagueIds =
+    val seasonIds =
       (
-        userAgendaRepository.findParticipatingLeagueIdsFromSeason(userId) +
-          userAgendaRepository.findParticipatingLeagueIdsFromEventOnly(userId)
+        userAgendaRepository.findParticipatingSeasonIdsFromSeason(userId) +
+          userAgendaRepository.findParticipatingSeasonIdsFromEventOnly(userId)
       ).toSet()
     return ParticipationContext(
       troupeIds = troupeIds,
-      leagueIds = leagueIds,
-      filterBarVisible = troupeIds.size > 1 || leagueIds.size > 1,
-      noParticipation = leagueIds.isEmpty(),
+      seasonIds = seasonIds,
+      filterBarVisible = troupeIds.size > 1 || seasonIds.size > 1,
+      noParticipation = seasonIds.isEmpty(),
     )
   }
 
@@ -149,11 +162,47 @@ class UserAgendaService(
       throw ResponseStatusException(HttpStatus.BAD_REQUEST, "page invalide")
     }
   }
+
+  private fun participantFocusByEventIds(
+    rows: List<UserAgendaRow>,
+    availabilityByEvent: Map<UUID, String>,
+    principal: SessionUserPrincipal,
+  ): Map<UUID, ParticipantFocusSummaryDto> {
+    if (rows.isEmpty()) {
+      return emptyMap()
+    }
+    val eventIds = rows.map { it.eventId }.toSet()
+    val events = eventRepository.findAllById(eventIds)
+    if (events.isEmpty()) {
+      return emptyMap()
+    }
+    return events
+      .groupBy { it.season.id }
+      .flatMap { (seasonId, seasonEvents) ->
+        val season = seasonEvents.first().season
+        val seasonEventIds = seasonEvents.map { it.id }
+        val focusParticipantId =
+          participantFocusService.resolveFocusParticipantId(seasonId, null, principal)
+            ?: return@flatMap emptyList()
+        val availabilityForSeason =
+          seasonEventIds.associateWith { eventId ->
+            availabilityByEvent[eventId] ?: AvailabilityStatusMapper.UNKNOWN
+          }
+        participantFocusService
+          .summariesByEventIds(
+            season = season,
+            eventIds = seasonEventIds,
+            focusParticipantId = focusParticipantId,
+            availabilityByEvent = availabilityForSeason,
+            principal = principal,
+          ).entries
+      }.associate { it.key to it.value }
+  }
 }
 
 private data class ParticipationContext(
   val troupeIds: Set<UUID>,
-  val leagueIds: Set<UUID>,
+  val seasonIds: Set<UUID>,
   val filterBarVisible: Boolean,
   val noParticipation: Boolean,
 )

@@ -7,7 +7,7 @@ import com.hatcast.api.troupe.dto.MemberImportResultDto
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
-import com.hatcast.api.troupe.dto.TroupeEquityTagDto
+import com.hatcast.api.troupe.dto.TroupeCategoryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
@@ -39,7 +39,7 @@ class TroupeController(
     private val membershipService: TroupeMembershipService,
     private val troupeService: TroupeService,
     private val userImportService: UserImportService,
-    private val troupeEquityTagService: TroupeEquityTagService,
+    private val troupeCategoryService: TroupeCategoryService,
 ) {
     /** Troupe(s) où l'utilisateur courant a une adhésion active. */
     @GetMapping
@@ -71,11 +71,11 @@ class TroupeController(
         return MembershipSummaryDto.from(membership)
     }
 
-    @GetMapping("/{troupeId}/equity-tags")
-    fun listEquityTags(
+    @GetMapping("/{troupeId}/categories")
+    fun listCategories(
         @PathVariable troupeId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
-    ): List<TroupeEquityTagDto> = troupeEquityTagService.listForTroupe(troupeId, principal)
+    ): List<TroupeCategoryDto> = troupeCategoryService.listForTroupe(troupeId, principal)
 
     @GetMapping("/{troupeId}/memberships/me")
     fun getMyMembership(

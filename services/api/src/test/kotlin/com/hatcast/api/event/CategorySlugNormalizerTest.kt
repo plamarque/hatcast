@@ -6,18 +6,18 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
-class EquityTagNormalizerTest {
+class CategorySlugNormalizerTest {
     @Test
     fun `normalizeSlug accents and spaces`() {
-        assertEquals("deplacements", EquityTagNormalizer.normalizeSlug("Déplacements"))
-        assertEquals("aperock", EquityTagNormalizer.normalizeSlug("  Apérock  "))
+        assertEquals("deplacements", CategorySlugNormalizer.normalizeSlug("Déplacements"))
+        assertEquals("aperock", CategorySlugNormalizer.normalizeSlug("  Apérock  "))
     }
 
     @Test
     fun `normalizeSlug rejects reserved principal and main slugs`() {
         for (raw in listOf("principal", "Principal", "main", "MAIN")) {
             assertThrows(ResponseStatusException::class.java) {
-                EquityTagNormalizer.normalizeSlug(raw)
+                CategorySlugNormalizer.normalizeSlug(raw)
             }.also { assertEquals(HttpStatus.BAD_REQUEST, it.statusCode) }
         }
     }
@@ -25,12 +25,12 @@ class EquityTagNormalizerTest {
     @Test
     fun `normalizeSlug rejects empty and multi-value`() {
         assertThrows(ResponseStatusException::class.java) {
-            EquityTagNormalizer.normalizeSlug("   ")
+            CategorySlugNormalizer.normalizeSlug("   ")
         }.also { assertEquals(HttpStatus.BAD_REQUEST, it.statusCode) }
 
         val multi =
             assertThrows(ResponseStatusException::class.java) {
-                EquityTagNormalizer.normalizeSlug("deplacements,aperock")
+                CategorySlugNormalizer.normalizeSlug("deplacements,aperock")
             }
         assertEquals(HttpStatus.BAD_REQUEST, multi.statusCode)
         assertEquals("Un seul tag d’équité est autorisé par spectacle.", multi.reason)
@@ -38,11 +38,11 @@ class EquityTagNormalizerTest {
 
     @Test
     fun `labelForAutoCreate keeps display input when distinct from slug`() {
-        assertEquals("Déplacements", EquityTagNormalizer.labelForAutoCreate("Déplacements"))
+        assertEquals("Déplacements", CategorySlugNormalizer.labelForAutoCreate("Déplacements"))
     }
 
     @Test
     fun `labelForAutoCreate title-cases slug-like input`() {
-        assertEquals("Deplacements", EquityTagNormalizer.labelForAutoCreate("deplacements"))
+        assertEquals("Deplacements", CategorySlugNormalizer.labelForAutoCreate("deplacements"))
     }
 }

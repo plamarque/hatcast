@@ -10,7 +10,7 @@ Tracking: [PLAN.md](../../../PLAN.md) § « Pre-prod V2 + migration V1 ».
 |------------------|-------------------------------|
 | Flyway **schema only** on staging (no dev seeds) | Firebase Auth bulk import (optional, separate) |
 | Export users + members from **V1 Firestore production** (`(default)`) | Production cutover / DNS / Hosting switch |
-| CSV import via V2 admin UI (Story 2.3) | `template_type=deplacement` → equity tag (**MIG-4**) |
+| CSV import via V2 admin UI (Story 2.3) | `template_type=deplacement` → category (**MIG-4**) |
 | **Events + mapping manifest** export/load (**MIG-2**, ADR-0016) | Full season/league model migration |
 | **Availability + compositions** export/load (**MIG-3**, ADR-0016) | |
 | Repeatable Neon staging reset | |

@@ -18,7 +18,7 @@ data class EventResponseDto(
     val seasonId: UUID,
     val slug: String,
     /** NULL = compartiment principal. */
-    val equityTag: String? = null,
+    val category: String? = null,
     val title: String,
     val description: String?,
     val location: String?,
@@ -46,7 +46,7 @@ data class EventResponseDto(
                 id = e.id,
                 seasonId = e.season.id,
                 slug = e.slug,
-                equityTag = e.equityTag,
+                category = e.category,
                 title = e.title,
                 description = e.description,
                 location = e.location,
@@ -69,6 +69,7 @@ data class ParticipantFocusSummaryDto(
     val availabilityStatus: String,
     val compositionRoleKey: String? = null,
     val inTeam: Boolean = false,
+    val slotParticipationStatus: String? = null,
 )
 
 data class PagedEventsResponse(
@@ -95,7 +96,7 @@ data class CreateEventRequest(
     @field:Size(max = 128)
     val slug: String? = null,
     @field:Size(max = 64)
-    val equityTag: String? = null,
+    val category: String? = null,
 )
 
 @JsonDeserialize(using = UpdateEventRequestDeserializer::class)
@@ -119,5 +120,5 @@ data class UpdateEventRequest(
     /** Absent = inchangé ; `null` explicite = interdit (400). */
     val slug: JsonNullable<String> = JsonNullable.undefined(),
     /** Absent = inchangé ; `null` explicite = effacer (compartiment principal). */
-    val equityTag: JsonNullable<String> = JsonNullable.undefined(),
+    val category: JsonNullable<String> = JsonNullable.undefined(),
 )

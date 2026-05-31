@@ -1,6 +1,6 @@
 package com.hatcast.api.composition
 
-import com.hatcast.api.event.EquityCompartment
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.SeasonParticipantEntity
@@ -21,7 +21,7 @@ import java.util.UUID
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class EventCompositionSlotRepositoryCompartmentTest {
+class EventCompositionSlotRepositoryCategoryTest {
     @Autowired
     private lateinit var slotRepository: EventCompositionSlotRepository
 
@@ -55,7 +55,7 @@ class EventCompositionSlotRepositoryCompartmentTest {
                 SeasonEntity(
                     troupe = troupe,
                     slug = "repo-compartment-${UUID.randomUUID()}",
-                    title = "Compartment repo test",
+                    title = "Category repo test",
                 ),
             )
         seasonId = season.id
@@ -74,14 +74,14 @@ class EventCompositionSlotRepositoryCompartmentTest {
                 season,
                 "away-show",
                 templateType = "match",
-                equityTag = "deplacements",
+                category = "deplacements",
             )
         aperockEventId =
             saveEvent(
                 season,
                 "aperock-show",
                 templateType = "match",
-                equityTag = "aperock",
+                category = "aperock",
             )
         targetEventId = saveEvent(season, "target-show", templateType = "match")
 
@@ -91,10 +91,10 @@ class EventCompositionSlotRepositoryCompartmentTest {
     }
 
     @Test
-    fun `countValidatedSelectionsBySeasonAndCompartment filters JPQL by compartment slug`() {
+    fun `countValidatedSelectionsBySeasonAndCategory filters JPQL by compartment slug`() {
         fun countFor(compartment: String): Int =
             slotRepository
-                .countValidatedSelectionsBySeasonAndCompartment(
+                .countValidatedSelectionsBySeasonAndCategory(
                     seasonId,
                     targetEventId,
                     compartment,
@@ -102,8 +102,8 @@ class EventCompositionSlotRepositoryCompartmentTest {
                 ?.getSelectionCount()
                 ?.toInt() ?: 0
 
-        assertEquals(1, countFor(EquityCompartment.PRINCIPAL))
-        assertEquals(1, countFor(EquityCompartment.DEPLACEMENTS))
+        assertEquals(1, countFor(SpectacleCategory.PRINCIPAL))
+        assertEquals(1, countFor(SpectacleCategory.DEPLACEMENTS))
         assertEquals(1, countFor("aperock"))
     }
 
@@ -111,7 +111,7 @@ class EventCompositionSlotRepositoryCompartmentTest {
         season: SeasonEntity,
         slug: String,
         templateType: String,
-        equityTag: String? = null,
+        category: String? = null,
     ): UUID =
         eventRepository
             .save(
@@ -121,7 +121,7 @@ class EventCompositionSlotRepositoryCompartmentTest {
                     slug = slug,
                     startsAt = Instant.parse("2031-06-01T19:00:00Z"),
                     templateType = templateType,
-                    equityTag = equityTag,
+                    category = category,
                 ),
             ).id
 

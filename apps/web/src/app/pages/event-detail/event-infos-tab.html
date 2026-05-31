@@ -140,18 +140,18 @@
     </section>
   }
 
-  @if (showEquitySection()) {
-    <section class="event-infos__equity" aria-labelledby="event-infos-equity-label">
-      <span id="event-infos-equity-label" class="event-infos__label">Groupe de spectacles</span>
-      <div class="event-infos__equity-body">
-        @if (equityTagLabel(); as label) {
+  @if (showCategorySection()) {
+    <section class="event-infos__category" aria-labelledby="event-infos-category-label">
+      <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
+      <div class="event-infos__category-body">
+        @if (categoryLabel(); as label) {
           <mat-chip-set class="event-infos__chip-set">
             <mat-chip
-              class="event-infos__equity-chip"
+              class="event-infos__category-chip"
               [disabled]="saving()"
               [removable]="canManageEvents()"
-              (removed)="removeTag()"
-              (click)="onChipClick()"
+              (removed)="removeCategory()"
+              (click)="onCategoryChipClick()"
             >
               {{ label }}
               @if (canManageEvents()) {
@@ -162,12 +162,12 @@
         } @else if (canManageEvents()) {
           <button
             type="button"
-            class="event-infos__add-tag"
+            class="event-infos__add-category"
             [disabled]="saving()"
-            (click)="openTagDialog()"
+            (click)="openCategoryDialog()"
           >
             <mat-icon aria-hidden="true">sell</mat-icon>
-            Mettre dans un groupe
+            Choisir une catégorie
           </button>
         }
       </div>

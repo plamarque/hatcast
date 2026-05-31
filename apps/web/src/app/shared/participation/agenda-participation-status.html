@@ -1,0 +1,18 @@
+@let view = statusView();
+
+<div class="agenda-participation-status">
+  @if (view.availabilityEditable) {
+    <button
+      type="button"
+      class="agenda-participation-status__trigger"
+      [attr.aria-label]="ariaLabel()"
+      (click)="onActivate($event)"
+      (keydown.enter)="onActivate($event)"
+      (keydown.space)="onActivate($event); $event.preventDefault()"
+    >
+      <app-participation-event-cell [cell]="view.cell" [square]="true" />
+    </button>
+  } @else {
+    <app-participation-event-cell [cell]="view.cell" [square]="true" />
+  }
+</div>

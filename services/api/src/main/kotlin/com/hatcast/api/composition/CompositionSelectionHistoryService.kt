@@ -1,6 +1,6 @@
 package com.hatcast.api.composition
 
-import com.hatcast.api.event.EquityCompartment
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.event.EventEntity
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -26,11 +26,11 @@ class CompositionSelectionHistoryService(
         event: EventEntity,
         mode: SelectionHistoryMode,
     ): Map<Pair<UUID, String>, Int> {
-        val compartment = EquityCompartment.slug(event)
+        val compartment = SpectacleCategory.slug(event)
         val rows =
             when (mode) {
                 SelectionHistoryMode.OPERATIONAL ->
-                    slotRepository.countValidatedSelectionsBySeasonAndCompartment(
+                    slotRepository.countValidatedSelectionsBySeasonAndCategory(
                         event.season.id,
                         event.id,
                         compartment,

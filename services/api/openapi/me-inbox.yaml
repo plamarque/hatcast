@@ -75,14 +75,14 @@ components:
         - type
         - eventId
         - eventSlug
-        - leagueSlug
+        - seasonSlug
         - title
         - startsAt
         - troupeName
         - troupeSlug
-        - leagueTitle
+        - seasonTitle
         - troupeId
-        - leagueId
+        - seasonId
         - deepLink
       properties:
         type:
@@ -92,7 +92,7 @@ components:
           format: uuid
         eventSlug:
           type: string
-        leagueSlug:
+        seasonSlug:
           type: string
         title:
           type: string
@@ -103,7 +103,7 @@ components:
           type: string
         troupeSlug:
           type: string
-        leagueTitle:
+        seasonTitle:
           type: string
         location:
           type: string
@@ -111,7 +111,7 @@ components:
         troupeId:
           type: string
           format: uuid
-        leagueId:
+        seasonId:
           type: string
           format: uuid
         roleKey:
@@ -123,7 +123,7 @@ components:
         deepLink:
           type: string
           description: >
-            Chemin relatif applicatif (préfixe `/`), ex. `/saison/{leagueSlug}/event/{eventSlug}?tab=dispos`
+            Chemin relatif applicatif (préfixe `/`), ex. `/saison/{seasonSlug}/event/{eventSlug}?tab=dispos`
             ou `?showConfirm=true`.
 
     InboxShortcuts:
@@ -143,6 +143,6 @@ components:
         troupeId:
           type: string
           format: uuid
-        leagueId:
+        seasonId:
           type: string
           format: uuid

@@ -24,7 +24,7 @@ object EventTypes {
         if (templateType !in ALLOWED) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "templateType invalide : $templateType",
+                "Format invalide : $templateType",
             )
         }
     }

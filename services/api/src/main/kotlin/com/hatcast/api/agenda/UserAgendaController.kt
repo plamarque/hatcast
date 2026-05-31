@@ -23,7 +23,7 @@ class UserAgendaController(
     @RequestParam(defaultValue = "50") size: Int,
     @RequestParam(defaultValue = "upcoming") scope: String,
     @RequestParam(required = false) troupeId: UUID?,
-    @RequestParam(required = false) leagueId: UUID?,
+    @RequestParam(required = false) seasonId: UUID?,
   ): UserAgendaResponse {
     val parsedScope =
       when (scope.lowercase()) {
@@ -40,7 +40,7 @@ class UserAgendaController(
       size = size,
       scope = parsedScope,
       troupeId = troupeId,
-      leagueId = leagueId,
+      seasonId = seasonId,
     )
   }
 }

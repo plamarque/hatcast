@@ -12,14 +12,14 @@ import {
 } from '../../shared/scope-admin-menu/scope-admin-menu'
 import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './season-view.types'
 import {
-  PRINCIPAL_COMPARTMENT,
-  allCompartmentSlugs,
+  PRINCIPAL_CATEGORY,
+  allCategorySlugs,
   isSlugSelected,
-  statsGroupsFilterLabel,
-  toggleAllCompartments,
-  toggleCompartmentSlug,
-  type StatsEquityCompartments,
-} from './stats-equity-compartments'
+  statsCategoriesFilterLabel,
+  toggleAllCategories,
+  toggleCategorySlug,
+  type StatsCategoryFilter,
+} from './stats-categories'
 
 @Component({
   selector: 'app-season-view-toolbar',
@@ -56,26 +56,26 @@ export class SeasonViewToolbar {
   readonly statsEventOptions = input<EventFilterOption[]>([])
   readonly selectedStatsEventId = model<string | null>(null)
 
-  readonly equityGlossarySlugs = input<string[]>([])
-  readonly equityTagLabels = input<Record<string, string>>({})
-  readonly statsEquityCompartments = input<StatsEquityCompartments>({ kind: 'all' })
-  readonly statsEquityCompartmentsChange = output<StatsEquityCompartments>()
+  readonly categoryGlossarySlugs = input<string[]>([])
+  readonly categoryLabels = input<Record<string, string>>({})
+  readonly statsCategoryFilter = input<StatsCategoryFilter>({ kind: 'all' })
+  readonly statsCategoryFilterChange = output<StatsCategoryFilter>()
 
   readonly exportClick = output<void>()
 
   readonly adminScope = input<ScopeAdminMenuScope>('saison')
   readonly adminItems = input<ScopeAdminMenuItem[]>([])
 
-  protected readonly allCompartmentSlugs = computed(() =>
-    allCompartmentSlugs(this.equityGlossarySlugs()),
+  protected readonly allCategorySlugs = computed(() =>
+    allCategorySlugs(this.categoryGlossarySlugs()),
   )
 
-  protected readonly statsGroupsLabel = computed(() =>
-    statsGroupsFilterLabel(this.statsEquityCompartments(), this.equityTagLabels()),
+  protected readonly statsCategoriesLabel = computed(() =>
+    statsCategoriesFilterLabel(this.statsCategoryFilter(), this.categoryLabels()),
   )
 
-  protected readonly statsGroupsNoneSelected = computed(
-    () => this.statsEquityCompartments().kind === 'none',
+  protected readonly statsCategoriesNoneSelected = computed(
+    () => this.statsCategoryFilter().kind === 'none',
   )
 
   protected participantLabel(): string {
@@ -108,12 +108,12 @@ export class SeasonViewToolbar {
     return this.statsEventOptions().find((o) => o.id === id)?.title ?? 'Tous'
   }
 
-  protected isAllCompartmentsSelected(): boolean {
-    return this.statsEquityCompartments().kind === 'all'
+  protected isAllCategoriesSelected(): boolean {
+    return this.statsCategoryFilter().kind === 'all'
   }
 
-  protected isCompartmentChecked(slug: string): boolean {
-    return isSlugSelected(this.statsEquityCompartments(), slug)
+  protected isCategoryChecked(slug: string): boolean {
+    return isSlugSelected(this.statsCategoryFilter(), slug)
   }
 
   protected principalLabel(): string {
@@ -121,36 +121,36 @@ export class SeasonViewToolbar {
   }
 
   protected glossaryLabel(slug: string): string {
-    return this.equityTagLabels()[slug] ?? slug
+    return this.categoryLabels()[slug] ?? slug
   }
 
-  protected toggleAllGroups(checked: boolean): void {
-    this.emitCompartments(
-      toggleAllCompartments(this.statsEquityCompartments(), this.allCompartmentSlugs(), checked),
+  protected toggleAllCategories(checked: boolean): void {
+    this.emitCategoryFilter(
+      toggleAllCategories(this.statsCategoryFilter(), this.allCategorySlugs(), checked),
     )
   }
 
   protected togglePrincipal(checked: boolean): void {
-    this.toggleCompartment(PRINCIPAL_COMPARTMENT, checked)
+    this.toggleCategory(PRINCIPAL_CATEGORY, checked)
   }
 
   protected toggleGlossarySlug(slug: string, checked: boolean): void {
-    this.toggleCompartment(slug, checked)
+    this.toggleCategory(slug, checked)
   }
 
-  private toggleCompartment(slug: string, checked: boolean): void {
-    this.emitCompartments(
-      toggleCompartmentSlug(
-        this.statsEquityCompartments(),
-        this.allCompartmentSlugs(),
+  private toggleCategory(slug: string, checked: boolean): void {
+    this.emitCategoryFilter(
+      toggleCategorySlug(
+        this.statsCategoryFilter(),
+        this.allCategorySlugs(),
         slug,
         checked,
       ),
     )
   }
 
-  private emitCompartments(next: StatsEquityCompartments): void {
-    this.statsEquityCompartmentsChange.emit(next)
+  private emitCategoryFilter(next: StatsCategoryFilter): void {
+    this.statsCategoryFilterChange.emit(next)
   }
 
   protected selectParticipant(id: string | null): void {

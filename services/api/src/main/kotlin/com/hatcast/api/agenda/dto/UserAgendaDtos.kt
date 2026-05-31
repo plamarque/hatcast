@@ -2,6 +2,7 @@ package com.hatcast.api.agenda.dto
 
 import com.hatcast.api.agenda.UserAgendaRow
 import com.hatcast.api.composition.TeamStatusBadgeDto
+import com.hatcast.api.event.dto.ParticipantFocusSummaryDto
 import java.time.Instant
 import java.util.UUID
 
@@ -14,17 +15,19 @@ data class UserAgendaItemDto(
   val troupeId: UUID,
   val troupeName: String,
   val troupeSlug: String,
-  val leagueId: UUID,
-  val leagueSlug: String,
-  val leagueTitle: String,
+  val seasonId: UUID,
+  val seasonSlug: String,
+  val seasonTitle: String,
   val myAvailabilityStatus: String?,
   val teamStatusBadge: TeamStatusBadgeDto? = null,
+  val participantFocus: ParticipantFocusSummaryDto? = null,
 ) {
   companion object {
     fun from(
       row: UserAgendaRow,
       myAvailabilityStatus: String?,
       teamStatusBadge: TeamStatusBadgeDto? = null,
+      participantFocus: ParticipantFocusSummaryDto? = null,
     ): UserAgendaItemDto {
       return UserAgendaItemDto(
         eventId = row.eventId,
@@ -35,11 +38,12 @@ data class UserAgendaItemDto(
         troupeId = row.troupeId,
         troupeName = row.troupeName,
         troupeSlug = row.troupeSlug,
-        leagueId = row.leagueId,
-        leagueSlug = row.leagueSlug,
-        leagueTitle = row.leagueTitle,
+        seasonId = row.seasonId,
+        seasonSlug = row.seasonSlug,
+        seasonTitle = row.seasonTitle,
         myAvailabilityStatus = myAvailabilityStatus,
         teamStatusBadge = teamStatusBadge,
+        participantFocus = participantFocus,
       )
     }
   }
@@ -51,7 +55,7 @@ data class UserAgendaTroupeFilterDto(
   val slug: String,
 )
 
-data class UserAgendaLeagueFilterDto(
+data class UserAgendaSeasonFilterDto(
   val id: UUID,
   val title: String,
   val slug: String,
@@ -60,7 +64,7 @@ data class UserAgendaLeagueFilterDto(
 
 data class UserAgendaParticipationFiltersDto(
   val troupes: List<UserAgendaTroupeFilterDto>,
-  val leagues: List<UserAgendaLeagueFilterDto>,
+  val seasons: List<UserAgendaSeasonFilterDto>,
 )
 
 data class UserAgendaResponse(

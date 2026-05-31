@@ -18,10 +18,10 @@
 
   @if (showTemplateChangeConfirmation && pendingTemplateId) {
     <div class="template-confirm" role="alert">
-      <p class="template-confirm__title">Changement de type de spectacle</p>
+      <p class="template-confirm__title">Changement de format</p>
       <p class="template-confirm__text">
-        Les rôles actuels diffèrent du modèle « {{ getEventTypeLabel(pendingTemplateId) }} ».
-        Appliquer le nouveau modèle ?
+        Les rôles actuels diffèrent du format « {{ getEventTypeLabel(pendingTemplateId) }} ».
+        Appliquer le nouveau format ?
       </p>
       <div class="template-confirm__actions">
         <button type="button" mat-flat-button color="primary" (click)="confirmTemplateChange()">

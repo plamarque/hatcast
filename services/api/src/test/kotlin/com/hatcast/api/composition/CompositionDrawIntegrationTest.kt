@@ -118,11 +118,11 @@ class CompositionDrawIntegrationTest {
         seasonId: UUID,
         roleSlotsJson: String = """{ "player": 2 }""",
         templateType: String? = null,
-        equityTag: String? = null,
+        category: String? = null,
     ): UUID {
         val future = Instant.parse("2031-04-01T19:00:00Z")
         val templateJson = templateType?.let { """, "templateType": "$it"""" } ?: ""
-        val equityJson = equityTag?.let { """, "equityTag": "$it"""" } ?: ""
+        val categoryJson = category?.let { """, "category": "$it"""" } ?: ""
         val res =
             mockMvc
                 .perform(
@@ -134,7 +134,7 @@ class CompositionDrawIntegrationTest {
                             {
                               "title": "Draw event",
                               "startsAt": "$future",
-                              "roleSlots": $roleSlotsJson$templateJson$equityJson
+                              "roleSlots": $roleSlotsJson$templateJson$categoryJson
                             }
                             """.trimIndent(),
                         ).with(csrf()),
@@ -567,7 +567,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR19")
-    fun `selection history is scoped to equity compartment`() {
+    fun `selection history is scoped to category`() {
         val adminCookie = memberCookie("sub-compartment-admin", admin = true)
         val veteran = memberCookie("sub-compartment-vet")
         val rookie = memberCookie("sub-compartment-rook")
@@ -578,7 +578,7 @@ class CompositionDrawIntegrationTest {
                 seasonId,
                 """{ "player": 1 }""",
                 templateType = "match",
-                equityTag = "deplacements",
+                category = "deplacements",
             )
         val principalEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
         val awayEvent2Id =
@@ -587,7 +587,7 @@ class CompositionDrawIntegrationTest {
                 seasonId,
                 """{ "player": 1 }""",
                 templateType = "match",
-                equityTag = "deplacements",
+                category = "deplacements",
             )
 
         assertPrincipalChancesEqualAfterAwayAssignment(
@@ -652,7 +652,7 @@ class CompositionDrawIntegrationTest {
                 seasonId,
                 """{ "player": 1 }""",
                 templateType = "match",
-                equityTag = "aperock",
+                category = "aperock",
             )
         val principalEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
         val aperockEvent2Id =
@@ -661,7 +661,7 @@ class CompositionDrawIntegrationTest {
                 seasonId,
                 """{ "player": 1 }""",
                 templateType = "match",
-                equityTag = "aperock",
+                category = "aperock",
             )
 
         setAvailability(veteran, seasonId, aperockEventId, "available")

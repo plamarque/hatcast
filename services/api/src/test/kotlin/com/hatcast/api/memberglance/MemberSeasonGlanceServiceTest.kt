@@ -56,7 +56,7 @@ class MemberSeasonGlanceServiceTest {
         val season = season(seedSeasonId, seedTroupeId)
         val membership = activeMembership(target, "Self")
 
-        stubParticipation(userId, troupeIds = setOf(seedTroupeId), leagueIds = setOf(seedSeasonId))
+        stubParticipation(userId, troupeIds = setOf(seedTroupeId), seasonIds = setOf(seedSeasonId))
         whenever(userRepository.findBySlug("self-user")).thenReturn(target)
         whenever(seasonRepository.findById(seedSeasonId)).thenReturn(Optional.of(season))
         whenever(membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, userId)).thenReturn(membership)
@@ -69,7 +69,7 @@ class MemberSeasonGlanceServiceTest {
                 userSlug = "self-user",
                 principal = principal(userId),
                 troupeId = null,
-                leagueId = seedSeasonId,
+                seasonId = seedSeasonId,
             )
 
         assertEquals(userId, result.userId)
@@ -77,7 +77,7 @@ class MemberSeasonGlanceServiceTest {
     }
 
     @Test
-    fun `all groups filter resolves primary season when several leagues exist`() {
+    fun `all groups filter resolves primary season when several seasons exist`() {
         val userId = UUID.randomUUID()
         val target = user(id = userId, slug = "multi-league")
         val primarySeasonId = UUID.fromString("b0000002-0000-4000-8000-000000000002")
@@ -103,7 +103,7 @@ class MemberSeasonGlanceServiceTest {
         stubParticipation(
             userId,
             troupeIds = setOf(seedTroupeId),
-            leagueIds = setOf(primarySeasonId, otherSeasonId),
+            seasonIds = setOf(primarySeasonId, otherSeasonId),
         )
         whenever(userRepository.findBySlug("multi-league")).thenReturn(target)
         whenever(seasonRepository.findById(primarySeasonId)).thenReturn(Optional.of(primary))
@@ -118,7 +118,7 @@ class MemberSeasonGlanceServiceTest {
                 userSlug = "multi-league",
                 principal = principal(userId),
                 troupeId = null,
-                leagueId = null,
+                seasonId = null,
             )
 
         assertEquals(primarySeasonId, result.resolvedSeasonId)
@@ -133,7 +133,7 @@ class MemberSeasonGlanceServiceTest {
         val season = season(seedSeasonId, seedTroupeId)
         val membership = activeMembership(target, "Other")
 
-        stubParticipation(targetId, troupeIds = setOf(seedTroupeId), leagueIds = setOf(seedSeasonId))
+        stubParticipation(targetId, troupeIds = setOf(seedTroupeId), seasonIds = setOf(seedSeasonId))
         whenever(userRepository.findBySlug("other-user")).thenReturn(target)
         whenever(seasonRepository.findById(seedSeasonId)).thenReturn(Optional.of(season))
         whenever(membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, targetId)).thenReturn(membership)
@@ -147,7 +147,7 @@ class MemberSeasonGlanceServiceTest {
                     userSlug = "other-user",
                     principal = principal(viewerId),
                     troupeId = null,
-                    leagueId = seedSeasonId,
+                    seasonId = seedSeasonId,
                 )
             }
 
@@ -158,12 +158,12 @@ class MemberSeasonGlanceServiceTest {
     private fun stubParticipation(
         userId: UUID,
         troupeIds: Set<UUID>,
-        leagueIds: Set<UUID>,
+        seasonIds: Set<UUID>,
     ) {
         whenever(userAgendaRepository.findParticipatingTroupeIdsFromSeason(userId)).thenReturn(troupeIds.toList())
         whenever(userAgendaRepository.findParticipatingTroupeIdsFromEventOnly(userId)).thenReturn(emptyList())
-        whenever(userAgendaRepository.findParticipatingLeagueIdsFromSeason(userId)).thenReturn(leagueIds.toList())
-        whenever(userAgendaRepository.findParticipatingLeagueIdsFromEventOnly(userId)).thenReturn(emptyList())
+        whenever(userAgendaRepository.findParticipatingSeasonIdsFromSeason(userId)).thenReturn(seasonIds.toList())
+        whenever(userAgendaRepository.findParticipatingSeasonIdsFromEventOnly(userId)).thenReturn(emptyList())
     }
 
     private fun user(

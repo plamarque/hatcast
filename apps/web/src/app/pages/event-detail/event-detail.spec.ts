@@ -151,7 +151,7 @@ describe('EventDetail', () => {
           provide: TroupeApiService,
           useValue: {
             listMyTroupes,
-            listEquityTags: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+            listCategories: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
           },
         },
         {

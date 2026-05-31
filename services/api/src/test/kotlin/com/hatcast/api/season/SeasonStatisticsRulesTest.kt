@@ -18,12 +18,12 @@ import java.util.UUID
 class SeasonStatisticsRulesTest {
     private fun event(
         templateType: String,
-        equityTag: String? = null,
+        category: String? = null,
         roleSlots: Map<String, Int> = mapOf("player" to 6),
     ): EventEntity {
         val entity = mock<EventEntity>()
         whenever(entity.templateType).thenReturn(templateType)
-        whenever(entity.equityTag).thenReturn(equityTag)
+        whenever(entity.category).thenReturn(category)
         whenever(entity.roleSlots).thenReturn(roleSlots)
         return entity
     }
@@ -49,9 +49,9 @@ class SeasonStatisticsRulesTest {
     }
 
     @Test
-    fun `event matches column routes by template type regardless of equity tag`() {
+    fun `event matches column routes by format regardless of category`() {
         val localMatch = event("match")
-        val awayMatch = event("match", equityTag = "deplacements")
+        val awayMatch = event("match", category = "deplacements")
         val legacyDepl = event("deplacement")
         assertTrue(SeasonStatisticsRules.eventMatchesColumn(localMatch, "jeuMatch"))
         assertTrue(SeasonStatisticsRules.eventMatchesColumn(awayMatch, "jeuMatch"))
@@ -60,11 +60,11 @@ class SeasonStatisticsRulesTest {
     }
 
     @Test
-    fun `selection column for player uses template type not deplacement band`() {
+    fun `selection column for player uses format not deplacement band`() {
         assertEquals("jeuMatch", SeasonStatisticsRules.selectionColumnForRole(event("match"), "player"))
         assertEquals(
             "jeuMatch",
-            SeasonStatisticsRules.selectionColumnForRole(event("match", equityTag = "deplacements"), "player"),
+            SeasonStatisticsRules.selectionColumnForRole(event("match", category = "deplacements"), "player"),
         )
         assertEquals("jeuAutre", SeasonStatisticsRules.selectionColumnForRole(event("deplacement"), "player"))
         assertEquals("mc", SeasonStatisticsRules.selectionColumnForRole(event("deplacement"), "mc"))

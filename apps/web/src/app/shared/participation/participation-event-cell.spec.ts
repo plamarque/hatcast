@@ -63,4 +63,17 @@ describe('ParticipationEventCell', () => {
     expect(root.className).toContain('participation-event-cell--unavailable')
     expect(root.getAttribute('aria-label')).toBe('Non dispo')
   })
+
+  it('applies fixed square host size when square is enabled', async () => {
+    const fixture = await setup({
+      status: 'available',
+      label: 'Dispo',
+    })
+    fixture.componentRef.setInput('square', true)
+    fixture.detectChanges()
+
+    const host = fixture.nativeElement as HTMLElement
+    expect(host.classList.contains('participation-event-cell-host--square')).toBe(true)
+    expect(host.style.width).toBe('')
+  })
 })

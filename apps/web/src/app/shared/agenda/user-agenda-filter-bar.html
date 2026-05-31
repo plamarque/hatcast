@@ -24,18 +24,18 @@
       type="button"
       mat-stroked-button
       class="user-agenda-filter-bar__filter"
-      [matMenuTriggerFor]="leagueMenu"
-      aria-label="Filtrer par groupe"
-      data-testid="agenda-league-filter"
+      [matMenuTriggerFor]="seasonMenu"
+      aria-label="Filtrer par saison"
+      data-testid="agenda-season-filter"
     >
-      <span>{{ leagueLabel() }}</span>
+      <span>{{ seasonLabel() }}</span>
       <mat-icon class="user-agenda-filter-bar__caret">expand_more</mat-icon>
     </button>
-    <mat-menu #leagueMenu="matMenu">
-      <button mat-menu-item type="button" (click)="selectLeague(null)">Tous les groupes</button>
-      @for (league of scopedLeagues(); track league.id) {
-        <button mat-menu-item type="button" (click)="selectLeague(league)">
-          {{ league.title }}
+    <mat-menu #seasonMenu="matMenu">
+      <button mat-menu-item type="button" (click)="selectSeason(null)">Toutes les saisons</button>
+      @for (season of scopedSeasons(); track season.id) {
+        <button mat-menu-item type="button" (click)="selectSeason(season)">
+          {{ season.title }}
         </button>
       }
     </mat-menu>

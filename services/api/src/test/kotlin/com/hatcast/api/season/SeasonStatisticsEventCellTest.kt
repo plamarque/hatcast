@@ -240,7 +240,7 @@ class SeasonStatisticsEventCellTest {
             whenever(it.title).thenReturn("Match test")
             whenever(it.startsAt).thenReturn(Instant.parse("2026-03-15T19:00:00Z"))
             whenever(it.templateType).thenReturn("match")
-            whenever(it.equityTag).thenReturn(null)
+            whenever(it.category).thenReturn(null)
             whenever(it.roleSlots).thenReturn(mapOf("player" to 6, "mc" to 1))
             whenever(it.archived).thenReturn(false)
         }

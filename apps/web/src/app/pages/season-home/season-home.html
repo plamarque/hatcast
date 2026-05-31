@@ -38,10 +38,10 @@
       [(selectedHistoryEventId)]="selectedHistoryEventId"
       [statsEventOptions]="statsEventFilterOptions()"
       [(selectedStatsEventId)]="selectedStatsEventId"
-      [equityGlossarySlugs]="equityGlossarySlugs()"
-      [equityTagLabels]="equityTagLabels()"
-      [statsEquityCompartments]="statsEquityCompartments()"
-      (statsEquityCompartmentsChange)="onStatsEquityCompartmentsChange($event)"
+      [categoryGlossarySlugs]="categoryGlossarySlugs()"
+      [categoryLabels]="categoryLabels()"
+      [statsCategoryFilter]="statsCategoryFilter()"
+      (statsCategoryFilterChange)="onStatsCategoryFilterChange($event)"
       [(detailsExpanded)]="statsDetailsExpanded"
       (exportClick)="
         seasonView() === 'stats' ? exportStatisticsCsv() : exportHistoryCsv()
@@ -57,7 +57,7 @@
         [loadedEventsCount]="events().length"
         [canManageEvents]="canManageEvents()"
         [canEditAvailability]="canEditAvailability()"
-        [equityTagLabels]="equityTagLabels()"
+        [categoryLabels]="categoryLabels()"
         (eventClick)="openEvent($event)"
         (editClick)="openEdit($event)"
         (archiveClick)="confirmArchive($event)"
@@ -74,7 +74,7 @@
         [totalElements]="pastTotalElements()"
         [loadedEventsCount]="pastEvents().length"
         [filtersExcludeAll]="historyFiltersExcludeAll()"
-        [equityTagLabels]="equityTagLabels()"
+        [categoryLabels]="categoryLabels()"
         (eventClick)="openEvent($event)"
         (loadMoreClick)="loadMorePastEvents()"
       />
@@ -85,7 +85,7 @@
         [emptyReason]="statisticsEmptyReason()"
         [detailsExpanded]="statsDetailsExpanded()"
         [troupeId]="troupeId()"
-        [leagueId]="se.id"
+        [seasonId]="se.id"
       />
     }
   }

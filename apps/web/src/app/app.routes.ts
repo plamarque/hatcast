@@ -69,41 +69,4 @@ export const routes: Routes = [
     path: 'troupe/:troupeSlug/admin/membres',
     redirectTo: (route) => `/troupes/${route.params['troupeSlug']}/admin/membres`,
   },
-  {
-    path: 'ligue/:slug/admin/membres',
-    redirectTo: (route) =>
-      redirectPathWithQuery(
-        `/saison/${route.params['slug']}/admin/membres`,
-        route.queryParamMap,
-      ),
-  },
-  {
-    path: 'ligue/:slug/admin/participants',
-    redirectTo: (route) =>
-      redirectPathWithQuery(
-        `/saison/${route.params['slug']}/admin/participants`,
-        route.queryParamMap,
-      ),
-  },
-  {
-    path: 'ligue/:slug/event/:eventSlug',
-    redirectTo: (route) =>
-      redirectPathWithQuery(
-        `/saison/${route.params['slug']}/event/${route.params['eventSlug']}`,
-        route.queryParamMap,
-      ),
-  },
-  {
-    path: 'ligue/:slug/event/:eventSlug/admin/participants',
-    redirectTo: (route) =>
-      redirectPathWithQuery(
-        `/saison/${route.params['slug']}/event/${route.params['eventSlug']}/admin/participants`,
-        route.queryParamMap,
-      ),
-  },
-  {
-    path: 'ligue/:slug',
-    redirectTo: (route) =>
-      redirectPathWithQuery(`/saison/${route.params['slug']}`, route.queryParamMap),
-  },
 ];

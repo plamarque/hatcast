@@ -322,9 +322,9 @@ function inboxResponse(
     actions,
     nextEvent,
     shortcuts: {
-      lastSeasonSlug: nextEvent?.leagueSlug ?? null,
+      lastSeasonSlug: nextEvent?.seasonSlug ?? null,
       seasonGlanceQuery: nextEvent
-        ? { troupeId: nextEvent.troupeId, leagueId: nextEvent.leagueId }
+        ? { troupeId: nextEvent.troupeId, seasonId: nextEvent.seasonId }
         : {},
     },
     noParticipation: false,
@@ -348,15 +348,15 @@ function availabilityAction(
     type: 'availability_unknown',
     eventId,
     eventSlug: eventId,
-    leagueSlug: 'ligue-2026',
+    seasonSlug: 'ligue-2026',
     title,
     startsAt,
     location: null,
     troupeId: 'troupe-1',
     troupeName: 'La BIM',
     troupeSlug: 'la-bim',
-    leagueId: 'league-1',
-    leagueTitle: 'Ligue 2026',
+    seasonId: 'league-1',
+    seasonTitle: 'Ligue 2026',
     deepLink: `/saison/ligue-2026/event/${eventId}?tab=dispos`,
   }
 }
@@ -382,7 +382,7 @@ function agendaItem(
   title: string,
   startsAt: string,
   myAvailabilityStatus: UserAgendaItem['myAvailabilityStatus'] = 'unknown',
-  ids: { troupeId?: string; leagueId?: string } = {},
+  ids: { troupeId?: string; seasonId?: string } = {},
 ): UserAgendaItem {
   return {
     eventId,
@@ -393,9 +393,9 @@ function agendaItem(
     troupeId: ids.troupeId ?? 'troupe-1',
     troupeName: 'La BIM',
     troupeSlug: 'la-bim',
-    leagueId: ids.leagueId ?? 'league-1',
-    leagueSlug: 'ligue-2026',
-    leagueTitle: 'Ligue 2026',
+    seasonId: ids.seasonId ?? 'league-1',
+    seasonSlug: 'ligue-2026',
+    seasonTitle: 'Ligue 2026',
     myAvailabilityStatus,
   }
 }

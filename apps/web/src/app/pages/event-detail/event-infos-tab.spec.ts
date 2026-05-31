@@ -11,7 +11,7 @@ import { applyTemplate } from '../../core/events/event-types'
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { CompositionApiService } from '../../core/composition/composition-api.service'
 import { EventInfosTab } from './event-infos-tab'
-import { EventEquityTagDialog } from './event-equity-tag-dialog'
+import { EventCategoryDialog } from './event-category-dialog'
 import { EventOrganizersDialog } from './event-organizers-dialog'
 import { EventTypeRolesDialog } from './event-type-roles-dialog'
 
@@ -41,7 +41,7 @@ const glossary = [
 async function setup(options: {
   canManageEvents?: boolean
   canManageEventOrganizers?: boolean
-  equityTag?: string | null
+  category?: string | null
   organizers?: Array<{ userId: string; email: string; displayName: string | null }>
   updateEvent?: ReturnType<typeof vi.fn>
   dialogResult?: string | null | undefined
@@ -53,9 +53,9 @@ async function setup(options: {
     vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      data: baseEvent({ equityTag: 'deplacements' }),
+      data: baseEvent({ category: 'deplacements' }),
     })
-  const listEquityTags = vi.fn().mockResolvedValue({
+  const listCategories = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     data: glossary,
@@ -93,7 +93,7 @@ async function setup(options: {
     imports: [EventInfosTab, NoopAnimationsModule],
     providers: [
       { provide: EventApiService, useValue: { updateEvent } },
-      { provide: TroupeApiService, useValue: { listEquityTags } },
+      { provide: TroupeApiService, useValue: { listCategories } },
       {
         provide: OrganizerApiService,
         useValue: {
@@ -110,7 +110,7 @@ async function setup(options: {
   TestBed.overrideProvider(MatSnackBar, { useValue: { open: snackOpen } })
 
   const fixture = TestBed.createComponent(EventInfosTab)
-  fixture.componentRef.setInput('event', baseEvent({ equityTag: options.equityTag ?? null }))
+  fixture.componentRef.setInput('event', baseEvent({ category: options.category ?? null }))
   fixture.componentRef.setInput('seasonId', 'season-1')
   fixture.componentRef.setInput('troupeId', 'troupe-1')
   fixture.componentRef.setInput('canManageEvents', options.canManageEvents ?? true)
@@ -121,53 +121,53 @@ async function setup(options: {
   fixture.detectChanges()
   await fixture.whenStable()
 
-  return { fixture, updateEvent, listEquityTags, listEventOrganizers, snackOpen, dialogOpen }
+  return { fixture, updateEvent, listCategories, listEventOrganizers, snackOpen, dialogOpen }
 }
 
-describe('EventInfosTab equity tag', () => {
-  it('hides the equity section when the user cannot manage and no tag is set', async () => {
-    const { fixture } = await setup({ canManageEvents: false, equityTag: null })
+describe('EventInfosTab category', () => {
+  it('hides the category section when the user cannot manage and no category is set', async () => {
+    const { fixture } = await setup({ canManageEvents: false, category: null })
 
-    expect(fixture.nativeElement.querySelector('.event-infos__equity')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-infos__category')).toBeNull()
   })
 
   it('shows a read-only chip when a tag is set but the user cannot manage', async () => {
-    const { fixture } = await setup({ canManageEvents: false, equityTag: 'deplacements' })
+    const { fixture } = await setup({ canManageEvents: false, category: 'deplacements' })
 
     await vi.waitFor(() => {
-      const chip = fixture.nativeElement.querySelector('.event-infos__equity-chip')
+      const chip = fixture.nativeElement.querySelector('.event-infos__category-chip')
       expect(chip?.textContent?.trim()).toBe('Déplacements')
     })
-    expect(fixture.nativeElement.querySelector('.event-infos__add-tag')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-infos__add-category')).toBeNull()
   })
 
-  it('shows add-tag control when the user can manage and no tag is set', async () => {
-    const { fixture } = await setup({ canManageEvents: true, equityTag: null })
+  it('shows add-category control when the user can manage and no category is set', async () => {
+    const { fixture } = await setup({ canManageEvents: true, category: null })
 
-    expect(fixture.nativeElement.querySelector('.event-infos__add-tag')).toBeTruthy()
-    expect(fixture.nativeElement.querySelector('.event-infos__equity-chip')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-infos__add-category')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('.event-infos__category-chip')).toBeNull()
   })
 
   it('shows a removable chip when a tag is set', async () => {
-    const { fixture } = await setup({ canManageEvents: true, equityTag: 'deplacements' })
+    const { fixture } = await setup({ canManageEvents: true, category: 'deplacements' })
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-infos__equity-chip')).toBeTruthy()
+      expect(fixture.nativeElement.querySelector('.event-infos__category-chip')).toBeTruthy()
     })
   })
 
-  it('calls updateEvent with equityTag null when removing the chip', async () => {
+  it('calls updateEvent with category null when removing the chip', async () => {
     const updateEvent = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      data: baseEvent({ equityTag: null }),
+      data: baseEvent({ category: null }),
     })
-    const { fixture } = await setup({ equityTag: 'deplacements', updateEvent })
-    const cmp = fixture.componentInstance as unknown as { removeTag: () => void }
+    const { fixture } = await setup({ category: 'deplacements', updateEvent })
+    const cmp = fixture.componentInstance as unknown as { removeCategory: () => void }
 
-    cmp.removeTag()
+    cmp.removeCategory()
     await vi.waitFor(() => {
-      expect(updateEvent).toHaveBeenCalledWith('season-1', 'event-1', { equityTag: null })
+      expect(updateEvent).toHaveBeenCalledWith('season-1', 'event-1', { category: null })
     })
   })
 
@@ -175,48 +175,48 @@ describe('EventInfosTab equity tag', () => {
     const updateEvent = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      data: baseEvent({ equityTag: 'deplacements' }),
+      data: baseEvent({ category: 'deplacements' }),
     })
     const { fixture, dialogOpen } = await setup({
       updateEvent,
       dialogResult: 'Déplacements',
     })
-    const cmp = fixture.componentInstance as unknown as { openTagDialog: () => void }
+    const cmp = fixture.componentInstance as unknown as { openCategoryDialog: () => void }
 
-    cmp.openTagDialog()
+    cmp.openCategoryDialog()
     await vi.waitFor(() => {
       expect(dialogOpen).toHaveBeenCalledWith(
-        EventEquityTagDialog,
+        EventCategoryDialog,
         expect.objectContaining({
           data: expect.objectContaining({ troupeId: 'troupe-1' }),
         }),
       )
-      expect(updateEvent).toHaveBeenCalledWith('season-1', 'event-1', { equityTag: 'Déplacements' })
+      expect(updateEvent).toHaveBeenCalledWith('season-1', 'event-1', { category: 'Déplacements' })
     })
   })
 
   it('emits eventUpdated after a successful save from the dialog', async () => {
-    const updated = baseEvent({ equityTag: 'aperock' })
+    const updated = baseEvent({ category: 'aperock' })
     const updateEvent = vi.fn().mockResolvedValue({ ok: true, status: 200, data: updated })
     const { fixture } = await setup({ updateEvent, dialogResult: 'Apérock' })
     const spy = vi.fn()
     fixture.componentInstance.eventUpdated.subscribe(spy)
-    const cmp = fixture.componentInstance as unknown as { openTagDialog: () => void }
+    const cmp = fixture.componentInstance as unknown as { openCategoryDialog: () => void }
 
-    cmp.openTagDialog()
+    cmp.openCategoryDialog()
     await vi.waitFor(() => {
       expect(spy).toHaveBeenCalledWith(updated)
     })
   })
 
-  it('places the equity section after the location field', async () => {
-    const { fixture } = await setup({ equityTag: 'deplacements' })
+  it('places the category section after the location field', async () => {
+    const { fixture } = await setup({ category: 'deplacements' })
     const labels = [...fixture.nativeElement.querySelectorAll('.event-infos__label')].map(
       (el: Element) => el.textContent?.trim(),
     )
     const lieuIdx = labels.indexOf('Lieu')
     const typeRolesIdx = labels.indexOf('Format et besoins')
-    const tagIdx = labels.indexOf('Groupe de spectacles')
+    const tagIdx = labels.indexOf('Catégorie')
     expect(lieuIdx).toBeGreaterThanOrEqual(0)
     expect(typeRolesIdx).toBeGreaterThan(lieuIdx)
     expect(tagIdx).toBeGreaterThan(typeRolesIdx)
@@ -228,7 +228,7 @@ describe('EventInfosTab organizers', () => {
     const { fixture } = await setup({
       canManageEventOrganizers: false,
       organizers: [],
-      equityTag: null,
+      category: null,
       canManageEvents: false,
     })
     expect(fixture.nativeElement.querySelector('.event-infos__organizers')).toBeNull()
@@ -238,7 +238,7 @@ describe('EventInfosTab organizers', () => {
     const { fixture } = await setup({
       canManageEventOrganizers: false,
       organizers: [{ userId: 'u-1', email: 'a@x.com', displayName: 'Alice' }],
-      equityTag: null,
+      category: null,
       canManageEvents: false,
     })
     await vi.waitFor(() => {
@@ -252,7 +252,7 @@ describe('EventInfosTab organizers', () => {
     const { fixture, dialogOpen } = await setup({
       canManageEventOrganizers: true,
       organizers: [],
-      equityTag: null,
+      category: null,
     })
     expect(fixture.nativeElement.querySelector('.event-infos__add-organizer')).toBeTruthy()
     const cmp = fixture.componentInstance as unknown as { openOrganizersDialog: () => void }
@@ -279,7 +279,7 @@ describe('EventInfosTab organizers', () => {
       imports: [EventInfosTab, NoopAnimationsModule],
       providers: [
         { provide: EventApiService, useValue: { updateEvent: vi.fn() } },
-        { provide: TroupeApiService, useValue: { listEquityTags: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
+        { provide: TroupeApiService, useValue: { listCategories: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
         {
           provide: OrganizerApiService,
           useValue: { listEventOrganizers, removeEventOrganizer },
@@ -320,7 +320,7 @@ describe('EventInfosTab type and roles', () => {
   it('shows type label and role summary for all users', async () => {
     const { fixture } = await setup({
       canManageEvents: false,
-      equityTag: null,
+      category: null,
     })
     fixture.componentRef.setInput(
       'event',
@@ -338,7 +338,7 @@ describe('EventInfosTab type and roles', () => {
   })
 
   it('shows edit icon when user can manage events', async () => {
-    const { fixture } = await setup({ canManageEvents: true, equityTag: null })
+    const { fixture } = await setup({ canManageEvents: true, category: null })
     const editBtn = fixture.nativeElement.querySelector('.event-infos__format-edit')
     expect(editBtn).toBeTruthy()
     expect(editBtn?.getAttribute('aria-label')).toBe('Modifier format et besoins')
@@ -361,7 +361,7 @@ describe('EventInfosTab type and roles', () => {
       imports: [EventInfosTab, NoopAnimationsModule],
       providers: [
         { provide: EventApiService, useValue: { updateEvent } },
-        { provide: TroupeApiService, useValue: { listEquityTags: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
+        { provide: TroupeApiService, useValue: { listCategories: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
         {
           provide: OrganizerApiService,
           useValue: { listEventOrganizers: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
@@ -399,7 +399,7 @@ describe('EventInfosTab type and roles', () => {
   it('shows snackbar when type/roles PATCH fails', async () => {
     const { fixture, snackOpen, updateEvent } = await setup({
       canManageEvents: true,
-      equityTag: null,
+      category: null,
       updateEvent: vi.fn().mockResolvedValue({
         ok: false,
         status: 422,
@@ -435,7 +435,7 @@ describe('EventInfosTab type and roles', () => {
       imports: [EventInfosTab, NoopAnimationsModule],
       providers: [
         { provide: EventApiService, useValue: { updateEvent } },
-        { provide: TroupeApiService, useValue: { listEquityTags: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
+        { provide: TroupeApiService, useValue: { listCategories: vi.fn().mockResolvedValue({ ok: true, data: [] }) } },
         {
           provide: OrganizerApiService,
           useValue: { listEventOrganizers: vi.fn().mockResolvedValue({ ok: true, data: [] }) },

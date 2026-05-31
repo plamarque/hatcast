@@ -6,6 +6,7 @@ export interface ParticipantFocusSummary {
   availabilityStatus: AvailabilityStatus
   compositionRoleKey?: string | null
   inTeam: boolean
+  slotParticipationStatus?: 'pending' | 'confirmed' | 'declined' | null
 }
 
 /** Pill Historique / export CSV (UX-DR19 — ex. « Comédien·ne · dans l'équipe »). */
@@ -22,7 +23,7 @@ export function formatParticipantFocusLabel(focus: ParticipantFocusSummary): str
 }
 
 export function participantFocusFromEvent(ev: {
-  myAvailabilityStatus?: AvailabilityStatus
+  myAvailabilityStatus?: AvailabilityStatus | null
   participantFocus?: ParticipantFocusSummary | null
 }): ParticipantFocusSummary {
   if (ev.participantFocus) {

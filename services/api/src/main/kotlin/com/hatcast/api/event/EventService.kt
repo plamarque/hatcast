@@ -9,7 +9,7 @@ import com.hatcast.api.event.dto.PagedEventsResponse
 import com.hatcast.api.event.dto.UpdateEventRequest
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
-import com.hatcast.api.troupe.TroupeEquityTagService
+import com.hatcast.api.troupe.TroupeCategoryService
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -29,7 +29,7 @@ class EventService(
     private val availabilityService: AvailabilityService,
     private val participantFocusService: EventParticipantFocusService,
     private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
-    private val troupeEquityTagService: TroupeEquityTagService,
+    private val troupeCategoryService: TroupeCategoryService,
 ) {
     companion object {
         /** Fuseau pour la borne « début du jour civil » (liste à venir / agenda). */
@@ -152,7 +152,7 @@ class EventService(
         val uniqueSlug =
             EventSlugGenerator.allocateUniqueSlug(seasonId, slugBase, eventRepository, null)
         val now = Instant.now()
-        val equityTag = resolveEquityTagForCreate(season.troupe.id, body.equityTag)
+        val category = resolveCategoryForCreate(season.troupe.id, body.category)
         val entity =
             EventEntity(
                 season = season,
@@ -164,7 +164,7 @@ class EventService(
                 archived = false,
                 templateType = templateType,
                 roleSlots = roleSlots,
-                equityTag = equityTag,
+                category = category,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -235,7 +235,7 @@ class EventService(
             if (raw == null) {
                 throw ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Le type de spectacle ne peut pas être effacé.",
+                    "Le format ne peut pas être effacé.",
                 )
             }
             val t = raw.trim()
@@ -269,13 +269,13 @@ class EventService(
                     e.id,
                 )
         }
-        if (body.equityTag.isPresent) {
-            val raw = body.equityTag.get()
-            e.equityTag =
+        if (body.category.isPresent) {
+            val raw = body.category.get()
+            e.category =
                 if (raw == null) {
                     null
                 } else {
-                    troupeEquityTagService.ensureTag(e.season.troupe.id, raw)
+                    troupeCategoryService.ensureTag(e.season.troupe.id, raw)
                 }
         }
         e.updatedAt = Instant.now()
@@ -357,14 +357,14 @@ class EventService(
         return e
     }
 
-    private fun resolveEquityTagForCreate(
+    private fun resolveCategoryForCreate(
         troupeId: UUID,
         raw: String?,
     ): String? {
         if (raw == null) {
             return null
         }
-        return troupeEquityTagService.ensureTag(troupeId, raw)
+        return troupeCategoryService.ensureTag(troupeId, raw)
     }
 
     private fun startOfTodayInclusive(zone: ZoneId): Instant {

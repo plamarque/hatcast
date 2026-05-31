@@ -35,7 +35,7 @@
      - Output: `load.sql` (idempotent) + `rejects.json` (unmapped player/event, etc.).
   5. **Load (write, guarded):** apply `load.sql` via `psql` inside a **single transaction**, all statements idempotent (`INSERT … ON CONFLICT DO UPDATE`). **`--dry-run` is the default** (prints SQL + report, writes nothing). The loader resolves the target Neon branch and **refuses** a production target unless an explicit typed confirmation is given (`--confirm-prod=<slug>`); `staging` accepts `--yes`.
   6. **Reset / replay loop:** rehearse via [ADR-0014](0014-v2-preprod-migration-no-seed.md) Procedure C — reset Neon `staging` → load → smoke → adjust transform → repeat. Gate: **≥ 3 clean cycles** before any production load.
-  7. **Sequencing / dependencies:** MIG-3 requires (a) members import (Story 2.3) and (b) **MIG-2** emitting the manifest. MIG-4 (`template_type=deplacement` → `equity_tag`) runs after MIG-2/3 on real data.
+  7. **Sequencing / dependencies:** MIG-3 requires (a) members import (Story 2.3) and (b) **MIG-2** emitting the manifest. MIG-4 (`template_type=deplacement` → `category`) runs after MIG-2/3 on real data.
 - **Consequences:**
   - **Positive:** Repeatable, auditable rehearsals; read-only V1 by construction; deterministic identity mapping; production write gated behind explicit confirmation; matches the existing SQL-generation pattern (`scripts/v2/generate-*-seed-sql.js`).
   - **Negative:** MIG-3 cannot ship standalone — blocked on the MIG-2 manifest contract; the manifest adds a new MIG-2 deliverable.

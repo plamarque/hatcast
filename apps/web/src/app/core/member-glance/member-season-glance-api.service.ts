@@ -15,7 +15,6 @@ export interface MemberSeasonGlance {
   isSelf: boolean
   resolvedSeasonId: string
   troupeId: string
-  leagueId: string
   preferredRolesTroupeId: string
   filterBarVisible: boolean
   participationFilters: UserAgendaParticipationFilters | null
@@ -31,14 +30,14 @@ export type ApiResult<T> = { ok: boolean; status: number; data?: T; errorMessage
 export class MemberSeasonGlanceApiService {
   async getSeasonGlance(
     userSlug: string,
-    filters?: { troupeId?: string; leagueId?: string },
+    filters?: { troupeId?: string; seasonId?: string },
   ): Promise<ApiResult<MemberSeasonGlance>> {
     const params = new URLSearchParams()
     if (filters?.troupeId) {
       params.set('troupeId', filters.troupeId)
     }
-    if (filters?.leagueId) {
-      params.set('leagueId', filters.leagueId)
+    if (filters?.seasonId) {
+      params.set('seasonId', filters.seasonId)
     }
     const qs = params.toString()
     const url = `/v1/members/${encodeURIComponent(userSlug)}/season-glance${qs ? `?${qs}` : ''}`

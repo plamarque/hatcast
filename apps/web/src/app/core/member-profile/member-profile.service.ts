@@ -10,7 +10,7 @@ import {
 export interface NavigateMemberGlanceOptions {
   userSlug: string
   troupeId?: string
-  leagueId?: string
+  seasonId?: string
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,8 +23,8 @@ export class MemberProfileService {
     if (options.troupeId) {
       queryParams['troupeId'] = options.troupeId
     }
-    if (options.leagueId) {
-      queryParams['leagueId'] = options.leagueId
+    if (options.seasonId) {
+      queryParams['seasonId'] = options.seasonId
     }
     void this.router.navigate(['/membre', options.userSlug], { queryParams })
   }
@@ -35,7 +35,7 @@ export class MemberProfileService {
       this.navigateToMemberGlance({
         userSlug: data.userSlug,
         troupeId: data.troupeId,
-        leagueId: data.leagueId ?? data.seasonId,
+        seasonId: data.seasonId ?? data.seasonId,
       })
       return
     }

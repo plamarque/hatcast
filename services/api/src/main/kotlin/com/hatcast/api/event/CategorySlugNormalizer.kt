@@ -6,7 +6,7 @@ import org.springframework.web.server.ResponseStatusException
 /**
  * Normalise un tag d'équité (compartiment d'équité) en slug canonique (a-z, 0-9, tirets, max 64).
  */
-object EquityTagNormalizer {
+object CategorySlugNormalizer {
     const val MAX_LEN = 64
     private val SLUG_PATTERN = Regex("^[a-z0-9]+(?:-[a-z0-9]+)*$")
     /** Slugs interdits : le compartiment principal est représenté par `null` en base. */

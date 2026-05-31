@@ -8,15 +8,15 @@ export interface InboxAction {
   type: InboxActionType
   eventId: string
   eventSlug: string
-  leagueSlug: string
+  seasonSlug: string
   title: string
   startsAt: string
   troupeName: string
   troupeSlug: string
-  leagueTitle: string
+  seasonTitle: string
   location: string | null
   troupeId: string
-  leagueId: string
+  seasonId: string
   deepLink: string
   roleKey?: string
   roleLabel?: string
@@ -24,7 +24,7 @@ export interface InboxAction {
 
 export interface InboxSeasonGlanceQuery {
   troupeId?: string
-  leagueId?: string
+  seasonId?: string
 }
 
 export interface InboxShortcuts {
@@ -66,9 +66,9 @@ export function inboxActionAsAgendaItem(action: InboxAction): UserAgendaItem {
     troupeId: action.troupeId,
     troupeName: action.troupeName,
     troupeSlug: action.troupeSlug,
-    leagueId: action.leagueId,
-    leagueSlug: action.leagueSlug,
-    leagueTitle: action.leagueTitle,
+    seasonId: action.seasonId,
+    seasonSlug: action.seasonSlug,
+    seasonTitle: action.seasonTitle,
     myAvailabilityStatus: action.type === 'availability_unknown' ? 'unknown' : null,
   }
 }

@@ -268,12 +268,12 @@ export function isDeplacementType(typeId: string): boolean {
   return typeId === 'deplacement'
 }
 
-/** ADR 0013 — equity tag `deplacements` or legacy template (story 3.6 / 17.10). */
+/** ADR 0013 — category `deplacements` or legacy deplacement format (story 3.6 / 17.10). */
 export function isDeplacementEvent(
   templateType: string,
-  equityTag?: string | null,
+  category?: string | null,
 ): boolean {
-  return equityTag === 'deplacements' || templateType === 'deplacement'
+  return category === 'deplacements' || templateType === 'deplacement'
 }
 
 export function jeuSubColumn(

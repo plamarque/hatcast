@@ -41,7 +41,7 @@ class EventEntity(
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now(),
-    /** Compartiment d'équité ; NULL = principal. */
-    @Column(name = "equity_tag", length = 64)
-    var equityTag: String? = null,
+    /** Catégorie spectacle ; NULL = principal. */
+    @Column(name = "category", length = 64)
+    var category: String? = null,
 )

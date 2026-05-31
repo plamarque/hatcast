@@ -12,7 +12,7 @@ describe('season-statistics-export', () => {
           title: 'Match mars',
           startsAt: '2026-03-10T19:00:00Z',
           templateType: 'match',
-          equityTag: null,
+          category: null,
           monthKey: '2026-03',
         },
       ],
@@ -39,7 +39,7 @@ describe('season-statistics-export', () => {
       { groupsLabel: 'Tous les spectacles' },
     )
 
-    expect(csv).toContain('Groupes: Tous les spectacles')
+    expect(csv).toContain('Catégories: Tous les spectacles')
     expect(csv).toContain('Match mars')
     expect(csv).toContain('Dispo (J, MC)')
     expect(csv).toContain('1/2 (50%)')

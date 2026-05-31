@@ -43,8 +43,8 @@
 }
 
 .context-breadcrumb__segment:first-child {
-  flex: 0 2 auto;
-  max-width: min(32%, 10rem);
+  flex: 0 0 auto;
+  max-width: none;
 }
 
 .context-breadcrumb__segment:not(:first-child):not(:last-child) {
@@ -113,14 +113,10 @@
   }
 }
 
-.context-breadcrumb__troupe-name,
 .context-breadcrumb__link {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.context-breadcrumb__link {
   color: inherit;
   text-decoration: none;
 
@@ -132,6 +128,10 @@
     outline: 2px solid currentColor;
     outline-offset: 2px;
   }
+}
+
+.context-breadcrumb__troupe-name {
+  white-space: nowrap;
 }
 
 .context-breadcrumb__current {
@@ -187,12 +187,6 @@
   }
 }
 
-@media (min-width: 840px) {
-  .context-breadcrumb__segment .context-breadcrumb__demo-chip--mobile {
-    display: none;
-  }
-}
-
 .context-breadcrumb__mobile-row {
   display: none;
   align-items: center;
@@ -203,6 +197,17 @@
 
 .context-breadcrumb__mobile-logo {
   flex-shrink: 0;
+}
+
+@media (min-width: 840px) {
+  /* Desktop : nom troupe complet ; picto générique masqué (logo réel seulement). */
+  .context-breadcrumb__troupe .context-breadcrumb__logo-badge {
+    display: none;
+  }
+
+  .context-breadcrumb__segment .context-breadcrumb__demo-chip--mobile {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {

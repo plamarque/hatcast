@@ -20,7 +20,7 @@ export interface StatisticsEvent {
   title: string
   startsAt: string
   templateType: string
-  equityTag: string | null
+  category: string | null
   monthKey: string
 }
 
@@ -44,7 +44,7 @@ export interface SeasonStatisticsResponse {
   rows: ParticipantStatisticsRow[]
 }
 
-export type EquityCompartmentsQuery = 'all' | string[]
+export type CategoryFilterQuery = 'all' | string[]
 
 @Injectable({ providedIn: 'root' })
 export class SeasonStatisticsApiService {
@@ -53,7 +53,7 @@ export class SeasonStatisticsApiService {
     options: {
       eventId?: string | null
       participantId?: string | null
-      equityCompartments?: EquityCompartmentsQuery
+      categories?: CategoryFilterQuery
     } = {},
   ): Promise<{ ok: boolean; status: number; data?: SeasonStatisticsResponse }> {
     const params = new URLSearchParams()
@@ -63,14 +63,14 @@ export class SeasonStatisticsApiService {
     if (options.participantId) {
       params.set('participantId', options.participantId)
     }
-    if (options.equityCompartments !== undefined) {
-      if (options.equityCompartments === 'all') {
-        params.append('equityCompartments', 'all')
-      } else if (options.equityCompartments.length === 0) {
-        params.append('equityCompartments', '')
+    if (options.categories !== undefined) {
+      if (options.categories === 'all') {
+        params.append('categories', 'all')
+      } else if (options.categories.length === 0) {
+        params.append('categories', '')
       } else {
-        for (const slug of options.equityCompartments) {
-          params.append('equityCompartments', slug)
+        for (const slug of options.categories) {
+          params.append('categories', slug)
         }
       }
     }

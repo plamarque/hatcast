@@ -27,15 +27,15 @@ import {
   type ScopeAdminMenuItem,
 } from '../../shared/scope-admin-menu/scope-admin-menu'
 import {
-  type TroupeEquityTag,
+  type TroupeCategory,
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import {
-  EventEquityTagDialog,
-  type EventEquityTagDialogData,
-  type EventEquityTagDialogResult,
-} from './event-equity-tag-dialog'
+  EventCategoryDialog,
+  type EventCategoryDialogData,
+  type EventCategoryDialogResult,
+} from './event-category-dialog'
 import {
   OrganizerApiService,
   type OrganizerResponse,
@@ -83,7 +83,7 @@ export class EventInfosTab {
 
   readonly eventUpdated = output<EventResponse>()
 
-  protected readonly glossary = signal<TroupeEquityTag[]>([])
+  protected readonly glossary = signal<TroupeCategory[]>([])
   protected readonly organizers = signal<OrganizerResponse[]>([])
   protected readonly saving = signal(false)
   protected readonly composition = signal<CompositionResponse | null>(null)
@@ -100,8 +100,8 @@ export class EventInfosTab {
     })
   })
 
-  protected readonly showEquitySection = computed(
-    () => this.canManageEvents() || this.event().equityTag != null,
+  protected readonly showCategorySection = computed(
+    () => this.canManageEvents() || this.event().category != null,
   )
 
   protected readonly showOrganizersSection = computed(
@@ -116,8 +116,8 @@ export class EventInfosTab {
   protected readonly roleLabels = ROLE_LABELS
   protected readonly roleEmojis = ROLE_EMOJIS
 
-  protected readonly equityTagLabel = computed(() => {
-    const slug = this.event().equityTag
+  protected readonly categoryLabel = computed(() => {
+    const slug = this.event().category
     if (!slug) {
       return null
     }
@@ -170,9 +170,9 @@ export class EventInfosTab {
     }).format(new Date(iso))
   }
 
-  protected onChipClick(): void {
+  protected onCategoryChipClick(): void {
     if (this.canManageEvents()) {
-      this.openTagDialog()
+      this.openCategoryDialog()
     }
   }
 
@@ -248,13 +248,13 @@ export class EventInfosTab {
     })
   }
 
-  protected openTagDialog(): void {
-    const label = this.equityTagLabel()
+  protected openCategoryDialog(): void {
+    const label = this.categoryLabel()
     const ref = this.dialog.open<
-      EventEquityTagDialog,
-      EventEquityTagDialogData,
-      EventEquityTagDialogResult
-    >(EventEquityTagDialog, {
+      EventCategoryDialog,
+      EventCategoryDialogData,
+      EventCategoryDialogResult
+    >(EventCategoryDialog, {
       data: {
         troupeId: this.troupeId(),
         initialQuery: label ?? '',
@@ -269,7 +269,7 @@ export class EventInfosTab {
     })
   }
 
-  protected removeTag(): void {
+  protected removeCategory(): void {
     void this.persistTag(null)
   }
 
@@ -302,7 +302,7 @@ export class EventInfosTab {
   private async persistTag(value: string | null): Promise<void> {
     const seasonId = this.seasonId()
     const ev = this.event()
-    const body = { equityTag: value }
+    const body = { category: value }
 
     this.saving.set(true)
     try {
@@ -313,7 +313,7 @@ export class EventInfosTab {
         return
       }
       this.eventUpdated.emit(result.data)
-      const cleared = result.data.equityTag == null
+      const cleared = result.data.category == null
       this.snack.open(
         cleared ? 'Tag retiré.' : 'Tag enregistré.',
         'OK',
@@ -335,7 +335,7 @@ export class EventInfosTab {
   }
 
   private async loadGlossary(troupeId: string): Promise<void> {
-    const r = await this.troupeApi.listEquityTags(troupeId)
+    const r = await this.troupeApi.listCategories(troupeId)
     if (troupeId !== this.troupeId()) {
       return
     }
