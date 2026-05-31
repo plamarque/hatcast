@@ -13,6 +13,7 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
@@ -81,6 +82,18 @@ class SeasonParticipantService(
         if (displayName.isEmpty()) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Nom d'affichage requis.")
         }
+        val normalizedEmail = participantLink.normalizeEmail(body.email)
+        val linkedUser = participantLink.resolveUserId(normalizedEmail)?.let { userRepository.findById(it).orElse(null) }
+
+        // Re-inclusion via « Ajouter » : si la personne avait été retirée du roster
+        // (reconnue par utilisateur lié, sinon email, sinon nom), on réactive la MÊME
+        // ligne plutôt que d'en créer une seconde — l'historique (dispos/compositions)
+        // rattaché à `season_participant_id` réapparaît alors tel quel.
+        val reactivatable = findReactivatableRemoved(seasonId, linkedUser, normalizedEmail, displayName)
+        if (reactivatable != null) {
+            return reactivateRemoved(season, reactivatable, displayName, normalizedEmail, linkedUser)
+        }
+
         if (
             seasonParticipantRepository.existsBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndDisplayNameIgnoreCase(
                 seasonId,
@@ -90,8 +103,6 @@ class SeasonParticipantService(
         ) {
             throw ResponseStatusException(HttpStatus.CONFLICT, "Un participant avec ce nom existe déjà dans la saison.")
         }
-        val normalizedEmail = participantLink.normalizeEmail(body.email)
-        val linkedUser = participantLink.resolveUserId(normalizedEmail)?.let { userRepository.findById(it).orElse(null) }
         val now = Instant.now()
         val saved =
             seasonParticipantRepository.save(
@@ -106,6 +117,85 @@ class SeasonParticipantService(
                 ),
             )
         refreshParticipantCount(season)
+        return SeasonParticipantAdminDto.from(saved, includeEmail = true)
+    }
+
+    private fun findReactivatableRemoved(
+        seasonId: UUID,
+        linkedUser: UserEntity?,
+        normalizedEmail: String?,
+        displayName: String,
+    ): SeasonParticipantEntity? {
+        if (linkedUser != null) {
+            val byUser =
+                seasonParticipantRepository
+                    .findBySeason_IdAndStatusAndUser_Id(seasonId, ParticipantStatus.REMOVED, linkedUser.id)
+            // Prefer the membership-linked row so it re-syncs as a synced member.
+            (byUser.firstOrNull { it.troupeMembership != null } ?: byUser.firstOrNull())?.let { return it }
+        }
+        if (normalizedEmail != null) {
+            return seasonParticipantRepository
+                .findBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndNormalizedEmailIgnoreCase(
+                    seasonId,
+                    ParticipantStatus.REMOVED,
+                    normalizedEmail,
+                ).firstOrNull()
+        }
+        return seasonParticipantRepository
+            .findBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndNormalizedEmailIsNullAndDisplayNameIgnoreCase(
+                seasonId,
+                ParticipantStatus.REMOVED,
+                displayName,
+            ).firstOrNull()
+    }
+
+    private fun reactivateRemoved(
+        season: SeasonEntity,
+        existing: SeasonParticipantEntity,
+        requestedDisplayName: String,
+        requestedEmail: String?,
+        linkedUser: UserEntity?,
+    ): SeasonParticipantAdminDto {
+        val membership = existing.troupeMembership
+        if (membership != null) {
+            if (membership.status != TroupeMembershipStatus.ACTIVE) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Réactivez d'abord l'adhésion à la troupe.",
+                )
+            }
+            // Synced members keep the troupe membership as the source of truth for name/email.
+            existing.displayName = membership.displayName
+            existing.user = membership.user
+            existing.normalizedEmail = participantLink.normalizeEmail(membership.user.email)
+        } else {
+            if (
+                seasonParticipantRepository
+                    .existsBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndDisplayNameIgnoreCaseAndIdNot(
+                        season.id,
+                        ParticipantStatus.ACTIVE,
+                        requestedDisplayName,
+                        existing.id,
+                    )
+            ) {
+                throw ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Un participant avec ce nom existe déjà dans la saison.",
+                )
+            }
+            // Explicit row comes back under its new name/email link.
+            existing.displayName = requestedDisplayName
+            existing.normalizedEmail = requestedEmail
+            existing.user = linkedUser
+        }
+        val now = Instant.now()
+        existing.status = ParticipantStatus.ACTIVE
+        existing.removedAt = null
+        existing.removalSource = null
+        existing.updatedAt = now
+        val saved = seasonParticipantRepository.save(existing)
+        refreshParticipantCount(season)
+        MembershipParticipantSyncCache.invalidate(season.id)
         return SeasonParticipantAdminDto.from(saved, includeEmail = true)
     }
 

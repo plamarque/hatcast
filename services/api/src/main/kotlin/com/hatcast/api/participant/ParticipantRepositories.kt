@@ -93,6 +93,24 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
         seasonId: UUID,
     ): SeasonParticipantEntity?
 
+    fun findBySeason_IdAndStatusAndUser_Id(
+        seasonId: UUID,
+        status: ParticipantStatus,
+        userId: UUID,
+    ): List<SeasonParticipantEntity>
+
+    fun findBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndNormalizedEmailIgnoreCase(
+        seasonId: UUID,
+        status: ParticipantStatus,
+        normalizedEmail: String,
+    ): List<SeasonParticipantEntity>
+
+    fun findBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndNormalizedEmailIsNullAndDisplayNameIgnoreCase(
+        seasonId: UUID,
+        status: ParticipantStatus,
+        displayName: String,
+    ): List<SeasonParticipantEntity>
+
     fun existsBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndDisplayNameIgnoreCase(
         seasonId: UUID,
         status: ParticipantStatus,

@@ -31,7 +31,13 @@ paths:
           description: Accès refusé
     post:
       tags: [Participants]
-      summary: Ajouter un participant de saison (nom ± email)
+      summary: Ajouter (ou réintégrer) un participant de saison (nom ± email)
+      description: >-
+        Sert aussi de ré-inclusion : si la personne avait été retirée du roster
+        (reconnue par utilisateur lié, sinon email, sinon nom d'affichage), la
+        même ligne (`season_participant_id`) est réactivée au lieu de créer un
+        doublon — l'historique (dispos/compositions) réapparaît. Pour un membre
+        synchronisé, le nom/email sont resynchronisés depuis l'adhésion.
       security:
         - cookieAuth: []
       parameters:
@@ -44,11 +50,13 @@ paths:
               $ref: '#/components/schemas/ParticipantCreateRequest'
       responses:
         '200':
-          description: Créé
+          description: Créé ou réintégré (même ligne réactivée)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SeasonParticipantAdmin'
+        '400':
+          description: Réintégration d'un membre dont l'adhésion troupe est INACTIVE (réactiver l'adhésion d'abord)
         '403':
           description: Accès refusé
         '409':
