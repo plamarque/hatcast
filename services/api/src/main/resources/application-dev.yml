@@ -2,6 +2,13 @@
 # Seeds Flyway : classpath:db/seed (absent en cloud/staging — voir ADR-0014).
 # Regénération de migrations seed (V17/V19/V22…) : repair aligne les checksums Flyway.
 # Super-admin : HATCAST_SUPER_ADMIN_EMAILS dans .env local (voir .env.example) — pas de défaut commité.
+#
+# Mail optionnel en local (Mailpit via start-dev.sh) : pas de health check SMTP sur actuator/health.
+management:
+  health:
+    mail:
+      enabled: false
+
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/seed

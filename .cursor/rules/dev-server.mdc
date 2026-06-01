@@ -16,6 +16,7 @@ Pour démarrer **back et front** en local :
 - API : `http://127.0.0.1:8080` (attente `actuator/health` avant le front).
 - Front : **`https://localhost:4200`** (`ng serve` avec TLS dans `angular.json` ; `--host` pour le LAN).
 - Mobile (tailnet) : `start-dev.sh` exécute **`tailscale up`** si déconnecté, puis **Tailscale Serve** si besoin → `https://<machine>.<tailnet>.ts.net` (origine OAuth Google, pas d’IP LAN). Désactiver : `--no-tailscale` ou `HATCAST_SKIP_TAILSCALE_SERVE=1`.
+- Email (story 8.3) : si `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` dans `.env`, `start-dev.sh` démarre **Mailpit** (Docker), force SMTP `127.0.0.1:1025`, UI **http://127.0.0.1:8025**, arrête Mailpit à la fin. Voir [DEVELOPMENT.md](../DEVELOPMENT.md).
 
 Alternative manuelle : `npm run dev:api` et `npm run dev:web:v2` dans deux terminaux.
 

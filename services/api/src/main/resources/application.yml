@@ -60,6 +60,11 @@ hatcast:
   web-push:
     vapid-public-key: ${HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY:}
     vapid-private-key: ${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY:}
+    subject: ${HATCAST_WEB_PUSH_VAPID_SUBJECT:mailto:contact@hatcast.app}
+  notification:
+    email:
+      enabled: ${HATCAST_NOTIFICATION_EMAIL_ENABLED:false}
+      from: ${HATCAST_NOTIFICATION_EMAIL_FROM:HatCast <noreply@hatcast.app>}
 
 management:
   endpoints:

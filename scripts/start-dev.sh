@@ -10,6 +10,8 @@
 # Variables : fichier `.env` à la racine du dépôt est chargé automatiquement (toutes les clés `KEY=value`
 # reconnues, commentaires `#` ignorés). Utile pour `HATCAST_*`, `VITE_*` (mode --legacy), etc.
 #   HATCAST_SKIP_TAILSCALE_SERVE=1 — équivalent à --no-tailscale
+#   HATCAST_NOTIFICATION_EMAIL_ENABLED=true — démarre Mailpit (Docker), force SMTP local pour l’API,
+#   arrête Mailpit à la fin du script ; voir `.env.example`.
 #
 # URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host`).
 #   Accès mobile (tailnet) : `tailscale up` si déconnecté, puis Serve → https://<machine>.<tailnet>.ts.net
@@ -114,6 +116,101 @@ ensure_tailscale_serve() {
   [[ -n "$TAILSCALE_SERVE_URL" ]] && echo "    • Mobile (tailnet) : $TAILSCALE_SERVE_URL"
 }
 
+MAILPIT_CONTAINER_NAME="${HATCAST_MAILPIT_CONTAINER_NAME:-hatcast-mailpit}"
+MAILPIT_SMTP_PORT="${HATCAST_MAILPIT_SMTP_PORT:-1025}"
+MAILPIT_UI_PORT="${HATCAST_MAILPIT_UI_PORT:-8025}"
+MAILPIT_UI_URL="http://127.0.0.1:${MAILPIT_UI_PORT}"
+
+mailpit_enabled() {
+  [[ "${HATCAST_NOTIFICATION_EMAIL_ENABLED:-false}" == "true" ]]
+}
+
+# start-dev pilote Mailpit : SMTP local pour bootRun (ignore les SPRING_MAIL_* Gmail du .env).
+configure_local_mailpit_smtp() {
+  mailpit_enabled || return 0
+  export SPRING_MAIL_HOST=127.0.0.1
+  export SPRING_MAIL_PORT="${MAILPIT_SMTP_PORT}"
+  unset SPRING_MAIL_USERNAME SPRING_MAIL_PASSWORD \
+    SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH \
+    SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE 2>/dev/null || true
+}
+
+ensure_mailpit() {
+  mailpit_enabled || return 0
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "  ⚠ Docker introuvable — Mailpit non démarré (UI ${MAILPIT_UI_URL})."
+    return 0
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    echo "  ⚠ Docker daemon indisponible — Mailpit non démarré (UI ${MAILPIT_UI_URL})."
+    return 0
+  fi
+
+  if docker ps --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
+    echo "✓ Mailpit déjà actif — UI ${MAILPIT_UI_URL}"
+    wait_for_mailpit_smtp
+    return 0
+  fi
+
+  if docker ps -a --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
+    echo "→ Redémarrage Mailpit (${MAILPIT_CONTAINER_NAME})…"
+    if docker start "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1; then
+      echo "✓ Mailpit redémarré — UI ${MAILPIT_UI_URL}"
+      wait_for_mailpit_smtp
+      return 0
+    fi
+    echo "  ⚠ Échec docker start ${MAILPIT_CONTAINER_NAME} — recréation…"
+    docker rm -f "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1 || true
+  fi
+
+  echo "→ Démarrage Mailpit (SMTP :${MAILPIT_SMTP_PORT}, UI :${MAILPIT_UI_PORT})…"
+  if docker run -d \
+    --name "$MAILPIT_CONTAINER_NAME" \
+    -p "${MAILPIT_SMTP_PORT}:1025" \
+    -p "${MAILPIT_UI_PORT}:8025" \
+    axllent/mailpit >/dev/null 2>&1; then
+    echo "✓ Mailpit démarré — UI ${MAILPIT_UI_URL}"
+  else
+    echo "  ⚠ Échec docker run Mailpit — les emails peuvent échouer (voir logs API)."
+    return 0
+  fi
+
+  wait_for_mailpit_smtp
+}
+
+mailpit_smtp_port_open() {
+  if command -v nc >/dev/null 2>&1; then
+    nc -z 127.0.0.1 "$MAILPIT_SMTP_PORT" >/dev/null 2>&1
+    return $?
+  fi
+  (echo >/dev/tcp/127.0.0.1/"$MAILPIT_SMTP_PORT") >/dev/null 2>&1
+}
+
+stop_mailpit() {
+  mailpit_enabled || return 0
+  command -v docker >/dev/null 2>&1 || return 0
+  if docker ps --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
+    echo "→ Arrêt Mailpit (${MAILPIT_CONTAINER_NAME})…"
+    docker stop "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1 || true
+  fi
+}
+
+wait_for_mailpit_smtp() {
+  mailpit_enabled || return 0
+
+  local i
+  for ((i = 0; i < 40; i++)); do
+    if mailpit_smtp_port_open; then
+      [[ "$i" -gt 0 ]] && echo "✓ Mailpit SMTP prêt (:${MAILPIT_SMTP_PORT})"
+      return 0
+    fi
+    sleep 0.25
+  done
+  echo "  ⚠ Mailpit SMTP :${MAILPIT_SMTP_PORT} injoignable après 10 s — vérifiez Docker (docker ps)."
+}
+
 # Arrête tout ce qui écoute sur 8080 et ressemble à la JVM Spring / Gradle (repli si le groupe de processus n’a pas suffi).
 free_hatcast_api_port() {
   local p args
@@ -161,6 +258,7 @@ cleanup() {
   echo ""
   echo "Arrêt de la stack…"
   stop_api_tree
+  stop_mailpit
   exit "$ec"
 }
 trap cleanup EXIT INT TERM
@@ -169,6 +267,10 @@ if [[ ! -x "$ROOT/services/api/gradlew" ]]; then
   echo "Erreur : services/api/gradlew introuvable ou non exécutable."
   exit 1
 fi
+
+configure_local_mailpit_smtp
+ensure_mailpit
+echo ""
 
 echo "→ Démarrage de l’API Spring (port 8080)…"
 (
@@ -208,8 +310,11 @@ echo "    • Front : https://localhost:4200  (TLS ; ng serve --host 0.0.0.0)"
 if [[ -n "$TAILSCALE_SERVE_URL" ]]; then
   echo "    • Mobile : $TAILSCALE_SERVE_URL  (Tailscale Serve ; OAuth : même origine dans Google Cloud)"
 fi
+if mailpit_enabled; then
+  echo "    • Mailpit : ${MAILPIT_UI_URL}  (SMTP 127.0.0.1:${MAILPIT_SMTP_PORT} ; conteneur ${MAILPIT_CONTAINER_NAME})"
+fi
 echo ""
-echo "  Ctrl+C arrête le front puis l’API (Tailscale Serve reste actif en arrière-plan)."
+echo "  Ctrl+C arrête le front, l’API et Mailpit (Tailscale Serve reste actif en arrière-plan)."
 echo ""
 
 cd "$ROOT"

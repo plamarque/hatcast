@@ -1,7 +1,6 @@
 package com.hatcast.api.composition
 
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 import java.util.UUID
 
 interface CompositionNotificationPort {
@@ -33,7 +32,6 @@ interface CompositionNotificationPort {
     )
 }
 
-@Component
 class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
     private val log = LoggerFactory.getLogger(javaClass)
 

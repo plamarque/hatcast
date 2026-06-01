@@ -50,6 +50,8 @@ Fichier **court** pour les skills BMad (`bmad-dev-story`, `bmad-create-story`, `
 ```bash
 # Dev complet V2 (API + front HTTPS)
 ./scripts/start-dev.sh
+# Email story 8.3 : HATCAST_NOTIFICATION_EMAIL_ENABLED=true dans .env
+# → Mailpit Docker (UI http://127.0.0.1:8025), arrêt auto à la fin du script
 
 # Tests front
 npm run test -w @hatcast/web -- --watch=false

@@ -135,6 +135,43 @@ Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (
 | `HATCAST_MIGRATION_OPERATOR_EMAIL` | **Staging uniquement** — email d’un `UserEntity` existant (super-admin plateforme) utilisé comme opérateur CLI. Pair avec `HATCAST_MIGRATION_API_KEY`. |
 | `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` | Clé VAPID **publique** Web Push (opt-in navigateur, story 8.1). Même valeur que V1 (`legacy/src/services/configService.js`). Exposée au SPA via `GET /v1/config/public`. **Recommandé** dans les trois environnements GitHub (`development`, `staging`, `production`). |
 | `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` | Clé VAPID **privée** — **story 8.3** (envoi `web-push`). Non présente dans le dépôt V1 (FCM Admin SDK). Récupérer dans **Firebase Console → Project settings → Cloud Messaging → Web configuration** (paire associée à la clé publique). Ne pas committer. |
+| `HATCAST_WEB_PUSH_VAPID_SUBJECT` | (Optionnel) Claim VAPID `sub` — défaut `mailto:contact@hatcast.app` dans `application.yml`. |
+| `HATCAST_NOTIFICATION_EMAIL_ENABLED` | `true` ou `false` — active l’envoi email story **8.3** (défaut API : `false`). |
+| `HATCAST_NOTIFICATION_EMAIL_FROM` | En-tête From, ex. `HatCast <impropick@gmail.com>` (parité V1 prod). Pas de guillemets dans l’UI GitHub Secrets. |
+| `SPRING_MAIL_HOST` | Hôte SMTP, ex. `smtp.gmail.com`. Requis si `HATCAST_NOTIFICATION_EMAIL_ENABLED=true`. |
+| `SPRING_MAIL_PORT` | Port SMTP, ex. `587`. |
+| `SPRING_MAIL_USERNAME` | Utilisateur SMTP, ex. `impropick@gmail.com`. |
+| `SPRING_MAIL_PASSWORD` | Mot de passe d’application Google (16 caractères ; espaces affichés par Google acceptés tels quels dans le secret). |
+| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` pour Gmail. |
+| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` pour Gmail sur port 587. |
+
+Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) injecte ces secrets (s’ils existent) dans `--set-env-vars` à chaque déploiement Cloud Run. **Push seul :** VAPID publique + privée suffisent. **Email :** définir `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` **et** la paire `SPRING_MAIL_*` complète.
+
+**Parité V1 prod (Gmail)** — exemple de jeu de secrets par environnement :
+
+| Secret | Valeur type |
+|--------|-------------|
+| `HATCAST_NOTIFICATION_EMAIL_ENABLED` | `true` |
+| `HATCAST_NOTIFICATION_EMAIL_FROM` | `HatCast <impropick@gmail.com>` |
+| `SPRING_MAIL_HOST` | `smtp.gmail.com` |
+| `SPRING_MAIL_PORT` | `587` |
+| `SPRING_MAIL_USERNAME` | `impropick@gmail.com` |
+| `SPRING_MAIL_PASSWORD` | App Password Google (collé tel quel, espaces OK) |
+| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` |
+| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` |
+
+**Local (`.env`)** : guillemets doubles si la valeur contient des espaces (`SPRING_MAIL_PASSWORD="…"`, `HATCAST_NOTIFICATION_EMAIL_FROM="HatCast <…>"`). **GitHub Secrets** : coller la valeur brute, sans guillemets.
+
+**Local dev — Mailpit (poste, `./scripts/start-dev.sh` uniquement)** : ne pas confondre avec staging/prod.
+
+| Cible | SMTP | Mailpit |
+|-------|------|---------|
+| `./scripts/start-dev.sh` + `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` | Script force `127.0.0.1:1025` | Docker auto (`hatcast-mailpit`), UI http://127.0.0.1:8025, arrêt à la fin du script |
+| `./scripts/start-dev.sh` + `HATCAST_NOTIFICATION_EMAIL_ENABLED=false` | — | Non démarré |
+| `npm run dev:api` / `bootRun` seul | Variables `.env` telles quelles | Non géré par le script |
+| Cloud Run (dev/staging/prod) | Secrets `SPRING_MAIL_*` (Gmail) | N/A |
+
+Dans `.env` local, **`HATCAST_NOTIFICATION_EMAIL_ENABLED=true`** suffit pour la recette email via `start-dev.sh` — pas besoin de `SPRING_MAIL_*` local (le script écrase vers Mailpit). Voir [DEVELOPMENT.md](../../../DEVELOPMENT.md) et [`.env.example`](../../../.env.example).
 
 **Ne pas définir** `HATCAST_SEED_TROUPE_ID` (supprimé en story 18.5). L’onboarding « Rejoindre la troupe de démonstration » cible la troupe **Démo** (`a0000001-0000-4000-8000-000000000099`, Flyway) ; **Les Improbots** (`…000001`) est un seed dev uniquement.
 

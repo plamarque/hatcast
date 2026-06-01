@@ -1,7 +1,6 @@
 package com.hatcast.api.event
 
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 import java.util.UUID
 
 interface EventNotificationPort {
@@ -13,7 +12,6 @@ interface EventNotificationPort {
     )
 }
 
-@Component
 class NoOpEventNotificationAdapter : EventNotificationPort {
     private val log = LoggerFactory.getLogger(javaClass)
 

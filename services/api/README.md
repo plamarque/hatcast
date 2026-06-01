@@ -11,6 +11,28 @@ Backend **Kotlin / Spring Boot** (cible Cloud Run, **PostgreSQL sur Neon**, Open
 
 En local, chargez ces variables depuis la racine du dépôt (fichier **`.env`**, voir [`.env.example`](../../.env.example)) ; [`scripts/start-dev.sh`](../../scripts/start-dev.sh) les exporte avant `bootRun`.
 
+### Notifications email (story 8.3, recette locale)
+
+| Variable | Rôle |
+|----------|------|
+| `HATCAST_NOTIFICATION_EMAIL_ENABLED` | `true` pour tenter l’envoi email (défaut API : `false`) |
+| `HATCAST_NOTIFICATION_EMAIL_FROM` | En-tête From (optionnel) |
+
+Avec **`./scripts/start-dev.sh`** et `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` :
+
+1. Démarre **Mailpit** (Docker, conteneur `hatcast-mailpit`, image `axllent/mailpit`).
+2. Force **`SPRING_MAIL_HOST=127.0.0.1`** et **`SPRING_MAIL_PORT=1025`** pour `bootRun` (ignore les `SPRING_MAIL_*` Gmail éventuels du `.env`).
+3. Attend que le port SMTP réponde avant l’API.
+4. **Arrête Mailpit** à la fin du script (Ctrl+C).
+
+UI : **http://127.0.0.1:8025**. Preuve serveur : table `notification_delivery_log` (`channel=EMAIL`, `status=SENT`).
+
+Profil **`dev`** : `management.health.mail.enabled=false` ([`application-dev.yml`](src/main/resources/application-dev.yml)) — pas de WARN SMTP sur `actuator/health` si Mailpit est absent.
+
+**`./gradlew bootRun` seul** : pas de Mailpit automatique ; configurer SMTP manuellement ou utiliser `start-dev.sh`.
+
+Cloud Run / staging : `SPRING_MAIL_*` (Gmail) via secrets GitHub — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
+
 ## Lancer l’API en local
 
 ```bash
