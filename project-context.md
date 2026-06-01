@@ -71,5 +71,7 @@ npm run build -w @hatcast/web
 
 ## BMad (chemins)
 
-- Config : `_bmad/bmm/config.yaml` — `implementation_artifacts` → `_bmad-output/implementation-artifacts/`
+- Config projet : `_bmad/config.toml` (régénéré par `npx bmad install`) ; overrides d’équipe : `_bmad/custom/config.toml`
+- Préférences perso : `_bmad/config.user.toml` (gitignoré) ou `_bmad/custom/config.user.toml`
+- Artefacts : `implementation_artifacts` → `_bmad-output/implementation-artifacts/` ; `planning_artifacts` → `_bmad-output/planning-artifacts/`
 - Langue docs BMad générés : souvent **anglais** dans `document_output_language` ; stories HatCast en **français** pour l’UI produit.
