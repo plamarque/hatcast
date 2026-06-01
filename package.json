@@ -38,6 +38,7 @@
     "generate:improbots-seed": "node scripts/v2/generate-improbots-seed-sql.js",
     "generate:improbots-composition-seed": "node scripts/v2/generate-improbots-seed-sql.js --composition-only",
     "generate:improbots-mvp-pilot-seed": "node scripts/v2/generate-improbots-seed-sql.js --mvp-pilot-only",
+    "generate:improbots-events-seed": "node scripts/v2/generate-improbots-seed-sql.js --events-seed-only",
     "generate:malice-seed": "npm run generate:improbots-seed",
     "generate:malice-composition-seed": "npm run generate:improbots-composition-seed",
     "generate:malice-mvp-pilot-seed": "npm run generate:improbots-mvp-pilot-seed"
