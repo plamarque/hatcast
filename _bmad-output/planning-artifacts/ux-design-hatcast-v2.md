@@ -254,6 +254,14 @@ Colour-coded **vertical bands** (V1: **yellow** — JEU, **purple** — DECORUM,
 
 ---
 
+## Pattern: Event draft & publish (spectacle brouillon) {#pattern-event-draft-publish}
+
+**Story 3.21** — spec détaillée : [ux-event-draft-publish-3-21.md](./ux-event-draft-publish-3-21.md).
+
+Résumé : spectacles créés en **brouillon** ; **publication** ouvre la collecte des dispos ; **remise en brouillon** temporaire pour orgas ; bandeau entre header et onglets sur la fiche ; cartes agenda violettes (`agenda-card--draft`) **uniquement** pour les vrais brouillons (orgas). Ne pas confondre avec le brouillon **composition** (onglet Équipe).
+
+---
+
 ## Pattern: Availability modal (overlay) {#pattern-availability-modal-overlay}
 
 ### Purpose

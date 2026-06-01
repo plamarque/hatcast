@@ -1160,6 +1160,27 @@ afin d’être informé sans spam.
 
 ---
 
+#### Story 8.6 : Notifications proxy — confirmation au membre concerné *(P1 — SCP 2026-06-01)*
+
+En tant que **membre dont la disponibilité ou la participation a été saisie par un organisateur en mon nom** (proxy **5.5** / **6.8**),  
+je veux **recevoir une notification indiquant qu’un administrateur a enregistré ma dispo ou ma décision de confirmation**,  
+afin de **valider que l’app reflète mon intention réelle** (ex. réponse WhatsApp) et **détecter une erreur de saisie** sans devoir ouvrir l’app régulièrement.
+
+**Acceptance Criteria**
+
+- **Given** une mise à jour de disponibilité **proxy** (`actor ≠ subject`, Story **5.5**), **when** la transaction réussit, **then** le **sujet** (participant lié à un `user_id`) reçoit l’intent **`PROXY_AVAILABILITY_RECORDED`** sur push (FR29) et/ou email — **pas** le roster entier, **pas** l’acteur proxy.
+- **Given** une confirmation ou déclinaison **proxy** (Story **6.8**), **when** la transaction réussit, **then** le **sujet** reçoit **`PROXY_CONFIRMATION_RECORDED`** avec la décision enregistrée (confirmé / décliné) — **distinct** de **`CONFIRMATION_REQUEST`** (8.3) qui **demande** une action, pas un **accusé** d’enregistrement proxy.
+- **Given** une action **non proxy** (`actor = subject` ou membre agit pour lui-même), **when** la mutation réussit, **then** **aucune** notif proxy n’est émise.
+- **Given** un participant **sans compte lié** (name-only), **when** proxy réussit, **then** pas de notif (skip silencieux) ; l’audit **9.0** reste la trace pour l’orga.
+- **Given** le payload, **when** la notif est construite, **then** elle inclut **nom de l’acteur** (orga), **titre + date événement**, **résumé du changement** (ex. statut dispo avant→après, rôle concerné, confirmé/décliné) et **deep link** vers l’onglet dispos ou équipe de l’événement.
+- **Given** éligibilité (**8.1**, email, **8.2** si catégories), **when** canal indisponible, **then** pas d’erreur domaine ; échec async loggé (NFR-R2).
+- **Given** journal audit (**9.0** / UI **9.2**), **when** 8.6 est livré, **then** la notif **complète** la piste d’audit (signal proactif) — **ne remplace pas** la consultation « changements me concernant ».
+- **Couverture :** FR31 P1 ; prolonge FR17, FR26 ; croise FR35 (audit déjà en place).
+
+**Priorité :** **P1** post-MEP initial (même vague que **8.5** — workflow WhatsApp → proxy orga très fréquent). **Depends:** **8.3** (dispatcher), **5.5**, **6.8**, **9.0**. **Out of scope:** notif à l’orga (→ **8.4**), rappels J-7/J-1 (→ **8.5**).
+
+---
+
 ### Epic 9 — Audit et historique des changements significatifs
 
 Journal unifié FR35 : **9.0** enregistre à chaque mutation ; **9.1** / **9.2** exposent la consultation UI (post-MEP initial).

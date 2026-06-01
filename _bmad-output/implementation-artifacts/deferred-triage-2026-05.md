@@ -164,17 +164,19 @@ Chaque puce de `deferred-work.md` reçoit un **ID** `DW-###`. Croisement **story
 
 | Thème | Source | Priorité suggérée |
 |-------|--------|-------------------|
-| Historique ligue : relecture **compositions** passées, mode consultation | DW-020–021, ADR 0012/0013 | Vague iso-V1 / epic shell |
-| **Mon compte** hub membre (FR compte, déconnexion shell) | Story **17.24** `review`, ux-design-mon-compte | Iso-V1 (avec 17.25 done) |
-| Compte : MAJ identifiants, suppression | **1.6**, **1.7** backlog | Post-iso ou staging si légal |
-| Notifications, audit, invités | Epics **8**, **9**, **7** | Post-staging |
-| PWA mise à jour client | **10.2** backlog | Post-staging |
-| Multi-saisons actives, roster ligue | Epic **13** (13.6 **annulé** ADR 0013 → tags) | Post-staging / MIG-4 |
-| Annuaire / pages publiques | Epic **4** | Iso-V1 marketing |
-| Export **MIG-2/3/4** (saisons, events, dispos, `deplacement`→tag) | **PLAN.md** | **G** staging — pas dans deferred |
-| Catalogue rôles par troupe | **G-006** growth-backlog | Post-iso |
-| Perf dispos (terrain) | **G-003** | Aligné DW-079 H1 |
-| Changelog / polish navigation | Epic **17** restant backlog PLAN | Selon PLAN § Epic 17 |
+| Historique ligue : relecture **compositions** passées, mode consultation | DW-020–021, ADR 0012/0013 | Post-iso / réserve produit |
+| **Mon compte** hub membre | **17.24** done | Done |
+| Compte : MAJ identifiants connectés | **1.6** backlog | Post-MEP (optionnel avant M4 si besoin) |
+| Compte : suppression | **1.7** backlog | **Hors MEP** (PO 2026-06-02) |
+| Reset mot de passe | **1.3** done | **Recette gate MEP** |
+| **Annuaire public troupes** | **4.1** | **P0 MEP** — cartes publiques ; clic → login → hub si membre/admin sinon refus (PO 2026-06-02) |
+| **Audit capture backend** | **9.0** | **P0 MEP** — journal append-only ; UI **9.1** admin + **9.2** membre post-MEP |
+| **Notifications push + email** | **8.1**, **3.21**, **8.3** (MEP) ; **8.5**, **8.2**, **6.10b** (P1) ; **8.4** (P2) | **P0 MEP** ; SCP [2026-06-01](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md) |
+| PWA mise à jour + version/changelog | **10.2**, **10.3** *(à créer)* | **P0 MEP** |
+| Invités | Epic **7** | Post-MEP |
+| Multi-saisons actives, roster ligue | Epic **13** (13.6 annulé) | Post-iso |
+| Export **MIG-*** | **PLAN.md** | **MIG-4 done** |
+| Pages publiques saison/événement | **4.2** | Post-MEP |
 
 ---
 
