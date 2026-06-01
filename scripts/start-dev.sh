@@ -3,6 +3,8 @@
 #
 # Usage (depuis la racine du dépôt) :
 #   ./scripts/start-dev.sh
+#   ./scripts/start-dev.sh --with-push   # ng serve --configuration=production (service worker → push Web)
+#   ./scripts/start-dev.sh --with-push --no-tailscale
 #   ./scripts/start-dev.sh --no-tailscale   # sans Tailscale Serve (accès mobile MagicDNS)
 #   ./scripts/start-dev.sh --legacy   # ancien comportement : seulement le serveur V1 (Vue / Vite)
 #
@@ -10,8 +12,10 @@
 # Variables : fichier `.env` à la racine du dépôt est chargé automatiquement (toutes les clés `KEY=value`
 # reconnues, commentaires `#` ignorés). Utile pour `HATCAST_*`, `VITE_*` (mode --legacy), etc.
 #   HATCAST_SKIP_TAILSCALE_SERVE=1 — équivalent à --no-tailscale
+#   HATCAST_START_DEV_WITH_PUSH=1 — équivalent à --with-push
 #   HATCAST_NOTIFICATION_EMAIL_ENABLED=true — démarre Mailpit (Docker), force SMTP local pour l’API,
 #   arrête Mailpit à la fin du script ; voir `.env.example`.
+#   --with-push + EMAIL_ENABLED : push (VAPID dans .env) et emails (Mailpit) en parallèle pour story 8.3.
 #
 # URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host`).
 #   Accès mobile (tailnet) : `tailscale up` si déconnecté, puis Serve → https://<machine>.<tailnet>.ts.net
@@ -31,8 +35,12 @@ load_dotenv "$ROOT/.env"
 cd "$ROOT"
 
 SKIP_TAILSCALE_SERVE="${HATCAST_SKIP_TAILSCALE_SERVE:-0}"
+WITH_PUSH="${HATCAST_START_DEV_WITH_PUSH:-0}"
 for arg in "$@"; do
-  [[ "$arg" == "--no-tailscale" ]] && SKIP_TAILSCALE_SERVE=1
+  case "$arg" in
+    --no-tailscale) SKIP_TAILSCALE_SERVE=1 ;;
+    --with-push | --push-test) WITH_PUSH=1 ;;
+  esac
 done
 
 if [[ "${1:-}" == "--legacy" ]]; then
@@ -123,6 +131,22 @@ MAILPIT_UI_URL="http://127.0.0.1:${MAILPIT_UI_PORT}"
 
 mailpit_enabled() {
   [[ "${HATCAST_NOTIFICATION_EMAIL_ENABLED:-false}" == "true" ]]
+}
+
+warn_push_vapid_config() {
+  [[ "$WITH_PUSH" == "1" ]] || return 0
+  local missing=0
+  if [[ -z "${HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY:-}" ]]; then
+    echo "  ⚠ HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY absent — opt-in push (/compte) impossible."
+    missing=1
+  fi
+  if [[ -z "${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY:-}" ]]; then
+    echo "  ⚠ HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY absent — envoi push serveur (story 8.3) ignoré."
+    missing=1
+  fi
+  if [[ "$missing" -eq 0 ]]; then
+    echo "✓ Clés VAPID Web Push présentes (.env)"
+  fi
 }
 
 # start-dev pilote Mailpit : SMTP local pour bootRun (ignore les SPRING_MAIL_* Gmail du .env).
@@ -270,6 +294,10 @@ fi
 
 configure_local_mailpit_smtp
 ensure_mailpit
+if [[ "$WITH_PUSH" == "1" ]]; then
+  echo "→ Mode notifications push (--with-push) : front en build production (service worker actif)."
+  warn_push_vapid_config
+fi
 echo ""
 
 echo "→ Démarrage de l’API Spring (port 8080)…"
@@ -302,11 +330,21 @@ echo "✓ API prête : http://127.0.0.1:8080"
 echo ""
 ensure_tailscale_serve
 echo ""
-echo "→ Démarrage du client Angular (ng serve, port 4200 par défaut)…"
+if [[ "$WITH_PUSH" == "1" ]]; then
+  echo "→ Démarrage du client Angular (ng serve --configuration=production, port 4200)…"
+else
+  echo "→ Démarrage du client Angular (ng serve, port 4200 par défaut)…"
+fi
 echo ""
 echo "  Stack V2 :"
 echo "    • API   : http://127.0.0.1:8080"
-echo "    • Front : https://localhost:4200  (TLS ; ng serve --host 0.0.0.0)"
+if [[ "$WITH_PUSH" == "1" ]]; then
+  echo "    • Front : https://localhost:4200  (TLS ; build production + service worker ; recette push)"
+  echo "      Attendre ~30 s après chargement pour l’enregistrement du SW ; activer push sur /compte."
+else
+  echo "    • Front : https://localhost:4200  (TLS ; ng serve --host 0.0.0.0 ; mode dev, pas de push)"
+  echo "      Push local : relancer avec --with-push (voir DEVELOPMENT.md)."
+fi
 if [[ -n "$TAILSCALE_SERVE_URL" ]]; then
   echo "    • Mobile : $TAILSCALE_SERVE_URL  (Tailscale Serve ; OAuth : même origine dans Google Cloud)"
 fi
@@ -318,5 +356,9 @@ echo "  Ctrl+C arrête le front, l’API et Mailpit (Tailscale Serve reste actif
 echo ""
 
 cd "$ROOT"
-# `--` obligatoire : transmet `--host 0.0.0.0` à `ng serve` (pas à npm intermédiaire).
-npm run dev -w @hatcast/web -- --host 0.0.0.0
+# `--` obligatoire : transmet les flags à `ng serve` (pas à npm intermédiaire).
+if [[ "$WITH_PUSH" == "1" ]]; then
+  npm run dev -w @hatcast/web -- --configuration=production --host 0.0.0.0
+else
+  npm run dev -w @hatcast/web -- --host 0.0.0.0
+fi

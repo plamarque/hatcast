@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-01T16:00:00+02:00"
+last_updated: "2026-06-01T17:33:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -132,10 +132,10 @@ development_status:
 
   epic-8: in-progress
   8-1-opt-in-aux-notifications-navigateur-et-categories: done
-  8-2-preferences-de-notification: ready-for-dev  # P1 — categories for 8.5 FYI opt-out
-  8-3-notifications-mep-dispos-et-confirmation-assignes: review  # P0 MEP — depends 3.21, 8.1
+  8-2-preferences-de-notification: in-progress  # P1 — categories for 8.5 FYI opt-out
+  8-3-notifications-mep-dispos-et-confirmation-assignes: done  # P0 MEP — depends 3.21, 8.1
   8-4-notifications-ops-organisateurs: backlog  # P2 post-MEP — FR31b
-  8-5-extensions-notifications-membre: backlog  # P1 post-MEP initial
+  8-5-extensions-notifications-membre: ready-for-dev  # P1 post-MEP initial
   8-6-notifications-proxy-confirmation-membre-concerne: ready-for-dev  # P1 — proxy 5.5/6.8 → subject ack
   epic-8-retrospective: optional
 

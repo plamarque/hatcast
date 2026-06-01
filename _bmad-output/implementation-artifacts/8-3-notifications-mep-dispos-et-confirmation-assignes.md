@@ -4,7 +4,9 @@ baseline_commit: a74e88ac6992d37c769fd989ce9729bfe8394333
 
 # Story 8.3: MEP notifications — availability opened and confirmation for assignees
 
-**Status:** review
+**Status:** done
+
+**Review handoff (2026-06-01)** : documentation alignée sur les ajustements post-impl. (BouncyCastle, `--with-push`, fix client SW, secrets Cloud Run). Point d’entrée revue adverse : section **Code review checklist (adversarial)** ci-dessous + [`ARCH.md`](../../ARCH.md) § Notifications V2.
 
 **Story ID:** 8.3  
 **Story key:** `8-3-notifications-mep-dispos-et-confirmation-assignes`  
@@ -58,7 +60,9 @@ so that **I do not miss a step** without having to open the app constantly (FR31
 
 ## Acceptance Criteria — Material 3 (UI)
 
-**UI : N/A** — no changes under `apps/web/` ; delivery is server-side + existing SW handler from Story **8.1** (`custom-sw.js`).
+**UI : N/A** pour le **dispatch serveur** (story 8.3) — pas de nouvel écran sous `apps/web/`.
+
+**Correctif client lié (post-impl., story 8.1)** : [`push-notifications.service.ts`](../../apps/web/src/app/core/push/push-notifications.service.ts) — ne plus bloquer sur `navigator.serviceWorker.ready` quand aucun SW (mode dev) ; utiliser `getRegistration()` + timeout à l’activation. Sans `--with-push`, `/compte` affichait un spinner infini.
 
 ---
 
@@ -100,6 +104,16 @@ so that **I do not miss a step** without having to open the app constantly (FR31
   - [x] `CompositionValidateNotificationIntegrationTest` — validate with 2 assignees + 10 roster → exactly 2 `CONFIRMATION_REQUEST` ; `publishDraftCompositionShared` after commit → 0 member sends.
   - [x] Unit test: push failure in sender → dispatcher catches, logs, no exception to caller.
   - [ ] Optional: `@MockBean WebPushNotificationSender` assert payload `url` matches slug route.
+
+### Review Findings
+
+- [x] [Review][Patch] `CONFIRMATION_REQUEST` dispatch still runs inside transactional composition services [`CompositionService.kt:174`, `CompositionSlotAssignmentService.kt:184`, `CompositionDrawService.kt:320`, `CompositionDeclineRestoreService.kt:150`] — violates after-commit-only contract from AC/NFR-R2; publish a domain event and dispatch from an `AFTER_COMMIT` listener instead.
+- [x] [Review][Patch] Tests do not prove after-commit semantics for validate/assignee confirmation [`CompositionValidateNotificationIntegrationTest.kt:242`] — current mock verifies a dispatch call but not that rollback prevents delivery; add an after-commit/rollback regression test.
+- [x] [Review][Patch] Dispatcher catches the whole notification run as one block [`NotificationDispatcher.kt:28`] — an unexpected per-recipient/channel or delivery-log exception can stop remaining recipients; isolate failures per recipient/channel while still shielding the HTTP caller.
+- [x] [Review][Patch] `SKIPPED` delivery results are intentionally not persisted [`NotificationDispatcher.kt:94`, `NotificationDispatcher.kt:112`] — missing VAPID private key / disabled mail are part of NFR-R2 observability and should be logged in `notification_delivery_log` or explicitly re-scoped.
+- [x] [Review][Patch] Partial multi-device push failures are hidden when at least one subscription succeeds [`WebPushNotificationSender.kt:103`] — status becomes `SENT` and the failed endpoint is only in runtime logs; record partial failure or per-subscription results and consider pruning dead subscriptions.
+- [x] [Review][Patch] BouncyCastle provider registration lacks an automated regression test [`NotificationConfiguration.kt:10`] — add a config/unit test asserting provider `BC` is registered or that `PushService` can initialize with configured VAPID keys.
+- [x] [Review][Patch] Push enable failure path is untested and can wait 15 seconds before feedback [`push-notifications.service.ts:143`] — add a test for `enable()` without registered service worker and consider a shorter/user-visible timeout.
 
 ---
 
@@ -152,10 +166,18 @@ No `troupes.email_notifications_enabled` column exists today. **MEP:** send emai
 
 ### Web Push technical notes
 
-- Add server dependency (e.g. `implementation("nl.martijndwars:web-push:5.1.1")`) — use VAPID keys from env (`HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` / `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY`).
+- Dependencies : `nl.martijndwars:web-push:5.1.1` + `org.bouncycastle:bcprov-jdk18on:1.78.1` ([`build.gradle.kts`](../../services/api/build.gradle.kts)).
+- **BouncyCastle (obligatoire)** : la lib `web-push` charge les clés VAPID via le provider JCE **`BC`**. [`NotificationConfiguration`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationConfiguration.kt) enregistre `BouncyCastleProvider` au démarrage. Sans cela : `NoSuchProviderException: no such provider: BC` → aucun envoi push (symptôme : opt-in OK, dispatch atteint l’utilisateur, silence côté téléphone).
+- VAPID depuis env : `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` / `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` ([`application.yml`](../../services/api/src/main/resources/application.yml)).
 - Send to **all** active `user_push_subscriptions` for each `user_id` (multi-device).
 - Payload must match [`custom-sw.js`](../../apps/web/src/custom-sw.js) (`title`, `body`, `url`).
-- If VAPID private key empty in dev: skip push with WARN log (same as missing SMTP).
+- If VAPID private key empty: skip push with WARN + `SKIPPED` (same pattern as missing SMTP).
+- **Push JSON spectacle (MEP)** : titre affiché **`🎯 Nouvel événement !`** (pas le titre du spectacle) ; corps FR avec titre + date — voir [`NotificationPayloadBuilder`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationPayloadBuilder.kt).
+
+### Email (Spring Mail)
+
+- **Pas** de bean `JavaMailSenderImpl()` vide dans `NotificationConfiguration` — laisser **Spring Boot Mail auto-config** créer le client quand `SPRING_MAIL_*` est défini (Cloud Run / secrets GitHub). [`EmailNotificationSender`](../../services/api/src/main/kotlin/com/hatcast/api/notification/EmailNotificationSender.kt) utilise `ObjectProvider<JavaMailSender>`.
+- Local : Mailpit via `start-dev.sh` ; Cloud : secrets `SPRING_MAIL_*` injectés par [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §3.3.
 
 ### Composition validate vs assignee list (implementation pitfall)
 
@@ -253,21 +275,64 @@ com.hatcast.api.notification
 
 Consolidating both ports into one adapter reduces duplicate eligibility logic.
 
-### Local dev — recette email (Mailpit)
+### Local dev — recette push + email
 
-**Décision (2026-06-01)** : recette email locale via **Mailpit** intégrée à [`scripts/start-dev.sh`](../../scripts/start-dev.sh), pas Ethereal ni envoi Gmail depuis le poste.
+**Décision (2026-06-01)** : recette email locale via **Mailpit** ; recette push via **`--with-push`** sur [`scripts/start-dev.sh`](../../scripts/start-dev.sh).
 
 | Levier | Comportement |
 |--------|--------------|
-| `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` | `start-dev.sh` démarre Mailpit (Docker `hatcast-mailpit`), force `SPRING_MAIL_HOST=127.0.0.1:1025`, attend SMTP, arrête Mailpit à la fin |
-| `HATCAST_NOTIFICATION_EMAIL_ENABLED=false` | Pas de Mailpit |
-| UI | http://127.0.0.1:8025 |
-| Preuve API | `notification_delivery_log` (`EMAIL`, `SENT`) |
-| Profil `dev` | `management.health.mail.enabled=false` — pas de health check SMTP bruyant |
+| `./scripts/start-dev.sh` (défaut) | Front **dev** (`ng serve`) — **service worker désactivé** → pas de push ; Mailpit si email activé |
+| `./scripts/start-dev.sh --with-push` | Front **`--configuration=production`** (SW actif) ; **cumulable** avec Mailpit ; alias `--push-test` ; env `HATCAST_START_DEV_WITH_PUSH=1` |
+| `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` | Mailpit Docker, SMTP `127.0.0.1:1025`, UI http://127.0.0.1:8025 |
+| VAPID dans `.env` | Publique + privée requises pour envoi push ; script affiche un warning si absentes |
+| Déclencheur push MEP | **`POST …/actions/open-availability`** (« Publier le spectacle ») — **pas** la seule création brouillon ; republication idempotente → pas de 2ᵉ notif |
+| Opt-in | `/compte` sur **même origine** que le test (Tailscale ou localhost) ; attendre ~30 s (enregistrement SW) |
 
-**Push** : recette manuelle navigateur (VAPID + opt-in 8.1) ; non couverte par Mailpit.
+**Cloud / staging** : secrets GitHub `HATCAST_WEB_PUSH_VAPID_*`, `HATCAST_NOTIFICATION_*`, `SPRING_MAIL_*` — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
 
-**Cloud / staging** : secrets GitHub `SPRING_MAIL_*` (Gmail) — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
+---
+
+## Post-implementation adjustments (2026-06-01)
+
+Ajustements **après** le premier handoff « implementation complete », validés en recette manuelle (push téléphone + Mailpit).
+
+| Ajustement | Fichier(s) | Motivation |
+|------------|------------|------------|
+| Enregistrement provider **BouncyCastle** | `NotificationConfiguration.kt` | Fix runtime `NoSuchProviderException: BC` — envoi push impossible malgré abonnements en base |
+| Suppression bean `JavaMailSender` vide | `NotificationConfiguration.kt` | Laisser Spring Boot configurer SMTP depuis `SPRING_MAIL_*` (Cloud Run) |
+| Try/catch init `PushService` | `WebPushNotificationSender.kt` | NFR-R2 : retour `FAILED` + log au lieu de faire échouer tout le dispatch |
+| Fix spinner `/compte` sans SW | `push-notifications.service.ts` | `getRegistration()` / timeout au lieu de `serviceWorker.ready` infini en mode dev |
+| Option **`--with-push`** | `start-dev.sh`, `DEVELOPMENT.md`, `.cursor/rules/dev-server.mdc` | Un seul script pour push (SW) + email (Mailpit) |
+| Secrets deploy Cloud Run | `deploy-v2-cloud-run.yml`, `DEPLOY_V2_CLOUD_RUN.md`, `.env.example` | Injection VAPID + SMTP par environnement GitHub |
+
+**Non modifié (revue cible)** : logique audience validate (assignés via slots), idempotence open-availability, guards draft publish / manual announce, tests d’intégration dispatcher mockés.
+
+---
+
+## Code review checklist (adversarial)
+
+Points à stresser pour une revue **8.3 + ajustements post-impl.** :
+
+1. **After-commit only** — aucun `NotificationDispatcher.dispatch` dans une méthode `@Transactional` domaine ; listeners inchangés.
+2. **Audience validate** — `CONFIRMATION_REQUEST` résout les assignés slot (`NotificationRecipientResolver`), pas tout le roster saison.
+3. **Idempotence** — second `open-availability` ne republie pas `EventAvailabilityOpenedEvent` ; second validate ne renvoie pas.
+4. **NFR-R2** — échec push/email ne remonte pas au caller HTTP ; `notification_delivery_log` + logs structurés.
+5. **BouncyCastle** — provider `BC` enregistré une seule fois au startup ; test manuel ou unitaire si absent en CI.
+6. **Eligibility push** — `PushNotificationEligibilityPort` (subscription + flag user) ; sans clé privée → `SKIPPED`, pas exception.
+7. **Email Cloud Run** — pas de bean mail vide ; `HATCAST_NOTIFICATION_EMAIL_ENABLED` + `SPRING_MAIL_*` cohérents avec workflow deploy.
+8. **Inbox** — aucune écriture inbox sur send (AC7).
+9. **Payload push** — JSON `{ title, body, url }` ; deep links slugs ; titre push dispos = emoji générique (produit V1).
+10. **Client 8.1** — opt-in push requiert SW (production build ou `--with-push`) ; section `/compte` ne bloque plus sans SW.
+11. **Tests** — `EventOpenAvailabilityNotificationIntegrationTest`, `CompositionValidateNotificationIntegrationTest`, `NotificationDispatcherTest` ; optional payload URL test still open.
+12. **Hors scope** — pas de notif sur draft compo shared ; pas de `pushQueue` Firestore ; pas de prefs 8.2 UI.
+
+**Recette manuelle minimale (reviewer)** :
+
+```bash
+# .env : VAPID_* + HATCAST_NOTIFICATION_EMAIL_ENABLED=true
+./scripts/start-dev.sh --with-push
+# Téléphone ou desktop : opt-in /compte → publier un NOUVEAU spectacle → notif « 🎯 Nouvel événement ! » + email Mailpit
+```
 
 ---
 
@@ -287,6 +352,8 @@ Composer (Cursor agent)
 - `NotificationPreferenceEligibilityPort` interface added ; defaults allow when no 8.2 bean.
 - Tests: `com.hatcast.api.notification.*` all green ; full suite baseline had 42 pre-existing failures (draft availability gate in several composition tests) — unchanged regression surface.
 - Local email recette: `start-dev.sh` + Mailpit Docker when `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` ; SMTP local forcé ; profil `dev` désactive mail health indicator.
+- **Post-impl. (2026-06-01)** : BouncyCastle provider registration (fix push send) ; `--with-push` on `start-dev.sh` ; deploy workflow VAPID/SMTP secrets ; `push-notifications.service.ts` SW hang fix ; Cloud Run mail auto-config (no empty JavaMailSender bean).
+- Recette validée : push spectacle (`AVAILABILITY_OPENED`) + email Mailpit via `./scripts/start-dev.sh --with-push` ; opt-in PWA Tailscale + publication nouvel événement.
 
 ### File List
 
@@ -322,6 +389,10 @@ Composer (Cursor agent)
 - `scripts/README.md`
 - `docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`
 - `project-context.md`
+- `ARCH.md`
+- `.github/workflows/deploy-v2-cloud-run.yml`
+- `apps/web/src/app/core/push/push-notifications.service.ts`
+- `apps/web/src/app/core/push/push-notifications.service.spec.ts`
 - `.cursor/rules/dev-server.mdc`
 
 ### Change Log
@@ -329,6 +400,7 @@ Composer (Cursor agent)
 - 2026-06-01 : Story created (`bmad-create-story 8.3`) — narrow MEP per SCP 2026-06-01 ; depends 3.21 + 8.1.
 - 2026-06-01 : Implementation complete — dispatcher, push/email send, delivery log, integration + unit tests.
 - 2026-06-01 : Local dev Mailpit — `start-dev.sh` lifecycle (start/stop), SMTP override, docs BMad + DEVELOPMENT.
+- 2026-06-01 : Post-impl. — BouncyCastle BC provider, `--with-push`, deploy secrets VAPID/SMTP, client SW hang fix, Cloud Run mail config ; recette push+email validée ; doc mise à jour pour code review adverse.
 
 ---
 

@@ -76,7 +76,16 @@ export class PushNotificationsService {
         }
       }
 
-      const registration = await navigator.serviceWorker.ready
+      const registration = await this.waitForServiceWorkerRegistration()
+      if (!registration) {
+        return {
+          ok: false,
+          state: 'error',
+          message:
+            'Service worker indisponible. En local, lancez le front en build production (ng serve --configuration=production) ; l’installation PWA n’est pas requise.',
+        }
+      }
+
       let subscription = await registration.pushManager.getSubscription()
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
@@ -102,7 +111,7 @@ export class PushNotificationsService {
   }
 
   async disable(): Promise<{ ok: boolean; state: PushUiState }> {
-    const registration = await navigator.serviceWorker.ready.catch(() => null)
+    const registration = await this.getServiceWorkerRegistration()
     const subscription = registration ? await registration.pushManager.getSubscription() : null
     const endpoint = subscription?.endpoint
 
@@ -124,7 +133,7 @@ export class PushNotificationsService {
   }
 
   private async syncCurrentDeviceDisabled(): Promise<void> {
-    const registration = await navigator.serviceWorker.ready.catch(() => null)
+    const registration = await this.getServiceWorkerRegistration()
     const subscription = registration ? await registration.pushManager.getSubscription() : null
     if (subscription) {
       const endpoint = subscription.endpoint
@@ -133,13 +142,44 @@ export class PushNotificationsService {
     }
   }
 
-  private async getLocalSubscription(): Promise<PushSubscription | null> {
+  private async getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
     if (!this.canUsePush()) {
       return null
     }
     try {
-      const registration = await navigator.serviceWorker.ready
-      return registration.pushManager.getSubscription()
+      return (await navigator.serviceWorker.getRegistration()) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  /** Waits for SW registration (prod PWA) without hanging when none exists (ng serve dev). */
+  private async waitForServiceWorkerRegistration(
+    timeoutMs = 3_000,
+  ): Promise<ServiceWorkerRegistration | null> {
+    const existing = await this.getServiceWorkerRegistration()
+    if (existing?.active) {
+      return existing
+    }
+
+    try {
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+      ])
+      return registration ?? null
+    } catch {
+      return null
+    }
+  }
+
+  private async getLocalSubscription(): Promise<PushSubscription | null> {
+    const registration = await this.getServiceWorkerRegistration()
+    if (!registration) {
+      return null
+    }
+    try {
+      return await registration.pushManager.getSubscription()
     } catch {
       return null
     }

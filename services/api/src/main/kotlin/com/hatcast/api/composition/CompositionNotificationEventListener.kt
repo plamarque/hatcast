@@ -16,4 +16,22 @@ class CompositionNotificationEventListener(
             event.actorUserId,
         )
     }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onConfirmationRequested(event: CompositionConfirmationRequestedEvent) {
+        if (event.assigneeParticipantIds.isEmpty()) {
+            notificationPort.requestCompositionConfirmation(
+                event.eventId,
+                event.seasonId,
+                event.actorUserId,
+            )
+        } else {
+            notificationPort.requestConfirmationForAssignees(
+                event.eventId,
+                event.seasonId,
+                event.assigneeParticipantIds,
+                event.actorUserId,
+            )
+        }
+    }
 }

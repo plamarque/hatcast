@@ -18,6 +18,7 @@ enum class NotificationDeliveryStatus {
     SENT,
     FAILED,
     SKIPPED,
+    PARTIAL,
 }
 
 @Entity

@@ -25,6 +25,7 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -48,7 +49,7 @@ class CompositionDrawService(
     private val troupeAccess: TroupeAccessService,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val compositionService: CompositionService,
-    private val notificationPort: CompositionNotificationPort,
+    private val eventPublisher: ApplicationEventPublisher,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
@@ -317,11 +318,13 @@ class CompositionDrawService(
         compositionRepository.save(compositionRow)
 
         if (newlyAssignedParticipantIds.isNotEmpty()) {
-            notificationPort.requestConfirmationForAssignees(
-                eventId = eventId,
-                seasonId = seasonId,
-                assigneeParticipantIds = newlyAssignedParticipantIds.distinct(),
-                actorUserId = principal.userId,
+            eventPublisher.publishEvent(
+                CompositionConfirmationRequestedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    actorUserId = principal.userId,
+                    assigneeParticipantIds = newlyAssignedParticipantIds.distinct(),
+                ),
             )
         }
 

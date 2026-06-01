@@ -30,11 +30,20 @@ describe('PushNotificationsService', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
   })
 
   function service(): PushNotificationsService {
     return TestBed.inject(PushNotificationsService)
+  }
+
+  function mockServiceWorker(pushManager: { getSubscription: ReturnType<typeof vi.fn> }) {
+    const registration = { active: {}, pushManager }
+    return {
+      getRegistration: vi.fn().mockResolvedValue(registration),
+      ready: Promise.resolve(registration),
+    }
   }
 
   it('canUsePush returns false when PushManager is missing', () => {
@@ -48,12 +57,28 @@ describe('PushNotificationsService', () => {
     expect(service().canUsePush()).toBe(true)
   })
 
+  it('loadStatus returns disabled when no service worker is registered', async () => {
+    vi.stubGlobal('PushManager', class {})
+    vi.stubGlobal('Notification', { permission: 'granted' })
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      serviceWorker: {
+        getRegistration: vi.fn().mockResolvedValue(undefined),
+        ready: new Promise(() => undefined),
+      },
+    })
+    getStatus.mockResolvedValue({ ok: true, status: 200, data: { enabled: false, subscriptionCount: 0 } })
+
+    const result = await service().loadStatus()
+    expect(result.state).toBe('disabled')
+  })
+
   it('loadStatus returns denied when Notification permission is denied', async () => {
     vi.stubGlobal('PushManager', class {})
     vi.stubGlobal('Notification', { permission: 'denied' })
     vi.stubGlobal('navigator', {
       ...navigator,
-      serviceWorker: { ready: Promise.resolve({ pushManager: { getSubscription: vi.fn().mockResolvedValue(null) } }) },
+      serviceWorker: mockServiceWorker({ getSubscription: vi.fn().mockResolvedValue(null) }),
     })
     getStatus.mockResolvedValue({ ok: true, status: 200, data: { enabled: false, subscriptionCount: 0 } })
 
@@ -68,13 +93,9 @@ describe('PushNotificationsService', () => {
     vi.stubGlobal('Notification', { permission: 'denied' })
     vi.stubGlobal('navigator', {
       ...navigator,
-      serviceWorker: {
-        ready: Promise.resolve({
-          pushManager: {
-            getSubscription: vi.fn().mockResolvedValue({ endpoint: 'https://example.com/push', unsubscribe }),
-          },
-        }),
-      },
+      serviceWorker: mockServiceWorker({
+        getSubscription: vi.fn().mockResolvedValue({ endpoint: 'https://example.com/push', unsubscribe }),
+      }),
     })
     getStatus.mockResolvedValue({ ok: true, status: 200, data: { enabled: true, subscriptionCount: 1 } })
     deleteSubscription.mockResolvedValue({ ok: true, status: 200, data: { enabled: false, subscriptionCount: 0 } })
@@ -90,11 +111,9 @@ describe('PushNotificationsService', () => {
     vi.stubGlobal('Notification', { permission: 'granted' })
     vi.stubGlobal('navigator', {
       ...navigator,
-      serviceWorker: {
-        ready: Promise.resolve({
-          pushManager: { getSubscription: vi.fn().mockResolvedValue({ endpoint: 'https://example.com/push' }) },
-        }),
-      },
+      serviceWorker: mockServiceWorker({
+        getSubscription: vi.fn().mockResolvedValue({ endpoint: 'https://example.com/push' }),
+      }),
     })
     getStatus.mockResolvedValue({ ok: true, status: 200, data: { enabled: true, subscriptionCount: 1 } })
 
@@ -107,11 +126,9 @@ describe('PushNotificationsService', () => {
     vi.stubGlobal('Notification', { permission: 'granted' })
     vi.stubGlobal('navigator', {
       ...navigator,
-      serviceWorker: {
-        ready: Promise.resolve({
-          pushManager: { getSubscription: vi.fn().mockResolvedValue(null) },
-        }),
-      },
+      serviceWorker: mockServiceWorker({
+        getSubscription: vi.fn().mockResolvedValue(null),
+      }),
     })
     getStatus.mockResolvedValue({ ok: true, status: 200, data: { enabled: true, subscriptionCount: 1 } })
 
@@ -124,11 +141,9 @@ describe('PushNotificationsService', () => {
     vi.stubGlobal('Notification', { permission: 'granted' })
     vi.stubGlobal('navigator', {
       ...navigator,
-      serviceWorker: {
-        ready: Promise.resolve({
-          pushManager: { getSubscription: vi.fn().mockResolvedValue({ endpoint: 'https://example.com/push' }) },
-        }),
-      },
+      serviceWorker: mockServiceWorker({
+        getSubscription: vi.fn().mockResolvedValue({ endpoint: 'https://example.com/push' }),
+      }),
     })
     getStatus.mockResolvedValue({ ok: true, status: 200, data: { enabled: false, subscriptionCount: 0 } })
 
@@ -144,11 +159,9 @@ describe('PushNotificationsService', () => {
     })
     vi.stubGlobal('navigator', {
       ...navigator,
-      serviceWorker: {
-        ready: Promise.resolve({
-          pushManager: { getSubscription: vi.fn().mockResolvedValue(null) },
-        }),
-      },
+      serviceWorker: mockServiceWorker({
+        getSubscription: vi.fn().mockResolvedValue(null),
+      }),
     })
     deleteSubscription.mockResolvedValue({ ok: true, status: 200, data: { enabled: false, subscriptionCount: 0 } })
     setEnabled.mockResolvedValue({ ok: true, status: 200, data: { enabled: false, subscriptionCount: 0 } })
@@ -156,5 +169,35 @@ describe('PushNotificationsService', () => {
     const result = await service().enable()
     expect(result.ok).toBe(false)
     expect(result.state).toBe('denied')
+  })
+
+  it('enable returns error when no service worker becomes available', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('PushManager', class {})
+    vi.stubGlobal('Notification', {
+      permission: 'default',
+      requestPermission: vi.fn().mockResolvedValue('granted'),
+    })
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      serviceWorker: {
+        getRegistration: vi.fn().mockResolvedValue(undefined),
+        ready: new Promise(() => undefined),
+      },
+    })
+    getPublicConfig.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { webPushVapidPublicKey: 'test-vapid-public-key' },
+    })
+
+    const pending = service().enable()
+    await vi.runAllTimersAsync()
+    const result = await pending
+
+    expect(result.ok).toBe(false)
+    expect(result.state).toBe('error')
+    expect(result.message).toContain('Service worker indisponible')
+    expect(registerSubscription).not.toHaveBeenCalled()
   })
 })

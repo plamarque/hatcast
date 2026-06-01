@@ -33,6 +33,19 @@ Profil **`dev`** : `management.health.mail.enabled=false` ([`application-dev.yml
 
 Cloud Run / staging : `SPRING_MAIL_*` (Gmail) via secrets GitHub — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
 
+### Notifications push Web (story 8.3)
+
+| Variable | Rôle |
+|----------|------|
+| `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` | Clé publique VAPID (alignée client Angular / Firebase Cloud Messaging) |
+| `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` | Clé privée VAPID — **obligatoire** pour envoi ; si absente → canal `SKIPPED` |
+
+- Dépendances : `web-push` + **`bcprov-jdk18on`** ; [`NotificationConfiguration`](src/main/kotlin/com/hatcast/api/notification/NotificationConfiguration.kt) enregistre le provider JCE **BouncyCastle** (`BC`) au démarrage — sans cela l’envoi échoue (`NoSuchProviderException`).
+- [`WebPushNotificationSender`](src/main/kotlin/com/hatcast/api/notification/WebPushNotificationSender.kt) : envoi multi-appareil depuis `user_push_subscriptions` ; erreur d’init → `FAILED` sans rollback mutation domaine (NFR-R2).
+- Recette locale : **`./scripts/start-dev.sh --with-push`** (front Angular en config **production** pour activer le service worker) + opt-in sur `/compte` ; publier un **nouveau** spectacle (`POST …/actions/open-availability`).
+
+Cloud Run : secrets `HATCAST_WEB_PUSH_VAPID_*` injectés par le workflow deploy — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §3.3.
+
 ## Lancer l’API en local
 
 ```bash

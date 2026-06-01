@@ -11,10 +11,12 @@ Pour démarrer **back et front** en local :
 
 ```bash
 ./scripts/start-dev.sh
+./scripts/start-dev.sh --with-push   # recette push + email (Mailpit si activé)
 ```
 
 - API : `http://127.0.0.1:8080` (attente `actuator/health` avant le front).
 - Front : **`https://localhost:4200`** (`ng serve` avec TLS dans `angular.json` ; `--host` pour le LAN).
+- **Push (story 8.1/8.3)** : `./scripts/start-dev.sh --with-push` — front en **`--configuration=production`** (service worker actif). Prérequis `.env` : `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` + `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY`. Cumulable avec Mailpit.
 - Mobile (tailnet) : `start-dev.sh` exécute **`tailscale up`** si déconnecté, puis **Tailscale Serve** si besoin → `https://<machine>.<tailnet>.ts.net` (origine OAuth Google, pas d’IP LAN). Désactiver : `--no-tailscale` ou `HATCAST_SKIP_TAILSCALE_SERVE=1`.
 - Email (story 8.3) : si `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` dans `.env`, `start-dev.sh` démarre **Mailpit** (Docker), force SMTP `127.0.0.1:1025`, UI **http://127.0.0.1:8025**, arrête Mailpit à la fin. Voir [DEVELOPMENT.md](../DEVELOPMENT.md).
 

@@ -18,6 +18,7 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -40,7 +41,7 @@ class CompositionDeclineRestoreService(
     private val organizerAccess: OrganizerAccessRules,
     private val troupeAccess: TroupeAccessService,
     private val compositionService: CompositionService,
-    private val notificationPort: CompositionNotificationPort,
+    private val eventPublisher: ApplicationEventPublisher,
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
@@ -147,11 +148,13 @@ class CompositionDeclineRestoreService(
             ),
         )
 
-        notificationPort.requestConfirmationForAssignees(
-            eventId = eventId,
-            seasonId = seasonId,
-            assigneeParticipantIds = listOf(eligibleRow.participantId),
-            actorUserId = principal.userId,
+        eventPublisher.publishEvent(
+            CompositionConfirmationRequestedEvent(
+                eventId = eventId,
+                seasonId = seasonId,
+                actorUserId = principal.userId,
+                assigneeParticipantIds = listOf(eligibleRow.participantId),
+            ),
         )
 
         lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)

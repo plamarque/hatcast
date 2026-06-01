@@ -23,6 +23,7 @@ import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.text.FrenchCollator
 import com.hatcast.api.troupe.TroupeAccessService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -45,7 +46,7 @@ class CompositionSlotAssignmentService(
     private val troupeAccess: TroupeAccessService,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val compositionService: CompositionService,
-    private val notificationPort: CompositionNotificationPort,
+    private val eventPublisher: ApplicationEventPublisher,
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
@@ -181,11 +182,13 @@ class CompositionSlotAssignmentService(
             assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
             compositionRow.updatedAt = now
             compositionRepository.save(compositionRow)
-            notificationPort.requestConfirmationForAssignees(
-                eventId = eventId,
-                seasonId = seasonId,
-                assigneeParticipantIds = listOf(participantId),
-                actorUserId = principal.userId,
+            eventPublisher.publishEvent(
+                CompositionConfirmationRequestedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    actorUserId = principal.userId,
+                    assigneeParticipantIds = listOf(participantId),
+                ),
             )
             recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
         } else if (participantId == null) {

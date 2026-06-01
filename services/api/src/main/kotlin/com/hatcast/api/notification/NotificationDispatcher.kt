@@ -1,13 +1,15 @@
 package com.hatcast.api.notification
 
+import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.user.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
-import org.springframework.http.HttpStatus
+import java.util.UUID
 
 @Service
 class NotificationDispatcher(
@@ -42,18 +44,35 @@ class NotificationDispatcher(
 
             val category = context.intent.toCategory()
             for (recipient in recipients) {
-                if (!isCategoryAllowed(recipient.userId, category)) {
-                    continue
-                }
-                val payload = payloadBuilder.build(context.intent, event, recipient.displayName)
-                val emailSubject = payloadBuilder.buildEmailSubject(context.intent, event)
-                deliverPush(recipient.userId, payload, context.intent, context.eventId)
-                deliverEmail(recipient.userId, emailSubject, payload, context.intent, context.eventId)
+                deliverToRecipient(context, recipient, event, category)
             }
         } catch (ex: Exception) {
             log.error(
                 "notification_dispatch_unexpected_error intent={} eventId={} error={}",
                 context.intent,
+                context.eventId,
+                ex.message,
+                ex,
+            )
+        }
+    }
+
+    private fun deliverToRecipient(
+        context: NotificationDispatchContext,
+        recipient: NotificationRecipient,
+        event: EventEntity,
+        category: NotificationCategory,
+    ) {
+        try {
+            val payload = payloadBuilder.build(context.intent, event, recipient.displayName)
+            val emailSubject = payloadBuilder.buildEmailSubject(context.intent, event)
+            deliverPush(recipient.userId, category, payload, context.intent, context.eventId)
+            deliverEmail(recipient.userId, category, emailSubject, payload, context.intent, context.eventId)
+        } catch (ex: Exception) {
+            log.error(
+                "notification_recipient_unexpected_error intent={} userId={} eventId={} error={}",
+                context.intent,
+                recipient.userId,
                 context.eventId,
                 ex.message,
                 ex,
@@ -73,52 +92,118 @@ class NotificationDispatcher(
                 }
         }
 
-    private fun isCategoryAllowed(
-        userId: java.util.UUID,
+    private fun isChannelAllowed(
+        userId: UUID,
         category: NotificationCategory,
+        channel: NotificationChannel,
     ): Boolean {
         val port = preferenceEligibilityPort.ifAvailable ?: return true
-        return port.isCategoryEnabled(userId, category)
+        return port.isAllowed(userId, category, channel)
     }
 
     private fun deliverPush(
-        userId: java.util.UUID,
+        userId: UUID,
+        category: NotificationCategory,
         payload: NotificationPayload,
         intent: NotificationIntent,
-        eventId: java.util.UUID,
+        eventId: UUID,
     ) {
-        if (!pushEligibilityPort.isPushEnabled(userId)) {
+        if (!pushEligibilityPort.isPushAllowedForCategory(userId, category)) {
             return
         }
-        val result = pushSender.sendPush(userId, payload, intent, eventId)
-        if (result.status != NotificationDeliveryStatus.SKIPPED) {
-            persistDeliveryLog(intent, userId, result, eventId)
+        try {
+            val result = pushSender.sendPush(userId, payload, intent, eventId)
+            persistDeliveryLogSafely(intent, userId, result, eventId)
+        } catch (ex: Exception) {
+            log.warn(
+                "notification_push_unexpected_error intent={} userId={} eventId={} channel=PUSH error={}",
+                intent,
+                userId,
+                eventId,
+                ex.message,
+                ex,
+            )
+            persistDeliveryLogSafely(
+                intent,
+                userId,
+                NotificationDeliveryResult(
+                    channel = NotificationChannel.PUSH,
+                    status = NotificationDeliveryStatus.FAILED,
+                    errorMessage = ex.javaClass.simpleName + ": " + (ex.message ?: "unknown"),
+                ),
+                eventId,
+            )
         }
     }
 
     private fun deliverEmail(
-        userId: java.util.UUID,
+        userId: UUID,
+        category: NotificationCategory,
         subject: String,
         payload: NotificationPayload,
         intent: NotificationIntent,
-        eventId: java.util.UUID,
+        eventId: UUID,
     ) {
+        if (!isChannelAllowed(userId, category, NotificationChannel.EMAIL)) {
+            return
+        }
         val user = userRepository.findById(userId).orElse(null) ?: return
         val email = user.email?.trim().orEmpty()
         if (email.isBlank()) {
             return
         }
-        val result = emailSender.sendEmail(userId, email, subject, payload, intent, eventId)
-        if (result.status != NotificationDeliveryStatus.SKIPPED) {
+        try {
+            val result = emailSender.sendEmail(userId, email, subject, payload, intent, eventId)
+            persistDeliveryLogSafely(intent, userId, result, eventId)
+        } catch (ex: Exception) {
+            log.warn(
+                "notification_email_unexpected_error intent={} userId={} eventId={} channel=EMAIL error={}",
+                intent,
+                userId,
+                eventId,
+                ex.message,
+                ex,
+            )
+            persistDeliveryLogSafely(
+                intent,
+                userId,
+                NotificationDeliveryResult(
+                    channel = NotificationChannel.EMAIL,
+                    status = NotificationDeliveryStatus.FAILED,
+                    errorMessage = ex.javaClass.simpleName + ": " + (ex.message ?: "unknown"),
+                ),
+                eventId,
+            )
+        }
+    }
+
+    private fun persistDeliveryLogSafely(
+        intent: NotificationIntent,
+        userId: UUID,
+        result: NotificationDeliveryResult,
+        eventId: UUID,
+    ) {
+        try {
             persistDeliveryLog(intent, userId, result, eventId)
+        } catch (ex: Exception) {
+            log.error(
+                "notification_delivery_log_failed intent={} userId={} eventId={} channel={} status={} error={}",
+                intent,
+                userId,
+                eventId,
+                result.channel,
+                result.status,
+                ex.message,
+                ex,
+            )
         }
     }
 
     private fun persistDeliveryLog(
         intent: NotificationIntent,
-        userId: java.util.UUID,
+        userId: UUID,
         result: NotificationDeliveryResult,
-        eventId: java.util.UUID,
+        eventId: UUID,
     ) {
         deliveryLogRepository.save(
             NotificationDeliveryLogEntity(

@@ -46,7 +46,6 @@ class CompositionService(
     private val selectionHistory: CompositionSelectionHistoryService,
     private val organizerAccess: OrganizerAccessRules,
     private val troupeAccess: TroupeAccessService,
-    private val notificationPort: CompositionNotificationPort,
     private val declineRepository: EventCompositionDeclineRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
@@ -171,7 +170,13 @@ class CompositionService(
             if (slotsToPending.isNotEmpty()) {
                 slotRepository.saveAll(slotsToPending)
             }
-            notificationPort.requestCompositionConfirmation(eventId, seasonId, principal.userId)
+            eventPublisher.publishEvent(
+                CompositionConfirmationRequestedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    actorUserId = principal.userId,
+                ),
+            )
             auditRecorder.record(
                 AuditRecordRequest(
                     actionType = AuditActionType.COMPOSITION_VALIDATED,

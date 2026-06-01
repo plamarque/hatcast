@@ -12,7 +12,7 @@ Ce dossier contient les scripts utiles pour les migrations, le déploiement, la 
 - **`DATABASE_MIGRATION.md`** : Documentation complète de la migration
 
 ### 🧪 Tests et développement
-- **`start-dev.sh`** : Démarre la stack **V2** en local (API Spring sur 8080 + Angular sur 4200, `ng serve --host`). **`tailscale up`** si le VPN est coupé, puis **Tailscale Serve** vers `:4200` si absent (accès mobile MagicDNS). **`--no-tailscale`** ou **`HATCAST_SKIP_TAILSCALE_SERVE=1`** pour ignorer. Si **`HATCAST_NOTIFICATION_EMAIL_ENABLED=true`** dans `.env` : démarre **Mailpit** (Docker, SMTP `:1025`, UI `:8025`), force le SMTP local pour l’API, arrête Mailpit à la fin. Option **`./scripts/start-dev.sh --legacy`** pour l’ancien flux (seul le client V1 / Vite). Charge **`.env`** à la racine via **`load-dotenv.sh`** (toutes les variables reconnues).
+- **`start-dev.sh`** : Démarre la stack **V2** en local (API Spring sur 8080 + Angular sur 4200, `ng serve --host`). **`tailscale up`** si le VPN est coupé, puis **Tailscale Serve** vers `:4200` si absent (accès mobile MagicDNS). **`--no-tailscale`** ou **`HATCAST_SKIP_TAILSCALE_SERVE=1`** pour ignorer. Si **`HATCAST_NOTIFICATION_EMAIL_ENABLED=true`** dans `.env` : démarre **Mailpit** (Docker, SMTP `:1025`, UI `:8025`), force le SMTP local pour l’API, arrête Mailpit à la fin. **`--with-push`** (alias `--push-test`, env `HATCAST_START_DEV_WITH_PUSH=1`) : front **`ng serve --configuration=production`** pour activer le service worker (recette push story 8.3) — cumulable avec Mailpit ; requiert `HATCAST_WEB_PUSH_VAPID_*` dans `.env`. Option **`./scripts/start-dev.sh --legacy`** pour l’ancien flux (seul le client V1 / Vite). Charge **`.env`** à la racine via **`load-dotenv.sh`** (toutes les variables reconnues).
 - **`run-tests.sh`** : Lance les tests **V2** (`./gradlew test` dans `services/api`, puis `ng test` dans `apps/web`). Charge aussi **`.env`** comme `start-dev.sh`.
 - **`load-dotenv.sh`** : Bibliothèque sourcée par les scripts ci-dessus (format `KEY=value`, `#`, `export` optionnel).
 - **`test-dev-server.sh`** : Lance le serveur de développement V1 et vérifie qu’il démarre (port 5173 ; utile surtout pour le scénario décrit ci-dessous avec la V1).
@@ -51,6 +51,9 @@ Le sous-dossier **`debug/`** contient des scripts de diagnostic exécutables à 
 ```bash
 ./scripts/start-dev.sh
 # Puis ouvrir https://localhost:4200 (API : http://127.0.0.1:8080)
+
+# Push + email (story 8.3) : VAPID_* + HATCAST_NOTIFICATION_EMAIL_ENABLED=true dans .env
+./scripts/start-dev.sh --with-push
 ```
 
 ### Reproduire la situation de production en local (V1 / legacy)

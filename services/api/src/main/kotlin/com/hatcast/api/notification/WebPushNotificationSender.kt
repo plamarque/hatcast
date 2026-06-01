@@ -46,11 +46,27 @@ class WebPushNotificationSender(
         }
 
         val pushService =
-            PushService(
-                webPushProperties.vapidPublicKey,
-                webPushProperties.vapidPrivateKey,
-                webPushProperties.subject,
-            )
+            try {
+                PushService(
+                    webPushProperties.vapidPublicKey,
+                    webPushProperties.vapidPrivateKey,
+                    webPushProperties.subject,
+                )
+            } catch (ex: Exception) {
+                val error = ex.javaClass.simpleName + ": " + (ex.message ?: "unknown")
+                log.warn(
+                    "notification_push_failed intent={} userId={} eventId={} channel=PUSH error={}",
+                    intent,
+                    userId,
+                    eventId,
+                    error,
+                )
+                return NotificationDeliveryResult(
+                    channel = NotificationChannel.PUSH,
+                    status = NotificationDeliveryStatus.FAILED,
+                    errorMessage = error,
+                )
+            }
         val jsonPayload =
             mapper.writeValueAsString(
                 mapOf(
@@ -84,8 +100,14 @@ class WebPushNotificationSender(
             }
         }
 
-        return if (sentCount > 0) {
+        return if (sentCount > 0 && lastError == null) {
             NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SENT)
+        } else if (sentCount > 0) {
+            NotificationDeliveryResult(
+                channel = NotificationChannel.PUSH,
+                status = NotificationDeliveryStatus.PARTIAL,
+                errorMessage = lastError,
+            )
         } else {
             NotificationDeliveryResult(
                 channel = NotificationChannel.PUSH,

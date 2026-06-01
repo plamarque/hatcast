@@ -3,6 +3,8 @@ package com.hatcast.api.notification
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.composition.CompositionService
 import com.hatcast.api.composition.EventCompositionEntity
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotEntity
@@ -16,6 +18,7 @@ import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -26,19 +29,25 @@ import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
+import org.springframework.stereotype.Service
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(CompositionValidateNotificationIntegrationTest.RollbackTestConfig::class)
 class CompositionValidateNotificationIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -72,6 +81,9 @@ class CompositionValidateNotificationIntegrationTest {
 
     @Autowired
     private lateinit var slotRepository: EventCompositionSlotRepository
+
+    @Autowired
+    private lateinit var rollbackProbe: ValidateCompositionRollbackProbe
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -107,6 +119,16 @@ class CompositionValidateNotificationIntegrationTest {
             email = "$googleSub@example.com",
             name = "Validate Notif Member",
         )
+
+    private fun adminPrincipal(googleSub: String): SessionUserPrincipal {
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing user")
+        return SessionUserPrincipal(
+            userId = user.id,
+            googleSub = googleSub,
+            idpUid = user.idpUid,
+            email = user.email,
+        )
+    }
 
     private fun createSeason(cookie: jakarta.servlet.http.Cookie): UUID {
         val res =
@@ -249,6 +271,26 @@ class CompositionValidateNotificationIntegrationTest {
     }
 
     @Test
+    fun `validate rollback does not dispatch CONFIRMATION_REQUEST`() {
+        val googleSub = "sub-validate-notif-admin-rollback"
+        val admin = adminCookie(googleSub)
+        memberCookie("sub-validate-notif-rollback-assignee")
+        val seasonId = createSeason(admin)
+        seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
+        val eventId = createEvent(admin, seasonId)
+        org.mockito.kotlin.reset(notificationDispatcher)
+        val assignee = participantIdForUser(seasonId, "sub-validate-notif-rollback-assignee")
+        seedDraftComposition(eventId, listOf(assignee))
+        val principal = adminPrincipal(googleSub)
+
+        assertThrows(IllegalStateException::class.java) {
+            rollbackProbe.validateThenFail(seasonId, eventId, principal)
+        }
+
+        verify(notificationDispatcher, never()).dispatch(any())
+    }
+
+    @Test
     fun `publish draft composition does not dispatch member notifications`() {
         val admin = adminCookie("sub-validate-notif-admin-2")
         memberCookie("sub-validate-notif-publish-1")
@@ -272,5 +314,27 @@ class CompositionValidateNotificationIntegrationTest {
                     intent == NotificationIntent.AVAILABILITY_OPENED
             },
         )
+    }
+
+    @TestConfiguration
+    class RollbackTestConfig {
+        @Bean
+        fun validateCompositionRollbackProbe(compositionService: CompositionService): ValidateCompositionRollbackProbe =
+            ValidateCompositionRollbackProbe(compositionService)
+    }
+}
+
+@Service
+class ValidateCompositionRollbackProbe(
+    private val compositionService: CompositionService,
+) {
+    @Transactional
+    fun validateThenFail(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        compositionService.validateComposition(seasonId, eventId, principal)
+        throw IllegalStateException("forced rollback for test")
     }
 }
