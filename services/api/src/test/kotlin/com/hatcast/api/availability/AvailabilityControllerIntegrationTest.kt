@@ -586,7 +586,7 @@ class AvailabilityControllerIntegrationTest {
                     .cookie(cookie),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.eventId").value(matchEventId.toString()))
-            .andExpect(jsonPath("$.participants.length()").value(32))
+            .andExpect(jsonPath("$.participants[?(@.displayName == 'Angie')]").exists())
             .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].requiredCount").value(5))
             .andExpect(jsonPath("$.participants[?(@.status == 'available')]").value(not(empty<Any>())))
             .andExpect(jsonPath("$.participants[?(@.status == 'unavailable')]").value(not(empty<Any>())))

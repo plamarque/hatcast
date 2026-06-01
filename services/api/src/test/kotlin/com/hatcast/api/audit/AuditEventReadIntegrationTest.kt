@@ -296,8 +296,8 @@ class AuditEventReadIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "audit-read-platform-${UUID.randomUUID()}",
-                email = "platform-members-admin@hatcast.test",
+                "sub-delete-platform-1",
+                email = "platform-admin@hatcast.test",
                 name = "Platform Audit",
             )
 

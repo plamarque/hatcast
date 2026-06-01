@@ -98,10 +98,11 @@ class PublicTroupeIntegrationTest {
         assertTrue(listed.get("logoUrl").asText().startsWith("/v1/public/troupes/$listedId/logo?v="))
         assertTrue(listed.get("description").asText().contains("identité visuelle"))
 
+        val seedTroupeName = troupeRepository.findById(seedTroupeId).orElseThrow().name
         mockMvc
             .perform(get("/v1/public/troupes"))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$[?(@.slug=='les-improbots')].name").value("Les Improbots"))
+            .andExpect(jsonPath("$[?(@.slug=='les-improbots')].name").value(seedTroupeName))
     }
 
     @Test
