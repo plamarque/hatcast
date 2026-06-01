@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-01T01:45:00+02:00"
+last_updated: "2026-06-01T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -76,7 +76,7 @@ development_status:
   2-10-liste-membres-corriger-n1-emails: done
   epic-2-retrospective: done
 
-  epic-3: in-progress
+  epic-3: done
   3-1-gestion-des-saisons-creation-edition-archivage-et-liste-saisons: done
   3-2-spectacles-dans-la-saison-et-liste-pour-les-membres: done
   3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historique: done
@@ -183,7 +183,7 @@ development_status:
   16-2-statistiques-avatar-navigation-profil-membre: done
   epic-16-retrospective: optional
 
-  epic-17: in-progress
+  epic-17: done
   17-1-breadcrumb-contexte-responsive: done
   17-2-bandeau-administration-par-scope: done
   17-3-page-troupes-mes-troupes-decouvrir: done
