@@ -32,9 +32,13 @@
     <section class="share-announce-dialog__recipients" aria-label="Personnes à prévenir">
       <h3 class="share-announce-dialog__recipients-title">Personnes à prévenir</h3>
       <p class="share-announce-dialog__recipients-hint">
-        Les cartes vertes ont au moins un canal automatique (email). Les cartes jaunes nécessitent un
-        contact manuel. Les notifications push arrivent avec l’Epic 8.
+        Les cartes vertes ont au moins un canal automatique (email ou push). Les cartes jaunes
+        nécessitent un contact manuel.
       </p>
+
+      @if (guardWarning(); as warning) {
+        <p class="share-announce-dialog__guard-warning" role="status">{{ warning }}</p>
+      }
 
       @if (loadingRecipients()) {
         <div class="share-announce-dialog__recipients-loading" role="status">

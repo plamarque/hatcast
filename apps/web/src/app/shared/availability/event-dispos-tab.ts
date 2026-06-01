@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, input, OnDestroy, output, signal, viewChild } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
+import { MatDialog } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
@@ -13,6 +14,10 @@ import type { EventResponse } from '../../core/events/event-api.service'
 import { isEventDraft } from '../../core/events/event-draft'
 import type { AvailabilityFormSavedPayload } from './availability-form'
 import { ParticipantApiService, type ParticipantSelector } from '../../core/participants/participant-api.service'
+import {
+  ShareAnnounceDialog,
+  type ShareAnnounceDialogData,
+} from '../share-announce/share-announce-dialog'
 import { AvailabilityMoiPanel } from './availability-moi-panel'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
 import { AvailabilityTousPanel } from './availability-tous-panel'
@@ -36,8 +41,10 @@ export class EventDisposTab implements OnDestroy {
   private readonly availabilityApi = inject(AvailabilityApiService)
   private readonly participantApi = inject(ParticipantApiService)
   private readonly snack = inject(MatSnackBar)
+  private readonly dialog = inject(MatDialog)
 
   readonly seasonId = input.required<string>()
+  readonly seasonSlug = input.required<string>()
   readonly troupeId = input.required<string>()
   readonly event = input.required<EventResponse>()
   readonly currentUserId = input.required<string>()
@@ -76,6 +83,15 @@ export class EventDisposTab implements OnDestroy {
     () => isEventDraft(this.event()) && !this.canManageComposition(),
   )
 
+  protected readonly canNudgeAvailability = computed(() => {
+    if (!this.canManageComposition()) return false
+    if (isEventDraft(this.event())) return false
+    if (this.event().archived) return false
+    const s = this.summary()
+    if (!s) return false
+    return s.participants.some((p) => p.status === 'unknown')
+  })
+
   protected readonly subjectProxyMode = computed(() => {
     const subject = this.subjectParticipant()
     if (!subject || !this.canSwitchSubject()) return false
@@ -99,6 +115,35 @@ export class EventDisposTab implements OnDestroy {
 
   ngOnDestroy(): void {
     this.loadRequestId++
+  }
+
+  protected openNudgeDialog(): void {
+    if (!this.canNudgeAvailability()) return
+    const ev = this.event()
+    const ref = this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, boolean | undefined>(
+      ShareAnnounceDialog,
+      {
+        data: {
+          intent: 'availability_nudge',
+          seasonId: this.seasonId(),
+          eventId: ev.id,
+          seasonSlug: this.seasonSlug(),
+          eventSlug: ev.slug,
+          eventTitle: ev.title,
+          eventDateIso: ev.startsAt,
+          roleLines: [],
+        },
+        width: 'min(42rem, 96vw)',
+        maxHeight: '92vh',
+        autoFocus: 'first-titled-element',
+        panelClass: 'share-announce-dialog-panel',
+      },
+    )
+    ref.afterClosed().subscribe((sent) => {
+      if (sent) {
+        this.snack.open('Rappel envoyé.', 'OK', { duration: 4000 })
+      }
+    })
   }
 
   protected async setViewMode(mode: DisposViewMode): Promise<void> {

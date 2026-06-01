@@ -6,7 +6,11 @@ import org.springframework.context.annotation.Configuration
 import java.security.Security
 
 @Configuration
-@EnableConfigurationProperties(WebPushProperties::class, NotificationEmailProperties::class)
+@EnableConfigurationProperties(
+    WebPushProperties::class,
+    NotificationEmailProperties::class,
+    ManualAvailabilityNudgeProperties::class,
+)
 class NotificationConfiguration {
     init {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {

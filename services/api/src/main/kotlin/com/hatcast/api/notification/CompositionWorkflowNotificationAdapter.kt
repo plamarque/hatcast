@@ -68,6 +68,19 @@ class CompositionWorkflowNotificationAdapter(
         messagePreview: String,
         actorUserId: UUID,
     ) {
+        if (intent == "availability_nudge") {
+            dispatcher.dispatch(
+                NotificationDispatchContext(
+                    intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    troupeId = null,
+                    actorUserId = actorUserId,
+                    customMessageBody = messagePreview,
+                ),
+            )
+            return
+        }
         log.debug(
             "manual_announcement_requested eventId={} seasonId={} intent={} messagePreviewLength={} actorUserId={}",
             eventId,

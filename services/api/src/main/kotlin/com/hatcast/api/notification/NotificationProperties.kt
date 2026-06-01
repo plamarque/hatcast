@@ -14,3 +14,8 @@ data class NotificationEmailProperties(
     val enabled: Boolean = false,
     val from: String = "HatCast <noreply@hatcast.app>",
 )
+
+@ConfigurationProperties(prefix = "hatcast.notifications")
+data class ManualAvailabilityNudgeProperties(
+    val manualAvailabilityNudgeGuardDays: Int = 3,
+)

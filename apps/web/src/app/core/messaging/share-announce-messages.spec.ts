@@ -70,6 +70,18 @@ describe('share-announce-messages', () => {
     })
     expect(compo).toContain('COMPO')
     expect(compo).toContain('showConfirm=true')
+
+    const nudge = buildDefaultShareMessage({
+      intent: 'availability_nudge',
+      origin: 'https://app.test',
+      seasonSlug: 's',
+      eventSlug: 'e',
+      eventTitle: 'T',
+      eventDateIso: '2026-05-12T19:00:00.000Z',
+      roleLines: [],
+    })
+    expect(nudge).toContain('⏰ Rappel disponibilité')
+    expect(nudge).toContain('?tab=dispos')
   })
 
   it('buildWhatsAppSendUrl encodes message', () => {

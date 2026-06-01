@@ -1,10 +1,12 @@
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
+import { of } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
 import { buildWhatsAppSendUrl } from '../../core/messaging/share-announce-messages'
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
+import { ConfirmDialog } from '../../pages/seasons-list/confirm-dialog'
 import { ShareAnnounceDialog, type ShareAnnounceDialogData } from './share-announce-dialog'
 
 const recipientsMock = {
@@ -111,5 +113,142 @@ describe('ShareAnnounceDialog', () => {
       expect(textarea?.value).toContain('showConfirm=true')
     })
     expect(fixture.nativeElement.textContent).toContain('Annoncer la compo')
+  })
+
+  it('prefills availability nudge reminder template and title', async () => {
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'availability_nudge' })
+    await vi.waitFor(() => {
+      const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement
+      expect(textarea?.value).toContain('⏰ Rappel disponibilité')
+      expect(textarea?.value).toContain('?tab=dispos')
+    })
+    expect(fixture.nativeElement.textContent).toContain('Rappel disponibilité')
+  })
+
+  it('shows guard warning when lastManualNudgeAt within guard window', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        ...recipientsMock.data,
+        lastManualNudgeAt: new Date().toISOString(),
+        guardDays: 3,
+      },
+    })
+
+    await TestBed.configureTestingModule({
+      imports: [ShareAnnounceDialog, NoopAnimationsModule],
+      providers: [
+        { provide: MatDialogRef, useValue: { close: vi.fn() } },
+        { provide: MAT_DIALOG_DATA, useValue: { ...baseDialogData, intent: 'availability_nudge' as const } },
+        {
+          provide: ShareAnnounceApiService,
+          useValue: {
+            getRecipients,
+            sendNotifications: vi.fn(),
+          },
+        },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ShareAnnounceDialog)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Un rappel a déjà été envoyé')
+    })
+  })
+
+  it('opens confirm dialog and blocks send when guard is active and user declines', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        ...recipientsMock.data,
+        lastManualNudgeAt: new Date().toISOString(),
+        guardDays: 3,
+      },
+    })
+    const sendNotifications = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { accepted: true },
+    })
+    const matDialogOpen = vi.fn().mockReturnValue({ afterClosed: () => of(false) })
+
+    await TestBed.configureTestingModule({
+      imports: [ShareAnnounceDialog, NoopAnimationsModule],
+      providers: [
+        { provide: MatDialogRef, useValue: { close: vi.fn() } },
+        { provide: MAT_DIALOG_DATA, useValue: { ...baseDialogData, intent: 'availability_nudge' as const } },
+        {
+          provide: ShareAnnounceApiService,
+          useValue: { getRecipients, sendNotifications },
+        },
+        { provide: MatDialog, useValue: { open: matDialogOpen } },
+      ],
+    }).compileComponents()
+    TestBed.overrideProvider(MatDialog, { useValue: { open: matDialogOpen } })
+
+    const fixture = TestBed.createComponent(ShareAnnounceDialog)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Un rappel a déjà été envoyé')
+    })
+
+    const notifyBtn = fixture.nativeElement.querySelector(
+      '.share-announce-dialog__notify',
+    ) as HTMLButtonElement
+    notifyBtn.click()
+    await vi.waitFor(() => {
+      expect(matDialogOpen).toHaveBeenCalledWith(ConfirmDialog, expect.any(Object))
+    })
+    expect(sendNotifications).not.toHaveBeenCalled()
+  })
+
+  it('sends after confirm when guard is active and user accepts', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        ...recipientsMock.data,
+        lastManualNudgeAt: new Date().toISOString(),
+        guardDays: 3,
+      },
+    })
+    const sendNotifications = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { accepted: true },
+    })
+    const matDialogOpen = vi.fn().mockReturnValue({ afterClosed: () => of(true) })
+
+    await TestBed.configureTestingModule({
+      imports: [ShareAnnounceDialog, NoopAnimationsModule],
+      providers: [
+        { provide: MatDialogRef, useValue: { close: vi.fn() } },
+        { provide: MAT_DIALOG_DATA, useValue: { ...baseDialogData, intent: 'availability_nudge' as const } },
+        {
+          provide: ShareAnnounceApiService,
+          useValue: { getRecipients, sendNotifications },
+        },
+        { provide: MatDialog, useValue: { open: matDialogOpen } },
+      ],
+    }).compileComponents()
+    TestBed.overrideProvider(MatDialog, { useValue: { open: matDialogOpen } })
+
+    const fixture = TestBed.createComponent(ShareAnnounceDialog)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Un rappel a déjà été envoyé')
+    })
+
+    const notifyBtn = fixture.nativeElement.querySelector(
+      '.share-announce-dialog__notify',
+    ) as HTMLButtonElement
+    notifyBtn.click()
+    await vi.waitFor(() => {
+      expect(sendNotifications).toHaveBeenCalled()
+    })
   })
 })

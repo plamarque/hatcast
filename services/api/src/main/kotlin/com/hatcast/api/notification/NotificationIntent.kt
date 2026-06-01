@@ -2,6 +2,7 @@ package com.hatcast.api.notification
 
 enum class NotificationIntent {
     AVAILABILITY_OPENED,
+    MANUAL_AVAILABILITY_NUDGE,
     CONFIRMATION_REQUEST,
     TEAM_VALIDATED_FYI,
     ASSIGNEE_PRESENCE_REMINDER,
@@ -9,6 +10,11 @@ enum class NotificationIntent {
     RECONFIRMATION_REQUEST,
     PROXY_AVAILABILITY_RECORDED,
     PROXY_CONFIRMATION_RECORDED,
+}
+
+enum class NotificationReminderWindow {
+    DAYS_7,
+    DAYS_1,
 }
 
 enum class NotificationCategory(
@@ -58,6 +64,7 @@ data class NotificationPreference(
 fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = null): NotificationCategory =
     when (this) {
         NotificationIntent.AVAILABILITY_OPENED -> NotificationCategory.AVAILABILITY_REQUEST
+        NotificationIntent.MANUAL_AVAILABILITY_NUDGE -> NotificationCategory.AVAILABILITY_REQUEST
         NotificationIntent.CONFIRMATION_REQUEST -> NotificationCategory.CONFIRMATION_REQUEST
         NotificationIntent.TEAM_VALIDATED_FYI -> NotificationCategory.TEAM_CONFIRMED
         NotificationIntent.ASSIGNEE_PRESENCE_REMINDER ->

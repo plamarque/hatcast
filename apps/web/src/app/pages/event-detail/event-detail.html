@@ -66,6 +66,7 @@
           <section class="event-detail__tab-panel">
             <app-event-dispos-tab
               [seasonId]="seasonId()"
+              [seasonSlug]="slug()"
               [troupeId]="troupeId()"
               [event]="ev"
               [currentUserId]="user()?.id ?? ''"

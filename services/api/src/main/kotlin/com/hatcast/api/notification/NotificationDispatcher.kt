@@ -72,6 +72,7 @@ class NotificationDispatcher(
                     roleKey = context.roleKey,
                     actorDisplayName = context.actorDisplayName,
                     proxyChangeSummary = context.proxyChangeSummary,
+                    customMessageBody = context.customMessageBody,
                 )
             val emailSubject = payloadBuilder.buildEmailSubject(context.intent, event)
             deliverPush(recipient.userId, category, payload, context.intent, context.eventId)
@@ -92,6 +93,8 @@ class NotificationDispatcher(
         when (context.intent) {
             NotificationIntent.AVAILABILITY_OPENED ->
                 recipientResolver.resolveConcernedRosterRecipients(context.seasonId, context.eventId)
+            NotificationIntent.MANUAL_AVAILABILITY_NUDGE ->
+                recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
             NotificationIntent.CONFIRMATION_REQUEST ->
                 if (context.assigneeParticipantIds.isNotEmpty()) {
                     recipientResolver.resolveAssigneeRecipients(context.assigneeParticipantIds)

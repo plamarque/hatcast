@@ -7,6 +7,11 @@ import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.assignedParticipantId
 import com.hatcast.api.composition.hasAssignee
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.isAvailabilityOpen
+import com.hatcast.api.notification.ManualAvailabilityNudgeProperties
+import com.hatcast.api.notification.NotificationCategory
+import com.hatcast.api.notification.NotificationRecipientResolver
+import com.hatcast.api.notification.PushNotificationEligibilityPort
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.ParticipantStatus
@@ -25,12 +30,14 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
 import java.util.UUID
 
 enum class ShareRecipientIntent {
     DRAW,
     COMPOSITION,
     EVENT,
+    AVAILABILITY_NUDGE,
     ;
 
     companion object {
@@ -39,6 +46,7 @@ enum class ShareRecipientIntent {
                 "draw" -> DRAW
                 "composition" -> COMPOSITION
                 "event" -> EVENT
+                "availability_nudge" -> AVAILABILITY_NUDGE
                 else -> null
             }
     }
@@ -56,6 +64,10 @@ class ShareRecipientsService(
     private val organizerAccess: OrganizerAccessRules,
     private val troupeAccess: TroupeAccessService,
     private val notificationPort: CompositionNotificationPort,
+    private val recipientResolver: NotificationRecipientResolver,
+    private val manualNudgeRepository: EventManualAvailabilityNudgeRepository,
+    private val pushEligibilityPort: PushNotificationEligibilityPort,
+    private val manualNudgeProperties: ManualAvailabilityNudgeProperties,
 ) {
     @Transactional(readOnly = true)
     fun getRecipients(
@@ -70,7 +82,7 @@ class ShareRecipientsService(
         validateIntentLifecycle(eventId, intent)
         val participantIds = resolveParticipantIds(seasonId, eventId, intent)
         validateAssigneePreconditions(intent, participantIds)
-        return buildResponse(eventId, participantIds)
+        return buildResponse(eventId, participantIds, intent)
     }
 
     @Transactional
@@ -93,16 +105,27 @@ class ShareRecipientsService(
         notificationPort.requestManualAnnouncement(
             eventId = eventId,
             seasonId = seasonId,
-            intent = intent.name.lowercase(),
+            intent = intentApiValue(intent),
             messagePreview = preview,
             actorUserId = principal.userId,
         )
+        if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
+            recordManualNudge(eventId, principal.userId)
+        }
         return ShareNotifyResponseDto()
     }
 
     private fun parseIntent(raw: String): ShareRecipientIntent =
         ShareRecipientIntent.parse(raw)
             ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Intent inconnu")
+
+    private fun intentApiValue(intent: ShareRecipientIntent): String =
+        when (intent) {
+            ShareRecipientIntent.DRAW -> "draw"
+            ShareRecipientIntent.COMPOSITION -> "composition"
+            ShareRecipientIntent.EVENT -> "event"
+            ShareRecipientIntent.AVAILABILITY_NUDGE -> "availability_nudge"
+        }
 
     private fun requireCanManage(
         seasonId: UUID,
@@ -120,6 +143,24 @@ class ShareRecipientsService(
     ) {
         when (intent) {
             ShareRecipientIntent.EVENT -> return
+            ShareRecipientIntent.AVAILABILITY_NUDGE -> {
+                val event =
+                    eventRepository
+                        .findById(eventId)
+                        .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
+                if (!event.isAvailabilityOpen()) {
+                    throw ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Les disponibilités ne sont pas ouvertes",
+                    )
+                }
+                if (event.archived) {
+                    throw ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Événement archivé",
+                    )
+                }
+            }
             ShareRecipientIntent.DRAW -> {
                 val validatedAt = compositionRepository.findById(eventId).map { it.validatedAt }.orElse(null)
                 if (validatedAt != null) {
@@ -149,10 +190,12 @@ class ShareRecipientsService(
             return
         }
         if (participantIds.isEmpty()) {
-            throw ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "Aucun assigné pour cet intent",
-            )
+            val message =
+                when (intent) {
+                    ShareRecipientIntent.AVAILABILITY_NUDGE -> "Aucun participant sans réponse"
+                    else -> "Aucun assigné pour cet intent"
+                }
+            throw ResponseStatusException(HttpStatus.CONFLICT, message)
         }
     }
 
@@ -163,6 +206,8 @@ class ShareRecipientsService(
     ): Set<UUID> =
         when (intent) {
             ShareRecipientIntent.EVENT -> resolveSeasonParticipantIds(seasonId)
+            ShareRecipientIntent.AVAILABILITY_NUDGE ->
+                recipientResolver.resolveUnknownAvailabilityParticipantIds(seasonId, eventId)
             ShareRecipientIntent.DRAW,
             ShareRecipientIntent.COMPOSITION,
             -> resolveAssigneeParticipantIds(eventId)
@@ -193,21 +238,42 @@ class ShareRecipientsService(
     private fun buildResponse(
         eventId: UUID,
         participantIds: Set<UUID>,
+        intent: ShareRecipientIntent,
     ): ShareRecipientsResponseDto {
+        val guardDays =
+            if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
+                manualNudgeProperties.manualAvailabilityNudgeGuardDays
+            } else {
+                null
+            }
+        val lastManualNudgeAt =
+            if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
+                manualNudgeRepository.findById(eventId).orElse(null)?.lastSentAt
+            } else {
+                null
+            }
         if (participantIds.isEmpty()) {
             return ShareRecipientsResponseDto(
                 total = 0,
                 notifiableCount = 0,
                 manualCount = 0,
                 recipients = emptyList(),
+                lastManualNudgeAt = lastManualNudgeAt,
+                guardDays = guardDays,
             )
         }
         val rows = loadParticipantRows(eventId, participantIds)
+        val nudgeIntent = intent == ShareRecipientIntent.AVAILABILITY_NUDGE
+        val pushCategory = NotificationCategory.AVAILABILITY_REQUEST
         val recipients =
             rows
                 .sortedByFrenchDisplayName { it.displayName }
                 .map { row ->
                     val hasEmail = !row.email.isNullOrBlank()
+                    val hasPush =
+                        nudgeIntent &&
+                            row.userId != null &&
+                            pushEligibilityPort.isPushAllowedForCategory(row.userId, pushCategory)
                     ShareRecipientDto(
                         participantId = row.participantId,
                         displayName = row.displayName,
@@ -215,24 +281,53 @@ class ShareRecipientsService(
                         channels =
                             ShareRecipientChannelsDto(
                                 email = hasEmail,
-                                push = false,
+                                push = hasPush,
                             ),
                     )
                 }
-        val notifiableCount = recipients.count { it.channels.email }
+        val notifiableCount =
+            if (nudgeIntent) {
+                recipients.count { it.channels.email || it.channels.push }
+            } else {
+                recipients.count { it.channels.email }
+            }
         val manualCount = recipients.size - notifiableCount
         return ShareRecipientsResponseDto(
             total = recipients.size,
             notifiableCount = notifiableCount,
             manualCount = manualCount,
             recipients = recipients,
+            lastManualNudgeAt = lastManualNudgeAt,
+            guardDays = guardDays,
         )
+    }
+
+    private fun recordManualNudge(
+        eventId: UUID,
+        actorUserId: UUID,
+    ) {
+        val now = Instant.now()
+        val existing = manualNudgeRepository.findById(eventId).orElse(null)
+        if (existing != null) {
+            existing.lastSentAt = now
+            existing.lastActorUserId = actorUserId
+            manualNudgeRepository.save(existing)
+        } else {
+            manualNudgeRepository.save(
+                EventManualAvailabilityNudgeEntity(
+                    eventId = eventId,
+                    lastSentAt = now,
+                    lastActorUserId = actorUserId,
+                ),
+            )
+        }
     }
 
     private data class ParticipantRow(
         val participantId: UUID,
         val displayName: String,
         val email: String?,
+        val userId: UUID?,
     )
 
     private fun loadParticipantRows(
@@ -247,6 +342,7 @@ class ShareRecipientsService(
                         participantId = it.id,
                         displayName = it.displayName,
                         email = it.normalizedEmail,
+                        userId = it.user?.id,
                     )
                 }
         val foundIds = seasonRows.map { it.participantId }.toSet()
@@ -259,6 +355,7 @@ class ShareRecipientsService(
                         participantId = it.id,
                         displayName = it.displayName,
                         email = it.normalizedEmail,
+                        userId = it.user?.id,
                     )
                 }
         return seasonRows + eventRows

@@ -67,6 +67,8 @@ hatcast:
     email:
       enabled: ${HATCAST_NOTIFICATION_EMAIL_ENABLED:false}
       from: ${HATCAST_NOTIFICATION_EMAIL_FROM:HatCast <noreply@hatcast.app>}
+  notifications:
+    manual-availability-nudge-guard-days: ${HATCAST_MANUAL_AVAILABILITY_NUDGE_GUARD_DAYS:3}
 
 management:
   endpoints:

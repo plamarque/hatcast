@@ -2,7 +2,7 @@ import { ROLE_DISPLAY_ORDER, type RoleKey } from '../events/event-types'
 import { roleEmoji, roleLabelSingular } from '../../shared/event-roles/event-roles'
 import { buildEventUrls } from './event-urls'
 
-export type ShareAnnounceIntent = 'draw' | 'composition' | 'event'
+export type ShareAnnounceIntent = 'draw' | 'composition' | 'event' | 'availability_nudge'
 
 export interface RoleAssignmentLine {
   roleKey: RoleKey
@@ -95,6 +95,20 @@ Es-tu dispo le ${params.eventDate} pour ${params.eventTitle} ?
 Lien direct : ${params.eventUrl}`
 }
 
+export function buildAvailabilityReminderMessage(params: {
+  eventTitle: string
+  eventDate: string
+  eventUrl: string
+}): string {
+  return `⏰ Rappel disponibilité
+
+N'oublie pas de répondre pour ${params.eventTitle} le ${params.eventDate} !
+
+✅ Dispo ❌ Pas dispo
+
+Lien direct : ${params.eventUrl}`
+}
+
 export function buildDefaultShareMessage(params: {
   intent: ShareAnnounceIntent
   origin: string
@@ -129,6 +143,12 @@ export function buildDefaultShareMessage(params: {
         eventTitle: params.eventTitle,
         eventDate,
         eventUrl,
+      })
+    case 'availability_nudge':
+      return buildAvailabilityReminderMessage({
+        eventTitle: params.eventTitle,
+        eventDate,
+        eventUrl: `${eventUrl}?tab=dispos`,
       })
   }
 }

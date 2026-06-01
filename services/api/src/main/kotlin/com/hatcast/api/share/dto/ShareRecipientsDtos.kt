@@ -2,6 +2,7 @@ package com.hatcast.api.share.dto
 
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import java.time.Instant
 import java.util.UUID
 
 data class ShareRecipientChannelsDto(
@@ -21,6 +22,8 @@ data class ShareRecipientsResponseDto(
     val notifiableCount: Int,
     val manualCount: Int,
     val recipients: List<ShareRecipientDto>,
+    val lastManualNudgeAt: Instant? = null,
+    val guardDays: Int? = null,
 )
 
 data class ShareNotifyRequestDto(
