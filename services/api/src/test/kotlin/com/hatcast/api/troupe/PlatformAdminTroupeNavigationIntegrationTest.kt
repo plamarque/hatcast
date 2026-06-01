@@ -11,7 +11,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.http.MediaType
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
@@ -94,6 +97,28 @@ class PlatformAdminTroupeNavigationIntegrationTest {
             .andExpect(jsonPath("$.canManageSeasonParticipants").value(true))
             .andExpect(jsonPath("$.canManageMembers").value(true))
             .andExpect(jsonPath("$.isTroupeAdmin").value(true))
+    }
+
+    @Test
+    fun `platform admin manages season participants without troupe membership`() {
+        val cookie = platformAdminCookie()
+        val operatorEmail = "platform-operator-participant@hatcast.test"
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seedSeasonId/participants")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Platform Operator","email":"$operatorEmail"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.displayName").value("Platform Operator"))
+            .andExpect(jsonPath("$.email").value(operatorEmail))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seedSeasonId/participants").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == '$operatorEmail')].displayName").value("Platform Operator"))
     }
 
     private fun platformAdminCookie(): Cookie =

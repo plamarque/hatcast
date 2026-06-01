@@ -174,6 +174,84 @@ describe('AdminParticipants', () => {
     })
   })
 
+  it('allows platform admin without season permissions to manage participants', async () => {
+    const router = { navigate: vi.fn().mockResolvedValue(true) }
+    const listSeasonParticipants = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [guest],
+    })
+
+    await TestBed.configureTestingModule({
+      imports: [AdminParticipants, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: paramMap$.asObservable() },
+        },
+        { provide: Router, useValue: router },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: {
+                user: { email: 'platform@example.com', displayName: 'Platform' },
+                platformAdmin: true,
+              },
+            }),
+          },
+        },
+        {
+          provide: TroupeSeasonResolverService,
+          useValue: {
+            resolveSeasonSlug: vi.fn().mockResolvedValue({
+              kind: 'resolved',
+              troupe: { id: 't1', name: 'Ma Troupe', slug: 't1' },
+              season: season('s1'),
+            }),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: { selectTroupe: vi.fn(), currentUserDisplayLabel: () => 'Platform' },
+        },
+        {
+          provide: OrganizerApiService,
+          useValue: {
+            mySeasonPermissions: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: noPermissions(),
+            }),
+            listSeasonOrganizers: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+          },
+        },
+        {
+          provide: TroupeApiService,
+          useValue: { deactivateMember: vi.fn() },
+        },
+        {
+          provide: ParticipantApiService,
+          useValue: { listSeasonParticipants, removeSeasonParticipant: vi.fn() },
+        },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(AdminParticipants)
+    fixture.detectChanges()
+    await waitForPageLoad(fixture)
+    fixture.detectChanges()
+
+    expect(router.navigate).not.toHaveBeenCalled()
+    expect(listSeasonParticipants).toHaveBeenCalled()
+    expect(text(fixture)).toContain('Ajouter')
+  })
+
   it('shows breadcrumb without back chevron when authorized', async () => {
     const { fixture } = await setup(participantsAdmin())
     const el = fixture.nativeElement as HTMLElement

@@ -102,6 +102,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
   protected readonly troupeSlug = signal<string | null>(null)
   protected readonly troupeLogoUrl = signal<string | null>(null)
   protected readonly permissions = signal<MySeasonPermissions | null>(null)
+  protected readonly platformAdmin = signal(false)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly participants = signal<SeasonParticipantAdmin[]>([])
   protected readonly seasonOrganizers = signal<OrganizerResponse[]>([])
@@ -119,7 +120,8 @@ export class AdminParticipants implements OnDestroy, OnInit {
     () => this.permissions()?.canManageSeasonOrganizers === true,
   )
   protected readonly canManageSeasonParticipants = computed(
-    () => this.permissions()?.canManageSeasonParticipants === true,
+    () =>
+      this.platformAdmin() || this.permissions()?.canManageSeasonParticipants === true,
   )
   protected readonly canManageMembers = computed(
     () => this.permissions()?.canManageMembers === true,
@@ -164,6 +166,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
     if (session.data?.user) {
       this.user.set(session.data.user)
     }
+    this.platformAdmin.set(session.data?.platformAdmin === true)
     this.routeSubscription = this.route.paramMap
       .pipe(
         map((p) => p.get('slug') ?? ''),
@@ -520,6 +523,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
     const perms = pr.ok && pr.data ? pr.data : null
     this.permissions.set(perms)
     const canAccess =
+      this.platformAdmin() ||
       perms?.canManageSeasonParticipants === true ||
       perms?.canManageSeasonOrganizers === true
     if (!canAccess) {
@@ -531,7 +535,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
 
     await this.reloadSeasonOrganizers()
 
-    if (perms?.canManageSeasonParticipants) {
+    if (this.canManageSeasonParticipants()) {
       const list = await this.participantApi.listSeasonParticipants(resolved.season.id)
       if (requestId !== this.loadRequestId) return
       if (list.ok && list.data) {
