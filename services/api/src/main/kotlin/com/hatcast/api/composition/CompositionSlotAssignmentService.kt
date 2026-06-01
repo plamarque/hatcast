@@ -47,6 +47,7 @@ class CompositionSlotAssignmentService(
     private val compositionService: CompositionService,
     private val notificationPort: CompositionNotificationPort,
     private val auditRecorder: AuditEventRecorder,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional(readOnly = true)
     fun getCandidates(
@@ -160,6 +161,7 @@ class CompositionSlotAssignmentService(
 
         val composition =
             compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
+        val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val isLocked = composition?.validatedAt != null
         val now = Instant.now()
         val participantId = body.participantId
@@ -213,6 +215,7 @@ class CompositionSlotAssignmentService(
             recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
         }
 
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
 

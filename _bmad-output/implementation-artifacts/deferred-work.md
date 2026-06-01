@@ -383,3 +383,12 @@
 
 - Dead branch in `onSlotRowClick` foreign-slot snackbar (`event-equipe-tab.ts:337-344`) — readonly button path makes it unreachable; harmless cleanup.
 - Unlinked viewer (`viewerParticipantIds` empty) sees static foreign slots without snackbar (`event-equipe-tab.html:151-168`) — edge case outside typical linked-member flow.
+
+## Deferred from: code review of 9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorises.md (2026-06-01)
+
+- Séparateurs jour dupliqués/manquants entre pages paginées (`audit-journal-list.ts`) — cosmétique pagination.
+- `mat-datepicker` vs `<input type="date">` (`admin-audit.html`) — M3-1 partiel acceptable.
+- Chip périmètre + H1 mobile absents sur admin-audit (`admin-audit.html`) — polish layout M3-4.
+- Index page API non plafonné (`AuditEventController.kt:29`) — risque faible avec volume audit actuel.
+- Appel `listSeasonParticipants` systématique sur fiche spectacle (`event-detail.ts`) — perf polish.
+- Label jour DST dans `audit-day-label.ts` — edge case rare.

@@ -16,4 +16,9 @@ export class AvailabilitySubjectSelector {
   readonly disabled = input(false)
 
   readonly selectedParticipantIdChange = output<string>()
+
+  protected emitSelection(participantId: string): void {
+    if (participantId === this.selectedParticipantId()) return
+    this.selectedParticipantIdChange.emit(participantId)
+  }
 }

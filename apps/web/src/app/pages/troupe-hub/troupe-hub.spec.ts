@@ -539,7 +539,7 @@ describe('TroupeHub', () => {
     const items = (fixture.componentInstance as unknown as { troupeAdminItems(): { label: string }[] })
       .troupeAdminItems()
       .map((item) => item.label)
-    expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres'])
+    expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres', "Journal d'audit"])
   })
 
   it('links Membres to canonical troupe admin path', async () => {
@@ -566,7 +566,7 @@ describe('TroupeHub', () => {
     const items = (fixture.componentInstance as unknown as { troupeAdminItems(): { label: string }[] })
       .troupeAdminItems()
       .map((item) => item.label)
-    expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres'])
+    expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres', "Journal d'audit"])
   })
 
   it('shows access denied for public slug without membership', async () => {

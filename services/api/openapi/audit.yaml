@@ -1,0 +1,228 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Audit trail read (fragment)
+  description: >
+    Consultation paginée de la piste d'audit pour administrateurs et organisateurs autorisés (Story 9.1).
+    Authentification par cookie de session. Lecture seule — pas de CSRF requis.
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Audit
+
+paths:
+  /audit/events:
+    get:
+      tags: [Audit]
+      summary: Liste paginée des événements d'audit
+      description: >
+        Retourne les entrées d'audit visibles pour l'appelant, triées par `occurredAt` décroissant.
+        Au moins un scope (`troupeId`, `seasonId`, ou `eventId`) est requis implicitement via les filtres.
+      parameters:
+        - name: troupeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: seasonId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: actionType
+          in: query
+          schema:
+            $ref: '#/components/schemas/AuditActionType'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: participantSeasonParticipantId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: participantEventParticipantId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAuditEventsResponse'
+        '400':
+          description: Paramètres invalides
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+
+components:
+  schemas:
+    AuditActionType:
+      type: string
+      enum:
+        - AVAILABILITY_CREATED
+        - AVAILABILITY_UPDATED
+        - AVAILABILITY_DELETED
+        - EVENT_CREATED
+        - EVENT_UPDATED
+        - EVENT_ARCHIVED
+        - EVENT_UNARCHIVED
+        - EVENT_AVAILABILITY_OPENED
+        - SEASON_PARTICIPANT_ADDED
+        - SEASON_PARTICIPANT_REACTIVATED
+        - SEASON_PARTICIPANT_UPDATED
+        - SEASON_PARTICIPANT_REMOVED
+        - EVENT_PARTICIPANT_ADDED
+        - EVENT_PARTICIPANT_UPDATED
+        - EVENT_PARTICIPANT_REMOVED
+        - EVENT_ROSTER_EXCLUDED
+        - EVENT_ROSTER_INCLUDED
+        - TROUPE_MEMBER_ADDED
+        - TROUPE_MEMBER_UPDATED
+        - TROUPE_MEMBER_DEACTIVATED
+        - SEASON_ORGANIZER_GRANTED
+        - SEASON_ORGANIZER_REVOKED
+        - EVENT_ORGANIZER_GRANTED
+        - EVENT_ORGANIZER_REVOKED
+        - COMPOSITION_PUBLISHED
+        - COMPOSITION_VALIDATED
+        - COMPOSITION_UNLOCKED
+        - COMPOSITION_DRAW_COMPLETED
+        - COMPOSITION_LIFECYCLE_CHANGED
+        - SLOT_ASSIGNED
+        - SLOT_CLEARED
+        - PARTICIPATION_CONFIRMED
+        - PARTICIPATION_DECLINED
+        - PARTICIPATION_RESET
+        - DECLINE_RESTORED
+
+    AuditIdentity:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        seasonParticipantId:
+          type: string
+          format: uuid
+        eventParticipantId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        email:
+          type: string
+          description: Obfuscated display hint when present (prefer userId for identity)
+        avatarUrl:
+          type: string
+          nullable: true
+      required: [displayName]
+
+    AuditScope:
+      type: object
+      properties:
+        troupeId:
+          type: string
+          format: uuid
+        seasonId:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
+        seasonTitle:
+          type: string
+        eventTitle:
+          type: string
+
+    AuditEventRow:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time
+        actionType:
+          $ref: '#/components/schemas/AuditActionType'
+        actionLabel:
+          type: string
+        actor:
+          $ref: '#/components/schemas/AuditIdentity'
+          nullable: true
+        subject:
+          $ref: '#/components/schemas/AuditIdentity'
+          nullable: true
+        scope:
+          $ref: '#/components/schemas/AuditScope'
+        before:
+          type: object
+          additionalProperties: true
+          nullable: true
+        after:
+          type: object
+          additionalProperties: true
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+        relatedParticipantLabels:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+      required: [id, occurredAt, actionType, actionLabel, scope]
+
+    PagedAuditEventsResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEventRow'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+      required: [content, page, size, totalElements, totalPages]

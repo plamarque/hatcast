@@ -21,6 +21,9 @@ export interface MySeasonPermissions {
   isSeasonOrganizer: boolean
   eventOrganizerFor: string[]
   eventParticipantAdminFor: string[]
+  canViewAuditTroupe?: boolean
+  canViewAuditSeason?: boolean
+  canViewAuditEvent?: boolean
 }
 
 type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>

@@ -51,6 +51,7 @@ class CompositionService(
     private val eventPublisher: ApplicationEventPublisher,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val auditRecorder: AuditEventRecorder,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -96,6 +97,7 @@ class CompositionService(
         }
 
         val alreadyPublished = composition.publishedAt != null
+        val beforeRawLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         if (!alreadyPublished) {
             val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
             val slots = slotRepository.findByEventId(eventId)
@@ -127,6 +129,7 @@ class CompositionService(
             )
         }
 
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 
@@ -152,6 +155,7 @@ class CompositionService(
             throw ResponseStatusException(HttpStatus.CONFLICT, "Aucun rôle assigné à valider")
         }
 
+        val beforeRawLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val alreadyValidated = composition.validatedAt != null
         if (!alreadyValidated) {
             val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
@@ -181,6 +185,7 @@ class CompositionService(
             )
         }
 
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 
@@ -204,6 +209,7 @@ class CompositionService(
             throw ResponseStatusException(HttpStatus.CONFLICT, "La composition n'est pas validée")
         }
 
+        val beforeRawLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
         val now = Instant.now()
         composition.validatedAt = null
@@ -236,6 +242,7 @@ class CompositionService(
             ),
         )
 
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 

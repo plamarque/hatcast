@@ -30,10 +30,12 @@ const MEMBER_NAV_PATH_PATTERNS: RegExp[] = [
   /^\/membre\/[^/]+$/,
   /^\/troupes\/[^/]+$/,
   /^\/troupes\/[^/]+\/admin\/membres$/,
+  /^\/troupes\/[^/]+\/admin\/audit$/,
   /^\/troupe\/admin\/membres$/,
   /^\/saison\/[^/]+$/,
   /^\/saison\/[^/]+\/admin\/membres$/,
   /^\/saison\/[^/]+\/admin\/participants$/,
+  /^\/saison\/[^/]+\/admin\/audit$/,
   /^\/saison\/[^/]+\/event\/[^/]+$/,
   /^\/saison\/[^/]+\/event\/[^/]+\/admin\/participants$/,
 ]

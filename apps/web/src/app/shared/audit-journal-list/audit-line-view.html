@@ -1,0 +1,88 @@
+<article
+  class="audit-line"
+  [class.audit-line--indented]="line().indent"
+  [class.audit-line--has-actor-badge]="line().showActorBadge"
+  [class.audit-line--proxy]="line().actorBadgeMode === 'proxy'"
+  [attr.title]="line().fullText"
+  [attr.aria-label]="line().fullText"
+>
+  @if (line().showActorBadge && line().actorBadge; as actor) {
+    <span
+      class="audit-line__actor-badge-wrap"
+      [class.audit-line__actor-badge-wrap--flip]="actorPopoverFlipped(line())"
+    >
+      <button
+        type="button"
+        class="audit-line__actor-badge"
+        [class.audit-line__actor-badge--proxy]="line().actorBadgeMode === 'proxy'"
+        [class.audit-line__actor-badge--open]="actorPopoverOpen()"
+        [attr.aria-expanded]="actorPopoverOpen()"
+        aria-haspopup="dialog"
+        [attr.aria-label]="actorAriaLabel(actor, line().actorBadgeMode)"
+        (click)="toggleActorPopover($event)"
+      >
+        <app-user-avatar
+          class="audit-line__actor-badge-avatar"
+          [style.--user-avatar-size.px]="24"
+          [displayName]="actor.displayName"
+          [avatarUrl]="actor.avatarUrl"
+          [size]="24"
+        />
+      </button>
+
+      @if (actorPopoverOpen()) {
+        <div
+          class="audit-line__actor-popover"
+          role="dialog"
+          aria-modal="false"
+          [attr.aria-label]="actorAriaLabel(actor, line().actorBadgeMode)"
+          (click)="$event.stopPropagation()"
+        >
+          <p class="audit-line__actor-popover-lead">
+            {{ actorPopoverLead(line().actorBadgeMode) }}
+          </p>
+          <p class="audit-line__actor-popover-person">
+            <app-user-avatar
+              [displayName]="actor.displayName"
+              [avatarUrl]="actor.avatarUrl"
+              [size]="24"
+            />
+            <span class="audit-line__actor-popover-name">{{ actor.displayName }}</span>
+          </p>
+        </div>
+      }
+    </span>
+  }
+
+  <header class="audit-line__head">
+    <time class="audit-line__time">{{ line().timeLabel }}</time>
+
+    @if (line().showSubject && line().subject; as subject) {
+      <span class="audit-line__person">
+        <app-user-avatar
+          [displayName]="subject.displayName"
+          [avatarUrl]="subject.avatarUrl"
+          [size]="24"
+        />
+        <span class="audit-line__person-name">{{ subject.displayName }}</span>
+      </span>
+    }
+
+    @if (line().actionHint) {
+      <span class="audit-line__action-hint">{{ line().actionHint }}</span>
+    }
+  </header>
+
+  @if (line().transition || line().pills.length > 0) {
+    <div class="audit-line__visuals">
+      @if (line().transition; as tr) {
+        <span [class]="pillClass(tr.before.tone)">{{ tr.before.text }}</span>
+        <span class="audit-line__arrow" aria-hidden="true">→</span>
+        <span [class]="pillClass(tr.after.tone)">{{ tr.after.text }}</span>
+      }
+      @for (pill of line().pills; track trackPill(pill)) {
+        <span [class]="pillClass(pill.tone)">{{ pill.text }}</span>
+      }
+    </div>
+  }
+</article>

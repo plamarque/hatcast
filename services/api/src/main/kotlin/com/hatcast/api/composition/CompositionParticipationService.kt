@@ -37,6 +37,7 @@ class CompositionParticipationService(
     private val organizerAccess: OrganizerAccessRules,
     private val compositionService: CompositionService,
     private val auditRecorder: AuditEventRecorder,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional
     fun updateParticipation(
@@ -116,6 +117,7 @@ class CompositionParticipationService(
 
         val now = Instant.now()
         val beforeStatus = slotEntity.participationStatus
+        val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val subjectSeasonParticipantId = slotEntity.seasonParticipantId
         val subjectEventParticipantId = slotEntity.eventParticipantId
         when (participationStatus) {
@@ -172,6 +174,7 @@ class CompositionParticipationService(
                 metadata = mapOf("assigneeParticipantId" to assigneeId.toString()),
             ),
         )
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
 
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }

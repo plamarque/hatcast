@@ -1,0 +1,42 @@
+<section class="audit-journal-list" aria-live="polite">
+  @if (loading()) {
+    <div class="audit-journal-list__spinner" role="status">
+      <mat-spinner diameter="36" />
+    </div>
+  } @else if (error()) {
+    <div class="audit-journal-list__message audit-journal-list__message--error">
+      <p>Impossible de charger le journal. Réessaie.</p>
+      <button mat-stroked-button type="button" (click)="retry.emit()">Réessaie</button>
+    </div>
+  } @else if (rows().length === 0) {
+    <p class="audit-journal-list__message">{{ emptyLabel() }}</p>
+  } @else {
+    <ul class="audit-journal-list__entries">
+      @for (item of listItems(); track item.track) {
+        @if (item.type === 'day') {
+          <li class="audit-journal-list__day-divider" aria-hidden="true">
+            <span class="audit-journal-list__day-line" aria-hidden="true"></span>
+            <span class="audit-journal-list__day-pill">{{ item.label }}</span>
+            <span class="audit-journal-list__day-line" aria-hidden="true"></span>
+          </li>
+        } @else {
+          <li
+            class="audit-journal-list__entry"
+            [class.audit-journal-list__entry--proxy]="item.line.actorBadgeMode === 'proxy'"
+          >
+            <app-audit-line-view [line]="item.line" />
+          </li>
+        }
+      }
+    </ul>
+    <mat-paginator
+      class="audit-journal-list__paginator"
+      [length]="totalElements()"
+      [pageIndex]="page()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 25, 50, 100]"
+      aria-label="Pagination du journal d'audit"
+      (page)="onPage($event)"
+    />
+  }
+</section>

@@ -27,6 +27,7 @@ import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visite
 import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
+  saisonAdminAuditPath,
   saisonEventPath,
   saisonWorkspacePath,
 } from '../../core/navigation/troupe-routes'
@@ -318,6 +319,10 @@ export class SeasonHome implements OnDestroy, OnInit {
     return permissions?.isTroupeAdmin === true || permissions?.isSeasonOrganizer === true
   })
 
+  protected readonly canViewAuditSeason = computed(() => {
+    const permissions = this.seasonPermissions()
+    return permissions?.canViewAuditSeason === true
+  })
   protected readonly seasonAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     const slug = this.slug()
     if (!slug) {
@@ -358,6 +363,13 @@ export class SeasonHome implements OnDestroy, OnInit {
         label: 'Exporter',
         icon: 'download',
         action: () => void this.exportSeasonStatisticsCsv(),
+      })
+    }
+    if (this.canViewAuditSeason()) {
+      items.push({
+        label: "Journal d'audit",
+        icon: 'history',
+        routerLink: saisonAdminAuditPath(slug),
       })
     }
     return items

@@ -248,6 +248,11 @@ class OrganizerAccessService(
         val season = loadSeason(seasonId)
         troupeAccess.requireActiveMember(principal, season.troupe.id)
         val troupeAdmin = isTroupeAdminForSeason(season, principal)
+        val seasonOrganizer = isSeasonOrganizer(seasonId, principal)
+        val eventOrganizerFor =
+            eventOrganizerRepository
+                .findByEvent_Season_IdAndUser_Id(seasonId, principal.userId)
+                .map { it.event.id }
         return MySeasonPermissionsDto(
             canManageSeasonOrganizers = troupeAdmin,
             canManageEventOrganizers = troupeAdmin,
@@ -257,19 +262,17 @@ class OrganizerAccessService(
             canManageSeasonParticipants = troupeAdmin,
             canManageEventParticipants = troupeAdmin,
             isTroupeAdmin = troupeAdmin,
-            isSeasonOrganizer = isSeasonOrganizer(seasonId, principal),
-            eventOrganizerFor =
-                eventOrganizerRepository
-                    .findByEvent_Season_IdAndUser_Id(seasonId, principal.userId)
-                    .map { it.event.id },
+            isSeasonOrganizer = seasonOrganizer,
+            eventOrganizerFor = eventOrganizerFor,
             eventParticipantAdminFor =
                 if (troupeAdmin) {
                     emptyList()
                 } else {
-                    eventOrganizerRepository
-                        .findByEvent_Season_IdAndUser_Id(seasonId, principal.userId)
-                        .map { it.event.id }
+                    eventOrganizerFor
                 },
+            canViewAuditTroupe = troupeAdmin,
+            canViewAuditSeason = troupeAdmin || seasonOrganizer,
+            canViewAuditEvent = troupeAdmin || seasonOrganizer || eventOrganizerFor.isNotEmpty(),
         )
     }
 

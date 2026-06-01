@@ -1,0 +1,36 @@
+<section class="event-activite-tab">
+  <div class="event-activite-tab__toolbar">
+    @if (canSwitchSubject() && viewMode() === 'moi') {
+      <app-availability-subject-selector
+        [participants]="selectors()"
+        [selectedParticipantId]="subjectParticipantId()"
+        (selectedParticipantIdChange)="onSubjectChange($event)"
+      />
+    }
+    @if (showTousToggle()) {
+      <mat-button-toggle-group
+        class="event-activite-tab__mode-toggle"
+        [value]="viewMode()"
+        (change)="setViewMode($any($event.value))"
+        hideSingleSelectionIndicator
+        aria-label="Filtrer le journal d'activité"
+      >
+        <mat-button-toggle value="moi">Moi</mat-button-toggle>
+        <mat-button-toggle value="tous">Tous</mat-button-toggle>
+      </mat-button-toggle-group>
+    }
+  </div>
+
+  <app-audit-journal-list
+    [rows]="rows()"
+    [loading]="loading()"
+    [error]="loadError()"
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [totalElements]="totalElements()"
+    [formatOptions]="formatOptions()"
+    [emptyLabel]="emptyLabel()"
+    (pageChange)="onPage($event)"
+    (retry)="retryLoad()"
+  />
+</section>

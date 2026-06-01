@@ -14,6 +14,7 @@ import { DEMO_TROUPE_SLUG } from '../../core/troupes/demo-troupe.constants'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   saisonWorkspacePath,
+  troupeAdminAuditPath,
   troupeAdminMembresPath,
   troupesListPath,
 } from '../../core/navigation/troupe-routes'
@@ -114,6 +115,9 @@ export class TroupeHub implements OnInit, OnDestroy {
       !this.showArchived(),
   )
 
+  protected readonly canViewAuditTroupe = computed(
+    () => this.canManageTroupe() || this.platformAdmin(),
+  )
   protected readonly troupeAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     if (!this.canManageTroupe()) {
       return []
@@ -122,7 +126,7 @@ export class TroupeHub implements OnInit, OnDestroy {
     if (!slug) {
       return []
     }
-    return [
+    const items: ScopeAdminMenuItem[] = [
       {
         label: 'Modifier',
         icon: 'edit',
@@ -139,6 +143,14 @@ export class TroupeHub implements OnInit, OnDestroy {
         routerLink: troupeAdminMembresPath(slug),
       },
     ]
+    if (this.canViewAuditTroupe()) {
+      items.push({
+        label: "Journal d'audit",
+        icon: 'history',
+        routerLink: troupeAdminAuditPath(slug),
+      })
+    }
+    return items
   })
 
   protected readonly troupesListLink = troupesListPath()

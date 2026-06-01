@@ -88,6 +88,7 @@ class SecurityConfig(
                         "/v1/troupes/**",
                         "/v1/seasons/**",
                         "/v1/admin/**",
+                        "/v1/audit/**",
                     ).authenticated()
                     .anyRequest().denyAll()
             }.exceptionHandling { ex ->

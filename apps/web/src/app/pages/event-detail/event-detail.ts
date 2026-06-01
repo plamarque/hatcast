@@ -23,6 +23,9 @@ import {
 } from '../../core/permissions/organizer-api.service'
 import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import {
+  ParticipantApiService,
+} from '../../core/participants/participant-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   saisonEventParticipantsAdminPath,
@@ -40,6 +43,7 @@ import {
   type EventFormDialogData,
 } from '../season-home/event-form-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
+import { EventActiviteTab } from '../../shared/availability/event-activite-tab'
 import { EventDetailHeader } from './event-detail-header'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
 import { computeCompositionLifecycleView } from '../../core/composition/composition-lifecycle'
@@ -57,6 +61,7 @@ import { EventInfosTab } from './event-infos-tab'
     MatTabsModule,
     EventDetailHeader,
     EventDisposTab,
+    EventActiviteTab,
     EventEquipeTab,
     EventInfosTab,
   ],
@@ -66,6 +71,7 @@ import { EventInfosTab } from './event-infos-tab'
 export class EventDetail implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
+  private readonly participantApi = inject(ParticipantApiService)
   private readonly eventsApi = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly route = inject(ActivatedRoute)
@@ -92,6 +98,8 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly canSwitchSubject = signal(false)
+  protected readonly linkedParticipantId = signal<string | null>(null)
+  protected readonly linkedParticipantName = signal<string | null>(null)
   protected readonly activeTab = signal<EventDetailTab>('infos')
   protected readonly organizersReloadTrigger = signal(0)
   protected readonly showConfirmPending = signal(false)
@@ -161,6 +169,23 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!ev || !perms) return false
     return canManageCompositionForEvent(perms, ev.id)
   })
+  protected readonly canViewAuditEvent = computed(() => {
+    const ev = this.event()
+    const perms = this.seasonPermissions()
+    if (!ev || !perms) return false
+    return perms.canViewAuditSeason === true ||
+      (perms.canViewAuditEvent === true && perms.eventOrganizerFor.includes(ev.id))
+  })
+  protected readonly showActiviteTab = computed(
+    () => this.canViewAuditEvent() || !!this.linkedParticipantId(),
+  )
+  protected readonly visibleTabs = computed((): EventDetailTab[] => {
+    const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
+    if (this.showActiviteTab()) {
+      tabs.push('activite')
+    }
+    return tabs
+  })
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
     if (!session.ok) {
@@ -211,8 +236,7 @@ export class EventDetail implements OnDestroy, OnInit {
   }
 
   protected onTabChange(index: number): void {
-    const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
-    const tab = tabs[index] ?? 'infos'
+    const tab = this.visibleTabs()[index] ?? 'infos'
     this.activeTab.set(tab)
     void this.router.navigate([], {
       relativeTo: this.route,
@@ -223,8 +247,7 @@ export class EventDetail implements OnDestroy, OnInit {
   }
 
   protected tabIndex(): number {
-    const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
-    return Math.max(0, tabs.indexOf(this.activeTab()))
+    return Math.max(0, this.visibleTabs().indexOf(this.activeTab()))
   }
 
   protected openEventParticipantsAdmin(): void {
@@ -259,6 +282,7 @@ export class EventDetail implements OnDestroy, OnInit {
         mode: 'edit',
         seasonId,
         event: ev,
+        canManagePublication: this.canManageComposition(),
       },
       width: 'min(100vw - 2rem, 28rem)',
     })
@@ -429,11 +453,12 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextLeagueTitle.set(resolved.season.title)
     this.contextSeasonSlug.set(resolved.season.slug)
     const isUuidSegment = UUID_IN_PATH_REGEX.test(routeSegment)
-    const [eventResult, permissionsResult] = await Promise.all([
+    const [eventResult, permissionsResult, participantsResult] = await Promise.all([
       isUuidSegment
         ? this.eventsApi.getEvent(resolved.season.id, routeSegment)
         : this.eventsApi.getEventBySlug(resolved.season.id, routeSegment),
       this.organizerApi.mySeasonPermissions(resolved.season.id),
+      this.participantApi.listSeasonParticipants(resolved.season.id),
     ])
 
     if (requestId !== this.loadRequestId) {
@@ -443,6 +468,9 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!eventResult.ok || !eventResult.data) {
       this.resetResolvedContext()
       this.snack.open('Spectacle introuvable.', 'OK', { duration: 6000 })
+      if (eventResult.status === 404 && resolved.season.slug) {
+        await this.router.navigate(saisonWorkspacePath(resolved.season.slug))
+      }
       return
     }
     const found = eventResult.data
@@ -461,6 +489,26 @@ export class EventDetail implements OnDestroy, OnInit {
         ? canManageCompositionForEvent(permissionsResult.data, found.id)
         : false,
     )
+    const userId = this.user()?.id
+    const linked =
+      participantsResult.ok && participantsResult.data && userId
+        ? participantsResult.data.find((p) => p.userId === userId && p.status === 'ACTIVE') ?? null
+        : null
+    this.linkedParticipantId.set(linked?.id ?? null)
+    this.linkedParticipantName.set(linked?.displayName ?? null)
+    this.clampActiveTab()
+  }
+
+  private clampActiveTab(): void {
+    if (this.activeTab() === 'activite' && !this.showActiviteTab()) {
+      this.activeTab.set('infos')
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { tab: eventDetailTabToQuery('infos') },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      })
+    }
   }
 
   private resetResolvedContext(): void {

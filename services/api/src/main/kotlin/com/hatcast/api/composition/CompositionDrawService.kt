@@ -51,6 +51,7 @@ class CompositionDrawService(
     private val notificationPort: CompositionNotificationPort,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val auditRecorder: AuditEventRecorder,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional
     fun drawComposition(
@@ -83,6 +84,7 @@ class CompositionDrawService(
         }
 
         val now = Instant.now()
+        val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val compositionRow =
             composition
                 ?: compositionRepository.save(
@@ -325,6 +327,7 @@ class CompositionDrawService(
 
         val compositionResponse =
             compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
         return CompositionDrawResponseDto(composition = compositionResponse, steps = steps)
     }
 

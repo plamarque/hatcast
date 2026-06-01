@@ -11,6 +11,7 @@ import { EventDetail } from './pages/event-detail/event-detail';
 import { AdminMembres } from './pages/admin-membres/admin-membres';
 import { AdminParticipants } from './pages/admin-participants/admin-participants';
 import { AdminEventParticipants } from './pages/admin-event-participants/admin-event-participants';
+import { AdminAudit } from './pages/admin-audit/admin-audit';
 import { SeasonHome } from './pages/season-home/season-home';
 import { MemberSeasonGlance } from './pages/member-season-glance/member-season-glance';
 import { UserAgenda } from './pages/user-agenda/user-agenda';
@@ -49,6 +50,7 @@ export const routes: Routes = [
       { path: 'compte', component: AccountPlaceholder },
       { path: 'troupes', component: TroupesList },
       { path: 'troupes/:slug/admin/membres', component: AdminMembres },
+      { path: 'troupes/:slug/admin/audit', component: AdminAudit, data: { auditScope: 'troupe' } },
       { path: 'troupes/:slug', component: TroupeHub },
       { path: 'troupe/admin/membres', component: AdminMembres },
       {
@@ -58,6 +60,7 @@ export const routes: Routes = [
       { path: 'saison/:slug/event/:eventSlug', component: EventDetail },
       { path: 'saison/:slug/admin/membres', component: AdminMembres },
       { path: 'saison/:slug/admin/participants', component: AdminParticipants },
+      { path: 'saison/:slug/admin/audit', component: AdminAudit, data: { auditScope: 'season' } },
       { path: 'saison/:slug', component: SeasonHome },
     ],
   },

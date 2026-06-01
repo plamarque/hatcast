@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-01T03:52:00+02:00
+# last_updated: 2026-06-01T13:20:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-01T03:52:00+02:00"
+last_updated: "2026-06-01T20:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -76,7 +76,7 @@ development_status:
   2-10-liste-membres-corriger-n1-emails: done
   epic-2-retrospective: done
 
-  epic-3: done
+  epic-3: in-progress  # 3.21 draft/publish — SCP 2026-06-01 notifications
   3-1-gestion-des-saisons-creation-edition-archivage-et-liste-saisons: done
   3-2-spectacles-dans-la-saison-et-liste-pour-les-membres: done
   3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historique: done
@@ -88,6 +88,7 @@ development_status:
   3-8-rosters-participants-saison-et-evenement: done
   3-19-retrait-roster-saison-sans-desactivation-troupe: done
   3-20-statistiques-cellules-evenement-participation-couleur-emoji: done
+  3-21-brouillon-evenement-et-publication-ouverture-dispos: review  # P0 MEP — blocks 8.3
   epic-3-retrospective: optional
 
   epic-4: in-progress
@@ -117,6 +118,7 @@ development_status:
   6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: done
   6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: done
   6-10-partage-et-annonce-message-editable-canaux: done
+  6-10b-rappel-manuel-disponibilite-garde-anti-spam: backlog  # P1 — SCP 2026-06-01
   6-11-retour-visuel-et-performances-onglet-equipe: done
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
   6-13-publish-notifications-hors-transaction: done
@@ -130,13 +132,15 @@ development_status:
 
   epic-8: in-progress
   8-1-opt-in-aux-notifications-navigateur-et-categories: done
-  8-2-preferences-de-notification: backlog
-  8-3-notifications-aux-jalons-metier-dispos-composition-confirmations: backlog
+  8-2-preferences-de-notification: ready-for-dev  # P1 — categories for 8.5 FYI opt-out
+  8-3-notifications-mep-dispos-et-confirmation-assignes: backlog  # P0 MEP — depends 3.21
+  8-4-notifications-ops-organisateurs: backlog  # P2 post-MEP — FR31b
+  8-5-extensions-notifications-membre: backlog  # P1 post-MEP initial
   epic-8-retrospective: optional
 
   epic-9: in-progress
   9-0-capture-backend-piste-audit: done
-  9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorises: backlog  # post-MEP UI admin/orga
+  9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorises: done  # post-MEP UI admin/orga — code review 2026-06-01
   9-2-consultation-audit-changements-me-concernant: backlog  # post-MEP UI membre
   epic-9-retrospective: optional
 

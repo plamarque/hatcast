@@ -42,6 +42,7 @@ class CompositionDeclineRestoreService(
     private val compositionService: CompositionService,
     private val notificationPort: CompositionNotificationPort,
     private val auditRecorder: AuditEventRecorder,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional
     fun restoreDecline(
@@ -52,6 +53,7 @@ class CompositionDeclineRestoreService(
     ): CompositionResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireManageComposition(eventId, seasonId, principal)
+        val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
 
         val composition =
             compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
@@ -152,6 +154,7 @@ class CompositionDeclineRestoreService(
             actorUserId = principal.userId,
         )
 
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
 

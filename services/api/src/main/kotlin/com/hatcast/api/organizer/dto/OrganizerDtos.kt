@@ -48,4 +48,7 @@ data class MySeasonPermissionsDto(
     val isSeasonOrganizer: Boolean,
     val eventOrganizerFor: List<UUID>,
     val eventParticipantAdminFor: List<UUID>,
+    val canViewAuditTroupe: Boolean,
+    val canViewAuditSeason: Boolean,
+    val canViewAuditEvent: Boolean,
 )
