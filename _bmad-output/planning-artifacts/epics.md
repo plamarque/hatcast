@@ -64,7 +64,8 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - FR28: The product represents composition lifecycle states consistently for each event using at minimum: **preparing** (availability collection), **draft composition** (editable, not yet validated), **awaiting confirmations** (validated lineup), **gaps to fill** (open slots after decline/withdrawal), and **complete** (all required roles confirmed or explicitly waived by a **season organizer, event organizer, or troupe administrator**).
 - FR29: In MVP, a user can **opt in or out of browser push notifications globally** (same scope as FR30). Per-category push preferences are post-MVP.
 - FR30: In MVP, users can opt in or out of browser push notifications **globally**. Category-level preferences (e.g. availability vs confirmation) are **deferred post-MVP**; global push opt-in governs all notification types that use push.
-- FR31: The product delivers **distinct notification intents** for: **availability collection opened**, **draft composition shared** (on **publish** per FR22), **confirmation request** (on **validate** per FR23), and **team-confirmed recap** (on transition to **complete** per FR28). Delivery channels: **browser push** if the user has global push opt-in (FR29); **email** if the troupe has email delivery enabled for that intent.
+- FR31 *(member intents)*: **MEP:** availability opened on **event publish** (not draft create); confirmation request on validate (**assignees only**). **P1:** roster FYI opt-out, presence reminders, removal/re-confirm. Channels: push (FR29), email (troupe policy). See SCP [2026-06-01 notifications](sprint-change-proposal-2026-06-01-notifications-epic8-scope.md).
+- FR31b *(organizer ops — P2)*: Draft/create alerts, draft compo orga-only, SLA open dispos, compo incomplete cadence, team-complete orga signal. Cascade: event org → season admin → troupe admin.
 - FR32: A visitor **without a HatCast account** can browse the **public troupe directory**. Freemium troupes are **listed by default** (non-opt-out); a troupe administrator can hide a troupe from the directory.
 - FR33: A visitor **without a HatCast account** can view **public** season and event pages for troupes listed in the directory. Content marked non-public is not shown on visitor surfaces.
 - FR34: A troupe administrator can designate **season-level organizers** and **event-level organizers**. Season organizers can manage all events in the season; event organizers can manage only assigned events. Delegation does not grant troupe-administration rights unless the user also holds troupe administrator role.
@@ -206,7 +207,8 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 | FR28 | Epic 6 | États cycle de vie composition |
 | FR29 | Epic 8 | Opt-in push global (MVP) |
 | FR30 | Epic 8 | Préférences notification (catégories post-MVP) |
-| FR31 | Epic 8 | Intents notification (dispos, brouillon, confirmation, recap) |
+| FR31 | Epic 8 (+ **3.21**) | Intents membre (MEP: dispos publish + confirm assignés ; P1/P2 extensions) |
+| FR31b | Epic 8 (**8.4** P2) | Intents orga ops (post-MEP) |
 | FR32 | Epic 4 | Annuaire public troupes |
 | FR33 | Epic 4 | Pages publiques saison/événement |
 | FR34 | Epic 3 | Organisateurs saison / événement |
@@ -294,9 +296,9 @@ L’utilisateur active les notifications navigateur et les préférences ; le pr
 
 ### Epic 9 — Audit et historique des changements significatifs
 
-Les utilisateurs autorisés consultent une piste d’audit (dispos, composition, actions « pour le compte de », etc.) avec acteur et horodatage.
+Journal unifié des mutations métier (FR35) : **capture backend** à la MEP ; **consultation UI** post-MEP (admin puis membre).
 
-**FRs couverts :** FR35
+**FRs couverts :** FR35 — *capture via **9.0** ; consultation via **9.1** / **9.2***
 
 ### Epic 10 — PWA et déploiement sans friction côté client
 
@@ -760,6 +762,27 @@ afin d’inclure membres troupe, contributeurs externes et participants ponctuel
 
 ---
 
+#### Story 3.21 : Brouillon événement et publication — ouverture aux disponibilités *(SCP 2026-06-01 — P0 MEP)*
+
+En tant qu’**organisateur saison ou événement**,  
+je veux que les spectacles démarrent en **brouillon** et soient **publiés** lorsque je suis prêt à collecter les disponibilités,  
+afin de configurer lieu, description, roster et pré-affectations compo **sans** notifier les membres ni accepter de dépôts de dispos prématurés.
+
+**Acceptance Criteria**
+
+- **Given** un nouvel événement, **when** il est créé, **then** l’état par défaut est **brouillon** (`availabilityOpenedAt` null) — pas de dépôt de disponibilité membre, pas d’intent **AVAILABILITY_OPENED** (FR31).
+- **Given** un événement brouillon, **when** l’organisateur **publie le spectacle** (`POST …/actions/open-availability`), **then** les participants concernés peuvent déposer leurs dispos ; l’intent membre **AVAILABILITY_OPENED** devient éligible (Story **8.3**).
+- **Given** un événement **publié**, **when** l’organisateur **remet en brouillon** (`POST …/actions/close-availability`, ex. modale Modifier), **then** l’événement disparaît des agendas **membre** ; les dispos sont fermées ; la fiche reste consultable via lien direct avec bandeau d’avertissement (membre sans CTA publish).
+- **Given** brouillon, **when** l’organisateur configure lieu, description, roster, slots compo pré-remplis, **then** c’est autorisé ; les **membres** ne voient pas le spectacle dans les **listes** (agenda saison, Mon agenda).
+- **Given** UI workspace événement, **when** brouillon vs publié, **then** bandeau **au-dessus des onglets** (chip *Brouillon* + **« Publier le spectacle »** pour orgas) ; agendas orga : carte `agenda-card--draft` — voir [ux-event-draft-publish-3-21.md](./ux-event-draft-publish-3-21.md).
+- **Couverture :** prépare FR31 MEP ; croise FR12, FR22 (prep compo) ; **bloque Story 8.3**.
+
+**Priorité :** **P0 MEP** — avant **8.3**.  
+**Depends :** 3.2, 3.4, 3.8.  
+**SCP :** [sprint-change-proposal-2026-06-01-notifications-epic8-scope.md](./sprint-change-proposal-2026-06-01-notifications-epic8-scope.md)
+
+---
+
 ### Epic 4 — Découverte publique (annuaire et pages visiteur)
 
 #### Story 4.1 : Annuaire public des troupes
@@ -770,8 +793,10 @@ afin de découvrir les troupes ouvertes.
 
 **Acceptance Criteria**
 
-- **Given** des troupes marquées publiques, **when** un visiteur consulte l’annuaire, **then** seules les entrées publiques sont listées (NFR-S2).
-- **Couverture :** FR32 ; NFR-P1.
+- **Given** des troupes marquées publiques, **when** un visiteur consulte l’annuaire (section **Découvrir** sur `/troupes`), **then** seules les entrées publiques sont listées en cartes, **sans exiger de connexion** pour la consultation (NFR-S2, FR32).
+- **Given** un visiteur non connecté, **when** il clique sur une carte troupe, **then** il est redirigé vers la connexion avec retour prévu vers la troupe ciblée.
+- **Given** un utilisateur connecté, **when** il ouvre une troupe depuis l’annuaire, **then** il accède au hub `/troupes/:slug` **uniquement s’il est membre ou administrateur** de cette troupe ; sinon l’accès est **refusé** avec un message clair (pas de parcours d’adhésion complexe dans cette story).
+- **Couverture :** FR32 ; NFR-P1 ; NFR-S2.
 
 ---
 
@@ -1010,6 +1035,20 @@ afin de communiquer sur le spectacle ou la composition.
 
 ---
 
+#### Story 6.10b : Rappel manuel de disponibilité + garde anti-spam *(P1 — SCP 2026-06-01)*
+
+En tant qu’**organisateur**,  
+je veux envoyer en un clic un **rappel de disponibilité** personnalisable lorsque des réponses manquent,  
+afin de relancer sans attendre les rappels automatiques, tout en évitant le spam involontaire.
+
+**Acceptance Criteria**
+
+- **Given** un événement publié avec dispos insuffisantes, **when** l’organisateur déclenche « Rappel dispos », **then** message éditable + envoi push/email selon politique (complète 6.10, intent **MANUAL_AVAILABILITY_NUDGE**).
+- **Given** un rappel déjà envoyé récemment, **when** l’organisateur retente, **then** l’UI avertit (« rappel envoyé il y a X jours ») et demande confirmation explicite.
+- **Couverture :** UX-DR7 ; P1 post-MEP ; complète intents auto (**8.4**).
+
+---
+
 ### Epic 7 — Invitations self-service et contributeurs externes (post-MVP)
 
 #### Story 7.1 : Invitations self-service pour contributeurs externes *(post-MVP)*
@@ -1063,29 +1102,88 @@ afin de réduire le bruit *(catégories différées post-MVP — FR30)*.
 **Acceptance Criteria**
 
 - **Given** les types exposés par le produit (post-MVP catégories), **when** l’utilisateur modifie ses préférences, **then** seuls les canaux/types autorisés sont modifiés et appliqués aux envois futurs (FR30).
-- **MVP :** l’opt-in global (Story 8.1) gouverne tous les types push ; cette story peut rester en backlog jusqu’à activation catégories.
+- **MVP :** l’opt-in global (Story 8.1) gouverne tous les types push ; catégories activées en **P1** avec **8.5** (FYI opt-out, rappels) — voir SCP 2026-06-01.
 - **Couverture :** FR30 *(post-MVP catégories)*.
 
 ---
 
-#### Story 8.3 : Notifications aux jalons métier (dispos, composition, confirmations)
+#### Story 8.3 : Notifications MEP — ouverture dispos et confirmation assignés *(SCP 2026-06-01 — P0 MEP)*
 
-En tant que **membre ou organisateur**,  
-je veux **recevoir des notifications** aux moments importants du parcours troupe (ex. ouverture des dispos, composition prête à regarder, rappels de confirmation), **sur les canaux et types que j’ai acceptés**,  
-afin de **ne pas rater une étape** et de faire avancer le spectacle sans dépendre uniquement du passage volontaire dans l’app.
+En tant que **membre concerné**,  
+je veux **recevoir des notifications** à l’**ouverture des disponibilités** (publication événement) et à la **demande de confirmation** lorsque je suis **assigné** à une composition validée,  
+afin de **ne pas rater une étape** sans dépendre uniquement du passage dans l’app.
 
 **Acceptance Criteria**
 
-- **Given** un jalon métier défini par le produit et des destinataires **éligibles** dont les **préférences** (Story 8.2) et l’**opt-in push** (Story 8.1) autorisent l’envoi, **when** le jalon se produit, **then** chaque destinataire concerné **reçoit** la notification sur le(s) canal(aux) applicable(s) (push et/ou email selon politique) avec un contenu aligné au jalon (FR31) ; l’absence d’opt-in ou de canal disponible ne crée pas d’erreur domaine incohérente.
-- **Given** un utilisateur qui a autorisé au moins un canal, **when** la notification est émise, **then** elle est **vérifiable** côté produit (réception effective sur l’appareil ou boîte mail selon le canal, ou trace côté expéditeur / journaux d’envoi documentés pour la recette).
-- **Given** un **échec** de livraison asynchrone (push ou email), **when** le traitement d’arrière-plan gère l’échec, **then** l’état métier (dispos, composition, confirmations) **reste cohérent** et l’échec est **observable** pour exploitation (logs, métriques, file d’échecs — sans corruption silencieuse du domaine) (NFR-R2).
-- **Couverture :** FR31 ; NFR-R2 ; croise Story 6.10 pour les annonces manuelles / partage (canaux et message éditorial).
+- **Given** publication / ouverture dispos (Story **3.21**), **when** le jalon se produit, **then** les participants roster concernés **éligibles** reçoivent **AVAILABILITY_OPENED** sur push (FR29/8.1) et/ou email (politique troupe) ; pas de notif à la création brouillon.
+- **Given** validate composition (FR23), **when** le jalon se produit, **then** **seuls les assignés** reçoivent **CONFIRMATION_REQUEST** — pas le roster entier en MEP.
+- **Given** brouillon compo partagé ou transition **complete**, **when** 8.3 MEP, **then** **aucune** notif membre (intents orga → **8.4** P2 ; FYI roster → **8.5** P1).
+- **Given** éligibilité (opt-in push, email, prefs globales), **when** canal indisponible, **then** pas d’erreur domaine ; échec async observable (NFR-R2).
+- **Given** inbox membre (17.21), **when** push émis, **then** inbox **≠** log d’envoi — actions dérivées de l’état métier uniquement.
+- **Couverture :** FR31 MEP ; NFR-R2 ; **Depends:** **8.1**, **3.21** ; manuel 6.10 / 6.10b séparé.
+
+**Priorité :** **P0 MEP**. **Out of MEP scope:** intents orga (**8.4**), extensions membre (**8.5**), catégories 8.2 (sauf global 8.1).
+
+---
+
+#### Story 8.4 : Notifications ops organisateurs *(post-MEP P2 — SCP 2026-06-01)*
+
+En tant qu’**organisateur ou admin saison**,  
+je veux recevoir des **signaux ops automatiques** (brouillon créé, brouillon compo, SLA dispos, compo incomplète, équipe bouclée),  
+afin de piloter la troupe sans tout surveiller manuellement.
+
+**Acceptance Criteria**
+
+- **Given** les intents **FR31b** (catalogue SCP), **when** le jalon se produit, **then** destinataires via cascade : orga événement → admin saison → admin troupe si orga événement absent.
+- **Given** brouillon compo partagé, **when** notif émise, **then** **orga only** — pas roster ni assignés.
+- **Given** transition **complete**, **when** notif émise, **then** **orga only** — pas assignés confirmés ni roster.
+- **Couverture :** FR31b ; NFR-R2.
+
+**Priorité :** **P2** post-MEP. **Depends:** **8.3** dispatcher, **3.21**.
+
+---
+
+#### Story 8.5 : Extensions notifications membre *(P1 — SCP 2026-06-01)*
+
+En tant que **membre**,  
+je veux des notifications **complémentaires** (FYI équipe validée opt-out, rappels J-7/J-1, retrait compo, re-confirmation),  
+afin d’être informé sans spam.
+
+**Acceptance Criteria**
+
+- **Given** validate, **when** FYI roster activé, **then** non-assignés reçoivent listing équipe — **opt-out** catégorie (**8.2**).
+- **Given** assigné confirmé, **when** J-7 / J-1, **then** rappels présence avec infos compo + CTA décliner.
+- **Given** retrait slot / remodel, **when** règles produit (removal alert, re-confirm), **then** intents correspondants émis.
+- **Couverture :** FR31 P1 ; croise **8.2**.
+
+**Priorité :** **P1** post-MEP initial. **Depends:** **8.3**, **8.2** (catégories).
 
 ---
 
 ### Epic 9 — Audit et historique des changements significatifs
 
-#### Story 9.1 : Consultation de la piste d’audit pour utilisateurs autorisés
+Journal unifié FR35 : **9.0** enregistre à chaque mutation ; **9.1** / **9.2** exposent la consultation UI (post-MEP initial).
+
+#### Story 9.0 : Capture backend de la piste d’audit *(MEP — PLAN § Epic 9)*
+
+En tant qu’**opérateur produit / administrateur troupe**,  
+je veux que **chaque changement significatif** soit **enregistré automatiquement** avec acteur, horodatage et valeurs avant/après,  
+afin de garantir la gouvernance dès la mise en production V2 même sans UI de consultation.
+
+**Acceptance Criteria**
+
+- **Given** une création, mise à jour ou **suppression** de disponibilité (y compris proxy **5.5**), **when** la transaction métier réussit, **then** une entrée d’audit est persistée avec `actor`, `subject` si proxy, `action_type`, `occurred_at` (seconde), **`event_id`**, `before` / `after` pour au minimum `status`, `roleKeys`, `comment` (FR35).
+- **Given** la **création**, **modification** (date/heure, titre, lieu, description, type, rôles, slug, catégorie…) ou **archivage/désarchivage** d’un spectacle (`EventService`), **when** la transaction réussit, **then** une entrée d’audit `EVENT_*` capture acteur, scope (`troupe_id`, `season_id`, `event_id`) et `before` / `after` des champs modifiés.
+- **Given** l’**ajout**, **modification**, **retrait** ou **ré-inclusion** d’un participant roster (saison, événement, exclusion event), **when** la transaction réussit, **then** une entrée d’audit `SEASON_PARTICIPANT_*`, `EVENT_PARTICIPANT_*` ou `EVENT_ROSTER_*` capture acteur, sujet participant et `before` / `after`.
+- **Given** l’**ajout**, **modification**, **désactivation** d’un membre troupe ou l’**octroi/révocation** d’un rôle organisateur (saison/événement), **when** la transaction réussit, **then** une entrée d’audit `TROUPE_MEMBER_*` ou `*_ORGANIZER_*` capture acteur, sujet user et droits avant/après (FR34).
+- **Given** une mutation de composition (publish brouillon, validate, unlock, assignation manuelle, tirage, retrait de slot), **when** elle réussit, **then** une entrée d’audit capture l’état composition / slots avant et après (FR35).
+- **Given** une confirmation, déclinaison ou retrait (membre ou proxy **6.8**), **when** elle réussit, **then** une entrée d’audit enregistre acteur, sujet et statut avant/après (FR35).
+- **Given** le journal append-only, **when** une entrée est écrite, **then** elle n’est **ni modifiée ni supprimée** par les flows applicatifs standard (rétention / anonymisation = politique séparée, ex. **1.7**).
+- **Couverture :** FR35 write path ; prolonge FR17, FR26 ; **UI = Story 9.1** ; pas d’API GET requise dans cette story.
+
+---
+
+#### Story 9.1 : Consultation de la piste d’audit pour utilisateurs autorisés *(post-MEP initial)*
 
 En tant qu’**administrateur troupe, organisateur saison ou organisateur événement** autorisé,  
 je veux consulter une piste d’audit des changements significatifs avec **acteur**, **sujet**, **type d’action**, **horodatage à la seconde** et **valeurs avant/après** pour dispos et composition,  
@@ -1097,6 +1195,21 @@ afin de comprendre ce qui s’est passé (FR35).
 - **Given** une modification de disponibilité, sélection de rôle ou assignation de créneau, **when** l’entrée est consultée, **then** les valeurs **avant/après** minimales requises sont visibles (FR35).
 - **Given** un utilisateur non autorisé, **when** il tente l’accès, **then** il est refusé (NFR-S2).
 - **Couverture :** FR35 ; prolonge FR17, FR26 ; NFR-S2.
+
+---
+
+#### Story 9.2 : Consultation audit — changements me concernant *(post-MEP initial)*
+
+En tant que **membre**,  
+je veux consulter l’historique des changements qui **me concernent** (où je suis sujet ou acteur),  
+afin de comprendre qui a modifié ma dispo, ma confirmation ou ma place en composition.
+
+**Acceptance Criteria**
+
+- **Given** des entrées **9.0** où l’utilisateur est sujet ou acteur, **when** il ouvre la vue « Mon historique », **then** il voit acteur, type, horodatage et before/after pertinents (FR35, périmètre membre).
+- **Given** un utilisateur sans entrée le concernant, **when** il ouvre la vue, **then** un état vide explicite s’affiche.
+- **Given** un membre ordinaire, **when** il tente d’accéder à la vue admin **9.1** hors périmètre, **then** accès refusé (NFR-S2).
+- **Couverture :** FR35 (lecture self-service) ; **Depends :** **9.0** ; **9.1** recommandé pour composants partagés.
 
 ---
 

@@ -9,6 +9,7 @@ import {
   Validators,
 } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -28,11 +29,18 @@ import {
   type EventResponse,
   EventApiService,
 } from '../../core/events/event-api.service'
+import {
+  ConfirmDialog,
+  type ConfirmDialogData,
+} from '../seasons-list/confirm-dialog'
+import { MatDialog } from '@angular/material/dialog'
 
 export interface EventFormDialogData {
   mode: 'create' | 'edit'
   seasonId: string
   event?: EventResponse
+  /** Peut publier / remettre en brouillon (organisateur spectacle ou admin). */
+  canManagePublication?: boolean
 }
 
 /** Instant ISO → date (midi local) + heure/minute locales. */
@@ -100,6 +108,7 @@ function startTimeValidator(): ValidatorFn {
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatSlideToggleModule,
     MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -116,12 +125,25 @@ export class EventFormDialog implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder)
   private formChangeSub?: Subscription
   private readonly api = inject(EventApiService)
+  private readonly dialog = inject(MatDialog)
   private readonly ref = inject(MatDialogRef<EventFormDialog, EventResponse | boolean | undefined>)
   protected readonly data = inject<EventFormDialogData>(MAT_DIALOG_DATA)
 
   protected saving = false
   protected formError = ''
   protected readonly timepickerFormat24 = 24 as const
+  protected revertToDraft = false
+  protected publishDraft = false
+
+  protected readonly showRevertToDraftToggle = (): boolean =>
+    this.data.mode === 'edit' &&
+    !!this.data.event?.availabilityOpenedAt &&
+    this.data.canManagePublication === true
+
+  protected readonly showPublishDraftToggle = (): boolean =>
+    this.data.mode === 'edit' &&
+    !this.data.event?.availabilityOpenedAt &&
+    this.data.canManagePublication === true
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
@@ -187,14 +209,53 @@ export class EventFormDialog implements OnInit, OnDestroy {
         this.ref.close(r.data)
       } else if (this.data.event) {
         const r = await this.api.updateEvent(this.data.seasonId, this.data.event.id, payload)
-        if (!r.ok) {
+        if (!r.ok || !r.data) {
           this.formError = r.errorMessage ?? 'Mise à jour impossible.'
           return
         }
-        this.ref.close(true)
+        let latest: EventResponse = r.data
+        if (this.publishDraft && !this.data.event.availabilityOpenedAt) {
+          const openResult = await this.api.openAvailability(this.data.seasonId, this.data.event.id)
+          if (!openResult.ok || !openResult.data) {
+            this.formError = openResult.errorMessage ?? 'Publication impossible.'
+            return
+          }
+          latest = openResult.data
+        }
+        if (this.revertToDraft && this.data.event.availabilityOpenedAt) {
+          const confirmed = await this.confirmRevertToDraft(this.data.event.title)
+          if (!confirmed) {
+            return
+          }
+          const closeResult = await this.api.closeAvailability(
+            this.data.seasonId,
+            this.data.event.id,
+          )
+          if (!closeResult.ok || !closeResult.data) {
+            this.formError = closeResult.errorMessage ?? 'Remise en brouillon impossible.'
+            return
+          }
+          latest = closeResult.data
+        }
+        this.ref.close(latest)
       }
     } finally {
       this.saving = false
     }
+  }
+
+  private confirmRevertToDraft(title: string): Promise<boolean> {
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Remettre en brouillon',
+        message:
+          `Remettre « ${title} » en brouillon ? Il disparaîtra de l’agenda des membres et la collecte des disponibilités sera fermée. Les personnes avec le lien pourront encore consulter la fiche.`,
+        confirmLabel: 'Remettre en brouillon',
+      },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    return new Promise((resolve) => {
+      ref.afterClosed().subscribe((ok) => resolve(ok === true))
+    })
   }
 }

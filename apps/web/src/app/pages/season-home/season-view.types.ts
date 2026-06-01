@@ -7,6 +7,8 @@ export interface EventFilterOption {
   startsAt?: string
   archived?: boolean
   past?: boolean
+  /** Dispos non ouvertes (story 3.21). */
+  draft?: boolean
 }
 
 export interface ParticipantFilterOption {

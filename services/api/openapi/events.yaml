@@ -251,6 +251,72 @@ paths:
         '404':
           description: Événement ou saison inconnue
 
+  /seasons/{seasonId}/events/{eventId}/actions/open-availability:
+    post:
+      tags: [Événements]
+      summary: Ouvrir la collecte des disponibilités (publier le brouillon spectacle)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK (idempotent si déjà ouvert)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Droits insuffisants (organisateur spectacle/saison ou admin troupe)
+        '404':
+          description: Événement ou saison inconnue
+
+  /seasons/{seasonId}/events/{eventId}/actions/close-availability:
+    post:
+      tags: [Événements]
+      summary: Fermer la collecte des disponibilités (remettre le spectacle en brouillon)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK (idempotent si déjà en brouillon)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Droits insuffisants (organisateur spectacle/saison ou admin troupe)
+        '404':
+          description: Événement ou saison inconnue
+
   /seasons/{seasonId}/events/{eventId}/organizers:
     get:
       tags: [Organisateurs]
@@ -416,6 +482,11 @@ components:
           description: Cycle de vie FR28 (membres authentifiés de la troupe)
         teamStatusBadge:
           $ref: '#/components/schemas/TeamStatusBadge'
+        availabilityOpenedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: NULL = brouillon (dispos fermées) ; non-null = collecte ouverte
 
     TeamStatusBadge:
       type: object
@@ -423,13 +494,13 @@ components:
       properties:
         key:
           type: string
-          enum: [collecting, preparing, confirmed]
+          enum: [draft, collecting, preparing, confirmed]
         label:
           type: string
           description: Libellé complet (agenda détail Infos)
         tone:
           type: string
-          enum: [collecting, preparing, confirmed]
+          enum: [draft, collecting, preparing, confirmed]
           description: Modificateur SCSS
         shortLabel:
           type: string

@@ -47,6 +47,7 @@ export class FilterEventPicker {
   protected readonly searchQuery = signal('')
   protected readonly showPast = signal(this.data.showPast)
   protected readonly showArchived = signal(this.data.showArchived)
+  protected readonly showDraft = signal(this.data.showDraft)
   protected readonly draftIds = signal<Set<string>>(new Set(this.data.selectedIds))
 
   protected readonly scopedOptions = computed(() =>
@@ -54,11 +55,12 @@ export class FilterEventPicker {
       this.data.options,
       this.showPast(),
       this.showArchived(),
+      this.showDraft(),
     ),
   )
 
   protected readonly scopeFiltersActive = computed(
-    () => this.showPast() || this.showArchived(),
+    () => this.showPast() || this.showArchived() || this.showDraft(),
   )
 
   protected readonly filteredOptions = computed(() => {
@@ -87,7 +89,10 @@ export class FilterEventPicker {
   })
 
   protected readonly scopeActiveCount = computed(
-    () => (this.showPast() ? 1 : 0) + (this.showArchived() ? 1 : 0),
+    () =>
+      (this.showPast() ? 1 : 0) +
+      (this.showArchived() ? 1 : 0) +
+      (this.showDraft() ? 1 : 0),
   )
 
   protected close(): void {
@@ -98,16 +103,32 @@ export class FilterEventPicker {
     return this.draftIds().has(id)
   }
 
-  protected eventDateLabel(option: { startsAt?: string }): string | null {
-    if (!option.startsAt) {
-      return null
+  protected eventDateLabel(option: {
+    startsAt?: string
+    draft?: boolean
+    archived?: boolean
+    past?: boolean
+  }): string | null {
+    const parts: string[] = []
+    if (option.draft) {
+      parts.push('Brouillon')
     }
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'Europe/Paris',
-    }).format(new Date(option.startsAt))
+    if (option.archived) {
+      parts.push('Inactif')
+    } else if (option.past) {
+      parts.push('Passé')
+    }
+    if (option.startsAt) {
+      parts.push(
+        new Intl.DateTimeFormat('fr-FR', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'Europe/Paris',
+        }).format(new Date(option.startsAt)),
+      )
+    }
+    return parts.length > 0 ? parts.join(' · ') : null
   }
 
   protected toggleAllVisible(): void {
@@ -141,6 +162,7 @@ export class FilterEventPicker {
       selectedIds: [],
       showPast: this.data.showPast,
       showArchived: this.data.showArchived,
+      showDraft: this.data.showDraft,
     })
   }
 
@@ -150,6 +172,7 @@ export class FilterEventPicker {
       selectedIds: [...this.draftIds()],
       showPast: this.showPast(),
       showArchived: this.showArchived(),
+      showDraft: this.showDraft(),
     })
   }
 

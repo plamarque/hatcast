@@ -34,6 +34,8 @@ data class EventResponseDto(
     val compositionLifecycle: String? = null,
     val teamStatusBadge: TeamStatusBadgeDto? = null,
     val compositionPublishedAt: Instant? = null,
+    /** NULL = brouillon (dispos fermées). */
+    val availabilityOpenedAt: Instant? = null,
 ) {
     companion object {
         fun from(
@@ -61,6 +63,7 @@ data class EventResponseDto(
                 compositionLifecycle = compositionView?.compositionLifecycle?.toApiValue(),
                 teamStatusBadge = compositionView?.teamStatusBadge?.toDto(),
                 compositionPublishedAt = compositionView?.publishedAt,
+                availabilityOpenedAt = e.availabilityOpenedAt,
             )
     }
 }

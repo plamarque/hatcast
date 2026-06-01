@@ -89,4 +89,18 @@ class EventController(
         @PathVariable eventId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): EventResponseDto = eventService.unarchive(seasonId, eventId, principal)
+
+    @PostMapping("/{eventId}/actions/open-availability")
+    fun openAvailability(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto = eventService.openAvailability(seasonId, eventId, principal)
+
+    @PostMapping("/{eventId}/actions/close-availability")
+    fun closeAvailability(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto = eventService.closeAvailability(seasonId, eventId, principal)
 }

@@ -43,6 +43,9 @@
         <mat-checkbox [checked]="showArchived()" (change)="showArchived.set($event.checked)">
           Inactifs
         </mat-checkbox>
+        <mat-checkbox [checked]="showDraft()" (change)="showDraft.set($event.checked)">
+          Brouillons
+        </mat-checkbox>
       </div>
     </mat-menu>
   </div>
@@ -73,7 +76,7 @@
         } @else if (!scopeFiltersActive()) {
           Aucun spectacle actif à venir.
           <span class="filter-event-picker__empty-hint">
-            Cochez « Passés » ou « Inactifs » pour en voir d’autres.
+            Cochez « Passés », « Inactifs » ou « Brouillons » pour en voir d’autres.
           </span>
         } @else {
           Aucun spectacle ne correspond à ces critères.

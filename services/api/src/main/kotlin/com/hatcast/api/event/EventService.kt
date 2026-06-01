@@ -13,8 +13,10 @@ import com.hatcast.api.event.dto.PagedEventsResponse
 import com.hatcast.api.event.dto.UpdateEventRequest
 import com.hatcast.api.season.SeasonEventCountSync
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.organizer.OrganizerAccessService
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeCategoryService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -37,6 +39,9 @@ class EventService(
     private val troupeCategoryService: TroupeCategoryService,
     private val seasonEventCountSync: SeasonEventCountSync,
     private val auditRecorder: AuditEventRecorder,
+    private val draftVisibility: EventDraftVisibility,
+    private val organizerAccess: OrganizerAccessService,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     companion object {
         /** Fuseau pour la borne « début du jour civil » (liste à venir / agenda). */
@@ -69,17 +74,36 @@ class EventService(
                     PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startsAt"))
                 else -> PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "startsAt"))
             }
+        val applyDraftVisibility = draftVisibility.applyDraftVisibilityFilter(principal)
+        val viewerUserId = principal.userId
         val p =
             when (scope) {
                 EventListScope.ALL ->
-                    eventRepository.findBySeason_IdOrderByStartsAtAsc(seasonId, pr)
+                    eventRepository.findBySeason_IdOrderByStartsAtAsc(
+                        seasonId,
+                        viewerUserId,
+                        applyDraftVisibility,
+                        pr,
+                    )
                 EventListScope.UPCOMING -> {
                     val from = startOfTodayInclusive(AGENDA_ZONE)
-                    eventRepository.findUpcomingNonArchived(seasonId, from, pr)
+                    eventRepository.findUpcomingNonArchived(
+                        seasonId,
+                        from,
+                        viewerUserId,
+                        applyDraftVisibility,
+                        pr,
+                    )
                 }
                 EventListScope.PAST -> {
                     val before = startOfTodayInclusive(AGENDA_ZONE)
-                    eventRepository.findPastNonArchived(seasonId, before, pr)
+                    eventRepository.findPastNonArchived(
+                        seasonId,
+                        before,
+                        viewerUserId,
+                        applyDraftVisibility,
+                        pr,
+                    )
                 }
             }
         val eventIds = p.content.map { it.id }
@@ -420,6 +444,95 @@ class EventService(
             )
         }
         return EventResponseDto.from(e)
+    }
+
+    @Transactional
+    fun openAvailability(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): EventResponseDto {
+        val e = loadEventInSeason(seasonId, eventId)
+        if (!organizerAccess.canManageComposition(eventId, seasonId, principal)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Droits insuffisants")
+        }
+        if (e.archived) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Événement archivé")
+        }
+        if (e.availabilityOpenedAt != null) {
+            return EventResponseDto.from(e)
+        }
+        val beforeSnapshot = AuditSnapshots.event(e)
+        val now = Instant.now()
+        e.availabilityOpenedAt = now
+        e.updatedAt = now
+        val saved = eventRepository.save(e)
+        val afterSnapshot = AuditSnapshots.event(saved)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_AVAILABILITY_OPENED,
+                actorUserId = principal.userId,
+                troupeId = saved.season.troupe.id,
+                seasonId = seasonId,
+                eventId = saved.id,
+                before = beforeSnapshot,
+                after = afterSnapshot,
+            ),
+        )
+        eventPublisher.publishEvent(
+            EventAvailabilityOpenedEvent(
+                eventId = saved.id,
+                seasonId = seasonId,
+                troupeId = saved.season.troupe.id,
+                actorUserId = principal.userId,
+            ),
+        )
+        val lifecycle =
+            compositionLifecycleEnrichment
+                .loadViewsByEventIds(listOf(saved), saved.season, principal)[saved.id]
+        return EventResponseDto.from(saved, compositionView = lifecycle)
+    }
+
+    @Transactional
+    fun closeAvailability(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): EventResponseDto {
+        val e = loadEventInSeason(seasonId, eventId)
+        if (!organizerAccess.canManageComposition(eventId, seasonId, principal)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Droits insuffisants")
+        }
+        if (e.archived) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Événement archivé")
+        }
+        if (e.availabilityOpenedAt == null) {
+            val lifecycle =
+                compositionLifecycleEnrichment
+                    .loadViewsByEventIds(listOf(e), e.season, principal)[e.id]
+            return EventResponseDto.from(e, compositionView = lifecycle)
+        }
+        val beforeSnapshot = AuditSnapshots.event(e)
+        val now = Instant.now()
+        e.availabilityOpenedAt = null
+        e.updatedAt = now
+        val saved = eventRepository.save(e)
+        val afterSnapshot = AuditSnapshots.event(saved)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_AVAILABILITY_CLOSED,
+                actorUserId = principal.userId,
+                troupeId = saved.season.troupe.id,
+                seasonId = seasonId,
+                eventId = saved.id,
+                before = beforeSnapshot,
+                after = afterSnapshot,
+            ),
+        )
+        val lifecycle =
+            compositionLifecycleEnrichment
+                .loadViewsByEventIds(listOf(saved), saved.season, principal)[saved.id]
+        return EventResponseDto.from(saved, compositionView = lifecycle)
     }
 
     private fun loadEventInSeason(

@@ -282,7 +282,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **MIG-0** | Bootstrap troupe sur staging/prod vide (sans `db/seed`) | P0 | [x] | Story **2.11** — prérequis import CSV [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md) |
 | **MIG-2** | Export V1 → import V2 : saisons + événements **+ `manifest.json`** | P1 | [x] | Story [mig-2](_bmad-output/implementation-artifacts/mig-2-export-v1-seasons-events-and-mapping-manifest.md) ; recette staging OK |
 | **MIG-3** | Dispos / compositions (`extract → transform → load`) | P1 | [x] | Story [mig-3](_bmad-output/implementation-artifacts/mig-3-availability-compositions-migration-pipeline.md) ; recette staging OK |
-| **MIG-4** | Import : `template_type=deplacement` → **`category=deplacements`** (+ retrait progressif format `deplacement`) | **P1** | backlog | **Gate iso-V1 / prod** — avant cutover ; stats/tirage filtrent « Déplacements » |
+| **MIG-4** | Import : `template_type=deplacement` → **`category=deplacements`** (+ retrait progressif format `deplacement`) | **P1** | [x] | **Gate iso-V1 / prod** — recette staging OK |
 | **MIG-5** | Orchestrateur headless `migrate:v2:run` + clé API migration (ADR-0017) | P1 | [x] | Bootstrap API → B1–B5 → smoke ; reprise `--from-step` ; gate replay `migrate:v2:validate-replay` |
 | **MIG-6** | Script unique `./scripts/migrate-from-v1.sh` + auto-provision opérateur + CLI `.mjs` | P1 | [x] | Charge `.env.local` ; prompt reset Neon ; `npm run migrate:from-v1` ; dry-run sans faux échec smoke |
 
@@ -312,7 +312,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **Epic 14** (14.1–14.5) | **Superseded** par **Epic 17** — SCP [2026-06-01](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-epic14-superseded-by-epic17.md) ; ne pas planifier 14.x |
 | **Epic 17** (17.1–17.15) | Navigation troupe-first, catégories spectacle, slugs, polish formulaire/Infos — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 |
 | **Epic 16** (16.1) | Clin d’œil `/membre/:slug` |
-| **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Annuaire, invités, notifications, audit UI, PWA, analytics, **15 = rencontres liées** |
+| **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Voir § **Wave iso-V1 — MEP remainder (2026-06-02)** — **4.1**, **8.1/8.3**, **9-0**, **10.2/10.3** **in** MEP ; **9.1**, **4.2**, **7**, **11**, **15** post-MEP |
 | **5.4**, **5.5**, **6.8**, **6.10** | Commentaire dispo, proxy dispo, proxy confirmation, partage WhatsApp |
 
 ---
@@ -344,7 +344,31 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 5. **6.9** + **12.3** ou **12.6**  
 6. Puis backlog post-MVP (17.x navigation, 3.6, …)
 
-### Execution order revised (2026-06-01)
+### Execution order revised (2026-06-02)
+
+**Done since 2026-06-01:** **[CR]** **17-29**, **17-28**, **3-20** ; **MIG-4** ; hygiene H1 ; migration recette Malice ; **4.1** (+ **4.3** cartes troupe) annuaire public.
+
+| Phase | Scope | Outcome |
+|-------|--------|---------|
+| **Clôture epics** | **3**, **17** → done | Hub / stats / filtres stabilisés |
+| **MEP iso-V1** | § **Wave iso-V1 — MEP remainder** | Parité V1 cutover La Malice |
+| **Replay prod gate** | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** | Après slice MEP ; schéma stable |
+| **M4 cutover** | production-v2, DNS | Décision PO |
+
+**Ordre de session actuel (2 stories max) — SCP [2026-06-02](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md) + [2026-06-01 notifications](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md) :**
+
+1. ~~**4.1** annuaire public~~ — **done** (voir **4.3** cartes logo/description)  
+2. ~~**9.0** audit capture backend~~ — **done**  
+3. ~~**8.1** push opt-in~~ — **done**  
+4. **`bmad-create-story` + dev** — **3.21** brouillon événement + publication / ouverture dispos — **P0 MEP**, **bloque 8.3**  
+5. **`bmad-create-story` + dev** — **8.3** notifications MEP (AVAILABILITY_OPENED + CONFIRMATION_REQUEST assignés)  
+6. **10.2** PWA update + **10.3** version/changelog footer *(create story 10.3)* — parallèle possible après **3.21**  
+7. **Recette** — **1.3** reset password sur staging (story **done** ; gate E2E)  
+8. **P1 post-MEP initial :** **8.5**, **8.2**, **6.10b**  
+9. **P2 :** **8.4** intents orga ops  
+10. Replay migration from scratch → **M4**
+
+### Execution order revised (2026-06-01) — historique
 
 | Phase | Scope | Outcome |
 |-------|--------|---------|
@@ -353,33 +377,47 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **Iso-V1** | § Wave iso-V1 (gaps restants) | Parité produit V1 pour cutover La Malice |
 | **Replay prod gate** | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** cycles | Après MIG-4 + schéma stable ; `migrate:v2:validate-replay --min=3` |
 | **M4 cutover** | production-v2, DNS, bascule | Décision PO |
-| **Post-iso** | Epics 8, 7, 9, 13, 11, 15, growth | Backlog |
 
-**Ordre de session actuel (2 stories max) :**
+~~**Ordre de session actuel (2 stories max) :**~~ *(remplacé par § 2026-06-02)*
 
-1. **`bmad-code-review`** — **17-29**, puis **17-28**, puis **3-20**  
-2. **`bmad-create-story` + dev** — **MIG-4** (ou story dédiée import déplacements)  
-3. Gaps iso-V1 restants (Epic **4** si requis, **1.6/1.7** si légal)  
-4. Replay migration from scratch (proc. C) — **juste avant prod**  
-5. **M4** cutover
+~~1. **`bmad-code-review`** — **17-29**, puis **17-28**, puis **3-20**~~  
+~~2. **`bmad-create-story` + dev** — **MIG-4**~~  
+~~3. Gaps iso-V1 restants~~  
+~~4. Replay migration~~  
+~~5. **M4** cutover~~
 
-### Wave iso-V1 (2026-06-01)
+### Wave iso-V1 (2026-06-01) — état epics
 
 Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity exhaustive V1 Firebase). Réf. triage [§5](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md).
 
 | Statut | Epics / slices | Action PLAN |
 |--------|----------------|-------------|
-| **Done — clôturer epic** | **2**, **5**, **6**, **12**, **16**, **18** ; MIG-0/2/3/5/6 ; hygiene H1 | Marquer epics **done** + retros optionnelles |
-| **Done — clôturer après review** | **17** (reste **17-28**, **17-29** en review ; **17.26** = growth post-iso) | **[CR]** puis epic **done** |
-| **Done — clôturer** | **3** (reste **3-20** en review) | **[CR]** 3-20 puis epic **done** sauf stories futures |
+| **Done — clôturer epic** | **2**, **5**, **6**, **12**, **16**, **17**, **18** ; **4.1** (+ **4.3**) ; MIG-0/2/3/4/5/6 ; hygiene H1 | Marquer epics **done** ; **epic-3** **in-progress** (**3.21** SCP 2026-06-01) ; **epic-4** **in-progress** (**4.2** post-MEP) |
 | **Archiver / ne pas rouvrir** | **14** (**superseded** → **17.x**, SCP 2026-06-01), **13.6** (ADR 0013) | Retirer du chemin iso-V1 ; voir `epics.md` |
-| **Backlog iso-V1 (prioriser)** | **MIG-4** | P1 — déplacements → catégorie **Déplacements** |
-| **Backlog iso-V1 (à trancher PO)** | **4** (annuaire / pages publiques) | Si V1 prod exposait déjà — sinon post-iso marketing |
-| **Backlog iso-V1 (optionnel)** | **1.6**, **1.7** (compte) ; **10.2** (PWA update) | Légal / confort — pas bloquant recette troupe |
-| **Post-iso explicite** | **7**, **8**, **9**, **11**, **13** (multi-active sans 13.6), **15** | Notifications, invités, audit UI, analytics, rencontres |
+| **Post-iso explicite** | **7**, **11**, **13** (multi-active sans 13.6), **15**, **1.7**, **9.1** + **9.2** (UI audit), **4.2** | Invitations, analytics, suppression compte, pages publiques saison/événement |
 | **Réserve produit (SPEC)** | Historique compositions passées (DW-020–021) | Story dédiée si exigé pour iso — pas dans MVP actuel |
 
-**Gate iso-V1 proposé :** recette staging Malice (stats + dispos + compos) **+** MIG-4 **+** reviews 17-28/29 et 3-20 fermées **+** 1 cycle replay complet post-MIG-4.
+### Wave iso-V1 — MEP remainder (2026-06-02)
+
+**Décision PO :** SCP [sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md). **Bloquant M4** sauf mention contraire.
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **4.1** | Annuaire public des troupes (cartes publiques ; hub gated) | **P0** | [x] | Story [4-1](../_bmad-output/implementation-artifacts/4-1-annuaire-public-des-troupes.md) ; **4.3** cartes logo/description |
+| **9.0** | Audit — capture backend (append-only, before/after, acteur) | **P0** | done | § Epic 9 |
+| **3.21** | Brouillon événement + publication / ouverture dispos | **P0** | backlog | **Bloque 8.3** — SCP [2026-06-01 notifications](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md) |
+| **8.1** | Opt-in global push navigateur | **P0** | done | Prérequis push pour **8.3** |
+| **8.3** | Notifications MEP (dispos publish + confirm assignés) | **P0** | backlog | **Depends 3.21** ; **8.5**/**8.4** post-MEP |
+| **8.5** | Extensions notifs membre (FYI, J-7/J-1, retrait…) | **P1** | backlog | Après **8.3** ; **8.2** catégories |
+| **6.10b** | Rappel manuel dispos + garde anti-spam | **P1** | backlog | Extension 6.10 |
+| **8.4** | Notifications ops organisateurs (FR31b) | **P2** | backlog | Post-MEP |
+| **10.2** | Détection mise à jour client PWA (FR41) | **P0** | backlog | Bannière « Mettre à jour » |
+| **10.3** | Version app + changelog (footer / dialog) | **P0** | *story à créer* | Parité V1 `changelog.json` ; couplé release pipeline |
+| **1.3** | Reset mot de passe par email | P0 recette | done | Vérifier E2E staging avant M4 — pas de dev attendu |
+
+**Hors MEP (confirmé PO) :** **1.7** suppression compte ; **9.1** / **9.2** consultation audit UI ; **4.2** pages publiques saison/événement.
+
+**Gate iso-V1 / MEP proposé :** recette staging Malice **+** slice ci-dessus **+** recette **1.3** **+** 1 cycle replay post-audit schema **+** replay × ≥3 juste avant prod.
 
 ---
 
@@ -455,6 +493,49 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 **UX spec :** [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (amended 2026-05-25).  
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 17.
 
+### Epic 9 — Audit et historique des changements significatifs
+
+**Added:** 2026-06-02 — SCP [iso-V1 MEP scope](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md).  
+**Objectif :** **FR35** — traçabilité horodatée (acteur, sujet si proxy, type d’action, valeurs avant/après) sur les mutations métier sensibles. **MEP = capture backend** ; **UI = post-MEP initial**.
+
+**État actuel (partiel, pré-9.0) :** `recorded_by_user_id` sur dispos proxy (**5.5**, migration V23) ; acteur sur déclin (**6.8**) — **insuffisant** pour FR35 complet (pas de journal unifié, pas de before/after systématique, pas de delete dispo / tirage / validate).
+
+| Story | Titre | Priorité | Phase | Depends |
+|-------|-------|----------|-------|---------|
+| **9.0** | Capture backend — journal append-only `audit_events` | **P0** | **MEP** | — |
+| **9.1** | UI admin/orga — consultation piste audit (scope autorisation) | P1 | Post-MEP | **9.0** |
+| **9.2** | UI membre — historique des changements **me concernant** | P2 | Post-MEP | **9.0**, **9.1** reco. |
+
+**Périmètre capture **9.0** (minimum FR35, une entrée par mutation) :**
+
+| Domaine | Actions tracées | Before/after (min.) |
+|---------|-----------------|---------------------|
+| **Disponibilités** | create, update, **delete** | `status`, `roleKeys`, `comment` |
+| **Spectacles / événements** | create, update (tout champ), archive, unarchive | `title`, `slug`, `startsAt`, `location`, `description`, `templateType`, `roleSlots`, `category`, `archived` |
+| **Roster saison** | add, update, remove, reinclude | `status`, `displayName`, email, lien user |
+| **Roster événement** | add, update, remove ; exclude/include sur roster event | idem + exclusion |
+| **Droits troupe** | add, update rôle/statut, deactivate, self-join | `status`, `baselineRole`, `displayName` |
+| **Organisateurs** | grant/revoke saison ou événement | délégation (userId) |
+| **Composition** | draft publish, validate, unlock, manual assign, lottery draw, slot clear | `lifecycleState`, slot assignments par rôle |
+| **Confirmations** | confirm, decline, withdraw (membre + proxy **6.8**) | statut confirmation par slot |
+| **Proxy** | dispo (**5.5**), confirmation (**6.8**) | acteur + sujet explicites |
+
+**Corrélation :** toutes les entrées liées à un spectacle partagent **`event_id`** (+ `season_id`, `troupe_id`) — timeline unifiée pour recette et UI **9.1**.
+
+**Chaque entrée :** `occurred_at` (UTC, seconde), `actor_user_id`, `subject_*` (participant / user si pertinent), `action_type`, `scope` (troupe / saison / event ids), `before` / `after` (JSON).
+
+**Points d’accroche code (indicatif) :** `AvailabilityService`, `EventService`, `SeasonParticipantService`, `EventParticipantService`, `EventRosterService`, `TroupeMembershipService`, `OrganizerAccessService`, `CompositionService`, … — **dans** la transaction métier.
+
+**DoD **9.0** (MEP) :** table + service `AuditEventRecorder` ; tests intégration sur au moins **dispo CRUD** + **event create/update** + **season participant remove** + **organizer grant/revoke** + validate compo + confirm/decline ; **pas** d’API GET publique requise pour MEP.
+
+**DoD **9.1** :** route/API filtrée par scope orga/admin ; liste paginée avec acteur, sujet, horodatage, diff lisible.
+
+**DoD **9.2** :** membre voit uniquement les entrées où il est **sujet** ou **acteur** ; admins conservent **9.1**.
+
+**Ordre :** **9.0** → **8.3** (optionnel : audit des envois notif en story séparée post-MEP) → **9.1** → **9.2**.
+
+**Détail stories :** [epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 9.
+
 ### Gates
 
 | Gate | Status | Condition |
@@ -465,7 +546,10 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | **MVP pilote** | **Done 2026-05-25** | DoD MVP validée (recette `[MVP]` ; admin seul) |
 | Post-MVP Epic 13 | Open | Après MVP pilote — priorité produit |
 | **Migration staging recette** | **Done 2026-06** | Malice 2025-26 : stats + dispos + compos V1=V2 |
-| **Iso-V1 gate** | **Open** | MIG-4 + reviews 17-28/29/3-20 + replay frais pre-prod |
+| **Hub / stats reviews** | **Done 2026-06** | **17-28**, **17-29**, **3-20** |
+| **MIG-4** | **Done 2026-06** | Import `deplacement` → `category=deplacements` |
+| **Annuaire public (4.1)** | **Done 2026-06** | Découvrir sans login ; hub gated membre/admin |
+| **Iso-V1 / MEP gate** | **Open** | § MEP remainder : **9.0**, **8.1/8.3**, **10.2/10.3**, recette **1.3** |
 
 ### PRD / UX references (V2)
 

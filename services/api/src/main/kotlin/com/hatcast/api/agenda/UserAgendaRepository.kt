@@ -1,5 +1,6 @@
 package com.hatcast.api.agenda
 
+import com.hatcast.api.event.EVENT_LIST_VISIBILITY_JPQL
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.participant.ParticipantStatus
 import org.springframework.data.domain.Page
@@ -93,6 +94,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       )
       AND (:troupeId IS NULL OR t.id = :troupeId)
       AND (:seasonId IS NULL OR s.id = :seasonId)
+      AND $EVENT_LIST_VISIBILITY_JPQL
     ORDER BY e.startsAt ASC, e.id ASC
     """,
     countQuery =
@@ -135,6 +137,7 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
       )
       AND (:troupeId IS NULL OR t.id = :troupeId)
       AND (:seasonId IS NULL OR s.id = :seasonId)
+      AND $EVENT_LIST_VISIBILITY_JPQL
     """,
   )
   fun findUpcomingForUser(
@@ -142,6 +145,8 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
     @Param("fromInclusive") fromInclusive: Instant,
     @Param("troupeId") troupeId: UUID?,
     @Param("seasonId") seasonId: UUID?,
+    @Param("viewerUserId") viewerUserId: UUID,
+    @Param("applyDraftVisibility") applyDraftVisibility: Boolean,
     pageable: Pageable,
   ): Page<UserAgendaRow>
 

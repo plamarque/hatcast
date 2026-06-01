@@ -159,6 +159,19 @@ class UserAgendaIntegrationTest {
       .andExpect(status().isOk)
   }
 
+  private fun openEventAvailability(
+    cookie: Cookie,
+    seasonId: UUID,
+    eventId: UUID,
+  ) {
+    mockMvc
+      .perform(
+        post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+          .cookie(cookie)
+          .with(csrf()),
+      ).andExpect(status().isOk)
+  }
+
   private fun createEvent(
     cookie: Cookie,
     seasonId: UUID,
@@ -180,7 +193,9 @@ class UserAgendaIntegrationTest {
             ).with(csrf()),
         ).andExpect(status().isOk)
         .andReturn()
-    return UUID.fromString(mapper.readTree(result.response.contentAsString).path("id").asText())
+    val eventId = UUID.fromString(mapper.readTree(result.response.contentAsString).path("id").asText())
+    openEventAvailability(cookie, seasonId, eventId)
+    return eventId
   }
 
   private fun seedTroupe(): TroupeEntity =
@@ -203,8 +218,10 @@ class UserAgendaIntegrationTest {
     title: String,
     startsAt: Instant = Instant.parse("2030-06-15T18:00:00Z"),
     archived: Boolean = false,
-  ): EventEntity =
-    eventRepository.save(
+    published: Boolean = true,
+  ): EventEntity {
+    val now = Instant.now()
+    return eventRepository.save(
       EventEntity(
         season = season,
         title = title,
@@ -214,8 +231,12 @@ class UserAgendaIntegrationTest {
           },
         startsAt = startsAt,
         archived = archived,
+        createdAt = now,
+        updatedAt = now,
+        availabilityOpenedAt = if (published) now else null,
       ),
     )
+  }
 
   private fun linkDirectSeasonParticipant(
     season: SeasonEntity,
@@ -249,6 +270,41 @@ class UserAgendaIntegrationTest {
         status = ParticipantStatus.ACTIVE,
       ),
     )
+  }
+
+  @Test
+  fun `member agenda excludes draft spectacles until published`() {
+    val admin = signInAdmin("agenda-draft-admin", "agenda-draft-admin@example.com", "Agenda Draft Admin")
+    val member = signIn("agenda-draft-member", "agenda-draft-member@example.com", "Agenda Draft Member")
+    val season = createDirectSeason(title = "Agenda draft filter season")
+    linkDirectSeasonParticipant(season, member)
+
+    val draftEvent =
+      createDirectEvent(
+        season = season,
+        title = "Spectacle brouillon agenda",
+        startsAt = Instant.parse("2032-09-01T19:00:00Z"),
+        published = false,
+      )
+
+    mockMvc
+      .perform(get("/v1/me/agenda").cookie(member.cookie))
+      .andExpect(status().isOk)
+      .andExpect(jsonPath("$.content[?(@.eventId == '${draftEvent.id}')]").isEmpty)
+      .andExpect(jsonPath("$.totalElements").value(0))
+
+    mockMvc
+      .perform(
+        post("/v1/seasons/${season.id}/events/${draftEvent.id}/actions/open-availability")
+          .cookie(admin.cookie)
+          .with(csrf()),
+      ).andExpect(status().isOk)
+
+    mockMvc
+      .perform(get("/v1/me/agenda").cookie(member.cookie))
+      .andExpect(status().isOk)
+      .andExpect(jsonPath("$.content[?(@.eventId == '${draftEvent.id}')].eventId").value(draftEvent.id.toString()))
+      .andExpect(jsonPath("$.totalElements").value(1))
   }
 
   @Test

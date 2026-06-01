@@ -40,6 +40,7 @@
         @for (ev of group.events; track ev.id) {
           <article
             class="agenda-card agenda-card--row agenda-card--interactive"
+            [class.agenda-card--draft]="isEventDraft(ev)"
             role="button"
             tabindex="0"
             [attr.aria-label]="variant() === 'history' ? historyCardAriaLabel(ev) : null"

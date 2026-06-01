@@ -119,8 +119,17 @@ object TeamStatusBadgeMapper {
         )
     }
 
+    fun draftEventBadge(): TeamStatusBadge =
+        TeamStatusBadge(
+            key = TeamStatusBadgeKey.DRAFT,
+            label = "Brouillon",
+            tone = TeamStatusBadgeKey.DRAFT.toTone(),
+            shortLabel = "Brouillon",
+        )
+
     private fun labelFor(key: TeamStatusBadgeKey): String =
         when (key) {
+            TeamStatusBadgeKey.DRAFT -> "Brouillon"
             TeamStatusBadgeKey.COLLECTING -> "Collecte des dispos"
             TeamStatusBadgeKey.PREPARING -> "Équipe en préparation"
             TeamStatusBadgeKey.CONFIRMED -> "Équipe confirmée"
@@ -128,6 +137,7 @@ object TeamStatusBadgeMapper {
 
     private fun shortLabelFor(key: TeamStatusBadgeKey): String =
         when (key) {
+            TeamStatusBadgeKey.DRAFT -> "Brouillon"
             TeamStatusBadgeKey.COLLECTING -> "Collecte"
             TeamStatusBadgeKey.PREPARING -> "Préparation"
             TeamStatusBadgeKey.CONFIRMED -> "Confirmé"

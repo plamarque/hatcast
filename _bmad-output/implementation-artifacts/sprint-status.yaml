@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-01T13:20:00+02:00
+# last_updated: 2026-06-01T14:35:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -88,7 +88,7 @@ development_status:
   3-8-rosters-participants-saison-et-evenement: done
   3-19-retrait-roster-saison-sans-desactivation-troupe: done
   3-20-statistiques-cellules-evenement-participation-couleur-emoji: done
-  3-21-brouillon-evenement-et-publication-ouverture-dispos: review  # P0 MEP — blocks 8.3
+  3-21-brouillon-evenement-et-publication-ouverture-dispos: done  # P0 MEP — unblocks 8.3
   epic-3-retrospective: optional
 
   epic-4: in-progress

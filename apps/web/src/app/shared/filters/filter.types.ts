@@ -89,6 +89,7 @@ export interface EventPickerOption {
   startsAt?: string
   archived?: boolean
   past?: boolean
+  draft?: boolean
 }
 
 export interface EventPickerData {
@@ -96,6 +97,7 @@ export interface EventPickerData {
   selectedIds: string[]
   showPast: boolean
   showArchived: boolean
+  showDraft: boolean
   isMobile: boolean
 }
 
@@ -104,6 +106,7 @@ export interface EventPickerResult {
   selectedIds: string[]
   showPast: boolean
   showArchived: boolean
+  showDraft: boolean
 }
 
 export interface CategoriesPickerData {

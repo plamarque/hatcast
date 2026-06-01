@@ -11,6 +11,18 @@
   border: 1px solid transparent;
   vertical-align: middle;
 
+  &--draft {
+    color: light-dark(#5b21b6, #e9d5ff);
+    background: light-dark(
+      color-mix(in srgb, var(--mat-sys-primary) 12%, transparent),
+      color-mix(in srgb, var(--mat-sys-primary) 28%, transparent)
+    );
+    border-color: light-dark(
+      color-mix(in srgb, var(--mat-sys-primary) 35%, transparent),
+      color-mix(in srgb, var(--mat-sys-primary) 40%, transparent)
+    );
+  }
+
   &--collecting {
     color: light-dark(#0e7490, #a5f3fc);
     background: light-dark(rgba(6, 182, 212, 0.14), rgba(6, 182, 212, 0.28));

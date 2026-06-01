@@ -100,7 +100,7 @@
         </div>
 
         @for (ev of group.events; track ev.eventId) {
-          <article class="agenda-card agenda-card--row">
+          <article class="agenda-card agenda-card--row" [class.agenda-card--draft]="isEventDraft(ev)">
             <div
               class="agenda-card__clickable"
               role="button"

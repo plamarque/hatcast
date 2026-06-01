@@ -12,6 +12,8 @@ import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonRepository
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -49,6 +51,13 @@ class DemoBootstrapIntegrationTest {
     private val demoTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000099")
     private val demoSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000099")
     private val improbotsTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+    private val improbotsSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
+    private val improbotsOpenedEventId: UUID = UUID.fromString("c0000001-0000-4000-8000-000000000001")
+    private val improbotsDraftQaEventIds: List<UUID> =
+        listOf(
+            UUID.fromString("c0000025-0000-4000-8000-000000000025"),
+            UUID.fromString("c0000026-0000-4000-8000-000000000026"),
+        )
 
     private fun lifecycleFor(eventId: UUID): CompositionLifecycle {
         val event = eventRepository.findById(eventId).orElseThrow()
@@ -118,5 +127,17 @@ class DemoBootstrapIntegrationTest {
         val improbots = troupeRepository.findById(improbotsTroupeId).orElseThrow()
         assertEquals(false, improbots.isDemo)
         assertEquals(TroupeJoinPolicy.OPEN, improbots.joinPolicy)
+
+        val openedWithAvailability =
+            eventRepository.findById(improbotsOpenedEventId).orElseThrow()
+        assertEquals(improbotsSeasonId, openedWithAvailability.season.id)
+        assertTrue(availabilityRepository.findByEvent_Id(improbotsOpenedEventId).isNotEmpty())
+        assertNotNull(openedWithAvailability.availabilityOpenedAt)
+
+        improbotsDraftQaEventIds.forEach { eventId ->
+            val draft = eventRepository.findById(eventId).orElseThrow()
+            assertEquals(improbotsSeasonId, draft.season.id)
+            assertNull(draft.availabilityOpenedAt)
+        }
     }
 }

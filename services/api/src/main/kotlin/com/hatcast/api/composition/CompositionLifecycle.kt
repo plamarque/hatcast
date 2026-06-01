@@ -24,6 +24,7 @@ enum class CompositionLifecycle {
 }
 
 enum class TeamStatusBadgeKey {
+    DRAFT,
     COLLECTING,
     PREPARING,
     CONFIRMED,
@@ -31,6 +32,7 @@ enum class TeamStatusBadgeKey {
 
     fun toApiKey(): String =
         when (this) {
+            DRAFT -> "draft"
             COLLECTING -> "collecting"
             PREPARING -> "preparing"
             CONFIRMED -> "confirmed"

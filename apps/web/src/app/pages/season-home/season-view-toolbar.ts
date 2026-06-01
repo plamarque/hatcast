@@ -71,6 +71,7 @@ export class SeasonViewToolbar {
   protected readonly filterPanelOpen = signal(false)
   private readonly eventPickerShowPast = signal(false)
   private readonly eventPickerShowArchived = signal(false)
+  private readonly eventPickerShowDraft = signal(false)
 
   protected readonly statsCategoriesNoneSelected = computed(
     () => this.statsCategoryFilter().kind === 'none',
@@ -182,12 +183,14 @@ export class SeasonViewToolbar {
       selectedIds: [...this.currentEventIds()],
       showPast: this.eventPickerShowPast() || defaults.showPast,
       showArchived: this.eventPickerShowArchived() || defaults.showArchived,
+      showDraft: this.eventPickerShowDraft() || defaults.showDraft,
     })
     if (!result) {
       return
     }
     this.eventPickerShowPast.set(result.showPast)
     this.eventPickerShowArchived.set(result.showArchived)
+    this.eventPickerShowDraft.set(result.showDraft)
     if (result.action === 'reset') {
       this.setCurrentEventIds([])
       return

@@ -95,6 +95,31 @@ describe('SeasonAgenda', () => {
     expect(badge?.textContent?.trim()).toBe('Collecte')
   })
 
+  it('applique le style carte brouillon quand le spectacle est en draft', () => {
+    const draftGroups: MonthEventGroup[] = [
+      {
+        ...monthGroups[0],
+        events: [
+          {
+            ...monthGroups[0].events[0],
+            availabilityOpenedAt: null,
+            teamStatusBadge: {
+              key: 'draft',
+              label: 'Brouillon',
+              tone: 'draft',
+              shortLabel: 'Brouillon',
+            },
+          },
+        ],
+      },
+    ]
+    fixture.componentRef.setInput('monthGroups', draftGroups)
+    fixture.detectChanges()
+
+    const card = fixture.nativeElement.querySelector('.agenda-card')
+    expect(card?.classList.contains('agenda-card--draft')).toBe(true)
+  })
+
   it('n’affiche pas le lieu sur les cartes agenda et historique', () => {
     expect(fixture.nativeElement.querySelector('.agenda-card__loc')).toBeNull()
 

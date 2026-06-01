@@ -36,6 +36,7 @@ object AuditSnapshots {
             "roleSlots" to entity.roleSlots,
             "category" to entity.category,
             "archived" to entity.archived,
+            "availabilityOpenedAt" to entity.availabilityOpenedAt?.toString(),
         )
 
     fun mapDiff(

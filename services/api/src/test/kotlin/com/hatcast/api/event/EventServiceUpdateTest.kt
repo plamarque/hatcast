@@ -10,8 +10,10 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.organizer.OrganizerAccessService
 import com.hatcast.api.troupe.TroupeCategoryService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.springframework.context.ApplicationEventPublisher
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -37,6 +39,9 @@ class EventServiceUpdateTest {
     private val troupeCategoryService = mock<TroupeCategoryService>()
     private val seasonEventCountSync = mock<SeasonEventCountSync>()
     private val auditRecorder = mock<AuditEventRecorder>()
+    private val draftVisibility = mock<EventDraftVisibility>()
+    private val organizerAccess = mock<OrganizerAccessService>()
+    private val eventPublisher = mock<ApplicationEventPublisher>()
     private val service =
         EventService(
             eventRepository,
@@ -48,6 +53,9 @@ class EventServiceUpdateTest {
             troupeCategoryService,
             seasonEventCountSync,
             auditRecorder,
+            draftVisibility,
+            organizerAccess,
+            eventPublisher,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

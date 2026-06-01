@@ -9,6 +9,7 @@ import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.composition.CompositionLinkedParticipantResolver
 import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
+import com.hatcast.api.event.EventDraftVisibility
 import com.hatcast.api.event.EventParticipantFocusService
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.dto.ParticipantFocusSummaryDto
@@ -38,6 +39,7 @@ class MeInboxService(
   private val eventParticipantRepository: EventParticipantRepository,
   private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
   private val participantFocusService: EventParticipantFocusService,
+  private val draftVisibility: EventDraftVisibility,
 ) {
   @Transactional(readOnly = true)
   fun getInbox(principal: SessionUserPrincipal): MeInboxResponse {
@@ -52,6 +54,8 @@ class MeInboxService(
         fromInclusive = from,
         troupeId = null,
         seasonId = null,
+        viewerUserId = userId,
+        applyDraftVisibility = draftVisibility.applyDraftVisibilityFilter(principal),
         pageable = PageRequest.of(0, INBOX_UPCOMING_PAGE_SIZE),
       )
     val upcomingRows = upcomingPage.content

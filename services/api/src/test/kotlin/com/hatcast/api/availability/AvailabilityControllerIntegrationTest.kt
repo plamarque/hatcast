@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.hamcrest.Matchers.empty
 import org.hamcrest.Matchers.greaterThanOrEqualTo
 import org.hamcrest.Matchers.not
+import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -162,6 +163,59 @@ class AvailabilityControllerIntegrationTest {
                         .content(eventBody)
                         .with(csrf()),
                 ).andExpect(status().isOk)
+                .andReturn()
+        val eventId = UUID.fromString(mapper.readTree(createEvent.response.contentAsString).get("id").asText())
+        openEventAvailability(seasonId, eventId, cookie)
+        return seasonId to eventId
+    }
+
+    private fun openEventAvailability(
+        seasonId: UUID,
+        eventId: UUID,
+        cookie: jakarta.servlet.http.Cookie,
+    ) {
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+    }
+
+    private fun createSeasonAndDraftEvent(
+        cookie: jakarta.servlet.http.Cookie,
+        eventBody: String =
+            """
+            {
+              "title": "Spectacle brouillon",
+              "startsAt": "2031-04-20T19:00:00Z"
+            }
+            """.trimIndent(),
+    ): Pair<UUID, UUID> {
+        val createSeason =
+            mockMvc
+                .perform(
+                    org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"Saison brouillon dispos"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val seasonId = UUID.fromString(mapper.readTree(createSeason.response.contentAsString).get("id").asText())
+
+        val createEvent =
+            mockMvc
+                .perform(
+                    org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(eventBody)
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.availabilityOpenedAt").value(nullValue()))
                 .andReturn()
         val eventId = UUID.fromString(mapper.readTree(createEvent.response.contentAsString).get("id").asText())
         return seasonId to eventId
@@ -860,6 +914,44 @@ class AvailabilityControllerIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.chanceSource").value("estimated"))
             .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").exists())
+    }
+
+    @Test
+    fun `draft event blocks member availability write until opened`() {
+        val admin = memberCookie("sub-avail-draft-admin")
+        val member =
+            TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-avail-draft-member",
+                email = "sub-avail-draft-member@example.com",
+                name = "Draft Member",
+            )
+        val (seasonId, eventId) = createSeasonAndDraftEvent(admin)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(member)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"}""")
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(member))
+            .andExpect(status().isForbidden)
+
+        openEventAvailability(seasonId, eventId, admin)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(member)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
     }
 
     private fun setAvailabilityForMember(

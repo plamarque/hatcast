@@ -46,6 +46,20 @@
   &--with-menu {
     padding-right: 0.65rem;
   }
+
+  /** Story 3.21 — brouillon orga : scan agenda sans lire tous les badges. */
+  &--draft {
+    background: color-mix(in srgb, var(--mat-sys-primary-container) 22%, var(--mat-sys-surface-container));
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 28%, transparent);
+    border-left-width: 3px;
+    border-left-style: solid;
+    border-left-color: var(--mat-sys-primary);
+
+    &.agenda-card--interactive:hover,
+    &.agenda-card--interactive:focus-visible {
+      background: color-mix(in srgb, var(--mat-sys-primary-container) 32%, var(--mat-sys-surface-container));
+    }
+  }
 }
 
 .agenda-card__clickable {

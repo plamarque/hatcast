@@ -10,6 +10,7 @@ import {
   type SummaryParticipant,
 } from '../../core/availability/availability-api.service'
 import type { EventResponse } from '../../core/events/event-api.service'
+import { isEventDraft } from '../../core/events/event-draft'
 import type { AvailabilityFormSavedPayload } from './availability-form'
 import { ParticipantApiService, type ParticipantSelector } from '../../core/participants/participant-api.service'
 import { AvailabilityMoiPanel } from './availability-moi-panel'
@@ -41,6 +42,7 @@ export class EventDisposTab implements OnDestroy {
   readonly event = input.required<EventResponse>()
   readonly currentUserId = input.required<string>()
   readonly canSwitchSubject = input(false)
+  readonly canManageComposition = input(false)
 
   readonly viewModeChange = output<DisposViewMode>()
 
@@ -69,6 +71,10 @@ export class EventDisposTab implements OnDestroy {
     if (subject.userId === this.currentUserId()) return false
     return !this.canSwitchSubject()
   })
+
+  protected readonly draftBlocksMemberDispos = computed(
+    () => isEventDraft(this.event()) && !this.canManageComposition(),
+  )
 
   protected readonly subjectProxyMode = computed(() => {
     const subject = this.subjectParticipant()
@@ -159,6 +165,12 @@ export class EventDisposTab implements OnDestroy {
   }
 
   private async load(): Promise<void> {
+    if (this.draftBlocksMemberDispos()) {
+      this.loading.set(false)
+      this.loadError.set(false)
+      this.summary.set(null)
+      return
+    }
     this.loading.set(true)
     const requestId = ++this.loadRequestId
     const [summaryResult, selectorsResult] = await Promise.all([

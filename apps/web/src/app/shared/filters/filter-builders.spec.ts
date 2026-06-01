@@ -101,27 +101,30 @@ describe('filter-builders', () => {
   it('filterEventPickerVisibleOptions suit la matrice V1 GridBoard', () => {
     const now = new Date('2024-06-15T12:00:00.000Z')
     const options: EventPickerOption[] = [
-      { id: '1', title: 'Futur', startsAt: '2024-06-20', archived: false, past: false },
-      { id: '2', title: 'Passé', startsAt: '2024-06-10', archived: false, past: true },
-      { id: '3', title: 'Inactif futur', startsAt: '2024-06-20', archived: true, past: false },
-      { id: '4', title: 'Inactif passé', startsAt: '2024-06-10', archived: true, past: true },
+      { id: '1', title: 'Futur', startsAt: '2024-06-20', archived: false, past: false, draft: false },
+      { id: '2', title: 'Passé', startsAt: '2024-06-10', archived: false, past: true, draft: false },
+      { id: '3', title: 'Inactif futur', startsAt: '2024-06-20', archived: true, past: false, draft: false },
+      { id: '4', title: 'Inactif passé', startsAt: '2024-06-10', archived: true, past: true, draft: false },
+      { id: '5', title: 'Brouillon', startsAt: '2024-06-20', archived: false, past: false, draft: true },
     ]
-    expect(filterEventPickerVisibleOptions(options, false, false, now).map((o) => o.id)).toEqual([
+    expect(filterEventPickerVisibleOptions(options, false, false, false, now).map((o) => o.id)).toEqual([
       '1',
     ])
-    expect(filterEventPickerVisibleOptions(options, true, false, now).map((o) => o.id)).toEqual([
+    expect(filterEventPickerVisibleOptions(options, true, false, false, now).map((o) => o.id)).toEqual([
       '2',
       '4',
     ])
-    expect(filterEventPickerVisibleOptions(options, false, true, now).map((o) => o.id)).toEqual([
+    expect(filterEventPickerVisibleOptions(options, false, true, false, now).map((o) => o.id)).toEqual([
       '3',
       '4',
     ])
-    expect(filterEventPickerVisibleOptions(options, true, true, now).map((o) => o.id)).toEqual([
+    expect(filterEventPickerVisibleOptions(options, false, false, true, now).map((o) => o.id)).toEqual(['5'])
+    expect(filterEventPickerVisibleOptions(options, true, true, true, now).map((o) => o.id)).toEqual([
       '1',
       '2',
       '3',
       '4',
+      '5',
     ])
   })
 })

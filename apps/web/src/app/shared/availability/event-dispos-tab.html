@@ -1,4 +1,8 @@
-@if (loading()) {
+@if (draftBlocksMemberDispos()) {
+  <p class="event-dispos__draft-hint" role="status">
+    Ce spectacle est en brouillon. La collecte des disponibilités est momentanément fermée.
+  </p>
+} @else if (loading()) {
   <div class="event-dispos__spinner" role="status">
     <mat-spinner diameter="36" />
   </div>

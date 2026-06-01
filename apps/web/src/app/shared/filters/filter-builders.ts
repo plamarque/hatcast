@@ -1,6 +1,7 @@
 import type { UserAgendaParticipationFilters } from '../../core/agenda/user-agenda-api.service'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { isEventPastParis } from '../../core/events/event-past-paris'
+import { isEventDraft } from '../../core/events/event-draft'
 import type { EventFilterOption, ParticipantFilterOption } from '../../pages/season-home/season-view.types'
 import {
   defaultStatsCategoryFilter,
@@ -131,7 +132,7 @@ export function participantOptionsForPicker(
 }
 
 export function eventFilterOptionFromResponse(
-  e: Pick<EventResponse, 'id' | 'title' | 'startsAt' | 'archived'>,
+  e: Pick<EventResponse, 'id' | 'title' | 'startsAt' | 'archived' | 'availabilityOpenedAt' | 'teamStatusBadge'>,
   now: Date = new Date(),
 ): EventFilterOption {
   return {
@@ -140,30 +141,42 @@ export function eventFilterOptionFromResponse(
     startsAt: e.startsAt,
     archived: e.archived,
     past: isEventPastParis(e.startsAt, now),
+    draft: isEventDraft(e),
   }
 }
 
-/** Masque passés / inactifs tant que les cases ne sont pas cochées (matrice V1 GridBoard). */
+/** Masque passés / inactifs / brouillons tant que les cases ne sont pas cochées (matrice V1 GridBoard). */
 export function filterEventPickerVisibleOptions(
   options: EventPickerOption[],
   showPast: boolean,
   showArchived: boolean,
+  showDraft: boolean,
   now: Date = new Date(),
 ): EventPickerOption[] {
   return options.filter((o) => {
     const isArchived = !!o.archived
     const isPast = o.past ?? (o.startsAt ? isEventPastParis(o.startsAt, now) : false)
+    const isDraft = !!o.draft
 
-    if (showPast && showArchived) {
+    if (showPast && showArchived && showDraft) {
       return true
     }
-    if (showArchived) {
-      return isArchived
+
+    const anyScope = showPast || showArchived || showDraft
+    if (!anyScope) {
+      return !isArchived && !isPast && !isDraft
     }
-    if (showPast) {
-      return isPast
+
+    if (showPast && isPast) {
+      return true
     }
-    return !isArchived && !isPast
+    if (showArchived && isArchived) {
+      return true
+    }
+    if (showDraft && isDraft) {
+      return true
+    }
+    return false
   })
 }
 
@@ -174,6 +187,7 @@ export function eventOptionsForPicker(options: EventFilterOption[]): EventPicker
     startsAt: o.startsAt,
     archived: o.archived,
     past: o.past,
+    draft: o.draft,
   }))
 }
 
@@ -407,9 +421,10 @@ export function seasonEventChipLabel(
 export function defaultEventPickerScope(view: 'agenda' | 'history' | 'stats'): {
   showPast: boolean
   showArchived: boolean
+  showDraft: boolean
 } {
   if (view === 'history') {
-    return { showPast: true, showArchived: false }
+    return { showPast: true, showArchived: false, showDraft: false }
   }
-  return { showPast: false, showArchived: false }
+  return { showPast: false, showArchived: false, showDraft: false }
 }

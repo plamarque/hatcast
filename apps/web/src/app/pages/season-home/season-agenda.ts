@@ -2,6 +2,7 @@ import { Component, input, output } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
+import { isEventDraft } from '../../core/events/event-draft'
 import type { MonthEventGroup } from './season-events.utils'
 import { getEventTypeIcon } from '../../core/events/event-types'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
@@ -80,6 +81,8 @@ export class SeasonAgenda {
   protected typeIcon(templateType: string): string {
     return getEventTypeIcon(templateType)
   }
+
+  protected readonly isEventDraft = isEventDraft
 
   protected categoryBadgeLabel(ev: { category?: string | null }): string | null {
     const slug = ev.category

@@ -10,6 +10,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditActionType, string> = {
   EVENT_ARCHIVED: 'Spectacle archivé',
   EVENT_UNARCHIVED: 'Spectacle réactivé',
   EVENT_AVAILABILITY_OPENED: 'Disponibilités ouvertes',
+  EVENT_AVAILABILITY_CLOSED: 'Disponibilités fermées (brouillon)',
   SEASON_PARTICIPANT_ADDED: 'Participant ajouté',
   SEASON_PARTICIPANT_REACTIVATED: 'Participant réactivé',
   SEASON_PARTICIPANT_UPDATED: 'Participant modifié',

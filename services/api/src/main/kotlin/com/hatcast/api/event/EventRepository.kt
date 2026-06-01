@@ -25,8 +25,24 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         id: UUID,
     ): Boolean
 
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND $EVENT_LIST_VISIBILITY_JPQL
+        ORDER BY e.startsAt ASC
+        """,
+        countQuery =
+        """
+        SELECT COUNT(e) FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND $EVENT_LIST_VISIBILITY_JPQL
+        """,
+    )
     fun findBySeason_IdOrderByStartsAtAsc(
-        seasonId: UUID,
+        @Param("seasonId") seasonId: UUID,
+        @Param("viewerUserId") viewerUserId: UUID,
+        @Param("applyDraftVisibility") applyDraftVisibility: Boolean,
         pageable: Pageable,
     ): Page<EventEntity>
 
@@ -36,12 +52,23 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         WHERE e.season.id = :seasonId
           AND e.archived = false
           AND e.startsAt >= :fromInclusive
+          AND $EVENT_LIST_VISIBILITY_JPQL
         ORDER BY e.startsAt ASC
+        """,
+        countQuery =
+        """
+        SELECT COUNT(e) FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND e.startsAt >= :fromInclusive
+          AND $EVENT_LIST_VISIBILITY_JPQL
         """,
     )
     fun findUpcomingNonArchived(
         @Param("seasonId") seasonId: UUID,
         @Param("fromInclusive") fromInclusive: Instant,
+        @Param("viewerUserId") viewerUserId: UUID,
+        @Param("applyDraftVisibility") applyDraftVisibility: Boolean,
         pageable: Pageable,
     ): Page<EventEntity>
 
@@ -51,12 +78,23 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         WHERE e.season.id = :seasonId
           AND e.archived = false
           AND e.startsAt < :beforeExclusive
+          AND $EVENT_LIST_VISIBILITY_JPQL
         ORDER BY e.startsAt DESC
+        """,
+        countQuery =
+        """
+        SELECT COUNT(e) FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND e.startsAt < :beforeExclusive
+          AND $EVENT_LIST_VISIBILITY_JPQL
         """,
     )
     fun findPastNonArchived(
         @Param("seasonId") seasonId: UUID,
         @Param("beforeExclusive") beforeExclusive: Instant,
+        @Param("viewerUserId") viewerUserId: UUID,
+        @Param("applyDraftVisibility") applyDraftVisibility: Boolean,
         pageable: Pageable,
     ): Page<EventEntity>
 

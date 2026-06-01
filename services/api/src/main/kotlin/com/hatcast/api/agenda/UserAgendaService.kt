@@ -9,6 +9,7 @@ import com.hatcast.api.agenda.dto.UserAgendaParticipationFiltersDto
 import com.hatcast.api.agenda.dto.UserAgendaResponse
 import com.hatcast.api.agenda.dto.UserAgendaTroupeFilterDto
 import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
+import com.hatcast.api.event.EventDraftVisibility
 import com.hatcast.api.event.EventParticipantFocusService
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.dto.ParticipantFocusSummaryDto
@@ -30,6 +31,7 @@ class UserAgendaService(
   private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
   private val participantFocusService: EventParticipantFocusService,
   private val eventRepository: EventRepository,
+  private val draftVisibility: EventDraftVisibility,
 ) {
   @Transactional(readOnly = true)
   fun list(
@@ -49,29 +51,33 @@ class UserAgendaService(
     val filterBarVisible = participationContext.filterBarVisible
     val from = AgendaTimeBoundary.startOfTodayInclusive()
     val pageable = PageRequest.of(page, size)
+    val applyDraftVisibility = draftVisibility.applyDraftVisibilityFilter(principal)
     val eventsPage =
       userAgendaRepository.findUpcomingForUser(
         userId = principal.userId,
         fromInclusive = from,
         troupeId = troupeId,
         seasonId = seasonId,
+        viewerUserId = principal.userId,
+        applyDraftVisibility = applyDraftVisibility,
         pageable = pageable,
       )
 
-    val eventIds = eventsPage.content.map { it.eventId }
+    val visibleRows = eventsPage.content
+    val eventIds = visibleRows.map { it.eventId }
     val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, principal.userId)
     val lifecycleByEvent =
       compositionLifecycleEnrichment.loadViewsByEventIdsAcrossSeasons(eventIds, principal)
     val focusByEvent =
       participantFocusByEventIds(
-        rows = eventsPage.content,
+        rows = visibleRows,
         availabilityByEvent = availabilityByEvent,
         principal = principal,
       )
 
     return UserAgendaResponse(
       content =
-        eventsPage.content.map { event ->
+        visibleRows.map { event ->
           UserAgendaItemDto.from(
             row = event,
             myAvailabilityStatus = availabilityByEvent[event.eventId],

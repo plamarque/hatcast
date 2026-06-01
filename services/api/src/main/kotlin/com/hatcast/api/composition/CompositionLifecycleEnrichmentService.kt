@@ -3,6 +3,7 @@ package com.hatcast.api.composition
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.isAvailabilityOpen
 import com.hatcast.api.organizer.EventOrganizerRepository
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.season.SeasonEntity
@@ -65,13 +66,20 @@ class CompositionLifecycleEnrichmentService(
                         publishedAt = it.publishedAt,
                     )
                 }
+            val base =
+                lifecycleService
+                    .computeLifecycle(
+                        composition = composition,
+                        slots = slots,
+                        roleSlots = event.roleSlots,
+                        viewerCanSeeDraft = draftVisibleForEvent[event.id] == true,
+                    ).copy(publishedAt = compositions[event.id]?.publishedAt)
             event.id to
-                lifecycleService.computeLifecycle(
-                    composition = composition,
-                    slots = slots,
-                    roleSlots = event.roleSlots,
-                    viewerCanSeeDraft = draftVisibleForEvent[event.id] == true,
-                ).copy(publishedAt = compositions[event.id]?.publishedAt)
+                if (!event.isAvailabilityOpen()) {
+                    base.copy(teamStatusBadge = TeamStatusBadgeMapper.draftEventBadge())
+                } else {
+                    base
+                }
         }
     }
 

@@ -44,4 +44,7 @@ class EventEntity(
     /** Catégorie spectacle ; NULL = principal. */
     @Column(name = "category", length = 64)
     var category: String? = null,
+    /** NULL = brouillon (dispos fermées) ; non-null = collecte ouverte (Story 3.21). */
+    @Column(name = "availability_opened_at")
+    var availabilityOpenedAt: Instant? = null,
 )

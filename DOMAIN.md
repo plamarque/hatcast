@@ -135,6 +135,7 @@ La zone spectacles affiche les participations par mois. Chaque mois est une colo
 - **Cast status (per player in a cast):** pending → confirmed or declined (user action). No "cancelled" or revert in code observed.
 - **Availability:** Set per event; no formal state machine; values reflect available/unavailable (and possibly other states in UI; see `AvailabilityCell.vue`, `playerAvailabilityService.js`). **V2:** three API states plus optional per-role candidacy via `role_keys` when status is `available`.
 - **Draw workflow:** Admin triggers draw → selection algorithm runs → casts written/updated → optional announce. No intermediate "draft" cast state clearly modelled; cast is the result of the last draw for that event.
+- **Event draft vs open (V2, Story 3.21):** A **spectacle** (event) may be in **draft** (`events.availability_opened_at` NULL) before organizers publish it for availability collection. While draft: ordinary members do not see it in season or user agendas; they may still open the event detail URL if they have a link and see a draft banner without depositing availability. **Publishing** sets `availability_opened_at` and enables member availability writes. **Closing availability** (revert to draft) clears that timestamp without deleting existing availability rows. Distinct from **composition draft** (`event_compositions.published_at`, Story 6.3).
 
 ---
 

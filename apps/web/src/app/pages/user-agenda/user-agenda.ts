@@ -34,6 +34,7 @@ import { FilterCriteriaBar } from '../../shared/filters/filter-criteria-bar'
 import { FilterPanelService } from '../../shared/filters/filter-panel.service'
 import { FilterTrigger } from '../../shared/filters/filter-trigger'
 import type { FilterDimensionKey } from '../../shared/filters/filter.types'
+import { isEventDraft } from '../../core/events/event-draft'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
@@ -278,6 +279,8 @@ export class UserAgenda implements OnInit {
   protected openEvent(item: UserAgendaItem): void {
     void this.router.navigate(saisonEventPath(item.seasonSlug, item.eventSlug))
   }
+
+  protected readonly isEventDraft = isEventDraft
 
   protected timeLabel(item: UserAgendaItem): string {
     return new Intl.DateTimeFormat('fr-FR', {

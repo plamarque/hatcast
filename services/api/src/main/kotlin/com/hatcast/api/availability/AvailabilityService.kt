@@ -16,8 +16,11 @@ import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
 import com.hatcast.api.composition.CompositionSelectionHistoryService
 import com.hatcast.api.composition.SelectionHistoryMode
 import com.hatcast.api.composition.SelectionHistoryModeResolver
+import com.hatcast.api.event.EventDraftVisibility
+import com.hatcast.api.event.EventDraftVisibility.Companion.DRAFT_AVAILABILITY_CLOSED_MESSAGE
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.isAvailabilityOpen
 import com.hatcast.api.organizer.OrganizerAccessService
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantEntity
@@ -52,6 +55,7 @@ class AvailabilityService(
     private val selectionHistory: CompositionSelectionHistoryService,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val auditRecorder: AuditEventRecorder,
+    private val draftVisibility: EventDraftVisibility,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -60,6 +64,7 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ): MyAvailabilityResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        requireEditableEvent(event)
         return toResponse(findRowForUser(event.id, principal.userId))
     }
 
@@ -71,7 +76,7 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ): MyAvailabilityResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        requireEditableEvent(event)
+        requireAvailabilityOpenForWrite(event, seasonId, principal)
         val user =
             userRepository.findById(principal.userId).orElseThrow {
                 ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur inconnu")
@@ -94,7 +99,7 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ): MyAvailabilityResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        requireEditableEvent(event)
+        requireAvailabilityOpenForWrite(event, seasonId, principal)
         if (!organizerAccess.canManageComposition(eventId, seasonId, principal)) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Droits insuffisants")
         }
@@ -181,6 +186,7 @@ class AvailabilityService(
         includeChances: Boolean = false,
     ): EventAvailabilitySummaryResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        requireAvailabilitySummaryReadable(event, seasonId, principal)
         val eligible = loadEligibleParticipants(seasonId, event.id)
         val availabilityIndex = buildAvailabilityIndex(event.id)
 
@@ -751,6 +757,46 @@ class AvailabilityService(
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Événement archivé")
         }
     }
+
+    private fun requireAvailabilityOpenForWrite(
+        event: EventEntity,
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        requireEditableEvent(event)
+        if (!event.isAvailabilityOpen()) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                draftAvailabilityClosedMessage(event, seasonId, principal),
+            )
+        }
+    }
+
+    private fun requireAvailabilitySummaryReadable(
+        event: EventEntity,
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        if (draftVisibility.isDraft(event) &&
+            !draftVisibility.canViewDraftEvent(event.id, seasonId, principal)
+        ) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                DRAFT_AVAILABILITY_CLOSED_MESSAGE,
+            )
+        }
+    }
+
+    private fun draftAvailabilityClosedMessage(
+        event: EventEntity,
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ): String =
+        if (draftVisibility.canViewDraftEvent(event.id, seasonId, principal)) {
+            "Les disponibilités ne sont pas encore ouvertes pour ce spectacle."
+        } else {
+            DRAFT_AVAILABILITY_CLOSED_MESSAGE
+        }
 
     private fun findRowForUser(
         eventId: UUID,

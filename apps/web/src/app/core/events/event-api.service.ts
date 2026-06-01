@@ -27,7 +27,9 @@ export interface EventResponse {
   compositionLifecycle?: string
   teamStatusBadge?: TeamStatusBadge
   compositionPublishedAt?: string | null
-    /** Null = principal category (ADR-0013). */
+  /** Null = draft (availability collection closed). */
+  availabilityOpenedAt?: string | null
+  /** Null = principal category (ADR-0013). */
   category?: string | null
 }
 
@@ -238,6 +240,52 @@ export class EventApiService {
       )
       if (!res.ok) {
         return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async openAvailability(
+    seasonId: string,
+    eventId: string,
+  ): Promise<EventMutationResult> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/actions/open-availability`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async closeAvailability(
+    seasonId: string,
+    eventId: string,
+  ): Promise<EventMutationResult> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/actions/close-availability`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
       const data = (await res.json()) as EventResponse
       return { ok: true, status: res.status, data }

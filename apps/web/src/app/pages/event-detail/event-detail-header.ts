@@ -1,5 +1,4 @@
 import { Component, computed, input } from '@angular/core'
-
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import {
   ScopeAdminMenu,
