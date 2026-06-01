@@ -27,6 +27,26 @@ tags:
   - name: Organisateurs
 
 paths:
+
+  /public/troupes:
+    get:
+      tags: [Troupes]
+      summary: Annuaire public des troupes (FR32)
+      description: >
+        Liste réduite pour la section Découvrir — sans authentification.
+        Exclut `isDemo = true` et `listedInDirectory = false`.
+        Ne retourne jamais d'adhésion, email, join policy ou données participant.
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicTroupeDirectoryItem'
+
   /troupes:
     get:
       tags: [Troupes]
@@ -1045,6 +1065,27 @@ components:
         format: uuid
 
   schemas:
+
+    PublicTroupeDirectoryItem:
+      type: object
+      required: [id, name, slug, activeMemberCount, upcomingEventCount]
+      description: >
+        DTO réduit pour l'annuaire public (FR32, NFR-S2). Pas de membership, email, join policy ou isDemo.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        activeMemberCount:
+          type: integer
+          format: int64
+        upcomingEventCount:
+          type: integer
+          format: int64
+
     TroupeListItem:
       type: object
       required: [id, name, slug, joinPolicy, isDemo, membership]

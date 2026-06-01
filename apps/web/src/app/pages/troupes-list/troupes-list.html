@@ -15,35 +15,49 @@
   </header>
 
   @if (loadingSession()) {
-    <p class="troupes-list__status" role="status">Vérification de la session…</p>
-  } @else if (loadingList()) {
-    <div class="troupes-list__spinner" role="status">
-      <mat-spinner diameter="40" />
-    </div>
-  } @else if (loadError()) {
-    <section class="troupes-list__empty" aria-labelledby="troupes-load-error-heading">
-      <h2 id="troupes-load-error-heading" class="troupes-list__empty-title">Chargement impossible</h2>
-      <p class="troupes-list__empty-text">
-        Nous n’avons pas pu charger tes troupes. Réessaie dans un instant.
-      </p>
-      <button mat-flat-button color="primary" type="button" (click)="loadTroupes()">Réessayer</button>
-    </section>
+    <p class="troupes-list__status" role="status">Chargement…</p>
   } @else {
     <section class="troupes-list__section" aria-labelledby="mes-troupes-heading">
       <div class="troupes-list__section-head">
         <h2 id="mes-troupes-heading" class="troupes-list__section-title">Mes troupes</h2>
-        <button
-          mat-flat-button
-          color="primary"
-          type="button"
-          class="troupes-list__create-btn"
-          (click)="openCreateTroupeDialog()"
-        >
-          <mat-icon aria-hidden="true">add</mat-icon>
-          Créer une troupe
-        </button>
+        @if (authenticated()) {
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            class="troupes-list__create-btn"
+            (click)="openCreateTroupeDialog()"
+          >
+            <mat-icon aria-hidden="true">add</mat-icon>
+            Créer une troupe
+          </button>
+        }
       </div>
-      @if (troupes().length === 0) {
+
+      @if (!authenticated()) {
+        <div class="troupes-list__empty">
+          <p class="troupes-list__empty-text">
+            Connecte-toi pour voir tes troupes et créer la tienne.
+          </p>
+          <button mat-stroked-button type="button" (click)="goToLogin()">Se connecter</button>
+        </div>
+      } @else if (loadingList()) {
+        <div class="troupes-list__spinner" role="status">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else if (loadError()) {
+        <section class="troupes-list__empty" aria-labelledby="troupes-load-error-heading">
+          <h3 id="troupes-load-error-heading" class="troupes-list__empty-title">
+            Chargement impossible
+          </h3>
+          <p class="troupes-list__empty-text">
+            Nous n’avons pas pu charger tes troupes. Réessaie dans un instant.
+          </p>
+          <button mat-flat-button color="primary" type="button" (click)="loadTroupes()">
+            Réessayer
+          </button>
+        </section>
+      } @else if (troupes().length === 0) {
         <div class="troupes-list__empty">
           <p class="troupes-list__empty-text">
             Tu n’appartiens à aucune troupe pour l’instant. Crée la tienne ou rejoins la troupe de
@@ -92,10 +106,41 @@
 
     <section id="decouvrir" class="troupes-list__section" aria-labelledby="decouvrir-heading">
       <h2 id="decouvrir-heading" class="troupes-list__section-title">Découvrir</h2>
-      <p class="troupes-list__discover-copy">
-        L’annuaire public des troupes arrive bientôt. Tu pourras y découvrir de nouvelles troupes à
-        rejoindre.
-      </p>
+
+      @if (loadingDiscover() || (authenticated() && loadingList())) {
+        <div class="troupes-list__spinner" role="status">
+          <mat-spinner diameter="40" aria-label="Chargement de l’annuaire public" />
+        </div>
+      } @else if (discoverError()) {
+        <section class="troupes-list__empty" aria-labelledby="discover-load-error-heading">
+          <h3 id="discover-load-error-heading" class="troupes-list__empty-title">
+            Chargement impossible
+          </h3>
+          <p class="troupes-list__empty-text">
+            Nous n’avons pas pu charger l’annuaire public. Réessaie dans un instant.
+          </p>
+          <button mat-flat-button color="primary" type="button" (click)="loadDiscover()">
+            Réessayer
+          </button>
+        </section>
+      } @else if (filteredDiscoverTroupes().length === 0) {
+        <p class="troupes-list__discover-copy">
+          Aucune autre troupe publique à découvrir pour l’instant.
+        </p>
+      } @else {
+        <div class="troupes-list__grid">
+          @for (troupe of filteredDiscoverTroupes(); track troupe.id) {
+            <app-troupe-card
+              [name]="troupe.name"
+              [slug]="troupe.slug"
+              [memberCount]="troupe.activeMemberCount"
+              [upcomingCount]="troupe.upcomingEventCount"
+              mode="discover"
+              [discoverAction]="authenticated() ? 'open' : 'login'"
+            />
+          }
+        </div>
+      }
     </section>
   }
 </div>

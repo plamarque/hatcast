@@ -21,7 +21,7 @@ import {
   type SeasonResponse,
   SeasonApiService,
 } from '../../core/seasons/season-api.service'
-import { type TroupeListItem } from '../../core/troupes/troupe-api.service'
+import { type TroupeListItem, TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
   ScopeAdminMenu,
@@ -54,6 +54,7 @@ const SEASONS_PAGE_SIZE = 50
 export class TroupeHub implements OnInit, OnDestroy {
   private readonly auth = inject(AuthApiService)
   private readonly troupeContext = inject(TroupeContextService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly seasonApi = inject(SeasonApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
@@ -62,6 +63,7 @@ export class TroupeHub implements OnInit, OnDestroy {
 
   private slugSubscription?: Subscription
   private readonly dialogSubscriptions = new Subscription()
+  private slugRequestId = 0
 
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
@@ -73,6 +75,8 @@ export class TroupeHub implements OnInit, OnDestroy {
   protected readonly seasonsLoadError = signal(false)
   protected readonly troupe = signal<TroupeListItem | null>(null)
   protected readonly notFound = signal(false)
+  protected readonly accessDenied = signal(false)
+  protected readonly accessCheckError = signal(false)
   protected readonly isDemoTroupe = computed(
     () => this.slug() === DEMO_TROUPE_SLUG || this.troupe()?.isDemo === true,
   )
@@ -170,7 +174,10 @@ export class TroupeHub implements OnInit, OnDestroy {
   }
 
   private async applySlug(slug: string): Promise<void> {
+    const requestId = ++this.slugRequestId
     this.notFound.set(false)
+    this.accessDenied.set(false)
+    this.accessCheckError.set(false)
     this.showArchived.set(false)
     if (!slug) {
       this.troupe.set(null)
@@ -180,16 +187,42 @@ export class TroupeHub implements OnInit, OnDestroy {
     }
 
     const match = await this.troupeContext.resolveTroupeBySlug(slug)
-    if (!match) {
-      this.troupe.set(null)
-      this.allSeasons.set([])
-      this.notFound.set(true)
+    if (!this.isCurrentSlugRequest(requestId)) {
+      return
+    }
+    if (match) {
+      this.troupeContext.selectTroupe(match.id)
+      this.troupe.set(match)
+      await this.loadSeasons(match.id, requestId)
       return
     }
 
-    this.troupeContext.selectTroupe(match.id)
-    this.troupe.set(match)
-    await this.loadSeasons(match.id)
+    const publicResult = await this.troupeApi.listPublicTroupes()
+    if (!this.isCurrentSlugRequest(requestId)) {
+      return
+    }
+    if (!publicResult.ok) {
+      this.troupe.set(null)
+      this.allSeasons.set([])
+      this.accessCheckError.set(true)
+      return
+    }
+    const isPublicSlug =
+      (publicResult.data ?? []).some((item) => item.slug === slug)
+    if (isPublicSlug) {
+      this.troupe.set(null)
+      this.allSeasons.set([])
+      this.accessDenied.set(true)
+      return
+    }
+
+    this.troupe.set(null)
+    this.allSeasons.set([])
+    this.notFound.set(true)
+  }
+
+  private isCurrentSlugRequest(requestId: number): boolean {
+    return requestId === this.slugRequestId
   }
 
   protected toggleArchived(): void {
@@ -252,10 +285,13 @@ export class TroupeHub implements OnInit, OnDestroy {
     )
   }
 
-  private async loadSeasons(troupeId: string): Promise<void> {
+  private async loadSeasons(troupeId: string, slugRequestId?: number): Promise<void> {
     this.loadingSeasons.set(true)
     this.seasonsLoadError.set(false)
     const r = await this.seasonApi.listSeasons(troupeId, 0, SEASONS_PAGE_SIZE)
+    if (slugRequestId !== undefined && !this.isCurrentSlugRequest(slugRequestId)) {
+      return
+    }
     this.loadingSeasons.set(false)
     if (!r.ok || !r.data) {
       this.seasonsLoadError.set(true)

@@ -91,6 +91,35 @@ describe('TroupeApiService', () => {
     )
   })
 
+
+  it('listPublicTroupes utilise credentials omit', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve([
+          {
+            id: 't-public',
+            name: 'Publique',
+            slug: 'publique',
+            activeMemberCount: 2,
+            upcomingEventCount: 1,
+          },
+        ]),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service().listPublicTroupes()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/public/troupes',
+      expect.objectContaining({ credentials: 'omit' }),
+    )
+    expect(result.ok).toBe(true)
+    expect(result.data?.[0].slug).toBe('publique')
+    expect(result.data?.[0]).not.toHaveProperty('membership')
+  })
+
   it('listMyTroupes utilise credentials include', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

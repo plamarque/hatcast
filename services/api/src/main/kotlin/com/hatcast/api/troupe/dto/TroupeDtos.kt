@@ -36,6 +36,16 @@ data class MembershipSummaryDto(
     }
 }
 
+
+/** Reduced DTO for anonymous public directory (FR32, NFR-S2). No membership, join policy, or demo flag. */
+data class PublicTroupeDirectoryItemDto(
+    val id: UUID,
+    val name: String,
+    val slug: String,
+    val activeMemberCount: Long,
+    val upcomingEventCount: Long,
+)
+
 data class TroupeListItemDto(
     val id: UUID,
     val name: String,

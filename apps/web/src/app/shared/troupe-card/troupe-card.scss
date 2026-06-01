@@ -1,9 +1,16 @@
 .troupe-card {
-  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  height: 100%;
   padding: 1rem;
+}
+
+.troupe-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .troupe-card__header {
@@ -47,5 +54,5 @@
 
 .troupe-card__actions {
   margin-top: auto;
-  padding-top: 0.25rem;
+  padding: 0.25rem 0 0;
 }

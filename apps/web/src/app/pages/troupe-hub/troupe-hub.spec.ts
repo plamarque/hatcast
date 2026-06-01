@@ -141,7 +141,11 @@ describe('TroupeHub', () => {
         { provide: MatDialog, useValue: dialog },
         {
           provide: TroupeApiService,
-          useValue: { updateTroupe: vi.fn(), updateMyMembership: vi.fn() },
+          useValue: {
+            updateTroupe: vi.fn(),
+            updateMyMembership: vi.fn(),
+            listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+          },
         },
       ],
     }).compileComponents()
@@ -334,11 +338,10 @@ describe('TroupeHub', () => {
         },
         { provide: SeasonApiService, useValue: { listSeasons } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
-        { provide: TroupeApiService, useValue: { updateTroupe: vi.fn() } },
+        { provide: TroupeApiService, useValue: { updateTroupe: vi.fn(), listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }) } },
       ],
     }).compileComponents()
 
-    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
     const fixture = TestBed.createComponent(TroupeHub)
     fixture.detectChanges()
     await vi.waitFor(() => {
@@ -356,7 +359,6 @@ describe('TroupeHub', () => {
       expect(fixture.nativeElement.textContent).toContain('Saison B')
     })
     expect(selectTroupe).toHaveBeenCalledWith('t2')
-    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
   })
 
   it('shows only-archived hint before toggle', async () => {
@@ -420,11 +422,10 @@ describe('TroupeHub', () => {
         },
         { provide: SeasonApiService, useValue: { listSeasons } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
-        { provide: TroupeApiService, useValue: { updateTroupe: vi.fn() } },
+        { provide: TroupeApiService, useValue: { updateTroupe: vi.fn(), listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }) } },
       ],
     }).compileComponents()
 
-    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
     const fixture = TestBed.createComponent(TroupeHub)
     fixture.detectChanges()
     await vi.waitFor(() => {
@@ -467,6 +468,123 @@ describe('TroupeHub', () => {
     expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres'])
   })
 
+
+  it('shows access denied for public slug without membership', async () => {
+    paramMap$.next(convertToParamMap({ slug: 'la-malice' }))
+    await TestBed.configureTestingModule({
+      imports: [TroupeHub, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: paramMap$.asObservable() },
+        },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' } },
+            }),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            load: vi.fn().mockResolvedValue(true),
+            selectTroupe: vi.fn(),
+            patchTroupeName: vi.fn(),
+            currentUserDisplayLabel: () => 'Test',
+            activeTroupes: () => [],
+            resolveTroupeBySlug: vi.fn().mockResolvedValue(null),
+          },
+        },
+        {
+          provide: SeasonApiService,
+          useValue: { listSeasons: vi.fn() },
+        },
+        {
+          provide: TroupeApiService,
+          useValue: {
+            updateTroupe: vi.fn(),
+            listPublicTroupes: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: [{ id: 't-public', name: 'La Malice', slug: 'la-malice', activeMemberCount: 1, upcomingEventCount: 0 }],
+            }),
+          },
+        },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(TroupeHub)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('#troupe-access-denied-heading')).not.toBeNull()
+    })
+    expect(fixture.nativeElement.textContent).toContain('Tu n’es pas membre de cette troupe.')
+    const decouvrirLink = fixture.nativeElement.querySelector(
+      'a[href="/troupes#decouvrir"]',
+    ) as HTMLAnchorElement | null
+    expect(decouvrirLink).not.toBeNull()
+  })
+
+  it('shows access check error when public directory lookup fails', async () => {
+    paramMap$.next(convertToParamMap({ slug: 'la-malice' }))
+    await TestBed.configureTestingModule({
+      imports: [TroupeHub, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: paramMap$.asObservable() },
+        },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' } },
+            }),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            load: vi.fn().mockResolvedValue(true),
+            selectTroupe: vi.fn(),
+            patchTroupeName: vi.fn(),
+            currentUserDisplayLabel: () => 'Test',
+            activeTroupes: () => [],
+            resolveTroupeBySlug: vi.fn().mockResolvedValue(null),
+          },
+        },
+        {
+          provide: SeasonApiService,
+          useValue: { listSeasons: vi.fn() },
+        },
+        {
+          provide: TroupeApiService,
+          useValue: {
+            updateTroupe: vi.fn(),
+            listPublicTroupes: vi.fn().mockResolvedValue({ ok: false, status: 503 }),
+          },
+        },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(TroupeHub)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('#troupe-access-check-error-heading'),
+      ).not.toBeNull()
+    })
+    expect(fixture.nativeElement.textContent).toContain('Vérification impossible')
+  })
+
   it('shows not found for unknown slug', async () => {
     paramMap$.next(convertToParamMap({ slug: 'unknown' }))
     await TestBed.configureTestingModule({
@@ -501,6 +619,12 @@ describe('TroupeHub', () => {
           provide: SeasonApiService,
           useValue: { listSeasons: vi.fn() },
         },
+        {
+          provide: TroupeApiService,
+          useValue: {
+            listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+          },
+        },
         { provide: MatDialog, useValue: { open: vi.fn() } },
       ],
     }).compileComponents()
@@ -509,7 +633,6 @@ describe('TroupeHub', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('#troupe-not-found-heading')).not.toBeNull()
     })
-    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
   })
 })
 

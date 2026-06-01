@@ -30,6 +30,16 @@ export interface TroupeListItem {
   upcomingEventCount: number
 }
 
+
+/** Public directory card (FR32) — no membership or join policy. */
+export interface PublicTroupeDirectoryItem {
+  id: string
+  name: string
+  slug: string
+  activeMemberCount: number
+  upcomingEventCount: number
+}
+
 /** Troupe summary for platform-admin navigation (no membership). */
 export interface TroupeAdminSummary {
   id: string
@@ -198,6 +208,21 @@ export class TroupeApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as TroupeListItem[]
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+
+  /** Public directory for Découvrir — no session required (FR32). */
+  async listPublicTroupes(): ApiResult<PublicTroupeDirectoryItem[]> {
+    try {
+      const res = await fetch('/v1/public/troupes', { credentials: 'omit' })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as PublicTroupeDirectoryItem[]
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

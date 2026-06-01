@@ -20,7 +20,14 @@ export function isValidInternalRedirectPath(path: string): boolean {
   }
 
   if (segments.length === 1) {
-    return ['agenda', 'compte', 'seasons'].includes(segments[0])
+    return ['agenda', 'compte', 'seasons', 'troupes'].includes(segments[0])
+  }
+
+  if (segments[0] === 'troupes') {
+    return (
+      segments.length === 2 ||
+      (segments.length === 4 && segments[2] === 'admin' && segments[3] === 'membres')
+    )
   }
 
   if (segments[0] === 'troupe') {

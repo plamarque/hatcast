@@ -13,6 +13,33 @@
     <div class="troupe-hub__spinner" role="status">
       <mat-spinner diameter="40" aria-label="Chargement" />
     </div>
+  } @else if (accessCheckError()) {
+    <section class="troupe-hub__empty" aria-labelledby="troupe-access-check-error-heading">
+      <h2 id="troupe-access-check-error-heading" class="troupe-hub__empty-title">
+        Vérification impossible
+      </h2>
+      <p class="troupe-hub__empty-text">
+        Nous n’avons pas pu vérifier si cette troupe est listée dans l’annuaire public.
+        Réessaie dans un instant.
+      </p>
+      <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
+        Retour à Découvrir
+      </a>
+      <a mat-button routerLink="/agenda">Voir mon agenda</a>
+    </section>
+  } @else if (accessDenied()) {
+    <section class="troupe-hub__empty" aria-labelledby="troupe-access-denied-heading">
+      <h2 id="troupe-access-denied-heading" class="troupe-hub__empty-title">
+        Tu n’es pas membre de cette troupe.
+      </h2>
+      <p class="troupe-hub__empty-text">
+        Cette troupe est listée dans l’annuaire public, mais tu n’y as pas accès.
+      </p>
+      <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
+        Retour à Découvrir
+      </a>
+      <a mat-button routerLink="/agenda">Voir mon agenda</a>
+    </section>
   } @else if (notFound()) {
     <section class="troupe-hub__empty" aria-labelledby="troupe-not-found-heading">
       <h2 id="troupe-not-found-heading" class="troupe-hub__empty-title">Troupe introuvable</h2>

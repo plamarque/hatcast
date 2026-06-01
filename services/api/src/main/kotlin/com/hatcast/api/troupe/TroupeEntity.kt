@@ -25,4 +25,10 @@ class TroupeEntity(
     var joinPolicy: TroupeJoinPolicy = TroupeJoinPolicy.OPEN,
     @Column(name = "is_demo", nullable = false)
     var isDemo: Boolean = false,
+    /**
+     * When true, troupe appears in `GET /v1/public/troupes` (FR32 freemium default listed).
+     * Admin opt-out UI deferred — column + default only in Story 4.1.
+     */
+    @Column(name = "listed_in_directory", nullable = false)
+    var listedInDirectory: Boolean = true,
 )
