@@ -1,5 +1,9 @@
 package com.hatcast.api.participant
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.dto.EventRosterParticipantDto
@@ -21,6 +25,7 @@ class EventRosterService(
     private val eventRepository: EventRepository,
     private val seasonParticipantService: SeasonParticipantService,
     private val participantAccess: ParticipantAccessService,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional(readOnly = true)
     fun listRoster(
@@ -65,6 +70,17 @@ class EventRosterService(
                 createdAt = Instant.now(),
             ),
         )
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_ROSTER_EXCLUDED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = seasonParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                metadata = AuditSnapshots.participantMetadata(seasonParticipant.displayName),
+            ),
+        )
     }
 
     @Transactional
@@ -83,7 +99,30 @@ class EventRosterService(
         if (seasonParticipant.season.id != seasonId) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
         }
+        val existed =
+            eventParticipantExclusionRepository.existsByIdEventIdAndIdSeasonParticipantId(
+                eventId,
+                seasonParticipantId,
+            )
+        if (!existed) {
+            return
+        }
         eventParticipantExclusionRepository.deleteByIdEventIdAndIdSeasonParticipantId(eventId, seasonParticipantId)
+        val event =
+            eventRepository
+                .findById(eventId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_ROSTER_INCLUDED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = seasonParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                metadata = AuditSnapshots.participantMetadata(seasonParticipant.displayName),
+            ),
+        )
     }
 
     internal fun buildRoster(

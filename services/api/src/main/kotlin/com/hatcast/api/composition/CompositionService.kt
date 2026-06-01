@@ -1,5 +1,9 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
@@ -46,6 +50,7 @@ class CompositionService(
     private val declineRepository: EventCompositionDeclineRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -92,6 +97,7 @@ class CompositionService(
 
         val alreadyPublished = composition.publishedAt != null
         if (!alreadyPublished) {
+            val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
             val slots = slotRepository.findByEventId(eventId)
             val assignedCount = slots.count { it.hasAssignee() }
             if (assignedCount == 0) {
@@ -101,6 +107,17 @@ class CompositionService(
             composition.publishedAt = now
             composition.updatedAt = now
             compositionRepository.save(composition)
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.COMPOSITION_PUBLISHED,
+                    actorUserId = principal.userId,
+                    troupeId = event.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = eventId,
+                    before = beforeLifecycle,
+                    after = AuditSnapshots.compositionLifecycle(composition),
+                ),
+            )
             eventPublisher.publishEvent(
                 DraftCompositionSharedEvent(
                     eventId = eventId,
@@ -137,6 +154,7 @@ class CompositionService(
 
         val alreadyValidated = composition.validatedAt != null
         if (!alreadyValidated) {
+            val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
             val now = Instant.now()
             composition.validatedAt = now
             composition.updatedAt = now
@@ -150,6 +168,17 @@ class CompositionService(
                 slotRepository.saveAll(slotsToPending)
             }
             notificationPort.requestCompositionConfirmation(eventId, seasonId, principal.userId)
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.COMPOSITION_VALIDATED,
+                    actorUserId = principal.userId,
+                    troupeId = event.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = eventId,
+                    before = beforeLifecycle,
+                    after = AuditSnapshots.compositionLifecycle(composition),
+                ),
+            )
         }
 
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
@@ -175,6 +204,7 @@ class CompositionService(
             throw ResponseStatusException(HttpStatus.CONFLICT, "La composition n'est pas validée")
         }
 
+        val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
         val now = Instant.now()
         composition.validatedAt = null
         composition.updatedAt = now
@@ -193,6 +223,18 @@ class CompositionService(
             }
             slotRepository.saveAll(slotsToUpdate)
         }
+
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.COMPOSITION_UNLOCKED,
+                actorUserId = principal.userId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = beforeLifecycle,
+                after = AuditSnapshots.compositionLifecycle(composition),
+            ),
+        )
 
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }

@@ -1,5 +1,9 @@
 package com.hatcast.api.organizer
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
@@ -72,6 +76,7 @@ class OrganizerAccessService(
     private val eventRepository: EventRepository,
     private val userRepository: UserRepository,
     private val troupeAccess: TroupeAccessService,
+    private val auditRecorder: AuditEventRecorder,
 ) : OrganizerAccessRules {
     companion object {
         fun forTests(
@@ -120,6 +125,17 @@ class OrganizerAccessService(
                     grantedBy = currentUserOrNull(principal),
                 ),
             )
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SEASON_ORGANIZER_GRANTED,
+                actorUserId = principal.userId,
+                subjectUserId = user.id,
+                troupeId = season.troupe.id,
+                seasonId = seasonId,
+                before = AuditSnapshots.organizerGranted(false),
+                after = AuditSnapshots.organizerGranted(true),
+            ),
+        )
         return OrganizerResponseDto.from(saved)
     }
 
@@ -132,6 +148,17 @@ class OrganizerAccessService(
         val season = loadSeason(seasonId)
         requireCanManageSeasonOrganizers(season, principal)
         val existing = seasonOrganizerRepository.findBySeason_IdAndUser_Id(seasonId, organizerUserId) ?: return
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SEASON_ORGANIZER_REVOKED,
+                actorUserId = principal.userId,
+                subjectUserId = organizerUserId,
+                troupeId = season.troupe.id,
+                seasonId = seasonId,
+                before = AuditSnapshots.organizerGranted(true),
+                after = AuditSnapshots.organizerGranted(false),
+            ),
+        )
         seasonOrganizerRepository.delete(existing)
     }
 
@@ -169,6 +196,18 @@ class OrganizerAccessService(
                     grantedBy = currentUserOrNull(principal),
                 ),
             )
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_ORGANIZER_GRANTED,
+                actorUserId = principal.userId,
+                subjectUserId = user.id,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = AuditSnapshots.organizerGranted(false),
+                after = AuditSnapshots.organizerGranted(true),
+            ),
+        )
         return OrganizerResponseDto.from(saved)
     }
 
@@ -182,6 +221,22 @@ class OrganizerAccessService(
         loadEventInSeason(seasonId, eventId, principal)
         requireCanManageEventOrganizers(eventId, seasonId, principal)
         val existing = eventOrganizerRepository.findByEvent_IdAndUser_Id(eventId, organizerUserId) ?: return
+        val event =
+            eventRepository
+                .findById(eventId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_ORGANIZER_REVOKED,
+                actorUserId = principal.userId,
+                subjectUserId = organizerUserId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = AuditSnapshots.organizerGranted(true),
+                after = AuditSnapshots.organizerGranted(false),
+            ),
+        )
         eventOrganizerRepository.delete(existing)
     }
 

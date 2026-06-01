@@ -1,5 +1,6 @@
 package com.hatcast.api.participant
 
+import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeEntity
@@ -29,6 +30,7 @@ class SeasonParticipantServiceTest {
     private val participantLink = ParticipantLinkService(userRepository, seasonParticipantRepository, mock())
     private val membershipSync =
         SeasonParticipantMembershipSync(seasonParticipantRepository, seasonRepository, participantLink)
+    private val auditRecorder = mock<AuditEventRecorder>()
 
     private val service =
         SeasonParticipantService(
@@ -39,6 +41,7 @@ class SeasonParticipantServiceTest {
             participantAccess,
             participantLink,
             membershipSync,
+            auditRecorder,
         )
 
     @Test

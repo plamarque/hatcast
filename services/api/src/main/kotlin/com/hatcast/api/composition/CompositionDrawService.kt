@@ -1,5 +1,9 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
@@ -46,6 +50,7 @@ class CompositionDrawService(
     private val compositionService: CompositionService,
     private val notificationPort: CompositionNotificationPort,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional
     fun drawComposition(
@@ -108,6 +113,7 @@ class CompositionDrawService(
             )
 
         val allSlots = slotRepository.findByEventId(eventId)
+        val beforeDrawSnapshot = AuditSnapshots.drawAssignments(allSlots)
         val slotsByRole =
             allSlots
                 .filter { slot ->
@@ -284,6 +290,18 @@ class CompositionDrawService(
 
         if (slotsToPersist.isNotEmpty()) {
             slotRepository.saveAll(slotsToPersist.distinctBy { it.id })
+            val afterDrawSnapshot = AuditSnapshots.drawAssignments(slotRepository.findByEventId(eventId))
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.COMPOSITION_DRAW_COMPLETED,
+                    actorUserId = principal.userId,
+                    troupeId = event.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = eventId,
+                    before = beforeDrawSnapshot,
+                    after = afterDrawSnapshot,
+                ),
+            )
         }
 
         val snapshotRows = snapshotAccumulator.values.toList()

@@ -1,5 +1,9 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.event.EventEntity
@@ -37,6 +41,7 @@ class CompositionDeclineRestoreService(
     private val troupeAccess: TroupeAccessService,
     private val compositionService: CompositionService,
     private val notificationPort: CompositionNotificationPort,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional
     fun restoreDecline(
@@ -102,6 +107,15 @@ class CompositionDeclineRestoreService(
                         slotIndex = emptySlotIndex,
                     ),
                 )
+        val beforeSnapshot =
+            mapOf(
+                "roleKey" to decline.roleKey,
+                "slotIndex" to decline.slotIndex,
+                "seasonParticipantId" to decline.seasonParticipantId?.toString(),
+                "eventParticipantId" to decline.eventParticipantId?.toString(),
+                "participantId" to declineParticipantId.toString(),
+                "participationStatus" to SlotParticipationStatus.DECLINED.name.lowercase(),
+            )
         slotEntity.setAssignee(eligibleRow)
         slotEntity.participationStatus = SlotParticipationStatus.PENDING
         slotEntity.updatedAt = now
@@ -110,6 +124,26 @@ class CompositionDeclineRestoreService(
         declineRepository.delete(decline)
         composition.updatedAt = now
         compositionRepository.save(composition)
+
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.DECLINE_RESTORED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = decline.seasonParticipantId,
+                subjectEventParticipantId = decline.eventParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = beforeSnapshot,
+                after = AuditSnapshots.slotAssignment(slotEntity),
+                metadata =
+                    mapOf(
+                        "roleKey" to decline.roleKey,
+                        "slotIndex" to emptySlotIndex,
+                        "declineId" to declineId.toString(),
+                    ),
+            ),
+        )
 
         notificationPort.requestConfirmationForAssignees(
             eventId = eventId,

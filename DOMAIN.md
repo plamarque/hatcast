@@ -30,7 +30,7 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Admin (season):** User allowed to manage a specific season (events, players, draw, invitations). Stored in Firestore (e.g. `seasons/{id}/admins`). Checked by `permissionService.js`.
 - **Super Admin:** Global admin; can access any season admin. Server-side (Cloud Function or config); see `permissionService.isSuperAdmin()`, `functions/adminFunctions.js`.
 - **Invitation:** Mechanism to invite someone to join a season or claim a player. Uses `invitations` collection and flows like `/accept-invitation`, `JoinSeason.vue`.
-- **Audit log:** Immutable record of significant actions. Stored in `auditLogs`; written by client (`auditClient.js`) and/or Firestore triggers (`functions/auditTriggers.js`).
+- **Audit log (V1 legacy):** Immutable record of significant actions. Stored in Firestore `auditLogs`; written by client (`auditClient.js`) and/or Firestore triggers (`functions/auditTriggers.js`). **V2 (PostgreSQL, Story 9.0):** append-only table `audit_events` — actor, subject, `action_type`, scope ids (`troupe_id`, `season_id`, `event_id`), `before`/`after` JSON snapshots; written in the **same transaction** as the domain mutation by `AuditEventRecorder` (no GET API in 9.0 — consultation = stories 9.1 / 9.2).
 - **Magic link:** Passwordless auth link; stored in `magicLinks` or `accountMagicLinks`, processed in `magicLinks.js` and auth views.
 - **Push queue / reminder queue:** Firestore collections (`pushQueue`, `reminderQueue`) consumed by Cloud Functions to send push notifications or email reminders (see `functions/index.js`).
 - **Display filter (participants / events):** User-selected subset of players or events to display in the grid views. `null` = all; `Set<id>` = only those IDs. State in GridBoard (`selectedPlayerIds`, `selectedEventIds`); UI in PlayerSelectorModal, EventSelectorModal, ViewHeader.
@@ -82,7 +82,8 @@ User 1──* userPreferences, userPushTokens, userNavigation
 - **One cast per event:** For a given event there is at most one cast; the draw produces or updates it (observed in storage/cast usage).
 - **Cast status values:** Player status in a cast is one of: pending, confirmed, declined (see `castService.getPlayerCastStatus`).
 - **Admin access:** Only users in `seasons/{id}/admins` or Super Admin can write/admin that season; enforced by router guard and permission checks (`main.js`, `permissionService.js`) and by Firestore rules where applicable.
-- **Audit write:** Audit logs are append-only; client and triggers write, no deletion from app logic (auditLogs allow write: if true for logging; other rules in `firestore.rules`).
+- **Audit write (V1):** Audit logs are append-only; client and triggers write, no deletion from app logic (`auditLogs` allow write: if true for logging; other rules in `firestore.rules`).
+- **Audit write (V2):** Table `audit_events` is append-only; no application UPDATE/DELETE. Retention/anonymisation (FR37) is a separate policy (story 1.7).
 - **Queue consumption:** `mail`, `reminderQueue`, `pushQueue` are written by the client and read/processed only by Cloud Functions (rules: read false for client).
 - **Firestore database selection:** Environment (development/staging/production) selects which Firestore database is used; controlled by `configService.js` and VITE_* env (see ARCH.md).
 

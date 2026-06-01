@@ -1,5 +1,9 @@
 package com.hatcast.api.availability
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.dto.EventAvailabilitySummaryResponse
 import com.hatcast.api.availability.dto.MyAvailabilityResponse
@@ -47,6 +51,7 @@ class AvailabilityService(
     private val userRepository: UserRepository,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -75,6 +80,7 @@ class AvailabilityService(
             event = event,
             user = user,
             body = body,
+            actorUserId = principal.userId,
             recordedByUserId = null,
         )
     }
@@ -99,6 +105,7 @@ class AvailabilityService(
                     event = event,
                     user = subject.user,
                     body = body,
+                    actorUserId = principal.userId,
                     recordedByUserId = principal.userId,
                 )
             is AvailabilitySubject.SeasonParticipant ->
@@ -106,6 +113,7 @@ class AvailabilityService(
                     event = event,
                     participant = subject.participant,
                     body = body,
+                    actorUserId = principal.userId,
                     recordedByUserId = principal.userId,
                 )
             is AvailabilitySubject.EventParticipant ->
@@ -113,6 +121,7 @@ class AvailabilityService(
                     event = event,
                     participant = subject.participant,
                     body = body,
+                    actorUserId = principal.userId,
                     recordedByUserId = principal.userId,
                 )
         }
@@ -395,6 +404,7 @@ class AvailabilityService(
         event: EventEntity,
         user: UserEntity,
         body: SetMyAvailabilityRequest,
+        actorUserId: UUID,
         recordedByUserId: UUID?,
     ): MyAvailabilityResponse {
         val stored = parseStoredStatus(body)
@@ -403,12 +413,21 @@ class AvailabilityService(
         val existing = findRowForUser(event.id, user.id)
         if (stored == null) {
             if (existing != null) {
+                recordAvailabilityAudit(
+                    event = event,
+                    actorUserId = actorUserId,
+                    subjectUserId = user.id,
+                    before = AuditSnapshots.availability(existing),
+                    after = null,
+                    actionType = AuditActionType.AVAILABILITY_DELETED,
+                )
                 availabilityRepository.delete(existing)
             }
             return MyAvailabilityResponse(status = AvailabilityStatusMapper.UNKNOWN, roleKeys = emptyList())
         }
         val roleKeys = roleKeysForWrite(event, stored, body)
         val now = Instant.now()
+        val beforeSnapshot = AuditSnapshots.availability(existing)
         val saved =
             if (existing != null) {
                 existing.status = stored
@@ -431,6 +450,22 @@ class AvailabilityService(
                     ).also { it.comment = normalizedComment },
                 )
             }
+        val afterSnapshot = AuditSnapshots.availability(saved)
+        if (existing == null || beforeSnapshot != afterSnapshot) {
+            recordAvailabilityAudit(
+                event = event,
+                actorUserId = actorUserId,
+                subjectUserId = user.id,
+                before = beforeSnapshot,
+                after = afterSnapshot,
+                actionType =
+                    if (existing == null) {
+                        AuditActionType.AVAILABILITY_CREATED
+                    } else {
+                        AuditActionType.AVAILABILITY_UPDATED
+                    },
+            )
+        }
         return toResponse(saved)
     }
 
@@ -438,6 +473,7 @@ class AvailabilityService(
         event: EventEntity,
         participant: SeasonParticipantEntity,
         body: SetMyAvailabilityRequest,
+        actorUserId: UUID,
         recordedByUserId: UUID,
     ): MyAvailabilityResponse = upsertForParticipantScopedRow(
         event = event,
@@ -455,6 +491,9 @@ class AvailabilityService(
                 now = now,
             )
         },
+        actorUserId = actorUserId,
+        subjectSeasonParticipantId = participant.id,
+        displayName = participant.displayName,
         recordedByUserId = recordedByUserId,
     )
 
@@ -462,6 +501,7 @@ class AvailabilityService(
         event: EventEntity,
         participant: EventParticipantEntity,
         body: SetMyAvailabilityRequest,
+        actorUserId: UUID,
         recordedByUserId: UUID,
     ): MyAvailabilityResponse = upsertForParticipantScopedRow(
         event = event,
@@ -479,6 +519,9 @@ class AvailabilityService(
                 now = now,
             )
         },
+        actorUserId = actorUserId,
+        subjectEventParticipantId = participant.id,
+        displayName = participant.displayName,
         recordedByUserId = recordedByUserId,
     )
 
@@ -489,18 +532,33 @@ class AvailabilityService(
         stored: StoredAvailabilityStatus?,
         roleKeys: (StoredAvailabilityStatus) -> List<String>,
         create: (StoredAvailabilityStatus, List<String>, Instant) -> EventAvailabilityEntity,
+        actorUserId: UUID,
+        subjectSeasonParticipantId: UUID? = null,
+        subjectEventParticipantId: UUID? = null,
+        displayName: String? = null,
         recordedByUserId: UUID,
     ): MyAvailabilityResponse {
         validateComment(body.comment)
         val normalizedComment = normalizeComment(body.comment)
         if (stored == null) {
             if (existing != null) {
+                recordAvailabilityAudit(
+                    event = event,
+                    actorUserId = actorUserId,
+                    subjectSeasonParticipantId = subjectSeasonParticipantId,
+                    subjectEventParticipantId = subjectEventParticipantId,
+                    displayName = displayName,
+                    before = AuditSnapshots.availability(existing),
+                    after = null,
+                    actionType = AuditActionType.AVAILABILITY_DELETED,
+                )
                 availabilityRepository.delete(existing)
             }
             return MyAvailabilityResponse(status = AvailabilityStatusMapper.UNKNOWN, roleKeys = emptyList())
         }
         val keys = roleKeys(stored)
         val now = Instant.now()
+        val beforeSnapshot = AuditSnapshots.availability(existing)
         val saved =
             if (existing != null) {
                 existing.status = stored
@@ -512,7 +570,53 @@ class AvailabilityService(
             } else {
                 availabilityRepository.save(create(stored, keys, now).also { it.comment = normalizedComment })
             }
+        val afterSnapshot = AuditSnapshots.availability(saved)
+        if (existing == null || beforeSnapshot != afterSnapshot) {
+            recordAvailabilityAudit(
+                event = event,
+                actorUserId = actorUserId,
+                subjectSeasonParticipantId = subjectSeasonParticipantId,
+                subjectEventParticipantId = subjectEventParticipantId,
+                displayName = displayName,
+                before = beforeSnapshot,
+                after = afterSnapshot,
+                actionType =
+                    if (existing == null) {
+                        AuditActionType.AVAILABILITY_CREATED
+                    } else {
+                        AuditActionType.AVAILABILITY_UPDATED
+                    },
+            )
+        }
         return toResponse(saved)
+    }
+
+    private fun recordAvailabilityAudit(
+        event: EventEntity,
+        actorUserId: UUID,
+        subjectUserId: UUID? = null,
+        subjectSeasonParticipantId: UUID? = null,
+        subjectEventParticipantId: UUID? = null,
+        displayName: String? = null,
+        before: Map<String, Any?>?,
+        after: Map<String, Any?>?,
+        actionType: AuditActionType,
+    ) {
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = actionType,
+                actorUserId = actorUserId,
+                subjectUserId = subjectUserId,
+                subjectSeasonParticipantId = subjectSeasonParticipantId,
+                subjectEventParticipantId = subjectEventParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = event.season.id,
+                eventId = event.id,
+                before = before,
+                after = after,
+                metadata = displayName?.let { AuditSnapshots.participantMetadata(it) },
+            ),
+        )
     }
 
     private fun validateComment(comment: String?) {

@@ -1,5 +1,9 @@
 package com.hatcast.api.event
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
@@ -32,6 +36,7 @@ class EventService(
     private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
     private val troupeCategoryService: TroupeCategoryService,
     private val seasonEventCountSync: SeasonEventCountSync,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     companion object {
         /** Fuseau pour la borne « début du jour civil » (liste à venir / agenda). */
@@ -174,6 +179,16 @@ class EventService(
         season.eventCount += 1
         season.updatedAt = now
         seasonRepository.save(season)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_CREATED,
+                actorUserId = principal.userId,
+                troupeId = season.troupe.id,
+                seasonId = seasonId,
+                eventId = saved.id,
+                after = AuditSnapshots.event(saved),
+            ),
+        )
         return EventResponseDto.from(saved)
     }
 
@@ -186,6 +201,7 @@ class EventService(
     ): EventResponseDto {
         val e = loadEventInSeason(seasonId, eventId)
         troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
+        val beforeSnapshot = AuditSnapshots.event(e)
         if (body.title.isPresent) {
             val rawTitle = body.title.get()
             if (rawTitle == null) {
@@ -281,7 +297,23 @@ class EventService(
                 }
         }
         e.updatedAt = Instant.now()
-        return EventResponseDto.from(eventRepository.save(e))
+        val saved = eventRepository.save(e)
+        val afterSnapshot = AuditSnapshots.event(saved)
+        val (beforeDiff, afterDiff) = AuditSnapshots.mapDiff(beforeSnapshot, afterSnapshot)
+        if (beforeDiff != null && afterDiff != null) {
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.EVENT_UPDATED,
+                    actorUserId = principal.userId,
+                    troupeId = saved.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = saved.id,
+                    before = beforeDiff,
+                    after = afterDiff,
+                ),
+            )
+        }
+        return EventResponseDto.from(saved)
     }
 
     @Transactional(readOnly = true)
@@ -341,10 +373,22 @@ class EventService(
         val e = loadEventInSeason(seasonId, eventId)
         troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
         if (!e.archived) {
+            val beforeArchived = e.archived
             e.archived = true
             e.updatedAt = Instant.now()
             eventRepository.save(e)
             seasonEventCountSync.recountEvents(seasonId)
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.EVENT_ARCHIVED,
+                    actorUserId = principal.userId,
+                    troupeId = e.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = e.id,
+                    before = mapOf("archived" to beforeArchived, "title" to e.title),
+                    after = mapOf("archived" to true, "title" to e.title),
+                ),
+            )
         }
         return EventResponseDto.from(e)
     }
@@ -358,10 +402,22 @@ class EventService(
         val e = loadEventInSeason(seasonId, eventId)
         troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
         if (e.archived) {
+            val beforeArchived = e.archived
             e.archived = false
             e.updatedAt = Instant.now()
             eventRepository.save(e)
             seasonEventCountSync.recountEvents(seasonId)
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.EVENT_UNARCHIVED,
+                    actorUserId = principal.userId,
+                    troupeId = e.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = e.id,
+                    before = mapOf("archived" to beforeArchived, "title" to e.title),
+                    after = mapOf("archived" to false, "title" to e.title),
+                ),
+            )
         }
         return EventResponseDto.from(e)
     }

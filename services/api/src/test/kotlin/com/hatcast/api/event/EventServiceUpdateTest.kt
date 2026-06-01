@@ -1,5 +1,6 @@
 package com.hatcast.api.event
 
+import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import com.hatcast.api.event.dto.UpdateEventRequest
@@ -35,6 +36,7 @@ class EventServiceUpdateTest {
     private val compositionLifecycleEnrichment = mock<CompositionLifecycleEnrichmentService>()
     private val troupeCategoryService = mock<TroupeCategoryService>()
     private val seasonEventCountSync = mock<SeasonEventCountSync>()
+    private val auditRecorder = mock<AuditEventRecorder>()
     private val service =
         EventService(
             eventRepository,
@@ -45,6 +47,7 @@ class EventServiceUpdateTest {
             compositionLifecycleEnrichment,
             troupeCategoryService,
             seasonEventCountSync,
+            auditRecorder,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

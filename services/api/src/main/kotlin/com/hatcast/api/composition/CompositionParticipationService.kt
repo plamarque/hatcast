@@ -1,5 +1,9 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.UpdateSlotParticipationRequestDto
@@ -32,6 +36,7 @@ class CompositionParticipationService(
     private val troupeAccess: TroupeAccessService,
     private val organizerAccess: OrganizerAccessRules,
     private val compositionService: CompositionService,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional
     fun updateParticipation(
@@ -110,6 +115,9 @@ class CompositionParticipationService(
         }
 
         val now = Instant.now()
+        val beforeStatus = slotEntity.participationStatus
+        val subjectSeasonParticipantId = slotEntity.seasonParticipantId
+        val subjectEventParticipantId = slotEntity.eventParticipantId
         when (participationStatus) {
             SlotParticipationStatus.CONFIRMED -> {
                 slotEntity.participationStatus = SlotParticipationStatus.CONFIRMED
@@ -139,6 +147,31 @@ class CompositionParticipationService(
         slotRepository.save(slotEntity)
         composition.updatedAt = now
         compositionRepository.save(composition)
+
+        val actionType =
+            when (participationStatus) {
+                SlotParticipationStatus.CONFIRMED -> AuditActionType.PARTICIPATION_CONFIRMED
+                SlotParticipationStatus.PENDING -> AuditActionType.PARTICIPATION_RESET
+                SlotParticipationStatus.DECLINED -> AuditActionType.PARTICIPATION_DECLINED
+            }
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = actionType,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = subjectSeasonParticipantId,
+                subjectEventParticipantId = subjectEventParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before =
+                    AuditSnapshots.participationStatus(beforeStatus) +
+                        mapOf("roleKey" to roleKey, "slotIndex" to slotIndex),
+                after =
+                    AuditSnapshots.participationStatus(participationStatus) +
+                        mapOf("roleKey" to roleKey, "slotIndex" to slotIndex),
+                metadata = mapOf("assigneeParticipantId" to assigneeId.toString()),
+            ),
+        )
 
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }

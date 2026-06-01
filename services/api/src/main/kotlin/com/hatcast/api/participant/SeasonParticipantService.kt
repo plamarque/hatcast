@@ -1,5 +1,9 @@
 package com.hatcast.api.participant
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.event.EventRepository
@@ -32,6 +36,7 @@ class SeasonParticipantService(
     private val participantAccess: ParticipantAccessService,
     private val participantLink: ParticipantLinkService,
     private val membershipSync: SeasonParticipantMembershipSync,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional
     fun listAdmin(
@@ -91,7 +96,7 @@ class SeasonParticipantService(
         // rattaché à `season_participant_id` réapparaît alors tel quel.
         val reactivatable = findReactivatableRemoved(seasonId, linkedUser, normalizedEmail, displayName)
         if (reactivatable != null) {
-            return reactivateRemoved(season, reactivatable, displayName, normalizedEmail, linkedUser)
+            return reactivateRemoved(season, reactivatable, displayName, normalizedEmail, linkedUser, principal.userId)
         }
 
         if (
@@ -117,6 +122,17 @@ class SeasonParticipantService(
                 ),
             )
         refreshParticipantCount(season)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SEASON_PARTICIPANT_ADDED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = saved.id,
+                troupeId = season.troupe.id,
+                seasonId = seasonId,
+                after = AuditSnapshots.seasonParticipant(saved),
+                metadata = AuditSnapshots.participantMetadata(saved.displayName),
+            ),
+        )
         return SeasonParticipantAdminDto.from(saved, includeEmail = true)
     }
 
@@ -155,7 +171,9 @@ class SeasonParticipantService(
         requestedDisplayName: String,
         requestedEmail: String?,
         linkedUser: UserEntity?,
+        actorUserId: UUID,
     ): SeasonParticipantAdminDto {
+        val beforeSnapshot = AuditSnapshots.seasonParticipant(existing)
         val membership = existing.troupeMembership
         if (membership != null) {
             if (membership.status != TroupeMembershipStatus.ACTIVE) {
@@ -196,6 +214,18 @@ class SeasonParticipantService(
         val saved = seasonParticipantRepository.save(existing)
         refreshParticipantCount(season)
         MembershipParticipantSyncCache.invalidate(season.id)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SEASON_PARTICIPANT_REACTIVATED,
+                actorUserId = actorUserId,
+                subjectSeasonParticipantId = saved.id,
+                troupeId = season.troupe.id,
+                seasonId = season.id,
+                before = beforeSnapshot,
+                after = AuditSnapshots.seasonParticipant(saved),
+                metadata = AuditSnapshots.participantMetadata(saved.displayName),
+            ),
+        )
         return SeasonParticipantAdminDto.from(saved, includeEmail = true)
     }
 
@@ -217,6 +247,7 @@ class SeasonParticipantService(
         if (existing.troupeMembership != null) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Les participants synchronisés depuis les membres ne peuvent pas être modifiés ici.")
         }
+        val beforeSnapshot = AuditSnapshots.seasonParticipant(existing)
         val displayName = body.displayName.trim()
         if (displayName.isEmpty()) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Nom d'affichage requis.")
@@ -237,6 +268,18 @@ class SeasonParticipantService(
         existing.user = participantLink.resolveUserId(normalizedEmail)?.let { userRepository.findById(it).orElse(null) }
         existing.updatedAt = Instant.now()
         val saved = seasonParticipantRepository.save(existing)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SEASON_PARTICIPANT_UPDATED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = saved.id,
+                troupeId = existing.season.troupe.id,
+                seasonId = seasonId,
+                before = beforeSnapshot,
+                after = AuditSnapshots.seasonParticipant(saved),
+                metadata = AuditSnapshots.participantMetadata(saved.displayName),
+            ),
+        )
         return SeasonParticipantAdminDto.from(saved, includeEmail = true)
     }
 
@@ -254,6 +297,7 @@ class SeasonParticipantService(
         if (existing.status != ParticipantStatus.ACTIVE) {
             return
         }
+        val beforeSnapshot = AuditSnapshots.seasonParticipant(existing)
         val now = Instant.now()
         existing.status = ParticipantStatus.REMOVED
         existing.removedAt = now
@@ -264,6 +308,18 @@ class SeasonParticipantService(
         seasonParticipantRepository.save(existing)
         refreshParticipantCount(season)
         MembershipParticipantSyncCache.invalidate(season.id)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SEASON_PARTICIPANT_REMOVED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = existing.id,
+                troupeId = season.troupe.id,
+                seasonId = seasonId,
+                before = beforeSnapshot,
+                after = AuditSnapshots.seasonParticipant(existing),
+                metadata = AuditSnapshots.participantMetadata(existing.displayName),
+            ),
+        )
     }
 
     @Transactional
@@ -280,6 +336,7 @@ class SeasonParticipantService(
         if (existing.status == ParticipantStatus.ACTIVE) {
             return
         }
+        val beforeSnapshot = AuditSnapshots.seasonParticipant(existing)
         val membership = existing.troupeMembership
         if (membership != null) {
             if (membership.status != TroupeMembershipStatus.ACTIVE) {
@@ -312,9 +369,21 @@ class SeasonParticipantService(
         existing.removedAt = null
         existing.removalSource = null
         existing.updatedAt = now
-        seasonParticipantRepository.save(existing)
+        val saved = seasonParticipantRepository.save(existing)
         refreshParticipantCount(season)
         MembershipParticipantSyncCache.invalidate(season.id)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SEASON_PARTICIPANT_REACTIVATED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = saved.id,
+                troupeId = season.troupe.id,
+                seasonId = seasonId,
+                before = beforeSnapshot,
+                after = AuditSnapshots.seasonParticipant(saved),
+                metadata = AuditSnapshots.participantMetadata(saved.displayName),
+            ),
+        )
     }
 
     @Transactional
