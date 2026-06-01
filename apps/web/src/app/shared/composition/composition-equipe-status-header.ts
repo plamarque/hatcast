@@ -14,4 +14,5 @@ import type { CompositionEquipeStatus } from '../../core/composition/composition
 export class CompositionEquipeStatusHeader {
   readonly status = input<CompositionEquipeStatus | null>(null)
   readonly showDraftBanner = input(false)
+  readonly showBadge = input(true)
 }

@@ -1160,7 +1160,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('shows Confirmations en cours badge on validated pending composition', async () => {
+  it('shows Confirmations en cours guideline on validated pending composition', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1189,7 +1189,8 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
+      expect(fixture.nativeElement.textContent).toContain('Confirmations :')
+      expect(fixture.nativeElement.querySelector('.composition-equipe-status__badge')).toBeNull()
     })
   })
 

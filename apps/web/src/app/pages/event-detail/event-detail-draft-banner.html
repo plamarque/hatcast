@@ -1,0 +1,29 @@
+@if (isDraft()) {
+  <section class="event-draft-banner" aria-labelledby="event-draft-banner-label">
+    <div class="event-draft-banner__head">
+      <mat-chip-set aria-label="Statut du spectacle">
+        <mat-chip class="event-draft-banner__chip">Brouillon</mat-chip>
+      </mat-chip-set>
+      <p id="event-draft-banner-label" class="event-draft-banner__text">
+        @if (canPublish()) {
+          Ce spectacle n’est pas visible dans l’agenda des membres. Publie-le pour rouvrir la
+          collecte des disponibilités.
+        } @else {
+          Ce spectacle est en brouillon : il n’apparaît plus dans l’agenda et tu ne peux pas
+          modifier tes disponibilités pour le moment.
+        }
+      </p>
+    </div>
+    @if (canPublish()) {
+      <button
+        type="button"
+        mat-flat-button
+        class="event-draft-banner__cta"
+        [disabled]="publishing()"
+        (click)="confirmPublish()"
+      >
+        {{ publishing() ? 'Publication…' : 'Publier le spectacle' }}
+      </button>
+    }
+  </section>
+}

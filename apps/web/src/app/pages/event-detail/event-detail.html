@@ -17,6 +17,20 @@
       <mat-spinner diameter="40" />
     </div>
   } @else if (event(); as ev) {
+    <app-event-detail-draft-banner
+      [event]="ev"
+      [seasonId]="seasonId()"
+      [seasonSlug]="slug()"
+      [canPublish]="canManageComposition()"
+      (eventUpdated)="onEventInfosUpdated($event)"
+    />
+
+    @if (equipeStatus(); as status) {
+      <div class="event-detail__status">
+        <app-composition-equipe-status-header [status]="status" />
+      </div>
+    }
+
     <div class="event-detail__tabs-shell">
       <mat-tab-group
         class="event-detail__tabs"

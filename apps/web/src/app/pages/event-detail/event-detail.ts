@@ -44,10 +44,14 @@ import {
 } from '../season-home/event-form-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 import { EventActiviteTab } from '../../shared/availability/event-activite-tab'
+import { EventDetailDraftBanner } from './event-detail-draft-banner'
 import { EventDetailHeader } from './event-detail-header'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
+import { CompositionApiService } from '../../core/composition/composition-api.service'
 import { computeCompositionLifecycleView } from '../../core/composition/composition-lifecycle'
+import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { normalizeRoleSlots } from '../../core/events/event-types'
+import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
 
@@ -59,20 +63,23 @@ import { EventInfosTab } from './event-infos-tab'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
+    EventDetailDraftBanner,
     EventDetailHeader,
     EventDisposTab,
     EventActiviteTab,
     EventEquipeTab,
     EventInfosTab,
+    CompositionEquipeStatusHeader,
   ],
   templateUrl: './event-detail.html',
-  styleUrl: './event-detail.scss',
+  styleUrls: ['./event-detail.scss', '../../shared/composition/composition-equipe-status-header.scss'],
 })
 export class EventDetail implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly participantApi = inject(ParticipantApiService)
   private readonly eventsApi = inject(EventApiService)
+  private readonly compositionApi = inject(CompositionApiService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
@@ -109,6 +116,8 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly contextTroupeLogoUrl = signal<string | null>(null)
   protected readonly contextLeagueTitle = signal('')
   protected readonly contextSeasonSlug = signal('')
+  protected readonly composition = signal<CompositionResponse | null>(null)
+  protected readonly compositionLoaded = signal(false)
 
   protected readonly canManageEvents = computed(
     () => this.seasonPermissions()?.canManageEvents === true,
@@ -168,6 +177,17 @@ export class EventDetail implements OnDestroy, OnInit {
     const perms = this.seasonPermissions()
     if (!ev || !perms) return false
     return canManageCompositionForEvent(perms, ev.id)
+  })
+  protected readonly equipeStatus = computed(() => {
+    const ev = this.event()
+    if (!ev || !this.compositionLoaded()) {
+      return null
+    }
+    return resolveCompositionEquipeStatus({
+      composition: this.composition(),
+      canManageComposition: this.canManageComposition(),
+      roleSlots: normalizeRoleSlots(ev.roleSlots),
+    })
   })
   protected readonly canViewAuditEvent = computed(() => {
     const ev = this.event()
@@ -277,20 +297,42 @@ export class EventDetail implements OnDestroy, OnInit {
       this.snack.open('Vous ne pouvez pas modifier ce spectacle.', 'OK', { duration: 5000 })
       return
     }
-    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(EventFormDialog, {
-      data: {
-        mode: 'edit',
-        seasonId,
-        event: ev,
-        canManagePublication: this.canManageComposition(),
+    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, EventResponse | undefined>(
+      EventFormDialog,
+      {
+        data: {
+          mode: 'edit',
+          seasonId,
+          event: ev,
+          canManagePublication: this.canManageComposition(),
+        },
+        width: 'min(100vw - 2rem, 28rem)',
       },
-      width: 'min(100vw - 2rem, 28rem)',
-    })
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.reloadEvent('Spectacle mis à jour.')
+    )
+    ref.afterClosed().subscribe((updated) => {
+      if (!updated) {
+        return
       }
+      this.applyEventDetailUpdate(ev, updated)
     })
+  }
+
+  private applyEventDetailUpdate(before: EventResponse, after: EventResponse): void {
+    this.event.set(after)
+    const message = this.eventUpdateSnackMessage(before, after)
+    this.snack.open(message, 'OK', { duration: 4000 })
+  }
+
+  private eventUpdateSnackMessage(before: EventResponse, after: EventResponse): string {
+    const wasOpen = before.availabilityOpenedAt != null
+    const isOpen = after.availabilityOpenedAt != null
+    if (wasOpen && !isOpen) {
+      return 'Spectacle remis en brouillon.'
+    }
+    if (!wasOpen && isOpen) {
+      return 'Spectacle publié.'
+    }
+    return 'Spectacle mis à jour.'
   }
 
   protected confirmArchive(): void {
@@ -378,6 +420,8 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!ev) {
       return
     }
+    this.composition.set(composition)
+    this.compositionLoaded.set(true)
     const lifecycleView = computeCompositionLifecycleView(
       composition,
       normalizeRoleSlots(ev.roleSlots),
@@ -410,6 +454,8 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!options.silent) {
       this.loading.set(true)
       this.event.set(null)
+      this.composition.set(null)
+      this.compositionLoaded.set(false)
       this.resetResolvedContext()
     }
     if (!slug || !routeSegment) {
@@ -484,6 +530,8 @@ export class EventDetail implements OnDestroy, OnInit {
     this.event.set(found)
     this.seasonPermissions.set(permissionsResult.ok && permissionsResult.data ? permissionsResult.data : null)
 
+    void this.loadComposition(resolved.season.id, found.id)
+
     this.canSwitchSubject.set(
       permissionsResult.ok && permissionsResult.data
         ? canManageCompositionForEvent(permissionsResult.data, found.id)
@@ -518,6 +566,19 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextTroupeLogoUrl.set(null)
     this.contextLeagueTitle.set('')
     this.contextSeasonSlug.set('')
+  }
+
+  private async loadComposition(seasonId: string, eventId: string): Promise<void> {
+    const result = await this.compositionApi.getComposition(seasonId, eventId)
+    if (seasonId !== this.seasonId() || eventId !== this.event()?.id) {
+      return
+    }
+    if (result.ok && result.data) {
+      this.composition.set(result.data)
+    } else {
+      this.composition.set(null)
+    }
+    this.compositionLoaded.set(true)
   }
 
   protected canManageEventOrganizersFor(eventId: string): boolean {

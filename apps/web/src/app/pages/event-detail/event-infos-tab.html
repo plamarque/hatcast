@@ -1,21 +1,4 @@
 <main class="event-infos">
-  <div class="event-infos__header">
-    @if (equipeStatus(); as status) {
-      <div class="composition-equipe-status">
-        <div class="composition-equipe-status__head">
-          <span
-            class="composition-equipe-status__badge"
-            [class.composition-equipe-status__badge--success]="status.tone === 'success'"
-            [class.composition-equipe-status__badge--warning]="status.tone === 'warning'"
-            [class.composition-equipe-status__badge--info]="status.tone === 'info'"
-          >
-            {{ status.label }}
-          </span>
-        </div>
-      </div>
-    }
-  </div>
-
   <div class="event-infos__field">
     <span class="event-infos__label">Titre</span>
     <div class="event-infos__value">{{ event().title }}</div>

@@ -364,6 +364,49 @@ describe('EventDetail', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.composition-equipe-status__hint')).toBeNull()
       expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
+      expect(fixture.nativeElement.querySelector('.event-detail__status .composition-equipe-status__badge')).not.toBeNull()
+    })
+  })
+
+  it('shows équipe status badge above tabs on Dispos tab', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        ...ev('event-2', {
+          roleSlots: { ...emptyRoleSlots(), player: 2 },
+        }),
+        compositionLifecycle: 'awaitingConfirmations',
+      },
+    })
+    queryParamMap$.next(convertToParamMap({ tab: 'dispos' }))
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-detail__status .composition-equipe-status__badge')).not.toBeNull()
+      expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
     })
   })
 
