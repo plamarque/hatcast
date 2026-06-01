@@ -19,6 +19,7 @@ export class EventDetailHeader {
   readonly troupeName = input<string | null>(null)
   readonly troupeSlug = input<string | null>(null)
   readonly troupeIsDemo = input(false)
+  readonly troupeLogoUrl = input<string | null>(null)
   readonly seasonTitle = input<string | null>(null)
   readonly eventTitle = input<string | null>(null)
   readonly adminItems = input<ScopeAdminMenuItem[]>([])

@@ -67,12 +67,12 @@ describe('TroupeHub', () => {
   async function setup(
     baselineRole: 'MEMBER' | 'TROUPE_ADMIN' = 'TROUPE_ADMIN',
     platformAdmin = false,
-    options: { patchTroupeName?: ReturnType<typeof vi.fn> } = {},
+    options: { patchTroupeProfile?: ReturnType<typeof vi.fn> } = {},
   ) {
     const dialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of('new-saison') }),
     }
-    const patchTroupeName = options.patchTroupeName ?? vi.fn()
+    const patchTroupeProfile = options.patchTroupeProfile ?? vi.fn()
     const troupes = [
       {
         id: 't1',
@@ -120,7 +120,8 @@ describe('TroupeHub', () => {
           useValue: {
             load: vi.fn().mockResolvedValue(true),
             selectTroupe: vi.fn(),
-            patchTroupeName,
+            patchTroupeName: patchTroupeProfile,
+            patchTroupeProfile,
             currentUserDisplayLabel: (u: { displayName: string }) => u.displayName,
             activeTroupes: () => troupes,
             resolveTroupeBySlug: vi.fn().mockImplementation(async (slug: string) =>
@@ -156,7 +157,7 @@ describe('TroupeHub', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.troupe-hub__title')).not.toBeNull()
     })
-    return { fixture, dialog, patchTroupeName }
+    return { fixture, dialog, patchTroupeProfile }
   }
 
   it('shows breadcrumb Troupes › troupe name', async () => {
@@ -164,6 +165,7 @@ describe('TroupeHub', () => {
     const breadcrumb = fixture.nativeElement.querySelector('.troupe-hub__breadcrumb')
     expect(breadcrumb?.textContent).toContain('Troupes')
     expect(breadcrumb?.textContent).toContain('Les Improbots')
+    expect(fixture.nativeElement.querySelector('.troupe-hub__breadcrumb-logo mat-icon')).toBeTruthy()
     const link = breadcrumb?.querySelector('a') as HTMLAnchorElement
     expect(link.getAttribute('href')).toBe('/troupes')
   })
@@ -249,10 +251,29 @@ describe('TroupeHub', () => {
   })
 
   it('updates troupe hero name after edit dialog closes', async () => {
-    const patchTroupeName = vi.fn()
-    const { fixture, dialog } = await setup('TROUPE_ADMIN', false, { patchTroupeName })
+    const patchTroupeProfile = vi.fn()
+    const { fixture, dialog } = await setup('TROUPE_ADMIN', false, { patchTroupeProfile })
     dialog.open.mockReturnValueOnce({
-      afterClosed: () => of({ id: 't1', name: 'Nom modifié', slug: 'les-improbots' }),
+      afterClosed: () =>
+        of({
+          id: 't1',
+          name: 'Nom modifié',
+          slug: 'les-improbots',
+          logoUrl: '/v1/troupes/t1/logo?v=2',
+          description: 'Nouvelle description',
+          isDemo: false,
+          joinPolicy: 'OPEN',
+          membership: {
+            id: 'm1',
+            displayName: 'Admin',
+            status: 'ACTIVE',
+            baselineRole: 'TROUPE_ADMIN',
+            createdAt: '',
+            updatedAt: '',
+          },
+          activeMemberCount: 4,
+          upcomingEventCount: 2,
+        }),
     })
     ;(fixture.componentInstance as unknown as { openEditTroupe(): void }).openEditTroupe()
     await vi.waitFor(() => {
@@ -260,7 +281,84 @@ describe('TroupeHub', () => {
         'Nom modifié',
       )
     })
-    expect(patchTroupeName).toHaveBeenCalledWith('t1', 'Nom modifié')
+    expect(patchTroupeProfile).toHaveBeenCalledWith('t1', {
+      name: 'Nom modifié',
+      logoUrl: '/v1/troupes/t1/logo?v=2',
+      description: 'Nouvelle description',
+    })
+  })
+
+  it('affiche le logo et la description dans le hero', async () => {
+    const troupeWithIdentity = {
+      id: 't1',
+      name: 'Les Improbots',
+      slug: 'les-improbots',
+      logoUrl: '/v1/troupes/t1/logo?v=1',
+      description: 'Troupe d’impro à Malice.',
+      membership: {
+        id: 'm1',
+        displayName: 'Admin',
+        status: 'ACTIVE' as const,
+        baselineRole: 'TROUPE_ADMIN' as const,
+        createdAt: '',
+        updatedAt: '',
+      },
+      activeMemberCount: 4,
+      upcomingEventCount: 2,
+      isDemo: false,
+      joinPolicy: 'OPEN' as const,
+    }
+    const dialog = { open: vi.fn() }
+    await TestBed.configureTestingModule({
+      imports: [TroupeHub, NoopAnimationsModule],
+      providers: [
+        provideRouter([{ path: 'troupes/:slug', component: TroupeHub }]),
+        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' }, platformAdmin: false },
+            }),
+          },
+        },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            load: vi.fn().mockResolvedValue(true),
+            selectTroupe: vi.fn(),
+            patchTroupeProfile: vi.fn(),
+            patchTroupeName: vi.fn(),
+            resolveTroupeBySlug: vi.fn().mockResolvedValue(troupeWithIdentity),
+          },
+        },
+        {
+          provide: SeasonApiService,
+          useValue: {
+            listSeasons: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { content: seasons, page: 0, size: 50, totalElements: 0, totalPages: 0 },
+            }),
+          },
+        },
+        { provide: MatDialog, useValue: dialog },
+        {
+          provide: TroupeApiService,
+          useValue: { listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+        },
+      ],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(TroupeHub)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      const img = fixture.nativeElement.querySelector('.troupe-hub__logo img') as HTMLImageElement
+      expect(img?.getAttribute('src')).toBe('/v1/troupes/t1/logo?v=1')
+      expect(fixture.nativeElement.querySelector('.troupe-hub__description')?.textContent).toContain(
+        'Troupe d’impro',
+      )
+    })
   })
 
   it('reloads troupe when slug param changes', async () => {
@@ -342,6 +440,7 @@ describe('TroupeHub', () => {
       ],
     }).compileComponents()
 
+    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
     const fixture = TestBed.createComponent(TroupeHub)
     fixture.detectChanges()
     await vi.waitFor(() => {
@@ -359,6 +458,7 @@ describe('TroupeHub', () => {
       expect(fixture.nativeElement.textContent).toContain('Saison B')
     })
     expect(selectTroupe).toHaveBeenCalledWith('t2')
+    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
   })
 
   it('shows only-archived hint before toggle', async () => {
@@ -426,6 +526,7 @@ describe('TroupeHub', () => {
       ],
     }).compileComponents()
 
+    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
     const fixture = TestBed.createComponent(TroupeHub)
     fixture.detectChanges()
     await vi.waitFor(() => {
@@ -467,7 +568,6 @@ describe('TroupeHub', () => {
       .map((item) => item.label)
     expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres'])
   })
-
 
   it('shows access denied for public slug without membership', async () => {
     paramMap$.next(convertToParamMap({ slug: 'la-malice' }))

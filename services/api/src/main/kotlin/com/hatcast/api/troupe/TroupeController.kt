@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.http.CacheControl
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -33,6 +34,7 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 @RestController
 @RequestMapping("/v1/troupes")
@@ -41,6 +43,8 @@ class TroupeController(
     private val troupeService: TroupeService,
     private val userImportService: UserImportService,
     private val troupeCategoryService: TroupeCategoryService,
+    private val troupeAccess: TroupeAccessService,
+    private val troupeLogoService: TroupeLogoService,
 ) {
     /** Troupe(s) où l'utilisateur courant a une adhésion active. */
     @GetMapping
@@ -66,6 +70,47 @@ class TroupeController(
         @Valid @RequestBody body: UpdateTroupeRequest,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): TroupeListItemDto = troupeService.update(troupeId, body, principal)
+
+    /** Logo bytes for active troupe members (includes troupes hidden from public directory). */
+    @GetMapping("/{troupeId}/logo")
+    fun getLogo(
+        @PathVariable troupeId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): ResponseEntity<ByteArray> {
+        troupeAccess.requireActiveMember(principal, troupeId)
+        val content =
+            troupeLogoService.readTroupeLogo(troupeId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return ResponseEntity
+            .ok()
+            .contentType(content.second)
+            .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePrivate())
+            .body(content.first)
+    }
+
+    @PostMapping("/{troupeId}/logo", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun uploadLogo(
+        @PathVariable troupeId: UUID,
+        @RequestParam("file") file: MultipartFile,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeListItemDto {
+        if (file.isEmpty) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Format non pris en charge.")
+        }
+        troupeAccess.requireCanManageTroupe(principal, troupeId)
+        val troupe = troupeLogoService.uploadLogo(troupeId, file.bytes, file.contentType)
+        return membershipService.buildTroupeListItemForViewer(principal, troupe)
+    }
+
+    @DeleteMapping("/{troupeId}/logo")
+    fun deleteLogo(
+        @PathVariable troupeId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeListItemDto {
+        troupeAccess.requireCanManageTroupe(principal, troupeId)
+        val troupe = troupeLogoService.deleteLogo(troupeId)
+        return membershipService.buildTroupeListItemForViewer(principal, troupe)
+    }
 
     /**
      * Rejoindre (ou réactiver) l'adhésion courante lorsque la troupe a `join_policy = OPEN`.

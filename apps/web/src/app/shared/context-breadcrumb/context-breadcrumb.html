@@ -18,6 +18,8 @@
               alt=""
               width="36"
               height="36"
+              loading="lazy"
+              (error)="onLogoError()"
             />
           } @else {
             <span class="context-breadcrumb__logo-badge" aria-hidden="true">
@@ -89,6 +91,8 @@
           alt=""
           width="36"
           height="36"
+          loading="lazy"
+          (error)="onLogoError()"
         />
       } @else {
         <span class="context-breadcrumb__logo-badge context-breadcrumb__logo-badge--round" aria-hidden="true">

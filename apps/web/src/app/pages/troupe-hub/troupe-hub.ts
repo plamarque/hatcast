@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
@@ -83,6 +83,7 @@ export class TroupeHub implements OnInit, OnDestroy {
   protected readonly showArchived = signal(false)
   protected readonly allSeasons = signal<SeasonResponse[]>([])
   protected readonly platformAdmin = signal(false)
+  protected readonly hubLogoLoadFailed = signal(false)
 
   protected readonly isTroupeAdmin = computed(
     () => this.troupe()?.membership.baselineRole === 'TROUPE_ADMIN',
@@ -141,6 +142,21 @@ export class TroupeHub implements OnInit, OnDestroy {
   })
 
   protected readonly troupesListLink = troupesListPath()
+
+  constructor() {
+    effect(() => {
+      this.troupe()?.logoUrl
+      this.hubLogoLoadFailed.set(false)
+    })
+  }
+
+  protected showHubLogo(troupe: TroupeListItem): boolean {
+    return !!troupe.logoUrl && !this.hubLogoLoadFailed()
+  }
+
+  protected onHubLogoError(): void {
+    this.hubLogoLoadFailed.set(true)
+  }
 
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
@@ -252,8 +268,12 @@ export class TroupeHub implements OnInit, OnDestroy {
         if (!updated) {
           return
         }
-        this.troupe.set({ ...t, name: updated.name })
-        this.troupeContext.patchTroupeName(t.id, updated.name)
+        this.troupe.set(updated)
+        this.troupeContext.patchTroupeProfile(t.id, {
+          name: updated.name,
+          logoUrl: updated.logoUrl,
+          description: updated.description,
+        })
       }),
     )
   }

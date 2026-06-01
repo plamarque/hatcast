@@ -115,7 +115,14 @@ export class TroupeContextService {
   }
 
   patchTroupeName(troupeId: string, name: string): void {
-    this.patchTroupeInCaches(troupeId, (troupe) => ({ ...troupe, name }))
+    this.patchTroupeProfile(troupeId, { name })
+  }
+
+  patchTroupeProfile(
+    troupeId: string,
+    profile: Partial<Pick<TroupeListItem, 'name' | 'logoUrl' | 'description'>>,
+  ): void {
+    this.patchTroupeInCaches(troupeId, (troupe) => ({ ...troupe, ...profile }))
   }
 
   private patchTroupeInCaches(

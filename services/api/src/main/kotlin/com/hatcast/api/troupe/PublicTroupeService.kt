@@ -32,6 +32,8 @@ class PublicTroupeService(
                 id = troupe.id,
                 name = troupe.name,
                 slug = troupe.slug,
+                logoUrl = TroupeLogoService.publicLogoUrl(troupe.id, troupe.logoStorageKey, troupe.logoUpdatedAt),
+                description = troupe.description,
                 activeMemberCount = memberCounts[troupe.id] ?: 0L,
                 upcomingEventCount = upcomingCounts[troupe.id] ?: 0L,
             )

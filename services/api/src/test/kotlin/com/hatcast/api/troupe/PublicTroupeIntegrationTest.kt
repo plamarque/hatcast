@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Instant
 import java.util.UUID
 
 @SpringBootTest
@@ -48,6 +49,9 @@ class PublicTroupeIntegrationTest {
                     id = listedId,
                     name = "Annuaire Visible",
                     slug = "annuaire-visible-${listedId.toString().take(8)}",
+                    description = "Une troupe publique avec une identité visuelle.",
+                    logoStorageKey = "troupe-logos/$listedId/logo.png",
+                    logoUpdatedAt = Instant.parse("2026-06-01T00:00:00Z"),
                     listedInDirectory = true,
                     isDemo = false,
                 ),
@@ -90,6 +94,9 @@ class PublicTroupeIntegrationTest {
             assertFalse(node.has("joinPolicy"))
             assertFalse(node.has("isDemo"))
         }
+        val listed = root.first { it.get("id").asText() == listedId.toString() }
+        assertTrue(listed.get("logoUrl").asText().startsWith("/v1/public/troupes/$listedId/logo?v="))
+        assertTrue(listed.get("description").asText().contains("identité visuelle"))
 
         mockMvc
             .perform(get("/v1/public/troupes"))

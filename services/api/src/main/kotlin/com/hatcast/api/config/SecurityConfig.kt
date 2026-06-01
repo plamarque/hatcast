@@ -73,6 +73,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.DELETE, "/v1/auth/me/avatar").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/users/*/avatar").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/public/troupes").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/v1/public/troupes/*/logo").permitAll()
                 if (e2eApiEnabled) {
                     auth.requestMatchers("/v1/e2e/**").permitAll()
                 }

@@ -26,6 +26,8 @@ const mockTroupe: TroupeListItem = {
   id: 't-1',
   name: 'Les Improbots',
   slug: 'les-improbots',
+  logoUrl: '/v1/public/troupes/t-1/logo?v=1',
+  description: 'Impro à grande vitesse.',
   isDemo: false,
   joinPolicy: 'OPEN',
   activeMemberCount: 3,
@@ -44,6 +46,8 @@ const publicTroupe: PublicTroupeDirectoryItem = {
   id: 't-public',
   name: 'La Malice',
   slug: 'la-malice',
+  logoUrl: '/v1/public/troupes/t-public/logo?v=2',
+  description: 'La troupe publique à découvrir.',
   activeMemberCount: 5,
   upcomingEventCount: 1,
 }
@@ -145,6 +149,10 @@ describe('TroupesList', () => {
     const openLink = card.querySelector('a[mat-flat-button][href="/troupes/les-improbots"]')
     expect(openLink).not.toBeNull()
     expect(openLink?.getAttribute('aria-label')).toBe('Ouvrir Les Improbots')
+    expect(card.textContent).toContain('Impro à grande vitesse.')
+    expect(card.querySelector('.troupe-card__logo img')?.getAttribute('src')).toBe(
+      '/v1/public/troupes/t-1/logo?v=1',
+    )
     expect(fixture.nativeElement.textContent).toContain('3 membres')
     expect(fixture.nativeElement.textContent).toContain('2 spectacles à venir')
   })
@@ -160,6 +168,7 @@ describe('TroupesList', () => {
 
     expect(fixture.nativeElement.querySelector('#decouvrir')).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('La Malice')
+    expect(fixture.nativeElement.textContent).toContain('La troupe publique à découvrir.')
     expect(fixture.nativeElement.textContent).not.toContain('annuaire public arrive bientôt')
   })
 

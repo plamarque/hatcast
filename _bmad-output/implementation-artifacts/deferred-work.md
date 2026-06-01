@@ -1,3 +1,7 @@
+## Deferred from: code review of 4-3-troupe-logo-description-cartes.md (2026-06-01)
+
+- ~~Logo sur cartes « Mes troupes » pour troupes hors annuaire~~ — **résolu** dans la clôture 4.3 : `GET /v1/troupes/{id}/logo` (membre actif) + `memberLogoUrl` dans les DTO authentifiés.
+
 ## Deferred from: code review of 17-32-season-stats-export-admin-menu.md (2026-06-01)
 
 - Autorisation serveur dédiée pour l'export CSV — l'endpoint statistiques reste lisible par tout membre actif pour la grille; une route export admin-only dédiée durcirait le téléchargement mais le SCP 17.32 l'a explicitement classée hors périmètre.

@@ -91,7 +91,6 @@ describe('TroupeApiService', () => {
     )
   })
 
-
   it('listPublicTroupes utilise credentials omit', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -102,6 +101,8 @@ describe('TroupeApiService', () => {
             id: 't-public',
             name: 'Publique',
             slug: 'publique',
+            logoUrl: '/v1/public/troupes/t-public/logo?v=1',
+            description: 'Une troupe publique.',
             activeMemberCount: 2,
             upcomingEventCount: 1,
           },
@@ -117,7 +118,96 @@ describe('TroupeApiService', () => {
     )
     expect(result.ok).toBe(true)
     expect(result.data?.[0].slug).toBe('publique')
+    expect(result.data?.[0].logoUrl).toBe('/v1/public/troupes/t-public/logo?v=1')
+    expect(result.data?.[0].description).toBe('Une troupe publique.')
     expect(result.data?.[0]).not.toHaveProperty('membership')
+  })
+
+  it('updateTroupe envoie nom et description trimés avec CSRF', async () => {
+    document.cookie = 'XSRF-TOKEN=token'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          id: 't-1',
+          name: 'Nom',
+          slug: 'nom',
+          description: 'Description',
+          logoUrl: null,
+          membership: {
+            id: 'm-1',
+            displayName: 'Patrice',
+            status: 'ACTIVE',
+            baselineRole: 'TROUPE_ADMIN',
+            createdAt: '',
+            updatedAt: '',
+          },
+          activeMemberCount: 1,
+          upcomingEventCount: 0,
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await service().updateTroupe('t-1', { name: ' Nom ', description: ' Description ' })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/t-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'X-XSRF-TOKEN': 'token',
+        }),
+        body: JSON.stringify({ name: 'Nom', description: 'Description' }),
+      }),
+    )
+  })
+
+  it('uploadTroupeLogo envoie multipart avec CSRF', async () => {
+    document.cookie = 'XSRF-TOKEN=token'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 't-1', logoUrl: '/logo.png' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const file = new File(['logo'], 'logo.png', { type: 'image/png' })
+
+    await service().uploadTroupeLogo('t-1', file)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/t-1/logo',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({ 'X-XSRF-TOKEN': 'token' }),
+      }),
+    )
+    const body = fetchMock.mock.calls[0][1].body as FormData
+    expect(body.get('file')).toBe(file)
+  })
+
+  it('deleteTroupeLogo envoie DELETE avec CSRF', async () => {
+    document.cookie = 'XSRF-TOKEN=token'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 't-1', logoUrl: null }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await service().deleteTroupeLogo('t-1')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/t-1/logo',
+      expect.objectContaining({
+        method: 'DELETE',
+        credentials: 'include',
+        headers: expect.objectContaining({ 'X-XSRF-TOKEN': 'token' }),
+      }),
+    )
   })
 
   it('listMyTroupes utilise credentials include', async () => {

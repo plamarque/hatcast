@@ -4,7 +4,16 @@
       <a [routerLink]="troupesListLink">Troupes</a>
       <span class="troupe-hub__breadcrumb-sep" aria-hidden="true">›</span>
       @if (troupe(); as t) {
-        <span aria-current="page">{{ t.name }}</span>
+        <span class="troupe-hub__breadcrumb-current" aria-current="page">
+          <span class="troupe-hub__breadcrumb-logo" aria-hidden="true">
+            @if (showHubLogo(t)) {
+              <img [src]="t.logoUrl ?? ''" alt="" loading="lazy" (error)="onHubLogoError()" />
+            } @else {
+              <mat-icon>groups</mat-icon>
+            }
+          </span>
+          {{ t.name }}
+        </span>
       }
     </nav>
   </header>
@@ -52,7 +61,11 @@
   } @else if (troupe(); as t) {
     <div class="troupe-hub__hero">
       <span class="troupe-hub__logo" aria-hidden="true">
-        <mat-icon>groups</mat-icon>
+        @if (showHubLogo(t)) {
+          <img [src]="t.logoUrl ?? ''" alt="" loading="lazy" (error)="onHubLogoError()" />
+        } @else {
+          <mat-icon>groups</mat-icon>
+        }
       </span>
       <div class="troupe-hub__hero-main">
         <div class="troupe-hub__hero-row">
@@ -61,6 +74,9 @@
             <app-scope-admin-menu scope="troupe" [items]="troupeAdminItems()" />
           </div>
         </div>
+        @if (t.description; as description) {
+          <p class="troupe-hub__description">{{ description }}</p>
+        }
       </div>
     </div>
 

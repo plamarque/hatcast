@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core'
+import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatIconModule } from '@angular/material/icon'
 import { RouterLink } from '@angular/router'
@@ -21,6 +21,7 @@ export type ContextBreadcrumbLayout = 'season' | 'event' | 'troupe'
 })
 export class ContextBreadcrumb {
   private readonly switcherData = inject(ContextSwitcherDataService)
+  protected readonly logoLoadFailed = signal(false)
 
   protected readonly troupeHubPath = troupeHubPath
   protected readonly saisonWorkspacePath = saisonWorkspacePath
@@ -37,6 +38,17 @@ export class ContextBreadcrumb {
   readonly eventSlug = input<string | null>(null)
   readonly leafTitle = input<string | null>(null)
   readonly layout = input<ContextBreadcrumbLayout>('season')
+
+  constructor() {
+    effect(() => {
+      this.troupeLogoUrl()
+      this.logoLoadFailed.set(false)
+    })
+  }
+
+  protected onLogoError(): void {
+    this.logoLoadFailed.set(true)
+  }
 
   protected readonly seasonIsLink = computed(() => {
     if (this.layout() === 'troupe') {
@@ -72,7 +84,9 @@ export class ContextBreadcrumb {
     return `Troupe : ${parts.join(', ')}`
   })
 
-  protected readonly showTroupeImage = computed(() => !!this.troupeLogoUrl()?.trim())
+  protected readonly showTroupeImage = computed(
+    () => !!this.troupeLogoUrl()?.trim() && !this.logoLoadFailed(),
+  )
 
   protected readonly useSwitcher = computed(() => {
     const troupeId = this.troupeId()?.trim()

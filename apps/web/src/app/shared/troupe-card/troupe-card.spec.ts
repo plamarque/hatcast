@@ -13,6 +13,7 @@ describe('TroupeCard', () => {
   async function setup(
     mode: 'mine' | 'discover' = 'mine',
     discoverAction: 'login' | 'open' = 'open',
+    identity: { logoUrl?: string | null; description?: string | null } = {},
   ): Promise<{ fixture: ComponentFixture<TroupeCard>; router: Router }> {
     await TestBed.configureTestingModule({
       imports: [TroupeCard, NoopAnimationsModule],
@@ -24,6 +25,8 @@ describe('TroupeCard', () => {
     fixture.componentRef.setInput('slug', 'la-malice')
     fixture.componentRef.setInput('memberCount', 4)
     fixture.componentRef.setInput('upcomingCount', 2)
+    fixture.componentRef.setInput('logoUrl', identity.logoUrl ?? null)
+    fixture.componentRef.setInput('description', identity.description ?? null)
     fixture.componentRef.setInput('mode', mode)
     fixture.componentRef.setInput('discoverAction', discoverAction)
     fixture.detectChanges()
@@ -60,5 +63,54 @@ describe('TroupeCard', () => {
     expect(link.getAttribute('href')).toBe('/troupes/la-malice')
     expect(link.getAttribute('aria-label')).toBe('Voir La Malice')
     expect(link.textContent?.trim()).toBe('Voir')
+  })
+
+  it('affiche le logo image et la description quand ils existent', async () => {
+    const { fixture } = await setup('mine', 'open', {
+      logoUrl: '/v1/public/troupes/t1/logo?v=1',
+      description: 'Une troupe vive et joyeuse.',
+    })
+
+    const img = fixture.nativeElement.querySelector('.troupe-card__logo img') as HTMLImageElement
+    const description = fixture.nativeElement.querySelector(
+      '.troupe-card__description',
+    ) as HTMLElement
+    expect(img.getAttribute('src')).toBe('/v1/public/troupes/t1/logo?v=1')
+    expect(fixture.nativeElement.querySelector('.troupe-card__logo mat-icon')).toBeNull()
+    expect(description.textContent).toContain('Une troupe vive')
+    expect(description.classList.contains('troupe-card__description')).toBe(true)
+  })
+
+  it('réaffiche le logo après changement de logoUrl suite à une erreur', async () => {
+    const { fixture } = await setup('mine', 'open', {
+      logoUrl: '/broken/logo.png',
+    })
+
+    const img = fixture.nativeElement.querySelector('.troupe-card__logo img') as HTMLImageElement
+    img.dispatchEvent(new Event('error'))
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.troupe-card__logo img')).toBeNull()
+
+    fixture.componentRef.setInput('logoUrl', '/v1/public/troupes/t1/logo?v=2')
+    fixture.detectChanges()
+
+    const nextImg = fixture.nativeElement.querySelector('.troupe-card__logo img') as HTMLImageElement
+    expect(nextImg).toBeTruthy()
+    expect(nextImg.getAttribute('src')).toBe('/v1/public/troupes/t1/logo?v=2')
+  })
+
+  it('revient au pictogramme groups si le logo échoue', async () => {
+    const { fixture } = await setup('mine', 'open', {
+      logoUrl: '/broken/logo.png',
+    })
+
+    const img = fixture.nativeElement.querySelector('.troupe-card__logo img') as HTMLImageElement
+    img.dispatchEvent(new Event('error'))
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.troupe-card__logo img')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.troupe-card__logo mat-icon')?.textContent).toContain(
+      'groups',
+    )
   })
 })

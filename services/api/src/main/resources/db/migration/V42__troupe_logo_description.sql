@@ -1,0 +1,3 @@
+ALTER TABLE troupes ADD COLUMN description TEXT NULL;
+ALTER TABLE troupes ADD COLUMN logo_storage_key VARCHAR(512) NULL;
+ALTER TABLE troupes ADD COLUMN logo_updated_at TIMESTAMPTZ NULL;

@@ -637,6 +637,7 @@ class TroupeMembershipIntegrationTest {
     }
 
     private val platformAdminEmail = "platform-members-admin@hatcast.test"
+    private val platformAdminGoogleSub = "sub-platform-troupe-nav"
 
     @Test
     fun `platform admin can patch troupe join policy`() {
@@ -644,7 +645,7 @@ class TroupeMembershipIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "sub-platform-members-admin",
+                platformAdminGoogleSub,
                 email = platformAdminEmail,
                 name = "Platform Join Policy",
             )
@@ -691,7 +692,7 @@ class TroupeMembershipIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "sub-platform-members-admin",
+                platformAdminGoogleSub,
                 email = platformAdminEmail,
                 name = "Platform Preserve",
             )
@@ -705,7 +706,7 @@ class TroupeMembershipIntegrationTest {
                     joinPolicy = TroupeJoinPolicy.OPEN,
                 ),
             )
-        val user = userRepository.findByGoogleSub("sub-platform-members-admin")!!
+        val user = userRepository.findByGoogleSub(platformAdminGoogleSub)!!
         membershipRepository.save(
             TroupeMembershipEntity(
                 troupe = troupe,
@@ -740,7 +741,7 @@ class TroupeMembershipIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "sub-platform-members-admin",
+                platformAdminGoogleSub,
                 email = platformAdminEmail,
                 name = "Platform Admin",
             )

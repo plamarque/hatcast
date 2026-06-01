@@ -88,6 +88,20 @@ describe('ContextBreadcrumb', () => {
     expect(mobile.getAttribute('aria-label')).toContain('Match BIM')
   })
 
+  it('affiche le logo troupe quand troupeLogoUrl est fourni', async () => {
+    const fixture = await setup('season')
+    fixture.componentRef.setInput('troupeLogoUrl', '/v1/troupes/t1/logo?v=1')
+    fixture.detectChanges()
+
+    const img = fixture.nativeElement.querySelector(
+      '.context-breadcrumb__logo-img',
+    ) as HTMLImageElement
+    expect(img?.getAttribute('src')).toBe('/v1/troupes/t1/logo?v=1')
+    expect(
+      fixture.nativeElement.querySelector('.context-breadcrumb__logo-badge'),
+    ).toBeNull()
+  })
+
   it('uses nav with French aria-label', async () => {
     const fixture = await setup()
     const nav = fixture.nativeElement.querySelector('nav.context-breadcrumb')

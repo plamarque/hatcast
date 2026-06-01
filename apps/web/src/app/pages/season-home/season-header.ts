@@ -21,6 +21,7 @@ export class SeasonHeader {
   readonly troupeName = input<string | null>(null)
   readonly troupeSlug = input<string | null>(null)
   readonly troupeIsDemo = input(false)
+  readonly troupeLogoUrl = input<string | null>(null)
 
   readonly adminScope = input<ScopeAdminMenuScope>('saison')
   readonly adminItems = input<ScopeAdminMenuItem[]>([])

@@ -25,6 +25,12 @@ class TroupeEntity(
     var joinPolicy: TroupeJoinPolicy = TroupeJoinPolicy.OPEN,
     @Column(name = "is_demo", nullable = false)
     var isDemo: Boolean = false,
+    @Column(name = "description")
+    var description: String? = null,
+    @Column(name = "logo_storage_key", length = 512)
+    var logoStorageKey: String? = null,
+    @Column(name = "logo_updated_at")
+    var logoUpdatedAt: Instant? = null,
     /**
      * When true, troupe appears in `GET /v1/public/troupes` (FR32 freemium default listed).
      * Admin opt-out UI deferred — column + default only in Story 4.1.

@@ -123,6 +123,7 @@ class TroupeService(
             troupeRepository.findById(troupeId).orElse(null)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
         troupe.name = nameTrim
+        troupe.description = body.description?.trim()?.takeIf { it.isNotEmpty() }
         val saved = troupeRepository.save(troupe)
         return membershipService.buildTroupeListItemForViewer(principal, saved)
     }

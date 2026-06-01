@@ -110,6 +110,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   protected readonly seasonId = signal('')
   protected readonly troupeName = signal<string | null>(null)
   protected readonly troupeSlug = signal<string | null>(null)
+  protected readonly troupeLogoUrl = signal<string | null>(null)
   protected readonly permissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly roster = signal<EventRosterParticipant[]>([])
@@ -505,6 +506,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     this.seasonId.set(resolved.season.id)
     this.troupeName.set(resolved.troupe.name)
     this.troupeSlug.set(resolved.troupe.slug)
+    this.troupeLogoUrl.set(resolved.troupe.logoUrl ?? null)
 
     const isUuid = UUID_IN_PATH_REGEX.test(eventSlugParam)
     const [eventResult, permissionsResult] = await Promise.all([

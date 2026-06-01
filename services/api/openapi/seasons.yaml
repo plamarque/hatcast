@@ -27,7 +27,6 @@ tags:
   - name: Organisateurs
 
 paths:
-
   /public/troupes:
     get:
       tags: [Troupes]
@@ -46,6 +45,49 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PublicTroupeDirectoryItem'
+
+  /public/troupes/{troupeId}/logo:
+    get:
+      tags: [Troupes]
+      summary: Logo public d'une troupe de l'annuaire
+      description: >
+        Sert les octets du logo uniquement pour les troupes visibles dans l'annuaire public
+        (`listedInDirectory = true`, `isDemo = false`). Retourne 404 si la troupe n'est pas
+        éligible ou n'a pas de logo, afin de ne pas exposer de données privées.
+      security: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Logo
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/avif:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Troupe non publique, démo, inconnue ou sans logo
 
   /troupes:
     get:
@@ -98,9 +140,9 @@ paths:
   /troupes/{troupeId}:
     patch:
       tags: [Troupes]
-      summary: Modifier le nom d'une troupe (admin troupe ou plateforme)
+      summary: Modifier l'identité textuelle d'une troupe (admin troupe ou plateforme)
       description: >
-        Met à jour le nom affiché sans modifier le slug URL.
+        Met à jour le nom affiché et la description courte sans modifier le slug URL.
         Réservé aux administrateurs de troupe (`TROUPE_ADMIN`) ou aux admins plateforme.
         Requiert CSRF (`X-XSRF-TOKEN`).
       security:
@@ -127,6 +169,75 @@ paths:
                 $ref: '#/components/schemas/TroupeListItem'
         '400':
           description: Nom vide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé
+        '404':
+          description: Troupe inconnue
+
+  /troupes/{troupeId}/logo:
+    post:
+      tags: [Troupes]
+      summary: Ajouter ou remplacer le logo d'une troupe
+      description: >
+        Upload multipart `file` réservé aux administrateurs de troupe ou plateforme.
+        Formats acceptés : JPEG, PNG, WebP, AVIF. Taille maximale : 2 Mo.
+        Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Troupe mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeListItem'
+        '400':
+          description: Format non pris en charge ou fichier trop volumineux
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé
+        '404':
+          description: Troupe inconnue
+    delete:
+      tags: [Troupes]
+      summary: Supprimer le logo d'une troupe
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Troupe mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeListItem'
         '401':
           description: Non authentifié
         '403':
@@ -1065,7 +1176,6 @@ components:
         format: uuid
 
   schemas:
-
     PublicTroupeDirectoryItem:
       type: object
       required: [id, name, slug, activeMemberCount, upcomingEventCount]
@@ -1079,6 +1189,15 @@ components:
           type: string
         slug:
           type: string
+        logoUrl:
+          type: string
+          nullable: true
+          description: URL publique cache-bustée du logo, si présent.
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Description courte en texte brut, si renseignée.
         activeMemberCount:
           type: integer
           format: int64
@@ -1104,6 +1223,15 @@ components:
           description: >
             Identifie la troupe sandbox d'onboarding production (ADR-0015). La seed dev
             Les Improbots reste `false`.
+        logoUrl:
+          type: string
+          nullable: true
+          description: URL publique cache-bustée du logo, si présent.
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Description courte en texte brut, si renseignée.
         membership:
           $ref: '#/components/schemas/MembershipSummary'
 
@@ -1338,6 +1466,11 @@ components:
           type: string
           maxLength: 255
           description: Nouveau nom affiché de la troupe (trim côté serveur ; slug inchangé).
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Description courte en texte brut ; vide ou absente efface la description.
 
     AddTroupeMemberRequest:
       type: object

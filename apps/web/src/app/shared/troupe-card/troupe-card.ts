@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core'
+import { Component, effect, inject, input, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
 import { MatIconModule } from '@angular/material/icon'
@@ -23,8 +23,27 @@ export class TroupeCard {
   readonly slug = input.required<string>()
   readonly memberCount = input.required<number>()
   readonly upcomingCount = input.required<number>()
+  readonly logoUrl = input<string | null | undefined>(null)
+  readonly description = input<string | null | undefined>(null)
   readonly mode = input<TroupeCardMode>('mine')
   readonly discoverAction = input<TroupeCardDiscoverAction>('open')
+
+  protected readonly logoLoadFailed = signal(false)
+
+  constructor() {
+    effect(() => {
+      this.logoUrl()
+      this.logoLoadFailed.set(false)
+    })
+  }
+
+  protected showLogo(): boolean {
+    return !!this.logoUrl() && !this.logoLoadFailed()
+  }
+
+  protected onLogoError(): void {
+    this.logoLoadFailed.set(true)
+  }
 
   protected hubLink(slug: string): string[] {
     return troupeHubPath(slug)

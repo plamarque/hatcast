@@ -43,7 +43,7 @@ class TroupeUpdateIntegrationTest {
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
 
     @Test
-    fun `PATCH name as troupe admin updates name and keeps slug`() {
+    fun `PATCH name and description as troupe admin updates identity and keeps slug`() {
         val cookie =
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
@@ -61,14 +61,16 @@ class TroupeUpdateIntegrationTest {
                     .cookie(cookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"name":"  Nouveau Nom Troupe  "}"""),
+                    .content("""{"name":"  Nouveau Nom Troupe  ","description":"  Description courte  "}"""),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("Nouveau Nom Troupe"))
+            .andExpect(jsonPath("$.description").value("Description courte"))
             .andExpect(jsonPath("$.slug").value(seedSlug))
             .andExpect(jsonPath("$.membership.baselineRole").value("TROUPE_ADMIN"))
 
         val persisted = troupeRepository.findById(seedTroupeId).orElseThrow()
         assert(persisted.name == "Nouveau Nom Troupe")
+        assert(persisted.description == "Description courte")
         assert(persisted.slug == seedSlug)
     }
 
@@ -119,7 +121,7 @@ class TroupeUpdateIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "sub-troupe-update-platform-admin",
+                "sub-platform-troupe-nav",
                 email = "platform-members-admin@hatcast.test",
                 name = "Platform Troupe Update",
             )

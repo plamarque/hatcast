@@ -100,6 +100,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
   protected readonly troupeId = signal<string | null>(null)
   protected readonly troupeName = signal<string | null>(null)
   protected readonly troupeSlug = signal<string | null>(null)
+  protected readonly troupeLogoUrl = signal<string | null>(null)
   protected readonly permissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly participants = signal<SeasonParticipantAdmin[]>([])
@@ -509,6 +510,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
 
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
+    this.troupeLogoUrl.set(resolved.troupe.logoUrl ?? null)
     this.troupeSlug.set(resolved.troupe.slug)
     this.troupeContext.selectTroupe(resolved.troupe.id)
     this.season.set(resolved.season)
