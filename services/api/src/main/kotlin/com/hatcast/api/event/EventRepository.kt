@@ -111,4 +111,21 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
     ): List<EventEntity>
 
     fun countBySeason_IdAndArchivedFalse(seasonId: UUID): Long
+
+    @Query(
+        """
+        SELECT DISTINCT e FROM EventEntity e
+        JOIN FETCH e.season s
+        JOIN FETCH s.troupe
+        INNER JOIN EventCompositionEntity c ON c.eventId = e.id
+        WHERE e.archived = false
+          AND e.availabilityOpenedAt IS NOT NULL
+          AND c.validatedAt IS NOT NULL
+          AND e.startsAt >= :fromInclusive
+        ORDER BY e.startsAt ASC
+        """,
+    )
+    fun findValidatedOpenEventsStartingFrom(
+        @Param("fromInclusive") fromInclusive: Instant,
+    ): List<EventEntity>
 }

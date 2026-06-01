@@ -8,6 +8,8 @@ import java.util.UUID
 @Component
 class CompositionWorkflowNotificationAdapter(
     private val dispatcher: NotificationDispatcher,
+    private val recipientResolver: NotificationRecipientResolver,
+    private val reminderMarkService: NotificationReminderMarkService,
 ) : CompositionNotificationPort {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -88,6 +90,79 @@ class CompositionWorkflowNotificationAdapter(
             intent,
             messagePreview.length,
             actorUserId,
+        )
+    }
+
+    override fun notifyTeamValidatedFyi(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.TEAM_VALIDATED_FYI,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = null,
+                actorUserId = actorUserId,
+            ),
+        )
+    }
+
+    override fun notifyAssigneeRemoved(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+        formerAssigneeParticipantId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+    ) {
+        val userId =
+            recipientResolver
+                .resolveAssigneeRecipients(listOf(formerAssigneeParticipantId))
+                .firstOrNull()
+                ?.userId ?: return
+        if (!reminderMarkService.tryClaimReminderMark(
+                intent = NotificationIntent.REMOVED_FROM_COMPOSITION,
+                eventId = eventId,
+                userId = userId,
+                reminderWindow = NotificationReminderWindow.ONCE,
+            )
+        ) {
+            return
+        }
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.REMOVED_FROM_COMPOSITION,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = null,
+                actorUserId = actorUserId,
+                assigneeParticipantIds = listOf(formerAssigneeParticipantId),
+                roleKey = roleKey,
+                slotIndex = slotIndex,
+            ),
+        )
+    }
+
+    override fun notifyReconfirmationForAssignees(
+        eventId: UUID,
+        seasonId: UUID,
+        assigneeParticipantIds: List<UUID>,
+        actorUserId: UUID,
+    ) {
+        if (assigneeParticipantIds.isEmpty()) {
+            return
+        }
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.RECONFIRMATION_REQUEST,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = null,
+                actorUserId = actorUserId,
+                assigneeParticipantIds = assigneeParticipantIds,
+            ),
         )
     }
 }

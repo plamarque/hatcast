@@ -15,6 +15,8 @@ enum class NotificationIntent {
 enum class NotificationReminderWindow {
     DAYS_7,
     DAYS_1,
+    /** One-shot dedupe mark (e.g. REMOVED_FROM_COMPOSITION) — not a scheduled reminder window. */
+    ONCE,
 }
 
 enum class NotificationCategory(
@@ -71,7 +73,7 @@ fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = 
             when (reminderWindow) {
                 NotificationReminderWindow.DAYS_7 -> NotificationCategory.REMINDER_7_DAYS
                 NotificationReminderWindow.DAYS_1 -> NotificationCategory.REMINDER_1_DAY
-                null -> NotificationCategory.REMINDER_7_DAYS
+                NotificationReminderWindow.ONCE, null -> NotificationCategory.REMINDER_7_DAYS
             }
         NotificationIntent.REMOVED_FROM_COMPOSITION -> NotificationCategory.CONFIRMATION_REQUEST
         NotificationIntent.RECONFIRMATION_REQUEST -> NotificationCategory.CONFIRMATION_REQUEST

@@ -2,6 +2,7 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.audit.AuditActionType
 import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditEventRepository
 import com.hatcast.api.audit.AuditRecordRequest
 import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
@@ -48,6 +49,7 @@ class CompositionSlotAssignmentService(
     private val compositionService: CompositionService,
     private val eventPublisher: ApplicationEventPublisher,
     private val auditRecorder: AuditEventRecorder,
+    private val auditEventRepository: AuditEventRepository,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional(readOnly = true)
@@ -168,6 +170,7 @@ class CompositionSlotAssignmentService(
         val participantId = body.participantId
         val beforeSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
         val beforeSnapshot = AuditSnapshots.slotAssignment(beforeSlot)
+        val formerAssigneeId = beforeSlot?.assignedParticipantId()
 
         if (isLocked) {
             if (participantId == null) {
@@ -199,6 +202,9 @@ class CompositionSlotAssignmentService(
             }
             if (cleared) {
                 recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, null, beforeSnapshot, AuditActionType.SLOT_CLEARED)
+                if (formerAssigneeId != null) {
+                    publishAssigneeRemoved(eventId, seasonId, principal.userId, formerAssigneeId, roleKey, slotIndex)
+                }
             }
         } else {
             val compositionRow =
@@ -216,6 +222,19 @@ class CompositionSlotAssignmentService(
             compositionRow.updatedAt = now
             compositionRepository.save(compositionRow)
             recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
+            if (formerAssigneeId != null && formerAssigneeId != participantId &&
+                auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
+            ) {
+                publishAssigneeRemoved(eventId, seasonId, principal.userId, formerAssigneeId, roleKey, slotIndex)
+                eventPublisher.publishEvent(
+                    CompositionReconfirmationRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                        assigneeParticipantIds = listOf(participantId),
+                    ),
+                )
+            }
         }
 
         lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
@@ -390,6 +409,26 @@ class CompositionSlotAssignmentService(
             eventRow.user?.id,
             eventRow.displayName,
             CompositionParticipantSource.EVENT,
+        )
+    }
+
+    private fun publishAssigneeRemoved(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+        formerAssigneeParticipantId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+    ) {
+        eventPublisher.publishEvent(
+            CompositionAssigneeRemovedEvent(
+                eventId = eventId,
+                seasonId = seasonId,
+                actorUserId = actorUserId,
+                formerAssigneeParticipantId = formerAssigneeParticipantId,
+                roleKey = roleKey,
+                slotIndex = slotIndex,
+            ),
         )
     }
 

@@ -43,12 +43,12 @@ class NotificationRecipientResolver(
                 .findByEventId(eventId)
                 .filter { it.hasAssignee() }
                 .mapNotNull { it.assignedParticipantId() }
-                .toSet()
+        // Resolve by userId so that season-participant/event-participant ID mismatches don't leak assignees.
+        val assignedUserIds = resolveAssigneeRecipients(assignedParticipantIds).map { it.userId }.toSet()
         val roster = eventRosterService.buildRoster(seasonId, eventId, includeEmail = false)
         return roster
             .mapNotNull { row ->
-                val participantId = row.seasonParticipantId ?: row.eventParticipantId
-                if (row.userId != null && participantId != null && participantId !in assignedParticipantIds) {
+                if (row.userId != null && row.userId !in assignedUserIds) {
                     NotificationRecipient(userId = row.userId, displayName = row.displayName)
                 } else {
                     null

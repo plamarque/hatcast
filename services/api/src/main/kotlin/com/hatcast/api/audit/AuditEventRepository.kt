@@ -12,4 +12,9 @@ interface AuditEventRepository :
     fun findBySeasonIdOrderByOccurredAtDesc(seasonId: UUID): List<AuditEventEntity>
 
     fun findByTroupeIdOrderByOccurredAtDesc(troupeId: UUID): List<AuditEventEntity>
+
+    fun existsByEventIdAndActionType(
+        eventId: UUID,
+        actionType: AuditActionType,
+    ): Boolean
 }

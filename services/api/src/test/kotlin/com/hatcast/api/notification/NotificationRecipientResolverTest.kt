@@ -131,6 +131,7 @@ class NotificationRecipientResolverTest {
         val seasonId = UUID.randomUUID()
         val eventId = UUID.randomUUID()
         val assigneeParticipantId = UUID.randomUUID()
+        val assigneeUserId = UUID.randomUUID()
         val rosterUserId = UUID.randomUUID()
         whenever(slotRepository.findByEventId(eventId)).thenReturn(
             listOf(
@@ -142,6 +143,17 @@ class NotificationRecipientResolverTest {
                 ),
             ),
         )
+        whenever(seasonParticipantRepository.findAllById(listOf(assigneeParticipantId))).thenReturn(
+            listOf(
+                SeasonParticipantEntity(
+                    id = assigneeParticipantId,
+                    season = mock(),
+                    displayName = "Assignee",
+                    user = com.hatcast.api.user.UserEntity(id = assigneeUserId, email = "a@test.com"),
+                ),
+            ),
+        )
+        whenever(eventParticipantRepository.findAllById(emptyList())).thenReturn(emptyList())
         whenever(eventRosterService.buildRoster(seasonId, eventId, false)).thenReturn(
             listOf(
                 EventRosterParticipantDto(
@@ -149,7 +161,7 @@ class NotificationRecipientResolverTest {
                     eventParticipantId = null,
                     displayName = "Assignee",
                     email = null,
-                    userId = UUID.randomUUID(),
+                    userId = assigneeUserId,
                     kind = ParticipantKind.MEMBER,
                     source = EventRosterSource.SEASON,
                 ),

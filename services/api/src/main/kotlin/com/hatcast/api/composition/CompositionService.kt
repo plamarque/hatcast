@@ -2,6 +2,7 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.audit.AuditActionType
 import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditEventRepository
 import com.hatcast.api.audit.AuditRecordRequest
 import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
@@ -50,6 +51,7 @@ class CompositionService(
     private val eventPublisher: ApplicationEventPublisher,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val auditRecorder: AuditEventRecorder,
+    private val auditEventRepository: AuditEventRepository,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional(readOnly = true)
@@ -170,13 +172,24 @@ class CompositionService(
             if (slotsToPending.isNotEmpty()) {
                 slotRepository.saveAll(slotsToPending)
             }
-            eventPublisher.publishEvent(
-                CompositionConfirmationRequestedEvent(
-                    eventId = eventId,
-                    seasonId = seasonId,
-                    actorUserId = principal.userId,
-                ),
-            )
+            val isRevalidation =
+                auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
+            if (!isRevalidation) {
+                eventPublisher.publishEvent(
+                    CompositionConfirmationRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                    ),
+                )
+                eventPublisher.publishEvent(
+                    TeamValidatedFyiRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                    ),
+                )
+            }
             auditRecorder.record(
                 AuditRecordRequest(
                     actionType = AuditActionType.COMPOSITION_VALIDATED,
@@ -233,6 +246,17 @@ class CompositionService(
                 slot.updatedAt = now
             }
             slotRepository.saveAll(slotsToUpdate)
+            val affectedParticipantIds = slotsToUpdate.mapNotNull { it.assignedParticipantId() }
+            if (affectedParticipantIds.isNotEmpty()) {
+                eventPublisher.publishEvent(
+                    CompositionReconfirmationRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                        assigneeParticipantIds = affectedParticipantIds,
+                    ),
+                )
+            }
         }
 
         auditRecorder.record(
