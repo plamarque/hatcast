@@ -32,8 +32,11 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.notification.ProxyAvailabilityRecordedEvent
+import com.hatcast.api.notification.ProxyNotificationLabels
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -56,6 +59,7 @@ class AvailabilityService(
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val auditRecorder: AuditEventRecorder,
     private val draftVisibility: EventDraftVisibility,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -385,11 +389,9 @@ class AvailabilityService(
             if (sp.season.id != seasonId || sp.status != ParticipantStatus.ACTIVE) {
                 throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
             }
-            return if (sp.user != null) {
-                AvailabilitySubject.LinkedUser(sp.user!!)
-            } else {
-                AvailabilitySubject.SeasonParticipant(sp)
-            }
+            sp.user?.let { return AvailabilitySubject.LinkedUser(it) }
+            sp.troupeMembership?.user?.let { return AvailabilitySubject.LinkedUser(it) }
+            return AvailabilitySubject.SeasonParticipant(sp)
         }
 
         eventParticipantRepository.findById(participantId).orElse(null)?.let { ep ->
@@ -419,15 +421,24 @@ class AvailabilityService(
         val existing = findRowForUser(event.id, user.id)
         if (stored == null) {
             if (existing != null) {
+                val beforeSnapshot = AuditSnapshots.availability(existing)
                 recordAvailabilityAudit(
                     event = event,
                     actorUserId = actorUserId,
                     subjectUserId = user.id,
-                    before = AuditSnapshots.availability(existing),
+                    before = beforeSnapshot,
                     after = null,
                     actionType = AuditActionType.AVAILABILITY_DELETED,
                 )
                 availabilityRepository.delete(existing)
+                publishProxyAvailabilityIfEligible(
+                    event = event,
+                    user = user,
+                    actorUserId = actorUserId,
+                    recordedByUserId = recordedByUserId,
+                    beforeSnapshot = beforeSnapshot,
+                    afterSnapshot = null,
+                )
             }
             return MyAvailabilityResponse(status = AvailabilityStatusMapper.UNKNOWN, roleKeys = emptyList())
         }
@@ -471,8 +482,39 @@ class AvailabilityService(
                         AuditActionType.AVAILABILITY_UPDATED
                     },
             )
+            publishProxyAvailabilityIfEligible(
+                event = event,
+                user = user,
+                actorUserId = actorUserId,
+                recordedByUserId = recordedByUserId,
+                beforeSnapshot = beforeSnapshot,
+                afterSnapshot = afterSnapshot,
+            )
         }
         return toResponse(saved)
+    }
+
+    private fun publishProxyAvailabilityIfEligible(
+        event: EventEntity,
+        user: UserEntity,
+        actorUserId: UUID,
+        recordedByUserId: UUID?,
+        beforeSnapshot: Map<String, Any?>?,
+        afterSnapshot: Map<String, Any?>?,
+    ) {
+        if (recordedByUserId == null || actorUserId == user.id) {
+            return
+        }
+        eventPublisher.publishEvent(
+            ProxyAvailabilityRecordedEvent(
+                eventId = event.id,
+                seasonId = event.season.id,
+                troupeId = event.season.troupe.id,
+                actorUserId = actorUserId,
+                subjectUserId = user.id,
+                change = ProxyNotificationLabels.buildAvailabilityChangeFromAudit(beforeSnapshot, afterSnapshot),
+            ),
+        )
     }
 
     private fun upsertForSeasonParticipant(

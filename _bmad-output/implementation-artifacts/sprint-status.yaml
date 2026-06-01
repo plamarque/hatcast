@@ -136,7 +136,7 @@ development_status:
   8-3-notifications-mep-dispos-et-confirmation-assignes: done  # P0 MEP — depends 3.21, 8.1
   8-4-notifications-ops-organisateurs: backlog  # P2 post-MEP — FR31b
   8-5-extensions-notifications-membre: review  # P1 post-MEP initial
-  8-6-notifications-proxy-confirmation-membre-concerne: review  # P1 — proxy 5.5/6.8 → subject ack
+  8-6-notifications-proxy-confirmation-membre-concerne: done  # P1 — proxy 5.5/6.8 → subject ack
   epic-8-retrospective: optional
 
   epic-9: in-progress

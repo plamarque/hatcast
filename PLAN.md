@@ -364,7 +364,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 5. **`bmad-create-story` + dev** — **8.3** notifications MEP (AVAILABILITY_OPENED + CONFIRMATION_REQUEST assignés)  
 6. **10.2** PWA update + **10.3** version/changelog footer *(create story 10.3)* — parallèle possible après **3.21**  
 7. **Recette** — **1.3** reset password sur staging (story **done** ; gate E2E)  
-8. **P1 post-MEP initial :** **8.5**, **8.2**, **6.10b**  
+8. **P1 post-MEP initial :** **8.5**, **8.2**, **8.6**, **6.10b**  
 9. **P2 :** **8.4** intents orga ops  
 10. Replay migration from scratch → **M4**
 
@@ -409,6 +409,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | **8.1** | Opt-in global push navigateur | **P0** | done | Prérequis push pour **8.3** |
 | **8.3** | Notifications MEP (dispos publish + confirm assignés) | **P0** | backlog | **Depends 3.21** ; **8.5**/**8.4** post-MEP |
 | **8.5** | Extensions notifs membre (FYI, J-7/J-1, retrait…) | **P1** | backlog | Après **8.3** ; **8.2** catégories |
+| **8.6** | Accusé proxy dispo / participation (orga → sujet lié) | **P1** | done | Stories **5.5** / **6.8** ; complète audit **9.0** |
 | **6.10b** | Rappel manuel dispos + garde anti-spam | **P1** | backlog | Extension 6.10 |
 | **8.4** | Notifications ops organisateurs (FR31b) | **P2** | backlog | Post-MEP |
 | **10.2** | Détection mise à jour client PWA (FR41) | **P0** | backlog | Bannière « Mettre à jour » |

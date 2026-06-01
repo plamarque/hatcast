@@ -20,6 +20,7 @@ class NotificationRecipientResolverTest {
     private val seasonParticipantRepository: SeasonParticipantRepository = mock()
     private val eventParticipantRepository: EventParticipantRepository = mock()
     private val slotRepository: EventCompositionSlotRepository = mock()
+    private val availabilityRepository: com.hatcast.api.availability.EventAvailabilityRepository = mock()
 
     private val resolver =
         NotificationRecipientResolver(
@@ -27,7 +28,16 @@ class NotificationRecipientResolverTest {
             seasonParticipantRepository = seasonParticipantRepository,
             eventParticipantRepository = eventParticipantRepository,
             slotRepository = slotRepository,
+            availabilityRepository = availabilityRepository,
         )
+
+    @Test
+    fun `resolveSubjectRecipient returns single linked user`() {
+        val userId = UUID.randomUUID()
+        val recipients = resolver.resolveSubjectRecipient(userId)
+        assertEquals(1, recipients.size)
+        assertEquals(userId, recipients[0].userId)
+    }
 
     @Test
     fun `resolveConcernedRosterRecipients keeps linked users only`() {
@@ -114,5 +124,101 @@ class NotificationRecipientResolverTest {
 
         assertEquals(1, recipients.size)
         assertEquals(userId, recipients.first().userId)
+    }
+
+    @Test
+    fun `resolveNonAssignedRosterRecipients excludes assignees and name-only`() {
+        val seasonId = UUID.randomUUID()
+        val eventId = UUID.randomUUID()
+        val assigneeParticipantId = UUID.randomUUID()
+        val rosterUserId = UUID.randomUUID()
+        whenever(slotRepository.findByEventId(eventId)).thenReturn(
+            listOf(
+                EventCompositionSlotEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 0,
+                    seasonParticipantId = assigneeParticipantId,
+                ),
+            ),
+        )
+        whenever(eventRosterService.buildRoster(seasonId, eventId, false)).thenReturn(
+            listOf(
+                EventRosterParticipantDto(
+                    seasonParticipantId = assigneeParticipantId,
+                    eventParticipantId = null,
+                    displayName = "Assignee",
+                    email = null,
+                    userId = UUID.randomUUID(),
+                    kind = ParticipantKind.MEMBER,
+                    source = EventRosterSource.SEASON,
+                ),
+                EventRosterParticipantDto(
+                    seasonParticipantId = UUID.randomUUID(),
+                    eventParticipantId = null,
+                    displayName = "RosterOnly",
+                    email = null,
+                    userId = rosterUserId,
+                    kind = ParticipantKind.MEMBER,
+                    source = EventRosterSource.SEASON,
+                ),
+                EventRosterParticipantDto(
+                    seasonParticipantId = UUID.randomUUID(),
+                    eventParticipantId = null,
+                    displayName = "NameOnly",
+                    email = null,
+                    userId = null,
+                    kind = ParticipantKind.NAME_ONLY,
+                    source = EventRosterSource.SEASON,
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveNonAssignedRosterRecipients(seasonId, eventId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(rosterUserId, recipients.first().userId)
+    }
+
+    @Test
+    fun `resolveConfirmedAssigneeRecipients returns confirmed slots only`() {
+        val eventId = UUID.randomUUID()
+        val confirmedParticipantId = UUID.randomUUID()
+        val pendingParticipantId = UUID.randomUUID()
+        val confirmedUserId = UUID.randomUUID()
+        whenever(slotRepository.findByEventId(eventId)).thenReturn(
+            listOf(
+                EventCompositionSlotEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 0,
+                    seasonParticipantId = confirmedParticipantId,
+                    participationStatus = com.hatcast.api.composition.SlotParticipationStatus.CONFIRMED,
+                ),
+                EventCompositionSlotEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 1,
+                    seasonParticipantId = pendingParticipantId,
+                    participationStatus = com.hatcast.api.composition.SlotParticipationStatus.PENDING,
+                ),
+            ),
+        )
+        whenever(seasonParticipantRepository.findAllById(listOf(confirmedParticipantId))).thenReturn(
+            listOf(
+                SeasonParticipantEntity(
+                    id = confirmedParticipantId,
+                    season = mock(),
+                    displayName = "Confirmed",
+                    user = com.hatcast.api.user.UserEntity(id = confirmedUserId, email = "c@test.com"),
+                ),
+            ),
+        )
+        whenever(eventParticipantRepository.findAllById(emptyList())).thenReturn(emptyList())
+
+        val recipients = resolver.resolveConfirmedAssigneeRecipients(eventId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(confirmedUserId, recipients.first().userId)
     }
 }

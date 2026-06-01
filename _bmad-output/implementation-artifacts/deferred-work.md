@@ -1,3 +1,15 @@
+## Deferred from: code review of 8-5-extensions-notifications-membre.md (2026-06-01)
+
+- **W1** — `actorUserId` set to recipient's own `userId` in `AssigneePresenceReminderJob` dispatch context — semantic smell; `actorUserId` not surfaced in current reminder payloads, no user impact today.
+- **W2** — `ASSIGNEE_PRESENCE_REMINDER.toCategory(null)` falls back to `REMINDER_7_DAYS` in `NotificationIntent.kt` — latent wrong-category preference check for future callers that omit `reminderWindow`.
+- **W3** — `resolveUserId` in reminder job has no participant-status guard; deactivated members with a `CONFIRMED` slot still receive reminders — pre-existing participant lifecycle gap.
+
+## Deferred from: code review of 8-6-notifications-proxy-confirmation-membre-concerne.md (2026-06-01)
+
+- Diff review mélangé avec changements 8.5 (FYI/rappels) — périmètre review, pas régression 8.6.
+- `resolveSubjectRecipient` retourne `displayName` vide — pattern existant 8.3, payloads proxy n'utilisent pas le prénom destinataire.
+- `userRepository.findById` par notification pour le nom acteur — charge DB post-commit acceptable pour V1 du pipeline.
+
 ## Deferred from: code review of 8-2-preferences-de-notification.md (2026-06-01)
 
 - `COMPOSITION_SHARED` sans mapping `NotificationIntent.toCategory()` — catégorie exposée en UI/API ; le dispatcher 8.3 devra ajouter l’intent brouillon partagé et le mapping (handoff déjà documenté dans la story).

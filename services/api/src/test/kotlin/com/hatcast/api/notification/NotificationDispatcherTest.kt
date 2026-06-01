@@ -7,6 +7,7 @@ import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
@@ -172,7 +173,108 @@ class NotificationDispatcherTest {
         }
 
         verify(pushSender, times(2)).sendPush(any(), any(), any(), any())
-        verify(deliveryLogRepository, times(2)).save(any())
+        verify(deliveryLogRepository, times(4)).save(any())
+    }
+
+    @Test
+    fun `category mapping for 8_5 intents`() {
+        assertEquals(
+            NotificationCategory.TEAM_CONFIRMED,
+            NotificationIntent.TEAM_VALIDATED_FYI.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.REMINDER_7_DAYS,
+            NotificationIntent.ASSIGNEE_PRESENCE_REMINDER.toCategory(NotificationReminderWindow.DAYS_7),
+        )
+        assertEquals(
+            NotificationCategory.REMINDER_1_DAY,
+            NotificationIntent.ASSIGNEE_PRESENCE_REMINDER.toCategory(NotificationReminderWindow.DAYS_1),
+        )
+        assertEquals(
+            NotificationCategory.CONFIRMATION_REQUEST,
+            NotificationIntent.REMOVED_FROM_COMPOSITION.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.CONFIRMATION_REQUEST,
+            NotificationIntent.RECONFIRMATION_REQUEST.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.AVAILABILITY_REQUEST,
+            NotificationIntent.MANUAL_AVAILABILITY_NUDGE.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.AVAILABILITY_REQUEST,
+            NotificationIntent.PROXY_AVAILABILITY_RECORDED.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.CONFIRMATION_REQUEST,
+            NotificationIntent.PROXY_CONFIRMATION_RECORDED.toCategory(),
+        )
+    }
+
+    @Test
+    fun `proxy intents resolve explicit subject only`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val subjectUserId = UUID.randomUUID()
+        val actorUserId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val event = notificationEvent(eventId, troupeId)
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(recipientResolver.resolveSubjectRecipient(subjectUserId)).thenReturn(
+            listOf(NotificationRecipient(userId = subjectUserId, displayName = "")),
+        )
+        whenever(pushEligibilityPort.isPushAllowedForCategory(any(), any())).thenReturn(true)
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(null)
+        whenever(userRepository.findById(subjectUserId)).thenReturn(Optional.of(UserEntity(email = null)))
+        whenever(pushSender.sendPush(any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SKIPPED),
+        )
+
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.PROXY_AVAILABILITY_RECORDED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+                subjectUserId = subjectUserId,
+                actorDisplayName = "Orga",
+                proxyChangeSummary =
+                    ProxyChangeSummary.Availability(
+                        beforeLabel = "Non renseigné",
+                        afterLabel = "Dispo",
+                    ),
+            ),
+        )
+
+        verify(recipientResolver).resolveSubjectRecipient(subjectUserId)
+        verify(recipientResolver, org.mockito.kotlin.never()).resolveConcernedRosterRecipients(any(), any())
+        verify(recipientResolver, org.mockito.kotlin.never()).resolveAssigneeRecipients(any())
+    }
+
+    @Test
+    fun `proxy intent skips when subject equals actor`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val event = notificationEvent(eventId, troupeId)
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.PROXY_CONFIRMATION_RECORDED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = userId,
+                subjectUserId = userId,
+            ),
+        )
+
+        verify(recipientResolver, org.mockito.kotlin.never()).resolveSubjectRecipient(any())
+        verify(pushSender, org.mockito.kotlin.never()).sendPush(any(), any(), any(), any())
     }
 
     private fun notificationEvent(
