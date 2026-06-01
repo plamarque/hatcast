@@ -137,7 +137,13 @@ class UserMemberPreferencesMigrationTest {
                 .configure()
                 .dataSource(url, "sa", "")
                 .locations("classpath:db/migration")
-                .placeholders(mapOf("drop_event_availability_pk" to "DROP PRIMARY KEY"))
+                .placeholders(
+                    mapOf(
+                        "drop_event_availability_pk" to "DROP PRIMARY KEY",
+                        "notification_preferences_json_type" to "JSON",
+                        "notification_preferences_json_default" to "JSON '{}'",
+                    ),
+                )
         if (target != null) {
             configuration.target(target)
         }

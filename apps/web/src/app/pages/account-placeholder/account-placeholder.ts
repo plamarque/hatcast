@@ -11,6 +11,7 @@ import { Router, RouterLink } from '@angular/router'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { MemberPreferencesForm } from '../../shared/member-preferences-form/member-preferences-form'
+import { NotificationPreferencesSection } from '../../shared/notification-preferences-section/notification-preferences-section'
 import { PushNotificationsSection } from '../../shared/push-notifications-section/push-notifications-section'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
@@ -33,6 +34,7 @@ const PASSWORD_COMING_SOON_TOOLTIP =
     MatTooltipModule,
     RouterLink,
     MemberPreferencesForm,
+    NotificationPreferencesSection,
     PushNotificationsSection,
     UserAvatarComponent,
   ],

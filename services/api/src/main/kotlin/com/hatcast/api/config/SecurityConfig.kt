@@ -66,6 +66,8 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.GET, "/v1/me/inbox").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/preferences").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/v1/me/preferences").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/v1/me/notification-preferences").authenticated()
+                    .requestMatchers(HttpMethod.PATCH, "/v1/me/notification-preferences").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/push").authenticated()
                     .requestMatchers(HttpMethod.PUT, "/v1/me/push/subscription").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/v1/me/push/subscription").authenticated()

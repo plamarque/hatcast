@@ -6,8 +6,9 @@ import java.util.UUID
  * Optional port for Story 8.2 category preferences. When absent, dispatcher defaults to allow.
  */
 interface NotificationPreferenceEligibilityPort {
-    fun isCategoryEnabled(
+    fun isAllowed(
         userId: UUID,
         category: NotificationCategory,
+        channel: NotificationChannel,
     ): Boolean
 }

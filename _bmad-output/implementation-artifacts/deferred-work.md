@@ -1,3 +1,7 @@
+## Deferred from: code review of 8-2-preferences-de-notification.md (2026-06-01)
+
+- `COMPOSITION_SHARED` sans mapping `NotificationIntent.toCategory()` — catégorie exposée en UI/API ; le dispatcher 8.3 devra ajouter l’intent brouillon partagé et le mapping (handoff déjà documenté dans la story).
+
 ## Deferred from: code review of 4-3-troupe-logo-description-cartes.md (2026-06-01)
 
 - ~~Logo sur cartes « Mes troupes » pour troupes hors annuaire~~ — **résolu** dans la clôture 4.3 : `GET /v1/troupes/{id}/logo` (membre actif) + `memberLogoUrl` dans les DTO authentifiés.

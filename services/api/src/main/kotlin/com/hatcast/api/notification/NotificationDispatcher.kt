@@ -42,7 +42,7 @@ class NotificationDispatcher(
                 return
             }
 
-            val category = context.intent.toCategory()
+            val category = context.intent.toCategory(context.reminderWindow)
             for (recipient in recipients) {
                 deliverToRecipient(context, recipient, event, category)
             }
@@ -64,7 +64,15 @@ class NotificationDispatcher(
         category: NotificationCategory,
     ) {
         try {
-            val payload = payloadBuilder.build(context.intent, event, recipient.displayName)
+            val payload =
+                payloadBuilder.build(
+                    intent = context.intent,
+                    event = event,
+                    recipientName = recipient.displayName,
+                    roleKey = context.roleKey,
+                    actorDisplayName = context.actorDisplayName,
+                    proxyChangeSummary = context.proxyChangeSummary,
+                )
             val emailSubject = payloadBuilder.buildEmailSubject(context.intent, event)
             deliverPush(recipient.userId, category, payload, context.intent, context.eventId)
             deliverEmail(recipient.userId, category, emailSubject, payload, context.intent, context.eventId)
@@ -90,7 +98,36 @@ class NotificationDispatcher(
                 } else {
                     recipientResolver.resolveValidatedAssigneeRecipients(context.eventId)
                 }
+            NotificationIntent.TEAM_VALIDATED_FYI ->
+                recipientResolver.resolveNonAssignedRosterRecipients(context.seasonId, context.eventId)
+            NotificationIntent.ASSIGNEE_PRESENCE_REMINDER ->
+                if (context.recipientUserIds.isNotEmpty()) {
+                    context.recipientUserIds.map { userId ->
+                        NotificationRecipient(userId = userId, displayName = "")
+                    }
+                } else {
+                    recipientResolver.resolveConfirmedAssigneeRecipients(context.eventId)
+                }
+            NotificationIntent.REMOVED_FROM_COMPOSITION ->
+                if (context.assigneeParticipantIds.isNotEmpty()) {
+                    recipientResolver.resolveAssigneeRecipients(context.assigneeParticipantIds)
+                } else {
+                    emptyList()
+                }
+            NotificationIntent.RECONFIRMATION_REQUEST ->
+                recipientResolver.resolveAssigneeRecipients(context.assigneeParticipantIds)
+            NotificationIntent.PROXY_AVAILABILITY_RECORDED,
+            NotificationIntent.PROXY_CONFIRMATION_RECORDED,
+            -> resolveProxySubjectRecipients(context)
         }
+
+    private fun resolveProxySubjectRecipients(context: NotificationDispatchContext): List<NotificationRecipient> {
+        val subjectUserId = context.subjectUserId ?: return emptyList()
+        if (subjectUserId == context.actorUserId) {
+            return emptyList()
+        }
+        return recipientResolver.resolveSubjectRecipient(subjectUserId)
+    }
 
     private fun isChannelAllowed(
         userId: UUID,
@@ -109,6 +146,16 @@ class NotificationDispatcher(
         eventId: UUID,
     ) {
         if (!pushEligibilityPort.isPushAllowedForCategory(userId, category)) {
+            persistDeliveryLogSafely(
+                intent,
+                userId,
+                NotificationDeliveryResult(
+                    channel = NotificationChannel.PUSH,
+                    status = NotificationDeliveryStatus.SKIPPED,
+                    errorMessage = "push_not_allowed",
+                ),
+                eventId,
+            )
             return
         }
         try {
@@ -145,11 +192,34 @@ class NotificationDispatcher(
         eventId: UUID,
     ) {
         if (!isChannelAllowed(userId, category, NotificationChannel.EMAIL)) {
+            persistDeliveryLogSafely(
+                intent,
+                userId,
+                NotificationDeliveryResult(
+                    channel = NotificationChannel.EMAIL,
+                    status = NotificationDeliveryStatus.SKIPPED,
+                    errorMessage = "email_preference_disabled",
+                ),
+                eventId,
+            )
             return
         }
-        val user = userRepository.findById(userId).orElse(null) ?: return
+        val user = userRepository.findById(userId).orElse(null)
+        if (user == null) {
+            return
+        }
         val email = user.email?.trim().orEmpty()
         if (email.isBlank()) {
+            persistDeliveryLogSafely(
+                intent,
+                userId,
+                NotificationDeliveryResult(
+                    channel = NotificationChannel.EMAIL,
+                    status = NotificationDeliveryStatus.SKIPPED,
+                    errorMessage = "missing_email",
+                ),
+                eventId,
+            )
             return
         }
         try {

@@ -208,6 +208,9 @@
 }
 
 .account-page__preferences-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
   padding: 1rem;
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--mat-sys-surface-container) 55%, transparent);

@@ -26,6 +26,8 @@ spring:
     placeholders:
       # V23: PostgreSQL rejects DROP PRIMARY KEY; H2 test profile overrides (application-test.yml).
       drop_event_availability_pk: DROP CONSTRAINT event_availability_pkey
+      notification_preferences_json_type: JSONB
+      notification_preferences_json_default: "'{}'::jsonb"
   session:
     store-type: jdbc
     jdbc:

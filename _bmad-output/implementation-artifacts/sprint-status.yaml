@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-01T14:35:00+02:00
+# last_updated: 2026-06-01T20:30:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-01T17:33:00+02:00"
+last_updated: "2026-06-01T17:57:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -118,7 +118,7 @@ development_status:
   6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: done
   6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: done
   6-10-partage-et-annonce-message-editable-canaux: done
-  6-10b-rappel-manuel-disponibilite-garde-anti-spam: backlog  # P1 — SCP 2026-06-01
+  6-10b-rappel-manuel-disponibilite-garde-anti-spam: ready-for-dev  # P1 — SCP 2026-06-01
   6-11-retour-visuel-et-performances-onglet-equipe: done
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
   6-13-publish-notifications-hors-transaction: done
@@ -132,11 +132,11 @@ development_status:
 
   epic-8: in-progress
   8-1-opt-in-aux-notifications-navigateur-et-categories: done
-  8-2-preferences-de-notification: in-progress  # P1 — categories for 8.5 FYI opt-out
+  8-2-preferences-de-notification: done  # P1 — code review 2026-06-01: patches applied
   8-3-notifications-mep-dispos-et-confirmation-assignes: done  # P0 MEP — depends 3.21, 8.1
   8-4-notifications-ops-organisateurs: backlog  # P2 post-MEP — FR31b
-  8-5-extensions-notifications-membre: ready-for-dev  # P1 post-MEP initial
-  8-6-notifications-proxy-confirmation-membre-concerne: ready-for-dev  # P1 — proxy 5.5/6.8 → subject ack
+  8-5-extensions-notifications-membre: review  # P1 post-MEP initial
+  8-6-notifications-proxy-confirmation-membre-concerne: review  # P1 — proxy 5.5/6.8 → subject ack
   epic-8-retrospective: optional
 
   epic-9: in-progress

@@ -1,5 +1,7 @@
 package com.hatcast.api.user
 
+import com.hatcast.api.notification.NotificationCategory
+import com.hatcast.api.notification.NotificationPreference
 import com.hatcast.api.troupe.PreferredRoleKeysJsonConverter
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
@@ -7,6 +9,8 @@ import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.PrePersist
 import jakarta.persistence.Table
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.Instant
 import java.util.UUID
 
@@ -49,6 +53,10 @@ class UserEntity(
     /** Global browser push opt-in (story 8.1). Per-device subscriptions in user_push_subscriptions. */
     @Column(name = "push_notifications_enabled", nullable = false)
     var pushNotificationsEnabled: Boolean = false,
+    /** Account-level opt-out category preferences (story 8.2). Missing categories default to enabled. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "notification_preferences", nullable = false, columnDefinition = "jsonb")
+    var notificationPreferences: Map<NotificationCategory, NotificationPreference> = emptyMap(),
 ) {
     @PrePersist
     fun assignSlugIfMissing() {

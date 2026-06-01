@@ -18,6 +18,8 @@ spring:
     locations: classpath:db/migration,classpath:db/seed
     placeholders:
       drop_event_availability_pk: DROP PRIMARY KEY
+      notification_preferences_json_type: JSON
+      notification_preferences_json_default: JSON '{}'
   session:
     jdbc:
       initialize-schema: always
