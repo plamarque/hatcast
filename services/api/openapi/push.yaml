@@ -1,0 +1,178 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Push notifications (fragment)
+  description: >
+    Opt-in global aux notifications navigateur (Web Push + VAPID). Story 8.1 — enregistrement
+    et éligibilité uniquement ; envoi effectif en story 8.3.
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: api.example.invalid
+
+tags:
+  - name: Push
+    description: Abonnements Web Push par utilisateur authentifié.
+
+paths:
+  /config/public:
+    get:
+      tags: [Push]
+      summary: Configuration publique (clé VAPID publique)
+      operationId: getPublicConfig
+      responses:
+        '200':
+          description: Clés publiques pour le client web.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicConfigResponse'
+
+  /me/push:
+    get:
+      tags: [Push]
+      summary: Statut push de l'utilisateur connecté
+      operationId: getMyPushStatus
+      parameters:
+        - name: browserPermission
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [granted, denied, default]
+      responses:
+        '200':
+          description: État global et nombre d'abonnements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MePushStatusResponse'
+        '401':
+          description: Non authentifié.
+
+    patch:
+      tags: [Push]
+      summary: Opt-out global (supprime tous les abonnements)
+      operationId: patchMyPushEnabled
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchMePushRequest'
+      responses:
+        '200':
+          description: Statut mis à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MePushStatusResponse'
+        '401':
+          description: Non authentifié.
+
+  /me/push/subscription:
+    put:
+      tags: [Push]
+      summary: Enregistrer ou mettre à jour un abonnement Web Push
+      operationId: registerPushSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPushSubscriptionRequest'
+      responses:
+        '200':
+          description: Abonnement enregistré ; enabled = true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MePushStatusResponse'
+        '400':
+          description: Corps invalide ou endpoint non HTTPS.
+        '401':
+          description: Non authentifié.
+
+    delete:
+      tags: [Push]
+      summary: Supprimer un abonnement (ou tous si endpoint omis)
+      operationId: deletePushSubscription
+      parameters:
+        - name: endpoint
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Abonnement(s) supprimé(s).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MePushStatusResponse'
+        '401':
+          description: Non authentifié.
+
+components:
+  schemas:
+    PublicConfigResponse:
+      type: object
+      properties:
+        webPushVapidPublicKey:
+          type: string
+          nullable: true
+
+    PushSubscriptionKeys:
+      type: object
+      required: [p256dh, auth]
+      properties:
+        p256dh:
+          type: string
+        auth:
+          type: string
+
+    RegisterPushSubscriptionRequest:
+      type: object
+      required: [endpoint, keys]
+      properties:
+        endpoint:
+          type: string
+        keys:
+          $ref: '#/components/schemas/PushSubscriptionKeys'
+
+    PushSubscriptionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        endpointPreview:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    MePushStatusResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        browserPermission:
+          type: string
+          nullable: true
+        subscriptionCount:
+          type: integer
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PushSubscriptionSummary'
+          nullable: true
+
+    PatchMePushRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean

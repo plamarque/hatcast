@@ -57,6 +57,9 @@ hatcast:
     api-enabled: ${HATCAST_MIGRATION_API_ENABLED:false}
     api-key: ${HATCAST_MIGRATION_API_KEY:}
     operator-email: ${HATCAST_MIGRATION_OPERATOR_EMAIL:}
+  web-push:
+    vapid-public-key: ${HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY:}
+    vapid-private-key: ${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY:}
 
 management:
   endpoints:

@@ -46,6 +46,9 @@ class UserEntity(
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now(),
+    /** Global browser push opt-in (story 8.1). Per-device subscriptions in user_push_subscriptions. */
+    @Column(name = "push_notifications_enabled", nullable = false)
+    var pushNotificationsEnabled: Boolean = false,
 ) {
     @PrePersist
     fun assignSlugIfMissing() {

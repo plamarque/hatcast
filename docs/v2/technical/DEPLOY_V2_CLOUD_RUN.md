@@ -133,6 +133,8 @@ Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (
 | `HATCAST_SUPER_ADMIN_EMAILS` | Emails séparés par des virgules — admin plateforme (menu Membres, join policy, bootstrap Démo). **Prod/staging :** inclure au minimum `patrice.lamarque@gmail.com` ; `impropick@gmail.com` optionnel (ADR-0015). Ne pas committer les valeurs. |
 | `HATCAST_MIGRATION_API_KEY` | **Staging uniquement** — clé longue aléatoire pour l’orchestrateur `migrate:v2:run` ([ADR-0017](../adr/0017-v2-migration-api-key.md)). Jamais activé en prod sans décision explicite. |
 | `HATCAST_MIGRATION_OPERATOR_EMAIL` | **Staging uniquement** — email d’un `UserEntity` existant (super-admin plateforme) utilisé comme opérateur CLI. Pair avec `HATCAST_MIGRATION_API_KEY`. |
+| `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` | Clé VAPID **publique** Web Push (opt-in navigateur, story 8.1). Même valeur que V1 (`legacy/src/services/configService.js`). Exposée au SPA via `GET /v1/config/public`. **Recommandé** dans les trois environnements GitHub (`development`, `staging`, `production`). |
+| `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` | Clé VAPID **privée** — **story 8.3** (envoi `web-push`). Non présente dans le dépôt V1 (FCM Admin SDK). Récupérer dans **Firebase Console → Project settings → Cloud Messaging → Web configuration** (paire associée à la clé publique). Ne pas committer. |
 
 **Ne pas définir** `HATCAST_SEED_TROUPE_ID` (supprimé en story 18.5). L’onboarding « Rejoindre la troupe de démonstration » cible la troupe **Démo** (`a0000001-0000-4000-8000-000000000099`, Flyway) ; **Les Improbots** (`…000001`) est un seed dev uniquement.
 
