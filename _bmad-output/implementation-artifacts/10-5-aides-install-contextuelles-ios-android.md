@@ -81,7 +81,7 @@ so that I can **add HatCast to my home screen or app list** without guessing bro
   | Menu → Installer l'app → dialog/prompt | Android + Mac (Chrome/Safari) | **PASS** |
   | HatCast 2 icon in banner | Visual (recette ci-dessus) | **PASS** |
   | Dialog readable (thème système) | Mac Chrome + Safari | **PASS** |
-  | LIMIT-003 warning on tailnet (if tested) | `.ts.net` optional | **N/A** (pas testé ; pas de message UI membre) |
+  | LIMIT-003 install on tailnet (cert auto-signé) | `patrices-macbook-pro.tail3f7249.ts.net` — Mac Chrome + Android Chrome, 2026-06-02 | **PASS** — invite native / ⊕ barre d'adresse sans effet ; install OK via Menu ⋮ → Caster, enregistrer et partager → Installer la page en tant qu'appli ; bandeau « Non sécurisé » persistant en standalone (attendu) |
 
 - [x] **Sign-off (AC: 9)** — PO (Patrice, 2026-06-02) : « Install aids OK for V2.0.0 wave » — recette partielle acceptée ; voir **Recette différée** ci-dessous avant **10.6** si besoin.
 
@@ -216,7 +216,7 @@ Composer (bmad-dev-story 10.5)
 - **AC5** : icônes inline PNG depuis captures Chrome (barre d’adresse + menu « Caster, enregistrer et partager ») ; astuce Android sans entrée barre d’adresse ; pas de « Note importante » dev en UI.
 - **UX** : bouton « Réessayer l'installation » uniquement si `beforeinstallprompt` encore disponible (pas sur dialog manuel seul).
 - **AC5/10** : tests Vitest 36+ (instructions, dialog, service, icons).
-- **AC9** : recette manuelle PO **2026-06-02** — **PASS** Android Chrome, Mac Chrome, Mac Safari (`--with-push`). iPhone / autres navigateurs → **TODO** documenté (différé).
+- **AC9** : recette manuelle PO **2026-06-02** — **PASS** Android Chrome, Mac Chrome, Mac Safari (`--with-push`), LIMIT-003 tailnet (Mac + Android Chrome). iPhone / autres navigateurs → **TODO** documenté (différé).
 - **Code review (2026-06-02)** : scope 10.6 retiré du diff ; hygiene commit.
 - **M3** : checklist OK (banner + dialog M3).
 
@@ -247,6 +247,7 @@ Composer (bmad-dev-story 10.5)
 - 2026-06-02 : Story created (`bmad-create-story` 10.5) — ready-for-dev
 - 2026-06-02 : Implementation — copy, tests, icons PNG, UX polish
 - 2026-06-02 : Code review — patches ; recette PO partielle → **done** (iPhone/autres en TODO)
+- 2026-06-02 : Clôture — recette LIMIT-003 tailnet (Mac + Android Chrome) ; sign-off PO final
 
 ---
 
