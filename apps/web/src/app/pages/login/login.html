@@ -81,7 +81,7 @@
               Créer un compte
             </button>
           </p>
-        } @else {
+        } @else if (isDev) {
           <p class="login__hint login__hint--email">
             Pour activer l’email / mot de passe : renseignez <code>firebase.apiKey</code>,
             <code>firebase.authDomain</code> et <code>firebase.projectId</code> dans

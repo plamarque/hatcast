@@ -16,6 +16,8 @@
 #   HATCAST_NOTIFICATION_EMAIL_ENABLED=true — démarre Mailpit (Docker), force SMTP local pour l’API,
 #   arrête Mailpit à la fin du script ; voir `.env.example`.
 #   --with-push + EMAIL_ENABLED : push (VAPID dans .env) et emails (Mailpit) en parallèle pour story 8.3.
+#   --with-push : avant le build prod, injecte environment.ts depuis .env (HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID
+#   → GOOGLE_OAUTH_WEB_CLIENT_ID, HATCAST_FIREBASE_*, HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY) via inject-google-client-id.mjs.
 #
 # URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host`).
 #   Accès mobile (tailnet) : `tailscale up` si déconnecté, puis Serve → https://<machine>.<tailnet>.ts.net
@@ -147,6 +149,35 @@ warn_push_vapid_config() {
   if [[ "$missing" -eq 0 ]]; then
     echo "✓ Clés VAPID Web Push présentes (.env)"
   fi
+}
+
+# Régénère apps/web/src/environments/environment.ts depuis .env (build prod local --with-push).
+inject_web_prod_environment() {
+  [[ "$WITH_PUSH" == "1" ]] || return 0
+
+  if [[ -z "${GOOGLE_OAUTH_WEB_CLIENT_ID:-}" && -n "${HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID:-}" ]]; then
+    export GOOGLE_OAUTH_WEB_CLIENT_ID="$HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID"
+  fi
+
+  if [[ -z "${GOOGLE_OAUTH_WEB_CLIENT_ID:-}" ]]; then
+    echo "  ✗ GOOGLE_OAUTH_WEB_CLIENT_ID ou HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID requis dans .env pour le build prod (--with-push)."
+    exit 1
+  fi
+
+  local fb_missing=0
+  for v in HATCAST_FIREBASE_WEB_API_KEY HATCAST_FIREBASE_AUTH_DOMAIN HATCAST_FIREBASE_PROJECT_ID; do
+    if [[ -z "${!v:-}" ]]; then
+      fb_missing=1
+    fi
+  done
+  if [[ "$fb_missing" -eq 1 ]]; then
+    echo "  ⚠ HATCAST_FIREBASE_* incomplet — formulaire email/mot de passe masqué (Google seul)."
+  else
+    echo "✓ Config Firebase Identity Platform (.env) → injection dans environment.ts"
+  fi
+
+  echo "→ Injection environment.ts pour build production (inject-google-client-id.mjs)…"
+  node "$ROOT/apps/web/scripts/inject-google-client-id.mjs"
 }
 
 # start-dev pilote Mailpit : SMTP local pour bootRun (ignore les SPRING_MAIL_* Gmail du .env).
@@ -369,6 +400,7 @@ echo ""
 cd "$ROOT"
 # `--` obligatoire : transmet les flags à `ng serve` (pas à npm intermédiaire).
 if [[ "$WITH_PUSH" == "1" ]]; then
+  inject_web_prod_environment
   echo "→ Build production initial (ngsw.json + SW)…"
   npm run build -w @hatcast/web -- --configuration=production
   echo "→ Watch rebuild production (dist/)…"
