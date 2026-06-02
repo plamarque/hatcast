@@ -22,6 +22,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
+import { compareFrenchDisplayName } from '../../core/text/french-collator'
 import {
   type TroupeBaselineRole,
   type TroupeMemberAdmin,
@@ -379,7 +380,7 @@ export class MembresTab implements OnInit, OnDestroy {
         if (a.status !== b.status) {
           return a.status === 'ACTIVE' ? -1 : 1
         }
-        return a.displayName.localeCompare(b.displayName, 'fr')
+        return compareFrenchDisplayName(a.displayName, b.displayName)
       })
       this.members.set(sorted)
     } finally {
@@ -395,7 +396,7 @@ export class MembresTab implements OnInit, OnDestroy {
     this.memberProfile.navigateToMemberGlance({
       userSlug: member.userSlug,
       troupeId: this.troupeId(),
-      leagueId: seasonId,
+      seasonId: seasonId,
     })
   }
 

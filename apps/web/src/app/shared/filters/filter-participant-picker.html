@@ -1,0 +1,78 @@
+<div
+  class="filter-picker-shell"
+  [class.filter-picker-shell--sheet]="isBottomSheet"
+  [class.filter-picker-shell--dialog]="!isBottomSheet"
+>
+  <div class="filter-picker-shell__header">
+    <h2 class="filter-picker-shell__title" cdkFocusInitial>Filtrer les participants</h2>
+    <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-form-field class="filter-picker-shell__search" appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Rechercher</mat-label>
+    <input
+      matInput
+      type="search"
+      placeholder="Rechercher un participant…"
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+    />
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+  </mat-form-field>
+
+  <div class="filter-picker-shell__list" role="list">
+    <button
+      type="button"
+      class="filter-picker-shell__row filter-picker-shell__row--all"
+      data-testid="participant-picker-option-all"
+      (click)="toggleAllVisible()"
+    >
+      <mat-icon class="filter-picker-shell__row-icon" aria-hidden="true">groups</mat-icon>
+      <span class="filter-picker-shell__row-title">Tous</span>
+      <mat-checkbox
+        class="filter-picker-shell__row-check"
+        [checked]="allVisibleSelected()"
+        [indeterminate]="someVisibleSelected()"
+        (click)="$event.stopPropagation()"
+        (change)="toggleAllVisible()"
+        aria-label="Sélectionner ou désélectionner tous les participants visibles"
+      />
+    </button>
+
+    @for (option of filteredOptions(); track option.id) {
+      <button
+        type="button"
+        class="filter-picker-shell__row"
+        [attr.data-testid]="'participant-picker-row-' + option.id"
+        (click)="toggleParticipant(option.id)"
+      >
+        <mat-icon class="filter-picker-shell__row-icon" aria-hidden="true">person</mat-icon>
+        <span class="filter-picker-shell__row-title">{{ option.label }}</span>
+        <mat-checkbox
+          class="filter-picker-shell__row-check"
+          [checked]="isSelected(option.id)"
+          (click)="$event.stopPropagation()"
+          (change)="toggleParticipant(option.id)"
+          [attr.aria-label]="'Sélectionner ' + option.label"
+        />
+      </button>
+    }
+  </div>
+
+  <div class="filter-picker-shell__footer">
+    <button mat-button type="button" data-testid="participant-picker-reset" (click)="onReset()">
+      Réinitialiser
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      data-testid="participant-picker-apply"
+      (click)="onApply()"
+    >
+      Appliquer
+    </button>
+  </div>
+</div>

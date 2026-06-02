@@ -1,10 +1,13 @@
 package com.hatcast.api.troupe
 
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
+import com.hatcast.api.user.UserMemberPreferencesService
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -31,6 +34,14 @@ class TroupeMembershipServiceTest {
     private val platformAdminService = mock<com.hatcast.api.auth.PlatformAdminService>()
     private val seasonRepository = mock<com.hatcast.api.season.SeasonRepository>()
     private val membershipSync = mock<com.hatcast.api.participant.SeasonParticipantMembershipSync>()
+    private val seasonParticipantRepository = mock<SeasonParticipantRepository>()
+    private val auditRecorder = mock<AuditEventRecorder>()
+    private val userMemberPreferencesService =
+        mock<UserMemberPreferencesService>().also { prefs ->
+            whenever(prefs.resolvedMemberDisplayName(any())).thenAnswer { invocation ->
+                MemberDisplayNameResolver.resolve(invocation.getArgument(0))
+            }
+        }
     private val service =
         TroupeMembershipService(
             membershipRepository,
@@ -42,6 +53,9 @@ class TroupeMembershipServiceTest {
             platformAdminService,
             seasonRepository,
             membershipSync,
+            userMemberPreferencesService,
+            seasonParticipantRepository,
+            auditRecorder,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

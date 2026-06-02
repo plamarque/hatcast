@@ -25,9 +25,9 @@ import { showCompositionDraftBanner } from '../../core/composition/composition-v
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
   normalizeRoleSlots,
-  ROLE_DISPLAY_ORDER,
   ROLE_EMOJIS,
   ROLE_LABELS,
+  rolesWithSlots,
   type RoleKey,
 } from '../../core/events/event-types'
 import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
@@ -322,9 +322,8 @@ export class EventEquipeTab {
     }
 
     const rows: SlotRow[] = []
-    for (const roleKey of ROLE_DISPLAY_ORDER) {
+    for (const roleKey of rolesWithSlots(roleSlots)) {
       const count = roleSlots[roleKey] ?? 0
-      if (count <= 0) continue
       const label = ROLE_LABELS[roleKey as RoleKey] ?? roleKey
       const emoji = ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
       for (let index = 0; index < count; index++) {
@@ -516,10 +515,6 @@ export class EventEquipeTab {
       roleKey: roleKey as RoleKey,
       displayNames,
     }))
-  }
-
-  protected declineRoleLabel(roleKey: string): string {
-    return ROLE_LABELS[roleKey as RoleKey] ?? roleKey
   }
 
   protected declineRoleEmoji(roleKey: string): string {

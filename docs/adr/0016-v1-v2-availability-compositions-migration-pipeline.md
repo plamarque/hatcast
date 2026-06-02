@@ -33,9 +33,10 @@
      - **`cast.status` → composition lifecycle:** `confirmed` → set `validated_at` + `published_at` (from `confirmedAt`); `pending_confirmation` → `validated_at` only; `incomplete` → draft (`validated_at` NULL).
      - **`event_composition_declines.declined_by_user_id` (NOT NULL):** V1 stores no actor → default to **self-decline** (the declined player's own `v2UserId`).
      - Output: `load.sql` (idempotent) + `rejects.json` (unmapped player/event, etc.).
+     - **Event publish state (Story 3.21):** V1 had no `availability_opened_at` draft gate. **`load-ac.sql`** ends with an idempotent `UPDATE events SET availability_opened_at = created_at WHERE season_id = … AND availability_opened_at IS NULL` so migrated spectacles are **published** (visible in member agendas), not left as brouillons.
   5. **Load (write, guarded):** apply `load.sql` via `psql` inside a **single transaction**, all statements idempotent (`INSERT … ON CONFLICT DO UPDATE`). **`--dry-run` is the default** (prints SQL + report, writes nothing). The loader resolves the target Neon branch and **refuses** a production target unless an explicit typed confirmation is given (`--confirm-prod=<slug>`); `staging` accepts `--yes`.
   6. **Reset / replay loop:** rehearse via [ADR-0014](0014-v2-preprod-migration-no-seed.md) Procedure C — reset Neon `staging` → load → smoke → adjust transform → repeat. Gate: **≥ 3 clean cycles** before any production load.
-  7. **Sequencing / dependencies:** MIG-3 requires (a) members import (Story 2.3) and (b) **MIG-2** emitting the manifest. MIG-4 (`template_type=deplacement` → `equity_tag`) runs after MIG-2/3 on real data.
+  7. **Sequencing / dependencies:** MIG-3 requires (a) members import (Story 2.3) and (b) **MIG-2** emitting the manifest. MIG-4 (`template_type=deplacement` → `category`) runs after MIG-2/3 on real data.
 - **Consequences:**
   - **Positive:** Repeatable, auditable rehearsals; read-only V1 by construction; deterministic identity mapping; production write gated behind explicit confirmation; matches the existing SQL-generation pattern (`scripts/v2/generate-*-seed-sql.js`).
   - **Negative:** MIG-3 cannot ship standalone — blocked on the MIG-2 manifest contract; the manifest adds a new MIG-2 deliverable.

@@ -344,6 +344,10 @@ class TroupeMembershipIntegrationTest {
             )
         assertEquals(1, participants.size)
         assertEquals(ParticipantStatus.ACTIVE, participants.single().status)
+        assertEquals(
+            "saison-2026-2027",
+            seasonRepository.findById(demoSeasonId).orElseThrow().slug,
+        )
     }
 
     @Test
@@ -443,7 +447,7 @@ class TroupeMembershipIntegrationTest {
     }
 
     @Test
-    fun `self patch display name in troupe A does not change troupe B`() {
+    fun `self patch display name syncs account pseudo across active troupes`() {
         val troupeBId = UUID.randomUUID()
         val troupeB =
             troupeRepository.save(
@@ -477,7 +481,11 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.displayName").value("Troupe A Name"))
 
         val troupeBMembership = membershipRepository.findByTroupe_IdAndUser_Id(troupeBId, user.id)!!
-        org.junit.jupiter.api.Assertions.assertEquals("Troupe B Name", troupeBMembership.displayName)
+        org.junit.jupiter.api.Assertions.assertEquals("Troupe A Name", troupeBMembership.displayName)
+        org.junit.jupiter.api.Assertions.assertEquals(
+            "Troupe A Name",
+            userRepository.findById(user.id).orElseThrow().memberDisplayName,
+        )
     }
 
     @Test
@@ -629,6 +637,7 @@ class TroupeMembershipIntegrationTest {
     }
 
     private val platformAdminEmail = "platform-members-admin@hatcast.test"
+    private val platformAdminGoogleSub = "sub-platform-troupe-nav"
 
     @Test
     fun `platform admin can patch troupe join policy`() {
@@ -636,7 +645,7 @@ class TroupeMembershipIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "sub-platform-members-admin",
+                platformAdminGoogleSub,
                 email = platformAdminEmail,
                 name = "Platform Join Policy",
             )
@@ -683,7 +692,7 @@ class TroupeMembershipIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "sub-platform-members-admin",
+                platformAdminGoogleSub,
                 email = platformAdminEmail,
                 name = "Platform Preserve",
             )
@@ -697,7 +706,7 @@ class TroupeMembershipIntegrationTest {
                     joinPolicy = TroupeJoinPolicy.OPEN,
                 ),
             )
-        val user = userRepository.findByGoogleSub("sub-platform-members-admin")!!
+        val user = userRepository.findByGoogleSub(platformAdminGoogleSub)!!
         membershipRepository.save(
             TroupeMembershipEntity(
                 troupe = troupe,
@@ -732,7 +741,7 @@ class TroupeMembershipIntegrationTest {
             TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
-                "sub-platform-members-admin",
+                platformAdminGoogleSub,
                 email = platformAdminEmail,
                 name = "Platform Admin",
             )

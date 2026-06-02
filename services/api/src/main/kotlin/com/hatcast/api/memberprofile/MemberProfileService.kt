@@ -6,16 +6,15 @@ import com.hatcast.api.memberprofile.dto.MemberProfileSummaryDto
 import com.hatcast.api.memberprofile.dto.PreferredRolesResponseDto
 import com.hatcast.api.memberprofile.dto.UpdatePreferredRolesRequest
 import com.hatcast.api.season.SeasonRepository
-import com.hatcast.api.troupe.PreferredRoleKeys
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipService
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.user.UserMemberPreferencesService
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
-import java.time.Instant
 import java.util.UUID
 
 @Service
@@ -25,6 +24,7 @@ class MemberProfileService(
     private val membershipService: TroupeMembershipService,
     private val troupeAccess: TroupeAccessService,
     private val statsProvider: MemberProfileStatsProvider,
+    private val userMemberPreferencesService: UserMemberPreferencesService,
 ) {
     @Transactional(readOnly = true)
     fun getProfileSummary(
@@ -62,7 +62,9 @@ class MemberProfileService(
             favoriteRoleCounts = favoriteRoleCounts,
             preferredRoleKeys =
                 if (isSelf) {
-                    PreferredRoleKeys.effectiveKeys(targetMembership.preferredRoleKeys)
+                    userMemberPreferencesService
+                        .getPreferences(targetUserId)
+                        .preferredRoleKeys
                 } else {
                     null
                 },
@@ -74,10 +76,9 @@ class MemberProfileService(
         userId: UUID,
         troupeId: UUID,
     ): PreferredRolesResponseDto {
-        val membership = membershipService.requireActiveMembership(userId, troupeId)
-        return PreferredRolesResponseDto(
-            preferredRoleKeys = PreferredRoleKeys.effectiveKeys(membership.preferredRoleKeys),
-        )
+        membershipService.requireActiveMembership(userId, troupeId)
+        val prefs = userMemberPreferencesService.getPreferences(userId)
+        return PreferredRolesResponseDto(preferredRoleKeys = prefs.preferredRoleKeys)
     }
 
     @Transactional
@@ -86,11 +87,9 @@ class MemberProfileService(
         troupeId: UUID,
         body: UpdatePreferredRolesRequest,
     ): PreferredRolesResponseDto {
-        val membership = membershipService.requireActiveMembership(userId, troupeId)
-        val normalized = PreferredRoleKeys.normalize(body.preferredRoleKeys)
-        membership.preferredRoleKeys = normalized
-        membership.updatedAt = Instant.now()
-        membershipRepository.save(membership)
-        return PreferredRolesResponseDto(preferredRoleKeys = normalized)
+        membershipService.requireActiveMembership(userId, troupeId)
+        val prefs =
+            userMemberPreferencesService.updatePreferredRoles(userId, body.preferredRoleKeys)
+        return PreferredRolesResponseDto(preferredRoleKeys = prefs.preferredRoleKeys)
     }
 }

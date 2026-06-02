@@ -1,12 +1,12 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   model,
   OnDestroy,
   OnInit,
   signal,
-  viewChild,
 } from '@angular/core'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -23,10 +23,13 @@ import {
   saisonMemberEntryPath,
 } from '../../core/navigation/last-member-entry-path-storage'
 import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
-import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import {
+  saisonAdminMembresPath,
   saisonAdminParticipantsPath,
+  saisonAdminAuditPath,
   saisonEventPath,
+  saisonWorkspacePath,
 } from '../../core/navigation/troupe-routes'
 import type { ScopeAdminMenuItem } from '../../shared/scope-admin-menu/scope-admin-menu'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
@@ -39,7 +42,7 @@ import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
   TroupeApiService,
-  type TroupeEquityTag,
+  type TroupeCategory,
 } from '../../core/troupes/troupe-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import {
@@ -51,21 +54,18 @@ import {
   type ParticipantSelector,
 } from '../../core/participants/participant-api.service'
 import {
-  ConfirmDialog,
-  type ConfirmDialogData,
-} from '../seasons-list/confirm-dialog'
+  eventFilterOptionFromResponse,
+  resolveApiParticipantId,
+} from '../../shared/filters/filter-builders'
 import {
   AGENDA_UPCOMING_CAP,
   filterEventsByIds,
+  filterEventsByParticipantFocus,
   groupEventsByMonth,
   groupPastEventsByMonth,
   HISTORY_PAST_CAP,
+  mergeEventsById,
 } from './season-events.utils'
-import {
-  buildHistoryCsv,
-  downloadHistoryCsv,
-  historyCsvRowFromEvent,
-} from './season-history-export'
 import {
   SeasonStatisticsApiService,
   type SeasonStatisticsResponse,
@@ -79,16 +79,20 @@ import {
 import { SeasonStatistics, type StatisticsEmptyReason } from './season-statistics'
 import { SeasonViewToolbar } from './season-view-toolbar'
 import {
-  compartmentsToQueryValue,
-  defaultStatsEquityCompartments,
-  statsGroupsExportLabel,
-  type StatsEquityCompartments,
-} from './stats-equity-compartments'
+  categoriesToQueryValue,
+  defaultStatsCategoryFilter,
+  statsCategoriesExportLabel,
+  type StatsCategoryFilter,
+} from './stats-categories'
 import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './season-view.types'
 import {
   EventFormDialog,
   type EventFormDialogData,
 } from './event-form-dialog'
+import {
+  SeasonFormDialog,
+  type SeasonFormDialogData,
+} from '../seasons-list/season-form-dialog'
 import {
   AvailabilityDialog,
   type AvailabilityDialogData,
@@ -133,8 +137,20 @@ export class SeasonHome implements OnDestroy, OnInit {
   private eventLoadRequestId = 0
   private pastEventLoadRequestId = 0
   private statisticsLoadRequestId = 0
+  private pinnedFilterLoadRequestId = 0
 
-  private readonly statisticsPanel = viewChild(SeasonStatistics)
+  private readonly pinnedFilterEvents = signal<EventResponse[]>([])
+
+  constructor() {
+    effect(() => {
+      const view = this.seasonView()
+      const seasonId = this.season()?.id
+      const selectedIds =
+        view === 'history' ? this.selectedHistoryEventIds() : this.selectedEventIds()
+      const loaded = view === 'history' ? this.pastEvents() : this.events()
+      void this.syncPinnedFilterEvents(seasonId, selectedIds, loaded)
+    })
+  }
 
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
@@ -150,13 +166,8 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly troupeName = signal<string | null>(null)
   protected readonly troupeSlug = signal<string | null>(null)
   protected readonly troupeIsDemo = signal(false)
+  protected readonly troupeLogoUrl = signal<string | null>(null)
 
-  protected readonly showMobileSeasonTitle = computed(() => {
-    if (!this.contextSwitcherData.initialized()) {
-      return true
-    }
-    return !this.contextSwitcherData.showSwitcher()
-  })
   protected readonly season = signal<SeasonResponse | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
@@ -172,13 +183,13 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly loadingPastEvents = signal(false)
 
   protected readonly seasonView = model<SeasonView>('agenda')
-  protected readonly selectedParticipantId = model<string | null>(null)
-  protected readonly selectedEventId = model<string | null>(null)
-  protected readonly selectedHistoryEventId = model<string | null>(null)
-  protected readonly selectedStatsEventId = model<string | null>(null)
+  protected readonly selectedParticipantIds = model<string[]>([])
+  protected readonly selectedEventIds = model<string[]>([])
+  protected readonly selectedHistoryEventIds = model<string[]>([])
+  protected readonly selectedStatsEventIds = model<string[]>([])
   protected readonly statsDetailsExpanded = model(false)
-  protected readonly statsEquityCompartments = signal<StatsEquityCompartments>(
-    defaultStatsEquityCompartments(),
+  protected readonly statsCategoryFilter = signal<StatsCategoryFilter>(
+    defaultStatsCategoryFilter(),
   )
 
   protected readonly statisticsData = signal<SeasonStatisticsResponse | null>(null)
@@ -196,12 +207,12 @@ export class SeasonHome implements OnDestroy, OnInit {
   })
 
   protected readonly eventFilterOptions = computed<EventFilterOption[]>(() =>
-    this.events().map((e) => ({ id: e.id, title: e.title })),
+    this.events().map((e) => this.toEventFilterOption(e)),
   )
 
   protected readonly filteredEvents = computed(() => {
-    const ids = this.selectedEventId()
-    return filterEventsByIds(this.events(), ids ? [ids] : null)
+    const bySpectacle = filterEventsByIds(this.agendaEventsForFilter(), this.selectedEventIds())
+    return filterEventsByParticipantFocus(bySpectacle, this.selectedParticipantIds())
   })
 
   protected readonly monthGroups = computed(() =>
@@ -209,12 +220,15 @@ export class SeasonHome implements OnDestroy, OnInit {
   )
 
   protected readonly historyEventFilterOptions = computed<EventFilterOption[]>(() =>
-    this.pastEvents().map((e) => ({ id: e.id, title: e.title })),
+    this.pastEvents().map((e) => this.toEventFilterOption(e, true)),
   )
 
   protected readonly filteredPastEvents = computed(() => {
-    const ids = this.selectedHistoryEventId()
-    return filterEventsByIds(this.pastEvents(), ids ? [ids] : null)
+    const bySpectacle = filterEventsByIds(
+      this.historyEventsForFilter(),
+      this.selectedHistoryEventIds(),
+    )
+    return filterEventsByParticipantFocus(bySpectacle, this.selectedParticipantIds())
   })
 
   protected readonly historyMonthGroups = computed(() =>
@@ -225,37 +239,65 @@ export class SeasonHome implements OnDestroy, OnInit {
     () =>
       this.pastEvents().length > 0 &&
       this.filteredPastEvents().length === 0 &&
-      this.selectedHistoryEventId() != null,
+      (this.selectedHistoryEventIds().length > 0 || this.selectedParticipantIds().length > 0),
   )
 
   protected readonly statsEventFilterOptions = computed<EventFilterOption[]>(() =>
-    (this.statisticsData()?.events ?? []).map((e) => ({ id: e.id, title: e.title })),
+    (this.statisticsData()?.events ?? []).map((e) => ({
+      id: e.id,
+      title: e.title,
+    })),
   )
 
-  protected readonly historyParticipantLabel = computed(() => {
-    const id = this.selectedParticipantId()
-    if (!id) {
-      return this.myDisplayName()
+  protected readonly displayStatisticsData = computed(() => {
+    const data = this.statisticsData()
+    if (!data) {
+      return null
     }
-    return (
-      this.participantOptions().find((o) => o.id === id)?.label ?? this.myDisplayName()
-    )
+    const participantIds = this.selectedParticipantIds()
+    let rows = data.rows
+    if (participantIds.length > 0) {
+      const allowed = new Set(participantIds)
+      rows = rows.filter((row) => allowed.has(row.participantId))
+    }
+    const eventIds = this.selectedStatsEventIds()
+    const events = filterEventsByIds(data.events, eventIds)
+    return { ...data, rows, events }
   })
 
-  protected readonly equityTagLabels = computed(() => {
+  protected readonly categoryLabels = computed(() => {
     const map: Record<string, string> = {}
-    for (const tag of this.equityTags()) {
+    for (const tag of this.categories()) {
       map[tag.slug] = tag.label
     }
     return map
   })
 
-  protected readonly equityGlossarySlugs = computed(() =>
-    this.equityTags().map((t) => t.slug),
+  protected readonly categoryGlossarySlugs = computed(() =>
+    this.categories().map((t) => t.slug),
   )
 
-  private readonly equityTags = signal<TroupeEquityTag[]>([])
+  protected readonly filterTriggerVisible = computed(() => {
+    if (!this.season()) {
+      return false
+    }
+    const view = this.seasonView()
+    if (view === 'stats') {
+      return (
+        this.categoryGlossarySlugs().length > 0 ||
+        this.participantOptions().length > 1 ||
+        this.statsEventFilterOptions().length > 0
+      )
+    }
+    // Agenda / historique : filtre spectacles toujours utile (picker scope=all, inactifs inclus).
+    return true
+  })
+
+  private readonly categories = signal<TroupeCategory[]>([])
   protected readonly canManageMembers = computed(() => this.seasonPermissions()?.canManageMembers === true)
+  protected readonly canManageSeasons = computed(
+    () => this.seasonPermissions()?.canManageSeasons === true,
+  )
   protected readonly canManageEvents = computed(() => this.seasonPermissions()?.canManageEvents === true)
   protected readonly canManageSeasonParticipants = computed(
     () => this.seasonPermissions()?.canManageSeasonParticipants === true,
@@ -272,18 +314,62 @@ export class SeasonHome implements OnDestroy, OnInit {
     () =>
       this.canManageSeasonParticipants() || this.canManageSeasonOrganizers(),
   )
+  protected readonly canExportSeasonStatistics = computed(() => {
+    const permissions = this.seasonPermissions()
+    return permissions?.isTroupeAdmin === true || permissions?.isSeasonOrganizer === true
+  })
 
+  protected readonly canViewAuditSeason = computed(() => {
+    const permissions = this.seasonPermissions()
+    return permissions?.canViewAuditSeason === true
+  })
   protected readonly seasonAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     const slug = this.slug()
     if (!slug) {
       return []
     }
     const items: ScopeAdminMenuItem[] = []
+    if (this.canManageSeasons()) {
+      items.push({
+        label: 'Modifier',
+        icon: 'edit',
+        action: () => this.openEditSeason(),
+      })
+    }
+    if (this.canManageEvents()) {
+      items.push({
+        label: 'Nouveau spectacle',
+        icon: 'add',
+        action: () => this.openCreate(),
+      })
+    }
     if (this.canManageSeasonParticipants()) {
       items.push({
         label: 'Participants',
         icon: 'groups',
         routerLink: saisonAdminParticipantsPath(slug),
+      })
+    }
+    if (this.canManageSeasonOrganizersOnly()) {
+      items.push({
+        label: 'Organisateur·ices',
+        icon: 'supervisor_account',
+        routerLink: saisonAdminMembresPath(slug),
+        queryParams: { onglet: 'organisateurs' },
+      })
+    }
+    if (this.canExportSeasonStatistics()) {
+      items.push({
+        label: 'Exporter',
+        icon: 'download',
+        action: () => void this.exportSeasonStatisticsCsv(),
+      })
+    }
+    if (this.canViewAuditSeason()) {
+      items.push({
+        label: "Journal d'audit",
+        icon: 'history',
+        routerLink: saisonAdminAuditPath(slug),
       })
     }
     return items
@@ -338,30 +424,33 @@ export class SeasonHome implements OnDestroy, OnInit {
       let lastParticipant: string | null | undefined
       let lastStatsEvent: string | null | undefined
       let lastStatsGroupsKey: string | undefined
-      const statsGroupsKey = (c: StatsEquityCompartments): string =>
+      const statsCategoriesKey = (c: StatsCategoryFilter): string =>
         c.kind === 'selected' ? `selected:${c.slugs.join(',')}` : c.kind
       const syncViewLoads = (): void => {
         const view = this.seasonView()
-        const participant = this.selectedParticipantId()
-        const statsEvent = this.selectedStatsEventId()
-        const statsGroupsKeyValue = statsGroupsKey(this.statsEquityCompartments())
+        const participantKey = this.selectedParticipantIds().join(',')
+        const statsEventKey = this.selectedStatsEventIds().join(',')
+        const statsCategoriesKeyValue = statsCategoriesKey(this.statsCategoryFilter())
         if (view !== lastView) {
           this.syncViewQueryParam()
         }
         if (
           view === lastView &&
-          participant === lastParticipant &&
+          participantKey === lastParticipant &&
           (view !== 'stats' ||
-            (statsEvent === lastStatsEvent && statsGroupsKeyValue === lastStatsGroupsKey))
+            (statsEventKey === lastStatsEvent && statsCategoriesKeyValue === lastStatsGroupsKey))
         ) {
           return
         }
         lastView = view
-        lastParticipant = participant
-        lastStatsEvent = statsEvent
-        lastStatsGroupsKey = statsGroupsKeyValue
+        lastParticipant = participantKey
+        lastStatsEvent = statsEventKey
+        lastStatsGroupsKey = statsCategoriesKeyValue
         if (view === 'history' && this.season()) {
           void this.loadPastEvents()
+        }
+        if (view === 'agenda' && this.season()) {
+          void this.loadUpcomingEvents()
         }
         if (view === 'stats' && this.season()) {
           void this.loadStatistics()
@@ -369,8 +458,8 @@ export class SeasonHome implements OnDestroy, OnInit {
       }
       syncViewLoads()
       this.seasonView.subscribe(syncViewLoads)
-      this.selectedParticipantId.subscribe(syncViewLoads)
-      this.selectedStatsEventId.subscribe(syncViewLoads)
+      this.selectedParticipantIds.subscribe(syncViewLoads)
+      this.selectedStatsEventIds.subscribe(syncViewLoads)
     } finally {
       this.loadingSession.set(false)
     }
@@ -412,7 +501,9 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
     const participant = params.get('participant')
     if (participant) {
-      this.selectedParticipantId.set(participant)
+      this.selectedParticipantIds.set(
+        participant.split(',').map((id) => id.trim()).filter(Boolean),
+      )
     }
   }
 
@@ -439,20 +530,20 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.eventsTruncated.set(false)
     this.loadingEvents.set(false)
     this.eventLoadLimit.set(AGENDA_UPCOMING_CAP)
-    this.selectedEventId.set(null)
+    this.selectedEventIds.set([])
     this.pastEvents.set([])
     this.pastTotalElements.set(0)
     this.pastEventsTruncated.set(false)
     this.loadingPastEvents.set(false)
     this.pastEventLoadLimit.set(HISTORY_PAST_CAP)
-    this.selectedHistoryEventId.set(null)
-    this.selectedStatsEventId.set(null)
+    this.selectedHistoryEventIds.set([])
+    this.selectedStatsEventIds.set([])
     this.statisticsData.set(null)
     this.loadingStatistics.set(false)
     this.statisticsEmptyReason.set(null)
     this.statsDetailsExpanded.set(false)
-    this.statsEquityCompartments.set(defaultStatsEquityCompartments())
-    this.equityTags.set([])
+    this.statsCategoryFilter.set(defaultStatsCategoryFilter())
+    this.categories.set([])
   }
 
   private async loadTroupeAndSeason(slug: string): Promise<void> {
@@ -495,18 +586,31 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeName.set(resolved.troupe.name)
     this.troupeSlug.set(resolved.troupe.slug)
     this.troupeIsDemo.set(resolved.troupe.isDemo)
+    this.troupeLogoUrl.set(resolved.troupe.logoUrl ?? null)
     this.season.set(resolved.season)
     rememberLastVisitedSeasonSlug(slug, resolved.troupe.id)
     rememberLastMemberEntryPath(saisonMemberEntryPath(slug))
+    if (this.seasonView() === 'stats') {
+      this.loadingStatistics.set(true)
+      this.statisticsEmptyReason.set(null)
+    }
+    if (this.seasonView() === 'history') {
+      this.loadingPastEvents.set(true)
+    }
+    const viewLoads: Promise<void>[] = []
+    if (this.seasonView() === 'stats') {
+      viewLoads.push(this.loadStatistics())
+    }
+    if (this.seasonView() === 'history') {
+      viewLoads.push(this.loadPastEvents())
+    }
     await Promise.all([
       this.loadSeasonPermissions(resolved.season.id, requestId),
       this.loadParticipantSelectors(resolved.season.id, requestId),
-      this.loadEquityTags(resolved.troupe.id, requestId),
+      this.loadCategories(resolved.troupe.id, requestId),
       this.loadUpcomingEvents(),
+      ...viewLoads,
     ])
-    if (requestId === this.seasonLoadRequestId && this.seasonView() === 'history') {
-      await this.loadPastEvents()
-    }
   }
 
   private async loadParticipantSelectors(seasonId: string, requestId: number): Promise<void> {
@@ -519,12 +623,12 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
   }
 
-  private async loadEquityTags(troupeId: string, requestId: number): Promise<void> {
-    const r = await this.troupeApi.listEquityTags(troupeId)
+  private async loadCategories(troupeId: string, requestId: number): Promise<void> {
+    const r = await this.troupeApi.listCategories(troupeId)
     if (requestId !== this.seasonLoadRequestId) {
       return
     }
-    this.equityTags.set(r.ok && r.data ? r.data : [])
+    this.categories.set(r.ok && r.data ? r.data : [])
   }
 
   private async loadSeasonPermissions(seasonId: string, requestId: number): Promise<void> {
@@ -544,123 +648,180 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   /** Loads upcoming events up to the current cap (story 3.3 option C). */
   private async loadUpcomingEvents(options: { force?: boolean } = {}): Promise<void> {
-    const s = this.season()
-    if (!s || (this.loadingEvents() && !options.force)) {
-      return
-    }
-    const requestId = ++this.eventLoadRequestId
-    const seasonId = s.id
-    this.loadingEvents.set(true)
-    try {
-      let page = 0
-      let collected: EventResponse[] = []
-      let total = 0
-
-      const limit = this.eventLoadLimit()
-      while (collected.length < limit) {
-        const r = await this.eventsApi.listEvents(
-          seasonId,
-          page,
-          FETCH_PAGE_SIZE,
-          'upcoming',
-        )
-        if (requestId !== this.eventLoadRequestId) {
-          return
-        }
-        if (!r.ok || !r.data) {
-          this.snack.open('Impossible de charger les spectacles.', 'OK', { duration: 6000 })
-          return
-        }
-        total = r.data.totalElements
-        collected = collected.concat(r.data.content)
-        if (
-          collected.length >= total ||
-          r.data.content.length === 0 ||
-          page >= r.data.totalPages - 1
-        ) {
-          break
-        }
-        page += 1
-      }
-
-      if (requestId !== this.eventLoadRequestId) {
-        return
-      }
-
-      const visibleEvents = collected.slice(0, limit)
-      const truncated = total > visibleEvents.length
-      this.eventsTruncated.set(truncated)
-      this.events.set(visibleEvents)
-      this.totalElements.set(total)
-      this.resetStaleEventFilter(visibleEvents)
-    } finally {
-      if (requestId === this.eventLoadRequestId) {
-        this.loadingEvents.set(false)
-      }
-    }
+    await this.loadSeasonEventsForScope('upcoming', options)
   }
 
   private async loadPastEvents(options: { force?: boolean } = {}): Promise<void> {
+    await this.loadSeasonEventsForScope('past', options)
+  }
+
+  private async loadSeasonEventsForScope(
+    scope: 'upcoming' | 'past',
+    options: { force?: boolean } = {},
+  ): Promise<void> {
     const s = this.season()
-    if (!s || (this.loadingPastEvents() && !options.force)) {
+    if (!s) {
       return
     }
-    const requestId = ++this.pastEventLoadRequestId
+    if (scope === 'upcoming' && this.loadingEvents() && !options.force) {
+      return
+    }
+
+    const requestId =
+      scope === 'upcoming'
+        ? ++this.eventLoadRequestId
+        : ++this.pastEventLoadRequestId
     const seasonId = s.id
-    const participantId = this.selectedParticipantId()
-    this.loadingPastEvents.set(true)
+    const participantIds = this.selectedParticipantIds()
+    const limit = scope === 'upcoming' ? this.eventLoadLimit() : this.pastEventLoadLimit()
+
+    if (scope === 'upcoming') {
+      this.loadingEvents.set(true)
+    } else {
+      this.loadingPastEvents.set(true)
+    }
+
     try {
-      let page = 0
       let collected: EventResponse[] = []
       let total = 0
-      const limit = this.pastEventLoadLimit()
 
-      while (collected.length < limit) {
-        const r = await this.eventsApi.listEvents(
+      if (participantIds.length > 1) {
+        collected = await this.collectMergedEventsForParticipants(
           seasonId,
-          page,
-          FETCH_PAGE_SIZE,
-          'past',
-          { participantId },
+          scope,
+          participantIds,
+          limit,
+          requestId,
+          scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId,
         )
-        if (requestId !== this.pastEventLoadRequestId) {
-          return
-        }
-        if (!r.ok || !r.data) {
-          this.snack.open('Impossible de charger l’historique.', 'OK', { duration: 6000 })
-          return
-        }
-        total = r.data.totalElements
-        collected = collected.concat(r.data.content)
-        if (
-          collected.length >= total ||
-          r.data.content.length === 0 ||
-          page >= r.data.totalPages - 1
-        ) {
-          break
-        }
-        page += 1
+        total = collected.length
+      } else {
+        const participantId = resolveApiParticipantId(participantIds)
+        const result = await this.collectPagedSeasonEvents(
+          seasonId,
+          scope,
+          limit,
+          { participantId },
+          requestId,
+          scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId,
+        )
+        collected = result.events
+        total = result.totalElements
       }
 
-      if (requestId !== this.pastEventLoadRequestId) {
+      if (
+        requestId !==
+        (scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId)
+      ) {
         return
       }
 
       const visibleEvents = collected.slice(0, limit)
       const truncated = total > visibleEvents.length
-      this.pastEventsTruncated.set(truncated)
-      this.pastEvents.set(visibleEvents)
-      this.pastTotalElements.set(total)
-      this.resetStaleHistoryEventFilter(visibleEvents)
+
+      if (scope === 'upcoming') {
+        this.eventsTruncated.set(truncated)
+        this.events.set(visibleEvents)
+        this.totalElements.set(total)
+        this.resetStaleEventFilter(visibleEvents)
+      } else {
+        this.pastEventsTruncated.set(truncated)
+        this.pastEvents.set(visibleEvents)
+        this.pastTotalElements.set(total)
+        this.resetStaleHistoryEventFilter(visibleEvents)
+      }
     } finally {
-      if (requestId === this.pastEventLoadRequestId) {
-        this.loadingPastEvents.set(false)
+      if (
+        requestId ===
+        (scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId)
+      ) {
+        if (scope === 'upcoming') {
+          this.loadingEvents.set(false)
+        } else {
+          this.loadingPastEvents.set(false)
+        }
       }
     }
   }
 
-  protected onStatsEquityCompartmentsChange(compartments: StatsEquityCompartments): void {
-    this.statsEquityCompartments.set(compartments)
+  private async collectPagedSeasonEvents(
+    seasonId: string,
+    scope: 'upcoming' | 'past',
+    limit: number,
+    options: { participantId?: string | null },
+    requestId: number,
+    activeRequestId: number,
+  ): Promise<{ events: EventResponse[]; totalElements: number }> {
+    let page = 0
+    let collected: EventResponse[] = []
+    let total = 0
+    const listScope = scope === 'past' ? 'past' : 'upcoming'
+
+    while (collected.length < limit) {
+      const r = await this.eventsApi.listEvents(
+        seasonId,
+        page,
+        FETCH_PAGE_SIZE,
+        listScope,
+        options,
+      )
+      if (requestId !== activeRequestId) {
+        return { events: [], totalElements: 0 }
+      }
+      if (!r.ok || !r.data) {
+        const message =
+          scope === 'past'
+            ? 'Impossible de charger l’historique.'
+            : 'Impossible de charger les spectacles.'
+        this.snack.open(message, 'OK', { duration: 6000 })
+        return { events: [], totalElements: 0 }
+      }
+      total = r.data.totalElements
+      collected = collected.concat(r.data.content)
+      if (
+        collected.length >= total ||
+        r.data.content.length === 0 ||
+        page >= r.data.totalPages - 1
+      ) {
+        break
+      }
+      page += 1
+    }
+
+    return { events: collected, totalElements: total }
+  }
+
+  private async collectMergedEventsForParticipants(
+    seasonId: string,
+    scope: 'upcoming' | 'past',
+    participantIds: string[],
+    limit: number,
+    requestId: number,
+    activeRequestId: number,
+  ): Promise<EventResponse[]> {
+    const perParticipant = await Promise.all(
+      participantIds.map(async (participantId) => {
+        const result = await this.collectPagedSeasonEvents(
+          seasonId,
+          scope,
+          limit,
+          { participantId },
+          requestId,
+          activeRequestId,
+        )
+        return filterEventsByParticipantFocus(result.events, [participantId])
+      }),
+    )
+
+    if (requestId !== activeRequestId) {
+      return []
+    }
+
+    return mergeEventsById(perParticipant.flat()).slice(0, limit)
+  }
+
+  protected onStatsCategoryFilterChange(compartments: StatsCategoryFilter): void {
+    this.statsCategoryFilter.set(compartments)
     if (this.seasonView() === 'stats' && this.season()) {
       void this.loadStatistics({ force: true })
     }
@@ -676,10 +837,10 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   private async loadStatistics(options: { force?: boolean } = {}): Promise<void> {
     const s = this.season()
-    if (!s || (this.loadingStatistics() && !options.force)) {
+    if (!s) {
       return
     }
-    const compartments = this.statsEquityCompartments()
+    const compartments = this.statsCategoryFilter()
     if (compartments.kind === 'none') {
       this.statisticsData.set(null)
       this.statisticsEmptyReason.set('none-selected')
@@ -692,8 +853,8 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.loadingStatistics.set(true)
     this.statisticsEmptyReason.set(null)
     try {
-      const queryValue = compartmentsToQueryValue(compartments)
-      const equityCompartments =
+      const queryValue = categoriesToQueryValue(compartments)
+      const categories =
         queryValue === 'all'
           ? ('all' as const)
           : queryValue === ''
@@ -701,9 +862,9 @@ export class SeasonHome implements OnDestroy, OnInit {
             : queryValue!.split(',')
 
       const r = await this.statisticsApi.loadStatistics(seasonId, {
-        eventId: this.selectedStatsEventId(),
-        participantId: this.selectedParticipantId(),
-        equityCompartments,
+        eventId: resolveApiParticipantId(this.selectedStatsEventIds()),
+        participantId: resolveApiParticipantId(this.selectedParticipantIds()),
+        categories,
       })
       if (requestId !== this.statisticsLoadRequestId) {
         return
@@ -729,50 +890,40 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
   }
 
-  protected exportStatisticsCsv(): void {
-    const data = this.statisticsData()
-    if (
-      !data ||
-      data.rows.length === 0 ||
-      data.events.length === 0 ||
-      this.statsEquityCompartments().kind === 'none'
-    ) {
+  protected async exportSeasonStatisticsCsv(): Promise<void> {
+    const s = this.season()
+    if (!s) {
+      return
+    }
+    if (!this.canExportSeasonStatistics()) {
+      this.snack.open('Vous ne pouvez pas exporter ces statistiques.', 'OK', { duration: 5000 })
+      return
+    }
+    const r = await this.statisticsApi.loadStatistics(s.id, { categories: 'all' })
+    if (!r.ok || !r.data) {
+      this.snack.open('Impossible de charger les statistiques.', 'OK', { duration: 6000 })
+      return
+    }
+    const data = r.data
+    if (data.rows.length === 0 || data.events.length === 0) {
       this.snack.open('Aucune donnée à exporter.', 'OK', { duration: 4000 })
       return
     }
-    const panel = this.statisticsPanel()
     const csv = buildStatisticsCsv(
       data,
-      panel?.columnVisibility() ?? {
-        showJeuDetails: this.statsDetailsExpanded(),
-        showDecorumDetails: this.statsDetailsExpanded(),
-        showBenevoleDetails: this.statsDetailsExpanded(),
+      {
+        showJeuDetails: true,
+        showDecorumDetails: true,
+        showBenevoleDetails: true,
         expandedMonths: new Set(),
       },
       {
-        groupsLabel: statsGroupsExportLabel(
-          this.statsEquityCompartments(),
-          this.equityTagLabels(),
-        ),
+        groupsLabel: statsCategoriesExportLabel({ kind: 'all' }, this.categoryLabels()),
       },
     )
     const slug = this.slug() || 'saison'
     const date = new Date().toISOString().slice(0, 10)
     downloadStatisticsCsv(`statistiques-${slug}-${date}.csv`, csv)
-  }
-
-  protected exportHistoryCsv(): void {
-    const events = this.filteredPastEvents()
-    if (events.length === 0) {
-      this.snack.open('Aucun spectacle à exporter.', 'OK', { duration: 4000 })
-      return
-    }
-    const rows = events.map((ev) =>
-      historyCsvRowFromEvent(ev, this.historyParticipantLabel()),
-    )
-    const slug = this.slug() || 'saison'
-    const date = new Date().toISOString().slice(0, 10)
-    downloadHistoryCsv(`historique-${slug}-${date}.csv`, buildHistoryCsv(rows))
   }
 
   protected openEvent(eventSlug: string): void {
@@ -829,6 +980,37 @@ export class SeasonHome implements OnDestroy, OnInit {
     void this.loadUpcomingEvents()
   }
 
+  protected openEditSeason(): void {
+    const s = this.season()
+    if (!s) {
+      return
+    }
+    if (!this.canManageSeasons()) {
+      this.snack.open('Vous ne pouvez pas modifier cette saison.', 'OK', { duration: 5000 })
+      return
+    }
+    const ref = this.dialog.open<SeasonFormDialog, SeasonFormDialogData, SeasonResponse>(
+      SeasonFormDialog,
+      {
+        data: { mode: 'edit', troupeId: s.troupeId, season: s },
+        width: 'min(100vw - 2rem, 28rem)',
+      },
+    )
+    ref.afterClosed().subscribe((updated) => {
+      if (!updated) {
+        return
+      }
+      this.season.set(updated)
+      if (updated.slug !== this.slug()) {
+        void this.router.navigate(saisonWorkspacePath(updated.slug), {
+          replaceUrl: true,
+          queryParams: { view: this.seasonView() },
+        })
+      }
+      this.snack.open('Saison mise à jour.', 'OK', { duration: 4000 })
+    })
+  }
+
   protected openCreate(): void {
     const s = this.season()
     if (!s) {
@@ -856,70 +1038,6 @@ export class SeasonHome implements OnDestroy, OnInit {
     })
   }
 
-  protected openEdit(eventId: string): void {
-    const s = this.season()
-    const ev = this.events().find((e) => e.id === eventId)
-    if (!s || !ev) {
-      return
-    }
-    if (!this.canManageEvents()) {
-      this.snack.open('Vous ne pouvez pas modifier ce spectacle.', 'OK', { duration: 5000 })
-      return
-    }
-    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(
-      EventFormDialog,
-      {
-        data: {
-          mode: 'edit',
-          seasonId: s.id,
-          event: ev,
-        },
-        width: 'min(100vw - 2rem, 28rem)',
-      },
-    )
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.reloadAfterMutation('Spectacle mis à jour.')
-      }
-    })
-  }
-
-  protected confirmArchive(eventId: string): void {
-    const ev = this.events().find((e) => e.id === eventId)
-    if (!ev) {
-      return
-    }
-    if (!this.canManageEvents()) {
-      this.snack.open('Vous ne pouvez pas archiver ce spectacle.', 'OK', { duration: 5000 })
-      return
-    }
-    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
-      data: {
-        title: 'Archiver le spectacle',
-        message: `Archiver « ${ev.title} » ? Il disparaîtra de l’agenda.`,
-        confirmLabel: 'Archiver',
-      },
-    })
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.runArchive(ev)
-      }
-    })
-  }
-
-  private async runArchive(ev: EventResponse): Promise<void> {
-    const s = this.season()
-    if (!s) {
-      return
-    }
-    const r = await this.eventsApi.archiveEvent(s.id, ev.id)
-    if (r.ok) {
-      await this.reloadAfterMutation('Spectacle archivé.')
-    } else {
-      this.snack.open('Archivage impossible.', 'OK', { duration: 6000 })
-    }
-  }
-
   private async reloadAfterMutation(message: string): Promise<void> {
     await this.loadUpcomingEvents({ force: true })
     await this.refreshSeasonCounts()
@@ -927,25 +1045,93 @@ export class SeasonHome implements OnDestroy, OnInit {
   }
 
   private resetStaleEventFilter(events: EventResponse[]): void {
-    const selected = this.selectedEventId()
-    if (selected && !events.some((e) => e.id === selected)) {
-      this.selectedEventId.set(null)
-    }
+    this.pruneStaleEventIds(
+      [...events, ...this.pinnedFilterEvents()],
+      this.selectedEventIds,
+      (ids) => this.selectedEventIds.set(ids),
+    )
   }
 
   private resetStaleHistoryEventFilter(events: EventResponse[]): void {
-    const selected = this.selectedHistoryEventId()
-    if (selected && !events.some((e) => e.id === selected)) {
-      this.selectedHistoryEventId.set(null)
-    }
+    this.pruneStaleEventIds(
+      [...events, ...this.pinnedFilterEvents()],
+      this.selectedHistoryEventIds,
+      (ids) => this.selectedHistoryEventIds.set(ids),
+    )
   }
 
   private resetStaleStatsEventFilter(
     events: SeasonStatisticsResponse['events'],
   ): void {
-    const selected = this.selectedStatsEventId()
-    if (selected && !events.some((e) => e.id === selected)) {
-      this.selectedStatsEventId.set(null)
+    const allowed = new Set(events.map((e) => e.id))
+    const next = this.selectedStatsEventIds().filter((id) => allowed.has(id))
+    if (next.length !== this.selectedStatsEventIds().length) {
+      this.selectedStatsEventIds.set(next)
+    }
+  }
+
+  private pruneStaleEventIds(
+    events: { id: string }[],
+    current: () => string[],
+    apply: (ids: string[]) => void,
+  ): void {
+    const allowed = new Set(events.map((e) => e.id))
+    const next = current().filter((id) => allowed.has(id))
+    if (next.length !== current().length) {
+      apply(next)
+    }
+  }
+
+  private toEventFilterOption(e: EventResponse, forcePast = false): EventFilterOption {
+    const opt = eventFilterOptionFromResponse(e)
+    return forcePast ? { ...opt, past: true } : opt
+  }
+
+  private agendaEventsForFilter(): EventResponse[] {
+    return this.mergeEventsForFilter(this.events())
+  }
+
+  private historyEventsForFilter(): EventResponse[] {
+    return this.mergeEventsForFilter(this.pastEvents())
+  }
+
+  private mergeEventsForFilter(base: EventResponse[]): EventResponse[] {
+    const byId = new Map(base.map((e) => [e.id, e]))
+    for (const e of this.pinnedFilterEvents()) {
+      byId.set(e.id, e)
+    }
+    return [...byId.values()]
+  }
+
+  private async syncPinnedFilterEvents(
+    seasonId: string | undefined,
+    selectedIds: string[],
+    loaded: EventResponse[],
+  ): Promise<void> {
+    const view = this.seasonView()
+    if (view !== 'agenda' && view !== 'history') {
+      this.pinnedFilterEvents.set([])
+      return
+    }
+    const loadedIds = new Set(loaded.map((e) => e.id))
+    const missing = selectedIds.filter((id) => !loadedIds.has(id))
+    if (!seasonId || missing.length === 0) {
+      this.pinnedFilterEvents.set([])
+      return
+    }
+    const requestId = ++this.pinnedFilterLoadRequestId
+    const fetched: EventResponse[] = []
+    for (const id of missing) {
+      const r = await this.eventsApi.getEvent(seasonId, id)
+      if (requestId !== this.pinnedFilterLoadRequestId) {
+        return
+      }
+      if (r.ok && r.data) {
+        fetched.push(r.data)
+      }
+    }
+    if (requestId === this.pinnedFilterLoadRequestId) {
+      this.pinnedFilterEvents.set(fetched)
     }
   }
 

@@ -1,12 +1,12 @@
 import type { UserAgendaItem } from '../agenda/user-agenda-api.service'
 import type { InboxShortcuts } from '../inbox/me-inbox-api.service'
-import { getLastVisitedSeasonSlug } from '../navigation/last-visited-league-storage'
+import { getLastVisitedSeasonSlug } from '../navigation/last-visited-season-storage'
 import type { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
 import { AGENDA_TIME_ZONE, formatEventDateParts } from '../../pages/season-home/season-events.utils'
 
 export type SeasonGlanceIds = {
   troupeId?: string
-  leagueId?: string
+  seasonId?: string
 }
 
 export const ACTION_HORIZON_DAYS = 30
@@ -90,6 +90,32 @@ export function isSoonAction(
   return offset >= 0 && offset <= days
 }
 
+/** Number of days below which an action chip is shown in the urgent (error) tone. */
+export const URGENT_DAYS = 2
+
+/**
+ * Concrete, scannable relative-day label for an upcoming action
+ * (« Aujourd'hui », « Demain », « Dans N j »). Returns `null` beyond
+ * `SOON_DAYS` (no chip) or for past dates.
+ */
+export function relativeDayLabel(
+  startsAt: string,
+  now: Date,
+  timeZone = AGENDA_TIME_ZONE,
+): string | null {
+  const offset = calendarDaysFromNow(startsAt, now, timeZone)
+  if (offset < 0 || offset > SOON_DAYS) {
+    return null
+  }
+  if (offset === 0) {
+    return "Aujourd'hui"
+  }
+  if (offset === 1) {
+    return 'Demain'
+  }
+  return `Dans ${offset} j`
+}
+
 export function pickNextEvent(items: UserAgendaItem[]): UserAgendaItem | null {
   if (items.length === 0) {
     return null
@@ -109,12 +135,12 @@ export function seasonGlanceQueryParamsFromIds(
 ): Record<string, string> {
   const queryParams: Record<string, string> = {}
   const troupeId = ids?.troupeId?.trim()
-  const leagueId = ids?.leagueId?.trim()
+  const seasonId = ids?.seasonId?.trim()
   if (troupeId) {
     queryParams['troupeId'] = troupeId
   }
-  if (leagueId) {
-    queryParams['leagueId'] = leagueId
+  if (seasonId) {
+    queryParams['seasonId'] = seasonId
   }
   return queryParams
 }
@@ -125,12 +151,12 @@ export function deriveSeasonGlanceQueryParams(
   lastVisited: SeasonGlanceIds | null | undefined = null,
 ): Record<string, string> {
   const fromLastVisited = seasonGlanceQueryParamsFromIds(lastVisited)
-  if (fromLastVisited['troupeId'] || fromLastVisited['leagueId']) {
+  if (fromLastVisited['troupeId'] || fromLastVisited['seasonId']) {
     return fromLastVisited
   }
   return seasonGlanceQueryParamsFromIds(
     items[0]
-      ? { troupeId: items[0].troupeId, leagueId: items[0].leagueId }
+      ? { troupeId: items[0].troupeId, seasonId: items[0].seasonId }
       : null,
   )
 }
@@ -141,7 +167,7 @@ export function deriveSeasonGlanceQueryParamsFromInbox(
   lastVisited: SeasonGlanceIds | null | undefined = null,
 ): Record<string, string> {
   const fromLastVisited = seasonGlanceQueryParamsFromIds(lastVisited)
-  if (fromLastVisited['troupeId'] || fromLastVisited['leagueId']) {
+  if (fromLastVisited['troupeId'] || fromLastVisited['seasonId']) {
     return fromLastVisited
   }
   return seasonGlanceQueryParamsFromIds(shortcuts?.seasonGlanceQuery ?? null)
@@ -162,6 +188,6 @@ export async function resolveLastVisitedSeasonGlanceIds(
 
   return {
     troupeId: resolved.troupe.id,
-    leagueId: resolved.season.id,
+    seasonId: resolved.season.id,
   }
 }

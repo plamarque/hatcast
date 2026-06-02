@@ -288,6 +288,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SummaryRoleCandidate'
+        hasPartialEstimatedChances:
+          type: boolean
+          description: >
+            True when at least one candidate % in this role uses retrospective recalc
+            instead of a draw snapshot (partial archive).
 
     EventAvailabilitySummaryResponse:
       type: object
@@ -308,3 +313,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SummaryRole'
+        chanceSource:
+          type: string
+          enum: [live, snapshot, estimated]
+          nullable: true
+          description: >
+            Source des pourcentages lorsque includeChances=true :
+            live (recalcul opérationnel), snapshot (figé au tirage),
+            estimated (rétrospectif sans archive de tirage).

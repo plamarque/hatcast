@@ -214,6 +214,13 @@ class SeasonDeleteIntegrationTest {
 
         mockMvc
             .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
                 put("/v1/seasons/$seasonId/events/$eventId/availability/me")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -221,8 +228,16 @@ class SeasonDeleteIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
 
-        assertEquals(1, eventRepository.findBySeason_IdOrderByStartsAtAsc(seasonId, org.springframework.data.domain.PageRequest.of(0, 10)).totalElements)
         val user = userRepository.findByGoogleSub("sub-delete-cascade")!!
+        assertEquals(
+            1,
+            eventRepository.findBySeason_IdOrderByStartsAtAsc(
+                seasonId,
+                user.id,
+                false,
+                org.springframework.data.domain.PageRequest.of(0, 10),
+            ).totalElements,
+        )
         assertTrue(availabilityRepository.findByEvent_IdAndUser_Id(eventId, user.id) != null)
 
         mockMvc

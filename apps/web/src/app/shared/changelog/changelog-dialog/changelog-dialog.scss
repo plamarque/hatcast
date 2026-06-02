@@ -1,0 +1,94 @@
+.changelog-dialog__title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.changelog-dialog__logo {
+  margin-left: auto;
+  height: 3rem;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.changelog-dialog__content {
+  min-height: 8rem;
+  max-height: calc(85vh - 8rem);
+  overflow-y: auto;
+  color: var(--mat-sys-on-surface);
+}
+
+.changelog-dialog__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 0;
+  text-align: center;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 75%, transparent);
+}
+
+.changelog-dialog__state--error {
+  color: var(--mat-sys-error);
+}
+
+.changelog-dialog__versions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 0.5rem;
+}
+
+.changelog-dialog__version-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.changelog-dialog__version-label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.changelog-dialog__version-date {
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 60%, transparent);
+}
+
+.changelog-dialog__changes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.changelog-dialog__change {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.changelog-dialog__emoji {
+  flex-shrink: 0;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.changelog-dialog__description {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 90%, transparent);
+}
+
+.changelog-dialog__close {
+  min-height: 3rem;
+  min-width: 3rem;
+}

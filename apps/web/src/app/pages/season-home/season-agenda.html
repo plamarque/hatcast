@@ -1,13 +1,4 @@
 <div class="season-agenda">
-  @if (variant() === 'agenda' && canManageEvents()) {
-    <div class="season-agenda__admin">
-      <button mat-flat-button color="primary" type="button" (click)="createClick.emit()">
-        <mat-icon>add</mat-icon>
-        Nouveau spectacle
-      </button>
-    </div>
-  }
-
   @if (loading() && monthGroups().length === 0) {
     <p class="season-agenda__status" role="status">
       {{ variant() === 'history' ? 'Chargement de l’historique…' : 'Chargement de l’agenda…' }}
@@ -48,7 +39,8 @@
 
         @for (ev of group.events; track ev.id) {
           <article
-            class="agenda-card"
+            class="agenda-card agenda-card--row agenda-card--interactive"
+            [class.agenda-card--draft]="isEventDraft(ev)"
             role="button"
             tabindex="0"
             [attr.aria-label]="variant() === 'history' ? historyCardAriaLabel(ev) : null"
@@ -65,57 +57,21 @@
                 <span class="agenda-card__type-icon" aria-hidden="true">{{ typeIcon(ev.templateType) }}</span>
                 <h2 class="agenda-card__title">{{ ev.title }}</h2>
               </div>
-              @if (ev.location) {
-                <p class="agenda-card__loc">{{ ev.location }}</p>
-              }
               <div class="agenda-card__badges">
                 <app-composition-status-badge [badge]="ev.teamStatusBadge" />
-                @if (equityTagBadgeLabel(ev); as tagLabel) {
-                  <span class="agenda-card__badge agenda-card__badge--equity">{{ tagLabel }}</span>
-                }
-                @if (variant() === 'history' || !canEditAvailability()) {
-                  <span
-                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ variant() === 'history' ? focusModifier(ev) : dispoModifier(dispoStatus(ev)) }}"
-                  >
-                    {{ variant() === 'history' ? focusLabel(ev) : dispoLabel(dispoStatus(ev)) }}
-                  </span>
-                } @else {
-                  <button
-                    type="button"
-                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(dispoStatus(ev)) }}"
-                    (click)="onAvailabilityClick(ev.id, dispoStatus(ev), $event)"
-                    (keydown.enter)="onAvailabilityClick(ev.id, dispoStatus(ev), $event)"
-                    (keydown.space)="onAvailabilityClick(ev.id, dispoStatus(ev), $event); $event.preventDefault()"
-                  >
-                    {{ dispoLabel(dispoStatus(ev)) }}
-                  </button>
+                @if (categoryBadgeLabel(ev); as tagLabel) {
+                  <span class="agenda-card__badge agenda-card__badge--category">{{ tagLabel }}</span>
                 }
               </div>
             </div>
-            @if (variant() === 'agenda' && canManageEvents()) {
-              <button
-                mat-icon-button
-                type="button"
-                class="agenda-card__menu"
-                [matMenuTriggerFor]="menu"
-                aria-label="Actions spectacle"
-                (click)="$event.stopPropagation()"
-              >
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #menu="matMenu">
-                <button mat-menu-item type="button" (click)="onEdit(ev.id, $event)">
-                  <mat-icon>edit</mat-icon>
-                  <span>Modifier</span>
-                </button>
-                @if (!ev.archived) {
-                  <button mat-menu-item type="button" (click)="onArchive(ev.id, $event)">
-                    <mat-icon>archive</mat-icon>
-                    <span>Archiver</span>
-                  </button>
-                }
-              </mat-menu>
-            }
+            <div class="agenda-card__status">
+              <app-agenda-participation-status
+                [myAvailabilityStatus]="ev.myAvailabilityStatus"
+                [participantFocus]="ev.participantFocus"
+                [canEditAvailability]="canEditAvailabilityOnCard(ev)"
+                (availabilityClick)="onStatusAvailabilityClick(ev.id, $event.status)"
+              />
+            </div>
           </article>
         }
       </section>

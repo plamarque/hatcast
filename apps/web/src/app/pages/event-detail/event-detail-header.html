@@ -1,4 +1,4 @@
-<header class="event-detail-header">
+<header class="event-detail-header" [class.event-detail-header--with-admin]="showAdminMenu()">
   <div class="event-detail-header__left">
     @if (showBreadcrumb()) {
       <app-context-breadcrumb
@@ -7,10 +7,16 @@
         [troupeName]="troupeName()!"
         [troupeSlug]="troupeSlug()!"
         [troupeIsDemo]="troupeIsDemo()"
+        [troupeLogoUrl]="troupeLogoUrl()"
         [seasonTitle]="seasonTitle()!"
         [seasonSlug]="seasonSlug()"
         [eventTitle]="eventTitle()"
       />
     }
   </div>
+  @if (showAdminMenu()) {
+    <div class="event-detail-header__admin">
+      <app-scope-admin-menu scope="event" [items]="adminItems()" />
+    </div>
+  }
 </header>

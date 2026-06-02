@@ -12,7 +12,7 @@ describe('season-statistics-export', () => {
           title: 'Match mars',
           startsAt: '2026-03-10T19:00:00Z',
           templateType: 'match',
-          equityTag: null,
+          category: null,
           monthKey: '2026-03',
         },
       ],
@@ -24,6 +24,7 @@ describe('season-statistics-export', () => {
           monthSummary: { '2026-03': { selections: 1, dispos: 1, declines: 0 } },
           byMonth: {},
           eventCells: { e1: 'Dispo (J, MC)' },
+          eventCellDetails: {},
         },
       ],
     }
@@ -36,10 +37,10 @@ describe('season-statistics-export', () => {
         showBenevoleDetails: false,
         expandedMonths: new Set(),
       },
-      { groupsLabel: 'Tous les spectacles' },
+      { groupsLabel: 'Toutes' },
     )
 
-    expect(csv).toContain('Groupes: Tous les spectacles')
+    expect(csv).toContain('Catégories: Toutes')
     expect(csv).toContain('Match mars')
     expect(csv).toContain('Dispo (J, MC)')
     expect(csv).toContain('1/2 (50%)')

@@ -1,30 +1,4 @@
 <main class="event-infos">
-  <div class="event-infos__header">
-    @if (equipeStatus(); as status) {
-      <div class="composition-equipe-status">
-        <div class="composition-equipe-status__head">
-          <span
-            class="composition-equipe-status__badge"
-            [class.composition-equipe-status__badge--success]="status.tone === 'success'"
-            [class.composition-equipe-status__badge--warning]="status.tone === 'warning'"
-            [class.composition-equipe-status__badge--info]="status.tone === 'info'"
-          >
-            {{ status.label }}
-          </span>
-          <div class="composition-equipe-status__actions">
-            @if (adminItems().length > 0) {
-              <app-scope-admin-menu
-                class="event-infos__admin-menu"
-                scope="event"
-                [items]="adminItems()"
-              />
-            }
-          </div>
-        </div>
-      </div>
-    }
-  </div>
-
   <div class="event-infos__field">
     <span class="event-infos__label">Titre</span>
     <div class="event-infos__value">{{ event().title }}</div>
@@ -140,18 +114,18 @@
     </section>
   }
 
-  @if (showEquitySection()) {
-    <section class="event-infos__equity" aria-labelledby="event-infos-equity-label">
-      <span id="event-infos-equity-label" class="event-infos__label">Groupe de spectacles</span>
-      <div class="event-infos__equity-body">
-        @if (equityTagLabel(); as label) {
+  @if (showCategorySection()) {
+    <section class="event-infos__category" aria-labelledby="event-infos-category-label">
+      <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
+      <div class="event-infos__category-body">
+        @if (categoryLabel(); as label) {
           <mat-chip-set class="event-infos__chip-set">
             <mat-chip
-              class="event-infos__equity-chip"
+              class="event-infos__category-chip"
               [disabled]="saving()"
               [removable]="canManageEvents()"
-              (removed)="removeTag()"
-              (click)="onChipClick()"
+              (removed)="removeCategory()"
+              (click)="onCategoryChipClick()"
             >
               {{ label }}
               @if (canManageEvents()) {
@@ -162,12 +136,12 @@
         } @else if (canManageEvents()) {
           <button
             type="button"
-            class="event-infos__add-tag"
+            class="event-infos__add-category"
             [disabled]="saving()"
-            (click)="openTagDialog()"
+            (click)="openCategoryDialog()"
           >
             <mat-icon aria-hidden="true">sell</mat-icon>
-            Mettre dans un groupe
+            Choisir une catégorie
           </button>
         }
       </div>

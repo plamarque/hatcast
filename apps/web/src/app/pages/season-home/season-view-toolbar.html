@@ -1,223 +1,68 @@
-<div class="season-toolbar">
-  @if (showAgendaFilters() && seasonView() === 'agenda') {
-    <div class="season-toolbar__filters">
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__filter"
-        [matMenuTriggerFor]="participantMenu"
-        aria-label="Filtrer par participant"
-      >
-        <mat-icon>group</mat-icon>
-        <span>{{ participantLabel() }}</span>
-        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
-      </button>
-      <mat-menu #participantMenu="matMenu">
-        @for (opt of participantOptions(); track opt.id ?? 'all') {
-          <button mat-menu-item type="button" (click)="selectParticipant(opt.id)">
-            {{ opt.label }}
-          </button>
-        }
-      </mat-menu>
-
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__filter"
-        [matMenuTriggerFor]="eventMenu"
-        aria-label="Filtrer par spectacle"
-      >
-        <mat-icon>event</mat-icon>
-        <span>{{ eventLabel() }}</span>
-        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
-      </button>
-      <mat-menu #eventMenu="matMenu">
-        <button mat-menu-item type="button" (click)="selectEvent(null)">Tous</button>
-        @for (opt of eventOptions(); track opt.id) {
-          <button mat-menu-item type="button" (click)="selectEvent(opt.id)">
-            {{ opt.title }}
-          </button>
-        }
-      </mat-menu>
+<div class="season-view-toolbar">
+  <div class="season-toolbar">
+    <div class="season-toolbar__left">
+      @if (showDetailsToggle()) {
+        <button
+          type="button"
+          mat-stroked-button
+          class="season-toolbar__export"
+          [attr.aria-pressed]="detailsExpanded()"
+          aria-label="Masquer ou afficher les détails des colonnes"
+          (click)="toggleDetails()"
+        >
+          <mat-icon>{{ detailsExpanded() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          <span>{{ detailsExpanded() ? 'Masquer' : 'Détails' }}</span>
+        </button>
+      }
     </div>
-  }
 
-  @if (showStatsFilters() && seasonView() === 'stats') {
-    <div class="season-toolbar__filters">
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__filter"
-        [matMenuTriggerFor]="statsParticipantMenu"
-        aria-label="Filtrer par membre"
+    <div class="season-toolbar__right">
+      <mat-button-toggle-group
+        class="season-toolbar__views"
+        [value]="seasonView()"
+        (change)="seasonView.set($event.value)"
+        hideSingleSelectionIndicator
+        aria-label="Changer de vue saison"
       >
-        <mat-icon>group</mat-icon>
-        <span>{{ participantLabel() }}</span>
-        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
-      </button>
-      <mat-menu #statsParticipantMenu="matMenu">
-        @for (opt of participantOptions(); track opt.id ?? 'all') {
-          <button mat-menu-item type="button" (click)="selectParticipant(opt.id)">
-            {{ opt.label }}
-          </button>
-        }
-      </mat-menu>
+        <mat-button-toggle value="agenda">Agenda</mat-button-toggle>
+        <mat-button-toggle value="history">Historique</mat-button-toggle>
+        <mat-button-toggle value="stats">Statistiques</mat-button-toggle>
+      </mat-button-toggle-group>
 
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__filter"
-        [matMenuTriggerFor]="statsEventMenu"
-        aria-label="Filtrer par spectacle"
-      >
-        <mat-icon>event</mat-icon>
-        <span>{{ statsEventLabel() }}</span>
-        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
-      </button>
-      <mat-menu #statsEventMenu="matMenu">
-        <button mat-menu-item type="button" (click)="selectStatsEvent(null)">Tous</button>
-        @for (opt of statsEventOptions(); track opt.id) {
-          <button mat-menu-item type="button" (click)="selectStatsEvent(opt.id)">
-            {{ opt.title }}
-          </button>
-        }
-      </mat-menu>
-
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__filter"
-        [class.season-toolbar__filter--warn]="statsGroupsNoneSelected()"
-        [matMenuTriggerFor]="statsGroupsMenu"
-        aria-label="Filtrer par groupes de spectacles"
-      >
-        <mat-icon>category</mat-icon>
-        <span>{{ statsGroupsLabel() }}</span>
-        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
-      </button>
-      <mat-menu #statsGroupsMenu="matMenu" class="season-toolbar__groups-menu">
-        <div class="season-toolbar__groups-panel" (click)="$event.stopPropagation()">
-          <p class="season-toolbar__groups-title">Groupes de spectacles</p>
-          <p class="season-toolbar__groups-hint">
-            Les stats ne comptent que les spectacles des groupes cochés. Choisissez quels spectacles
-            entrent dans le tableau. <em>Spectacles ordinaires</em> = spectacles sans groupe. Pour les
-            stats d’un seul programme (ex. bus), cochez uniquement ce groupe.
-          </p>
-          <mat-checkbox
-            [checked]="isAllCompartmentsSelected()"
-            (change)="toggleAllGroups($event.checked)"
-          >
-            Tous les spectacles
-          </mat-checkbox>
-          <mat-checkbox
-            [checked]="isCompartmentChecked('principal')"
-            (change)="togglePrincipal($event.checked)"
-          >
-            {{ principalLabel() }}
-          </mat-checkbox>
-          @for (slug of equityGlossarySlugs(); track slug) {
-            <mat-checkbox
-              [checked]="isCompartmentChecked(slug)"
-              (change)="toggleGlossarySlug(slug, $event.checked)"
-            >
-              {{ glossaryLabel(slug) }}
-            </mat-checkbox>
-          }
+      @if (filterTriggerVisible()) {
+        <div data-testid="filter-trigger-column">
+          <app-filter-trigger
+            [visible]="true"
+            [activeCount]="activeFilterChips().length"
+            [warn]="seasonView() === 'stats' && statsCategoriesNoneSelected()"
+            [expanded]="filterPanelOpen()"
+            (open)="toggleCriteriaPanel()"
+          />
         </div>
-      </mat-menu>
-
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__export"
-        aria-label="Exporter les statistiques"
-        (click)="exportClick.emit()"
-      >
-        <mat-icon>download</mat-icon>
-        <span>Exporter</span>
-      </button>
-
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__export"
-        [attr.aria-pressed]="detailsExpanded()"
-        aria-label="Masquer ou afficher les détails des colonnes"
-        (click)="toggleDetails()"
-      >
-        <mat-icon>{{ detailsExpanded() ? 'visibility_off' : 'visibility' }}</mat-icon>
-        <span>{{ detailsExpanded() ? 'Masquer' : 'Détails' }}</span>
-      </button>
+      }
     </div>
-  }
-
-  @if (showHistoryFilters() && seasonView() === 'history') {
-    <div class="season-toolbar__filters">
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__filter"
-        [matMenuTriggerFor]="historyParticipantMenu"
-        aria-label="Filtrer par participant"
-      >
-        <mat-icon>group</mat-icon>
-        <span>{{ participantLabel() }}</span>
-        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
-      </button>
-      <mat-menu #historyParticipantMenu="matMenu">
-        @for (opt of participantOptions(); track opt.id ?? 'all') {
-          <button mat-menu-item type="button" (click)="selectParticipant(opt.id)">
-            {{ opt.label }}
-          </button>
-        }
-      </mat-menu>
-
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__filter"
-        [matMenuTriggerFor]="historyEventMenu"
-        aria-label="Filtrer par spectacle"
-      >
-        <mat-icon>event</mat-icon>
-        <span>{{ historyEventLabel() }}</span>
-        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
-      </button>
-      <mat-menu #historyEventMenu="matMenu">
-        <button mat-menu-item type="button" (click)="selectHistoryEvent(null)">Tous</button>
-        @for (opt of historyEventOptions(); track opt.id) {
-          <button mat-menu-item type="button" (click)="selectHistoryEvent(opt.id)">
-            {{ opt.title }}
-          </button>
-        }
-      </mat-menu>
-
-      <button
-        type="button"
-        mat-stroked-button
-        class="season-toolbar__export"
-        aria-label="Exporter l’historique"
-        (click)="exportClick.emit()"
-      >
-        <mat-icon>download</mat-icon>
-        <span>Exporter</span>
-      </button>
-    </div>
-  }
-
-  <div class="season-toolbar__right">
-    <mat-button-toggle-group
-      class="season-toolbar__views"
-      [value]="seasonView()"
-      (change)="seasonView.set($event.value)"
-      hideSingleSelectionIndicator
-      aria-label="Changer de vue saison"
-    >
-      <mat-button-toggle value="agenda">Agenda</mat-button-toggle>
-      <mat-button-toggle value="history">Historique</mat-button-toggle>
-      <mat-button-toggle value="stats">Statistiques</mat-button-toggle>
-    </mat-button-toggle-group>
-
-    <app-scope-admin-menu [scope]="adminScope()" [items]="adminItems()" />
   </div>
+
+  @if (filterTriggerVisible()) {
+    @if (filterPanelOpen()) {
+      <div class="season-toolbar__criteria-panel" data-testid="season-toolbar-criteria-panel">
+        <app-filter-criteria-bar
+          [dimensions]="hubDimensions()"
+          [chips]="activeFilterChips()"
+          (openDimension)="onOpenFilterDimension($event)"
+          (removeDimension)="onRemoveFilterDimension($event)"
+          (clearAll)="onClearAllFilters()"
+        />
+      </div>
+    } @else if (activeFilterChips().length > 0) {
+      <div class="season-toolbar__chips-row" data-testid="season-toolbar-chips-row">
+        <app-active-filter-chips
+          [chips]="activeFilterChips()"
+          (removeDimension)="onRemoveFilterDimension($event)"
+          (openDimension)="onOpenFilterDimension($event)"
+          (clearAll)="onClearAllFilters()"
+        />
+      </div>
+    }
+  }
 </div>

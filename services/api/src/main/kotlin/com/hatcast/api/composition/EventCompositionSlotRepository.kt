@@ -3,6 +3,7 @@ package com.hatcast.api.composition
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.Instant
 import java.util.UUID
 
 interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEntity, UUID> {
@@ -29,16 +30,48 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
           AND COALESCE(s.seasonParticipantId, s.eventParticipantId) IS NOT NULL
           AND s.participationStatus <> com.hatcast.api.composition.SlotParticipationStatus.DECLINED
           AND (
-            (:compartmentSlug = 'principal' AND e.equityTag IS NULL AND e.templateType <> 'deplacement')
-            OR (:compartmentSlug = 'deplacements' AND (e.equityTag = 'deplacements' OR (e.equityTag IS NULL AND e.templateType = 'deplacement')))
-            OR (:compartmentSlug NOT IN ('principal', 'deplacements') AND e.equityTag = :compartmentSlug)
+            (:categorySlug = 'principal' AND e.category IS NULL AND e.templateType <> 'deplacement')
+            OR (:categorySlug = 'deplacements' AND (e.category = 'deplacements' OR (e.category IS NULL AND e.templateType = 'deplacement')))
+            OR (:categorySlug NOT IN ('principal', 'deplacements') AND e.category = :categorySlug)
           )
         GROUP BY COALESCE(s.seasonParticipantId, s.eventParticipantId), s.roleKey
         """,
     )
-    fun countValidatedSelectionsBySeasonAndCompartment(
+    fun countValidatedSelectionsBySeasonAndCategory(
         @Param("seasonId") seasonId: UUID,
         @Param("excludeEventId") excludeEventId: UUID,
-        @Param("compartmentSlug") compartmentSlug: String,
+        @Param("categorySlug") categorySlug: String,
+    ): List<RoleSelectionCountProjection>
+
+    @Query(
+        """
+        SELECT COALESCE(s.seasonParticipantId, s.eventParticipantId) AS participantId, s.roleKey AS roleKey, COUNT(s) AS selectionCount
+        FROM EventCompositionSlotEntity s
+        JOIN EventCompositionEntity c ON c.eventId = s.eventId
+        JOIN EventEntity e ON e.id = s.eventId
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND c.validatedAt IS NOT NULL
+          AND COALESCE(s.seasonParticipantId, s.eventParticipantId) IS NOT NULL
+          AND s.participationStatus <> com.hatcast.api.composition.SlotParticipationStatus.DECLINED
+          AND (
+            e.startsAt < :beforeStartsAt
+            OR (e.startsAt = :beforeStartsAt AND e.createdAt < :beforeCreatedAt)
+            OR (e.startsAt = :beforeStartsAt AND e.createdAt = :beforeCreatedAt AND e.id < :beforeEventId)
+          )
+          AND (
+            (:categorySlug = 'principal' AND e.category IS NULL AND e.templateType <> 'deplacement')
+            OR (:categorySlug = 'deplacements' AND (e.category = 'deplacements' OR (e.category IS NULL AND e.templateType = 'deplacement')))
+            OR (:categorySlug NOT IN ('principal', 'deplacements') AND e.category = :categorySlug)
+          )
+        GROUP BY COALESCE(s.seasonParticipantId, s.eventParticipantId), s.roleKey
+        """,
+    )
+    fun countValidatedSelectionsBeforeEvent(
+        @Param("seasonId") seasonId: UUID,
+        @Param("beforeEventId") beforeEventId: UUID,
+        @Param("beforeStartsAt") beforeStartsAt: Instant,
+        @Param("beforeCreatedAt") beforeCreatedAt: Instant,
+        @Param("categorySlug") categorySlug: String,
     ): List<RoleSelectionCountProjection>
 }

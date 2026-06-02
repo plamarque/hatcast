@@ -50,6 +50,15 @@ Fichier **court** pour les skills BMad (`bmad-dev-story`, `bmad-create-story`, `
 ```bash
 # Dev complet V2 (API + front HTTPS)
 ./scripts/start-dev.sh
+# Email story 8.3 : HATCAST_NOTIFICATION_EMAIL_ENABLED=true dans .env
+# → Mailpit Docker (UI http://127.0.0.1:8025), arrêt auto à la fin du script
+
+# Push / PWA / auth prod-like (service worker actif) — cumulable avec Mailpit
+./scripts/start-dev.sh --with-push
+# .env requis : HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY + PRIVATE_KEY
+# .env pour email/mot de passe sur /connexion : HATCAST_FIREBASE_* + HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID
+# → start-dev.sh régénère environment.ts (ne pas committer) puis build prod + watch + serve dist/ HTTPS
+# Déclencheur push MEP : publier un spectacle (open-availability), pas simple brouillon
 
 # Tests front
 npm run test -w @hatcast/web -- --watch=false
@@ -71,5 +80,7 @@ npm run build -w @hatcast/web
 
 ## BMad (chemins)
 
-- Config : `_bmad/bmm/config.yaml` — `implementation_artifacts` → `_bmad-output/implementation-artifacts/`
+- Config projet : `_bmad/config.toml` (régénéré par `npx bmad install`) ; overrides d’équipe : `_bmad/custom/config.toml`
+- Préférences perso : `_bmad/config.user.toml` (gitignoré) ou `_bmad/custom/config.user.toml`
+- Artefacts : `implementation_artifacts` → `_bmad-output/implementation-artifacts/` ; `planning_artifacts` → `_bmad-output/planning-artifacts/`
 - Langue docs BMad générés : souvent **anglais** dans `document_output_language` ; stories HatCast en **français** pour l’UI produit.

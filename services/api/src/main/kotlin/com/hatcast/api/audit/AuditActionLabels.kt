@@ -1,0 +1,43 @@
+package com.hatcast.api.audit
+
+object AuditActionLabels {
+    fun labelFor(actionType: AuditActionType): String =
+        when (actionType) {
+            AuditActionType.AVAILABILITY_CREATED -> "Disponibilité créée"
+            AuditActionType.AVAILABILITY_UPDATED -> "Disponibilité modifiée"
+            AuditActionType.AVAILABILITY_DELETED -> "Disponibilité supprimée"
+            AuditActionType.EVENT_CREATED -> "Spectacle créé"
+            AuditActionType.EVENT_UPDATED -> "Spectacle modifié"
+            AuditActionType.EVENT_ARCHIVED -> "Spectacle archivé"
+            AuditActionType.EVENT_UNARCHIVED -> "Spectacle réactivé"
+            AuditActionType.EVENT_AVAILABILITY_OPENED -> "Disponibilités ouvertes"
+            AuditActionType.EVENT_AVAILABILITY_CLOSED -> "Disponibilités fermées (brouillon)"
+            AuditActionType.SEASON_PARTICIPANT_ADDED -> "Participant ajouté"
+            AuditActionType.SEASON_PARTICIPANT_REACTIVATED -> "Participant réactivé"
+            AuditActionType.SEASON_PARTICIPANT_UPDATED -> "Participant modifié"
+            AuditActionType.SEASON_PARTICIPANT_REMOVED -> "Participant retiré"
+            AuditActionType.EVENT_PARTICIPANT_ADDED -> "Participant spectacle ajouté"
+            AuditActionType.EVENT_PARTICIPANT_UPDATED -> "Participant spectacle modifié"
+            AuditActionType.EVENT_PARTICIPANT_REMOVED -> "Participant spectacle retiré"
+            AuditActionType.EVENT_ROSTER_EXCLUDED -> "Participant exclu du roster"
+            AuditActionType.EVENT_ROSTER_INCLUDED -> "Participant réintégré au roster"
+            AuditActionType.TROUPE_MEMBER_ADDED -> "Membre ajouté"
+            AuditActionType.TROUPE_MEMBER_UPDATED -> "Membre modifié"
+            AuditActionType.TROUPE_MEMBER_DEACTIVATED -> "Membre désactivé"
+            AuditActionType.SEASON_ORGANIZER_GRANTED -> "Organisateur saison accordé"
+            AuditActionType.SEASON_ORGANIZER_REVOKED -> "Organisateur saison révoqué"
+            AuditActionType.EVENT_ORGANIZER_GRANTED -> "Organisateur spectacle accordé"
+            AuditActionType.EVENT_ORGANIZER_REVOKED -> "Organisateur spectacle révoqué"
+            AuditActionType.COMPOSITION_PUBLISHED -> "Composition publiée"
+            AuditActionType.COMPOSITION_VALIDATED -> "Composition validée"
+            AuditActionType.COMPOSITION_UNLOCKED -> "Composition déverrouillée"
+            AuditActionType.COMPOSITION_DRAW_COMPLETED -> "Tirage terminé"
+            AuditActionType.COMPOSITION_LIFECYCLE_CHANGED -> "Statut équipe"
+            AuditActionType.SLOT_ASSIGNED -> "Créneau assigné"
+            AuditActionType.SLOT_CLEARED -> "Créneau libéré"
+            AuditActionType.PARTICIPATION_CONFIRMED -> "Participation confirmée"
+            AuditActionType.PARTICIPATION_DECLINED -> "Participation déclinée"
+            AuditActionType.PARTICIPATION_RESET -> "Participation réinitialisée"
+            AuditActionType.DECLINE_RESTORED -> "Déclin restauré"
+        }
+}

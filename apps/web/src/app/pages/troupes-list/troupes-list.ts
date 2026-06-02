@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core'
+import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
@@ -11,7 +11,11 @@ import { AuthApiService } from '../../core/auth/auth-api.service'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { troupeHubPath } from '../../core/navigation/troupe-routes'
-import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
+import {
+  TroupeApiService,
+  type PublicTroupeDirectoryItem,
+  type TroupeListItem,
+} from '../../core/troupes/troupe-api.service'
 import { TroupeCard } from '../../shared/troupe-card/troupe-card'
 import { CreateTroupeDialog } from './create-troupe-dialog'
 
@@ -38,37 +42,58 @@ export class TroupesList implements OnInit {
   private readonly dialog = inject(MatDialog)
 
   protected readonly loadingSession = signal(true)
+  protected readonly authenticated = signal(false)
   protected readonly loadingList = signal(false)
   protected readonly loadError = signal(false)
+  protected readonly loadingDiscover = signal(true)
+  protected readonly discoverError = signal(false)
   protected readonly joiningDemo = this.demoJoin.joining
   protected readonly troupes = signal<TroupeListItem[]>([])
+  protected readonly discoverTroupes = signal<PublicTroupeDirectoryItem[]>([])
+
+  protected readonly filteredDiscoverTroupes = computed(() => {
+    const mySlugs = new Set(this.troupes().map((troupe) => troupe.slug))
+    return this.discoverTroupes().filter((troupe) => !mySlugs.has(troupe.slug))
+  })
 
   async ngOnInit(): Promise<void> {
-    const r = await this.auth.ensureHatcastSession()
-    if (!r.ok || !r.data) {
-      this.snack.open(
-        'Votre session a expiré ou vous n’êtes pas connecté.',
-        'OK',
-        { duration: 6000 },
-      )
-      rememberCurrentUrlForPostLogin(this.router)
-      await this.router.navigate(['/connexion'], { replaceUrl: true })
-      return
-    }
+    void this.loadDiscover()
+
+    const session = await this.auth.ensureHatcastSession()
     this.loadingSession.set(false)
-    await this.loadTroupes()
+    if (session.ok && session.data) {
+      this.authenticated.set(true)
+      await this.loadTroupes()
+    }
   }
 
   protected async loadTroupes(): Promise<void> {
     this.loadingList.set(true)
     this.loadError.set(false)
-    const r = await this.troupeApi.listMyTroupes()
+    const result = await this.troupeApi.listMyTroupes()
     this.loadingList.set(false)
-    if (!r.ok || !r.data) {
+    if (!result.ok || !result.data) {
       this.loadError.set(true)
       return
     }
-    this.troupes.set(r.data)
+    this.troupes.set(result.data)
+  }
+
+  protected async loadDiscover(): Promise<void> {
+    this.loadingDiscover.set(true)
+    this.discoverError.set(false)
+    const result = await this.troupeApi.listPublicTroupes()
+    this.loadingDiscover.set(false)
+    if (!result.ok || !result.data) {
+      this.discoverError.set(true)
+      return
+    }
+    this.discoverTroupes.set(result.data)
+  }
+
+  protected goToLogin(): void {
+    rememberCurrentUrlForPostLogin(this.router)
+    void this.router.navigate(['/connexion'])
   }
 
   protected openCreateTroupeDialog(): void {

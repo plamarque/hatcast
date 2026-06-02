@@ -13,7 +13,11 @@ import {
   DEMO_ACTIVE_SEASON_SLUG,
   DEMO_TROUPE_ID,
 } from '../../core/troupes/demo-troupe.constants'
-import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
+import {
+  TroupeApiService,
+  type PublicTroupeDirectoryItem,
+  type TroupeListItem,
+} from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { TroupesList } from './troupes-list'
@@ -22,6 +26,8 @@ const mockTroupe: TroupeListItem = {
   id: 't-1',
   name: 'Les Improbots',
   slug: 'les-improbots',
+  logoUrl: '/v1/public/troupes/t-1/logo?v=1',
+  description: 'Impro à grande vitesse.',
   isDemo: false,
   joinPolicy: 'OPEN',
   activeMemberCount: 3,
@@ -36,12 +42,26 @@ const mockTroupe: TroupeListItem = {
   },
 }
 
+const publicTroupe: PublicTroupeDirectoryItem = {
+  id: 't-public',
+  name: 'La Malice',
+  slug: 'la-malice',
+  logoUrl: '/v1/public/troupes/t-public/logo?v=2',
+  description: 'La troupe publique à découvrir.',
+  activeMemberCount: 5,
+  upcomingEventCount: 1,
+}
+
 async function settle(fixture: ComponentFixture<TroupesList>): Promise<void> {
   fixture.detectChanges()
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 30; i++) {
     await fixture.whenStable()
     await new Promise((resolve) => setTimeout(resolve, 0))
-    if (!fixture.componentInstance['loadingSession']() && !fixture.componentInstance['loadingList']()) {
+    if (
+      !fixture.componentInstance['loadingSession']() &&
+      !fixture.componentInstance['loadingList']() &&
+      !fixture.componentInstance['loadingDiscover']()
+    ) {
       break
     }
   }
@@ -52,6 +72,7 @@ describe('TroupesList', () => {
   let fixture: ComponentFixture<TroupesList>
   let troupeApi: {
     listMyTroupes: ReturnType<typeof vi.fn>
+    listPublicTroupes: ReturnType<typeof vi.fn>
     joinTroupe: ReturnType<typeof vi.fn>
     createTroupe: ReturnType<typeof vi.fn>
   }
@@ -69,6 +90,9 @@ describe('TroupesList', () => {
     }
     troupeApi = {
       listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [mockTroupe] }),
+      listPublicTroupes: vi
+        .fn()
+        .mockResolvedValue({ ok: true, status: 200, data: [publicTroupe, mockTroupe] }),
       joinTroupe: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
       createTroupe: vi.fn(),
     }
@@ -118,11 +142,17 @@ describe('TroupesList', () => {
     expect(homeLink?.querySelector('mat-icon')?.textContent?.trim()).toBe('home')
   })
 
-  it('affiche les cartes troupe avec lien Ouvrir vers le hub', async () => {
+  it('affiche les cartes troupe avec CTA Material vers le hub', async () => {
     await settle(fixture)
 
-    const openLink = fixture.nativeElement.querySelector('a[href="/troupes/les-improbots"]')
-    expect(openLink?.textContent?.trim()).toBe('Ouvrir')
+    const card = fixture.nativeElement.querySelector('app-troupe-card') as HTMLElement
+    const openLink = card.querySelector('a[mat-flat-button][href="/troupes/les-improbots"]')
+    expect(openLink).not.toBeNull()
+    expect(openLink?.getAttribute('aria-label')).toBe('Ouvrir Les Improbots')
+    expect(card.textContent).toContain('Impro à grande vitesse.')
+    expect(card.querySelector('.troupe-card__logo img')?.getAttribute('src')).toBe(
+      '/v1/public/troupes/t-1/logo?v=1',
+    )
     expect(fixture.nativeElement.textContent).toContain('3 membres')
     expect(fixture.nativeElement.textContent).toContain('2 spectacles à venir')
   })
@@ -133,11 +163,24 @@ describe('TroupesList', () => {
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeNull()
   })
 
-  it('affiche la section Découvrir avec ancre decouvrir', async () => {
+  it('affiche la section Découvrir avec ancre decouvrir et cartes publiques', async () => {
     await settle(fixture)
 
     expect(fixture.nativeElement.querySelector('#decouvrir')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('annuaire public')
+    expect(fixture.nativeElement.textContent).toContain('La Malice')
+    expect(fixture.nativeElement.textContent).toContain('La troupe publique à découvrir.')
+    expect(fixture.nativeElement.textContent).not.toContain('annuaire public arrive bientôt')
+  })
+
+  it('exclut les troupes déjà rejointes de Découvrir', async () => {
+    await settle(fixture)
+
+    const discoverCards = Array.from(
+      fixture.nativeElement.querySelectorAll('#decouvrir app-troupe-card') as NodeListOf<HTMLElement>,
+    )
+    expect(discoverCards.length).toBe(1)
+    expect(discoverCards[0].textContent).toContain('La Malice')
+    expect(discoverCards[0].textContent).not.toContain('Les Improbots')
   })
 
   it('gère l’état sans adhésion', async () => {
@@ -192,6 +235,7 @@ describe('TroupesList — join Démo UUID', () => {
     }
     const api = {
       listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
       joinTroupe: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
       createTroupe: vi.fn(),
     }
@@ -230,7 +274,7 @@ describe('TroupesList — join Démo UUID', () => {
 })
 
 describe('TroupesList session gate', () => {
-  it('redirige vers connexion sans session', async () => {
+  it('ne redirige pas vers connexion sans session et affiche Découvrir', async () => {
     await TestBed.configureTestingModule({
       imports: [TroupesList, NoopAnimationsModule],
       providers: [
@@ -244,9 +288,19 @@ describe('TroupesList session gate', () => {
         },
         {
           provide: TroupeApiService,
-          useValue: { listMyTroupes: vi.fn(), joinTroupe: vi.fn(), createTroupe: vi.fn() },
+          useValue: {
+            listMyTroupes: vi.fn(),
+            listPublicTroupes: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: [publicTroupe],
+            }),
+            joinTroupe: vi.fn(),
+            createTroupe: vi.fn(),
+          },
         },
         { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: DemoTroupeJoinService, useValue: { join: vi.fn(), joining: vi.fn(() => false) } },
         {
           provide: TroupeContextService,
           useValue: { currentUserDisplayLabel: () => 'Compte' },
@@ -259,6 +313,13 @@ describe('TroupesList session gate', () => {
     const fixture = TestBed.createComponent(TroupesList)
     await settle(fixture)
 
-    expect(navigate).toHaveBeenCalledWith(['/connexion'], { replaceUrl: true })
+    expect(navigate).not.toHaveBeenCalledWith(['/connexion'], { replaceUrl: true })
+    expect(fixture.nativeElement.textContent).toContain('Se connecter')
+    expect(fixture.nativeElement.textContent).toContain('La Malice')
+    const voirButton = fixture.nativeElement.querySelector(
+      '#decouvrir button[mat-flat-button]',
+    ) as HTMLButtonElement | null
+    expect(voirButton?.getAttribute('aria-label')).toBe('Voir La Malice')
+    expect(voirButton?.textContent?.trim()).toBe('Voir')
   })
 })

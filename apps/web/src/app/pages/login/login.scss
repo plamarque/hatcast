@@ -40,25 +40,20 @@
   gap: 0.5rem;
 }
 
-/* Logo fichier : OK en clair. En sombre, mot-mark (icône + texte) sans pastille ni PNG à fond blanc. */
-.login__brand-mark--light {
+/* Marque unifiée : masque HatCast 2 (SVG transparent thémable) + mot-mark, lisible en clair et sombre. */
+.login__brand-mark {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   max-width: 100%;
 }
 
-.login__brand-mark--dark {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-}
-
-.login__wordmark-icon {
-  color: var(--mat-sys-primary);
-  font-size: 2.25rem;
-  width: 2.25rem;
-  height: 2.25rem;
+.login__logo-mark {
+  display: block;
+  height: 3rem;
+  width: auto;
+  flex-shrink: 0;
 }
 
 .login__wordmark-text {
@@ -66,24 +61,6 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--mat-sys-primary);
-}
-
-@media (prefers-color-scheme: dark) {
-  .login__brand-mark--light {
-    display: none;
-  }
-
-  .login__brand-mark--dark {
-    display: flex;
-  }
-}
-
-.login__logo {
-  display: block;
-  height: 3rem;
-  width: auto;
-  max-width: min(100%, 14rem);
-  object-fit: contain;
 }
 
 .login__heading {

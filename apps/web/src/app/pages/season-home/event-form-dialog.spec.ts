@@ -230,17 +230,17 @@ describe('EventFormDialog optional start time', () => {
   })
 })
 
-describe('EventFormDialog equity tag regression', () => {
-  it('does not expose an equity tag field in the form', async () => {
+describe('EventFormDialog category regression', () => {
+  it('does not expose a category field in the form', async () => {
     const { fixture } = await setup({
       mode: 'edit',
       seasonId: 'season-1',
       event: event('ev-1'),
     })
     const html = fixture.nativeElement.innerHTML
-    expect(html).not.toMatch(/equityTag/i)
+    expect(html).not.toMatch(/category/i)
     expect(html).not.toMatch(/Tag \(optionnel\)/)
-    expect(fixture.nativeElement.querySelector('[formcontrolname="equityTag"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[formcontrolname="category"]')).toBeNull()
   })
 })
 
@@ -261,7 +261,7 @@ describe('EventFormDialog type and roles regression', () => {
   it('does not expose type or role controls in the form', async () => {
     const { fixture } = await setup({ mode: 'create', seasonId: 'season-1' })
     const html = fixture.nativeElement.innerHTML
-    expect(html).not.toMatch(/Type de spectacle/)
+    expect(html).not.toMatch(/Type de spectacle|type de spectacle/)
     expect(fixture.nativeElement.querySelector('[formcontrolname="templateType"]')).toBeNull()
     expect(fixture.nativeElement.querySelector('.roles-grid')).toBeNull()
     expect(html).not.toMatch(/Personnaliser/)

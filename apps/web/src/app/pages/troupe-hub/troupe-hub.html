@@ -4,7 +4,16 @@
       <a [routerLink]="troupesListLink">Troupes</a>
       <span class="troupe-hub__breadcrumb-sep" aria-hidden="true">›</span>
       @if (troupe(); as t) {
-        <span aria-current="page">{{ t.name }}</span>
+        <span class="troupe-hub__breadcrumb-current" aria-current="page">
+          <span class="troupe-hub__breadcrumb-logo" aria-hidden="true">
+            @if (showHubLogo(t)) {
+              <img [src]="t.logoUrl ?? ''" alt="" loading="lazy" (error)="onHubLogoError()" />
+            } @else {
+              <mat-icon>groups</mat-icon>
+            }
+          </span>
+          {{ t.name }}
+        </span>
       }
     </nav>
   </header>
@@ -13,6 +22,33 @@
     <div class="troupe-hub__spinner" role="status">
       <mat-spinner diameter="40" aria-label="Chargement" />
     </div>
+  } @else if (accessCheckError()) {
+    <section class="troupe-hub__empty" aria-labelledby="troupe-access-check-error-heading">
+      <h2 id="troupe-access-check-error-heading" class="troupe-hub__empty-title">
+        Vérification impossible
+      </h2>
+      <p class="troupe-hub__empty-text">
+        Nous n’avons pas pu vérifier si cette troupe est listée dans l’annuaire public.
+        Réessaie dans un instant.
+      </p>
+      <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
+        Retour à Découvrir
+      </a>
+      <a mat-button routerLink="/agenda">Voir mon agenda</a>
+    </section>
+  } @else if (accessDenied()) {
+    <section class="troupe-hub__empty" aria-labelledby="troupe-access-denied-heading">
+      <h2 id="troupe-access-denied-heading" class="troupe-hub__empty-title">
+        Tu n’es pas membre de cette troupe.
+      </h2>
+      <p class="troupe-hub__empty-text">
+        Cette troupe est listée dans l’annuaire public, mais tu n’y as pas accès.
+      </p>
+      <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
+        Retour à Découvrir
+      </a>
+      <a mat-button routerLink="/agenda">Voir mon agenda</a>
+    </section>
   } @else if (notFound()) {
     <section class="troupe-hub__empty" aria-labelledby="troupe-not-found-heading">
       <h2 id="troupe-not-found-heading" class="troupe-hub__empty-title">Troupe introuvable</h2>
@@ -25,25 +61,22 @@
   } @else if (troupe(); as t) {
     <div class="troupe-hub__hero">
       <span class="troupe-hub__logo" aria-hidden="true">
-        <mat-icon>groups</mat-icon>
+        @if (showHubLogo(t)) {
+          <img [src]="t.logoUrl ?? ''" alt="" loading="lazy" (error)="onHubLogoError()" />
+        } @else {
+          <mat-icon>groups</mat-icon>
+        }
       </span>
       <div class="troupe-hub__hero-main">
         <div class="troupe-hub__hero-row">
           <h1 class="troupe-hub__title">{{ t.name }}</h1>
           <div class="troupe-hub__hero-actions">
-            <button
-              type="button"
-              mat-stroked-button
-              class="troupe-hub__prefs-btn"
-              aria-label="Préférences dans cette troupe"
-              (click)="openPreferences()"
-            >
-              <mat-icon>tune</mat-icon>
-              <span class="troupe-hub__prefs-label">Préférences dans cette troupe</span>
-            </button>
             <app-scope-admin-menu scope="troupe" [items]="troupeAdminItems()" />
           </div>
         </div>
+        @if (t.description; as description) {
+          <p class="troupe-hub__description">{{ description }}</p>
+        }
       </div>
     </div>
 
@@ -54,15 +87,7 @@
     }
 
     <section class="troupe-hub__seasons" aria-labelledby="saisons-heading">
-      <div class="troupe-hub__seasons-header">
-        <h2 id="saisons-heading" class="troupe-hub__section-title">Saisons</h2>
-        @if (canManageTroupe()) {
-          <button mat-flat-button color="primary" type="button" (click)="openCreateSeason()">
-            <mat-icon>add</mat-icon>
-            Nouvelle saison
-          </button>
-        }
-      </div>
+      <h2 id="saisons-heading" class="troupe-hub__section-title">Saisons</h2>
 
       @if (loadingSeasons()) {
         <div class="troupe-hub__spinner" role="status">
@@ -84,6 +109,8 @@
             <app-season-card
               [title]="season.title"
               [slug]="season.slug"
+              [startDate]="season.startDate"
+              [endDate]="season.endDate"
               [eventCount]="season.eventCount"
               [participantCount]="season.participantCount"
               [archived]="season.archived"
@@ -97,9 +124,5 @@
         }
       }
     </section>
-
-    <footer class="troupe-hub__footer">
-      <a mat-button routerLink="/troupes" fragment="decouvrir">Explorer d’autres troupes</a>
-    </footer>
   }
 </div>

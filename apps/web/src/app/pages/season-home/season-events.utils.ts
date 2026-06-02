@@ -1,4 +1,5 @@
 import type { EventResponse } from '../../core/events/event-api.service'
+import type { ParticipantFocusSummary } from './season-participant-focus'
 
 /** Max upcoming events loaded for Agenda month grouping (story 3.3 — option C). */
 export const AGENDA_UPCOMING_CAP = 200
@@ -129,13 +130,43 @@ export function groupPastEventsByMonth<T extends EventDateSource>(
   return Array.from(groups.values())
 }
 
-export function filterEventsByIds(
-  events: EventResponse[],
-  selectedEventIds: string[] | null,
-): EventResponse[] {
+export function filterEventsByIds<T extends { id: string }>(
+  events: T[],
+  selectedEventIds: string[] | null | undefined,
+): T[] {
   if (!selectedEventIds?.length) {
     return events
   }
   const allowed = new Set(selectedEventIds)
   return events.filter((e) => allowed.has(e.id))
+}
+
+/** Event is relevant to a focused participant (dispo déclarée ou dans l'équipe). */
+export function eventRelevantForParticipantFocus(
+  focus: ParticipantFocusSummary | null | undefined,
+): boolean {
+  if (!focus) {
+    return false
+  }
+  return focus.inTeam || focus.availabilityStatus !== 'unknown'
+}
+
+export function filterEventsByParticipantFocus<T extends Pick<EventResponse, 'participantFocus'>>(
+  events: T[],
+  selectedParticipantIds: string[],
+): T[] {
+  if (selectedParticipantIds.length !== 1) {
+    return events
+  }
+  return events.filter((event) => eventRelevantForParticipantFocus(event.participantFocus))
+}
+
+export function mergeEventsById(events: EventResponse[]): EventResponse[] {
+  const byId = new Map<string, EventResponse>()
+  for (const event of events) {
+    byId.set(event.id, event)
+  }
+  return [...byId.values()].sort(
+    (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+  )
 }

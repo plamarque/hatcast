@@ -18,6 +18,8 @@
               alt=""
               width="36"
               height="36"
+              loading="lazy"
+              (error)="onLogoError()"
             />
           } @else {
             <span class="context-breadcrumb__logo-badge" aria-hidden="true">
@@ -79,7 +81,6 @@
   <div class="context-breadcrumb__mobile-row">
     <a
       class="context-breadcrumb__mobile-logo"
-      mat-icon-button
       [routerLink]="troupeHubPath(troupeSlug())"
       [attr.aria-label]="troupeAriaLabel()"
     >
@@ -90,6 +91,8 @@
           alt=""
           width="36"
           height="36"
+          loading="lazy"
+          (error)="onLogoError()"
         />
       } @else {
         <span class="context-breadcrumb__logo-badge context-breadcrumb__logo-badge--round" aria-hidden="true">
@@ -102,15 +105,40 @@
         Démo
       </mat-chip>
     }
-    @if (layout() !== 'troupe' && useSwitcher() && switcherInputsReady()) {
-      <app-context-switcher
-        [compact]="true"
-        [troupeId]="troupeId()!"
-        [troupeSlug]="troupeSlug()"
-        [troupeName]="troupeName()"
-        [seasonSlug]="seasonSlug()"
-        [seasonTitle]="seasonTitle()"
-      />
+    @if (layout() !== 'troupe' && seasonTitle()) {
+      @if (seasonIsLink()) {
+        <a
+          class="context-breadcrumb__mobile-title context-breadcrumb__link"
+          [routerLink]="saisonWorkspacePath(seasonSlug())"
+        >
+          {{ seasonTitle() }}
+        </a>
+      } @else if (useSwitcher() && switcherInputsReady()) {
+        <app-context-switcher
+          [compact]="true"
+          [troupeId]="troupeId()!"
+          [troupeSlug]="troupeSlug()"
+          [troupeName]="troupeName()"
+          [seasonSlug]="seasonSlug()"
+          [seasonTitle]="seasonTitle()"
+        />
+      } @else {
+        <span class="context-breadcrumb__mobile-title" aria-current="page">
+          {{ seasonTitle() }}
+        </span>
+      }
+    }
+    @if (layout() === 'event' && eventTitle()?.trim()) {
+      <span class="context-breadcrumb__sep context-breadcrumb__sep--mobile" aria-hidden="true">›</span>
+      @if (leafTitle()?.trim()) {
+        <span class="context-breadcrumb__mobile-event-title">{{ eventTitle() }}</span>
+      } @else {
+        <span class="context-breadcrumb__mobile-event-title" aria-current="page">{{ eventTitle() }}</span>
+      }
+    }
+    @if (leafTitle()?.trim()) {
+      <span class="context-breadcrumb__sep context-breadcrumb__sep--mobile" aria-hidden="true">›</span>
+      <span class="context-breadcrumb__mobile-title" aria-current="page">{{ leafTitle() }}</span>
     }
   </div>
 </nav>

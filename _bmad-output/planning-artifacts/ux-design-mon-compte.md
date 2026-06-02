@@ -54,7 +54,7 @@ Référence implémentation actuelle : [`account-placeholder`](../../apps/web/sr
 |---|--------|----------|
 | C1 | **Périmètre écran** | Compte **global** : photo de profil HatCast, identifiant (email), sécurité (email / mot de passe connecté), suppression de compte. **Pas** de pseudo ni rôles préférés par troupe. |
 | C2 | **Préférences troupe** | Lien discret vers **Mes troupes** ; rappel une ligne : *Pseudo et rôles par défaut se règlent dans chaque troupe.* Action contextuelle : depuis une troupe → bouton existant **Préférences dans cette troupe**. |
-| C3 | **Chrome page** | Même squelette que **Mon agenda** / **Mes Stats** : conteneur `max-width: 56rem`, header `h1` + `p` sous-titre, contenu en sections courtes. |
+| C3 | **Chrome page** | Même squelette que **Mon agenda** / **Mes Stats** : conteneur `max-width: 56rem`, header `h1` + `p` sous-titre, contenu en sections courtes. Typo et espacements L1/L2 : [`ux-design-hub-section-headers.md`](ux-design-hub-section-headers.md). |
 | C4 | **Structure contenu** | **`mat-nav-list` / `mat-list`** (sections + lignes action) plutôt que plusieurs `mat-card` outline avec paragraphes. |
 | C5 | **Avatar** | Conserver la gestion **photo de profil** (story 2.6) en **tête de page** (zone compacte, pas une carte « Paramètres du compte »). |
 | C6 | **Placeholders Epic 1** | Lignes **désactivées** ou boutons « Bientôt » avec `matTooltip` jusqu’à stories **1.6** / **1.7** — pas de faux formulaires email/mot de passe. |
@@ -77,14 +77,14 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 ```
 ┌────────────────────────────────────────────────────────────┐
 │  Mon compte                                                 │
-│  Identité et sécurité de ton compte HatCast.                │
+│  Identité et sécurité du compte HatCast.                    │
 └────────────────────────────────────────────────────────────┘
 ```
 
 | Élément | Valeur |
 |---------|--------|
 | **Titre (`h1`)** | `Mon compte` |
-| **Sous-titre** | `Identité et sécurité de ton compte HatCast.` (une ligne ; pas de paragraphe marketing) |
+| **Sous-titre** | `Identité et sécurité du compte HatCast.` (une ligne ; pas de paragraphe marketing) — voir [ux-voice-and-tone.md](./ux-voice-and-tone.md) |
 | **Actions header** | **Aucun** menu avatar sur cette route (C8) |
 | **Typo** | `font-size: 1.75rem` titre ; sous-titre `opacity: 0.85`, `0.95rem` — tokens existants |
 

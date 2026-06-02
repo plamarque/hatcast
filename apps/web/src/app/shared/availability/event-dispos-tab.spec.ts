@@ -82,6 +82,7 @@ async function setup(canSwitchSubject = false) {
 
   const fixture = TestBed.createComponent(EventDisposTab)
   fixture.componentRef.setInput('seasonId', 'season-1')
+  fixture.componentRef.setInput('seasonSlug', 'saison-test')
   fixture.componentRef.setInput('troupeId', 'troupe-1')
   fixture.componentRef.setInput('event', {
     id: 'event-1',
@@ -187,6 +188,9 @@ describe('EventDisposTab', () => {
     expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', true)
     expect(fixture.nativeElement.querySelector('mat-expansion-panel')).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('100 %')
+    const chanceEl = fixture.nativeElement.querySelector('.availability-tous__chance') as HTMLElement
+    expect(chanceEl?.classList.contains('availability-tous__chance--high')).toBe(true)
+    expect(chanceEl?.style.color).toBe('var(--hatcast-chance-high)')
   })
 
   it('does not show Afficher les chances toggle', async () => {
@@ -198,5 +202,45 @@ describe('EventDisposTab', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.textContent).not.toContain('Afficher les chances')
+  })
+
+  it('shows Rappel dispos for organizer when unknown participants exist', async () => {
+    const { fixture } = await setup(true)
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.componentRef.setInput('event', {
+      id: 'event-1',
+      slug: 'event-slug',
+      title: 'Match',
+      startsAt: '2030-06-15T18:00:00Z',
+      templateType: 'cabaret',
+      roleSlots: ROLE_TEMPLATES.cabaret,
+      archived: false,
+      availabilityOpenedAt: '2030-01-01T00:00:00Z',
+    })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Rappel dispos')
+  })
+
+  it('hides Rappel dispos for regular members', async () => {
+    const { fixture } = await setup(false)
+    fixture.componentRef.setInput('canManageComposition', false)
+    fixture.componentRef.setInput('event', {
+      id: 'event-1',
+      slug: 'event-slug',
+      title: 'Match',
+      startsAt: '2030-06-15T18:00:00Z',
+      templateType: 'cabaret',
+      roleSlots: ROLE_TEMPLATES.cabaret,
+      archived: false,
+      availabilityOpenedAt: '2030-01-01T00:00:00Z',
+    })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).not.toContain('Rappel dispos')
   })
 })

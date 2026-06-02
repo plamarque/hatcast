@@ -1,5 +1,9 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.UpdateSlotParticipationRequestDto
@@ -11,7 +15,11 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.notification.ProxyParticipationRecordedEvent
 import com.hatcast.api.troupe.TroupeAccessService
+import com.hatcast.api.troupe.TroupeMembershipEntity
+import com.hatcast.api.user.UserEntity
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -32,6 +40,9 @@ class CompositionParticipationService(
     private val troupeAccess: TroupeAccessService,
     private val organizerAccess: OrganizerAccessRules,
     private val compositionService: CompositionService,
+    private val auditRecorder: AuditEventRecorder,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun updateParticipation(
@@ -110,6 +121,15 @@ class CompositionParticipationService(
         }
 
         val now = Instant.now()
+        val beforeStatus = slotEntity.participationStatus
+        val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
+        val subjectSeasonParticipantId = slotEntity.seasonParticipantId
+        val subjectEventParticipantId = slotEntity.eventParticipantId
+        val assigneeUserId =
+            resolveLinkedUserId(
+                seasonParticipantId = subjectSeasonParticipantId,
+                eventParticipantId = subjectEventParticipantId,
+            )
         when (participationStatus) {
             SlotParticipationStatus.CONFIRMED -> {
                 slotEntity.participationStatus = SlotParticipationStatus.CONFIRMED
@@ -140,8 +160,76 @@ class CompositionParticipationService(
         composition.updatedAt = now
         compositionRepository.save(composition)
 
+        val actionType =
+            when (participationStatus) {
+                SlotParticipationStatus.CONFIRMED -> AuditActionType.PARTICIPATION_CONFIRMED
+                SlotParticipationStatus.PENDING -> AuditActionType.PARTICIPATION_RESET
+                SlotParticipationStatus.DECLINED -> AuditActionType.PARTICIPATION_DECLINED
+            }
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = actionType,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = subjectSeasonParticipantId,
+                subjectEventParticipantId = subjectEventParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before =
+                    AuditSnapshots.participationStatus(beforeStatus) +
+                        mapOf("roleKey" to roleKey, "slotIndex" to slotIndex),
+                after =
+                    AuditSnapshots.participationStatus(participationStatus) +
+                        mapOf("roleKey" to roleKey, "slotIndex" to slotIndex),
+                metadata = mapOf("assigneeParticipantId" to assigneeId.toString()),
+            ),
+        )
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
+
+        if (assigneeUserId != null &&
+            assigneeUserId != principal.userId &&
+            beforeStatus != participationStatus
+        ) {
+            eventPublisher.publishEvent(
+                ProxyParticipationRecordedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    troupeId = event.season.troupe.id,
+                    actorUserId = principal.userId,
+                    subjectUserId = assigneeUserId,
+                    roleKey = roleKey,
+                    participationStatus = participationStatus,
+                ),
+            )
+        }
+
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
+
+    private fun resolveLinkedUserId(
+        seasonParticipantId: UUID?,
+        eventParticipantId: UUID?,
+    ): UUID? {
+        seasonParticipantId?.let { id ->
+            seasonParticipantRepository.findById(id).orElse(null)?.let { participant ->
+                linkedUserId(participant.user, participant.troupeMembership)?.let { return it }
+            }
+        }
+        eventParticipantId?.let { id ->
+            eventParticipantRepository.findById(id).orElse(null)?.let { participant ->
+                participant.user?.id?.let { return it }
+                participant.seasonParticipant?.let { seasonParticipant ->
+                    linkedUserId(seasonParticipant.user, seasonParticipant.troupeMembership)?.let { return it }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun linkedUserId(
+        user: UserEntity?,
+        membership: TroupeMembershipEntity?,
+    ): UUID? = user?.id ?: membership?.user?.id
 
     private fun loadAuthorizedEvent(
         seasonId: UUID,

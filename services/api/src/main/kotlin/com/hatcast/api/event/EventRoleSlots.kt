@@ -24,7 +24,7 @@ object EventTypes {
         if (templateType !in ALLOWED) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "templateType invalide : $templateType",
+                "Format invalide : $templateType",
             )
         }
     }
@@ -42,6 +42,20 @@ object RoleKeys {
             "lighting",
             "coach",
             "stage_manager",
+        )
+
+    /** V1 [`ROLE_PRIORITY_ORDER`] — draw order (Dispos « Tous », composition draw). */
+    val PRIORITY_ORDER: List<String> =
+        listOf(
+            "referee",
+            "dj",
+            "mc",
+            "player",
+            "assistant_referee",
+            "coach",
+            "stage_manager",
+            "lighting",
+            "volunteer",
         )
 
     const val MIN_COUNT = 0
@@ -129,7 +143,7 @@ object RoleTemplates {
     }
 
     fun rolesWithSlots(slots: Map<String, Int>): List<String> =
-        RoleKeys.ALL.filter { (slots[it] ?: 0) > 0 }
+        RoleKeys.PRIORITY_ORDER.filter { (slots[it] ?: 0) > 0 }
 
     fun isDeplacement(templateType: String): Boolean = templateType == "deplacement"
 }

@@ -7,10 +7,11 @@ import com.hatcast.api.troupe.dto.MemberImportResultDto
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
-import com.hatcast.api.troupe.dto.TroupeEquityTagDto
+import com.hatcast.api.troupe.dto.TroupeCategoryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
+import com.hatcast.api.troupe.dto.UpdateTroupeRequest
 import com.hatcast.api.user.UserImportService
 import com.hatcast.api.user.dto.UserImportResultDto
 import jakarta.validation.Valid
@@ -19,6 +20,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.http.CacheControl
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -32,6 +34,7 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 @RestController
 @RequestMapping("/v1/troupes")
@@ -39,7 +42,9 @@ class TroupeController(
     private val membershipService: TroupeMembershipService,
     private val troupeService: TroupeService,
     private val userImportService: UserImportService,
-    private val troupeEquityTagService: TroupeEquityTagService,
+    private val troupeCategoryService: TroupeCategoryService,
+    private val troupeAccess: TroupeAccessService,
+    private val troupeLogoService: TroupeLogoService,
 ) {
     /** Troupe(s) où l'utilisateur courant a une adhésion active. */
     @GetMapping
@@ -58,6 +63,55 @@ class TroupeController(
     ): ResponseEntity<TroupeListItemDto> =
         ResponseEntity.status(HttpStatus.CREATED).body(troupeService.create(body, principal))
 
+    /** Met à jour le nom affiché de la troupe (admin troupe ou plateforme). Le slug reste inchangé. */
+    @PatchMapping("/{troupeId}")
+    fun updateTroupe(
+        @PathVariable troupeId: UUID,
+        @Valid @RequestBody body: UpdateTroupeRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeListItemDto = troupeService.update(troupeId, body, principal)
+
+    /** Logo bytes for active troupe members (includes troupes hidden from public directory). */
+    @GetMapping("/{troupeId}/logo")
+    fun getLogo(
+        @PathVariable troupeId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): ResponseEntity<ByteArray> {
+        troupeAccess.requireActiveMember(principal, troupeId)
+        val content =
+            troupeLogoService.readTroupeLogo(troupeId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return ResponseEntity
+            .ok()
+            .contentType(content.second)
+            .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePrivate())
+            .body(content.first)
+    }
+
+    @PostMapping("/{troupeId}/logo", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun uploadLogo(
+        @PathVariable troupeId: UUID,
+        @RequestParam("file") file: MultipartFile,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeListItemDto {
+        if (file.isEmpty) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Format non pris en charge.")
+        }
+        troupeAccess.requireCanManageTroupe(principal, troupeId)
+        val troupe = troupeLogoService.uploadLogo(troupeId, file.bytes, file.contentType)
+        return membershipService.buildTroupeListItemForViewer(principal, troupe)
+    }
+
+    @DeleteMapping("/{troupeId}/logo")
+    fun deleteLogo(
+        @PathVariable troupeId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeListItemDto {
+        troupeAccess.requireCanManageTroupe(principal, troupeId)
+        val troupe = troupeLogoService.deleteLogo(troupeId)
+        return membershipService.buildTroupeListItemForViewer(principal, troupe)
+    }
+
     /**
      * Rejoindre (ou réactiver) l'adhésion courante lorsque la troupe a `join_policy = OPEN`.
      * Les troupes démo inscrivent aussi le membre sur la saison active (roster).
@@ -71,11 +125,11 @@ class TroupeController(
         return MembershipSummaryDto.from(membership)
     }
 
-    @GetMapping("/{troupeId}/equity-tags")
-    fun listEquityTags(
+    @GetMapping("/{troupeId}/categories")
+    fun listCategories(
         @PathVariable troupeId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
-    ): List<TroupeEquityTagDto> = troupeEquityTagService.listForTroupe(troupeId, principal)
+    ): List<TroupeCategoryDto> = troupeCategoryService.listForTroupe(troupeId, principal)
 
     @GetMapping("/{troupeId}/memberships/me")
     fun getMyMembership(
@@ -92,6 +146,7 @@ class TroupeController(
     }
 
     @PatchMapping("/{troupeId}/memberships/me")
+    @Deprecated("Use PATCH /v1/me/preferences.")
     fun updateMyMembership(
         @PathVariable troupeId: UUID,
         @Valid @RequestBody body: UpdateMyMembershipRequest,

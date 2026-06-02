@@ -1,24 +1,25 @@
 import { Component, input, output } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
 
-import {
-  availabilityBadgeLabel,
-  availabilityBadgeModifier,
-  type AvailabilityStatus,
-} from '../../core/availability/availability-status'
+import type { AvailabilityStatus } from '../../core/availability/availability-status'
+import { isEventDraft } from '../../core/events/event-draft'
 import type { MonthEventGroup } from './season-events.utils'
 import { getEventTypeIcon } from '../../core/events/event-types'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
+import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import {
-  formatParticipantFocusLabel,
-  participantFocusFromEvent,
-} from './season-participant-focus'
+  agendaParticipationStatusAriaLabel,
+  agendaParticipationStatusFromEvent,
+} from '../../shared/participation/agenda-participation-status.utils'
+import { participantFocusFromEvent, type ParticipantFocusSummary } from './season-participant-focus'
 
 @Component({
   selector: 'app-season-agenda',
-  imports: [MatButtonModule, MatIconModule, MatMenuModule, CompositionStatusBadge],
+  imports: [
+    MatButtonModule,
+    CompositionStatusBadge,
+    AgendaParticipationStatus,
+  ],
   templateUrl: './season-agenda.html',
   styleUrl: './season-agenda.scss',
 })
@@ -34,13 +35,10 @@ export class SeasonAgenda {
   readonly canEditAvailability = input(false)
   /** When filters exclude every card (Historique). */
   readonly filtersExcludeAll = input(false)
-  /** Slug → display label for equity tag badges (story 17.8). */
-  readonly equityTagLabels = input<Record<string, string>>({})
+  /** Slug → display label for category badges (story 17.8). */
+  readonly categoryLabels = input<Record<string, string>>({})
 
   readonly eventClick = output<string>()
-  readonly editClick = output<string>()
-  readonly archiveClick = output<string>()
-  readonly createClick = output<void>()
   readonly loadMoreClick = output<void>()
   readonly availabilityClick = output<{ eventId: string; status: AvailabilityStatus }>()
 
@@ -48,22 +46,7 @@ export class SeasonAgenda {
     this.eventClick.emit(id)
   }
 
-  protected onEdit(id: string, event: Event): void {
-    event.stopPropagation()
-    this.editClick.emit(id)
-  }
-
-  protected onArchive(id: string, event: Event): void {
-    event.stopPropagation()
-    this.archiveClick.emit(id)
-  }
-
-  protected onAvailabilityClick(
-    eventId: string,
-    status: AvailabilityStatus,
-    event: Event,
-  ): void {
-    event.stopPropagation()
+  protected onStatusAvailabilityClick(eventId: string, status: AvailabilityStatus): void {
     this.availabilityClick.emit({ eventId, status })
   }
 
@@ -71,63 +54,41 @@ export class SeasonAgenda {
     return ev.myAvailabilityStatus ?? 'unknown'
   }
 
-  protected dispoLabel(status: AvailabilityStatus): string {
-    return availabilityBadgeLabel(status)
-  }
-
-  protected dispoModifier(status: AvailabilityStatus): string {
-    return availabilityBadgeModifier(status)
-  }
-
-  protected focusLabel(ev: {
-    myAvailabilityStatus?: AvailabilityStatus
-    participantFocus?: {
-      availabilityStatus: AvailabilityStatus
-      compositionRoleKey?: string | null
-      inTeam: boolean
-    } | null
-  }): string {
-    return formatParticipantFocusLabel(participantFocusFromEvent(ev))
-  }
-
-  protected focusModifier(ev: {
-    myAvailabilityStatus?: AvailabilityStatus
-    participantFocus?: {
-      availabilityStatus: AvailabilityStatus
-      compositionRoleKey?: string | null
-      inTeam: boolean
-    } | null
-  }): string {
-    const focus = participantFocusFromEvent(ev)
-    if (focus.inTeam) {
-      return '--in-team'
-    }
-    return availabilityBadgeModifier(focus.availabilityStatus)
+  protected canEditAvailabilityOnCard(ev: {
+    myAvailabilityStatus?: AvailabilityStatus | null
+    participantFocus?: ParticipantFocusSummary | null
+  }): boolean {
+    return (
+      this.variant() === 'agenda' &&
+      this.canEditAvailability() &&
+      !participantFocusFromEvent(ev).inTeam
+    )
   }
 
   protected historyCardAriaLabel(ev: {
     title: string
     dayNumber: number
     dayName: string
-    myAvailabilityStatus?: AvailabilityStatus
-    participantFocus?: {
-      availabilityStatus: AvailabilityStatus
-      compositionRoleKey?: string | null
-      inTeam: boolean
-    } | null
+    myAvailabilityStatus?: AvailabilityStatus | null
+    participantFocus?: ParticipantFocusSummary | null
   }): string {
-    return `${ev.title}, ${ev.dayNumber} ${ev.dayName}, ${this.focusLabel(ev)}`
+    const statusLabel = agendaParticipationStatusAriaLabel(
+      agendaParticipationStatusFromEvent(ev, false),
+    )
+    return `${ev.title}, ${ev.dayNumber} ${ev.dayName}, ${statusLabel}`
   }
 
   protected typeIcon(templateType: string): string {
     return getEventTypeIcon(templateType)
   }
 
-  protected equityTagBadgeLabel(ev: { equityTag?: string | null }): string | null {
-    const slug = ev.equityTag
+  protected readonly isEventDraft = isEventDraft
+
+  protected categoryBadgeLabel(ev: { category?: string | null }): string | null {
+    const slug = ev.category
     if (!slug) {
       return null
     }
-    return this.equityTagLabels()[slug] ?? slug
+    return this.categoryLabels()[slug] ?? slug
   }
 }

@@ -1,0 +1,4 @@
+/* Stack update banner below install when both are visible (app.html sibling hosts). */
+app-pwa-install-banner:has(.pwa-system-banner) ~ app-pwa-update-banner .pwa-system-banner--update {
+  top: calc(3.25rem + env(safe-area-inset-top, 0));
+}

@@ -9,7 +9,9 @@ import {
 
 describe('availability-role-rules', () => {
   it('keeps only roles required by the event', () => {
-    expect(candidateRolesForEvent(ROLE_TEMPLATES.cabaret)).toEqual(['player', 'dj', 'mc'])
+    expect([...candidateRolesForEvent(ROLE_TEMPLATES.cabaret)].sort()).toEqual(
+      ['player', 'dj', 'mc'].sort(),
+    )
   })
 
   it('normalizes selected role keys and ignores invalid roles', () => {

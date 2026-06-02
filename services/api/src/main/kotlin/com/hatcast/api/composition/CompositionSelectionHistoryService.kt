@@ -1,5 +1,7 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.event.SpectacleCategory
+import com.hatcast.api.event.EventEntity
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -16,20 +18,32 @@ class CompositionSelectionHistoryService(
     private val slotRepository: EventCompositionSlotRepository,
 ) {
     /**
-     * Counts validated assignments per (participant, role) in the season for the given equity compartment,
-     * excluding the current event, archived events, and declined slots (FR19/FR24, ADR 0013).
+     * Counts validated assignments per (participant, role) for draw weights and Dispos % (FR19/FR24).
+     *
+     * @see SelectionHistoryMode
      */
     fun pastSelectionCountByParticipantAndRole(
-        seasonId: UUID,
-        excludeEventId: UUID,
-        equityCompartment: String,
+        event: EventEntity,
+        mode: SelectionHistoryMode,
     ): Map<Pair<UUID, String>, Int> {
+        val compartment = SpectacleCategory.slug(event)
         val rows =
-            slotRepository.countValidatedSelectionsBySeasonAndCompartment(
-                seasonId,
-                excludeEventId,
-                equityCompartment,
-            )
+            when (mode) {
+                SelectionHistoryMode.OPERATIONAL ->
+                    slotRepository.countValidatedSelectionsBySeasonAndCategory(
+                        event.season.id,
+                        event.id,
+                        compartment,
+                    )
+                SelectionHistoryMode.RETROSPECTIVE ->
+                    slotRepository.countValidatedSelectionsBeforeEvent(
+                        event.season.id,
+                        event.id,
+                        event.startsAt,
+                        event.createdAt,
+                        compartment,
+                    )
+            }
         return rows.associate { row ->
             Pair(row.getParticipantId(), row.getRoleKey()) to row.getSelectionCount().toInt()
         }

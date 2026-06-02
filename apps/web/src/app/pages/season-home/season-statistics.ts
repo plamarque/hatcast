@@ -1,12 +1,17 @@
-import { Component, computed, input, signal } from '@angular/core'
+import { Component, computed, inject, input, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
+import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import type {
   ParticipantStatisticsRow,
   SeasonStatisticsResponse,
   StatCounts,
+  StatisticsEventCell,
 } from '../../core/seasons/season-statistics-api.service'
+import { ParticipationEventCell } from '../../shared/participation/participation-event-cell'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { StatRatioDisplay } from './stat-ratio-display'
 import { monthLabel } from './season-statistics.utils'
 
@@ -21,7 +26,14 @@ export type StatisticsEmptyReason = 'none-selected' | 'no-data' | null
 
 @Component({
   selector: 'app-season-statistics',
-  imports: [MatButtonModule, MatIconModule, StatRatioDisplay],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    StatRatioDisplay,
+    UserAvatarComponent,
+    ParticipationEventCell,
+  ],
   templateUrl: './season-statistics.html',
   styleUrl: './season-statistics.scss',
 })
@@ -30,6 +42,10 @@ export class SeasonStatistics {
   readonly loading = input(false)
   readonly detailsExpanded = input(false)
   readonly emptyReason = input<StatisticsEmptyReason>(null)
+  readonly troupeId = input<string | null>(null)
+  readonly seasonId = input<string | null>(null)
+
+  private readonly memberProfile = inject(MemberProfileService)
 
   protected readonly jeuExpanded = signal(false)
   protected readonly decorumExpanded = signal(false)
@@ -43,10 +59,10 @@ export class SeasonStatistics {
   protected readonly emptyMessage = computed(() => {
     const reason = this.emptyReason()
     if (reason === 'none-selected') {
-      return 'Sélectionnez au moins un groupe de spectacles pour afficher les statistiques.'
+      return 'Sélectionnez au moins un catégorie pour afficher les statistiques.'
     }
     if (reason === 'no-data') {
-      return 'Aucune donnée pour les groupes sélectionnés sur cette saison.'
+      return 'Aucune donnée pour les catégories sélectionnés sur cette saison.'
     }
     if (!this.data() || this.rows().length === 0) {
       return 'Pas encore de données pour cette saison.'
@@ -104,8 +120,44 @@ export class SeasonStatistics {
     return row.monthSummary[monthKey]
   }
 
-  protected eventCell(row: ParticipantStatisticsRow, eventId: string): string {
-    return row.eventCells[eventId] ?? '—'
+  protected eventCellDetail(
+    row: ParticipantStatisticsRow,
+    eventId: string,
+  ): StatisticsEventCell {
+    const detail = row.eventCellDetails?.[eventId]
+    if (detail) {
+      return detail
+    }
+    const legacy = row.eventCells[eventId] ?? '—'
+    return {
+      status: 'neutral',
+      label: legacy,
+      roleKey: null,
+      tooltip: legacy,
+    }
+  }
+
+  protected canOpenMemberProfile(row: ParticipantStatisticsRow): boolean {
+    return !!row.userSlug?.trim()
+  }
+
+  protected memberProfileAriaLabel(row: ParticipantStatisticsRow): string {
+    return `Voir la saison en un clin d'œil de ${row.displayName}`
+  }
+
+  protected readonly profileUnavailableTooltip =
+    'Profil indisponible — aucun compte lié'
+
+  protected openMemberProfile(row: ParticipantStatisticsRow): void {
+    const userSlug = row.userSlug?.trim()
+    if (!userSlug) {
+      return
+    }
+    this.memberProfile.navigateToMemberGlance({
+      userSlug,
+      troupeId: this.troupeId() ?? undefined,
+      seasonId: this.seasonId() ?? undefined,
+    })
   }
 
   protected jeuDetailsVisible(): boolean {

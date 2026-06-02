@@ -1,3 +1,99 @@
+## Deferred from: code review of 8-5-extensions-notifications-membre.md (2026-06-01)
+
+- **W1** — `actorUserId` set to recipient's own `userId` in `AssigneePresenceReminderJob` dispatch context — semantic smell; `actorUserId` not surfaced in current reminder payloads, no user impact today.
+- **W2** — `ASSIGNEE_PRESENCE_REMINDER.toCategory(null)` falls back to `REMINDER_7_DAYS` in `NotificationIntent.kt` — latent wrong-category preference check for future callers that omit `reminderWindow`.
+- **W3** — `resolveUserId` in reminder job has no participant-status guard; deactivated members with a `CONFIRMED` slot still receive reminders — pre-existing participant lifecycle gap.
+
+## Deferred from: code review of 8-6-notifications-proxy-confirmation-membre-concerne.md (2026-06-01)
+
+- Diff review mélangé avec changements 8.5 (FYI/rappels) — périmètre review, pas régression 8.6.
+- `resolveSubjectRecipient` retourne `displayName` vide — pattern existant 8.3, payloads proxy n'utilisent pas le prénom destinataire.
+- `userRepository.findById` par notification pour le nom acteur — charge DB post-commit acceptable pour V1 du pipeline.
+
+## Deferred from: code review of 8-2-preferences-de-notification.md (2026-06-01)
+
+- `COMPOSITION_SHARED` sans mapping `NotificationIntent.toCategory()` — catégorie exposée en UI/API ; le dispatcher 8.3 devra ajouter l’intent brouillon partagé et le mapping (handoff déjà documenté dans la story).
+
+## Deferred from: code review of 4-3-troupe-logo-description-cartes.md (2026-06-01)
+
+- ~~Logo sur cartes « Mes troupes » pour troupes hors annuaire~~ — **résolu** dans la clôture 4.3 : `GET /v1/troupes/{id}/logo` (membre actif) + `memberLogoUrl` dans les DTO authentifiés.
+
+## Deferred from: code review of 17-32-season-stats-export-admin-menu.md (2026-06-01)
+
+- Autorisation serveur dédiée pour l'export CSV — l'endpoint statistiques reste lisible par tout membre actif pour la grille; une route export admin-only dédiée durcirait le téléchargement mais le SCP 17.32 l'a explicitement classée hors périmètre.
+
+## Deferred from: code review of 17-29-refonte-hub-troupe-mon-compte-preferences.md (2026-06-01)
+
+- Persistance multi-troupes non atomique + rôles divergents — **story 17.33** (préférences compte utilisateur ; supprimer propagation per-troupe).
+- Appels API 2×N séquentiels à l’enregistrement — résolu par 17.33 (endpoint compte unique).
+- Messages d’erreur PATCH génériques côté client — amélioration UX non exigée par AC4.
+- Doc `ux-design-scope-admin-menu-epic17.md` Screen 3 non amendée — task optionnelle laissée ouverte dans la story.
+- Tests API PATCH 401/404/idempotence — couverture standard au-delà de AC10 minimal (admin/membre/blanc).
+
+## Deferred from: code review of mig-4-deplacements-category-import.md (2026-06-01)
+
+- Gate Malice AC5 non exécuté (count=7 non prouvé sur dump prod) — dry-run/replay documenté mais absent des preuves ; bloquant gate prod, pas défaut code.
+- Replay Procedure C post-MIG-4 non démontré (AC8, ≥3 cycles `migrate:v2:validate-replay`).
+- `smokeCounts()` pipeline (`scripts/v2/migrate-lib/neon.mjs`) n’asserte pas `category='deplacements'` — runbook manuel couvre AC7 ; automatisation recommandée avant cutover.
+- `sprint-status.yaml` inclut des changements hors MIG-4 (3-20→done, epic-14 superseded) — hygiene sprint séparée.
+
+## Deferred from: code review of 3-20-statistiques-cellules-evenement-participation-couleur-emoji.md (2026-06-01)
+
+- Bras `SlotParticipationStatus.DECLINED` dans `buildEventCell` inaccessible via `findSelectionSlot` — exhaustivité Kotlin + garde-fou futur. [SeasonStatisticsService.kt:397]
+- `resolveParticipationChartStatus` remappe `available + roleKey → selected` — `buildEventCell` ne renseigne jamais `roleKey` sur `available`. [participation-event-cell.ts:27]
+- Fallback cache legacy (`eventCellDetails` absent) affiche toujours neutre gris — comportement explicitement spécifié dans la story. [season-statistics.ts:131]
+
+## Deferred from: code review of 17-28-filtres-hub-pickers.md (2026-06-01)
+
+- Event picker capped at 250 events — `EVENT_PICKER_MAX` silently truncates large catalogs. [season-view-toolbar.ts:28,286]
+- API multi-id participant/event for history — documented in Dev Agent Record; server union deferred to follow-up story.
+
+
+- ISSUES BUG-004 mentionne « unarchive lifecycle » — pas d’endpoint unarchive en V2 ; resync à prévoir si feature ajoutée.
+
+## Deferred from: code review of 17-31-modifier-saison-gear-workspace.md (2026-05-31)
+
+- Slug change after edit triggers full `loadTroupeAndSeason` reload (loading spinner flash) — pre-existing route param subscription pattern, not introduced by 17.31. [season-home.ts:933]
+
+## Deferred from: align home next-event card with agenda (2026-05-31)
+
+- Badges troupe/saison statiques (`<span>`) vs liens `routerLink` dans user-agenda — parité navigation préexistante.
+- Hover featured carte accueil — `agenda-card--interactive` retiré ; hover limité à `agenda-card__clickable`. [_hatcast-agenda-event-card.scss:40-43]
+
+## Deferred from: code review of 17-27-panneau-filtres-unifie.md (2026-05-31)
+
+- Couverture tests flux panel troupe→saison — pas de `filter-panel-content.spec.ts` ni test page-level `openFilterPanel` cross-troupe ; test gap non bloquant build.
+- Glance sans `loadGeneration` — courses concurrentes `loadGlance()` possibles ; préexistant, aggravé par panel. [member-season-glance.ts:259-310]
+- `loadingAgenda` si requête stale — early return sans `loadingAgenda.set(false)` si génération obsolète. [user-agenda.ts:144-146] — préexistant.
+- Input `immediateApply` non câblé — `FilterDimensionSingle.immediateApply` jamais passé depuis le panel ; cleanup.
+- Couplage `shared/filters` → `pages/season-home/stats-categories` — dépendance page dans module shared ; accepté story.
+- Breakpoint figé à l'ouverture du panel — pas de bascule sheet↔dialog au resize. [filter-panel.service.ts:21] — edge rare.
+- Test availability tri `.sort()` — assertion ordre-indépendante masque ordre UI potentiel. [availability-role-rules.spec.ts] — flaky préexistant.
+
+## Deferred from: platform admin troupe navigation by URL (2026-05-31)
+
+- Hub troupe **« Préférences dans cette troupe »** (`troupe-hub-preferences-sheet`) appelle `PATCH …/memberships/me` — échoue sans adhésion réelle ; masquer ou adapter pour le contexte admin plateforme sans membership. [troupe-hub-preferences-sheet.ts]
+- Pas de liste « toutes les troupes » pour super-admin dans `/troupes` (volontaire) ; navigation par URL ou future story dédiée.
+
+## Deferred from: code review of 16-2-statistiques-avatar-navigation-profil-membre.md (2026-05-31)
+
+- Reload parallèle stats/history dans `season-home.ts` (commit 85d5b48d) — correctif utile pour retour navigateur `view=stats`, hors scope story 16.2 mais bundlé intentionnellement. [season-home.ts:501-521]
+- Pas d'assertion API sur `avatarUrl` non null quand user lié — seul `userSlug` est vérifié ; faible risque. [SeasonStatisticsServiceTest.kt]
+
+## Deferred from: code review of 6-14-snapshot-chances-au-tirage.md (2026-05-31)
+
+- Participant assigné manuellement hors du pool courant (non AVAILABLE / non éligible) omis de l'explainability passée : `scoredByParticipant[participantId]?.let{}` sans branche `else` → aucune entrée d'odds pour un assigné réel sans snapshot. Gap pré-existant du chemin live, non introduit par la logique snapshot. [CompositionService.kt:393-404]
+- Migration V39 sans FK/cascade sur `participant_id` (FK uniquement sur `event_id ON DELETE CASCADE`) → lignes snapshot orphelines au retrait d'un season participant (croise la story 3-19 en cours). Faible impact : les chemins d'affichage joignent sur les candidats courants ; nettoyé seulement à la suppression de l'événement. [V39__event_draw_chance_snapshots.sql:11-12]
+
+## Deferred from: code review of 3-19-retrait-roster-saison-sans-desactivation-troupe.md (2026-05-31)
+
+- Migration V38 sans backfill des rows REMOVED préexistantes (`removal_source` NULL) — probablement aucune row membre concernée en pratique (le retrait season-local de membres n'existait pas avant); à vérifier avant prod. [V38__season_participant_removal_source.sql]
+- N+1 dans `removeForMembershipAcrossTroupe`/`ensureForMembershipAcrossToupe` : une requête `findBySeason_IdAndTroupeMembership_Id` + save/count par saison. Acceptable à l'échelle actuelle. [SeasonParticipantMembershipSync.kt:337-354]
+- Course `reinclude` vs désactivation d'adhésion concurrente : sans verrou, peut laisser un participant ACTIVE lié à une adhésion INACTIVE; auto-réparé au prochain list via `findActiveLinkedToInactiveMembershipsForSeason`. [SeasonParticipantService.kt:193-207]
+- Cible tactile du bouton « Retirer » (`mat-icon-button` ~40dp) potentiellement < 48dp (M3-3) — pattern préexistant dans l'écran, non introduit par la story. [admin-participants.html]
+- Logique de réconciliation `SEASON_ADMIN` (skip + réactivation par égalité de champs) dupliquée entre `SeasonParticipantMembershipSync` et `SeasonParticipantService` — risque de drift; candidate à extraction. [SeasonParticipantMembershipSync.kt:317 / SeasonParticipantService.kt:465]
+- Méthode repository `findByTroupeMembership_Id` ajoutée mais non appelée (code mort). [ParticipantRepositories.kt:271]
+
 ## Deferred from: code review of mig-3-availability-compositions-migration-pipeline.md (2026-05-29)
 
 - `comment` > VARCHAR(500) / `role_key` > VARCHAR(64) non validés côté transform → ferait échouer toute la transaction unique au load ; non routé vers rejects. Non déclenché par les données Malice (`comment=null`, role_keys courts). [scripts/v1/maliceAvailabilityCompositions.js:196,283]
@@ -303,3 +399,18 @@
 
 - Dead branch in `onSlotRowClick` foreign-slot snackbar (`event-equipe-tab.ts:337-344`) — readonly button path makes it unreachable; harmless cleanup.
 - Unlinked viewer (`viewerParticipantIds` empty) sees static foreign slots without snackbar (`event-equipe-tab.html:151-168`) — edge case outside typical linked-member flow.
+
+## Deferred from: code review of 9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorises.md (2026-06-01)
+
+- Séparateurs jour dupliqués/manquants entre pages paginées (`audit-journal-list.ts`) — cosmétique pagination.
+- `mat-datepicker` vs `<input type="date">` (`admin-audit.html`) — M3-1 partiel acceptable.
+- Chip périmètre + H1 mobile absents sur admin-audit (`admin-audit.html`) — polish layout M3-4.
+- Index page API non plafonné (`AuditEventController.kt:29`) — risque faible avec volume audit actuel.
+- Appel `listSeasonParticipants` systématique sur fiche spectacle (`event-detail.ts`) — perf polish.
+- Label jour DST dans `audit-day-label.ts` — edge case rare.
+
+## Deferred from: code review of 10-7-icone-pwa-hatcast-2.md (2026-06-02)
+
+- QA maskable manuelle (DevTools safe area, maskable.app, devices) — explicitement reportée à Story 10.4 ; calcul script 18 % plausible (AC4, M3-5).
+- Cache SW/OS des anciennes icônes jusqu’à « Mettre à jour » ou réinstallation — comportement connu Story 10.2, hors scope correctif 10.7.
+- Script `generate-icons.sh` zsh-only — convention repo existante, documentée en en-tête.

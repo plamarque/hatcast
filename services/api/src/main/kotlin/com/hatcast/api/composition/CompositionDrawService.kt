@@ -1,8 +1,13 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
+import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.associateByLinkedUserId
 import com.hatcast.api.composition.dto.CompositionDrawResponseDto
@@ -10,7 +15,6 @@ import com.hatcast.api.composition.dto.CompositionDrawStepCandidateDto
 import com.hatcast.api.composition.dto.CompositionDrawStepDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.DrawCompositionRequestDto
-import com.hatcast.api.event.EquityCompartment
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
@@ -21,6 +25,7 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -44,7 +49,10 @@ class CompositionDrawService(
     private val troupeAccess: TroupeAccessService,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val compositionService: CompositionService,
-    private val notificationPort: CompositionNotificationPort,
+    private val eventPublisher: ApplicationEventPublisher,
+    private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
+    private val auditRecorder: AuditEventRecorder,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional
     fun drawComposition(
@@ -77,6 +85,7 @@ class CompositionDrawService(
         }
 
         val now = Instant.now()
+        val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val compositionRow =
             composition
                 ?: compositionRepository.save(
@@ -102,12 +111,12 @@ class CompositionDrawService(
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
         val historyCounts =
             selectionHistory.pastSelectionCountByParticipantAndRole(
-                seasonId,
-                eventId,
-                EquityCompartment.slug(event),
+                event,
+                SelectionHistoryMode.OPERATIONAL,
             )
 
         val allSlots = slotRepository.findByEventId(eventId)
+        val beforeDrawSnapshot = AuditSnapshots.drawAssignments(allSlots)
         val slotsByRole =
             allSlots
                 .filter { slot ->
@@ -120,6 +129,22 @@ class CompositionDrawService(
         val steps = mutableListOf<CompositionDrawStepDto>()
         val newlyAssignedParticipantIds = mutableListOf<UUID>()
         val slotsToPersist = mutableListOf<EventCompositionSlotEntity>()
+        // Last draw step wins when the same participant appears in multiple slots for one role.
+        val snapshotAccumulator = linkedMapOf<Pair<String, UUID>, DrawChanceSnapshotInput>()
+        // Roles whose existing snapshot rows are safe to replace (fully cleared and redrawn).
+        val fullyRedrawnRoleKeys = mutableSetOf<String>()
+
+        val openingCrossRoleExcluded =
+            allSlots.mapNotNull { it.assignedParticipantId() }.toMutableSet()
+        captureOpeningDrawSnapshots(
+            requiredRoles = requiredRoles,
+            normalizedSlots = normalizedSlots,
+            eligible = eligible,
+            availabilityByUserId = availabilityByUserId,
+            historyCounts = historyCounts,
+            crossRoleExcluded = openingCrossRoleExcluded,
+            snapshotAccumulator = snapshotAccumulator,
+        )
 
         for (roleKey in requiredRoles) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
@@ -129,6 +154,9 @@ class CompositionDrawService(
             val filledCount = (0 until requiredCount).count { roleSlots[it]?.hasAssignee() == true }
             val isFullRedraw =
                 mode == DrawMode.FULL && filledCount >= requiredCount
+            if (isFullRedraw) {
+                fullyRedrawnRoleKeys.add(roleKey)
+            }
 
             if (isFullRedraw) {
                 for (index in 0 until requiredCount) {
@@ -265,22 +293,44 @@ class CompositionDrawService(
 
         if (slotsToPersist.isNotEmpty()) {
             slotRepository.saveAll(slotsToPersist.distinctBy { it.id })
+            val afterDrawSnapshot = AuditSnapshots.drawAssignments(slotRepository.findByEventId(eventId))
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.COMPOSITION_DRAW_COMPLETED,
+                    actorUserId = principal.userId,
+                    troupeId = event.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = eventId,
+                    before = beforeDrawSnapshot,
+                    after = afterDrawSnapshot,
+                ),
+            )
+        }
+
+        val snapshotRows = snapshotAccumulator.values.toList()
+        when (mode) {
+            DrawMode.FULL ->
+                drawChanceSnapshots.replaceForFullDraw(eventId, fullyRedrawnRoleKeys, snapshotRows, now)
+            DrawMode.FILL_EMPTY -> drawChanceSnapshots.upsertForFillEmpty(eventId, snapshotRows, now)
         }
 
         compositionRow.updatedAt = now
         compositionRepository.save(compositionRow)
 
         if (newlyAssignedParticipantIds.isNotEmpty()) {
-            notificationPort.requestConfirmationForAssignees(
-                eventId = eventId,
-                seasonId = seasonId,
-                assigneeParticipantIds = newlyAssignedParticipantIds.distinct(),
-                actorUserId = principal.userId,
+            eventPublisher.publishEvent(
+                CompositionConfirmationRequestedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    actorUserId = principal.userId,
+                    assigneeParticipantIds = newlyAssignedParticipantIds.distinct(),
+                ),
             )
         }
 
         val compositionResponse =
             compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
         return CompositionDrawResponseDto(composition = compositionResponse, steps = steps)
     }
 
@@ -315,4 +365,60 @@ class CompositionDrawService(
             "fillempty", "fill_empty", "fill-empty" -> DrawMode.FILL_EMPTY
             else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "mode de tirage invalide")
         }
+
+    /**
+     * Freeze % for every role at draw opening — before cross-role exclusions accumulate during
+     * the same request (dj → mc → player order). Matches Dispos « Tous » fairness narrative.
+     */
+    private fun captureOpeningDrawSnapshots(
+        requiredRoles: List<String>,
+        normalizedSlots: Map<String, Int>,
+        eligible: List<CompositionEligibleParticipant>,
+        availabilityByUserId: Map<UUID, EventAvailabilityEntity>,
+        historyCounts: Map<Pair<UUID, String>, Int>,
+        crossRoleExcluded: Set<UUID>,
+        snapshotAccumulator: MutableMap<Pair<String, UUID>, DrawChanceSnapshotInput>,
+    ) {
+        for (roleKey in requiredRoles) {
+            val requiredCount = normalizedSlots[roleKey] ?: 0
+            if (requiredCount <= 0) {
+                continue
+            }
+            val pool =
+                CompositionParticipantPool.buildRolePool(
+                    eligible = eligible,
+                    availabilityByUserId = availabilityByUserId,
+                    roleKey = roleKey,
+                    excluded = crossRoleExcluded,
+                )
+            if (pool.isEmpty()) {
+                continue
+            }
+            val pastByParticipant =
+                selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+            val scored =
+                AvailabilityChanceCalculator.scoreCandidates(
+                    pool.map {
+                        AvailabilityChanceCalculator.Candidate(
+                            participantId = it.participantId,
+                            displayName = it.displayName,
+                            avatarUrl = null,
+                        )
+                    },
+                    requiredCount,
+                    pastByParticipant,
+                )
+            for (candidate in scored) {
+                snapshotAccumulator[roleKey to candidate.participantId] =
+                    DrawChanceSnapshotInput(
+                        roleKey = roleKey,
+                        participantId = candidate.participantId,
+                        chancePercent = candidate.chancePercent,
+                        pastSelectionCount = candidate.pastSelectionCount,
+                        requiredCount = requiredCount,
+                        candidateCount = pool.size,
+                    )
+            }
+        }
+    }
 }

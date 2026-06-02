@@ -207,6 +207,28 @@
   cursor: default;
 }
 
+.account-page__preferences-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 55%, transparent);
+}
+
+.account-page__version {
+  min-height: 3rem;
+  min-width: 3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-page__version-logo {
+  height: 2rem;
+  width: auto;
+  margin-inline-end: 0.5rem;
+  vertical-align: middle;
+}
+
 .account-page__footer {
   margin-top: 0.5rem;
 }

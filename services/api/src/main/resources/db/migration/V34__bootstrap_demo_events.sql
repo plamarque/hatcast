@@ -3,10 +3,10 @@
 
 INSERT INTO events (
     id, season_id, slug, title, description, location, starts_at, archived,
-    template_type, role_slots, equity_tag, created_at, updated_at
+    template_type, role_slots, category, created_at, updated_at
 )
 SELECT CAST(v.id AS uuid), CAST(v.season_id AS uuid), v.slug, v.title, v.description, v.location, v.starts_at, v.archived,
-       v.template_type, v.role_slots, v.equity_tag, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       v.template_type, v.role_slots, v.category, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('c0000001-0000-4000-8000-000000000099', 'b0000001-0000-4000-8000-000000000099', 'demo-hist-cabaret-mai', 'Cabaret de mai', 'Spectacle passé — équipe confirmée', 'Salle Alpha, Lille', TIMESTAMP '2026-05-10T19:30:00Z', FALSE, 'cabaret', '{"player":3,"volunteer":0,"mc":1,"dj":1,"referee":0,"assistant_referee":0,"lighting":0,"coach":0,"stage_manager":0}', NULL),
@@ -29,17 +29,17 @@ FROM (
         ('c0000018-0000-4000-8000-000000000099', 'b0000001-0000-4000-8000-000000000099', 'demo-cabaret-juillet', 'Cabaret juillet', 'After saison', 'Parc Delta, Lille', TIMESTAMP '2027-07-12T19:00:00Z', FALSE, 'cabaret', '{"player":5,"volunteer":0,"mc":1,"dj":1,"referee":0,"assistant_referee":0,"lighting":0,"coach":0,"stage_manager":0}', NULL),
         ('c0000019-0000-4000-8000-000000000099', 'b0000001-0000-4000-8000-000000000099', 'demo-archive-repetition', 'Répétition (archivée)', 'Visible admin uniquement', 'Local Démo', TIMESTAMP '2027-04-01T17:00:00Z', TRUE, 'cabaret', '{"player":5,"volunteer":0,"mc":1,"dj":1,"referee":0,"assistant_referee":0,"lighting":0,"coach":0,"stage_manager":0}', NULL),
         ('c0000020-0000-4000-8000-000000000099', 'b0000001-0000-4000-8000-000000000099', 'demo-archive-ancien', 'Atelier (archivé)', 'Événement inactif', 'Local Démo', TIMESTAMP '2027-03-01T18:00:00Z', TRUE, 'cabaret', '{"player":5,"volunteer":0,"mc":1,"dj":1,"referee":0,"assistant_referee":0,"lighting":0,"coach":0,"stage_manager":0}', NULL)
-) AS v(id, season_id, slug, title, description, location, starts_at, archived, template_type, role_slots, equity_tag)
+) AS v(id, season_id, slug, title, description, location, starts_at, archived, template_type, role_slots, category)
 WHERE NOT EXISTS (SELECT 1 FROM events e WHERE e.id = CAST(v.id AS uuid));
 
-INSERT INTO troupe_equity_tags (id, troupe_id, slug, label)
+INSERT INTO troupe_categories (id, troupe_id, slug, label)
 SELECT
     CAST('a1000099-0000-4000-8000-000000000001' AS uuid),
     CAST('a0000001-0000-4000-8000-000000000099' AS uuid),
     'deplacements',
     'Déplacements'
 WHERE NOT EXISTS (
-    SELECT 1 FROM troupe_equity_tags
+    SELECT 1 FROM troupe_categories
     WHERE troupe_id = CAST('a0000001-0000-4000-8000-000000000099' AS uuid)
       AND slug = 'deplacements'
 );

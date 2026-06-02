@@ -4,6 +4,7 @@ import com.hatcast.api.user.UserEntity
 
 object MemberDisplayNameResolver {
     fun resolve(user: UserEntity): String {
+        user.memberDisplayName?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
         user.displayName?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
         val email = user.email?.trim()?.takeIf { it.isNotEmpty() }
         if (email != null) {

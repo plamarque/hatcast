@@ -1,20 +1,42 @@
 <div class="user-agenda">
   <header class="user-agenda__header">
-    <div class="user-agenda__titles">
-      <h1 class="user-agenda__title">Mon agenda</h1>
-      <p class="user-agenda__subtitle">Tes prochains spectacles, toutes ligues confondues.</p>
+    <h1 class="user-agenda__title">Mon agenda</h1>
+    <div class="user-agenda__header-subline">
+      <p class="user-agenda__subtitle">Mes prochains spectacles.</p>
+      @if (!loadingSession() && !loadError() && filterBarVisible()) {
+        <div class="user-agenda__header-actions" data-testid="filter-trigger-column">
+          <app-filter-trigger
+            [visible]="true"
+            [activeCount]="activeFilterChips().length"
+            [expanded]="filterPanelOpen()"
+            (open)="toggleCriteriaPanel()"
+          />
+        </div>
+      }
     </div>
   </header>
 
-  @if (!loadingSession() && !loadError() && filterBarCatalog(); as filters) {
-    <app-user-agenda-filter-bar
-      [participationFilters]="filters"
-      [selectedTroupeId]="selectedTroupeId()"
-      [selectedLeagueId]="selectedLeagueId()"
-      (troupeChange)="onTroupeFilterChange($event)"
-      (leagueChange)="onLeagueFilterChange($event)"
-      (clearFilters)="onClearFilters()"
-    />
+  @if (!loadingSession() && !loadError() && filterBarVisible()) {
+    @if (filterPanelOpen()) {
+      <div class="user-agenda__criteria-panel" data-testid="user-agenda-criteria-panel">
+        <app-filter-criteria-bar
+          [dimensions]="hubDimensions()"
+          [chips]="activeFilterChips()"
+          (openDimension)="onOpenFilterDimension($event)"
+          (removeDimension)="onRemoveFilterDimension($event)"
+          (clearAll)="onClearFilters()"
+        />
+      </div>
+    } @else if (activeFilterChips().length > 0) {
+      <div class="user-agenda__chips-row" data-testid="user-agenda-chips-row">
+        <app-active-filter-chips
+          [chips]="activeFilterChips()"
+          (removeDimension)="onRemoveFilterDimension($event)"
+          (openDimension)="onOpenFilterDimension($event)"
+          (clearAll)="onClearFilters()"
+        />
+      </div>
+    }
   }
 
   @if (loadingSession()) {
@@ -42,7 +64,7 @@
     </section>
   } @else if (items().length === 0 && noParticipation()) {
     <section class="user-agenda__empty" aria-labelledby="agenda-no-participation-heading">
-      <h2 id="agenda-no-participation-heading" class="user-agenda__empty-title">Aucune ligue pour l’instant</h2>
+      <h2 id="agenda-no-participation-heading" class="user-agenda__empty-title">Aucune saison pour l’instant</h2>
       <p class="user-agenda__empty-text">
         Rejoins la troupe de démonstration pour explorer HatCast en bac à sable.
       </p>
@@ -78,12 +100,12 @@
         </div>
 
         @for (ev of group.events; track ev.eventId) {
-          <article class="agenda-card">
+          <article class="agenda-card agenda-card--row" [class.agenda-card--draft]="isEventDraft(ev)">
             <div
               class="agenda-card__clickable"
               role="button"
               tabindex="0"
-              [attr.aria-label]="'Ouvrir ' + ev.title + ' dans ' + ev.leagueTitle"
+              [attr.aria-label]="'Ouvrir ' + ev.title"
               (click)="openEvent(ev)"
               (keydown.enter)="openEvent(ev)"
               (keydown.space)="openEvent(ev); $event.preventDefault()"
@@ -95,35 +117,18 @@
               </div>
               <div class="agenda-card__body">
                 <h2 class="agenda-card__title">{{ ev.title }}</h2>
-                @if (ev.location) {
-                  <p class="agenda-card__loc">{{ ev.location }}</p>
+                @if (ev.teamStatusBadge) {
+                  <div class="agenda-card__badges">
+                    <app-composition-status-badge [badge]="ev.teamStatusBadge" />
+                  </div>
                 }
               </div>
             </div>
-            <div class="agenda-card__badges">
-              <a
-                class="agenda-card__badge agenda-card__badge--link"
-                [routerLink]="troupeHubPath(ev.troupeSlug)"
-                [attr.aria-label]="'Ouvrir la troupe ' + ev.troupeName"
-                (click)="$event.stopPropagation()"
-              >
-                {{ ev.troupeName }}
-              </a>
-              <a
-                class="agenda-card__badge agenda-card__badge--league agenda-card__badge--link"
-                [routerLink]="saisonWorkspacePath(ev.leagueSlug)"
-                [attr.aria-label]="'Ouvrir la saison ' + ev.leagueTitle"
-                (click)="$event.stopPropagation()"
-              >
-                {{ ev.leagueTitle }}
-              </a>
-              @if (ev.myAvailabilityStatus) {
-                <span
-                  class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(ev.myAvailabilityStatus) }}"
-                >
-                  {{ dispoLabel(ev.myAvailabilityStatus) }}
-                </span>
-              }
+            <div class="agenda-card__status">
+              <app-agenda-participation-status
+                [myAvailabilityStatus]="ev.myAvailabilityStatus"
+                [participantFocus]="ev.participantFocus"
+              />
             </div>
           </article>
         }

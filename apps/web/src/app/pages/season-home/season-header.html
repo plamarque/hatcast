@@ -1,4 +1,4 @@
-<header class="season-header">
+<header class="season-header" [class.season-header--with-admin]="showAdminMenu()">
   <div class="season-header__left">
     @if (showBreadcrumb()) {
       <app-context-breadcrumb
@@ -7,9 +7,15 @@
         [troupeName]="troupeName()!"
         [troupeSlug]="troupeSlug()!"
         [troupeIsDemo]="troupeIsDemo()"
+        [troupeLogoUrl]="troupeLogoUrl()"
         [seasonTitle]="seasonTitle()"
         [seasonSlug]="seasonSlug()"
       />
     }
   </div>
+  @if (showAdminMenu()) {
+    <div class="season-header__admin">
+      <app-scope-admin-menu [scope]="adminScope()" [items]="adminItems()" />
+    </div>
+  }
 </header>

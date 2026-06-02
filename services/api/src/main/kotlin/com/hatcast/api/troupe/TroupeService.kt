@@ -1,9 +1,11 @@
 package com.hatcast.api.troupe
 
+import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.CreateTroupeRequest
 import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
+import com.hatcast.api.troupe.dto.UpdateTroupeRequest
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
@@ -18,6 +20,9 @@ class TroupeService(
     private val troupeRepository: TroupeRepository,
     private val membershipRepository: TroupeMembershipRepository,
     private val userRepository: UserRepository,
+    private val platformAdminService: PlatformAdminService,
+    private val troupeAccess: TroupeAccessService,
+    private val membershipService: TroupeMembershipService,
 ) {
     @Transactional
     fun create(
@@ -80,6 +85,47 @@ class TroupeService(
             HttpStatus.CONFLICT,
             "Impossible de créer la troupe, réessayez.",
         )
+    }
+
+    @Transactional(readOnly = true)
+    fun getBySlugForPlatformAdmin(
+        slug: String,
+        principal: SessionUserPrincipal,
+    ): TroupeAdminSummaryDto {
+        if (!platformAdminService.isPlatformAdmin(principal)) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Accès réservé aux administrateurs de la plateforme.",
+            )
+        }
+        val normalized = slug.trim()
+        if (normalized.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Slug de troupe invalide.")
+        }
+        val troupe =
+            troupeRepository.findBySlug(normalized)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        return TroupeAdminSummaryDto.from(troupe)
+    }
+
+    @Transactional
+    fun update(
+        troupeId: UUID,
+        body: UpdateTroupeRequest,
+        principal: SessionUserPrincipal,
+    ): TroupeListItemDto {
+        troupeAccess.requireCanManageTroupe(principal, troupeId)
+        val nameTrim = body.name.trim()
+        if (nameTrim.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de la troupe ne peut pas être vide.")
+        }
+        val troupe =
+            troupeRepository.findById(troupeId).orElse(null)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        troupe.name = nameTrim
+        troupe.description = body.description?.trim()?.takeIf { it.isNotEmpty() }
+        val saved = troupeRepository.save(troupe)
+        return membershipService.buildTroupeListItemForViewer(principal, saved)
     }
 
     @Transactional

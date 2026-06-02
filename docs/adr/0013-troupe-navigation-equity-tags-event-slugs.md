@@ -1,4 +1,4 @@
-# ADR 0013: Troupe-first navigation, season workspace, equity tags, and event slugs
+# ADR 0013: Troupe-first navigation, season workspace, spectacle categories, and event slugs
 
 **Status:** Accepted (product direction — 2026-05-25)  
 **Date:** 2026-05-25  
@@ -15,10 +15,10 @@ After MVP navigation (Epic 12) and pilot validation (2026-05-25), stakeholder re
 1. **`/seasons` is the wrong hub** — it mixes troupe administration (members) with season listing; members already use `/agenda`.
 2. **Product vocabulary** — French UI should use **Saison** for the programme container (`season` in code), not **Ligue** (sounds like inter-troupe championship, out of scope).
 3. **Wayfinding** — Season and event screens lack visible troupe context; back links point to `/seasons`; event troupe link goes to **admin membres** instead of a troupe home.
-4. **Equity / fairness partitioning** — Within one season (e.g. La Malice), **déplacements** and future axes (e.g. **Apérock**) should split chance pools and related stats **without** creating separate seasons or travel leagues for each axis.
+4. **Category / fairness partitioning** — Within one season (e.g. La Malice), **déplacements** and future axes (e.g. **Apérock**) should split chance pools and related stats **without** creating separate seasons or travel leagues for each axis.
 5. **URLs** — Event routes use UUIDs; shareable paths should use **slugs** consistent with troupe and season slugs.
 
-ADR 0012 §3 proposed **travel leagues** for away shows. The design session concluded that **optional equity tags on events** better match troupe practice (one roster, one season, multiple fairness compartments).
+ADR 0012 §3 proposed **travel leagues** for away shows. The design session concluded that **optional spectacle categories on events** better match troupe practice (one roster, one season, multiple category pools).
 
 Usability testing on wireframes was **not run** (no participants available); decisions rely on product-owner validation and code/doc review.
 
@@ -33,7 +33,7 @@ Usability testing on wireframes was **not run** (no participants available); dec
 | Troupe hub | `/troupes/:troupeSlug` | Logo, name, season list, troupe admin entry, member preferences (secondary) |
 | Season workspace | `/saison/:slug` | Agenda, Historique, Statistiques (ADR 0012 views); canonical |
 | Event detail | `/saison/:slug/event/:eventSlug` | Full-screen event; slug unique per season |
-| Legacy aliases | `/ligue/:slug` → `/saison/:slug`; `/seasons` → `/troupes` (with scope) | Transition only |
+| Legacy alias | `/seasons` → `/troupes` | Hub redirect only |
 
 **UI label:** **Saison** (not Ligue) for the `season` entity. Code/API table name `seasons` unchanged until a dedicated rename slice.
 
@@ -58,21 +58,21 @@ Usability testing on wireframes was **not run** (no participants available); dec
 
 **Remove** redundant `event-context-strip` once breadcrumb ships. Event troupe link targets **`/troupes/:slug`**, not `/troupe/.../admin/membres`.
 
-### 3. Equity tag (optional, per event)
+### 3. Catégorie (optional, per event)
 
-**Concept:** An optional **equity tag** splits the **chance/draw/stat assiette** for participations on that event. It is **not** a navigation object and **not** the same as **event template type** (`match`, `cabaret`, …).
+**Concept:** An optional **spectacle category** splits the **chance/draw/stat assiette** for participations on that event. It is **not** a navigation object and **not** the same as **format** (`templateType`: `match`, `cabaret`, …).
 
 | Field | Rules |
 |-------|--------|
-| `equity_tag` | Nullable string; **at most one** per event |
-| Empty / null | **Principal** compartment — system default; **not shown** in create/edit UI |
-| Set | Participation counts only in that tag’s pool within the **season** date bounds and roster |
-| UI | Optional autocomplete on event form; creatable per troupe vocabulary; **×** clears tag |
+| `category` | Nullable string; **at most one** per event |
+| Empty / null | **Principal** category — system default; **not shown** in create/edit UI |
+| Set | Participation counts only in that category’s pool within the **season** date bounds and roster |
+| UI | Optional autocomplete on event Infos tab; creatable per troupe glossary; **×** clears category |
 | Help | Inline copy explains impact on chances and auto-draw |
 
-**Troupe tag glossary (Phase 2+):** troupe-configurable list (e.g. `deplacements`, `aperock`); unknown typed value may create a new troupe tag.
+**Troupe category glossary (Phase 2+):** troupe-configurable list (e.g. `deplacements`, `aperock`); unknown typed value may create a new troupe category.
 
-**La Malice pattern:** one primary **season** + tags `deplacements`, `aperock` — not separate seasons for those axes.
+**La Malice pattern:** one primary **season** + categories `deplacements`, `aperock` — not separate seasons for those axes.
 
 **Multi-season troupes:** unchanged — multiple concurrent active seasons remain valid when rosters/programmes differ (ADR 0011).
 
@@ -84,10 +84,10 @@ Usability testing on wireframes was **not run** (no participants available); dec
 
 ### 5. Stats and draw (supersedes ADR 0012 travel league for new data)
 
-- **Draw / chances:** partition history and eligibility by `(season_id, equity_tag)` where `equity_tag` null = principal pool.
-- **Statistiques:** DEPLACEMENT (and future columns) driven by `equity_tag` (e.g. `deplacements`), not by `template_type = deplacement` or travel-league membership for **new** events.
-- **Migration:** existing `template_type = deplacement` events → set `equity_tag = deplacements` (template may remain or be normalized separately).
-- **Story 13.6** (travel league creation) **deferred / revised** — do not implement travel leagues as the primary déplacements model; implement after equity tags or cancel in favour of tags.
+- **Draw / chances:** partition history and eligibility by `(season_id, category)` where `category` null = principal pool.
+- **Statistiques:** DEPLACEMENT (and future columns) driven by `category` (e.g. `deplacements`), not by `template_type = deplacement` or travel-league membership for **new** events.
+- **Migration:** existing `template_type = deplacement` events → set `category = deplacements` (template may remain or be normalized separately).
+- **Story 13.6** (travel league creation) **deferred / revised** — do not implement travel leagues as the primary déplacements model; implement after categories or cancel in favour of categories.
 
 ## Consequences
 
@@ -109,9 +109,8 @@ Usability testing on wireframes was **not run** (no participants available); dec
 | Item | Action |
 |------|--------|
 | `/seasons` | Redirect; replace entry points with `/troupes` |
-| `/ligue/*` | Alias redirect to `/saison/*` |
 | Event UUID URLs | Redirect to slug when present |
-| `deplacement` template events | Backfill `equity_tag` |
+| `deplacement` template events | Backfill `category = deplacements` |
 | Travel leagues (if any created) | No new ones; optional data migration tool post-MVP |
 
 ## Alternatives considered
@@ -131,4 +130,4 @@ Usability testing on wireframes was **not run** (no participants available); dec
 - [_bmad-output/design-thinking-2026-05-25.md](../../_bmad-output/design-thinking-2026-05-25.md)
 - [ux-design-journey-league-agenda.md](../../_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) — to be updated for Saison copy, `/troupes`, breadcrumb
 - PLAN.md Epic 17
-- DOMAIN.md § Equity tag, Season UI label
+- DOMAIN.md § Catégorie, Season UI label

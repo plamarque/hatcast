@@ -14,6 +14,7 @@ import {
 } from './maliceAvailabilityCompositions.js'
 
 const MANIFEST = {
+  seasonV2Id: 'a0000001-0000-4000-8000-000000000099',
   players: [
     { v1PlayerId: 'p1', email: 'alice@example.com', v2UserId: 'u-1', v2SeasonParticipantId: 'sp-1' },
     { v1PlayerId: 'p2', email: 'bob@example.com', v2UserId: 'u-2', v2SeasonParticipantId: 'sp-2' },
@@ -226,6 +227,7 @@ describe('maliceAvailabilityCompositions — helpers + SQL (AC4, AC8)', () => {
     assert.match(sql, /ON CONFLICT \(event_id, role_key, slot_index\) DO UPDATE/)
     assert.match(sql, /INSERT INTO event_composition_declines/)
     assert.match(sql, /ON CONFLICT \(id\) DO UPDATE/)
+    assert.match(sql, /UPDATE events[\s\S]*availability_opened_at = created_at/)
   })
 
   it('buildAvailabilityCompositionsLoadSql escapes quotes in comments', () => {

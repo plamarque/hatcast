@@ -20,4 +20,11 @@
             <appender-ref ref="COMPACT_WARN_FILE" />
         </root>
     </springProfile>
+
+    <!-- e2e / test / cloud : console only (CI Playwright webServer, Gradle tests) -->
+    <springProfile name="e2e | test | cloud">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
 </configuration>

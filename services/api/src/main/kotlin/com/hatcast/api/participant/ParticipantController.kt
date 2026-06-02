@@ -58,6 +58,16 @@ class ParticipantController(
         seasonParticipantService.remove(seasonId, participantId, principal)
     }
 
+    @PostMapping("/seasons/{seasonId}/participants/{participantId}/reinclude")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun reincludeSeasonParticipant(
+        @PathVariable seasonId: UUID,
+        @PathVariable participantId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ) {
+        seasonParticipantService.reinclude(seasonId, participantId, principal)
+    }
+
     @GetMapping("/seasons/{seasonId}/participants/selectors")
     fun listSeasonParticipantSelectors(
         @PathVariable seasonId: UUID,

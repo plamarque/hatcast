@@ -1,4 +1,13 @@
 @if (hasRoles()) {
+  @if (chanceSource() === 'estimated') {
+    <p class="availability-tous__estimated-hint">
+      ⚠️ Pourcentages au moment du tirage estimés.
+    </p>
+  } @else if (chanceSource() === 'snapshot') {
+    <p class="availability-tous__estimated-hint">
+      ℹ️ Pourcentages capturés au moment du tirage.
+    </p>
+  }
   <mat-accordion class="availability-tous" multi>
     @for (role of summary().roles; track role.roleKey) {
       <mat-expansion-panel class="availability-tous__role" [expanded]="isRoleExpanded(role.roleKey)">
@@ -7,6 +16,15 @@
             <span aria-hidden="true">{{ roleEmoji(role.roleKey) }}</span>
             {{ roleLabel(role.roleKey) }}
             ({{ role.candidates.length }}/{{ role.requiredCount }})
+            @if (role.hasPartialEstimatedChances) {
+              <mat-icon
+                class="availability-tous__partial-warning"
+                [matTooltip]="partialRoleTooltip"
+                aria-label="Pourcentages partiellement estimés pour ce rôle"
+              >
+                warning
+              </mat-icon>
+            }
           </mat-panel-title>
         </mat-expansion-panel-header>
 
@@ -41,7 +59,14 @@
                     <span class="availability-tous__chance-skeleton-bar"></span>
                   </span>
                 } @else if (candidate.chancePercent != null) {
-                  <span matListItemMeta class="availability-tous__chance" [class]="chanceClass(candidate.chancePercent)">
+                  <span
+                    matListItemMeta
+                    class="availability-tous__chance"
+                    [class.availability-tous__chance--high]="candidate.chancePercent >= 20"
+                    [class.availability-tous__chance--medium]="candidate.chancePercent >= 10 && candidate.chancePercent < 20"
+                    [class.availability-tous__chance--low]="candidate.chancePercent < 10"
+                    [style.color]="chanceColorVar(candidate.chancePercent)"
+                  >
                     {{ candidate.chancePercent }} %
                   </span>
                 }

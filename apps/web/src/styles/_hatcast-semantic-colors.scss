@@ -462,6 +462,6 @@ $_hatcast-pending-dark: mat.define-theme(
 
   // Draw odds in Dispos grid — not a participation outcome; distinct from dispo green
   --hatcast-chance-high: var(--hatcast-sys-positive);
-  --hatcast-chance-medium: var(--mat-sys-secondary);
+  --hatcast-chance-medium: var(--hatcast-sys-pending);
   --hatcast-chance-low: var(--mat-sys-error);
 }

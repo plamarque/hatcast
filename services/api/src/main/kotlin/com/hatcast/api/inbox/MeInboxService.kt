@@ -8,7 +8,11 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.composition.CompositionLinkedParticipantResolver
+import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
+import com.hatcast.api.event.EventDraftVisibility
+import com.hatcast.api.event.EventParticipantFocusService
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.dto.ParticipantFocusSummaryDto
 import com.hatcast.api.inbox.dto.InboxActionDto
 import com.hatcast.api.inbox.dto.InboxActionType
 import com.hatcast.api.inbox.dto.InboxSeasonGlanceQueryDto
@@ -33,6 +37,9 @@ class MeInboxService(
   private val eventRepository: EventRepository,
   private val seasonParticipantRepository: SeasonParticipantRepository,
   private val eventParticipantRepository: EventParticipantRepository,
+  private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
+  private val participantFocusService: EventParticipantFocusService,
+  private val draftVisibility: EventDraftVisibility,
 ) {
   @Transactional(readOnly = true)
   fun getInbox(principal: SessionUserPrincipal): MeInboxResponse {
@@ -46,7 +53,9 @@ class MeInboxService(
         userId = userId,
         fromInclusive = from,
         troupeId = null,
-        leagueId = null,
+        seasonId = null,
+        viewerUserId = userId,
+        applyDraftVisibility = draftVisibility.applyDraftVisibilityFilter(principal),
         pageable = PageRequest.of(0, INBOX_UPCOMING_PAGE_SIZE),
       )
     val upcomingRows = upcomingPage.content
@@ -54,6 +63,8 @@ class MeInboxService(
 
     val eventIds = upcomingRows.map { it.eventId }
     val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, userId)
+    val lifecycleByEvent =
+      compositionLifecycleEnrichment.loadViewsByEventIdsAcrossSeasons(eventIds, principal)
 
     val availabilityActions =
       upcomingRows
@@ -112,20 +123,23 @@ class MeInboxService(
     val nextEventRow = upcomingRows.firstOrNull()
     val nextEvent =
       nextEventRow?.let { row ->
+        val availability = availabilityByEvent[row.eventId]
         UserAgendaItemDto.from(
           row = row,
-          myAvailabilityStatus = availabilityByEvent[row.eventId],
+          myAvailabilityStatus = availability,
+          teamStatusBadge = lifecycleByEvent[row.eventId]?.teamStatusBadge?.toDto(),
+          participantFocus = participantFocusForRow(row, availability, principal),
         )
       }
 
     val glanceSource = nextEventRow ?: upcomingRows.firstOrNull()
     val shortcuts =
       InboxShortcutsDto(
-        lastSeasonSlug = glanceSource?.leagueSlug,
+        lastSeasonSlug = glanceSource?.seasonSlug,
         seasonGlanceQuery =
           InboxSeasonGlanceQueryDto(
             troupeId = glanceSource?.troupeId,
-            leagueId = glanceSource?.leagueId,
+            seasonId = glanceSource?.seasonId,
           ),
       )
 
@@ -149,13 +163,35 @@ class MeInboxService(
       InboxActionType.AVAILABILITY_UNKNOWN -> 1
     }
 
+  private fun participantFocusForRow(
+    row: UserAgendaRow,
+    myAvailabilityStatus: String?,
+    principal: SessionUserPrincipal,
+  ): ParticipantFocusSummaryDto? {
+    val event = eventRepository.findById(row.eventId).orElse(null) ?: return null
+    val focusParticipantId =
+      participantFocusService.resolveFocusParticipantId(row.seasonId, null, principal)
+        ?: return null
+    return participantFocusService
+      .summariesByEventIds(
+        season = event.season,
+        eventIds = listOf(row.eventId),
+        focusParticipantId = focusParticipantId,
+        availabilityByEvent =
+          mapOf(
+            row.eventId to (myAvailabilityStatus ?: AvailabilityStatusMapper.UNKNOWN),
+          ),
+        principal = principal,
+      )[row.eventId]
+  }
+
   private fun participationContext(userId: UUID): ParticipationContext {
-    val leagueIds =
+    val seasonIds =
       (
-        userAgendaRepository.findParticipatingLeagueIdsFromSeason(userId) +
-          userAgendaRepository.findParticipatingLeagueIdsFromEventOnly(userId)
+        userAgendaRepository.findParticipatingSeasonIdsFromSeason(userId) +
+          userAgendaRepository.findParticipatingSeasonIdsFromEventOnly(userId)
       ).toSet()
-    return ParticipationContext(noParticipation = leagueIds.isEmpty())
+    return ParticipationContext(noParticipation = seasonIds.isEmpty())
   }
 }
 

@@ -1,5 +1,10 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditEventRepository
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.EventAvailabilityRepository
@@ -8,7 +13,6 @@ import com.hatcast.api.composition.dto.AssignSlotRequestDto
 import com.hatcast.api.composition.dto.CompositionCandidateDto
 import com.hatcast.api.composition.dto.CompositionCandidateListResponseDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
-import com.hatcast.api.event.EquityCompartment
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
@@ -18,7 +22,9 @@ import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.text.FrenchCollator
 import com.hatcast.api.troupe.TroupeAccessService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -41,7 +47,10 @@ class CompositionSlotAssignmentService(
     private val troupeAccess: TroupeAccessService,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val compositionService: CompositionService,
-    private val notificationPort: CompositionNotificationPort,
+    private val eventPublisher: ApplicationEventPublisher,
+    private val auditRecorder: AuditEventRecorder,
+    private val auditEventRepository: AuditEventRepository,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional(readOnly = true)
     fun getCandidates(
@@ -86,9 +95,8 @@ class CompositionSlotAssignmentService(
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
         val historyCounts =
             selectionHistory.pastSelectionCountByParticipantAndRole(
-                seasonId,
-                eventId,
-                EquityCompartment.slug(event),
+                event,
+                SelectionHistoryMode.OPERATIONAL,
             )
         val pastByParticipant =
             selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
@@ -115,7 +123,7 @@ class CompositionSlotAssignmentService(
             scored
                 .sortedWith(
                     compareByDescending<AvailabilityChanceCalculator.ScoredCandidate> { it.chancePercent }
-                        .thenBy { it.displayName.lowercase() },
+                        .thenComparator { a, b -> FrenchCollator.compare(a.displayName, b.displayName) },
                 ).map { row ->
                     CompositionCandidateDto(
                         participantId = row.participantId,
@@ -156,9 +164,13 @@ class CompositionSlotAssignmentService(
 
         val composition =
             compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
+        val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val isLocked = composition?.validatedAt != null
         val now = Instant.now()
         val participantId = body.participantId
+        val beforeSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
+        val beforeSnapshot = AuditSnapshots.slotAssignment(beforeSlot)
+        val formerAssigneeId = beforeSlot?.assignedParticipantId()
 
         if (isLocked) {
             if (participantId == null) {
@@ -173,17 +185,26 @@ class CompositionSlotAssignmentService(
             assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
             compositionRow.updatedAt = now
             compositionRepository.save(compositionRow)
-            notificationPort.requestConfirmationForAssignees(
-                eventId = eventId,
-                seasonId = seasonId,
-                assigneeParticipantIds = listOf(participantId),
-                actorUserId = principal.userId,
+            eventPublisher.publishEvent(
+                CompositionConfirmationRequestedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    actorUserId = principal.userId,
+                    assigneeParticipantIds = listOf(participantId),
+                ),
             )
+            recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
         } else if (participantId == null) {
             val cleared = clearSlot(eventId, roleKey, slotIndex, now)
             if (composition != null && cleared) {
                 composition.updatedAt = now
                 compositionRepository.save(composition)
+            }
+            if (cleared) {
+                recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, null, beforeSnapshot, AuditActionType.SLOT_CLEARED)
+                if (formerAssigneeId != null) {
+                    publishAssigneeRemoved(eventId, seasonId, principal.userId, formerAssigneeId, roleKey, slotIndex)
+                }
             }
         } else {
             val compositionRow =
@@ -200,10 +221,69 @@ class CompositionSlotAssignmentService(
             assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
             compositionRow.updatedAt = now
             compositionRepository.save(compositionRow)
+            recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
+            if (formerAssigneeId != null && formerAssigneeId != participantId &&
+                auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
+            ) {
+                publishAssigneeRemoved(eventId, seasonId, principal.userId, formerAssigneeId, roleKey, slotIndex)
+                eventPublisher.publishEvent(
+                    CompositionReconfirmationRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                        assigneeParticipantIds = listOf(participantId),
+                    ),
+                )
+            }
         }
 
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
+
+    private fun recordSlotAudit(
+        event: EventEntity,
+        seasonId: UUID,
+        eventId: UUID,
+        actorUserId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+        participantId: UUID?,
+        beforeSnapshot: Map<String, Any?>,
+        actionType: AuditActionType,
+    ) {
+        val afterSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
+        val afterSnapshot = AuditSnapshots.slotAssignment(afterSlot)
+        val (beforeDiff, afterDiff) = AuditSnapshots.mapDiff(beforeSnapshot, afterSnapshot)
+        if (beforeDiff == null || afterDiff == null) {
+            return
+        }
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = actionType,
+                actorUserId = actorUserId,
+                subjectSeasonParticipantId = afterSlot?.seasonParticipantId ?: beforeSlotSeasonParticipantId(beforeSnapshot),
+                subjectEventParticipantId = afterSlot?.eventParticipantId ?: beforeSlotEventParticipantId(beforeSnapshot),
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = beforeDiff,
+                after = afterDiff,
+                metadata =
+                    mapOf(
+                        "roleKey" to roleKey,
+                        "slotIndex" to slotIndex,
+                        "participantId" to participantId?.toString(),
+                    ),
+            ),
+        )
+    }
+
+    private fun beforeSlotSeasonParticipantId(beforeSnapshot: Map<String, Any?>): UUID? =
+        beforeSnapshot["seasonParticipantId"]?.toString()?.let(UUID::fromString)
+
+    private fun beforeSlotEventParticipantId(beforeSnapshot: Map<String, Any?>): UUID? =
+        beforeSnapshot["eventParticipantId"]?.toString()?.let(UUID::fromString)
 
     private fun assignParticipant(
         event: EventEntity,
@@ -275,6 +355,9 @@ class CompositionSlotAssignmentService(
     ): Boolean {
         val slotEntity = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
         if (slotEntity != null) {
+            if (!slotEntity.hasAssignee()) {
+                return false
+            }
             slotEntity.clearAssignee()
             slotEntity.participationStatus = SlotParticipationStatus.PENDING
             slotEntity.updatedAt = now
@@ -326,6 +409,26 @@ class CompositionSlotAssignmentService(
             eventRow.user?.id,
             eventRow.displayName,
             CompositionParticipantSource.EVENT,
+        )
+    }
+
+    private fun publishAssigneeRemoved(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+        formerAssigneeParticipantId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+    ) {
+        eventPublisher.publishEvent(
+            CompositionAssigneeRemovedEvent(
+                eventId = eventId,
+                seasonId = seasonId,
+                actorUserId = actorUserId,
+                formerAssigneeParticipantId = formerAssigneeParticipantId,
+                roleKey = roleKey,
+                slotIndex = slotIndex,
+            ),
         )
     }
 

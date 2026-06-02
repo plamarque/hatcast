@@ -159,6 +159,19 @@ class MeInboxIntegrationTest {
   private fun futureStartsAtIso(daysFromNow: Long = 10): String =
     Instant.now().plus(daysFromNow, ChronoUnit.DAYS).toString()
 
+  private fun openEventAvailability(
+    cookie: jakarta.servlet.http.Cookie,
+    seasonId: UUID,
+    eventId: UUID,
+  ) {
+    mockMvc
+      .perform(
+        post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+          .cookie(cookie)
+          .with(csrf()),
+      ).andExpect(status().isOk)
+  }
+
   private fun createEvent(
     cookie: jakarta.servlet.http.Cookie,
     seasonId: UUID,
@@ -183,7 +196,9 @@ class MeInboxIntegrationTest {
             ).with(csrf()),
         ).andExpect(status().isOk)
         .andReturn()
-    return UUID.fromString(mapper.readTree(result.response.contentAsString).path("id").asText())
+    val eventId = UUID.fromString(mapper.readTree(result.response.contentAsString).path("id").asText())
+    openEventAvailability(cookie, seasonId, eventId)
+    return eventId
   }
 
   private fun participantIdForUser(
@@ -329,8 +344,9 @@ class MeInboxIntegrationTest {
     season: SeasonEntity,
     title: String,
     startsAt: Instant = Instant.now().plus(10, ChronoUnit.DAYS),
-  ): EventEntity =
-    eventRepository.save(
+  ): EventEntity {
+    val now = Instant.now()
+    return eventRepository.save(
       EventEntity(
         season = season,
         title = title,
@@ -339,8 +355,12 @@ class MeInboxIntegrationTest {
             "event-${UUID.randomUUID().toString().take(8)}"
           },
         startsAt = startsAt,
+        createdAt = now,
+        updatedAt = now,
+        availabilityOpenedAt = now,
       ),
     )
+  }
 
   @Test
   fun `unauthenticated request returns 401`() {
@@ -368,6 +388,10 @@ class MeInboxIntegrationTest {
       .andExpect(
         jsonPath("$.actions[0].deepLink").value(org.hamcrest.Matchers.containsString("showConfirm=true")),
       )
+      .andExpect(jsonPath("$.nextEvent.title").value("Confirm match"))
+      .andExpect(jsonPath("$.nextEvent.participantFocus.inTeam").value(true))
+      .andExpect(jsonPath("$.nextEvent.participantFocus.compositionRoleKey").value("player"))
+      .andExpect(jsonPath("$.nextEvent.participantFocus.slotParticipationStatus").value("pending"))
   }
 
   @Test

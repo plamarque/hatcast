@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Notification preferences (fragment)
+  description: Préférences de notification par catégorie et canal pour l'utilisateur connecté.
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: api.example.invalid
+
+tags:
+  - name: Notification preferences
+    description: Préférences push et e-mail par catégorie.
+
+paths:
+  /me/notification-preferences:
+    get:
+      tags: [Notification preferences]
+      summary: Préférences de notification de l'utilisateur connecté
+      operationId: getMyNotificationPreferences
+      responses:
+        '200':
+          description: Catalogue de catégories avec préférences effectives.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '401':
+          description: Non authentifié.
+    patch:
+      tags: [Notification preferences]
+      summary: Mettre à jour partiellement des préférences de notification
+      operationId: patchMyNotificationPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchNotificationPreferencesRequest'
+      responses:
+        '200':
+          description: Préférences mises à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '400':
+          description: Catégorie inconnue ou corps invalide.
+        '401':
+          description: Non authentifié.
+
+components:
+  schemas:
+    NotificationPreferenceCategory:
+      type: object
+      required: [key, label, group, pushEnabled, emailEnabled]
+      properties:
+        key:
+          type: string
+          enum:
+            - AVAILABILITY_REQUEST
+            - COMPOSITION_SHARED
+            - CONFIRMATION_REQUEST
+            - TEAM_CONFIRMED
+            - REMINDER_7_DAYS
+            - REMINDER_1_DAY
+            - AVAILABILITY_WEEKLY_REMINDER
+        label:
+          type: string
+        group:
+          type: string
+          enum: [NOTIFICATIONS, AUTOMATIC_REMINDERS]
+        pushEnabled:
+          type: boolean
+        emailEnabled:
+          type: boolean
+
+    NotificationPreferencesResponse:
+      type: object
+      required: [categories]
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationPreferenceCategory'
+
+    PatchNotificationPreference:
+      type: object
+      properties:
+        push:
+          type: boolean
+        email:
+          type: boolean
+
+    PatchNotificationPreferencesRequest:
+      type: object
+      required: [preferences]
+      properties:
+        preferences:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PatchNotificationPreference'

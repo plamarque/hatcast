@@ -119,11 +119,13 @@ After the user **opens a season** (from `/seasons`), show a **time-ordered** lis
 
 ### Filter and view controls (below header)
 
-- **Participant filter** — dropdown showing **current user** (avatar + name) or “focus” selection for **who** the grid reflects (e.g. self vs other member when applicable). Elsewhere, tapping a **member avatar** opens the [**Member profile**](#pattern-member-profile) popover (season stats + chart).
-- **Event filter** — dropdown, e.g. **“Tous”** (all events) vs subset of spectacles.
+> **Amended 2026-05-31:** Inline filter dropdowns superseded — [ux-design-unified-filter-panel.md](./ux-design-unified-filter-panel.md) (**UX-DR22.1**). **`filter_list` icon** opens **hub** → individual pickers (search + multi-select at scale); **chips anchored to trigger**; season **gear in breadcrumb row**; **no chrome** when mono-context (RES-001).
+
+- **Participant filter** — inside filter panel; default **Tous**; future avatar + name when multi-member.
+- **Event filter** — inside filter panel; default **Tous**.
 - **View switcher** — tabs or pills: **Participants**, **Spectacles**, **Agenda**, **Historique**, **Statistiques** (ADR 0012). **Agenda** = [calendar / upcoming list](#screen-season-calendar); **Historique** = [past events chronology](#screen-league--historique-chronology); **Statistiques** = [participation statistics table](#screen-league--statistiques-participation).
 
-**Continuity:** keep **one compact toolbar row** under the header so filters + view switch stay **visible without scrolling** on mobile.
+**Continuity:** one compact toolbar row — **filter icon** (when needed) + view switch + gear; no permanent pulldown row on mobile.
 
 ### Main content: events by month
 
@@ -249,6 +251,14 @@ Colour-coded **vertical bands** (V1: **yellow** — JEU, **purple** — DECORUM,
 - [ ] **Month** columns support **summary** numbers and optional **detail** (events, roles, statuses).
 - [ ] **Exporter** and **Masquer** behave per product rules.
 - [ ] **Avatar** in row opens **profile popover** when applicable.
+
+---
+
+## Pattern: Event draft & publish (spectacle brouillon) {#pattern-event-draft-publish}
+
+**Story 3.21** — spec détaillée : [ux-event-draft-publish-3-21.md](./ux-event-draft-publish-3-21.md).
+
+Résumé : spectacles créés en **brouillon** ; **publication** ouvre la collecte des dispos ; **remise en brouillon** temporaire pour orgas ; bandeau entre header et onglets sur la fiche ; cartes agenda violettes (`agenda-card--draft`) **uniquement** pour les vrais brouillons (orgas). Ne pas confondre avec le brouillon **composition** (onglet Équipe).
 
 ---
 

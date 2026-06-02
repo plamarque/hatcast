@@ -27,9 +27,15 @@ describe('event-types', () => {
     expect(detectTemplateFromRoles(custom)).toBe('custom')
   })
 
-  it('rolesRequiredForEvent lists roles with count > 0', () => {
-    const required = rolesRequiredForEvent(ROLE_TEMPLATES.deplacement)
-    expect(required).toEqual(['player'])
+  it('rolesRequiredForEvent lists roles with count > 0 in draw order', () => {
+    expect(rolesRequiredForEvent(ROLE_TEMPLATES.deplacement)).toEqual(['player'])
+    expect(rolesRequiredForEvent(ROLE_TEMPLATES.match)).toEqual([
+      'referee',
+      'mc',
+      'player',
+      'assistant_referee',
+      'volunteer',
+    ])
   })
 
   it('jeuSubColumn maps types for historique categories', () => {

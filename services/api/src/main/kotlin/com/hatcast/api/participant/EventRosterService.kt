@@ -1,9 +1,14 @@
 package com.hatcast.api.participant
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.dto.EventRosterParticipantDto
 import com.hatcast.api.participant.dto.EventRosterSource
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -20,6 +25,7 @@ class EventRosterService(
     private val eventRepository: EventRepository,
     private val seasonParticipantService: SeasonParticipantService,
     private val participantAccess: ParticipantAccessService,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional(readOnly = true)
     fun listRoster(
@@ -64,6 +70,17 @@ class EventRosterService(
                 createdAt = Instant.now(),
             ),
         )
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_ROSTER_EXCLUDED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = seasonParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                metadata = AuditSnapshots.participantMetadata(seasonParticipant.displayName),
+            ),
+        )
     }
 
     @Transactional
@@ -82,7 +99,30 @@ class EventRosterService(
         if (seasonParticipant.season.id != seasonId) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
         }
+        val existed =
+            eventParticipantExclusionRepository.existsByIdEventIdAndIdSeasonParticipantId(
+                eventId,
+                seasonParticipantId,
+            )
+        if (!existed) {
+            return
+        }
         eventParticipantExclusionRepository.deleteByIdEventIdAndIdSeasonParticipantId(eventId, seasonParticipantId)
+        val event =
+            eventRepository
+                .findById(eventId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_ROSTER_INCLUDED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = seasonParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                metadata = AuditSnapshots.participantMetadata(seasonParticipant.displayName),
+            ),
+        )
     }
 
     internal fun buildRoster(
@@ -107,10 +147,11 @@ class EventRosterService(
                 }
                 .filter { it.id !in excluded }
         val seasonParticipantIds = seasonRows.map { it.id }.toSet()
+        val removedSeasonUserIds = seasonParticipantRepository.findRemovedUserIdsForSeason(seasonId).toSet()
         val seenUserIds = mutableSetOf<UUID>()
         val roster = linkedMapOf<String, EventRosterParticipantDto>()
 
-        for (row in seasonRows.sortedBy { it.displayName.lowercase() }) {
+        for (row in seasonRows.sortedByFrenchDisplayName { it.displayName }) {
             val key = "season:${row.id}"
             roster[key] = EventRosterParticipantDto.fromSeason(row, includeEmail)
             row.user?.id?.let { seenUserIds.add(it) }
@@ -118,13 +159,19 @@ class EventRosterService(
 
         val eventRows =
             eventParticipantRepository.findActiveForEventWithAssociations(eventId, ParticipantStatus.ACTIVE)
-        for (row in eventRows.sortedBy { it.displayName.lowercase() }) {
+        for (row in eventRows.sortedByFrenchDisplayName { it.displayName }) {
             val linkedSeasonId = row.seasonParticipant?.id
             if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
                 continue
             }
+            if (row.seasonParticipant?.status == ParticipantStatus.REMOVED) {
+                continue
+            }
             val userId = row.user?.id
             if (userId != null && userId in seenUserIds) {
+                continue
+            }
+            if (userId != null && userId in removedSeasonUserIds) {
                 continue
             }
             val key = "event:${row.id}"

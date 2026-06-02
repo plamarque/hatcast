@@ -56,6 +56,25 @@
       <mat-label>Description (optionnel)</mat-label>
       <textarea matInput formControlName="description" rows="3"></textarea>
     </mat-form-field>
+
+    @if (showPublishDraftToggle()) {
+      <mat-slide-toggle
+        class="publish-draft-toggle"
+        [checked]="publishDraft"
+        (change)="publishDraft = $event.checked"
+      >
+        Publier le spectacle (ouvrir l’agenda et les disponibilités)
+      </mat-slide-toggle>
+    }
+    @if (showRevertToDraftToggle()) {
+      <mat-slide-toggle
+        class="revert-draft-toggle"
+        [checked]="revertToDraft"
+        (change)="revertToDraft = $event.checked"
+      >
+        Remettre en brouillon (masquer de l’agenda, fermer les dispos)
+      </mat-slide-toggle>
+    }
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">

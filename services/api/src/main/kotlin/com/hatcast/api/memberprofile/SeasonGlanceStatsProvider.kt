@@ -21,13 +21,12 @@ import com.hatcast.api.memberprofile.dto.MemberProfileStatsDto
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.text.FrenchCollator
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
-import java.text.Collator
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import java.util.UUID
 
 /**
@@ -220,7 +219,7 @@ class SeasonGlanceStatsProvider(
     private fun eventsInChartOrder(events: List<EventEntity>): List<EventEntity> =
         events.sortedWith(
             compareBy<EventEntity> { it.startsAt }
-                .thenComparator { a, b -> FRENCH_COLLATOR.compare(a.title, b.title) },
+                .thenComparator { a, b -> FrenchCollator.compare(a.title, b.title) },
         )
 
     /** V1 `getMonthlyActivityWithDetails` — full datetime ascending within each month column. */
@@ -230,7 +229,7 @@ class SeasonGlanceStatsProvider(
     ): List<MemberProfileChartBlockDto> =
         blocks.sortedWith(
             compareBy<MemberProfileChartBlockDto> { startsAtByEventId[it.eventId] ?: Instant.MAX }
-                .thenComparator { a, b -> FRENCH_COLLATOR.compare(a.eventTitle, b.eventTitle) },
+                .thenComparator { a, b -> FrenchCollator.compare(a.eventTitle, b.eventTitle) },
         )
 
     /**
@@ -526,9 +525,5 @@ class SeasonGlanceStatsProvider(
         private val ZONE: ZoneId = ZoneId.of("Europe/Paris")
         private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM")
         private val EVENT_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        private val FRENCH_COLLATOR: Collator =
-            Collator.getInstance(Locale.FRENCH).apply {
-                strength = Collator.PRIMARY
-            }
     }
 }

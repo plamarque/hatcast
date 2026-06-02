@@ -8,6 +8,7 @@ import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import java.util.UUID
 
@@ -39,6 +40,7 @@ object CompositionParticipantPool {
                 .map { it.id.seasonParticipantId }
                 .toSet()
         val seasonParticipantIds = seasonRows.map { it.id }.toSet()
+        val removedSeasonUserIds = seasonParticipantRepository.findRemovedUserIdsForSeason(seasonId).toSet()
         val byId = linkedMapOf<UUID, CompositionEligibleParticipant>()
         val seenUserIds = mutableSetOf<UUID>()
 
@@ -66,8 +68,14 @@ object CompositionParticipantPool {
             if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
                 continue
             }
+            if (row.seasonParticipant?.status == ParticipantStatus.REMOVED) {
+                continue
+            }
             val userId = row.user?.id
             if (userId != null && userId in seenUserIds) {
+                continue
+            }
+            if (userId != null && userId in removedSeasonUserIds) {
                 continue
             }
             byId[row.id] =
@@ -80,7 +88,7 @@ object CompositionParticipantPool {
             userId?.let { seenUserIds.add(it) }
         }
 
-        return byId.values.sortedBy { it.displayName.lowercase() }
+        return byId.values.sortedByFrenchDisplayName { it.displayName }
     }
 
     fun buildRolePool(

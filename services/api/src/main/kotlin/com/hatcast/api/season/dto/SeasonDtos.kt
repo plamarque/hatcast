@@ -3,6 +3,7 @@ package com.hatcast.api.season.dto
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.openapitools.jackson.nullable.JsonNullable
@@ -74,4 +75,10 @@ data class UpdateSeasonRequest(
     /** Absent = inchangé ; `null` explicite = effacer la date. */
     val startDate: JsonNullable<LocalDate> = JsonNullable.undefined(),
     val endDate: JsonNullable<LocalDate> = JsonNullable.undefined(),
+)
+
+/** Résolution globale d'une saison par slug pour un admin plateforme (navigation directe par URL). */
+data class PlatformAdminSeasonResolutionDto(
+    val troupe: TroupeAdminSummaryDto,
+    val season: SeasonResponseDto,
 )

@@ -3,6 +3,8 @@
 #
 # Usage (depuis la racine du dépôt) :
 #   ./scripts/start-dev.sh
+#   ./scripts/start-dev.sh --with-push   # build prod + watch + serve dist HTTPS (SW, push, recette MAJ PWA)
+#   ./scripts/start-dev.sh --with-push --no-tailscale
 #   ./scripts/start-dev.sh --no-tailscale   # sans Tailscale Serve (accès mobile MagicDNS)
 #   ./scripts/start-dev.sh --legacy   # ancien comportement : seulement le serveur V1 (Vue / Vite)
 #
@@ -10,6 +12,12 @@
 # Variables : fichier `.env` à la racine du dépôt est chargé automatiquement (toutes les clés `KEY=value`
 # reconnues, commentaires `#` ignorés). Utile pour `HATCAST_*`, `VITE_*` (mode --legacy), etc.
 #   HATCAST_SKIP_TAILSCALE_SERVE=1 — équivalent à --no-tailscale
+#   HATCAST_START_DEV_WITH_PUSH=1 — équivalent à --with-push
+#   HATCAST_NOTIFICATION_EMAIL_ENABLED=true — démarre Mailpit (Docker), force SMTP local pour l’API,
+#   arrête Mailpit à la fin du script ; voir `.env.example`.
+#   --with-push + EMAIL_ENABLED : push (VAPID dans .env) et emails (Mailpit) en parallèle pour story 8.3.
+#   --with-push : avant le build prod, injecte environment.ts depuis .env (HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID
+#   → GOOGLE_OAUTH_WEB_CLIENT_ID, HATCAST_FIREBASE_*, HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY) via inject-google-client-id.mjs.
 #
 # URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host`).
 #   Accès mobile (tailnet) : `tailscale up` si déconnecté, puis Serve → https://<machine>.<tailnet>.ts.net
@@ -29,8 +37,12 @@ load_dotenv "$ROOT/.env"
 cd "$ROOT"
 
 SKIP_TAILSCALE_SERVE="${HATCAST_SKIP_TAILSCALE_SERVE:-0}"
+WITH_PUSH="${HATCAST_START_DEV_WITH_PUSH:-0}"
 for arg in "$@"; do
-  [[ "$arg" == "--no-tailscale" ]] && SKIP_TAILSCALE_SERVE=1
+  case "$arg" in
+    --no-tailscale) SKIP_TAILSCALE_SERVE=1 ;;
+    --with-push | --push-test) WITH_PUSH=1 ;;
+  esac
 done
 
 if [[ "${1:-}" == "--legacy" ]]; then
@@ -114,6 +126,146 @@ ensure_tailscale_serve() {
   [[ -n "$TAILSCALE_SERVE_URL" ]] && echo "    • Mobile (tailnet) : $TAILSCALE_SERVE_URL"
 }
 
+MAILPIT_CONTAINER_NAME="${HATCAST_MAILPIT_CONTAINER_NAME:-hatcast-mailpit}"
+MAILPIT_SMTP_PORT="${HATCAST_MAILPIT_SMTP_PORT:-1025}"
+MAILPIT_UI_PORT="${HATCAST_MAILPIT_UI_PORT:-8025}"
+MAILPIT_UI_URL="http://127.0.0.1:${MAILPIT_UI_PORT}"
+
+mailpit_enabled() {
+  [[ "${HATCAST_NOTIFICATION_EMAIL_ENABLED:-false}" == "true" ]]
+}
+
+warn_push_vapid_config() {
+  [[ "$WITH_PUSH" == "1" ]] || return 0
+  local missing=0
+  if [[ -z "${HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY:-}" ]]; then
+    echo "  ⚠ HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY absent — opt-in push (/compte) impossible."
+    missing=1
+  fi
+  if [[ -z "${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY:-}" ]]; then
+    echo "  ⚠ HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY absent — envoi push serveur (story 8.3) ignoré."
+    missing=1
+  fi
+  if [[ "$missing" -eq 0 ]]; then
+    echo "✓ Clés VAPID Web Push présentes (.env)"
+  fi
+}
+
+# Régénère apps/web/src/environments/environment.ts depuis .env (build prod local --with-push).
+inject_web_prod_environment() {
+  [[ "$WITH_PUSH" == "1" ]] || return 0
+
+  if [[ -z "${GOOGLE_OAUTH_WEB_CLIENT_ID:-}" && -n "${HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID:-}" ]]; then
+    export GOOGLE_OAUTH_WEB_CLIENT_ID="$HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID"
+  fi
+
+  if [[ -z "${GOOGLE_OAUTH_WEB_CLIENT_ID:-}" ]]; then
+    echo "  ✗ GOOGLE_OAUTH_WEB_CLIENT_ID ou HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID requis dans .env pour le build prod (--with-push)."
+    exit 1
+  fi
+
+  local fb_missing=0
+  for v in HATCAST_FIREBASE_WEB_API_KEY HATCAST_FIREBASE_AUTH_DOMAIN HATCAST_FIREBASE_PROJECT_ID; do
+    if [[ -z "${!v:-}" ]]; then
+      fb_missing=1
+    fi
+  done
+  if [[ "$fb_missing" -eq 1 ]]; then
+    echo "  ⚠ HATCAST_FIREBASE_* incomplet — formulaire email/mot de passe masqué (Google seul)."
+  else
+    echo "✓ Config Firebase Identity Platform (.env) → injection dans environment.ts"
+  fi
+
+  echo "→ Injection environment.ts pour build production (inject-google-client-id.mjs)…"
+  node "$ROOT/apps/web/scripts/inject-google-client-id.mjs"
+}
+
+# start-dev pilote Mailpit : SMTP local pour bootRun (ignore les SPRING_MAIL_* Gmail du .env).
+configure_local_mailpit_smtp() {
+  mailpit_enabled || return 0
+  export SPRING_MAIL_HOST=127.0.0.1
+  export SPRING_MAIL_PORT="${MAILPIT_SMTP_PORT}"
+  unset SPRING_MAIL_USERNAME SPRING_MAIL_PASSWORD \
+    SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH \
+    SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE 2>/dev/null || true
+}
+
+ensure_mailpit() {
+  mailpit_enabled || return 0
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "  ⚠ Docker introuvable — Mailpit non démarré (UI ${MAILPIT_UI_URL})."
+    return 0
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    echo "  ⚠ Docker daemon indisponible — Mailpit non démarré (UI ${MAILPIT_UI_URL})."
+    return 0
+  fi
+
+  if docker ps --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
+    echo "✓ Mailpit déjà actif — UI ${MAILPIT_UI_URL}"
+    wait_for_mailpit_smtp
+    return 0
+  fi
+
+  if docker ps -a --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
+    echo "→ Redémarrage Mailpit (${MAILPIT_CONTAINER_NAME})…"
+    if docker start "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1; then
+      echo "✓ Mailpit redémarré — UI ${MAILPIT_UI_URL}"
+      wait_for_mailpit_smtp
+      return 0
+    fi
+    echo "  ⚠ Échec docker start ${MAILPIT_CONTAINER_NAME} — recréation…"
+    docker rm -f "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1 || true
+  fi
+
+  echo "→ Démarrage Mailpit (SMTP :${MAILPIT_SMTP_PORT}, UI :${MAILPIT_UI_PORT})…"
+  if docker run -d \
+    --name "$MAILPIT_CONTAINER_NAME" \
+    -p "${MAILPIT_SMTP_PORT}:1025" \
+    -p "${MAILPIT_UI_PORT}:8025" \
+    axllent/mailpit >/dev/null 2>&1; then
+    echo "✓ Mailpit démarré — UI ${MAILPIT_UI_URL}"
+  else
+    echo "  ⚠ Échec docker run Mailpit — les emails peuvent échouer (voir logs API)."
+    return 0
+  fi
+
+  wait_for_mailpit_smtp
+}
+
+mailpit_smtp_port_open() {
+  if command -v nc >/dev/null 2>&1; then
+    nc -z 127.0.0.1 "$MAILPIT_SMTP_PORT" >/dev/null 2>&1
+    return $?
+  fi
+  (echo >/dev/tcp/127.0.0.1/"$MAILPIT_SMTP_PORT") >/dev/null 2>&1
+}
+
+stop_mailpit() {
+  mailpit_enabled || return 0
+  command -v docker >/dev/null 2>&1 || return 0
+  if docker ps --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
+    echo "→ Arrêt Mailpit (${MAILPIT_CONTAINER_NAME})…"
+    docker stop "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1 || true
+  fi
+}
+
+wait_for_mailpit_smtp() {
+  mailpit_enabled || return 0
+
+  local i
+  for ((i = 0; i < 40; i++)); do
+    if mailpit_smtp_port_open; then
+      [[ "$i" -gt 0 ]] && echo "✓ Mailpit SMTP prêt (:${MAILPIT_SMTP_PORT})"
+      return 0
+    fi
+    sleep 0.25
+  done
+  echo "  ⚠ Mailpit SMTP :${MAILPIT_SMTP_PORT} injoignable après 10 s — vérifiez Docker (docker ps)."
+}
+
 # Arrête tout ce qui écoute sur 8080 et ressemble à la JVM Spring / Gradle (repli si le groupe de processus n’a pas suffi).
 free_hatcast_api_port() {
   local p args
@@ -154,13 +306,25 @@ stop_api_tree() {
   free_hatcast_api_port
 }
 
+WEB_WATCH_PID=""
+WEB_SERVE_PID=""
+
+stop_web_stack() {
+  [[ -n "$WEB_SERVE_PID" ]] && kill "$WEB_SERVE_PID" 2>/dev/null || true
+  [[ -n "$WEB_WATCH_PID" ]] && kill "$WEB_WATCH_PID" 2>/dev/null || true
+  WEB_SERVE_PID=""
+  WEB_WATCH_PID=""
+}
+
 cleanup() {
   local ec=$?
   [[ "$CLEANUP_RAN" -eq 1 ]] && exit "$ec"
   CLEANUP_RAN=1
   echo ""
   echo "Arrêt de la stack…"
+  stop_web_stack
   stop_api_tree
+  stop_mailpit
   exit "$ec"
 }
 trap cleanup EXIT INT TERM
@@ -169,6 +333,14 @@ if [[ ! -x "$ROOT/services/api/gradlew" ]]; then
   echo "Erreur : services/api/gradlew introuvable ou non exécutable."
   exit 1
 fi
+
+configure_local_mailpit_smtp
+ensure_mailpit
+if [[ "$WITH_PUSH" == "1" ]]; then
+  echo "→ Mode notifications push (--with-push) : build production + watch + serve HTTPS statique (MAJ PWA recette)."
+  warn_push_vapid_config
+fi
+echo ""
 
 echo "→ Démarrage de l’API Spring (port 8080)…"
 (
@@ -200,18 +372,44 @@ echo "✓ API prête : http://127.0.0.1:8080"
 echo ""
 ensure_tailscale_serve
 echo ""
-echo "→ Démarrage du client Angular (ng serve, port 4200 par défaut)…"
+if [[ "$WITH_PUSH" == "1" ]]; then
+  echo "→ Démarrage du front (build production + watch + serve dist HTTPS, port 4200)…"
+else
+  echo "→ Démarrage du client Angular (ng serve, port 4200 par défaut)…"
+fi
 echo ""
 echo "  Stack V2 :"
 echo "    • API   : http://127.0.0.1:8080"
-echo "    • Front : https://localhost:4200  (TLS ; ng serve --host 0.0.0.0)"
+if [[ "$WITH_PUSH" == "1" ]]; then
+  echo "    • Front : https://localhost:4200  (TLS ; dist/ statique + ng build --watch ; SW + recette MAJ PWA)"
+  echo "      Attendre ~30 s après chargement pour l’enregistrement du SW ; activer push sur /compte."
+else
+  echo "    • Front : https://localhost:4200  (TLS ; ng serve --host 0.0.0.0 ; mode dev, pas de push)"
+  echo "      Push local : relancer avec --with-push (voir DEVELOPMENT.md)."
+fi
 if [[ -n "$TAILSCALE_SERVE_URL" ]]; then
   echo "    • Mobile : $TAILSCALE_SERVE_URL  (Tailscale Serve ; OAuth : même origine dans Google Cloud)"
 fi
+if mailpit_enabled; then
+  echo "    • Mailpit : ${MAILPIT_UI_URL}  (SMTP 127.0.0.1:${MAILPIT_SMTP_PORT} ; conteneur ${MAILPIT_CONTAINER_NAME})"
+fi
 echo ""
-echo "  Ctrl+C arrête le front puis l’API (Tailscale Serve reste actif en arrière-plan)."
+echo "  Ctrl+C arrête le front, l’API et Mailpit (Tailscale Serve reste actif en arrière-plan)."
 echo ""
 
 cd "$ROOT"
-# `--` obligatoire : transmet `--host 0.0.0.0` à `ng serve` (pas à npm intermédiaire).
-npm run dev -w @hatcast/web -- --host 0.0.0.0
+# `--` obligatoire : transmet les flags à `ng serve` (pas à npm intermédiaire).
+if [[ "$WITH_PUSH" == "1" ]]; then
+  inject_web_prod_environment
+  echo "→ Build production initial (ngsw.json + SW)…"
+  npm run build -w @hatcast/web -- --configuration=production
+  echo "→ Watch rebuild production (dist/)…"
+  npm run build:watch:prod -w @hatcast/web &
+  WEB_WATCH_PID=$!
+  echo "→ Front HTTPS statique depuis dist/ (port 4200, proxy /v1 → API)…"
+  npm run serve:dist:https -w @hatcast/web &
+  WEB_SERVE_PID=$!
+  wait "$WEB_SERVE_PID"
+else
+  npm run dev -w @hatcast/web -- --host 0.0.0.0
+fi

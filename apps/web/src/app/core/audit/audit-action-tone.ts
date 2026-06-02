@@ -1,0 +1,56 @@
+import type { AuditActionType } from './audit-api.service'
+
+/** Semantic color bucket for audit action labels (variant A). */
+export type AuditActionTone = 'availability' | 'composition' | 'participant' | 'system'
+
+const AVAILABILITY: AuditActionType[] = [
+  'AVAILABILITY_CREATED',
+  'AVAILABILITY_UPDATED',
+  'AVAILABILITY_DELETED',
+  'EVENT_AVAILABILITY_OPENED',
+  'EVENT_AVAILABILITY_CLOSED',
+]
+
+const COMPOSITION: AuditActionType[] = [
+  'SLOT_ASSIGNED',
+  'SLOT_CLEARED',
+  'COMPOSITION_PUBLISHED',
+  'COMPOSITION_VALIDATED',
+  'COMPOSITION_UNLOCKED',
+  'COMPOSITION_DRAW_COMPLETED',
+  'PARTICIPATION_CONFIRMED',
+  'PARTICIPATION_DECLINED',
+  'PARTICIPATION_RESET',
+  'DECLINE_RESTORED',
+  'COMPOSITION_LIFECYCLE_CHANGED',
+]
+
+const PARTICIPANT: AuditActionType[] = [
+  'SEASON_PARTICIPANT_ADDED',
+  'SEASON_PARTICIPANT_REACTIVATED',
+  'SEASON_PARTICIPANT_UPDATED',
+  'SEASON_PARTICIPANT_REMOVED',
+  'EVENT_PARTICIPANT_ADDED',
+  'EVENT_PARTICIPANT_UPDATED',
+  'EVENT_PARTICIPANT_REMOVED',
+  'EVENT_ROSTER_EXCLUDED',
+  'EVENT_ROSTER_INCLUDED',
+  'TROUPE_MEMBER_ADDED',
+  'TROUPE_MEMBER_UPDATED',
+  'TROUPE_MEMBER_DEACTIVATED',
+  'SEASON_ORGANIZER_GRANTED',
+  'SEASON_ORGANIZER_REVOKED',
+  'EVENT_ORGANIZER_GRANTED',
+  'EVENT_ORGANIZER_REVOKED',
+  'EVENT_CREATED',
+  'EVENT_UPDATED',
+  'EVENT_ARCHIVED',
+  'EVENT_UNARCHIVED',
+]
+
+export function auditActionTone(actionType: AuditActionType): AuditActionTone {
+  if (AVAILABILITY.includes(actionType)) return 'availability'
+  if (COMPOSITION.includes(actionType)) return 'composition'
+  if (PARTICIPANT.includes(actionType)) return 'participant'
+  return 'system'
+}

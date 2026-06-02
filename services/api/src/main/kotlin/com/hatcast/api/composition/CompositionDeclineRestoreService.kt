@@ -1,5 +1,9 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.event.EventEntity
@@ -14,6 +18,7 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -36,7 +41,9 @@ class CompositionDeclineRestoreService(
     private val organizerAccess: OrganizerAccessRules,
     private val troupeAccess: TroupeAccessService,
     private val compositionService: CompositionService,
-    private val notificationPort: CompositionNotificationPort,
+    private val eventPublisher: ApplicationEventPublisher,
+    private val auditRecorder: AuditEventRecorder,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional
     fun restoreDecline(
@@ -47,6 +54,7 @@ class CompositionDeclineRestoreService(
     ): CompositionResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireManageComposition(eventId, seasonId, principal)
+        val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
 
         val composition =
             compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
@@ -102,6 +110,15 @@ class CompositionDeclineRestoreService(
                         slotIndex = emptySlotIndex,
                     ),
                 )
+        val beforeSnapshot =
+            mapOf(
+                "roleKey" to decline.roleKey,
+                "slotIndex" to decline.slotIndex,
+                "seasonParticipantId" to decline.seasonParticipantId?.toString(),
+                "eventParticipantId" to decline.eventParticipantId?.toString(),
+                "participantId" to declineParticipantId.toString(),
+                "participationStatus" to SlotParticipationStatus.DECLINED.name.lowercase(),
+            )
         slotEntity.setAssignee(eligibleRow)
         slotEntity.participationStatus = SlotParticipationStatus.PENDING
         slotEntity.updatedAt = now
@@ -111,13 +128,36 @@ class CompositionDeclineRestoreService(
         composition.updatedAt = now
         compositionRepository.save(composition)
 
-        notificationPort.requestConfirmationForAssignees(
-            eventId = eventId,
-            seasonId = seasonId,
-            assigneeParticipantIds = listOf(eligibleRow.participantId),
-            actorUserId = principal.userId,
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.DECLINE_RESTORED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = decline.seasonParticipantId,
+                subjectEventParticipantId = decline.eventParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = beforeSnapshot,
+                after = AuditSnapshots.slotAssignment(slotEntity),
+                metadata =
+                    mapOf(
+                        "roleKey" to decline.roleKey,
+                        "slotIndex" to emptySlotIndex,
+                        "declineId" to declineId.toString(),
+                    ),
+            ),
         )
 
+        eventPublisher.publishEvent(
+            CompositionConfirmationRequestedEvent(
+                eventId = eventId,
+                seasonId = seasonId,
+                actorUserId = principal.userId,
+                assigneeParticipantIds = listOf(eligibleRow.participantId),
+            ),
+        )
+
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
 

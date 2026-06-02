@@ -2,6 +2,8 @@ package com.hatcast.api.event
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRepository
 import com.hatcast.api.composition.EventCompositionEntity
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotEntity
@@ -15,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -67,6 +70,9 @@ class EventControllerIntegrationTest {
 
     @Autowired
     private lateinit var slotRepository: EventCompositionSlotRepository
+
+    @Autowired
+    private lateinit var auditEventRepository: AuditEventRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
@@ -265,6 +271,60 @@ class EventControllerIntegrationTest {
     }
 
     @Test
+    fun `unarchive restores event in upcoming scope and scope all keeps archived flag`() {
+        val cookie = memberCookie("sub-event-unarchive")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-01T19:00:00Z")
+
+        val createFuture =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Spectacle réactivable",
+                              "startsAt": "${future}"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val eventId = mapper.readTree(createFuture.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/archive")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.archived").value(true))
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=all").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.id == '$eventId')].archived").value(true))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/unarchive")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.archived").value(false))
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events?scope=upcoming").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.content[0].id").value(eventId))
+    }
+
+    @Test
     fun `scope past with participantId returns focus availability for that participant`() {
         val cookie = memberCookie("sub-event-past-participant")
         val seasonId = createSeasonForEventsTests(cookie)
@@ -288,6 +348,13 @@ class EventControllerIntegrationTest {
                 ).andExpect(status().isOk)
                 .andReturn()
         val pastEventId = mapper.readTree(createPast.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$pastEventId/actions/open-availability")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
 
         mockMvc
             .perform(
@@ -456,7 +523,7 @@ class EventControllerIntegrationTest {
     }
 
     @Test
-    fun `create event rejects invalid template type`() {
+    fun `create event rejects invalid format`() {
         val cookie = memberCookie("sub-event-5")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-06-15T18:00:00Z")
@@ -670,8 +737,8 @@ class EventControllerIntegrationTest {
     }
 
     @Test
-    fun `equity tag create get patch clear and reject multi`() {
-        val cookie = memberCookie("sub-event-equity-1")
+    fun `category create get patch clear and reject multi`() {
+        val cookie = memberCookie("sub-event-category-1")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-07-01T20:00:00Z")
 
@@ -686,29 +753,29 @@ class EventControllerIntegrationTest {
                             {
                               "title": "Apérock extérieur",
                               "startsAt": "$future",
-                              "equityTag": "Apérock"
+                              "category": "Apérock"
                             }
                             """.trimIndent(),
                         ).with(csrf()),
                 ).andExpect(status().isOk)
-                .andExpect(jsonPath("$.equityTag").value("aperock"))
+                .andExpect(jsonPath("$.category").value("aperock"))
                 .andReturn()
         val eventId = mapper.readTree(createRes.response.contentAsString).get("id").asText()
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(cookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.equityTag").value("aperock"))
+            .andExpect(jsonPath("$.category").value("aperock"))
 
         mockMvc
             .perform(
                 patch("/v1/seasons/$seasonId/events/$eventId")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{ "equityTag": null }""")
+                    .content("""{ "category": null }""")
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.equityTag").value(nullValue()))
+            .andExpect(jsonPath("$.category").value(nullValue()))
 
         mockMvc
             .perform(
@@ -720,7 +787,7 @@ class EventControllerIntegrationTest {
                         {
                           "title": "Multi tag",
                           "startsAt": "$future",
-                          "equityTag": ["deplacements"]
+                          "category": ["deplacements"]
                         }
                         """.trimIndent(),
                     ).with(csrf()),
@@ -736,10 +803,125 @@ class EventControllerIntegrationTest {
                         {
                           "title": "Virgule tag",
                           "startsAt": "${future.plusSeconds(7200)}",
-                          "equityTag": "deplacements,aperock"
+                          "category": "deplacements,aperock"
                         }
                         """.trimIndent(),
                     ).with(csrf()),
             ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `event draft lifecycle open availability and visibility`() {
+        val admin = memberCookie("sub-event-draft-admin")
+        val member =
+            TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-event-draft-member",
+                email = "sub-event-draft-member@example.com",
+                name = "Draft Member",
+            )
+        val seasonId = createSeasonForEventsTests(admin)
+        val future = Instant.parse("2032-08-01T20:00:00Z")
+
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Brouillon test",
+                              "startsAt": "$future"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.availabilityOpenedAt").value(nullValue()))
+                .andReturn()
+        val eventId = mapper.readTree(createRes.response.contentAsString).get("id").asText()
+        val eventSlug = mapper.readTree(createRes.response.contentAsString).get("slug").asText()
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events?scope=upcoming&size=50").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.id == '$eventId')]").isEmpty)
+            .andExpect(jsonPath("$.totalElements").value(0))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/by-slug/$eventSlug").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilityOpenedAt").value(nullValue()))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilityOpenedAt").value(nullValue()))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events?scope=upcoming&size=50").cookie(admin))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.id == '$eventId')].teamStatusBadge.key").value("draft"))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+                    .cookie(member)
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilityOpenedAt").exists())
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events?scope=upcoming&size=50").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.id == '$eventId')].id").value(eventId))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/close-availability")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilityOpenedAt").value(nullValue()))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/close-availability")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilityOpenedAt").value(nullValue()))
+
+        val closedAuditCount =
+            auditEventRepository
+                .findByEventIdOrderByOccurredAtDesc(UUID.fromString(eventId))
+                .count { it.actionType == AuditActionType.EVENT_AVAILABILITY_CLOSED }
+        assertEquals(1, closedAuditCount)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events?scope=upcoming&size=50").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.id == '$eventId')]").isEmpty)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilityOpenedAt").value(nullValue()))
     }
 }

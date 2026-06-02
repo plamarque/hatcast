@@ -132,6 +132,17 @@
   line-height: 1.4;
 }
 
+.share-announce-dialog__guard-warning {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.45rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--mat-sys-on-error-container, #fde68a);
+  background: color-mix(in srgb, var(--mat-sys-error-container, #78350f) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-error, #fbbf24) 45%, transparent);
+}
+
 .share-announce-dialog__recipients-summary {
   margin: 0 0 0.5rem;
   font-size: 0.875rem;

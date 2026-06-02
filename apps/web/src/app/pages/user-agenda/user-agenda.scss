@@ -6,39 +6,67 @@
 
 .user-agenda__header {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
   margin-bottom: 1rem;
 }
 
-.user-agenda__titles {
+.user-agenda__header-subline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   min-width: 0;
-  flex: 1 1 12rem;
 }
 
 .user-agenda__header-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-shrink: 0;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
-  flex: 1 1 auto;
+}
+
+.user-agenda__criteria-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
+  margin-bottom: 0.75rem;
+  overflow-x: clip;
+}
+
+.user-agenda__chips-row {
+  display: flex;
+  width: 100%;
 }
 
 .user-agenda__title {
   margin: 0;
+  min-width: 0;
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .user-agenda__subtitle {
-  margin: 0.25rem 0 0;
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
   opacity: 0.85;
   font-size: 0.95rem;
+}
+
+@media (min-width: 840px) {
+  .user-agenda__header-subline {
+    min-height: 0;
+    padding-inline-end: 0;
+  }
+
+  .user-agenda__header-actions {
+    position: static;
+  }
 }
 
 .user-agenda__user-btn {
@@ -145,7 +173,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
   }
 }
 
@@ -156,121 +184,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: capitalize;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 55%, transparent);
 }
 
-.agenda-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.65rem;
-  padding: 0.85rem;
-  border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  text-align: left;
-  color: inherit;
-}
-
-.agenda-card__clickable {
-  display: flex;
-  align-items: stretch;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  border-radius: 0.35rem;
-  transition: background 0.15s ease;
-
-  &:hover,
-  &:focus-visible {
-    background: rgba(255, 255, 255, 0.07);
-    outline: none;
-  }
-}
-
-.agenda-card__date {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 3.4rem;
-  padding-right: 0.65rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.agenda-card__day {
-  font-size: 1.65rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.agenda-card__weekday,
-.agenda-card__time {
-  font-size: 0.75rem;
-  opacity: 0.85;
-  text-transform: capitalize;
-}
-
-.agenda-card__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.agenda-card__title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-.agenda-card__loc {
-  margin: 0.25rem 0 0;
-  font-size: 0.85rem;
-  opacity: 0.8;
-}
-
-.agenda-card__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding-left: calc(3.4rem + 0.75rem);
-
-  @media (max-width: 480px) {
-    padding-left: 0;
-  }
-}
-
-.agenda-card__badge {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.agenda-card__badge--link {
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    box-shadow 0.15s ease;
-
-  &:hover,
-  &:focus-visible {
-    background: rgba(255, 255, 255, 0.14);
-    outline: 2px solid var(--mat-sys-primary);
-    outline-offset: 1px;
-  }
-}
-
-.agenda-card__badge--league {
-  background: color-mix(in srgb, var(--mat-sys-tertiary) 28%, transparent);
-}
-
-// Disponibilité : styles globaux `.agenda-card__badge--dispo` (styles/_hatcast-agenda-dispo-badge.scss)
+// Cartes événement : styles globaux (_hatcast-agenda-event-card.scss)

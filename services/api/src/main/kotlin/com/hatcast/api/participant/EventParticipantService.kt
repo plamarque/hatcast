@@ -1,8 +1,13 @@
 package com.hatcast.api.participant
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.dto.EventParticipantAdminDto
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.participant.dto.ParticipantCreateRequest
 import com.hatcast.api.participant.dto.ParticipantUpdateRequest
 import com.hatcast.api.user.UserRepository
@@ -20,6 +25,7 @@ class EventParticipantService(
     private val userRepository: UserRepository,
     private val participantAccess: ParticipantAccessService,
     private val participantLink: ParticipantLinkService,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional(readOnly = true)
     fun listAdmin(
@@ -32,6 +38,7 @@ class EventParticipantService(
         val includeEmail = participantAccess.canViewEventParticipantEmail(eventId, seasonId, principal)
         return eventParticipantRepository
             .findByEvent_IdAndStatusOrderByDisplayNameAsc(eventId, ParticipantStatus.ACTIVE)
+            .sortedByFrenchDisplayName { it.displayName }
             .map { EventParticipantAdminDto.from(it, includeEmail) }
     }
 
@@ -67,6 +74,18 @@ class EventParticipantService(
                     updatedAt = now,
                 ),
             )
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_PARTICIPANT_ADDED,
+                actorUserId = principal.userId,
+                subjectEventParticipantId = saved.id,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                after = AuditSnapshots.eventParticipant(saved),
+                metadata = AuditSnapshots.participantMetadata(saved.displayName),
+            ),
+        )
         return EventParticipantAdminDto.from(saved, includeEmail = true)
     }
 
@@ -86,6 +105,7 @@ class EventParticipantService(
         if (existing.status != ParticipantStatus.ACTIVE) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
         }
+        val beforeSnapshot = AuditSnapshots.eventParticipant(existing)
         val displayName = body.displayName.trim()
         if (displayName.isEmpty()) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Nom d'affichage requis.")
@@ -97,6 +117,19 @@ class EventParticipantService(
             participantLink.resolveUserId(normalizedEmail)?.let { userRepository.findById(it).orElse(null) }
         existing.updatedAt = Instant.now()
         val saved = eventParticipantRepository.save(existing)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_PARTICIPANT_UPDATED,
+                actorUserId = principal.userId,
+                subjectEventParticipantId = saved.id,
+                troupeId = existing.event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = beforeSnapshot,
+                after = AuditSnapshots.eventParticipant(saved),
+                metadata = AuditSnapshots.participantMetadata(saved.displayName),
+            ),
+        )
         return EventParticipantAdminDto.from(saved, includeEmail = true)
     }
 
@@ -115,10 +148,24 @@ class EventParticipantService(
         if (existing.status != ParticipantStatus.ACTIVE) {
             return
         }
+        val beforeSnapshot = AuditSnapshots.eventParticipant(existing)
         val now = Instant.now()
         existing.status = ParticipantStatus.REMOVED
         existing.removedAt = now
         existing.updatedAt = now
         eventParticipantRepository.save(existing)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.EVENT_PARTICIPANT_REMOVED,
+                actorUserId = principal.userId,
+                subjectEventParticipantId = existing.id,
+                troupeId = existing.event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = beforeSnapshot,
+                after = AuditSnapshots.eventParticipant(existing),
+                metadata = AuditSnapshots.participantMetadata(existing.displayName),
+            ),
+        )
     }
 }

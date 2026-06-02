@@ -22,7 +22,7 @@ import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-re
 import { UserAgenda } from './user-agenda'
 
 const TROUPE_A = 'a0000001-0000-4000-8000-000000000001'
-const LEAGUE_A = 'b0000001-0000-4000-8000-000000000001'
+const SEASON_A = 'b0000001-0000-4000-8000-000000000001'
 
 const testRoutes: Routes = [
   { path: 'agenda', component: UserAgenda },
@@ -108,43 +108,41 @@ describe('UserAgenda', () => {
     expect(fixture.nativeElement.querySelector('app-member-season-shortcut')).toBeNull()
   })
 
-  it('affiche les badges troupe et saison cliquables sur chaque carte', async () => {
+  it('n’affiche pas les badges troupe et saison sur les cartes', async () => {
     await settle(fixture)
 
-    const troupeLink = fixture.nativeElement.querySelector(
-      'a.agenda-card__badge--link[href="/troupes/la-bim"]',
-    ) as HTMLAnchorElement
-    const seasonLink = fixture.nativeElement.querySelector(
-      'a.agenda-card__badge--league[href="/saison/ligue-2026"]',
-    ) as HTMLAnchorElement
-
-    expect(troupeLink).toBeTruthy()
-    expect(troupeLink.getAttribute('aria-label')).toBe('Ouvrir la troupe La BIM')
-    expect(seasonLink).toBeTruthy()
-    expect(seasonLink.getAttribute('aria-label')).toBe('Ouvrir la saison Ligue 2026')
+    expect(
+      fixture.nativeElement.querySelector('a.agenda-card__badge--link[href="/troupes/la-bim"]'),
+    ).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('a.agenda-card__badge--season[href="/saison/ligue-2026"]'),
+    ).toBeNull()
   })
 
-  it('n’ouvre pas l’événement quand on clique sur le badge saison', async () => {
+  it('affiche le badge composition quand teamStatusBadge est présent', async () => {
     agendaApi.listAgenda.mockResolvedValue({
       ok: true,
       status: 200,
       data: agendaResponse([
-        agendaItem('event-badge', 'Cabaret badge', '2026-05-10T18:00:00Z'),
+        agendaItem('event-prep', 'Cabaret préparation', '2026-06-15T19:30:00Z', {
+          teamStatusBadge: {
+            key: 'preparing',
+            label: 'Équipe en préparation',
+            tone: 'preparing',
+            shortLabel: 'Préparation',
+          },
+        }),
       ]),
     })
 
     await settle(fixture)
-    navigateSpy.mockClear()
 
-    const seasonLink = fixture.nativeElement.querySelector(
-      'a.agenda-card__badge--league',
-    ) as HTMLAnchorElement
-    seasonLink.click()
-
-    expect(navigateSpy).not.toHaveBeenCalled()
+    const badge = fixture.nativeElement.querySelector('.composition-status-badge--preparing')
+    expect(badge).toBeTruthy()
+    expect(badge.textContent?.trim()).toBe('Préparation')
   })
 
-  it('affiche les événements groupés par mois avec les badges troupe, ligue et disponibilité', async () => {
+  it('affiche les événements groupés par mois avec le statut de disponibilité', async () => {
     agendaApi.listAgenda.mockResolvedValue({
       ok: true,
       status: 200,
@@ -153,12 +151,12 @@ describe('UserAgenda', () => {
           location: 'Salle A',
           myAvailabilityStatus: 'available',
           troupeName: 'La BIM',
-          leagueTitle: 'Ligue 2026',
+          seasonTitle: 'Festibask 2026',
         }),
         agendaItem('event-feb', 'Cabaret de février', '2026-02-02T20:00:00Z', {
           myAvailabilityStatus: null,
           troupeName: 'Les Improbots',
-          leagueTitle: 'Matchs impro',
+          seasonTitle: 'Matchs impro',
         }),
       ]),
     })
@@ -171,9 +169,9 @@ describe('UserAgenda', () => {
     expect(text).toContain('janvier 2026')
     expect(text).toContain('février 2026')
     expect(text).toContain('Cabaret de janvier')
-    expect(text).toContain('Salle A')
-    expect(text).toContain('La BIM')
-    expect(text).toContain('Ligue 2026')
+    expect(fixture.nativeElement.querySelector('.agenda-card__loc')).toBeNull()
+    expect(text).not.toContain('La BIM')
+    expect(text).not.toContain('Festibask 2026')
     expect(text).toContain('Dispo')
     expect(text).not.toContain('Filtres')
   })
@@ -198,8 +196,9 @@ describe('UserAgenda', () => {
 
     const cards = fixture.nativeElement.querySelectorAll('.agenda-card')
     expect(cards).toHaveLength(2)
-    expect(fixture.nativeElement.textContent).toContain('Troupe A')
-    expect(fixture.nativeElement.textContent).toContain('Troupe B')
+    expect(fixture.nativeElement.textContent).toContain('Rencontre partagée')
+    expect(fixture.nativeElement.textContent).not.toContain('Troupe A')
+    expect(fixture.nativeElement.textContent).not.toContain('Troupe B')
   })
 
   it('affiche l’état vide sans participation', async () => {
@@ -284,7 +283,7 @@ describe('UserAgenda', () => {
       status: 200,
       data: agendaResponse([
         agendaItem('event-keyboard', 'Cabaret clavier', '2026-05-03T18:00:00Z', {
-          leagueSlug: 'ligue-clavier',
+          seasonSlug: 'ligue-clavier',
         }),
       ]),
     })
@@ -308,7 +307,7 @@ describe('UserAgenda', () => {
       status: 200,
       data: agendaResponse([
         agendaItem('event-space', 'Cabaret espace', '2026-05-04T18:00:00Z', {
-          leagueSlug: 'ligue-espace',
+          seasonSlug: 'ligue-espace',
         }),
       ]),
     })
@@ -332,8 +331,8 @@ describe('UserAgenda', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('Effacer filtres')
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Tout effacer')
   })
 
   it('affiche la barre de filtres et appelle l’API avec troupeId', async () => {
@@ -348,8 +347,8 @@ describe('UserAgenda', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('Toutes les troupes')
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="agenda-troupe-filter"]')).toBeNull()
 
     agendaApi.listAgenda.mockClear()
     await fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
@@ -360,7 +359,7 @@ describe('UserAgenda', () => {
     )
   })
 
-  it('appelle l’API avec leagueId et efface les filtres au reset', async () => {
+  it('appelle l’API avec seasonId et efface les filtres au reset', async () => {
     agendaApi.listAgenda.mockResolvedValue({
       ok: true,
       status: 200,
@@ -373,11 +372,11 @@ describe('UserAgenda', () => {
     await settle(fixture)
     agendaApi.listAgenda.mockClear()
 
-    await fixture.componentInstance['onLeagueFilterChange'](LEAGUE_A)
+    await fixture.componentInstance['onSeasonFilterChange'](SEASON_A)
     await settle(fixture)
 
     expect(agendaApi.listAgenda).toHaveBeenCalledWith(
-      expect.objectContaining({ leagueId: LEAGUE_A }),
+      expect.objectContaining({ seasonId: SEASON_A }),
     )
 
     agendaApi.listAgenda.mockClear()
@@ -433,7 +432,7 @@ describe('UserAgenda', () => {
             snapshot: {
               queryParamMap: convertToParamMap({
                 troupeId: TROUPE_A,
-                leagueId: LEAGUE_A,
+                seasonId: SEASON_A,
               }),
             },
           },
@@ -447,7 +446,7 @@ describe('UserAgenda', () => {
     await settle(fixture)
 
     expect(agendaApi.listAgenda).toHaveBeenCalledWith(
-      expect.objectContaining({ troupeId: TROUPE_A, leagueId: LEAGUE_A }),
+      expect.objectContaining({ troupeId: TROUPE_A, seasonId: SEASON_A }),
     )
   })
 
@@ -455,7 +454,7 @@ describe('UserAgenda', () => {
     TestBed.resetTestingModule()
     sessionStorage.setItem(
       USER_AGENDA_FILTERS_STORAGE_KEY,
-      JSON.stringify({ troupeId: TROUPE_A, leagueId: null }),
+      JSON.stringify({ troupeId: TROUPE_A, seasonId: null }),
     )
     agendaApi.listAgenda.mockResolvedValue({
       ok: true,
@@ -490,7 +489,7 @@ describe('UserAgenda', () => {
     expect(navigateSpy).toHaveBeenCalledWith(
       [],
       expect.objectContaining({
-        queryParams: { troupeId: TROUPE_A, leagueId: null },
+        queryParams: { troupeId: TROUPE_A, seasonId: null },
       }),
     )
   })
@@ -506,7 +505,7 @@ describe('UserAgenda', () => {
     })
 
     await settle(fixture)
-    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull()
 
     let resolveReload: ((value: unknown) => void) | undefined
     agendaApi.listAgenda.mockReturnValue(
@@ -518,7 +517,7 @@ describe('UserAgenda', () => {
     void fixture.componentInstance['onTroupeFilterChange'](TROUPE_A)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('[data-testid="agenda-filter-bar"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull()
 
     resolveReload?.({
       ok: true,
@@ -531,17 +530,17 @@ describe('UserAgenda', () => {
     await settle(fixture)
   })
 
-  it('efface leagueId quand la troupe change et invalide la ligue', async () => {
+  it('efface seasonId quand la troupe change et invalide la saison', async () => {
     const TROUPE_B = 'a0000002-0000-4000-8000-000000000002'
-    const LEAGUE_B = 'b0000002-0000-4000-8000-000000000003'
+    const SEASON_B = 'b0000002-0000-4000-8000-000000000003'
     const filters: UserAgendaParticipationFilters = {
       troupes: [
         { id: TROUPE_A, name: 'La BIM', slug: 'la-bim' },
         { id: TROUPE_B, name: 'Autre troupe', slug: 'autre-troupe' },
       ],
-      leagues: [
-        { id: LEAGUE_A, title: 'Ligue A', slug: 'ligue-a', troupeId: TROUPE_A },
-        { id: LEAGUE_B, title: 'Ligue B', slug: 'ligue-b', troupeId: TROUPE_B },
+      seasons: [
+        { id: SEASON_A, title: 'Saison A', slug: 'saison-a', troupeId: TROUPE_A },
+        { id: SEASON_B, title: 'Saison B', slug: 'saison-b', troupeId: TROUPE_B },
       ],
     }
 
@@ -552,7 +551,7 @@ describe('UserAgenda', () => {
     })
 
     await settle(fixture)
-    await fixture.componentInstance['onLeagueFilterChange'](LEAGUE_B)
+    await fixture.componentInstance['onSeasonFilterChange'](SEASON_B)
     await settle(fixture)
     agendaApi.listAgenda.mockClear()
 
@@ -560,7 +559,7 @@ describe('UserAgenda', () => {
     await settle(fixture)
 
     expect(agendaApi.listAgenda).toHaveBeenCalledWith(
-      expect.objectContaining({ troupeId: TROUPE_A, leagueId: undefined }),
+      expect.objectContaining({ troupeId: TROUPE_A, seasonId: undefined }),
     )
   })
 
@@ -592,8 +591,8 @@ describe('UserAgenda', () => {
         { id: TROUPE_A, name: 'La BIM', slug: 'la-bim' },
         { id: TROUPE_B, name: 'Autre troupe', slug: 'autre-troupe' },
       ],
-      leagues: [
-        { id: LEAGUE_A, title: 'Ligue 2026', slug: 'ligue-2026', troupeId: TROUPE_A },
+      seasons: [
+        { id: SEASON_A, title: 'Festibask 2026', slug: 'ligue-2026', troupeId: TROUPE_A },
       ],
     }
 
@@ -665,7 +664,7 @@ describe('UserAgenda', () => {
             snapshot: {
               queryParamMap: convertToParamMap({
                 troupeId: 'not-a-uuid',
-                leagueId: 'also-bad',
+                seasonId: 'also-bad',
               }),
             },
           },
@@ -683,12 +682,12 @@ describe('UserAgenda', () => {
 function sampleParticipationFilters(): UserAgendaParticipationFilters {
   return {
     troupes: [{ id: TROUPE_A, name: 'La BIM', slug: 'la-bim' }],
-    leagues: [
-      { id: LEAGUE_A, title: 'Ligue 2026', slug: 'ligue-2026', troupeId: TROUPE_A },
+    seasons: [
+      { id: SEASON_A, title: 'Festibask 2026', slug: 'ligue-2026', troupeId: TROUPE_A },
       {
         id: 'b0000002-0000-4000-8000-000000000002',
-        title: 'Autre ligue',
-        slug: 'autre-ligue',
+        title: 'Autre saison',
+        slug: 'autre-saison',
         troupeId: TROUPE_A,
       },
     ],
@@ -726,9 +725,9 @@ function agendaItem(
     troupeId: 'troupe-1',
     troupeName: 'La BIM',
     troupeSlug: 'la-bim',
-    leagueId: 'league-1',
-    leagueSlug: 'ligue-2026',
-    leagueTitle: 'Ligue 2026',
+    seasonId: 'league-1',
+    seasonSlug: 'ligue-2026',
+    seasonTitle: 'Festibask 2026',
     myAvailabilityStatus: 'unknown',
     ...overrides,
   }

@@ -1,16 +1,22 @@
-<mat-card class="season-card">
-  <div class="season-card__header">
-    <span class="season-card__logo" aria-hidden="true">
-      <mat-icon>theater_comedy</mat-icon>
-    </span>
-    <h3 class="season-card__name">{{ title() }}</h3>
-  </div>
-  @if (archived()) {
-    <p class="season-card__status">Archivée</p>
-  }
-  <p class="season-card__stat">{{ spectacleLabel(eventCount()) }}</p>
-  <p class="season-card__stat">{{ participantLabel(participantCount()) }}</p>
-  <div class="season-card__actions">
-    <a mat-flat-button color="primary" [routerLink]="workspaceLink(slug())">Ouvrir</a>
-  </div>
+<mat-card class="season-card" appearance="outlined">
+  <a
+    class="season-card__surface"
+    [routerLink]="workspaceLink(slug())"
+    [attr.aria-label]="openAriaLabel()"
+  >
+    <div class="season-card__header">
+      <span class="season-card__logo" aria-hidden="true">
+        <mat-icon>theater_comedy</mat-icon>
+      </span>
+      <h3 class="season-card__name">{{ title() }}</h3>
+    </div>
+    @if (periodLabel(); as period) {
+      <p class="season-card__period">{{ period }}</p>
+    }
+    @if (archived()) {
+      <p class="season-card__status">Archivée</p>
+    }
+    <p class="season-card__stat">{{ spectacleLabel(eventCount()) }}</p>
+    <p class="season-card__stat">{{ participantLabel(participantCount()) }}</p>
+  </a>
 </mat-card>

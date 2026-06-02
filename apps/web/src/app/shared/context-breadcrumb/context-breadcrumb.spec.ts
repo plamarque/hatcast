@@ -88,6 +88,20 @@ describe('ContextBreadcrumb', () => {
     expect(mobile.getAttribute('aria-label')).toContain('Match BIM')
   })
 
+  it('affiche le logo troupe quand troupeLogoUrl est fourni', async () => {
+    const fixture = await setup('season')
+    fixture.componentRef.setInput('troupeLogoUrl', '/v1/troupes/t1/logo?v=1')
+    fixture.detectChanges()
+
+    const img = fixture.nativeElement.querySelector(
+      '.context-breadcrumb__logo-img',
+    ) as HTMLImageElement
+    expect(img?.getAttribute('src')).toBe('/v1/troupes/t1/logo?v=1')
+    expect(
+      fixture.nativeElement.querySelector('.context-breadcrumb__logo-badge'),
+    ).toBeNull()
+  })
+
   it('uses nav with French aria-label', async () => {
     const fixture = await setup()
     const nav = fixture.nativeElement.querySelector('nav.context-breadcrumb')
@@ -108,7 +122,45 @@ describe('ContextBreadcrumb', () => {
     expect(el.querySelector('.context-breadcrumb__mobile-logo .context-breadcrumb__troupe-name')).toBeNull()
   })
 
-  it('renders admin leaf on season layout with linked season segment', async () => {
+  it('renders event title on mobile row for event layout', async () => {
+    const fixture = await setup('event', { initialized: true, showSwitcher: true })
+    const mobileRow = fixture.nativeElement.querySelector('.context-breadcrumb__mobile-row')
+    expect(mobileRow?.querySelector('.context-breadcrumb__mobile-event-title')?.textContent).toContain(
+      'Match BIM',
+    )
+    expect(mobileRow?.querySelector('.context-breadcrumb__mobile-event-title')?.getAttribute('aria-current')).toBe(
+      'page',
+    )
+    const seasonLink = mobileRow?.querySelector(
+      'a.context-breadcrumb__mobile-title',
+    ) as HTMLAnchorElement
+    expect(seasonLink?.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(mobileRow?.querySelector('app-context-switcher')).toBeNull()
+  })
+
+  it('links season title on mobile row when season segment is navigable', async () => {
+    const fixture = await setup('event')
+    const mobileRow = fixture.nativeElement.querySelector('.context-breadcrumb__mobile-row')
+    const seasonLink = mobileRow?.querySelector(
+      'a.context-breadcrumb__mobile-title',
+    ) as HTMLAnchorElement
+    expect(seasonLink?.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(seasonLink?.textContent).toContain('Saison 2025-26')
+  })
+
+  it('links season title on mobile admin leaf pages', async () => {
+    const fixture = await setup('season')
+    fixture.componentRef.setInput('leafTitle', 'Participants')
+    fixture.detectChanges()
+    const mobileRow = fixture.nativeElement.querySelector('.context-breadcrumb__mobile-row')
+    const seasonLink = mobileRow?.querySelector(
+      'a.context-breadcrumb__mobile-title',
+    ) as HTMLAnchorElement
+    expect(seasonLink?.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(mobileRow?.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
+  })
+
+  it('renders admin leaf on mobile row for season layout with linked season segment', async () => {
     const fixture = await setup('season')
     fixture.componentRef.setInput('leafTitle', 'Participants')
     fixture.detectChanges()
@@ -172,6 +224,14 @@ describe('ContextBreadcrumb', () => {
     expect(mobileRow?.querySelector('app-context-switcher.context-switcher__trigger--compact, app-context-switcher')).toBeTruthy()
   })
 
+  it('renders season title inline on mobile row when switcher is unavailable', async () => {
+    const fixture = await setup('season', { initialized: true, showSwitcher: false })
+    const mobileRow = fixture.nativeElement.querySelector('.context-breadcrumb__mobile-row')
+    expect(mobileRow?.querySelector('.context-breadcrumb__mobile-title')?.textContent).toContain('Saison 2025-26')
+    expect(mobileRow?.querySelector('app-context-switcher')).toBeNull()
+    expect(mobileRow?.querySelector('.context-breadcrumb__mobile-title')?.getAttribute('aria-current')).toBe('page')
+  })
+
   it('keeps hub link when switcher data fails to load', async () => {
     const fixture = await setup('season', { initialized: true, loadError: true })
     const el = fixture.nativeElement as HTMLElement
@@ -179,14 +239,20 @@ describe('ContextBreadcrumb', () => {
     expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Saison 2025-26')
   })
 
-  it('uses single aria-current when admin leaf is set without event slug', async () => {
+  it('uses single aria-current per breadcrumb row when admin leaf is set on event layout', async () => {
     const fixture = await setup('event')
     fixture.componentRef.setInput('leafTitle', 'Participants')
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
 
-    expect(el.querySelectorAll('[aria-current="page"]').length).toBe(1)
-    expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
+    expect(el.querySelectorAll('.context-breadcrumb__trail--desktop [aria-current="page"]').length).toBe(1)
+    expect(
+      el.querySelector('.context-breadcrumb__trail--desktop [aria-current="page"]')?.textContent,
+    ).toContain('Participants')
+    expect(el.querySelectorAll('.context-breadcrumb__mobile-row [aria-current="page"]').length).toBe(1)
+    expect(
+      el.querySelector('.context-breadcrumb__mobile-row [aria-current="page"]')?.textContent,
+    ).toContain('Participants')
   })
 
   it('affiche le chip Démo et l’aria-label troupe Démo quand troupeIsDemo', async () => {

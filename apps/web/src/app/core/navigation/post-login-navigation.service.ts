@@ -13,7 +13,7 @@ import {
 import {
   clearLastVisitedSeasonSlug,
   getLastVisitedSeasonSlug,
-} from './last-visited-league-storage'
+} from './last-visited-season-storage'
 import { saisonWorkspacePath } from './troupe-routes'
 import {
   clearPendingPostLoginRedirect,

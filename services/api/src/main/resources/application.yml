@@ -26,6 +26,8 @@ spring:
     placeholders:
       # V23: PostgreSQL rejects DROP PRIMARY KEY; H2 test profile overrides (application-test.yml).
       drop_event_availability_pk: DROP CONSTRAINT event_availability_pkey
+      notification_preferences_json_type: JSONB
+      notification_preferences_json_default: "'{}'::jsonb"
   session:
     store-type: jdbc
     jdbc:
@@ -57,6 +59,16 @@ hatcast:
     api-enabled: ${HATCAST_MIGRATION_API_ENABLED:false}
     api-key: ${HATCAST_MIGRATION_API_KEY:}
     operator-email: ${HATCAST_MIGRATION_OPERATOR_EMAIL:}
+  web-push:
+    vapid-public-key: ${HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY:}
+    vapid-private-key: ${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY:}
+    subject: ${HATCAST_WEB_PUSH_VAPID_SUBJECT:mailto:contact@hatcast.app}
+  notification:
+    email:
+      enabled: ${HATCAST_NOTIFICATION_EMAIL_ENABLED:false}
+      from: ${HATCAST_NOTIFICATION_EMAIL_FROM:HatCast <noreply@hatcast.app>}
+  notifications:
+    manual-availability-nudge-guard-days: ${HATCAST_MANUAL_AVAILABILITY_NUDGE_GUARD_DAYS:3}
 
 management:
   endpoints:

@@ -1,0 +1,50 @@
+.event-activite-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-activite-tab__toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+
+  app-availability-subject-selector {
+    flex: 1 1 0;
+    min-width: 0;
+
+    .subject-selector {
+      width: 100%;
+      max-width: none;
+    }
+  }
+}
+
+.event-activite-tab__mode-toggle {
+  flex-shrink: 0;
+  margin-left: auto;
+
+  mat-button-toggle {
+    min-height: 2.5rem;
+    padding-inline: 0.65rem;
+    font-size: 0.8125rem;
+  }
+
+  .mat-button-toggle-checked {
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+@media (max-width: 480px) {
+  .event-activite-tab__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .event-activite-tab__mode-toggle {
+    margin-left: 0;
+    align-self: flex-start;
+  }
+}

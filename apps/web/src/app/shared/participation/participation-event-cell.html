@@ -1,0 +1,10 @@
+<div
+  [class]="modifierClass()"
+  [matTooltip]="tooltip()"
+  [attr.aria-label]="tooltip()"
+>
+  <span class="participation-event-cell__label">{{ cell().label }}</span>
+  @if (emoji(); as em) {
+    <span class="participation-event-cell__emoji" aria-hidden="true">{{ em }}</span>
+  }
+</div>

@@ -112,7 +112,7 @@ function defaultEndDateAfterOneSeasonYear(start: Date): Date {
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button type="button" mat-button mat-dialog-close [disabled]="saving()">Annuler</button>
+      <button type="button" mat-button (click)="cancel()" [disabled]="saving()">Annuler</button>
       <button
         type="button"
         mat-flat-button
@@ -179,7 +179,7 @@ function defaultEndDateAfterOneSeasonYear(start: Date): Date {
 export class SeasonFormDialog implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder)
   private readonly api = inject(SeasonApiService)
-  private readonly ref = inject(MatDialogRef<SeasonFormDialog, string | boolean>)
+  private readonly ref = inject(MatDialogRef<SeasonFormDialog, SeasonResponse | string | boolean>)
   protected readonly data = inject<SeasonFormDialogData>(MAT_DIALOG_DATA)
   protected readonly saving = signal(false)
 
@@ -222,6 +222,10 @@ export class SeasonFormDialog implements OnInit, OnDestroy {
     this.startDateSub?.unsubscribe()
   }
 
+  protected cancel(): void {
+    this.ref.close()
+  }
+
   protected async submit(): Promise<void> {
     this.form.markAllAsTouched()
     if (this.form.invalid) {
@@ -250,8 +254,8 @@ export class SeasonFormDialog implements OnInit, OnDestroy {
           startDate: start,
           endDate: end,
         })
-        if (r.ok) {
-          this.ref.close(true)
+        if (r.ok && r.data) {
+          this.ref.close(r.data)
         }
       }
     } finally {

@@ -158,23 +158,27 @@ Chaque puce de `deferred-work.md` reçoit un **ID** `DW-###`. Croisement **story
 
 ---
 
-## 5. Liste iso-V1 séparée (hors deferred code-review)
+## 5. Liste iso-V1 / V2.0.0 (hors deferred code-review)
 
-Écarts V1 / produit **non** traités comme H1 deferred — sources PLAN, ADR, stories, réserve produit.
+Écarts V1 / produit **non** traités comme H1 deferred — sources PLAN, ADR, stories. **MAJ 2026-06-02 :** MEP iso-V1 **closed** ; cutover = § **Wave V2.0.0** ([SCP](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md)).
 
-| Thème | Source | Priorité suggérée |
-|-------|--------|-------------------|
-| Historique ligue : relecture **compositions** passées, mode consultation | DW-020–021, ADR 0012/0013 | Vague iso-V1 / epic shell |
-| **Mon compte** hub membre (FR compte, déconnexion shell) | Story **17.24** `review`, ux-design-mon-compte | Iso-V1 (avec 17.25 done) |
-| Compte : MAJ identifiants, suppression | **1.6**, **1.7** backlog | Post-iso ou staging si légal |
-| Notifications, audit, invités | Epics **8**, **9**, **7** | Post-staging |
-| PWA mise à jour client | **10.2** backlog | Post-staging |
-| Multi-saisons actives, roster ligue | Epic **13** (13.6 **annulé** ADR 0013 → tags) | Post-staging / MIG-4 |
-| Annuaire / pages publiques | Epic **4** | Iso-V1 marketing |
-| Export **MIG-2/3/4** (saisons, events, dispos, `deplacement`→tag) | **PLAN.md** | **G** staging — pas dans deferred |
-| Catalogue rôles par troupe | **G-006** growth-backlog | Post-iso |
-| Perf dispos (terrain) | **G-003** | Aligné DW-079 H1 |
-| Changelog / polish navigation | Epic **17** restant backlog PLAN | Selon PLAN § Epic 17 |
+| Thème | Source | Priorité |
+|-------|--------|----------|
+| Historique ligue : relecture **compositions** passées | DW-020–021 | Post-V2.0.0 |
+| **Mon compte** hub membre | **17.24** | Done |
+| Compte : onglets + prefs entry | **17.34** | **P0 V2.0.0** |
+| Compte : MAJ email + MDP connecté | **1.6** | **P0 V2.0.0** |
+| Compte : suppression | **1.7** | **P0 V2.0.0** (exclu MEP → in cutover) |
+| Reset mot de passe | **1.3** | **Recette gate V2.0.0** |
+| **Annuaire public troupes** | **4.1** | Done |
+| **Audit** | **9.0** capture ; **9.1** UI | Done / post-V2.0.0 (**9.2**) |
+| **Notifications** | **8.1**, **3.21**, **8.3**, **8.2**, **8.5**, **6.10b** | Done ; **8.4** post-V2.0.0 |
+| Modales annonces UX | **6.15** | **P0 V2.0.0** |
+| PWA recette + MAJ + changelog + aides + icône | **10.4–10.7**, **10.2**, **10.3** | **P0 V2.0.0** |
+| Release pipeline tags | **OPS-4–7** | **P0 V2.0.0** |
+| Invités | Epic **7** | Post-V2.0.0 |
+| Multi-saisons actives | Epic **13** | Post-V2.0.0 |
+| Pages publiques saison/événement | **4.2** | Post-V2.0.0 |
 
 ---
 

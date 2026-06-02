@@ -5,14 +5,6 @@
   padding: 0 0 1.5rem;
 }
 
-.event-infos__header {
-  margin-bottom: 0.25rem;
-}
-
-.event-infos__admin-menu {
-  flex-shrink: 0;
-}
-
 .event-infos__field {
   display: flex;
   flex-direction: column;
@@ -85,7 +77,7 @@
 }
 
 .event-infos__add-organizer,
-.event-infos__add-tag {
+.event-infos__add-category {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -184,13 +176,13 @@
   font-style: italic;
 }
 
-.event-infos__equity {
+.event-infos__category {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
-.event-infos__equity-body {
+.event-infos__category-body {
   padding: 0.5rem 0.9rem 0.65rem;
   border-radius: 0.5rem;
   background: rgba(255, 255, 255, 0.04);
@@ -200,7 +192,7 @@
   margin: 0;
 }
 
-.event-infos__equity-chip {
+.event-infos__category-chip {
   --mdc-chip-elevated-container-color: rgba(255, 255, 255, 0.08);
   font-size: 0.82rem;
   font-weight: 500;

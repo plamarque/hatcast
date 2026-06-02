@@ -155,7 +155,10 @@ On **`GET /participants`** (admin) and **`GET /participants/selectors`**:
 **Remove policy:**
 
 - **Explicit admin-added** non-member season participant → soft `REMOVED`.
-- **Membership-synced** row → do **not** DELETE on admin “Retirer”; removing troupe membership (story **2.2**) drives REMOVED state. Admin UI should disable Retirer for synced member rows or explain “Retirer le membre depuis Membres”.
+- **Season admin “Retirer”** (including rows synced from troupe membership): soft-remove **this season’s** participant row (`REMOVED`). Does **not** deactivate troupe membership. See story **3.19** and SCP [sprint-change-proposal-2026-05-31-participant-removal-three-levels.md](../planning-artifacts/sprint-change-proposal-2026-05-31-participant-removal-three-levels.md).
+- **Troupe admin “Retirer”** (Membres tab only): deactivates troupe membership (Story **2.2**); cascades `REMOVED` on all linked season participants for that troupe.
+- **Membership sync:** upserts ACTIVE season rows for ACTIVE troupe memberships **except** rows explicitly removed at season scope (sync guard — story **3.19**).
+- **Re-inclusion:** admin “Réintégrer à la saison” reactivates the same row; historical FKs remain valid.
 
 ### Email linking rules (**FR45**)
 

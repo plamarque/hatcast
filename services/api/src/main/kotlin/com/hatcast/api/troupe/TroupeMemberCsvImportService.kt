@@ -3,6 +3,7 @@ package com.hatcast.api.troupe
 import com.hatcast.api.troupe.dto.MemberCsvRowDto
 import com.hatcast.api.troupe.dto.MemberImportRowResultDto
 import com.hatcast.api.user.UserAccountService
+import com.hatcast.api.user.UserMemberPreferencesService
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -15,6 +16,7 @@ class TroupeMemberCsvImportService(
     private val membershipRepository: TroupeMembershipRepository,
     private val troupeRepository: TroupeRepository,
     private val userAccountService: UserAccountService,
+    private val userMemberPreferencesService: UserMemberPreferencesService,
 ) {
     fun importRow(
         troupeId: UUID,
@@ -54,10 +56,12 @@ class TroupeMemberCsvImportService(
         val existing = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id)
         if (existing != null) {
             val resolvedDisplayName = targetDisplayName ?: existing.displayName
+            val accountDisplayName = userMemberPreferencesService.resolvedMemberDisplayName(user)
             if (
                 existing.status == targetStatus &&
                 existing.baselineRole == targetRole &&
-                existing.displayName == resolvedDisplayName
+                existing.displayName == resolvedDisplayName &&
+                (targetDisplayName == null || accountDisplayName == targetDisplayName)
             ) {
                 return MemberImportRowResultDto(
                     rowNumber = row.rowNumber,
@@ -82,12 +86,19 @@ class TroupeMemberCsvImportService(
             }
             existing.status = targetStatus
             existing.baselineRole = targetRole
-            if (targetDisplayName != null) {
-                existing.displayName = targetDisplayName
+            if (targetStatus == TroupeMembershipStatus.ACTIVE && targetDisplayName == null) {
+                existing.displayName = userMemberPreferencesService.resolvedMemberDisplayName(user)
+                existing.preferredRoleKeys = user.preferredRoleKeys
             }
             existing.updatedAt = now
             membershipRepository.save(existing)
+            if (targetDisplayName != null) {
+                userMemberPreferencesService.updateMemberDisplayName(user.id, targetDisplayName)
+            }
             return rowSuccess(row.rowNumber, email)
+        }
+        if (targetDisplayName != null) {
+            userMemberPreferencesService.updateMemberDisplayName(user.id, targetDisplayName)
         }
         val membership =
             TroupeMembershipEntity(
@@ -95,7 +106,8 @@ class TroupeMemberCsvImportService(
                 user = user,
                 status = targetStatus,
                 baselineRole = targetRole,
-                displayName = targetDisplayName ?: MemberDisplayNameResolver.resolve(user),
+                displayName = targetDisplayName ?: userMemberPreferencesService.resolvedMemberDisplayName(user),
+                preferredRoleKeys = user.preferredRoleKeys,
                 createdAt = now,
                 updatedAt = now,
             )

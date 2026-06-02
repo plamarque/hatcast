@@ -93,7 +93,7 @@ export function buildStatisticsCsv(
   const exportEvents = eventsForExport(data)
   const lines: string[] = []
   if (options.groupsLabel) {
-    lines.push(csvEscape(`Groupes: ${options.groupsLabel}`))
+    lines.push(csvEscape(`Catégories: ${options.groupsLabel}`))
   }
   const headers = ['Participant', ...annualCols.map((c) => c.label)]
 

@@ -62,7 +62,12 @@ class SeasonStatisticsServiceTest {
                 whenever(it.id).thenReturn(seasonId)
                 whenever(it.troupe).thenReturn(troupe)
             }
-        val user = mock<UserEntity> { whenever(it.id).thenReturn(userId) }
+        val user =
+            mock<UserEntity>().also {
+                whenever(it.id).thenReturn(userId)
+                whenever(it.slug).thenReturn("alice-dupont")
+                whenever(it.avatarUpdatedAt).thenReturn(null)
+            }
         val membership =
             mock<TroupeMembershipEntity>().also {
                 whenever(it.user).thenReturn(user)
@@ -80,7 +85,7 @@ class SeasonStatisticsServiceTest {
                 whenever(it.title).thenReturn("Match test")
                 whenever(it.startsAt).thenReturn(Instant.parse("2026-03-15T19:00:00Z"))
                 whenever(it.templateType).thenReturn("match")
-                whenever(it.equityTag).thenReturn(null)
+                whenever(it.category).thenReturn(null)
                 whenever(it.roleSlots).thenReturn(mapOf("player" to 6, "mc" to 1))
                 whenever(it.archived).thenReturn(false)
             }
@@ -113,12 +118,14 @@ class SeasonStatisticsServiceTest {
         val result = service.loadStatistics(seasonId, principal)
 
         assertEquals(1, result.rows.size)
-        val cell = result.rows.first().eventCells[eventId]
+        val row = result.rows.first()
+        assertEquals("alice-dupont", row.userSlug)
+        val cell = row.eventCells[eventId]
         assertTrue(cell?.startsWith("Dispo (") == true, "expected Dispo export, got: $cell")
     }
 
     @Test
-    fun `loadStatistics filters events by equity compartments`() {
+    fun `loadStatistics filters events by categories`() {
         val troupe = mock<TroupeEntity> { whenever(it.id).thenReturn(troupeId) }
         val season =
             mock<SeasonEntity>().also {
@@ -129,6 +136,8 @@ class SeasonStatisticsServiceTest {
             mock<SeasonParticipantEntity>().also {
                 whenever(it.id).thenReturn(participantId)
                 whenever(it.displayName).thenReturn("Alice")
+                whenever(it.user).thenReturn(null)
+                whenever(it.troupeMembership).thenReturn(null)
             }
         val ordinary =
             mock<EventEntity>().also {
@@ -136,7 +145,7 @@ class SeasonStatisticsServiceTest {
                 whenever(it.title).thenReturn("Match local")
                 whenever(it.startsAt).thenReturn(Instant.parse("2026-03-10T19:00:00Z"))
                 whenever(it.templateType).thenReturn("match")
-                whenever(it.equityTag).thenReturn(null)
+                whenever(it.category).thenReturn(null)
                 whenever(it.roleSlots).thenReturn(mapOf("player" to 6))
                 whenever(it.archived).thenReturn(false)
             }
@@ -146,7 +155,7 @@ class SeasonStatisticsServiceTest {
                 whenever(it.title).thenReturn("Déplacement")
                 whenever(it.startsAt).thenReturn(Instant.parse("2026-03-15T19:00:00Z"))
                 whenever(it.templateType).thenReturn("deplacement")
-                whenever(it.equityTag).thenReturn(null)
+                whenever(it.category).thenReturn(null)
                 whenever(it.roleSlots).thenReturn(mapOf("player" to 6))
                 whenever(it.archived).thenReturn(false)
             }
@@ -168,15 +177,60 @@ class SeasonStatisticsServiceTest {
                 email = "alice@example.com",
             )
 
-        val principalOnly = service.loadStatistics(seasonId, principal, equityCompartments = listOf("principal"))
+        val principalOnly = service.loadStatistics(seasonId, principal, categories = listOf("principal"))
         assertEquals(1, principalOnly.events.size)
         assertEquals("Match local", principalOnly.events.first().title)
+        assertEquals(null, principalOnly.rows.first().userSlug)
 
-        val deplOnly = service.loadStatistics(seasonId, principal, equityCompartments = listOf("deplacements"))
+        val deplOnly = service.loadStatistics(seasonId, principal, categories = listOf("deplacements"))
         assertEquals(1, deplOnly.events.size)
         assertEquals(eventId, deplOnly.events.first().id)
 
-        val empty = service.loadStatistics(seasonId, principal, equityCompartments = listOf(""))
+        val empty = service.loadStatistics(seasonId, principal, categories = listOf(""))
         assertTrue(empty.events.isEmpty())
+    }
+
+    @Test
+    fun `loadStatistics sorts participants with French accent-insensitive order`() {
+        val troupe = mock<TroupeEntity> { whenever(it.id).thenReturn(troupeId) }
+        val season =
+            mock<SeasonEntity>().also {
+                whenever(it.id).thenReturn(seasonId)
+                whenever(it.troupe).thenReturn(troupe)
+            }
+        val veroId = UUID.randomUUID()
+        val vivianeId = UUID.randomUUID()
+        val vero =
+            mock<SeasonParticipantEntity>().also {
+                whenever(it.id).thenReturn(veroId)
+                whenever(it.displayName).thenReturn("Véro")
+                whenever(it.user).thenReturn(null)
+                whenever(it.troupeMembership).thenReturn(null)
+            }
+        val viviane =
+            mock<SeasonParticipantEntity>().also {
+                whenever(it.id).thenReturn(vivianeId)
+                whenever(it.displayName).thenReturn("Viviane")
+                whenever(it.user).thenReturn(null)
+                whenever(it.troupeMembership).thenReturn(null)
+            }
+
+        whenever(seasonRepository.findById(seasonId)).thenReturn(Optional.of(season))
+        whenever(seasonParticipantRepository.findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE))
+            .thenReturn(listOf(viviane, vero))
+        whenever(eventRepository.findNonArchivedBySeasonId(seasonId)).thenReturn(emptyList())
+
+        val principal =
+            SessionUserPrincipal(
+                userId = UUID.randomUUID(),
+                googleSub = "sub",
+                idpUid = null,
+                email = "alice@example.com",
+            )
+
+        val result = service.loadStatistics(seasonId, principal)
+
+        assertEquals(listOf(veroId, vivianeId), result.rows.map { it.participantId })
+        assertEquals(listOf("Véro", "Viviane"), result.participants.map { it.displayName })
     }
 }

@@ -1,6 +1,7 @@
 # Déploie l’image V2 (Nginx + Angular + Spring) vers Cloud Run.
 # Prérequis : secrets dépôt + secrets par environnement GitHub — voir docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md
 # Branches : v2 → development, staging-v2 → staging, production-v2 → production (Neon + Cloud Run).
+# Gate E2E smoke (staging-v2 uniquement) : job e2e-smoke avant deploy — pas sur v2 (dev cloud) ni production-v2.
 # La branche git `staging` reste réservée au déploiement V1 (Firebase) — voir DEPLOY_V2_CLOUD_RUN.md.
 # Noms configurables côté scripts : scripts/v2/branches.env (YAML GitHub = seconde source à maintenir).
 name: Deploy V2 (Cloud Run)
@@ -26,7 +27,15 @@ permissions:
   id-token: write
 
 jobs:
+  e2e-smoke:
+    if: github.ref_name == 'staging-v2'
+    uses: ./.github/workflows/e2e-smoke.yml
+
   deploy:
+    needs: e2e-smoke
+    if: |
+      always() &&
+      (github.ref_name != 'staging-v2' || needs.e2e-smoke.result == 'success')
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.ref_name == 'production-v2' && 'production' || github.ref_name == 'staging-v2' && 'staging' || 'development' }}
@@ -74,6 +83,7 @@ jobs:
             --build-arg HATCAST_FIREBASE_WEB_API_KEY="${{ secrets.HATCAST_FIREBASE_WEB_API_KEY }}" \
             --build-arg HATCAST_FIREBASE_AUTH_DOMAIN="${{ secrets.HATCAST_FIREBASE_AUTH_DOMAIN }}" \
             --build-arg HATCAST_FIREBASE_PROJECT_ID="${{ secrets.HATCAST_FIREBASE_PROJECT_ID }}" \
+            --build-arg HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY="${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}" \
             -t "${IMAGE_TAG}" \
             -t "${{ secrets.GCP_ARTIFACT_REGISTRY }}:latest" \
             -f Dockerfile \
@@ -92,6 +102,48 @@ jobs:
           V="${V},HATCAST_DATASOURCE_PASSWORD=${{ secrets.HATCAST_DATASOURCE_PASSWORD }}"
           V="${V},HATCAST_CORS_ALLOWED_ORIGINS=${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}"
           V="${V},GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}"
+          if [ -n "${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}" ]; then
+            V="${V},HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY=${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}"
+          else
+            echo "::warning::HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY not set — push opt-in on /compte will fail until configured (see DEPLOY_V2_CLOUD_RUN.md)"
+          fi
+          if [ -n "${{ secrets.HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY }}" ]; then
+            V="${V},HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY=${{ secrets.HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY }}"
+          else
+            echo "::warning::HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY not set — server push send (story 8.3) disabled until configured"
+          fi
+          if [ -n "${{ secrets.HATCAST_WEB_PUSH_VAPID_SUBJECT }}" ]; then
+            V="${V},HATCAST_WEB_PUSH_VAPID_SUBJECT=${{ secrets.HATCAST_WEB_PUSH_VAPID_SUBJECT }}"
+          fi
+          if [ -n "${{ secrets.HATCAST_NOTIFICATION_EMAIL_ENABLED }}" ]; then
+            V="${V},HATCAST_NOTIFICATION_EMAIL_ENABLED=${{ secrets.HATCAST_NOTIFICATION_EMAIL_ENABLED }}"
+          fi
+          if [ -n "${{ secrets.HATCAST_NOTIFICATION_EMAIL_FROM }}" ]; then
+            V="${V},HATCAST_NOTIFICATION_EMAIL_FROM=${{ secrets.HATCAST_NOTIFICATION_EMAIL_FROM }}"
+          fi
+          if [ -n "${{ secrets.SPRING_MAIL_HOST }}" ]; then
+            V="${V},SPRING_MAIL_HOST=${{ secrets.SPRING_MAIL_HOST }}"
+          fi
+          if [ -n "${{ secrets.SPRING_MAIL_PORT }}" ]; then
+            V="${V},SPRING_MAIL_PORT=${{ secrets.SPRING_MAIL_PORT }}"
+          fi
+          if [ -n "${{ secrets.SPRING_MAIL_USERNAME }}" ]; then
+            V="${V},SPRING_MAIL_USERNAME=${{ secrets.SPRING_MAIL_USERNAME }}"
+          fi
+          if [ -n "${{ secrets.SPRING_MAIL_PASSWORD }}" ]; then
+            V="${V},SPRING_MAIL_PASSWORD=${{ secrets.SPRING_MAIL_PASSWORD }}"
+          fi
+          if [ -n "${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH }}" ]; then
+            V="${V},SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH }}"
+          fi
+          if [ -n "${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE }}" ]; then
+            V="${V},SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE }}"
+          fi
+          if [ "${{ secrets.HATCAST_NOTIFICATION_EMAIL_ENABLED }}" = "true" ]; then
+            if [ -z "${{ secrets.SPRING_MAIL_HOST }}" ] || [ -z "${{ secrets.SPRING_MAIL_USERNAME }}" ] || [ -z "${{ secrets.SPRING_MAIL_PASSWORD }}" ]; then
+              echo "::warning::HATCAST_NOTIFICATION_EMAIL_ENABLED=true but SPRING_MAIL_HOST/USERNAME/PASSWORD incomplete — email send will be skipped (see DEPLOY_V2_CLOUD_RUN.md)"
+            fi
+          fi
           V="${V},JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0"
           if [ "${{ github.ref_name }}" = "staging-v2" ]; then
             if [ -n "${{ secrets.HATCAST_MIGRATION_API_KEY }}" ] && [ -n "${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}" ]; then

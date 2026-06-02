@@ -1,5 +1,6 @@
 package com.hatcast.api.participant
 
+import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeEntity
@@ -29,6 +30,7 @@ class SeasonParticipantServiceTest {
     private val participantLink = ParticipantLinkService(userRepository, seasonParticipantRepository, mock())
     private val membershipSync =
         SeasonParticipantMembershipSync(seasonParticipantRepository, seasonRepository, participantLink)
+    private val auditRecorder = mock<AuditEventRecorder>()
 
     private val service =
         SeasonParticipantService(
@@ -39,6 +41,7 @@ class SeasonParticipantServiceTest {
             participantAccess,
             participantLink,
             membershipSync,
+            auditRecorder,
         )
 
     @Test
@@ -66,11 +69,13 @@ class SeasonParticipantServiceTest {
         whenever(
             troupeMembershipRepository.findByTroupe_IdAndStatusIn(
                 troupe.id,
-                listOf(TroupeMembershipStatus.ACTIVE, TroupeMembershipStatus.INACTIVE),
+                listOf(TroupeMembershipStatus.ACTIVE),
             ),
         ).thenReturn(listOf(membership))
         whenever(seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(season.id, listOf(membership.id)))
             .thenReturn(listOf(existing))
+        whenever(seasonParticipantRepository.findActiveLinkedToInactiveMembershipsForSeason(season.id))
+            .thenReturn(emptyList())
         whenever(seasonParticipantRepository.save(any())).thenAnswer { it.getArgument(0) }
         whenever(seasonParticipantRepository.saveAll(any<List<SeasonParticipantEntity>>()))
             .thenAnswer { it.getArgument<List<SeasonParticipantEntity>>(0) }
@@ -123,5 +128,47 @@ class SeasonParticipantServiceTest {
         service.ensureSeasonParticipantForMembership(season, membership)
 
         verify(seasonParticipantRepository, never()).save(any())
+    }
+
+    @Test
+    fun `ensureMembershipParticipants does not reactivate season admin removals`() {
+        val troupe = TroupeEntity(id = UUID.randomUUID(), name = "Troupe", slug = "troupe")
+        val season = SeasonEntity(id = UUID.randomUUID(), troupe = troupe, slug = "saison", title = "Saison")
+        val user = UserEntity(id = UUID.randomUUID(), email = "member@example.com", displayName = "Member")
+        val membership =
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                displayName = "Member",
+            )
+        val removedBySeasonAdmin =
+            SeasonParticipantEntity(
+                season = season,
+                displayName = "Member",
+                normalizedEmail = "member@example.com",
+                user = user,
+                troupeMembership = membership,
+                status = ParticipantStatus.REMOVED,
+                removalSource = SeasonParticipantRemovalSource.SEASON_ADMIN,
+            )
+
+        whenever(
+            troupeMembershipRepository.findByTroupe_IdAndStatusIn(
+                troupe.id,
+                listOf(TroupeMembershipStatus.ACTIVE),
+            ),
+        ).thenReturn(listOf(membership))
+        whenever(seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(season.id, listOf(membership.id)))
+            .thenReturn(listOf(removedBySeasonAdmin))
+        whenever(seasonParticipantRepository.findActiveLinkedToInactiveMembershipsForSeason(season.id))
+            .thenReturn(emptyList())
+
+        MembershipSyncScope.clear()
+        MembershipParticipantSyncCache.invalidate(season.id)
+        service.ensureMembershipParticipants(season)
+
+        verify(seasonParticipantRepository, never()).save(any())
+        verify(seasonParticipantRepository, never()).saveAll(any<List<SeasonParticipantEntity>>())
     }
 }

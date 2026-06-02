@@ -23,7 +23,6 @@ const glanceSelf: MemberSeasonGlanceData = {
   isSelf: true,
   resolvedSeasonId: 'season-1',
   troupeId: 'troupe-1',
-  leagueId: 'season-1',
   preferredRolesTroupeId: 'troupe-1',
   filterBarVisible: false,
   participationFilters: null,
@@ -124,7 +123,7 @@ describe('MemberSeasonGlance', () => {
     const { fixture } = await setup()
     const title = fixture.nativeElement.querySelector('.member-glance-page__title')
     expect(title?.textContent).toContain('Mes Stats')
-    expect(fixture.nativeElement.textContent).toContain("Ma saison en un clin d'œil")
+    expect(fixture.nativeElement.textContent).toContain("En un clin d'œil")
   })
 
   it('does not show cross-nav shortcuts or agenda footer on self glance', async () => {
@@ -141,7 +140,7 @@ describe('MemberSeasonGlance', () => {
         filterBarVisible: true,
         participationFilters: {
           troupes: [{ id: 'troupe-1', name: 'La BIM', slug: 'la-bim' }],
-          leagues: [
+          seasons: [
             {
               id: 'season-1',
               title: 'Ligue A',
@@ -159,13 +158,13 @@ describe('MemberSeasonGlance', () => {
       },
     })
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('app-user-agenda-filter-bar')).toBeTruthy()
+      expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).toBeTruthy()
     })
   })
 
-  it('hides filter bar when API reports filterBarVisible false', async () => {
+  it('hides filter trigger when API reports filterBarVisible false', async () => {
     const { fixture } = await setup({ glance: glanceSelf })
-    expect(fixture.nativeElement.querySelector('app-user-agenda-filter-bar')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).toBeNull()
   })
 
   it('does not show preferred roles editor on glance page', async () => {
@@ -177,7 +176,7 @@ describe('MemberSeasonGlance', () => {
   it('hides preferred roles editor when viewing another member', async () => {
     const { fixture } = await setup({ glance: glanceOther })
     expect(fixture.nativeElement.textContent).not.toContain('Mes rôles préférés')
-    expect(fixture.nativeElement.textContent).toContain('Saison en un clin d')
+    expect(fixture.nativeElement.textContent).toContain('Disponibilités, sélections et rôles')
   })
 
   it('reloads glance when route userSlug changes', async () => {

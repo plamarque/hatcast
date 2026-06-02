@@ -13,7 +13,7 @@ export interface CompositionLifecycleView {
   teamStatusBadge: TeamStatusBadge
 }
 
-export type TeamStatusBadgeKey = 'collecting' | 'preparing' | 'confirmed'
+export type TeamStatusBadgeKey = 'draft' | 'collecting' | 'preparing' | 'confirmed'
 
 export interface TeamStatusBadge {
   key: TeamStatusBadgeKey

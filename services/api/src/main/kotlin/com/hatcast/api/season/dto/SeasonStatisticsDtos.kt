@@ -8,23 +8,34 @@ data class StatCountsDto(
     val declines: Int,
 )
 
+data class StatisticsEventCellDto(
+    val status: String,
+    val label: String,
+    val roleKey: String? = null,
+    val tooltip: String? = null,
+)
+
 data class StatisticsEventDto(
     val id: UUID,
     val title: String,
     val startsAt: String,
     val templateType: String,
-    val equityTag: String?,
+    val category: String?,
     val monthKey: String,
 )
 
 data class ParticipantStatisticsRowDto(
     val participantId: UUID,
     val displayName: String,
+    /** Account slug for `/membre/:userSlug` when participant is linked to a user. Story 16.2. */
+    val userSlug: String? = null,
+    val avatarUrl: String? = null,
     val annual: Map<String, StatCountsDto>,
     /** V1 `calculatePlayerMonthStats` — participations / dispos / declines par mois (événement validé). */
     val monthSummary: Map<String, StatCountsDto>,
     val byMonth: Map<String, Map<String, StatCountsDto>>,
     val eventCells: Map<UUID, String>,
+    val eventCellDetails: Map<UUID, StatisticsEventCellDto>,
 )
 
 data class SeasonStatisticsResponseDto(

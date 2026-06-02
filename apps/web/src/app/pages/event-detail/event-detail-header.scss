@@ -22,38 +22,11 @@
   gap: 0.35rem;
   min-width: 0;
   flex: 1 1 auto;
-  width: 100%;
   overflow: hidden;
 }
 
-.event-detail-header__titles {
+.event-detail-header__admin {
   display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  min-width: 0;
-}
-
-.event-detail-header__icon {
   flex-shrink: 0;
-  margin-top: 0.15rem;
-  font-size: 1.35rem;
+  align-items: center;
 }
-
-.event-detail-header__text {
-  min-width: 0;
-}
-
-.event-detail-header__title {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.event-detail-header__when {
-  margin: 0.35rem 0 0;
-  font-size: 0.9rem;
-  opacity: 0.9;
-  text-transform: capitalize;
-}
-

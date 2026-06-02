@@ -5,6 +5,11 @@
   min-width: min(100vw - 3rem, 24rem);
 }
 
+.publish-draft-toggle,
+.revert-draft-toggle {
+  margin-top: 0.25rem;
+}
+
 .full {
   width: 100%;
 }

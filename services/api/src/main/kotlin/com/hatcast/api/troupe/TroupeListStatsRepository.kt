@@ -47,4 +47,23 @@ interface TroupeListStatsRepository : JpaRepository<EventEntity, UUID> {
         @Param("troupeIds") troupeIds: Collection<UUID>,
         @Param("fromInclusive") fromInclusive: Instant,
     ): List<TroupeUpcomingEventCountRow>
+
+    /** Troupe-wide upcoming event count for public directory cards (Story 4.1 — not user-scoped). */
+    @Query(
+        """
+        SELECT t.id AS troupeId, COUNT(DISTINCT e.id) AS eventCount
+        FROM EventEntity e
+        JOIN e.season s
+        JOIN s.troupe t
+        WHERE e.archived = false
+          AND s.archived = false
+          AND e.startsAt >= :fromInclusive
+          AND t.id IN :troupeIds
+        GROUP BY t.id
+        """,
+    )
+    fun countUpcomingEventsByTroupeIds(
+        @Param("troupeIds") troupeIds: Collection<UUID>,
+        @Param("fromInclusive") fromInclusive: Instant,
+    ): List<TroupeUpcomingEventCountRow>
 }

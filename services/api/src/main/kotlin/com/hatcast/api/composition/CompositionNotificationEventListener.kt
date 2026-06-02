@@ -16,4 +16,53 @@ class CompositionNotificationEventListener(
             event.actorUserId,
         )
     }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onConfirmationRequested(event: CompositionConfirmationRequestedEvent) {
+        if (event.assigneeParticipantIds.isEmpty()) {
+            notificationPort.requestCompositionConfirmation(
+                event.eventId,
+                event.seasonId,
+                event.actorUserId,
+            )
+        } else {
+            notificationPort.requestConfirmationForAssignees(
+                event.eventId,
+                event.seasonId,
+                event.assigneeParticipantIds,
+                event.actorUserId,
+            )
+        }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onTeamValidatedFyiRequested(event: TeamValidatedFyiRequestedEvent) {
+        notificationPort.notifyTeamValidatedFyi(
+            event.eventId,
+            event.seasonId,
+            event.actorUserId,
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onAssigneeRemoved(event: CompositionAssigneeRemovedEvent) {
+        notificationPort.notifyAssigneeRemoved(
+            event.eventId,
+            event.seasonId,
+            event.actorUserId,
+            event.formerAssigneeParticipantId,
+            event.roleKey,
+            event.slotIndex,
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onReconfirmationRequested(event: CompositionReconfirmationRequestedEvent) {
+        notificationPort.notifyReconfirmationForAssignees(
+            event.eventId,
+            event.seasonId,
+            event.assigneeParticipantIds,
+            event.actorUserId,
+        )
+    }
 }

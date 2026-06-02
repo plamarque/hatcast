@@ -11,6 +11,41 @@ Backend **Kotlin / Spring Boot** (cible Cloud Run, **PostgreSQL sur Neon**, Open
 
 En local, chargez ces variables depuis la racine du dépôt (fichier **`.env`**, voir [`.env.example`](../../.env.example)) ; [`scripts/start-dev.sh`](../../scripts/start-dev.sh) les exporte avant `bootRun`.
 
+### Notifications email (story 8.3, recette locale)
+
+| Variable | Rôle |
+|----------|------|
+| `HATCAST_NOTIFICATION_EMAIL_ENABLED` | `true` pour tenter l’envoi email (défaut API : `false`) |
+| `HATCAST_NOTIFICATION_EMAIL_FROM` | En-tête From (optionnel) |
+
+Avec **`./scripts/start-dev.sh`** et `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` :
+
+1. Démarre **Mailpit** (Docker, conteneur `hatcast-mailpit`, image `axllent/mailpit`).
+2. Force **`SPRING_MAIL_HOST=127.0.0.1`** et **`SPRING_MAIL_PORT=1025`** pour `bootRun` (ignore les `SPRING_MAIL_*` Gmail éventuels du `.env`).
+3. Attend que le port SMTP réponde avant l’API.
+4. **Arrête Mailpit** à la fin du script (Ctrl+C).
+
+UI : **http://127.0.0.1:8025**. Preuve serveur : table `notification_delivery_log` (`channel=EMAIL`, `status=SENT`).
+
+Profil **`dev`** : `management.health.mail.enabled=false` ([`application-dev.yml`](src/main/resources/application-dev.yml)) — pas de WARN SMTP sur `actuator/health` si Mailpit est absent.
+
+**`./gradlew bootRun` seul** : pas de Mailpit automatique ; configurer SMTP manuellement ou utiliser `start-dev.sh`.
+
+Cloud Run / staging : `SPRING_MAIL_*` (Gmail) via secrets GitHub — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
+
+### Notifications push Web (story 8.3)
+
+| Variable | Rôle |
+|----------|------|
+| `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` | Clé publique VAPID (alignée client Angular / Firebase Cloud Messaging) |
+| `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` | Clé privée VAPID — **obligatoire** pour envoi ; si absente → canal `SKIPPED` |
+
+- Dépendances : `web-push` + **`bcprov-jdk18on`** ; [`NotificationConfiguration`](src/main/kotlin/com/hatcast/api/notification/NotificationConfiguration.kt) enregistre le provider JCE **BouncyCastle** (`BC`) au démarrage — sans cela l’envoi échoue (`NoSuchProviderException`).
+- [`WebPushNotificationSender`](src/main/kotlin/com/hatcast/api/notification/WebPushNotificationSender.kt) : envoi multi-appareil depuis `user_push_subscriptions` ; erreur d’init → `FAILED` sans rollback mutation domaine (NFR-R2).
+- Recette locale : **`./scripts/start-dev.sh --with-push`** (front Angular en config **production** pour activer le service worker) + opt-in sur `/compte` ; publier un **nouveau** spectacle (`POST …/actions/open-availability`).
+
+Cloud Run : secrets `HATCAST_WEB_PUSH_VAPID_*` injectés par le workflow deploy — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §3.3.
+
 ## Lancer l’API en local
 
 ```bash
@@ -65,6 +100,7 @@ Profil Spring **`test`** (`@ActiveProfiles("test")` sur les suites `@SpringBootT
 | Environnement | Moteur | Config |
 |---------------|--------|--------|
 | **CI** + `./gradlew test` local | **H2** en mémoire | [`src/test/resources/application-test.yml`](src/test/resources/application-test.yml) |
+| **E2E Playwright V2** | **H2** en mémoire + seeds | [`src/main/resources/application-e2e.yml`](src/main/resources/application-e2e.yml) — profil **`e2e`** |
 | **dev** (poste, branche Neon `local`) / **cloud** (Cloud Run) | **PostgreSQL** (Neon) | `HATCAST_DATASOURCE_*` + profils `dev` / `cloud` |
 
 La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml)**) exécute `./gradlew test --no-daemon` sur chaque PR/push touchant `services/api/**` (branches `v2`, `main`). Échec du job = check rouge. Relance manuelle : onglet Actions → *services/api (tests)* → *Run workflow*.
@@ -74,6 +110,20 @@ La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml
 ### Flyway en profil `test`
 
 Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` (données `@seed.improbots.test` pour `MemberSeasonGlanceIntegrationTest`, etc.). Le profil **cloud** exclut `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
+
+### Profil `e2e` (Playwright V2)
+
+Démarrage local (ou via `apps/web/playwright.config.ts` `webServer`) :
+
+```bash
+HATCAST_SPRING_PROFILE=e2e ./gradlew bootRun
+```
+
+- Base **H2** isolée, Flyway **migration + seed** (Les Improbots).
+- **Auth Google mockée** : `E2eGoogleIdTokenService` — token `e2e-admin` → `patrice@seed.improbots.test` (TROUPE_ADMIN Les Improbots ; super-admin plateforme).
+- **CSRF désactivé** (`hatcast.e2e.api-enabled=true`) pour les mutations Playwright sans bootstrap `XSRF-TOKEN`.
+- **Fixtures hybrides** (option C) : seed minimal + `POST /v1/e2e/fixtures/story-3-19/reset` (en-tête `X-Hatcast-E2E-Key`, clé par défaut `e2e-fixtures-secret` dans `application-e2e.yml`).
+- Package : [`src/main/kotlin/com/hatcast/api/e2e/`](src/main/kotlin/com/hatcast/api/e2e/). CI : [`.github/workflows/e2e-smoke.yml`](../../.github/workflows/e2e-smoke.yml).
 
 ### Compatibilité SQL H2 (shims test uniquement)
 

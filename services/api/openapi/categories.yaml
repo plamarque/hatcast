@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Catégories troupe (fragment)
+  description: Glossaire des catégories de spectacle par troupe (ADR 0013).
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Catégories
+
+paths:
+  /troupes/{troupeId}/categories:
+    get:
+      tags: [Catégories]
+      summary: Liste le glossaire des catégories d'une troupe
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TroupeCategory'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe
+        '404':
+          description: Troupe introuvable
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  schemas:
+    TroupeCategory:
+      type: object
+      required: [slug, label]
+      properties:
+        slug:
+          type: string
+          maxLength: 64
+          description: Identifiant canonique (a-z, chiffres, tirets)
+        label:
+          type: string
+          maxLength: 128
+          description: Libellé affiché (autocomplete)

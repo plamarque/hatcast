@@ -80,4 +80,25 @@ describe('MemberProfilePanel', () => {
       'Match à Pau vs la Boîte à idées\n28/02\nIndisponible',
     )
   })
+
+  it('renders h2 section headings on hub pages', async () => {
+    await TestBed.configureTestingModule({
+      imports: [MemberProfilePanel, NoopAnimationsModule],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(MemberProfilePanel)
+    fixture.componentRef.setInput('profile', {
+      ...profileWithChart,
+      favoriteRoleCounts: [{ roleKey: 'player', count: 2 }],
+    })
+    fixture.componentRef.setInput('showPreferredRoles', false)
+    fixture.componentRef.setInput('sectionHeadingLevel', 2)
+    fixture.detectChanges()
+
+    const headings = fixture.nativeElement.querySelectorAll('h2.member-profile__section-title')
+    expect(headings.length).toBe(2)
+    expect(headings[0]?.textContent?.trim()).toContain("clin d")
+    expect(headings[1]?.textContent?.trim()).toBe('Rôles favoris')
+    expect(fixture.nativeElement.querySelector('h3.member-profile__section-title')).toBeNull()
+  })
 })

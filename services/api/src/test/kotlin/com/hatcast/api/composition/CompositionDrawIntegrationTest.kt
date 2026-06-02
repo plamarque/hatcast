@@ -2,10 +2,12 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.support.EventTestSupport
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
@@ -69,6 +71,12 @@ class CompositionDrawIntegrationTest {
     @Autowired
     private lateinit var slotRepository: EventCompositionSlotRepository
 
+    @Autowired
+    private lateinit var drawChanceSnapshotRepository: EventDrawChanceSnapshotRepository
+
+    @Autowired
+    private lateinit var eventRepository: EventRepository
+
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
 
@@ -111,11 +119,11 @@ class CompositionDrawIntegrationTest {
         seasonId: UUID,
         roleSlotsJson: String = """{ "player": 2 }""",
         templateType: String? = null,
-        equityTag: String? = null,
+        category: String? = null,
     ): UUID {
         val future = Instant.parse("2031-04-01T19:00:00Z")
         val templateJson = templateType?.let { """, "templateType": "$it"""" } ?: ""
-        val equityJson = equityTag?.let { """, "equityTag": "$it"""" } ?: ""
+        val categoryJson = category?.let { """, "category": "$it"""" } ?: ""
         val res =
             mockMvc
                 .perform(
@@ -127,13 +135,15 @@ class CompositionDrawIntegrationTest {
                             {
                               "title": "Draw event",
                               "startsAt": "$future",
-                              "roleSlots": $roleSlotsJson$templateJson$equityJson
+                              "roleSlots": $roleSlotsJson$templateJson$categoryJson
                             }
                             """.trimIndent(),
                         ).with(csrf()),
                 ).andExpect(status().isOk)
                 .andReturn()
-        return UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+        val eventId = UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+        EventTestSupport.openEventAvailability(mockMvc, cookie, seasonId, eventId)
+        return eventId
     }
 
     private fun validateComposition(eventId: UUID) {
@@ -201,6 +211,24 @@ class CompositionDrawIntegrationTest {
             .first { it.get("participantId").asText() == participantId }
             .get("chancePercent")
             .asInt()
+    }
+
+    /** Opening draw snapshot — first slot iteration per role (full pool at role start). */
+    private fun expectedSnapshotFromDraw(
+        drawBody: JsonNode,
+        roleKey: String,
+        participantId: String,
+    ): Pair<Int, Int>? {
+        val firstStep =
+            drawBody.get("steps").firstOrNull { it.get("roleKey").asText() == roleKey } ?: return null
+        val candidates = firstStep.get("candidates")
+        for (index in 0 until candidates.size()) {
+            val candidate = candidates.get(index)
+            if (candidate.get("participantId").asText() == participantId) {
+                return candidate.get("chancePercent").asInt() to candidates.size()
+            }
+        }
+        return null
     }
 
     private fun participantIdForUser(
@@ -542,7 +570,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR19")
-    fun `selection history is scoped to equity compartment`() {
+    fun `selection history is scoped to category`() {
         val adminCookie = memberCookie("sub-compartment-admin", admin = true)
         val veteran = memberCookie("sub-compartment-vet")
         val rookie = memberCookie("sub-compartment-rook")
@@ -553,7 +581,7 @@ class CompositionDrawIntegrationTest {
                 seasonId,
                 """{ "player": 1 }""",
                 templateType = "match",
-                equityTag = "deplacements",
+                category = "deplacements",
             )
         val principalEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
         val awayEvent2Id =
@@ -562,7 +590,7 @@ class CompositionDrawIntegrationTest {
                 seasonId,
                 """{ "player": 1 }""",
                 templateType = "match",
-                equityTag = "deplacements",
+                category = "deplacements",
             )
 
         assertPrincipalChancesEqualAfterAwayAssignment(
@@ -627,7 +655,7 @@ class CompositionDrawIntegrationTest {
                 seasonId,
                 """{ "player": 1 }""",
                 templateType = "match",
-                equityTag = "aperock",
+                category = "aperock",
             )
         val principalEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
         val aperockEvent2Id =
@@ -636,7 +664,7 @@ class CompositionDrawIntegrationTest {
                 seasonId,
                 """{ "player": 1 }""",
                 templateType = "match",
-                equityTag = "aperock",
+                category = "aperock",
             )
 
         setAvailability(veteran, seasonId, aperockEventId, "available")
@@ -756,5 +784,136 @@ class CompositionDrawIntegrationTest {
             .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberView))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.slots[0].participantDisplayName").exists())
+    }
+
+    @Test
+    @Tag("FR20")
+    fun `draw persists chance snapshots for scored candidates`() {
+        val adminCookie = memberCookie("sub-draw-snapshot-admin", admin = true)
+        val member1 = memberCookie("sub-draw-snapshot-m1")
+        val member2 = memberCookie("sub-draw-snapshot-m2")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId)
+        setAvailability(member1, seasonId, eventId, "available")
+        setAvailability(member2, seasonId, eventId, "available")
+
+        val drawBody = draw(adminCookie, seasonId, eventId)
+        val veteranId = participantIdForUser(seasonId, "sub-draw-snapshot-m1")
+        val rookieId = participantIdForUser(seasonId, "sub-draw-snapshot-m2")
+        val expectedVeteran = expectedSnapshotFromDraw(drawBody, "player", veteranId.toString())!!
+        val expectedRookie = expectedSnapshotFromDraw(drawBody, "player", rookieId.toString())!!
+
+        val snapshots = drawChanceSnapshotRepository.findByIdEventId(eventId)
+        assertEquals(2, snapshots.size)
+        val byParticipant = snapshots.associateBy { it.id.participantId }
+        assertEquals(expectedVeteran.first, byParticipant[veteranId]?.chancePercent)
+        assertEquals(expectedRookie.first, byParticipant[rookieId]?.chancePercent)
+        assertEquals(expectedVeteran.second, byParticipant[veteranId]?.candidateCount)
+        assertEquals(expectedRookie.second, byParticipant[rookieId]?.candidateCount)
+    }
+
+    @Test
+    @Tag("FR20")
+    fun `opening draw snapshot captures player odds for mc assignee excluded later in draw order`() {
+        val adminCookie = memberCookie("sub-opening-snap-admin", admin = true)
+        val mcPlayer = memberCookie("sub-opening-snap-mc")
+        val playerOnly = memberCookie("sub-opening-snap-p1")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, """{ "player": 1, "mc": 1 }""")
+        setAvailability(mcPlayer, seasonId, eventId, "available", listOf("player", "mc"))
+        setAvailability(playerOnly, seasonId, eventId, "available", listOf("player"))
+
+        draw(adminCookie, seasonId, eventId)
+
+        val mcPlayerId = participantIdForUser(seasonId, "sub-opening-snap-mc")
+        val playerSnapshot =
+            drawChanceSnapshotRepository
+                .findByIdEventId(eventId)
+                .firstOrNull { it.id.participantId == mcPlayerId && it.id.roleKey == "player" }
+        assertTrue(
+            playerSnapshot != null,
+            "Multi-role assignee must have opening player snapshot even when picked for mc first",
+        )
+    }
+
+    @Test
+    @Tag("FR19")
+    fun `past summary uses snapshot and stays stable after later validation`() {
+        val adminCookie = memberCookie("sub-draw-snapshot-stable-admin", admin = true)
+        val veteran = memberCookie("sub-draw-snapshot-stable-vet")
+        val rookie = memberCookie("sub-draw-snapshot-stable-rook")
+        val seasonId = createSeason(adminCookie)
+        val pastEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+        val laterEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+        setAvailability(veteran, seasonId, pastEventId, "available")
+        setAvailability(rookie, seasonId, pastEventId, "available")
+        setAvailability(veteran, seasonId, laterEventId, "available")
+        setAvailability(rookie, seasonId, laterEventId, "available")
+
+        draw(adminCookie, seasonId, pastEventId)
+        moveEventToPast(pastEventId)
+
+        val veteranId = participantIdForUser(seasonId, "sub-draw-snapshot-stable-vet")
+        val summaryBefore =
+            mockMvc
+                .perform(
+                    get("/v1/seasons/$seasonId/events/$pastEventId/availability/summary?includeChances=true")
+                        .cookie(adminCookie),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.chanceSource").value("snapshot"))
+                .andReturn()
+        val chanceBefore =
+            chancePercentForParticipant(
+                mapper.readTree(summaryBefore.response.contentAsString),
+                "player",
+                veteranId.toString(),
+            )
+
+        val rookieLaterId = participantIdForUser(seasonId, "sub-draw-snapshot-stable-rook")
+        assignSlot(adminCookie, seasonId, laterEventId, "player", 0, rookieLaterId)
+        validateComposition(laterEventId)
+
+        val summaryAfter =
+            mockMvc
+                .perform(
+                    get("/v1/seasons/$seasonId/events/$pastEventId/availability/summary?includeChances=true")
+                        .cookie(adminCookie),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.chanceSource").value("snapshot"))
+                .andReturn()
+        val chanceAfter =
+            chancePercentForParticipant(
+                mapper.readTree(summaryAfter.response.contentAsString),
+                "player",
+                veteranId.toString(),
+            )
+        assertEquals(chanceBefore, chanceAfter, "Past snapshot % must not drift after later validations")
+    }
+
+    @Test
+    @Tag("FR20")
+    fun `full redraw replaces previous snapshots for event`() {
+        val adminCookie = memberCookie("sub-draw-snapshot-redraw-admin", admin = true)
+        val member1 = memberCookie("sub-draw-snapshot-redraw-m1")
+        val member2 = memberCookie("sub-draw-snapshot-redraw-m2")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, """{ "player": 2 }""")
+        setAvailability(member1, seasonId, eventId, "available")
+        setAvailability(member2, seasonId, eventId, "available")
+
+        draw(adminCookie, seasonId, eventId)
+        assertEquals(2, drawChanceSnapshotRepository.findByIdEventId(eventId).size)
+
+        draw(adminCookie, seasonId, eventId)
+        val snapshots = drawChanceSnapshotRepository.findByIdEventId(eventId)
+        assertEquals(2, snapshots.size)
+        val participantIds = snapshots.map { it.id.participantId }.toSet()
+        assertEquals(2, participantIds.size)
+    }
+
+    private fun moveEventToPast(eventId: UUID) {
+        val event = eventRepository.findById(eventId).orElseThrow()
+        event.startsAt = Instant.parse("2020-06-01T19:00:00Z")
+        eventRepository.save(event)
     }
 }

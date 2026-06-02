@@ -1,5 +1,10 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditEventRepository
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
@@ -10,7 +15,6 @@ import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.dto.CompositionDeclineDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.CompositionSlotDto
-import com.hatcast.api.event.EquityCompartment
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
@@ -43,9 +47,12 @@ class CompositionService(
     private val selectionHistory: CompositionSelectionHistoryService,
     private val organizerAccess: OrganizerAccessRules,
     private val troupeAccess: TroupeAccessService,
-    private val notificationPort: CompositionNotificationPort,
     private val declineRepository: EventCompositionDeclineRepository,
     private val eventPublisher: ApplicationEventPublisher,
+    private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
+    private val auditRecorder: AuditEventRecorder,
+    private val auditEventRepository: AuditEventRepository,
+    private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -91,7 +98,9 @@ class CompositionService(
         }
 
         val alreadyPublished = composition.publishedAt != null
+        val beforeRawLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         if (!alreadyPublished) {
+            val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
             val slots = slotRepository.findByEventId(eventId)
             val assignedCount = slots.count { it.hasAssignee() }
             if (assignedCount == 0) {
@@ -101,6 +110,17 @@ class CompositionService(
             composition.publishedAt = now
             composition.updatedAt = now
             compositionRepository.save(composition)
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.COMPOSITION_PUBLISHED,
+                    actorUserId = principal.userId,
+                    troupeId = event.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = eventId,
+                    before = beforeLifecycle,
+                    after = AuditSnapshots.compositionLifecycle(composition),
+                ),
+            )
             eventPublisher.publishEvent(
                 DraftCompositionSharedEvent(
                     eventId = eventId,
@@ -110,6 +130,7 @@ class CompositionService(
             )
         }
 
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 
@@ -135,8 +156,10 @@ class CompositionService(
             throw ResponseStatusException(HttpStatus.CONFLICT, "Aucun rôle assigné à valider")
         }
 
+        val beforeRawLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val alreadyValidated = composition.validatedAt != null
         if (!alreadyValidated) {
+            val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
             val now = Instant.now()
             composition.validatedAt = now
             composition.updatedAt = now
@@ -149,9 +172,38 @@ class CompositionService(
             if (slotsToPending.isNotEmpty()) {
                 slotRepository.saveAll(slotsToPending)
             }
-            notificationPort.requestCompositionConfirmation(eventId, seasonId, principal.userId)
+            val isRevalidation =
+                auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
+            if (!isRevalidation) {
+                eventPublisher.publishEvent(
+                    CompositionConfirmationRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                    ),
+                )
+                eventPublisher.publishEvent(
+                    TeamValidatedFyiRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                    ),
+                )
+            }
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.COMPOSITION_VALIDATED,
+                    actorUserId = principal.userId,
+                    troupeId = event.season.troupe.id,
+                    seasonId = seasonId,
+                    eventId = eventId,
+                    before = beforeLifecycle,
+                    after = AuditSnapshots.compositionLifecycle(composition),
+                ),
+            )
         }
 
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 
@@ -175,6 +227,8 @@ class CompositionService(
             throw ResponseStatusException(HttpStatus.CONFLICT, "La composition n'est pas validée")
         }
 
+        val beforeRawLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
+        val beforeLifecycle = AuditSnapshots.compositionLifecycle(composition)
         val now = Instant.now()
         composition.validatedAt = null
         composition.updatedAt = now
@@ -192,8 +246,32 @@ class CompositionService(
                 slot.updatedAt = now
             }
             slotRepository.saveAll(slotsToUpdate)
+            val affectedParticipantIds = slotsToUpdate.mapNotNull { it.assignedParticipantId() }
+            if (affectedParticipantIds.isNotEmpty()) {
+                eventPublisher.publishEvent(
+                    CompositionReconfirmationRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                        assigneeParticipantIds = affectedParticipantIds,
+                    ),
+                )
+            }
         }
 
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.COMPOSITION_UNLOCKED,
+                actorUserId = principal.userId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = beforeLifecycle,
+                after = AuditSnapshots.compositionLifecycle(composition),
+            ),
+        )
+
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 
@@ -337,12 +415,17 @@ class CompositionService(
         if (roleKeysForOdds.isEmpty()) {
             return emptyMap()
         }
+        val historyMode = SelectionHistoryModeResolver.forEvent(event)
+        val snapshotByRoleAndParticipant =
+            if (historyMode == SelectionHistoryMode.RETROSPECTIVE) {
+                drawChanceSnapshots
+                    .findByEventId(eventId)
+                    .associateBy { it.id.roleKey to it.id.participantId }
+            } else {
+                emptyMap()
+            }
         val historyCounts =
-            selectionHistory.pastSelectionCountByParticipantAndRole(
-                seasonId,
-                eventId,
-                EquityCompartment.slug(event),
-            )
+            selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
         val eligible = loadEligibleForExplainability(seasonId, eventId)
         val availabilityByUserId =
             availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
@@ -350,31 +433,53 @@ class CompositionService(
         val result = mutableMapOf<Pair<UUID, String>, Pair<Int, Int>>()
         for (roleKey in roleKeysForOdds) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
-            val pastByParticipant =
-                selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
-            val pool =
-                eligible.filter { row ->
-                    val availability = row.userId?.let { availabilityByUserId[it] } ?: return@filter false
-                    if (availability.status != StoredAvailabilityStatus.AVAILABLE) {
-                        return@filter false
-                    }
-                    AvailabilityRoleRules.isCandidateForRole(
-                        AvailabilityStatusMapper.toApi(availability.status),
-                        availability.roleKeys,
-                        roleKey,
-                    )
+            val assignedInRole =
+                assignedSlots.filter { it.roleKey == roleKey && it.hasAssignee() }
+            val needsLiveRecalc =
+                assignedInRole.any { slot ->
+                    val participantId = slot.assignedParticipantId() ?: return@any false
+                    snapshotByRoleAndParticipant[roleKey to participantId] == null
                 }
-            val scored =
-                AvailabilityChanceCalculator.scoreCandidates(
-                    pool.map {
-                        AvailabilityChanceCalculator.Candidate(it.participantId, it.displayName, null)
-                    },
-                    requiredCount,
-                    pastByParticipant,
-                )
-            for (candidate in scored) {
-                result[candidate.participantId to roleKey] =
-                    candidate.chancePercent to candidate.pastSelectionCount
+            val scoredByParticipant =
+                if (needsLiveRecalc) {
+                    val pastByParticipant =
+                        selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+                    val pool =
+                        eligible.filter { row ->
+                            val availability =
+                                row.userId?.let { availabilityByUserId[it] } ?: return@filter false
+                            if (availability.status != StoredAvailabilityStatus.AVAILABLE) {
+                                return@filter false
+                            }
+                            AvailabilityRoleRules.isCandidateForRole(
+                                AvailabilityStatusMapper.toApi(availability.status),
+                                availability.roleKeys,
+                                roleKey,
+                            )
+                        }
+                    AvailabilityChanceCalculator
+                        .scoreCandidates(
+                            pool.map {
+                                AvailabilityChanceCalculator.Candidate(it.participantId, it.displayName, null)
+                            },
+                            requiredCount,
+                            pastByParticipant,
+                        ).associateBy { it.participantId }
+                } else {
+                    emptyMap()
+                }
+            for (slot in assignedInRole) {
+                val participantId = slot.assignedParticipantId() ?: continue
+                val snapshot = snapshotByRoleAndParticipant[roleKey to participantId]
+                if (snapshot != null) {
+                    result[participantId to roleKey] =
+                        snapshot.chancePercent to snapshot.pastSelectionCount
+                } else {
+                    scoredByParticipant[participantId]?.let { candidate ->
+                        result[participantId to roleKey] =
+                            candidate.chancePercent to candidate.pastSelectionCount
+                    }
+                }
             }
         }
         return result

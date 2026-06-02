@@ -22,9 +22,27 @@ class AvailabilityChanceCalculatorTest {
     }
 
     @Test
-    fun `equal weights split percent when no history`() {
+    fun `equal weights split percent when no history and one place`() {
         val scored = AvailabilityChanceCalculator.scoreCandidates(listOf(alice, bob, carol), 1)
         assertEquals(listOf(33, 33, 33), scored.map { it.chancePercent }.sorted())
+    }
+
+    @Test
+    fun `equal weights use multi draw probability when several places`() {
+        val candidates =
+            (1..8).map {
+                AvailabilityChanceCalculator.Candidate(UUID.randomUUID(), "P$it", null)
+            }
+        val scored = AvailabilityChanceCalculator.scoreCandidates(candidates, 5)
+        assertEquals(63, scored.first().chancePercent)
+        assert(scored.all { it.chancePercent == 63 })
+    }
+
+    @Test
+    fun `single place keeps weight ratio`() {
+        val scored = AvailabilityChanceCalculator.scoreCandidates(listOf(alice, bob), 1)
+        assertEquals(50, scored[0].chancePercent)
+        assertEquals(50, scored[1].chancePercent)
     }
 
     @Test

@@ -1,3 +1,10 @@
+.availability-tous__estimated-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--mat-sys-on-surface-variant);
+}
+
 .availability-tous {
   display: flex;
   flex-direction: column;
@@ -5,8 +12,27 @@
 }
 
 .availability-tous__role {
-  background: var(--hatcast-availability-surface);
-  border: 1px solid var(--hatcast-availability-border);
+  overflow: hidden;
+  border-radius: 0.65rem;
+  background: color-mix(
+    in srgb,
+    var(--mat-sys-surface-container-low) 72%,
+    var(--mat-sys-surface)
+  );
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 30%, transparent);
+  box-shadow: none;
+
+  &.mat-expansion-panel {
+    box-shadow: none;
+  }
+
+  .mat-expansion-panel-header {
+    padding-inline: 0.85rem;
+  }
+
+  .mat-expansion-panel-body {
+    padding-inline: 0.35rem;
+  }
 }
 
 .availability-tous__role-title {
@@ -16,51 +42,81 @@
   font-weight: 700;
 }
 
-.availability-tous__list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  padding: 0 0.25rem 0.5rem;
+.availability-tous__partial-warning {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  color: var(--mat-sys-error);
+  flex-shrink: 0;
 }
 
-/* Grand écran : 2 colonnes seulement si chaque cellule reste lisible (pas de 3 colonnes). */
-@media (min-width: 960px) {
-  .availability-tous__list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(14rem, 1fr));
-    gap: 0.125rem 0.75rem;
-  }
+.availability-tous__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0 0.35rem 0.65rem;
 }
 
 .availability-tous__person {
   width: 100%;
-  min-height: 3rem;
-  border-radius: 0.45rem;
+  min-height: 2.75rem;
+  border-radius: 0.5rem;
+  border: none;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 4%, transparent);
+  --mat-list-list-item-container-color: color-mix(in srgb, var(--mat-sys-on-surface) 4%, transparent);
+  --mat-list-list-item-container-shape: 0.5rem;
+  --mat-list-list-item-hover-state-layer-opacity: 0;
+  --mat-list-list-item-focus-state-layer-opacity: 0;
 
   /* mat-list-item tronque le titre par défaut — laisser le nom respirer. */
   [matListItemTitle],
   .mdc-list-item__primary-text {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     line-height: 1.25;
+    font-size: 0.8125rem;
   }
 
   .mdc-list-item__content {
-    overflow: visible;
+    overflow: hidden;
+    min-width: 0;
   }
 
   [matListItemMeta] {
     flex-shrink: 0;
-    margin-left: 0.5rem;
+    margin-left: 0.35rem;
+  }
+
+  [matListItemAvatar],
+  .mat-mdc-list-item-avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
   }
 
   &--clickable:not(:disabled) {
     cursor: pointer;
 
     &:hover {
-      background: color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
+      background: color-mix(in srgb, var(--mat-sys-on-surface) 9%, transparent);
     }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.92;
+  }
+
+  &.mat-mdc-list-item,
+  &.mdc-list-item {
+    outline: none;
+    border: none;
   }
 }
 
@@ -68,26 +124,29 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
   background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
 .availability-tous__chance {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
+}
 
-  &--high {
-    color: var(--hatcast-chance-high);
-  }
+/* mat-list-item meta applies on-surface color with higher specificity than nested BEM. */
+.availability-tous__person [matListItemMeta].availability-tous__chance--high {
+  color: var(--hatcast-chance-high);
+}
 
-  &--medium {
-    color: var(--hatcast-chance-medium);
-  }
+.availability-tous__person [matListItemMeta].availability-tous__chance--medium {
+  color: var(--hatcast-chance-medium);
+}
 
-  &--low {
-    color: var(--hatcast-chance-low);
-  }
+.availability-tous__person [matListItemMeta].availability-tous__chance--low {
+  color: var(--hatcast-chance-low);
 }
 
 .availability-tous__chance-skeleton {

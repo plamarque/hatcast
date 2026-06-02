@@ -99,6 +99,8 @@ class EventParticipantFocusService(
                 availabilityStatus = availability,
                 compositionRoleKey = matchingSlot?.roleKey,
                 inTeam = inTeam,
+                slotParticipationStatus =
+                    matchingSlot?.participationStatus?.name?.lowercase(),
             )
         }
     }

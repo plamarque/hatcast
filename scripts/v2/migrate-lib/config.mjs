@@ -6,6 +6,7 @@ import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 
 import { normalizePostgresUrl } from '../../migrate-malice-load.mjs'
+import { resolveMigrateTarget } from '../resolve-migrate-target.mjs'
 
 const STEP_ORDER = [
   'preflight',
@@ -44,6 +45,12 @@ function parseArgValue(argv, prefix) {
 }
 
 export function parseConfig(argv = process.argv.slice(2)) {
+  const migrateEnv =
+    parseArgValue(argv, '--migrate-env=') ??
+    parseArgValue(argv, '--env=') ??
+    null
+  const envResolved = migrateEnv ? resolveMigrateTarget(migrateEnv) : null
+
   const configPath = parseArgValue(argv, '--config=') ?? 'export/malice/migrate.config.json'
   const absConfig = resolve(process.cwd(), configPath)
   const base = existsSync(absConfig) ? loadJson(absConfig) : {}
@@ -60,10 +67,18 @@ export function parseConfig(argv = process.argv.slice(2)) {
   const exportDir = parseArgValue(argv, '--export-dir=') ?? base.exportDir ?? './export/malice-runs'
   const runDir = resolve(process.cwd(), exportDir, runId)
 
+  const loadTarget =
+    parseArgValue(argv, '--target=') ??
+    (envResolved ? envResolved.loadTarget : null) ??
+    base.target ??
+    'staging'
+
   return {
-    target: parseArgValue(argv, '--target=') ?? base.target ?? 'staging',
+    migrateEnv: envResolved?.target ?? migrateEnv,
+    target: loadTarget,
     apiBaseUrl: coalesceNonEmpty(
       parseArgValue(argv, '--api-base-url='),
+      envResolved?.apiBaseUrl,
       base.apiBaseUrl,
       process.env.HATCAST_MIGRATE_API_BASE,
     ),
@@ -83,6 +98,7 @@ export function parseConfig(argv = process.argv.slice(2)) {
     databaseUrl: normalizePostgresUrl(
       coalesceNonEmpty(
         parseArgValue(argv, '--database-url='),
+        envResolved?.databaseUrl,
         base.databaseUrl,
         process.env.NEON_STAGING_URL,
         process.env.HATCAST_MIGRATE_DATABASE_URL,
@@ -106,7 +122,9 @@ export function parseConfig(argv = process.argv.slice(2)) {
     recordCycle: argv.includes('--record-cycle'),
     iResetNeon: argv.includes('--i-reset-neon'),
     allowImportErrors: Number(parseArgValue(argv, '--allow-import-errors=') ?? base.allowImportErrors ?? 0),
-    confirmProd: parseArgValue(argv, '--confirm-prod='),
+    confirmProd:
+      parseArgValue(argv, '--confirm-prod=') ??
+      (envResolved?.requiresProdConfirm ? envResolved.prodConfirmSlug : null),
     thresholds: {
       events: base.thresholds?.events ?? 55,
       availability: base.thresholds?.availability ?? 1226,

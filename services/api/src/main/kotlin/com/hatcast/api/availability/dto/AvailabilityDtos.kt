@@ -43,6 +43,8 @@ data class SummaryRoleDto(
     val roleKey: String,
     val requiredCount: Int,
     val candidates: List<SummaryRoleCandidateDto>,
+    /** True when at least one candidate % uses retrospective recalc instead of a draw snapshot. */
+    val hasPartialEstimatedChances: Boolean = false,
 )
 
 data class EventAvailabilitySummaryResponse(
@@ -50,4 +52,6 @@ data class EventAvailabilitySummaryResponse(
     val roleSlots: Map<String, Int>,
     val participants: List<SummaryParticipantDto>,
     val roles: List<SummaryRoleDto>,
+    /** `live` = operational recalc; `snapshot` = draw-time freeze; `estimated` = retrospective without snapshot. */
+    val chanceSource: String? = null,
 )

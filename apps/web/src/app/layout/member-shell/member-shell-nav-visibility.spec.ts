@@ -28,8 +28,10 @@ describe('shouldShowMemberNav', () => {
   it('shows nav on admin routes', () => {
     expect(shouldShowMemberNav('/saison/foo/admin/membres')).toBe(true)
     expect(shouldShowMemberNav('/saison/foo/admin/participants')).toBe(true)
+    expect(shouldShowMemberNav('/saison/foo/admin/audit')).toBe(true)
     expect(shouldShowMemberNav('/saison/foo/event/bar/admin/participants')).toBe(true)
     expect(shouldShowMemberNav('/troupes/foo/admin/membres')).toBe(true)
+    expect(shouldShowMemberNav('/troupes/foo/admin/audit')).toBe(true)
     expect(shouldShowMemberNav('/troupe/admin/membres')).toBe(true)
   })
 

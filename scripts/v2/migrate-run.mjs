@@ -31,7 +31,9 @@ function printHelp() {
 
 Options:
   --config=PATH           JSON config (default export/malice/migrate.config.json)
-  --target=staging|prod   Target label for load guard
+  --migrate-env=NAME      local | development | staging | production (env URL/API resolution)
+  --env=NAME              Alias of --migrate-env
+  --target=staging|prod   Load guard label (staging, development, local, prod, …)
   --api-base-url=URL      V2 Cloud Run base URL
   --migration-api-key=KEY Override HATCAST_MIGRATION_API_KEY
   --v1-season=ID          Firestore V1 season id

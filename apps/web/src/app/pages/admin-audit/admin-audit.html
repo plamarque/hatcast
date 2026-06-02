@@ -1,0 +1,171 @@
+<div class="admin-audit">
+  <header class="admin-audit__header">
+    @if (showBreadcrumb()) {
+      @if (scope() === 'troupe') {
+        <app-context-breadcrumb
+          [layout]="'troupe'"
+          [leafTitle]="pageTitle()"
+          [troupeName]="troupeName()!"
+          [troupeSlug]="troupeSlug()!"
+          [troupeLogoUrl]="troupeLogoUrl()"
+        />
+      } @else if (season(); as se) {
+        <app-context-breadcrumb
+          [layout]="'season'"
+          [leafTitle]="pageTitle()"
+          [troupeName]="troupeName()!"
+          [troupeSlug]="troupeSlug()!"
+          [troupeLogoUrl]="troupeLogoUrl()"
+          [seasonTitle]="se.title"
+          [seasonSlug]="slug()"
+        />
+      }
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="admin-audit__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (forbidden()) {
+    <p class="admin-audit__message">Tu n'as pas accès à cette page.</p>
+  } @else if (canView()) {
+    <section class="admin-audit__filters admin-audit__filters--desktop" aria-label="Filtres du journal d'audit">
+      <mat-form-field appearance="outline" class="admin-audit__field">
+        <mat-label>Type d'action</mat-label>
+        <mat-select [value]="actionTypeFilter()" (valueChange)="actionTypeFilter.set($event); applyFilters()">
+          <mat-option value="">Tous</mat-option>
+          @for (opt of actionFilterOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="admin-audit__field">
+        <mat-label>Du</mat-label>
+        <input matInput type="date" [value]="fromDate()" (change)="fromDate.set($any($event.target).value); applyFilters()" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="admin-audit__field">
+        <mat-label>Au</mat-label>
+        <input matInput type="date" [value]="toDate()" (change)="toDate.set($any($event.target).value); applyFilters()" />
+      </mat-form-field>
+      @if (scope() === 'season') {
+        <mat-form-field appearance="outline" class="admin-audit__field">
+          <mat-label>Spectacle</mat-label>
+          <mat-select [value]="eventFilterId()" (valueChange)="eventFilterId.set($event); applyFilters()">
+            <mat-option value="">Tous</mat-option>
+            @for (ev of events(); track ev.id) {
+              <mat-option [value]="ev.id">{{ ev.title }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </section>
+
+    <section class="admin-audit__filters-mobile" aria-label="Filtres du journal d'audit">
+      <div class="admin-audit__filters-mobile-bar">
+        <app-filter-trigger
+          [visible]="true"
+          [activeCount]="activeFilterCount()"
+          [expanded]="filtersPanelOpen()"
+          (open)="toggleFiltersPanel()"
+        />
+      </div>
+
+      @if (filtersPanelOpen()) {
+        <div class="admin-audit__filters-panel" data-testid="admin-audit-filters-panel">
+          <button
+            type="button"
+            class="admin-audit__filter-row"
+            data-testid="admin-audit-filter-action"
+            (click)="openActionTypePicker()"
+          >
+            <mat-icon aria-hidden="true">history</mat-icon>
+            <span class="admin-audit__filter-row-label">Type d'action</span>
+            <span class="admin-audit__filter-row-value">{{ actionTypeSummary() }}</span>
+          </button>
+
+          @if (scope() === 'season') {
+            <button
+              type="button"
+              class="admin-audit__filter-row"
+              data-testid="admin-audit-filter-event"
+              (click)="openEventPicker()"
+            >
+              <mat-icon aria-hidden="true">theater_comedy</mat-icon>
+              <span class="admin-audit__filter-row-label">Spectacle</span>
+              <span class="admin-audit__filter-row-value">{{ eventSummary() }}</span>
+            </button>
+          }
+
+          <div class="admin-audit__filter-dates">
+            <label class="admin-audit__date-field">
+              <span class="admin-audit__date-label">Du</span>
+              <input
+                type="date"
+                class="admin-audit__date-input"
+                [value]="fromDate()"
+                (change)="fromDate.set($any($event.target).value); applyFilters()"
+              />
+            </label>
+            <label class="admin-audit__date-field">
+              <span class="admin-audit__date-label">Au</span>
+              <input
+                type="date"
+                class="admin-audit__date-input"
+                [value]="toDate()"
+                (change)="toDate.set($any($event.target).value); applyFilters()"
+              />
+            </label>
+          </div>
+
+          @if (hasActiveFilters()) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="admin-audit__filters-reset"
+              (click)="resetFilters()"
+            >
+              Réinitialiser
+            </button>
+          }
+        </div>
+      } @else if (activeFilterChips().length > 0) {
+        <div class="admin-audit__filters-chips" data-testid="admin-audit-filter-chips">
+          <mat-chip-set aria-label="Filtres actifs">
+            @for (chip of activeFilterChips(); track chip.key) {
+              <mat-chip
+                [removable]="true"
+                (removed)="clearFilter(chip.key)"
+                (click)="onFilterChipClick(chip.key)"
+              >
+                {{ chip.label }}
+                <button
+                  matChipRemove
+                  type="button"
+                  [attr.aria-label]="'Retirer le filtre ' + chip.label"
+                >
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              </mat-chip>
+            }
+          </mat-chip-set>
+          <button mat-button type="button" class="admin-audit__filters-clear" (click)="resetFilters()">
+            Tout effacer
+          </button>
+        </div>
+      }
+    </section>
+
+    <app-audit-journal-list
+      [rows]="rows()"
+      [loading]="false"
+      [error]="loadError()"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [totalElements]="totalElements()"
+      [formatOptions]="{ showEventPrefix: scope() !== 'troupe', timePrecision: 'seconds' }"
+      (pageChange)="onPage($event)"
+      (retry)="retryLoad()"
+    />
+  }
+</div>

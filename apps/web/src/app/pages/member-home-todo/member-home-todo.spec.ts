@@ -11,6 +11,9 @@ import {
   type InboxAction,
   type MeInboxResponse,
 } from '../../core/inbox/me-inbox-api.service'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
+import type { SeasonResponse } from '../../core/seasons/season-api.service'
+import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { MemberHomeTodo } from './member-home-todo'
 
 async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> {
@@ -33,9 +36,13 @@ describe('MemberHomeTodo', () => {
   let navigateByUrlSpy: ReturnType<typeof vi.fn>
   let navigateSpy: ReturnType<typeof vi.fn>
   let snack: { open: ReturnType<typeof vi.fn> }
+  let seasonResolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
 
   beforeEach(async () => {
     localStorage.clear()
+    seasonResolver = {
+      resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }),
+    }
     inboxApi = {
       getInbox: vi.fn().mockResolvedValue({
         ok: true,
@@ -67,6 +74,7 @@ describe('MemberHomeTodo', () => {
         provideRouter([]),
         { provide: AuthApiService, useValue: auth },
         { provide: MeInboxApiService, useValue: inboxApi },
+        { provide: TroupeSeasonResolverService, useValue: seasonResolver },
         { provide: MatSnackBar, useValue: snack },
       ],
     }).compileComponents()
@@ -102,9 +110,9 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    const rows = fixture.nativeElement.querySelectorAll('.member-home-todo__action-item')
+    const rows = fixture.nativeElement.querySelectorAll('.member-home-todo__action-card')
     expect(rows.length).toBe(2)
-    expect(fixture.nativeElement.textContent).toContain('Indiquer ta dispo')
+    expect(fixture.nativeElement.textContent).toContain('Donne ta dispo')
     expect(fixture.nativeElement.textContent).toContain('Match A')
   })
 
@@ -120,7 +128,7 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelectorAll('.member-home-todo__action-item').length).toBe(5)
+    expect(fixture.nativeElement.querySelectorAll('.member-home-todo__action-card').length).toBe(5)
     expect(fixture.nativeElement.querySelector('[data-testid="todo-see-all-agenda"]')).toBeTruthy()
   })
 
@@ -138,6 +146,7 @@ describe('MemberHomeTodo', () => {
 
     expect(fixture.nativeElement.querySelector('#todo-actions-heading')).toBeFalsy()
     expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
+    expect(fixture.nativeElement.textContent).toContain('Tu es à jour pour tes spectacles')
     expect(fixture.nativeElement.querySelector('[data-testid="todo-next-event-card"]')).toBeTruthy()
   })
 
@@ -187,7 +196,7 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.textContent).toContain('Confirmer ta participation')
+    expect(fixture.nativeElement.textContent).toContain('Confirme ta présence')
     expect(fixture.nativeElement.textContent).toContain('Comédien·ne')
 
     const row = fixture.nativeElement.querySelector(
@@ -201,7 +210,29 @@ describe('MemberHomeTodo', () => {
     )
   })
 
-  it('affiche le badge Bientôt pour une action dispo dans les 7 jours', async () => {
+  it('affiche le rôle sur la ligne titre pour une confirmation, sans ligne date/troupe', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([
+        confirmAction('ev-c', 'Apérock Juin', isoInDays(3), 'player', 'Comédien·ne'),
+      ]),
+    })
+
+    await settle(fixture)
+
+    const card = fixture.nativeElement.querySelector(
+      '[data-testid="todo-action-confirm"]',
+    ) as HTMLButtonElement
+    expect(card.textContent).toContain('Apérock Juin')
+    expect(card.textContent).toContain('Comédien·ne')
+    expect(card.textContent).not.toContain('La BIM')
+    expect(card.querySelector('.member-home-todo__date-chip')?.textContent).toContain('Dans 3 j')
+    expect(card.getAttribute('aria-label')).toContain('Comédien·ne')
+    expect(card.getAttribute('aria-label')).toContain('Dans 3 j')
+  })
+
+  it('affiche un badge daté « Dans 3 j » pour une action dispo dans les 7 jours', async () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
       status: 200,
@@ -210,9 +241,43 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelector('.member-home-todo__soon-chip')?.textContent).toContain(
-      'Bientôt',
+    expect(fixture.nativeElement.querySelector('.member-home-todo__date-chip')?.textContent).toContain(
+      'Dans 3 j',
     )
+  })
+
+  it('rejoue une carte cochée (ghost) au retour quand une action a été résolue', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([availabilityAction('ev-1', 'Cabaret', isoInDays(4))]),
+    })
+
+    await settle(fixture)
+
+    const row = fixture.nativeElement.querySelector(
+      '[data-testid="todo-action-dispo"]',
+    ) as HTMLButtonElement
+    row.click()
+    await fixture.whenStable()
+
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([]),
+    })
+    await fixture.componentInstance['loadInbox']()
+    fixture.detectChanges()
+
+    const ghost = fixture.nativeElement.querySelector(
+      '.member-home-todo__action-card--done',
+    ) as HTMLElement
+    expect(ghost).toBeTruthy()
+    expect(ghost.textContent).toContain('noté')
+    expect(fixture.nativeElement.querySelector('.member-home-todo__check--checked')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).not.toContain('Tout est à jour')
+
+    fixture.destroy()
   })
 
   it('affiche le CTA Mes troupes sans Mon agenda quand tout est à jour sans événement', async () => {
@@ -225,11 +290,50 @@ describe('MemberHomeTodo', () => {
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
-    expect(fixture.nativeElement.textContent).toContain('Aucun spectacle à venir')
-    expect(fixture.nativeElement.textContent).toContain('Mes troupes')
-    const shortcuts = fixture.nativeElement.querySelector('.member-home-todo__shortcuts')
-    expect(shortcuts?.querySelector('app-member-agenda-shortcut')).toBeNull()
-    expect(shortcuts?.textContent).not.toContain("Saison en un clin d'œil")
+    expect(fixture.nativeElement.textContent).toContain('Rien ne te retient')
+    expect(fixture.nativeElement.textContent).toContain('Toutes mes troupes')
+    expect(fixture.nativeElement.querySelector('.member-home-todo__celebration-icon')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-season-stats"]')).toBeFalsy()
+  })
+
+  it('met en avant Ma saison et les raccourcis contextuels quand une saison est mémorisée', async () => {
+    rememberLastVisitedSeasonSlug('ligue-2026', 'troupe-1')
+    seasonResolver.resolveSeasonSlug.mockResolvedValue({
+      kind: 'resolved',
+      troupe: { id: 'troupe-1', name: 'La Malice', slug: 'la-malice' },
+      season: {
+        id: 'league-1',
+        slug: 'ligue-2026',
+        title: 'Malice 2025-2026',
+      } as SeasonResponse,
+    })
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([]),
+    })
+
+    await settle(fixture)
+
+    const seasonLink = fixture.nativeElement.querySelector(
+      '[data-testid="todo-shortcut-season"]',
+    ) as HTMLAnchorElement
+    expect(seasonLink.textContent).toContain('Ma saison')
+    expect(seasonLink.textContent).toContain('Malice 2025-2026')
+    expect(seasonLink.getAttribute('href')).toContain('/saison/ligue-2026')
+
+    const statsLink = fixture.nativeElement.querySelector(
+      '[data-testid="todo-shortcut-season-stats"]',
+    ) as HTMLAnchorElement
+    expect(statsLink.textContent).toContain('Stats · Malice 2025-2026')
+    expect(statsLink.getAttribute('href')).toContain('/saison/ligue-2026')
+    expect(statsLink.getAttribute('href')).toContain('view=stats')
+
+    const troupeLink = fixture.nativeElement.querySelector(
+      '[data-testid="todo-shortcut-troupe"]',
+    ) as HTMLAnchorElement
+    expect(troupeLink.textContent).toContain('La Malice')
+    expect(troupeLink.getAttribute('href')).toContain('/troupes/la-malice')
   })
 
   it('redirige vers connexion quand la session est absente', async () => {
@@ -278,6 +382,29 @@ describe('MemberHomeTodo', () => {
     expect(fixture.nativeElement.textContent).toContain('Retour hub')
   })
 
+  it('affiche description et lieu sur la carte prochain spectacle sans chips troupe/saison', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse(
+        [],
+        agendaItem('detail-ev', 'Apérock Juin', isoInDays(2), 'available', {
+          description: 'Soirée détente après le match',
+          location: 'La Malice, Lyon',
+        }),
+      ),
+    })
+
+    await settle(fixture)
+
+    const card = fixture.nativeElement.querySelector('[data-testid="todo-next-event-card"]')
+    expect(card?.textContent).toContain('Soirée détente')
+    expect(card?.textContent).toContain('La Malice, Lyon')
+    expect(card?.querySelector('.agenda-card__badge--meta')).toBeFalsy()
+    expect(card?.querySelector('.agenda-card__badge--season')).toBeFalsy()
+    expect(card?.querySelector('.agenda-card__meta-loc mat-icon')).toBeTruthy()
+  })
+
   it('affiche la carte prochain spectacle depuis nextEvent inbox', async () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
@@ -289,6 +416,72 @@ describe('MemberHomeTodo', () => {
 
     const card = fixture.nativeElement.querySelector('[data-testid="todo-next-event-card"]')
     expect(card?.textContent).toContain('Le prochain')
+    expect(card?.querySelector('app-agenda-participation-status')).toBeTruthy()
+    expect(card?.querySelector('.agenda-card__loc')).toBeFalsy()
+  })
+
+  it('ouvre le prochain spectacle au clic sur la zone cliquable', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([], agendaItem('next-click', 'Cabaret accueil', isoInDays(2), 'available')),
+    })
+
+    await settle(fixture)
+
+    const clickable = fixture.nativeElement.querySelector(
+      '[data-testid="todo-next-event-card"] .agenda-card__clickable',
+    ) as HTMLElement
+    clickable.click()
+    await fixture.whenStable()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-click'])
+  })
+
+  it('affiche le rôle et la confirmation en attente via participantFocus', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse(
+        [],
+        agendaItem('composed', 'Gala composé', isoInDays(4), 'available', {
+          participantFocus: {
+            availabilityStatus: 'available',
+            compositionRoleKey: 'player',
+            inTeam: true,
+            slotParticipationStatus: 'pending',
+          },
+        }),
+      ),
+    })
+
+    await settle(fixture)
+
+    const statusCell = fixture.nativeElement.querySelector(
+      '[data-testid="todo-next-event-card"] app-participation-event-cell',
+    )
+    expect(statusCell?.textContent).toContain('Comédien')
+  })
+
+  it('ouvre le prochain spectacle au clavier Enter/Space', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([], agendaItem('next-key', 'Cabaret clavier', isoInDays(3), 'unknown')),
+    })
+
+    await settle(fixture)
+
+    const clickable = fixture.nativeElement.querySelector(
+      '[data-testid="todo-next-event-card"] .agenda-card__clickable',
+    ) as HTMLElement
+
+    clickable.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-key'])
+
+    navigateSpy.mockClear()
+    clickable.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-key'])
   })
 
   it('affiche confirm avant dispo quand le tri serveur le fournit', async () => {
@@ -304,12 +497,12 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    const titles = Array.from(
-      fixture.nativeElement.querySelectorAll('.member-home-todo__action-title'),
+    const verbs = Array.from(
+      fixture.nativeElement.querySelectorAll('.member-home-todo__action-verb'),
       (el) => (el as HTMLElement).textContent ?? '',
     )
-    expect(titles[0]).toContain('Confirmer ta participation')
-    expect(titles[1]).toContain('Indiquer ta dispo')
+    expect(verbs[0]).toContain('Confirme ta présence')
+    expect(verbs[1]).toContain('Donne ta dispo')
   })
 })
 
@@ -322,9 +515,9 @@ function inboxResponse(
     actions,
     nextEvent,
     shortcuts: {
-      lastSeasonSlug: nextEvent?.leagueSlug ?? null,
+      lastSeasonSlug: nextEvent?.seasonSlug ?? null,
       seasonGlanceQuery: nextEvent
-        ? { troupeId: nextEvent.troupeId, leagueId: nextEvent.leagueId }
+        ? { troupeId: nextEvent.troupeId, seasonId: nextEvent.seasonId }
         : {},
     },
     noParticipation: false,
@@ -348,15 +541,15 @@ function availabilityAction(
     type: 'availability_unknown',
     eventId,
     eventSlug: eventId,
-    leagueSlug: 'ligue-2026',
+    seasonSlug: 'ligue-2026',
     title,
     startsAt,
     location: null,
     troupeId: 'troupe-1',
     troupeName: 'La BIM',
     troupeSlug: 'la-bim',
-    leagueId: 'league-1',
-    leagueTitle: 'Ligue 2026',
+    seasonId: 'league-1',
+    seasonTitle: 'Ligue 2026',
     deepLink: `/saison/ligue-2026/event/${eventId}?tab=dispos`,
   }
 }
@@ -382,7 +575,7 @@ function agendaItem(
   title: string,
   startsAt: string,
   myAvailabilityStatus: UserAgendaItem['myAvailabilityStatus'] = 'unknown',
-  ids: { troupeId?: string; leagueId?: string } = {},
+  overrides: Partial<UserAgendaItem> = {},
 ): UserAgendaItem {
   return {
     eventId,
@@ -390,12 +583,13 @@ function agendaItem(
     title,
     startsAt,
     location: null,
-    troupeId: ids.troupeId ?? 'troupe-1',
+    troupeId: overrides.troupeId ?? 'troupe-1',
     troupeName: 'La BIM',
     troupeSlug: 'la-bim',
-    leagueId: ids.leagueId ?? 'league-1',
-    leagueSlug: 'ligue-2026',
-    leagueTitle: 'Ligue 2026',
+    seasonId: overrides.seasonId ?? 'league-1',
+    seasonSlug: 'ligue-2026',
+    seasonTitle: 'Ligue 2026',
     myAvailabilityStatus,
+    ...overrides,
   }
 }

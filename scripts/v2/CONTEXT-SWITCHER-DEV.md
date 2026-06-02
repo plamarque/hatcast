@@ -6,6 +6,8 @@ Données : migration seed `V30__seed_context_switcher_dev.sql` (profil **dev** u
 
 1. Redémarrer l’API après pull (Flyway applique **V30**), ou reset branche Neon **`local`** puis `./scripts/start-dev.sh`.
 2. Compte avec adhésion **Les Improbots** (seed dev ou `POST /v1/troupes/a0000001-0000-4000-8000-000000000001/memberships/me`).
+   - **Super admin** (`HATCAST_SUPER_ADMIN_EMAILS`) : navigation directe par URL sans adhésion
+     (`/troupes/les-improbots`, `/saison/les-improbots-2026-2027`, etc.).
 
 ## Connexion recommandée
 

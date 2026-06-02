@@ -2,7 +2,7 @@ export const MEMBER_GLANCE_FILTERS_STORAGE_KEY = 'hatcast.member-glance.filters'
 
 export interface StoredMemberGlanceFilters {
   troupeId: string | null
-  leagueId: string | null
+  seasonId: string | null
 }
 
 export {
@@ -18,7 +18,7 @@ export function readStoredMemberGlanceFilters(): StoredMemberGlanceFilters | nul
     const parsed = JSON.parse(raw) as Partial<StoredMemberGlanceFilters>
     return {
       troupeId: typeof parsed.troupeId === 'string' ? parsed.troupeId : null,
-      leagueId: typeof parsed.leagueId === 'string' ? parsed.leagueId : null,
+      seasonId: typeof parsed.seasonId === 'string' ? parsed.seasonId : null,
     }
   } catch {
     return null

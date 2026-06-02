@@ -24,6 +24,7 @@
       <app-composition-equipe-status-header
         [status]="status"
         [showDraftBanner]="showDraftBanner()"
+        [showBadge]="false"
       />
     }
 
@@ -164,17 +165,16 @@
             <p class="event-equipe-tab__declines-subtitle">(ne comptent pas dans la composition)</p>
             <ul class="event-equipe-tab__declines-list">
               @for (decline of declines(); track decline.id) {
-                <li class="event-equipe-tab__declines-row">
-                  <span class="event-equipe-tab__avatar" aria-hidden="true">
-                    {{ decline.participantDisplayName.charAt(0).toUpperCase() }}
-                  </span>
-                  <span class="event-equipe-tab__declines-meta">
-                    <span class="event-equipe-tab__name">{{ decline.participantDisplayName }}</span>
-                    <span class="event-equipe-tab__declines-role">
-                      {{ declineRoleEmoji(decline.roleKey) }}
-                      {{ declineRoleLabel(decline.roleKey) }}
+                <li class="event-equipe-tab__row event-equipe-tab__row--declined">
+                  <span class="event-equipe-tab__role" aria-hidden="true">{{
+                    declineRoleEmoji(decline.roleKey)
+                  }}</span>
+                  <div class="event-equipe-tab__slot">
+                    <span class="event-equipe-tab__avatar" aria-hidden="true">
+                      {{ decline.participantDisplayName.charAt(0).toUpperCase() }}
                     </span>
-                  </span>
+                    <span class="event-equipe-tab__name">{{ decline.participantDisplayName }}</span>
+                  </div>
                   @if (canFillGaps() && hasEmptySlotForRole(decline.roleKey)) {
                     <button
                       type="button"

@@ -159,6 +159,19 @@ class UserAgendaIntegrationTest {
       .andExpect(status().isOk)
   }
 
+  private fun openEventAvailability(
+    cookie: Cookie,
+    seasonId: UUID,
+    eventId: UUID,
+  ) {
+    mockMvc
+      .perform(
+        post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+          .cookie(cookie)
+          .with(csrf()),
+      ).andExpect(status().isOk)
+  }
+
   private fun createEvent(
     cookie: Cookie,
     seasonId: UUID,
@@ -180,7 +193,9 @@ class UserAgendaIntegrationTest {
             ).with(csrf()),
         ).andExpect(status().isOk)
         .andReturn()
-    return UUID.fromString(mapper.readTree(result.response.contentAsString).path("id").asText())
+    val eventId = UUID.fromString(mapper.readTree(result.response.contentAsString).path("id").asText())
+    openEventAvailability(cookie, seasonId, eventId)
+    return eventId
   }
 
   private fun seedTroupe(): TroupeEntity =
@@ -203,8 +218,10 @@ class UserAgendaIntegrationTest {
     title: String,
     startsAt: Instant = Instant.parse("2030-06-15T18:00:00Z"),
     archived: Boolean = false,
-  ): EventEntity =
-    eventRepository.save(
+    published: Boolean = true,
+  ): EventEntity {
+    val now = Instant.now()
+    return eventRepository.save(
       EventEntity(
         season = season,
         title = title,
@@ -214,8 +231,12 @@ class UserAgendaIntegrationTest {
           },
         startsAt = startsAt,
         archived = archived,
+        createdAt = now,
+        updatedAt = now,
+        availabilityOpenedAt = if (published) now else null,
       ),
     )
+  }
 
   private fun linkDirectSeasonParticipant(
     season: SeasonEntity,
@@ -249,6 +270,41 @@ class UserAgendaIntegrationTest {
         status = ParticipantStatus.ACTIVE,
       ),
     )
+  }
+
+  @Test
+  fun `member agenda excludes draft spectacles until published`() {
+    val admin = signInAdmin("agenda-draft-admin", "agenda-draft-admin@example.com", "Agenda Draft Admin")
+    val member = signIn("agenda-draft-member", "agenda-draft-member@example.com", "Agenda Draft Member")
+    val season = createDirectSeason(title = "Agenda draft filter season")
+    linkDirectSeasonParticipant(season, member)
+
+    val draftEvent =
+      createDirectEvent(
+        season = season,
+        title = "Spectacle brouillon agenda",
+        startsAt = Instant.parse("2032-09-01T19:00:00Z"),
+        published = false,
+      )
+
+    mockMvc
+      .perform(get("/v1/me/agenda").cookie(member.cookie))
+      .andExpect(status().isOk)
+      .andExpect(jsonPath("$.content[?(@.eventId == '${draftEvent.id}')]").isEmpty)
+      .andExpect(jsonPath("$.totalElements").value(0))
+
+    mockMvc
+      .perform(
+        post("/v1/seasons/${season.id}/events/${draftEvent.id}/actions/open-availability")
+          .cookie(admin.cookie)
+          .with(csrf()),
+      ).andExpect(status().isOk)
+
+    mockMvc
+      .perform(get("/v1/me/agenda").cookie(member.cookie))
+      .andExpect(status().isOk)
+      .andExpect(jsonPath("$.content[?(@.eventId == '${draftEvent.id}')].eventId").value(draftEvent.id.toString()))
+      .andExpect(jsonPath("$.totalElements").value(1))
   }
 
   @Test
@@ -305,14 +361,16 @@ class UserAgendaIntegrationTest {
       .andExpect(jsonPath("$.content[0].eventId").value(eventId.toString()))
       .andExpect(jsonPath("$.content[0].title").value("Agenda match"))
       .andExpect(jsonPath("$.content[0].troupeId").value(seedTroupeId.toString()))
-      .andExpect(jsonPath("$.content[0].leagueId").value(seasonId.toString()))
+      .andExpect(jsonPath("$.content[0].seasonId").value(seasonId.toString()))
       .andExpect(jsonPath("$.content[0].myAvailabilityStatus").value("unknown"))
+      .andExpect(jsonPath("$.content[0].teamStatusBadge.key").value("collecting"))
+      .andExpect(jsonPath("$.content[0].teamStatusBadge.shortLabel").value("Collecte"))
       .andExpect(jsonPath("$.filterBarVisible").value(false))
       .andExpect(jsonPath("$.noParticipation").value(false))
   }
 
   @Test
-  fun `default list aggregates events from multiple leagues`() {
+  fun `default list aggregates events from multiple seasons`() {
     val member = signIn("agenda-multi-league", "agenda-multi-league@example.com", "Agenda Multi League")
     val seasonOne = createDirectSeason(title = "Agenda aggregate one")
     val seasonTwo = createDirectSeason(title = "Agenda aggregate two")
@@ -328,10 +386,10 @@ class UserAgendaIntegrationTest {
       .andExpect(jsonPath("$.content[*].eventId", containsInAnyOrder(eventOne.id.toString(), eventTwo.id.toString())))
       .andExpect(jsonPath("$.filterBarVisible").value(true))
       .andExpect(jsonPath("$.participationFilters.troupes.length()").value(1))
-      .andExpect(jsonPath("$.participationFilters.leagues.length()").value(2))
+      .andExpect(jsonPath("$.participationFilters.seasons.length()").value(2))
       .andExpect(
         jsonPath(
-          "$.participationFilters.leagues[*].id",
+          "$.participationFilters.seasons[*].id",
           containsInAnyOrder(seasonOne.id.toString(), seasonTwo.id.toString()),
         ),
       )
@@ -374,7 +432,7 @@ class UserAgendaIntegrationTest {
       .andExpect(jsonPath("$.content.length()").value(1))
       .andExpect(jsonPath("$.filterBarVisible").value(true))
       .andExpect(jsonPath("$.participationFilters.troupes.length()").value(2))
-      .andExpect(jsonPath("$.participationFilters.leagues.length()").value(2))
+      .andExpect(jsonPath("$.participationFilters.seasons.length()").value(2))
   }
 
   @Test
@@ -404,7 +462,7 @@ class UserAgendaIntegrationTest {
   }
 
   @Test
-  fun `archived events and archived leagues are excluded`() {
+  fun `archived events and archived seasons are excluded`() {
     val member = signIn("agenda-archived", "agenda-archived@example.com", "Agenda Archived")
     val visibleSeason = createDirectSeason(title = "Agenda visible archive test")
     val archivedSeason = createDirectSeason(title = "Agenda archived league").also {
@@ -469,7 +527,7 @@ class UserAgendaIntegrationTest {
       .andExpect(status().isBadRequest)
 
     mockMvc
-      .perform(get("/v1/me/agenda?leagueId=not-a-uuid").cookie(member.cookie))
+      .perform(get("/v1/me/agenda?seasonId=not-a-uuid").cookie(member.cookie))
       .andExpect(status().isBadRequest)
   }
 
@@ -510,26 +568,26 @@ class UserAgendaIntegrationTest {
   }
 
   @Test
-  fun `leagueId filter restricts results`() {
+  fun `seasonId filter restricts results`() {
     val admin = signInAdmin("agenda-admin-league", "agenda-admin-league@example.com", "Agenda Admin League")
     val seasonId = createSeason(admin.cookie, "Agenda league filter")
     syncSeasonParticipants(admin.cookie, seasonId)
     createEvent(admin.cookie, seasonId, "League filtered event")
 
     mockMvc
-      .perform(get("/v1/me/agenda?leagueId=$seasonId").cookie(admin.cookie))
+      .perform(get("/v1/me/agenda?seasonId=$seasonId").cookie(admin.cookie))
       .andExpect(status().isOk)
       .andExpect(jsonPath("$.content.length()").value(1))
 
     val otherLeagueId = UUID.fromString("00000000-0000-4000-8000-000000000098")
     mockMvc
-      .perform(get("/v1/me/agenda?leagueId=$otherLeagueId").cookie(admin.cookie))
+      .perform(get("/v1/me/agenda?seasonId=$otherLeagueId").cookie(admin.cookie))
       .andExpect(status().isOk)
       .andExpect(jsonPath("$.content").isEmpty)
   }
 
   @Test
-  fun `filterBarVisible is true when user participates in two leagues`() {
+  fun `filterBarVisible is true when user participates in two seasons`() {
     val admin = signInAdmin("agenda-admin-filters", "agenda-admin-filters@example.com", "Agenda Admin Filters")
     val seasonOne = createSeason(admin.cookie, "Agenda league one")
     val seasonTwo = createSeason(admin.cookie, "Agenda league two")
@@ -596,7 +654,7 @@ class UserAgendaIntegrationTest {
       .perform(get("/v1/me/agenda").cookie(admin.cookie))
       .andExpect(status().isOk)
       .andExpect(jsonPath("$.content").isNotEmpty)
-      .andExpect(jsonPath("$.content[0].leagueId").value(seedSeasonId.toString()))
+      .andExpect(jsonPath("$.content[0].seasonId").value(seedSeasonId.toString()))
       .andExpect(jsonPath("$.content[0].troupeSlug").value("les-improbots"))
   }
 }

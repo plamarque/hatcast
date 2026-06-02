@@ -188,7 +188,7 @@ paths:
   /seasons/{seasonId}/events/{eventId}/actions/archive:
     post:
       tags: [Événements]
-      summary: Archiver un spectacle
+      summary: Désactiver un spectacle
       security:
         - cookieAuth: []
       parameters:
@@ -215,6 +215,105 @@ paths:
           description: Non authentifié
         '403':
           description: Gestion refusée (hors règle provisoire seed/admin)
+        '404':
+          description: Événement ou saison inconnue
+
+  /seasons/{seasonId}/events/{eventId}/actions/unarchive:
+    post:
+      tags: [Événements]
+      summary: Réactiver un spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Gestion refusée (hors règle provisoire seed/admin)
+        '404':
+          description: Événement ou saison inconnue
+
+  /seasons/{seasonId}/events/{eventId}/actions/open-availability:
+    post:
+      tags: [Événements]
+      summary: Ouvrir la collecte des disponibilités (publier le brouillon spectacle)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK (idempotent si déjà ouvert)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Droits insuffisants (organisateur spectacle/saison ou admin troupe)
+        '404':
+          description: Événement ou saison inconnue
+
+  /seasons/{seasonId}/events/{eventId}/actions/close-availability:
+    post:
+      tags: [Événements]
+      summary: Fermer la collecte des disponibilités (remettre le spectacle en brouillon)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK (idempotent si déjà en brouillon)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Droits insuffisants (organisateur spectacle/saison ou admin troupe)
         '404':
           description: Événement ou saison inconnue
 
@@ -323,7 +422,7 @@ components:
           type: string
           maxLength: 128
           description: Identifiant URL unique dans la saison
-        equityTag:
+        category:
           type: string
           nullable: true
           maxLength: 64
@@ -344,6 +443,7 @@ components:
         templateType:
           type: string
           enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
+          description: Format du spectacle (cabaret, match, …)
         roleSlots:
           type: object
           additionalProperties:
@@ -372,12 +472,21 @@ components:
               nullable: true
             inTeam:
               type: boolean
+            slotParticipationStatus:
+              type: string
+              nullable: true
+              enum: [pending, confirmed, declined]
         compositionLifecycle:
           type: string
           enum: [preparing, draftComposition, awaitingConfirmations, gapsToFill, complete]
           description: Cycle de vie FR28 (membres authentifiés de la troupe)
         teamStatusBadge:
           $ref: '#/components/schemas/TeamStatusBadge'
+        availabilityOpenedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: NULL = brouillon (dispos fermées) ; non-null = collecte ouverte
 
     TeamStatusBadge:
       type: object
@@ -385,13 +494,13 @@ components:
       properties:
         key:
           type: string
-          enum: [collecting, preparing, confirmed]
+          enum: [draft, collecting, preparing, confirmed]
         label:
           type: string
           description: Libellé complet (agenda détail Infos)
         tone:
           type: string
-          enum: [collecting, preparing, confirmed]
+          enum: [draft, collecting, preparing, confirmed]
           description: Modificateur SCSS
         shortLabel:
           type: string
@@ -413,20 +522,20 @@ components:
         templateType:
           type: string
           enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
-          description: Défaut serveur cabaret si absent
+          description: Format du spectacle (cabaret, match, …). Défaut serveur cabaret si absent.
         roleSlots:
           type: object
           additionalProperties:
             type: integer
             minimum: 0
             maximum: 20
-          description: Défaut = slots du templateType
+          description: Défaut = slots du format (`templateType`)
         slug:
           type: string
           maxLength: 128
           description: >
             Identifiant URL optionnel (sinon dérivé du titre). Lettres minuscules, chiffres et tirets.
-        equityTag:
+        category:
           type: string
           maxLength: 64
           description: Tag d'équité optionnel (un seul slug ; absent = principal)
@@ -446,6 +555,7 @@ components:
         templateType:
           type: string
           enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
+          description: Format du spectacle (cabaret, match, …)
         roleSlots:
           type: object
           additionalProperties:
@@ -457,7 +567,7 @@ components:
           type: string
           maxLength: 128
           description: Nouvel identifiant URL (unicité par saison ; absent = inchangé)
-        equityTag:
+        category:
           type: string
           nullable: true
           maxLength: 64

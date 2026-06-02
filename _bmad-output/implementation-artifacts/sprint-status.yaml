@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-05-29T12:00:00+02:00
+# last_updated: 2026-06-02T12:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-29T01:30:00+02:00"
+last_updated: "2026-06-02T17:05:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -46,10 +46,15 @@ story_location: "{project-root}/_bmad-output/implementation-artifacts"
 development_status:
   # Hygiene / ops (PLAN backlog — SCP 2026-05-28)
   ops-2-ci-integration-tests-postgres: done
+  ops-4-release-staging-tag-rc: backlog  # P0 V2.0.0 — SCP 2026-06-02
+  ops-5-prod-deploy-from-semver-tag: backlog
+  ops-6-version-changelog-pipeline: backlog
+  ops-7-branch-cutover-post-m4: backlog
 
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: done
+  mig-4-deplacements-category-import: done
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
@@ -75,7 +80,7 @@ development_status:
   2-10-liste-membres-corriger-n1-emails: done
   epic-2-retrospective: done
 
-  epic-3: in-progress
+  epic-3: in-progress  # 3.21 draft/publish — SCP 2026-06-01 notifications
   3-1-gestion-des-saisons-creation-edition-archivage-et-liste-saisons: done
   3-2-spectacles-dans-la-saison-et-liste-pour-les-membres: done
   3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historique: done
@@ -85,11 +90,15 @@ development_status:
   3-6b-vue-historique-ligue-chronologie-export: done
   3-7-suppression-de-saisons-admins-troupe-ou-plateforme: done
   3-8-rosters-participants-saison-et-evenement: done
+  3-19-retrait-roster-saison-sans-desactivation-troupe: done
+  3-20-statistiques-cellules-evenement-participation-couleur-emoji: done
+  3-21-brouillon-evenement-et-publication-ouverture-dispos: done  # P0 MEP — unblocks 8.3
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-annuaire-public-des-troupes: backlog
+  epic-4: in-progress
+  4-1-annuaire-public-des-troupes: done
   4-2-pages-publiques-saison-et-evenements: backlog
+  4-3-troupe-logo-description-cartes: done
   epic-4-retrospective: optional
 
   epic-5: in-progress
@@ -113,9 +122,12 @@ development_status:
   6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: done
   6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: done
   6-10-partage-et-annonce-message-editable-canaux: done
+  6-10b-rappel-manuel-disponibilite-garde-anti-spam: done  # P1 — SCP 2026-06-01
   6-11-retour-visuel-et-performances-onglet-equipe: done
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
   6-13-publish-notifications-hors-transaction: done
+  6-14-snapshot-chances-au-tirage: done
+  6-15-refonte-modales-annonces-notify-manuel: backlog  # P0 V2.0.0 — SCP 2026-06-02
   epic-6-retrospective: optional
 
   epic-7: backlog
@@ -123,19 +135,29 @@ development_status:
   7-2-disponibilites-invite-et-modes-de-selection-alternatifs: backlog
   epic-7-retrospective: optional
 
-  epic-8: backlog
-  8-1-opt-in-aux-notifications-navigateur-et-categories: backlog
-  8-2-preferences-de-notification: backlog
-  8-3-notifications-aux-jalons-metier-dispos-composition-confirmations: backlog
+  epic-8: in-progress
+  8-1-opt-in-aux-notifications-navigateur-et-categories: done
+  8-2-preferences-de-notification: done  # P1 — code review 2026-06-01: patches applied
+  8-3-notifications-mep-dispos-et-confirmation-assignes: done  # P0 MEP — depends 3.21, 8.1
+  8-4-notifications-ops-organisateurs: backlog  # P2 post-MEP — FR31b
+  8-5-extensions-notifications-membre: done  # P1 post-MEP initial — code review patches applied
+  8-6-notifications-proxy-confirmation-membre-concerne: done  # P1 — proxy 5.5/6.8 → subject ack
   epic-8-retrospective: optional
 
-  epic-9: backlog
-  9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorises: backlog
+  epic-9: in-progress
+  9-0-capture-backend-piste-audit: done
+  9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorises: done  # post-MEP UI admin/orga — code review 2026-06-01
+  9-2-consultation-audit-changements-me-concernant: backlog  # post-MEP UI membre
   epic-9-retrospective: optional
 
   epic-10: in-progress
   10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil: done
-  10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: backlog
+  10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: done
+  10-3-version-app-changelog-dialog: done  # P0 V2.0.0
+  10-4-recette-pwa-manifest-icons-sw: backlog
+  10-5-aides-install-contextuelles-ios-android: backlog
+  10-6-opt-in-notifications-post-install: backlog
+  10-7-icone-pwa-hatcast-2: done
   epic-10-retrospective: optional
 
   epic-11: backlog
@@ -161,12 +183,12 @@ development_status:
   13-6-ligues-deplacements-creation-conventions: backlog
   epic-13-retrospective: optional
 
-  epic-14: backlog
-  14-1-page-hub-troupe: backlog
-  14-2-ligues-actives-et-archivees: backlog
-  14-3-pseudo-sur-hub-troupe: backlog
-  14-4-redirection-seasons: backlog
-  14-5-lien-annuaire-public: backlog
+  epic-14: backlog  # SUPERSEDED by Epic 17 — SCP 2026-06-01 ; do not schedule 14.x
+  14-1-page-hub-troupe: backlog  # → 17.4, 17-29
+  14-2-ligues-actives-et-archivees: backlog  # → 17.4
+  14-3-pseudo-sur-hub-troupe: backlog  # → 17.4, 2.5
+  14-4-redirection-seasons: backlog  # → 17.5
+  14-5-lien-annuaire-public: backlog  # → 17.3 ; Epic 4 public
   epic-14-retrospective: optional
 
   epic-15: backlog
@@ -176,9 +198,10 @@ development_status:
 
   epic-16: in-progress
   16-1-route-membre-saison-clin-oeil-filtres: done
+  16-2-statistiques-avatar-navigation-profil-membre: done
   epic-16-retrospective: optional
 
-  epic-17: in-progress
+  epic-17: done
   17-1-breadcrumb-contexte-responsive: done
   17-2-bandeau-administration-par-scope: done
   17-3-page-troupes-mes-troupes-decouvrir: done
@@ -204,6 +227,13 @@ development_status:
   17-23-selecteur-contexte-troupe-saison: done
   17-24-ecran-mon-compte-alignement-hub-membre: done
   17-25-menu-compte-rail-desktop-avatar-mobile: done
+  17-27-panneau-filtres-unifie: done
+  17-28-filtres-hub-pickers: done
+  17-29-refonte-hub-troupe-mon-compte-preferences: done
+  17-30-season-event-count-resync: done
+  17-31-modifier-saison-gear-workspace: done
+  17-33-preferences-membre-compte-utilisateur: done
+  17-34-mon-compte-onglets-securite-preferences: backlog  # P0 V2.0.0 — SCP 2026-06-02
   epic-17-retrospective: optional
 
   epic-18: in-progress
@@ -212,5 +242,5 @@ development_status:
   18-2-self-join-open-api-super-admin-join-policy: done
   18-3-seed-production-troupe-demo: done
   18-4-ux-onboarding-rejoindre-demo: done
-  18-5-configuration-prod-tests-separation-demo: review
+  18-5-configuration-prod-tests-separation-demo: done
   epic-18-retrospective: optional

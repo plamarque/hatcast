@@ -42,6 +42,8 @@ export class MemberProfilePanel {
   readonly selectedRoleKeys = input<Set<string>>(new Set())
   readonly showPreferredRoles = input(true)
   readonly showCloseButton = input(false)
+  /** L2 on hub pages (`h2`), L3 under dialog title (`h3`). */
+  readonly sectionHeadingLevel = input<2 | 3>(3)
 
   readonly roleToggled = output<{ key: RoleKey; checked: boolean }>()
   readonly savePreferredRoles = output<void>()
@@ -54,7 +56,7 @@ export class MemberProfilePanel {
     () => (this.profile().favoriteRoleCounts?.length ?? 0) > 0,
   )
   protected readonly chartHeading = computed(() =>
-    this.profile().isSelf ? "Ma saison en un clin d'œil" : 'Saison en un clin d\'œil',
+    "En un clin d'œil",
   )
   private readonly shortMonths = [
     'JAN',

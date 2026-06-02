@@ -17,12 +17,20 @@ describe('availability-chances', () => {
     expect(isCandidateForRole('unavailable', [], 'player')).toBe(false)
   })
 
-  it('scoreCandidates splits equal odds when no history', () => {
+  it('scoreCandidates splits equal odds when no history and one place', () => {
     const scored = scoreCandidates(
       [{ participantId: 'a' }, { participantId: 'b' }, { participantId: 'c' }],
       1,
     )
     expect(scored.map((s) => s.chancePercent).sort()).toEqual([33, 33, 33])
+  })
+
+  it('scoreCandidates uses multi-draw probability for several places', () => {
+    const scored = scoreCandidates(
+      Array.from({ length: 8 }, (_, i) => ({ participantId: `p${i}` })),
+      5,
+    )
+    expect(scored.every((s) => s.chancePercent === 63)).toBe(true)
   })
 
   it('calculatePracticalChance returns zero for empty total', () => {

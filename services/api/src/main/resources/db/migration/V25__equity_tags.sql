@@ -1,4 +1,4 @@
--- Story 17.7: optional equity tag on events + troupe-scoped glossary.
+-- Story 17.7: optional spectacle category on events + troupe-scoped glossary.
 
 CREATE TABLE troupe_equity_tags (
     id UUID PRIMARY KEY,

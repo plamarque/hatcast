@@ -1,4 +1,8 @@
-@if (loading()) {
+@if (draftBlocksMemberDispos()) {
+  <p class="event-dispos__draft-hint" role="status">
+    Ce spectacle est en brouillon. La collecte des disponibilités est momentanément fermée.
+  </p>
+} @else if (loading()) {
   <div class="event-dispos__spinner" role="status">
     <mat-spinner diameter="36" />
   </div>
@@ -9,6 +13,17 @@
   </div>
 } @else if (summary(); as s) {
   <div class="event-dispos__toolbar">
+    @if (canNudgeAvailability()) {
+      <button
+        mat-stroked-button
+        type="button"
+        class="event-dispos__nudge"
+        (click)="openNudgeDialog()"
+      >
+        Rappel dispos
+      </button>
+    }
+
     @if (canSwitchSubject() && viewMode() === 'moi') {
       <app-availability-subject-selector
         [participants]="selectors()"
@@ -49,6 +64,7 @@
     <app-availability-tous-panel
       [summary]="s"
       [loadingChances]="loadingChances()"
+      [chanceSource]="s.chanceSource ?? null"
       [canSelectSubject]="canSwitchSubject()"
       (participantSelected)="onParticipantFromTous($event)"
     />

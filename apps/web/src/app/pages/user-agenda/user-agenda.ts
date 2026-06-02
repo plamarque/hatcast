@@ -6,8 +6,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 
 import {
-  availabilityBadgeLabel,
-  availabilityBadgeModifier,
   type AvailabilityStatus,
 } from '../../core/availability/availability-status'
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -24,19 +22,28 @@ import {
 } from '../../core/agenda/user-agenda-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
+import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import {
-  saisonEventPath,
-  saisonWorkspacePath,
-  troupeHubPath,
-} from '../../core/navigation/troupe-routes'
-import { UserAgendaFilterBar } from '../../shared/agenda/user-agenda-filter-bar'
+  buildAgendaFilterChips,
+  buildAgendaFilterDimensions,
+  buildAgendaHubDimensions,
+  resolveAgendaPanelSeason,
+} from '../../shared/filters/filter-builders'
+import { ActiveFilterChips } from '../../shared/filters/active-filter-chips'
+import { FilterCriteriaBar } from '../../shared/filters/filter-criteria-bar'
+import { FilterPanelService } from '../../shared/filters/filter-panel.service'
+import { FilterTrigger } from '../../shared/filters/filter-trigger'
+import type { FilterDimensionKey } from '../../shared/filters/filter.types'
+import { isEventDraft } from '../../core/events/event-draft'
+import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
+import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
 
 const PAGE_SIZE = 50
 
 const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
   troupes: [],
-  leagues: [],
+  seasons: [],
 }
 
 @Component({
@@ -47,7 +54,11 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
-    UserAgendaFilterBar,
+    ActiveFilterChips,
+    FilterCriteriaBar,
+    FilterTrigger,
+    CompositionStatusBadge,
+    AgendaParticipationStatus,
   ],
   templateUrl: './user-agenda.html',
   styleUrl: './user-agenda.scss',
@@ -59,6 +70,7 @@ export class UserAgenda implements OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
+  private readonly filterPanel = inject(FilterPanelService)
 
   private loadGeneration = 0
 
@@ -72,17 +84,36 @@ export class UserAgenda implements OnInit {
   protected readonly filterBarVisible = signal(false)
   protected readonly participationFilters = signal<UserAgendaParticipationFilters | null>(null)
   protected readonly selectedTroupeId = signal<string | null>(null)
-  protected readonly selectedLeagueId = signal<string | null>(null)
+  protected readonly selectedSeasonId = signal<string | null>(null)
 
-  protected readonly filterBarCatalog = computed(() => {
+  protected readonly filterPanelOpen = signal(false)
+
+  protected readonly hubDimensions = computed(() => {
     if (!this.filterBarVisible()) {
-      return null
+      return []
     }
-    return this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    return buildAgendaHubDimensions(
+      filters,
+      this.selectedTroupeId(),
+      this.selectedSeasonId(),
+    )
+  })
+
+  protected readonly activeFilterChips = computed(() => {
+    if (!this.filterBarVisible()) {
+      return []
+    }
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    return buildAgendaFilterChips(
+      filters,
+      this.selectedTroupeId(),
+      this.selectedSeasonId(),
+    )
   })
 
   protected readonly hasActiveFilters = computed(
-    () => this.selectedTroupeId() != null || this.selectedLeagueId() != null,
+    () => this.selectedTroupeId() != null || this.selectedSeasonId() != null,
   )
 
   protected readonly filteredEmpty = computed(
@@ -119,7 +150,7 @@ export class UserAgenda implements OnInit {
       size: PAGE_SIZE,
       scope: 'upcoming',
       troupeId: this.selectedTroupeId() ?? undefined,
-      leagueId: this.selectedLeagueId() ?? undefined,
+      seasonId: this.selectedSeasonId() ?? undefined,
     })
 
     if (generation !== this.loadGeneration) {
@@ -136,7 +167,7 @@ export class UserAgenda implements OnInit {
 
       if (!r.data.filterBarVisible) {
         this.selectedTroupeId.set(null)
-        this.selectedLeagueId.set(null)
+        this.selectedSeasonId.set(null)
         clearStoredUserAgendaFilters()
         await this.syncFilterQueryParams()
         return
@@ -157,37 +188,99 @@ export class UserAgenda implements OnInit {
 
   protected async onTroupeFilterChange(troupeId: string | null): Promise<void> {
     this.selectedTroupeId.set(troupeId)
-    if (troupeId && this.selectedLeagueId()) {
-      const leagues = this.participationFilters()?.leagues ?? []
-      const leagueStillValid = leagues.some(
-        (l) => l.id === this.selectedLeagueId() && l.troupeId === troupeId,
+    if (troupeId && this.selectedSeasonId()) {
+      const seasons = this.participationFilters()?.seasons ?? []
+      const seasonStillValid = seasons.some(
+        (l) => l.id === this.selectedSeasonId() && l.troupeId === troupeId,
       )
-      if (!leagueStillValid) {
-        this.selectedLeagueId.set(null)
+      if (!seasonStillValid) {
+        this.selectedSeasonId.set(null)
       }
     }
     await this.applyFilterChange()
   }
 
-  protected async onLeagueFilterChange(leagueId: string | null): Promise<void> {
-    this.selectedLeagueId.set(leagueId)
+  protected async onSeasonFilterChange(seasonId: string | null): Promise<void> {
+    this.selectedSeasonId.set(seasonId)
     await this.applyFilterChange()
+  }
+
+  protected toggleCriteriaPanel(): void {
+    if (!this.filterBarVisible()) {
+      return
+    }
+    this.filterPanelOpen.update((open) => !open)
+  }
+
+  protected async onOpenFilterDimension(key: FilterDimensionKey): Promise<void> {
+    const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
+    await this.openAgendaDimensionPicker(key, filters)
+  }
+
+  private async openAgendaDimensionPicker(
+    key: FilterDimensionKey,
+    filters: UserAgendaParticipationFilters,
+  ): Promise<void> {
+    const dimension = buildAgendaFilterDimensions(filters, this.selectedTroupeId()).find(
+      (d) => d.key === key,
+    )
+    if (!dimension) {
+      return
+    }
+    const selectedId =
+      key === 'troupe' ? this.selectedTroupeId() : this.selectedSeasonId()
+    const result = await this.filterPanel.openSinglePicker({
+      dimension,
+      selectedId,
+      participationFilters: filters,
+      draftTroupeId: this.selectedTroupeId(),
+    })
+    if (!result) {
+      return
+    }
+    if (result.action === 'reset') {
+      if (key === 'troupe') {
+        await this.onTroupeFilterChange(null)
+        return
+      }
+      await this.onSeasonFilterChange(null)
+      return
+    }
+    if (key === 'troupe') {
+      await this.onTroupeFilterChange(result.selectedId)
+      return
+    }
+    const seasonId = resolveAgendaPanelSeason(
+      filters,
+      this.selectedTroupeId(),
+      result.selectedId,
+    )
+    await this.onSeasonFilterChange(seasonId)
+  }
+
+  protected async onRemoveFilterDimension(key: FilterDimensionKey): Promise<void> {
+    if (key === 'troupe') {
+      await this.onTroupeFilterChange(null)
+      return
+    }
+    if (key === 'season') {
+      await this.onSeasonFilterChange(null)
+    }
   }
 
   protected async onClearFilters(): Promise<void> {
     this.selectedTroupeId.set(null)
-    this.selectedLeagueId.set(null)
+    this.selectedSeasonId.set(null)
     clearStoredUserAgendaFilters()
     await this.syncFilterQueryParams()
     await this.loadAgenda()
   }
 
-  protected readonly troupeHubPath = troupeHubPath
-  protected readonly saisonWorkspacePath = saisonWorkspacePath
-
   protected openEvent(item: UserAgendaItem): void {
-    void this.router.navigate(saisonEventPath(item.leagueSlug, item.eventSlug))
+    void this.router.navigate(saisonEventPath(item.seasonSlug, item.eventSlug))
   }
+
+  protected readonly isEventDraft = isEventDraft
 
   protected timeLabel(item: UserAgendaItem): string {
     return new Intl.DateTimeFormat('fr-FR', {
@@ -197,29 +290,21 @@ export class UserAgenda implements OnInit {
     }).format(new Date(item.startsAt))
   }
 
-  protected dispoLabel(status: AvailabilityStatus): string {
-    return availabilityBadgeLabel(status)
-  }
-
-  protected dispoModifier(status: AvailabilityStatus): string {
-    return availabilityBadgeModifier(status)
-  }
-
   private bootstrapFiltersFromRoute(): void {
     const query = this.route.snapshot.queryParamMap
     const queryTroupe = parseAgendaFilterUuid(query.get('troupeId'))
-    const queryLeague = parseAgendaFilterUuid(query.get('leagueId'))
+    const queryLeague = parseAgendaFilterUuid(query.get('seasonId'))
 
     if (queryTroupe || queryLeague) {
       this.selectedTroupeId.set(queryTroupe)
-      this.selectedLeagueId.set(queryLeague)
+      this.selectedSeasonId.set(queryLeague)
       return
     }
 
     const stored = readStoredUserAgendaFilters()
     if (stored) {
       this.selectedTroupeId.set(parseAgendaFilterUuid(stored.troupeId))
-      this.selectedLeagueId.set(parseAgendaFilterUuid(stored.leagueId))
+      this.selectedSeasonId.set(parseAgendaFilterUuid(stored.seasonId))
     }
   }
 
@@ -227,20 +312,20 @@ export class UserAgenda implements OnInit {
     const query = this.route.snapshot.queryParamMap
     const hasQueryFilters =
       parseAgendaFilterUuid(query.get('troupeId')) != null ||
-      parseAgendaFilterUuid(query.get('leagueId')) != null
+      parseAgendaFilterUuid(query.get('seasonId')) != null
     if (!hasQueryFilters && this.hasActiveFilters()) {
       await this.syncFilterQueryParams()
     }
   }
 
   private persistFilterSelection(): void {
-    if (this.selectedTroupeId() == null && this.selectedLeagueId() == null) {
+    if (this.selectedTroupeId() == null && this.selectedSeasonId() == null) {
       clearStoredUserAgendaFilters()
       return
     }
     writeStoredUserAgendaFilters({
       troupeId: this.selectedTroupeId(),
-      leagueId: this.selectedLeagueId(),
+      seasonId: this.selectedSeasonId(),
     })
   }
 
@@ -257,7 +342,7 @@ export class UserAgenda implements OnInit {
     }
 
     let troupeId = this.selectedTroupeId()
-    let leagueId = this.selectedLeagueId()
+    let seasonId = this.selectedSeasonId()
     let changed = false
 
     if (troupeId && !catalog.troupes.some((t) => t.id === troupeId)) {
@@ -265,13 +350,13 @@ export class UserAgenda implements OnInit {
       changed = true
     }
 
-    if (leagueId) {
-      const league = catalog.leagues.find((l) => l.id === leagueId)
-      if (!league) {
-        leagueId = null
+    if (seasonId) {
+      const season = catalog.seasons.find((s) => s.id === seasonId)
+      if (!season) {
+        seasonId = null
         changed = true
-      } else if (troupeId && league.troupeId !== troupeId) {
-        leagueId = null
+      } else if (troupeId && season.troupeId !== troupeId) {
+        seasonId = null
         changed = true
       }
     }
@@ -281,7 +366,7 @@ export class UserAgenda implements OnInit {
     }
 
     this.selectedTroupeId.set(troupeId)
-    this.selectedLeagueId.set(leagueId)
+    this.selectedSeasonId.set(seasonId)
     this.persistFilterSelection()
     await this.syncFilterQueryParams()
     await this.loadAgenda()
@@ -289,12 +374,12 @@ export class UserAgenda implements OnInit {
 
   private async syncFilterQueryParams(): Promise<void> {
     const troupeId = this.selectedTroupeId()
-    const leagueId = this.selectedLeagueId()
+    const seasonId = this.selectedSeasonId()
     await this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
         troupeId: troupeId ?? null,
-        leagueId: leagueId ?? null,
+        seasonId: seasonId ?? null,
       },
       queryParamsHandling: 'merge',
       replaceUrl: true,

@@ -9,7 +9,9 @@ info:
     Les mutations exigent le cookie de session et l’en-tête CSRF `X-XSRF-TOKEN` (voir Spring Security).
     Les mutations d'administration de troupe exigent une adhésion active avec le rôle de base `TROUPE_ADMIN`.
     L'auto-adhésion (`POST …/memberships/me`) est autorisée pour les troupes `joinPolicy = OPEN` (rôle `MEMBER`).
-    La troupe démo (`isDemo`) inscrit aussi le membre sur la saison active. Les admins plateforme peuvent modifier `joinPolicy` via `PATCH /admin/troupes/{id}`.
+    Les admins plateforme peuvent modifier `joinPolicy` via `PATCH /admin/troupes/{id}`.
+    Les admins plateforme peuvent **résoudre une troupe ou une saison par slug** (navigation directe par URL, sans adhésion) via
+    `GET /admin/troupes/by-slug/{slug}` et `GET /admin/seasons/by-slug/{slug}` ; la liste `GET /troupes` reste limitée aux adhésions actives.
   version: 0.1.0
 
 servers:
@@ -25,6 +27,68 @@ tags:
   - name: Organisateurs
 
 paths:
+  /public/troupes:
+    get:
+      tags: [Troupes]
+      summary: Annuaire public des troupes (FR32)
+      description: >
+        Liste réduite pour la section Découvrir — sans authentification.
+        Exclut `isDemo = true` et `listedInDirectory = false`.
+        Ne retourne jamais d'adhésion, email, join policy ou données participant.
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicTroupeDirectoryItem'
+
+  /public/troupes/{troupeId}/logo:
+    get:
+      tags: [Troupes]
+      summary: Logo public d'une troupe de l'annuaire
+      description: >
+        Sert les octets du logo uniquement pour les troupes visibles dans l'annuaire public
+        (`listedInDirectory = true`, `isDemo = false`). Retourne 404 si la troupe n'est pas
+        éligible ou n'a pas de logo, afin de ne pas exposer de données privées.
+      security: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Logo
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/avif:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Troupe non publique, démo, inconnue ou sans logo
+
   /troupes:
     get:
       tags: [Troupes]
@@ -73,6 +137,114 @@ paths:
         '409':
           description: Conflit d'unicité slug après plusieurs tentatives
 
+  /troupes/{troupeId}:
+    patch:
+      tags: [Troupes]
+      summary: Modifier l'identité textuelle d'une troupe (admin troupe ou plateforme)
+      description: >
+        Met à jour le nom affiché et la description courte sans modifier le slug URL.
+        Réservé aux administrateurs de troupe (`TROUPE_ADMIN`) ou aux admins plateforme.
+        Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTroupeRequest'
+      responses:
+        '200':
+          description: Troupe mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeListItem'
+        '400':
+          description: Nom vide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé
+        '404':
+          description: Troupe inconnue
+
+  /troupes/{troupeId}/logo:
+    post:
+      tags: [Troupes]
+      summary: Ajouter ou remplacer le logo d'une troupe
+      description: >
+        Upload multipart `file` réservé aux administrateurs de troupe ou plateforme.
+        Formats acceptés : JPEG, PNG, WebP, AVIF. Taille maximale : 2 Mo.
+        Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Troupe mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeListItem'
+        '400':
+          description: Format non pris en charge ou fichier trop volumineux
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé
+        '404':
+          description: Troupe inconnue
+    delete:
+      tags: [Troupes]
+      summary: Supprimer le logo d'une troupe
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Troupe mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeListItem'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé
+        '404':
+          description: Troupe inconnue
+
   /admin/troupes/{troupeId}:
     patch:
       tags: [Troupes]
@@ -106,6 +278,62 @@ paths:
           description: Non admin plateforme ou CSRF invalide
         '404':
           description: Troupe inconnue
+
+  /admin/troupes/by-slug/{slug}:
+    get:
+      tags: [Troupes]
+      summary: Résoudre une troupe par slug (admin plateforme)
+      description: >
+        Retourne le résumé admin d'une troupe sans exiger d'adhésion active.
+        Permet la navigation directe par URL (`/troupes/:slug`) pour les super-admins.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeAdminSummary'
+        '403':
+          description: Non admin plateforme
+        '404':
+          description: Troupe inconnue
+
+  /admin/seasons/by-slug/{slug}:
+    get:
+      tags: [Saisons]
+      summary: Résoudre une saison par slug dans toutes les troupes (admin plateforme)
+      description: >
+        Retourne une liste de paires `{ troupe, season }` (plusieurs entrées si slug homonyme).
+        Permet la navigation directe par URL (`/saison/:slug`) pour les super-admins sans adhésion.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlatformAdminSeasonResolution'
+        '403':
+          description: Non admin plateforme
+        '404':
+          description: Saison inconnue
 
   /troupes/{troupeId}/memberships/me:
     get:
@@ -948,6 +1176,35 @@ components:
         format: uuid
 
   schemas:
+    PublicTroupeDirectoryItem:
+      type: object
+      required: [id, name, slug, activeMemberCount, upcomingEventCount]
+      description: >
+        DTO réduit pour l'annuaire public (FR32, NFR-S2). Pas de membership, email, join policy ou isDemo.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+          description: URL publique cache-bustée du logo, si présent.
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Description courte en texte brut, si renseignée.
+        activeMemberCount:
+          type: integer
+          format: int64
+        upcomingEventCount:
+          type: integer
+          format: int64
+
     TroupeListItem:
       type: object
       required: [id, name, slug, joinPolicy, isDemo, membership]
@@ -966,6 +1223,15 @@ components:
           description: >
             Identifie la troupe sandbox d'onboarding production (ADR-0015). La seed dev
             Les Improbots reste `false`.
+        logoUrl:
+          type: string
+          nullable: true
+          description: URL publique cache-bustée du logo, si présent.
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Description courte en texte brut, si renseignée.
         membership:
           $ref: '#/components/schemas/MembershipSummary'
 
@@ -998,6 +1264,15 @@ components:
           $ref: '#/components/schemas/TroupeJoinPolicy'
         isDemo:
           type: boolean
+
+    PlatformAdminSeasonResolution:
+      type: object
+      required: [troupe, season]
+      properties:
+        troupe:
+          $ref: '#/components/schemas/TroupeAdminSummary'
+        season:
+          $ref: '#/components/schemas/SeasonResponse'
 
     MembershipSummary:
       type: object
@@ -1182,6 +1457,20 @@ components:
           type: string
           maxLength: 255
           description: Nom affiché de la troupe (trim côté serveur ; slug calculé automatiquement).
+
+    UpdateTroupeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Nouveau nom affiché de la troupe (trim côté serveur ; slug inchangé).
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Description courte en texte brut ; vide ou absente efface la description.
 
     AddTroupeMemberRequest:
       type: object
@@ -1486,22 +1775,55 @@ components:
           format: date-time
         templateType:
           type: string
-        equityTag:
+          description: Format du spectacle (cabaret, match, …)
+        category:
           type: string
           nullable: true
         monthKey:
           type: string
           description: yyyy-MM (Europe/Paris)
 
+    StatisticsEventCell:
+      type: object
+      required: [status, label]
+      properties:
+        status:
+          type: string
+          enum:
+            - selected
+            - pending
+            - declined
+            - available
+            - unavailable
+            - neutral
+        label:
+          type: string
+          description: French display line (role label, Non dispo, Dispo (J), etc.)
+        roleKey:
+          type: string
+          nullable: true
+        tooltip:
+          type: string
+          nullable: true
+          description: e.g. "Comédien·ne — En attente de confirmation"
+
     ParticipantStatisticsRow:
       type: object
-      required: [participantId, displayName, annual, monthSummary, byMonth, eventCells]
+      required: [participantId, displayName, annual, monthSummary, byMonth, eventCells, eventCellDetails]
       properties:
         participantId:
           type: string
           format: uuid
         displayName:
           type: string
+        userSlug:
+          type: string
+          nullable: true
+          description: Account slug for member season glance navigation (Story 16.2).
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Public avatar URL when participant is linked to a user account.
         annual:
           type: object
           additionalProperties:
@@ -1520,6 +1842,12 @@ components:
           type: object
           additionalProperties:
             type: string
+          description: Legacy CSV export text (unchanged format).
+        eventCellDetails:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StatisticsEventCell'
+          description: Structured participation metadata for UI event columns (Story 3.20).
 
     SeasonStatisticsResponse:
       type: object

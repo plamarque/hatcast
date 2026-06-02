@@ -6,6 +6,7 @@ import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.troupe.TroupeJoinPolicy
+import com.hatcast.api.troupe.TroupeLogoService
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import jakarta.validation.constraints.NotBlank
@@ -36,12 +37,25 @@ data class MembershipSummaryDto(
     }
 }
 
+/** Reduced DTO for anonymous public directory (FR32, NFR-S2). No membership, join policy, or demo flag. */
+data class PublicTroupeDirectoryItemDto(
+    val id: UUID,
+    val name: String,
+    val slug: String,
+    val logoUrl: String?,
+    val description: String?,
+    val activeMemberCount: Long,
+    val upcomingEventCount: Long,
+)
+
 data class TroupeListItemDto(
     val id: UUID,
     val name: String,
     val slug: String,
     val joinPolicy: TroupeJoinPolicy,
     val isDemo: Boolean,
+    val logoUrl: String?,
+    val description: String?,
     val membership: MembershipSummaryDto,
     /** Active troupe memberships (`TroupeMembershipStatus.ACTIVE`). */
     val activeMemberCount: Long,
@@ -65,6 +79,13 @@ data class TroupeListItemDto(
                 slug = troupe.slug,
                 joinPolicy = troupe.joinPolicy,
                 isDemo = troupe.isDemo,
+                logoUrl =
+                    TroupeLogoService.memberLogoUrl(
+                        troupe.id,
+                        troupe.logoStorageKey,
+                        troupe.logoUpdatedAt,
+                    ),
+                description = troupe.description,
                 membership = MembershipSummaryDto.from(membership),
                 activeMemberCount = activeMemberCount,
                 upcomingEventCount = upcomingEventCount,
@@ -143,6 +164,15 @@ data class CreateTroupeRequest(
     @field:NotBlank(message = "Le nom de la troupe ne peut pas être vide.")
     @field:Size(max = 255)
     val name: String,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class UpdateTroupeRequest(
+    @field:NotBlank(message = "Le nom de la troupe ne peut pas être vide.")
+    @field:Size(max = 255)
+    val name: String,
+    @field:Size(max = 500)
+    val description: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

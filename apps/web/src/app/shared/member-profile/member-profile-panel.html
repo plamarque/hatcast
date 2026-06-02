@@ -44,9 +44,15 @@
     }
 
     <section class="member-profile__section" aria-labelledby="member-profile-chart-heading">
-      <h3 id="member-profile-chart-heading" class="member-profile__section-title">
-        {{ chartHeading() }}
-      </h3>
+      @if (sectionHeadingLevel() === 2) {
+        <h2 id="member-profile-chart-heading" class="member-profile__section-title">
+          {{ chartHeading() }}
+        </h2>
+      } @else {
+        <h3 id="member-profile-chart-heading" class="member-profile__section-title">
+          {{ chartHeading() }}
+        </h3>
+      }
       @if (profile().monthlyChart.length > 0) {
         <div class="member-profile__chart">
           @for (month of profile().monthlyChart; track month.monthKey) {
@@ -77,7 +83,11 @@
 
     @if (hasFavoriteCounts()) {
       <section class="member-profile__section" aria-labelledby="member-profile-fav-heading">
-        <h3 id="member-profile-fav-heading" class="member-profile__section-title">Rôles favoris</h3>
+        @if (sectionHeadingLevel() === 2) {
+          <h2 id="member-profile-fav-heading" class="member-profile__section-title">Rôles favoris</h2>
+        } @else {
+          <h3 id="member-profile-fav-heading" class="member-profile__section-title">Rôles favoris</h3>
+        }
         <div class="member-profile__pills">
           @for (item of profile().favoriteRoleCounts; track item.roleKey) {
             <span class="member-profile__pill">
@@ -92,9 +102,15 @@
 
     @if (showPreferredRoles() && profile().isSelf) {
       <section class="member-profile__section" aria-labelledby="member-profile-pref-heading">
-        <h3 id="member-profile-pref-heading" class="member-profile__section-title">
-          Mes rôles préférés
-        </h3>
+        @if (sectionHeadingLevel() === 2) {
+          <h2 id="member-profile-pref-heading" class="member-profile__section-title">
+            Mes rôles préférés
+          </h2>
+        } @else {
+          <h3 id="member-profile-pref-heading" class="member-profile__section-title">
+            Mes rôles préférés
+          </h3>
+        }
         <p class="member-profile__helper">
           Rôles pré-cochés par défaut lors de la saisie de disponibilité.
         </p>

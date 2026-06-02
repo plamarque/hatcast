@@ -9,10 +9,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher
+import org.springframework.beans.factory.ObjectProvider
+import com.hatcast.api.e2e.E2eApiKeyAuthenticationFilter
+import com.hatcast.api.e2e.E2eApiKeyRequestMatcher
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
@@ -21,8 +25,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableWebSecurity
 class SecurityConfig(
     @Value("\${hatcast.cors.allowed-origins}") private val allowedOrigins: String,
+    @Value("\${hatcast.e2e.api-enabled:false}") private val e2eApiEnabled: Boolean,
     private val migrationApiKeyAuthenticationFilter: MigrationApiKeyAuthenticationFilter,
     private val migrationApiKeyRequestMatcher: MigrationApiKeyRequestMatcher,
+    private val e2eApiKeyAuthenticationFilter: ObjectProvider<E2eApiKeyAuthenticationFilter>,
+    private val e2eApiKeyRequestMatcher: ObjectProvider<E2eApiKeyRequestMatcher>,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -33,7 +40,10 @@ class SecurityConfig(
 
         http
             .cors { it.configurationSource(corsConfigurationSource()) }
-            .csrf { csrf ->
+        if (e2eApiEnabled) {
+            http.csrf { it.disable() }
+        } else {
+            http.csrf { csrf ->
                 csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 csrf.csrfTokenRequestHandler(requestHandler)
                 csrf.ignoringRequestMatchers(
@@ -42,7 +52,10 @@ class SecurityConfig(
                     AntPathRequestMatcher("/v1/auth/logout", HttpMethod.POST.name()),
                     migrationApiKeyRequestMatcher,
                 )
-            }.authorizeHttpRequests { auth ->
+            }
+        }
+        http
+            .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
@@ -51,23 +64,42 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.GET, "/v1/auth/me").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/agenda").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/inbox").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/v1/me/preferences").authenticated()
+                    .requestMatchers(HttpMethod.PATCH, "/v1/me/preferences").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/v1/me/notification-preferences").authenticated()
+                    .requestMatchers(HttpMethod.PATCH, "/v1/me/notification-preferences").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/v1/me/push").authenticated()
+                    .requestMatchers(HttpMethod.PUT, "/v1/me/push/subscription").authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/v1/me/push/subscription").authenticated()
+                    .requestMatchers(HttpMethod.PATCH, "/v1/me/push").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/v1/config/public").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/members/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/logout").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/me/avatar").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/me/avatar/google").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/v1/auth/me/avatar").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/users/*/avatar").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/v1/public/troupes").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/v1/public/troupes/*/logo").permitAll()
+                if (e2eApiEnabled) {
+                    auth.requestMatchers("/v1/e2e/**").permitAll()
+                }
+                auth
                     .requestMatchers(
                         "/v1/troupes",
                         "/v1/troupes/**",
                         "/v1/seasons/**",
                         "/v1/admin/**",
+                        "/v1/audit/**",
                     ).authenticated()
                     .anyRequest().denyAll()
             }.exceptionHandling { ex ->
                 ex.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             }
             .addFilterBefore(migrationApiKeyAuthenticationFilter, CsrfFilter::class.java)
+        e2eApiKeyAuthenticationFilter.ifAvailable { filter ->
+            http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter::class.java)
+        }
 
         return http.build()
     }

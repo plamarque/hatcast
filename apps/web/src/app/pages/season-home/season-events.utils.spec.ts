@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  eventRelevantForParticipantFocus,
   filterEventsByIds,
+  filterEventsByParticipantFocus,
   formatEventDateParts,
   formatEventStartLong,
   groupEventsByMonth,
   groupPastEventsByMonth,
+  mergeEventsById,
 } from './season-events.utils'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { emptyRoleSlots } from '../../core/events/event-types'
@@ -102,5 +105,57 @@ describe('filterEventsByIds', () => {
 
   it('filters by selected ids', () => {
     expect(filterEventsByIds(events, ['b']).map((e) => e.id)).toEqual(['b'])
+  })
+})
+
+describe('eventRelevantForParticipantFocus', () => {
+  it('returns true when in team or availability declared', () => {
+    expect(
+      eventRelevantForParticipantFocus({
+        availabilityStatus: 'unknown',
+        inTeam: true,
+      }),
+    ).toBe(true)
+    expect(
+      eventRelevantForParticipantFocus({
+        availabilityStatus: 'available',
+        inTeam: false,
+      }),
+    ).toBe(true)
+    expect(
+      eventRelevantForParticipantFocus({
+        availabilityStatus: 'unknown',
+        inTeam: false,
+      }),
+    ).toBe(false)
+  })
+})
+
+describe('filterEventsByParticipantFocus', () => {
+  it('filters only for a single selected participant', () => {
+    const events = [
+      {
+        id: 'a',
+        participantFocus: { availabilityStatus: 'available' as const, inTeam: false },
+      },
+      {
+        id: 'b',
+        participantFocus: { availabilityStatus: 'unknown' as const, inTeam: false },
+      },
+    ]
+    expect(filterEventsByParticipantFocus(events, ['p1']).map((e) => e.id)).toEqual(['a'])
+    expect(filterEventsByParticipantFocus(events, ['p1', 'p2'])).toHaveLength(2)
+    expect(filterEventsByParticipantFocus(events, [])).toHaveLength(2)
+  })
+})
+
+describe('mergeEventsById', () => {
+  it('deduplicates and sorts by startsAt', () => {
+    const merged = mergeEventsById([
+      ev('b', '2026-06-01T12:00:00.000Z'),
+      ev('a', '2026-05-01T12:00:00.000Z'),
+      ev('a', '2026-05-01T12:00:00.000Z'),
+    ])
+    expect(merged.map((e) => e.id)).toEqual(['a', 'b'])
   })
 })

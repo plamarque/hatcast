@@ -1,0 +1,130 @@
+.filter-criteria-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.5rem 0.65rem;
+  overflow-x: clip;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline) 24%, transparent);
+  border-radius: 0.75rem;
+}
+
+.filter-criteria-bar__segments {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem 1rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.filter-criteria-bar__segment {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.filter-criteria-bar__dimension {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2rem;
+  padding: 0 0.15rem;
+  border: 0;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+  font: inherit;
+  cursor: pointer;
+  border-radius: 0.35rem;
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+}
+
+.filter-criteria-bar__dimension mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.filter-criteria-bar__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.filter-criteria-bar__segment mat-chip-set {
+  display: inline-flex;
+  max-width: 100%;
+  margin: 0;
+  min-width: 0;
+}
+
+.filter-criteria-bar__value-chip {
+  --mdc-chip-container-height: 1.75rem;
+  max-width: 100%;
+  font-size: 0.8125rem;
+}
+
+.filter-criteria-bar__clear {
+  flex-shrink: 0;
+  align-self: center;
+  min-height: 2rem;
+  padding: 0 0.5rem;
+  line-height: 1.25;
+}
+
+@media (min-width: 481px) {
+  .filter-criteria-bar {
+    position: relative;
+  }
+
+  .filter-criteria-bar:has(.filter-criteria-bar__clear) {
+    padding-inline-end: 5.5rem;
+  }
+
+  .filter-criteria-bar__segments {
+    width: auto;
+  }
+
+  .filter-criteria-bar__clear {
+    position: absolute;
+    top: 50%;
+    right: 0.65rem;
+    transform: translateY(-50%);
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-criteria-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+
+  .filter-criteria-bar__clear {
+    order: 1;
+    width: 100%;
+    text-align: center;
+  }
+}

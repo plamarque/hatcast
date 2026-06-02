@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { Router } from '@angular/router'
 
-import { rememberLastVisitedSeasonSlug } from '../navigation/last-visited-league-storage'
+import { rememberLastVisitedSeasonSlug } from '../navigation/last-visited-season-storage'
 import { saisonWorkspacePath, troupeHubPath } from '../navigation/troupe-routes'
 import { environment } from '../../../environments/environment'
 import {

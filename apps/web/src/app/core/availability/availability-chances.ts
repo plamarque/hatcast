@@ -22,6 +22,87 @@ export function calculatePracticalChance(weightedChances: number, totalWeight: n
   return (weightedChances / totalWeight) * 100
 }
 
+export interface WeightedChanceCandidate {
+  participantId: string
+  weight: number
+}
+
+/**
+ * Probability of being selected in at least one of [places] weighted draws without replacement
+ * (port of V1 calculateExactSelectionProbability).
+ */
+export function exactSelectionProbability(
+  places: number,
+  candidates: WeightedChanceCandidate[],
+  targetIndex: number,
+): number {
+  if (places === 0 || candidates.length === 0 || targetIndex < 0 || targetIndex >= candidates.length) {
+    return 0
+  }
+  if (places >= candidates.length) {
+    return 1
+  }
+
+  const targetWeight = candidates[targetIndex].weight
+  const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0)
+  if (totalWeight === 0) {
+    return 0
+  }
+
+  if (places === 1) {
+    return targetWeight / totalWeight
+  }
+
+  const allWeightsEqual = candidates.every((c) => Math.abs(c.weight - targetWeight) < 0.0001)
+  if (allWeightsEqual) {
+    return places / candidates.length
+  }
+
+  let probNotSelected = 1
+  let remainingCandidates = [...candidates]
+  let remainingTotalWeight = totalWeight
+  const targetParticipantId = candidates[targetIndex].participantId
+
+  for (let tirage = 1; tirage <= places; tirage++) {
+    if (remainingCandidates.length <= 1) {
+      break
+    }
+
+    const probNotSelectedThisTirage = 1 - targetWeight / remainingTotalWeight
+    probNotSelected *= probNotSelectedThisTirage
+
+    const otherCandidates = remainingCandidates.filter((c) => c.participantId !== targetParticipantId)
+    const otherTotalWeight = remainingTotalWeight - targetWeight
+
+    let expectedWeightRemoved = 0
+    if (otherCandidates.length > 0 && otherTotalWeight > 0) {
+      for (const candidate of otherCandidates) {
+        expectedWeightRemoved += (candidate.weight / remainingTotalWeight) * candidate.weight
+      }
+    } else {
+      expectedWeightRemoved = otherTotalWeight / Math.max(1, otherCandidates.length)
+    }
+
+    remainingTotalWeight -= expectedWeightRemoved
+    if (remainingCandidates.length > 1 && otherCandidates.length > 0) {
+      let closestCandidate = otherCandidates[0]
+      let minDiff = Math.abs(closestCandidate.weight - expectedWeightRemoved)
+      for (const candidate of otherCandidates) {
+        const diff = Math.abs(candidate.weight - expectedWeightRemoved)
+        if (diff < minDiff) {
+          minDiff = diff
+          closestCandidate = candidate
+        }
+      }
+      remainingCandidates = remainingCandidates.filter(
+        (c) => c.participantId !== closestCandidate.participantId,
+      )
+    }
+  }
+
+  return Math.min(1, Math.max(0, 1 - probNotSelected))
+}
+
 export interface ChanceCandidate {
   participantId: string
   pastSelectionCount?: number
@@ -51,9 +132,9 @@ export function scoreCandidates(
     return candidates.map((c) => ({ participantId: c.participantId, chancePercent: 0 }))
   }
   return weights
-    .map((row) => ({
+    .map((row, index) => ({
       participantId: row.participantId,
-      chancePercent: Math.round(calculatePracticalChance(row.weight, total)),
+      chancePercent: Math.round(exactSelectionProbability(requiredCount, weights, index) * 100),
     }))
     .sort((a, b) => b.chancePercent - a.chancePercent)
 }

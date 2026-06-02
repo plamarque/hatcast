@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core'
 
 import { csrfHeaders } from '../http/hatcast-csrf'
+import type { TroupeAdminSummary } from '../troupes/troupe-api.service'
 
 export interface SeasonResponse {
   id: string
@@ -40,6 +41,11 @@ export interface UpdateSeasonBody {
   endDate?: string | null
 }
 
+export interface PlatformAdminSeasonResolution {
+  troupe: TroupeAdminSummary
+  season: SeasonResponse
+}
+
 @Injectable({ providedIn: 'root' })
 export class SeasonApiService {
   async getSeason(seasonId: string): Promise<{ ok: boolean; status: number; data?: SeasonResponse }> {
@@ -70,6 +76,25 @@ export class SeasonApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as SeasonResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  /** Admin plateforme : résout une saison par slug dans toutes les troupes. */
+  async resolveAdminSeasonBySlug(
+    slug: string,
+  ): Promise<{ ok: boolean; status: number; data?: PlatformAdminSeasonResolution[] }> {
+    try {
+      const res = await fetch(
+        `/v1/admin/seasons/by-slug/${encodeURIComponent(slug)}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as PlatformAdminSeasonResolution[]
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

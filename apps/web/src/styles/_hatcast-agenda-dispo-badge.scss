@@ -3,38 +3,46 @@
 // Legacy alias: --in-team → same tokens as --selected.
 
 .agenda-card__badge--dispo {
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 1px solid transparent;
   cursor: pointer;
-  font: inherit;
-  opacity: 0.9;
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 1;
 
   &--available {
     background: var(--hatcast-availability-badge-bg-available);
     color: var(--hatcast-availability-badge-fg-available);
+    border-color: var(--hatcast-participation-available-stat-border);
   }
 
   &--unavailable {
     background: var(--hatcast-availability-badge-bg-unavailable);
     color: var(--hatcast-availability-badge-fg-unavailable);
+    border-color: var(--hatcast-participation-unavailable-stat-border);
   }
 
   &--unknown {
     background: var(--hatcast-availability-badge-bg-unknown);
     color: var(--hatcast-availability-badge-fg-unknown);
-    opacity: 0.85;
+    border-color: color-mix(in srgb, var(--mat-sys-outline) 48%, transparent);
+    opacity: 0.92;
   }
 
   &--in-team,
   &--selected {
     background: var(--hatcast-participation-selected-badge-bg);
     color: var(--hatcast-participation-selected-badge-fg);
-    opacity: 1;
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 35%, transparent);
   }
 
   &--declined {
     background: var(--hatcast-participation-declined-badge-bg);
     color: var(--hatcast-participation-declined-badge-fg);
-    opacity: 1;
+    border-color: color-mix(in srgb, var(--mat-sys-tertiary) 44%, transparent);
   }
 
   &:hover,

@@ -342,7 +342,7 @@ paths:
       tags: [Composition]
       summary: Destinataires pour partage / annonce manuelle
       description: >
-        Liste les destinataires selon l'intent (`draw`, `composition`, `event`).
+        Liste les destinataires selon l'intent (`draw`, `composition`, `event`, `availability_nudge`).
         Emails obfusqués côté serveur. Requiert `canManageComposition`.
       security:
         - cookieAuth: []
@@ -354,7 +354,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [draw, composition, event]
+            enum: [draw, composition, event, availability_nudge]
       responses:
         '200':
           description: OK
@@ -629,6 +629,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ShareRecipient'
+        lastManualNudgeAt:
+          type: string
+          format: date-time
+          nullable: true
+        guardDays:
+          type: integer
+          nullable: true
 
     ShareNotifyRequest:
       type: object

@@ -3,6 +3,7 @@ package com.hatcast.api.participant
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeMembershipEntity
+import com.hatcast.api.troupe.TroupeMembershipStatus
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -22,6 +23,10 @@ class SeasonParticipantMembershipSync(
         season: SeasonEntity,
         membership: TroupeMembershipEntity,
     ) {
+        if (membership.status != TroupeMembershipStatus.ACTIVE) {
+            removeForMembership(season, membership)
+            return
+        }
         val normalizedEmail = participantLink.normalizeEmail(membership.user.email)
         val existing =
             seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
@@ -31,7 +36,9 @@ class SeasonParticipantMembershipSync(
         val now = Instant.now()
         val toSave: SeasonParticipantEntity? =
             if (existing != null) {
-                if (
+                if (existing.removalSource == SeasonParticipantRemovalSource.SEASON_ADMIN) {
+                    null
+                } else if (
                     existing.displayName == membership.displayName &&
                         existing.user?.id == membership.user.id &&
                         existing.normalizedEmail == normalizedEmail &&
@@ -45,6 +52,7 @@ class SeasonParticipantMembershipSync(
                     existing.normalizedEmail = normalizedEmail
                     existing.status = ParticipantStatus.ACTIVE
                     existing.removedAt = null
+                    existing.removalSource = null
                     existing.updatedAt = now
                     existing
                 }
@@ -62,6 +70,48 @@ class SeasonParticipantMembershipSync(
             }
         if (toSave != null) {
             seasonParticipantRepository.save(toSave)
+            refreshParticipantCount(season)
+            MembershipParticipantSyncCache.invalidate(season.id)
+        }
+    }
+
+    /** Retire le participant de saison lié à une adhésion troupe désactivée. */
+    @Transactional
+    fun removeForMembershipAcrossTroupe(membership: TroupeMembershipEntity) {
+        val troupeId = membership.troupe.id
+        for (season in seasonRepository.findAllByTroupeIdList(troupeId)) {
+            removeForMembership(season, membership)
+        }
+    }
+
+    /** Réactive ou crée les participants de saison pour une adhésion troupe active. */
+    @Transactional
+    fun ensureForMembershipAcrossTroupe(membership: TroupeMembershipEntity) {
+        if (membership.status != TroupeMembershipStatus.ACTIVE) {
+            return
+        }
+        val troupeId = membership.troupe.id
+        for (season in seasonRepository.findAllByTroupeIdList(troupeId)) {
+            ensureForMembership(season, membership)
+        }
+    }
+
+    private fun removeForMembership(
+        season: SeasonEntity,
+        membership: TroupeMembershipEntity,
+    ) {
+        val existing =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
+                season.id,
+                membership.id,
+            ) ?: return
+        if (existing.status == ParticipantStatus.ACTIVE) {
+            val now = Instant.now()
+            existing.status = ParticipantStatus.REMOVED
+            existing.removedAt = now
+            existing.removalSource = SeasonParticipantRemovalSource.MEMBERSHIP_INACTIVE
+            existing.updatedAt = now
+            seasonParticipantRepository.save(existing)
             refreshParticipantCount(season)
             MembershipParticipantSyncCache.invalidate(season.id)
         }

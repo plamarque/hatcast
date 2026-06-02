@@ -1,9 +1,18 @@
 import { Injectable } from '@angular/core'
 
+import type { ParticipationChartStatus } from '../participation/participation-status'
+
 export interface StatCounts {
   selections: number
   dispos: number
   declines: number
+}
+
+export interface StatisticsEventCell {
+  status: ParticipationChartStatus
+  label: string
+  roleKey?: string | null
+  tooltip?: string | null
 }
 
 export interface StatisticsEvent {
@@ -11,18 +20,21 @@ export interface StatisticsEvent {
   title: string
   startsAt: string
   templateType: string
-  equityTag: string | null
+  category: string | null
   monthKey: string
 }
 
 export interface ParticipantStatisticsRow {
   participantId: string
   displayName: string
+  userSlug?: string | null
+  avatarUrl?: string | null
   annual: Record<string, StatCounts>
   /** V1 month rollup — participations / dispos / declines per validated event. */
   monthSummary: Record<string, StatCounts>
   byMonth: Record<string, Record<string, StatCounts>>
   eventCells: Record<string, string>
+  eventCellDetails: Record<string, StatisticsEventCell>
 }
 
 export interface SeasonStatisticsResponse {
@@ -32,7 +44,7 @@ export interface SeasonStatisticsResponse {
   rows: ParticipantStatisticsRow[]
 }
 
-export type EquityCompartmentsQuery = 'all' | string[]
+export type CategoryFilterQuery = 'all' | string[]
 
 @Injectable({ providedIn: 'root' })
 export class SeasonStatisticsApiService {
@@ -41,7 +53,7 @@ export class SeasonStatisticsApiService {
     options: {
       eventId?: string | null
       participantId?: string | null
-      equityCompartments?: EquityCompartmentsQuery
+      categories?: CategoryFilterQuery
     } = {},
   ): Promise<{ ok: boolean; status: number; data?: SeasonStatisticsResponse }> {
     const params = new URLSearchParams()
@@ -51,14 +63,14 @@ export class SeasonStatisticsApiService {
     if (options.participantId) {
       params.set('participantId', options.participantId)
     }
-    if (options.equityCompartments !== undefined) {
-      if (options.equityCompartments === 'all') {
-        params.append('equityCompartments', 'all')
-      } else if (options.equityCompartments.length === 0) {
-        params.append('equityCompartments', '')
+    if (options.categories !== undefined) {
+      if (options.categories === 'all') {
+        params.append('categories', 'all')
+      } else if (options.categories.length === 0) {
+        params.append('categories', '')
       } else {
-        for (const slug of options.equityCompartments) {
-          params.append('equityCompartments', slug)
+        for (const slug of options.categories) {
+          params.append('categories', slug)
         }
       }
     }

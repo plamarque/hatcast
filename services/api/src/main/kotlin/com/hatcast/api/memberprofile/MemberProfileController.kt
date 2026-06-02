@@ -28,6 +28,7 @@ class MemberProfileController(
         memberProfileService.getProfileSummary(seasonId, userId, principal)
 
     @GetMapping("/troupes/{troupeId}/memberships/me/preferred-roles")
+    @Deprecated("Use GET /v1/me/preferences.")
     fun getMyPreferredRoles(
         @PathVariable troupeId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
@@ -35,6 +36,7 @@ class MemberProfileController(
         memberProfileService.getPreferredRoles(principal.userId, troupeId)
 
     @PutMapping("/troupes/{troupeId}/memberships/me/preferred-roles")
+    @Deprecated("Use PATCH /v1/me/preferences.")
     fun updateMyPreferredRoles(
         @PathVariable troupeId: UUID,
         @Valid @RequestBody body: UpdatePreferredRolesRequest,

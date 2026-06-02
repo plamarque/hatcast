@@ -40,4 +40,21 @@ describe('buildPwaInstallInstructions', () => {
     expect(content.title).toContain('Safari');
     expect(content.steps.some((s) => s.includes('écran d\'accueil'))).toBe(true);
   });
+
+  it('embeds HatCast 2 logo in install success copy', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    );
+    const content = buildPwaInstallInstructions(info);
+    expect(content.successText).toContain('/icons/logo-hatcast-2.svg');
+  });
+
+  it('prepends dev cert warning when devCertBlocked', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    );
+    const content = buildPwaInstallInstructions(info, { devCertBlocked: true });
+    expect(content.warningText).toContain('Non sécurisé');
+    expect(content.warningText).toContain('localhost:4200');
+  });
 });

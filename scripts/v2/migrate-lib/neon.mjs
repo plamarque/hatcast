@@ -44,6 +44,8 @@ export async function smokeCounts(databaseUrl, seasonV2Id) {
     const res = await client.query(
       `SELECT
          (SELECT COUNT(*)::int FROM events WHERE season_id = $1::uuid) AS events,
+         (SELECT COUNT(*)::int FROM events WHERE season_id = $1::uuid AND archived = FALSE) AS events_non_archived,
+         (SELECT event_count::int FROM seasons WHERE id = $1::uuid) AS season_event_count,
          (SELECT COUNT(*)::int FROM season_participants WHERE season_id = $1::uuid AND status = 'ACTIVE') AS participants,
          (SELECT COUNT(*)::int FROM event_availability ea JOIN events e ON e.id = ea.event_id WHERE e.season_id = $1::uuid) AS availability,
          (SELECT COUNT(*)::int FROM event_compositions ec JOIN events e ON e.id = ec.event_id WHERE e.season_id = $1::uuid) AS compositions,
@@ -51,5 +53,38 @@ export async function smokeCounts(databaseUrl, seasonV2Id) {
       [seasonV2Id],
     )
     return res.rows[0]
+  })
+}
+
+/** Reconcile seasons.event_count for one season (non-archived events). */
+export async function reconcileSeasonEventCount(databaseUrl, seasonId) {
+  return withClient(databaseUrl, async (client) => {
+    const res = await client.query(
+      `UPDATE seasons s
+       SET event_count = (
+         SELECT COUNT(*)::int FROM events e
+         WHERE e.season_id = s.id AND e.archived = FALSE
+       ),
+       updated_at = CURRENT_TIMESTAMP
+       WHERE s.id = $1::uuid
+       RETURNING event_count`,
+      [seasonId],
+    )
+    return res.rows[0]?.event_count ?? null
+  })
+}
+
+/** Reconcile seasons.event_count for all seasons. Returns number of rows updated. */
+export async function reconcileAllSeasonEventCounts(databaseUrl) {
+  return withClient(databaseUrl, async (client) => {
+    const res = await client.query(
+      `UPDATE seasons s
+       SET event_count = (
+         SELECT COUNT(*)::int FROM events e
+         WHERE e.season_id = s.id AND e.archived = FALSE
+       ),
+       updated_at = CURRENT_TIMESTAMP`,
+    )
+    return res.rowCount ?? 0
   })
 }

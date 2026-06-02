@@ -1,17 +1,42 @@
-<mat-card class="troupe-card">
-  <div class="troupe-card__header">
-    <span class="troupe-card__logo" aria-hidden="true">
-      <mat-icon>groups</mat-icon>
-    </span>
-    <h3 class="troupe-card__name">{{ name() }}</h3>
-  </div>
-  <p class="troupe-card__stat">{{ memberLabel(memberCount()) }}</p>
-  <p class="troupe-card__stat">{{ upcomingLabel(upcomingCount()) }}</p>
-  <div class="troupe-card__actions">
-    @if (mode() === 'mine') {
-      <a mat-flat-button color="primary" [routerLink]="hubLink(slug())">Ouvrir</a>
-    } @else {
-      <button mat-stroked-button type="button" disabled>Bientôt</button>
+<mat-card class="troupe-card" appearance="outlined">
+  <div class="troupe-card__body">
+    <div class="troupe-card__header">
+      <span class="troupe-card__logo" aria-hidden="true">
+        @if (showLogo()) {
+          <img [src]="logoUrl() ?? ''" alt="" loading="lazy" (error)="onLogoError()" />
+        } @else {
+          <mat-icon>groups</mat-icon>
+        }
+      </span>
+      <h3 class="troupe-card__name">{{ name() }}</h3>
+    </div>
+    @if (description(); as text) {
+      <p class="troupe-card__description">{{ text }}</p>
     }
+    <p class="troupe-card__stat">{{ memberLabel(memberCount()) }}</p>
+    <p class="troupe-card__stat">{{ upcomingLabel(upcomingCount()) }}</p>
   </div>
+
+  <mat-card-actions class="troupe-card__actions">
+    @if (mode() === 'discover' && discoverAction() === 'login') {
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        [attr.aria-label]="openAriaLabel()"
+        (click)="onDiscoverLogin()"
+      >
+        Voir
+      </button>
+    } @else {
+      <a
+        mat-flat-button
+        color="primary"
+        [routerLink]="hubLink(slug())"
+        [attr.aria-label]="openAriaLabel()"
+      >
+        {{ mode() === 'discover' ? 'Voir' : 'Ouvrir' }}
+      </a>
+    }
+  </mat-card-actions>
 </mat-card>

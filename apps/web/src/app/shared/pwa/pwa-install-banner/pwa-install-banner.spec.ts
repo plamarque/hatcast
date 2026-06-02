@@ -35,7 +35,7 @@ describe('PwaInstallBannerComponent', () => {
     showBanner.set(true);
     const fixture = await createFixture();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.pwa-install-banner')).toBeTruthy();
+    expect(el.querySelector('.pwa-system-banner')).toBeTruthy();
     expect(el.textContent).toContain("Installez l'app");
   });
 
@@ -43,7 +43,7 @@ describe('PwaInstallBannerComponent', () => {
     showBanner.set(false);
     const fixture = await createFixture();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.pwa-install-banner')).toBeNull();
+    expect(el.querySelector('.pwa-system-banner')).toBeNull();
   });
 
   it('dismiss button calls dismissBanner', async () => {

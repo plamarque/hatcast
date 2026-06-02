@@ -4,6 +4,11 @@ export type SeasonView = 'agenda' | 'history' | 'stats'
 export interface EventFilterOption {
   id: string
   title: string
+  startsAt?: string
+  archived?: boolean
+  past?: boolean
+  /** Dispos non ouvertes (story 3.21). */
+  draft?: boolean
 }
 
 export interface ParticipantFilterOption {

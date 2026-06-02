@@ -21,6 +21,17 @@ interface SeasonRepository : JpaRepository<SeasonEntity, UUID> {
         pageable: Pageable,
     ): Page<SeasonEntity>
 
+    @Query(
+        """
+        SELECT s FROM SeasonEntity s
+        WHERE s.troupe.id = :troupeId
+        ORDER BY s.title ASC
+        """,
+    )
+    fun findAllByTroupeIdList(
+        @Param("troupeId") troupeId: UUID,
+    ): List<SeasonEntity>
+
     fun existsByTroupe_IdAndSlug(
         troupeId: UUID,
         slug: String,
@@ -36,6 +47,8 @@ interface SeasonRepository : JpaRepository<SeasonEntity, UUID> {
         troupeId: UUID,
         slug: String,
     ): SeasonEntity?
+
+    fun findAllBySlug(slug: String): List<SeasonEntity>
 
     fun findByTroupe_IdAndIsActiveTrue(troupeId: UUID): SeasonEntity?
 

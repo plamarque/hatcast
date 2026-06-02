@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core'
 
 import { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
-import { getLastVisitedSeasonSlug } from './last-visited-league-storage'
+import { getLastVisitedSeasonSlug } from './last-visited-season-storage'
 import { saisonWorkspacePath, troupesListPath } from './troupe-routes'
 
 export type LastVisitedSeasonLinkTarget = 'season' | 'troupes'
@@ -16,6 +16,8 @@ export class LastVisitedSeasonShortcutService {
   readonly loading = signal(false)
   readonly seasonSlug = signal<string | null>(null)
   readonly seasonTitle = signal<string | null>(null)
+  readonly troupeSlug = signal<string | null>(null)
+  readonly troupeName = signal<string | null>(null)
 
   readonly linkTarget = computed<LastVisitedSeasonLinkTarget>(() =>
     this.seasonSlug() ? 'season' : 'troupes',
@@ -26,10 +28,10 @@ export class LastVisitedSeasonShortcutService {
     return slug ? saisonWorkspacePath(slug) : troupesListPath()
   })
 
-  /** Visible button text (season title only when known). */
+  /** Visible button text — always prefixes with « Ma saison » when a title is known. */
   readonly label = computed(() => {
     const title = this.seasonTitle()?.trim()
-    return title || 'Choisir une saison'
+    return title ? `Ma saison · ${title}` : 'Choisir une saison'
   })
 
   /** Screen reader label — clarifies destination when visible text is title-only. */
@@ -63,6 +65,8 @@ export class LastVisitedSeasonShortcutService {
       if (resolved.kind === 'resolved') {
         this.seasonSlug.set(storedSlug)
         this.seasonTitle.set(resolved.season.title)
+        this.troupeSlug.set(resolved.troupe.slug)
+        this.troupeName.set(resolved.troupe.name)
       } else {
         this.clearSeasonState()
       }
@@ -79,6 +83,8 @@ export class LastVisitedSeasonShortcutService {
   private clearSeasonState(): void {
     this.seasonSlug.set(null)
     this.seasonTitle.set(null)
+    this.troupeSlug.set(null)
+    this.troupeName.set(null)
   }
 
   private completeRefresh(generation: number, showLoadingIndicator: boolean): void {

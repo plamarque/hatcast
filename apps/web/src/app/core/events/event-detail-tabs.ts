@@ -1,6 +1,6 @@
 import type { ParamMap } from '@angular/router'
 
-export type EventDetailTab = 'infos' | 'dispos' | 'equipe'
+export type EventDetailTab = 'infos' | 'dispos' | 'equipe' | 'activite'
 
 const TAB_ALIASES: Record<string, EventDetailTab> = {
   infos: 'infos',
@@ -9,6 +9,8 @@ const TAB_ALIASES: Record<string, EventDetailTab> = {
   team: 'dispos',
   equipe: 'equipe',
   compo: 'equipe',
+  activite: 'activite',
+  activity: 'activite',
 }
 
 /** Whether a `tab` query value is a known V2 slug or legacy alias. */

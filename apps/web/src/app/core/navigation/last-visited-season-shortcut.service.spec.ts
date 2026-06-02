@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SeasonResponse } from '../seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
-import { rememberLastVisitedSeasonSlug } from './last-visited-league-storage'
+import { rememberLastVisitedSeasonSlug } from './last-visited-season-storage'
 import { LastVisitedSeasonShortcutService } from './last-visited-season-shortcut.service'
 
 describe('LastVisitedSeasonShortcutService', () => {
@@ -41,14 +41,16 @@ describe('LastVisitedSeasonShortcutService', () => {
     rememberLastVisitedSeasonSlug('festibask')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
+      troupe: { id: 't1', name: 'Troupe', slug: 'troupe' },
       season: { id: 's1', slug: 'festibask', title: 'Ligue 2026' } as SeasonResponse,
     })
 
     await service().refresh()
 
     expect(service().link()).toEqual(['/saison', 'festibask'])
-    expect(service().label()).toBe('Ligue 2026')
+    expect(service().label()).toBe('Ma saison · Ligue 2026')
+    expect(service().troupeSlug()).toBe('troupe')
+    expect(service().troupeName()).toBe('Troupe')
     expect(service().ariaLabel()).toBe('Ma saison : Ligue 2026')
     expect(service().linkTarget()).toBe('season')
     expect(localStorage.getItem('lastVisitedSeason')).toBe('festibask')
@@ -101,7 +103,7 @@ describe('LastVisitedSeasonShortcutService', () => {
 
     await Promise.all([older, newer])
 
-    expect(svc.label()).toBe('Ligue B')
+    expect(svc.label()).toBe('Ma saison · Ligue B')
     expect(svc.ariaLabel()).toBe('Ma saison : Ligue B')
     expect(svc.link()).toEqual(['/saison', 'ligue-b'])
   })

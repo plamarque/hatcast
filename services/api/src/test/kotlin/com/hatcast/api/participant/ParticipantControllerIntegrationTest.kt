@@ -8,6 +8,7 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Test
@@ -464,7 +465,7 @@ class ParticipantControllerIntegrationTest {
     }
 
     @Test
-    fun `cannot patch or remove membership synced participant`() {
+    fun `cannot patch membership synced participant but can season remove`() {
         val admin = signInAdmin("part-admin-13", "part-admin-13@example.com", "Part Admin Thirteen")
         val seasonId = createSeason(admin.cookie)
 
@@ -493,7 +494,12 @@ class ParticipantControllerIntegrationTest {
                 delete("/v1/seasons/$seasonId/participants/$memberParticipantId")
                     .cookie(admin.cookie)
                     .with(csrf()),
-            ).andExpect(status().isBadRequest)
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.id == '$memberParticipantId')]").isEmpty)
     }
 
     @Test
@@ -530,5 +536,699 @@ class ParticipantControllerIntegrationTest {
             .perform(get("/v1/seasons/$seasonId/events/$eventId/participants/roster").cookie(admin.cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[?(@.seasonParticipantId == '$seasonParticipantId')]").isEmpty)
+    }
+
+    @Test
+    fun `deactivating troupe member removes synced season participant and list does not restore it`() {
+        val admin = signInAdmin("part-admin-15", "part-admin-15@example.com", "Part Admin Fifteen")
+        val seasonId = createSeason(admin.cookie)
+        signIn("part-target-15", "part-target-15@example.com", "Part Target Fifteen")
+
+        val addResult =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/members")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"email":"part-target-15@example.com","displayName":"Part Target Fifteen"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId = mapper.readTree(addResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-15@example.com')]").exists())
+
+        mockMvc
+            .perform(
+                delete("/v1/troupes/$seedTroupeId/members/$membershipId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-15@example.com')]").isEmpty)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-15@example.com')]").isEmpty)
+    }
+
+    @Test
+    fun `season remove for troupe member keeps membership active and sync does not restore`() {
+        val admin = signInAdmin("part-admin-16", "part-admin-16@example.com", "Part Admin Sixteen")
+        val seasonA = createSeason(admin.cookie)
+        val seasonB =
+            UUID.fromString(
+                mapper
+                    .readTree(
+                        mockMvc
+                            .perform(
+                                post("/v1/troupes/$seedTroupeId/seasons")
+                                    .cookie(admin.cookie)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content("""{"title":"Season B participants"}""")
+                                    .with(csrf()),
+                            ).andExpect(status().isOk)
+                            .andReturn()
+                            .response.contentAsString,
+                    ).path("id")
+                    .asText(),
+            )
+        signIn("part-target-16", "part-target-16@example.com", "Part Target Sixteen")
+
+        val addResult =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/members")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"email":"part-target-16@example.com","displayName":"Part Target Sixteen"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId = mapper.readTree(addResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonA/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-16@example.com')]").exists())
+        mockMvc
+            .perform(get("/v1/seasons/$seasonB/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-16@example.com')]").exists())
+
+        val listA =
+            mockMvc
+                .perform(get("/v1/seasons/$seasonA/participants").cookie(admin.cookie))
+                .andExpect(status().isOk)
+                .andReturn()
+        val participantId =
+            mapper
+                .readTree(listA.response.contentAsString)
+                .first { it.path("email").asText() == "part-target-16@example.com" }
+                .path("id")
+                .asText()
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonA/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        val membership =
+            troupeMembershipRepository.findById(UUID.fromString(membershipId)).orElseThrow()
+        org.junit.jupiter.api.Assertions.assertEquals(TroupeMembershipStatus.ACTIVE, membership.status)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonA/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-16@example.com')]").isEmpty)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonA/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-16@example.com')]").isEmpty)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonB/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-16@example.com')]").exists())
+    }
+
+    @Test
+    fun `reinclude season participant restores roster and keeps event exclusion`() {
+        val admin = signInAdmin("part-admin-17", "part-admin-17@example.com", "Part Admin Seventeen")
+        val seasonId = createSeason(admin.cookie)
+        val eventId = createEvent(admin.cookie, seasonId)
+        signIn("part-target-17", "part-target-17@example.com", "Part Target Seventeen")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"part-target-17@example.com","displayName":"Part Target Seventeen"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val listResult =
+            mockMvc
+                .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+                .andExpect(status().isOk)
+                .andReturn()
+        val participantId =
+            mapper
+                .readTree(listResult.response.contentAsString)
+                .first { it.path("email").asText() == "part-target-17@example.com" }
+                .path("id")
+                .asText()
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/events/$eventId/participants/roster/season/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants/$participantId/reinclude")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.id == '$participantId')]").exists())
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/participants/roster").cookie(admin.cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.seasonParticipantId == '$participantId')]").isEmpty)
+    }
+
+    @Test
+    fun `reinclude is rejected while troupe membership is inactive`() {
+        val admin = signInAdmin("part-admin-18", "part-admin-18@example.com", "Part Admin Eighteen")
+        val seasonId = createSeason(admin.cookie)
+        signIn("part-target-18", "part-target-18@example.com", "Part Target Eighteen")
+
+        val addResult =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/members")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"email":"part-target-18@example.com","displayName":"Part Target Eighteen"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId = mapper.readTree(addResult.response.contentAsString).path("id").asText()
+
+        val listResult =
+            mockMvc
+                .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+                .andExpect(status().isOk)
+                .andReturn()
+        val participantId =
+            mapper
+                .readTree(listResult.response.contentAsString)
+                .first { it.path("email").asText() == "part-target-18@example.com" }
+                .path("id")
+                .asText()
+
+        mockMvc
+            .perform(
+                delete("/v1/troupes/$seedTroupeId/members/$membershipId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants/$participantId/reinclude")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `reactivating troupe member restores cascade-removed season participant`() {
+        val admin = signInAdmin("part-admin-19", "part-admin-19@example.com", "Part Admin Nineteen")
+        val seasonId = createSeason(admin.cookie)
+        signIn("part-target-19", "part-target-19@example.com", "Part Target Nineteen")
+
+        val addResult =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/members")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"email":"part-target-19@example.com","displayName":"Part Target Nineteen"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId = mapper.readTree(addResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-19@example.com')]").exists())
+
+        mockMvc
+            .perform(
+                delete("/v1/troupes/$seedTroupeId/members/$membershipId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-19@example.com')]").isEmpty)
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"part-target-19@example.com","displayName":"Part Target Nineteen"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-19@example.com')]").exists())
+    }
+
+    @Test
+    fun `event roster hides member removed at season level via linked event row`() {
+        val admin = signInAdmin("part-admin-20", "part-admin-20@example.com", "Part Admin Twenty")
+        val seasonId = createSeason(admin.cookie)
+        val eventId = createEvent(admin.cookie, seasonId)
+        signIn("part-target-20", "part-target-20@example.com", "Part Target Twenty")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"part-target-20@example.com","displayName":"Part Target Twenty"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/participants")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Target Event Row","email":"part-target-20@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val listResult =
+            mockMvc
+                .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+                .andExpect(status().isOk)
+                .andReturn()
+        val participantId =
+            mapper
+                .readTree(listResult.response.contentAsString)
+                .first { it.path("email").asText() == "part-target-20@example.com" }
+                .path("id")
+                .asText()
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/participants/roster").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-20@example.com')]").exists())
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/participants/roster").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.email == 'part-target-20@example.com')]").isEmpty)
+    }
+
+    @Test
+    fun `reinclude resyncs member display name from troupe membership`() {
+        val admin = signInAdmin("part-admin-21", "part-admin-21@example.com", "Part Admin TwentyOne")
+        val seasonId = createSeason(admin.cookie)
+        signIn("part-target-21", "part-target-21@example.com", "Part Target TwentyOne")
+
+        val addResult =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/members")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"email":"part-target-21@example.com","displayName":"Original Name"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId = mapper.readTree(addResult.response.contentAsString).path("id").asText()
+
+        val listResult =
+            mockMvc
+                .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+                .andExpect(status().isOk)
+                .andReturn()
+        val participantId =
+            mapper
+                .readTree(listResult.response.contentAsString)
+                .first { it.path("email").asText() == "part-target-21@example.com" }
+                .path("id")
+                .asText()
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/members/$membershipId")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Renamed In Troupe"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants/$participantId/reinclude")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.id == '$participantId' && @.displayName == 'Renamed In Troupe')]").exists())
+    }
+
+    @Test
+    fun `reinclude of explicit participant conflicts with active duplicate name`() {
+        val admin = signInAdmin("part-admin-22", "part-admin-22@example.com", "Part Admin TwentyTwo")
+        val seasonId = createSeason(admin.cookie)
+
+        val firstResult =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/participants")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Alpha Solo"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val firstId = mapper.readTree(firstResult.response.contentAsString).path("id").asText()
+
+        // A second, distinct active participant we will later rename onto the conflicting name.
+        val secondResult =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/participants")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Beta Solo"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val secondId = mapper.readTree(secondResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$firstId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        // Rename the second row onto the removed row's name (allowed: the removed row is not ACTIVE).
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId/participants/$secondId")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Alpha Solo"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        // Re-including the first row would now duplicate the active "Alpha Solo".
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants/$firstId/reinclude")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `removing an already removed participant is a no-op`() {
+        val admin = signInAdmin("part-admin-23", "part-admin-23@example.com", "Part Admin TwentyThree")
+        val seasonId = createSeason(admin.cookie)
+
+        val createResult =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/participants")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"NoOp Guest"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val participantId = mapper.readTree(createResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+    }
+
+    @Test
+    fun `reincluding an already active participant is a no-op`() {
+        val admin = signInAdmin("part-admin-24", "part-admin-24@example.com", "Part Admin TwentyFour")
+        val seasonId = createSeason(admin.cookie)
+
+        val createResult =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/participants")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Active NoOp"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val participantId = mapper.readTree(createResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants/$participantId/reinclude")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+    }
+
+    @Test
+    fun `participant count tracks remove and reinclude`() {
+        val admin = signInAdmin("part-admin-25", "part-admin-25@example.com", "Part Admin TwentyFive")
+        val seasonId = createSeason(admin.cookie)
+
+        val createResult =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/participants")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Count Guest"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val participantId = mapper.readTree(createResult.response.contentAsString).path("id").asText()
+
+        val afterCreate = seasonRepository.findById(seasonId).orElseThrow().participantCount
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+        val afterRemove = seasonRepository.findById(seasonId).orElseThrow().participantCount
+        org.junit.jupiter.api.Assertions.assertEquals(afterCreate - 1, afterRemove)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants/$participantId/reinclude")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+        val afterReinclude = seasonRepository.findById(seasonId).orElseThrow().participantCount
+        org.junit.jupiter.api.Assertions.assertEquals(afterCreate, afterReinclude)
+    }
+
+    @Test
+    fun `re-adding a season-removed member by email reactivates the same row`() {
+        val admin = signInAdmin("part-admin-26", "part-admin-26@example.com", "Part Admin TwentySix")
+        val seasonId = createSeason(admin.cookie)
+        signIn("part-target-26", "part-target-26@example.com", "Part Target TwentySix")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"part-target-26@example.com","displayName":"Part Target TwentySix"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val listResult =
+            mockMvc
+                .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+                .andExpect(status().isOk)
+                .andReturn()
+        val participantId =
+            mapper
+                .readTree(listResult.response.contentAsString)
+                .first { it.path("email").asText() == "part-target-26@example.com" }
+                .path("id")
+                .asText()
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        // Re-add via "Ajouter" with the same email: reuses the same row, re-syncs as a member.
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Ignored New Name","email":"part-target-26@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(participantId))
+            .andExpect(jsonPath("$.kind").value("MEMBER"))
+            .andExpect(jsonPath("$.displayName").value("Part Target TwentySix"))
+            .andExpect(jsonPath("$.removable").value(false))
+
+        val afterList =
+            mapper.readTree(
+                mockMvc
+                    .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+                    .andExpect(status().isOk)
+                    .andReturn()
+                    .response.contentAsString,
+            )
+        val matching = afterList.filter { it.path("email").asText() == "part-target-26@example.com" }
+        org.junit.jupiter.api.Assertions.assertEquals(1, matching.size)
+        org.junit.jupiter.api.Assertions.assertEquals(participantId, matching.first().path("id").asText())
+    }
+
+    @Test
+    fun `re-adding a removed name-only participant reuses the same row`() {
+        val admin = signInAdmin("part-admin-27", "part-admin-27@example.com", "Part Admin TwentySeven")
+        val seasonId = createSeason(admin.cookie)
+
+        val createResult =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/participants")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Returning Guest"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val participantId = mapper.readTree(createResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Returning Guest"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(participantId))
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+
+        val afterList =
+            mapper.readTree(
+                mockMvc
+                    .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+                    .andExpect(status().isOk)
+                    .andReturn()
+                    .response.contentAsString,
+            )
+        val matching = afterList.filter { it.path("displayName").asText() == "Returning Guest" }
+        org.junit.jupiter.api.Assertions.assertEquals(1, matching.size)
+        org.junit.jupiter.api.Assertions.assertEquals(participantId, matching.first().path("id").asText())
+    }
+
+    @Test
+    fun `re-adding a member by email is rejected while troupe membership is inactive`() {
+        val admin = signInAdmin("part-admin-28", "part-admin-28@example.com", "Part Admin TwentyEight")
+        val seasonId = createSeason(admin.cookie)
+        signIn("part-target-28", "part-target-28@example.com", "Part Target TwentyEight")
+
+        val addResult =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/members")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"email":"part-target-28@example.com","displayName":"Part Target TwentyEight"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId = mapper.readTree(addResult.response.contentAsString).path("id").asText()
+
+        // Force the synced season row to exist before deactivating the membership.
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
+            .andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                delete("/v1/troupes/$seedTroupeId/members/$membershipId")
+                    .cookie(admin.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Part Target TwentyEight","email":"part-target-28@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
     }
 }

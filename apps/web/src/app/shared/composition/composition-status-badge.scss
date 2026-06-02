@@ -1,10 +1,27 @@
 .composition-status-badge {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0.2rem 0.55rem;
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 500;
+  line-height: 1.2;
   border: 1px solid transparent;
+  vertical-align: middle;
+
+  &--draft {
+    color: light-dark(#5b21b6, #e9d5ff);
+    background: light-dark(
+      color-mix(in srgb, var(--mat-sys-primary) 12%, transparent),
+      color-mix(in srgb, var(--mat-sys-primary) 28%, transparent)
+    );
+    border-color: light-dark(
+      color-mix(in srgb, var(--mat-sys-primary) 35%, transparent),
+      color-mix(in srgb, var(--mat-sys-primary) 40%, transparent)
+    );
+  }
 
   &--collecting {
     color: light-dark(#0e7490, #a5f3fc);

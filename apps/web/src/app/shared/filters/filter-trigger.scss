@@ -1,0 +1,10 @@
+.filter-trigger {
+  flex-shrink: 0;
+  min-width: 3rem;
+  min-height: 3rem;
+}
+
+.filter-trigger--warn {
+  outline: 2px solid var(--mat-sys-error);
+  outline-offset: 2px;
+}

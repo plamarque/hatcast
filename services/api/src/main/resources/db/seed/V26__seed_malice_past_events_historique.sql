@@ -15,7 +15,7 @@ INSERT INTO events (
     archived,
     template_type,
     role_slots,
-    equity_tag,
+    category,
     created_at,
     updated_at
 )
@@ -171,15 +171,15 @@ VALUES
         CURRENT_TIMESTAMP
     );
 
--- Glossary equity tag pour le déplacement passé (ADR-0013).
-INSERT INTO troupe_equity_tags (id, troupe_id, slug, label)
+-- Glossaire catégorie pour le déplacement passé (ADR-0013).
+INSERT INTO troupe_categories (id, troupe_id, slug, label)
 SELECT
     'a1000001-0000-4000-8000-000000000001',
     'a0000001-0000-4000-8000-000000000001',
     'deplacements',
     'Déplacements'
 WHERE NOT EXISTS (
-    SELECT 1 FROM troupe_equity_tags
+    SELECT 1 FROM troupe_categories
     WHERE troupe_id = 'a0000001-0000-4000-8000-000000000001'
       AND slug = 'deplacements'
 );

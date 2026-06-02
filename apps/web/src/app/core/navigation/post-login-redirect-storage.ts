@@ -20,7 +20,14 @@ export function isValidInternalRedirectPath(path: string): boolean {
   }
 
   if (segments.length === 1) {
-    return ['agenda', 'compte', 'seasons'].includes(segments[0])
+    return ['agenda', 'compte', 'seasons', 'troupes'].includes(segments[0])
+  }
+
+  if (segments[0] === 'troupes') {
+    return (
+      segments.length === 2 ||
+      (segments.length === 4 && segments[2] === 'admin' && segments[3] === 'membres')
+    )
   }
 
   if (segments[0] === 'troupe') {
@@ -30,14 +37,14 @@ export function isValidInternalRedirectPath(path: string): boolean {
     )
   }
 
-  if (segments[0] === 'ligue' || segments[0] === 'saison') {
-    return isValidLeagueScopedPath(segments)
+  if (segments[0] === 'saison') {
+    return isValidSeasonScopedPath(segments)
   }
 
   return false
 }
 
-function isValidLeagueScopedPath(segments: string[]): boolean {
+function isValidSeasonScopedPath(segments: string[]): boolean {
   if (segments.length === 2) return true
   if (segments.length === 4 && segments[2] === 'admin') {
     return segments[3] === 'membres' || segments[3] === 'participants'

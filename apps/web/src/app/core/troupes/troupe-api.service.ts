@@ -14,7 +14,7 @@ export interface MembershipSummary {
   updatedAt: string
 }
 
-export interface TroupeEquityTag {
+export interface TroupeCategory {
   slug: string
   label: string
 }
@@ -23,11 +23,33 @@ export interface TroupeListItem {
   id: string
   name: string
   slug: string
+  logoUrl?: string | null
+  description?: string | null
   isDemo: boolean
   joinPolicy: 'OPEN' | 'INVITE_ONLY'
   membership: MembershipSummary
   activeMemberCount: number
   upcomingEventCount: number
+}
+
+/** Public directory card (FR32) — no membership or join policy. */
+export interface PublicTroupeDirectoryItem {
+  id: string
+  name: string
+  slug: string
+  logoUrl?: string | null
+  description?: string | null
+  activeMemberCount: number
+  upcomingEventCount: number
+}
+
+/** Troupe summary for platform-admin navigation (no membership). */
+export interface TroupeAdminSummary {
+  id: string
+  name: string
+  slug: string
+  isDemo: boolean
+  joinPolicy: 'OPEN' | 'INVITE_ONLY'
 }
 
 export interface TroupeMemberAdmin {
@@ -59,6 +81,11 @@ export interface AddTroupeMemberRequest {
 
 export interface CreateTroupeRequest {
   name: string
+}
+
+export interface UpdateTroupeRequest {
+  name: string
+  description?: string | null
 }
 
 export interface UpdateMyMembershipRequest {
@@ -123,14 +150,14 @@ type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>
 
 @Injectable({ providedIn: 'root' })
 export class TroupeApiService {
-  async listEquityTags(troupeId: string): ApiResult<TroupeEquityTag[]> {
+  async listCategories(troupeId: string): ApiResult<TroupeCategory[]> {
     try {
       const res = await fetch(
-        `/v1/troupes/${encodeURIComponent(troupeId)}/equity-tags`,
+        `/v1/troupes/${encodeURIComponent(troupeId)}/categories`,
         { credentials: 'include' },
       )
       if (!res.ok) return { ok: false, status: res.status }
-      return { ok: true, status: res.status, data: (await res.json()) as TroupeEquityTag[] }
+      return { ok: true, status: res.status, data: (await res.json()) as TroupeCategory[] }
     } catch {
       return { ok: false, status: 0 }
     }
@@ -157,6 +184,69 @@ export class TroupeApiService {
     }
   }
 
+  async updateTroupe(troupeId: string, body: UpdateTroupeRequest): ApiResult<TroupeListItem> {
+    try {
+      const res = await fetch(`/v1/troupes/${encodeURIComponent(troupeId)}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders(),
+        },
+        body: JSON.stringify({
+          name: body.name.trim(),
+          ...(Object.prototype.hasOwnProperty.call(body, 'description')
+            ? { description: body.description?.trim() || null }
+            : {}),
+        }),
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as TroupeListItem
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async uploadTroupeLogo(troupeId: string, file: File): ApiResult<TroupeListItem> {
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch(`/v1/troupes/${encodeURIComponent(troupeId)}/logo`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...csrfHeaders() },
+        body,
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as TroupeListItem
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async deleteTroupeLogo(troupeId: string): ApiResult<TroupeListItem> {
+    try {
+      const res = await fetch(`/v1/troupes/${encodeURIComponent(troupeId)}/logo`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { ...csrfHeaders() },
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as TroupeListItem
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   async listMyTroupes(): ApiResult<TroupeListItem[]> {
     try {
       const res = await fetch('/v1/troupes', { credentials: 'include' })
@@ -164,6 +254,37 @@ export class TroupeApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as TroupeListItem[]
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  /** Public directory for Découvrir — no session required (FR32). */
+  async listPublicTroupes(): ApiResult<PublicTroupeDirectoryItem[]> {
+    try {
+      const res = await fetch('/v1/public/troupes', { credentials: 'omit' })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as PublicTroupeDirectoryItem[]
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  /** Admin plateforme : résout une troupe par slug sans adhésion (navigation directe par URL). */
+  async getAdminTroupeBySlug(slug: string): ApiResult<TroupeAdminSummary> {
+    try {
+      const res = await fetch(
+        `/v1/admin/troupes/by-slug/${encodeURIComponent(slug)}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as TroupeAdminSummary
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

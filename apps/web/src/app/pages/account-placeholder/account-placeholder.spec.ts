@@ -1,11 +1,17 @@
+import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
 import { describe, expect, it, vi } from 'vitest'
 
+import { AppVersionService } from '../../core/app/app-version.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
+import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { AccountPlaceholder } from './account-placeholder'
 
 describe('AccountPlaceholder', () => {
@@ -13,10 +19,12 @@ describe('AccountPlaceholder', () => {
     session?: { ok: boolean; status: number; data?: { user: Record<string, unknown> } }
     hasGoogleAccount?: boolean
     routerUrl?: string
+    appVersion?: string
   } = {}) {
     const snack = { open: vi.fn() }
     const navigate = vi.fn().mockResolvedValue(true)
     const logout = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    const openChangelog = vi.fn()
 
     const user = {
       id: 'u1',
@@ -31,7 +39,63 @@ describe('AccountPlaceholder', () => {
       providers: [
         provideRouter([]),
         { provide: MatSnackBar, useValue: snack },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            load: vi.fn().mockResolvedValue(true),
+            activeTroupes: () => [
+              {
+                id: 't1',
+                name: 'Les Improbots',
+                slug: 'les-improbots',
+                isDemo: false,
+                joinPolicy: 'OPEN' as const,
+                membership: {
+                  id: 'm1',
+                  displayName: 'Léa',
+                  status: 'ACTIVE' as const,
+                  baselineRole: 'MEMBER' as const,
+                  createdAt: '',
+                  updatedAt: '',
+                },
+                activeMemberCount: 3,
+                upcomingEventCount: 1,
+              },
+            ],
+            patchMembershipDisplayName: vi.fn(),
+          },
+        },
+        {
+          provide: TroupeApiService,
+          useValue: { updateMyMembership: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { displayName: 'Léa' } }) },
+        },
+        {
+          provide: MemberProfileApiService,
+          useValue: {
+            getPreferredRoles: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { preferredRoleKeys: ['volunteer', 'player'] },
+            }),
+            updatePreferredRoles: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { preferredRoleKeys: ['volunteer', 'player'] },
+            }),
+          },
+        },
         { provide: AuthApiService, useValue: {} },
+        {
+          provide: AppVersionService,
+          useValue: {
+            version: signal(options.appVersion ?? '0.0.0'),
+            ensureLoaded: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ChangelogDialogService,
+          useValue: { open: openChangelog, maybeAutoOpenAfterPwaUpdate: vi.fn() },
+        },
       ],
     }).compileComponents()
 
@@ -72,14 +136,14 @@ describe('AccountPlaceholder', () => {
       }
     }
 
-    return { fixture, snack, navigate, logout }
+    return { fixture, snack, navigate, logout, openChangelog }
   }
 
   it('affiche le titre et le sous-titre hub membre', async () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
     expect(text).toContain('Mon compte')
-    expect(text).toContain('Identité et sécurité de ton compte HatCast.')
+    expect(text).toContain('Identité et sécurité du compte HatCast.')
   })
 
   it('propose un menu sur l’avatar pour la photo', async () => {
@@ -115,16 +179,16 @@ describe('AccountPlaceholder', () => {
     expect(text).not.toContain('prochaine livraison')
   })
 
-  it('affiche un lien vers les préférences par troupe', async () => {
+  it('affiche la section Préférences membre avec pseudo et rôles', async () => {
     const { fixture } = await setup()
-    const link = fixture.nativeElement.querySelector(
-      '[data-testid="account-troupe-preferences"]',
-    ) as HTMLAnchorElement
-    expect(link).toBeTruthy()
-    expect(link.getAttribute('href')).toBe('/troupes')
-    expect(link.textContent).toContain('Préférences par troupe')
-    expect(link.textContent).toContain('Pseudo et rôles par défaut')
-    expect(link.querySelector('mat-icon')?.textContent?.trim()).toBe('groups')
+    const text = fixture.nativeElement.textContent ?? ''
+    expect(text).toContain('Préférences membre')
+    expect(text).toContain('Nom affiché dans toutes vos troupes.')
+    expect(text).toContain('Rôles préférés')
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="member-preferences-save"]'),
+    ).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-troupe-preferences"]')).toBeNull()
   })
 
   it('garde le changement de mot de passe en placeholder', async () => {
@@ -175,6 +239,19 @@ describe('AccountPlaceholder', () => {
   it('utilise le displayName compte pour l’avatar, pas le pseudo troupe', async () => {
     const { fixture } = await setup()
     expect(fixture.componentInstance['avatarDisplayName']()).toBe('Léa Martin')
+  })
+
+  it('affiche la version dans À propos et ouvre le changelog au clic', async () => {
+    const { fixture, openChangelog } = await setup({ appVersion: '2.1.0' })
+    const versionButton = fixture.nativeElement.querySelector(
+      '[data-testid="account-app-version"]',
+    ) as HTMLButtonElement
+    expect(versionButton).toBeTruthy()
+    expect(versionButton.textContent).toContain('v2.1.0')
+    expect(fixture.nativeElement.textContent).toContain('À propos')
+
+    versionButton.click()
+    expect(openChangelog).toHaveBeenCalled()
   })
 
   it('déconnecte et redirige vers connexion', async () => {

@@ -1,7 +1,7 @@
 package com.hatcast.api.memberglance
 
 import com.hatcast.api.agenda.UserAgendaRepository
-import com.hatcast.api.agenda.dto.UserAgendaLeagueFilterDto
+import com.hatcast.api.agenda.dto.UserAgendaSeasonFilterDto
 import com.hatcast.api.agenda.dto.UserAgendaParticipationFiltersDto
 import com.hatcast.api.agenda.dto.UserAgendaTroupeFilterDto
 import com.hatcast.api.auth.SessionUserPrincipal
@@ -10,10 +10,10 @@ import com.hatcast.api.memberglance.dto.MemberSeasonGlanceResponseDto
 import com.hatcast.api.memberprofile.MemberProfileStatsProvider
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
-import com.hatcast.api.troupe.PreferredRoleKeys
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.user.UserMemberPreferencesService
 import com.hatcast.api.user.UserRepository
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -30,13 +30,14 @@ class MemberSeasonGlanceService(
     private val userAgendaRepository: UserAgendaRepository,
     private val statsProvider: MemberProfileStatsProvider,
     private val troupeAccess: TroupeAccessService,
+    private val userMemberPreferencesService: UserMemberPreferencesService,
 ) {
     @Transactional(readOnly = true)
     fun getSeasonGlance(
         userSlug: String,
         principal: SessionUserPrincipal,
         troupeId: UUID?,
-        leagueId: UUID?,
+        seasonId: UUID?,
     ): MemberSeasonGlanceResponseDto {
         val targetUser =
             userRepository.findBySlug(userSlug.trim())
@@ -51,7 +52,7 @@ class MemberSeasonGlanceService(
             resolveSeason(
                 targetUserId = targetUserId,
                 troupeId = troupeId,
-                leagueId = leagueId,
+                seasonId = seasonId,
                 participation = participation,
                 filterBarVisible = filterBarVisible,
             )
@@ -74,21 +75,26 @@ class MemberSeasonGlanceService(
         val stats = statsProvider.loadStats(seasonId, targetUserId)
         val monthlyChart = statsProvider.loadMonthlyChart(seasonId, targetUserId)
         val favoriteRoleCounts = statsProvider.loadFavoriteRoleCounts(seasonId, targetUserId)
+        val selfPreferences =
+            if (isSelf) {
+                userMemberPreferencesService.getPreferences(targetUserId)
+            } else {
+                null
+            }
 
         return MemberSeasonGlanceResponseDto(
             userId = targetUserId,
             userSlug = targetUser.slug ?: userSlug,
-            displayName = troupeMembership.displayName,
+            displayName = selfPreferences?.memberDisplayName ?: troupeMembership.displayName,
             avatarUrl = AvatarService.publicAvatarUrl(targetUser.id, targetUser.avatarUpdatedAt),
             isSelf = isSelf,
             resolvedSeasonId = seasonId,
             troupeId = resolvedSeason.troupe.id,
-            leagueId = seasonId,
             preferredRolesTroupeId = resolvedSeason.troupe.id,
             filterBarVisible = filterBarVisible,
             participationFilters =
                 if (filterBarVisible) {
-                    participationFilters(participation.troupeIds, participation.leagueIds)
+                    participationFilters(participation.troupeIds, participation.seasonIds)
                 } else {
                     null
                 },
@@ -96,44 +102,40 @@ class MemberSeasonGlanceService(
             monthlyChart = monthlyChart,
             favoriteRoleCounts = favoriteRoleCounts,
             preferredRoleKeys =
-                if (isSelf) {
-                    PreferredRoleKeys.effectiveKeys(troupeMembership.preferredRoleKeys)
-                } else {
-                    null
-                },
+                selfPreferences?.preferredRoleKeys,
         )
     }
 
     private fun resolveSeason(
         targetUserId: UUID,
         troupeId: UUID?,
-        leagueId: UUID?,
+        seasonId: UUID?,
         participation: ParticipationContext,
         filterBarVisible: Boolean,
     ): SeasonEntity {
-        if (leagueId != null) {
+        if (seasonId != null) {
             val season =
                 seasonRepository
-                    .findById(leagueId)
-                    .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Ligue inconnue.") }
+                    .findById(seasonId)
+                    .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue.") }
             if (season.archived) {
-                throw ResponseStatusException(HttpStatus.NOT_FOUND, "Ligue inconnue.")
+                throw ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue.")
             }
-            if (season.id !in participation.leagueIds) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Ligue hors périmètre du membre.")
+            if (season.id !in participation.seasonIds) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Saison hors périmètre du membre.")
             }
             if (troupeId != null && season.troupe.id != troupeId) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Troupe et ligue incohérentes.")
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Troupe et saison incohérentes.")
             }
             return season
         }
 
-        val candidates = candidateSeasons(participation.leagueIds, troupeId)
+        val candidates = candidateSeasons(participation.seasonIds, troupeId)
         when {
             candidates.isEmpty() -> {
                 val message =
                     if (troupeId != null) {
-                        "Aucune ligue pour cette troupe."
+                        "Aucune saison pour cette troupe."
                     } else {
                         "Aucune participation active."
                     }
@@ -147,16 +149,16 @@ class MemberSeasonGlanceService(
     }
 
     private fun candidateSeasons(
-        leagueIds: Set<UUID>,
+        seasonIds: Set<UUID>,
         troupeId: UUID?,
     ): List<SeasonEntity> =
-        leagueIds.mapNotNull { id ->
+        seasonIds.mapNotNull { id ->
             seasonRepository.findById(id).orElse(null)?.takeIf { season ->
                 !season.archived && (troupeId == null || season.troupe.id == troupeId)
             }
         }
 
-    /** MVP: no cross-league merge — pick the most relevant single season when filters are unset. */
+    /** MVP: no cross-season merge — pick the most relevant single season when filters are unset. */
     private fun selectPrimarySeason(candidates: List<SeasonEntity>): SeasonEntity =
         candidates.maxWith(
             compareBy<SeasonEntity> { it.isActive }
@@ -182,21 +184,21 @@ class MemberSeasonGlanceService(
                 userAgendaRepository.findParticipatingTroupeIdsFromSeason(userId) +
                     userAgendaRepository.findParticipatingTroupeIdsFromEventOnly(userId)
             ).toSet()
-        val leagueIds =
+        val seasonIds =
             (
-                userAgendaRepository.findParticipatingLeagueIdsFromSeason(userId) +
-                    userAgendaRepository.findParticipatingLeagueIdsFromEventOnly(userId)
+                userAgendaRepository.findParticipatingSeasonIdsFromSeason(userId) +
+                    userAgendaRepository.findParticipatingSeasonIdsFromEventOnly(userId)
             ).toSet()
         return ParticipationContext(
             troupeIds = troupeIds,
-            leagueIds = leagueIds,
-            filterBarVisible = troupeIds.size > 1 || leagueIds.size > 1,
+            seasonIds = seasonIds,
+            filterBarVisible = troupeIds.size > 1 || seasonIds.size > 1,
         )
     }
 
     private fun participationFilters(
         troupeIds: Set<UUID>,
-        leagueIds: Set<UUID>,
+        seasonIds: Set<UUID>,
     ): UserAgendaParticipationFiltersDto {
         val troupes =
             if (troupeIds.isEmpty()) {
@@ -210,12 +212,12 @@ class MemberSeasonGlanceService(
                     )
                 }
             }
-        val leagues =
-            if (leagueIds.isEmpty()) {
+        val seasons =
+            if (seasonIds.isEmpty()) {
                 emptyList()
             } else {
-                userAgendaRepository.findLeagueCatalogByIds(leagueIds).map { row ->
-                    UserAgendaLeagueFilterDto(
+                userAgendaRepository.findSeasonCatalogByIds(seasonIds).map { row ->
+                    UserAgendaSeasonFilterDto(
                         id = row.id,
                         title = row.title,
                         slug = row.slug,
@@ -225,13 +227,13 @@ class MemberSeasonGlanceService(
             }
         return UserAgendaParticipationFiltersDto(
             troupes = troupes,
-            leagues = leagues,
+            seasons = seasons,
         )
     }
 
     private data class ParticipationContext(
         val troupeIds: Set<UUID>,
-        val leagueIds: Set<UUID>,
+        val seasonIds: Set<UUID>,
         val filterBarVisible: Boolean,
     )
 }

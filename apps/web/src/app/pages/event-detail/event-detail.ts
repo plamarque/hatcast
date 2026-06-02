@@ -23,6 +23,9 @@ import {
 } from '../../core/permissions/organizer-api.service'
 import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import {
+  ParticipantApiService,
+} from '../../core/participants/participant-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   saisonEventParticipantsAdminPath,
@@ -40,13 +43,17 @@ import {
   type EventFormDialogData,
 } from '../season-home/event-form-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
+import { EventActiviteTab } from '../../shared/availability/event-activite-tab'
+import { EventDetailDraftBanner } from './event-detail-draft-banner'
 import { EventDetailHeader } from './event-detail-header'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
+import { CompositionApiService } from '../../core/composition/composition-api.service'
 import { computeCompositionLifecycleView } from '../../core/composition/composition-lifecycle'
+import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { normalizeRoleSlots } from '../../core/events/event-types'
+import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
-import { formatEventStartLong } from '../season-home/season-events.utils'
 
 @Component({
   selector: 'app-event-detail',
@@ -56,18 +63,23 @@ import { formatEventStartLong } from '../season-home/season-events.utils'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
+    EventDetailDraftBanner,
     EventDetailHeader,
     EventDisposTab,
+    EventActiviteTab,
     EventEquipeTab,
     EventInfosTab,
+    CompositionEquipeStatusHeader,
   ],
   templateUrl: './event-detail.html',
-  styleUrl: './event-detail.scss',
+  styleUrls: ['./event-detail.scss', '../../shared/composition/composition-equipe-status-header.scss'],
 })
 export class EventDetail implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
+  private readonly participantApi = inject(ParticipantApiService)
   private readonly eventsApi = inject(EventApiService)
+  private readonly compositionApi = inject(CompositionApiService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
@@ -93,26 +105,19 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly canSwitchSubject = signal(false)
+  protected readonly linkedParticipantId = signal<string | null>(null)
+  protected readonly linkedParticipantName = signal<string | null>(null)
   protected readonly activeTab = signal<EventDetailTab>('infos')
   protected readonly organizersReloadTrigger = signal(0)
   protected readonly showConfirmPending = signal(false)
   protected readonly contextTroupeName = signal('')
   protected readonly contextTroupeSlug = signal('')
   protected readonly contextTroupeIsDemo = signal(false)
+  protected readonly contextTroupeLogoUrl = signal<string | null>(null)
   protected readonly contextLeagueTitle = signal('')
   protected readonly contextSeasonSlug = signal('')
-  protected formatEventStart(iso: string): string {
-    return formatEventStartLong(iso)
-  }
-
-  protected readonly showMobileEventContext = computed(
-    () =>
-      !this.loading() &&
-      this.event() !== null &&
-      this.contextSeasonSlug() !== '' &&
-      this.contextTroupeName() !== '' &&
-      this.contextLeagueTitle() !== '',
-  )
+  protected readonly composition = signal<CompositionResponse | null>(null)
+  protected readonly compositionLoaded = signal(false)
 
   protected readonly canManageEvents = computed(
     () => this.seasonPermissions()?.canManageEvents === true,
@@ -137,30 +142,32 @@ export class EventDetail implements OnDestroy, OnInit {
       return []
     }
     const items: ScopeAdminMenuItem[] = []
-    if (this.canOpenEventParticipantsAdmin(ev.id)) {
-      items.push({
-        label: 'Participants du spectacle',
-        icon: 'groups',
-        action: () => this.openEventParticipantsAdmin(),
-      })
-    }
-    if (this.canManageEventOrganizersFor(ev.id)) {
-      items.push({
-        label: 'Organisateur·ices',
-        icon: 'badge',
-        routerLink: saisonEventParticipantsAdminPath(slug, ev.slug ?? ev.id),
-      })
-    }
     if (this.canManageEvents() && !ev.archived) {
       items.push({
         label: 'Modifier',
         icon: 'edit',
         action: () => this.openEdit(),
       })
+    }
+    if (this.canOpenEventParticipantsAdmin(ev.id)) {
       items.push({
-        label: 'Archiver',
+        label: 'Participants',
+        icon: 'groups',
+        action: () => this.openEventParticipantsAdmin(),
+      })
+    }
+    if (this.canManageEvents() && !ev.archived) {
+      items.push({
+        label: 'Désactiver',
         icon: 'archive',
         action: () => this.confirmArchive(),
+      })
+    }
+    if (this.canManageEvents() && ev.archived) {
+      items.push({
+        label: 'Réactiver',
+        icon: 'unarchive',
+        action: () => this.confirmUnarchive(),
       })
     }
     return items
@@ -170,6 +177,34 @@ export class EventDetail implements OnDestroy, OnInit {
     const perms = this.seasonPermissions()
     if (!ev || !perms) return false
     return canManageCompositionForEvent(perms, ev.id)
+  })
+  protected readonly equipeStatus = computed(() => {
+    const ev = this.event()
+    if (!ev || !this.compositionLoaded()) {
+      return null
+    }
+    return resolveCompositionEquipeStatus({
+      composition: this.composition(),
+      canManageComposition: this.canManageComposition(),
+      roleSlots: normalizeRoleSlots(ev.roleSlots),
+    })
+  })
+  protected readonly canViewAuditEvent = computed(() => {
+    const ev = this.event()
+    const perms = this.seasonPermissions()
+    if (!ev || !perms) return false
+    return perms.canViewAuditSeason === true ||
+      (perms.canViewAuditEvent === true && perms.eventOrganizerFor.includes(ev.id))
+  })
+  protected readonly showActiviteTab = computed(
+    () => this.canViewAuditEvent() || !!this.linkedParticipantId(),
+  )
+  protected readonly visibleTabs = computed((): EventDetailTab[] => {
+    const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
+    if (this.showActiviteTab()) {
+      tabs.push('activite')
+    }
+    return tabs
   })
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
@@ -221,8 +256,7 @@ export class EventDetail implements OnDestroy, OnInit {
   }
 
   protected onTabChange(index: number): void {
-    const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
-    const tab = tabs[index] ?? 'infos'
+    const tab = this.visibleTabs()[index] ?? 'infos'
     this.activeTab.set(tab)
     void this.router.navigate([], {
       relativeTo: this.route,
@@ -233,8 +267,7 @@ export class EventDetail implements OnDestroy, OnInit {
   }
 
   protected tabIndex(): number {
-    const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
-    return Math.max(0, tabs.indexOf(this.activeTab()))
+    return Math.max(0, this.visibleTabs().indexOf(this.activeTab()))
   }
 
   protected openEventParticipantsAdmin(): void {
@@ -264,19 +297,42 @@ export class EventDetail implements OnDestroy, OnInit {
       this.snack.open('Vous ne pouvez pas modifier ce spectacle.', 'OK', { duration: 5000 })
       return
     }
-    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(EventFormDialog, {
-      data: {
-        mode: 'edit',
-        seasonId,
-        event: ev,
+    const ref = this.dialog.open<EventFormDialog, EventFormDialogData, EventResponse | undefined>(
+      EventFormDialog,
+      {
+        data: {
+          mode: 'edit',
+          seasonId,
+          event: ev,
+          canManagePublication: this.canManageComposition(),
+        },
+        width: 'min(100vw - 2rem, 28rem)',
       },
-      width: 'min(100vw - 2rem, 28rem)',
-    })
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
-        void this.reloadEvent('Spectacle mis à jour.')
+    )
+    ref.afterClosed().subscribe((updated) => {
+      if (!updated) {
+        return
       }
+      this.applyEventDetailUpdate(ev, updated)
     })
+  }
+
+  private applyEventDetailUpdate(before: EventResponse, after: EventResponse): void {
+    this.event.set(after)
+    const message = this.eventUpdateSnackMessage(before, after)
+    this.snack.open(message, 'OK', { duration: 4000 })
+  }
+
+  private eventUpdateSnackMessage(before: EventResponse, after: EventResponse): string {
+    const wasOpen = before.availabilityOpenedAt != null
+    const isOpen = after.availabilityOpenedAt != null
+    if (wasOpen && !isOpen) {
+      return 'Spectacle remis en brouillon.'
+    }
+    if (!wasOpen && isOpen) {
+      return 'Spectacle publié.'
+    }
+    return 'Spectacle mis à jour.'
   }
 
   protected confirmArchive(): void {
@@ -285,14 +341,14 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     if (!this.canManageEvents()) {
-      this.snack.open('Vous ne pouvez pas archiver ce spectacle.', 'OK', { duration: 5000 })
+      this.snack.open('Vous ne pouvez pas désactiver ce spectacle.', 'OK', { duration: 5000 })
       return
     }
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
       data: {
-        title: 'Archiver le spectacle',
-        message: `Archiver « ${ev.title} » ? Il disparaîtra de l’agenda.`,
-        confirmLabel: 'Archiver',
+        title: 'Désactiver le spectacle',
+        message: `Désactiver « ${ev.title} » ? Il disparaîtra de l’agenda.`,
+        confirmLabel: 'Désactiver',
       },
     })
     ref.afterClosed().subscribe((ok) => {
@@ -310,10 +366,47 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     const r = await this.eventsApi.archiveEvent(seasonId, ev.id)
     if (r.ok) {
-      this.snack.open('Spectacle archivé.', 'OK', { duration: 4000 })
+      this.snack.open('Spectacle désactivé.', 'OK', { duration: 4000 })
       await this.router.navigate(saisonWorkspacePath(slug))
     } else {
-      this.snack.open('Archivage impossible.', 'OK', { duration: 6000 })
+      this.snack.open('Désactivation impossible.', 'OK', { duration: 6000 })
+    }
+  }
+
+  protected confirmUnarchive(): void {
+    const ev = this.event()
+    if (!ev) {
+      return
+    }
+    if (!this.canManageEvents()) {
+      this.snack.open('Vous ne pouvez pas réactiver ce spectacle.', 'OK', { duration: 5000 })
+      return
+    }
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Réactiver le spectacle',
+        message: `Réactiver « ${ev.title} » ? Il réapparaîtra dans l’agenda.`,
+        confirmLabel: 'Réactiver',
+      },
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.runUnarchive(ev)
+      }
+    })
+  }
+
+  private async runUnarchive(ev: EventResponse): Promise<void> {
+    const seasonId = this.seasonId()
+    if (!seasonId) {
+      return
+    }
+    const r = await this.eventsApi.unarchiveEvent(seasonId, ev.id)
+    if (r.ok && r.data) {
+      this.event.set(r.data)
+      this.snack.open('Spectacle réactivé.', 'OK', { duration: 4000 })
+    } else {
+      this.snack.open('Réactivation impossible.', 'OK', { duration: 6000 })
     }
   }
 
@@ -327,6 +420,8 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!ev) {
       return
     }
+    this.composition.set(composition)
+    this.compositionLoaded.set(true)
     const lifecycleView = computeCompositionLifecycleView(
       composition,
       normalizeRoleSlots(ev.roleSlots),
@@ -359,6 +454,8 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!options.silent) {
       this.loading.set(true)
       this.event.set(null)
+      this.composition.set(null)
+      this.compositionLoaded.set(false)
       this.resetResolvedContext()
     }
     if (!slug || !routeSegment) {
@@ -398,14 +495,16 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextTroupeName.set(resolved.troupe.name)
     this.contextTroupeSlug.set(resolved.troupe.slug)
     this.contextTroupeIsDemo.set(resolved.troupe.isDemo)
+    this.contextTroupeLogoUrl.set(resolved.troupe.logoUrl ?? null)
     this.contextLeagueTitle.set(resolved.season.title)
     this.contextSeasonSlug.set(resolved.season.slug)
     const isUuidSegment = UUID_IN_PATH_REGEX.test(routeSegment)
-    const [eventResult, permissionsResult] = await Promise.all([
+    const [eventResult, permissionsResult, participantsResult] = await Promise.all([
       isUuidSegment
         ? this.eventsApi.getEvent(resolved.season.id, routeSegment)
         : this.eventsApi.getEventBySlug(resolved.season.id, routeSegment),
       this.organizerApi.mySeasonPermissions(resolved.season.id),
+      this.participantApi.listSeasonParticipants(resolved.season.id),
     ])
 
     if (requestId !== this.loadRequestId) {
@@ -415,6 +514,9 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!eventResult.ok || !eventResult.data) {
       this.resetResolvedContext()
       this.snack.open('Spectacle introuvable.', 'OK', { duration: 6000 })
+      if (eventResult.status === 404 && resolved.season.slug) {
+        await this.router.navigate(saisonWorkspacePath(resolved.season.slug))
+      }
       return
     }
     const found = eventResult.data
@@ -428,19 +530,55 @@ export class EventDetail implements OnDestroy, OnInit {
     this.event.set(found)
     this.seasonPermissions.set(permissionsResult.ok && permissionsResult.data ? permissionsResult.data : null)
 
+    void this.loadComposition(resolved.season.id, found.id)
+
     this.canSwitchSubject.set(
       permissionsResult.ok && permissionsResult.data
         ? canManageCompositionForEvent(permissionsResult.data, found.id)
         : false,
     )
+    const userId = this.user()?.id
+    const linked =
+      participantsResult.ok && participantsResult.data && userId
+        ? participantsResult.data.find((p) => p.userId === userId && p.status === 'ACTIVE') ?? null
+        : null
+    this.linkedParticipantId.set(linked?.id ?? null)
+    this.linkedParticipantName.set(linked?.displayName ?? null)
+    this.clampActiveTab()
+  }
+
+  private clampActiveTab(): void {
+    if (this.activeTab() === 'activite' && !this.showActiviteTab()) {
+      this.activeTab.set('infos')
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { tab: eventDetailTabToQuery('infos') },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      })
+    }
   }
 
   private resetResolvedContext(): void {
     this.contextTroupeName.set('')
     this.contextTroupeSlug.set('')
     this.contextTroupeIsDemo.set(false)
+    this.contextTroupeLogoUrl.set(null)
     this.contextLeagueTitle.set('')
     this.contextSeasonSlug.set('')
+  }
+
+  private async loadComposition(seasonId: string, eventId: string): Promise<void> {
+    const result = await this.compositionApi.getComposition(seasonId, eventId)
+    if (seasonId !== this.seasonId() || eventId !== this.event()?.id) {
+      return
+    }
+    if (result.ok && result.data) {
+      this.composition.set(result.data)
+    } else {
+      this.composition.set(null)
+    }
+    this.compositionLoaded.set(true)
   }
 
   protected canManageEventOrganizersFor(eventId: string): boolean {
@@ -459,7 +597,9 @@ export class EventDetail implements OnDestroy, OnInit {
 
   protected canOpenEventParticipantsAdmin(eventId: string): boolean {
     return (
-      this.canManageEventParticipantsFor(eventId) || this.canManageSeasonParticipants()
+      this.canManageEventParticipantsFor(eventId) ||
+      this.canManageSeasonParticipants() ||
+      this.canManageEventOrganizersFor(eventId)
     )
   }
 }

@@ -123,4 +123,38 @@ describe('PwaInstallService', () => {
     expect(storage[PWA_BANNER_DISMISSED_KEY]).toBeUndefined();
     expect(openManualInstructions).toHaveBeenCalled();
   });
+
+  it('skips native prompt on Tailscale dev origin and opens manual instructions', async () => {
+    vi.stubGlobal('location', { hostname: 'patrices-macbook-pro.tail3f7249.ts.net' });
+    const dialogOpen = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        PwaInstallService,
+        { provide: PLATFORM_ID, useValue: 'browser' },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+      ],
+    });
+    const service = TestBed.inject(PwaInstallService);
+    const promptFn = vi.fn().mockResolvedValue(undefined);
+    const event = new Event('beforeinstallprompt', { cancelable: true }) as Event & {
+      platforms: string[];
+      userChoice: Promise<{ outcome: 'dismissed' }>;
+      prompt: () => Promise<void>;
+    };
+    event.platforms = ['web'];
+    event.userChoice = Promise.resolve({ outcome: 'dismissed' });
+    event.prompt = promptFn;
+    window.dispatchEvent(event);
+    expect(service.hasNativeInstallPrompt()).toBe(true);
+
+    await service.promptInstall();
+
+    expect(promptFn).not.toHaveBeenCalled();
+    expect(dialogOpen).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({ devCertBlocked: true }),
+      }),
+    );
+  });
 });

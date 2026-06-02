@@ -17,4 +17,8 @@ interface TroupeRepository : JpaRepository<TroupeEntity, UUID> {
     fun findByIdForMembershipJoin(
         @Param("id") id: UUID,
     ): TroupeEntity?
+
+    fun findByListedInDirectoryTrueAndIsDemoFalseOrderByNameAsc(): List<TroupeEntity>
+
+    fun findByIdAndListedInDirectoryTrueAndIsDemoFalse(id: UUID): TroupeEntity?
 }

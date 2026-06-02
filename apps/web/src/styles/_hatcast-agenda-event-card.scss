@@ -1,0 +1,230 @@
+// Shared event row/card — list (agenda, saison) vs featured (accueil).
+// List: fond surface léger, sans bordure. Featured: bordure outline-variant.
+
+.agenda-card {
+  margin-bottom: 0.65rem;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 28%, transparent);
+  text-align: left;
+  color: inherit;
+  transition: background 0.15s ease;
+
+  &--featured {
+    background: color-mix(in srgb, var(--mat-sys-surface-container) 40%, transparent);
+    border-color: color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
+  }
+
+  &--row {
+    display: flex;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  &--stacked {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &--interactive {
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
+      outline: none;
+    }
+
+    &.agenda-card--featured:hover,
+    &.agenda-card--featured:focus-visible {
+      background: color-mix(in srgb, var(--mat-sys-surface-container) 52%, transparent);
+    }
+  }
+
+  &--with-menu {
+    padding-right: 0.65rem;
+  }
+
+  /** Story 3.21 — brouillon orga : scan agenda sans lire tous les badges. */
+  &--draft {
+    background: color-mix(in srgb, var(--mat-sys-primary-container) 22%, var(--mat-sys-surface-container));
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 28%, transparent);
+    border-left-width: 3px;
+    border-left-style: solid;
+    border-left-color: var(--mat-sys-primary);
+
+    &.agenda-card--interactive:hover,
+    &.agenda-card--interactive:focus-visible {
+      background: color-mix(in srgb, var(--mat-sys-primary-container) 32%, var(--mat-sys-surface-container));
+    }
+  }
+}
+
+.agenda-card__clickable {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  border-radius: 0.35rem;
+  transition: background 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
+    outline: none;
+  }
+}
+
+.agenda-card__date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.4rem;
+  padding-right: 0.65rem;
+  border-right: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 50%, transparent);
+}
+
+.agenda-card__day {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.agenda-card__weekday,
+.agenda-card__time {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  text-transform: capitalize;
+}
+
+.agenda-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  // Hauteur minimale alignée sur la cellule dispo à droite — laisse de la place sous le titre.
+  min-height: var(--agenda-participation-cell-size, 4.75rem);
+}
+
+.agenda-card__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.agenda-card__type-icon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  opacity: 0.85;
+  font-size: 1.2rem;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.agenda-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.agenda-card__loc {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.agenda-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+  min-width: 0;
+}
+
+.agenda-card__meta-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--mat-sys-on-surface-variant);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.agenda-card__meta-loc {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  color: var(--mat-sys-on-surface-variant);
+  min-width: 0;
+
+  mat-icon {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
+    opacity: 0.85;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.agenda-card__menu {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.agenda-card__status {
+  --agenda-participation-cell-size: 4.75rem;
+  flex-shrink: 0;
+  align-self: center;
+  width: var(--agenda-participation-cell-size);
+}
+
+// Carrés uniformes — styles globaux (l’encapsulation Angular empêche le parent
+// de dimensionner le .participation-event-cell interne).
+.agenda-card__status app-participation-event-cell {
+  display: block;
+  flex-shrink: 0;
+  width: var(--agenda-participation-cell-size);
+  height: var(--agenda-participation-cell-size);
+}
+
+.agenda-card__status app-participation-event-cell .participation-event-cell {
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
+}
+
+.agenda-card__status .agenda-participation-status__trigger {
+  width: var(--agenda-participation-cell-size);
+  height: var(--agenda-participation-cell-size);
+}
+
+.agenda-card--row .agenda-card__clickable {
+  flex: 1;
+  min-width: 0;
+}

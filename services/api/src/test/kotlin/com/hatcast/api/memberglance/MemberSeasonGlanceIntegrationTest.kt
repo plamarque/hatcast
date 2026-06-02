@@ -57,7 +57,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/unknown-slug-xyz/season-glance")
                     .cookie(cookie)
-                    .param("leagueId", seedSeasonId.toString()),
+                    .param("seasonId", seedSeasonId.toString()),
             ).andExpect(status().isNotFound)
     }
 
@@ -71,7 +71,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
-                    .param("leagueId", seedSeasonId.toString()),
+                    .param("seasonId", seedSeasonId.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.userSlug").value(user.slug))
             .andExpect(jsonPath("$.isSelf").value(true))
@@ -89,7 +89,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${target.slug}/season-glance")
                     .cookie(cookie)
-                    .param("leagueId", seedSeasonId.toString()),
+                    .param("seasonId", seedSeasonId.toString()),
             ).andExpect(status().isForbidden)
     }
 
@@ -103,7 +103,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${target.slug}/season-glance")
                     .cookie(viewerCookie)
-                    .param("leagueId", seedSeasonId.toString()),
+                    .param("seasonId", seedSeasonId.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.isSelf").value(false))
             .andExpect(jsonPath("$.preferredRoleKeys").doesNotExist())
@@ -120,16 +120,16 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
-                    .param("leagueId", seedSeasonId.toString()),
+                    .param("seasonId", seedSeasonId.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.filterBarVisible").value(false))
             .andExpect(jsonPath("$.participationFilters").doesNotExist())
-            .andExpect(jsonPath("$.leagueId").value(seedSeasonId.toString()))
+            .andExpect(jsonPath("$.resolvedSeasonId").value(seedSeasonId.toString()))
             .andExpect(jsonPath("$.troupeId").value(seedTroupeId.toString()))
     }
 
     @Test
-    fun `GET season-glance scopes response to requested leagueId`() {
+    fun `GET season-glance scopes response to requested seasonId`() {
         val cookie = signInAndJoin("sub-glance-league-scope", "glance-league@example.com", "League Scope")
         val user = userRepository.findByGoogleSub("sub-glance-league-scope")!!
 
@@ -138,10 +138,9 @@ class MemberSeasonGlanceIntegrationTest {
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
                     .param("troupeId", seedTroupeId.toString())
-                    .param("leagueId", seedSeasonId.toString()),
-            ).andExpect(status().isOk)
+                    .param("seasonId", seedSeasonId.toString()),
+            )            .andExpect(status().isOk)
             .andExpect(jsonPath("$.resolvedSeasonId").value(seedSeasonId.toString()))
-            .andExpect(jsonPath("$.leagueId").value(seedSeasonId.toString()))
     }
 
     @Test
@@ -168,7 +167,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
-                    .param("leagueId", emptySeason.id.toString()),
+                    .param("seasonId", emptySeason.id.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.stats").doesNotExist())
             .andExpect(jsonPath("$.monthlyChart").isArray)

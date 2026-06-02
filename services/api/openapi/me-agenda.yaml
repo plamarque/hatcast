@@ -2,9 +2,9 @@ openapi: 3.0.3
 info:
   title: HatCast API — Mon agenda utilisateur (fragment)
   description: >
-    Agrégation paginée des spectacles à venir pour un membre connecté, toutes ligues confondues
+    Agrégation paginée des spectacles à venir pour un membre connecté, toutes saisons confondues
     (participations saison ACTIVE ou participation événement ACTIVE). Un appel remplace N requêtes
-    par ligue pour l'écran Mon agenda (Story 12.2).
+    par saison pour l'écran Mon agenda (Story 12.2).
   version: 0.1.0
 
 servers:
@@ -23,9 +23,9 @@ paths:
       summary: Liste paginée de l'agenda personnel (spectacles à venir)
       description: >
         Retourne les événements non archivés dont `startsAt` ≥ début du jour civil Europe/Paris,
-        pour les ligues non archivées où l'utilisateur est participant ACTIVE (saison ou événement).
-        `filterBarVisible` indique si l'UI doit afficher les filtres troupe/ligue (plus d'une troupe
-        ou plus d'une ligue avec participation ACTIVE).
+        pour les saisons non archivées où l'utilisateur est participant ACTIVE (saison ou événement).
+        `filterBarVisible` indique si l'UI doit afficher les filtres troupe/saison (plus d'une troupe
+        ou plus d'une saison avec participation ACTIVE).
       security:
         - cookieAuth: []
       parameters:
@@ -38,13 +38,13 @@ paths:
             default: upcoming
         - name: troupeId
           in: query
-          description: Filtre optionnel par troupe (UUID). Ligues non participées → page vide.
+          description: Filtre optionnel par troupe (UUID). Saisons non participées → page vide.
           schema:
             type: string
             format: uuid
-        - name: leagueId
+        - name: seasonId
           in: query
-          description: Filtre optionnel par ligue / saison (UUID). Non participée → page vide.
+          description: Filtre optionnel par saison (UUID). Non participée → page vide.
           schema:
             type: string
             format: uuid
@@ -108,28 +108,28 @@ components:
         filterBarVisible:
           type: boolean
           description: >
-            false si l'utilisateur participe à exactement une troupe et une ligue (distinct season ids) ;
+            false si l'utilisateur participe à exactement une troupe et une saison (distinct season ids) ;
             true sinon. Calculé sur toutes les participations ACTIVE, indépendamment des filtres query.
         noParticipation:
           type: boolean
           description: >
-            true si l'utilisateur n'a aucune participation ACTIVE à une ligue ou à un événement éligible ;
+            true si l'utilisateur n'a aucune participation ACTIVE à une saison ou à un événement éligible ;
             permet à l'écran Mon agenda de distinguer l'absence d'inscription de l'absence de spectacle à venir.
         participationFilters:
           type: object
           nullable: true
           description: >
-            Catalogue des troupes et ligues où l'utilisateur participe (ACTIVE, non archivé).
+            Catalogue des troupes et saisons où l'utilisateur participe (ACTIVE, non archivé).
             Présent lorsque filterBarVisible est true ; absent ou null sinon.
           properties:
             troupes:
               type: array
               items:
                 $ref: '#/components/schemas/UserAgendaTroupeFilter'
-            leagues:
+            seasons:
               type: array
               items:
-                $ref: '#/components/schemas/UserAgendaLeagueFilter'
+                $ref: '#/components/schemas/UserAgendaSeasonFilter'
 
     UserAgendaTroupeFilter:
       type: object
@@ -143,7 +143,7 @@ components:
         slug:
           type: string
 
-    UserAgendaLeagueFilter:
+    UserAgendaSeasonFilter:
       type: object
       required: [id, title, slug, troupeId]
       properties:
@@ -168,9 +168,9 @@ components:
         - troupeId
         - troupeName
         - troupeSlug
-        - leagueId
-        - leagueSlug
-        - leagueTitle
+        - seasonId
+        - seasonSlug
+        - seasonTitle
       properties:
         eventId:
           type: string
@@ -187,6 +187,10 @@ components:
         location:
           type: string
           nullable: true
+        description:
+          type: string
+          nullable: true
+          description: Description courte du spectacle (affichage agenda / accueil)
         troupeId:
           type: string
           format: uuid
@@ -194,16 +198,37 @@ components:
           type: string
         troupeSlug:
           type: string
-        leagueId:
+        seasonId:
           type: string
           format: uuid
-          description: Identifiant ligue (season id en base)
-        leagueSlug:
+          description: Identifiant saison (table `seasons`)
+        seasonSlug:
           type: string
-        leagueTitle:
+        seasonTitle:
           type: string
         myAvailabilityStatus:
           type: string
           nullable: true
           enum: [available, unavailable, unknown]
           description: Statut de disponibilité de l'utilisateur pour cet événement
+        teamStatusBadge:
+          $ref: './events.yaml#/components/schemas/TeamStatusBadge'
+          nullable: true
+          description: Badge simplifié du cycle de vie composition (Collecte, Préparation, Confirmé)
+        participantFocus:
+          type: object
+          nullable: true
+          description: Statut participation (dispo, sélection, confirmation) pour la cellule agenda
+          properties:
+            availabilityStatus:
+              type: string
+              enum: [available, unavailable, unknown]
+            compositionRoleKey:
+              type: string
+              nullable: true
+            inTeam:
+              type: boolean
+            slotParticipationStatus:
+              type: string
+              nullable: true
+              enum: [pending, confirmed, declined]

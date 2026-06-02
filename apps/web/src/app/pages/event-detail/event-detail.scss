@@ -12,31 +12,10 @@
   padding: 2rem;
 }
 
-.event-detail__mobile-context {
-  display: none;
-}
-
-@media (max-width: 480px) {
-  .event-detail__mobile-context {
-    display: block;
-    padding: 0 0 0.75rem;
-    min-width: 0;
-  }
-
-  .event-detail__mobile-context-title {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 700;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-  }
-
-  .event-detail__mobile-context-when {
-    margin: 0.35rem 0 0;
-    font-size: 0.9rem;
-    opacity: 0.9;
-    text-transform: capitalize;
-  }
+.event-detail__status {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
 }
 
 .event-detail__tabs-shell {

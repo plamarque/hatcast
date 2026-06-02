@@ -1,0 +1,67 @@
+<div
+  class="pwa-system-banner"
+  [class.pwa-system-banner--install]="stackLayer() === 'install'"
+  [class.pwa-system-banner--update]="stackLayer() === 'update'"
+  role="region"
+  [attr.aria-label]="ariaLabel()"
+>
+  <div class="pwa-system-banner__inner">
+    <img
+      class="pwa-system-banner__icon"
+      src="/icons/logo-hatcast-2.svg"
+      alt=""
+      width="44"
+      height="44"
+    />
+
+    @if (loading()) {
+      <p class="pwa-system-banner__message">{{ loadingMessage() }}</p>
+      <mat-spinner class="pwa-system-banner__spinner" diameter="24" aria-hidden="true" />
+    } @else {
+      @if (title() || subtitle()) {
+        <button
+          type="button"
+          class="pwa-system-banner__body pwa-system-banner__body--interactive"
+          [attr.aria-label]="primaryActionAriaLabel() ?? undefined"
+          (click)="onMainClick()"
+        >
+          @if (title()) {
+            <span class="pwa-system-banner__title">{{ title() }}</span>
+          }
+          @if (subtitle()) {
+            <span class="pwa-system-banner__subtitle">{{ subtitle() }}</span>
+          }
+        </button>
+      } @else {
+        <div class="pwa-system-banner__body pwa-system-banner__body--spacer" aria-hidden="true"></div>
+      }
+
+      <div class="pwa-system-banner__actions">
+        @if (primaryLabel()) {
+          <button
+            type="button"
+            mat-flat-button
+            color="primary"
+            class="pwa-system-banner__primary"
+            [attr.data-testid]="primaryTestId() ?? null"
+            [attr.aria-label]="primaryActionAriaLabel() ?? null"
+            (click)="onPrimaryClick($event)"
+          >
+            {{ primaryLabel() }}
+          </button>
+        }
+        @if (showDismiss()) {
+          <button
+            type="button"
+            mat-icon-button
+            [attr.data-testid]="dismissTestId() ?? null"
+            [attr.aria-label]="dismissAriaLabel()"
+            (click)="onDismissClick($event)"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>

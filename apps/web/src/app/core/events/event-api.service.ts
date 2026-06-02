@@ -22,12 +22,15 @@ export interface EventResponse {
     availabilityStatus: AvailabilityStatus
     compositionRoleKey?: string | null
     inTeam: boolean
+    slotParticipationStatus?: 'pending' | 'confirmed' | 'declined' | null
   }
   compositionLifecycle?: string
   teamStatusBadge?: TeamStatusBadge
   compositionPublishedAt?: string | null
-  /** Null = principal equity compartment (ADR-0013). */
-  equityTag?: string | null
+  /** Null = draft (availability collection closed). */
+  availabilityOpenedAt?: string | null
+  /** Null = principal category (ADR-0013). */
+  category?: string | null
 }
 
 export interface PagedEventsResponse {
@@ -46,7 +49,7 @@ export interface CreateEventBody {
   templateType?: string
   roleSlots?: Record<string, number>
   slug?: string
-  equityTag?: string | null
+  category?: string | null
 }
 
 export interface UpdateEventBody {
@@ -58,7 +61,7 @@ export interface UpdateEventBody {
   roleSlots?: Record<string, number>
   slug?: string
   /** Send JSON `null` to clear; omit field to leave unchanged. */
-  equityTag?: string | null
+  category?: string | null
 }
 
 export type EventListScope = 'all' | 'upcoming' | 'past'
@@ -214,6 +217,101 @@ export class EventApiService {
       )
       if (!res.ok) {
         return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async unarchiveEvent(
+    seasonId: string,
+    eventId: string,
+  ): Promise<{ ok: boolean; status: number; data?: EventResponse }> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/actions/unarchive`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async openAvailability(
+    seasonId: string,
+    eventId: string,
+  ): Promise<EventMutationResult> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/actions/open-availability`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  /**
+   * open-availability can succeed server-side while the client sees a timeout or empty body
+   * (slow composition enrichment). Refetch the event before reporting failure.
+   */
+  async openAvailabilityResilient(
+    seasonId: string,
+    eventId: string,
+  ): Promise<EventMutationResult> {
+    const open = await this.openAvailability(seasonId, eventId)
+    if (open.ok && open.data?.availabilityOpenedAt) {
+      return open
+    }
+    const refetch = await this.getEvent(seasonId, eventId)
+    if (refetch.ok && refetch.data?.availabilityOpenedAt) {
+      return { ok: true, status: refetch.status, data: refetch.data }
+    }
+    if (!open.ok) {
+      return open
+    }
+    return {
+      ok: false,
+      status: open.status,
+      errorMessage: open.errorMessage ?? 'Publication impossible.',
+    }
+  }
+
+  async closeAvailability(
+    seasonId: string,
+    eventId: string,
+  ): Promise<EventMutationResult> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/actions/close-availability`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
       const data = (await res.json()) as EventResponse
       return { ok: true, status: res.status, data }

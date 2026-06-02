@@ -1,7 +1,6 @@
 package com.hatcast.api.composition
 
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 import java.util.UUID
 
 interface CompositionNotificationPort {
@@ -31,9 +30,30 @@ interface CompositionNotificationPort {
         messagePreview: String,
         actorUserId: UUID,
     )
+
+    fun notifyTeamValidatedFyi(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+    )
+
+    fun notifyAssigneeRemoved(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+        formerAssigneeParticipantId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+    )
+
+    fun notifyReconfirmationForAssignees(
+        eventId: UUID,
+        seasonId: UUID,
+        assigneeParticipantIds: List<UUID>,
+        actorUserId: UUID,
+    )
 }
 
-@Component
 class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -91,6 +111,53 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
             seasonId,
             intent,
             messagePreview.length,
+            actorUserId,
+        )
+    }
+
+    override fun notifyTeamValidatedFyi(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+    ) {
+        log.debug(
+            "team_validated_fyi eventId={} seasonId={} actorUserId={}",
+            eventId,
+            seasonId,
+            actorUserId,
+        )
+    }
+
+    override fun notifyAssigneeRemoved(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+        formerAssigneeParticipantId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+    ) {
+        log.debug(
+            "assignee_removed eventId={} seasonId={} formerAssigneeParticipantId={} roleKey={} slotIndex={} actorUserId={}",
+            eventId,
+            seasonId,
+            formerAssigneeParticipantId,
+            roleKey,
+            slotIndex,
+            actorUserId,
+        )
+    }
+
+    override fun notifyReconfirmationForAssignees(
+        eventId: UUID,
+        seasonId: UUID,
+        assigneeParticipantIds: List<UUID>,
+        actorUserId: UUID,
+    ) {
+        log.debug(
+            "reconfirmation_requested eventId={} seasonId={} assigneeParticipantIds={} actorUserId={}",
+            eventId,
+            seasonId,
+            assigneeParticipantIds,
             actorUserId,
         )
     }

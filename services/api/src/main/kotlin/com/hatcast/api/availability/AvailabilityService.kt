@@ -1,5 +1,9 @@
 package com.hatcast.api.availability
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.dto.EventAvailabilitySummaryResponse
 import com.hatcast.api.availability.dto.MyAvailabilityResponse
@@ -8,10 +12,15 @@ import com.hatcast.api.availability.dto.SummaryParticipantDto
 import com.hatcast.api.availability.dto.SummaryRoleCandidateDto
 import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
+import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
 import com.hatcast.api.composition.CompositionSelectionHistoryService
-import com.hatcast.api.event.EquityCompartment
+import com.hatcast.api.composition.SelectionHistoryMode
+import com.hatcast.api.composition.SelectionHistoryModeResolver
+import com.hatcast.api.event.EventDraftVisibility
+import com.hatcast.api.event.EventDraftVisibility.Companion.DRAFT_AVAILABILITY_CLOSED_MESSAGE
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.isAvailabilityOpen
 import com.hatcast.api.organizer.OrganizerAccessService
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantEntity
@@ -20,10 +29,14 @@ import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.notification.ProxyAvailabilityRecordedEvent
+import com.hatcast.api.notification.ProxyNotificationLabels
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -43,6 +56,10 @@ class AvailabilityService(
     private val organizerAccess: OrganizerAccessService,
     private val userRepository: UserRepository,
     private val selectionHistory: CompositionSelectionHistoryService,
+    private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
+    private val auditRecorder: AuditEventRecorder,
+    private val draftVisibility: EventDraftVisibility,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -51,6 +68,7 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ): MyAvailabilityResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        requireEditableEvent(event)
         return toResponse(findRowForUser(event.id, principal.userId))
     }
 
@@ -62,7 +80,7 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ): MyAvailabilityResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        requireEditableEvent(event)
+        requireAvailabilityOpenForWrite(event, seasonId, principal)
         val user =
             userRepository.findById(principal.userId).orElseThrow {
                 ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur inconnu")
@@ -71,6 +89,7 @@ class AvailabilityService(
             event = event,
             user = user,
             body = body,
+            actorUserId = principal.userId,
             recordedByUserId = null,
         )
     }
@@ -84,7 +103,7 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ): MyAvailabilityResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        requireEditableEvent(event)
+        requireAvailabilityOpenForWrite(event, seasonId, principal)
         if (!organizerAccess.canManageComposition(eventId, seasonId, principal)) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Droits insuffisants")
         }
@@ -95,6 +114,7 @@ class AvailabilityService(
                     event = event,
                     user = subject.user,
                     body = body,
+                    actorUserId = principal.userId,
                     recordedByUserId = principal.userId,
                 )
             is AvailabilitySubject.SeasonParticipant ->
@@ -102,6 +122,7 @@ class AvailabilityService(
                     event = event,
                     participant = subject.participant,
                     body = body,
+                    actorUserId = principal.userId,
                     recordedByUserId = principal.userId,
                 )
             is AvailabilitySubject.EventParticipant ->
@@ -109,6 +130,7 @@ class AvailabilityService(
                     event = event,
                     participant = subject.participant,
                     body = body,
+                    actorUserId = principal.userId,
                     recordedByUserId = principal.userId,
                 )
         }
@@ -168,6 +190,7 @@ class AvailabilityService(
         includeChances: Boolean = false,
     ): EventAvailabilitySummaryResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        requireAvailabilitySummaryReadable(event, seasonId, principal)
         val eligible = loadEligibleParticipants(seasonId, event.id)
         val availabilityIndex = buildAvailabilityIndex(event.id)
 
@@ -195,13 +218,20 @@ class AvailabilityService(
             }
 
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots)
+        val historyMode = SelectionHistoryModeResolver.forEvent(event)
+        val snapshotByRoleAndParticipant =
+            if (includeChances && historyMode == SelectionHistoryMode.RETROSPECTIVE) {
+                drawChanceSnapshots
+                    .findByEventId(event.id)
+                    .associateBy { it.id.roleKey to it.id.participantId }
+            } else {
+                emptyMap()
+            }
+        val hasSnapshots = snapshotByRoleAndParticipant.isNotEmpty()
+        // Retrospective fallback: candidates without a snapshot row are recalculated live.
         val historyCounts =
             if (includeChances) {
-                selectionHistory.pastSelectionCountByParticipantAndRole(
-                    seasonId,
-                    event.id,
-                    EquityCompartment.slug(event),
-                )
+                selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
             } else {
                 emptyMap()
             }
@@ -216,38 +246,84 @@ class AvailabilityService(
                             roleKey,
                         )
                     }
-                val chanceByParticipantId =
-                    if (includeChances) {
-                        val pastByParticipant =
-                            selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
-                        AvailabilityChanceCalculator.scoreCandidates(
-                            roleCandidates.map {
-                                AvailabilityChanceCalculator.Candidate(
-                                    participantId = it.participantId,
-                                    displayName = it.displayName,
-                                    avatarUrl = it.avatarUrl,
-                                )
-                            },
-                            requiredCount,
-                            pastByParticipant,
-                        ).associate { it.participantId to it.chancePercent }
-                    } else {
-                        emptyMap()
-                    }
+                var roleUsedEstimatedFallback = false
                 val candidates =
-                    roleCandidates.map { row ->
-                        SummaryRoleCandidateDto(
-                            participantId = row.participantId,
-                            displayName = row.displayName,
-                            avatarUrl = row.avatarUrl,
-                            chancePercent = chanceByParticipantId[row.participantId],
-                        )
+                    if (includeChances) {
+                        // Per (roleKey, participant): prefer the draw snapshot, fall back to a
+                        // retrospective recalc for candidates that have no snapshot row.
+                        val roleHasMissingSnapshot =
+                            historyMode == SelectionHistoryMode.RETROSPECTIVE &&
+                                hasSnapshots &&
+                                roleCandidates.any {
+                                    snapshotByRoleAndParticipant[roleKey to it.participantId] == null
+                                }
+                        val needsScoring =
+                            historyMode == SelectionHistoryMode.OPERATIONAL ||
+                                !hasSnapshots ||
+                                roleHasMissingSnapshot
+                        val scoredByParticipant =
+                            if (needsScoring) {
+                                val pastByParticipant =
+                                    selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+                                AvailabilityChanceCalculator
+                                    .scoreCandidates(
+                                        roleCandidates.map {
+                                            AvailabilityChanceCalculator.Candidate(
+                                                participantId = it.participantId,
+                                                displayName = it.displayName,
+                                                avatarUrl = it.avatarUrl,
+                                            )
+                                        },
+                                        requiredCount,
+                                        pastByParticipant,
+                                    ).associateBy { it.participantId }
+                            } else {
+                                emptyMap()
+                            }
+                        roleCandidates.map { row ->
+                            val snapshot = snapshotByRoleAndParticipant[roleKey to row.participantId]
+                            val chancePercent =
+                                if (snapshot != null) {
+                                    snapshot.chancePercent
+                                } else {
+                                    if (historyMode == SelectionHistoryMode.RETROSPECTIVE && hasSnapshots) {
+                                        roleUsedEstimatedFallback = true
+                                    }
+                                    scoredByParticipant[row.participantId]?.chancePercent
+                                }
+                            SummaryRoleCandidateDto(
+                                participantId = row.participantId,
+                                displayName = row.displayName,
+                                avatarUrl = row.avatarUrl,
+                                chancePercent = chancePercent,
+                            )
+                        }
+                    } else {
+                        roleCandidates.map { row ->
+                            SummaryRoleCandidateDto(
+                                participantId = row.participantId,
+                                displayName = row.displayName,
+                                avatarUrl = row.avatarUrl,
+                                chancePercent = null,
+                            )
+                        }
                     }
                 SummaryRoleDto(
                     roleKey = roleKey,
                     requiredCount = requiredCount,
                     candidates = candidates,
+                    hasPartialEstimatedChances = roleUsedEstimatedFallback,
                 )
+            }
+        val chanceSource =
+            if (!includeChances) {
+                null
+            } else if (historyMode == SelectionHistoryMode.OPERATIONAL) {
+                "live"
+            } else if (hasSnapshots) {
+                "snapshot"
+            } else {
+                "estimated"
             }
 
         return EventAvailabilitySummaryResponse(
@@ -255,6 +331,7 @@ class AvailabilityService(
             roleSlots = event.roleSlots,
             participants = participants,
             roles = roles,
+            chanceSource = chanceSource,
         )
     }
 
@@ -312,11 +389,9 @@ class AvailabilityService(
             if (sp.season.id != seasonId || sp.status != ParticipantStatus.ACTIVE) {
                 throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
             }
-            return if (sp.user != null) {
-                AvailabilitySubject.LinkedUser(sp.user!!)
-            } else {
-                AvailabilitySubject.SeasonParticipant(sp)
-            }
+            sp.user?.let { return AvailabilitySubject.LinkedUser(it) }
+            sp.troupeMembership?.user?.let { return AvailabilitySubject.LinkedUser(it) }
+            return AvailabilitySubject.SeasonParticipant(sp)
         }
 
         eventParticipantRepository.findById(participantId).orElse(null)?.let { ep ->
@@ -337,6 +412,7 @@ class AvailabilityService(
         event: EventEntity,
         user: UserEntity,
         body: SetMyAvailabilityRequest,
+        actorUserId: UUID,
         recordedByUserId: UUID?,
     ): MyAvailabilityResponse {
         val stored = parseStoredStatus(body)
@@ -345,12 +421,30 @@ class AvailabilityService(
         val existing = findRowForUser(event.id, user.id)
         if (stored == null) {
             if (existing != null) {
+                val beforeSnapshot = AuditSnapshots.availability(existing)
+                recordAvailabilityAudit(
+                    event = event,
+                    actorUserId = actorUserId,
+                    subjectUserId = user.id,
+                    before = beforeSnapshot,
+                    after = null,
+                    actionType = AuditActionType.AVAILABILITY_DELETED,
+                )
                 availabilityRepository.delete(existing)
+                publishProxyAvailabilityIfEligible(
+                    event = event,
+                    user = user,
+                    actorUserId = actorUserId,
+                    recordedByUserId = recordedByUserId,
+                    beforeSnapshot = beforeSnapshot,
+                    afterSnapshot = null,
+                )
             }
             return MyAvailabilityResponse(status = AvailabilityStatusMapper.UNKNOWN, roleKeys = emptyList())
         }
         val roleKeys = roleKeysForWrite(event, stored, body)
         val now = Instant.now()
+        val beforeSnapshot = AuditSnapshots.availability(existing)
         val saved =
             if (existing != null) {
                 existing.status = stored
@@ -373,13 +467,61 @@ class AvailabilityService(
                     ).also { it.comment = normalizedComment },
                 )
             }
+        val afterSnapshot = AuditSnapshots.availability(saved)
+        if (existing == null || beforeSnapshot != afterSnapshot) {
+            recordAvailabilityAudit(
+                event = event,
+                actorUserId = actorUserId,
+                subjectUserId = user.id,
+                before = beforeSnapshot,
+                after = afterSnapshot,
+                actionType =
+                    if (existing == null) {
+                        AuditActionType.AVAILABILITY_CREATED
+                    } else {
+                        AuditActionType.AVAILABILITY_UPDATED
+                    },
+            )
+            publishProxyAvailabilityIfEligible(
+                event = event,
+                user = user,
+                actorUserId = actorUserId,
+                recordedByUserId = recordedByUserId,
+                beforeSnapshot = beforeSnapshot,
+                afterSnapshot = afterSnapshot,
+            )
+        }
         return toResponse(saved)
+    }
+
+    private fun publishProxyAvailabilityIfEligible(
+        event: EventEntity,
+        user: UserEntity,
+        actorUserId: UUID,
+        recordedByUserId: UUID?,
+        beforeSnapshot: Map<String, Any?>?,
+        afterSnapshot: Map<String, Any?>?,
+    ) {
+        if (recordedByUserId == null || actorUserId == user.id) {
+            return
+        }
+        eventPublisher.publishEvent(
+            ProxyAvailabilityRecordedEvent(
+                eventId = event.id,
+                seasonId = event.season.id,
+                troupeId = event.season.troupe.id,
+                actorUserId = actorUserId,
+                subjectUserId = user.id,
+                change = ProxyNotificationLabels.buildAvailabilityChangeFromAudit(beforeSnapshot, afterSnapshot),
+            ),
+        )
     }
 
     private fun upsertForSeasonParticipant(
         event: EventEntity,
         participant: SeasonParticipantEntity,
         body: SetMyAvailabilityRequest,
+        actorUserId: UUID,
         recordedByUserId: UUID,
     ): MyAvailabilityResponse = upsertForParticipantScopedRow(
         event = event,
@@ -397,6 +539,9 @@ class AvailabilityService(
                 now = now,
             )
         },
+        actorUserId = actorUserId,
+        subjectSeasonParticipantId = participant.id,
+        displayName = participant.displayName,
         recordedByUserId = recordedByUserId,
     )
 
@@ -404,6 +549,7 @@ class AvailabilityService(
         event: EventEntity,
         participant: EventParticipantEntity,
         body: SetMyAvailabilityRequest,
+        actorUserId: UUID,
         recordedByUserId: UUID,
     ): MyAvailabilityResponse = upsertForParticipantScopedRow(
         event = event,
@@ -421,6 +567,9 @@ class AvailabilityService(
                 now = now,
             )
         },
+        actorUserId = actorUserId,
+        subjectEventParticipantId = participant.id,
+        displayName = participant.displayName,
         recordedByUserId = recordedByUserId,
     )
 
@@ -431,18 +580,33 @@ class AvailabilityService(
         stored: StoredAvailabilityStatus?,
         roleKeys: (StoredAvailabilityStatus) -> List<String>,
         create: (StoredAvailabilityStatus, List<String>, Instant) -> EventAvailabilityEntity,
+        actorUserId: UUID,
+        subjectSeasonParticipantId: UUID? = null,
+        subjectEventParticipantId: UUID? = null,
+        displayName: String? = null,
         recordedByUserId: UUID,
     ): MyAvailabilityResponse {
         validateComment(body.comment)
         val normalizedComment = normalizeComment(body.comment)
         if (stored == null) {
             if (existing != null) {
+                recordAvailabilityAudit(
+                    event = event,
+                    actorUserId = actorUserId,
+                    subjectSeasonParticipantId = subjectSeasonParticipantId,
+                    subjectEventParticipantId = subjectEventParticipantId,
+                    displayName = displayName,
+                    before = AuditSnapshots.availability(existing),
+                    after = null,
+                    actionType = AuditActionType.AVAILABILITY_DELETED,
+                )
                 availabilityRepository.delete(existing)
             }
             return MyAvailabilityResponse(status = AvailabilityStatusMapper.UNKNOWN, roleKeys = emptyList())
         }
         val keys = roleKeys(stored)
         val now = Instant.now()
+        val beforeSnapshot = AuditSnapshots.availability(existing)
         val saved =
             if (existing != null) {
                 existing.status = stored
@@ -454,7 +618,53 @@ class AvailabilityService(
             } else {
                 availabilityRepository.save(create(stored, keys, now).also { it.comment = normalizedComment })
             }
+        val afterSnapshot = AuditSnapshots.availability(saved)
+        if (existing == null || beforeSnapshot != afterSnapshot) {
+            recordAvailabilityAudit(
+                event = event,
+                actorUserId = actorUserId,
+                subjectSeasonParticipantId = subjectSeasonParticipantId,
+                subjectEventParticipantId = subjectEventParticipantId,
+                displayName = displayName,
+                before = beforeSnapshot,
+                after = afterSnapshot,
+                actionType =
+                    if (existing == null) {
+                        AuditActionType.AVAILABILITY_CREATED
+                    } else {
+                        AuditActionType.AVAILABILITY_UPDATED
+                    },
+            )
+        }
         return toResponse(saved)
+    }
+
+    private fun recordAvailabilityAudit(
+        event: EventEntity,
+        actorUserId: UUID,
+        subjectUserId: UUID? = null,
+        subjectSeasonParticipantId: UUID? = null,
+        subjectEventParticipantId: UUID? = null,
+        displayName: String? = null,
+        before: Map<String, Any?>?,
+        after: Map<String, Any?>?,
+        actionType: AuditActionType,
+    ) {
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = actionType,
+                actorUserId = actorUserId,
+                subjectUserId = subjectUserId,
+                subjectSeasonParticipantId = subjectSeasonParticipantId,
+                subjectEventParticipantId = subjectEventParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = event.season.id,
+                eventId = event.id,
+                before = before,
+                after = after,
+                metadata = displayName?.let { AuditSnapshots.participantMetadata(it) },
+            ),
+        )
     }
 
     private fun validateComment(comment: String?) {
@@ -546,7 +756,7 @@ class AvailabilityService(
             userId?.let { seenUserIds.add(it) }
         }
 
-        return byId.values.sortedBy { it.displayName.lowercase() }
+        return byId.values.sortedByFrenchDisplayName { it.displayName }
     }
 
     private fun toEligibleRow(
@@ -589,6 +799,46 @@ class AvailabilityService(
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Événement archivé")
         }
     }
+
+    private fun requireAvailabilityOpenForWrite(
+        event: EventEntity,
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        requireEditableEvent(event)
+        if (!event.isAvailabilityOpen()) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                draftAvailabilityClosedMessage(event, seasonId, principal),
+            )
+        }
+    }
+
+    private fun requireAvailabilitySummaryReadable(
+        event: EventEntity,
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        if (draftVisibility.isDraft(event) &&
+            !draftVisibility.canViewDraftEvent(event.id, seasonId, principal)
+        ) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                DRAFT_AVAILABILITY_CLOSED_MESSAGE,
+            )
+        }
+    }
+
+    private fun draftAvailabilityClosedMessage(
+        event: EventEntity,
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ): String =
+        if (draftVisibility.canViewDraftEvent(event.id, seasonId, principal)) {
+            "Les disponibilités ne sont pas encore ouvertes pour ce spectacle."
+        } else {
+            DRAFT_AVAILABILITY_CLOSED_MESSAGE
+        }
 
     private fun findRowForUser(
         eventId: UUID,

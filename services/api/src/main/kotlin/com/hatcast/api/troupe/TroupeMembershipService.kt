@@ -1,5 +1,9 @@
 package com.hatcast.api.troupe
 
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.audit.AuditRecordRequest
+import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
@@ -13,9 +17,11 @@ import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
 import com.hatcast.api.agenda.AgendaTimeBoundary
 import com.hatcast.api.participant.SeasonParticipantMembershipSync
+import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
+import com.hatcast.api.user.UserMemberPreferencesService
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Page
@@ -41,6 +47,9 @@ class TroupeMembershipService(
     private val platformAdminService: PlatformAdminService,
     private val seasonRepository: SeasonRepository,
     private val membershipSync: SeasonParticipantMembershipSync,
+    private val userMemberPreferencesService: UserMemberPreferencesService,
+    private val seasonParticipantRepository: SeasonParticipantRepository,
+    private val auditRecorder: AuditEventRecorder,
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
@@ -67,6 +76,68 @@ class TroupeMembershipService(
                 upcomingEventCount = upcomingCounts[troupeId] ?: 0L,
             )
         }
+    }
+
+    /** Résumé troupe pour l'utilisateur courant après mutation (adhésion active ou admin plateforme). */
+    @Transactional(readOnly = true)
+    fun buildTroupeListItemForViewer(
+        principal: SessionUserPrincipal,
+        troupe: TroupeEntity,
+    ): TroupeListItemDto {
+        val membership = getActiveMembershipForUser(principal.userId, troupe.id)
+        if (membership != null) {
+            return buildTroupeListItemForMembership(principal.userId, troupe, membership)
+        }
+        if (!platformAdminService.isPlatformAdmin(principal)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès réservé aux administrateurs de troupe.")
+        }
+        val memberCount =
+            membershipRepository
+                .countActiveMembersByTroupeIds(listOf(troupe.id))
+                .firstOrNull()
+                ?.memberCount ?: 0L
+        val placeholderMembership =
+            TroupeMembershipEntity(
+                id = UUID.fromString("00000000-0000-4000-8000-000000000001"),
+                troupe = troupe,
+                user = userRepository.getReferenceById(principal.userId),
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.MEMBER,
+                displayName = "Administration plateforme",
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            )
+        return TroupeListItemDto.from(
+            troupe = troupe,
+            membership = placeholderMembership,
+            activeMemberCount = memberCount,
+            upcomingEventCount = 0L,
+        )
+    }
+
+    private fun buildTroupeListItemForMembership(
+        userId: UUID,
+        troupe: TroupeEntity,
+        membership: TroupeMembershipEntity,
+    ): TroupeListItemDto {
+        val troupeId = troupe.id
+        val memberCount =
+            membershipRepository
+                .countActiveMembersByTroupeIds(listOf(troupeId))
+                .firstOrNull()
+                ?.memberCount ?: 0L
+        val fromInclusive = AgendaTimeBoundary.startOfTodayInclusive()
+        val upcomingCount =
+            troupeListStatsRepository
+                .countUpcomingEventsByTroupeIdsForUser(userId, listOf(troupeId), fromInclusive)
+                .firstOrNull()
+                ?.eventCount ?: 0L
+        return TroupeListItemDto.from(
+            troupe = troupe,
+            membership = membership,
+            activeMemberCount = memberCount,
+            upcomingEventCount = upcomingCount,
+        )
     }
 
     @Transactional(readOnly = true)
@@ -139,11 +210,38 @@ class TroupeMembershipService(
         troupeId: UUID,
     ): TroupeMembershipEntity {
         val troupe = requireOpenJoinPolicy(troupeId)
+        val prior = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, userId)
+        val wasNew = prior == null
+        val wasReactivated = prior != null && prior.status != TroupeMembershipStatus.ACTIVE
+        val beforeSnapshot = prior?.let { AuditSnapshots.membership(it) }
         val membership = ensureActiveMembership(userId, troupeId)
         if (troupe.isDemo) {
             seasonRepository.findByTroupe_IdAndIsActiveTrue(troupeId)?.let { season ->
                 membershipSync.ensureForMembership(season, membership)
             }
+        }
+        when {
+            wasNew ->
+                auditRecorder.record(
+                    AuditRecordRequest(
+                        actionType = AuditActionType.TROUPE_MEMBER_ADDED,
+                        actorUserId = userId,
+                        subjectUserId = userId,
+                        troupeId = troupeId,
+                        after = AuditSnapshots.membership(membership),
+                    ),
+                )
+            wasReactivated ->
+                auditRecorder.record(
+                    AuditRecordRequest(
+                        actionType = AuditActionType.TROUPE_MEMBER_UPDATED,
+                        actorUserId = userId,
+                        subjectUserId = userId,
+                        troupeId = troupeId,
+                        before = beforeSnapshot,
+                        after = AuditSnapshots.membership(membership),
+                    ),
+                )
         }
         return membership
     }
@@ -166,6 +264,7 @@ class TroupeMembershipService(
         if (existing != null) {
             if (existing.status != TroupeMembershipStatus.ACTIVE) {
                 existing.status = TroupeMembershipStatus.ACTIVE
+                applyAccountPreferences(existing, user, now)
                 existing.updatedAt = now
             }
             return membershipRepository.save(existing)
@@ -176,7 +275,8 @@ class TroupeMembershipService(
                 user = user,
                 status = TroupeMembershipStatus.ACTIVE,
                 baselineRole = TroupeBaselineRole.MEMBER,
-                displayName = MemberDisplayNameResolver.resolve(user),
+                displayName = resolveDefaultDisplayName(user),
+                preferredRoleKeys = user.preferredRoleKeys,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -203,6 +303,8 @@ class TroupeMembershipService(
         val now = Instant.now()
         val existing = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id)
         if (existing != null) {
+            val previousStatus = existing.status
+            val beforeSnapshot = AuditSnapshots.membership(existing)
             val targetStatus =
                 if (existing.status != TroupeMembershipStatus.ACTIVE) {
                     TroupeMembershipStatus.ACTIVE
@@ -220,9 +322,41 @@ class TroupeMembershipService(
             existing.status = targetStatus
             existing.baselineRole = targetRole
             val displayName = normalizeDisplayName(body.displayName)
-            if (displayName != null) existing.displayName = displayName
+            if (targetStatus == TroupeMembershipStatus.ACTIVE && displayName == null) {
+                applyAccountPreferences(existing, user, now)
+            }
             existing.updatedAt = now
-            return TroupeMemberAdminDto.from(membershipRepository.save(existing))
+            var saved = membershipRepository.save(existing)
+            if (displayName != null) {
+                userMemberPreferencesService.updateMemberDisplayName(user.id, displayName)
+                saved = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id) ?: saved
+            }
+            syncSeasonParticipantsAfterStatusChange(saved, previousStatus, targetStatus)
+            val (beforeDiff, afterDiff) = AuditSnapshots.mapDiff(beforeSnapshot, AuditSnapshots.membership(saved))
+            if (beforeDiff != null && afterDiff != null) {
+                auditRecorder.record(
+                    AuditRecordRequest(
+                        actionType =
+                            if (previousStatus != TroupeMembershipStatus.ACTIVE &&
+                                targetStatus == TroupeMembershipStatus.ACTIVE
+                            ) {
+                                AuditActionType.TROUPE_MEMBER_ADDED
+                            } else {
+                                AuditActionType.TROUPE_MEMBER_UPDATED
+                            },
+                        actorUserId = principal.userId,
+                        subjectUserId = saved.user.id,
+                        troupeId = troupeId,
+                        before = beforeDiff,
+                        after = afterDiff,
+                    ),
+                )
+            }
+            return TroupeMemberAdminDto.from(saved)
+        }
+        val displayName = normalizeDisplayName(body.displayName)
+        if (displayName != null) {
+            userMemberPreferencesService.updateMemberDisplayName(user.id, displayName)
         }
         val membership =
             TroupeMembershipEntity(
@@ -230,12 +364,23 @@ class TroupeMembershipService(
                 user = user,
                 status = TroupeMembershipStatus.ACTIVE,
                 baselineRole = body.baselineRole ?: TroupeBaselineRole.MEMBER,
-                displayName = normalizeDisplayName(body.displayName) ?: resolveDefaultDisplayName(user),
+                displayName = displayName ?: resolveDefaultDisplayName(user),
+                preferredRoleKeys = user.preferredRoleKeys,
                 createdAt = now,
                 updatedAt = now,
             )
         return try {
-            TroupeMemberAdminDto.from(membershipRepository.saveAndFlush(membership))
+            val saved = membershipRepository.saveAndFlush(membership)
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.TROUPE_MEMBER_ADDED,
+                    actorUserId = principal.userId,
+                    subjectUserId = saved.user.id,
+                    troupeId = troupeId,
+                    after = AuditSnapshots.membership(saved),
+                ),
+            )
+            TroupeMemberAdminDto.from(saved)
         } catch (ex: DataIntegrityViolationException) {
             val concurrent = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id) ?: throw ex
             TroupeMemberAdminDto.from(concurrent)
@@ -248,12 +393,12 @@ class TroupeMembershipService(
         troupeId: UUID,
         body: UpdateMyMembershipRequest,
     ): MembershipSummaryDto {
-        val membership = requireActiveMembership(userId, troupeId)
-        membership.displayName =
+        requireActiveMembership(userId, troupeId)
+        val displayName =
             normalizeDisplayName(body.displayName)
                 ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
-        membership.updatedAt = Instant.now()
-        return MembershipSummaryDto.from(membershipRepository.save(membership))
+        userMemberPreferencesService.updateMemberDisplayName(userId, displayName)
+        return MembershipSummaryDto.from(requireActiveMembership(userId, troupeId))
     }
 
     @Transactional
@@ -278,14 +423,38 @@ class TroupeMembershipService(
         ensureLastAdminRemains(membership, targetStatus, targetRole)
         if (body.displayName.isPresent) {
             val raw = body.displayName.get()
-            membership.displayName =
-                normalizeDisplayName(raw)
-                    ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
+            normalizeDisplayName(raw)
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
         }
+        val previousStatus = membership.status
+        val beforeSnapshot = AuditSnapshots.membership(membership)
         membership.status = targetStatus
         membership.baselineRole = targetRole
+        if (targetStatus == TroupeMembershipStatus.ACTIVE && !body.displayName.isPresent) {
+            applyAccountPreferences(membership, membership.user, Instant.now())
+        }
         membership.updatedAt = Instant.now()
-        return TroupeMemberAdminDto.from(membershipRepository.save(membership))
+        var saved = membershipRepository.save(membership)
+        if (body.displayName.isPresent) {
+            val displayName = normalizeDisplayName(body.displayName.get())!!
+            userMemberPreferencesService.updateMemberDisplayName(membership.user.id, displayName)
+            saved = membershipRepository.findByIdAndTroupe_Id(membershipId, troupeId) ?: saved
+        }
+        syncSeasonParticipantsAfterStatusChange(saved, previousStatus, targetStatus)
+        val (beforeDiff, afterDiff) = AuditSnapshots.mapDiff(beforeSnapshot, AuditSnapshots.membership(saved))
+        if (beforeDiff != null && afterDiff != null) {
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.TROUPE_MEMBER_UPDATED,
+                    actorUserId = principal.userId,
+                    subjectUserId = saved.user.id,
+                    troupeId = troupeId,
+                    before = beforeDiff,
+                    after = afterDiff,
+                ),
+            )
+        }
+        return TroupeMemberAdminDto.from(saved)
     }
 
     @Transactional(readOnly = true)
@@ -365,9 +534,47 @@ class TroupeMembershipService(
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Adhésion introuvable.")
         ensureLastAdminRemains(membership, TroupeMembershipStatus.INACTIVE, membership.baselineRole)
         if (membership.status != TroupeMembershipStatus.INACTIVE) {
+            val beforeSnapshot = AuditSnapshots.membership(membership)
+            val impactedSeasonParticipantIds =
+                seasonParticipantRepository
+                    .findByTroupeMembership_Id(membership.id)
+                    .filter { it.status == com.hatcast.api.participant.ParticipantStatus.ACTIVE }
+                    .map { it.id.toString() }
             membership.status = TroupeMembershipStatus.INACTIVE
             membership.updatedAt = Instant.now()
-            membershipRepository.save(membership)
+            val saved = membershipRepository.save(membership)
+            membershipSync.removeForMembershipAcrossTroupe(saved)
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.TROUPE_MEMBER_DEACTIVATED,
+                    actorUserId = principal.userId,
+                    subjectUserId = saved.user.id,
+                    troupeId = troupeId,
+                    before = beforeSnapshot,
+                    after = AuditSnapshots.membership(saved),
+                    metadata =
+                        if (impactedSeasonParticipantIds.isNotEmpty()) {
+                            mapOf("seasonParticipantIds" to impactedSeasonParticipantIds)
+                        } else {
+                            null
+                        },
+                ),
+            )
+        }
+    }
+
+    private fun syncSeasonParticipantsAfterStatusChange(
+        membership: TroupeMembershipEntity,
+        previousStatus: TroupeMembershipStatus,
+        targetStatus: TroupeMembershipStatus,
+    ) {
+        if (previousStatus == targetStatus) {
+            return
+        }
+        when (targetStatus) {
+            TroupeMembershipStatus.INACTIVE -> membershipSync.removeForMembershipAcrossTroupe(membership)
+            TroupeMembershipStatus.ACTIVE -> membershipSync.ensureForMembershipAcrossTroupe(membership)
+            else -> Unit
         }
     }
 
@@ -383,7 +590,18 @@ class TroupeMembershipService(
         return membership
     }
 
-    fun resolveDefaultDisplayName(user: UserEntity): String = MemberDisplayNameResolver.resolve(user)
+    fun resolveDefaultDisplayName(user: UserEntity): String =
+        userMemberPreferencesService.resolvedMemberDisplayName(user)
+
+    private fun applyAccountPreferences(
+        membership: TroupeMembershipEntity,
+        user: UserEntity,
+        now: Instant,
+    ) {
+        membership.displayName = resolveDefaultDisplayName(user)
+        membership.preferredRoleKeys = user.preferredRoleKeys
+        membership.updatedAt = now
+    }
 
     private fun resolveUserByEmail(rawEmail: String): UserEntity {
         val email = rawEmail.trim().lowercase()

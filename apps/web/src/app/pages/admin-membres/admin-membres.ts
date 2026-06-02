@@ -72,6 +72,7 @@ export class AdminMembres implements OnDestroy, OnInit {
   protected readonly troupeId = signal<string | null>(null)
   protected readonly troupeName = signal<string | null>(null)
   protected readonly troupeSlug = signal<string | null>(null)
+  protected readonly troupeLogoUrl = signal<string | null>(null)
   protected readonly isTroupeAdmin = signal(false)
   protected readonly platformAdmin = signal(false)
   protected readonly user = signal<UserSummary | null>(null)
@@ -150,7 +151,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     let legacySeason: SeasonResponse | null = null
 
     if (troupeSlug) {
-      const match = this.troupeContext.activeTroupes().find((t) => t.slug === troupeSlug)
+      const match = await this.troupeContext.resolveTroupeBySlug(troupeSlug)
       if (!match) {
         this.loading.set(false)
         this.snack.open('Troupe introuvable.', 'OK', { duration: 6000 })
@@ -194,6 +195,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     this.troupeId.set(troupe.id)
     this.troupeName.set(troupe.name)
     this.troupeSlug.set(troupe.slug)
+    this.troupeLogoUrl.set(troupe.logoUrl ?? null)
     this.isTroupeAdmin.set(isTroupeAdmin)
 
     const sr = await this.seasonApi.listSeasons(troupe.id, 0, 100)

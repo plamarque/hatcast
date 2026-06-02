@@ -3,7 +3,7 @@
   <mat-select
     [value]="selectedParticipantId()"
     [disabled]="disabled()"
-    (valueChange)="selectedParticipantIdChange.emit($event)"
+    (selectionChange)="emitSelection($event.value)"
     aria-label="Choisir un participant"
   >
     @for (p of participants(); track p.id) {

@@ -17,15 +17,15 @@ data class InboxActionDto(
   val type: InboxActionType,
   val eventId: UUID,
   val eventSlug: String,
-  val leagueSlug: String,
+  val seasonSlug: String,
   val title: String,
   val startsAt: Instant,
   val troupeName: String,
   val troupeSlug: String,
-  val leagueTitle: String,
+  val seasonTitle: String,
   val location: String?,
   val troupeId: UUID,
-  val leagueId: UUID,
+  val seasonId: UUID,
   val deepLink: String,
   val roleKey: String? = null,
   val roleLabel: String? = null,
@@ -35,7 +35,7 @@ data class InboxActionDto(
       row: UserAgendaRow,
     ): InboxActionDto =
       base(row, InboxActionType.AVAILABILITY_UNKNOWN) {
-        "/saison/${row.leagueSlug}/event/${row.eventSlug}?tab=dispos"
+        "/saison/${row.seasonSlug}/event/${row.eventSlug}?tab=dispos"
       }
 
     fun compositionConfirmPending(
@@ -44,7 +44,7 @@ data class InboxActionDto(
       roleLabel: String,
     ): InboxActionDto =
       base(row, InboxActionType.COMPOSITION_CONFIRM_PENDING) {
-        "/saison/${row.leagueSlug}/event/${row.eventSlug}?showConfirm=true"
+        "/saison/${row.seasonSlug}/event/${row.eventSlug}?showConfirm=true"
       }.copy(roleKey = roleKey, roleLabel = roleLabel)
 
     private fun base(
@@ -56,15 +56,15 @@ data class InboxActionDto(
         type = type,
         eventId = row.eventId,
         eventSlug = row.eventSlug,
-        leagueSlug = row.leagueSlug,
+        seasonSlug = row.seasonSlug,
         title = row.title,
         startsAt = row.startsAt,
         troupeName = row.troupeName,
         troupeSlug = row.troupeSlug,
-        leagueTitle = row.leagueTitle,
+        seasonTitle = row.seasonTitle,
         location = row.location,
         troupeId = row.troupeId,
-        leagueId = row.leagueId,
+        seasonId = row.seasonId,
         deepLink = deepLink(),
       )
   }
@@ -72,7 +72,7 @@ data class InboxActionDto(
 
 data class InboxSeasonGlanceQueryDto(
   val troupeId: UUID? = null,
-  val leagueId: UUID? = null,
+  val seasonId: UUID? = null,
 )
 
 data class InboxShortcutsDto(

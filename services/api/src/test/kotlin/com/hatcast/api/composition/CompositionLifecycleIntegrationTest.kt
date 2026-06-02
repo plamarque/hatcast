@@ -5,6 +5,7 @@ import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.support.EventTestSupport
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
@@ -125,7 +126,9 @@ class CompositionLifecycleIntegrationTest {
                         ).with(csrf()),
                 ).andExpect(status().isOk)
                 .andReturn()
-        return UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+        val eventId = UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+        EventTestSupport.openEventAvailability(mockMvc, cookie, seasonId, eventId)
+        return eventId
     }
 
     private fun createSeasonParticipant(seasonId: UUID, label: String): UUID {

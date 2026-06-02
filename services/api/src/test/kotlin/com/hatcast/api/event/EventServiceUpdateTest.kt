@@ -1,15 +1,19 @@
 package com.hatcast.api.event
 
+import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import com.hatcast.api.event.dto.UpdateEventRequest
 import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.season.SeasonEventCountSync
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
-import com.hatcast.api.troupe.TroupeEquityTagService
+import com.hatcast.api.organizer.OrganizerAccessService
+import com.hatcast.api.troupe.TroupeCategoryService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.springframework.context.ApplicationEventPublisher
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -32,7 +36,12 @@ class EventServiceUpdateTest {
     private val availabilityService = mock<AvailabilityService>()
     private val participantFocusService = mock<EventParticipantFocusService>()
     private val compositionLifecycleEnrichment = mock<CompositionLifecycleEnrichmentService>()
-    private val troupeEquityTagService = mock<TroupeEquityTagService>()
+    private val troupeCategoryService = mock<TroupeCategoryService>()
+    private val seasonEventCountSync = mock<SeasonEventCountSync>()
+    private val auditRecorder = mock<AuditEventRecorder>()
+    private val draftVisibility = mock<EventDraftVisibility>()
+    private val organizerAccess = mock<OrganizerAccessService>()
+    private val eventPublisher = mock<ApplicationEventPublisher>()
     private val service =
         EventService(
             eventRepository,
@@ -41,7 +50,12 @@ class EventServiceUpdateTest {
             availabilityService,
             participantFocusService,
             compositionLifecycleEnrichment,
-            troupeEquityTagService,
+            troupeCategoryService,
+            seasonEventCountSync,
+            auditRecorder,
+            draftVisibility,
+            organizerAccess,
+            eventPublisher,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
@@ -145,18 +159,18 @@ class EventServiceUpdateTest {
     }
 
     @Test
-    fun `update clears equityTag when null sent`() {
-        val event = baseEvent().apply { equityTag = "deplacements" }
+    fun `update clears category when null sent`() {
+        val event = baseEvent().apply { category = "deplacements" }
         whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
 
         service.update(
             seasonId,
             eventId,
-            UpdateEventRequest(equityTag = JsonNullable.of(null)),
+            UpdateEventRequest(category = JsonNullable.of(null)),
             principal,
         )
 
-        assertNull(event.equityTag)
+        assertNull(event.category)
     }
 
     @Test

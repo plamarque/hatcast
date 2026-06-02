@@ -1,5 +1,4 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
-import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet'
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
@@ -15,6 +14,7 @@ import { DEMO_TROUPE_SLUG } from '../../core/troupes/demo-troupe.constants'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   saisonWorkspacePath,
+  troupeAdminAuditPath,
   troupeAdminMembresPath,
   troupesListPath,
 } from '../../core/navigation/troupe-routes'
@@ -22,8 +22,8 @@ import {
   type SeasonResponse,
   SeasonApiService,
 } from '../../core/seasons/season-api.service'
+import { type TroupeListItem, TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
-import { type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import {
   ScopeAdminMenu,
   type ScopeAdminMenuItem,
@@ -33,17 +33,13 @@ import {
   SeasonFormDialog,
   type SeasonFormDialogData,
 } from '../seasons-list/season-form-dialog'
-import {
-  TroupeHubPreferencesSheet,
-  type TroupeHubPreferencesSheetData,
-} from './troupe-hub-preferences-sheet'
+import { TroupeEditDialog, type TroupeEditDialogData } from './troupe-edit-dialog'
 
 const SEASONS_PAGE_SIZE = 50
 
 @Component({
   selector: 'app-troupe-hub',
   imports: [
-    MatBottomSheetModule,
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
@@ -59,14 +55,16 @@ const SEASONS_PAGE_SIZE = 50
 export class TroupeHub implements OnInit, OnDestroy {
   private readonly auth = inject(AuthApiService)
   private readonly troupeContext = inject(TroupeContextService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly seasonApi = inject(SeasonApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
-  private readonly bottomSheet = inject(MatBottomSheet)
 
   private slugSubscription?: Subscription
+  private readonly dialogSubscriptions = new Subscription()
+  private slugRequestId = 0
 
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
@@ -78,12 +76,15 @@ export class TroupeHub implements OnInit, OnDestroy {
   protected readonly seasonsLoadError = signal(false)
   protected readonly troupe = signal<TroupeListItem | null>(null)
   protected readonly notFound = signal(false)
+  protected readonly accessDenied = signal(false)
+  protected readonly accessCheckError = signal(false)
   protected readonly isDemoTroupe = computed(
     () => this.slug() === DEMO_TROUPE_SLUG || this.troupe()?.isDemo === true,
   )
   protected readonly showArchived = signal(false)
   protected readonly allSeasons = signal<SeasonResponse[]>([])
   protected readonly platformAdmin = signal(false)
+  protected readonly hubLogoLoadFailed = signal(false)
 
   protected readonly isTroupeAdmin = computed(
     () => this.troupe()?.membership.baselineRole === 'TROUPE_ADMIN',
@@ -114,6 +115,9 @@ export class TroupeHub implements OnInit, OnDestroy {
       !this.showArchived(),
   )
 
+  protected readonly canViewAuditTroupe = computed(
+    () => this.canManageTroupe() || this.platformAdmin(),
+  )
   protected readonly troupeAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     if (!this.canManageTroupe()) {
       return []
@@ -122,16 +126,49 @@ export class TroupeHub implements OnInit, OnDestroy {
     if (!slug) {
       return []
     }
-    return [
+    const items: ScopeAdminMenuItem[] = [
+      {
+        label: 'Modifier',
+        icon: 'edit',
+        action: () => this.openEditTroupe(),
+      },
+      {
+        label: 'Nouvelle saison',
+        icon: 'add',
+        action: () => this.openCreateSeason(),
+      },
       {
         label: 'Membres',
         icon: 'groups',
         routerLink: troupeAdminMembresPath(slug),
       },
     ]
+    if (this.canViewAuditTroupe()) {
+      items.push({
+        label: "Journal d'audit",
+        icon: 'history',
+        routerLink: troupeAdminAuditPath(slug),
+      })
+    }
+    return items
   })
 
   protected readonly troupesListLink = troupesListPath()
+
+  constructor() {
+    effect(() => {
+      this.troupe()?.logoUrl
+      this.hubLogoLoadFailed.set(false)
+    })
+  }
+
+  protected showHubLogo(troupe: TroupeListItem): boolean {
+    return !!troupe.logoUrl && !this.hubLogoLoadFailed()
+  }
+
+  protected onHubLogoError(): void {
+    this.hubLogoLoadFailed.set(true)
+  }
 
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
@@ -161,10 +198,14 @@ export class TroupeHub implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.slugSubscription?.unsubscribe()
+    this.dialogSubscriptions.unsubscribe()
   }
 
   private async applySlug(slug: string): Promise<void> {
+    const requestId = ++this.slugRequestId
     this.notFound.set(false)
+    this.accessDenied.set(false)
+    this.accessCheckError.set(false)
     this.showArchived.set(false)
     if (!slug) {
       this.troupe.set(null)
@@ -173,17 +214,43 @@ export class TroupeHub implements OnInit, OnDestroy {
       return
     }
 
-    const match = this.troupeContext.activeTroupes().find((t) => t.slug === slug)
-    if (!match) {
-      this.troupe.set(null)
-      this.allSeasons.set([])
-      this.notFound.set(true)
+    const match = await this.troupeContext.resolveTroupeBySlug(slug)
+    if (!this.isCurrentSlugRequest(requestId)) {
+      return
+    }
+    if (match) {
+      this.troupeContext.selectTroupe(match.id)
+      this.troupe.set(match)
+      await this.loadSeasons(match.id, requestId)
       return
     }
 
-    this.troupeContext.selectTroupe(match.id)
-    this.troupe.set(match)
-    await this.loadSeasons(match.id)
+    const publicResult = await this.troupeApi.listPublicTroupes()
+    if (!this.isCurrentSlugRequest(requestId)) {
+      return
+    }
+    if (!publicResult.ok) {
+      this.troupe.set(null)
+      this.allSeasons.set([])
+      this.accessCheckError.set(true)
+      return
+    }
+    const isPublicSlug =
+      (publicResult.data ?? []).some((item) => item.slug === slug)
+    if (isPublicSlug) {
+      this.troupe.set(null)
+      this.allSeasons.set([])
+      this.accessDenied.set(true)
+      return
+    }
+
+    this.troupe.set(null)
+    this.allSeasons.set([])
+    this.notFound.set(true)
+  }
+
+  private isCurrentSlugRequest(requestId: number): boolean {
+    return requestId === this.slugRequestId
   }
 
   protected toggleArchived(): void {
@@ -196,17 +263,30 @@ export class TroupeHub implements OnInit, OnDestroy {
       : 'Afficher les saisons archivées'
   }
 
-  protected openPreferences(): void {
+  protected openEditTroupe(): void {
     const t = this.troupe()
-    if (!t) {
+    if (!t || !this.canManageTroupe()) {
       return
     }
-    this.bottomSheet.open<TroupeHubPreferencesSheet, TroupeHubPreferencesSheetData>(
-      TroupeHubPreferencesSheet,
+    const ref = this.dialog.open<TroupeEditDialog, TroupeEditDialogData, TroupeListItem | undefined>(
+      TroupeEditDialog,
       {
         data: { troupe: t },
-        panelClass: 'troupe-hub-preferences-panel',
+        width: 'min(100vw - 2rem, 28rem)',
       },
+    )
+    this.dialogSubscriptions.add(
+      ref.afterClosed().subscribe((updated) => {
+        if (!updated) {
+          return
+        }
+        this.troupe.set(updated)
+        this.troupeContext.patchTroupeProfile(t.id, {
+          name: updated.name,
+          logoUrl: updated.logoUrl,
+          description: updated.description,
+        })
+      }),
     )
   }
 
@@ -225,20 +305,25 @@ export class TroupeHub implements OnInit, OnDestroy {
         width: 'min(100vw - 2rem, 28rem)',
       },
     )
-    ref.afterClosed().subscribe((result) => {
-      if (typeof result === 'string') {
-        void this.router.navigate(saisonWorkspacePath(result))
-      } else if (result) {
-        void this.loadSeasons(t.id)
-        this.snack.open('Saison créée.', 'OK', { duration: 4000 })
-      }
-    })
+    this.dialogSubscriptions.add(
+      ref.afterClosed().subscribe((result) => {
+        if (typeof result === 'string' && result.trim().length > 0) {
+          void this.router.navigate(saisonWorkspacePath(result))
+        } else if (result === true) {
+          void this.loadSeasons(t.id)
+          this.snack.open('Saison créée.', 'OK', { duration: 4000 })
+        }
+      }),
+    )
   }
 
-  private async loadSeasons(troupeId: string): Promise<void> {
+  private async loadSeasons(troupeId: string, slugRequestId?: number): Promise<void> {
     this.loadingSeasons.set(true)
     this.seasonsLoadError.set(false)
     const r = await this.seasonApi.listSeasons(troupeId, 0, SEASONS_PAGE_SIZE)
+    if (slugRequestId !== undefined && !this.isCurrentSlugRequest(slugRequestId)) {
+      return
+    }
     this.loadingSeasons.set(false)
     if (!r.ok || !r.data) {
       this.seasonsLoadError.set(true)

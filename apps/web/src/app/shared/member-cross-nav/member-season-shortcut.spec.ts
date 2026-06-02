@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
-import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import { MemberSeasonShortcut } from './member-season-shortcut'
 
 describe('MemberSeasonShortcut', () => {
@@ -53,6 +53,7 @@ describe('MemberSeasonShortcut', () => {
 
     const link = fixture.nativeElement.querySelector('a') as HTMLAnchorElement
     expect(link.getAttribute('href')).toBe('/saison/festibask')
+    expect(link.textContent).toContain('Ma saison')
     expect(link.textContent).toContain('Ligue 2026')
     expect(link.getAttribute('aria-label')).toBe('Ma saison : Ligue 2026')
   })

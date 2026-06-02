@@ -20,6 +20,8 @@ export interface ShareRecipientsResponse {
   notifiableCount: number
   manualCount: number
   recipients: ShareRecipient[]
+  lastManualNudgeAt?: string | null
+  guardDays?: number | null
 }
 
 type ShareApiResult<T> =

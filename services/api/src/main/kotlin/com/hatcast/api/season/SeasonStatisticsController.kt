@@ -20,7 +20,7 @@ class SeasonStatisticsController(
         @PathVariable seasonId: UUID,
         @RequestParam(required = false) eventId: UUID?,
         @RequestParam(required = false) participantId: UUID?,
-        @RequestParam(required = false) equityCompartments: List<String>?,
+        @RequestParam(required = false) categories: List<String>?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): SeasonStatisticsResponseDto =
         seasonStatisticsService.loadStatistics(
@@ -28,6 +28,6 @@ class SeasonStatisticsController(
             principal = principal,
             eventId = eventId,
             participantId = participantId,
-            equityCompartments = equityCompartments,
+            categories = categories,
         )
 }

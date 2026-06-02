@@ -14,7 +14,7 @@ import { Router, RouterLink } from '@angular/router'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
+import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import { saisonWorkspacePath } from '../../core/navigation/troupe-routes'
 import {
   type SeasonResponse,
@@ -209,15 +209,15 @@ export class SeasonsList implements OnInit {
       this.snack.open('Vous ne pouvez pas modifier cette saison.', 'OK', { duration: 5000 })
       return
     }
-    const ref = this.dialog.open<SeasonFormDialog, SeasonFormDialogData, boolean>(
+    const ref = this.dialog.open<SeasonFormDialog, SeasonFormDialogData, SeasonResponse>(
       SeasonFormDialog,
       {
         data: { mode: 'edit', troupeId: tid, season },
         width: 'min(100vw - 2rem, 28rem)',
       },
     )
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) {
+    ref.afterClosed().subscribe((updated) => {
+      if (updated) {
         void this.loadTroupeAndSeasons(this.pageIndex())
         this.snack.open('Saison mise à jour.', 'OK', { duration: 4000 })
       }

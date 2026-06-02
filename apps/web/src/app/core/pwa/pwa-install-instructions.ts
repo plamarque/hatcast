@@ -1,4 +1,5 @@
 import type { PwaBrowserInfo } from './pwa-browser-info';
+import { DEV_CERT_INSTALL_WARNING } from './pwa-install-origin';
 
 export interface PwaInstallInstructionContent {
   title: string;
@@ -11,10 +12,18 @@ export interface PwaInstallInstructionContent {
   canRetry: boolean;
 }
 
-const ICON_SNIPPET =
-  '<img src="/icons/icon-48x48.png" alt="" width="20" height="20" style="vertical-align:middle;margin:0 4px;border-radius:4px" />';
+export interface PwaInstallInstructionOptions {
+  devCertBlocked?: boolean;
+  nativePromptFailed?: boolean;
+}
 
-export function buildPwaInstallInstructions(info: PwaBrowserInfo): PwaInstallInstructionContent {
+const ICON_SNIPPET =
+  '<img src="/icons/logo-hatcast-2.svg" alt="" width="20" height="20" style="vertical-align:middle;margin:0 4px;border-radius:4px" />';
+
+export function buildPwaInstallInstructions(
+  info: PwaBrowserInfo,
+  options: PwaInstallInstructionOptions = {},
+): PwaInstallInstructionContent {
   const {
     isChromeIOS,
     isFirefoxIOS,
@@ -178,6 +187,19 @@ export function buildPwaInstallInstructions(info: PwaBrowserInfo): PwaInstallIns
   }
 
   const canRetry = (isChromeDesktop || isChromeMobile) && !isAlternativeNeeded;
+
+  const devWarnings: string[] = [];
+  if (options.devCertBlocked) {
+    devWarnings.push(DEV_CERT_INSTALL_WARNING);
+  }
+  if (options.nativePromptFailed && !options.devCertBlocked) {
+    devWarnings.push(
+      "Le navigateur n'a pas répondu à la demande d'installation. Utilisez les étapes manuelles ci-dessous ou réessayez depuis https://localhost:4200.",
+    );
+  }
+  if (devWarnings.length > 0) {
+    warningText = devWarnings.join('\n\n');
+  }
 
   return {
     title,

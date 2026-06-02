@@ -64,5 +64,8 @@ scripts/replay/output/
 .agents/skills/
 .cursor/skills/
 
+# BMad personal install answers (user_name, communication_language — per developer)
+_bmad/config.user.toml
+
 # Cursor agent skills lockfile (local pin per machine)
 skills-lock.json
