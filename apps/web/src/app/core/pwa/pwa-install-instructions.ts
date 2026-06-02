@@ -18,7 +18,7 @@ export interface PwaInstallInstructionOptions {
 }
 
 const ICON_SNIPPET =
-  '<img src="/icons/icon-48x48.png" alt="" width="20" height="20" style="vertical-align:middle;margin:0 4px;border-radius:4px" />';
+  '<img src="/icons/logo-hatcast-2.svg" alt="" width="20" height="20" style="vertical-align:middle;margin:0 4px;border-radius:4px" />';
 
 export function buildPwaInstallInstructions(
   info: PwaBrowserInfo,

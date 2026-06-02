@@ -408,3 +408,9 @@
 - Index page API non plafonné (`AuditEventController.kt:29`) — risque faible avec volume audit actuel.
 - Appel `listSeasonParticipants` systématique sur fiche spectacle (`event-detail.ts`) — perf polish.
 - Label jour DST dans `audit-day-label.ts` — edge case rare.
+
+## Deferred from: code review of 10-7-icone-pwa-hatcast-2.md (2026-06-02)
+
+- QA maskable manuelle (DevTools safe area, maskable.app, devices) — explicitement reportée à Story 10.4 ; calcul script 18 % plausible (AC4, M3-5).
+- Cache SW/OS des anciennes icônes jusqu’à « Mettre à jour » ou réinstallation — comportement connu Story 10.2, hors scope correctif 10.7.
+- Script `generate-icons.sh` zsh-only — convention repo existante, documentée en en-tête.

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 /**
- * Keep in sync with `apps/web/public/manifest.webmanifest` (AC6).
- * Icon sizes are asserted here; full file is validated in production build / manual smoke.
+ * Legacy alias — manifest installability fields (Story 10.1).
+ * HatCast 2 icon details: see pwa-icons.spec.ts (Story 10.7).
  */
 const MANIFEST_CONTRACT = {
   name: "HatCast — Composition d'équipes d'impro",
