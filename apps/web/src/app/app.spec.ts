@@ -5,8 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { App } from './app';
 import { routes } from './app.routes';
+import { PushOptInPromptService } from './core/push/push-opt-in-prompt.service';
 import { PwaInstallService } from './core/pwa/pwa-install.service';
 import { PwaUpdateService } from './core/pwa/pwa-update.service';
+import { ChangelogDialogService } from './shared/changelog/changelog-dialog.service';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -30,6 +32,14 @@ describe('App', () => {
             applyUpdate: vi.fn(),
             dismissBanner: vi.fn(),
           },
+        },
+        {
+          provide: ChangelogDialogService,
+          useValue: { maybeAutoOpenAfterPwaUpdate: vi.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: PushOptInPromptService,
+          useValue: { maybePromptWhenIdle: vi.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compileComponents();

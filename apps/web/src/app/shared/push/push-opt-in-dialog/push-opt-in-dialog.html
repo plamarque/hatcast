@@ -1,0 +1,44 @@
+<h2 mat-dialog-title>Activer les notifications ?</h2>
+
+<mat-dialog-content class="push-opt-in-dialog__content">
+  <p class="push-opt-in-dialog__lead">
+    Recevez les rappels de disponibilités et les demandes de confirmation pour vos troupes.
+  </p>
+  @if (errorMessage()) {
+    <p class="push-opt-in-dialog__error" role="alert">{{ errorMessage() }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions class="push-opt-in-dialog__actions" align="end">
+  <button
+    type="button"
+    mat-button
+    class="push-opt-in-dialog__action"
+    [disabled]="busy()"
+    (click)="openAccountSettings()"
+  >
+    Gérer dans Mon compte
+  </button>
+  <button
+    type="button"
+    mat-button
+    class="push-opt-in-dialog__action"
+    [disabled]="busy()"
+    (click)="dismissLater()"
+  >
+    Plus tard
+  </button>
+  <button
+    type="button"
+    mat-flat-button
+    class="push-opt-in-dialog__action push-opt-in-dialog__action--primary"
+    [disabled]="busy()"
+    (click)="enableNotifications()"
+  >
+    @if (busy()) {
+      <mat-spinner diameter="20" aria-hidden="true" />
+    } @else {
+      Activer les notifications
+    }
+  </button>
+</mat-dialog-actions>

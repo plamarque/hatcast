@@ -72,7 +72,8 @@ describe('ChangelogDialogService', () => {
   it('auto-opens after PWA reload flag and marks version seen on close', async () => {
     sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
 
-    await createService().maybeAutoOpenAfterPwaUpdate();
+    const pending = createService().maybeAutoOpenAfterPwaUpdate();
+    await Promise.resolve();
 
     expect(sessionStorage.getItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY)).toBeNull();
     expect(ensureLoaded).toHaveBeenCalled();
@@ -80,9 +81,9 @@ describe('ChangelogDialogService', () => {
     expect(localStorage.getItem(changelogSeenStorageKey('1.2.3'))).toBeNull();
 
     afterClosed$.next();
-    await vi.waitFor(() =>
-      expect(localStorage.getItem(changelogSeenStorageKey('1.2.3'))).toBe('1'),
-    );
+    await pending;
+
+    expect(localStorage.getItem(changelogSeenStorageKey('1.2.3'))).toBe('1');
   });
 
   it('does not auto-open when version is fallback (keeps reload flag)', async () => {
