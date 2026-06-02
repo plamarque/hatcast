@@ -104,7 +104,7 @@ Ensuite, les merges habituels vers la préprod V2 se font sur **`staging-v2`** (
 
 Ces valeurs sont aussi présentes côté client une fois le SPA déployé ; les stocker en **secrets** GitHub reste une bonne pratique pour ne pas les exposer dans l’UI des variables dépôt et pour aligner le stockage avec le reste des identifiants CI.
 
-Le workflow les passe en `--build-arg` Docker ; le script [`apps/web/scripts/inject-google-client-id.mjs`](../../apps/web/scripts/inject-google-client-id.mjs) les injecte dans `environment.ts` au build. Alignez-les sur la **même** appli Web / projet GCP qu’Identity Platform.
+Le workflow les passe en `--build-arg` Docker ; le script [`apps/web/scripts/inject-google-client-id.mjs`](../../apps/web/scripts/inject-google-client-id.mjs) les injecte dans `environment.ts` au build (`HATCAST_FIREBASE_*`, `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` depuis les secrets d’environnement). Alignez-les sur la **même** appli Web / projet GCP qu’Identity Platform.
 
 | Nom | Description |
 |-----|-------------|

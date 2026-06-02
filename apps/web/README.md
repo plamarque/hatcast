@@ -17,7 +17,7 @@ Ouvrir **`https://localhost:4200/`** (TLS activé dans `angular.json` pour colle
 
 Pour Google Identity Services : renseigner `googleOAuthWebClientId` dans `src/environments/environment.development.ts` (profil `development` ; voir `angular.json` → `fileReplacements`). Pour **email / mot de passe (Identity Platform)**, renseigner aussi le bloc `firebase` dans ce fichier.
 
-**Build Docker / CI** : [`scripts/inject-google-client-id.mjs`](scripts/inject-google-client-id.mjs) régénère `environment.ts` avec `GOOGLE_OAUTH_WEB_CLIENT_ID` et, si présents, les secrets `HATCAST_FIREBASE_WEB_API_KEY`, `HATCAST_FIREBASE_AUTH_DOMAIN`, `HATCAST_FIREBASE_PROJECT_ID` (voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md)).
+**Build Docker / CI** : [`scripts/inject-google-client-id.mjs`](scripts/inject-google-client-id.mjs) régénère `environment.ts` avec `GOOGLE_OAUTH_WEB_CLIENT_ID` et, si présents, `HATCAST_FIREBASE_*`, `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` (voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md)).
 
 ## Code scaffolding
 
