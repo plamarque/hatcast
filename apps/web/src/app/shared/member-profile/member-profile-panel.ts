@@ -56,7 +56,7 @@ export class MemberProfilePanel {
     () => (this.profile().favoriteRoleCounts?.length ?? 0) > 0,
   )
   protected readonly chartHeading = computed(() =>
-    this.profile().isSelf ? "Ma saison en un clin d'œil" : 'Saison en un clin d\'œil',
+    "En un clin d'œil",
   )
   private readonly shortMonths = [
     'JAN',

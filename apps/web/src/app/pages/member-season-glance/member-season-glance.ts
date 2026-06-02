@@ -79,9 +79,9 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   protected readonly pageTitle = () => {
     const g = this.glance()
     if (!g) {
-      return 'Saison en un clin d\'œil'
+      return 'Mes Stats'
     }
-    return g.isSelf ? 'Mes Stats' : `${g.displayName} — Saison en un clin d\'œil`
+    return g.isSelf ? 'Mes Stats' : `${g.displayName} — Stats`
   }
 
   protected readonly headerTitle = () => {
@@ -95,11 +95,11 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   protected readonly headerSubtitle = () => {
     const g = this.glance()
     if (!g) {
-      return 'Disponibilités, sélections et rôles sur la saison.'
+      return 'Disponibilités, sélections et rôles.'
     }
     return g.isSelf
-      ? 'Mes disponibilités, sélections et rôles sur la saison.'
-      : 'Saison en un clin d\'œil'
+      ? 'Mes disponibilités, sélections et rôles.'
+      : 'Disponibilités, sélections et rôles.'
   }
 
   protected readonly panelProfile = (): MemberProfileSummary | null => {

@@ -123,7 +123,7 @@ describe('MemberSeasonGlance', () => {
     const { fixture } = await setup()
     const title = fixture.nativeElement.querySelector('.member-glance-page__title')
     expect(title?.textContent).toContain('Mes Stats')
-    expect(fixture.nativeElement.textContent).toContain("Ma saison en un clin d'œil")
+    expect(fixture.nativeElement.textContent).toContain("En un clin d'œil")
   })
 
   it('does not show cross-nav shortcuts or agenda footer on self glance', async () => {
@@ -176,7 +176,7 @@ describe('MemberSeasonGlance', () => {
   it('hides preferred roles editor when viewing another member', async () => {
     const { fixture } = await setup({ glance: glanceOther })
     expect(fixture.nativeElement.textContent).not.toContain('Mes rôles préférés')
-    expect(fixture.nativeElement.textContent).toContain('Saison en un clin d')
+    expect(fixture.nativeElement.textContent).toContain('Disponibilités, sélections et rôles')
   })
 
   it('reloads glance when route userSlug changes', async () => {

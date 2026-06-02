@@ -25,7 +25,7 @@ HatCast emploie **deux registres complémentaires**. Le piège est de les **comb
 |----------|----------|-------|----------|
 | **Espace perso** | 1ʳᵉ personne (*mon / ma / mes*) | Titres de page (`h1`), navigation membre, chips d’accès rapide, libellés de sections « les miennes » | Mon agenda · Mes Stats · Mon compte · Mes troupes · Ma saison |
 | **Adresse directe** | 2ᵉ personne (*tu / ton / ta / tes*) | Messages système, erreurs, empty states, feedback d’action, hints sous un contrôle, dialogues | « Nous n’avons pas pu charger ton agenda. » · « Tu n’es inscrit·e à aucune ligue. » · « Confirmer ta participation » |
-| **Neutre** | Pas de possessif | Sous-titres descriptifs quand le titre est déjà possessif **ou** sujet générique | « Identité et sécurité du compte HatCast. » · « Disponibilités, sélections et rôles sur la saison. » (état chargement) |
+| **Neutre** | Pas de possessif | Sous-titres descriptifs quand le titre est déjà possessif **ou** sujet générique | « Identité et sécurité du compte HatCast. » · « Disponibilités, sélections et rôles. » (état chargement) |
 
 ### Règle d’or — couple titre + sous-titre
 
