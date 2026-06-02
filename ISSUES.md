@@ -28,6 +28,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Expected behavior** (future): A fixture system that allows injecting known data sets (or using a dedicated test DB/emulator with seeded data) so E2E tests can assert transitions and statuses reliably without depending on live content.
 - **Notes/context**: **V2 (2026-05-31):** infra E2E under `apps/web/e2e/` + API profile `e2e` (H2 + seeds + mock Google auth + `POST /v1/e2e/fixtures/story-3-19/reset`) + smoke 3.19 green target in CI (`e2e-smoke.yml`). Legacy V1 Playwright (`legacy/tests/`) still state-dependent — not migrated in this slice. See PLAN **TEST-1**, ARCH.md § Testing V2.
 
+### LIMIT-003 — PWA install blocked on Tailscale dev URL (self-signed TLS)
+- **ID**: LIMIT-003
+- **Status**: Open (dev environment)
+- **Severity**: Low (dev/recette only; production uses trusted certs)
+- **Affected area**: PWA install (Story 10.1) — Chrome desktop on `*.ts.net` (Tailscale Serve) with Angular basic-ssl / self-signed certificate
+- **Observed behavior**: Chrome shows « Not Secure » despite `https://`. Install banner and address-bar ⊕ icon appear, but clicking **Installer** or the native install control does nothing ( `beforeinstallprompt.prompt()` may hang ).
+- **Expected behavior**: On trusted HTTPS (production) or `https://localhost:4200`, native install works. On dev Tailscale URL, UI should explain the limitation and suggest localhost or mobile.
+- **Notes/context**: Discovered 2026-06-02 during Story 10.2 recette. Workaround: test desktop PWA install via `https://localhost:4200` with `--with-push`. Mobile tailnet install may work if cert is accepted on device.
+
 ### LIMIT-002 — API integration suite shares one DB; `TroupeMembershipIntegrationTest` flaky in full run
 - **ID**: LIMIT-002
 - **Status**: Open

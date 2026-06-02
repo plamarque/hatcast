@@ -1,32 +1,15 @@
 @if (pwaInstall.showBanner()) {
-  <div class="pwa-install-banner" role="region" aria-label="Installation de l'application">
-    <div class="pwa-install-banner__inner">
-      <button
-        type="button"
-        class="pwa-install-banner__main"
-        (click)="onInstallClick()"
-        aria-label="Installer HatCast"
-      >
-        <img class="pwa-install-banner__icon" src="/icons/icon-48x48.png" alt="" width="32" height="32" />
-        <div class="pwa-install-banner__text">
-          <span class="pwa-install-banner__title">HatCast</span>
-          <span class="pwa-install-banner__subtitle">Installez l'app pour une meilleure expérience</span>
-        </div>
-      </button>
-      <div class="pwa-install-banner__actions">
-        <button type="button" mat-flat-button color="primary" (click)="onInstallClick(); $event.stopPropagation()">
-          Installer
-        </button>
-        <button
-          type="button"
-          mat-icon-button
-          data-testid="pwa-install-banner-dismiss"
-          aria-label="Fermer la barre d'installation"
-          (click)="onDismissClick(); $event.stopPropagation()"
-        >
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-    </div>
-  </div>
+  <app-pwa-system-banner
+    stackLayer="install"
+    ariaLabel="Installation de l'application"
+    title="HatCast"
+    subtitle="Installez l'app pour une meilleure expérience"
+    primaryLabel="Installer"
+    primaryActionAriaLabel="Installer HatCast"
+    dismissTestId="pwa-install-banner-dismiss"
+    dismissAriaLabel="Fermer la barre d'installation"
+    (mainClick)="onInstallClick()"
+    (primaryClick)="onInstallClick()"
+    (dismissClick)="onDismissClick()"
+  />
 }

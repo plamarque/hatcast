@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
 import { PwaInstallService } from './core/pwa/pwa-install.service';
+import { PwaUpdateService } from './core/pwa/pwa-update.service';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -18,6 +19,15 @@ describe('App', () => {
           useValue: {
             showBanner: signal(false),
             promptInstall: vi.fn(),
+            dismissBanner: vi.fn(),
+          },
+        },
+        {
+          provide: PwaUpdateService,
+          useValue: {
+            showBanner: signal(false),
+            refreshing: signal(false),
+            applyUpdate: vi.fn(),
             dismissBanner: vi.fn(),
           },
         },

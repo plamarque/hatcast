@@ -40,4 +40,13 @@ describe('buildPwaInstallInstructions', () => {
     expect(content.title).toContain('Safari');
     expect(content.steps.some((s) => s.includes('écran d\'accueil'))).toBe(true);
   });
+
+  it('prepends dev cert warning when devCertBlocked', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    );
+    const content = buildPwaInstallInstructions(info, { devCertBlocked: true });
+    expect(content.warningText).toContain('Non sécurisé');
+    expect(content.warningText).toContain('localhost:4200');
+  });
 });

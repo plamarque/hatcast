@@ -4,6 +4,10 @@ import { MatDialog } from '@angular/material/dialog';
 
 import { getPwaBrowserInfo } from './pwa-browser-info';
 import {
+  isDevUntrustedInstallOrigin,
+  PWA_INSTALL_PROMPT_TIMEOUT_MS,
+} from './pwa-install-origin';
+import {
   PwaInstallInstructionsDialog,
   type PwaInstallInstructionsDialogData,
 } from '../../shared/pwa/pwa-install-instructions-dialog/pwa-install-instructions-dialog';
@@ -134,29 +138,49 @@ export class PwaInstallService {
       return;
     }
     if (this.deferredPrompt) {
-      try {
-        await this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-        this.deferredPrompt = null;
-        if (outcome === 'accepted') {
-          localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-          this.showBanner.set(false);
-        } else {
-          this.refreshBannerVisibility();
-        }
-      } catch {
+      if (isDevUntrustedInstallOrigin()) {
         this.openManualInstructions();
+        return;
+      }
+      const prompt = this.deferredPrompt;
+      try {
+        await Promise.race([
+          (async () => {
+            await prompt.prompt();
+            const { outcome } = await prompt.userChoice;
+            this.deferredPrompt = null;
+            if (outcome === 'accepted') {
+              localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+              this.showBanner.set(false);
+            } else {
+              this.refreshBannerVisibility();
+            }
+          })(),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('install-prompt-timeout')), PWA_INSTALL_PROMPT_TIMEOUT_MS);
+          }),
+        ]);
+      } catch {
+        this.deferredPrompt = null;
+        this.openManualInstructions({ nativePromptFailed: true });
       }
       return;
     }
     this.openManualInstructions();
   }
 
-  openManualInstructions(): void {
+  openManualInstructions(options?: {
+    nativePromptFailed?: boolean;
+  }): void {
     const browserInfo = getPwaBrowserInfo(navigator.userAgent);
+    const devCertBlocked = isDevUntrustedInstallOrigin();
     this.showBanner.set(false);
     this.dialog.open(PwaInstallInstructionsDialog, {
-      data: { browserInfo } satisfies PwaInstallInstructionsDialogData,
+      data: {
+        browserInfo,
+        devCertBlocked,
+        nativePromptFailed: options?.nativePromptFailed ?? false,
+      } satisfies PwaInstallInstructionsDialogData,
       width: '28rem',
       maxWidth: '95vw',
       maxHeight: '90vh',

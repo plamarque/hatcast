@@ -7,7 +7,8 @@
     "start": "ng serve",
     "build": "ng build",
     "build:docker": "node scripts/inject-google-client-id.mjs && ng build --configuration production",
-    "watch": "ng build --watch --configuration development",
+    "build:watch:prod": "ng build --watch --configuration production",
+    "serve:dist:https": "node scripts/serve-dist-https.mjs",
     "test": "ng test",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"

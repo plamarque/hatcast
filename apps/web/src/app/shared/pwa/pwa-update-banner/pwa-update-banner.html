@@ -1,0 +1,23 @@
+@if (pwaUpdate.showBanner()) {
+  <app-pwa-system-banner
+    stackLayer="update"
+    [ariaLabel]="
+      pwaUpdate.refreshing()
+        ? 'Mise à jour de HatCast en cours'
+        : 'Mise à jour HatCast disponible'
+    "
+    title="HatCast"
+    subtitle="Une nouvelle version est disponible. Mettez à jour pour profiter des dernières améliorations."
+    primaryLabel="Mettre à jour"
+    primaryActionAriaLabel="Mettre à jour HatCast"
+    primaryTestId="pwa-update-banner-apply"
+    dismissTestId="pwa-update-banner-dismiss"
+    dismissAriaLabel="Fermer la barre de mise à jour"
+    [loading]="pwaUpdate.refreshing()"
+    loadingMessage="Mise à jour en cours…"
+    [showDismiss]="!pwaUpdate.refreshing()"
+    (mainClick)="onApplyClick()"
+    (primaryClick)="onApplyClick()"
+    (dismissClick)="onDismissClick()"
+  />
+}

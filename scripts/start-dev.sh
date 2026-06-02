@@ -3,7 +3,7 @@
 #
 # Usage (depuis la racine du dépôt) :
 #   ./scripts/start-dev.sh
-#   ./scripts/start-dev.sh --with-push   # ng serve --configuration=production (service worker → push Web)
+#   ./scripts/start-dev.sh --with-push   # build prod + watch + serve dist HTTPS (SW, push, recette MAJ PWA)
 #   ./scripts/start-dev.sh --with-push --no-tailscale
 #   ./scripts/start-dev.sh --no-tailscale   # sans Tailscale Serve (accès mobile MagicDNS)
 #   ./scripts/start-dev.sh --legacy   # ancien comportement : seulement le serveur V1 (Vue / Vite)
@@ -275,12 +275,23 @@ stop_api_tree() {
   free_hatcast_api_port
 }
 
+WEB_WATCH_PID=""
+WEB_SERVE_PID=""
+
+stop_web_stack() {
+  [[ -n "$WEB_SERVE_PID" ]] && kill "$WEB_SERVE_PID" 2>/dev/null || true
+  [[ -n "$WEB_WATCH_PID" ]] && kill "$WEB_WATCH_PID" 2>/dev/null || true
+  WEB_SERVE_PID=""
+  WEB_WATCH_PID=""
+}
+
 cleanup() {
   local ec=$?
   [[ "$CLEANUP_RAN" -eq 1 ]] && exit "$ec"
   CLEANUP_RAN=1
   echo ""
   echo "Arrêt de la stack…"
+  stop_web_stack
   stop_api_tree
   stop_mailpit
   exit "$ec"
@@ -295,7 +306,7 @@ fi
 configure_local_mailpit_smtp
 ensure_mailpit
 if [[ "$WITH_PUSH" == "1" ]]; then
-  echo "→ Mode notifications push (--with-push) : front en build production (service worker actif)."
+  echo "→ Mode notifications push (--with-push) : build production + watch + serve HTTPS statique (MAJ PWA recette)."
   warn_push_vapid_config
 fi
 echo ""
@@ -331,7 +342,7 @@ echo ""
 ensure_tailscale_serve
 echo ""
 if [[ "$WITH_PUSH" == "1" ]]; then
-  echo "→ Démarrage du client Angular (ng serve --configuration=production, port 4200)…"
+  echo "→ Démarrage du front (build production + watch + serve dist HTTPS, port 4200)…"
 else
   echo "→ Démarrage du client Angular (ng serve, port 4200 par défaut)…"
 fi
@@ -339,7 +350,7 @@ echo ""
 echo "  Stack V2 :"
 echo "    • API   : http://127.0.0.1:8080"
 if [[ "$WITH_PUSH" == "1" ]]; then
-  echo "    • Front : https://localhost:4200  (TLS ; build production + service worker ; recette push)"
+  echo "    • Front : https://localhost:4200  (TLS ; dist/ statique + ng build --watch ; SW + recette MAJ PWA)"
   echo "      Attendre ~30 s après chargement pour l’enregistrement du SW ; activer push sur /compte."
 else
   echo "    • Front : https://localhost:4200  (TLS ; ng serve --host 0.0.0.0 ; mode dev, pas de push)"
@@ -358,7 +369,15 @@ echo ""
 cd "$ROOT"
 # `--` obligatoire : transmet les flags à `ng serve` (pas à npm intermédiaire).
 if [[ "$WITH_PUSH" == "1" ]]; then
-  npm run dev -w @hatcast/web -- --configuration=production --host 0.0.0.0
+  echo "→ Build production initial (ngsw.json + SW)…"
+  npm run build -w @hatcast/web -- --configuration=production
+  echo "→ Watch rebuild production (dist/)…"
+  npm run build:watch:prod -w @hatcast/web &
+  WEB_WATCH_PID=$!
+  echo "→ Front HTTPS statique depuis dist/ (port 4200, proxy /v1 → API)…"
+  npm run serve:dist:https -w @hatcast/web &
+  WEB_SERVE_PID=$!
+  wait "$WEB_SERVE_PID"
 else
   npm run dev -w @hatcast/web -- --host 0.0.0.0
 fi

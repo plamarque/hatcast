@@ -8,6 +8,8 @@ import { PwaInstallService } from '../../../core/pwa/pwa-install.service';
 
 export interface PwaInstallInstructionsDialogData {
   browserInfo: PwaBrowserInfo;
+  devCertBlocked?: boolean;
+  nativePromptFailed?: boolean;
 }
 
 @Component({
@@ -21,7 +23,12 @@ export class PwaInstallInstructionsDialog {
   private readonly dialogRef = inject(MatDialogRef<PwaInstallInstructionsDialog>);
   private readonly pwaInstall = inject(PwaInstallService);
 
-  protected readonly content = computed(() => buildPwaInstallInstructions(this.data.browserInfo));
+  protected readonly content = computed(() =>
+    buildPwaInstallInstructions(this.data.browserInfo, {
+      devCertBlocked: this.data.devCertBlocked,
+      nativePromptFailed: this.data.nativePromptFailed,
+    }),
+  );
 
   protected retryInstall(): void {
     void this.pwaInstall.promptInstall();

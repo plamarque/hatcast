@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-02T12:00:00+02:00"
+last_updated: "2026-06-02T12:01:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -152,7 +152,7 @@ development_status:
 
   epic-10: in-progress
   10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil: done
-  10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: backlog
+  10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: done
   10-3-version-app-changelog-dialog: backlog  # P0 V2.0.0
   10-4-recette-pwa-manifest-icons-sw: backlog
   10-5-aides-install-contextuelles-ios-android: backlog
