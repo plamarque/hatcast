@@ -32,7 +32,11 @@ Documentation : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](../docs/v2/technical/
 
 ### 📱 PWA et déploiement
 - **`deploy-pwa.sh`** : Préparation et vérification du déploiement PWA (build optionnel, vérification des assets). Usage : `./scripts/deploy-pwa.sh` depuis la racine.
-- **`check-pwa.sh`** : Vérification de la PWA en production (HTTPS, manifest, service worker). Usage : `./scripts/check-pwa.sh` depuis la racine.
+- **`check-pwa.sh`** : Smoke HTTP PWA sur une **origine HTTPS V2** (manifest, icônes HatCast 2, service worker, `version.txt`, `changelog.json`). **`BASE_URL` obligatoire** (variable d’env ou 1er argument CLI) — pas d’URL V1 en dur. Exemple staging Cloud Run (`staging-v2` → `hatcast-v2-staging`, voir [DEPLOYMENT_WORKFLOW.md](../docs/v2/technical/DEPLOYMENT_WORKFLOW.md)) :
+  ```bash
+  BASE_URL=https://hatcast-v2-staging-730278491306.europe-west9.run.app ./scripts/check-pwa.sh
+  ```
+  Recette locale avec SW actif : `./scripts/start-dev.sh --with-push` puis `BASE_URL=https://localhost:4200 ./scripts/check-pwa.sh`. Legacy V1 (opt-in) : `HATCAST_PWA_LEGACY=1 BASE_URL=https://selections.la-malice.fr ./scripts/check-pwa.sh`. Exit code **1** si un check **ERROR** échoue.
 - **`deploy-simple.sh`** : Script de déploiement simplifié.
 
 ### 🖼️ Icônes
