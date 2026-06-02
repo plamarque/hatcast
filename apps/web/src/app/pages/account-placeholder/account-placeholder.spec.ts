@@ -1,10 +1,13 @@
+import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
 import { describe, expect, it, vi } from 'vitest'
 
+import { AppVersionService } from '../../core/app/app-version.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
 import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
@@ -16,10 +19,12 @@ describe('AccountPlaceholder', () => {
     session?: { ok: boolean; status: number; data?: { user: Record<string, unknown> } }
     hasGoogleAccount?: boolean
     routerUrl?: string
+    appVersion?: string
   } = {}) {
     const snack = { open: vi.fn() }
     const navigate = vi.fn().mockResolvedValue(true)
     const logout = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    const openChangelog = vi.fn()
 
     const user = {
       id: 'u1',
@@ -80,6 +85,17 @@ describe('AccountPlaceholder', () => {
           },
         },
         { provide: AuthApiService, useValue: {} },
+        {
+          provide: AppVersionService,
+          useValue: {
+            version: signal(options.appVersion ?? '0.0.0'),
+            ensureLoaded: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ChangelogDialogService,
+          useValue: { open: openChangelog, maybeAutoOpenAfterPwaUpdate: vi.fn() },
+        },
       ],
     }).compileComponents()
 
@@ -120,7 +136,7 @@ describe('AccountPlaceholder', () => {
       }
     }
 
-    return { fixture, snack, navigate, logout }
+    return { fixture, snack, navigate, logout, openChangelog }
   }
 
   it('affiche le titre et le sous-titre hub membre', async () => {
@@ -223,6 +239,19 @@ describe('AccountPlaceholder', () => {
   it('utilise le displayName compte pour l’avatar, pas le pseudo troupe', async () => {
     const { fixture } = await setup()
     expect(fixture.componentInstance['avatarDisplayName']()).toBe('Léa Martin')
+  })
+
+  it('affiche la version dans À propos et ouvre le changelog au clic', async () => {
+    const { fixture, openChangelog } = await setup({ appVersion: '2.1.0' })
+    const versionButton = fixture.nativeElement.querySelector(
+      '[data-testid="account-app-version"]',
+    ) as HTMLButtonElement
+    expect(versionButton).toBeTruthy()
+    expect(versionButton.textContent).toContain('v2.1.0')
+    expect(fixture.nativeElement.textContent).toContain('À propos')
+
+    versionButton.click()
+    expect(openChangelog).toHaveBeenCalled()
   })
 
   it('déconnecte et redirige vers connexion', async () => {

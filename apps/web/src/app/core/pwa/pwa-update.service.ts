@@ -3,6 +3,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { filter } from 'rxjs';
 
+import { SHOW_CHANGELOG_AFTER_RELOAD_KEY } from '../app/changelog-keys';
+
 type UpdateReadySource = 'VERSION_READY' | 'fallback';
 
 @Injectable({ providedIn: 'root' })
@@ -147,6 +149,7 @@ export class PwaUpdateService {
     this.refreshing.set(true);
     try {
       await this.swUpdate.activateUpdate();
+      sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
       document.location.reload();
     } catch {
       this.refreshing.set(false);

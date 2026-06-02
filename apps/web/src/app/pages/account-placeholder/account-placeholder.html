@@ -166,6 +166,21 @@
       </mat-nav-list>
     </section>
 
+    <section class="account-page__section" aria-labelledby="account-about-heading">
+      <h2 id="account-about-heading" class="account-page__section-title">À propos</h2>
+      <button
+        type="button"
+        mat-stroked-button
+        class="account-page__version"
+        data-testid="account-app-version"
+        [matTooltip]="versionTooltip()"
+        [attr.aria-label]="versionTooltip()"
+        (click)="openChangelog()"
+      >
+        v{{ version() }}
+      </button>
+    </section>
+
     <footer class="account-page__footer">
       <button
         type="button"

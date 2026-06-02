@@ -4,6 +4,7 @@ import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { SHOW_CHANGELOG_AFTER_RELOAD_KEY } from '../app/changelog-keys';
 import { PwaUpdateService } from './pwa-update.service';
 
 describe('PwaUpdateService', () => {
@@ -22,6 +23,7 @@ describe('PwaUpdateService', () => {
       ok: true,
       json: async () => ({ timestamp: 1 }),
     });
+    sessionStorage.clear();
 
     vi.stubGlobal('navigator', {
       serviceWorker: { getRegistration },
@@ -47,6 +49,7 @@ describe('PwaUpdateService', () => {
   });
 
   afterEach(() => {
+    sessionStorage.clear();
     vi.unstubAllGlobals();
   });
 
@@ -92,6 +95,7 @@ describe('PwaUpdateService', () => {
     await service.applyUpdate();
 
     expect(activateUpdate).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY)).toBe('1');
     expect(service.refreshing()).toBe(true);
   });
 

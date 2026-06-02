@@ -1,0 +1,46 @@
+<h2 mat-dialog-title>Nouveautés</h2>
+
+<mat-dialog-content class="changelog-dialog__content">
+  @if (loading()) {
+    <div class="changelog-dialog__state" role="status">
+      <mat-spinner diameter="32" aria-hidden="true" />
+      <p>Chargement des nouveautés…</p>
+    </div>
+  } @else if (error()) {
+    <p class="changelog-dialog__state changelog-dialog__state--error" role="alert">
+      Impossible de charger les nouveautés
+    </p>
+  } @else if (versions().length === 0) {
+    <p class="changelog-dialog__state" role="status">Aucune nouveauté récente</p>
+  } @else {
+    <div class="changelog-dialog__versions">
+      @for (entry of versions(); track entry.version) {
+        <section class="changelog-dialog__version" [attr.aria-label]="'Version ' + entry.version">
+          <header class="changelog-dialog__version-header">
+            <span class="changelog-dialog__version-label">Version {{ entry.version }}</span>
+            <span class="changelog-dialog__version-date">{{ entry.date }}</span>
+          </header>
+          <ul class="changelog-dialog__changes">
+            @for (change of entry.changes; track change.id) {
+              <li class="changelog-dialog__change">
+                <span class="changelog-dialog__emoji" aria-hidden="true">{{ change.emoji }}</span>
+                <span class="changelog-dialog__description">{{ change.description }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    type="button"
+    mat-flat-button
+    mat-dialog-close
+    class="changelog-dialog__close"
+  >
+    Fermer
+  </button>
+</mat-dialog-actions>

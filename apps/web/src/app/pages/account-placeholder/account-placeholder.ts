@@ -8,8 +8,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterLink } from '@angular/router'
 
+import { AppVersionService } from '../../core/app/app-version.service'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
 import { MemberPreferencesForm } from '../../shared/member-preferences-form/member-preferences-form'
 import { NotificationPreferencesSection } from '../../shared/notification-preferences-section/notification-preferences-section'
 import { PushNotificationsSection } from '../../shared/push-notifications-section/push-notifications-section'
@@ -45,16 +47,28 @@ export class AccountPlaceholder implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
+  private readonly appVersion = inject(AppVersionService)
+  private readonly changelogDialog = inject(ChangelogDialogService)
 
   protected readonly loading = signal(true)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly avatarSaving = signal(false)
+  protected readonly version = this.appVersion.version
 
   protected readonly emailComingSoonTooltip = COMING_SOON_TOOLTIP
   protected readonly passwordComingSoonTooltip = PASSWORD_COMING_SOON_TOOLTIP
   protected readonly deleteComingSoonTooltip = COMING_SOON_TOOLTIP
 
+  protected versionTooltip(): string {
+    return `Voir les nouveautés de la version ${this.version()}`
+  }
+
+  protected openChangelog(): void {
+    this.changelogDialog.open()
+  }
+
   async ngOnInit(): Promise<void> {
+    void this.appVersion.ensureLoaded()
     const session = await this.auth.ensureHatcastSession()
     if (!session.ok || !session.data) {
       await this.redirectToLogin()
