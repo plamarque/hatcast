@@ -64,27 +64,46 @@ One command from repo root after **Procedure C** Neon reset (and staging deploy 
 **One-time:** add to `.env.local` — `NEON_STAGING_URL`, `HATCAST_MIGRATION_API_KEY`, Firebase Admin (see [.env.example](../../../.env.example)).
 
 ```bash
-./scripts/migrate-from-v1.sh
+./scripts/migrate-from-v1.sh --target=staging   # défaut si --target omis
 # or: npm run migrate:from-v1
 ```
 
-The script loads `.env.local`, checks deps (`pg`, `psql`, `gh`), creates `export/malice/migrate.config.json` from the example if missing. On a **Neon reset cycle** it:
+**Cibles** (`--target=`) : `local` | `development` | `staging` | `production`. URLs Neon et API résolues depuis `.env.local` via `scripts/v2/resolve-migrate-target.mjs` (voir [.env.example](../../../.env.example) § migration V1). Config optionnelle par cible : `export/malice/migrate.config.<target>.json`.
 
-1. Prompts you to reset the Neon `staging` branch in the console (manual).
-2. Triggers **GitHub Actions** `Deploy V2 (Cloud Run)` on `staging-v2` via `gh workflow run` (Flyway + `spring_session` on empty DB).
+Exemple cloud dev — **cycle reset + deploy + migration** (branche Neon `development`, `hatcast-v2-dev`) :
+
+1. **Neon** : reset de la branche `development` (base vide).
+2. **Cloud Run** : déployer ou redémarrer `hatcast-v2-dev` → Flyway applique **`db/migration` uniquement** (schéma + bootstrap produit Démo dans les migrations ; **pas** les seeds `db/seed` Les Improbots — profil `cloud`, ADR-0014).
+3. **Migration V1** (crée troupe **La Malice**, saison **Malice 2025-2026**, spectacles **publiés** via fin de `load-ac.sql`) :
+
+```bash
+cp scripts/v2/migrate.config.development.example.json export/malice/migrate.config.development.json
+# Ajuster .env.local : NEON_DEVELOPMENT_URL, HATCAST_MIGRATE_API_BASE_DEVELOPMENT, HATCAST_MIGRATION_*
+./scripts/migrate-from-v1.sh --target=development
+```
+
+Après succès : saison Malice visible (organisateur + membres), spectacles sans badge brouillon (`availability_opened_at` renseigné). La troupe **Démo** Flyway coexiste ; ce n’est pas la saison migrée.
+
+The script loads `.env.local`, checks deps (`pg`, `psql`, `gh` si redeploy GitHub), creates `export/malice/migrate.config.json` from the example if missing. On a **Neon reset cycle** it:
+
+1. Prompts you to reset the Neon branch for the target in the console (manual).
+2. Restarts the API (`local` : prompt ; `development` : `gcloud run services update` ; `staging` : GitHub Actions `staging-v2` ; `production` : manuel).
 3. Waits for `/actuator/health` and migration API preflight (201).
 4. Runs the full pipeline (`--yes --record-cycle`).
 
-Requires `gh auth login`. No Google sign-in on staging after reset (operator stub auto-provisioned — ADR-0017).
+Requires `gh auth login` for `staging`. Pour **`--target=development`**, le script active automatiquement `HATCAST_MIGRATION_API_*` sur `hatcast-v2-dev` via `gcloud` (`.env.local` : clé + `HATCAST_MIGRATION_OPERATOR_EMAIL`). No Google sign-in after reset (operator stub — ADR-0017).
 
 Options:
 
 ```bash
 ./scripts/migrate-from-v1.sh --dry-run              # export + SQL only (smoke skipped)
 ./scripts/migrate-from-v1.sh --no-prompt-reset      # skip Neon prompt + redeploy
-./scripts/migrate-from-v1.sh --skip-staging-redeploy  # Neon reset only; you redeployed staging yourself
+./scripts/migrate-from-v1.sh --skip-redeploy        # Neon reset only; you restarted API yourself
+./scripts/migrate-from-v1.sh --skip-staging-redeploy  # alias of --skip-redeploy
 ./scripts/migrate-from-v1.sh --help
 ```
+
+**Publication des spectacles migrés (Story 3.21) :** `load-ac.sql` (MIG-3) se termine par un `UPDATE events SET availability_opened_at = created_at` pour la `seasonV2Id` du manifest — les spectacles V1 ne doivent **pas** rester en brouillon. Après un correctif pipeline, **rejouer sur une base vierge** (reset Neon + script ci-dessus) ; ne pas se contenter d’un `load-ac.sql` généré avant le correctif — relancer au minimum `migrate:malice:transform:ac` ou tout le `migrate-from-v1.sh`.
 
 Validate the ≥ 3 cycles gate:
 

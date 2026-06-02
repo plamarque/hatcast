@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# HatCast V2 — migrate one troupe/season from V1 Firestore production to Neon staging (MIG-6).
+# HatCast V2 — migrate one troupe/season from V1 Firestore production to Neon V2 (MIG-6).
 #
 # Usage (from repo root):
-#   ./scripts/migrate-from-v1.sh              # full staging cycle
-#   ./scripts/migrate-from-v1.sh --dry-run    # export + transform SQL only
+#   ./scripts/migrate-from-v1.sh --target=staging
+#   ./scripts/migrate-from-v1.sh --target=development
+#   ./scripts/migrate-from-v1.sh --target=local --dry-run
 #   ./scripts/migrate-from-v1.sh --help
 #
-# One-time setup: .env.local with Firebase Admin, NEON_STAGING_URL, HATCAST_MIGRATION_API_KEY.
-# GitHub staging env: HATCAST_MIGRATION_* secrets + gh CLI (`gh auth login`) for post-reset redeploy.
+# Setup: .env.local — Firebase Admin, HATCAST_MIGRATION_API_KEY, URLs par cible (voir .env.example).
 
 set -euo pipefail
 
@@ -23,40 +23,57 @@ source "${SCRIPT_DIR}/v2/lib/git-branches.sh"
 load_dotenv "${ROOT}/.env.local"
 load_dotenv "${ROOT}/.env"
 
-CONFIG_PATH="${ROOT}/export/malice/migrate.config.json"
+RESOLVE_TARGET_NODE="${SCRIPT_DIR}/v2/resolve-migrate-target.mjs"
 EXAMPLE_CONFIG="${ROOT}/scripts/v2/migrate.config.example.json"
 DEPLOY_WORKFLOW_FILE="deploy-v2-cloud-run.yml"
 HEALTH_WAIT_SECONDS="${HATCAST_MIGRATE_HEALTH_WAIT_SECONDS:-300}"
 HEALTH_POLL_SECONDS="${HATCAST_MIGRATE_HEALTH_POLL_SECONDS:-10}"
 
+TARGET="staging"
 DRY_RUN=false
 NO_PROMPT_RESET=false
-SKIP_STAGING_REDEPLOY=false
+SKIP_REDEPLOY=false
+SKIP_ENABLE_MIGRATION_API=false
+RESTART_MODE=""
+MIGRATION_API_CLOUD_RUN_CONFIGURED=false
 EXTRA_ARGS=()
 
 usage() {
   cat <<EOF
 Usage: ./scripts/migrate-from-v1.sh [OPTIONS] [-- extra migrate:v2:run args]
 
-Migrates V1 Firestore production data into V2 staging (orchestrator MIG-5).
+Migrates V1 Firestore production data into V2 (orchestrator MIG-5).
 
-Full cycle after Neon reset:
-  1. Confirm Neon branch reset (console — manual)
-  2. Trigger GitHub Actions "Deploy V2 (Cloud Run)" on staging-v2 (restarts API + Flyway + sessions)
+Targets (--target=, default: staging):
+  local         Neon branche « local » (NEON_LOCAL_URL ou HATCAST_DATASOURCE_URL) + API http://127.0.0.1:8080
+  development   Neon « development » + Cloud Run hatcast-v2-dev (redémarrage gcloud)
+  staging       Neon « staging » + Cloud Run hatcast-v2-staging (redeploy GitHub staging-v2)
+  production    Neon production + Cloud Run hatcast-v2 (pas de redeploy auto ; --confirm-prod requis)
+
+Full cycle after Neon reset (sauf --no-prompt-reset):
+  1. Confirm Neon branch reset (console)
+  2. Restart API (local prompt / gcloud / gh workflow selon la cible)
   3. Wait for /actuator/health + migration API preflight
   4. Run migrate:v2:run
 
 Options:
-  --dry-run                 Export + transform only (no Neon writes, smoke skipped)
-  --no-prompt-reset         Skip Neon reset prompt and staging redeploy
-  --skip-staging-redeploy   After Neon reset, skip gh deploy (you restarted staging yourself)
+  --target=NAME             local | development | staging | production (default: staging)
+  --dry-run                 Export + transform only (no Neon writes)
+  --no-prompt-reset         Skip Neon reset prompt and API restart
+  --skip-redeploy           After Neon reset, skip API restart (you did it yourself)
+  --skip-staging-redeploy   Alias of --skip-redeploy (backward compatible)
+  --restart=MODE            Override: prompt-local | gcloud | github | none
+  --skip-enable-migration-api
+                            Ne pas pousser HATCAST_MIGRATION_API_* sur Cloud Run (défaut: auto pour development)
   --help, -h                This help
 
-Environment (via .env.local):
-  NEON_STAGING_URL, HATCAST_MIGRATION_API_KEY
-  FIREBASE_PROJECT_ID (or VITE_FIREBASE_PROJECT_ID) + Admin credentials
+Environment (.env.local) — voir .env.example § migration V1:
+  HATCAST_MIGRATION_API_KEY, HATCAST_MIGRATION_OPERATOR_EMAIL (requis pour --target=development)
+  NEON_STAGING_URL | NEON_DEVELOPMENT_URL | NEON_LOCAL_URL | NEON_PRODUCTION_URL
+  HATCAST_MIGRATE_API_BASE_* (optionnel si défaut local suffit)
+  FIREBASE_PROJECT_ID (ou VITE_FIREBASE_PROJECT_ID) + Admin credentials
 
-Requires: gh auth login (for redeploy after Neon reset)
+Requires: gh auth login (cible staging, si redeploy GitHub)
 EOF
 }
 
@@ -76,7 +93,7 @@ migration_api_preflight() {
     -H "Content-Type: application/json" \
     -H "X-Hatcast-Migration-Key: ${HATCAST_MIGRATION_API_KEY}" \
     -d '{"name":"migrate-from-v1 preflight"}' \
-    "${API_BASE%/}/v1/troupes")"
+    "${MIGRATE_API_BASE%/}/v1/troupes")"
   if [[ "${http_code}" == "201" ]]; then
     rm -f "${body}"
     echo "   Migration API OK (201)"
@@ -87,12 +104,12 @@ migration_api_preflight() {
     echo "   Response: $(tr '\n' ' ' < "${body}" | head -c 200)" >&2
   fi
   rm -f "${body}"
-  echo "   Check HATCAST_MIGRATION_API_KEY, staging deploy, and Neon reset + redeploy (ADR-0017)." >&2
+  echo "   Check HATCAST_MIGRATION_API_KEY, API target (${TARGET}), migration API enabled (ADR-0017)." >&2
   return 1
 }
 
 wait_for_actuator_health() {
-  local url="${API_BASE%/}/actuator/health"
+  local url="${MIGRATE_API_BASE%/}/actuator/health"
   local elapsed=0
   echo "⏳ Waiting for ${url} (max ${HEALTH_WAIT_SECONDS}s)…"
   while [[ "${elapsed}" -lt "${HEALTH_WAIT_SECONDS}" ]]; do
@@ -107,14 +124,15 @@ wait_for_actuator_health() {
   return 1
 }
 
-trigger_staging_redeploy_via_github() {
-  local slug repo_args=() branch="${HATCAST_V2_BRANCH_STAGING}"
+trigger_github_deploy() {
+  local branch="$1"
+  local slug repo_args=()
   slug="$(hatcast_github_repo_slug || true)"
 
   if ! command -v gh >/dev/null 2>&1; then
-    echo "❌ gh CLI is required to redeploy staging after Neon reset." >&2
+    echo "❌ gh CLI is required for GitHub redeploy (target ${TARGET})." >&2
     echo "   Install: https://cli.github.com/ then: gh auth login" >&2
-    echo "   Or rerun with --skip-staging-redeploy after a manual deploy." >&2
+    echo "   Or rerun with --skip-redeploy after a manual deploy." >&2
     exit 1
   fi
   if ! gh auth status >/dev/null 2>&1; then
@@ -142,11 +160,100 @@ trigger_staging_redeploy_via_github() {
 
   echo "   Run: https://github.com/${slug:-<repo>}/actions/runs/${run_id}"
   gh run watch "${run_id}" --exit-status "${repo_args[@]}"
-  echo "✅ Staging deploy workflow completed"
+  echo "✅ Deploy workflow completed (${branch})"
+}
+
+cloud_run_migration_env_prefix() {
+  if [[ "${MIGRATE_AUTO_ENABLE_MIGRATION_API:-0}" != "1" ]]; then
+    return 0
+  fi
+  if [[ -z "${HATCAST_MIGRATION_OPERATOR_EMAIL:-}" ]]; then
+    echo "❌ HATCAST_MIGRATION_OPERATOR_EMAIL requis pour activer l’API migration sur Cloud Run (target development)." >&2
+    exit 1
+  fi
+  printf 'HATCAST_MIGRATION_API_ENABLED=true,HATCAST_MIGRATION_API_KEY=%s,HATCAST_MIGRATION_OPERATOR_EMAIL=%s,' \
+    "${HATCAST_MIGRATION_API_KEY}" "${HATCAST_MIGRATION_OPERATOR_EMAIL}"
+}
+
+ensure_cloud_run_migration_api() {
+  if [[ "${MIGRATE_AUTO_ENABLE_MIGRATION_API:-0}" != "1" ]]; then
+    return 0
+  fi
+  if [[ "${MIGRATION_API_CLOUD_RUN_CONFIGURED}" == "true" ]]; then
+    return 0
+  fi
+  if ! command -v gcloud >/dev/null 2>&1; then
+    echo "❌ gcloud CLI required to enable migration API on ${MIGRATE_CLOUD_RUN_SERVICE}." >&2
+    exit 1
+  fi
+  local prefix vars
+  prefix="$(cloud_run_migration_env_prefix)"
+  vars="${prefix}HATCAST_RESTART_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "🔐 Activation API migration sur Cloud Run ${MIGRATE_CLOUD_RUN_SERVICE} (${MIGRATE_GCP_REGION})…"
+  gcloud run services update "${MIGRATE_CLOUD_RUN_SERVICE}" \
+    --region="${MIGRATE_GCP_REGION}" \
+    --update-env-vars="${vars}"
+  MIGRATION_API_CLOUD_RUN_CONFIGURED=true
+  echo "✅ HATCAST_MIGRATION_API_ENABLED=true (et clé opérateur) appliqués sur la révision Cloud Run"
+  wait_for_actuator_health
+}
+
+restart_cloud_run_gcloud() {
+  ensure_cloud_run_migration_api
+  if [[ "${MIGRATION_API_CLOUD_RUN_CONFIGURED}" == "true" ]]; then
+    return 0
+  fi
+  local service="$1"
+  local region="$2"
+  if ! command -v gcloud >/dev/null 2>&1; then
+    echo "❌ gcloud CLI required to restart ${service}." >&2
+    echo "   Or use --skip-redeploy after: gcloud run services update …" >&2
+    exit 1
+  fi
+  echo "☁️  Restarting Cloud Run ${service} (${region})…"
+  gcloud run services update "${service}" \
+    --region="${region}" \
+    --update-env-vars="HATCAST_RESTART_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "✅ Cloud Run update requested"
+  wait_for_actuator_health
+}
+
+restart_api_for_target() {
+  local mode="${RESTART_MODE:-${MIGRATE_RESTART_MODE}}"
+  case "${mode}" in
+    none)
+      echo "   → no automatic API restart (target ${TARGET})"
+      read -r -p "API prête pour ${TARGET} ? [Enter pour continuer]"
+      ;;
+    prompt-local)
+      echo "   → redémarrer l’API locale (ex. ./scripts/start-dev.sh)"
+      echo "   → HATCAST_MIGRATION_API_ENABLED=true dans .env si besoin"
+      read -r -p "API locale prête ? [Enter pour continuer]"
+      ;;
+    gcloud)
+      restart_cloud_run_gcloud "${MIGRATE_CLOUD_RUN_SERVICE}" "${MIGRATE_GCP_REGION}"
+      ;;
+    github)
+      trigger_github_deploy "${MIGRATE_DEPLOY_GIT_BRANCH}"
+      wait_for_actuator_health
+      ;;
+    *)
+      echo "❌ Unknown restart mode: ${mode}" >&2
+      exit 1
+      ;;
+  esac
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --target=*)
+      TARGET="${1#*=}"
+      shift
+      ;;
+    --target)
+      TARGET="${2:?--target requires a value}"
+      shift 2
+      ;;
     --dry-run)
       DRY_RUN=true
       shift
@@ -155,8 +262,16 @@ while [[ $# -gt 0 ]]; do
       NO_PROMPT_RESET=true
       shift
       ;;
-    --skip-staging-redeploy)
-      SKIP_STAGING_REDEPLOY=true
+    --skip-redeploy | --skip-staging-redeploy)
+      SKIP_REDEPLOY=true
+      shift
+      ;;
+    --restart=*)
+      RESTART_MODE="${1#*=}"
+      shift
+      ;;
+    --skip-enable-migration-api)
+      SKIP_ENABLE_MIGRATION_API=true
       shift
       ;;
     --help | -h)
@@ -175,7 +290,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo "=== HatCast migrate-from-v1 (staging) ==="
+if ! RESOLVE_SHELL="$(node "${RESOLVE_TARGET_NODE}" --target="${TARGET}" --format=shell 2>&1)"; then
+  echo "${RESOLVE_SHELL}" >&2
+  node "${RESOLVE_TARGET_NODE}" --help >&2
+  exit 1
+fi
+# shellcheck disable=SC1090
+eval "${RESOLVE_SHELL}"
+
+if [[ "${SKIP_ENABLE_MIGRATION_API}" == true ]]; then
+  MIGRATE_AUTO_ENABLE_MIGRATION_API=0
+fi
+
+echo "=== HatCast migrate-from-v1 (${MIGRATE_TARGET}) ==="
 
 NODE_MAJOR="$(node -p "process.versions.node.split('.')[0]")"
 if [[ "${NODE_MAJOR}" -lt 20 ]]; then
@@ -193,6 +320,10 @@ if [[ ! -d node_modules/pg ]]; then
   npm install
 fi
 
+CONFIG_PATH="${ROOT}/export/malice/migrate.config.${MIGRATE_TARGET}.json"
+if [[ ! -f "${CONFIG_PATH}" ]]; then
+  CONFIG_PATH="${ROOT}/export/malice/migrate.config.json"
+fi
 if [[ ! -f "${CONFIG_PATH}" ]]; then
   mkdir -p "${ROOT}/export/malice"
   cp "${EXAMPLE_CONFIG}" "${CONFIG_PATH}"
@@ -200,64 +331,87 @@ if [[ ! -f "${CONFIG_PATH}" ]]; then
 fi
 
 missing=()
-[[ -z "${NEON_STAGING_URL:-}" ]] && missing+=("NEON_STAGING_URL")
+[[ -z "${MIGRATE_DATABASE_URL:-}" ]] && missing+=("database URL for ${MIGRATE_TARGET} (see resolve-migrate-target --help)")
+[[ -z "${MIGRATE_API_BASE:-}" ]] && missing+=("API base URL for ${MIGRATE_TARGET}")
 [[ -z "${HATCAST_MIGRATION_API_KEY:-}" ]] && missing+=("HATCAST_MIGRATION_API_KEY")
+if [[ "${MIGRATE_AUTO_ENABLE_MIGRATION_API:-0}" == "1" ]]; then
+  [[ -z "${HATCAST_MIGRATION_OPERATOR_EMAIL:-}" ]] && missing+=("HATCAST_MIGRATION_OPERATOR_EMAIL (activation API migration sur Cloud Run dev)")
+fi
 proj="${FIREBASE_PROJECT_ID:-${VITE_FIREBASE_PROJECT_ID:-}}"
 [[ -z "${proj}" ]] && missing+=("FIREBASE_PROJECT_ID or VITE_FIREBASE_PROJECT_ID")
 
 if [[ ${#missing[@]} -gt 0 ]]; then
-  echo "❌ Missing environment variables in .env.local:" >&2
+  echo "❌ Missing configuration in .env.local:" >&2
   printf '   - %s\n' "${missing[@]}" >&2
+  node "${RESOLVE_TARGET_NODE}" --target="${TARGET}" --help >&2
   exit 1
 fi
 
-API_BASE="$(node -e "
+# apiBaseUrl JSON : repli seulement si --target= n’a pas résolu d’URL (HATCAST_MIGRATE_API_BASE_*)
+API_FROM_CONFIG="$(node -e "
 const fs = require('fs');
 const j = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-const raw = j.apiBaseUrl || process.env.HATCAST_MIGRATE_API_BASE || '';
+const raw = j.apiBaseUrl || '';
 const url = typeof raw === 'string' ? raw.replace(/\$\{[A-Z0-9_]+\}/g, '').trim() : '';
-console.log(url || process.env.HATCAST_MIGRATE_API_BASE || '');
+console.log(url);
 " "${CONFIG_PATH}")"
+if [[ -z "${MIGRATE_API_BASE:-}" && -n "${API_FROM_CONFIG}" ]]; then
+  MIGRATE_API_BASE="${API_FROM_CONFIG}"
+fi
 
-if [[ -z "${API_BASE}" ]]; then
-  echo "❌ apiBaseUrl missing in migrate.config.json" >&2
-  exit 1
+if [[ "${MIGRATE_REQUIRES_PROD_CONFIRM}" == "1" && "${DRY_RUN}" == false ]]; then
+  echo ""
+  echo "⚠️  Cible PRODUCTION — écritures Neon + API prod."
+  read -r -p "Confirmer la migration vers production ? [y/N] " prod_ans
+  if [[ ! "${prod_ans}" =~ ^[yY] ]]; then
+    echo "Annulé."
+    exit 0
+  fi
 fi
 
 RESET_FLAG=()
 if [[ "${DRY_RUN}" == false && "${NO_PROMPT_RESET}" == false ]]; then
   echo ""
   echo "📋 Neon reset (manual in console):"
-  echo "   Neon → branch « staging » → Reset from parent"
+  echo "   Neon → branch « ${MIGRATE_NEON_BRANCH_LABEL} » → Reset from parent"
   read -r -p "Reset effectué ? [y/N] " ans
   if [[ "${ans}" =~ ^[yY] ]]; then
     RESET_FLAG=(--i-reset-neon)
     echo "   → --i-reset-neon"
 
-    if [[ "${SKIP_STAGING_REDEPLOY}" == false ]]; then
+    if [[ "${SKIP_REDEPLOY}" == false ]]; then
       echo ""
-      trigger_staging_redeploy_via_github
-      echo ""
-      wait_for_actuator_health
+      restart_api_for_target
     else
-      echo "   → --skip-staging-redeploy (no GitHub deploy)"
+      echo "   → --skip-redeploy"
       echo ""
-      read -r -p "Staging Cloud Run redémarré / déployé ? [Enter pour continuer]"
+      read -r -p "API (${MIGRATE_TARGET}) redémarrée / déployée ? [Enter pour continuer]"
     fi
   else
     echo "   → continuing without --i-reset-neon"
   fi
 fi
 
+if [[ "${MIGRATE_AUTO_ENABLE_MIGRATION_API:-0}" == "1" ]]; then
+  echo ""
+  ensure_cloud_run_migration_api
+fi
+
 echo ""
-echo "🔍 Preflight API (${API_BASE})…"
+echo "🔍 Preflight API (${MIGRATE_API_BASE})…"
 migration_api_preflight
 
 RUN_ARGS=(
   --config="${CONFIG_PATH}"
-  --database-url="${NEON_STAGING_URL}"
+  --migrate-env="${MIGRATE_TARGET}"
+  --database-url="${MIGRATE_DATABASE_URL}"
+  --api-base-url="${MIGRATE_API_BASE}"
+  --target="${MIGRATE_LOAD_TARGET}"
   --migration-api-key="${HATCAST_MIGRATION_API_KEY}"
 )
+if [[ "${MIGRATE_REQUIRES_PROD_CONFIRM}" == "1" ]]; then
+  RUN_ARGS+=(--confirm-prod=production)
+fi
 if [[ "${DRY_RUN}" == true ]]; then
   RUN_ARGS+=(--dry-run)
 else
@@ -284,4 +438,4 @@ if [[ "${DRY_RUN}" == false ]]; then
 fi
 
 echo ""
-echo "✅ migrate-from-v1 finished"
+echo "✅ migrate-from-v1 finished (${MIGRATE_TARGET})"

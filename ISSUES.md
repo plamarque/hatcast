@@ -10,6 +10,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-006 — MIG-3 left migrated spectacles as drafts (availability_opened_at)
+- **ID**: BUG-006
+- **Status**: Fixed (2026-06-02) — pipeline `load-ac.sql` backfill; manual SQL in preprod-reset-and-migrate.md for existing loads
+- **Severity**: High (functional — whole migrated season invisible in member agenda)
+- **Affected area**: V1→V2 migration (MIG-2/MIG-3), Story 3.21 event draft gate
+- **Observed behavior**: After `migrate-from-v1`, all spectacles of migrated season (e.g. La Malice 2025-2026) showed as **brouillon** (`availabilityOpenedAt` null). Manual publish was slow and could show « Publication impossible » while the server had applied open-availability.
+- **Expected behavior**: Migrated V1 events are **published** (open for availability / visible in agendas), matching V1 where events were already public.
+- **Cause**: MIG-2 `INSERT INTO events` did not set `availability_opened_at`; Flyway V45 backfill runs only on schema migrate, before data load.
+- **Fix**: `buildMigratedEventsOpenAvailabilityBackfillSql` appended to `load-ac.sql` (rejouer migration sur base vierge) ; front `openAvailabilityResilient` for slow open-availability responses.
+
 ### BUG-005 — Archived events unreachable for reactivation in season workspace
 - **ID**: BUG-005
 - **Status**: Fixed (2026-06-01)

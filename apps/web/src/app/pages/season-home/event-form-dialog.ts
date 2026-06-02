@@ -215,7 +215,10 @@ export class EventFormDialog implements OnInit, OnDestroy {
         }
         let latest: EventResponse = r.data
         if (this.publishDraft && !this.data.event.availabilityOpenedAt) {
-          const openResult = await this.api.openAvailability(this.data.seasonId, this.data.event.id)
+          const openResult = await this.api.openAvailabilityResilient(
+            this.data.seasonId,
+            this.data.event.id,
+          )
           if (!openResult.ok || !openResult.data) {
             this.formError = openResult.errorMessage ?? 'Publication impossible.'
             return

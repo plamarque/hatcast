@@ -66,7 +66,7 @@ export class EventDetailDraftBanner {
     }
     this.publishing.set(true)
     try {
-      const result = await this.eventsApi.openAvailability(seasonId, ev.id)
+      const result = await this.eventsApi.openAvailabilityResilient(seasonId, ev.id)
       if (!result.ok || !result.data) {
         const message = result.errorMessage ?? 'Publication impossible.'
         this.snack.open(message, 'OK', { duration: 6000 })

@@ -271,6 +271,32 @@ export class EventApiService {
     }
   }
 
+  /**
+   * open-availability can succeed server-side while the client sees a timeout or empty body
+   * (slow composition enrichment). Refetch the event before reporting failure.
+   */
+  async openAvailabilityResilient(
+    seasonId: string,
+    eventId: string,
+  ): Promise<EventMutationResult> {
+    const open = await this.openAvailability(seasonId, eventId)
+    if (open.ok && open.data?.availabilityOpenedAt) {
+      return open
+    }
+    const refetch = await this.getEvent(seasonId, eventId)
+    if (refetch.ok && refetch.data?.availabilityOpenedAt) {
+      return { ok: true, status: refetch.status, data: refetch.data }
+    }
+    if (!open.ok) {
+      return open
+    }
+    return {
+      ok: false,
+      status: open.status,
+      errorMessage: open.errorMessage ?? 'Publication impossible.',
+    }
+  }
+
   async closeAvailability(
     seasonId: string,
     eventId: string,

@@ -9,7 +9,10 @@
 
 import { createHash } from 'crypto'
 
-import { sqlString } from './maliceEventsManifest.js'
+import {
+  buildMigratedEventsOpenAvailabilityBackfillSql,
+  sqlString,
+} from './maliceEventsManifest.js'
 
 export { sqlString }
 
@@ -359,6 +362,7 @@ export function transformCompositions(casts, manifest) {
  * @param {Array<object>} params.compositions
  * @param {Array<object>} params.slots
  * @param {Array<object>} params.declines
+ * @param {string} [params.seasonV2Id] when set, append availability_opened_at backfill for migrated season
  * @param {string} [params.generatedBy]
  */
 export function buildAvailabilityCompositionsLoadSql({
@@ -366,6 +370,7 @@ export function buildAvailabilityCompositionsLoadSql({
   compositions = [],
   slots = [],
   declines = [],
+  seasonV2Id = null,
   generatedBy = 'scripts/migrate-malice-transform-ac.mjs',
 }) {
   const lines = [
@@ -420,6 +425,10 @@ export function buildAvailabilityCompositionsLoadSql({
     )
   }
 
+  if (seasonV2Id) {
+    lines.push(buildMigratedEventsOpenAvailabilityBackfillSql(seasonV2Id, { generatedBy }))
+  }
+
   lines.push('')
   return `${lines.join('\n')}\n`
 }
@@ -446,6 +455,7 @@ export function transformAvailabilityCompositions({ availabilityRecords, casts, 
     compositions,
     slots,
     declines,
+    seasonV2Id: manifest?.seasonV2Id ?? null,
   })
 
   return {
