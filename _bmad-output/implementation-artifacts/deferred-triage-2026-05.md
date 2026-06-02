@@ -158,25 +158,27 @@ Chaque puce de `deferred-work.md` reçoit un **ID** `DW-###`. Croisement **story
 
 ---
 
-## 5. Liste iso-V1 séparée (hors deferred code-review)
+## 5. Liste iso-V1 / V2.0.0 (hors deferred code-review)
 
-Écarts V1 / produit **non** traités comme H1 deferred — sources PLAN, ADR, stories, réserve produit.
+Écarts V1 / produit **non** traités comme H1 deferred — sources PLAN, ADR, stories. **MAJ 2026-06-02 :** MEP iso-V1 **closed** ; cutover = § **Wave V2.0.0** ([SCP](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md)).
 
-| Thème | Source | Priorité suggérée |
-|-------|--------|-------------------|
-| Historique ligue : relecture **compositions** passées, mode consultation | DW-020–021, ADR 0012/0013 | Post-iso / réserve produit |
-| **Mon compte** hub membre | **17.24** done | Done |
-| Compte : MAJ identifiants connectés | **1.6** backlog | Post-MEP (optionnel avant M4 si besoin) |
-| Compte : suppression | **1.7** backlog | **Hors MEP** (PO 2026-06-02) |
-| Reset mot de passe | **1.3** done | **Recette gate MEP** |
-| **Annuaire public troupes** | **4.1** | **P0 MEP** — cartes publiques ; clic → login → hub si membre/admin sinon refus (PO 2026-06-02) |
-| **Audit capture backend** | **9.0** | **P0 MEP** — journal append-only ; UI **9.1** admin + **9.2** membre post-MEP |
-| **Notifications push + email** | **8.1**, **3.21**, **8.3** (MEP) ; **8.5**, **8.2**, **6.10b** (P1) ; **8.4** (P2) | **P0 MEP** ; SCP [2026-06-01](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md) |
-| PWA mise à jour + version/changelog | **10.2**, **10.3** *(à créer)* | **P0 MEP** |
-| Invités | Epic **7** | Post-MEP |
-| Multi-saisons actives, roster ligue | Epic **13** (13.6 annulé) | Post-iso |
-| Export **MIG-*** | **PLAN.md** | **MIG-4 done** |
-| Pages publiques saison/événement | **4.2** | Post-MEP |
+| Thème | Source | Priorité |
+|-------|--------|----------|
+| Historique ligue : relecture **compositions** passées | DW-020–021 | Post-V2.0.0 |
+| **Mon compte** hub membre | **17.24** | Done |
+| Compte : onglets + prefs entry | **17.34** | **P0 V2.0.0** |
+| Compte : MAJ email + MDP connecté | **1.6** | **P0 V2.0.0** |
+| Compte : suppression | **1.7** | **P0 V2.0.0** (exclu MEP → in cutover) |
+| Reset mot de passe | **1.3** | **Recette gate V2.0.0** |
+| **Annuaire public troupes** | **4.1** | Done |
+| **Audit** | **9.0** capture ; **9.1** UI | Done / post-V2.0.0 (**9.2**) |
+| **Notifications** | **8.1**, **3.21**, **8.3**, **8.2**, **8.5**, **6.10b** | Done ; **8.4** post-V2.0.0 |
+| Modales annonces UX | **6.15** | **P0 V2.0.0** |
+| PWA recette + MAJ + changelog + aides + icône | **10.4–10.7**, **10.2**, **10.3** | **P0 V2.0.0** |
+| Release pipeline tags | **OPS-4–7** | **P0 V2.0.0** |
+| Invités | Epic **7** | Post-V2.0.0 |
+| Multi-saisons actives | Epic **13** | Post-V2.0.0 |
+| Pages publiques saison/événement | **4.2** | Post-V2.0.0 |
 
 ---
 

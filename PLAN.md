@@ -12,7 +12,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md) and [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 - **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
-- **V2 deploy (Cloud Run + Neon):** Déploiement **development** (push `v2`) en place. Flux **staging** / **production** formalisés : scripts [`scripts/v2/promote-to-staging.sh`](scripts/v2/promote-to-staging.sh) et [`scripts/v2/release-production.sh`](scripts/v2/release-production.sh), branche prod V2 **`production-v2`** (workflow CI sans `main`). Guide : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) ; infra : [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). Première recette staging/prod à valider selon la checklist du guide (avant cutover utilisateurs).
+- **V2 deploy (Cloud Run + Neon):** Déploiement **development** (push `v2`) en place. Slice **MEP iso-V1** largement **done** (`sprint-status.yaml`). **Prochaine vague :** § **Wave V2.0.0** — polish PWA/compte/modales, pipeline **tag-based** staging→prod, puis **M4** cutover. SCP : [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md). Guide actuel (branche `production-v2`) : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) — **OPS-4/5** le remplaceront par deploy sur **tags semver**.
 
 ---
 
@@ -351,22 +351,24 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | Phase | Scope | Outcome |
 |-------|--------|---------|
 | **Clôture epics** | **3**, **17** → done | Hub / stats / filtres stabilisés |
-| **MEP iso-V1** | § **Wave iso-V1 — MEP remainder** | Parité V1 cutover La Malice |
+| **MEP iso-V1** | § **Wave iso-V1 — MEP remainder** | **Done** — gate closed |
+| **V2.0.0 cutover** | § **Wave V2.0.0** | Polish + release pipeline + **M4** |
 | **Replay prod gate** | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** | Après slice MEP ; schéma stable |
 | **M4 cutover** | production-v2, DNS | Décision PO |
 
-**Ordre de session actuel (2 stories max) — SCP [2026-06-02](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md) + [2026-06-01 notifications](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md) :**
+**Ordre de session actuel — SCP [V2.0.0 cutover](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) :**
 
-1. ~~**4.1** annuaire public~~ — **done** (voir **4.3** cartes logo/description)  
-2. ~~**9.0** audit capture backend~~ — **done**  
-3. ~~**8.1** push opt-in~~ — **done**  
-4. **`bmad-create-story` + dev** — **3.21** brouillon événement + publication / ouverture dispos — **P0 MEP**, **bloque 8.3**  
-5. **`bmad-create-story` + dev** — **8.3** notifications MEP (AVAILABILITY_OPENED + CONFIRMATION_REQUEST assignés)  
-6. **10.2** PWA update + **10.3** version/changelog footer *(create story 10.3)* — parallèle possible après **3.21**  
-7. **Recette** — **1.3** reset password sur staging (story **done** ; gate E2E)  
-8. **P1 post-MEP initial :** **8.5**, **8.2**, **8.6**, **6.10b**  
-9. **P2 :** **8.4** intents orga ops  
-10. Replay migration from scratch → **M4**
+1. ~~**MEP iso-V1 slice**~~ — **done** (4.1, 9.0, 3.21, 8.1, 8.3, 6.10b, 8.2, 8.5, 8.6, 9.1 — voir `sprint-status.yaml`)  
+2. **10.4** → **10.2** + **10.3** + **10.7** — PWA recette, MAJ client, version/changelog, icône HatCast 2  
+3. **17.34** + **1.6** — Mon compte (onglets) + email / MDP connecté  
+4. **6.15** — modales annonces (M3, notify manuel, anti-spam)  
+5. **10.5** + **10.6** — aides install contextuelles + opt-in notifs post-install  
+6. **Recette 1.3** + **1.7** — reset MDP gate + suppression compte  
+7. **OPS-4** → **OPS-6** — release staging par tag ; prod depuis artefact taggué  
+8. Tour écrans staging + replay migration × **≥3**  
+9. Tag **v2.0.0** staging → prod → **M4** → **OPS-7** (branches `v1` / `staging-v1`, rename `main` / `staging`)
+
+*(Historique MEP : SCP [2026-06-02 iso-V1](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md).)*
 
 ### Execution order revised (2026-06-01) — historique
 
@@ -405,22 +407,85 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 |----|-------|----------|--------|-------|
 | **4.1** | Annuaire public des troupes (cartes publiques ; hub gated) | **P0** | [x] | Story [4-1](../_bmad-output/implementation-artifacts/4-1-annuaire-public-des-troupes.md) ; **4.3** cartes logo/description |
 | **9.0** | Audit — capture backend (append-only, before/after, acteur) | **P0** | done | § Epic 9 |
-| **3.21** | Brouillon événement + publication / ouverture dispos | **P0** | backlog | **Bloque 8.3** — SCP [2026-06-01 notifications](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md) |
+| **3.21** | Brouillon événement + publication / ouverture dispos | **P0** | done | SCP [2026-06-01 notifications](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md) |
 | **8.1** | Opt-in global push navigateur | **P0** | done | Prérequis push pour **8.3** |
-| **8.3** | Notifications MEP (dispos publish + confirm assignés) | **P0** | backlog | **Depends 3.21** ; **8.5**/**8.4** post-MEP |
-| **8.5** | Extensions notifs membre (FYI, J-7/J-1, retrait…) | **P1** | backlog | Après **8.3** ; **8.2** catégories |
+| **8.3** | Notifications MEP (dispos publish + confirm assignés) | **P0** | done | **8.5**/**8.4** post-MEP |
+| **8.5** | Extensions notifs membre (FYI, J-7/J-1, retrait…) | **P1** | done | Après **8.3** ; **8.2** catégories |
 | **8.6** | Accusé proxy dispo / participation (orga → sujet lié) | **P1** | done | Stories **5.5** / **6.8** ; complète audit **9.0** |
-| **6.10b** | Rappel manuel dispos + garde anti-spam | **P1** | backlog | Extension 6.10 |
-| **8.4** | Notifications ops organisateurs (FR31b) | **P2** | backlog | Post-MEP |
-| **10.2** | Détection mise à jour client PWA (FR41) | **P0** | backlog | Bannière « Mettre à jour » |
-| **10.3** | Version app + changelog (footer / dialog) | **P0** | *story à créer* | Parité V1 `changelog.json` ; couplé release pipeline |
-| **1.3** | Reset mot de passe par email | P0 recette | done | Vérifier E2E staging avant M4 — pas de dev attendu |
+| **6.10b** | Rappel manuel dispos + garde anti-spam | **P1** | done | Extension 6.10 |
+| **8.4** | Notifications ops organisateurs (FR31b) | **P2** | backlog | Post-V2.0.0 |
+| **10.2** | Détection mise à jour client PWA (FR41) | **P0** | backlog | → § **Wave V2.0.0** |
+| **10.3** | Version app + changelog (footer / dialog) | **P0** | backlog | → § **Wave V2.0.0** |
+| **1.3** | Reset mot de passe par email | P0 recette | done | Recette gate — § **Wave V2.0.0** |
 
-**Hors MEP (confirmé PO) :** **1.7** suppression compte ; **9.1** / **9.2** consultation audit UI ; **4.2** pages publiques saison/événement.
+**Hors MEP initial (SCP 2026-06-02) — repris en V2.0.0 :** **1.6**, **1.7** (voir § Wave V2.0.0). **Toujours post-V2.0.0 :** **9.2** audit membre ; **4.2** pages publiques saison/événement.
 
-**Gate iso-V1 / MEP proposé :** recette staging Malice **+** slice ci-dessus **+** recette **1.3** **+** 1 cycle replay post-audit schema **+** replay × ≥3 juste avant prod.
+**Gate MEP iso-V1 :** **Closed 2026-06-02** — slice fonctionnelle livrée ; gate prod = **§ Wave V2.0.0** + replay migration.
 
 ---
+
+### Wave V2.0.0 — cutover prod (2026-06-02)
+
+**Décision PO :** SCP [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md). **Objectif :** release nommée **v2.0.0** — polish UX + sécurité compte + pipeline release par **tags** + bascule prod (**M4**).
+
+#### Wave A — PWA, release client & identité visuelle
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **10.4** | Recette manifest / icons / SW / `version.txt` | **P0** | backlog | Story à créer |
+| **10.2** | Détection MAJ client + bannière « Mettre à jour » (FR41) | **P0** | backlog | Reload au clic ; post-update → changelog |
+| **10.3** | Version app + dialog changelog (`changelog.json`) | **P0** | backlog | Story à créer ; parité V1 `ChangelogModal` |
+| **10.5** | Aides install contextuelles (iOS / Android / desktop) | **P0** | backlog | Parité V1 `PWAInstallModal` ; contenu à jour |
+| **10.6** | Opt-in notifications post-install / standalone | **P0** | backlog | Chemin explicite vers flow **8.1** |
+| **10.7** | Icône PWA HatCast 2 (192/512/maskable/favicon) | **P0** | backlog | Signal visuel migration V2 |
+
+#### Wave B — Mon compte & sécurité
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **17.34** | Mon compte — onglets / sections, raccourcis prefs | **P0** | backlog | UX [ux-design-mon-compte.md](_bmad-output/planning-artifacts/ux-design-mon-compte.md) |
+| **1.6** | Changement email + mot de passe connecté | **P0** | backlog | FR36 ; Google + email/password |
+| **1.3** | Reset mot de passe (mot de passe oublié) | P0 recette | done | Gate E2E staging Identity Platform |
+| **1.7** | Suppression de compte (zone sensible) | **P0** | backlog | FR37 ; exclu MEP → **in** V2.0.0 |
+
+#### Wave C — Modales annonces
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **6.15** | Refonte modales annonces + notify manuel simplifié | **P0** | backlog | M3 ; copy/WhatsApp ; anti-spam (pattern **6.10b**) ; intents draw/compo/dispos |
+
+#### Wave D — Pipeline release (OPS)
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **OPS-4** | Release staging par tag (`vX.Y.Z-rc.N`) | **P0** | backlog | Script `release-staging.sh` (à créer) |
+| **OPS-5** | Prod depuis artefact taggué (sans branche prod dédiée) | **P0** | backlog | Règle : tag prod = tag validé staging |
+| **OPS-6** | Couplage version / CHANGELOG / `changelog.json` / `version.txt` | **P0** | backlog | Réutilise `version-changelog.sh` |
+| **OPS-7** | Cutover branches post-M4 | **P0** | backlog | `v1`, `staging-v1` archives ; `v2`→`main` ; `staging-v2`→`staging` |
+
+**Dev local inchangé :** Neon branche **`local`** + `./scripts/start-dev.sh`. **Dev cloud inchangé :** push **`v2`**.
+
+**Flux cible :**
+
+```
+v2 → promote-to-staging.sh → release-staging.sh → tag rc → deploy staging
+→ recette → promote-tag-to-prod v2.0.0 → deploy prod (même tag)
+```
+
+#### Wave E — Gates cutover
+
+| ID | Titre | Condition |
+|----|-------|-----------|
+| **E1** | Tour écrans staging | Checklist parcours membre + orga signée PO |
+| **E2** | Replay migration | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** |
+| **E3** | Release v2.0.0 | Tag staging validé → tag prod |
+| **M4** | Bascule prod | DNS, OAuth, push VAPID, comms utilisateurs |
+| **E4** | Renommage branches | **OPS-7** après M4 |
+
+**Gate V2.0.0 / cutover :** Waves **A–D** done + **E1** + **E2** + recette **1.3** + tag **v2.0.0** staging puis prod.
+
+**Hors V2.0.0 (inchangé) :** **4.2**, **7.x**, **9.2**, **11.x**, **13.x**, **8.4** (ops orga).
+
 
 ### Execution order revised (2026-05-28) — historique
 
@@ -550,7 +615,8 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | **Hub / stats reviews** | **Done 2026-06** | **17-28**, **17-29**, **3-20** |
 | **MIG-4** | **Done 2026-06** | Import `deplacement` → `category=deplacements` |
 | **Annuaire public (4.1)** | **Done 2026-06** | Découvrir sans login ; hub gated membre/admin |
-| **Iso-V1 / MEP gate** | **Open** | § MEP remainder : **9.0**, **8.1/8.3**, **10.2/10.3**, recette **1.3** |
+| **Iso-V1 / MEP gate** | **Closed 2026-06-02** | Slice fonctionnelle done — voir `sprint-status.yaml` |
+| **V2.0.0 / cutover gate** | **Open** | § Wave V2.0.0 : **10.x**, **1.6/1.7**, **6.15**, **17.34**, **OPS-4–6**, replay ×3, recette **1.3** |
 
 ### PRD / UX references (V2)
 
