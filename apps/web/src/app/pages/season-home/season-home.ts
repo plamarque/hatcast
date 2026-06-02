@@ -93,12 +93,9 @@ import {
   SeasonFormDialog,
   type SeasonFormDialogData,
 } from '../seasons-list/season-form-dialog'
-import {
-  AvailabilityDialog,
-  type AvailabilityDialogData,
-  type AvailabilityDialogResult,
-} from '../../shared/availability/availability-dialog'
+import { openAgendaAvailabilityDialog } from '../../shared/availability/open-agenda-availability-dialog'
 import { normalizeRoleSlots } from '../../core/events/event-types'
+import { applyAvailabilityUpdateToAgendaEvent } from './season-participant-focus'
 
 const FETCH_PAGE_SIZE = 50
 
@@ -936,40 +933,24 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (!s || !ev || !this.canEditAvailability()) {
       return
     }
-    const availability = await this.availabilityApi.getMyAvailability(s.id, ev.id)
-    const initialStatus = availability.ok && availability.data ? availability.data.status : payload.status
-    const initialRoleKeys = availability.ok && availability.data ? availability.data.roleKeys : []
-    const initialComment =
-      availability.ok && availability.data ? (availability.data.comment ?? null) : null
-    const ref = this.dialog.open<AvailabilityDialog, AvailabilityDialogData, AvailabilityDialogResult>(
-      AvailabilityDialog,
-      {
-        data: {
-          seasonId: s.id,
-          eventId: ev.id,
-          eventTitle: ev.title,
-          eventStartsAt: ev.startsAt,
-          subjectDisplayName: this.myDisplayName(),
-          initialStatus,
-          troupeId: s.troupeId,
-          roleSlots: normalizeRoleSlots(ev.roleSlots),
-          initialRoleKeys,
-          initialComment,
-        },
-        width: 'min(100vw - 2rem, 26rem)',
-        autoFocus: 'first-tabbable',
-      },
-    )
-    ref.afterClosed().subscribe((result) => {
-      if (!result) {
-        return
-      }
-      this.events.update((list) =>
-        list.map((e) =>
-          e.id === ev.id ? { ...e, myAvailabilityStatus: result.status } : e,
-        ),
-      )
+    const result = await openAgendaAvailabilityDialog(this.dialog, this.availabilityApi, {
+      seasonId: s.id,
+      eventId: ev.id,
+      eventTitle: ev.title,
+      eventStartsAt: ev.startsAt,
+      subjectDisplayName: this.myDisplayName(),
+      troupeId: s.troupeId,
+      roleSlots: normalizeRoleSlots(ev.roleSlots),
+      fallbackStatus: payload.status,
     })
+    if (!result) {
+      return
+    }
+    this.events.update((list) =>
+      list.map((e) =>
+        e.id === ev.id ? applyAvailabilityUpdateToAgendaEvent(e, result.status) : e,
+      ),
+    )
   }
 
   protected loadMoreEvents(): void {

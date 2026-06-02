@@ -34,3 +34,20 @@ export function participantFocusFromEvent(ev: {
     inTeam: false,
   }
 }
+
+/** Keeps list cards in sync after the availability dialog (UI reads participantFocus first). */
+export function applyAvailabilityUpdateToAgendaEvent<
+  T extends {
+    myAvailabilityStatus?: AvailabilityStatus | null
+    participantFocus?: ParticipantFocusSummary | null
+  },
+>(ev: T, status: AvailabilityStatus): T {
+  if (!ev.participantFocus) {
+    return { ...ev, myAvailabilityStatus: status }
+  }
+  return {
+    ...ev,
+    myAvailabilityStatus: status,
+    participantFocus: { ...ev.participantFocus, availabilityStatus: status },
+  }
+}

@@ -1,14 +1,19 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
+import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 
+import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import {
   type AvailabilityStatus,
 } from '../../core/availability/availability-status'
-import { AuthApiService } from '../../core/auth/auth-api.service'
+import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { EventApiService } from '../../core/events/event-api.service'
+import { normalizeRoleSlots } from '../../core/events/event-types'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
   clearStoredUserAgendaFilters,
   parseAgendaFilterUuid,
@@ -38,6 +43,11 @@ import { isEventDraft } from '../../core/events/event-draft'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
+import {
+  applyAvailabilityUpdateToAgendaEvent,
+  participantFocusFromEvent,
+} from '../season-home/season-participant-focus'
+import { openAgendaAvailabilityDialog } from '../../shared/availability/open-agenda-availability-dialog'
 
 const PAGE_SIZE = 50
 
@@ -50,6 +60,7 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
   selector: 'app-user-agenda',
   imports: [
     MatButtonModule,
+    MatDialogModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
@@ -66,13 +77,19 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
 export class UserAgenda implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly api = inject(UserAgendaApiService)
+  private readonly availabilityApi = inject(AvailabilityApiService)
+  private readonly dialog = inject(MatDialog)
+  private readonly eventApi = inject(EventApiService)
   private readonly router = inject(Router)
   private readonly route = inject(ActivatedRoute)
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
   private readonly filterPanel = inject(FilterPanelService)
+  private readonly troupeContext = inject(TroupeContextService)
 
   private loadGeneration = 0
+
+  private readonly user = signal<UserSummary | null>(null)
 
   protected readonly joiningDemo = this.demoJoin.joining
 
@@ -135,6 +152,8 @@ export class UserAgenda implements OnInit {
       await this.redirectToLogin()
       return
     }
+    this.user.set(r.data.user)
+    await this.troupeContext.load()
     this.loadingSession.set(false)
     this.bootstrapFiltersFromRoute()
     await this.syncInitialFilterUrl()
@@ -278,6 +297,49 @@ export class UserAgenda implements OnInit {
 
   protected openEvent(item: UserAgendaItem): void {
     void this.router.navigate(saisonEventPath(item.seasonSlug, item.eventSlug))
+  }
+
+  protected canEditAvailabilityForItem(item: UserAgendaItem): boolean {
+    return (
+      this.troupeContext
+        .activeTroupes()
+        .some((troupe) => troupe.id === item.troupeId && troupe.membership.status === 'ACTIVE') &&
+      !participantFocusFromEvent(item).inTeam
+    )
+  }
+
+  protected async openAvailability(
+    item: UserAgendaItem,
+    status: AvailabilityStatus,
+  ): Promise<void> {
+    if (!this.canEditAvailabilityForItem(item)) {
+      return
+    }
+    const eventRes = await this.eventApi.getEvent(item.seasonId, item.eventId)
+    const roleSlots =
+      eventRes.ok && eventRes.data
+        ? normalizeRoleSlots(eventRes.data.roleSlots)
+        : normalizeRoleSlots({})
+    const result = await openAgendaAvailabilityDialog(this.dialog, this.availabilityApi, {
+      seasonId: item.seasonId,
+      eventId: item.eventId,
+      eventTitle: item.title,
+      eventStartsAt: item.startsAt,
+      subjectDisplayName: this.troupeContext.currentUserDisplayLabel(this.user()),
+      troupeId: item.troupeId,
+      roleSlots,
+      fallbackStatus: status,
+    })
+    if (!result) {
+      return
+    }
+    this.items.update((list) =>
+      list.map((row) =>
+        row.eventId === item.eventId
+          ? applyAvailabilityUpdateToAgendaEvent(row, result.status)
+          : row,
+      ),
+    )
   }
 
   protected readonly isEventDraft = isEventDraft

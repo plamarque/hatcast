@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatParticipantFocusLabel } from './season-participant-focus'
+import {
+  applyAvailabilityUpdateToAgendaEvent,
+  formatParticipantFocusLabel,
+} from './season-participant-focus'
 
 describe('formatParticipantFocusLabel', () => {
   it('formats in-team role summary', () => {
@@ -26,5 +29,31 @@ describe('formatParticipantFocusLabel', () => {
       inTeam: false,
     })
     expect(label).toBe('Dispo · pas sélectionné')
+  })
+})
+
+describe('applyAvailabilityUpdateToAgendaEvent', () => {
+  it('updates participantFocus.availabilityStatus when focus is present', () => {
+    const updated = applyAvailabilityUpdateToAgendaEvent(
+      {
+        myAvailabilityStatus: 'unknown',
+        participantFocus: {
+          availabilityStatus: 'unknown',
+          inTeam: false,
+        },
+      },
+      'available',
+    )
+    expect(updated.myAvailabilityStatus).toBe('available')
+    expect(updated.participantFocus?.availabilityStatus).toBe('available')
+  })
+
+  it('updates only myAvailabilityStatus when participantFocus is absent', () => {
+    const updated = applyAvailabilityUpdateToAgendaEvent(
+      { myAvailabilityStatus: 'unknown', participantFocus: null },
+      'unavailable',
+    )
+    expect(updated.myAvailabilityStatus).toBe('unavailable')
+    expect(updated.participantFocus).toBeNull()
   })
 })
