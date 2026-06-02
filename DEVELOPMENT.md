@@ -51,19 +51,28 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 1. Créer un client OAuth **Web** dans Google Cloud Console ; ajouter l’origine JavaScript **`https://localhost:4200`** (dev Angular avec TLS par défaut, voir `apps/web/angular.json` → `serve.options.ssl`). Ajouter d’autres origines si vous utilisez `127.0.0.1`, le réseau local (`--host`), ou du HTTP sans SSL.
 2. **Neon (V2)** : créer ou utiliser la branche **`local`** dans le projet Neon ; renseigner `HATCAST_DATASOURCE_URL`, `HATCAST_DATASOURCE_USERNAME`, `HATCAST_DATASOURCE_PASSWORD` dans **`.env`** (voir [`.env.example`](.env.example)). Cette branche est **distincte** de **`development`**, utilisée par Cloud Run `hatcast-v2-dev` — voir [ADR-0009](docs/adr/0009-neon-postgres-environments.md).
-3. **API** : `cd services/api && export HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID="…" && ./gradlew bootRun` (port **8080**).
+3. **API** : `cd services/api && export HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID="…" && ./gradlew bootRun` (port **8080**). Pour **email / mot de passe (Identity Platform)**, renseigner aussi `GOOGLE_APPLICATION_CREDENTIALS` (compte de service GCP) dans `.env` — voir [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §6.1.
 
-**Web Push (V2, story 8.1 + 8.3)** : renseigner `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` et `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` dans `.env` (même paire que V1 / Firebase Console). L’API expose la clé publique via `GET /v1/config/public`. Le mode dev standard (`ng serve` development) **désactive** le service worker → pas de push. Pour recetter push **et** email en local :
+**Identity Platform — config client Angular (Google + email sur `/connexion`)** : le SPA lit la config au **build** (`environment.*.ts`), pas le `.env` à l’exécution. Deux chemins :
+
+| Mode | Fichier | Comment le remplir |
+|------|---------|-------------------|
+| Dev classique (`./scripts/start-dev.sh`, `ng serve`) | `apps/web/src/environments/environment.development.ts` | Éditer `googleOAuthWebClientId` + bloc `firebase` (`apiKey`, `authDomain`, `projectId`) |
+| Recette prod locale (`--with-push`) | `apps/web/src/environments/environment.ts` | `.env` : `HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID`, `HATCAST_FIREBASE_*` — `start-dev.sh` appelle [`inject-google-client-id.mjs`](apps/web/scripts/inject-google-client-id.mjs) **avant** le build prod (fichier régénéré localement : **ne pas committer**) |
+| Cloud Run / CI | `environment.ts` (build Docker) | Secrets GitHub `GOOGLE_OAUTH_WEB_CLIENT_ID`, `HATCAST_FIREBASE_*` — voir [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) |
+
+**Web Push (V2, story 8.1 + 8.3)** : renseigner `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` et `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` dans `.env` (même paire que V1 / Firebase Console). L’API expose la clé publique via `GET /v1/config/public`. Le mode dev standard (`ng serve` development) **désactive** le service worker → pas de push. Pour recetter push, PWA, **et** auth email comme en prod :
 
 ```bash
-# .env : HATCAST_WEB_PUSH_VAPID_* + HATCAST_NOTIFICATION_EMAIL_ENABLED=true
+# .env : HATCAST_WEB_PUSH_VAPID_* + HATCAST_FIREBASE_* + HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID
+# optionnel : HATCAST_NOTIFICATION_EMAIL_ENABLED=true (Mailpit)
 ./scripts/start-dev.sh --with-push
 ```
 
-Équivalent : `HATCAST_START_DEV_WITH_PUSH=1`. Alias : `--push-test`. Le front tourne en **`--configuration=production`** (SW actif) ; Mailpit reste géré comme d’habitude si l’email est activé. Déclencheur MEP : **Publier le spectacle** (`open-availability`), pas la seule création brouillon. Voir [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
+Équivalent : `HATCAST_START_DEV_WITH_PUSH=1`. Alias : `--push-test`. Le front : **build Angular production + watch** vers `dist/`, servi en **HTTPS statique** (port 4200, service worker actif) — pas `ng serve`. Mailpit reste géré comme d’habitude si l’email est activé. Déclencheur MEP : **Publier le spectacle** (`open-availability`), pas la seule création brouillon. Voir [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
 
 **Notifications email (V2, story 8.3)** : dans `.env`, `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` (+ optionnel `HATCAST_NOTIFICATION_EMAIL_FROM`). Avec **`./scripts/start-dev.sh`** (recommandé) : le script démarre **Mailpit** via Docker, force `SPRING_MAIL_HOST=127.0.0.1:1025` pour l’API, attend le SMTP, arrête Mailpit à la fin. UI de recette : **http://127.0.0.1:8025**. Pas de `SPRING_MAIL_*` local requis (les lignes Gmail du `.env` sont ignorées par le script). **`npm run dev:api` seul** ne démarre pas Mailpit — utiliser `start-dev.sh` pour tester l’envoi email. Staging/prod : secrets GitHub `SPRING_MAIL_*` (Gmail), pas Mailpit.
-4. **Client** : dans `apps/web`, éditer `src/environments/environment.development.ts` et renseigner `googleOAuthWebClientId` (même valeur publique que l’API), puis `npm install && npm run dev` (port **4200** en **HTTPS** ; le proxy envoie `/v1` et `/actuator` vers l’API en HTTP, voir `proxy.conf.json`). Routes : **`/`** redirige selon la session ; **`/connexion`** (Google) ; **`/accueil`** une fois connecté. Au premier chargement, le navigateur peut avertir sur le certificat de dev — accepter pour localhost.
+4. **Client** : dans `apps/web`, éditer `src/environments/environment.development.ts` et renseigner `googleOAuthWebClientId` (même valeur publique que l’API) et, pour email/mot de passe, le bloc `firebase`, puis `npm install && npm run dev` (port **4200** en **HTTPS** ; le proxy envoie `/v1` et `/actuator` vers l’API en HTTP, voir `proxy.conf.json`). Routes : **`/`** redirige selon la session ; **`/connexion`** (Google + email si config Firebase présente) ; **`/accueil`** une fois connecté. Au premier chargement, le navigateur peut avertir sur le certificat de dev — accepter pour localhost.
 
 **Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe.
 

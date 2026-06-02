@@ -53,10 +53,12 @@ Fichier **court** pour les skills BMad (`bmad-dev-story`, `bmad-create-story`, `
 # Email story 8.3 : HATCAST_NOTIFICATION_EMAIL_ENABLED=true dans .env
 # → Mailpit Docker (UI http://127.0.0.1:8025), arrêt auto à la fin du script
 
-# Push story 8.3 (service worker actif) — cumulable avec Mailpit
+# Push / PWA / auth prod-like (service worker actif) — cumulable avec Mailpit
 ./scripts/start-dev.sh --with-push
-# Requiert HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY + PRIVATE_KEY dans .env
-# Déclencheur : publier un spectacle (open-availability), pas simple brouillon
+# .env requis : HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY + PRIVATE_KEY
+# .env pour email/mot de passe sur /connexion : HATCAST_FIREBASE_* + HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID
+# → start-dev.sh régénère environment.ts (ne pas committer) puis build prod + watch + serve dist/ HTTPS
+# Déclencheur push MEP : publier un spectacle (open-availability), pas simple brouillon
 
 # Tests front
 npm run test -w @hatcast/web -- --watch=false

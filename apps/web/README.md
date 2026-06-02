@@ -17,7 +17,9 @@ Ouvrir **`https://localhost:4200/`** (TLS activé dans `angular.json` pour colle
 
 Pour Google Identity Services : renseigner `googleOAuthWebClientId` dans `src/environments/environment.development.ts` (profil `development` ; voir `angular.json` → `fileReplacements`). Pour **email / mot de passe (Identity Platform)**, renseigner aussi le bloc `firebase` dans ce fichier.
 
-**Build Docker / CI** : [`scripts/inject-google-client-id.mjs`](scripts/inject-google-client-id.mjs) régénère `environment.ts` avec `GOOGLE_OAUTH_WEB_CLIENT_ID` et, si présents, `HATCAST_FIREBASE_*`, `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` (voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md)).
+**Recette prod locale (`./scripts/start-dev.sh --with-push`)** : le script injecte `environment.ts` depuis le `.env` racine (`HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID`, `HATCAST_FIREBASE_*`, `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY`) via [`scripts/inject-google-client-id.mjs`](scripts/inject-google-client-id.mjs) avant le build production — ne pas committer `environment.ts` après recette.
+
+**Build Docker / CI** : même script `inject-google-client-id.mjs` au build image (secrets GitHub) — voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
 
 ## Code scaffolding
 
