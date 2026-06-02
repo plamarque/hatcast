@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { getPwaBrowserInfo } from './pwa-browser-info';
 import { buildPwaInstallInstructions } from './pwa-install-instructions';
 
+const CHROME_ANDROID_UA =
+  'Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+
 describe('buildPwaInstallInstructions', () => {
   it('returns Chrome desktop steps for Windows Chrome UA', () => {
     const info = getPwaBrowserInfo(
@@ -11,7 +14,18 @@ describe('buildPwaInstallInstructions', () => {
     const content = buildPwaInstallInstructions(info);
     expect(content.title).toContain('Chrome');
     expect(content.steps.length).toBeGreaterThan(0);
-    expect(content.canRetry).toBe(true);
+    expect(content.alternativeText).toContain('/icons/chrome-cast-save-share-menu.png');
+    expect(content.alternativeText).toContain('Caster, enregistrer et partager');
+  });
+
+  it('returns Chrome Android steps without astuce or note importante', () => {
+    const info = getPwaBrowserInfo(CHROME_ANDROID_UA);
+    expect(info.isChromeMobile).toBe(true);
+    const content = buildPwaInstallInstructions(info);
+    expect(content.title).toBe('Chrome sur Android');
+    expect(content.alternativeText).toBe('');
+    expect(content.warningText).toBe('');
+    expect(content.steps.some((s) => s.includes('⋮'))).toBe(true);
   });
 
   it('flags Firefox as alternative-needed', () => {
@@ -20,7 +34,6 @@ describe('buildPwaInstallInstructions', () => {
     );
     const content = buildPwaInstallInstructions(info);
     expect(content.isAlternativeNeeded).toBe(true);
-    expect(content.canRetry).toBe(false);
   });
 
   it('flags Firefox on Android before generic Android copy', () => {
@@ -56,7 +69,9 @@ describe('buildPwaInstallInstructions', () => {
     const content = buildPwaInstallInstructions(info);
     expect(content.title).toContain('Edge');
     expect(content.title).toContain('Windows');
-    expect(content.steps.some((s) => s.includes('Installer ⊕'))).toBe(true);
+    expect(content.steps.some((s) => s.includes('/icons/chrome-install-address-bar.png'))).toBe(
+      true,
+    );
     expect(content.alternativeText).toContain('Applications');
   });
 
@@ -97,22 +112,5 @@ describe('buildPwaInstallInstructions', () => {
     const content = buildPwaInstallInstructions(info);
     expect(content.title).toBe('Navigateur Android');
     expect(content.warningText).toContain('Chrome ou Samsung Internet');
-  });
-
-  it('prepends dev cert warning when devCertBlocked', () => {
-    const info = getPwaBrowserInfo(
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    );
-    const content = buildPwaInstallInstructions(info, { devCertBlocked: true });
-    expect(content.warningText).toContain('Non sécurisé');
-    expect(content.warningText).toContain('localhost:4200');
-  });
-
-  it('appends native prompt failed hint when option set', () => {
-    const info = getPwaBrowserInfo(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    );
-    const content = buildPwaInstallInstructions(info, { nativePromptFailed: true });
-    expect(content.warningText).toContain("n'a pas répondu");
   });
 });

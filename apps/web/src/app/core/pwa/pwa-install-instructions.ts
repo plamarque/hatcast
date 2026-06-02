@@ -1,5 +1,4 @@
 import type { PwaBrowserInfo } from './pwa-browser-info';
-import { DEV_CERT_INSTALL_WARNING } from './pwa-install-origin';
 
 export interface PwaInstallInstructionContent {
   title: string;
@@ -9,21 +8,23 @@ export interface PwaInstallInstructionContent {
   alternativeText: string;
   successText: string;
   warningText: string;
-  canRetry: boolean;
-}
-
-export interface PwaInstallInstructionOptions {
-  devCertBlocked?: boolean;
-  nativePromptFailed?: boolean;
 }
 
 const ICON_SNIPPET =
   '<img src="/icons/logo-hatcast-2.svg" alt="" width="20" height="20" style="vertical-align:middle;margin:0 4px;border-radius:4px" />';
 
-export function buildPwaInstallInstructions(
-  info: PwaBrowserInfo,
-  options: PwaInstallInstructionOptions = {},
-): PwaInstallInstructionContent {
+/** PNG dérivé de la capture Chrome barre d’adresse (voir chrome-install-address-bar@2x.png). */
+const CHROME_INSTALL_ICON_SNIPPET =
+  '<img src="/icons/chrome-install-address-bar.png" srcset="/icons/chrome-install-address-bar.png 1x, /icons/chrome-install-address-bar@2x.png 2x" alt="" width="20" height="20" style="vertical-align:middle;margin:0 4px" aria-hidden="true" />';
+
+const CHROMIUM_ADDRESS_BAR_INSTALL_STEP = `Cherchez l'icône ${CHROME_INSTALL_ICON_SNIPPET} <strong>Installer</strong> dans la barre d'adresse`;
+
+const CHROME_CAST_SAVE_ICON_SNIPPET =
+  '<img src="/icons/chrome-cast-save-share-menu.png" srcset="/icons/chrome-cast-save-share-menu.png 1x, /icons/chrome-cast-save-share-menu@2x.png 2x" alt="" width="20" height="20" style="vertical-align:middle;margin:0 4px" aria-hidden="true" />';
+
+const CHROME_DESKTOP_MENU_INSTALL_TIP = `Si l'icône n'est pas visible : Menu ⋮ → ${CHROME_CAST_SAVE_ICON_SNIPPET} <strong>Caster, enregistrer et partager</strong> → <strong>Installer la page en tant qu'appli</strong>`;
+
+export function buildPwaInstallInstructions(info: PwaBrowserInfo): PwaInstallInstructionContent {
   const {
     isChromeIOS,
     isFirefoxIOS,
@@ -100,8 +101,6 @@ export function buildPwaInstallInstructions(
       'Sélectionnez <strong>"Ajouter à l\'écran d\'accueil"</strong>',
       "Confirmez l'ajout",
     );
-    alternativeText =
-      'Si disponible, vous pouvez aussi chercher une icône "Installer ⊕" dans la barre d\'adresse.';
     successText = `🎉 Cette icône ${ICON_SNIPPET} <strong>HatCast</strong> apparaîtra sur votre écran d'accueil et dans le tiroir d'applications. L'app fonctionnera comme une application native avec ses propres notifications !`;
   } else if (isSamsung) {
     title = 'Samsung Internet';
@@ -139,12 +138,11 @@ export function buildPwaInstallInstructions(
   } else if (isChromeDesktop) {
     title = `Chrome sur ${isWindows ? 'Windows' : isMac ? 'Mac' : 'Linux'}`;
     steps.push(
-      "Cherchez l'icône <strong>Installer ⊕</strong> dans la barre d'adresse",
+      CHROMIUM_ADDRESS_BAR_INSTALL_STEP,
       'Cliquez dessus et sélectionnez <strong>"Installer"</strong>',
       "Confirmez l'installation",
     );
-    alternativeText =
-      "Si l'icône n'est pas visible : Menu ⋮ → \"Caster, enregistrer et partager\" → \"Installer la page en tant qu'appli\"";
+    alternativeText = CHROME_DESKTOP_MENU_INSTALL_TIP;
     successText = `🎉 <strong>HatCast</strong> s'installera comme une vraie application ! Cette icône ${ICON_SNIPPET} apparaîtra dans ${
       isMac
         ? 'le dossier Applications et sera accessible via le Launchpad et Spotlight. Vous pourrez l\'épingler au Dock'
@@ -155,7 +153,7 @@ export function buildPwaInstallInstructions(
   } else if (isEdge && !isIOS) {
     title = `Edge sur ${isWindows ? 'Windows' : isMac ? 'Mac' : 'Linux'}`;
     steps.push(
-      "Cherchez l'icône <strong>Installer ⊕</strong> dans la barre d'adresse",
+      CHROMIUM_ADDRESS_BAR_INSTALL_STEP,
       'Cliquez dessus et sélectionnez <strong>"Installer"</strong>',
       "Confirmez l'installation",
     );
@@ -178,27 +176,12 @@ export function buildPwaInstallInstructions(
     successText = `🎉 <strong>HatCast.app</strong> sera installée dans le dossier Applications ! Cette icône ${ICON_SNIPPET} apparaîtra automatiquement au Dock et fonctionnera comme une app classique (quittable via ⌘Q, listée comme app native) !`;
   } else {
     steps.push(
-      'Recherchez dans votre navigateur une icône <strong>⊕</strong> ou <strong>"installer"</strong> dans la barre d\'adresse',
+      `Recherchez dans votre navigateur l'icône ${CHROME_INSTALL_ICON_SNIPPET} <strong>Installer</strong> ou une option <strong>"installer"</strong> dans la barre d'adresse`,
       'OU cherchez dans le menu une option comme :<br>• "Installer cette application/page"<br>• "Ajouter à l\'écran d\'accueil"',
       'OU utilisez le bouton <strong>Partager → "Ajouter au Dock/écran d\'accueil"</strong>',
     );
     warningText =
       "Si aucune option n'est disponible, votre navigateur ne supporte peut-être pas cette fonctionnalité.";
-  }
-
-  const canRetry = (isChromeDesktop || isChromeMobile) && !isAlternativeNeeded;
-
-  const devWarnings: string[] = [];
-  if (options.devCertBlocked) {
-    devWarnings.push(DEV_CERT_INSTALL_WARNING);
-  }
-  if (options.nativePromptFailed && !options.devCertBlocked) {
-    devWarnings.push(
-      "Le navigateur n'a pas répondu à la demande d'installation. Utilisez les étapes manuelles ci-dessous ou réessayez depuis https://localhost:4200.",
-    );
-  }
-  if (devWarnings.length > 0) {
-    warningText = devWarnings.join('\n\n');
   }
 
   return {
@@ -209,6 +192,5 @@ export function buildPwaInstallInstructions(
     alternativeText,
     successText,
     warningText,
-    canRetry,
   };
 }

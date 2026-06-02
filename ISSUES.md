@@ -44,7 +44,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Severity**: Low (dev/recette only; production uses trusted certs)
 - **Affected area**: PWA install (Story 10.1) — Chrome desktop on `*.ts.net` (Tailscale Serve) with Angular basic-ssl / self-signed certificate
 - **Observed behavior**: Chrome shows « Not Secure » despite `https://`. Install banner and address-bar ⊕ icon appear, but clicking **Installer** or the native install control does nothing ( `beforeinstallprompt.prompt()` may hang ).
-- **Expected behavior**: On trusted HTTPS (production) or `https://localhost:4200`, native install works. On dev Tailscale URL, UI should explain the limitation and suggest localhost or mobile.
+- **Expected behavior**: On trusted HTTPS (production) or `https://localhost:4200`, native install works. On dev Tailscale URL, native install is skipped (manual steps dialog only); limitation documented for developers in [DEVELOPMENT.md](DEVELOPMENT.md) and this issue — not shown to end users in production.
 - **Notes/context**: Discovered 2026-06-02 during Story 10.2 recette. Workaround: test desktop PWA install via `https://localhost:4200` with `--with-push`. Mobile tailnet install may work if cert is accepted on device.
 
 ### LIMIT-002 — API integration suite shares one DB; `TroupeMembershipIntegrationTest` flaky in full run

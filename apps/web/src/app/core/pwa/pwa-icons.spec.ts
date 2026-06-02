@@ -22,6 +22,10 @@ const REQUIRED_ICON_FILES = [
   'favicon-32.png',
   'icon-48x48.png',
   'mstile-150x150.png',
+  'chrome-install-address-bar.png',
+  'chrome-install-address-bar@2x.png',
+  'chrome-cast-save-share-menu.png',
+  'chrome-cast-save-share-menu@2x.png',
 ] as const;
 
 /** HatCast 2 brand tokens — sync with logo-hatcast-2.svg */

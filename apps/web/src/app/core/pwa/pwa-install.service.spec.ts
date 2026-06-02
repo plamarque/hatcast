@@ -175,8 +175,26 @@ describe('PwaInstallService', () => {
     expect(dialogOpen).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({ browserInfo: expect.anything() }),
+        data: expect.objectContaining({
+          browserInfo: expect.anything(),
+          allowNativeRetry: false,
+        }),
       }),
     );
+  });
+
+  it('sets allowNativeRetry when native prompt is available on trusted origin', () => {
+    vi.stubGlobal('location', { hostname: 'localhost' });
+    const service = createService();
+    const event = new Event('beforeinstallprompt', { cancelable: true }) as Event & {
+      platforms: string[];
+      userChoice: Promise<{ outcome: 'dismissed' }>;
+      prompt: () => Promise<void>;
+    };
+    event.platforms = ['web'];
+    event.userChoice = Promise.resolve({ outcome: 'dismissed' });
+    event.prompt = vi.fn();
+    window.dispatchEvent(event);
+    expect(service.canRetryNativeInstall()).toBe(true);
   });
 });

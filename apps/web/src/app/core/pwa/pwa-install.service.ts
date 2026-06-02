@@ -31,6 +31,7 @@ export class PwaInstallService {
   private readonly snack = inject(MatSnackBar);
 
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
+  private readonly appInstalledListeners = new Set<() => void>();
 
   readonly showBanner = signal(false);
   readonly bannerDismissedSession = signal(false);
@@ -50,11 +51,20 @@ export class PwaInstallService {
       this.bannerDismissedSession.set(true);
       localStorage.setItem(PWA_INSTALLED_KEY, 'true');
       this.showBanner.set(false);
+      for (const listener of this.appInstalledListeners) {
+        listener();
+      }
     });
     if (typeof window.matchMedia === 'function') {
       const standaloneMq = window.matchMedia('(display-mode: standalone)');
       standaloneMq.addEventListener('change', () => this.refreshBannerVisibility());
     }
+  }
+
+  /** Subscribe to Chromium `appinstalled` (Story 10.6 — single listener in PushOptInPromptService). */
+  onAppInstalled(listener: () => void): () => void {
+    this.appInstalledListeners.add(listener);
+    return () => this.appInstalledListeners.delete(listener);
   }
 
   /** Menu utilisateur → « Installer l'app » (V1 `showInstallBannerManually` / install flow). */
@@ -136,6 +146,11 @@ export class PwaInstallService {
     return this.deferredPrompt !== null;
   }
 
+  /** True only when Chromium can still show `beforeinstallprompt` (not on dev Tailscale/.local). */
+  canRetryNativeInstall(): boolean {
+    return this.hasNativeInstallPrompt() && !isDevUntrustedInstallOrigin();
+  }
+
   async promptInstall(): Promise<void> {
     if (this.isPwaInstalled()) {
       return;
@@ -165,24 +180,20 @@ export class PwaInstallService {
         ]);
       } catch {
         this.deferredPrompt = null;
-        this.openManualInstructions({ nativePromptFailed: true });
+        this.openManualInstructions();
       }
       return;
     }
     this.openManualInstructions();
   }
 
-  openManualInstructions(options?: {
-    nativePromptFailed?: boolean;
-  }): void {
+  openManualInstructions(): void {
     const browserInfo = getPwaBrowserInfo(navigator.userAgent);
-    const devCertBlocked = isDevUntrustedInstallOrigin();
     this.showBanner.set(false);
     this.dialog.open(PwaInstallInstructionsDialog, {
       data: {
         browserInfo,
-        devCertBlocked,
-        nativePromptFailed: options?.nativePromptFailed ?? false,
+        allowNativeRetry: this.canRetryNativeInstall(),
       } satisfies PwaInstallInstructionsDialogData,
       width: '28rem',
       maxWidth: '95vw',

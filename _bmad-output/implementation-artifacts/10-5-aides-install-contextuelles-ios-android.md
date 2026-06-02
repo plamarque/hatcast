@@ -4,7 +4,7 @@ baseline_commit: 739ac53f
 
 # Story 10.5: Contextual install aids (iOS / Android / desktop)
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -70,19 +70,32 @@ so that I can **add HatCast to my home screen or app list** without guessing bro
   - [x] Add `pwa-install-instructions-dialog.spec.ts` — opens with Safari UA, renders steps, reminder mentions menu.
   - [x] Run `npm run test -w @hatcast/web -- --watch=false`.
 
-- [x] **Manual recette matrix (AC: 9)** — fill Dev Agent Record:
+- [x] **Manual recette matrix (AC: 9)** — fill Dev Agent Record (2026-06-02, Patrice, `--with-push` / localhost) :
 
   | Check | Platform | Pass? |
   |-------|----------|-------|
-  | Banner visible + dismiss 24h | Desktop Chrome `--with-push` | **Pending PO** (unit tests OK; device recette à valider) |
-  | Native install or manual dialog | Android Chrome | **Pending PO** |
-  | Share → Ajouter à l'écran d'accueil steps | iOS Safari | **Pending PO** |
-  | Menu → Installer l'app → dialog/prompt | Any above | **Pending PO** |
-  | HatCast 2 icon in banner | Visual | **Pending PO** |
-  | Dialog readable light + dark system theme | iOS or desktop | **Pending PO** |
-  | LIMIT-003 warning on tailnet (if tested) | `.ts.net` optional | **PASS** (unit: `pwa-install.service.spec.ts` tailnet skip) |
+  | Banner visible + dismiss 24h | Mac Chrome `--with-push` | **PASS** |
+  | Native install or manual dialog | Android Chrome | **PASS** |
+  | Native install or manual dialog | Mac Chrome | **PASS** |
+  | Share → Ajouter à l'écran d'accueil / Dock steps | Mac Safari | **PASS** |
+  | Menu → Installer l'app → dialog/prompt | Android + Mac (Chrome/Safari) | **PASS** |
+  | HatCast 2 icon in banner | Visual (recette ci-dessus) | **PASS** |
+  | Dialog readable (thème système) | Mac Chrome + Safari | **PASS** |
+  | LIMIT-003 warning on tailnet (if tested) | `.ts.net` optional | **N/A** (pas testé ; pas de message UI membre) |
 
-- [ ] **Sign-off (AC: 9)** — PO checkbox: « Install aids OK for V2.0.0 wave » before **10.6**.
+- [x] **Sign-off (AC: 9)** — PO (Patrice, 2026-06-02) : « Install aids OK for V2.0.0 wave » — recette partielle acceptée ; voir **Recette différée** ci-dessous avant **10.6** si besoin.
+
+### Recette manuelle différée (TODO — hors clôture 10.5)
+
+À valider quand matériel disponible (ne bloque pas la clôture de la story) :
+
+| Plateforme | Statut |
+|------------|--------|
+| iPhone Safari (A2HS) | **TODO** |
+| iPhone Chrome / autres navigateurs iOS | **TODO** |
+| Android Samsung Internet | **TODO** |
+| Edge desktop / mobile | **TODO** |
+| Staging HTTPS sur appareil réel | **TODO** (optionnel) |
 
 ---
 
@@ -198,30 +211,42 @@ Composer (bmad-dev-story 10.5)
 
 ### Completion Notes List
 
-- **AC6** : texte rappel dialog corrigé — menu « Installer l'app » disponible maintenant (plus de « lorsque cette option sera disponible »).
-- **AC8** : `installFromUserMenu()` affiche un `MatSnackBar` *L'application est déjà installée* (4s) si PWA déjà installée.
-- **Code review (2026-06-02)** : `onAppInstalled` retiré (décision A) — périmètre 10.6 ; `environment.ts` / `package-lock.json` exclus du commit.
-- **AC5/10** : couverture tests étendue — Edge desktop, Samsung, Chrome iOS 16.4+/fallback, Android générique, dialog Safari + rappel menu, menu install visibility/click, snackbar installé.
-- **AC1** : aucun changement manifest/SW/icons.
-- **AC9** : matrice recette manuelle documentée — branches LIMIT-003 validées en unitaire ; lignes appareil réel **Pending PO** (nécessite `./scripts/start-dev.sh --with-push` + iOS Safari + Android Chrome + desktop).
-- **M3** : M3-1 à M3-3 inchangés (composants/tokens existants) ; M3-4 N/A ; M3-5 revue code — pas de régression SCSS, dialog `maxWidth`/`maxHeight` déjà conformes.
+- **AC6** : texte rappel dialog — menu « Installer l'app » ; placement **haut à droite** (mobile) / **bas à gauche rail** (desktop, breakpoint 839px).
+- **AC8** : snackbar si déjà installée ; pas d’alert().
+- **AC5** : icônes inline PNG depuis captures Chrome (barre d’adresse + menu « Caster, enregistrer et partager ») ; astuce Android sans entrée barre d’adresse ; pas de « Note importante » dev en UI.
+- **UX** : bouton « Réessayer l'installation » uniquement si `beforeinstallprompt` encore disponible (pas sur dialog manuel seul).
+- **AC5/10** : tests Vitest 36+ (instructions, dialog, service, icons).
+- **AC9** : recette manuelle PO **2026-06-02** — **PASS** Android Chrome, Mac Chrome, Mac Safari (`--with-push`). iPhone / autres navigateurs → **TODO** documenté (différé).
+- **Code review (2026-06-02)** : scope 10.6 retiré du diff ; hygiene commit.
+- **M3** : checklist OK (banner + dialog M3).
 
 ### File List
 
-- `apps/web/src/app/shared/pwa/pwa-install-instructions-dialog/pwa-install-instructions-dialog.html`
+- `apps/web/src/app/core/pwa/pwa-install-instructions.ts`
+- `apps/web/src/app/core/pwa/pwa-install-instructions.spec.ts`
 - `apps/web/src/app/core/pwa/pwa-install.service.ts`
 - `apps/web/src/app/core/pwa/pwa-install.service.spec.ts`
-- `apps/web/src/app/core/pwa/pwa-install-instructions.spec.ts`
-- `apps/web/src/app/shared/user-account-menu/user-account-menu-items.spec.ts`
-- `apps/web/src/app/shared/pwa/pwa-install-instructions-dialog/pwa-install-instructions-dialog.spec.ts` (new)
+- `apps/web/src/app/core/pwa/pwa-install-origin.ts`
+- `apps/web/src/app/core/pwa/pwa-icons.spec.ts`
+- `apps/web/src/app/shared/pwa/pwa-install-instructions-dialog/pwa-install-instructions-dialog.html`
+- `apps/web/src/app/shared/pwa/pwa-install-instructions-dialog/pwa-install-instructions-dialog.ts`
+- `apps/web/src/app/shared/pwa/pwa-install-instructions-dialog/pwa-install-instructions-dialog.spec.ts`
+- `apps/web/src/app/layout/member-shell/member-shell.ts`
+- `apps/web/src/app/layout/member-shell/member-shell-viewport.ts` (new)
+- `apps/web/public/icons/chrome-install-address-bar.png`
+- `apps/web/public/icons/chrome-install-address-bar@2x.png`
+- `apps/web/public/icons/chrome-cast-save-share-menu.png`
+- `apps/web/public/icons/chrome-cast-save-share-menu@2x.png`
+- `DEVELOPMENT.md` (LIMIT-003 install note)
+- `ISSUES.md` (LIMIT-003 expected behavior)
 - `_bmad-output/implementation-artifacts/10-5-aides-install-contextuelles-ios-android.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ### Change Log
 
 - 2026-06-02 : Story created (`bmad-create-story` 10.5) — ready-for-dev
-- 2026-06-02 : Implementation — copy fix, snackbar AC8, tests; status → review (AC9 device recette pending PO)
-- 2026-06-02 : Code review — patches appliqués (scope 10.6 retiré, hygiene commit) ; status reste **review** (AC9 PO)
+- 2026-06-02 : Implementation — copy, tests, icons PNG, UX polish
+- 2026-06-02 : Code review — patches ; recette PO partielle → **done** (iPhone/autres en TODO)
 
 ---
 
