@@ -27,6 +27,7 @@ Fichier **court** pour les skills BMad (`bmad-dev-story`, `bmad-create-story`, `
 | Architecture runtime | [ARCH.md](ARCH.md) |
 | Ordre de livraison | [PLAN.md](PLAN.md) |
 | UI Material 3 + checklist | [docs/v2/technical/FRONTEND_UI.md](docs/v2/technical/FRONTEND_UI.md) |
+| Baseline bundle prod (perf) | [apps/web/README.md](apps/web/README.md) § « Baseline bundle » |
 | Parcours / écrans V2 | `_bmad-output/planning-artifacts/ux-design-hatcast-v2.md`, `ux-hub-a-faire.md` |
 | Epics & stories | `_bmad-output/planning-artifacts/epics.md`, `_bmad-output/implementation-artifacts/*.md` |
 | Template nouvelle story | [_bmad-output/implementation-artifacts/story-template.md](_bmad-output/implementation-artifacts/story-template.md) |
