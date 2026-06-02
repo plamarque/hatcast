@@ -90,6 +90,32 @@ export function isSoonAction(
   return offset >= 0 && offset <= days
 }
 
+/** Number of days below which an action chip is shown in the urgent (error) tone. */
+export const URGENT_DAYS = 2
+
+/**
+ * Concrete, scannable relative-day label for an upcoming action
+ * (« Aujourd'hui », « Demain », « Dans N j »). Returns `null` beyond
+ * `SOON_DAYS` (no chip) or for past dates.
+ */
+export function relativeDayLabel(
+  startsAt: string,
+  now: Date,
+  timeZone = AGENDA_TIME_ZONE,
+): string | null {
+  const offset = calendarDaysFromNow(startsAt, now, timeZone)
+  if (offset < 0 || offset > SOON_DAYS) {
+    return null
+  }
+  if (offset === 0) {
+    return "Aujourd'hui"
+  }
+  if (offset === 1) {
+    return 'Demain'
+  }
+  return `Dans ${offset} j`
+}
+
 export function pickNextEvent(items: UserAgendaItem[]): UserAgendaItem | null {
   if (items.length === 0) {
     return null

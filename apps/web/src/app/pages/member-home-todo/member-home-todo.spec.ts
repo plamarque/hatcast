@@ -112,7 +112,7 @@ describe('MemberHomeTodo', () => {
 
     const rows = fixture.nativeElement.querySelectorAll('.member-home-todo__action-card')
     expect(rows.length).toBe(2)
-    expect(fixture.nativeElement.textContent).toContain('Dispo')
+    expect(fixture.nativeElement.textContent).toContain('Donne ta dispo')
     expect(fixture.nativeElement.textContent).toContain('Match A')
   })
 
@@ -196,7 +196,7 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.textContent).toContain('À confirmer')
+    expect(fixture.nativeElement.textContent).toContain('Confirme ta présence')
     expect(fixture.nativeElement.textContent).toContain('Comédien·ne')
 
     const row = fixture.nativeElement.querySelector(
@@ -210,7 +210,7 @@ describe('MemberHomeTodo', () => {
     )
   })
 
-  it('affiche la métadonnée complète sans la couper sur une carte confirmation', async () => {
+  it('affiche le rôle sur la ligne titre pour une confirmation, sans ligne date/troupe', async () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
       status: 200,
@@ -221,15 +221,18 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    const meta = fixture.nativeElement.querySelector(
-      '.member-home-todo__action-meta',
-    ) as HTMLElement
-    expect(meta?.textContent).toContain('La BIM')
-    expect(meta?.textContent).toContain('Comédien·ne')
-    expect(meta.scrollHeight).toBeLessThanOrEqual(meta.clientHeight + 2)
+    const card = fixture.nativeElement.querySelector(
+      '[data-testid="todo-action-confirm"]',
+    ) as HTMLButtonElement
+    expect(card.textContent).toContain('Apérock Juin')
+    expect(card.textContent).toContain('Comédien·ne')
+    expect(card.textContent).not.toContain('La BIM')
+    expect(card.querySelector('.member-home-todo__date-chip')?.textContent).toContain('Dans 3 j')
+    expect(card.getAttribute('aria-label')).toContain('Comédien·ne')
+    expect(card.getAttribute('aria-label')).toContain('Dans 3 j')
   })
 
-  it('affiche le badge Bientôt pour une action dispo dans les 7 jours', async () => {
+  it('affiche un badge daté « Dans 3 j » pour une action dispo dans les 7 jours', async () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
       status: 200,
@@ -238,9 +241,43 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelector('.member-home-todo__soon-chip')?.textContent).toContain(
-      'Bientôt',
+    expect(fixture.nativeElement.querySelector('.member-home-todo__date-chip')?.textContent).toContain(
+      'Dans 3 j',
     )
+  })
+
+  it('rejoue une carte cochée (ghost) au retour quand une action a été résolue', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([availabilityAction('ev-1', 'Cabaret', isoInDays(4))]),
+    })
+
+    await settle(fixture)
+
+    const row = fixture.nativeElement.querySelector(
+      '[data-testid="todo-action-dispo"]',
+    ) as HTMLButtonElement
+    row.click()
+    await fixture.whenStable()
+
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([]),
+    })
+    await fixture.componentInstance['loadInbox']()
+    fixture.detectChanges()
+
+    const ghost = fixture.nativeElement.querySelector(
+      '.member-home-todo__action-card--done',
+    ) as HTMLElement
+    expect(ghost).toBeTruthy()
+    expect(ghost.textContent).toContain('noté')
+    expect(fixture.nativeElement.querySelector('.member-home-todo__check--checked')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).not.toContain('Tout est à jour')
+
+    fixture.destroy()
   })
 
   it('affiche le CTA Mes troupes sans Mon agenda quand tout est à jour sans événement', async () => {
@@ -460,12 +497,12 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    const kinds = Array.from(
-      fixture.nativeElement.querySelectorAll('.member-home-todo__action-kind'),
+    const verbs = Array.from(
+      fixture.nativeElement.querySelectorAll('.member-home-todo__action-verb'),
       (el) => (el as HTMLElement).textContent ?? '',
     )
-    expect(kinds[0]).toContain('À confirmer')
-    expect(kinds[1]).toContain('Dispo')
+    expect(verbs[0]).toContain('Confirme ta présence')
+    expect(verbs[1]).toContain('Donne ta dispo')
   })
 })
 

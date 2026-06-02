@@ -49,6 +49,32 @@
       </div>
     </section>
   } @else {
+    @if (completedGhosts().length > 0) {
+      <section class="member-home-todo__section" aria-hidden="true">
+        <div class="member-home-todo__action-cards">
+          @for (ghost of completedGhosts(); track ghost.key) {
+            <div
+              class="member-home-todo__action-card member-home-todo__action-card--done"
+              [class.member-home-todo__action-card--confirm]="ghost.confirm"
+              [class.member-home-todo__action-card--dispo]="!ghost.confirm"
+              animate.leave="member-home-todo__action-card--leaving"
+            >
+              <span class="member-home-todo__check member-home-todo__check--checked">
+                <span class="member-home-todo__check-box">
+                  <mat-icon class="member-home-todo__check-mark">check</mat-icon>
+                </span>
+              </span>
+              <span class="member-home-todo__action-card-main">
+                <span class="member-home-todo__action-verb">{{ ghost.verb }}</span>
+                <span class="member-home-todo__action-title">{{ ghost.title }}</span>
+                <span class="member-home-todo__action-meta">C'est noté !</span>
+              </span>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
     @if (showAllCaughtUpBanner()) {
       <section class="member-home-todo__celebration" aria-labelledby="todo-caught-up-heading">
         <mat-icon class="member-home-todo__celebration-icon" aria-hidden="true">check_circle</mat-icon>
@@ -77,7 +103,7 @@
           }
         </h2>
         <div class="member-home-todo__action-cards">
-          @for (action of visibleActions(); track action.type + action.eventId + (action.roleKey ?? '')) {
+          @for (action of visibleActions(); track actionKey(action)) {
             <button
               type="button"
               class="member-home-todo__action-card"
@@ -87,26 +113,33 @@
               [attr.data-testid]="
                 isConfirmAction(action) ? 'todo-action-confirm' : 'todo-action-dispo'
               "
+              animate.leave="member-home-todo__action-card--leaving"
               (click)="openAction(action)"
             >
-              <span class="member-home-todo__action-card-icon" aria-hidden="true">
-                <mat-icon>{{ actionLeadingIcon(action) }}</mat-icon>
+              <span class="member-home-todo__check" aria-hidden="true">
+                <span class="member-home-todo__check-box">
+                  <mat-icon class="member-home-todo__check-mark">check</mat-icon>
+                </span>
               </span>
               <span class="member-home-todo__action-card-main">
                 <span class="member-home-todo__action-card-head">
-                  <span class="member-home-todo__action-event-title">{{ action.title }}</span>
-                  @if (isActionSoon(action)) {
-                    <mat-chip class="member-home-todo__soon-chip">Bientôt</mat-chip>
+                  <span class="member-home-todo__action-verb">{{ actionVerbLabel(action) }}</span>
+                  @if (actionDateBadge(action); as badge) {
+                    <span
+                      class="member-home-todo__date-chip"
+                      [class.member-home-todo__date-chip--urgent]="badge.urgent"
+                    >
+                      {{ badge.label }}
+                    </span>
                   }
                 </span>
-                <span class="member-home-todo__action-card-detail">
-                  <span class="member-home-todo__action-kind">{{ actionKindLabel(action) }}</span>
-                  <span class="member-home-todo__action-meta">{{ actionMetaLine(action) }}</span>
+                <span class="member-home-todo__action-card-subhead">
+                  <span class="member-home-todo__action-title">{{ actionEventTitle(action) }}</span>
+                  <mat-icon class="member-home-todo__action-card-chevron" aria-hidden="true">
+                    chevron_right
+                  </mat-icon>
                 </span>
               </span>
-              <mat-icon class="member-home-todo__action-card-chevron" aria-hidden="true">
-                chevron_right
-              </mat-icon>
             </button>
           }
         </div>

@@ -228,10 +228,60 @@ Prochain spectacle
 
 ---
 
+## Addendum — 2026-06-02 — Verb-first cards, checkbox affordance, dated urgency
+
+**Trigger:** Post-implementation review (Patrice). The shipped cards diverged from the approved anatomy (event title became the loud line, the action verb was demoted to a small uppercase tag), and several signals read as unclear: the `Bientôt` chip felt vague and misaligned, the leading icons looked identical and purposeless, and the cards read as heavy / unengaging. Patrice also proposed a **rounded checkbox** echoing the logo, with the concern that checked items vanish so the “done” feeling is lost.
+
+**Mockup (validated):** `~/.cursor/projects/.../assets/accueil-action-cards-mockup.png` — direction approved; rounded **square** checkbox; success block keeps the brand orange ✓.
+
+### Refined decisions (supersede the matching rows above)
+
+| # | Topic | Decision |
+|---|-------|----------|
+| B1 | **Hierarchy (verb-first)** | **Line 1 = action verb** (accent) + **dated pill** (when ≤ 7 days). **Line 2 = event title** + chevron. **No line 3** on cards: date is carried by the pill; troupe name dropped (redundant). **Role** for confirmations only: appended on line 2 (`{title} · {role}`). Full date/troupe/role remain in `aria-label`. **Compact row:** `min-height` 48 dp, reduced padding (2026-06-02). |
+| B2 | **Verb copy** | Confirm → **« Confirme ta présence »** · Availability → **« Donne ta dispo »**. (Replaces the `À confirmer` / `Dispo` uppercase tag.) |
+| B3 | **Leading element = checkbox** | Replace the per-type `mat-icon` (`how_to_reg` / `edit_calendar`) with a **rounded-square checkbox** affordance (empty / unchecked, ~28–32 px, brand corner radius echoing the logo badge). One consistent “to-do” signal; **action type is carried by accent color + verb**, not by an icon. |
+| B4 | **Type accent (tokens)** | **Confirm** (`composition_confirm_pending`) = **`--hatcast-sys-pending`** (ambre « en attente de confirmation », aligned with Équipe / modale). **Dispo** (`availability_unknown`) = **`--hatcast-participation-neutral-badge-fg`** + outline bar — **not** `--hatcast-sys-positive` (green = dispo *already* answered). **Done** ghost = **`--mat-sys-tertiary`** orange ✓ (success closure). Card surface stays light; urgency stays on the **dated pill** only (error / tertiary). |
+| B5 | **Dated urgency pill** | Replace vague **« Bientôt »** with a **concrete relative-day** pill: « Aujourd’hui », « Demain », « Dans N j » (only within `SOON_DAYS = 7`). Placed at the **top-end** of the verb line. Tone: **`error`** (red) when ≤ 2 days, **`tertiary`** (orange) when 3–7 days. Implemented as a plain `<span>` pill (token-styled) — **not** `mat-chip`, whose MDC surface overrode the background to grey. Full date still in line 3 (pill is not the sole urgency carrier — A11y). |
+| B6 | **Keep the chevron** | The trailing `chevron_right` stays (liked: “invites to go further”), now paired with a clear verb. No separate text CTA button needed for MVP. |
+| B7 | **Brand “done” = orange ✓** | The **checked** state fills the checkbox with **`tertiary`** (orange palette) + white ✓ — the same motif as the logo badge and the « Tout est à jour » block. Closure is visually consistent end-to-end. |
+| B8 | **“See it checked” (Option A)** | Cards animate out via Angular **`animate.leave`** (check-fill + collapse). To deliver the satisfying check **after returning** from the action screen (a fresh component instance), `openAction()` persists the acted card key (sessionStorage); on the next `loadInbox`, any persisted key now **absent** from `actions` is rendered as a **checked “ghost” card** (orange ✓), held briefly, then collapsed via `animate.leave`. The « Tout est à jour » celebration is gated until ghosts clear → sequence: **check → collapse → celebration blooms**. Honest metaphor: the box is checked only once the task is actually resolved server-side, not on tap. |
+| B9 | **Reduced motion** | All check / leave / bloom transitions respect `prefers-reduced-motion: reduce` (instant state change, no movement). |
+
+### Anatomy (revised, mobile)
+
+```text
+┌──────────────────────────────────────────────────────┐
+│ ⬜  Confirme ta présence                    Dans 3 j  │  ← verb (accent) + dated chip
+│     Apérock Juin                                   ›  │  ← event title (secondary) + chevron
+│     mar. 2 juin · La Malice · Comédien·ne             │  ← metadata (wraps, no clip)
+└──────────────────────────────────────────────────────┘
+  ↑ rounded-square checkbox (logo radius); accent = primary (confirm) / secondary (dispo)
+```
+
+**Checked ghost (on return):** same card, checkbox filled `tertiary` + white ✓, faded, auto-collapses.
+
+### Implementation deltas
+
+| File | Change |
+|------|--------|
+| `member-home-todo.utils.ts` | Add `relativeDayLabel(startsAt, now, tz)` (null beyond `SOON_DAYS`); reuse `calendarDaysFromNow` for the ≤ 2-day urgent tone. |
+| `member-home-todo.ts` | `actionVerbLabel`, `actionDateBadge` (`{ label, urgent }`), `actionKey`, sessionStorage persist on `openAction`, ghost detection in `loadInbox`, `completedGhosts` signal + timed clear (cleared in `ngOnDestroy`). Remove `actionLeadingIcon` / `actionKindLabel`. |
+| `member-home-todo.html` | Verb-first body, checkbox span, dated chip, `animate.leave`, ghost block (renders even when it was the last action). |
+| `member-home-todo.scss` | `__check` / `__check-box` (rounded square), lightened cards, accent-only color, `__date-chip` (+`--urgent`), leave/bloom transitions, reduced-motion guard. |
+| `member-home-todo.spec.ts` | Update expectations: verb labels (`Donne ta dispo` / `Confirme ta présence`), dated chip (`Dans 3 j`); add ghost-on-return test. |
+
+### Material 3 acceptance (unchanged intent)
+
+M3-1…M3-5 still apply; the checkbox + chip are token-styled custom/`mat-chip` elements, no raw hex, full French `aria-label`, no new bottom nav.
+
+---
+
 ## Sign-off
 
 | Stakeholder | Date | Notes |
 |-------------|------|-------|
 | Patrice | 2026-05-31 | Screenshot-driven; wants visual CTAs + encouraging « tout est à jour » |
+| Patrice | 2026-06-02 | Verb-first + rounded checkbox + dated urgency + brand orange ✓ closure (Option A). Mockup approved. |
 
-**Next step:** Create implementation story (e.g. `17-31-accueil-action-cards.md`) or extend open hub epic task; implement in `member-home-todo.*`.
+**Next step:** Implemented directly in `member-home-todo.*` (no separate story file; tracked via this addendum).

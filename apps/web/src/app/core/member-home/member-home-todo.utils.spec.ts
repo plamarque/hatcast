@@ -12,6 +12,7 @@ import {
   isSoonAction,
   isWithinCalendarDaysFromNow,
   pickNextEvent,
+  relativeDayLabel,
   resolveLastVisitedSeasonGlanceIds,
 } from './member-home-todo.utils'
 
@@ -72,6 +73,15 @@ describe('member-home-todo.utils', () => {
   it('isSoonAction is true within 7 Paris calendar days', () => {
     expect(isSoonAction('2026-06-03T10:00:00+02:00', now, 7, TZ)).toBe(true)
     expect(isSoonAction('2026-06-04T10:00:00+02:00', now, 7, TZ)).toBe(false)
+  })
+
+  it('relativeDayLabel returns concrete day labels within the soon window', () => {
+    expect(relativeDayLabel('2026-05-27T20:00:00+02:00', now, TZ)).toBe("Aujourd'hui")
+    expect(relativeDayLabel('2026-05-28T20:00:00+02:00', now, TZ)).toBe('Demain')
+    expect(relativeDayLabel('2026-05-30T20:00:00+02:00', now, TZ)).toBe('Dans 3 j')
+    expect(relativeDayLabel('2026-06-03T20:00:00+02:00', now, TZ)).toBe('Dans 7 j')
+    expect(relativeDayLabel('2026-06-04T20:00:00+02:00', now, TZ)).toBeNull()
+    expect(relativeDayLabel('2026-05-25T20:00:00+02:00', now, TZ)).toBeNull()
   })
 
   it('pickNextEvent returns earliest even when input is unsorted', () => {
