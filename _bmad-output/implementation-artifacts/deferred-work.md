@@ -409,6 +409,11 @@
 - Appel `listSeasonParticipants` systématique sur fiche spectacle (`event-detail.ts`) — perf polish.
 - Label jour DST dans `audit-day-label.ts` — edge case rare.
 
+## Deferred from: code review of 10-5-aides-install-contextuelles-ios-android.md (2026-06-02)
+
+- Menu install non réactif après `appinstalled` — `showInstallApp()` évalue `isPwaInstalled()` au rendu ; snackbar AC8 couvre le clic stale. Pattern 10.1.
+- Échecs tests hors périmètre PWA (`forgot-password.spec.ts`, `changelog-dialog.service.spec.ts` timeout) — flaky préexistants ; 36/36 tests install/menu OK.
+
 ## Deferred from: code review of 10-7-icone-pwa-hatcast-2.md (2026-06-02)
 
 - QA maskable manuelle (DevTools safe area, maskable.app, devices) — explicitement reportée à Story 10.4 ; calcul script 18 % plausible (AC4, M3-5).

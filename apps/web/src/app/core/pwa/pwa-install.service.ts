@@ -1,6 +1,7 @@
 import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { getPwaBrowserInfo } from './pwa-browser-info';
 import {
@@ -27,6 +28,7 @@ export interface BeforeInstallPromptEvent extends Event {
 export class PwaInstallService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly dialog = inject(MatDialog);
+  private readonly snack = inject(MatSnackBar);
 
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
 
@@ -61,6 +63,7 @@ export class PwaInstallService {
       return;
     }
     if (this.isPwaInstalled()) {
+      this.snack.open("L'application est déjà installée", undefined, { duration: 4000 });
       return;
     }
     localStorage.removeItem(PWA_BANNER_DISMISSED_KEY);

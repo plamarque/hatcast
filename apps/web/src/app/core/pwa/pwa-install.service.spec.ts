@@ -1,6 +1,7 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import {
@@ -38,12 +39,13 @@ describe('PwaInstallService', () => {
     vi.unstubAllGlobals();
   });
 
-  function createService(): PwaInstallService {
+  function createService(snackOpen = vi.fn()): PwaInstallService {
     TestBed.configureTestingModule({
       providers: [
         PwaInstallService,
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: MatSnackBar, useValue: { open: snackOpen } },
       ],
     });
     return TestBed.inject(PwaInstallService);
@@ -114,6 +116,25 @@ describe('PwaInstallService', () => {
     expect(storage[PWA_BANNER_DISMISSED_KEY]).toBeDefined();
   });
 
+  it('installFromUserMenu shows snackbar when already installed', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(display-mode: standalone)',
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    const snackOpen = vi.fn();
+    const service = createService(snackOpen);
+    const openManualInstructions = vi.spyOn(service, 'openManualInstructions');
+    await service.installFromUserMenu();
+    expect(snackOpen).toHaveBeenCalledWith(
+      "L'application est déjà installée",
+      undefined,
+      expect.objectContaining({ duration: 4000 }),
+    );
+    expect(openManualInstructions).not.toHaveBeenCalled();
+  });
+
   it('installFromUserMenu clears dismiss TTL and calls promptInstall path', async () => {
     storage[PWA_BANNER_DISMISSED_KEY] = Date.now().toString();
     const openManualInstructions = vi.fn();
@@ -132,6 +153,7 @@ describe('PwaInstallService', () => {
         PwaInstallService,
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: MatDialog, useValue: { open: dialogOpen } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
       ],
     });
     const service = TestBed.inject(PwaInstallService);
@@ -153,7 +175,7 @@ describe('PwaInstallService', () => {
     expect(dialogOpen).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({ devCertBlocked: true }),
+        data: expect.objectContaining({ browserInfo: expect.anything() }),
       }),
     );
   });

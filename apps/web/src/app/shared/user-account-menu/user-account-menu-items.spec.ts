@@ -66,4 +66,45 @@ describe('UserAccountMenuItemsComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Mon compte');
     expect(fixture.nativeElement.textContent).toContain('Se déconnecter');
   });
+
+  it('shows Installer l\'app when PWA is not installed', async () => {
+    const fixture = await setup({ pwaInstalled: false });
+    expect(fixture.nativeElement.textContent).toContain("Installer l'app");
+  });
+
+  it('hides Installer l\'app when PWA is installed', async () => {
+    const fixture = await setup({ pwaInstalled: true });
+    expect(fixture.nativeElement.textContent).not.toContain("Installer l'app");
+  });
+
+  it('calls installFromUserMenu when install item is clicked', async () => {
+    const installFromUserMenu = vi.fn();
+    await TestBed.configureTestingModule({
+      imports: [UserAccountMenuItemsComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: PwaInstallService,
+          useValue: {
+            isPwaInstalled: () => false,
+            installFromUserMenu,
+          },
+        },
+        {
+          provide: AuthApiService,
+          useValue: { logout: vi.fn().mockResolvedValue(true) },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(UserAccountMenuItemsComponent);
+    fixture.detectChanges();
+    const buttons = fixture.nativeElement.querySelectorAll('button');
+    const installBtn = Array.from(buttons).find((btn) =>
+      (btn as HTMLButtonElement).textContent?.includes("Installer l'app"),
+    ) as HTMLButtonElement | undefined;
+    expect(installBtn).toBeTruthy();
+    installBtn!.click();
+    expect(installFromUserMenu).toHaveBeenCalled();
+  });
 });

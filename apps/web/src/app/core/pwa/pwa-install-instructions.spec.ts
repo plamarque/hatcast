@@ -49,6 +49,56 @@ describe('buildPwaInstallInstructions', () => {
     expect(content.successText).toContain('/icons/logo-hatcast-2.svg');
   });
 
+  it('returns Edge desktop steps on Windows Edge UA', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+    );
+    const content = buildPwaInstallInstructions(info);
+    expect(content.title).toContain('Edge');
+    expect(content.title).toContain('Windows');
+    expect(content.steps.some((s) => s.includes('Installer ⊕'))).toBe(true);
+    expect(content.alternativeText).toContain('Applications');
+  });
+
+  it('returns Samsung Internet steps', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (Linux; Android 13; SAMSUNG SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/23.0 Chrome/115.0.0.0 Mobile Safari/537.36',
+    );
+    const content = buildPwaInstallInstructions(info);
+    expect(content.title).toBe('Samsung Internet');
+    expect(content.steps.some((s) => s.includes('＋'))).toBe(true);
+    expect(content.successText).toContain('/icons/logo-hatcast-2.svg');
+  });
+
+  it('returns Chrome iOS 16.4+ A2HS steps', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.119 Mobile/15E148 Safari/604.1',
+    );
+    const content = buildPwaInstallInstructions(info);
+    expect(content.title).toContain('Chrome');
+    expect(content.isAlternativeNeeded).toBe(false);
+    expect(content.steps.some((s) => s.includes('Partager'))).toBe(true);
+  });
+
+  it('returns Chrome iOS <16.4 Safari fallback steps', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.119 Mobile/15E148 Safari/604.1',
+    );
+    const content = buildPwaInstallInstructions(info);
+    expect(content.isAlternativeNeeded).toBe(true);
+    expect(content.steps.some((s) => s.includes('Safari'))).toBe(true);
+    expect(content.alternativeText).toContain('16.4');
+  });
+
+  it('returns generic Android steps for unknown mobile browser', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (Linux; Android 14; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Mobile Safari/537.36',
+    );
+    const content = buildPwaInstallInstructions(info);
+    expect(content.title).toBe('Navigateur Android');
+    expect(content.warningText).toContain('Chrome ou Samsung Internet');
+  });
+
   it('prepends dev cert warning when devCertBlocked', () => {
     const info = getPwaBrowserInfo(
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -56,5 +106,13 @@ describe('buildPwaInstallInstructions', () => {
     const content = buildPwaInstallInstructions(info, { devCertBlocked: true });
     expect(content.warningText).toContain('Non sécurisé');
     expect(content.warningText).toContain('localhost:4200');
+  });
+
+  it('appends native prompt failed hint when option set', () => {
+    const info = getPwaBrowserInfo(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    );
+    const content = buildPwaInstallInstructions(info, { nativePromptFailed: true });
+    expect(content.warningText).toContain("n'a pas répondu");
   });
 });
