@@ -462,7 +462,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
-| **OPS-4** | Release staging par tag (`vX.Y.Z-rc.N`) | **P0** | backlog | Script `release-staging.sh` (à créer) |
+| **OPS-4** | Release staging par tag (`vX.Y.Z-rc.N`) | **P0** | done | Script `release-staging.sh` |
 | **OPS-5** | Prod depuis artefact taggué (sans branche prod dédiée) | **P0** | backlog | Règle : tag prod = tag validé staging |
 | **OPS-6** | Couplage version / CHANGELOG / `changelog.json` / `version.txt` | **P0** | backlog | Réutilise `version-changelog.sh` |
 | **OPS-7** | Cutover branches post-M4 | **P0** | backlog | `v1`, `staging-v1` archives ; `v2`→`main` ; `staging-v2`→`staging` |

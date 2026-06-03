@@ -23,6 +23,7 @@ flowchart LR
   V2 -->|git push| CRdev
   V2 -->|promote-to-staging.sh| STG
   STG -->|git push| CRstg
+  STG -->|release-staging.sh| STG
   STG -->|release-production.sh| PROD
   PROD -->|git push + tag| CRprod
 ```
@@ -31,7 +32,7 @@ flowchart LR
 |-------|-------------|--------|----------------|
 | Dev local | — | `./scripts/start-dev.sh` | Neon branche **`local`** (`.env`), pas de push requis |
 | Dev cloud | `v2` | `git push origin v2` | Env GitHub `development` → `hatcast-v2-dev` |
-| Staging | `staging-v2` | `./scripts/v2/promote-to-staging.sh` | Env `staging` → `hatcast-v2-staging` ; **gate E2E smoke** avant deploy (pas sur `v2` dev cloud) |
+| Staging | `staging-v2` | `./scripts/v2/promote-to-staging.sh` puis `./scripts/v2/release-staging.sh` | Env `staging` → `hatcast-v2-staging` ; **gate E2E smoke** avant deploy (pas sur `v2` dev cloud) |
 | Production | `production-v2` | `./scripts/v2/release-production.sh` | Env `production` → `hatcast-v2` |
 
 ## Configuration des branches
@@ -101,6 +102,54 @@ Comportement :
 
 **Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) (flux V1 Firebase / `staging` → `main`).
 
+## Release staging RC (V2)
+
+Script : [`scripts/v2/release-staging.sh`](../../../scripts/v2/release-staging.sh) — **à lancer depuis `staging-v2`**, après promotion du code depuis `v2`.
+
+```bash
+git checkout staging-v2
+git pull origin staging-v2
+
+# Première RC cutover (arbre encore en X.Y.Z-SNAPSHOT, aucun tag RC) :
+./scripts/v2/release-staging.sh --version=2.0.0
+
+# RC suivante (incrémente rc.N uniquement) :
+./scripts/v2/release-staging.sh
+
+# Simulation
+./scripts/v2/release-staging.sh --dry-run
+./scripts/v2/release-staging.sh --dry-run --patch   # bump semver + rc.1
+```
+
+Options : `--patch`, `--minor`, `--major`, `--version=X.Y.Z`, `--dry-run`, `--help`.
+
+### Règles tags RC
+
+| Situation | Résultat |
+|-----------|----------|
+| Dernier tag `v2.0.0-rc.2`, sans option bump | Produit `2.0.0`, tag `v2.0.0-rc.3` |
+| `--patch` après `v2.0.0-rc.5` | Produit `2.0.1`, tag `v2.0.1-rc.1` |
+| Arbre en `2.0.0-SNAPSHOT`, aucun tag RC | **Obligatoire** `--version=2.0.0` (pas de release silencieuse) |
+
+Étapes (réel) :
+
+1. Arbre propre sur `staging-v2`, `git fetch origin` + tags
+2. Résolution semver produit + numéro RC (helpers dans `scripts/lib/version-changelog.sh`)
+3. Alignement `package.json` racine ↔ `apps/web/package.json` (racine legacy `0.x` → alignée sur web V2)
+4. Écrit `apps/web/public/version.txt` (ligne 1 = semver produit **sans** `-rc.N` ; ligne 2 = `Staging RC build - DATE`)
+5. Met à jour `CHANGELOG.md` (et `CHANGELOG_FR.md` si présent) depuis le tag RC précédent ou le dernier tag release
+6. Commit `chore(v2): release staging vX.Y.Z-rc.N`, tag annoté `vX.Y.Z-rc.N`, push **branche + tag**
+
+Le **déploiement** Cloud Run staging reste déclenché par le **push sur `staging-v2`** (workflow existant). Le tag RC sert de piste d’audit immuable ; le déploiement sur tag seul est **OPS-5**.
+
+### Flux opérateur staging
+
+```
+v2 → promote-to-staging.sh → release-staging.sh → tag vX.Y.Z-rc.N
+→ push staging-v2 → CI deploy + smoke E2E → recette
+→ (OPS-5) promote même semver en prod
+```
+
 ## Release production V2
 
 Script : [`scripts/v2/release-production.sh`](../../../scripts/v2/release-production.sh) — **à lancer depuis `staging-v2`**.
@@ -131,7 +180,8 @@ Le **déploiement** Cloud Run prod est déclenché par le push sur `production-v
 
 - Fichier affiché / build : `apps/web/public/version.txt` (généré à chaque release)
 - Semver produit : `package.json` racine **et** `apps/web/package.json` doivent rester alignés
-- Tags Git : `vX.Y.Z` sur le commit de release
+- Tags Git prod : `vX.Y.Z` sur le commit de release
+- Tags Git staging RC : `vX.Y.Z-rc.N` (suffixe RC **uniquement** sur le tag, pas dans `package.json` / `version.txt`)
 
 Les entrées `CHANGELOG.md` racine sont partagées avec le monorepo (V1 + V2) ; privilégier des messages de commit Conventional Commits explicites (`feat:`, `fix:`, …) et mentionner « V2 » dans le corps si utile pour le lecteur.
 
@@ -155,6 +205,7 @@ Ordre recommandé **sans impacter la prod V1** (`main` / Firebase) :
 
 - [ ] `./scripts/v2/promote-to-staging.sh --dry-run` — commits attendus listés
 - [ ] `./scripts/v2/promote-to-staging.sh` (réel)
+- [ ] Sur `staging-v2` : `./scripts/v2/release-staging.sh --dry-run` puis `./scripts/v2/release-staging.sh --version=2.0.0` (première RC cutover) ou `./scripts/v2/release-staging.sh` (RC suivante)
 - [ ] Job CI → environnement `staging`, service `hatcast-v2-staging`
 - [ ] Recette fonctionnelle sur staging (parcours critique métier)
 

@@ -55,6 +55,152 @@ hatcast_set_package_json_version() {
   fi
 }
 
+# Strip common prerelease suffixes (-SNAPSHOT, etc.) from a semver string.
+hatcast_strip_prerelease_suffix() {
+  local version="$1"
+  echo "${version%%-*}"
+}
+
+# Latest annotated/lightweight tag matching vX.Y.Z-rc.N (version sort, highest first).
+# Optional $1=base semver to scope tags (e.g. 2.0.0 -> v2.0.0-rc.*).
+hatcast_latest_rc_tag() {
+  local base="${1:-}"
+  if [[ -n "${base}" ]]; then
+    git tag -l "v${base}-rc.*" --sort=-v:refname | head -1
+    return 0
+  fi
+  git tag -l 'v*.*.*-rc.*' --sort=-v:refname | head -1
+}
+
+# Parse vMAJOR.MINOR.PATCH-rc.N → prints "BASE RC_NUM" on stdout.
+hatcast_parse_rc_tag() {
+  local raw="$1"
+  local tag="${raw#v}"
+  if [[ "${tag}" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-rc\.([0-9]+)$ ]]; then
+    echo "${BASH_REMATCH[1]} ${BASH_REMATCH[2]}"
+    return 0
+  fi
+  echo "❌ Tag RC invalide : ${raw}" >&2
+  return 1
+}
+
+# Latest production-style tag vX.Y.Z (no -rc suffix).
+# Optional $1=base semver to target exact tag vX.Y.Z.
+hatcast_latest_release_tag() {
+  local base="${1:-}"
+  if [[ -n "${base}" ]]; then
+    local exact="v${base}"
+    if git rev-parse --verify "${exact}^{commit}" >/dev/null 2>&1; then
+      echo "${exact}"
+      return 0
+    fi
+    return 1
+  fi
+
+  local tag
+  while IFS= read -r tag; do
+    if [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "${tag}"
+      return 0
+    fi
+  done < <(git tag -l 'v*.*.*' --sort=-v:refname)
+  return 1
+}
+
+# Resolve staging RC release: prints "BASE_SEMVER RC_NUM TAG_NAME" (e.g. 2.0.0 3 v2.0.0-rc.3).
+# $1=bump (empty|patch|minor|major)  $2=explicit_version  $3=file_base_hint (stripped)  $4=file_raw_hint (optional, may contain -SNAPSHOT)
+hatcast_resolve_staging_rc_release() {
+  local bump="${1:-}"
+  local explicit="${2:-}"
+  local file_hint="${3:-}"
+  local file_raw="${4:-${file_hint}}"
+
+  local latest_rc="" rc_base="" rc_num="" new_base="" new_rc="" tag_name="" target_base=""
+
+  if [[ -n "${explicit}" ]] && [[ ! "${explicit}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "❌ --version invalide: ${explicit} (attendu: X.Y.Z)." >&2
+    return 1
+  fi
+
+  if [[ -n "${explicit}" ]]; then
+    target_base="${explicit}"
+  elif [[ -n "${file_hint}" && "${file_hint}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    target_base="${file_hint}"
+  fi
+
+  latest_rc="$(hatcast_latest_rc_tag "${target_base}" || true)"
+  if [[ -n "${latest_rc}" ]]; then
+    read -r rc_base rc_num <<< "$(hatcast_parse_rc_tag "${latest_rc}")"
+  fi
+
+  if [[ -z "${latest_rc}" && -z "${explicit}" && "${file_raw}" == *-* ]]; then
+    echo "❌ Version ${file_raw} contient un suffixe de pré-release (-SNAPSHOT)." >&2
+    echo "   Aucun tag v*.*.*-rc.* sur origin — passez --version=X.Y.Z pour la première RC." >&2
+    echo "   Exemple cutover v2.0.0 : git checkout staging-v2 && ./scripts/v2/release-staging.sh --version=2.0.0" >&2
+    return 1
+  fi
+
+  if [[ -n "${explicit}" ]]; then
+    new_base="${explicit}"
+    new_rc=1
+  elif [[ -n "${bump}" ]]; then
+    local source_base="${rc_base}"
+    if [[ -z "${source_base}" ]]; then
+      source_base="${file_hint}"
+    fi
+    if [[ -z "${source_base}" || "${source_base}" == *-* ]]; then
+      echo "❌ Impossible de déterminer la version de base pour un bump ${bump}." >&2
+      echo "   Passez --version=X.Y.Z (ex. première RC cutover : --version=2.0.0)." >&2
+      return 1
+    fi
+    new_base="$(hatcast_bump_semver "${source_base}" "${bump}" "")"
+    new_rc=1
+  elif [[ -n "${rc_base}" ]]; then
+    new_base="${rc_base}"
+    new_rc=$((rc_num + 1))
+  else
+    if [[ -n "${file_hint}" && "${file_hint}" != *-* ]]; then
+      new_base="${file_hint}"
+      new_rc=1
+    else
+      echo "❌ Aucun tag RC et aucune version produit détectée." >&2
+      echo "   Passez --version=X.Y.Z pour la première RC staging." >&2
+      return 1
+    fi
+  fi
+
+  tag_name="v${new_base}-rc.${new_rc}"
+  echo "${new_base} ${new_rc} ${tag_name}"
+}
+
+# Changelog git range for a staging RC: previous RC or last release tag when rc.1.
+hatcast_staging_changelog_range() {
+  local base="$1"
+  local rc="$2"
+  local prev_tag=""
+
+  if [[ "${rc}" -gt 1 ]]; then
+    prev_tag="v${base}-rc.$((rc - 1))"
+    if ! git rev-parse --verify "${prev_tag}^{commit}" >/dev/null 2>&1; then
+      echo "❌ Tag RC précédent introuvable: ${prev_tag}" >&2
+      return 1
+    fi
+  else
+    prev_tag="$(hatcast_latest_release_tag "${base}" || true)"
+    if [[ -z "${prev_tag}" ]]; then
+      echo "HEAD"
+      return 0
+    fi
+  fi
+
+  if ! git merge-base --is-ancestor "${prev_tag}" HEAD >/dev/null 2>&1; then
+    echo "❌ Tag de départ changelog non ancêtre de HEAD: ${prev_tag}" >&2
+    return 1
+  fi
+
+  echo "${prev_tag}..HEAD"
+}
+
 # Génère le bloc ## [version] dans CHANGELOG.md (racine).
 # $1=new_version $2=build_date $3=commit_range (ex. v0.1.0..HEAD)
 hatcast_generate_changelog_md() {
@@ -75,7 +221,7 @@ EOF
 
   while IFS= read -r commit_line; do
     commit_msg="$(echo "${commit_line}" | cut -d' ' -f2-)"
-    if [[ "${commit_msg}" =~ ^(chore: bump version|release: version|chore\(v2\): bump version) ]]; then
+    if [[ "${commit_msg}" =~ ^(chore: bump version|release: version|chore\(v2\): bump version|chore\(v2\): release staging) ]]; then
       continue
     fi
     if [[ "${commit_msg}" =~ ^feat ]]; then
