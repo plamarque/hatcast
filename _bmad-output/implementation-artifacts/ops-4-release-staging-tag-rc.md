@@ -218,6 +218,7 @@ Composer (Cursor agent)
 - AC6: aligns legacy root `0.x` to web V2 semver before bump; fails fast on other mismatches.
 - Updated `scripts/README.md`, `DEPLOYMENT_WORKFLOW.md` (new § Staging RC release, mermaid), `PLAN.md` (OPS-4 done).
 - Smoke: `--help` OK; `--dry-run --version=2.0.0` OK; SNAPSHOT guard verified; `--dry-run --patch` OK (sandbox).
+- **Recette manuelle (2026-06-03):** release réelle `v2.0.0-rc.1` (`447518c4`); CI [26888840696](https://github.com/plamarque/hatcast/actions/runs/26888840696) smoke 4/4 + deploy `hatcast-v2-staging` vert; UI Mon compte → À propos affiche `2.0.0` (attendu — RC tag-only).
 
 ### File List
 
@@ -232,6 +233,7 @@ Composer (Cursor agent)
 
 - 2026-06-03 : Story created (`bmad-create-story` OPS-4) — ready-for-dev
 - 2026-06-03 : Implemented release-staging.sh + RC helpers + docs (dev-story OPS-4) — review
+- 2026-06-03 : Recette manuelle OK — tag `v2.0.0-rc.1`, CI staging vert, story closed **done**
 
 ---
 

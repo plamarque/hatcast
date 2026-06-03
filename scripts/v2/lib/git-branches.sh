@@ -9,7 +9,6 @@ _hatcast_v2_scripts_dir="$(cd "${_hatcast_v2_lib_dir}/.." && pwd)"
 # Variables déjà exportées avant l’appel du script (tests / CI) priment sur branches.env.
 _hatcast_v2_env_dev="${HATCAST_V2_BRANCH_DEV-}"
 _hatcast_v2_env_staging="${HATCAST_V2_BRANCH_STAGING-}"
-_hatcast_v2_env_prod="${HATCAST_V2_BRANCH_PRODUCTION-}"
 
 _branches_env="${_hatcast_v2_scripts_dir}/branches.env"
 if [[ -f "${_branches_env}" ]]; then
@@ -25,13 +24,11 @@ fi
 
 [[ -n "${_hatcast_v2_env_dev}" ]] && HATCAST_V2_BRANCH_DEV="${_hatcast_v2_env_dev}"
 [[ -n "${_hatcast_v2_env_staging}" ]] && HATCAST_V2_BRANCH_STAGING="${_hatcast_v2_env_staging}"
-[[ -n "${_hatcast_v2_env_prod}" ]] && HATCAST_V2_BRANCH_PRODUCTION="${_hatcast_v2_env_prod}"
 
 HATCAST_V2_BRANCH_DEV="${HATCAST_V2_BRANCH_DEV:-v2}"
 HATCAST_V2_BRANCH_STAGING="${HATCAST_V2_BRANCH_STAGING:-staging-v2}"
-HATCAST_V2_BRANCH_PRODUCTION="${HATCAST_V2_BRANCH_PRODUCTION:-production-v2}"
 
-for _var in HATCAST_V2_BRANCH_DEV HATCAST_V2_BRANCH_STAGING HATCAST_V2_BRANCH_PRODUCTION; do
+for _var in HATCAST_V2_BRANCH_DEV HATCAST_V2_BRANCH_STAGING; do
   _val="${!_var}"
   if [[ -z "${_val}" || "${_val}" =~ [[:space:]] ]]; then
     echo "❌ ${_var} invalide : « ${_val} »" >&2
