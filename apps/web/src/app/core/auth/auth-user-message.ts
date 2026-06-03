@@ -22,9 +22,27 @@ export function userMessageForLogoutFailure(): string {
   return 'La déconnexion n’a pas abouti. Réessayez ou rechargez la page.'
 }
 
-/** Erreurs Firebase Auth / Identity Platform — messages génériques (NFR-S1). */
-export function userMessageForIdentityPlatformAuth(_code: string): string {
-  return 'Impossible de finaliser la connexion. Vérifiez vos identifiants ou réessayez plus tard.'
+/** Erreurs Firebase Auth / Identity Platform — messages sûrs (NFR-S1). */
+export function userMessageForIdentityPlatformAuth(code: string): string {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'Un compte existe déjà avec cet email. Connectez-vous ou utilisez « Mot de passe oublié ».'
+    case 'auth/invalid-email':
+      return 'Adresse email invalide.'
+    case 'auth/weak-password':
+      return 'Mot de passe trop faible. Utilisez au moins 8 caractères.'
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Email ou mot de passe incorrect.'
+    case 'auth/user-disabled':
+      return 'Ce compte est désactivé. Contactez le support HatCast.'
+    case 'auth/operation-not-allowed':
+      return 'Connexion email indisponible (provider Email/Password désactivé dans Identity Platform).'
+    case 'auth/network-request-failed':
+      return 'Réseau indisponible. Réessayez.'
+    default:
+      return 'Impossible de finaliser la connexion. Vérifiez vos identifiants ou réessayez plus tard.'
+  }
 }
 
 export function userMessageForIdpApiFailure(status: number): string {
@@ -35,8 +53,18 @@ export function userMessageForIdpApiFailure(status: number): string {
 }
 
 /** Réinitialisation mot de passe (lien email / Identity Platform) — messages sûrs (NFR-S1, NFR-I1). */
-export function userMessageForPasswordResetRequestFailure(): string {
-  return 'Impossible d’envoyer l’email pour le moment. Réessayez plus tard ou vérifiez votre connexion.'
+export function userMessageForPasswordResetRequestFailure(code = ''): string {
+  switch (code) {
+    case 'auth/invalid-continue-uri':
+    case 'auth/unauthorized-continue-uri':
+      return 'Origine non autorisée dans Identity Platform. Ajoutez localhost (ou votre domaine) aux domaines autorisés.'
+    case 'auth/network-request-failed':
+      return 'Réseau indisponible. Réessayez.'
+    case 'auth/invalid-email':
+      return 'Adresse email invalide.'
+    default:
+      return 'Impossible d’envoyer l’email pour le moment. Réessayez plus tard ou vérifiez votre connexion.'
+  }
 }
 
 export function userMessageForPasswordResetConfirm(code: string): string {

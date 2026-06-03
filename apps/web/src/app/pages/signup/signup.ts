@@ -11,15 +11,20 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { firstValueFrom } from 'rxjs'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import {
+  userMessageForGoogleSignInFailure,
+  userMessageForIdpApiFailure,
+  userMessageForIdentityPlatformAuth,
+} from '../../core/auth/auth-user-message'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { setHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
 import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
@@ -28,17 +33,13 @@ import {
   isValidInternalRedirectPath,
   rememberPendingPostLoginRedirect,
 } from '../../core/navigation/post-login-redirect-storage'
-import {
-  userMessageForGoogleSignInFailure,
-  userMessageForIdpApiFailure,
-  userMessageForIdentityPlatformAuth,
-} from '../../core/auth/auth-user-message'
-import { firstValueFrom } from 'rxjs'
-
 import { environment } from '../../../environments/environment'
-import { GoogleAvatarPromptDialog } from './google-avatar-prompt-dialog'
+import { GoogleAvatarPromptDialog } from '../login/google-avatar-prompt-dialog'
 
 const GOOGLE_AVATAR_PROMPT_DISMISSED_KEY = 'hatcast.googleAvatarPromptDismissed'
+
+/** New accounts default to persistent session (story 1.4 — no checkbox on signup). */
+const SIGNUP_REMEMBER_ME = true
 
 declare global {
   interface Window {
@@ -68,21 +69,20 @@ declare global {
 }
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-signup',
   imports: [
     MatCardModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     MatDialogModule,
     ReactiveFormsModule,
     RouterLink,
   ],
-  templateUrl: './login.html',
-  styleUrl: './login.scss',
+  templateUrl: './signup.html',
+  styleUrl: './signup.scss',
 })
-export class Login implements AfterViewInit, OnDestroy, OnInit {
+export class Signup implements AfterViewInit, OnDestroy, OnInit {
   private readonly googleHost = viewChild<ElementRef<HTMLDivElement>>('googleButtonHost')
   private gsiPollIntervalId: ReturnType<typeof setInterval> | null = null
   private gsiLoadTimeoutId: ReturnType<typeof setTimeout> | null = null
@@ -96,27 +96,15 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
   private readonly dialog = inject(MatDialog)
 
   protected readonly isDev = !environment.production
-  /** Journal technique réservé au dev local (pas affiché en production). */
   protected readonly devLog = signal<string | null>(null)
 
   protected readonly emailForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ['', [Validators.required, Validators.minLength(8)]],
   })
 
-  /** Identity Platform : config Web présente (apiKey + authDomain + projectId). */
   protected readonly hasEmailAuth = signal(this.firebaseAuth.hasFirebaseWebConfig())
-
-  /** Parité V1 : coché par défaut (session longue côté API). */
-  protected readonly rememberMe = signal(true)
-
-  protected get signupQueryParams(): { returnUrl?: string } {
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim()
-    if (returnUrl && isValidInternalRedirectPath(returnUrl)) {
-      return { returnUrl }
-    }
-    return {}
-  }
 
   ngOnInit(): void {
     this.ingestReturnUrlFromQuery()
@@ -180,6 +168,14 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
+  protected get loginQueryParams(): { returnUrl?: string } {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim()
+    if (returnUrl && isValidInternalRedirectPath(returnUrl)) {
+      return { returnUrl }
+    }
+    return {}
+  }
+
   private ingestReturnUrlFromQuery(): void {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim()
     if (!returnUrl) return
@@ -190,7 +186,6 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
     clearPendingPostLoginRedirect()
   }
 
-  /** Widget GSI superposé au bouton Material (voir template) : largeur = pile parent. */
   private renderGoogleSignInButton(): void {
     const g = window.google?.accounts?.id
     const host = this.googleHost()?.nativeElement
@@ -213,9 +208,9 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
 
   private async onGoogleCredential(idToken: string): Promise<void> {
     this.devLog.set(null)
-    const r = await this.auth.signInWithGoogleIdToken(idToken, this.rememberMe())
+    const r = await this.auth.signInWithGoogleIdToken(idToken, SIGNUP_REMEMBER_ME)
     if (r.ok && r.data) {
-      setHatcastRememberMePreference(this.rememberMe())
+      setHatcastRememberMePreference(SIGNUP_REMEMBER_ME)
       await this.maybePromptGoogleAvatarImport(r.data)
       this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
       await this.postLoginNav.navigateAfterSignIn(this.router)
@@ -228,14 +223,20 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  protected async signInWithEmail(): Promise<void> {
+  protected async signUpWithEmail(): Promise<void> {
     this.emailForm.markAllAsTouched()
     if (this.emailForm.invalid) return
     const auth = this.firebaseAuth.getAuthOrNull()
     if (!auth) return
-    const { email, password } = this.emailForm.getRawValue()
+
+    const { email, password, confirmPassword } = this.emailForm.getRawValue()
+    if (password !== confirmPassword) {
+      this.snack.open('Les deux mots de passe ne correspondent pas.', 'OK', { duration: 6000 })
+      return
+    }
+
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password)
+      const cred = await createUserWithEmailAndPassword(auth, email, password)
       const idToken = await cred.user.getIdToken()
       await this.finishIdpSignIn(idToken)
     } catch (e: unknown) {
@@ -249,9 +250,9 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
 
   private async finishIdpSignIn(idToken: string): Promise<void> {
     this.devLog.set(null)
-    const r = await this.auth.signInWithIdentityPlatformIdToken(idToken, this.rememberMe())
+    const r = await this.auth.signInWithIdentityPlatformIdToken(idToken, SIGNUP_REMEMBER_ME)
     if (r.ok) {
-      setHatcastRememberMePreference(this.rememberMe())
+      setHatcastRememberMePreference(SIGNUP_REMEMBER_ME)
       this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
       await this.postLoginNav.navigateAfterSignIn(this.router)
       return

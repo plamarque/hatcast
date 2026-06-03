@@ -15,7 +15,7 @@
 V2 is **functionally close to V1 iso** for La Malice (epics 2–6, 12, 16, 17, 18 ; MIG-4 ; 4.1 ; 9.0 ; 8.1/8.3 ; 3.21 ; 6.10b). Before **production cutover**, PO wants a **final V2.0.0 wave** covering:
 
 1. **PWA & release UX** — install assets, update detection, post-update changelog, contextual install aids (iOS/Android), notification opt-in path, **new PWA icon** (HatCast 2 visual signal).
-2. **Mon compte** — tabbed layout, consolidated preferences entry points, **email change**, **password change** (logged-in), **forgot-password recette** (1.3), **account deletion** (1.7 — previously deferred).
+2. **Mon compte** — tabbed layout, consolidated preferences entry points, **sign-up recette (1.2)** + **dedicated sign-up UX (1.2b)**, **email change**, **password change** (logged-in), **forgot-password recette** (1.3), **account deletion** (1.7 — previously deferred).
 3. **Announcement modals** — M3 consistency, larger editable message (copy/WhatsApp), simplified manual notify (email + push), anti-spam guard when auto-notifs already sent.
 4. **Version & changelog** — visible version (Mon compte or About), clickable changelog modal (also shown after PWA update).
 5. **Release pipeline** — staging versioned by **tag** (release script) ; prod deploys **same tagged artifact** (no long-lived prod branch) ; rule: **no prod tag without prior staging deploy of that tag**.
@@ -58,6 +58,8 @@ The **MEP remainder SCP (2026-06-02)** closed the functional gap list but **unde
 | **10.5** | Contextual install aids (iOS/Android/desktop) | P0 | backlog (create story) |
 | **10.6** | Notification opt-in prompt (post-install / standalone) | P0 | backlog (create story) |
 | **10.7** | HatCast 2 PWA icon set | P0 | backlog (create story) |
+| **1.2** | Sign-up email/password | P0 recette | done (code) | Recette gate cutover — link on `/connexion` |
+| **1.2b** | Dedicated sign-up UX (V1 parity) | P0 | backlog (create story) |
 | **1.6** | Email change + logged-in password change | P0 | backlog |
 | **1.7** | Account deletion (sensitive zone) | P0 | backlog |
 | **1.3** | Forgot-password flow | P0 recette | done |
@@ -150,6 +152,8 @@ The **MEP remainder SCP (2026-06-02)** closed the functional gap list but **unde
 
 | Story | Acceptance summary |
 |-------|-------------------|
+| **1.2** | Recette gate : sign-up email/password E2E on staging then prod (`/connexion` → « Créer un compte ») ; Identity Platform ; post-login ; generic errors |
+| **1.2b** | Dedicated sign-up UX (V1 parity) : separate screen or mode « Inscription » ; « Créer mon compte » CTA ; password confirmation ; M3 auth chrome ; link from login |
 | **17.34** | Tabbed/section layout : Identité · Sécurité · Notifications · Préférences · Zone sensible · À propos ; shorter page ; M3 checklist |
 | **1.6** | Change email (with verification) ; change password while logged in ; Google + email/password coexist |
 | **1.3** | Recette gate : forgot-password E2E on staging Identity Platform |
@@ -203,10 +207,10 @@ v2 (dev cloud) → promote-to-staging → release-staging.sh → tag rc → stag
 |---|------|-----------|
 | 0 | **OPS-8** (infra prod URL) | Unblocks **M4** ; parallel with Wave A once prod env secrets ready |
 | 1 | **10.4** → **10.2** + **10.3** + **10.7** | Release hygiene first |
-| 2 | **17.34** skeleton + **1.6** | Account before cutover |
+| 2 | **1.2b** + **17.34** skeleton + **1.6** | Sign-up UX + account before cutover |
 | 3 | **6.15** | High orga visibility |
 | 4 | **10.5** + **10.6** | PWA install polish |
-| 5 | **1.3** recette + **1.7** | Security gates |
+| 5 | **Recette 1.2** + **1.3** + **1.7** | Sign-up + reset + deletion security gates |
 | 6 | **OPS-4** → **OPS-6** (parallel from step 2 if capacity) | Pipeline before prod tag |
 | 7 | **E1** tour + **E2** replay | Pre-cutover validation |
 | 8 | **E3** tag v2.0.0 staging/prod | Release |
@@ -224,16 +228,16 @@ v2 (dev cloud) → promote-to-staging → release-staging.sh → tag rc → stag
 | Role | Responsibility |
 |------|----------------|
 | **PO (Patrice)** | Approve SCP ; sign screen tour ; cutover window |
-| **Dev (`bmad-create-story` + `bmad-dev-story`)** | Stories 10.x, 1.6, 1.7, 6.15, 17.34, OPS-4–6 |
+| **Dev (`bmad-create-story` + `bmad-dev-story`)** | Stories 10.x, **1.2b**, 1.6, 1.7, 6.15, 17.34, OPS-4–6 |
 | **Ops / Dev** | **OPS-8** before M4 ; OPS-7 after M4 ; **OPS-9/10** post-M4 ; ADR if needed |
-| **Recette** | 1.3, PWA iOS+Android, migration replay |
+| **Recette** | **1.2**, 1.3, PWA iOS+Android, migration replay |
 
 ### Success criteria (V2.0.0 cutover)
 
 - [ ] All P0 stories **done** + M3 checklist where UI
 - [ ] Staging **v2.0.0-rc** validated ; prod **v2.0.0** from same tag lineage
 - [ ] PWA : install, update, changelog, new icon on device home screen
-- [ ] Mon compte : email, password, deletion ; forgot-password recette green
+- [ ] Mon compte : **sign-up recette (1.2)** + **1.2b** UX ; email, password, deletion ; forgot-password recette green
 - [ ] Announcement modals : M3, manual notify, anti-spam
 - [ ] Migration replay ×3 green
 - [ ] V1 preserved on `v1` / `staging-v1` after cutover
@@ -255,6 +259,7 @@ v2 (dev cloud) → promote-to-staging → release-staging.sh → tag rc → stag
 - [x] `sprint-status.yaml` updated with new story placeholders
 - [x] `deferred-triage-2026-05.md` §5 aligned
 - [x] Amendement **2026-06-03** : **OPS-8/9/10**, Wave F, domaine `hatcast.app` (Cloudflare)
+- [x] Amendement **2026-06-03** : Wave B — **1.2** recette gate + **1.2b** UX inscription dédiée
 
 ---
 
@@ -271,3 +276,18 @@ v2 (dev cloud) → promote-to-staging → release-staging.sh → tag rc → stag
 5. **Follow-ups in V2.0.0 scope (P1, non-blocking M4):** **OPS-9** PostHog (promote growth **G-005**) ; **OPS-10** `noreply@` / `info@` on domain.
 
 **Artifacts updated:** `PLAN.md` § Wave F ; `sprint-status.yaml` ; `deferred-triage-2026-05.md` §5 ; `growth-backlog.md` G-005 ; `DEPLOY_V2_CLOUD_RUN.md` ; story stubs **ops-8/9/10**.
+
+---
+
+## 8. Amendment 2026-06-03 — Sign-up in Wave B
+
+**Trigger:** PO review — Wave B omitted **account creation** despite « Créer un compte » link on `/connexion`.
+
+**Context:** Story **1.2** code is **done** (`createUserWithEmailAndPassword` on login page) but uses the **same form** as sign-in (V1 had dedicated `AccountCreationModal`).
+
+**Decisions:**
+
+1. **1.2 recette gate** — P0 cutover : E2E sign-up on staging then prod (Identity Platform, post-login, generic errors).
+2. **1.2b** — P0 dev : dedicated sign-up UX (screen or mode « Inscription », « Créer mon compte » CTA, password confirmation, M3 chrome).
+
+**Artifacts updated:** `PLAN.md` § Wave B ; `sprint-status.yaml` ; `deferred-triage-2026-05.md` §5 ; this SCP §6 approval log.

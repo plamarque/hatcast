@@ -14,15 +14,11 @@
             />
             <span class="auth__wordmark-text">HatCast</span>
           </div>
-          <h1 class="auth__heading">Connexion</h1>
-          <p class="auth__tagline">Pour continuer vers HatCast</p>
+          <h1 class="auth__heading">Créer un compte</h1>
+          <p class="auth__tagline">Rejoins HatCast pour gérer ta troupe</p>
         </div>
 
         <div class="auth__google-block">
-          <!--
-            Le vrai bouton GSI est en calque au-dessus (opacity 0) : le clic = geste utilisateur réel
-            (FedCM / popup). Un .click() JS depuis un autre bouton est souvent bloqué.
-          -->
           <div class="auth__google-stack">
             <button type="button" mat-stroked-button class="auth__google-visual" tabindex="-1">
               <span class="auth__google-g" aria-hidden="true">
@@ -58,30 +54,33 @@
             <span class="auth__between-line" aria-hidden="true"></span>
           </div>
 
-          <form class="auth__email" [formGroup]="emailForm" (ngSubmit)="signInWithEmail()">
+          <form class="auth__email" [formGroup]="emailForm" (ngSubmit)="signUpWithEmail()">
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Email</mat-label>
               <input matInput type="email" formControlName="email" autocomplete="email" />
             </mat-form-field>
-            <div class="login__password-block">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <mat-label>Mot de passe</mat-label>
-                <input matInput type="password" formControlName="password" autocomplete="current-password" />
-              </mat-form-field>
-              <div class="login__field-actions">
-                <mat-checkbox [checked]="rememberMe()" (change)="rememberMe.set($event.checked)">
-                  Se souvenir de moi
-                </mat-checkbox>
-                <a class="login__forgot-link" routerLink="/mot-de-passe-oublie">Mot de passe oublié ?</a>
-              </div>
-            </div>
-            <button mat-flat-button color="primary" type="submit" class="auth__submit">Se connecter</button>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Mot de passe</mat-label>
+              <input matInput type="password" formControlName="password" autocomplete="new-password" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Confirmer le mot de passe</mat-label>
+              <input
+                matInput
+                type="password"
+                formControlName="confirmPassword"
+                autocomplete="new-password"
+              />
+            </mat-form-field>
+            <button mat-flat-button color="primary" type="submit" class="auth__submit">
+              Créer mon compte
+            </button>
           </form>
 
           <p class="auth__footer">
-            Pas de compte ?
-            <a class="auth__text-link" routerLink="/inscription" [queryParams]="signupQueryParams"
-              >Créer un compte</a
+            Déjà un compte ?
+            <a class="auth__text-link" routerLink="/connexion" [queryParams]="loginQueryParams"
+              >Se connecter</a
             >
           </p>
         } @else if (isDev) {

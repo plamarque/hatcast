@@ -11,8 +11,10 @@ describe('member-account-menu-visibility', () => {
       expect(shouldShowAccountChrome('/agenda')).toBe(true)
     })
 
-    it('is false on compte', () => {
+    it('is false on compte and child tab routes', () => {
       expect(shouldShowAccountChrome('/compte')).toBe(false)
+      expect(shouldShowAccountChrome('/compte/securite')).toBe(false)
+      expect(shouldShowAccountChrome('/compte/notifications')).toBe(false)
     })
 
     it('is false on connexion', () => {

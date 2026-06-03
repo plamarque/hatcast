@@ -23,6 +23,13 @@ export function isValidInternalRedirectPath(path: string): boolean {
     return ['agenda', 'compte', 'seasons', 'troupes'].includes(segments[0])
   }
 
+  if (segments[0] === 'compte') {
+    return (
+      segments.length === 2 &&
+      ['preferences', 'notifications', 'securite', 'a-propos'].includes(segments[1])
+    )
+  }
+
   if (segments[0] === 'troupes') {
     return (
       segments.length === 2 ||

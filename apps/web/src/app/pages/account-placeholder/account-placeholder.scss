@@ -10,6 +10,34 @@
   margin-bottom: 1rem;
 }
 
+.account-page__tabs {
+  margin-bottom: 0.5rem;
+
+  .mat-mdc-tab-link {
+    min-height: 3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .account-page__tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    .mat-mdc-tab-link {
+      min-width: 3rem;
+      min-height: 3rem;
+    }
+  }
+}
+
+.account-page__tab-panel {
+  display: none;
+}
+
+.account-page__tab-content {
+  margin-bottom: 1rem;
+}
+
 .account-page__titles {
   min-width: 0;
 }

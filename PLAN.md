@@ -361,10 +361,10 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 0. **OPS-8** — prod Cloud Run **`europe-west1`** + domain mapping **`hatcast.app`** + Cloudflare orange (staging/dev cloud restent **`europe-west9`** / `*.run.app`)  
 1. ~~**MEP iso-V1 slice**~~ — **done** (4.1, 9.0, 3.21, 8.1, 8.3, 6.10b, 8.2, 8.5, 8.6, 9.1 — voir `sprint-status.yaml`)  
 2. **10.4** → **10.2** + **10.3** + **10.7** — PWA recette, MAJ client, version/changelog, icône HatCast 2  
-3. **17.34** + **1.6** — Mon compte (onglets) + email / MDP connecté  
+3. **1.2b** + **17.34** + **1.6** — UX inscription dédiée + Mon compte (onglets) + email / MDP connecté  
 4. **6.15** — modales annonces (M3, notify manuel, anti-spam)  
 5. **10.5** + **10.6** — aides install contextuelles + opt-in notifs post-install  
-6. **Recette 1.3** + **1.7** — reset MDP gate + suppression compte  
+6. **Recette 1.2** + **1.3** + **1.7** — inscription + reset MDP gates + suppression compte  
 7. **OPS-4** → **OPS-6** — release staging par tag ; prod depuis artefact taggué  
 8. Tour écrans staging + replay migration × **≥3**  
 9. Tag **v2.0.0** staging → prod → **M4** (trafic **`hatcast.app`**) → **OPS-7** (branches `v1` / `staging-v1`, rename `main` / `staging`)  
@@ -445,6 +445,8 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
+| **1.2** | Inscription email / mot de passe | P0 recette | done | Code livré (**1-2**) ; **recette gate** cutover (staging → prod) — lien « Créer un compte » sur `/connexion` |
+| **1.2b** | UX inscription dédiée (parité V1) | **P0** | backlog | Routes `/connexion` + `/inscription` — spec [ux-design-auth-inscription-1-2b.md](_bmad-output/planning-artifacts/ux-design-auth-inscription-1-2b.md) |
 | **17.34** | Mon compte — onglets / sections, raccourcis prefs | **P0** | backlog | UX [ux-design-mon-compte.md](_bmad-output/planning-artifacts/ux-design-mon-compte.md) |
 | **1.6** | Changement email + mot de passe connecté | **P0** | backlog | FR36 ; Google + email/password |
 | **1.3** | Reset mot de passe (mot de passe oublié) | P0 recette | done | Gate E2E staging Identity Platform |
@@ -494,7 +496,7 @@ v2 → promote-to-staging.sh → release-staging.sh → tag rc → deploy stagin
 | **M4** | Bascule prod | Trafic **`https://hatcast.app`** ; OAuth/CORS/push VAPID ; comms utilisateurs ; prérequis **OPS-8** vert |
 | **E4** | Renommage branches | **OPS-7** après M4 |
 
-**Gate V2.0.0 / cutover :** **OPS-8** done + Waves **A–D** done + **E1** + **E2** + recette **1.3** + tag **v2.0.0** staging puis prod.
+**Gate V2.0.0 / cutover :** **OPS-8** done + Waves **A–D** done + **E1** + **E2** + recette **1.2** + **1.3** + tag **v2.0.0** staging puis prod.
 
 **P1 fin de vague (non bloquant M4) :** **OPS-9** (PostHog), **OPS-10** (e-mail `@hatcast.app`). Epic **11** analytics détaillé reste **post-V2.0.0** sauf périmètre **OPS-9**.
 
@@ -630,7 +632,7 @@ v2 → promote-to-staging.sh → release-staging.sh → tag rc → deploy stagin
 | **MIG-4** | **Done 2026-06** | Import `deplacement` → `category=deplacements` |
 | **Annuaire public (4.1)** | **Done 2026-06** | Découvrir sans login ; hub gated membre/admin |
 | **Iso-V1 / MEP gate** | **Closed 2026-06-02** | Slice fonctionnelle done — voir `sprint-status.yaml` |
-| **V2.0.0 / cutover gate** | **Open** | § Wave V2.0.0 : **OPS-8**, **10.x**, **1.6/1.7**, **6.15**, **17.34**, **OPS-4–6**, replay ×3, recette **1.3** ; **OPS-9/10** P1 post-M4 |
+| **V2.0.0 / cutover gate** | **Open** | § Wave V2.0.0 : **OPS-8**, **10.x**, **1.2b**, **1.6/1.7**, **6.15**, **17.34**, **OPS-4–6**, replay ×3, recette **1.2** + **1.3** ; **OPS-9/10** P1 post-M4 |
 | **Domaine prod** | **Registered 2026-06-03** | **`hatcast.app`** — Cloudflare Registrar |
 
 ### PRD / UX references (V2)

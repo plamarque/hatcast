@@ -15,6 +15,11 @@ export function isMemberStatsPath(path: string): boolean {
   return /^\/membre\/[^/]+$/.test(path)
 }
 
+/** True on Mon compte shell and child tab routes (`/compte`, `/compte/preferences`, …). */
+export function isAccountPath(path: string): boolean {
+  return path === '/compte' || path.startsWith('/compte/')
+}
+
 const AUTH_PATHS_WITHOUT_NAV = new Set([
   '/connexion',
   '/mot-de-passe-oublie',
@@ -25,7 +30,7 @@ const AUTH_PATHS_WITHOUT_NAV = new Set([
 const MEMBER_NAV_PATH_PATTERNS: RegExp[] = [
   /^\/accueil$/,
   /^\/agenda$/,
-  /^\/compte$/,
+  /^\/compte(\/.*)?$/,
   /^\/troupes$/,
   /^\/membre\/[^/]+$/,
   /^\/troupes\/[^/]+$/,

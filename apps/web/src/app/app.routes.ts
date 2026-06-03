@@ -2,11 +2,17 @@ import { Routes } from '@angular/router';
 
 import { MemberShell } from './layout/member-shell/member-shell';
 import { AccountPlaceholder } from './pages/account-placeholder/account-placeholder';
+import { AccountAboutTab } from './pages/account-placeholder/tabs/account-about-tab';
+import { AccountIdentityTab } from './pages/account-placeholder/tabs/account-identity-tab';
+import { AccountNotificationsTab } from './pages/account-placeholder/tabs/account-notifications-tab';
+import { AccountPreferencesTab } from './pages/account-placeholder/tabs/account-preferences-tab';
+import { AccountSecurityTab } from './pages/account-placeholder/tabs/account-security-tab';
 import { AuthRedirect } from './pages/auth-redirect/auth-redirect';
 import { ForgotPassword } from './pages/forgot-password/forgot-password';
 import { MemberHomeTodo } from './pages/member-home-todo/member-home-todo';
 import { Login } from './pages/login/login';
 import { ResetPassword } from './pages/reset-password/reset-password';
+import { Signup } from './pages/signup/signup';
 import { EventDetail } from './pages/event-detail/event-detail';
 import { AdminMembres } from './pages/admin-membres/admin-membres';
 import { AdminParticipants } from './pages/admin-participants/admin-participants';
@@ -38,6 +44,7 @@ function redirectPathWithQuery(targetPath: string, queryParamMap: {
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: AuthRedirect },
   { path: 'connexion', component: Login },
+  { path: 'inscription', component: Signup },
   { path: 'mot-de-passe-oublie', component: ForgotPassword },
   { path: 'reinitialiser-mot-de-passe', component: ResetPassword },
   {
@@ -47,7 +54,18 @@ export const routes: Routes = [
       { path: 'accueil', component: MemberHomeTodo },
       { path: 'agenda', component: UserAgenda },
       { path: 'membre/:userSlug', component: MemberSeasonGlance },
-      { path: 'compte', component: AccountPlaceholder },
+      {
+        path: 'compte',
+        component: AccountPlaceholder,
+        children: [
+          { path: '', component: AccountIdentityTab },
+          { path: 'preferences', component: AccountPreferencesTab },
+          { path: 'notifications', component: AccountNotificationsTab },
+          { path: 'securite', component: AccountSecurityTab },
+          { path: 'a-propos', component: AccountAboutTab },
+          { path: '**', redirectTo: '' },
+        ],
+      },
       { path: 'troupes', component: TroupesList },
       { path: 'troupes/:slug/admin/membres', component: AdminMembres },
       { path: 'troupes/:slug/admin/audit', component: AdminAudit, data: { auditScope: 'troupe' } },

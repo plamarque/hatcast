@@ -39,6 +39,8 @@ describe('MemberAccountMenuTrigger', () => {
         provideRouter([
           { path: 'agenda', component: MemberAccountMenuTrigger },
           { path: 'compte', component: MemberAccountMenuTrigger },
+          { path: 'compte/securite', component: MemberAccountMenuTrigger },
+          { path: 'compte/notifications', component: MemberAccountMenuTrigger },
         ]),
         {
           provide: AuthApiService,
@@ -74,7 +76,7 @@ describe('MemberAccountMenuTrigger', () => {
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
-    if (url !== '/compte') {
+    if (!url.startsWith('/compte')) {
       await vi.waitFor(() => {
         fixture.detectChanges()
         expect(fixture.nativeElement.querySelector('.member-account-menu-trigger')).not.toBeNull()
@@ -88,13 +90,19 @@ describe('MemberAccountMenuTrigger', () => {
     expect(fixture.nativeElement.querySelector('.member-account-menu-trigger')).not.toBeNull()
   })
 
-  it('hides trigger on /compte', async () => {
+  it('hides trigger on /compte and child tab routes', async () => {
     await renderAt('/compte')
+    expect(fixture.nativeElement.querySelector('.member-account-menu-trigger')).toBeNull()
+
+    await renderAt('/compte/securite')
     expect(fixture.nativeElement.querySelector('.member-account-menu-trigger')).toBeNull()
   })
 
-  it('hides Mon compte menu item when on /compte', async () => {
+  it('hides Mon compte menu item when on /compte or child tab', async () => {
     await renderAt('/compte')
+    expect(fixture.nativeElement.textContent).not.toContain('Mon compte')
+
+    await renderAt('/compte/notifications')
     expect(fixture.nativeElement.textContent).not.toContain('Mon compte')
   })
 

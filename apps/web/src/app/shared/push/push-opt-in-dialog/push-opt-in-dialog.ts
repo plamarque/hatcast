@@ -65,7 +65,7 @@ export class PushOptInDialog {
     this.promptService.markStandaloneOffered();
     sessionStorage.removeItem(PUSH_OPT_IN_PROMPT_AFTER_INSTALL_KEY);
     this.dialogRef.close('account');
-    void this.router.navigate(['/compte'], { fragment: 'notifications' });
+    void this.router.navigate(['/compte/notifications']);
   }
 
   private recordDismiss(): void {

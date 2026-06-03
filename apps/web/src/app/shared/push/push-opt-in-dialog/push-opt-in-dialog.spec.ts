@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { PushNotificationsService } from '../../../core/push/push-notifications.service';
@@ -135,5 +135,14 @@ describe('PushOptInDialog', () => {
     expect(storage[PUSH_OPT_IN_PROMPT_DISMISSED_KEY]).toBeDefined();
     expect(markStandalone).toHaveBeenCalled();
     expect(dialogClose).toHaveBeenCalledWith('dismissed');
+  });
+
+  it('openAccountSettings navigates to /compte/notifications', async () => {
+    const fixture = await createFixture();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    fixture.componentInstance['openAccountSettings']();
+    expect(navigate).toHaveBeenCalledWith(['/compte/notifications']);
+    expect(dialogClose).toHaveBeenCalledWith('account');
   });
 });

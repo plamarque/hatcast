@@ -48,6 +48,10 @@ describe('postLoginRedirectStorage', () => {
     expect(isValidInternalRedirectPath('/saison/festibask/admin/membres')).toBe(true)
     expect(isValidInternalRedirectPath('/saison/festibask/admin/participants')).toBe(true)
     expect(isValidInternalRedirectPath('/compte')).toBe(true)
+    expect(isValidInternalRedirectPath('/compte/notifications')).toBe(true)
+    expect(isValidInternalRedirectPath('/compte/preferences')).toBe(true)
+    expect(isValidInternalRedirectPath('/compte/securite')).toBe(true)
+    expect(isValidInternalRedirectPath('/compte/a-propos')).toBe(true)
     expect(isValidInternalRedirectPath('/seasons')).toBe(true)
     expect(isValidInternalRedirectPath('/troupes')).toBe(true)
     expect(isValidInternalRedirectPath('/troupes/la-malice')).toBe(true)
@@ -68,6 +72,7 @@ describe('postLoginRedirectStorage', () => {
   it('rejects same-origin but non-routable paths', () => {
     expect(isValidInternalRedirectPath('/unknown-route')).toBe(false)
     expect(isValidInternalRedirectPath('/agenda/extra')).toBe(false)
+    expect(isValidInternalRedirectPath('/compte/unknown')).toBe(false)
     expect(isValidInternalRedirectPath('/troupe/demo')).toBe(false)
     expect(isValidInternalRedirectPath('/saison/festibask/unknown')).toBe(false)
     expect(isValidInternalRedirectPath('/saison/festibask/event')).toBe(false)

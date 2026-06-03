@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import { isMemberStatsPath, shouldShowMemberNav } from './member-shell-nav-visibility'
+import { isMemberStatsPath, isAccountPath, shouldShowMemberNav } from './member-shell-nav-visibility'
+
+describe('isAccountPath', () => {
+  it('matches compte root and child tab routes', () => {
+    expect(isAccountPath('/compte')).toBe(true)
+    expect(isAccountPath('/compte/preferences')).toBe(true)
+    expect(isAccountPath('/compte/notifications')).toBe(true)
+    expect(isAccountPath('/compte/securite')).toBe(true)
+    expect(isAccountPath('/compte/a-propos')).toBe(true)
+    expect(isAccountPath('/agenda')).toBe(false)
+  })
+})
 
 describe('isMemberStatsPath', () => {
   it('matches member stats route only', () => {
@@ -16,6 +27,8 @@ describe('shouldShowMemberNav', () => {
     expect(shouldShowMemberNav('/accueil')).toBe(true)
     expect(shouldShowMemberNav('/agenda')).toBe(true)
     expect(shouldShowMemberNav('/compte')).toBe(true)
+    expect(shouldShowMemberNav('/compte/notifications')).toBe(true)
+    expect(shouldShowMemberNav('/compte/securite')).toBe(true)
     expect(shouldShowMemberNav('/troupes')).toBe(true)
     expect(shouldShowMemberNav('/troupes/foo')).toBe(true)
     expect(shouldShowMemberNav('/saison/foo')).toBe(true)

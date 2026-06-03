@@ -167,6 +167,8 @@ Chaque puce de `deferred-work.md` reçoit un **ID** `DW-###`. Croisement **story
 | Historique ligue : relecture **compositions** passées | DW-020–021 | Post-V2.0.0 |
 | **Mon compte** hub membre | **17.24** | Done |
 | Compte : onglets + prefs entry | **17.34** | **P0 V2.0.0** |
+| Inscription email / mot de passe | **1.2** | **Recette gate V2.0.0** (code done) |
+| UX inscription dédiée (parité V1) | **1.2b** | **P0 V2.0.0** |
 | Compte : MAJ email + MDP connecté | **1.6** | **P0 V2.0.0** |
 | Compte : suppression | **1.7** | **P0 V2.0.0** (exclu MEP → in cutover) |
 | Reset mot de passe | **1.3** | **Recette gate V2.0.0** |

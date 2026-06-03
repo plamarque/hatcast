@@ -3,6 +3,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthApiService } from '../../core/auth/auth-api.service';
+import { isAccountPath } from '../../layout/member-shell/member-shell-nav-visibility';
 import { PwaInstallService } from '../../core/pwa/pwa-install.service';
 
 /** Shared user menu: compte, PWA install, logout (nav principale via barre membre). */
@@ -31,7 +32,7 @@ export class UserAccountMenuItemsComponent {
 
   protected showAccountLink(): boolean {
     const path = (this.router.url ?? '').split('?')[0]?.split('#')[0] ?? '';
-    return path !== '/compte';
+    return !isAccountPath(path);
   }
 
   protected showInstallApp(): boolean {

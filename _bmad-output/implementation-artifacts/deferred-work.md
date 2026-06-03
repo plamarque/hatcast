@@ -1,3 +1,9 @@
+## Deferred from: code review of story 1.2b (2026-06-03)
+
+- Duplication GSI Login/Signup (~140 LOC) — extraction optionnelle non obligatoire par story 1.2b.
+- Pas de test Vitest happy-path inscription email → session HatCast — minimum story satisfait ; recette manuelle.
+- Compte Firebase orphelin si `signInWithIdentityPlatformIdToken` échoue après `createUserWithEmailAndPassword` — pattern hérité story 1.2.
+
 ## Deferred from: code review of 8-5-extensions-notifications-membre.md (2026-06-01)
 
 - **W1** — `actorUserId` set to recipient's own `userId` in `AssigneePresenceReminderJob` dispatch context — semantic smell; `actorUserId` not surfaced in current reminder payloads, no user impact today.

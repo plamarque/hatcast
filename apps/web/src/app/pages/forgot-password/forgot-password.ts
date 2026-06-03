@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { RouterLink } from '@angular/router'
 import { sendPasswordResetEmail } from 'firebase/auth'
 
+import { environment } from '../../../environments/environment'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { userMessageForPasswordResetRequestFailure } from '../../core/auth/auth-user-message'
 
@@ -31,6 +32,8 @@ export class ForgotPassword {
 
   protected readonly sending = signal(false)
   protected readonly sent = signal(false)
+  protected readonly isDev = !environment.production
+  protected readonly devLog = signal<string | null>(null)
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -57,8 +60,13 @@ export class ForgotPassword {
         handleCodeInApp: false,
       })
       this.sent.set(true)
-    } catch {
-      this.snack.open(userMessageForPasswordResetRequestFailure(), 'OK', { duration: 8000 })
+    } catch (e: unknown) {
+      const code =
+        typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
+      this.snack.open(userMessageForPasswordResetRequestFailure(code), 'OK', { duration: 8000 })
+      if (this.isDev) {
+        this.devLog.set(code || String(e))
+      }
     } finally {
       this.sending.set(false)
     }

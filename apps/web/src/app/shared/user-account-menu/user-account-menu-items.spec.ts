@@ -67,6 +67,12 @@ describe('UserAccountMenuItemsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Se déconnecter');
   });
 
+  it('hides Mon compte when on a child tab route', async () => {
+    const fixture = await setup({ routerUrl: '/compte/preferences' });
+    expect(fixture.nativeElement.textContent).not.toContain('Mon compte');
+    expect(fixture.nativeElement.textContent).toContain('Se déconnecter');
+  });
+
   it('shows Installer l\'app when PWA is not installed', async () => {
     const fixture = await setup({ pwaInstalled: false });
     expect(fixture.nativeElement.textContent).toContain("Installer l'app");

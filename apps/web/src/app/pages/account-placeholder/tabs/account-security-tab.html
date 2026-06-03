@@ -1,0 +1,59 @@
+@if (ctx.user(); as u) {
+  <section class="account-page__section" aria-labelledby="account-security-heading">
+    <h2 id="account-security-heading" class="account-page__section-title">Sécurité</h2>
+    <mat-nav-list class="account-page__list">
+      <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="emailComingSoonTooltip">
+        <button
+          type="button"
+          mat-list-item
+          class="account-page__list-item--disabled"
+          disabled
+          data-testid="account-change-email"
+        >
+          <span matListItemTitle>Changer l’adresse e-mail</span>
+          <span matListItemMeta class="account-page__soon">Bientôt</span>
+        </button>
+      </span>
+      @if (!u.hasGoogleAccount) {
+        <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="passwordComingSoonTooltip">
+          <button
+            type="button"
+            mat-list-item
+            class="account-page__list-item--disabled"
+            data-testid="account-reset-password"
+            disabled
+          >
+            <span matListItemTitle>Changer le mot de passe</span>
+            <span matListItemMeta class="account-page__soon">Bientôt</span>
+          </button>
+        </span>
+      } @else {
+        <div mat-list-item class="account-page__list-item--hint" data-testid="account-google-password-hint">
+          <span matListItemTitle>Connexion via Google</span>
+          <span matListItemLine>Pas de mot de passe HatCast sur ce compte.</span>
+        </div>
+      }
+    </mat-nav-list>
+  </section>
+
+  <section
+    class="account-page__section account-page__section--danger"
+    aria-labelledby="account-danger-heading"
+  >
+    <h2 id="account-danger-heading" class="account-page__section-title">Zone sensible</h2>
+    <mat-nav-list class="account-page__list">
+      <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="deleteComingSoonTooltip">
+        <button
+          type="button"
+          mat-list-item
+          class="account-page__list-item--danger account-page__list-item--disabled"
+          disabled
+          data-testid="account-delete"
+        >
+          <span matListItemTitle>Supprimer mon compte</span>
+          <span matListItemMeta class="account-page__soon">Bientôt</span>
+        </button>
+      </span>
+    </mat-nav-list>
+  </section>
+}
