@@ -298,12 +298,11 @@ ACTIONS_URL="$(hatcast_v2_github_actions_url)"
 if [[ "${DRY_RUN}" == true ]]; then
   echo ""
   echo "✅ DRY RUN terminé — tag prévu : ${RELEASE_TAG_NAME} (produit ${NEW_VERSION})"
-  echo "📊 En réel : push ${HATCAST_V2_BRANCH_STAGING} + tag ${RELEASE_TAG_NAME} → CI staging (branch push)"
-  echo "ℹ️  Déploiement sur tag seul : scope OPS-5 (non implémenté ici)."
+  echo "📊 En réel : push ${HATCAST_V2_BRANCH_STAGING} → CI staging (1 run) ; tag ${RELEASE_TAG_NAME} = audit / promote prod"
 else
   echo ""
   echo "✅ Release staging initiée — ${RELEASE_TAG_NAME} (produit ${NEW_VERSION})"
   echo "🌐 CI : ${ACTIONS_URL}"
   echo "☁️  Service Cloud Run : hatcast-v2-staging (push branche ${HATCAST_V2_BRANCH_STAGING})"
-  echo "ℹ️  Le tag RC sert de piste d’audit ; le deploy reste sur push branche jusqu’à OPS-5."
+  echo "ℹ️  Le tag RC ne déclenche pas la CI (évite un run rouge) ; requis pour promote-tag-to-prod."
 fi

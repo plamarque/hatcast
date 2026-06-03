@@ -27,7 +27,7 @@ flowchart LR
   STG -->|release-staging.sh| STG
   STG -->|tag RC| RC
   RC -->|promote-tag-to-prod.sh| REL
-  RC -->|push tag RC| CRstg
+  RC -.->|tag RC audit| RC
   REL -->|push tag prod| CRprod
 ```
 
@@ -143,13 +143,13 @@ Options : `--patch`, `--minor`, `--major`, `--version=X.Y.Z`, `--dry-run`, `--he
 5. Met à jour `CHANGELOG.md` (et `CHANGELOG_FR.md` si présent) depuis le tag RC précédent ou le dernier tag release
 6. Commit `chore(v2): release staging vX.Y.Z-rc.N`, tag annoté `vX.Y.Z-rc.N`, push **branche + tag**
 
-Le **déploiement** Cloud Run staging est déclenché soit par le **push sur `staging-v2`**, soit par le **push d’un tag RC** `vX.Y.Z-rc.N`.
+Le **déploiement** Cloud Run staging est déclenché par le **push sur `staging-v2`** uniquement (un run CI). Le tag RC `vX.Y.Z-rc.N` est poussé pour l’audit et `promote-tag-to-prod` ; il **ne** déclenche **pas** le workflow (évite un échec « environment protection » sur l’env `staging`).
 
 ### Flux opérateur staging
 
 ```
 v2 → promote-to-staging.sh → release-staging.sh → tag vX.Y.Z-rc.N
-→ push staging-v2/tag RC → CI deploy + smoke E2E → recette
+→ push staging-v2 → CI deploy + smoke E2E → recette (tag RC sans workflow)
 → promote-tag-to-prod.sh --version=X.Y.Z
 ```
 
