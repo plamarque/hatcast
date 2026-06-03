@@ -93,6 +93,10 @@ export function userMessageForMissingFirebaseSession(): string {
   return 'Votre session Identity Platform a expiré. Reconnectez-vous pour modifier votre adresse e-mail.'
 }
 
+export function userMessageForGoogleReauthFailure(): string {
+  return 'Connexion Google annulée ou bloquée. Autorisez les fenêtres contextuelles ou reconnectez-vous depuis Mon compte.'
+}
+
 /** Demande de changement d’e-mail (verifyBeforeUpdateEmail) — messages sûrs (NFR-S1). */
 export function userMessageForEmailUpdateRequest(code = ''): string {
   switch (code) {

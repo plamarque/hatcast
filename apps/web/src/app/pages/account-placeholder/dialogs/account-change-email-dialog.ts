@@ -22,6 +22,7 @@ import { verifyBeforeUpdateEmail } from 'firebase/auth'
 import { verifyBeforeUpdateEmailSettings } from '../../../core/auth/auth-action-code-settings'
 import {
   userMessageForEmailUpdateRequest,
+  userMessageForGoogleReauthFailure,
   userMessageForMissingFirebaseConfig,
   userMessageForMissingFirebaseSession,
   userMessageForRequiresRecentLogin,
@@ -100,6 +101,9 @@ export class AccountChangeEmailDialog {
         allowGoogleReauth: this.data.hasGoogleAccount === true,
       })
       if (!firebaseUser) {
+        if (this.data.hasGoogleAccount === true) {
+          this.snack.open(userMessageForGoogleReauthFailure(), 'OK', { duration: 10_000 })
+        }
         this.requiresRecentLogin.set(true)
         return
       }

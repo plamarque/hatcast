@@ -42,11 +42,8 @@ export class AccountEmailVerification implements OnInit {
     const { oobCode, mode } = readFirebaseActionLinkParams(globalThis.location.href)
 
     if (!oobCode) {
-      if (await this.syncHatcastSessionFromFirebase(auth)) {
-        this.finishSuccess()
-        return
-      }
-      // Flux courant Identity Platform : page hébergée Google → redirect continueUrl sans oobCode.
+      // Sans oobCode : pas de succès automatique (évite faux positif si l’URL est visitée hors lien).
+      // Flux page hébergée IdP → continueUrl sans code : inviter la reconnexion pour sync HatCast.
       this.phase.set('reconnect')
       return
     }

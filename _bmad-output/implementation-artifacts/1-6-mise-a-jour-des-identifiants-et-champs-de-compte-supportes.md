@@ -1,6 +1,6 @@
 # Story 1.6: Mon compte — change email & password (logged in, V1 parity)
 
-Status: review
+Status: done
 
 baseline_commit: 03a893ca3d2392acf173dbc2b2180bb016699097
 
@@ -22,7 +22,7 @@ so that I keep my credentials up to date — including a **backup password** if 
 
 4. **Change email — complete verification & sync HatCast:** Given the user clicked the **verification link** from the new-email inbox, when the app handles the action code (dedicated route, e.g. **`/compte/verification-email`**, or in-dialog handler if link returns to app with `oobCode` + `mode=verifyAndChangeEmail`), then apply Identity Platform completion (`applyActionCode` / `checkActionCode` per Firebase modular API), **`reload()`** the Firebase user, **re-exchange** session via existing **`AuthApiService.signInWithIdentityPlatformIdToken(getIdToken(true))`**, refresh **`AccountPageContext.user`**, and show success (*Votre adresse email a été mise à jour.*). The **Identité** tab read-only email and **`GET /v1/auth/me`** must reflect the new address (Postgres sync via existing [`AuthUserLinkService.updateProfile`](../../services/api/src/main/kotlin/com/hatcast/api/auth/AuthUserLinkService.kt) on token exchange — **no new password storage server-side**). [Source: ADR-0010 ; story **1.2** session bridge]
 
-5. **Set or change password — email confirmation while logged in (V1 parity, distinct from 1.3 UX):** Given a **signed-in** user with `currentUser.email` (including **Google-only** accounts that never set a password), when they tap **`Définir un mot de passe`** or **`Changer le mot de passe`**, then a **`MatDialog`** explains that the next step is **by email** (distinct from *Mot de passe oublié* on `/connexion` — reuse tooltip intent from **17.34**). For Google-only / no password provider yet, dialog copy must state that this **adds** email+password sign-in **in addition to** Google. On confirm, invoke **`sendPasswordResetEmail(auth, currentUser.email, { url: origin + '/reinitialiser-mot-de-passe', handleCodeInApp: false })`** — **same IdP mechanism** as story **1.3** but **initiated from Mon compte** while authenticated (matches V1 `AccountMenu.changePassword` → reset email, **not** inline `updatePassword` without email). **Must work** for Google-only IdP users (links password provider on completion). Show success: *Email de réinitialisation envoyé ! …* (V1 copy). Completion remains on existing [`/reinitialiser-mot-de-passe`](../../apps/web/src/app/pages/reset-password/reset-password.ts) (`confirmPasswordReset` + optional sign-in chain). After completion, user can sign in with **Google or email/password**. [Source: epics 1.6 vs 1.3 ; legacy `AccountMenu.vue` ; FR36 ; **product amend 2026-06-03**]
+5. **Set or change password — email confirmation while logged in (V1 parity, distinct from 1.3 UX):** Given a **signed-in** user with `currentUser.email` (including **Google-only** accounts that never set a password), when they tap **`Définir un mot de passe`** or **`Changer le mot de passe`**, then a **`MatDialog`** explains that the next step is **by email** (distinct from *Mot de passe oublié* on `/connexion` — reuse tooltip intent from **17.34**). For Google-only / no password provider yet, dialog copy must state that this **adds** email+password sign-in **in addition to** Google. On confirm, invoke **`sendPasswordResetEmail(auth, currentUser.email, { url: origin + '/reinitialiser-mot-de-passe', handleCodeInApp: true })`** via shared [`auth-action-code-settings.ts`](../../apps/web/src/app/core/auth/auth-action-code-settings.ts) — lien traité in-app sur `/reinitialiser-mot-de-passe` (aligné vérif e-mail `/compte/verification-email`). **Same IdP mechanism** as story **1.3** but **initiated from Mon compte** while authenticated (matches V1 `AccountMenu.changePassword` → reset email, **not** inline `updatePassword` without email). **Must work** for Google-only IdP users (links password provider on completion). Show success: *Email de réinitialisation envoyé ! …* (V1 copy). Completion remains on existing [`/reinitialiser-mot-de-passe`](../../apps/web/src/app/pages/reset-password/reset-password.ts) (`confirmPasswordReset` + optional sign-in chain). After completion, user can sign in with **Google or email/password**. [Source: epics 1.6 vs 1.3 ; legacy `AccountMenu.vue` ; FR36 ; **product amend 2026-06-03** ; **code review 2026-06-03** — `handleCodeInApp: true` retenu]
 
 6. **Validation & safe errors (NFR-S1, NFR-I1):** Given invalid input or IdP errors (`auth/email-already-in-use`, `auth/invalid-email`, `auth/too-many-requests`, network), when submit fails, then show **French, user-safe** messages via extended helpers in [`auth-user-message.ts`](../../apps/web/src/app/core/auth/auth-user-message.ts) — no stack traces, no enumeration beyond provider-aligned cases. Password rules on completion path remain **≥ 8 characters** (same as **1.2** / **1.3**).
 
@@ -61,17 +61,17 @@ so that I keep my credentials up to date — including a **backup password** if 
 
 ### Review Findings
 
-- [ ] [Review][Decision] `handleCodeInApp: true` vs AC 5 (`false`) — Story AC 5 and 1.3 baseline use `handleCodeInApp: false` ; implementation centralizes `passwordResetEmailSettings()` / `verifyBeforeUpdateEmailSettings()` with `handleCodeInApp: true` (also changes `/connexion` forgot-password). Confirm whether in-app handling on `/reinitialiser-mot-de-passe` and `/compte/verification-email` is intentional ; if not, restore `false` for password reset and keep `true` only for email verification if needed.
+- [x] [Review][Decision] `handleCodeInApp: true` — Retenu (option 1) : liens in-app vers `/reinitialiser-mot-de-passe` et `/compte/verification-email` ; AC 5 story mise à jour.
 
-- [ ] [Review][Patch] Faux succès sans `oobCode` sur `/compte/verification-email` [`account-email-verification.ts:44-51`] — When `oobCode` is absent, `syncHatcastSessionFromFirebase` + `finishSuccess()` runs for any logged-in user, showing « Adresse e-mail mise à jour » without applying a code. Require `oobCode` or a verified post-redirect signal before success.
+- [x] [Review][Patch] Faux succès sans `oobCode` [`account-email-verification.ts`] — Corrigé : sans `oobCode`, phase `reconnect` uniquement.
 
-- [ ] [Review][Patch] `sendPasswordResetEmail` n’utilise pas `auth.currentUser.email` [`account-change-password-dialog.ts:61-75`] — AC 5 requires `currentUser.email` ; dialog sends `data.accountEmail` from HatCast session only. Prefer `auth.currentUser?.email?.trim() ?? data.accountEmail` after session guard.
+- [x] [Review][Patch] `sendPasswordResetEmail` + `currentUser.email` [`account-change-password-dialog.ts`] — Corrigé : `auth.currentUser?.email` prioritaire.
 
-- [ ] [Review][Patch] Libellé mot de passe pas rafraîchi après définition [`account-security-tab.ts:37-41`] — `hasPasswordProvider` is set once in `ngOnInit`. After user completes reset email flow and returns without full reload, row may still show « Définir un mot de passe ». Refresh signal on dialog close or `onAuthStateChanged`.
+- [x] [Review][Patch] Rafraîchissement libellé mot de passe [`account-security-tab.ts`] — Corrigé : `onAuthStateChanged` + `afterClosed` sur dialog MDP.
 
-- [ ] [Review][Patch] Re-auth Google silencieuse [`account-change-email-dialog.ts:99-104`] — `ensureFirebaseCurrentUser` returns `null` on popup failure/block without snackbar ; user only sees `requiresRecentLogin` UI. Surface a distinct message when popup/reauth fails.
+- [x] [Review][Patch] Re-auth Google silencieuse [`account-change-email-dialog.ts`] — Corrigé : `userMessageForGoogleReauthFailure()` + snackbar.
 
-- [x] [Review][Defer] Ligne « Supprimer mon compte » activée [`account-security-tab.html:39-47`] — AC 1 (1.6) requires disabled until 1.7 ; branch includes story 1.7 work (`AccountDeleteDialog`). Validate in 1.7 review, not 1.6 patch scope.
+- [x] [Review][Defer] Ligne « Supprimer mon compte » activée — Story 1.7 ; voir `deferred-work.md`.
 
 ---
 
@@ -224,6 +224,7 @@ Composer (Cursor agent)
 - 2026-06-03 : Story created (`bmad-create-story`) — P0 V2.0.0 ; email + password from Mon compte with email confirmation (V1 parity via Identity Platform).
 - 2026-06-03 : Product amend — Google-only users **must** define backup password by email (both providers) ; supersedes ux-design-mon-compte « hide password row » for **1.6**.
 - 2026-06-03 : Implementation complete — Sécurité dialogs, verification route, tests green (930/930).
+- 2026-06-03 : Code review — `handleCodeInApp: true` retenu ; 4 patches appliqués (faux succès vérif e-mail, `currentUser.email`, refresh MDP, snack re-auth Google).
 
 ---
 
@@ -237,6 +238,6 @@ Composer (Cursor agent)
 
 ## Story completion status
 
-- **Status:** review
+- **Status:** done
 - **Sprint key:** `1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes`
 - **Note:** Google + backup password by email ; confirmation email like V1 ; supersedes prior AC hiding password for Google-only.

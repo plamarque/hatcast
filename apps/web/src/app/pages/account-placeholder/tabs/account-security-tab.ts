@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal, ViewEncapsulation } from '@angular/core'
+import { Component, inject, OnDestroy, OnInit, signal, ViewEncapsulation } from '@angular/core'
+import { onAuthStateChanged, type Auth } from 'firebase/auth'
 import { MatDialog } from '@angular/material/dialog'
 import { MatListModule } from '@angular/material/list'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -26,19 +27,31 @@ import {
   styleUrl: '../account-placeholder.scss',
   encapsulation: ViewEncapsulation.None,
 })
-export class AccountSecurityTab implements OnInit {
+export class AccountSecurityTab implements OnInit, OnDestroy {
   protected readonly ctx = inject(AccountPageContext)
   private readonly dialog = inject(MatDialog)
   private readonly firebaseAuth = inject(FirebaseAuthService)
   private readonly snack = inject(MatSnackBar)
 
   protected readonly hasPasswordProvider = signal(false)
+  private authStateUnsubscribe: (() => void) | null = null
 
   ngOnInit(): void {
     const auth = this.firebaseAuth.getAuthOrNull()
-    if (auth?.currentUser) {
-      this.hasPasswordProvider.set(hasPasswordProvider(auth))
+    if (!auth) {
+      return
     }
+    this.refreshPasswordProvider(auth)
+    this.authStateUnsubscribe = onAuthStateChanged(auth, () => this.refreshPasswordProvider(auth))
+  }
+
+  ngOnDestroy(): void {
+    this.authStateUnsubscribe?.()
+    this.authStateUnsubscribe = null
+  }
+
+  private refreshPasswordProvider(auth: Auth): void {
+    this.hasPasswordProvider.set(hasPasswordProvider(auth))
   }
 
   protected passwordRowLabel(): string {
@@ -75,13 +88,19 @@ export class AccountSecurityTab implements OnInit {
       return
     }
 
-    this.dialog.open(AccountChangePasswordDialog, {
+    const ref = this.dialog.open(AccountChangePasswordDialog, {
       width: 'min(100vw - 2rem, 28rem)',
       panelClass: 'account-security-dialog',
       data: {
         hasPasswordProvider: this.hasPasswordProvider(),
         accountEmail: email,
       } satisfies AccountChangePasswordDialogData,
+    })
+    ref.afterClosed().subscribe(() => {
+      const authAfter = this.firebaseAuth.getAuthOrNull()
+      if (authAfter) {
+        this.refreshPasswordProvider(authAfter)
+      }
     })
   }
 

@@ -58,11 +58,11 @@ export class AccountChangePasswordDialog {
     }
 
     const auth = this.firebaseAuth.getAuthOrNull()
-    const email = this.data.accountEmail.trim()
     if (!auth) {
       this.snack.open(userMessageForMissingFirebaseConfig(), 'OK', { duration: 10_000 })
       return
     }
+    const email = auth.currentUser?.email?.trim() || this.data.accountEmail.trim()
     if (!email) {
       this.snack.open('Adresse e-mail non disponible. Veuillez vous reconnecter.', 'OK', {
         duration: 8000,
