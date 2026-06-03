@@ -2,6 +2,8 @@ import {
   ApplicationConfig,
   importProvidersFrom,
   isDevMode,
+  inject,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -11,9 +13,14 @@ import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/cor
 import { NgxMatTimepickerModule } from 'ngx-mat-timepicker';
 
 import { routes } from './app.routes';
+import { ProductAnalyticsService } from './core/analytics/product-analytics.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    provideAppInitializer(() => {
+      const analytics = inject(ProductAnalyticsService);
+      return analytics.bootstrap();
+    }),
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideAnimationsAsync(),

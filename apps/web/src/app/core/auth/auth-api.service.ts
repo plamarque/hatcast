@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { signOut } from 'firebase/auth'
 
+import { ProductAnalyticsService } from '../analytics/product-analytics.service'
 import { csrfHeaders } from '../http/hatcast-csrf'
 import { FirebaseAuthService } from './firebase-auth.service'
 import {
@@ -26,6 +27,7 @@ export interface AuthSessionBody {
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
   private readonly firebaseAuth = inject(FirebaseAuthService)
+  private readonly productAnalytics = inject(ProductAnalyticsService)
   private readonly sessionUserSignal = signal<UserSummary | null>(null)
   private ensureInFlight: Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> | null =
     null
@@ -90,6 +92,7 @@ export class AuthApiService {
   private applySessionBody(data?: AuthSessionBody): void {
     if (data?.user) {
       this.sessionUserSignal.set(data.user)
+      this.productAnalytics.identifyUser(data.user.id)
     }
   }
 
@@ -183,6 +186,7 @@ export class AuthApiService {
     }
 
     this.sessionUserSignal.set(null)
+    this.productAnalytics.resetSession()
 
     return apiOk
   }

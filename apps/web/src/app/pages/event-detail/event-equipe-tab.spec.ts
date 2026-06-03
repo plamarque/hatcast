@@ -139,6 +139,8 @@ describe('EventEquipeTab', () => {
     fixture = TestBed.createComponent(EventEquipeTab)
     fixture.componentRef.setInput('seasonId', 'season-1')
     fixture.componentRef.setInput('seasonSlug', 'saison-test')
+    fixture.componentRef.setInput('troupeSlug', 'troupe-test')
+    fixture.componentRef.setInput('troupeId', 'troupe-1')
     fixture.componentRef.setInput('event', ev())
     fixture.componentRef.setInput('canManageComposition', false)
   })

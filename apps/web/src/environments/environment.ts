@@ -8,6 +8,10 @@ export const environment = {
   demoTroupeId: 'a0000001-0000-4000-8000-000000000099',
   /** Clé VAPID publique Web Push — injectée au build (fallback : GET /v1/config/public). */
   webPushVapidPublicKey: '',
+  /** PostHog project API key (public ingest) — empty disables analytics (local, CI). */
+  posthogApiKey: '',
+  posthogApiHost: 'https://e.hatcast.app',
+  posthogUiHost: 'https://eu.posthog.com',
   firebase: {
     apiKey: '',
     authDomain: '',

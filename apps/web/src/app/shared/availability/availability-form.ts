@@ -15,6 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import {
@@ -55,6 +56,7 @@ export type AvailabilityFormSavedPayload = {
 })
 export class AvailabilityForm {
   private readonly api = inject(AvailabilityApiService)
+  private readonly analytics = inject(ProductAnalyticsService)
   private readonly memberProfileApi = inject(MemberProfileApiService)
   private readonly snack = inject(MatSnackBar)
 
@@ -70,6 +72,8 @@ export class AvailabilityForm {
   readonly initialStatus = input<AvailabilityStatus>('unknown')
   readonly initialRoleKeys = input<string[] | null | undefined>([])
   readonly initialComment = input<string | null | undefined>(null)
+  /** ISO timestamp when the availability window was opened (FR47). */
+  readonly availabilityOpenedAt = input<string | null>(null)
 
   readonly saved = output<AvailabilityFormSavedPayload>()
 
@@ -306,6 +310,7 @@ export class AvailabilityForm {
   }
 
   private async persistStatus(status: AvailabilityStatus): Promise<void> {
+    const wasFirstSubmission = this.initialStatus() === 'unknown'
     this.savingStatus.set(true)
     const body = {
       status,
@@ -320,6 +325,7 @@ export class AvailabilityForm {
       return
     }
     this.applyServerResponse(r.data, 'status')
+    this.trackAvailabilityFirstSubmissionIfNeeded(wasFirstSubmission)
     this.saved.emit({
       status: r.data.status,
       roleKeys: r.data.roleKeys,
@@ -329,6 +335,7 @@ export class AvailabilityForm {
   }
 
   private async persistDetails(status: AvailabilityStatus): Promise<void> {
+    const wasFirstSubmission = this.initialStatus() === 'unknown'
     if (!this.validateCommentLocally()) {
       return
     }
@@ -347,6 +354,7 @@ export class AvailabilityForm {
       return
     }
     this.applyServerResponse(r.data, 'details')
+    this.trackAvailabilityFirstSubmissionIfNeeded(wasFirstSubmission)
     this.snack.open('Rôles et commentaire enregistrés.', 'OK', { duration: 3000 })
     this.saved.emit({
       status: r.data.status,
@@ -370,6 +378,21 @@ export class AvailabilityForm {
       this.selectedRoleKeys.set(serverRoles)
       this.commentText.set(serverComment)
     }
+  }
+
+  private trackAvailabilityFirstSubmissionIfNeeded(wasFirstSubmission: boolean): void {
+    const openedAt = this.availabilityOpenedAt()?.trim()
+    if (!wasFirstSubmission || !openedAt) {
+      return
+    }
+    this.analytics.captureAvailabilityFirstSubmission(
+      this.analytics.eventContext(this.eventId(), this.seasonId(), this.troupeId()),
+      {
+        is_proxy: this.proxyMode(),
+        opened_at: openedAt,
+        submitted_at: new Date().toISOString(),
+      },
+    )
   }
 
   private handlePersistError(status: number): void {

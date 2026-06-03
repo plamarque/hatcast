@@ -25,5 +25,6 @@
   [initialStatus]="subject().status"
   [initialRoleKeys]="subject().roleKeys"
   [initialComment]="subject().comment"
+  [availabilityOpenedAt]="availabilityOpenedAt()"
   (saved)="saved.emit($event)"
 />

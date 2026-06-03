@@ -7,6 +7,8 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import { computeRawCompositionLifecycle } from '../../core/composition/composition-lifecycle'
 import {
   CompositionApiService,
   type CompositionDrawStep,
@@ -82,6 +84,7 @@ interface SlotRow {
 })
 export class EventEquipeTab {
   private readonly compositionApi = inject(CompositionApiService)
+  private readonly analytics = inject(ProductAnalyticsService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
 
@@ -90,6 +93,7 @@ export class EventEquipeTab {
   readonly seasonId = input.required<string>()
   readonly seasonSlug = input.required<string>()
   readonly troupeSlug = input.required<string>()
+  readonly troupeId = input.required<string>()
   readonly event = input.required<EventResponse>()
   readonly canManageComposition = input(false)
   readonly showConfirmPending = input(false)
@@ -1013,6 +1017,10 @@ export class EventEquipeTab {
       return
     }
     this.applyCompositionUpdate(result.data)
+    this.analytics.captureCompositionValidated(
+      this.analytics.eventContext(eventId, seasonId, this.troupeId()),
+      { validated_at: result.data.validatedAt ?? new Date().toISOString() },
+    )
     this.snack.open('Composition validée.', 'OK', { duration: 4000 })
   }
 
@@ -1039,8 +1047,21 @@ export class EventEquipeTab {
   }
 
   private applyCompositionUpdate(next: CompositionResponse): void {
+    const prev = this.composition()
+    const roleSlots = normalizeRoleSlots(this.event().roleSlots)
+    const prevLifecycle = computeRawCompositionLifecycle(prev, roleSlots)
     this.composition.set(next)
     this.compositionPublished.emit(next)
+    const nextLifecycle = computeRawCompositionLifecycle(next, roleSlots)
+    if (nextLifecycle === 'complete' && prevLifecycle !== 'complete') {
+      this.analytics.captureCompositionAllConfirmationsReceived(
+        this.analytics.eventContext(this.event().id, this.seasonId(), this.troupeId()),
+        {
+          validated_at: next.validatedAt ?? null,
+          completed_at: new Date().toISOString(),
+        },
+      )
+    }
   }
 
   private validateUnlockErrorMessage(
