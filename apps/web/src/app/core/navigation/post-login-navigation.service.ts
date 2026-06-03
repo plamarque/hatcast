@@ -20,6 +20,10 @@ import {
   getPendingPostLoginRedirect,
   isValidInternalRedirectPath,
 } from './post-login-redirect-storage'
+import {
+  clearStaleSeasonNavigation,
+  seasonSlugFromPathname,
+} from './unreachable-season-navigation'
 
 export type PostLoginNavigationTarget = string | string[]
 
@@ -35,7 +39,10 @@ export class PostLoginNavigationService {
     const pending = getPendingPostLoginRedirect()
     if (pending) {
       if (isValidInternalRedirectPath(pending)) {
-        return pending
+        const validatedPending = await this.validatePendingRedirect(pending)
+        if (validatedPending) {
+          return validatedPending
+        }
       }
       clearPendingPostLoginRedirect()
     }
@@ -120,6 +127,26 @@ export class PostLoginNavigationService {
     if (getLastMemberEntryPath() === `/saison/${slug}`) {
       clearLastMemberEntryPath()
     }
+  }
+
+  private async validatePendingRedirect(pending: string): Promise<string | null> {
+    const pathname = pending.split(/[?#]/)[0] ?? pending
+    const seasonSlug = seasonSlugFromPathname(pathname)
+    if (!seasonSlug) {
+      return pending
+    }
+
+    try {
+      const resolved = await this.resolver.resolveSeasonSlug(seasonSlug)
+      if (resolved.kind === 'resolved') {
+        return pending
+      }
+    } catch {
+      // Network/server error — treat as unreachable and fall through
+    }
+
+    clearStaleSeasonNavigation(seasonSlug)
+    return null
   }
 
   async navigateAfterSignIn(router: Router = this.router): Promise<boolean> {

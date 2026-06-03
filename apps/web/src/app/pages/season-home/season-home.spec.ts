@@ -216,6 +216,30 @@ describe('SeasonHome', () => {
     })
   })
 
+  it('redirige vers /agenda quand l’utilisateur n’a aucune troupe', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
+    paramMap$.next(convertToParamMap({ slug: 'deplacements-2026-27' }))
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(router.navigate).toHaveBeenCalledWith(['/agenda'], { replaceUrl: true })
+    })
+    expect(snack.open).not.toHaveBeenCalled()
+  })
+
+  it('redirige vers le hub troupe quand le slug de saison est inconnu', async () => {
+    seasonsApi.getSeasonBySlug.mockResolvedValue({ ok: false, status: 404 })
+    paramMap$.next(convertToParamMap({ slug: 'inconnue' }))
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes', 'troupe-1'], {
+        replaceUrl: true,
+      })
+    })
+    expect(snack.open).not.toHaveBeenCalled()
+  })
+
   it('résout la saison dans la troupe sélectionnée avant les autres', async () => {
     localStorage.setItem('hatcast.selectedTroupeId', 'troupe-2')
     seasonsApi.getSeasonBySlug.mockResolvedValueOnce({
@@ -693,11 +717,8 @@ describe('SeasonHome', () => {
 
     await fixture.componentInstance['loadTroupeAndSeason']('season-a')
 
-    expect(snack.open).toHaveBeenCalledWith(
-      expect.stringContaining('plusieurs troupes'),
-      'OK',
-      expect.any(Object),
-    )
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes'], { replaceUrl: true })
+    expect(snack.open).not.toHaveBeenCalled()
     expect(organizerApi.mySeasonPermissions).not.toHaveBeenCalled()
     expect(eventsApi.listEvents).not.toHaveBeenCalled()
   })

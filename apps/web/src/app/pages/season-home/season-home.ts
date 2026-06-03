@@ -24,6 +24,7 @@ import {
 } from '../../core/navigation/last-member-entry-path-storage'
 import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
+import { navigateAwayFromUnreachableSeason } from '../../core/navigation/unreachable-season-navigation'
 import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
@@ -556,21 +557,18 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (requestId !== this.seasonLoadRequestId) {
       return
     }
-    if (resolved.kind === 'no-membership') {
+    if (
+      resolved.kind === 'no-membership' ||
+      resolved.kind === 'ambiguous' ||
+      resolved.kind === 'not-found'
+    ) {
       this.loadingSeason.set(false)
-      this.snack.open('Vous n’appartenez à aucune troupe.', 'OK', { duration: 6000 })
-      return
-    }
-    if (resolved.kind === 'ambiguous') {
-      this.loadingSeason.set(false)
-      this.snack.open('Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.', 'OK', {
-        duration: 8000,
-      })
-      return
-    }
-    if (resolved.kind === 'not-found') {
-      this.loadingSeason.set(false)
-      this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
+      await navigateAwayFromUnreachableSeason(
+        this.router,
+        resolved.kind,
+        slug,
+        this.troupeContext,
+      )
       return
     }
     if (resolved.kind === 'error') {
