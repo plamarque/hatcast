@@ -329,7 +329,7 @@ Checklist manuelle après déploiement couplé SPA + API (staging ou production)
 1. Ouvrir l’URL du service → se connecter (Google ou email).
 2. Aller sur `/troupes` (ou CTA vide sur `/agenda`).
 3. Cliquer **Rejoindre la troupe de démonstration**.
-4. Vérifier la redirection vers **`/saison/saison-2026-2027`** et le fil d’Ariane / chip **Démo**.
+4. Vérifier la redirection vers **`/saison/demo/saison-2026-2027`** et le fil d’Ariane / chip **Démo**.
 5. Ouvrir un spectacle **en préparation** (ex. événement seed bootstrap si visible) → renseigner une première disponibilité → enregistrer.
 6. (Optionnel) Avec `HATCAST_SUPER_ADMIN_EMAILS` incluant l’email opérateur, vérifier l’accès aux surfaces admin plateforme.
 
@@ -346,6 +346,48 @@ Checklist manuelle après déploiement couplé SPA + API (staging ou production)
 ### 502 sur `/v1/...` (`connect() failed (111: Connection refused)` vers `127.0.0.1:8081`)
 
 Souvent **Nginx** est prêt avant que **Spring** n’écoute sur `HATCAST_SERVER_PORT` (cold start, Flyway/Neon lent). L’image attend jusqu’à **240 s** que `http://127.0.0.1:8081/actuator/health` réponde avant de lancer Nginx ; variable optionnelle **`WAIT_FOR_API_SECONDS`** sur le service Cloud Run pour ajuster. Si l’API ne démarre pas (Neon injoignable, OOM, erreur Flyway), consulter les **logs** du révision Cloud Run (sortie Java + Nginx).
+
+## 7. Prod custom domain `hatcast.app` (OPS-8, V2.0.0)
+
+**Scope :** production uniquement (`hatcast-v2`, environnement GitHub **`production`**, branche **`production-v2`**). **Staging** (`hatcast-v2-staging`) et **dev cloud** (`hatcast-v2-dev`) restent en **`europe-west9`** avec leurs URLs `*.run.app` — pas de migration.
+
+**Registrar / DNS :** **`hatcast.app`** chez **Cloudflare** (Registrar + zone DNS). **Prod Cloud Run :** région **`europe-west1`** (domain mapping natif — **non** disponible en `europe-west9`).
+
+### 7.1 GitHub Environment `production`
+
+| Paramètre | Valeur |
+|-----------|--------|
+| `GCP_REGION` | `europe-west1` |
+| `GCP_ARTIFACT_REGISTRY` | `europe-west1-docker.pkg.dev/PROJECT/hatcast-v2/hatcast-api` (sans tag) |
+| `HATCAST_CORS_ALLOWED_ORIGINS` | `https://hatcast.app` (exact, sans slash final) |
+
+Ne pas modifier les secrets des environnements **`staging`** / **`development`** (west9).
+
+### 7.2 Cloud Run domain mapping + Cloudflare
+
+1. Vérifier le domaine dans **Google Search Console** si demandé par GCP.
+2. **Cloud Run** (`hatcast-v2`, `europe-west1`) → **Manage custom domains** → `hatcast.app` (et `www` si redirection vers apex).
+3. Créer les enregistrements DNS dans **Cloudflare** (valeurs affichées par GCP).
+4. **SSL/TLS** Cloudflare : **Full (strict)**.
+5. **Provisioning certificat Google :** enregistrements en **DNS only (nuage gris)** jusqu’à mapping **Active** (~10–30 min), puis **Proxied (orange)**.
+6. Règles cache : **bypass** `/v1/*`, `/actuator/*` ; prudence sur `index.html` / `ngsw.json` (PWA).
+
+### 7.3 Auth (prod)
+
+- **OAuth Web** : origine JavaScript `https://hatcast.app`.
+- **Identity Platform / Firebase Auth** : domaine autorisé `hatcast.app`.
+- Aligner **`HATCAST_CORS_ALLOWED_ORIGINS`** (§4.3).
+
+Recette : § vérifications techniques ci-dessus sur `https://hatcast.app` ; `BASE_URL=https://hatcast.app ./scripts/check-pwa.sh`.
+
+### 7.4 Suivi V2.0.0 (non bloquant M4)
+
+| ID | Sujet |
+|----|--------|
+| **OPS-9** | PostHog EU — sous-domaine `e.hatcast.app` en **DNS only** (proxy managé PostHog) |
+| **OPS-10** | E-mail `noreply@hatcast.app` / `info@hatcast.app` — SPF/DKIM, `HATCAST_NOTIFICATION_EMAIL_FROM` |
+
+Story : [_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md](../../_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md). PLAN § Wave V2.0.0 Wave F ; SCP amend. 2026-06-03.
 
 ## Références
 

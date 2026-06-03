@@ -260,6 +260,20 @@ export class TroupeApiService {
     }
   }
 
+  /** Annuaire Découvrir élargi pour utilisateur connecté (Démo + troupes admin plateforme). */
+  async listDiscoverTroupes(): ApiResult<PublicTroupeDirectoryItem[]> {
+    try {
+      const res = await fetch('/v1/troupes/discover', { credentials: 'include' })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as PublicTroupeDirectoryItem[]
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   /** Public directory for Découvrir — no session required (FR32). */
   async listPublicTroupes(): ApiResult<PublicTroupeDirectoryItem[]> {
     try {

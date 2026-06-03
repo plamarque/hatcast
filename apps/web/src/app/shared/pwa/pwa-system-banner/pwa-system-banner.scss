@@ -91,6 +91,16 @@
   white-space: nowrap;
 }
 
+.pwa-system-banner__dismiss {
+  color: var(--mat-sys-inverse-on-surface);
+  --mat-icon-button-icon-color: var(--mat-sys-inverse-on-surface);
+  --mat-icon-button-state-layer-color: var(--mat-sys-inverse-on-surface);
+
+  mat-icon {
+    color: inherit;
+  }
+}
+
 .pwa-system-banner__spinner {
   margin-inline-start: auto;
   flex-shrink: 0;

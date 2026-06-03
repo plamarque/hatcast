@@ -1,6 +1,7 @@
 package com.hatcast.api.auth
 
 import com.hatcast.api.auth.dto.AuthSessionResponse
+import com.hatcast.api.auth.dto.AccountDeletionRequest
 import com.hatcast.api.auth.dto.GoogleSignInRequest
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.avatar.GooglePictureSessionKeys
@@ -15,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -38,6 +40,7 @@ class AuthController(
     private val authSessionPolicy: AuthSessionPolicy,
     private val avatarService: AvatarService,
     private val platformAdminService: PlatformAdminService,
+    private val accountDeletionService: AccountDeletionService,
 ) {
     @PostMapping("/google")
     fun signInWithGoogle(
@@ -162,6 +165,9 @@ class AuthController(
         }
         val user = userRepository.findById(principal.userId).orElse(null)
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (user.deletedAt != null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        }
         return ResponseEntity.ok(
             toAuthSessionResponse(
                 user = avatarService.toUserSummary(user),
@@ -175,6 +181,23 @@ class AuthController(
         request: HttpServletRequest,
         response: HttpServletResponse,
     ): ResponseEntity<Void> {
+        SecurityContextLogoutHandler().logout(request, response, null)
+        return ResponseEntity.noContent().build()
+    }
+
+    @DeleteMapping("/me")
+    fun deleteAccount(
+        @Valid @RequestBody body: AccountDeletionRequest,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ): ResponseEntity<Void> {
+        val auth = SecurityContextHolder.getContext().authentication
+        val principal = auth?.principal
+        if (principal !is SessionUserPrincipal) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        }
+
+        accountDeletionService.deleteAccount(principal, body.idToken)
         SecurityContextLogoutHandler().logout(request, response, null)
         return ResponseEntity.noContent().build()
     }

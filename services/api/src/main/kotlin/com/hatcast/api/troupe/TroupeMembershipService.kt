@@ -96,24 +96,32 @@ class TroupeMembershipService(
                 .countActiveMembersByTroupeIds(listOf(troupe.id))
                 .firstOrNull()
                 ?.memberCount ?: 0L
-        val placeholderMembership =
-            TroupeMembershipEntity(
-                id = UUID.fromString("00000000-0000-4000-8000-000000000001"),
-                troupe = troupe,
-                user = userRepository.getReferenceById(principal.userId),
-                status = TroupeMembershipStatus.ACTIVE,
-                baselineRole = TroupeBaselineRole.MEMBER,
-                displayName = "Administration plateforme",
-                createdAt = Instant.EPOCH,
-                updatedAt = Instant.EPOCH,
-            )
         return TroupeListItemDto.from(
             troupe = troupe,
-            membership = placeholderMembership,
+            membership =
+                platformAdminPlaceholderMembership(
+                    troupe,
+                    userRepository.getReferenceById(principal.userId),
+                ),
             activeMemberCount = memberCount,
             upcomingEventCount = 0L,
         )
     }
+
+    private fun platformAdminPlaceholderMembership(
+        troupe: TroupeEntity,
+        user: UserEntity,
+    ): TroupeMembershipEntity =
+        TroupeMembershipEntity(
+            id = PLATFORM_ADMIN_PLACEHOLDER_MEMBERSHIP_ID,
+            troupe = troupe,
+            user = user,
+            status = TroupeMembershipStatus.ACTIVE,
+            baselineRole = TroupeBaselineRole.MEMBER,
+            displayName = "Administration plateforme",
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
 
     private fun buildTroupeListItemForMembership(
         userId: UUID,
@@ -638,6 +646,8 @@ class TroupeMembershipService(
 
     companion object {
         private const val EXPORT_BATCH_SIZE = 100
+        private val PLATFORM_ADMIN_PLACEHOLDER_MEMBERSHIP_ID =
+            UUID.fromString("00000000-0000-4000-8000-000000000001")
     }
 
     private fun fetchMembershipPageWithUsers(

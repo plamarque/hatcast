@@ -1,0 +1,81 @@
+@if (ctx.user(); as u) {
+  <section class="account-page__identity" aria-labelledby="account-identity-heading">
+    <h2 id="account-identity-heading" class="account-page__visually-hidden">Identité</h2>
+    <div class="account-page__identity-row">
+      <div class="account-page__avatar-wrap">
+        <button
+          type="button"
+          class="account-page__avatar-trigger"
+          data-testid="account-avatar-menu-trigger"
+          [matMenuTriggerFor]="avatarMenu"
+          [disabled]="ctx.avatarSaving()"
+          aria-label="Modifier la photo de profil"
+          aria-haspopup="menu"
+        >
+          <app-user-avatar
+            class="account-page__avatar"
+            [style.--user-avatar-size.px]="72"
+            [displayName]="ctx.avatarDisplayName()"
+            [avatarUrl]="u.avatarUrl ?? null"
+            [size]="72"
+          />
+          <span class="account-page__avatar-badge" aria-hidden="true">
+            <mat-icon>photo_camera</mat-icon>
+          </span>
+        </button>
+        <mat-menu #avatarMenu="matMenu" class="account-page__avatar-menu">
+          <button
+            type="button"
+            mat-menu-item
+            data-testid="account-avatar-choose"
+            (click)="avatarFileInput.click()"
+          >
+            <mat-icon aria-hidden="true">upload</mat-icon>
+            <span>Choisir une photo</span>
+          </button>
+          @if (u.hasGoogleAccount) {
+            <button
+              type="button"
+              mat-menu-item
+              data-testid="account-avatar-google"
+              [disabled]="ctx.avatarSaving()"
+              (click)="ctx.importGoogleAvatar()"
+            >
+              <mat-icon aria-hidden="true">account_circle</mat-icon>
+              <span>Utiliser ma photo Google</span>
+            </button>
+          }
+          @if (u.avatarUrl) {
+            <button
+              type="button"
+              mat-menu-item
+              data-testid="account-avatar-delete"
+              [disabled]="ctx.avatarSaving()"
+              (click)="ctx.deleteAvatar()"
+            >
+              <mat-icon aria-hidden="true">delete</mat-icon>
+              <span>Supprimer la photo</span>
+            </button>
+          }
+        </mat-menu>
+        <input
+          #avatarFileInput
+          class="account-page__file-input"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          [disabled]="ctx.avatarSaving()"
+          (change)="ctx.onAvatarFileSelected($event)"
+        />
+        @if (ctx.avatarSaving()) {
+          <mat-spinner class="account-page__avatar-spinner" diameter="24" aria-hidden="true" />
+        }
+      </div>
+      <div class="account-page__identity-text">
+        <p class="account-page__email">{{ u.email }}</p>
+        @if (ctx.accountDisplayName(); as name) {
+          <p class="account-page__display-name">{{ name }}</p>
+        }
+      </div>
+    </div>
+  </section>
+}

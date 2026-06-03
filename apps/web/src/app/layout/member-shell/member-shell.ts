@@ -14,6 +14,7 @@ import {
 import { MemberAccountMenuTrigger } from '../../shared/member-account-menu/member-account-menu-trigger'
 import { MemberNav } from '../../shared/member-nav/member-nav'
 import { pathFromUrl, shouldShowMemberNav } from './member-shell-nav-visibility'
+import { isMemberMobileShellViewport, MEMBER_SHELL_MOBILE_MEDIA_QUERY } from './member-shell-viewport'
 
 @Component({
   selector: 'app-member-shell',
@@ -31,13 +32,13 @@ export class MemberShell implements OnInit {
 
   protected readonly showNav = computed(() => shouldShowMemberNav(this.currentUrl()))
 
-  protected readonly isMobileViewport = signal(readMobileShellViewport())
+  protected readonly isMobileViewport = signal(isMemberMobileShellViewport())
 
   ngOnInit(): void {
     void this.inboxBadge.refresh()
 
     if (typeof globalThis.matchMedia === 'function') {
-      const mq = globalThis.matchMedia('(max-width: 839px)')
+      const mq = globalThis.matchMedia(MEMBER_SHELL_MOBILE_MEDIA_QUERY)
       const onViewportChange = (): void => {
         this.isMobileViewport.set(mq.matches)
       }
@@ -80,11 +81,4 @@ export class MemberShell implements OnInit {
 
     rememberLastMemberEntryPath(path)
   }
-}
-
-function readMobileShellViewport(): boolean {
-  if (typeof globalThis.matchMedia !== 'function') {
-    return false
-  }
-  return globalThis.matchMedia('(max-width: 839px)').matches
 }

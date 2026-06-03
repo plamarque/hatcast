@@ -15,6 +15,11 @@ export function isMemberStatsPath(path: string): boolean {
   return /^\/membre\/[^/]+$/.test(path)
 }
 
+/** True on Mon compte shell and child tab routes (`/compte`, `/compte/preferences`, …). */
+export function isAccountPath(path: string): boolean {
+  return path === '/compte' || path.startsWith('/compte/')
+}
+
 const AUTH_PATHS_WITHOUT_NAV = new Set([
   '/connexion',
   '/mot-de-passe-oublie',
@@ -25,19 +30,27 @@ const AUTH_PATHS_WITHOUT_NAV = new Set([
 const MEMBER_NAV_PATH_PATTERNS: RegExp[] = [
   /^\/accueil$/,
   /^\/agenda$/,
-  /^\/compte$/,
+  /^\/compte(\/.*)?$/,
   /^\/troupes$/,
   /^\/membre\/[^/]+$/,
   /^\/troupes\/[^/]+$/,
   /^\/troupes\/[^/]+\/admin\/membres$/,
   /^\/troupes\/[^/]+\/admin\/audit$/,
   /^\/troupe\/admin\/membres$/,
+  // Legacy `/saison/:seasonSlug` (single segment after saison)
   /^\/saison\/[^/]+$/,
   /^\/saison\/[^/]+\/admin\/membres$/,
   /^\/saison\/[^/]+\/admin\/participants$/,
   /^\/saison\/[^/]+\/admin\/audit$/,
   /^\/saison\/[^/]+\/event\/[^/]+$/,
   /^\/saison\/[^/]+\/event\/[^/]+\/admin\/participants$/,
+  // Canonical `/saison/:troupeSlug/:seasonSlug`
+  /^\/saison\/[^/]+\/[^/]+$/,
+  /^\/saison\/[^/]+\/[^/]+\/admin\/membres$/,
+  /^\/saison\/[^/]+\/[^/]+\/admin\/participants$/,
+  /^\/saison\/[^/]+\/[^/]+\/admin\/audit$/,
+  /^\/saison\/[^/]+\/[^/]+\/event\/[^/]+$/,
+  /^\/saison\/[^/]+\/[^/]+\/event\/[^/]+\/admin\/participants$/,
 ]
 
 /** Member routes that show the global nav (Accueil · Agenda · Stats). */

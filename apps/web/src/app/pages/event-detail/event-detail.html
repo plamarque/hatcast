@@ -21,6 +21,7 @@
       [event]="ev"
       [seasonId]="seasonId()"
       [seasonSlug]="slug()"
+      [troupeSlug]="routeTroupeSlug()"
       [canPublish]="canManageComposition()"
       (eventUpdated)="onEventInfosUpdated($event)"
     />
@@ -67,6 +68,7 @@
             <app-event-dispos-tab
               [seasonId]="seasonId()"
               [seasonSlug]="slug()"
+      [troupeSlug]="routeTroupeSlug()"
               [troupeId]="troupeId()"
               [event]="ev"
               [currentUserId]="user()?.id ?? ''"
@@ -86,6 +88,7 @@
           <app-event-equipe-tab
             [seasonId]="seasonId()"
             [seasonSlug]="slug()"
+      [troupeSlug]="routeTroupeSlug()"
             [event]="ev"
             [canManageComposition]="canManageComposition()"
             [showConfirmPending]="showConfirmPending()"

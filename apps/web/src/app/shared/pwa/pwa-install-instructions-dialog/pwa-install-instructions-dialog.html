@@ -22,7 +22,7 @@
   @if (content().alternativeText) {
     <div class="pwa-install-dialog__alert pwa-install-dialog__alert--tip" role="note">
       <p class="pwa-install-dialog__alert-title">Astuce</p>
-      <p>{{ content().alternativeText }}</p>
+      <p [innerHTML]="content().alternativeText"></p>
     </div>
   }
 
@@ -43,14 +43,14 @@
   <div class="pwa-install-dialog__alert pwa-install-dialog__alert--reminder" role="note">
     <p class="pwa-install-dialog__alert-title">Pour relancer l'installation plus tard</p>
     <p>
-      Utilisez le <strong>menu utilisateur</strong> (en haut à droite) →
-      <strong>« Installer l'app »</strong> lorsque cette option sera disponible.
+      Utilisez le <strong>menu utilisateur</strong> ({{ accountMenuPlacementHint() }}) →
+      <strong>« Installer l'app »</strong>.
     </p>
   </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button type="button" mat-button mat-dialog-close>Fermer</button>
-  @if (content().canRetry) {
+  @if (allowNativeRetry) {
     <button type="button" mat-flat-button color="primary" (click)="retryInstall()">
       Réessayer l'installation
     </button>

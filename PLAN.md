@@ -12,7 +12,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md) and [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 - **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
-- **V2 deploy (Cloud Run + Neon):** Déploiement **development** (push `v2`) en place. Slice **MEP iso-V1** largement **done** (`sprint-status.yaml`). **Prochaine vague :** § **Wave V2.0.0** — polish PWA/compte/modales, pipeline **tag-based** staging→prod, puis **M4** cutover. SCP : [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md). Guide actuel (branche `production-v2`) : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) — **OPS-4/5** le remplaceront par deploy sur **tags semver**.
+- **V2 deploy (Cloud Run + Neon):** Déploiement **development** (push `v2`) en place. Slice **MEP iso-V1** largement **done** (`sprint-status.yaml`). **Prochaine vague :** § **Wave V2.0.0** — polish PWA/compte/modales, pipeline **tag-based** staging→prod, domaine prod **`hatcast.app`** (**OPS-8**), puis **M4** cutover. SCP : [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) (amendement domaine **2026-06-03**). Guide actuel (branche `production-v2`) : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) — **OPS-4/5** le remplaceront par deploy sur **tags semver**. Domaine **enregistré chez Cloudflare** (2026-06-03).
 
 ---
 
@@ -233,7 +233,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 **Objectif produit :** un pilote troupe peut enchaîner, sans contournement :
 
 1. **Connexion → agenda personnel** (`/agenda`, FR48–FR49) — pas d’écran intermédiaire, pas de liste `/seasons` comme hub membre.
-2. **Navigation depuis un événement** vers la ligue et l’administration troupe/ligue (FR51) — bandeau contexte + routes existantes (`/saison/:slug`, admin participants/membres).
+2. **Navigation depuis un événement** vers la ligue et l’administration troupe/ligue (FR51) — bandeau contexte + routes existantes (`/saison/:troupeSlug/:seasonSlug`, admin participants/membres).
 3. **Composition complète** : remplir les rôles **à la main ou par tirage**, **valider**, **confirmer** (ou décliner + combler un trou) jusqu’à l’état **complete** (FR20–FR28).
 
 **Stories MVP (ordre de valeur, deux pistes parallélisables) :**
@@ -268,7 +268,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **M1** Infra pre-prod | [x] | Env GitHub `staging`, Neon branch, deploy `staging-v2` | SPA + API + Flyway OK ; E2E gate TEST-1 sur staging |
 | **M2** Playbook migration (périmètre actuel) | [x] doc | Runbook + scripts `export:v1-*:prod` ; imports CSV 2.3 | Users + membres prod → staging |
 | **M3** Boucle reset / rejouer | [x] doc | Procédure C du runbook | ≥ 1 cycle reset documenté (cible : 3 avant cutover) |
-| **M4** Cutover production | [ ] | Checklist merge / go-live | Hors scope jusqu’à décision produit |
+| **M4** Cutover production | [ ] | **`hatcast.app`** + **OPS-8** + checklist merge / go-live | Gate V2.0.0 |
 
 **Backlog ops (PLAN, pas SPEC) :**
 
@@ -354,19 +354,21 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **MEP iso-V1** | § **Wave iso-V1 — MEP remainder** | **Done** — gate closed |
 | **V2.0.0 cutover** | § **Wave V2.0.0** | Polish + release pipeline + **M4** |
 | **Replay prod gate** | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** | Après slice MEP ; schéma stable |
-| **M4 cutover** | production-v2, DNS | Décision PO |
+| **M4 cutover** | `hatcast.app`, OAuth, push, comms | **OPS-8** + gate E3 |
 
-**Ordre de session actuel — SCP [V2.0.0 cutover](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) :**
+**Ordre de session actuel — SCP [V2.0.0 cutover](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) (MAJ domaine 2026-06-03) :**
 
+0. **OPS-8** — prod Cloud Run **`europe-west1`** + domain mapping **`hatcast.app`** + Cloudflare orange (staging/dev cloud restent **`europe-west9`** / `*.run.app`)  
 1. ~~**MEP iso-V1 slice**~~ — **done** (4.1, 9.0, 3.21, 8.1, 8.3, 6.10b, 8.2, 8.5, 8.6, 9.1 — voir `sprint-status.yaml`)  
 2. **10.4** → **10.2** + **10.3** + **10.7** — PWA recette, MAJ client, version/changelog, icône HatCast 2  
-3. **17.34** + **1.6** — Mon compte (onglets) + email / MDP connecté  
+3. **1.2b** + **17.34** + **1.6** — UX inscription dédiée + Mon compte (onglets) + email / MDP connecté  
 4. **6.15** — modales annonces (M3, notify manuel, anti-spam)  
 5. **10.5** + **10.6** — aides install contextuelles + opt-in notifs post-install  
-6. **Recette 1.3** + **1.7** — reset MDP gate + suppression compte  
+6. **Recette 1.2** + **1.3** + **1.7** — inscription + reset MDP gates + suppression compte  
 7. **OPS-4** → **OPS-6** — release staging par tag ; prod depuis artefact taggué  
 8. Tour écrans staging + replay migration × **≥3**  
-9. Tag **v2.0.0** staging → prod → **M4** → **OPS-7** (branches `v1` / `staging-v1`, rename `main` / `staging`)
+9. Tag **v2.0.0** staging → prod → **M4** (trafic **`hatcast.app`**) → **OPS-7** (branches `v1` / `staging-v1`, rename `main` / `staging`)  
+10. **OPS-9** (PostHog) + **OPS-10** (`@hatcast.app` mail) — **P1**, après **M4** ou en fin de vague si capacité (non bloquant cutover)
 
 *(Historique MEP : SCP [2026-06-02 iso-V1](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md).)*
 
@@ -443,6 +445,8 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
+| **1.2** | Inscription email / mot de passe | P0 recette | done | Code livré (**1-2**) ; **recette gate** cutover (staging → prod) — lien « Créer un compte » sur `/connexion` |
+| **1.2b** | UX inscription dédiée (parité V1) | **P0** | backlog | Routes `/connexion` + `/inscription` — spec [ux-design-auth-inscription-1-2b.md](_bmad-output/planning-artifacts/ux-design-auth-inscription-1-2b.md) |
 | **17.34** | Mon compte — onglets / sections, raccourcis prefs | **P0** | backlog | UX [ux-design-mon-compte.md](_bmad-output/planning-artifacts/ux-design-mon-compte.md) |
 | **1.6** | Changement email + mot de passe connecté | **P0** | backlog | FR36 ; Google + email/password |
 | **1.3** | Reset mot de passe (mot de passe oublié) | P0 recette | done | Gate E2E staging Identity Platform |
@@ -463,7 +467,17 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | **OPS-6** | Couplage version / CHANGELOG / `changelog.json` / `version.txt` | **P0** | backlog | Réutilise `version-changelog.sh` |
 | **OPS-7** | Cutover branches post-M4 | **P0** | backlog | `v1`, `staging-v1` archives ; `v2`→`main` ; `staging-v2`→`staging` |
 
-**Dev local inchangé :** Neon branche **`local`** + `./scripts/start-dev.sh`. **Dev cloud inchangé :** push **`v2`**.
+#### Wave F — Domaine prod `hatcast.app` (2026-06-03)
+
+**Décision PO :** domaine **`hatcast.app`** acheté chez **Cloudflare Registrar** ; prod V2 sur URL canonique **`https://hatcast.app`** ; **staging** et **dev cloud** inchangés (`hatcast-v2-staging` / `-dev` en **`europe-west9`**, URLs `*.run.app`).
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **OPS-8** | Prod `hatcast.app` — Cloud Run **`europe-west1`**, domain mapping, CF proxy orange, OAuth/CORS/Firebase | **P0** | backlog | Gate **M4** ; doc [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) § prod custom domain ; story [ops-8](_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md) |
+| **OPS-9** | PostHog EU — SDK + reverse proxy (`e.hatcast.app`, nuage **gris**) | **P1** | backlog | Promote **G-005** ; FR47 ; **non bloquant M4** ; story [ops-9](_bmad-output/implementation-artifacts/ops-9-posthog-hatcast-app.md) |
+| **OPS-10** | Adresses `@hatcast.app` (`noreply@`, `info@`) — DNS mail, FROM prod, recette | **P1** | backlog | Réception : CF Email Routing → Gmail ; envoi : SPF/DKIM (Workspace ou SMTP domaine) ; **non bloquant M4** ; story [ops-10](_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md) |
+
+**Dev local inchangé :** Neon branche **`local`** + `./scripts/start-dev.sh`. **Dev cloud inchangé :** push **`v2`** → **`europe-west9`**.
 
 **Flux cible :**
 
@@ -479,12 +493,14 @@ v2 → promote-to-staging.sh → release-staging.sh → tag rc → deploy stagin
 | **E1** | Tour écrans staging | Checklist parcours membre + orga signée PO |
 | **E2** | Replay migration | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** |
 | **E3** | Release v2.0.0 | Tag staging validé → tag prod |
-| **M4** | Bascule prod | DNS, OAuth, push VAPID, comms utilisateurs |
+| **M4** | Bascule prod | Trafic **`https://hatcast.app`** ; OAuth/CORS/push VAPID ; comms utilisateurs ; prérequis **OPS-8** vert |
 | **E4** | Renommage branches | **OPS-7** après M4 |
 
-**Gate V2.0.0 / cutover :** Waves **A–D** done + **E1** + **E2** + recette **1.3** + tag **v2.0.0** staging puis prod.
+**Gate V2.0.0 / cutover :** **OPS-8** done + Waves **A–D** done + **E1** + **E2** + recette **1.2** + **1.3** + tag **v2.0.0** staging puis prod.
 
-**Hors V2.0.0 (inchangé) :** **4.2**, **7.x**, **9.2**, **11.x**, **13.x**, **8.4** (ops orga).
+**P1 fin de vague (non bloquant M4) :** **OPS-9** (PostHog), **OPS-10** (e-mail `@hatcast.app`). Epic **11** analytics détaillé reste **post-V2.0.0** sauf périmètre **OPS-9**.
+
+**Hors V2.0.0 (inchangé) :** **4.2**, **7.x**, **9.2**, **11.x** (hors **OPS-9**), **13.x**, **8.4** (ops orga).
 
 
 ### Execution order revised (2026-05-28) — historique
@@ -526,7 +542,7 @@ v2 → promote-to-staging.sh → release-staging.sh → tag rc → deploy stagin
 | **17.4** | Hub `/troupes/:slug` — logo, saisons, ⚙ admin, préférences (pseudo, rôles) | P0 | 17.3 |
 | **17.5** | Redirects `/seasons`, `/ligue/*` ; liens événement → hub troupe ; breadcrumb sur `/troupes` | P0 | 17.4 |
 | **17.11** | Breadcrumb pages admin (Participants saison/spectacle, Membres troupe) — clôture LIMIT-002 | P1 | 17.1, 17.2 ; 17.5 recommandé |
-| **17.6** | `events.slug` — migration, API, routes `/saison/:slug/event/:eventSlug`, redirect UUID | P1 | — |
+| **17.6** | `events.slug` — migration, API, routes `/saison/:troupeSlug/:seasonSlug/event/:eventSlug`, redirect UUID | P1 | — |
 | **17.7** | `category` + glossaire catégories par troupe (API) | P1 | ADR 0013 |
 | **17.8** | Onglet **Infos** — tag optionnel, autocomplete, aide (pas dans modale spectacle) | P1 | 17.7 |
 | **17.9** | Tirage / chances partitionnés par `(saison, category)` | P2 | 17.7 |
@@ -616,7 +632,8 @@ v2 → promote-to-staging.sh → release-staging.sh → tag rc → deploy stagin
 | **MIG-4** | **Done 2026-06** | Import `deplacement` → `category=deplacements` |
 | **Annuaire public (4.1)** | **Done 2026-06** | Découvrir sans login ; hub gated membre/admin |
 | **Iso-V1 / MEP gate** | **Closed 2026-06-02** | Slice fonctionnelle done — voir `sprint-status.yaml` |
-| **V2.0.0 / cutover gate** | **Open** | § Wave V2.0.0 : **10.x**, **1.6/1.7**, **6.15**, **17.34**, **OPS-4–6**, replay ×3, recette **1.3** |
+| **V2.0.0 / cutover gate** | **Open** | § Wave V2.0.0 : **OPS-8**, **10.x**, **1.2b**, **1.6/1.7**, **6.15**, **17.34**, **OPS-4–6**, replay ×3, recette **1.2** + **1.3** ; **OPS-9/10** P1 post-M4 |
+| **Domaine prod** | **Registered 2026-06-03** | **`hatcast.app`** — Cloudflare Registrar |
 
 ### PRD / UX references (V2)
 

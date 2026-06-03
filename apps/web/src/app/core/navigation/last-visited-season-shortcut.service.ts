@@ -24,8 +24,11 @@ export class LastVisitedSeasonShortcutService {
   )
 
   readonly link = computed(() => {
-    const slug = this.seasonSlug()
-    return slug ? saisonWorkspacePath(slug) : troupesListPath()
+    const seasonSlug = this.seasonSlug()
+    const troupeSlug = this.troupeSlug()
+    return seasonSlug && troupeSlug
+      ? saisonWorkspacePath(troupeSlug, seasonSlug)
+      : troupesListPath()
   })
 
   /** Visible button text — always prefixes with « Ma saison » when a title is known. */

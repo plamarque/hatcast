@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>Changer l’adresse e-mail</h2>
+<mat-dialog-content>
+  @if (requiresRecentLogin()) {
+    <p class="account-security-dialog__message">{{ recentLoginMessage }}</p>
+    <p class="account-security-dialog__help">{{ sessionHelpMessage }}</p>
+  } @else if (sent()) {
+    <p class="account-security-dialog__message">{{ successMessage() }}</p>
+  } @else {
+    <p class="account-security-dialog__intro">
+      Un email de vérification sera envoyé à la nouvelle adresse. Le changement ne sera effectif qu’après
+      confirmation du lien.
+    </p>
+    <div class="account-security-dialog__current" aria-live="polite">
+      <span class="account-security-dialog__current-label">Adresse e-mail actuelle</span>
+      <span class="account-security-dialog__current-value">{{ data.currentEmail }}</span>
+    </div>
+    <form [formGroup]="form" class="account-security-dialog__form">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-security-dialog__field">
+        <mat-label>Nouvelle adresse e-mail</mat-label>
+        <input matInput type="email" formControlName="newEmail" autocomplete="email" />
+        @if (form.controls.newEmail.hasError('required')) {
+          <mat-error>Adresse e-mail requise.</mat-error>
+        } @else if (form.controls.newEmail.hasError('email')) {
+          <mat-error>Adresse e-mail invalide.</mat-error>
+        } @else if (form.controls.newEmail.hasError('sameEmail')) {
+          <mat-error>La nouvelle adresse doit être différente de l’actuelle.</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end" class="account-security-dialog__actions">
+  @if (requiresRecentLogin()) {
+    <button type="button" mat-button mat-dialog-close>Fermer</button>
+    <button type="button" mat-flat-button color="primary" (click)="goToLogin()">Se reconnecter</button>
+  } @else if (sent()) {
+    <button type="button" mat-flat-button color="primary" mat-dialog-close>Fermer</button>
+  } @else {
+    <button type="button" mat-button mat-dialog-close [disabled]="submitting()">Annuler</button>
+    <button
+      type="button"
+      mat-flat-button
+      color="primary"
+      [disabled]="submitting() || form.invalid"
+      (click)="submit()"
+    >
+      @if (submitting()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Envoyer la vérification
+      }
+    </button>
+  }
+</mat-dialog-actions>

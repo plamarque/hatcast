@@ -1,0 +1,22 @@
+<section class="account-page__section" aria-labelledby="account-about-heading">
+  <h2 id="account-about-heading" class="account-page__section-title">À propos</h2>
+  <button
+    type="button"
+    mat-stroked-button
+    class="account-page__version"
+    data-testid="account-app-version"
+    [matTooltip]="versionTooltip()"
+    [attr.aria-label]="versionTooltip()"
+    (click)="openChangelog()"
+  >
+    <img
+      class="account-page__version-logo"
+      src="/icons/logo-hatcast-2.svg"
+      alt=""
+      width="32"
+      height="32"
+      aria-hidden="true"
+    />
+    v{{ version() }}
+  </button>
+</section>

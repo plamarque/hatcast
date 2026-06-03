@@ -17,10 +17,13 @@ describe('share-announce-messages', () => {
   it('buildEventUrls uses canonical /saison/ path and confirm query', () => {
     const { eventUrl, confirmUrl } = buildEventUrls(
       'https://localhost:4200',
+      'la-malice',
       'ma-saison',
       'mon-spectacle',
     )
-    expect(eventUrl).toBe('https://localhost:4200/saison/ma-saison/event/mon-spectacle')
+    expect(eventUrl).toBe(
+      'https://localhost:4200/saison/la-malice/ma-saison/event/mon-spectacle',
+    )
     expect(confirmUrl).toBe(`${eventUrl}?showConfirm=true`)
   })
 
@@ -51,6 +54,7 @@ describe('share-announce-messages', () => {
     const draw = buildDefaultShareMessage({
       intent: 'draw',
       origin: 'https://app.test',
+      troupeSlug: 't',
       seasonSlug: 's',
       eventSlug: 'e',
       eventTitle: 'T',
@@ -62,6 +66,7 @@ describe('share-announce-messages', () => {
     const compo = buildDefaultShareMessage({
       intent: 'composition',
       origin: 'https://app.test',
+      troupeSlug: 't',
       seasonSlug: 's',
       eventSlug: 'e',
       eventTitle: 'T',
@@ -74,6 +79,7 @@ describe('share-announce-messages', () => {
     const nudge = buildDefaultShareMessage({
       intent: 'availability_nudge',
       origin: 'https://app.test',
+      troupeSlug: 't',
       seasonSlug: 's',
       eventSlug: 'e',
       eventTitle: 'T',

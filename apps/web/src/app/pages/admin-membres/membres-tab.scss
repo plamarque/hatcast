@@ -130,12 +130,6 @@
   min-width: unset;
 }
 
-.membres-tab__help p {
-  margin: 0 0 0.5rem;
-  color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
-  font-size: 0.9rem;
-}
-
 @media (max-width: 480px) {
   .membres-tab__search {
     flex-basis: 100%;

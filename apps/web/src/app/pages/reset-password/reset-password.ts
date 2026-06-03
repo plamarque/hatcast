@@ -12,6 +12,7 @@ import {
   verifyPasswordResetCode,
 } from 'firebase/auth'
 
+import { readFirebaseActionLinkParams } from '../../core/auth/auth-action-code-settings'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { setHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
 import {
@@ -22,7 +23,7 @@ import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { PostLoginNavigationService } from '../../core/navigation/post-login-navigation.service'
 import { environment } from '../../../environments/environment'
 
-type ResetPhase = 'loading' | 'missing' | 'no-config' | 'invalid' | 'ready'
+type ResetPhase = 'loading' | 'reconnect' | 'no-config' | 'invalid' | 'ready'
 
 @Component({
   selector: 'app-reset-password',
@@ -63,9 +64,10 @@ export class ResetPassword implements OnInit {
       this.phase.set('no-config')
       return
     }
-    const oobCode = this.route.snapshot.queryParamMap.get('oobCode')
-    if (!oobCode?.trim()) {
-      this.phase.set('missing')
+    const oobCode = this.readOobCode()
+    if (!oobCode) {
+      // IdP hosted handler → redirect continueUrl sans oobCode (mot de passe déjà changé côté Google).
+      this.phase.set('reconnect')
       return
     }
     this.oobCodeValue = oobCode
@@ -126,5 +128,13 @@ export class ResetPassword implements OnInit {
       )
       await this.router.navigate(['/connexion'])
     }
+  }
+
+  private readOobCode(): string | null {
+    const fromHref = readFirebaseActionLinkParams(globalThis.location.href)
+    if (fromHref.oobCode) {
+      return fromHref.oobCode
+    }
+    return this.route.snapshot.queryParamMap.get('oobCode')?.trim() || null
   }
 }

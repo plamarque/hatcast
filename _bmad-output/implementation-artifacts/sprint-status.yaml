@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-02T12:00:00+02:00
+# last_updated: 2026-06-03T12:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-02T17:05:00+02:00"
+last_updated: "2026-06-03T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -50,6 +50,9 @@ development_status:
   ops-5-prod-deploy-from-semver-tag: backlog
   ops-6-version-changelog-pipeline: backlog
   ops-7-branch-cutover-post-m4: backlog
+  ops-8-prod-domain-hatcast-app: backlog  # P0 V2.0.0 — SCP amend 2026-06-03 ; gate M4
+  ops-9-posthog-hatcast-app: backlog  # P1 V2.0.0 — post-M4 ; G-005
+  ops-10-email-hatcast-app: backlog  # P1 V2.0.0 — post-M4
 
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
@@ -58,12 +61,13 @@ development_status:
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
-  1-2-inscription-et-connexion-email-mot-de-passe: done
+  1-2-inscription-et-connexion-email-mot-de-passe: done  # recette gate V2.0.0 — SCP amend 2026-06-03
+  1-2b-ux-inscription-dediee-parite-v1: done  # P0 V2.0.0 — Wave B
   1-3-reinitialisation-et-recuperation-de-mot-de-passe-par-email: done
   1-4-session-persistante-se-souvenir-de-moi: done
   1-5-deconnexion: done
-  1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes: backlog
-  1-7-suppression-de-compte: backlog
+  1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes: done
+  1-7-suppression-de-compte: done
   epic-1-retrospective: optional
 
   epic-2: in-progress
@@ -127,7 +131,7 @@ development_status:
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
   6-13-publish-notifications-hors-transaction: done
   6-14-snapshot-chances-au-tirage: done
-  6-15-refonte-modales-annonces-notify-manuel: backlog  # P0 V2.0.0 — SCP 2026-06-02
+  6-15-refonte-modales-annonces-notify-manuel: done  # P0 V2.0.0 — code review 2026-06-03
   epic-6-retrospective: optional
 
   epic-7: backlog
@@ -154,9 +158,9 @@ development_status:
   10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil: done
   10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: done
   10-3-version-app-changelog-dialog: done  # P0 V2.0.0
-  10-4-recette-pwa-manifest-icons-sw: backlog
-  10-5-aides-install-contextuelles-ios-android: backlog
-  10-6-opt-in-notifications-post-install: backlog
+  10-4-recette-pwa-manifest-icons-sw: done
+  10-5-aides-install-contextuelles-ios-android: done
+  10-6-opt-in-notifications-post-install: done
   10-7-icone-pwa-hatcast-2: done
   epic-10-retrospective: optional
 
@@ -233,7 +237,7 @@ development_status:
   17-30-season-event-count-resync: done
   17-31-modifier-saison-gear-workspace: done
   17-33-preferences-membre-compte-utilisateur: done
-  17-34-mon-compte-onglets-securite-preferences: backlog  # P0 V2.0.0 — SCP 2026-06-02
+  17-34-mon-compte-onglets-securite-preferences: done  # P0 V2.0.0 — SCP 2026-06-02
   epic-17-retrospective: optional
 
   epic-18: in-progress

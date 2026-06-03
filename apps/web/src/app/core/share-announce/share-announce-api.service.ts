@@ -20,8 +20,15 @@ export interface ShareRecipientsResponse {
   notifiableCount: number
   manualCount: number
   recipients: ShareRecipient[]
-  lastManualNudgeAt?: string | null
+  lastManualNotifyAt?: string | null
   guardDays?: number | null
+}
+
+export interface ShareNotifyResponse {
+  accepted: boolean
+  notifiedCount: number
+  manualCount: number
+  intent: ShareAnnounceIntent
 }
 
 type ShareApiResult<T> =
@@ -64,7 +71,7 @@ export class ShareAnnounceApiService {
     eventId: string,
     intent: ShareAnnounceIntent,
     messageText: string,
-  ): Promise<ShareApiResult<{ accepted: boolean }>> {
+  ): Promise<ShareApiResult<ShareNotifyResponse>> {
     try {
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/share-recipients/notify`,
@@ -81,7 +88,7 @@ export class ShareAnnounceApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as { accepted: boolean }
+      const data = (await res.json()) as ShareNotifyResponse
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

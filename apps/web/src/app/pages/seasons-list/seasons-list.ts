@@ -173,7 +173,11 @@ export class SeasonsList implements OnInit {
   }
 
   protected openCard(season: SeasonResponse): void {
-    void this.router.navigate(saisonWorkspacePath(season.slug))
+    const troupe = this.selectedTroupe()
+    if (!troupe) {
+      return
+    }
+    void this.router.navigate(saisonWorkspacePath(troupe.slug, season.slug))
   }
 
   protected openCreate(): void {

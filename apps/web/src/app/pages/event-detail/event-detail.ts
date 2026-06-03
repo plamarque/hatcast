@@ -54,6 +54,8 @@ import { normalizeRoleSlots } from '../../core/events/event-types'
 import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
+import { isEventDraft } from '../../core/events/event-draft'
+import { openEventAnnounceDialog } from '../../shared/share-announce/share-announce-open'
 
 @Component({
   selector: 'app-event-detail',
@@ -90,7 +92,11 @@ export class EventDetail implements OnDestroy, OnInit {
   private loadRequestId = 0
 
   protected readonly slug = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
+    this.route.paramMap.pipe(map((p) => p.get('seasonSlug') ?? '')),
+    { initialValue: '' },
+  )
+  protected readonly routeTroupeSlug = toSignal(
+    this.route.paramMap.pipe(map((p) => p.get('troupeSlug') ?? '')),
     { initialValue: '' },
   )
   protected readonly eventSlug = toSignal(
@@ -149,6 +155,13 @@ export class EventDetail implements OnDestroy, OnInit {
         action: () => this.openEdit(),
       })
     }
+    if (this.canAnnouncePublishedEvent()) {
+      items.push({
+        label: 'Annoncer',
+        icon: 'campaign',
+        action: () => this.openAnnounceEvent(),
+      })
+    }
     if (this.canOpenEventParticipantsAdmin(ev.id)) {
       items.push({
         label: 'Participants',
@@ -177,6 +190,13 @@ export class EventDetail implements OnDestroy, OnInit {
     const perms = this.seasonPermissions()
     if (!ev || !perms) return false
     return canManageCompositionForEvent(perms, ev.id)
+  })
+  protected readonly canAnnouncePublishedEvent = computed(() => {
+    const ev = this.event()
+    if (!ev || ev.archived || isEventDraft(ev)) {
+      return false
+    }
+    return this.canManageComposition()
   })
   protected readonly equipeStatus = computed(() => {
     const ev = this.event()
@@ -224,13 +244,19 @@ export class EventDetail implements OnDestroy, OnInit {
     this.routeSubscription = this.route.paramMap
       .pipe(
         map((p) => ({
-          slug: p.get('slug') ?? '',
+          troupeSlug: p.get('troupeSlug') ?? '',
+          seasonSlug: p.get('seasonSlug') ?? '',
           eventSlug: p.get('eventSlug') ?? '',
         })),
-        distinctUntilChanged((a, b) => a.slug === b.slug && a.eventSlug === b.eventSlug),
+        distinctUntilChanged(
+          (a, b) =>
+            a.troupeSlug === b.troupeSlug &&
+            a.seasonSlug === b.seasonSlug &&
+            a.eventSlug === b.eventSlug,
+        ),
       )
-      .subscribe(({ slug, eventSlug }) => {
-        void this.loadEvent(slug, eventSlug)
+      .subscribe(({ troupeSlug, seasonSlug, eventSlug }) => {
+        void this.loadEvent(troupeSlug, seasonSlug, eventSlug)
       })
   }
 
@@ -273,7 +299,8 @@ export class EventDetail implements OnDestroy, OnInit {
   protected openEventParticipantsAdmin(): void {
     const ev = this.event()
     const slug = this.slug()
-    if (!ev || !slug) {
+    const troupeSlug = this.routeTroupeSlug()
+    if (!ev || !slug || !troupeSlug) {
       return
     }
     if (!this.canOpenEventParticipantsAdmin(ev.id)) {
@@ -283,7 +310,7 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     void this.router.navigate(
-      saisonEventParticipantsAdminPath(slug, ev.slug ?? ev.id),
+      saisonEventParticipantsAdminPath(troupeSlug, slug, ev.slug ?? ev.id),
     )
   }
 
@@ -314,6 +341,25 @@ export class EventDetail implements OnDestroy, OnInit {
         return
       }
       this.applyEventDetailUpdate(ev, updated)
+    })
+  }
+
+  protected openAnnounceEvent(): void {
+    const ev = this.event()
+    const seasonId = this.seasonId()
+    const seasonSlug = this.slug()
+    const troupeSlug = this.contextTroupeSlug() || this.routeTroupeSlug()
+    if (!ev || !seasonId || !seasonSlug || !troupeSlug) {
+      return
+    }
+    if (!this.canAnnouncePublishedEvent()) {
+      return
+    }
+    openEventAnnounceDialog(this.dialog, this.snack, {
+      seasonId,
+      seasonSlug,
+      troupeSlug,
+      event: ev,
     })
   }
 
@@ -361,13 +407,14 @@ export class EventDetail implements OnDestroy, OnInit {
   private async runArchive(ev: EventResponse): Promise<void> {
     const seasonId = this.seasonId()
     const slug = this.slug()
-    if (!seasonId || !slug) {
+    const troupeSlug = this.routeTroupeSlug()
+    if (!seasonId || !slug || !troupeSlug) {
       return
     }
     const r = await this.eventsApi.archiveEvent(seasonId, ev.id)
     if (r.ok) {
       this.snack.open('Spectacle désactivé.', 'OK', { duration: 4000 })
-      await this.router.navigate(saisonWorkspacePath(slug))
+      await this.router.navigate(saisonWorkspacePath(troupeSlug, slug))
     } else {
       this.snack.open('Désactivation impossible.', 'OK', { duration: 6000 })
     }
@@ -436,17 +483,19 @@ export class EventDetail implements OnDestroy, OnInit {
   }
 
   private async reloadEvent(message: string): Promise<void> {
-    const slug = this.slug()
+    const troupeSlug = this.routeTroupeSlug()
+    const seasonSlug = this.slug()
     const eventSlug = this.event()?.slug ?? this.eventSlug()
-    if (!slug || !eventSlug) {
+    if (!troupeSlug || !seasonSlug || !eventSlug) {
       return
     }
-    await this.loadEvent(slug, eventSlug, { silent: true })
+    await this.loadEvent(troupeSlug, seasonSlug, eventSlug, { silent: true })
     this.snack.open(message, 'OK', { duration: 4000 })
   }
 
   private async loadEvent(
-    slug: string,
+    troupeSlug: string,
+    seasonSlug: string,
     routeSegment: string,
     options: { silent?: boolean } = {},
   ): Promise<void> {
@@ -458,16 +507,19 @@ export class EventDetail implements OnDestroy, OnInit {
       this.compositionLoaded.set(false)
       this.resetResolvedContext()
     }
-    if (!slug || !routeSegment) {
+    if (!troupeSlug || !seasonSlug || !routeSegment) {
       this.loading.set(false)
       return
     }
 
-    const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(slug)
+    const resolved = await this.troupeSeasonResolver.resolveSeasonInTroupe(
+      troupeSlug,
+      seasonSlug,
+    )
     if (requestId !== this.loadRequestId) {
       return
     }
-    if (resolved.kind === 'no-membership' || resolved.kind === 'error') {
+    if (resolved.kind === 'no-membership' || resolved.kind === 'error' || resolved.kind === 'not-found') {
       this.resetResolvedContext()
       this.loading.set(false)
       this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
@@ -476,17 +528,7 @@ export class EventDetail implements OnDestroy, OnInit {
     if (resolved.kind === 'ambiguous') {
       this.resetResolvedContext()
       this.loading.set(false)
-      this.snack.open(
-        'Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.',
-        'OK',
-        { duration: 8000 },
-      )
-      return
-    }
-    if (resolved.kind === 'not-found') {
-      this.resetResolvedContext()
-      this.loading.set(false)
-      this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
+      this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
       return
     }
 
@@ -515,13 +557,17 @@ export class EventDetail implements OnDestroy, OnInit {
       this.resetResolvedContext()
       this.snack.open('Spectacle introuvable.', 'OK', { duration: 6000 })
       if (eventResult.status === 404 && resolved.season.slug) {
-        await this.router.navigate(saisonWorkspacePath(resolved.season.slug))
+        await this.router.navigate(
+          saisonWorkspacePath(resolved.troupe.slug, resolved.season.slug),
+        )
       }
       return
     }
     const found = eventResult.data
     if (isUuidSegment && found.slug && found.slug !== routeSegment) {
-      await this.router.navigate(saisonEventPath(resolved.season.slug, found.slug), {
+      await this.router.navigate(
+        saisonEventPath(resolved.troupe.slug, resolved.season.slug, found.slug),
+        {
         queryParams: this.route.snapshot.queryParams,
         replaceUrl: true,
       })

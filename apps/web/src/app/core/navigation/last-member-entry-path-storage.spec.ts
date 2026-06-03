@@ -70,6 +70,6 @@ describe('lastMemberEntryPathStorage', () => {
   it('extracts season and member slugs from paths', () => {
     expect(seasonSlugFromMemberEntryPath('/saison/festibask')).toBe('festibask')
     expect(memberStatsSlugFromMemberEntryPath('/membre/alice')).toBe('alice')
-    expect(saisonMemberEntryPath('festibask')).toBe('/saison/festibask')
+    expect(saisonMemberEntryPath('la-malice', 'festibask')).toBe('/saison/la-malice/festibask')
   })
 })

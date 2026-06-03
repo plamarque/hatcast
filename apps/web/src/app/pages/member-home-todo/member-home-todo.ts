@@ -182,7 +182,7 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   }
 
   protected openNextEvent(item: AgendaCardEnrichedItem): void {
-    void this.router.navigate(saisonEventPath(item.seasonSlug, item.eventSlug))
+    void this.router.navigate(saisonEventPath(item.troupeSlug, item.seasonSlug, item.eventSlug))
   }
 
   protected actionAriaLabel(action: InboxAction): string {

@@ -112,6 +112,7 @@ Lien direct : ${params.eventUrl}`
 export function buildDefaultShareMessage(params: {
   intent: ShareAnnounceIntent
   origin: string
+  troupeSlug: string
   seasonSlug: string
   eventSlug: string
   eventTitle: string
@@ -121,6 +122,7 @@ export function buildDefaultShareMessage(params: {
   const eventDate = formatShareEventDate(params.eventDateIso)
   const { eventUrl, confirmUrl } = buildEventUrls(
     params.origin,
+    params.troupeSlug,
     params.seasonSlug,
     params.eventSlug,
   )

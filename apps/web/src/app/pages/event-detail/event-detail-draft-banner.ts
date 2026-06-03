@@ -7,10 +7,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import type { EventResponse } from '../../core/events/event-api.service'
 import { EventApiService } from '../../core/events/event-api.service'
-import {
-  ShareAnnounceDialog,
-  type ShareAnnounceDialogData,
-} from '../../shared/share-announce/share-announce-dialog'
+import { openEventAnnounceDialog } from '../../shared/share-announce/share-announce-open'
 import {
   ConfirmDialog,
   type ConfirmDialogData,
@@ -30,6 +27,7 @@ export class EventDetailDraftBanner {
   readonly event = input.required<EventResponse>()
   readonly seasonId = input.required<string>()
   readonly seasonSlug = input.required<string>()
+  readonly troupeSlug = input.required<string>()
   readonly canPublish = input(false)
 
   readonly eventUpdated = output<EventResponse>()
@@ -74,31 +72,14 @@ export class EventDetailDraftBanner {
       }
       this.eventUpdated.emit(result.data)
       this.snack.open('Spectacle publié.', 'OK', { duration: 4000 })
-      this.openAnnounceDialog(result.data)
+      openEventAnnounceDialog(this.dialog, this.snack, {
+        seasonId: this.seasonId(),
+        seasonSlug: this.seasonSlug(),
+        troupeSlug: this.troupeSlug(),
+        event: result.data,
+      })
     } finally {
       this.publishing.set(false)
     }
-  }
-
-  private openAnnounceDialog(ev: EventResponse): void {
-    this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, boolean | undefined>(
-      ShareAnnounceDialog,
-      {
-        data: {
-          intent: 'event',
-          seasonId: this.seasonId(),
-          eventId: ev.id,
-          seasonSlug: this.seasonSlug(),
-          eventSlug: ev.slug,
-          eventTitle: ev.title,
-          eventDateIso: ev.startsAt,
-          roleLines: [],
-        },
-        width: 'min(42rem, 96vw)',
-        maxHeight: '92vh',
-        autoFocus: 'first-titled-element',
-        panelClass: 'share-announce-dialog-panel',
-      },
-    )
   }
 }

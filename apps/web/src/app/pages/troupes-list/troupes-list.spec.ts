@@ -72,6 +72,7 @@ describe('TroupesList', () => {
   let fixture: ComponentFixture<TroupesList>
   let troupeApi: {
     listMyTroupes: ReturnType<typeof vi.fn>
+    listDiscoverTroupes: ReturnType<typeof vi.fn>
     listPublicTroupes: ReturnType<typeof vi.fn>
     joinTroupe: ReturnType<typeof vi.fn>
     createTroupe: ReturnType<typeof vi.fn>
@@ -90,6 +91,9 @@ describe('TroupesList', () => {
     }
     troupeApi = {
       listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [mockTroupe] }),
+      listDiscoverTroupes: vi
+        .fn()
+        .mockResolvedValue({ ok: true, status: 200, data: [publicTroupe, mockTroupe] }),
       listPublicTroupes: vi
         .fn()
         .mockResolvedValue({ ok: true, status: 200, data: [publicTroupe, mockTroupe] }),
@@ -235,6 +239,7 @@ describe('TroupesList — join Démo UUID', () => {
     }
     const api = {
       listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      listDiscoverTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
       listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
       joinTroupe: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
       createTroupe: vi.fn(),

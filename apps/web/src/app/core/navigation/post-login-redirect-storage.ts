@@ -23,6 +23,13 @@ export function isValidInternalRedirectPath(path: string): boolean {
     return ['agenda', 'compte', 'seasons', 'troupes'].includes(segments[0])
   }
 
+  if (segments[0] === 'compte') {
+    return (
+      segments.length === 2 &&
+      ['preferences', 'notifications', 'securite', 'a-propos'].includes(segments[1])
+    )
+  }
+
   if (segments[0] === 'troupes') {
     return (
       segments.length === 2 ||
@@ -45,11 +52,42 @@ export function isValidInternalRedirectPath(path: string): boolean {
 }
 
 function isValidSeasonScopedPath(segments: string[]): boolean {
-  if (segments.length === 2) return true
-  if (segments.length === 4 && segments[2] === 'admin') {
-    return segments[3] === 'membres' || segments[3] === 'participants'
+  if (segments.length === 2) {
+    return !!segments[1]?.trim()
   }
-  return segments.length === 4 && segments[2] === 'event'
+  if (segments.length === 3) {
+    if (segments[2] === 'event' || segments[2] === 'admin') {
+      return false
+    }
+    return !!segments[1]?.trim() && !!segments[2]?.trim()
+  }
+  if (segments.length === 4 && segments[2] === 'admin') {
+    return (
+      segments[3] === 'membres' ||
+      segments[3] === 'participants' ||
+      segments[3] === 'audit'
+    )
+  }
+  if (segments.length === 4 && segments[2] === 'event') {
+    return !!segments[3]?.trim()
+  }
+  if (segments.length === 5 && segments[3] === 'admin') {
+    return (
+      segments[4] === 'membres' ||
+      segments[4] === 'participants' ||
+      segments[4] === 'audit'
+    )
+  }
+  if (segments.length === 5 && segments[3] === 'event') {
+    return !!segments[4]?.trim()
+  }
+  if (segments.length === 6 && segments[2] === 'event' && segments[4] === 'admin') {
+    return segments[5] === 'participants' && !!segments[3]?.trim()
+  }
+  if (segments.length === 7 && segments[3] === 'event' && segments[5] === 'admin') {
+    return segments[6] === 'participants' && !!segments[4]?.trim()
+  }
+  return false
 }
 
 export function getPendingPostLoginRedirect(): string | null {

@@ -24,6 +24,7 @@ import {
 } from '../../core/navigation/last-member-entry-path-storage'
 import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
+import { navigateAwayFromUnreachableSeason } from '../../core/navigation/unreachable-season-navigation'
 import {
   saisonAdminMembresPath,
   saisonAdminParticipantsPath,
@@ -93,12 +94,9 @@ import {
   SeasonFormDialog,
   type SeasonFormDialogData,
 } from '../seasons-list/season-form-dialog'
-import {
-  AvailabilityDialog,
-  type AvailabilityDialogData,
-  type AvailabilityDialogResult,
-} from '../../shared/availability/availability-dialog'
+import { openAgendaAvailabilityDialog } from '../../shared/availability/open-agenda-availability-dialog'
 import { normalizeRoleSlots } from '../../core/events/event-types'
+import { applyAvailabilityUpdateToAgendaEvent } from './season-participant-focus'
 
 const FETCH_PAGE_SIZE = 50
 
@@ -153,7 +151,12 @@ export class SeasonHome implements OnDestroy, OnInit {
   }
 
   protected readonly slug = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
+    this.route.paramMap.pipe(map((p) => p.get('seasonSlug') ?? '')),
+    { initialValue: '' },
+  )
+
+  protected readonly routeTroupeSlug = toSignal(
+    this.route.paramMap.pipe(map((p) => p.get('troupeSlug') ?? '')),
     { initialValue: '' },
   )
 
@@ -324,8 +327,9 @@ export class SeasonHome implements OnDestroy, OnInit {
     return permissions?.canViewAuditSeason === true
   })
   protected readonly seasonAdminItems = computed<ScopeAdminMenuItem[]>(() => {
-    const slug = this.slug()
-    if (!slug) {
+    const troupeSlug = this.routeTroupeSlug()
+    const seasonSlug = this.slug()
+    if (!troupeSlug || !seasonSlug) {
       return []
     }
     const items: ScopeAdminMenuItem[] = []
@@ -347,14 +351,14 @@ export class SeasonHome implements OnDestroy, OnInit {
       items.push({
         label: 'Participants',
         icon: 'groups',
-        routerLink: saisonAdminParticipantsPath(slug),
+        routerLink: saisonAdminParticipantsPath(troupeSlug, seasonSlug),
       })
     }
     if (this.canManageSeasonOrganizersOnly()) {
       items.push({
         label: 'Organisateur·ices',
         icon: 'supervisor_account',
-        routerLink: saisonAdminMembresPath(slug),
+        routerLink: saisonAdminMembresPath(troupeSlug, seasonSlug),
         queryParams: { onglet: 'organisateurs' },
       })
     }
@@ -369,7 +373,7 @@ export class SeasonHome implements OnDestroy, OnInit {
       items.push({
         label: "Journal d'audit",
         icon: 'history',
-        routerLink: saisonAdminAuditPath(slug),
+        routerLink: saisonAdminAuditPath(troupeSlug, seasonSlug),
       })
     }
     return items
@@ -410,11 +414,16 @@ export class SeasonHome implements OnDestroy, OnInit {
       }
       this.routeSubscription = this.route.paramMap
         .pipe(
-          map((p) => p.get('slug') ?? ''),
-          distinctUntilChanged(),
+          map((p) => ({
+            troupeSlug: p.get('troupeSlug') ?? '',
+            seasonSlug: p.get('seasonSlug') ?? '',
+          })),
+          distinctUntilChanged(
+            (a, b) => a.troupeSlug === b.troupeSlug && a.seasonSlug === b.seasonSlug,
+          ),
         )
-        .subscribe((slug) => {
-          void this.loadTroupeAndSeason(slug)
+        .subscribe(({ troupeSlug, seasonSlug }) => {
+          void this.loadTroupeAndSeason(troupeSlug, seasonSlug)
         })
       this.querySubscription = this.route.queryParamMap?.subscribe((params) => {
         this.applyQueryParams(params)
@@ -474,8 +483,9 @@ export class SeasonHome implements OnDestroy, OnInit {
     const eventId = params.get('event')
     const modal = params.get('modal')
     if (eventId && modal === 'event_details') {
-      const slug = this.slug()
-      if (slug) {
+      const troupeSlug = this.routeTroupeSlug()
+      const seasonSlug = this.slug()
+      if (troupeSlug && seasonSlug) {
         const queryParams: Record<string, string> = {}
         for (const key of params.keys) {
           if (key === 'event' || key === 'modal') {
@@ -487,7 +497,7 @@ export class SeasonHome implements OnDestroy, OnInit {
           }
         }
         const segment = this.events().find((e) => e.id === eventId)?.slug ?? eventId
-        void this.router.navigate(saisonEventPath(slug, segment), {
+        void this.router.navigate(saisonEventPath(troupeSlug, seasonSlug, segment), {
           queryParams,
           replaceUrl: true,
         })
@@ -546,37 +556,33 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.categories.set([])
   }
 
-  private async loadTroupeAndSeason(slug: string): Promise<void> {
+  private async loadTroupeAndSeason(troupeSlug: string, seasonSlug: string): Promise<void> {
     const requestId = ++this.seasonLoadRequestId
     this.eventLoadRequestId += 1
-    if (!slug) {
+    if (!troupeSlug || !seasonSlug) {
       this.resetSeasonState()
       return
     }
     this.resetSeasonState()
     this.loadingSeason.set(true)
-    const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(slug)
+    const resolved = await this.troupeSeasonResolver.resolveSeasonInTroupe(
+      troupeSlug,
+      seasonSlug,
+    )
     if (requestId !== this.seasonLoadRequestId) {
       return
     }
-    if (resolved.kind === 'no-membership') {
+    if (resolved.kind === 'no-membership' || resolved.kind === 'not-found') {
       this.loadingSeason.set(false)
-      this.snack.open('Vous n’appartenez à aucune troupe.', 'OK', { duration: 6000 })
+      await navigateAwayFromUnreachableSeason(
+        this.router,
+        resolved.kind,
+        seasonSlug,
+        this.troupeContext,
+      )
       return
     }
-    if (resolved.kind === 'ambiguous') {
-      this.loadingSeason.set(false)
-      this.snack.open('Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.', 'OK', {
-        duration: 8000,
-      })
-      return
-    }
-    if (resolved.kind === 'not-found') {
-      this.loadingSeason.set(false)
-      this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
-      return
-    }
-    if (resolved.kind === 'error') {
+    if (resolved.kind === 'error' || resolved.kind === 'ambiguous') {
       this.loadingSeason.set(false)
       this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
       return
@@ -588,8 +594,10 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeIsDemo.set(resolved.troupe.isDemo)
     this.troupeLogoUrl.set(resolved.troupe.logoUrl ?? null)
     this.season.set(resolved.season)
-    rememberLastVisitedSeasonSlug(slug, resolved.troupe.id)
-    rememberLastMemberEntryPath(saisonMemberEntryPath(slug))
+    rememberLastVisitedSeasonSlug(resolved.season.slug, resolved.troupe.id)
+    rememberLastMemberEntryPath(
+      saisonMemberEntryPath(resolved.troupe.slug, resolved.season.slug),
+    )
     if (this.seasonView() === 'stats') {
       this.loadingStatistics.set(true)
       this.statisticsEmptyReason.set(null)
@@ -927,7 +935,9 @@ export class SeasonHome implements OnDestroy, OnInit {
   }
 
   protected openEvent(eventSlug: string): void {
-    void this.router.navigate(saisonEventPath(this.slug(), eventSlug))
+    void this.router.navigate(
+      saisonEventPath(this.routeTroupeSlug(), this.slug(), eventSlug),
+    )
   }
 
   protected async openAvailability(payload: { eventId: string; status: AvailabilityStatus }): Promise<void> {
@@ -936,40 +946,24 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (!s || !ev || !this.canEditAvailability()) {
       return
     }
-    const availability = await this.availabilityApi.getMyAvailability(s.id, ev.id)
-    const initialStatus = availability.ok && availability.data ? availability.data.status : payload.status
-    const initialRoleKeys = availability.ok && availability.data ? availability.data.roleKeys : []
-    const initialComment =
-      availability.ok && availability.data ? (availability.data.comment ?? null) : null
-    const ref = this.dialog.open<AvailabilityDialog, AvailabilityDialogData, AvailabilityDialogResult>(
-      AvailabilityDialog,
-      {
-        data: {
-          seasonId: s.id,
-          eventId: ev.id,
-          eventTitle: ev.title,
-          eventStartsAt: ev.startsAt,
-          subjectDisplayName: this.myDisplayName(),
-          initialStatus,
-          troupeId: s.troupeId,
-          roleSlots: normalizeRoleSlots(ev.roleSlots),
-          initialRoleKeys,
-          initialComment,
-        },
-        width: 'min(100vw - 2rem, 26rem)',
-        autoFocus: 'first-tabbable',
-      },
-    )
-    ref.afterClosed().subscribe((result) => {
-      if (!result) {
-        return
-      }
-      this.events.update((list) =>
-        list.map((e) =>
-          e.id === ev.id ? { ...e, myAvailabilityStatus: result.status } : e,
-        ),
-      )
+    const result = await openAgendaAvailabilityDialog(this.dialog, this.availabilityApi, {
+      seasonId: s.id,
+      eventId: ev.id,
+      eventTitle: ev.title,
+      eventStartsAt: ev.startsAt,
+      subjectDisplayName: this.myDisplayName(),
+      troupeId: s.troupeId,
+      roleSlots: normalizeRoleSlots(ev.roleSlots),
+      fallbackStatus: payload.status,
     })
+    if (!result) {
+      return
+    }
+    this.events.update((list) =>
+      list.map((e) =>
+        e.id === ev.id ? applyAvailabilityUpdateToAgendaEvent(e, result.status) : e,
+      ),
+    )
   }
 
   protected loadMoreEvents(): void {
@@ -1002,7 +996,9 @@ export class SeasonHome implements OnDestroy, OnInit {
       }
       this.season.set(updated)
       if (updated.slug !== this.slug()) {
-        void this.router.navigate(saisonWorkspacePath(updated.slug), {
+        void this.router.navigate(
+          saisonWorkspacePath(this.routeTroupeSlug(), updated.slug),
+          {
           replaceUrl: true,
           queryParams: { view: this.seasonView() },
         })
@@ -1032,7 +1028,9 @@ export class SeasonHome implements OnDestroy, OnInit {
         return
       }
       if (typeof result === 'object' && result.slug) {
-        void this.router.navigate(saisonEventPath(this.slug(), result.slug))
+        void this.router.navigate(
+          saisonEventPath(this.routeTroupeSlug(), this.slug(), result.slug),
+        )
       }
       void this.reloadAfterMutation('Spectacle créé.')
     })

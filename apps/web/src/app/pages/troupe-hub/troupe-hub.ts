@@ -207,6 +207,7 @@ export class TroupeHub implements OnInit, OnDestroy {
     this.accessDenied.set(false)
     this.accessCheckError.set(false)
     this.showArchived.set(false)
+    this.allSeasons.set([])
     if (!slug) {
       this.troupe.set(null)
       this.allSeasons.set([])
@@ -308,7 +309,7 @@ export class TroupeHub implements OnInit, OnDestroy {
     this.dialogSubscriptions.add(
       ref.afterClosed().subscribe((result) => {
         if (typeof result === 'string' && result.trim().length > 0) {
-          void this.router.navigate(saisonWorkspacePath(result))
+          void this.router.navigate(saisonWorkspacePath(t.slug, result))
         } else if (result === true) {
           void this.loadSeasons(t.id)
           this.snack.open('Saison créée.', 'OK', { duration: 4000 })

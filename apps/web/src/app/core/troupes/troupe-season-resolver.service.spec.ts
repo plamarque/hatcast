@@ -46,6 +46,24 @@ describe('TroupeSeasonResolverService', () => {
     TestBed.resetTestingModule()
   })
 
+  it('résout une saison par couple troupe + slug', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1'), troupe('troupe-2')],
+    })
+    seasonsApi.getSeasonBySlug.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: season('s1', 'troupe-1'),
+    })
+
+    const result = await resolver().resolveSeasonInTroupe('troupe-1', 'saison-a')
+
+    expect(result.kind).toBe('resolved')
+    expect(result.kind === 'resolved' ? result.troupe.id : null).toBe('troupe-1')
+  })
+
   it('résout la troupe sélectionnée avant les autres', async () => {
     localStorage.setItem('hatcast.selectedTroupeId', 'troupe-2')
     troupeApi.listMyTroupes.mockResolvedValue({
@@ -99,6 +117,29 @@ describe('TroupeSeasonResolverService', () => {
     expect(result.kind).toBe('ambiguous')
     expect(context().selectedTroupe()?.id).toBe('troupe-1')
     expect(localStorage.getItem('hatcast.selectedTroupeId')).toBe('troupe-1')
+  })
+
+  it('désambiguïse via la dernière saison mémorisée par troupe', async () => {
+    localStorage.setItem('hatcast.selectedTroupeId', 'troupe-1')
+    localStorage.setItem(
+      'lastVisitedSeasonByTroupe',
+      JSON.stringify({ 'troupe-3': 'saison-a' }),
+    )
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1'), troupe('troupe-2'), troupe('troupe-3')],
+    })
+    seasonsApi.getSeasonBySlug
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: true, status: 200, data: season('s2', 'troupe-2') })
+      .mockResolvedValueOnce({ ok: true, status: 200, data: season('s3', 'troupe-3') })
+
+    const result = await resolver().resolveSeasonSlug('saison-a')
+
+    expect(result.kind).toBe('resolved')
+    expect(result.kind === 'resolved' ? result.troupe.id : null).toBe('troupe-3')
+    expect(context().selectedTroupe()?.id).toBe('troupe-3')
   })
 
   it('renvoie not-found quand aucune troupe active ne possède le slug', async () => {

@@ -3,8 +3,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 
+import { PushOptInPromptService } from './core/push/push-opt-in-prompt.service';
 import { PwaUpdateService } from './core/pwa/pwa-update.service';
-import { ChangelogDialogService } from './shared/changelog/changelog-dialog.service';
 import { PwaInstallBannerComponent } from './shared/pwa/pwa-install-banner/pwa-install-banner';
 import { PwaUpdateBannerComponent } from './shared/pwa/pwa-update-banner/pwa-update-banner';
 
@@ -17,7 +17,7 @@ import { PwaUpdateBannerComponent } from './shared/pwa/pwa-update-banner/pwa-upd
 export class App implements OnInit {
   private readonly router = inject(Router);
   private readonly pwaUpdate = inject(PwaUpdateService);
-  private readonly changelogDialog = inject(ChangelogDialogService);
+  private readonly pushOptInPrompt = inject(PushOptInPromptService);
   private readonly platformId = inject(PLATFORM_ID);
 
   ngOnInit(): void {
@@ -25,7 +25,7 @@ export class App implements OnInit {
       return;
     }
 
-    void this.changelogDialog.maybeAutoOpenAfterPwaUpdate();
+    void this.pushOptInPrompt.maybePromptWhenIdle();
 
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))

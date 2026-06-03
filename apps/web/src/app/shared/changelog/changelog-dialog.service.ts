@@ -22,7 +22,7 @@ export class ChangelogDialogService {
     this.openDialog();
   }
 
-  /** Opens changelog once after a PWA update reload (Story 10.2 → 10.3). */
+  /** Opens changelog once after a PWA update reload (Story 10.2 → 10.3). Resolves when skipped or closed (10.6). */
   async maybeAutoOpenAfterPwaUpdate(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) {
       return;
@@ -46,12 +46,23 @@ export class ChangelogDialogService {
     }
 
     sessionStorage.removeItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY);
-    this.openDialog({ markSeenOnCloseForVersion: version });
+    await this.openDialogAndWait({ markSeenOnCloseForVersion: version });
   }
 
-  private openDialog(options?: { markSeenOnCloseForVersion?: string }): void {
+  private openDialogAndWait(options?: { markSeenOnCloseForVersion?: string }): Promise<void> {
+    return new Promise((resolve) => {
+      const ref = this.openDialog(options);
+      if (!ref) {
+        resolve();
+        return;
+      }
+      ref.afterClosed().subscribe(() => resolve());
+    });
+  }
+
+  private openDialog(options?: { markSeenOnCloseForVersion?: string }): ReturnType<MatDialog['open']> | null {
     if (!isPlatformBrowser(this.platformId)) {
-      return;
+      return null;
     }
 
     const ref = this.dialog.open(ChangelogDialog, {
@@ -67,5 +78,7 @@ export class ChangelogDialogService {
         localStorage.setItem(changelogSeenStorageKey(versionToMark), '1');
       });
     }
+
+    return ref;
   }
 }

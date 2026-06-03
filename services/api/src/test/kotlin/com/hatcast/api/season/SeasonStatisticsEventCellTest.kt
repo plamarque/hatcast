@@ -18,6 +18,7 @@ import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -42,6 +43,7 @@ class SeasonStatisticsEventCellTest {
     private val declineRepository = mock<EventCompositionDeclineRepository>()
     private val availabilityRepository = mock<EventAvailabilityRepository>()
     private val troupeAccess = mock<TroupeAccessService>()
+    private val userRepository = mock<UserRepository>()
 
     private val service =
         SeasonStatisticsService(
@@ -53,6 +55,7 @@ class SeasonStatisticsEventCellTest {
             declineRepository,
             availabilityRepository,
             troupeAccess,
+            userRepository,
         )
 
     private val principal =

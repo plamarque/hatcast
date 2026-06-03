@@ -1,12 +1,13 @@
 import {
+  isAccountPath,
   pathFromUrl,
   shouldShowMemberNav,
 } from '../../layout/member-shell/member-shell-nav-visibility'
 
-/** Member shell routes where account menu chrome is shown (not on `/compte`). */
+/** Member shell routes where account menu chrome is shown (not on `/compte` or child tabs). */
 export function shouldShowAccountChrome(url: string): boolean {
   const path = pathFromUrl(url)
-  return shouldShowMemberNav(url) && path !== '/compte'
+  return shouldShowMemberNav(url) && !isAccountPath(path)
 }
 
 /** Paths that hide logout in the account menu (admin / event detail). */

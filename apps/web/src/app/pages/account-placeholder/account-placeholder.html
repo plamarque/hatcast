@@ -1,204 +1,88 @@
 <div class="account-page">
   <header class="account-page__header">
-    <div class="account-page__titles">
+    <div class="account-page__header-topline">
       <h1 class="account-page__title">Mon compte</h1>
-      <p class="account-page__subtitle">Identité et sécurité du compte HatCast.</p>
+      @if (!loading() && user()) {
+        <div class="account-page__header-actions">
+          <button
+            type="button"
+            mat-button
+            class="account-page__logout"
+            data-testid="account-logout"
+            aria-label="Se déconnecter"
+            (click)="logout()"
+          >
+            <mat-icon aria-hidden="true">logout</mat-icon>
+            <span class="account-page__logout-label">Se déconnecter</span>
+          </button>
+        </div>
+      }
     </div>
+    <p class="account-page__subtitle">Paramètres de votre compte HatCast.</p>
   </header>
 
   @if (loading()) {
     <div class="account-page__spinner" role="status" aria-label="Chargement">
       <mat-spinner diameter="40" />
     </div>
-  } @else if (user(); as u) {
-    <section class="account-page__identity" aria-labelledby="account-identity-heading">
-      <h2 id="account-identity-heading" class="account-page__visually-hidden">Identité</h2>
-      <div class="account-page__identity-row">
-        <div class="account-page__avatar-wrap">
-          <button
-            type="button"
-            class="account-page__avatar-trigger"
-            data-testid="account-avatar-menu-trigger"
-            [matMenuTriggerFor]="avatarMenu"
-            [disabled]="avatarSaving()"
-            aria-label="Modifier la photo de profil"
-            aria-haspopup="menu"
-          >
-            <app-user-avatar
-              class="account-page__avatar"
-              [style.--user-avatar-size.px]="72"
-              [displayName]="avatarDisplayName()"
-              [avatarUrl]="u.avatarUrl ?? null"
-              [size]="72"
-            />
-            <span class="account-page__avatar-badge" aria-hidden="true">
-              <mat-icon>photo_camera</mat-icon>
-            </span>
-          </button>
-          <mat-menu #avatarMenu="matMenu" class="account-page__avatar-menu">
-            <button
-              type="button"
-              mat-menu-item
-              data-testid="account-avatar-choose"
-              (click)="avatarFileInput.click()"
-            >
-              <mat-icon aria-hidden="true">upload</mat-icon>
-              <span>Choisir une photo</span>
-            </button>
-            @if (u.hasGoogleAccount) {
-              <button
-                type="button"
-                mat-menu-item
-                data-testid="account-avatar-google"
-                [disabled]="avatarSaving()"
-                (click)="importGoogleAvatar()"
-              >
-                <mat-icon aria-hidden="true">account_circle</mat-icon>
-                <span>Utiliser ma photo Google</span>
-              </button>
-            }
-            @if (u.avatarUrl) {
-              <button
-                type="button"
-                mat-menu-item
-                data-testid="account-avatar-delete"
-                [disabled]="avatarSaving()"
-                (click)="deleteAvatar()"
-              >
-                <mat-icon aria-hidden="true">delete</mat-icon>
-                <span>Supprimer la photo</span>
-              </button>
-            }
-          </mat-menu>
-          <input
-            #avatarFileInput
-            class="account-page__file-input"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/avif"
-            [disabled]="avatarSaving()"
-            (change)="onAvatarFileSelected($event)"
-          />
-          @if (avatarSaving()) {
-            <mat-spinner class="account-page__avatar-spinner" diameter="24" aria-hidden="true" />
-          }
-        </div>
-        <div class="account-page__identity-text">
-          <p class="account-page__email">{{ u.email }}</p>
-          @if (accountDisplayName(); as name) {
-            <p class="account-page__display-name">{{ name }}</p>
-          }
-        </div>
-      </div>
-    </section>
-
-    <section class="account-page__section" aria-labelledby="account-member-preferences-heading">
-      <h2 id="account-member-preferences-heading" class="account-page__section-title">
-        Préférences membre
-      </h2>
-      <div class="account-page__preferences-panel">
-        <app-member-preferences-form />
-      </div>
-    </section>
-
-    <section class="account-page__section" aria-labelledby="account-notifications-heading">
-      <h2 id="account-notifications-heading" class="account-page__section-title">Notifications</h2>
-      <div class="account-page__preferences-panel">
-        <app-push-notifications-section />
-        <app-notification-preferences-section />
-      </div>
-    </section>
-
-    <section class="account-page__section" aria-labelledby="account-security-heading">
-      <h2 id="account-security-heading" class="account-page__section-title">Sécurité</h2>
-      <mat-nav-list class="account-page__list">
-        <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="emailComingSoonTooltip">
-          <button
-            type="button"
-            mat-list-item
-            class="account-page__list-item--disabled"
-            disabled
-            data-testid="account-change-email"
-          >
-            <span matListItemTitle>Changer l’adresse e-mail</span>
-            <span matListItemMeta class="account-page__soon">Bientôt</span>
-          </button>
-        </span>
-        @if (!u.hasGoogleAccount) {
-          <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="passwordComingSoonTooltip">
-            <button
-              type="button"
-              mat-list-item
-              class="account-page__list-item--disabled"
-              data-testid="account-reset-password"
-              disabled
-            >
-              <span matListItemTitle>Changer le mot de passe</span>
-              <span matListItemMeta class="account-page__soon">Bientôt</span>
-            </button>
-          </span>
-        } @else {
-          <div mat-list-item class="account-page__list-item--hint" data-testid="account-google-password-hint">
-            <span matListItemTitle>Connexion via Google</span>
-            <span matListItemLine>Pas de mot de passe HatCast sur ce compte.</span>
-          </div>
-        }
-      </mat-nav-list>
-    </section>
-
-    <section
-      class="account-page__section account-page__section--danger"
-      aria-labelledby="account-danger-heading"
+  } @else if (user()) {
+    <nav
+      mat-tab-nav-bar
+      class="account-page__tabs"
+      [tabPanel]="accountTabPanel"
+      aria-label="Sections Mon compte"
     >
-      <h2 id="account-danger-heading" class="account-page__section-title">Zone sensible</h2>
-      <mat-nav-list class="account-page__list">
-        <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="deleteComingSoonTooltip">
-          <button
-            type="button"
-            mat-list-item
-            class="account-page__list-item--danger account-page__list-item--disabled"
-            disabled
-            data-testid="account-delete"
-          >
-            <span matListItemTitle>Supprimer mon compte</span>
-            <span matListItemMeta class="account-page__soon">Bientôt</span>
-          </button>
-        </span>
-      </mat-nav-list>
-    </section>
-
-    <section class="account-page__section" aria-labelledby="account-about-heading">
-      <h2 id="account-about-heading" class="account-page__section-title">À propos</h2>
-      <button
-        type="button"
-        mat-stroked-button
-        class="account-page__version"
-        data-testid="account-app-version"
-        [matTooltip]="versionTooltip()"
-        [attr.aria-label]="versionTooltip()"
-        (click)="openChangelog()"
+      <a
+        mat-tab-link
+        routerLink="/compte"
+        routerLinkActive
+        #identityRla="routerLinkActive"
+        [active]="identityRla.isActive"
+        [routerLinkActiveOptions]="{ exact: true }"
       >
-        <img
-          class="account-page__version-logo"
-          src="/icons/logo-hatcast-2.svg"
-          alt=""
-          width="32"
-          height="32"
-          aria-hidden="true"
-        />
-        v{{ version() }}
-      </button>
-    </section>
-
-    <footer class="account-page__footer">
-      <button
-        type="button"
-        mat-stroked-button
-        class="account-page__logout"
-        data-testid="account-logout"
-        (click)="logout()"
+        Identité
+      </a>
+      <a
+        mat-tab-link
+        routerLink="/compte/preferences"
+        routerLinkActive
+        #preferencesRla="routerLinkActive"
+        [active]="preferencesRla.isActive"
       >
-        Se déconnecter
-      </button>
-    </footer>
+        Préférences
+      </a>
+      <a
+        mat-tab-link
+        routerLink="/compte/notifications"
+        routerLinkActive
+        #notificationsRla="routerLinkActive"
+        [active]="notificationsRla.isActive"
+      >
+        Notifications
+      </a>
+      <a
+        mat-tab-link
+        routerLink="/compte/securite"
+        routerLinkActive
+        #securityRla="routerLinkActive"
+        [active]="securityRla.isActive"
+      >
+        Sécurité
+      </a>
+      <a
+        mat-tab-link
+        routerLink="/compte/a-propos"
+        routerLinkActive
+        #aboutRla="routerLinkActive"
+        [active]="aboutRla.isActive"
+      >
+        À propos
+      </a>
+    </nav>
+    <mat-tab-nav-panel #accountTabPanel class="account-page__tab-panel" />
+
+    <div class="account-page__tab-content">
+      <router-outlet />
+    </div>
   }
 </div>

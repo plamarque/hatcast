@@ -26,6 +26,7 @@ class AuthUserLinkService(
         displayName: String?,
     ): UserEntity {
         userRepository.findByGoogleSub(googleSub)?.let { existing ->
+            rejectIfDeleted(existing)
             val user = userAccountService.markActivated(updateProfile(existing, email, displayName))
             participantLinkService.linkPendingParticipantsOnLogin(user)
             return user
@@ -34,6 +35,7 @@ class AuthUserLinkService(
         val normalizedEmail = email?.trim()?.lowercase()?.takeIf { it.contains("@") }
         if (normalizedEmail != null) {
             userRepository.findFirstByEmailIgnoreCase(normalizedEmail)?.let { byEmail ->
+                rejectIfDeleted(byEmail)
                 if (byEmail.googleSub != null && byEmail.googleSub != googleSub) {
                     throw ResponseStatusException(
                         HttpStatus.CONFLICT,
@@ -70,6 +72,7 @@ class AuthUserLinkService(
         displayName: String?,
     ): UserEntity {
         userRepository.findByIdpUid(idpUid)?.let { existing ->
+            rejectIfDeleted(existing)
             val user = userAccountService.markActivated(updateProfile(existing, email, displayName))
             participantLinkService.linkPendingParticipantsOnLogin(user)
             return user
@@ -78,6 +81,7 @@ class AuthUserLinkService(
         val normalizedEmail = email?.trim()?.lowercase()?.takeIf { it.contains("@") }
         if (normalizedEmail != null) {
             userRepository.findFirstByEmailIgnoreCase(normalizedEmail)?.let { byEmail ->
+                rejectIfDeleted(byEmail)
                 if (byEmail.idpUid != null && byEmail.idpUid != idpUid) {
                     throw ResponseStatusException(
                         HttpStatus.CONFLICT,
@@ -121,5 +125,14 @@ class AuthUserLinkService(
         }
         user.updatedAt = Instant.now()
         return userSlugService.ensureSlug(userRepository.save(user))
+    }
+
+    private fun rejectIfDeleted(user: UserEntity) {
+        if (user.deletedAt != null) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Ce compte a été supprimé.",
+            )
+        }
     }
 }

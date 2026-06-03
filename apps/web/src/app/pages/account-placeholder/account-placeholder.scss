@@ -7,15 +7,58 @@
 }
 
 .account-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   margin-bottom: 1rem;
 }
 
-.account-page__titles {
+.account-page__header-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
   min-width: 0;
+}
+
+.account-page__header-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.account-page__tabs {
+  margin-bottom: 0.5rem;
+
+  .mat-mdc-tab-link {
+    min-height: 3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .account-page__tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    .mat-mdc-tab-link {
+      min-width: 3rem;
+      min-height: 3rem;
+    }
+  }
+}
+
+.account-page__tab-panel {
+  display: none;
+}
+
+.account-page__tab-content {
+  margin-bottom: 1rem;
 }
 
 .account-page__title {
   margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -229,11 +272,21 @@
   vertical-align: middle;
 }
 
-.account-page__footer {
-  margin-top: 0.5rem;
+.account-page__logout {
+  min-height: 3rem;
+  min-width: 3rem;
 }
 
-.account-page__logout {
-  width: 100%;
-  min-height: 3rem;
+@media (max-width: 480px) {
+  .account-page__logout-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
 }

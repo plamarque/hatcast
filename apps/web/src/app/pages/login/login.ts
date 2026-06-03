@@ -1,4 +1,13 @@
-import { AfterViewInit, Component, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core'
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
@@ -8,7 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword } from 'firebase/auth'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
@@ -73,8 +82,10 @@ declare global {
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login implements AfterViewInit, OnInit {
+export class Login implements AfterViewInit, OnDestroy, OnInit {
   private readonly googleHost = viewChild<ElementRef<HTMLDivElement>>('googleButtonHost')
+  private gsiPollIntervalId: ReturnType<typeof setInterval> | null = null
+  private gsiLoadTimeoutId: ReturnType<typeof setTimeout> | null = null
   private readonly auth = inject(AuthApiService)
   private readonly firebaseAuth = inject(FirebaseAuthService)
   private readonly route = inject(ActivatedRoute)
@@ -98,6 +109,14 @@ export class Login implements AfterViewInit, OnInit {
 
   /** Parité V1 : coché par défaut (session longue côté API). */
   protected readonly rememberMe = signal(true)
+
+  protected get signupQueryParams(): { returnUrl?: string } {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim()
+    if (returnUrl && isValidInternalRedirectPath(returnUrl)) {
+      return { returnUrl }
+    }
+    return {}
+  }
 
   ngOnInit(): void {
     this.ingestReturnUrlFromQuery()
@@ -128,14 +147,14 @@ export class Login implements AfterViewInit, OnInit {
       render()
     }
 
-    const id = window.setInterval(() => {
+    this.gsiPollIntervalId = window.setInterval(() => {
       if (window.google?.accounts?.id && this.googleHost()?.nativeElement) {
-        window.clearInterval(id)
+        this.clearGsiPollInterval()
         tryInit()
       }
     }, 100)
-    window.setTimeout(() => {
-      window.clearInterval(id)
+    this.gsiLoadTimeoutId = window.setTimeout(() => {
+      this.clearGsiPollInterval()
       if (!window.google?.accounts?.id) {
         this.snack.open(
           'Le script Google Identity Services n’a pas pu être chargé (réseau ou bloqueur).',
@@ -144,6 +163,21 @@ export class Login implements AfterViewInit, OnInit {
         )
       }
     }, 12_000)
+  }
+
+  ngOnDestroy(): void {
+    this.clearGsiPollInterval()
+    if (this.gsiLoadTimeoutId !== null) {
+      window.clearTimeout(this.gsiLoadTimeoutId)
+      this.gsiLoadTimeoutId = null
+    }
+  }
+
+  private clearGsiPollInterval(): void {
+    if (this.gsiPollIntervalId !== null) {
+      window.clearInterval(this.gsiPollIntervalId)
+      this.gsiPollIntervalId = null
+    }
   }
 
   private ingestReturnUrlFromQuery(): void {
@@ -191,25 +225,6 @@ export class Login implements AfterViewInit, OnInit {
     this.snack.open(msg, 'OK', { duration: 8000 })
     if (this.isDev) {
       this.devLog.set(JSON.stringify({ status: r.status, hint: 'voir logs API pour le détail' }, null, 2))
-    }
-  }
-
-  protected async registerWithEmail(): Promise<void> {
-    this.emailForm.markAllAsTouched()
-    if (this.emailForm.invalid) return
-    const auth = this.firebaseAuth.getAuthOrNull()
-    if (!auth) return
-    const { email, password } = this.emailForm.getRawValue()
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password)
-      const idToken = await cred.user.getIdToken()
-      await this.finishIdpSignIn(idToken)
-    } catch (e: unknown) {
-      const code = typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
-      this.snack.open(userMessageForIdentityPlatformAuth(code), 'OK', { duration: 8000 })
-      if (this.isDev) {
-        this.devLog.set(code || String(e))
-      }
     }
   }
 

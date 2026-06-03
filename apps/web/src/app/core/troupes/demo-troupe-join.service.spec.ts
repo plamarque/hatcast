@@ -57,7 +57,7 @@ describe('DemoTroupeJoinService', () => {
       'OK',
       { duration: 4000 },
     )
-    expect(router.navigate).toHaveBeenCalledWith(['/saison', DEMO_ACTIVE_SEASON_SLUG])
+    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'demo', DEMO_ACTIVE_SEASON_SLUG])
     expect(localStorage.getItem('lastVisitedSeason')).toBe(DEMO_ACTIVE_SEASON_SLUG)
   })
 

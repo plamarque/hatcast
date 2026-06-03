@@ -1,0 +1,87 @@
+@if (step() === 1) {
+  <h2 mat-dialog-title>Supprimer mon compte HatCast ?</h2>
+  <mat-dialog-content class="account-delete-dialog__content">
+    <p class="account-delete-dialog__intro">
+      Cette action est <strong>irréversible</strong>. Voici ce qui se passera :
+    </p>
+    <ul class="account-delete-dialog__consequences">
+      <li>Vous serez <strong>déconnecté immédiatement</strong> et ne pourrez <strong>plus vous connecter</strong> avec ce compte.</li>
+      <li>Votre <strong>adresse e-mail, nom, pseudo membre, photo et préférences de notification</strong> seront <strong>supprimés ou anonymisés</strong>.</li>
+      <li>Vous serez <strong>retiré de toutes vos troupes</strong> (adhésions désactivées — plus d’accès à l’application).</li>
+      <li>Vos <strong>statistiques de saison</strong> (participations, disponibilités, déclins) <strong>restent comptabilisées</strong> pour la troupe sous le nom déjà enregistré ; seules vos données personnelles identifiables (e-mail, lien profil, photo) sont effacées.</li>
+      <li>L’<strong>historique des spectacles</strong> (disponibilités, compositions, journal d’audit) <strong>reste visible pour les organisateurs</strong> sous forme anonymisée.</li>
+      <li><strong>Ce n’est pas</strong> un simple retrait par un administrateur de troupe (qui vous retire aussi des statistiques) : l’action est définitive pour <strong>votre compte HatCast</strong>.</li>
+      <li>Si vous êtes le <strong>dernier administrateur actif</strong> d’une troupe, la suppression sera <strong>refusée</strong> — transférez d’abord le rôle admin.</li>
+    </ul>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end" class="account-delete-dialog__actions">
+    <button type="button" mat-button mat-dialog-close>Annuler</button>
+    <button type="button" mat-flat-button color="primary" (click)="goToStep2()">Continuer</button>
+  </mat-dialog-actions>
+} @else {
+  <h2 mat-dialog-title>Confirmer la suppression définitive</h2>
+  <mat-dialog-content class="account-delete-dialog__content">
+    <p class="account-delete-dialog__intro">
+      Pour confirmer, saisissez <strong>{{ 'SUPPRIMER' }}</strong> (respectez les majuscules).
+    </p>
+    <form [formGroup]="form" class="account-delete-dialog__form">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-delete-dialog__field">
+        <mat-label>Confirmation</mat-label>
+        <input
+          matInput
+          formControlName="confirmPhrase"
+          autocomplete="off"
+          spellcheck="false"
+          (input)="onConfirmPhraseInput()"
+        />
+        @if (form.controls.confirmPhrase.hasError('required')) {
+          <mat-error>Saisie requise.</mat-error>
+        } @else if (form.controls.confirmPhrase.hasError('pattern')) {
+          <mat-error>Saisissez exactement « SUPPRIMER ».</mat-error>
+        }
+      </mat-form-field>
+
+      @if (hasPassword()) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-delete-dialog__field">
+          <mat-label>Mot de passe actuel</mat-label>
+          <input matInput type="password" formControlName="password" autocomplete="current-password" />
+          @if (form.controls.password.touched && !form.controls.password.value.trim()) {
+            <mat-error>Mot de passe requis pour confirmer.</mat-error>
+          }
+        </mat-form-field>
+      } @else if (data.hasGoogleAccount) {
+        @if (confirmPhraseValid()) {
+          <p class="account-delete-dialog__reauth-hint">
+            Confirmez votre identité avec Google avant la suppression.
+          </p>
+          <div class="account-delete-dialog__google-host">
+            <div #googleReauthHost class="account-delete-dialog__google-button-host"></div>
+          </div>
+        } @else {
+          <p class="account-delete-dialog__reauth-hint">
+            Saisissez « SUPPRIMER » ci-dessus pour afficher la confirmation Google.
+          </p>
+        }
+      }
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end" class="account-delete-dialog__actions">
+    <button type="button" mat-button (click)="backToStep1()" [disabled]="submitting()">Retour</button>
+    @if (hasPassword()) {
+      <button
+        type="button"
+        mat-flat-button
+        color="warn"
+        class="account-delete-dialog__confirm"
+        [disabled]="!confirmEnabled()"
+        (click)="confirmDelete()"
+      >
+        @if (submitting()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Supprimer mon compte définitivement
+        }
+      </button>
+    }
+  </mat-dialog-actions>
+}

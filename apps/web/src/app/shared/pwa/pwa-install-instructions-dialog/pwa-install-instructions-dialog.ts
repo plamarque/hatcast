@@ -2,14 +2,15 @@ import { Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
+import { isMemberMobileShellViewport } from '../../../layout/member-shell/member-shell-viewport';
 import type { PwaBrowserInfo } from '../../../core/pwa/pwa-browser-info';
 import { buildPwaInstallInstructions } from '../../../core/pwa/pwa-install-instructions';
 import { PwaInstallService } from '../../../core/pwa/pwa-install.service';
 
 export interface PwaInstallInstructionsDialogData {
   browserInfo: PwaBrowserInfo;
-  devCertBlocked?: boolean;
-  nativePromptFailed?: boolean;
+  /** Set by PwaInstallService when `beforeinstallprompt` can still be invoked. */
+  allowNativeRetry?: boolean;
 }
 
 @Component({
@@ -23,11 +24,15 @@ export class PwaInstallInstructionsDialog {
   private readonly dialogRef = inject(MatDialogRef<PwaInstallInstructionsDialog>);
   private readonly pwaInstall = inject(PwaInstallService);
 
-  protected readonly content = computed(() =>
-    buildPwaInstallInstructions(this.data.browserInfo, {
-      devCertBlocked: this.data.devCertBlocked,
-      nativePromptFailed: this.data.nativePromptFailed,
-    }),
+  protected readonly content = computed(() => buildPwaInstallInstructions(this.data.browserInfo));
+
+  protected readonly allowNativeRetry = this.data.allowNativeRetry === true;
+
+  /** Même logique que le shell membre : avatar fixe mobile, « Compte » en bas du rail desktop. */
+  protected readonly accountMenuPlacementHint = computed(() =>
+    isMemberMobileShellViewport()
+      ? 'en haut à droite'
+      : 'en bas à gauche (barre latérale)',
   );
 
   protected retryInstall(): void {

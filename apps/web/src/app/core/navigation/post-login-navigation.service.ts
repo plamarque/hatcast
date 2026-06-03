@@ -9,17 +9,26 @@ import {
   isPersistableMemberEntryPath,
   memberStatsSlugFromMemberEntryPath,
   seasonSlugFromMemberEntryPath,
+  troupeSlugFromMemberEntryPath,
 } from './last-member-entry-path-storage'
+import {
+  parseCanonicalSaisonScopedPath,
+  parseSaisonMemberEntryPath,
+  saisonWorkspacePath,
+} from './troupe-routes'
 import {
   clearLastVisitedSeasonSlug,
   getLastVisitedSeasonSlug,
 } from './last-visited-season-storage'
-import { saisonWorkspacePath } from './troupe-routes'
 import {
   clearPendingPostLoginRedirect,
   getPendingPostLoginRedirect,
   isValidInternalRedirectPath,
 } from './post-login-redirect-storage'
+import {
+  clearStaleSeasonNavigation,
+  seasonSlugFromPathname,
+} from './unreachable-season-navigation'
 
 export type PostLoginNavigationTarget = string | string[]
 
@@ -35,7 +44,10 @@ export class PostLoginNavigationService {
     const pending = getPendingPostLoginRedirect()
     if (pending) {
       if (isValidInternalRedirectPath(pending)) {
-        return pending
+        const validatedPending = await this.validatePendingRedirect(pending)
+        if (validatedPending) {
+          return validatedPending
+        }
       }
       clearPendingPostLoginRedirect()
     }
@@ -56,7 +68,7 @@ export class PostLoginNavigationService {
     try {
       const resolved = await this.resolver.resolveSeasonSlug(slug)
       if (resolved.kind === 'resolved') {
-        return saisonWorkspacePath(slug)
+        return saisonWorkspacePath(resolved.troupe.slug, slug)
       }
     } catch {
       // Network/server error — clear stale slug and fall through to /agenda
@@ -84,10 +96,14 @@ export class PostLoginNavigationService {
 
     const seasonSlug = seasonSlugFromMemberEntryPath(path)
     if (seasonSlug) {
+      const canonical = parseSaisonMemberEntryPath(path)
+      if (canonical) {
+        return saisonWorkspacePath(canonical.troupeSlug, canonical.seasonSlug)
+      }
       try {
         const resolved = await this.resolver.resolveSeasonSlug(seasonSlug)
         if (resolved.kind === 'resolved') {
-          return saisonWorkspacePath(seasonSlug)
+          return saisonWorkspacePath(resolved.troupe.slug, resolved.season.slug)
         }
       } catch {
         // Network/server error — clear stale entry and fall through
@@ -117,9 +133,33 @@ export class PostLoginNavigationService {
   }
 
   private clearMemberEntryPathForSeasonSlug(slug: string): void {
-    if (getLastMemberEntryPath() === `/saison/${slug}`) {
+    const entryPath = getLastMemberEntryPath()
+    if (entryPath && seasonSlugFromMemberEntryPath(entryPath) === slug.trim()) {
       clearLastMemberEntryPath()
     }
+  }
+
+  private async validatePendingRedirect(pending: string): Promise<string | null> {
+    const pathname = pending.split(/[?#]/)[0] ?? pending
+    if (parseCanonicalSaisonScopedPath(pathname)) {
+      return pending
+    }
+    const seasonSlug = seasonSlugFromPathname(pathname)
+    if (!seasonSlug) {
+      return pending
+    }
+
+    try {
+      const resolved = await this.resolver.resolveSeasonSlug(seasonSlug)
+      if (resolved.kind === 'resolved') {
+        return pending
+      }
+    } catch {
+      // Network/server error — treat as unreachable and fall through
+    }
+
+    clearStaleSeasonNavigation(seasonSlug)
+    return null
   }
 
   async navigateAfterSignIn(router: Router = this.router): Promise<boolean> {

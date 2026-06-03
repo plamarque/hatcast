@@ -144,6 +144,16 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
         @Param("user") user: com.hatcast.api.user.UserEntity,
         @Param("now") now: Instant,
     ): Int
+
+    @Query(
+        """
+        SELECT p FROM SeasonParticipantEntity p
+        WHERE p.user.id = :userId
+        """,
+    )
+    fun findAllByUser_Id(
+        @Param("userId") userId: UUID,
+    ): List<SeasonParticipantEntity>
 }
 
 interface EventParticipantExclusionRepository : JpaRepository<EventParticipantExclusionEntity, EventParticipantExclusionId> {
@@ -221,4 +231,14 @@ interface EventParticipantRepository : JpaRepository<EventParticipantEntity, UUI
         @Param("user") user: com.hatcast.api.user.UserEntity,
         @Param("now") now: Instant,
     ): Int
+
+    @Query(
+        """
+        SELECT p FROM EventParticipantEntity p
+        WHERE p.user.id = :userId
+        """,
+    )
+    fun findAllByUser_Id(
+        @Param("userId") userId: UUID,
+    ): List<EventParticipantEntity>
 }

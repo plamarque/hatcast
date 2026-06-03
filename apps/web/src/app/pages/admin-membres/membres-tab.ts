@@ -11,7 +11,6 @@ import {
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog } from '@angular/material/dialog'
-import { MatExpansionModule } from '@angular/material/expansion'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -38,7 +37,6 @@ import { ImportResultsDialog, type ImportResultsDialogData } from './import-resu
   imports: [
     MatButtonModule,
     MatChipsModule,
-    MatExpansionModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,

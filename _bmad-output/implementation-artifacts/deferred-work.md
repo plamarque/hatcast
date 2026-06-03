@@ -1,3 +1,23 @@
+## Deferred from: code review of 6-15-refonte-modales-annonces-notify-manuel.md (2026-06-03)
+
+- `event-equipe-tab` duplicates `MatDialog.open` instead of `openShareAnnounceDialog` helper — consistency only; behavior OK.
+- `notifiedCount` on POST uses GET preview, not dispatcher outcome — pre-existing **NFR-R2** pattern from 6.10b; acceptable for MVP.
+
+## Deferred from: code review of 1-7-suppression-de-compte.md (2026-06-03)
+
+- `FirebaseAuth.deleteUser` appelé dans la méthode `@Transactional` — transaction DB tenue plus longtemps ; pattern acceptable MVP, optimisable via `@TransactionalEventListener` post-commit. [`AccountDeletionService.kt:79`]
+- Index `idx_users_deleted_at` sur toute la colonne vs index partiel `WHERE deleted_at IS NULL` — l’AC 8 le marque optionnel ; impact perf négligeable à ce stage. [`V53__users_deleted_at.sql`]
+
+## Deferred from: code review of 1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes.md (2026-06-03)
+
+- Ligne « Supprimer mon compte » activée dans `account-security-tab` — AC 1.6 exigeait disabled jusqu’à 1.7 ; travail 1.7 déjà sur la branche (`AccountDeleteDialog`). À valider dans la revue 1.7.
+
+## Deferred from: code review of story 1.2b (2026-06-03)
+
+- Duplication GSI Login/Signup (~140 LOC) — extraction optionnelle non obligatoire par story 1.2b.
+- Pas de test Vitest happy-path inscription email → session HatCast — minimum story satisfait ; recette manuelle.
+- Compte Firebase orphelin si `signInWithIdentityPlatformIdToken` échoue après `createUserWithEmailAndPassword` — pattern hérité story 1.2.
+
 ## Deferred from: code review of 8-5-extensions-notifications-membre.md (2026-06-01)
 
 - **W1** — `actorUserId` set to recipient's own `userId` in `AssigneePresenceReminderJob` dispatch context — semantic smell; `actorUserId` not surfaced in current reminder payloads, no user impact today.
@@ -408,6 +428,11 @@
 - Index page API non plafonné (`AuditEventController.kt:29`) — risque faible avec volume audit actuel.
 - Appel `listSeasonParticipants` systématique sur fiche spectacle (`event-detail.ts`) — perf polish.
 - Label jour DST dans `audit-day-label.ts` — edge case rare.
+
+## Deferred from: code review of 10-5-aides-install-contextuelles-ios-android.md (2026-06-02)
+
+- Menu install non réactif après `appinstalled` — `showInstallApp()` évalue `isPwaInstalled()` au rendu ; snackbar AC8 couvre le clic stale. Pattern 10.1.
+- Échecs tests hors périmètre PWA (`forgot-password.spec.ts`, `changelog-dialog.service.spec.ts` timeout) — flaky préexistants ; 36/36 tests install/menu OK.
 
 ## Deferred from: code review of 10-7-icone-pwa-hatcast-2.md (2026-06-02)
 

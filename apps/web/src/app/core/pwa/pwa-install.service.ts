@@ -1,6 +1,7 @@
 import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { getPwaBrowserInfo } from './pwa-browser-info';
 import {
@@ -27,8 +28,10 @@ export interface BeforeInstallPromptEvent extends Event {
 export class PwaInstallService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly dialog = inject(MatDialog);
+  private readonly snack = inject(MatSnackBar);
 
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
+  private readonly appInstalledListeners = new Set<() => void>();
 
   readonly showBanner = signal(false);
   readonly bannerDismissedSession = signal(false);
@@ -48,11 +51,20 @@ export class PwaInstallService {
       this.bannerDismissedSession.set(true);
       localStorage.setItem(PWA_INSTALLED_KEY, 'true');
       this.showBanner.set(false);
+      for (const listener of this.appInstalledListeners) {
+        listener();
+      }
     });
     if (typeof window.matchMedia === 'function') {
       const standaloneMq = window.matchMedia('(display-mode: standalone)');
       standaloneMq.addEventListener('change', () => this.refreshBannerVisibility());
     }
+  }
+
+  /** Subscribe to Chromium `appinstalled` (Story 10.6 — single listener in PushOptInPromptService). */
+  onAppInstalled(listener: () => void): () => void {
+    this.appInstalledListeners.add(listener);
+    return () => this.appInstalledListeners.delete(listener);
   }
 
   /** Menu utilisateur → « Installer l'app » (V1 `showInstallBannerManually` / install flow). */
@@ -61,6 +73,7 @@ export class PwaInstallService {
       return;
     }
     if (this.isPwaInstalled()) {
+      this.snack.open("L'application est déjà installée", undefined, { duration: 4000 });
       return;
     }
     localStorage.removeItem(PWA_BANNER_DISMISSED_KEY);
@@ -133,6 +146,11 @@ export class PwaInstallService {
     return this.deferredPrompt !== null;
   }
 
+  /** True only when Chromium can still show `beforeinstallprompt` (not on dev Tailscale/.local). */
+  canRetryNativeInstall(): boolean {
+    return this.hasNativeInstallPrompt() && !isDevUntrustedInstallOrigin();
+  }
+
   async promptInstall(): Promise<void> {
     if (this.isPwaInstalled()) {
       return;
@@ -162,24 +180,20 @@ export class PwaInstallService {
         ]);
       } catch {
         this.deferredPrompt = null;
-        this.openManualInstructions({ nativePromptFailed: true });
+        this.openManualInstructions();
       }
       return;
     }
     this.openManualInstructions();
   }
 
-  openManualInstructions(options?: {
-    nativePromptFailed?: boolean;
-  }): void {
+  openManualInstructions(): void {
     const browserInfo = getPwaBrowserInfo(navigator.userAgent);
-    const devCertBlocked = isDevUntrustedInstallOrigin();
     this.showBanner.set(false);
     this.dialog.open(PwaInstallInstructionsDialog, {
       data: {
         browserInfo,
-        devCertBlocked,
-        nativePromptFailed: options?.nativePromptFailed ?? false,
+        allowNativeRetry: this.canRetryNativeInstall(),
       } satisfies PwaInstallInstructionsDialogData,
       width: '28rem',
       maxWidth: '95vw',

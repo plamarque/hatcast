@@ -167,6 +167,8 @@ Chaque puce de `deferred-work.md` reçoit un **ID** `DW-###`. Croisement **story
 | Historique ligue : relecture **compositions** passées | DW-020–021 | Post-V2.0.0 |
 | **Mon compte** hub membre | **17.24** | Done |
 | Compte : onglets + prefs entry | **17.34** | **P0 V2.0.0** |
+| Inscription email / mot de passe | **1.2** | **Recette gate V2.0.0** (code done) |
+| UX inscription dédiée (parité V1) | **1.2b** | **P0 V2.0.0** |
 | Compte : MAJ email + MDP connecté | **1.6** | **P0 V2.0.0** |
 | Compte : suppression | **1.7** | **P0 V2.0.0** (exclu MEP → in cutover) |
 | Reset mot de passe | **1.3** | **Recette gate V2.0.0** |
@@ -176,6 +178,9 @@ Chaque puce de `deferred-work.md` reçoit un **ID** `DW-###`. Croisement **story
 | Modales annonces UX | **6.15** | **P0 V2.0.0** |
 | PWA recette + MAJ + changelog + aides + icône | **10.4–10.7**, **10.2**, **10.3** | **P0 V2.0.0** |
 | Release pipeline tags | **OPS-4–7** | **P0 V2.0.0** |
+| Prod domaine **`hatcast.app`** (CF + Cloud Run west1) | **OPS-8** | **P0 V2.0.0** — domaine acheté 2026-06-03 |
+| PostHog analytics (proxy `e.hatcast.app`) | **OPS-9** / **G-005** | **P1 V2.0.0** — post-**M4** |
+| E-mail `noreply@` / `info@` **@hatcast.app** | **OPS-10** | **P1 V2.0.0** — post-**M4** |
 | Invités | Epic **7** | Post-V2.0.0 |
 | Multi-saisons actives | Epic **13** | Post-V2.0.0 |
 | Pages publiques saison/événement | **4.2** | Post-V2.0.0 |

@@ -333,49 +333,64 @@ Implement once as a **shared modal (or wizard step)**; only **title**, **default
 
 - **File:** [`ux-references/pattern-share-announce-modal-v1.png`](ux-references/pattern-share-announce-modal-v1.png) — example **« Annoncer Compo »** for *Apérock Mai*.
 
-### Structure
+### Structure (cible M3 — story 6.15, amendée recette 2026-06-03)
+
+**Spec détaillée :** [**ux-design-share-announce-6-15.md**](./ux-design-share-announce-6-15.md).
 
 **Header**
 
-- **Title** — contextual, e.g. *« Annoncer Compo »* (emoji in title optional); **subtitle** = **event name — date** (muted accent colour).
-- **Close** — × top-right.
+- **Title** — contextual (e.g. *« Annonce de spectacle »*, *« Partager le tirage »*) ; **subtitle** = event name — date (`--mat-sys-on-surface-variant`).
+- **Close** — `mat-icon-button` top-right, `aria-label="Fermer"`.
 
 **Message block**
 
-- **Label** — e.g. *« Annoncez la compo avec ce message : »* (wording adapts per flow: spectacle, tirage, compo).
-- **Text area** — large, **dark** field; **default text** includes emojis, line breaks, **role lines** (DJ, MC, Joueur·ses, …), and a **link** to the app (deep link / event URL). User may **edit** freely before sharing.
+- `mat-form-field appearance="outline"` + `textarea matInput` (autosize) ; default text editable (emojis, roles, deep link).
 
-**WhatsApp**
+**Actions (une rangée, sous le message)**
 
-- **Primary** green button *« Envoyer par WhatsApp »* + WhatsApp icon; tooltip clarifies **opens WhatsApp** to share the **current** editor content.
+- **Notifier X personnes** — `mat-flat-button color="primary"` (premier).
+- **Copier** — `mat-stroked-button` ; label court *Copier* ; `aria-label="Copier le message"`.
+- **WhatsApp** — `mat-stroked-button` ; ouvre WhatsApp avec le texte courant.
 
-**Notifications — « Personnes à prévenir »**
+**Notifications**
 
-- **Section title** with optional help (?) — who will receive **push** / **email**.
-- **Summary line** — e.g. *« N personnes à prévenir. X peuvent être notifiées, Y devront être prévenues manuellement. »* (exact rules in SPEC: missing email, opt-out, etc.).
-- **Recipient grid** — small **cards** (name, **obfuscated** contact e.g. `edo••@gm••.com`, **status** icon such as green ✓ when channel available).
-- **CTA** — e.g. *« Envoyer les notifications »* (bell icon) to trigger **push + email** per product rules.
+- Résumé N/X/Y ; liste nominative **repliée** (`mat-expansion-panel`) **sous** la rangée d’actions.
+- Garde anti-spam : **ConfirmDialog au clic Notifier** seulement — **pas** de bandeau dans le dialog.
+
+**Footer**
+
+- **Fermer** seul (`mat-dialog-actions`).
+
+**Après envoi (snack ~5 s)**
+
+- Nudge réel → *« X notifications envoyées. »*
+- Intents stub (`draw` / `composition` / `event`) → *« Demande enregistrée. »*
+- Nudge sans canal auto → *« Message prêt — partage-le via Copier ou WhatsApp. »*
 
 ### Entry points (non-exhaustive)
 
 | Surface | Typical title / intent |
 |---------|-------------------------|
-| **Spectacle / event** | Share event info or call to action. |
-| **Tirage au sort** | Share outcome or invite people to view the draw. |
-| **Composition (Équipe)** | **Annoncer la compo** — same modal family as capture. |
+| **Spectacle / event** | Post-publish banner **ou** menu gear · **Annoncer** → *Annonce de spectacle* (`event`). |
+| **Tirage au sort** | Équipe overflow · **Partager** (`draw`). |
+| **Composition (Équipe)** | **Annoncer la compo** (`composition`). |
+| **Dispos** | **Rappel dispos** (`availability_nudge`). |
 
-### Visual style (V1 mood)
+Helper : [`share-announce-open.ts`](../../apps/web/src/app/shared/share-announce/share-announce-open.ts).
 
-- **Dark** modal, **purple** subtitle accent, **green** for WhatsApp and notification primary actions.
-- **Angular Material**–friendly: `MatDialog`, form fields, button variants, optional `MatCard` for recipients.
+### Visual style
+
+- Shell **Material 3** standard — voir [**ux-design-share-announce-6-15.md**](./ux-design-share-announce-6-15.md) (remplace le mood « carte sombre V1 » de 6.10).
+- **Référence capture V1 :** ton et contenu message ; pas le chrome couleur.
+- Tokens `--mat-sys-*` uniquement ; pas de boutons HTML verts V1.
 
 ### Acceptance hints (for QA / design review)
 
-- [ ] **Same** modal shell and **sections** (message → WhatsApp → notifications) for **spectacle**, **tirage**, and **compo** flows; only **copy** and **defaults** differ.
-- [ ] Default message is **editable**; shared content reflects **latest** text (WhatsApp + notifications).
-- [ ] **WhatsApp** does not silently strip required info; user sees what will be shared.
-- [ ] **Recipient** list and **X / Y** counts match backend rules; **manual** cases are explained.
-- [ ] **Push** and **email** are both covered where SPEC requires (opt-in, failures, retries in NFR).
+- [x] **Same** modal shell M3 for **spectacle**, **tirage**, **compo**, **nudge** ; copy et defaults diffèrent.
+- [x] Default message **editable** ; Copier / WhatsApp / notify utilisent le texte courant.
+- [x] Rangée **Notifier · Copier · WhatsApp** ; footer = Fermer.
+- [ ] **Recipient** X/Y counts match backend ; manual cases explained in summary.
+- [ ] **Push** and **email** dispatch where SPEC requires (stub intents until Epic 8).
 
 ---
 

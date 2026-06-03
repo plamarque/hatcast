@@ -1,6 +1,7 @@
 # ADR 0013: Troupe-first navigation, season workspace, spectacle categories, and event slugs
 
 **Status:** Accepted (product direction — 2026-05-25)  
+**Amended:** 2026-06-03 — canonical season URLs include troupe slug; season slug uniqueness per troupe; member-shell nav patterns  
 **Date:** 2026-05-25  
 **Deciders:** Patrice (product), Design Thinking session 2026-05-25  
 **Builds on:** [ADR 0011](0011-league-model-and-user-agenda.md)  
@@ -31,9 +32,17 @@ Usability testing on wireframes was **not run** (no participants available); dec
 | Member hub | `/agenda` | Cross-season upcoming events |
 | Troupe directory | `/troupes` | **Mes troupes** (default) + **Découvrir** section below |
 | Troupe hub | `/troupes/:troupeSlug` | Logo, name, season list, troupe admin entry, member preferences (secondary) |
-| Season workspace | `/saison/:slug` | Agenda, Historique, Statistiques (ADR 0012 views); canonical |
-| Event detail | `/saison/:slug/event/:eventSlug` | Full-screen event; slug unique per season |
+| Season workspace | `/saison/:troupeSlug/:seasonSlug` | Agenda, Historique, Statistiques (ADR 0012 views); canonical |
+| Event detail | `/saison/:troupeSlug/:seasonSlug/event/:eventSlug` | Full-screen event; slug unique per season |
+| Legacy alias | `/saison/:seasonSlug` → canonical | Redirect when season slug is unique among the user’s memberships; otherwise chooser (see §1.1) |
 | Legacy alias | `/seasons` → `/troupes` | Hub redirect only |
+
+#### 1.1 Season slug scope and disambiguation
+
+- **`seasons.slug` is unique per `(troupe_id)`**, not globally. Two troupes (e.g. Démo and La Malice) may both use `saison-2026-2027`.
+- **Canonical URLs always include `troupeSlug`** so bookmarks and deep links are unambiguous.
+- **Legacy `/saison/:seasonSlug`** remains as a redirect entry point: resolve among the signed-in user’s memberships; if exactly one match → redirect to `/saison/:troupeSlug/:seasonSlug` (+ preserved path suffix / query); if several → chooser UI; if none → not found.
+- **Member shell chrome** (rail Accueil · Agenda · Stats, menu compte mobile): `shouldShowMemberNav()` in `member-shell-nav-visibility.ts` must match **both** legacy and canonical path patterns for workspace, event, and admin routes.
 
 **UI label:** **Saison** (not Ligue) for the `season` entity. Code/API table name `seasons` unchanged until a dedicated rename slice.
 
@@ -80,7 +89,7 @@ Usability testing on wireframes was **not run** (no participants available); dec
 
 - Add `events.slug` with unique constraint `(season_id, slug)`.
 - Generate from title on create (dedupe with numeric suffix); editable in event form.
-- Redirect `/saison/:slug/event/:uuid` → slug URL (301) when slug exists.
+- Redirect legacy `/saison/:seasonSlug/event/:uuid` → canonical `/saison/:troupeSlug/:seasonSlug/event/:eventSlug` when slug exists (301).
 
 ### 5. Stats and draw (supersedes ADR 0012 travel league for new data)
 
@@ -109,7 +118,8 @@ Usability testing on wireframes was **not run** (no participants available); dec
 | Item | Action |
 |------|--------|
 | `/seasons` | Redirect; replace entry points with `/troupes` |
-| Event UUID URLs | Redirect to slug when present |
+| Event UUID URLs | Redirect to canonical slug URL when present |
+| Legacy `/saison/:seasonSlug` | Redirect or chooser → canonical with troupe slug |
 | `deplacement` template events | Backfill `category = deplacements` |
 | Travel leagues (if any created) | No new ones; optional data migration tool post-MVP |
 

@@ -90,7 +90,7 @@ describe('PwaSystemBannerComponent', () => {
 
     const el = fixture.nativeElement as HTMLElement;
     (el.querySelector('.pwa-system-banner__primary') as HTMLButtonElement).click();
-    (el.querySelector('button[mat-icon-button]') as HTMLButtonElement).click();
+    (el.querySelector('.pwa-system-banner__dismiss') as HTMLButtonElement).click();
 
     expect(primarySpy).toHaveBeenCalledOnce();
     expect(dismissSpy).toHaveBeenCalledOnce();

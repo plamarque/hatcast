@@ -95,7 +95,11 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     signal<EventRosterParticipant | null>(null)
 
   protected readonly seasonSlug = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
+    this.route.paramMap.pipe(map((p) => p.get('seasonSlug') ?? '')),
+    { initialValue: '' },
+  )
+  protected readonly routeTroupeSlug = toSignal(
+    this.route.paramMap.pipe(map((p) => p.get('troupeSlug') ?? '')),
     { initialValue: '' },
   )
   protected readonly eventSlug = toSignal(
@@ -162,7 +166,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   protected readonly hasSearchQuery = computed(() => this.debouncedSearch().trim().length > 0)
 
   protected readonly seasonAdminParticipantsLink = computed(() =>
-    saisonAdminParticipantsPath(this.seasonSlug()),
+    saisonAdminParticipantsPath(this.routeTroupeSlug(), this.seasonSlug()),
   )
 
   async ngOnInit(): Promise<void> {
@@ -177,11 +181,20 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     }
     this.routeSubscription = this.route.paramMap
       .pipe(
-        map((p) => ({ slug: p.get('slug') ?? '', eventSlug: p.get('eventSlug') ?? '' })),
-        distinctUntilChanged((a, b) => a.slug === b.slug && a.eventSlug === b.eventSlug),
+        map((p) => ({
+          troupeSlug: p.get('troupeSlug') ?? '',
+          seasonSlug: p.get('seasonSlug') ?? '',
+          eventSlug: p.get('eventSlug') ?? '',
+        })),
+        distinctUntilChanged(
+          (a, b) =>
+            a.troupeSlug === b.troupeSlug &&
+            a.seasonSlug === b.seasonSlug &&
+            a.eventSlug === b.eventSlug,
+        ),
       )
-      .subscribe(({ slug, eventSlug }) => {
-        void this.loadPage(slug, eventSlug)
+      .subscribe(({ troupeSlug, seasonSlug, eventSlug }) => {
+        void this.loadPage(troupeSlug, seasonSlug, eventSlug)
       })
   }
 
@@ -193,7 +206,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   }
 
   protected eventDetailLink(): string[] {
-    return saisonEventPath(this.seasonSlug(), this.eventSlug())
+    return saisonEventPath(this.routeTroupeSlug(), this.seasonSlug(), this.eventSlug())
   }
 
   protected onSearchInput(value: string): void {
@@ -466,39 +479,32 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     )
   }
 
-  private async loadPage(seasonSlug: string, eventSlugParam: string): Promise<void> {
+  private async loadPage(
+    troupeSlug: string,
+    seasonSlug: string,
+    eventSlugParam: string,
+  ): Promise<void> {
     const requestId = ++this.loadRequestId
     this.loading.set(true)
     this.season.set(null)
     this.event.set(null)
     this.roster.set([])
     this.eventOrganizers.set([])
-    if (!seasonSlug || !eventSlugParam) {
+    if (!troupeSlug || !seasonSlug || !eventSlugParam) {
       this.loading.set(false)
       return
     }
 
-    const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(seasonSlug)
+    const resolved = await this.troupeSeasonResolver.resolveSeasonInTroupe(
+      troupeSlug,
+      seasonSlug,
+    )
     if (requestId !== this.loadRequestId) {
       return
     }
-    if (resolved.kind === 'no-membership' || resolved.kind === 'error') {
+    if (resolved.kind !== 'resolved') {
       this.loading.set(false)
       this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
-      return
-    }
-    if (resolved.kind === 'ambiguous') {
-      this.loading.set(false)
-      this.snack.open(
-        'Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.',
-        'OK',
-        { duration: 8000 },
-      )
-      return
-    }
-    if (resolved.kind === 'not-found') {
-      this.loading.set(false)
-      this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
       return
     }
 

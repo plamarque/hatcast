@@ -121,6 +121,43 @@ class PlatformAdminTroupeNavigationIntegrationTest {
             .andExpect(jsonPath("$[?(@.email == '$operatorEmail')].displayName").value("Platform Operator"))
     }
 
+    @Test
+    fun `platform admin lists demo troupe in discover without membership`() {
+        val cookie = platformAdminCookie()
+
+        mockMvc
+            .perform(get("/v1/troupes/discover").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.slug == 'demo')].name").value("Démo"))
+    }
+
+    @Test
+    fun `platform admin my troupes excludes demo without membership`() {
+        val cookie = platformAdminCookie()
+
+        mockMvc
+            .perform(get("/v1/troupes").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.slug == 'demo')]").isEmpty)
+    }
+
+    @Test
+    fun `authenticated member lists demo troupe in discover without membership`() {
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-member-demo-discover",
+                email = "member-demo-discover@hatcast.test",
+                name = "Member Demo Discover",
+            )
+
+        mockMvc
+            .perform(get("/v1/troupes/discover").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.slug == 'demo')].name").value("Démo"))
+    }
+
     private fun platformAdminCookie(): Cookie =
         TestAuthSupport.sessionCookieFromGoogleSignIn(
             mockMvc,
