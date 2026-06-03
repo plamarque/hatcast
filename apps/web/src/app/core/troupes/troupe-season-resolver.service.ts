@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core'
 
 import { AuthApiService } from '../auth/auth-api.service'
+import { getLastVisitedSeasonSlugForTroupe } from '../navigation/last-visited-season-storage'
 import { SeasonApiService, type SeasonResponse } from '../seasons/season-api.service'
 import { troupeListItemFromAdminSummary } from './platform-admin-troupe-context'
 import type { TroupeListItem } from './troupe-api.service'
@@ -18,6 +19,37 @@ export class TroupeSeasonResolverService {
   private readonly context = inject(TroupeContextService)
   private readonly seasonsApi = inject(SeasonApiService)
   private readonly auth = inject(AuthApiService)
+
+  async resolveSeasonInTroupe(
+    troupeSlug: string,
+    seasonSlug: string,
+  ): Promise<TroupeSeasonResolution> {
+    const normalizedTroupe = troupeSlug.trim()
+    const normalizedSeason = seasonSlug.trim()
+    if (!normalizedTroupe || !normalizedSeason) {
+      return { kind: 'not-found' }
+    }
+
+    const loaded = await this.context.load()
+    if (!loaded) {
+      return { kind: 'error' }
+    }
+
+    const troupe = await this.context.resolveTroupeBySlug(normalizedTroupe)
+    if (!troupe) {
+      return { kind: 'not-found' }
+    }
+
+    const result = await this.tryResolve(troupe, normalizedSeason)
+    if (result.kind === 'resolved') {
+      this.context.selectTroupe(troupe.id)
+      return result
+    }
+    if (result.kind === 'error') {
+      return { kind: 'error' }
+    }
+    return { kind: 'not-found' }
+  }
 
   async resolveSeasonSlug(slug: string): Promise<TroupeSeasonResolution> {
     const loaded = await this.context.load()
@@ -74,6 +106,11 @@ export class TroupeSeasonResolverService {
     }
 
     if (matches.length > 1) {
+      const disambiguated = this.disambiguateByLastVisited(matches, slug)
+      if (disambiguated) {
+        this.context.selectTroupe(disambiguated.troupe.id)
+        return disambiguated
+      }
       return { kind: 'ambiguous', matches }
     }
 
@@ -109,12 +146,35 @@ export class TroupeSeasonResolverService {
       return { kind: 'resolved', troupe: matches[0].troupe, season: matches[0].season }
     }
 
+    const disambiguated = this.disambiguateByLastVisited(matches, slug)
+    if (disambiguated) {
+      this.context.selectTroupe(disambiguated.troupe.id)
+      return disambiguated
+    }
+
     return { kind: 'ambiguous', matches }
   }
 
   private async isPlatformAdmin(): Promise<boolean> {
     const session = await this.auth.ensureHatcastSession()
     return session.ok && session.data?.platformAdmin === true
+  }
+
+  private disambiguateByLastVisited(
+    matches: Array<{ troupe: TroupeListItem; season: SeasonResponse }>,
+    slug: string,
+  ): { kind: 'resolved'; troupe: TroupeListItem; season: SeasonResponse } | null {
+    const normalized = slug.trim()
+    if (!normalized) {
+      return null
+    }
+    const candidates = matches.filter(
+      (match) => getLastVisitedSeasonSlugForTroupe(match.troupe.id) === normalized,
+    )
+    if (candidates.length !== 1) {
+      return null
+    }
+    return { kind: 'resolved', troupe: candidates[0].troupe, season: candidates[0].season }
   }
 
   private async tryResolve(

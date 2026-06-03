@@ -110,7 +110,7 @@ export class AdminMembres implements OnDestroy, OnInit {
           const slugParam = p.get('slug') ?? ''
           return {
             troupeSlug: isTroupesHubAdmin ? slugParam : (p.get('troupeSlug') ?? ''),
-            legacySeasonSlug: isTroupesHubAdmin ? '' : slugParam,
+            legacySeasonSlug: isTroupesHubAdmin ? '' : (p.get('seasonSlug') ?? ''),
           }
         }),
         distinctUntilChanged(
@@ -150,7 +150,22 @@ export class AdminMembres implements OnDestroy, OnInit {
     let troupe = this.troupeContext.selectedTroupe()
     let legacySeason: SeasonResponse | null = null
 
-    if (troupeSlug) {
+    if (troupeSlug && legacySeasonSlug) {
+      const resolved = await this.troupeSeasonResolver.resolveSeasonInTroupe(
+        troupeSlug,
+        legacySeasonSlug,
+      )
+      if (requestId !== this.loadRequestId) return
+      if (resolved.kind !== 'resolved') {
+        this.loading.set(false)
+        this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
+        await this.router.navigate(troupesListPath())
+        return
+      }
+      this.troupeContext.selectTroupe(resolved.troupe.id)
+      troupe = resolved.troupe
+      legacySeason = resolved.season
+    } else if (troupeSlug) {
       const match = await this.troupeContext.resolveTroupeBySlug(troupeSlug)
       if (!match) {
         this.loading.set(false)
@@ -218,7 +233,9 @@ export class AdminMembres implements OnDestroy, OnInit {
         return
       }
       if (seasonOrganizerPerms) {
-        await this.router.navigate(saisonAdminParticipantsPath(legacySeasonSlug), {
+        await this.router.navigate(
+          saisonAdminParticipantsPath(troupe.slug, legacySeasonSlug),
+          {
           replaceUrl: true,
         })
         return

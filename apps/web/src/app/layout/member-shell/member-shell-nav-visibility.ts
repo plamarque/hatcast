@@ -37,12 +37,20 @@ const MEMBER_NAV_PATH_PATTERNS: RegExp[] = [
   /^\/troupes\/[^/]+\/admin\/membres$/,
   /^\/troupes\/[^/]+\/admin\/audit$/,
   /^\/troupe\/admin\/membres$/,
+  // Legacy `/saison/:seasonSlug` (single segment after saison)
   /^\/saison\/[^/]+$/,
   /^\/saison\/[^/]+\/admin\/membres$/,
   /^\/saison\/[^/]+\/admin\/participants$/,
   /^\/saison\/[^/]+\/admin\/audit$/,
   /^\/saison\/[^/]+\/event\/[^/]+$/,
   /^\/saison\/[^/]+\/event\/[^/]+\/admin\/participants$/,
+  // Canonical `/saison/:troupeSlug/:seasonSlug`
+  /^\/saison\/[^/]+\/[^/]+$/,
+  /^\/saison\/[^/]+\/[^/]+\/admin\/membres$/,
+  /^\/saison\/[^/]+\/[^/]+\/admin\/participants$/,
+  /^\/saison\/[^/]+\/[^/]+\/admin\/audit$/,
+  /^\/saison\/[^/]+\/[^/]+\/event\/[^/]+$/,
+  /^\/saison\/[^/]+\/[^/]+\/event\/[^/]+\/admin\/participants$/,
 ]
 
 /** Member routes that show the global nav (Accueil · Agenda · Stats). */

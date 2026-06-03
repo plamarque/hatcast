@@ -233,7 +233,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 **Objectif produit :** un pilote troupe peut enchaîner, sans contournement :
 
 1. **Connexion → agenda personnel** (`/agenda`, FR48–FR49) — pas d’écran intermédiaire, pas de liste `/seasons` comme hub membre.
-2. **Navigation depuis un événement** vers la ligue et l’administration troupe/ligue (FR51) — bandeau contexte + routes existantes (`/saison/:slug`, admin participants/membres).
+2. **Navigation depuis un événement** vers la ligue et l’administration troupe/ligue (FR51) — bandeau contexte + routes existantes (`/saison/:troupeSlug/:seasonSlug`, admin participants/membres).
 3. **Composition complète** : remplir les rôles **à la main ou par tirage**, **valider**, **confirmer** (ou décliner + combler un trou) jusqu’à l’état **complete** (FR20–FR28).
 
 **Stories MVP (ordre de valeur, deux pistes parallélisables) :**
@@ -542,7 +542,7 @@ v2 → promote-to-staging.sh → release-staging.sh → tag rc → deploy stagin
 | **17.4** | Hub `/troupes/:slug` — logo, saisons, ⚙ admin, préférences (pseudo, rôles) | P0 | 17.3 |
 | **17.5** | Redirects `/seasons`, `/ligue/*` ; liens événement → hub troupe ; breadcrumb sur `/troupes` | P0 | 17.4 |
 | **17.11** | Breadcrumb pages admin (Participants saison/spectacle, Membres troupe) — clôture LIMIT-002 | P1 | 17.1, 17.2 ; 17.5 recommandé |
-| **17.6** | `events.slug` — migration, API, routes `/saison/:slug/event/:eventSlug`, redirect UUID | P1 | — |
+| **17.6** | `events.slug` — migration, API, routes `/saison/:troupeSlug/:seasonSlug/event/:eventSlug`, redirect UUID | P1 | — |
 | **17.7** | `category` + glossaire catégories par troupe (API) | P1 | ADR 0013 |
 | **17.8** | Onglet **Infos** — tag optionnel, autocomplete, aide (pas dans modale spectacle) | P1 | 17.7 |
 | **17.9** | Tirage / chances partitionnés par `(saison, category)` | P2 | 17.7 |

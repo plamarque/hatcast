@@ -2,35 +2,29 @@
   <section class="account-page__section" aria-labelledby="account-security-heading">
     <h2 id="account-security-heading" class="account-page__section-title">Sécurité</h2>
     <mat-nav-list class="account-page__list">
-      <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="emailComingSoonTooltip">
-        <button
-          type="button"
-          mat-list-item
-          class="account-page__list-item--disabled"
-          disabled
-          data-testid="account-change-email"
-        >
-          <span matListItemTitle>Changer l’adresse e-mail</span>
-          <span matListItemMeta class="account-page__soon">Bientôt</span>
-        </button>
-      </span>
-      @if (!u.hasGoogleAccount) {
-        <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="passwordComingSoonTooltip">
-          <button
-            type="button"
-            mat-list-item
-            class="account-page__list-item--disabled"
-            data-testid="account-reset-password"
-            disabled
-          >
-            <span matListItemTitle>Changer le mot de passe</span>
-            <span matListItemMeta class="account-page__soon">Bientôt</span>
-          </button>
-        </span>
-      } @else {
+      <button
+        type="button"
+        mat-list-item
+        data-testid="account-change-email"
+        (click)="openChangeEmailDialog()"
+      >
+        <span matListItemTitle>Changer l’adresse e-mail</span>
+      </button>
+      <button
+        type="button"
+        mat-list-item
+        data-testid="account-reset-password"
+        (click)="openChangePasswordDialog()"
+      >
+        <span matListItemTitle>{{ passwordRowLabel() }}</span>
+      </button>
+      @if (u.hasGoogleAccount && !hasPasswordProvider()) {
         <div mat-list-item class="account-page__list-item--hint" data-testid="account-google-password-hint">
-          <span matListItemTitle>Connexion via Google</span>
-          <span matListItemLine>Pas de mot de passe HatCast sur ce compte.</span>
+          <span matListItemTitle>Connexion Google et mot de passe secours</span>
+          <span matListItemLine>
+            Vous pouvez continuer à vous connecter avec Google. Un mot de passe HatCast sert de secours si
+            vous perdez l’accès à Google.
+          </span>
         </div>
       }
     </mat-nav-list>
@@ -42,18 +36,15 @@
   >
     <h2 id="account-danger-heading" class="account-page__section-title">Zone sensible</h2>
     <mat-nav-list class="account-page__list">
-      <span class="account-page__tooltip-row" tabindex="0" [matTooltip]="deleteComingSoonTooltip">
-        <button
-          type="button"
-          mat-list-item
-          class="account-page__list-item--danger account-page__list-item--disabled"
-          disabled
-          data-testid="account-delete"
-        >
-          <span matListItemTitle>Supprimer mon compte</span>
-          <span matListItemMeta class="account-page__soon">Bientôt</span>
-        </button>
-      </span>
+      <button
+        type="button"
+        mat-list-item
+        class="account-page__list-item--danger"
+        data-testid="account-delete"
+        (click)="openDeleteAccountDialog()"
+      >
+        <span matListItemTitle>Supprimer mon compte</span>
+      </button>
     </mat-nav-list>
   </section>
 }

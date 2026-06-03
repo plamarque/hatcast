@@ -76,7 +76,9 @@ export class AdminAudit implements OnDestroy, OnInit {
 
   protected readonly actionFilterOptions = AUDIT_ACTION_FILTER_OPTIONS
   protected readonly slug = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
+    this.route.paramMap.pipe(
+      map((p) => p.get('seasonSlug') ?? p.get('slug') ?? ''),
+    ),
     { initialValue: '' },
   )
   protected readonly scope = toSignal(
@@ -168,12 +170,23 @@ export class AdminAudit implements OnDestroy, OnInit {
     this.platformAdmin.set(session.data.platformAdmin === true)
     this.routeSubscription = this.route.paramMap
       .pipe(
-        map((p) => p.get('slug') ?? ''),
-        distinctUntilChanged(),
+        map((p) => ({
+          troupeSlug:
+            (this.route.snapshot.data['auditScope'] as AdminAuditScope) === 'troupe'
+              ? (p.get('slug') ?? '')
+              : (p.get('troupeSlug') ?? ''),
+          seasonSlug:
+            (this.route.snapshot.data['auditScope'] as AdminAuditScope) === 'troupe'
+              ? ''
+              : (p.get('seasonSlug') ?? ''),
+        })),
+        distinctUntilChanged(
+          (a, b) => a.troupeSlug === b.troupeSlug && a.seasonSlug === b.seasonSlug,
+        ),
       )
-      .subscribe((slug) => {
+      .subscribe(({ troupeSlug, seasonSlug }) => {
         this.resetFiltersForNavigation()
-        void this.load(slug)
+        void this.load(troupeSlug, seasonSlug)
       })
   }
 
@@ -276,14 +289,14 @@ export class AdminAudit implements OnDestroy, OnInit {
     this.filtersPanelOpen.set(false)
   }
 
-  private async load(slug: string): Promise<void> {
+  private async load(troupeSlug: string, seasonSlug: string): Promise<void> {
     const requestId = ++this.loadRequestId
     this.loading.set(true)
     this.forbidden.set(false)
     this.loadError.set(false)
     this.rows.set([])
 
-    if (!slug) {
+    if (!troupeSlug) {
       this.loading.set(false)
       return
     }
@@ -297,7 +310,7 @@ export class AdminAudit implements OnDestroy, OnInit {
     }
 
     if (this.scope() === 'troupe') {
-      const troupe = await this.troupeContext.resolveTroupeBySlug(slug)
+      const troupe = await this.troupeContext.resolveTroupeBySlug(troupeSlug)
       if (requestId !== this.loadRequestId) return
       if (!troupe) {
         this.loading.set(false)
@@ -337,7 +350,15 @@ export class AdminAudit implements OnDestroy, OnInit {
       return
     }
 
-    const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(slug)
+    if (!seasonSlug) {
+      this.loading.set(false)
+      return
+    }
+
+    const resolved = await this.troupeSeasonResolver.resolveSeasonInTroupe(
+      troupeSlug,
+      seasonSlug,
+    )
     if (requestId !== this.loadRequestId) return
     if (resolved.kind !== 'resolved') {
       this.loading.set(false)
@@ -360,7 +381,9 @@ export class AdminAudit implements OnDestroy, OnInit {
       this.forbidden.set(true)
       this.loading.set(false)
       this.snack.open("Tu n'as pas accès à cette page.", 'OK', { duration: 5000 })
-      await this.router.navigate(saisonWorkspacePath(slug))
+      await this.router.navigate(
+        saisonWorkspacePath(resolved.troupe.slug, resolved.season.slug),
+      )
       return
     }
 

@@ -32,6 +32,7 @@ const baseDialogData: ShareAnnounceDialogData = {
   seasonId: 'season-1',
   eventId: 'event-1',
   seasonSlug: 'saison-a',
+  troupeSlug: 'troupe-a',
   eventSlug: 'event-1',
   eventTitle: 'Spectacle test',
   eventDateIso: '2026-05-12T19:00:00.000Z',

@@ -48,6 +48,21 @@ describe('shouldShowMemberNav', () => {
     expect(shouldShowMemberNav('/troupe/admin/membres')).toBe(true)
   })
 
+  it('shows nav on canonical saison routes with troupe slug', () => {
+    expect(shouldShowMemberNav('/saison/demo/saison-2026-2027')).toBe(true)
+    expect(shouldShowMemberNav('/saison/demo/saison-2026-2027?view=agenda')).toBe(true)
+    expect(
+      shouldShowMemberNav('/saison/demo/saison-2026-2027/event/demo-cabaret-juin'),
+    ).toBe(true)
+    expect(
+      shouldShowMemberNav('/saison/demo/saison-2026-2027/event/demo-cabaret-juin?tab=equipe'),
+    ).toBe(true)
+    expect(shouldShowMemberNav('/saison/la-malice/saison-2026-2027/admin/participants')).toBe(
+      true,
+    )
+    expect(shouldShowMemberNav('/saison/demo/saison-2026-2027/admin/participants')).toBe(true)
+  })
+
   it('hides nav on auth routes', () => {
     expect(shouldShowMemberNav('/connexion')).toBe(false)
     expect(shouldShowMemberNav('/mot-de-passe-oublie')).toBe(false)

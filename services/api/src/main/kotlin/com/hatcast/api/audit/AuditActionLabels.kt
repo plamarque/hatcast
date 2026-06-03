@@ -39,5 +39,6 @@ object AuditActionLabels {
             AuditActionType.PARTICIPATION_DECLINED -> "Participation déclinée"
             AuditActionType.PARTICIPATION_RESET -> "Participation réinitialisée"
             AuditActionType.DECLINE_RESTORED -> "Déclin restauré"
+            AuditActionType.ACCOUNT_DELETED -> "Compte supprimé"
         }
 }

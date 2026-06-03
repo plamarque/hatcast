@@ -8,6 +8,9 @@ info:
     Réinitialisation du mot de passe (email « mot de passe oublié ») : entièrement gérée par le client
     Identity Platform (`firebase/auth` : envoi du mail et `confirmPasswordReset`) — **aucun** endpoint REST
     HatCast pour accepter un mot de passe en clair sur ce flux.
+    Changement d’e-mail et définition / changement de mot de passe depuis Mon compte (connecté) : également
+    gérés côté client Identity Platform (`verifyBeforeUpdateEmail`, `sendPasswordResetEmail`, `applyActionCode`)
+    — **aucune** mutation directe de l’e-mail ou du mot de passe en base HatCast.
     Ce fichier pourra être fusionné dans un OpenAPI global `/v1` lorsque le reste de l’API sera publié.
   version: 0.1.0
 
@@ -130,6 +133,38 @@ paths:
                 $ref: '#/components/schemas/CurrentUserResponse'
         '401':
           description: Pas de session ou session expirée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Auth]
+      summary: Supprimer le compte courant (auto-service)
+      description: >
+        Suppression définitive du compte HatCast après ré-authentification (ID token Google ou Identity Platform
+        frais dans le corps). Anonymise les données personnelles, désactive les adhésions troupe, conserve
+        l’historique statistique des saisons. Requiert session + en-tête CSRF `X-XSRF-TOKEN`. Invalide la session
+        en cas de succès (204).
+      operationId: deleteAccount
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountDeletionRequest'
+      responses:
+        '204':
+          description: Compte supprimé ; session invalidée.
+        '401':
+          description: Session invalide ou ré-authentification échouée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Dernier administrateur actif d’une troupe, ou compte déjà supprimé.
           content:
             application/json:
               schema:
@@ -301,6 +336,16 @@ components:
             Si `true` (défaut, alignée case « Se souvenir de moi » cochée en V1), la session serveur
             accepte une inactivité prolongée (ex. 30 jours). Si `false`, session courte (navigateur /
             expiration rapide). Champ omis ⇒ `true`.
+
+    AccountDeletionRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          description: >
+            ID token frais prouvant le contrôle du compte : Google OIDC ou Identity Platform
+            (`reauthenticateWithCredential` / GIS re-sign-in).
 
     AuthSessionResponse:
       type: object

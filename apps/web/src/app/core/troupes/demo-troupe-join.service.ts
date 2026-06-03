@@ -58,9 +58,14 @@ export class DemoTroupeJoinService {
 
       rememberLastVisitedSeasonSlug(DEMO_ACTIVE_SEASON_SLUG, demoId)
 
-      const resolution = await this.resolver.resolveSeasonSlug(DEMO_ACTIVE_SEASON_SLUG)
+      const resolution = await this.resolver.resolveSeasonInTroupe(
+        DEMO_TROUPE_SLUG,
+        DEMO_ACTIVE_SEASON_SLUG,
+      )
       if (resolution.kind === 'resolved') {
-        await this.router.navigate(saisonWorkspacePath(DEMO_ACTIVE_SEASON_SLUG))
+        await this.router.navigate(
+          saisonWorkspacePath(DEMO_TROUPE_SLUG, DEMO_ACTIVE_SEASON_SLUG),
+        )
       } else {
         await this.router.navigate(troupeHubPath(DEMO_TROUPE_SLUG))
       }

@@ -80,3 +80,72 @@ export function userMessageForPasswordResetConfirm(code: string): string {
       return 'Impossible de finaliser la réinitialisation. Réessayez ou demandez un nouvel email.'
   }
 }
+
+export function userMessageForRequiresRecentLogin(): string {
+  return 'Veuillez vous reconnecter pour modifier votre email'
+}
+
+/** Demande de changement d’e-mail (verifyBeforeUpdateEmail) — messages sûrs (NFR-S1). */
+export function userMessageForEmailUpdateRequest(code = ''): string {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'Un compte existe déjà avec cet email. Utilisez une autre adresse ou connectez-vous.'
+    case 'auth/invalid-email':
+      return 'Adresse email invalide.'
+    case 'auth/too-many-requests':
+      return 'Trop de tentatives. Veuillez réessayer plus tard.'
+    case 'auth/network-request-failed':
+      return 'Réseau indisponible. Réessayez.'
+    case 'auth/requires-recent-login':
+      return userMessageForRequiresRecentLogin()
+    default:
+      return 'Impossible d’envoyer l’email de vérification pour le moment. Réessayez plus tard.'
+  }
+}
+
+/** Finalisation changement d’e-mail (applyActionCode) — messages sûrs (NFR-S1). */
+export function userMessageForEmailVerificationComplete(code = ''): string {
+  switch (code) {
+    case 'auth/expired-action-code':
+    case 'auth/invalid-action-code':
+      return 'Ce lien de vérification est invalide ou expiré. Relancez le changement d’e-mail depuis Mon compte.'
+    case 'auth/network-request-failed':
+      return 'Réseau indisponible. Réessayez.'
+    default:
+      return 'Impossible de confirmer le changement d’e-mail. Relancez la procédure depuis Mon compte.'
+  }
+}
+
+/** Ré-authentification avant suppression de compte (NFR-S1). */
+export function userMessageForAccountDeletionReAuth(code = ''): string {
+  switch (code) {
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Mot de passe incorrect.'
+    case 'auth/requires-recent-login':
+      return userMessageForRequiresRecentLogin()
+    case 'auth/network-request-failed':
+      return 'Réseau indisponible. Réessayez.'
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
+      return 'Connexion Google annulée.'
+    default:
+      return 'Ré-authentification requise. Vérifiez votre mot de passe ou reconnectez-vous avec Google.'
+  }
+}
+
+export function userMessageForAccountDeletionFailure(status: number, serverMessage?: string): string {
+  if (status === 409 && serverMessage?.trim()) {
+    return serverMessage.trim()
+  }
+  switch (status) {
+    case 401:
+      return 'Ré-authentification requise. Vérifiez votre mot de passe ou reconnectez-vous avec Google.'
+    case 409:
+      return 'La suppression du compte n’est pas possible dans l’état actuel.'
+    case 0:
+      return 'Suppression impossible. Vérifiez votre réseau et réessayez.'
+    default:
+      return 'La suppression du compte a échoué. Réessayez plus tard.'
+  }
+}

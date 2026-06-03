@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { RouterLink } from '@angular/router'
 import { sendPasswordResetEmail } from 'firebase/auth'
 
+import { passwordResetEmailSettings } from '../../core/auth/auth-action-code-settings'
 import { environment } from '../../../environments/environment'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { userMessageForPasswordResetRequestFailure } from '../../core/auth/auth-user-message'
@@ -54,11 +55,8 @@ export class ForgotPassword {
     const { email } = this.form.getRawValue()
     this.sending.set(true)
     try {
-      const continueUrl = `${globalThis.location.origin}/reinitialiser-mot-de-passe`
-      await sendPasswordResetEmail(auth, email, {
-        url: continueUrl,
-        handleCodeInApp: false,
-      })
+      const continueUrl = passwordResetEmailSettings()
+      await sendPasswordResetEmail(auth, email, continueUrl)
       this.sent.set(true)
     } catch (e: unknown) {
       const code =

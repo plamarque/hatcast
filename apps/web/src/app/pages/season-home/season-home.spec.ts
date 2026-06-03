@@ -715,7 +715,7 @@ describe('SeasonHome', () => {
       },
     })
 
-    await fixture.componentInstance['loadTroupeAndSeason']('season-a')
+    await fixture.componentInstance['loadTroupeAndSeason']('troupe-a', 'season-a')
 
     expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes'], { replaceUrl: true })
     expect(snack.open).not.toHaveBeenCalled()

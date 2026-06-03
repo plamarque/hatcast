@@ -187,6 +187,36 @@ export class AuthApiService {
     return apiOk
   }
 
+  async deleteAccount(
+    idToken: string,
+  ): Promise<{ ok: boolean; status: number; message?: string }> {
+    try {
+      const res = await fetch('/v1/auth/me', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders(),
+        },
+        body: JSON.stringify({ idToken }),
+      })
+      if (res.status === 204) {
+        this.sessionUserSignal.set(null)
+        return { ok: true, status: res.status }
+      }
+      let message: string | undefined
+      try {
+        const body = (await res.json()) as { message?: string }
+        message = body.message
+      } catch {
+        message = undefined
+      }
+      return { ok: false, status: res.status, message }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   async uploadAvatar(file: File): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
     try {
       const body = new FormData()

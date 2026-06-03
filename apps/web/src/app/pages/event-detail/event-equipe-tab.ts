@@ -84,6 +84,7 @@ export class EventEquipeTab {
 
   readonly seasonId = input.required<string>()
   readonly seasonSlug = input.required<string>()
+  readonly troupeSlug = input.required<string>()
   readonly event = input.required<EventResponse>()
   readonly canManageComposition = input(false)
   readonly showConfirmPending = input(false)
@@ -488,6 +489,7 @@ export class EventEquipeTab {
           intent,
           seasonId: this.seasonId(),
           eventId: ev.id,
+          troupeSlug: this.troupeSlug(),
           seasonSlug: this.seasonSlug(),
           eventSlug: ev.slug,
           eventTitle: ev.title,

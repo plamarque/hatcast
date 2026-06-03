@@ -10,6 +10,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-007 — Member shell chrome hidden on canonical saison URLs
+- **ID**: BUG-007
+- **Status**: Fixed (2026-06-03)
+- **Severity**: Medium (UX — rail Accueil · Agenda · Stats and mobile account trigger missing)
+- **Affected area**: V2 `apps/web` — `member-shell-nav-visibility.ts` after canonical routes `/saison/:troupeSlug/:seasonSlug/…`
+- **Observed behavior**: Workspace, event, and admin pages under canonical saison URLs rendered without member navigation chrome (patterns only matched legacy `/saison/:seasonSlug/…`).
+- **Expected behavior**: Same chrome as legacy routes; query params (`?view=agenda`, `?tab=equipe`) must not affect path matching.
+- **Fix**: Extended `MEMBER_NAV_PATH_PATTERNS` for canonical paths; admin breadcrumb `seasonSlug` param reads `seasonSlug` route param (not legacy `slug`).
+
 ### BUG-006 — MIG-3 left migrated spectacles as drafts (availability_opened_at)
 - **ID**: BUG-006
 - **Status**: Fixed (2026-06-02) — pipeline `load-ac.sql` backfill; manual SQL in preprod-reset-and-migrate.md for existing loads
@@ -140,7 +149,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Affected area**: V2 `apps/web` — admin chrome on `/saison/:slug/admin/participants`, `/troupes/:slug/admin/membres` (and legacy aliases)
 - **Observed behavior** (recette post–Story 17.2, 2026-05-25): These screens kept a **chevron back** and **no** `app-context-breadcrumb`.
 - **Expected behavior**: Breadcrumb (troupe › saison › … › admin leaf) and **no** redundant back chevron; consistent with member-facing deep screens (ADR 0013).
-- **Fix**: Story **17.11** — extended `app-context-breadcrumb` with `leafTitle`, `layout="troupe"`, and event admin link support; refactored `AdminParticipants` and `AdminMembres` headers (breadcrumb + account menu, mobile page title). Event-scoped participant admin: route `/saison/:slug/event/:eventSlug/admin/participants` (**17.16**); dialog removed.
+- **Fix**: Story **17.11** — extended `app-context-breadcrumb` with `leafTitle`, `layout="troupe"`, and event admin link support; refactored `AdminParticipants` and `AdminMembres` headers (breadcrumb + account menu, mobile page title). Event-scoped participant admin: route `/saison/:troupeSlug/:seasonSlug/event/:eventSlug/admin/participants` (**17.16**); dialog removed.
 - **Notes/context**: Closed 2026-05-25 with Story 17.11.
 
 ### BUG-001 — Unlock composition clears all player confirmation statuses

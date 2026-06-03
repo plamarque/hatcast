@@ -5,10 +5,10 @@ import type { TroupeContextService } from '../troupes/troupe-context.service'
 import {
   clearLastMemberEntryPath,
   getLastMemberEntryPath,
-  saisonMemberEntryPath,
+  seasonSlugFromMemberEntryPath,
 } from './last-member-entry-path-storage'
 import { clearLastVisitedSeasonSlug, getLastVisitedSeasonSlug } from './last-visited-season-storage'
-import { troupeHubPath, troupesListPath } from './troupe-routes'
+import { parseCanonicalSaisonScopedPath, troupeHubPath, troupesListPath } from './troupe-routes'
 
 export type UnreachableSeasonKind = Extract<
   TroupeSeasonResolution['kind'],
@@ -24,7 +24,8 @@ export function clearStaleSeasonNavigation(slug: string): void {
   if (getLastVisitedSeasonSlug() === normalized) {
     clearLastVisitedSeasonSlug()
   }
-  if (getLastMemberEntryPath() === saisonMemberEntryPath(normalized)) {
+  const entryPath = getLastMemberEntryPath()
+  if (entryPath && seasonSlugFromMemberEntryPath(entryPath) === normalized) {
     clearLastMemberEntryPath()
   }
 }
@@ -63,9 +64,18 @@ export async function navigateAwayFromUnreachableSeason(
 }
 
 export function seasonSlugFromPathname(pathname: string): string | null {
+  const canonical = parseCanonicalSaisonScopedPath(pathname)
+  if (canonical) {
+    return canonical.seasonSlug
+  }
   const segments = pathname.split('/').filter(Boolean)
   if (segments[0] === 'saison' && segments[1]) {
-    return segments[1]
+    if (segments.length === 2) {
+      return segments[1]
+    }
+    if (segments.length >= 4 && (segments[2] === 'event' || segments[2] === 'admin')) {
+      return segments[1]
+    }
   }
   return null
 }

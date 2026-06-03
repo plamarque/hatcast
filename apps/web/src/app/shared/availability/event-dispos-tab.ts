@@ -45,6 +45,7 @@ export class EventDisposTab implements OnDestroy {
 
   readonly seasonId = input.required<string>()
   readonly seasonSlug = input.required<string>()
+  readonly troupeSlug = input.required<string>()
   readonly troupeId = input.required<string>()
   readonly event = input.required<EventResponse>()
   readonly currentUserId = input.required<string>()
@@ -127,6 +128,7 @@ export class EventDisposTab implements OnDestroy {
           intent: 'availability_nudge',
           seasonId: this.seasonId(),
           eventId: ev.id,
+          troupeSlug: this.troupeSlug(),
           seasonSlug: this.seasonSlug(),
           eventSlug: ev.slug,
           eventTitle: ev.title,

@@ -74,7 +74,7 @@ npm run build -w @hatcast/web
 ## Patterns code à réutiliser (UI)
 
 - Raccourcis membre : `apps/web/src/app/shared/member-cross-nav/`
-- Navigation / dernière saison : `apps/web/src/app/core/navigation/`
+- Navigation / dernière saison : `apps/web/src/app/core/navigation/` — URLs saison **canoniques** `/saison/:troupeSlug/:seasonSlug` (slug saison unique **par troupe**) ; legacy `/saison/:seasonSlug` redirige (ADR 0013)
 - Dialogs admin : `MatDialog`, composants standalone existants sous `pages/` et `shared/`
 
 ---

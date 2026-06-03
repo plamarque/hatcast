@@ -296,7 +296,7 @@ export class UserAgenda implements OnInit {
   }
 
   protected openEvent(item: UserAgendaItem): void {
-    void this.router.navigate(saisonEventPath(item.seasonSlug, item.eventSlug))
+    void this.router.navigate(saisonEventPath(item.troupeSlug, item.seasonSlug, item.eventSlug))
   }
 
   protected canEditAvailabilityForItem(item: UserAgendaItem): boolean {

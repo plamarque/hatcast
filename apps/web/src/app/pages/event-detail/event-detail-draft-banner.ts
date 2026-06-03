@@ -30,6 +30,7 @@ export class EventDetailDraftBanner {
   readonly event = input.required<EventResponse>()
   readonly seasonId = input.required<string>()
   readonly seasonSlug = input.required<string>()
+  readonly troupeSlug = input.required<string>()
   readonly canPublish = input(false)
 
   readonly eventUpdated = output<EventResponse>()
@@ -88,6 +89,7 @@ export class EventDetailDraftBanner {
           intent: 'event',
           seasonId: this.seasonId(),
           eventId: ev.id,
+          troupeSlug: this.troupeSlug(),
           seasonSlug: this.seasonSlug(),
           eventSlug: ev.slug,
           eventTitle: ev.title,

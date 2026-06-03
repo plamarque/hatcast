@@ -27,6 +27,7 @@ import com.hatcast.api.season.dto.StatisticsParticipantDto
 import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.user.UserEntity
+import com.hatcast.api.user.UserRepository
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -45,6 +46,7 @@ class SeasonStatisticsService(
     private val declineRepository: EventCompositionDeclineRepository,
     private val availabilityRepository: EventAvailabilityRepository,
     private val troupeAccess: TroupeAccessService,
+    private val userRepository: UserRepository,
 ) {
     companion object {
         private val STATS_ZONE: ZoneId = ZoneId.of("Europe/Paris")
@@ -273,14 +275,25 @@ class SeasonStatisticsService(
     }
 
     private fun participantProfileIdentity(participant: SeasonParticipantEntity): Pair<String?, String?> {
-        val user = linkedUser(participant) ?: return null to null
+        val userId = resolveLinkedUserId(participant) ?: return null to null
+        val user = userRepository.findById(userId).orElse(null) ?: return null to null
+        if (user.deletedAt != null) {
+            return null to null
+        }
         val slug = user.slug?.trim()?.takeIf { it.isNotEmpty() } ?: return null to null
         val avatarUrl = AvatarService.publicAvatarUrl(user.id, user.avatarUpdatedAt)
         return slug to avatarUrl
     }
 
-    private fun linkedUser(participant: SeasonParticipantEntity): UserEntity? =
-        participant.user ?: participant.troupeMembership?.user
+    private fun resolveLinkedUserId(participant: SeasonParticipantEntity): UUID? {
+        participant.user?.id?.let { return it }
+        return participant.troupeMembership?.user?.id
+    }
+
+    private fun linkedUser(participant: SeasonParticipantEntity): UserEntity? {
+        val userId = resolveLinkedUserId(participant) ?: return null
+        return userRepository.findById(userId).orElse(null)?.takeUnless { it.deletedAt != null }
+    }
 
     private class StatCounts(
         var selections: Int = 0,

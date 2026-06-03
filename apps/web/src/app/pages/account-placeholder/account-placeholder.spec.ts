@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
+import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router, RouterOutlet } from '@angular/router'
@@ -7,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AppVersionService } from '../../core/app/app-version.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
 import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { getPendingPostLoginRedirect, clearPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
@@ -18,6 +20,9 @@ import { AccountIdentityTab } from './tabs/account-identity-tab'
 import { AccountNotificationsTab } from './tabs/account-notifications-tab'
 import { AccountPreferencesTab } from './tabs/account-preferences-tab'
 import { AccountSecurityTab } from './tabs/account-security-tab'
+import { AccountChangeEmailDialog } from './dialogs/account-change-email-dialog'
+import { AccountChangePasswordDialog } from './dialogs/account-change-password-dialog'
+import { AccountDeleteDialog } from './dialogs/account-delete-dialog'
 
 @Component({ template: '<router-outlet />', imports: [RouterOutlet] })
 class AccountRouteHost {}
@@ -42,6 +47,7 @@ describe('AccountPlaceholder', () => {
   async function setup(options: {
     session?: { ok: boolean; status: number; data?: { user: Record<string, unknown> } }
     hasGoogleAccount?: boolean
+    hasPasswordProvider?: boolean
     routerUrl?: string
     appVersion?: string
   } = {}) {
@@ -49,6 +55,7 @@ describe('AccountPlaceholder', () => {
     const navigate = vi.fn().mockResolvedValue(true)
     const logout = vi.fn().mockResolvedValue({ ok: true, status: 200 })
     const openChangelog = vi.fn()
+    const dialogOpen = vi.fn()
 
     const user = {
       id: 'u1',
@@ -58,11 +65,27 @@ describe('AccountPlaceholder', () => {
       ...(options.session?.data?.user ?? {}),
     }
 
+    const providerData =
+      options.hasPasswordProvider === true
+        ? [{ providerId: 'password' }]
+        : options.hasGoogleAccount
+          ? [{ providerId: 'google.com' }]
+          : [{ providerId: 'password' }]
+
     await TestBed.configureTestingModule({
       imports: [AccountRouteHost, NoopAnimationsModule],
       providers: [
         provideRouter(accountRoutes),
         { provide: MatSnackBar, useValue: snack },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+        {
+          provide: FirebaseAuthService,
+          useValue: {
+            getAuthOrNull: () => ({
+              currentUser: { providerData, email: user.email },
+            }),
+          },
+        },
         {
           provide: TroupeContextService,
           useValue: {
@@ -163,7 +186,7 @@ describe('AccountPlaceholder', () => {
       }
     }
 
-    return { fixture, snack, navigate, logout, openChangelog, router }
+    return { fixture, snack, navigate, logout, openChangelog, router, dialogOpen }
   }
 
   it('affiche le titre et le sous-titre hub membre', async () => {
@@ -274,8 +297,8 @@ describe('AccountPlaceholder', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="account-troupe-preferences"]')).toBeNull()
   })
 
-  it('garde le changement de mot de passe en placeholder sur Sécurité', async () => {
-    const { fixture, router } = await setup()
+  it('active le changement de mot de passe sur Sécurité', async () => {
+    const { fixture, router, dialogOpen } = await setup()
     await router.navigateByUrl('/compte/securite')
     fixture.detectChanges()
     await fixture.whenStable()
@@ -286,12 +309,18 @@ describe('AccountPlaceholder', () => {
     ) as HTMLButtonElement
     expect(button).toBeTruthy()
     expect(button.textContent).toContain('Changer le mot de passe')
-    expect(button.disabled).toBe(true)
-    expect(button.closest('.account-page__tooltip-row')).toBeTruthy()
+    expect(button.disabled).toBe(false)
+    button.click()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      AccountChangePasswordDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({ hasPasswordProvider: true }),
+      }),
+    )
   })
 
-  it('affiche les placeholders e-mail et suppression sur Sécurité', async () => {
-    const { fixture, router } = await setup()
+  it('active le changement d’e-mail et la suppression de compte sur Sécurité', async () => {
+    const { fixture, router, dialogOpen } = await setup()
     await router.navigateByUrl('/compte/securite')
     fixture.detectChanges()
     await fixture.whenStable()
@@ -304,28 +333,54 @@ describe('AccountPlaceholder', () => {
       '[data-testid="account-delete"]',
     ) as HTMLButtonElement
     expect(emailButton).toBeTruthy()
-    expect(emailButton.disabled).toBe(true)
-    expect(emailButton.closest('.account-page__tooltip-row')).toBeTruthy()
+    expect(emailButton.disabled).toBe(false)
+    emailButton.click()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      AccountChangeEmailDialog,
+      expect.objectContaining({
+        data: { currentEmail: 'lea@example.com' },
+      }),
+    )
+
     expect(deleteButton).toBeTruthy()
-    expect(deleteButton.disabled).toBe(true)
-    expect(deleteButton.closest('.account-page__tooltip-row')).toBeTruthy()
-    expect(fixture.nativeElement.textContent).toContain('Supprimer mon compte')
+    expect(deleteButton.disabled).toBe(false)
+    expect(deleteButton.textContent).toContain('Supprimer mon compte')
+    expect(fixture.nativeElement.textContent).not.toContain('Bientôt')
+    deleteButton.click()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      AccountDeleteDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          accountEmail: 'lea@example.com',
+        }),
+      }),
+    )
     expect(fixture.nativeElement.textContent).toContain('Zone sensible')
   })
 
-  it('indique la connexion Google à la place du mot de passe', async () => {
-    const { fixture, router } = await setup({ hasGoogleAccount: true })
+  it('Google-only : ligne mot de passe activée avec Définir et hint secours', async () => {
+    const { fixture, router, dialogOpen } = await setup({ hasGoogleAccount: true })
     await router.navigateByUrl('/compte/securite')
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="account-reset-password"]'),
-    ).toBeNull()
+    const passwordButton = fixture.nativeElement.querySelector(
+      '[data-testid="account-reset-password"]',
+    ) as HTMLButtonElement
+    expect(passwordButton).toBeTruthy()
+    expect(passwordButton.disabled).toBe(false)
+    expect(passwordButton.textContent).toContain('Définir un mot de passe')
     expect(
       fixture.nativeElement.querySelector('[data-testid="account-google-password-hint"]'),
     ).toBeTruthy()
+    passwordButton.click()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      AccountChangePasswordDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({ hasPasswordProvider: false }),
+      }),
+    )
 
     await router.navigateByUrl('/compte')
     fixture.detectChanges()

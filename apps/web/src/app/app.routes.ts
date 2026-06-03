@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { MemberShell } from './layout/member-shell/member-shell';
 import { AccountPlaceholder } from './pages/account-placeholder/account-placeholder';
+import { AccountEmailVerification } from './pages/account-email-verification/account-email-verification';
 import { AccountAboutTab } from './pages/account-placeholder/tabs/account-about-tab';
 import { AccountIdentityTab } from './pages/account-placeholder/tabs/account-identity-tab';
 import { AccountNotificationsTab } from './pages/account-placeholder/tabs/account-notifications-tab';
@@ -19,6 +20,7 @@ import { AdminParticipants } from './pages/admin-participants/admin-participants
 import { AdminEventParticipants } from './pages/admin-event-participants/admin-event-participants';
 import { AdminAudit } from './pages/admin-audit/admin-audit';
 import { SeasonHome } from './pages/season-home/season-home';
+import { SaisonLegacyRedirect } from './pages/saison-legacy-redirect/saison-legacy-redirect';
 import { MemberSeasonGlance } from './pages/member-season-glance/member-season-glance';
 import { UserAgenda } from './pages/user-agenda/user-agenda';
 import { TroupeHub } from './pages/troupe-hub/troupe-hub';
@@ -54,6 +56,7 @@ export const routes: Routes = [
       { path: 'accueil', component: MemberHomeTodo },
       { path: 'agenda', component: UserAgenda },
       { path: 'membre/:userSlug', component: MemberSeasonGlance },
+      { path: 'compte/verification-email', component: AccountEmailVerification },
       {
         path: 'compte',
         component: AccountPlaceholder,
@@ -72,14 +75,31 @@ export const routes: Routes = [
       { path: 'troupes/:slug', component: TroupeHub },
       { path: 'troupe/admin/membres', component: AdminMembres },
       {
-        path: 'saison/:slug/event/:eventSlug/admin/participants',
+        path: 'saison/:troupeSlug/:seasonSlug/event/:eventSlug/admin/participants',
         component: AdminEventParticipants,
       },
-      { path: 'saison/:slug/event/:eventSlug', component: EventDetail },
-      { path: 'saison/:slug/admin/membres', component: AdminMembres },
-      { path: 'saison/:slug/admin/participants', component: AdminParticipants },
-      { path: 'saison/:slug/admin/audit', component: AdminAudit, data: { auditScope: 'season' } },
-      { path: 'saison/:slug', component: SeasonHome },
+      { path: 'saison/:troupeSlug/:seasonSlug/event/:eventSlug', component: EventDetail },
+      { path: 'saison/:troupeSlug/:seasonSlug/admin/membres', component: AdminMembres },
+      { path: 'saison/:troupeSlug/:seasonSlug/admin/participants', component: AdminParticipants },
+      {
+        path: 'saison/:troupeSlug/:seasonSlug/admin/audit',
+        component: AdminAudit,
+        data: { auditScope: 'season' },
+      },
+      { path: 'saison/:troupeSlug/:seasonSlug', component: SeasonHome },
+      {
+        path: 'saison/:seasonSlug/event/:eventSlug/admin/participants',
+        component: SaisonLegacyRedirect,
+      },
+      { path: 'saison/:seasonSlug/event/:eventSlug', component: SaisonLegacyRedirect },
+      { path: 'saison/:seasonSlug/admin/membres', component: SaisonLegacyRedirect },
+      { path: 'saison/:seasonSlug/admin/participants', component: SaisonLegacyRedirect },
+      {
+        path: 'saison/:seasonSlug/admin/audit',
+        component: SaisonLegacyRedirect,
+        data: { auditScope: 'season' },
+      },
+      { path: 'saison/:seasonSlug', component: SaisonLegacyRedirect },
     ],
   },
   {

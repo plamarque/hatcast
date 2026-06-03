@@ -14,6 +14,9 @@ describe('PostLoginNavigationService', () => {
   let resolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
 
+  const resolvedTroupe = { id: 't1', name: 'Troupe', slug: 'la-malice' }
+  const resolvedSeason = { id: 's1', slug: 'festibask' } as SeasonResponse
+
   beforeEach(() => {
     localStorage.clear()
     resolver = { resolveSeasonSlug: vi.fn() }
@@ -49,8 +52,8 @@ describe('PostLoginNavigationService', () => {
     rememberPendingPostLoginRedirect('/saison/festibask/event/abc?showConfirm=true')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
-      season: { id: 's1', slug: 'festibask' } as SeasonResponse,
+      troupe: resolvedTroupe,
+      season: resolvedSeason,
     })
 
     const url = await service().resolveAuthenticatedEntryUrl()
@@ -73,18 +76,18 @@ describe('PostLoginNavigationService', () => {
     expect(localStorage.getItem('hatcast.postLoginRedirect')).toBeNull()
   })
 
-  it('routes to /saison/:slug when resolver resolves', async () => {
+  it('routes to canonical /saison/:troupe/:season when resolver resolves', async () => {
     rememberLastVisitedSeasonSlug('festibask')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
-      season: { id: 's1', slug: 'festibask' } as SeasonResponse,
+      troupe: resolvedTroupe,
+      season: resolvedSeason,
     })
 
     const url = await service().resolveAuthenticatedEntryUrl()
 
     expect(resolver.resolveSeasonSlug).toHaveBeenCalledWith('festibask')
-    expect(url).toEqual(['/saison', 'festibask'])
+    expect(url).toEqual(['/saison', 'la-malice', 'festibask'])
   })
 
   it('prefers pending redirect over last visited slug', async () => {
@@ -127,18 +130,38 @@ describe('PostLoginNavigationService', () => {
     expect(resolver.resolveSeasonSlug).not.toHaveBeenCalled()
   })
 
-  it('routes to /saison/:slug from last member entry path when resolver resolves', async () => {
+  it('routes to canonical saison from last member entry path when resolver resolves', async () => {
     rememberLastMemberEntryPath('/saison/festibask')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
-      season: { id: 's1', slug: 'festibask' } as SeasonResponse,
+      troupe: resolvedTroupe,
+      season: resolvedSeason,
     })
 
     const url = await service().resolveAuthenticatedEntryUrl()
 
     expect(resolver.resolveSeasonSlug).toHaveBeenCalledWith('festibask')
-    expect(url).toEqual(['/saison', 'festibask'])
+    expect(url).toEqual(['/saison', 'la-malice', 'festibask'])
+  })
+
+  it('routes to canonical saison from stored canonical member entry path without resolver', async () => {
+    rememberLastMemberEntryPath('/saison/la-malice/festibask')
+
+    const url = await service().resolveAuthenticatedEntryUrl()
+
+    expect(resolver.resolveSeasonSlug).not.toHaveBeenCalled()
+    expect(url).toEqual(['/saison', 'la-malice', 'festibask'])
+  })
+
+  it('accepts canonical pending deep link without resolver', async () => {
+    rememberPendingPostLoginRedirect(
+      '/saison/la-malice/festibask/event/abc?showConfirm=true',
+    )
+
+    const url = await service().resolveAuthenticatedEntryUrl()
+
+    expect(resolver.resolveSeasonSlug).not.toHaveBeenCalled()
+    expect(url).toBe('/saison/la-malice/festibask/event/abc?showConfirm=true')
   })
 
   it('clears stale last member entry path when season slug does not resolve', async () => {
@@ -168,13 +191,13 @@ describe('PostLoginNavigationService', () => {
     rememberLastVisitedSeasonSlug('festibask')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
-      season: { id: 's1', slug: 'festibask' } as SeasonResponse,
+      troupe: resolvedTroupe,
+      season: resolvedSeason,
     })
 
     const url = await service().resolveAuthenticatedEntryUrl()
 
-    expect(url).toEqual(['/saison', 'festibask'])
+    expect(url).toEqual(['/saison', 'la-malice', 'festibask'])
     expect(localStorage.getItem('lastMemberEntryPath')).toBeNull()
   })
 
@@ -233,8 +256,8 @@ describe('PostLoginNavigationService', () => {
     rememberPendingPostLoginRedirect('/saison/festibask/event/abc?showConfirm=true')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
-      season: { id: 's1', slug: 'festibask' } as SeasonResponse,
+      troupe: resolvedTroupe,
+      season: resolvedSeason,
     })
     const router = TestBed.inject(Router)
     const navigateByUrlSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
@@ -253,8 +276,8 @@ describe('PostLoginNavigationService', () => {
     rememberPendingPostLoginRedirect('/saison/festibask/event/abc?showConfirm=true')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
-      season: { id: 's1', slug: 'festibask' } as SeasonResponse,
+      troupe: resolvedTroupe,
+      season: resolvedSeason,
     })
     const router = TestBed.inject(Router)
     vi.spyOn(router, 'navigateByUrl').mockResolvedValue(false)
@@ -270,8 +293,8 @@ describe('PostLoginNavigationService', () => {
     rememberPendingPostLoginRedirect('/saison/festibask/event/abc?showConfirm=true')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
-      season: { id: 's1', slug: 'festibask' } as SeasonResponse,
+      troupe: resolvedTroupe,
+      season: resolvedSeason,
     })
     const router = TestBed.inject(Router)
     let resolveNavigate: (value: boolean) => void

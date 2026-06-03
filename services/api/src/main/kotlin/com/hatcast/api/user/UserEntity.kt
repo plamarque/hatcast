@@ -57,6 +57,9 @@ class UserEntity(
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "notification_preferences", nullable = false, columnDefinition = "jsonb")
     var notificationPreferences: Map<NotificationCategory, NotificationPreference> = emptyMap(),
+    /** Self-service account deletion (story 1.7). Null = active account. */
+    @Column(name = "deleted_at", nullable = true)
+    var deletedAt: Instant? = null,
 ) {
     @PrePersist
     fun assignSlugIfMissing() {

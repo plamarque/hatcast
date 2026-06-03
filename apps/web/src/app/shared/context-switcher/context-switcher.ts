@@ -96,7 +96,7 @@ export class ContextSwitcher {
       return
     }
     rememberLastVisitedSeasonSlug(season.slug, this.troupeId())
-    void this.router.navigate(saisonWorkspacePath(season.slug))
+    void this.router.navigate(saisonWorkspacePath(this.troupeSlug(), season.slug))
   }
 
   protected async selectTroupe(troupe: TroupeListItem): Promise<void> {
@@ -114,7 +114,9 @@ export class ContextSwitcher {
         resolution.troupe.id === troupe.id
       ) {
         rememberLastVisitedSeasonSlug(resolution.season.slug, troupe.id)
-        void this.router.navigate(saisonWorkspacePath(resolution.season.slug))
+        void this.router.navigate(
+          saisonWorkspacePath(troupe.slug, resolution.season.slug),
+        )
         return
       }
     }

@@ -1,0 +1,28 @@
+.account-email-verification {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+  min-height: 40vh;
+}
+
+.account-email-verification__card {
+  width: min(100%, 28rem);
+}
+
+.account-email-verification__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.account-email-verification mat-card-content p {
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.account-email-verification button {
+  min-height: 3rem;
+}

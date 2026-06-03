@@ -28,6 +28,7 @@ export interface ShareAnnounceDialogData {
   seasonId: string
   eventId: string
   seasonSlug: string
+  troupeSlug: string
   eventSlug: string
   eventTitle: string
   eventDateIso: string
@@ -76,6 +77,7 @@ export class ShareAnnounceDialog {
   protected messageText = buildDefaultShareMessage({
     intent: this.data.intent,
     origin: typeof window !== 'undefined' ? window.location.origin : '',
+    troupeSlug: this.data.troupeSlug,
     seasonSlug: this.data.seasonSlug,
     eventSlug: this.data.eventSlug,
     eventTitle: this.data.eventTitle,

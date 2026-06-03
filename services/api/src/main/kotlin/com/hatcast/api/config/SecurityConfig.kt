@@ -75,6 +75,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.GET, "/v1/config/public").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/members/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/logout").authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/v1/auth/me").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/me/avatar").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/me/avatar/google").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/v1/auth/me/avatar").authenticated()

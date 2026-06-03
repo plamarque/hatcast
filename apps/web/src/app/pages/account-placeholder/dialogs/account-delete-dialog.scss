@@ -1,0 +1,58 @@
+.account-delete-dialog__content {
+  max-height: min(70vh, 32rem);
+  overflow-y: auto;
+}
+
+.account-delete-dialog__intro {
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.account-delete-dialog__consequences {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.5;
+}
+
+.account-delete-dialog__consequences li + li {
+  margin-top: 0.5rem;
+}
+
+.account-delete-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: min(100vw - 4rem, 24rem);
+}
+
+.account-delete-dialog__field {
+  width: 100%;
+}
+
+.account-delete-dialog__reauth-hint {
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.account-delete-dialog__google-host {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.account-delete-dialog__google-button-host {
+  min-height: 3rem;
+}
+
+@media (max-width: 480px) {
+  .account-delete-dialog__actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .account-delete-dialog__actions button,
+  .account-delete-dialog__confirm {
+    min-height: 3rem;
+  }
+}

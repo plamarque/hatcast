@@ -90,7 +90,9 @@ export class AdminParticipants implements OnDestroy, OnInit {
     signal<SeasonParticipantAdmin | null>(null)
 
   protected readonly slug = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
+    this.route.paramMap.pipe(
+      map((p) => p.get('seasonSlug') ?? p.get('slug') ?? ''),
+    ),
     { initialValue: '' },
   )
 
@@ -169,11 +171,16 @@ export class AdminParticipants implements OnDestroy, OnInit {
     this.platformAdmin.set(session.data?.platformAdmin === true)
     this.routeSubscription = this.route.paramMap
       .pipe(
-        map((p) => p.get('slug') ?? ''),
-        distinctUntilChanged(),
+        map((p) => ({
+          troupeSlug: p.get('troupeSlug') ?? '',
+          seasonSlug: p.get('seasonSlug') ?? '',
+        })),
+        distinctUntilChanged(
+          (a, b) => a.troupeSlug === b.troupeSlug && a.seasonSlug === b.seasonSlug,
+        ),
       )
-      .subscribe((slug) => {
-        void this.loadPage(slug)
+      .subscribe(({ troupeSlug, seasonSlug }) => {
+        void this.loadPage(troupeSlug, seasonSlug)
       })
   }
 
@@ -478,7 +485,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
     }
   }
 
-  private async loadPage(slug: string): Promise<void> {
+  private async loadPage(troupeSlug: string, seasonSlug: string): Promise<void> {
     const requestId = ++this.loadRequestId
     this.loading.set(true)
     this.season.set(null)
@@ -486,28 +493,24 @@ export class AdminParticipants implements OnDestroy, OnInit {
     this.participants.set([])
     this.seasonOrganizers.set([])
 
-    if (!slug) {
+    if (!troupeSlug || !seasonSlug) {
       this.loading.set(false)
       return
     }
 
-    const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(slug)
+    const resolved = await this.troupeSeasonResolver.resolveSeasonInTroupe(
+      troupeSlug,
+      seasonSlug,
+    )
     if (requestId !== this.loadRequestId) return
-    if (resolved.kind === 'no-membership' || resolved.kind === 'error') {
+    if (resolved.kind === 'no-membership' || resolved.kind === 'error' || resolved.kind === 'not-found') {
       this.loading.set(false)
       this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
       return
     }
     if (resolved.kind === 'ambiguous') {
       this.loading.set(false)
-      this.snack.open('Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.', 'OK', {
-        duration: 8000,
-      })
-      return
-    }
-    if (resolved.kind === 'not-found') {
-      this.loading.set(false)
-      this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
+      this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
       return
     }
 
@@ -529,7 +532,9 @@ export class AdminParticipants implements OnDestroy, OnInit {
     if (!canAccess) {
       this.loading.set(false)
       this.snack.open('Accès non autorisé', 'OK', { duration: 5000 })
-      await this.router.navigate(saisonWorkspacePath(slug))
+      await this.router.navigate(
+        saisonWorkspacePath(resolved.troupe.slug, resolved.season.slug),
+      )
       return
     }
 
