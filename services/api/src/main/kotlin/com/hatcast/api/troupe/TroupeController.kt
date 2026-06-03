@@ -7,6 +7,7 @@ import com.hatcast.api.troupe.dto.MemberImportResultDto
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
+import com.hatcast.api.troupe.dto.PublicTroupeDirectoryItemDto
 import com.hatcast.api.troupe.dto.TroupeCategoryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
@@ -45,12 +46,19 @@ class TroupeController(
     private val troupeCategoryService: TroupeCategoryService,
     private val troupeAccess: TroupeAccessService,
     private val troupeLogoService: TroupeLogoService,
+    private val publicTroupeService: PublicTroupeService,
 ) {
     /** Troupe(s) où l'utilisateur courant a une adhésion active. */
     @GetMapping
     fun listMyTroupes(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): List<TroupeListItemDto> = membershipService.listActiveTroupesForUser(principal.userId)
+
+    /** Annuaire élargi pour Découvrir (session requise) : public + troupe Démo + autres troupes pour admin plateforme. */
+    @GetMapping("/discover")
+    fun listDiscoverTroupes(
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): List<PublicTroupeDirectoryItemDto> = publicTroupeService.listDiscoverForViewer(principal)
 
     /**
      * Crée une troupe et place l'utilisateur courant en administrateur actif (MIG-0).

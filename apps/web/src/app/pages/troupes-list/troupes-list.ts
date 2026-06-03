@@ -57,13 +57,13 @@ export class TroupesList implements OnInit {
   })
 
   async ngOnInit(): Promise<void> {
-    void this.loadDiscover()
-
     const session = await this.auth.ensureHatcastSession()
     this.loadingSession.set(false)
     if (session.ok && session.data) {
       this.authenticated.set(true)
-      await this.loadTroupes()
+      await Promise.all([this.loadTroupes(), this.loadDiscover(true)])
+    } else {
+      await this.loadDiscover(false)
     }
   }
 
@@ -79,10 +79,12 @@ export class TroupesList implements OnInit {
     this.troupes.set(result.data)
   }
 
-  protected async loadDiscover(): Promise<void> {
+  protected async loadDiscover(authenticated: boolean): Promise<void> {
     this.loadingDiscover.set(true)
     this.discoverError.set(false)
-    const result = await this.troupeApi.listPublicTroupes()
+    const result = authenticated
+      ? await this.troupeApi.listDiscoverTroupes()
+      : await this.troupeApi.listPublicTroupes()
     this.loadingDiscover.set(false)
     if (!result.ok || !result.data) {
       this.discoverError.set(true)

@@ -21,4 +21,8 @@ interface TroupeRepository : JpaRepository<TroupeEntity, UUID> {
     fun findByListedInDirectoryTrueAndIsDemoFalseOrderByNameAsc(): List<TroupeEntity>
 
     fun findByIdAndListedInDirectoryTrueAndIsDemoFalse(id: UUID): TroupeEntity?
+
+    fun findAllByOrderByNameAsc(): List<TroupeEntity>
+
+    fun findByIsDemoTrueOrderByNameAsc(): List<TroupeEntity>
 }

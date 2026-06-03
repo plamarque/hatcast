@@ -121,7 +121,7 @@
           <p class="troupes-list__empty-text">
             Nous n’avons pas pu charger l’annuaire public. Réessaie dans un instant.
           </p>
-          <button mat-flat-button color="primary" type="button" (click)="loadDiscover()">
+          <button mat-flat-button color="primary" type="button" (click)="loadDiscover(authenticated())">
             Réessayer
           </button>
         </section>
