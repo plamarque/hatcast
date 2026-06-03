@@ -147,19 +147,6 @@
     </ul>
   }
 
-  <mat-expansion-panel class="membres-tab__help">
-    <mat-expansion-panel-header>
-      <mat-panel-title>Aide migration V1</mat-panel-title>
-    </mat-expansion-panel-header>
-    <p>
-      Pour une migration V1, importez d'abord les utilisateurs (email, nom affiché), puis les
-      membres (email, nom, rôle, statut). Chaque utilisateur importé devra se connecter une fois
-      en V2 pour activer son compte.
-    </p>
-    <p><strong>Utilisateurs :</strong> email, displayName — à importer avant les membres.</p>
-    <p><strong>Membres :</strong> email, displayName, baselineRole, status</p>
-  </mat-expansion-panel>
-
   <mat-menu #roleMenu="matMenu">
     <button type="button" mat-menu-item (click)="selectRole('MEMBER')">Membre</button>
     <button type="button" mat-menu-item (click)="selectRole('TROUPE_ADMIN')">
