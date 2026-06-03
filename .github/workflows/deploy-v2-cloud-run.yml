@@ -104,7 +104,9 @@ jobs:
 
   deploy:
     needs: [classify-ref, e2e-smoke]
+    # always(): prod tags skip e2e-smoke; without it, deploy is skipped when the dependency is skipped.
     if: |
+      always() &&
       needs.classify-ref.result == 'success' &&
       (
         needs.classify-ref.outputs.requires_smoke != 'true' ||
