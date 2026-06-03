@@ -1,5 +1,1598 @@
 # Changelog
 
+## [2.0.1] - 2026-06-04
+
+### ✨ New Features
+- feat(share): Complete story 6.15 M3 announce dialogs
+- feat(web): Complete story 1.6 account email and password
+- feat(web): Move logout to Mon compte header
+- feat(web): Canonical saison URLs and account delete
+- feat(web): Add Mon compte tabs and signup page
+- feat(web): Add push opt-in prompt after PWA install
+- feat(pwa): Complete contextual install aids for story 10.5
+- feat(pwa): Polish contextual install aids for story 10.5
+- feat(web): Refine accueil required-action cards
+- feat(pwa): Redesign HatCast 2 icon set and favicon
+- feat(web): Add version and changelog on account
+- feat(web): Add PWA update banner on user action
+- feat(notifications): Add member notification extensions
+- feat(share): Add manual availability reminder
+- feat(notifications): Add proxy ack notifications
+- feat(notifications): Add per-category preferences
+- feat(notifications): Add MEP dispatch and local Mailpit dev
+- feat(events): Gate spectacles with draft publish flow
+- feat(event-detail): Move équipe badge above tabs
+- feat(audit): Add authorized audit trail read UI
+- feat(push): Add browser opt-in
+- feat(audit): Add backend audit capture
+- feat(troupe): Add troupe logo and description
+- feat(troupe): Add public directory
+- feat(web): Move stats CSV export to admin menu
+- feat(account): Add member preferences
+- feat(migration): Map V1 deplacement to category on import
+- feat(web): Refine Accueil actions and quick links
+- feat(troupe): Refonte hub and Mon compte prefs
+- feat(web): Align hub section headers on Mes Stats
+- feat(web): Align event chrome and unified filters
+- feat(home): Align next-event card with agenda
+- feat(agenda): Add participation status cells on cards
+- feat(agenda): Unify event badge styling
+- feat(stats): Add semantic event cells to grid
+- feat(participants): Reactivate removed roster row on re-add
+- feat(troupes): Enable platform admin URL navigation
+- feat(participants): Add season roster removal
+- feat(composition): Persist draw-time chance % snapshots
+- feat(season): Add stats avatar links to member profile
+- feat(ui): Unify V1 participation semantic gradients
+- feat(migration): Redeploy staging via gh after Neon reset
+- feat(migration): Add migrate-from-v1 wrapper (MIG-6)
+- feat(migration): Add V2 orchestrator and API key auth
+- feat(migration): Add MIG-3 availability and compositions transform
+- feat(migration): Add MIG-2 events export and mapping manifest
+- feat(epic-18): Demo onboarding, prod config, PG Flyway casts
+- feat(api): Add OPEN self-join and demo troupe seed
+- feat(api): Persist troupe join_policy and is_demo
+- feat(troupe): Add MIG-0 troupe creation API and UI
+- feat(web): Centralize availability semantic color tokens
+- feat(web): Member account menu on rail and shell
+- feat(web): Refactor Mon compte page for member hub
+- feat(web): Add troupe and season context switcher
+- feat(web): Show member nav on all signed-in routes
+- feat(web): Add M3 member nav shell and me inbox
+- feat(availability): Add M3 Dispos tab and comment (5.6)
+- feat(web): Add member À faire hub at /accueil
+- feat(composition): Drop publish step and clarify draft banner
+- feat(web): Add agenda-season cross-nav shortcuts
+- feat(web): Align composition status on Infos and Équipe
+- feat(composition): Scope draw history by equity compartment
+- feat(composition): Close story 6.11 Équipe tab draw UX
+- feat(web): Align troupe hub season cards with troupe list
+- feat(glance): Polish season glance UX and filters
+- feat(web): Add PWA install and member glance
+- feat(composition): Add share and announce modal (6.10)
+- feat(admin): Organizer chip and edit externals
+- feat(web): Unify admin lists and organizer screens
+- feat(web): Add event participant admin route (17.16)
+- feat(stats): Add spectacle group filter on statistics (17.10)
+- feat(web): Add admin back-office breadcrumb (17.11)
+- feat(season): Add Statistiques view and API
+- feat(season): Add Historique participant focus summary
+- feat(web): Add Infos organizers and inline history
+- feat(web): Move format and roles to Infos tab (17.14)
+- feat(web): Add event form date and time pickers (17.13)
+- feat(web): Remove event slug field from form
+- feat(web): Add Infos tab equity tag UI (17.8)
+- feat(api): Add event slugs and equity tags
+- feat(web): Add troupe hub and legacy redirects
+- feat(web): Add troupes list page with stats (17.3)
+- feat(web): Add scope admin gear menu for Epic 17.2
+- feat(web): Add responsive context breadcrumb
+- feat(availability): Add proxy availability for organizers
+- feat(composition): Gap-fill locked composition (story 6.9)
+- feat(web): Add /ligue route alias for league workspace
+- feat(agenda): Add troupe and league filters on Mon agenda
+- feat(composition): Add participation modal on Équipe tab
+- feat(composition): Add member participation API
+- feat(composition): Add weighted draw and manual slot assignment
+- feat(web): Add event context strip on event detail
+- feat(web): Finalize post-login routing
+- feat(agenda): Add user agenda API and Mon agenda screen
+- feat(web): Post-login redirect to last visited league
+- feat(composition): Add draft publish and Équipe tab
+- feat(composition): Add lifecycle and event detail shell
+- feat(availability): Add organizer Dispos tab with Moi/Tous views and summary API
+- feat(seed): Add Malice members and availability
+- feat(availability): Add role-level availability entry
+- feat(seasons): Add season deletion
+- feat(availability): Add per-event availability entry
+- feat(participants): Add season and event rosters
+- feat(member-profile): Add popover and preferred roles
+- feat(avatar): Add profile photo upload and Google import
+- feat(troupe): Add self-service display name
+- feat(web): Add multi-troupe context switching
+- feat(web): Add member removal
+- feat(web): Add admin members route
+- feat(troupe): Add CSV member import and export
+- feat(troupe): Add member admin and baseline roles
+- feat(troupe): Add membership slice and CSV plan
+- feat(organizers): Add delegation
+- feat(events): Add event types and role slots
+- feat(web): Add season agenda shell
+- feat(web): Improve login Google overlay and dark mode
+- feat(3.2): spectacles par saison, API événements et PATCH saisons
+- feat(epic-3): gestion des saisons (story 3.1 terminée)
+- feat(web): page Connexion — composant login, layout et logo V1
+- feat(auth): story 1.5 — déconnexion, menu compte et signOut Firebase
+- feat(auth): story 1.4 — « Se souvenir de moi » et session persistante
+- feat(v2): mot de passe oublié et réinitialisation (story 1.3)
+- feat(v2): Identity Platform email/mot de passe + déploiement Cloud Run
+- feat(v2): stack Angular + Spring, OAuth Google et clôture story 1.1
+- feat(replay): Add headless algorithm replay simulation (WIP)
+- feat(ux): Improve loading bar with real progress steps
+- feat(ui): Add multi-select with checkboxes in participant and event selectors
+- feat(historique): Add month columns with expand/collapse in spectacles zone
+- feat(ui): Increase participant names font size in grid views
+- feat(ui): Improve Historique stats view typography
+- feat(ui): Enable landscape mode and fix grid transparency
+- feat(casts): Add stat percentages with dispos popover in Compositions view
+- feat(compositions): Add DEPLACEMENT category and BÉNÉVOLE sub-columns
+- feat(dispos): Static chance slides and reuse in HowItWorksModal
+- feat(ui): Update Comment ça marche modal copy for draw
+- feat(events): Show date in blue banner and title in Info tab
+- feat(équipe): Slice 14 compact declined badge and harmonized buttons
+- feat(event): Event details full screen at canonical URL (Slice 10)
+- feat(composition): Inline composition in event-details tab, no popup (Slice 9)
+- feat(event-details): Always show Composition tab in event details
+- feat(composition): Slot click in composition modal opens confirmation
+- feat(event-details): Compact Équipe tab on mobile (2 slots per line)
+- feat(event-details): Pill tabs, Info in 3 sections, tab labels Infos/Dispos/Équipe
+- feat(ui): Event details Availability tab row-click and mobile layout
+- feat: agenda view default on mobile with simplified dropdown
+- feat: modifier le titre de la modale de disponibilité pour inclure le nom du joueur
+- feat: afficher uniquement les cellules de disponibilité dans l'onglet Disponibilités
+- feat: étendre le déclin automatique lors de la suppression de disponibilité
+- feat: Allow admins to edit player availability
+- feat: integrate animated explanation slides in chance explanation popup
+- feat: add direct confirmation link in composition announcement
+- feat: simplify chance explanations and fix historical selections
+- feat: improve chance explanation popup with paper size metaphor
+- feat(ui): Add WhatsApp button to send draw/preselection to PEDA
+- feat(ui): Replace status badge with precise composition statuses
+- feat(ui): Improve declined players section in Composition modal
+- feat(ui): Improve mobile display of Composition modal
+- feat: add collapse/expand for role sections in EventRoleGroupingView
+- feat: simplify availability display in role-grouped view
+- feat: add status label next to pending selection emoji in composition view
+- feat: simplify display for unavailable and unspecified players in preparation events
+- feat: simplify display for confirmed team events in composition view
+- feat: improve display of available roles in composition view
+- feat: use confirmation status background for selected players in composition view
+- feat: display selection chance percentage in composition view
+- feat: increase font size in chance explanation popup on mobile
+- feat: improve mobile layout for event role availability view
+- feat: make stats table compact with expandable details
+- feat: add 'JEU AUTRE' column to composition stats
+- feat: add caster role and season role administration UI
+- feat: make composition view warning dismissable and more compact
+- feat: show stats columns by default in composition view
+- feat: improve event details modal UX clarity
+- feat: add protection and edit buttons for normal users in PlayerModal
+- feat: Ajout autocomplete pour les admins d'événement avec Teleport pour éviter les problèmes de z-index
+- feat: add event-specific admin management
+- feat: Add weekly availability reminders and improve existing ones
+- feat: add detailed logging for push notification URLs
+- feat: implement automatic FCM token refresh and multi-device support
+- feat: improve volunteer role UX in preferences
+- feat(ui): Add down arrow emoji to role selection hint
+- feat: separate probability pools for travels vs other shows
+- feat: simplify past events display in Compositions view
+- feat: auto-decline cast members when unavailable
+- feat: masquer les compositions non validées aux utilisateurs normaux
+- feat: sync Google avatars to player profiles automatically
+- feat: enhance CastsView with role chances display and correct status colors
+- feat: apply gender-aware role labels in SelectionCell
+- feat: replace AvailabilityCell with SelectionCell in CastsView
+- feat: add CastsView component cloned from EventsView
+- feat: reorganize EventModal form fields order and improve mobile responsiveness
+- feat: add close button to EventModal
+- feat: update EventModal terminology from 'événement' to 'spectacle'
+- feat: optimize admin interface space and improve naming
+- feat: improve season administration interface
+- feat: add explanatory tooltip for Bruno algorithm
+- feat: improve chance explanation tooltip with detailed calculation
+- feat: add shortcut buttons in availabilities tab
+- feat: add navigation to event details from player selection popup
+- feat: improve player statistics UI layout and styling
+- feat: implement audit management with Firebase secrets
+- feat: add Free Form event type with butterfly emoji
+- feat: add Catch event type with 9 players, MC and DJ
+- feat: enable event filter in timeline view
+- feat: show detailed availability stats in agenda view
+- feat(availability): form self-contained save + canSave; fix preserve comment on 'Non renseigné'; remove parent save button in details tab
+- feat(availability-modal): saisie commentaire fluide, auto-enregistrement sur clic des boutons; fermeture sur 'Pas dispo'/'Non renseigné', maintien ouvert sur 'Dispo'; toujours sauvegarder le commentaire courant via ref
+- feat: uniformiser les arrondis et hover des en-têtes entre les vues
+- feat: display truncated location in mobile event details section
+- feat: optimize badge positioning to stay on same line as title
+- feat: optimize modal spacing and improve responsive header layout
+- feat: add collapsible details section in event modal
+- feat: move event status badge to header next to title
+- feat: extract event title to full-width header in event details modal
+- feat: add audit logs consultation UI in DevelopmentModal
+- feat: replace audit alert dialogs with inline UI messages
+- feat: complete audit system refactoring and fix CLI database connection
+- feat: centralize audit system with environment detection and management functions
+- feat: Déplacer le menu contextuel sur le clic du titre
+- feat: Optimise mobile location popup
+- feat: improve role management and UI consistency
+- feat: add comprehensive availability management in Ma Dispo tab
+- feat: improve Ma Dispo tab layout and add quick access
+- feat: hide location on mobile and reintroduce event type emoji
+- feat: optimize mobile spacing in timeline view
+- feat: improve text alignment and badge centering in participant views
+- feat: simplify event status system to 3 clear categories
+- feat: add contextual instructions in timeline view
+- feat: bouton Planning redirige vers Agenda avec filtrage par participant
+- feat: add dropdown menu to player modal
+- feat: invert protection display logic and add custom tooltips
+- feat: enhance player statistics with monthly activity chart and role-based display
+- feat: Suppression de participants avec double confirmation et PIN
+- feat: Modale création participant simplifiée avec toggle modes
+- feat: Liste participants complète avec tous les joueurs de la saison
+- feat: Navigation cliquable vers détails joueur depuis liste participants
+- feat: Amélioration interface participants avec nom joueur et date connexion
+- feat: Ajout suppression individuelle d'invitations
+- feat: Système d'invitation utilisateurs complet
+- feat: complete season admin permission system with proper ID handling
+- feat: add season-id prop to SeasonHeader for permission checks
+- feat: improve OpenAI changelog prompt to filter out debug logs and technical changes
+- feat: add permission props to EventModal and clean debug logs
+- feat: centralize status color system for consistency across components
+- feat: increase availability tab grid from 2 to 3 columns on desktop
+- feat: add Bruno algorithm percentage in gray parentheses for composition slots
+- feat: make composition slots clickable to open confirmation modal
+- feat: add note field to confirmation modal
+- feat(grid): deep link filters and focuses event
+- feat: create new players.js service with simplified functions
+- feat: enhance migration to include avatar and verification data
+- feat(ui): improve avatar display consistency and quality
+- feat: improve composition slot display and widen event modal
+- feat(event details): add Composition tab with read-only slots and improve UX
+- feat: add deprecation warnings for playerProtection collection access
+- feat(ui): enlarge participant header avatars and show locks
+- feat(ui): show protection locks on Participants and Timeline
+- feat: add 'voir les X autres' button for events in timeline view
+- feat: restore footer on season page (desktop only)
+- feat: show Bruno algorithm percentage only in development mode
+- feat: add Bruno algorithm comparison in development mode
+- feat: implement exact probability calculation and simplify explanation popup
+- feat: redesign selected players in team tab with composition-style cards
+- feat: add player selector to team tab with smart filtering
+- feat: improve mobile modal spacing with safe areas
+- feat: improve security and UX for missing player profiles
+- feat: improve navigation dropdown and fix dropdown actions
+- feat: add Google Maps dropdown in event modal location section
+- feat: change modify button in Ma Dispo tab to open confirmation modal
+- feat: move event notifications to dropdown menu and add disable option
+- feat: display availability notes in event details modal
+- feat: add availability section to event details modal
+- feat: restore notifications button for event announcement modal
+- feat: rename announcement button and improve tooltip accuracy
+- feat: improve message editing interface and optimize layout
+- feat: improve UI layout and add email obfuscation
+- feat: add WhatsApp sharing button and improve modal title
+- feat: rename email template functions to use 'Message' terminology
+- feat: refactor email templates and improve gender agreement
+- feat: improve email templates with dynamic roles and better UX
+- feat: improve WhatsApp message format with dynamic roles
+- feat: improve simulation UX and fix AlgoBruno algorithm
+- feat: keep selection modal open after auto-composition
+- feat: add return to full view button in composition mode
+- feat: restore chance percentages display in event details
+- feat: hide Fermer button when any selection exists (complete or incomplete)
+- feat: hide Fermer button when composition is complete
+- feat: separate permissions for Composition Auto vs Simulation
+- feat: separate Composition Auto and Simulation with proper error handling
+- feat: improve draw simulation band display and text layout
+- feat: add player avatars to draw simulation bands
+- feat: add DrawVisualization component for transparent draw process
+- feat: add percentage badges to event details using chancesService
+- feat: create centralized chancesService for all selection calculations
+- feat: improve chances modal explanation formatting
+- feat: optimize chances modal interface with collapsible explanations
+- feat: améliorer la logique de notification et de sélection
+- feat: activer l'envoi d'emails via Ethereal en développement
+- feat: afficher les adresses email dans la modale d'envoi de notifications
+- feat: improve confirmation cell display
+- feat: add confirmation modal for player selection status
+- feat: add click handler for avatars in TimelineView
+- feat: show player availability cell when no team available
+- feat: add automatic staging synchronization after release
+- feat: optimize changelog for better user experience
+- feat: add user-focused changelog for version 0.16.0 and translate 0.14.0
+- feat: add --no-user-changelog flag to skip OpenAI transformation while keeping technical changelog
+- feat: add compact environment badge to footer
+- feat: add vertical spacing between event rows in ParticipantsView
+- feat: add spacing between event cells in ParticipantsView
+- feat: harmonize event headers styling with TimelineView
+- feat: remove gray backgrounds from grid elements for cleaner look
+- feat: remove unnecessary column separators in grid views
+- feat: make AvailabilityCell fill available space with fine margins
+- feat: limit event titles to 2 lines maximum in grid views
+- feat: set TimelineView as default view for all users
+- feat: show required people count when no one is available
+- feat: improve TimelineView event layout and alignment
+- feat: enhance TimelineView avatars with overlapping effect
+- feat: display event team avatars in TimelineView
+- feat: rearrange TimelineView layout with availability cells on the right
+- feat: improve mobile TimelineView layout with responsive badge positioning
+- feat: implement fixed footer at bottom of screen
+- feat: enable sticky behavior for ViewHeader
+- feat: add min-width protection for events column and optimize desktop layout
+- feat: optimize mobile column widths and remove debug styling
+- feat: implement dynamic left column width based on player count
+- feat: auto-select newly created player in grid view
+- feat: improve new player creation flow
+- feat: update SelectionStatusBadge to use eventStatusService styling
+- feat: factorize event status logic and improve typography
+- feat: increase desktop column widths for better text display
+- feat: reduce participant column width in desktop Spectacles view
+- feat: improve view icons and rename spectacles to events
+- feat: add sticky table headers with proper z-index hierarchy
+- feat: optimize mobile column widths for better visibility
+- feat: afficher le nombre de participants/événements dans les en-têtes de colonnes
+- feat: ajouter emoji et nombre de joueurs aux événements
+- feat: améliorer l'interface utilisateur avec les nouveaux libellés
+- feat: improve dropdown icon display for different participant states
+- feat: add discrete counter for hidden participants near 'Afficher Plus'
+- feat: implement player selection behavior in PlayerSelectorModal
+- feat: improve PlayerSelectorModal text and UX
+- feat: add player avatar and 'Tous' icon to ViewHeader dropdown
+- feat: improve new participant modal UX
+- feat: enhance PlayerSelectorModal with advanced player management
+- feat: implement sticky header for chronological view
+- feat: simplify events management section and add total count display
+- feat: separate event type icon on dedicated line in column headers
+- feat: add user-focused changelog for version 0.16.0 and translate 0.14.0
+- feat: add --no-user-changelog flag to skip OpenAI transformation while keeping technical changelog
+- feat: add compact environment badge to footer
+- feat: add vertical spacing between event rows in ParticipantsView
+- feat: add spacing between event cells in ParticipantsView
+- feat: harmonize event headers styling with TimelineView
+- feat: remove gray backgrounds from grid elements for cleaner look
+- feat: remove unnecessary column separators in grid views
+- feat: make AvailabilityCell fill available space with fine margins
+- feat: limit event titles to 2 lines maximum in grid views
+- feat: set TimelineView as default view for all users
+- feat: show required people count when no one is available
+- feat: improve TimelineView event layout and alignment
+- feat: enhance TimelineView avatars with overlapping effect
+- feat: display event team avatars in TimelineView
+- feat: rearrange TimelineView layout with availability cells on the right
+- feat: improve mobile TimelineView layout with responsive badge positioning
+- feat: implement fixed footer at bottom of screen
+- feat: enable sticky behavior for ViewHeader
+- feat: add min-width protection for events column and optimize desktop layout
+- feat: optimize mobile column widths and remove debug styling
+- feat: implement dynamic left column width based on player count
+- feat: auto-select newly created player in grid view
+- feat: improve new player creation flow
+- feat: update SelectionStatusBadge to use eventStatusService styling
+- feat: factorize event status logic and improve typography
+- feat: increase desktop column widths for better text display
+- feat: reduce participant column width in desktop Spectacles view
+- feat: improve view icons and rename spectacles to events
+- feat: add sticky table headers with proper z-index hierarchy
+- feat: optimize mobile column widths for better visibility
+- feat: afficher le nombre de participants/événements dans les en-têtes de colonnes
+- feat: ajouter emoji et nombre de joueurs aux événements
+- feat: améliorer l'interface utilisateur avec les nouveaux libellés
+- feat: improve dropdown icon display for different participant states
+- feat: add discrete counter for hidden participants near 'Afficher Plus'
+- feat: implement player selection behavior in PlayerSelectorModal
+- feat: improve PlayerSelectorModal text and UX
+- feat: add player avatar and 'Tous' icon to ViewHeader dropdown
+- feat: improve new participant modal UX
+- feat: enhance PlayerSelectorModal with advanced player management
+- feat: implement sticky header for chronological view
+- feat: simplify events management section and add total count display
+- feat: separate event type icon on dedicated line in column headers
+- feat: améliorer l'alignement vertical des avatars en desktop
+- feat: add composition view button in event detail modal
+- feat: optimize player associations loading and add migration tools
+- feat: enable Firebase offline mode with cache and sync listeners
+- feat: add advanced player management with 'Afficher Plus/Moins' component
+- feat: auto-assign season creator as admin
+- feat: move player badges below name in modal
+- feat: improve grid layout density and season icon visibility
+- feat: replace toggle icons with L-shaped arrows forming recycle symbol
+- feat: optimize mobile header layout
+- feat: redesign season header layout and optimize grid toggle
+- feat: improve grid/list toggle icons with better layout and styling
+- feat: filter inactive and past events from grid display
+- feat: replace grid/list toggle emojis with clearer SVG icons
+- feat: extend role management to announcement and composition buttons
+- feat: implement role-based access control system
+- feat: relocate control buttons to grid header for better UX
+- feat: add safe area support for iPhone notch compatibility
+- feat: optimize mobile UI by relocating navigation elements
+- feat: add mobile device analysis to audit CLI
+- feat: implement role-specific selection penalties and improve role-based view
+- feat: add role-based event detail view and fix gender display
+- feat: make view toggle visible for all users
+- feat: optimize mobile performance and remove skeleton code
+- feat: widen player name column on mobile
+- feat: implement progressive loading with performance optimization
+- feat: optimize grid loading performance with parallel availability loading
+- feat: add optional location field to events with Google Maps integration
+- feat: enhance calendar integration with confirmed team and event details
+- feat: improve changelog prompt for more user-focused style
+- feat: add migration script for selections to casts
+- feat: improve template type handling and customization protection
+- feat: allow manual slot filling in locked selections
+- feat: harmonize audit system with 'cast' terminology
+- feat: implement comprehensive selection audit system
+- feat: prevent redrawing declined players in completeSelectionSlots
+- feat: add complete selection functionality and improve UI messages
+- feat: allow slot clearing for declined players even when selection is locked
+- feat: add multi-role system section to general help
+- feat: add role priority system for selections
+- feat: add clickable version in footer with changelog modal
+- feat: reorganize footer layout
+- feat: improve event modal player layout
+- feat: optimize event modal mobile layout
+- feat: add database migration scripts for production data replication
+- feat: add role-based chance percentages with toggle in event detail modal
+- feat: implement OpenAI-powered user-focused changelog generation
+- feat: implement new changelog architecture with OpenAI integration
+- feat: add dual sorting system for changelog version order
+- feat: replace composition status badges with event type badges in grid header
+- feat: replace 'Sélection' with 'Composition' in UI and documentation
+- feat: implement complete z-index hierarchy system with comprehensive documentation
+- feat: unify password reset systems on Firebase Auth
+- feat: use player gender for role labels in availability cells
+- feat: add Long Form show type with 4 players, 1 MC, 1 DJ
+- feat: apply role preferences only to favorite players
+- feat(ui): Redesign availability input modal
+- feat: add gender-based avatar customization and edit icon
+- feat: add inclusive writing with middle dot for role labels
+- feat: implement complete server-side changelog translation system
+- feat: implement complete server-side changelog translation system
+- feat: implement server-side changelog translation and rename deployment script
+- feat: add user-friendly changelog with automatic translation
+- feat: add version display and help page improvements
+- feat: display only new changes in changelog preview
+- feat: implement ultra-faithful dry-run with sandbox branches
+- feat: translate deployment script to English and remove production URL
+- feat: display changelog preview in deployment script
+- feat: add automatic changelog generation
+- feat: add version bump control options (major/minor/patch)
+- feat: add intelligent production deployment script with automatic versioning
+- feat: improve PWA installation experience
+- feat: add event type icons and improve dropdown width
+- feat: add event sharing link with responsive mobile labels
+- feat: improve availability modal UI with current state display and compact roles
+- feat: replace Hatcast logo with back chevron on seasons page
+- feat: translate Google auth buttons to French
+- feat: add detailed logging for Cloud Function calls to debug CORS issues
+- feat: implement dynamic log level control system
+- feat: Prepare Firebase production deployment workflow
+- feat: optimize EventModal layout and mobile responsiveness
+- feat: améliorer le rafraîchissement des avatars après protection/déprotection
+- feat: make PlayerAvatar flexible and remove redundant status icons in player modal
+- feat: add player avatars in event detail modal
+- feat: add player avatars in detail and selection modals
+- feat: add player avatars in main grid with status icons
+- feat: implement Google avatar display system
+- feat: add Google authentication
+- feat: improve availability modal UX
+- feat: add permanent create season button
+- feat: implement lazy loading for Firebase secrets
+- feat: fix email test modal and enable real email sending with Ethereal
+- feat: disable audit by default in development environment
+- feat(storage): Clean up season logos when deleting seasons
+- feat(auth): Require authentication for season creation
+- feat: Add environment badge for development and staging
+- feat: Complete Firebase migration and restore logo upload functionality
+- feat: Migrate notifications to firestoreService and configure PWA for staging
+- feat: Migrate seasons to firestoreService and fix sortOrder issues
+- feat: Add detailed debugging logs to track Firestore database selection
+- feat: Make code robust for empty databases with graceful error handling and auto-initialization
+- feat: Refactor development tools and security improvements
+- feat: Refactor EventModal component and add event type badge
+- feat: Remplacer le bouton œil par un système de filtres avancé avec dropdown
+- feat: améliorer l'interface de la page Saisons - Aligner verticalement logo, titre et icône utilisateur - Renommer 'Saisons en cours' en 'Saisons' - Ajouter tooltip 'Retour à l'accueil HatCast' sur le logo - Corriger l'affichage du logo masque (proportions et largeur)
+- feat: Implémentation du système de rôles multi-disponibilité avec commentaires
+- feat: Améliorer l'UX de la présélection avec libellé 'Demander confirmation' et messages clairs
+- feat: Amélioration du système de protection des joueurs
+- feat: implémenter l'association directe des joueurs pour les utilisateurs connectés
+- feat: intégrer les tests de protection des joueurs dans la suite principale
+- feat: désactiver déclenchements automatiques modale 'Ne Rate rien' et simplifier message
+- feat: ajout de tests automatisés Playwright
+- feat: mise à jour Firebase SDK vers v12 pour préparer la migration Dynamic Links
+- feat: Amélioration du flow de protection de compte avec connexion automatique
+- feat: ajouter fonction de réinitialisation de sélection et améliorer l'interface
+- feat: ajouter les messages d'équipe confirmée
+- feat: implémentation système de confirmation des sélections + UI améliorée
+- feat: ajouter message d'annonce globale pour WhatsApp lors des sélections
+- feat: améliorer l'UX d'activation des notifications avec logique intelligente
+- feat: optimiser affichage liste joueurs en 2 colonnes
+- feat: masquer emojis des badges en mobile et améliorer texte bouton agenda
+- feat: Restore official GitHub Pages deployment with environment
+- feat: Use GitHub variables for session durations in workflow
+- feat: Add secure GitHub Actions workflow for production deployment
+- feat: ajouter mockup téléphone pour prévisualisation notifications push
+
+### 🔧 Improvements
+- refactor(web): Remove V1 migration help panel
+- style(web): Balance agenda event status badges
+- style(availability): Soften Dispos Tous candidate tiles
+- style(stats): Simplify categories filter menu
+- style(stats): Shorten groups filter trigger labels
+- refactor(migration): Rename malice CLI scripts to .mjs
+- perf(api): Fix troupe member email N+1
+- refactor(web): Streamline member nav after M3 bottom bar
+- perf(composition): Faster team tab and deferred odds
+- refactor(web): Slim event context strip with inline links
+- refactor(monorepo): isolate V1 under legacy/, add apps/web and services/api
+- perf(load): Optimize initial load and reduce gradient screen on mobile
+- refactor(ui): Rename Compositions view label to Historique
+- perf(casts): Optimize Composition view rendering and availability loading
+- style(SelectionModal): Update draw and simulate button emojis
+- refactor(composition): Two-row layout for compo action buttons
+- perf: optimize probability calculation for selection chances
+- refactor: align date and location with badge/button in desktop view
+- refactor: move hide details button to same line as status badge
+- refactor: reduce margins and padding for mobile in event modal
+- refactor: reorder notification preferences and update text
+- refactor: remove technical token refresh message from notifications preferences
+- refactor: reorganize season admin page layout and update terminology
+- style: modernize stats table design with soft colors and colored borders
+- refactor: shorten save button label in preferences modal
+- refactor: migrate super admin config to Firebase Secrets
+- refactor: reorder views and update icons for mobile-first
+- refactor: move announce button to dropdown menu
+- refactor: improve tooltip text and formatting for better readability
+- refactor: centralize location truncation logic
+- refactor: improve player instruction logic in agenda
+- refactor(availability-form): import saveAvailabilityWithRoles at top-level; remove dynamic import
+- refactor: Factoriser le formulaire de disponibilités et améliorer l'UX de l'onglet Disponibilités
+- refactor: remove duplicate mobile header and unify responsive layout
+- refactor: move collapse button next to title and remove duplicate chevron
+- improve: rename timeline view from 'Chronologique' to 'Agenda'
+- improve: rename protection button to 'Déprotéger' for consistency
+- improve: rename availability button to 'Planning' with calendar icon
+- refactor: remove migration code for player protection data
+- refactor: create unified Cloud Functions utility in firebase.js
+- refactor: use callFunction utility for Super Admin check
+- perf: optimize Super Admin permission checks with early returns
+- improve admins handling
+- perf: optimize player associations loading with caching and parallel queries
+- refactor: delete playerProtection.js and move migration function to players.js
+- refactor: fix associatePlayerDirectly to use players.js service
+- refactor: remove all remaining playerProtection collection references
+- refactor: remove dead code and add missing finalizeProtectionAfterVerification
+- refactor: simplify playerProtection.js to wrapper with migration function
+- refactor: update remaining imports to use players.js service
+- refactor: simplify getPlayerAssociation to use players.js service
+- refactor: update all imports to use new players.js service
+- refactor: prioritize players collection for all write operations
+- refactor: prioritize players collection over playerProtection for all reads
+- refactor: use chancesService in fillEmptyCastSlots and fix priority order
+- refactor: rename simulation functions to generic draw functions
+- refactor: add player ID to chancesService for cleaner architecture
+- refactor: remove avatar loading from simulation bands
+- improve: display role with gender agreement in selection boom
+- improve: display role emoji in selection boom effect
+- improve: reverse display order in selection boom effect
+- refactor: simplify calculatePlayerChanceForRole to use calculateRoleChances
+- refactor: move countAvailablePlayers to playerAvailabilityService
+- style: increase event title width and standardize date section width
+- style: standardize AvailabilityCell dimensions for visual harmony
+- style: increase ViewHeader vertical spacing for better visual balance
+- style: fix desktop ViewHeader spacing and alignment
+- style: reduce excessive bottom padding in ViewHeader for better mobile balance
+- style: simplify ViewHeader structure and fix mobile alignment
+- style: improve AvailabilityCell appearance with border radius and padding
+- refactor: replace dropdown with tab switcher and reorganize layout
+- refactor: rename view modes from lines/columns to spectacles/participants
+- style: adopter un style plus sobre pour le bouton 'Afficher Plus' en vue colonnes
+- refactor: simplifier GridBoard et utiliser les nouvelles vues
+- refactor: créer BaseGridView et factoriser les utilitaires
+- refactor: centraliser les libellés et renommer les termes
+- style: reduce ViewHeader padding for more compact mobile layout
+- refactor: extract ViewHeader component for all views
+- style: increase event title width and standardize date section width
+- style: standardize AvailabilityCell dimensions for visual harmony
+- style: increase ViewHeader vertical spacing for better visual balance
+- style: fix desktop ViewHeader spacing and alignment
+- style: reduce excessive bottom padding in ViewHeader for better mobile balance
+- style: simplify ViewHeader structure and fix mobile alignment
+- style: improve AvailabilityCell appearance with border radius and padding
+- refactor: replace dropdown with tab switcher and reorganize layout
+- refactor: rename view modes from lines/columns to spectacles/participants
+- style: adopter un style plus sobre pour le bouton 'Afficher Plus' en vue colonnes
+- refactor: simplifier GridBoard et utiliser les nouvelles vues
+- refactor: créer BaseGridView et factoriser les utilitaires
+- refactor: centraliser les libellés et renommer les termes
+- style: reduce ViewHeader padding for more compact mobile layout
+- refactor: extract ViewHeader component for all views
+- improve: enhance audit-cli timestamp handling and log retrieval
+- refactor: migrate from selections to casts collection
+- refactor: déplacer actions événement dans entête et corriger z-index
+- refactor: rename selection functions to cast functions in code
+- refactor: replace console.log with logger calls in PasswordReset.vue
+- improve: add spam folder instructions to all email success messages
+- refactor: replace 'spectacle' with 'événement' throughout the application
+- refactor: centralize CORS configuration to eliminate code duplication
+- refactor: Centralize environment detection using configService
+- refactoring storage service to handle multi-environments
+- style atténué pour archives
+
+### 🐛 Bug Fixes
+- fix(ci): Run prod deploy when e2e-smoke is skipped
+- fix(ci): Write Cloud Run env-vars-file as YAML map
+- fix(ci): Use tags-ignore only for RC exclusion
+- fix(ci): Green staging release — env file and no RC tag workflow
+- fix(auth): Apply story 1.7 code review fixes
+- fix(auth): Apply story 1.6 code review fixes
+- fix(troupes): Show demo in Découvrir for signed-in users
+- fix(web): Redirect unreachable season to onboarding
+- fix(web): Fix PWA banner dismiss icon contrast
+- fix(web): Sync dispo badge after availability dialog
+- fix(web): Simplify member hub subtitles
+- fix(migration): Publish migrated V1 events (BUG-006)
+- fix(web): Hide login dev hints and inject Firebase on --with-push
+- fix(build): Inject webPushVapidPublicKey in Docker web build
+- fix(notifications): Dispatch after commit
+- fix(participants): Allow platform admin season roster access
+- fix(troupe): Close story 17.29 review findings
+- fix(web): Close story 17.28 filter review findings
+- fix(stats): Close story 3.20 review findings
+- fix(web): Simplify agenda cards and prep season edit
+- fix(events): Restore inactive spectacle access and reactivation
+- fix(web): Pin account rail footer to viewport on desktop
+- fix(agenda): Remove venue from season cards
+- fix(agenda): Remove venue from Mon Agenda cards
+- fix(web): Keep mobile breadcrumb on one aligned line
+- fix(web): Align page header copy with voice chart
+- fix(availability): Capture draw snapshots at opening
+- fix(season): Close 16-2 review patches for stats navigation
+- fix(availability): Align Dispos chance % with V1 draw
+- fix(equipe): Align slot order and declined styling with V1
+- fix(availability): Align Dispos Tous view with V1 parity
+- fix(sort): Align French display name order with V1
+- fix(api): Align Mes Stats chart order with V1
+- fix(api): Align member stats and role slots with V1
+- fix(migration): Support local API in migrate:v2:run preflight
+- fix(web): Fix mobile header gap and nav indicator
+- fix(migration): Strip Neon channel binding from psql URLs
+- fix(migration): Accept jdbc:postgresql URLs in NEON_STAGING_URL
+- fix(migration): Resolve empty databaseUrl from config env placeholders
+- fix(v2): Return to dev branch after promote-to-staging
+- fix(web): Align account page with review
+- fix(api): Emit draft publish notify after commit
+- fix(web): Stale agenda loads and post-login lock
+- fix(api): Use portable SQL for V28 user slug migration
+- fix(api): Make V23 Flyway migration PostgreSQL-compatible
+- fix(ci): Unblock Cloud Run build and prep staging-v2
+- fix(api): Stabilize composition idempotency tests on H2
+- fix(web): Use home icon in troupes breadcrumb
+- fix(web): Align member stats page with hub M3 chrome
+- fix(web): Let SeasonHome own last-entry path for seasons
+- fix(availability): Split status auto-save from roles and comment
+- fix(admin): Close 17.17 organizer chip story
+- fix(web): Complete 17.16 review and mark story done
+- fix(web): Fix admin list contrast in dark theme
+- fix(web): Apply 17.14 review patches and close story
+- fix(web): Preserve query on /ligue redirects
+- fix(web): Improve dispo badge contrast on user agenda
+- fix(composition): Address 6.7 participation review findings
+- fix(composition): Apply 6.5 review fixes and event-only FK
+- fix(web): Address Mon agenda code review findings
+- fix(web): Improve agenda badge contrast in light mode
+- fix(web): Add user menu with logout to seasons-list and season-header
+- fix(composition): Address code review findings for story 6.3
+- fix(availability): Preserve dispo générale on dialog reopen
+- fix(web): Stabilize admin navigation
+- fix(troupe): Harden membership join
+- fix(3.2): Fix event PATCH and season header counts
+- fix(scripts): Bind ng serve to all interfaces in start-dev
+- fix(deploy): attendre l'API avant Nginx pour éviter les 502 au cold start
+- fix(ui): Eliminate bottom band on mobile in GridBoard
+- fix(ui): Remove colored band at footer on mobile
+- fix(ui): Hide ViewHeader behind loading overlay on mobile
+- fix(ui): Position sticky grid headers below ViewHeader
+- fix(ui): Show chance explanation images above text
+- fix(selection): Fix simulation banner after draw and improve draw messages
+- fix(composition): Put declined list above action buttons
+- fix(composition): Preserve player statuses on unlock (BUG-001)
+- fix: preserve player availability roles when confirming or declining selection
+- fix: improve save button UX in availability modal
+- fix: collapse event details panels by default
+- fix: improve selection probability calculation accuracy
+- fix: verify permissions before allowing availability modifications
+- fix: utiliser openAvailabilityModalForPlayer dans openAvailabilityModalFromEventDetails
+- fix: utiliser canEditEvent au lieu de canManageComposition pour les disponibilités
+- fix: normaliser les emails avant comparaison pour éviter les problèmes de casse
+- fix: bloquer le clic sur les cellules de disponibilité des joueurs protégés
+- fix: improve pincer animation depth and paper display in slide 2
+- fix(ui): Improve mobile Composition modal height and safe areas
+- fix(ui): Prevent close button overlap and add safe areas in Composition modal
+- fix: correct chevron direction on show/hide details button
+- fix: display assigned role instead of availability role in EventRoleGroupingView
+- fix: send confirmed team notifications to confirmed players instead of pending
+- fix: prevent simulation from persisting to database
+- fix: correct changelog generation after Git history changes
+- fix: correct theoretical chance calculation in explanation popup
+- fix: correct composition stats to count only confirmed selections
+- fix: restrict manual selection for casters and allow admins to edit freely
+- fix: allow casters to see compositions and improve permission logging
+- fix: improve permission cache management and fix caster permissions
+- fix: remove rounded corners from first column cells
+- fix: availability cell status respects role-specific selection
+- fix: Afficher les disponibilités même quand aucun rôle n'est défini pour un événement
+- fix: team status shows incomplete when all slots filled
+- fix: Masquer le bouton Composition pour les utilisateurs non connectés
+- fix: Afficher le bouton Composition pour les admins d'événement dans la modale de détail
+- fix: Permettre aux admins d'événement de voir la pré-sélection (composition avant validation)
+- fix: convert checkSuperAdminStatus to onCall function
+- fix: correct firestoreService import and improve selection notification logs
+- fix: use Firebase httpsCallable for Cloud Functions
+- fix: detect PWA uninstall by checking real conditions before localStorage
+- fix: delete all pushQueue documents after processing, including errors
+- fix: trim email in processPushQueue to handle whitespace
+- fix: use authState.currentUser instead of getFirebaseAuth().currentUser
+- fix: wait for auth initialization before saving FCM token
+- fix: enable test push button by updating email when dev modal opens
+- fix: use getFirebaseAuth() dynamically to avoid null auth on token save
+- fix: prevent ViewHeader overflow on mobile
+- fix: upgrade Cloud Functions runtime to Node.js 20
+- fix: add automatic project root detection to release script
+- fix: availability toggle for declined cast players
+- fix: display correct role emoji for declined players
+- fix: reset declined player status to pending when restored
+- fix: prevent declined players from staying in declined list
+- fix: slot removal incorrectly declining players
+- fix: corriger l'affichage des joueurs déclinés dans la vue Compositions
+- fix: corriger l'affichage des sélections dans toutes les vues
+- fix: corriger l'affichage des onglets pour utilisateurs normaux
+- fix: improve push notifications system with better logging and queue management
+- fix: improve event modal title layout on mobile
+- fix: expand event details by default in modal
+- fix: display French role labels with correct icons in CastsView
+- fix: correct role counting in CastsView by using player IDs
+- fix: optimize EventModal mobile layout and remove width constraints
+- fix: improve EventModal mobile layout and field positioning
+- fix: event edit modal not loading event data
+- fix: responsive participants list in season administration
+- fix: responsive header in season administration
+- fix: correct theoretical chance calculation in tooltip
+- fix: improve percentage visibility for selected players
+- fix: correct declines calculation in player statistics
+- fix: correct player statistics calculations and add debug tooltips
+- fix: prevent deployment failure on orphaned functions
+- fix: Display only cast role in agenda view
+- fix: handle Firestore timestamp formats in audit logs display
+- fix: preserve Date objects in cleanDataForFirestore
+- fix: change cabaret and longform type emojis
+- fix: preserve All filter when opening event modal from timeline
+- fix: correct totalRequired calculation in timeline view
+- fix: agenda view shows correct player name
+- fix(availability-form): remove duplicate canSave; base activation on diff with currentAvailability (comment or roles in Dispo)
+- fix(availability-form): évite les boucles d’emit en mode Dispo via mémo lastEmittedData; normalisation du commentaire; comparaison profonde des rôles
+- fix(availability-form): supprime toute émission pendant la frappe ou la sélection des rôles; sauvegarde uniquement au clic sur un bouton; 'Dispo' sauvegarde rôles+comment sans fermer
+- fix(availability): empêche l’écrasement du commentaire pendant la saisie; sauvegarde sur clic de n’importe quel bouton; pour Dispo sauvegarde rôles+commentaire sans fermer, pour Pas dispo/Non renseigné sauvegarde et ferme
+- fix: ajouter espacement horizontal entre cellules sur mobile
+- fix: rendre toute l'entête d'événement cliquable dans toutes les vues
+- fix: Simplifier l'onglet Disponibilités en affichant toujours le formulaire
+- fix: aligner l'affichage des emojis dans AvailabilityCell
+- fix: correct Google Maps popup positioning in mobile layout
+- fix: harmonize calendar dropdown between mobile and desktop versions
+- fix: add mobile layout for collapsible event details section
+- fix: align collapsible details section with tabs section margins
+- fix: display status badge in event modal header for all events
+- fix: move collapse chevron inside title to keep it on same line
+- fix: change audit CLI default environment to production
+- fix: Corriger l'initialisation de l'onglet Disponibilités
+- fix: Corriger l'affichage de l'onglet Disponibilités
+- fix: use gender-accorded role labels in tooltip
+- fix: resolve tooltip z-index issue with global positioning approach
+- fix: correct decline detection and standardize chart colors
+- fix db for dev
+- fix: availability 'Non renseigné' status not persisting in PWA
+- fix: make events admin screen mobile responsive
+- fix: update admin route guard to use real season ID
+- fix: pass real season ID instead of slug to SeasonHeader
+- fix: improve changelog.json generation with jq and validation
+- fix: implement proper security for protected player modifications
+- fix: resolve naming conflicts with isSuperAdmin function
+- fix: remove hardcoded fallback from main.js route guard
+- fix: add fallback for patrice.lamarque+albane@gmail.com in development mode
+- fix: resolve admin role caching issues and improve admin UI
+- fix: correct declined status display in Ma Dispo tab
+- fix: open availability modal when clicking non-selected availability cell
+- fix: implement correct modal logic for Ma Dispo tab clicks
+- fix: correct role display and click behavior in Ma Dispo tab
+- fix: add missing player-gender prop to PlayerAvatar in CompositionSlot
+- fix: correct getPlayerProtectionData to getPlayerData in GridBoard.vue
+- fix: resolve playersData variable name conflict in loadUsersWithPlayers
+- fix: add missing updateDoc import in PlayerClaimModal
+- fix: resolve variable name conflict in SeasonAdminPage loadUsersWithPlayers
+- fix: resolve variable name conflict in SeasonAdminPage
+- fix: simplify composition message text
+- fix: restore direct Firebase access for player avatars
+- fix(ui): force-hide protection locks on TimelineView via prop
+- fix(event details): hide 'Ma Dispo' when no current player; remove chances and team size badges
+- fix: respect event filters in timeline view when selecting 'All Events'
+- fix: resolve event display issues in timeline view
+- fix: synchronize dropdowns with 'voir les X autres' buttons
+- fix: use configService.getEnvironment() for Bruno algorithm display
+- fix: correct function name in Modify button logic
+- fix: increase AvailabilityCell width in Ma Dispo tab
+- fix: exclude current event from selection count in percentage calculations
+- fix: round percentage values for clean display
+- fix: use interval width for probability calculation and pass countSelections prop
+- fix: improve readability of chance explanation popup text
+- fix: improve avatar display and remove duplicate status badge
+- fix: remove polluting debug log from ChancesService
+- fix: resolve z-index and URL redirection issues for availability modal
+- fix: prevent duplicate player selection in fillEmptyCastSlots
+- fix: prevent currentSlotIndex from being overridden in prepareDrawData
+- fix: prevent currentDrawRole from being overridden in prepareDrawData
+- fix: prevent infinite loop on slots with no candidates
+- fix: properly skip slots with no available candidates in simulation
+- fix: display decimal values instead of percentages in chances details
+- fix: use role-level values in chances modal explanations
+- fix: correct chances modal display for 0 past selections
+- fix: correct chances modal calculations and display
+- fix: delay updateCast emission to avoid disrupting Composition Auto animation
+- fix: add missing showDrawVisualization variable declaration
+- fix: enable draw visualization and wait for DOM update
+- fix: add canvas availability check before starting animation
+- fix: stop simulation when canvas is missing to prevent background loops
+- fix: Composition Auto button not working with complete selection
+- fix: close selection modal on user logout for security
+- fix: refresh parent data after Composition Auto completion
+- fix: use direct player ID lookup instead of conversion function
+- fix: resolve Firebase undefined values error in Composition Auto
+- fix: correct allSeasonPlayers reference in showSelectionBoom
+- fix: implement role priority order for slots display and simulation
+- fix: handle simulation when no candidates available for a role
+- fix: prevent cross-role player selections in simulation
+- fix: prevent duplicate player selections in simulation
+- fix: correct simulation band proportions to use weighted chances
+- fix: use array of canvas refs instead of single ref
+- fix: use calculateAllRoleChances in SelectionModal for consistent percentage calculation
+- fix: use allSeasonPlayers instead of players in countSelections
+- fix: correct dropdown role filtering and eliminate code duplication
+- fix: supprimer la route magic-test restante
+- fix: corriger le traitement des magic links de confirmation
+- fix: corriger la conversion nom→ID pour les confirmations/déclinaisons
+- fix: use correct isAvailable function in TimelineView
+- fix: correct declined status display in timeline view
+- fix: remove footer from season views
+- fix: hide remove buttons in selection modal for non-admin users
+- fix: implement Firebase singleton pattern and auto-initialization
+- fix: resolve Firebase database contamination between environments
+- fix: resolve player selection dropdown display issue in timeline view
+- fix: resolve ViewHeader reactivity issues and infinite recursion
+- fix: harmonize AvailabilityCell height for events without roles
+- fix: further increase avatar container width and padding
+- fix: prevent event propagation in TimelineView avatar clicks
+- fix: improve missing players detection by role in TimelineView
+- fix: optimize mobile footer layout and prevent horizontal scrolling
+- fix --no-user-changelog
+- fix: increase footer z-index to prevent transparency on scroll
+- fix: restore opaque background to AppFooter
+- fix: remove border radius from participant cells for cleaner scroll
+- fix: add dark background to participant cells in SpectaclesView
+- fix: use dark background for left column header
+- fix: add missing changes to ParticipantsView
+- fix: remove background from first column cells to match inter-cell space
+- fix: add opaque background to first column td elements
+- fix: restore full opacity for event headers to prevent text mixing
+- fix: increase mobile spacing between availability cells
+- fix: add proper spacing between availability cells
+- fix: prevent event title overflow in TimelineView
+- fix: prevent event propagation in AvailabilityCell to avoid modal conflicts
+- fix: add null safety check for isSelectionComplete function
+- fix: unify status logic in TimelineView to display correct statuses when player is selected
+- fix: correct status codes in TimelineView to use proper status codes instead of French labels
+- fix: add opaque background and spacing to TimelineView
+- fix: restore overflow-x-auto to contain horizontal scrolling
+- fix: increase events column width for desktop based on player count
+- fix: remove overflow-x-auto to enable thead sticky positioning
+- fix: add opaque background to tbody
+- fix: improve sticky header z-index hierarchy
+- fix: restore sticky behavior for left column cells
+- fix: add margin to events header text for better spacing
+- fix: remove 120px CSS rules from main.css that override dynamic styles
+- fix: add missing props to PlayerAvatar in ViewHeader
+- fix: explicitly override bold font-weight in 'Afficher Plus' button
+- fix: harmonize 'Afficher Plus' button styling across views
+- fix: add player gender prop to AvailabilityCell components
+- fix: further increase event column width in Participants view
+- fix: remove duplicate showPlayerDetails function declaration
+- fix: add click handler for player names in EventsView
+- fix: increase participants column width to prevent text wrapping
+- fix: correct prop name for event column width in EventsView
+- fix: add missing props to EventsView for proper status calculation
+- fix: add missing headerOffsetX and headerScrollX props to ParticipantsView
+- fix: reduce left column width on mobile to prevent overflow
+- fix: connect player selection in timeline view to ViewHeader
+- fix: add missing props to TimelineView for player selection status
+- fix: show event selection status instead of 'Non renseigné' in timeline view
+- fix: restore sticky left column in events view
+- fix: resolve ViewHeader dropdown visibility and improve styling
+- fix: improve ViewHeader mobile experience
+- fix: disable ViewHeader sticky for grid views to allow table header sticky
+- fix: correct PlayerModal show prop type
+- fix: add missing headerOffsetX and headerScrollX props
+- fix: correct props usage in ColumnView and LinesView
+- fix: réduire la largeur de la colonne joueurs sur mobile pour la vue lignes
+- fix: corriger l'utilisation des props dans getEventStatus
+- fix: ajouter la fonction openEventModal manquante dans LinesView
+- fix: corriger l'affichage des en-têtes d'événements dans la vue lignes
+- fix: supprimer les boutons 'Afficher Plus' redondants dans les lignes d'événements
+- fix: corriger l'ouverture de la modale d'événement
+- fix: réduire l'espacement du ViewHeader sur mobile
+- fix: optimiser l'affichage responsive pour iPhone 16 et 16 Plus
+- fix: corriger les styles CSS pour l'affichage mobile
+- fix: corriger les erreurs et améliorer la robustesse
+- fix: ajouter les props manquantes aux avatars dans les en-têtes
+- fix: uniformiser la hauteur des cellules de disponibilité
+- fix: correct player selection display logic and prop types
+- fix: use allSeasonPlayers in PlayerSelectorModal instead of displayed players
+- fix: separate PlayerModal and PlayerSelectorModal state management
+- fix: enable player selector dropdown in all views
+- fix: correct z-index hierarchy for ViewHeader dropdown
+- fix: separate dropdown state for timeline view
+- fix: remove verbose debug logs from PlayerAvatar service
+- fix: resolve Vue warnings and improve player selection in chronological view
+- fix: resolve Vue warnings and clean up debug logs
+- fix: increase footer z-index to prevent transparency on scroll
+- fix: restore opaque background to AppFooter
+- fix: remove border radius from participant cells for cleaner scroll
+- fix: add dark background to participant cells in SpectaclesView
+- fix: use dark background for left column header
+- fix: add missing changes to ParticipantsView
+- fix: remove background from first column cells to match inter-cell space
+- fix: add opaque background to first column td elements
+- fix: restore full opacity for event headers to prevent text mixing
+- fix: increase mobile spacing between availability cells
+- fix: add proper spacing between availability cells
+- fix: prevent event title overflow in TimelineView
+- fix: prevent event propagation in AvailabilityCell to avoid modal conflicts
+- fix: add null safety check for isSelectionComplete function
+- fix: unify status logic in TimelineView to display correct statuses when player is selected
+- fix: correct status codes in TimelineView to use proper status codes instead of French labels
+- fix: add opaque background and spacing to TimelineView
+- fix: restore overflow-x-auto to contain horizontal scrolling
+- fix: increase events column width for desktop based on player count
+- fix: remove overflow-x-auto to enable thead sticky positioning
+- fix: add opaque background to tbody
+- fix: improve sticky header z-index hierarchy
+- fix: restore sticky behavior for left column cells
+- fix: add margin to events header text for better spacing
+- fix: remove 120px CSS rules from main.css that override dynamic styles
+- fix: add missing props to PlayerAvatar in ViewHeader
+- fix: explicitly override bold font-weight in 'Afficher Plus' button
+- fix: harmonize 'Afficher Plus' button styling across views
+- fix: add player gender prop to AvailabilityCell components
+- fix: further increase event column width in Participants view
+- fix: remove duplicate showPlayerDetails function declaration
+- fix: add click handler for player names in EventsView
+- fix: increase participants column width to prevent text wrapping
+- fix: correct prop name for event column width in EventsView
+- fix: add missing props to EventsView for proper status calculation
+- fix: add missing headerOffsetX and headerScrollX props to ParticipantsView
+- fix: reduce left column width on mobile to prevent overflow
+- fix: connect player selection in timeline view to ViewHeader
+- fix: add missing props to TimelineView for player selection status
+- fix: show event selection status instead of 'Non renseigné' in timeline view
+- fix: restore sticky left column in events view
+- fix: resolve ViewHeader dropdown visibility and improve styling
+- fix: improve ViewHeader mobile experience
+- fix: disable ViewHeader sticky for grid views to allow table header sticky
+- fix: correct PlayerModal show prop type
+- fix: add missing headerOffsetX and headerScrollX props
+- fix: correct props usage in ColumnView and LinesView
+- fix: réduire la largeur de la colonne joueurs sur mobile pour la vue lignes
+- fix: corriger l'utilisation des props dans getEventStatus
+- fix: ajouter la fonction openEventModal manquante dans LinesView
+- fix: corriger l'affichage des en-têtes d'événements dans la vue lignes
+- fix: supprimer les boutons 'Afficher Plus' redondants dans les lignes d'événements
+- fix: corriger l'ouverture de la modale d'événement
+- fix: réduire l'espacement du ViewHeader sur mobile
+- fix: optimiser l'affichage responsive pour iPhone 16 et 16 Plus
+- fix: corriger les styles CSS pour l'affichage mobile
+- fix: corriger les erreurs et améliorer la robustesse
+- fix: ajouter les props manquantes aux avatars dans les en-têtes
+- fix: uniformiser la hauteur des cellules de disponibilité
+- fix: correct player selection display logic and prop types
+- fix: use allSeasonPlayers in PlayerSelectorModal instead of displayed players
+- fix: separate PlayerModal and PlayerSelectorModal state management
+- fix: enable player selector dropdown in all views
+- fix: correct z-index hierarchy for ViewHeader dropdown
+- fix: separate dropdown state for timeline view
+- fix: remove verbose debug logs from PlayerAvatar service
+- fix: resolve Vue warnings and improve player selection in chronological view
+- fix: resolve Vue warnings and clean up debug logs
+- fix: restore admin buttons in PlayerModal after role system introduction
+- fix: preserve declined players when completing selection
+- fix: keep displaying declined status on grid
+- fix: improve availability display and real-time refresh
+- fix: remove automatic availability change when removing player from selection
+- fix: correct drawForRole to use allSeasonPlayers for candidate filtering
+- fix: correct role-specific confirmation status display
+- fix: correct logger import in userProfileService
+- fix: correct getCurrentUser import in userProfileService
+- fix: correct firestoreService import in userProfileService
+- fix: remove redundant event title and date in availability section
+- fix: correct player display issues on auth state changes
+- fix: ensure grid_loading performance marker is always ended
+- fix: correct player reference in PlayerModal showAvailabilityGrid function
+- fix: resolve availability display issue in mobile optimization
+- fix: improve player modal stats display and fix orphaned cast handling
+- fix: add event icon type to event title
+- fix: use last version bump commit as reference for changelog generation
+- fix: apply grid cell height rules globally for desktop and mobile
+- fix: improve grid cell layout with proper spacing and height
+- fix: strengthen font weight for player names in grid headers
+- fix: reduce mobile padding for better character display
+- fix: improve changelog translation robustness in release script
+- fix: translate changelog versions 0.12.0 and 0.13.0 to user-focused French
+- fix: correct mobile layout for logo and toggle icon positioning
+- fix: improve iPhone safe areas and button positioning on season page
+- fix: add iPhone safe areas support for notch and rounded corners
+- fix: add missing navigation to administration page
+- fix: correct admin role detection logic and improve event filtering
+- fix: update Firestore rules to allow userPreferences access
+- fix: improve column header layout and badge alignment
+- fix: remove header opacity by eliminating col-right class
+- fix: improve player lookup robustness in inverted mode
+- fix: correct inverted grid display and click handlers
+- fix: increase NotificationPromptModal z-index to display above EventDetailsModal
+- fix: harmonize slot colors and fix declined player detection
+- fix: correct slot management and status updates in selection modal
+- fix: encode player names for Firestore field paths
+- fix: remove redundant action field in player_recast audit log
+- fix: ensure selection status updates correctly when players confirm
+- fix: prevent duplicate players in completeSelectionSlots
+- fix: recalculate status in confirmCast using castStatusService
+- fix: sync UI status with database by loading status fields in loadCasts
+- fix: resolve 'selections is not defined' error in SelectionModal
+- fix: reload cast data after validation to sync UI with database
+- fix: correct slot clearing and status detection logic
+- fix: filter declined players from selection slots display
+- fix: ensure footer visibility on help page
+- fix: add missing AppFooter to seasons and help pages
+- fix: prevent scroll from hiding event modal buttons
+- fix: handle player declines in selection status logic
+- fix: correct player availability check for multi-role events
+- fix: improve incomplete selection UI by removing redundant message and enhancing tooltip
+- fix: correct requiredCount calculation for multi-role events
+- fix: increase HowItWorksModal z-index to display above SelectionModal
+- fix: correct slot initialization and watchers for multi-role selections
+- fix: correct selection status extraction in SelectionModal
+- fix: correct const to let for filled variable in SelectionModal
+- fix: eliminate double password verification in player edit flow
+- fix: use player gender for role labels in availability modals
+- fix: increase AvailabilityModal z-index to appear above EventDetailsModal
+- fix: insert new changelog versions at the beginning for chronological order
+- fix: resolve JSON parsing error in release script
+- fix: improve changelog readability with user-focused language
+- fix: improve changelog readability with user-focused language
+- fix: improve changelog readability with user-focused language
+- fix: increase PinModal z-index to appear above SelectionModal
+- fix: corriger régression bouton Réinitialiser et erreurs de cache
+- fix: move Composition Auto confirmation modal to SelectionModal with proper z-index
+- fix: complete replacement of 'Sélection' with 'Composition' in remaining files
+- fix: correct changelog.json path in release script
+- fix: update changelog.json with latest version information
+- fix: improve waitForInitialization to handle early calls
+- fix: wait for Firebase initialization before auth service
+- fix: move waitForInitialization to very beginning of onMounted
+- fix: add specific error handling for waitForInitialization failures
+- fix: move auth access after waitForInitialization to prevent crashes
+- fix: replace logger calls with console.log to avoid Firebase dependency
+- fix: use existing waitForInitialization service for auth readiness
+- fix: resolve password reset token verification issue
+- fix: persist event template type and improve template structure
+- fix: complete changelog.json for version 0.9.2
+- fix: protect player edit modal access with password verification
+- fix: replace 'volontaire' with 'bénévole' terminology
+- fix: resolve modal layering and event editing form issues
+- fix: improve filter dropdown positioning
+- fix: correct translation of 'modique' to 'modale' in changelog
+- fix: remove duplicate 0.9.1 entry in changelog
+- fix: resolve changelog display issues in help page
+- fix: macOS sed compatibility for package.json version update
+- fix: correct changelog display command for macOS compatibility
+- fix: masquer icône filtres en mobile
+- fix: élargir colonne joueurs mobile pour icônes
+- fix: correct security vulnerability in player protection and implement custom password reset system
+- fix: add missing PIN protection for event editing and archiving
+- fix: improve event modal UX and dropdown positioning
+- fix: preserve comments when setting not available and show note icon
+- fix: update localStorage when changing log level in development modal
+- fix: handle null etherealCredentials in EmailTestModal
+- fix: persist log level in localStorage across page refreshes
+- fix: remove Ethereal warning in staging/prod environments
+- fix: add debug logs for userPushTokens collection error
+- fix: reduce verbose logging in configService to minimize console warnings
+- fix: correct default role values for cabaret template
+- fix: corriger la sauvegarde des avatars lors de la protection des joueurs
+- fix: improve mobile modal positioning and z-index hierarchy
+- fix: résoudre erreur vérification PIN code non connecté
+- fix: resolve creator onboarding modal loop on direct URL access
+- fix: remove dumpEnvironmentInfo causing auth errors
+- fix: resolve account menu email display and password reset issues
+- fix: resolve player protection association error
+- fix: resolve PIN verification errors when creating events
+- fix: Correction complète de l'upload et suppression de logos
+- fix: résoudre l'erreur de la modal de création d'événement et améliorer la réinitialisation du formulaire
+- fix: resolve Firebase Auth initialization error in account creation
+- fix: open account creation modal
+- fix: résoudre la fermeture automatique de la modal de connexion sur /seasons
+- fix: résoudre les problèmes de connexion/déconnexion sur la page d'accueil
+- fix: Add missing Firestore rules for collections causing permission errors
+- fix: Complete Firebase migration by removing last direct imports from seasons.js
+- fix: Remove stray text causing build error
+- fix: Restore environment debug modal functionality
+- fix: Correction des règles Firestore pour la collection availability - Corrige l'incohérence availability/availabilities qui causait l'erreur de permissions
+- fix: Correction des règles Firestore pour la collection availability - Corrige l'incohérence availability/availabilities qui causait l'erreur de permissions
+- fix: Use direct Firebase API for loadAvailability subcollections
+- fix: Complete firestoreService migration and fix event creation
+- fix: Improve error handling for new season onboarding and migrate storage functions
+- fix: Use storage service functions instead of direct Firebase calls in GridBoard
+- fix: Use existing Firebase secrets instead of staging-specific ones
+- fix: Force close existing Firestore connections to prevent database conflicts
+- fix: Configure Firestore to use correct database based on environment (staging/dev/prod)
+- fix: Add Firebase environment variables to staging workflow
+- fix: Install functions dependencies before Firebase deployment
+- fix: Use GOOGLE_APPLICATION_CREDENTIALS env var for Firebase CLI auth
+- fix: Update staging workflow to use new Firebase service account JSON
+- fix: Remove invalid Firestore targets configuration from firebase.json
+- fix: Update Node.js version to 20 for Firebase CLI compatibility
+- fix: correction du bug de sélection multi-rôles - un joueur ne peut être sélectionné que pour un seul rôle par événement
+- fix: corrige le z-index des chevrons de scroll et ajoute la documentation complète
+- fix: Logique de sélection basée sur les rôles - Seuls les joueurs avec le rôle 'Joueur' sont sélectionnables
+- fix: corriger les z-index des modales pour éviter les chevauchements
+- fix: Correction du chemin de collection dans le trigger d'audit
+- fix: correction du bug des doublons lors du déverrouillage de sélection
+- fix: Corriger les z-index des modales de vérification et confirmation
+- fix: résoudre les erreurs de protection avec des paramètres invalides
+- fix: corriger le masquage des types d'événements d'audit dans le logger
+- fix: désactiver les notifications push et Service Worker en mode développement pour éviter les erreurs 404
+- fix: corriger le tri des joueurs pour remonter les favoris en premier
+- fix: supprimer la gestion locale des favoris pour éviter l'affichage erroné des ⭐ en mode déconnecté
+- fix: supprimer l'ancien workflow deploy.yml pour éviter les conflits
+- fix: résoudre conflit de déploiement GitHub Pages - remplace deploy.yml par pages.yml pour éviter le conflit avec le workflow natif
+- fix: synchroniser les favoris avec l'état de connexion Firebase
+- fix: corriger la logique du bouton Annoncer quand des joueurs déclinent
+- fix: fermeture modale d'envoi de messages après envoi
+- fix: corriger le déverrouillage de sélection et l'empilement des modales
+- fix: résoudre l'erreur confirmUrl non défini lors de l'envoi d'emails de sélection
+- fix: Empêcher l'affichage de la popup de connexion pour les joueurs protégés
+- fix: Remove environment protection to fix deployment issue
+- fix maj dispo sur event detail
+- fix build error
+- fix scrol horiz gltich
+- fix pin password prompt cache on availabnilities
+- fix password reset
+- fix cohérence des états
+- fix probleme de 'affichage pin sur selection
+- fixed availability toggle and added visual hints for edits
+
+### 📝 Other Changes
+- ops(v2): Add simplified release CLI facades (OPS-11)
+- chore(v2): promote v2 to staging-v2
+- ops(v2): Sync changelog.json in staging release pipeline
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- ops(ci): Close OPS-5 tag-first prod deploy
+- ops(ci): Deploy prod from semver tags and inject super-admin
+- docs(ops): Close OPS-4 after manual recette
+- chore(v2): promote v2 to staging-v2
+- ops(v2): Add staging RC release script
+- chore(v2): promote v2 to staging-v2
+- docs(plan): Add hatcast.app prod cutover plan (OPS-8–10)
+- chore(pwa): Close story 10.5 after review and partial recette
+- chore(pwa): Complete story 10.4 staging recette tooling
+- chore(web): Recalibrate prod bundle budgets and baseline
+- chore(v2): promote v2 to staging-v2
+- docs: Align dev docs with --with-push Firebase injection
+- docs(planning): Formalize V2.0.0 cutover wave
+- docs(planning): Sync notification scope and story 8.6
+- test(api): Fix integration tests for event draft gate
+- chore(bmad): Upgrade installer to 6.8.0
+- chore(seed): Enrich Improbots event fixtures for QA
+- chore(planning): Close epics 3 and 17
+- docs(planning): Mark Epic 14 superseded by Epic 17
+- test(e2e): Extend recette 3.19 to full S1–S9 coverage
+- test(e2e): Add V2 Playwright smoke and staging deploy gate
+- docs(test): Record story 3.19 recette PASS and re-add coverage
+- test(api): Close story 18.5 review with slug AC3
+- chore(v2): promote v2 to staging-v2
+- test(api): Fix invalid role count in event create test
+- chore(v2): promote v2 to staging-v2
+- docs(migration): Update Malice cycle 1 recette findings
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- Merge pull request #2 from plamarque/cursor/migration-orchestrator-b0d5
+- chore(v2): promote v2 to staging-v2
+- docs(migration): Add ADR-0016 and MIG-2/3 stories
+- test(availability): Complete story 5-7 code review
+- docs(ops): Split Neon local vs development branches
+- test(api): Fix platform admin member test email clash
+- chore(seed): Rename dev troupe to Les Improbots
+- ops(v2): Add dev-staging-prod deploy workflow scripts
+- docs(api): Document V6 seed slug ordering vs V24
+- docs(plan): Capture troupe hub tabs idea G-007
+- docs(ci): Harden Cloud Run deploy for staging
+- docs: Add G-006 troupe role catalogue to growth backlog
+- chore(api): Add dev seed for context switcher
+- chore(ops-2): Apply code review fixes for API CI gate
+- ci(api): Add integration test workflow for M1 gate
+- docs(story): Close 6.12 after MVP toolbar recette
+- test(web): Close story 17.20 after code review
+- docs(planning): Add G-005 PostHog to growth backlog
+- docs(planning): Add member hub À faire UX and stories 17.18–17.22
+- docs(epic-17): Plan event form UX course correction
+- test(api): Apply 17.3 code review patches
+- chore(dev): Auto-connect Tailscale in start-dev
+- docs(plan): Add ADR 0013 and Epic 17 navigation spec
+- docs(6-11): Mark story 6.11 done
+- docs(mvp): Close pilot gate and add story 6.11
+- docs(composition): Complete Story 6.7
+- docs(planning): Add 6.6 story and league agenda artifacts
+- docs(agenda): Complete Story 12.1 code review
+- docs(plan): Define V2 MVP scope and reorder sprint
+- docs(planning): Split league views and add FR53-60
+- docs(planning): Add UX-DR10 spec and sprint artifacts
+- docs(v2): Add story 3.6 for history view stats
+- chore(legacy): Port V1 0.47–0.48 stats and Paris EOD past rule
+- docs(v2): Add frontend UI and Material guidelines
+- chore: clôture story 1.2, ignore skills-lock.json
+- docs: Separate V1, V2, and shared documentation trees
+- docs: V2 dev Cloud Run validé, staging/prod reportés (PLAN, ARCH, branches)
+- ci(v2): déploiement Cloud Run (Docker, Neon, workflow GHA)
+- docs(bmad): align planning architecture.md with monorepo (legacy, apps/web, services/api)
+- chore(gitignore): ignorer skills BMad standard (.agents/skills, .cursor/skills)
+- docs(planning): artefacts BMad V2, stack Angular 21 + Material, alignement DOMAIN/SPEC
+- test: Add E2E regression tests for view loading
+- caniuse upgrade
+- chore: Add start-dev.sh script to launch dev server
+- chore: Update package-lock.json with vitest dependencies
+- reworked status messages on team cast tab
+- docs: Align SPEC, PLAN and CHANGELOG with event full-screen (Slice 10)
+- planning improvement to reduce height when casts has declined
+- test(composition): Add E2E for composition permissions (participant + anonymous)
+- specfied next changes on casts view
+- plan to move event details from modal to full page
+- docs: Plan next developments and add formal issue tracking
+- docs: Align notification docs with availability tab row-click UX
+- docs: link commit guidelines to AGENTS and DEVELOPMENT
+- docs: documenter la commande de release dans DEVELOPMENT.md
+- hint for cursor to run dev server
+- Grand ménage + doc normative et slices
+- tri des dispos par %
+- Mise à jour de l'urne : nouvelle forme avec base plate et application à toutes les slides
+- chore: remove construction warning from composition view
+- better display % in availability tab on mobile
+- Merge availability reminders feature: grouped emails and push notifications
+- Refactor: Group availability reminders and send batched emails
+- Refactor: Improve email templates and notification logic
+- Refactor: Move token generation to shared utility
+- Add playerId to availability reminders for magic link generation
+- chore: remove temporary cleanup-push-queue.js script
+- docs: update ADMIN_SETUP with Firebase Secrets migration
+- plan migration to a more robust architecture
+- display avaiability on casts view (in progress)
+- allow to collapse/expand user stats in casts view
+- add google user photo url sync and use as avatar
+- export casts as spreadshaeet
+- display past events and all players on casts view
+- debug: add logs to diagnose CastsView rendering issue
+- simplify uplayer stat tooltips
+- ui: remove pin emoji from location in Timeline view
+- save button enabledd when changes are detected
+- ux(availability-modal): enable Save when comment changes; in Dispo also on role changes
+- ux(availability-modal): disable save on open; enable only when comment changes
+- ux(availability-modal): unify save button label to 'Enregistrer'
+- chore: sync related modal handlers after availability form stabilization
+- revert(availability): retour au comportement stable avant grisé/dégrisé du bouton; suppression des événements custom et de formDirty; rétablissement des updates via emitChanges()
+- ux(availability-form): harmonise les libellés en tutoiement et style neutre; message rôles en gris léger, messages 'non renseigné' et 'pas dispo' en tutoiement
+- remove: supprimer ColumnView.vue obsolète
+- Fix: Suppression contours blancs badges statut modale événements
+- UX: Titre modale cohérent 'Filtrer les participants'
+- UX: Simplification liste participants + étoile sans fond
+- Fix: Positionnement icône filtre à droite du champ recherche
+- UX: Inversion sémantique filtres événements + labels compacts
+- Optimisation mobile: réduction hauteur header modales
+- Amélioration UX mobile: modales pleine hauteur avec meilleur affichage du filtrage
+- Amélioration UX modale de confirmation de participation
+- Fix: correction erreur showTeamPlayerSelector non défini dans ParticipantsView
+- badge more compact
+- revert: Annuler la navigation cliquable sur le nom des participants
+- debug: add comprehensive database debugging function
+- debug: add function to create missing season document
+- debug: add detailed logging for SeasonHeader props and connection state
+- debug: add permissionService initialization check in GridBoard.vue
+- debug: add comprehensive logging for Super Admin verification
+- display archived and inactive events diffrently
+- Affichet Plus > Afficher Tous
+- Complete > Fill
+- cleanup: remove unused DrawVisualization component
+- cleanup: remove debug logs from chancesService
+- debug: add detailed logs to track candidate data transformation
+- debug: add logs to track chances calculation issues
+- debug: add logs to track teamSlots generation after reset
+- debug: add extensive logging to identify infinite loop issue
+- cleanup: supprimer les fichiers de test temporaires
+- Merge branch 'staging'
+- remove: delete old floating EnvironmentBadge component
+- revert: remove complex sticky header solution
+- working on vertical scroll
+- debug: add avatar loading events to PlayerAvatar component
+- remove: 'Déjà affiché' indicator in timeline view player selector
+- clear excessive logsfor avatar laoding
+- resolve: merge conflict in changelog.json - keep user-focused version
+- remove: delete old floating EnvironmentBadge component
+- revert: remove complex sticky header solution
+- working on vertical scroll
+- debug: add avatar loading events to PlayerAvatar component
+- remove: 'Déjà affiché' indicator in timeline view player selector
+- clear excessive logsfor avatar laoding
+- set exampel db to development for safety
+- chore: remove polluting debug logs from GridBoard
+- chore: add dotenv dependency for debug scripts
+- merge: update changelog.json from staging
+- hotfix: merge changelog readability improvements
+- chore: remove obsolete public/changelog.md file
+- chore: remove obsolete changelog_fr.md file
+- chore: add OpenAI dependency and environment configuration
+- hotfix: merge changelog readability improvements
+- merge: update changelog.json from staging
+- unify: replace magic link system with Firebase Auth for player protection
+- debug: add console.log statements for password reset debugging
+- chore: prepare for 0.9.0 release by setting current version to 0.8.0
+- docs: update deployment guide with intelligent versioning system
+- docs: add Firebase Storage Admin permissions to deployment guide
+- docs: add Firestore Rules Admin permissions to deployment guide
+- docs: add Cloud Scheduler Admin permissions to deployment guide
+- docs: add Firebase Extensions Admin permissions to deployment guide
+- docs: update deployment documentation with correct IAM permissions and service accounts
+- docs: Add missing IAM permission for Cloud Functions deployment
+- docs: Add IAM permissions configuration and deployment troubleshooting
+- test: Trigger production deployment with corrected Firebase service account
+- test: Trigger production deployment with corrected workflow
+- Merge branch 'staging'
+- temp: Disable GitHub Pages workflow for Firebase migration
+- docs: Add commit message guidelines following conventional commits standard
+- generalisation du logger et configservice, a refonte env debug pour afficher plus de choses
+- conf cors pour staging
+- Fix: Update Firebase Storage bucket to correct name for CORS compatibility
+- 🔧 Migration de notifications.js vers firestoreService et centralisation de la VAPID key
+- 🗑️ Suppression complète de navigationTracker.js et nettoyage des usages
+- adoption du firestoreService pour audit
+- 🔧 Migration de reminderService.js vers firestoreService
+- 🔧 Correction de la protection de joueurs et migration complète vers firestoreService
+- Migration de GridBoard.vue et amélioration de firestoreService
+- 🎉 Migration complète de storage.js vers firestoreService
+- 🔧 Migration de updatePlayerSelectionStatus() vers firestoreService
+- 🔧 Migration de setEventArchived() vers firestoreService
+- 🔧 Migration de saveEvent() et updateEvent() vers firestoreService
+- 🔧 Corrections d'interface et nettoyage du code legacy
+- 🧹 Nettoyage complet du code legacy des sélections
+- 🔧 Suppression du if(seasonId) inutile dans saveSelection()
+- 🧹 Nettoyage complet du code legacy des disponibilités et sélections
+- 🔧 Correction du chargement des sélections après refresh
+- 🔧 Amélioration de la validation pour le renommage des joueurs
+- 🔧 Migration complète de deletePlayer() vers firestoreService
+- 🎨 Amélioration UX - Validation des noms de joueurs dans la modale
+- 🔧 Correction de deletePlayer() - suppression des disponibilités par nom
+- 🔧 Migration de addPlayer() vers firestoreService avec validation renforcée
+- 🗑️ Suppression de reorderPlayersAlphabetically() obsolète
+- 🔧 Migration et simplification de loadAvailability() vers firestoreService
+- 🗑️ Suppression de Seasons.vue obsolète
+- 🔧 Migration de loadPlayers() vers firestoreService
+- 🔧 Migration de loadEvents() vers firestoreService
+- 🗑️ Suppression de la fonction initializeStorage() obsolète
+- 🗑️ Suppression de la fonction migrateToSeasons() obsolète
+- 🧹 Nettoyage complet du mode mock dans storage.js
+- chore: Force workflow reload to use latest staging branch
+- Refactor navigation: new homepage structure and seasons page
+- 🔧 Fix audit logging system for Malice 2025-2026 season
+- test: ajouter un test Playwright pour vérifier la logique des favoris selon l'état de connexion
+- 🐛 fix: handle Firestore serverTimestamp in audit CLI
+- ✨ feat: implement comprehensive audit trail system
+- test: déclencher déploiement avec nouveau workflow GitHub Pages
+- todos
+- todo : maj gestion des liens necessaire
+- todo
+- todo list
+- Désactiver temporairement la popup de protection automatique lors du clic sur disponibilité
+- 🐛 Correction de la persistance de l'état de protection des joueurs
+- ✨ Amélioration de l'interface de protection des joueurs
+- adoption du terme personnes plutôt que joueur
+- Supprimer le pulldown menu d'agenda de l'en-tête des spectacles pour simplifier l'interface
+- Improve selection confirmation email message
+- Add decline button to selection confirmation email
+- Fix magic link confirmation and clean debug logs
+- condensation popup verif joueur
+- rappell email address sur modale preferences
+- flow de création de compte depuis bouton connexion
+- affiche le logo de la saison sur le gridboard
+- optimisation entête saison
+- notifications de rappel
+- nettoyahe modale notificaitons. deplacement tests et debugs PWA dans nouvelle seciton dev dans Mon Compte
+- changement d'url à la fermeture devenement
+- toast app mise à jour plus discret.
+- nettoyage console (less errors, warnings  and debugs)
+- reset password depuis on compte
+- feedback visuel en cas de suivi par notification
+- affichage % chances sur cellule dispo
+- Pas maintenant sur active notificaitons
+- nettoyahe logs debuggage
+- password reset géré en interne avec retour à ll'événément en cours
+- incitaitn à activer les notifs et à créer un compte lors du dépôt de disponibilité.
+- message splus dynamiques
+- refonte de la logique d'annonce.
+- polsih messages et préviews
+- reviewed pemail and notif previews
+- amélioraiton preview notification mobile
+- Fix notifications debug page and Firebase getProvider error - Remove module imports and fix getMessaging(app) undefined error
+- Add notifications debug page and fix Firebase Messaging errors - Fix getProvider undefined error in notifications service
+- Fix service worker syntax error - Use demo config to avoid Firebase injection issues
+- Fix Firebase Messaging errors in PWA - Fix getProvider undefined error and inject Firebase config in service worker
+- Add PWA engagement booster and force install guide - Solutions for beforeinstallprompt not triggering
+- Add detailed PWA diagnostic page to identify beforeinstallprompt issues
+- Fix PWA banner z-index conflict - Increase z-index to 99999 and add test page
+- Fix PWA manifest configuration in vite.config.js - Update with proper French description and PWA metadata
+- Fix PWA installation issues - Update manifest, add diagnostic tools, and improve PWA configuration
+- Fix PWA installation issues
+- amélioraiton du footer
+- amélioraiton lisibilité logo hatcast sur topbat
+- suppression semi transpi top bar home
+- changmetn descrition pour mieux décrire objectf de HatCast
+- ajout logos torupes sur saisons
+- ajout description et fonctione edition de saison
+- améliorations UI mise à jour PWA
+- amélioration notifs et templates
+- barre install appli mobile plus sympa
+- renommage impro-selector > Hatcast
+- amélioraiton emails envoyés et preview
+- erreur synchro etat de connexion et chargemtn des saisons
+- relooking modale notifications
+- suppression menu item mes joueurs
+- refonte  modale Mon compte
+- refonte menu connexion
+- composant commun de connexion
+- changemtn style celliules de disponibiltié pour ep^tr eplus explicite
+- erreur 404 sur icon-192.png
+- correctiona ffichage stats sur cartes de saison
+- refonte home et ajout du logo hatcast
+- force renommage appli PWA
+- rebranding HatCast
+- ajout de logo
+- add logo
+- suppression bouton Nouvelle saison
+- redesign page accueil avec hero.
+- headers modales plus compacts
+- ajout à l'agenda
+- revue modale sélection
+- harmnisation boutons des modales
+- revue barre bouton s détail événement
+- amélioration affichafge entêtes et indicateurs de sélection
+- distinction des joueurs favoris
+- mémorisation de la saison
+- unification des notifications.
+- notifications push de demande de dispo avec réponse rpaide
+- notification push sur sélecitons
+- troubleshooting issue with SW in prod
+- correction chargemtnd es service workers
+- troubleshooting problmes ntofications sur gh pages
+- WA + push (experimental) UI + fixes
+- experimental : support des notificaitons push
+- support PWA pour installer appli sur mobile
+- tous les joueurs associés au compte sont remontés dans la liste
+- réduction fréquence saisie des PIN
+- améliorations dispos sur modale événement
+- envoi  de notification si plus dans la sélection
+- simplifications wording et flow verrouillage joueur
+- rappel bénéfices d'avoir un compte à la création
+- export csv uniqueent depuis home
+- export csv
+- retouches cosmétiques et reecritaire page de présentation
+- sessions longue durée
+- changmetn ordre onglets mon compte
+- utilisasion composant mot de passe pour dissocier joiueur - compte
+- traitmetn noms trop longs
+- refonte et implémentaiton Mon compte
+- correction : perte de disponiblités sinrenommage de joueur$
+- refonte association joueur/compte
+- correctif modifer
+- mise en haut du joueur loggué
+- support sélection/désélection manuelle
+- amélioration des logs
+- (in progress) calage vertical bulle onboarding joueur
+- bouton lancemnt onboaridn utilsiateur.
+- correction eptit décalage mobile portrait
+- correction décalage sur petit nombre dévénements
+- onboardings saison et joueur
+- simplification aide globale
+- refonte flow de protection
+- nouveau nom ImproPick. et ajout d'une mini aide sur accueil et entête.
+- licence et copyright
+- hscroll scroll controls fix
+- cix bug z-index sur popup creation d'événement
+- suppression pavé numérique
+- page d'aide pour comprehension de la sélection
+- harmonisation annonces d'événementet de sélection
+- refonte notifications avec lien daisir directe d'événement
+- pas de notifications pour les spectacles archivés.
+- correctioj liens magiques
+- adaptations pour déploiement racine
+- déploiement sur la-malice.fr
+- ajout fonction d'archivage des événements
+- écran chargement accueil
+- acces direct aux saisons par url
+- mire de chargement
+- correction des tris
+- gestion de l'odre des saisons
+- ajout de chevrons pour révéler les événements.
+- ajustmeent bordureres grid
+- correciton sticky header
+- suppression sous-titre dans grille
+- déplacmeent boutons d'ajouts de joueur et d'événement
+- redesign mobile popup sélection
+- amélioration popin utilsiateur en mobile.
+- amélioraiton popin mot de passe mobile
+- amélioraiton de l'affichage mobile.
+- meilleur utilsiation de l'espace disponible sur la grille et améloraiton des scrolls
+- ajout de notification en cas de nouvel event
+- Revert to Firebase default password reset page
+- Fix Firebase token handling in password reset
+- Fix password reset page for GitHub Pages
+- add player protection and password reset
+- cas des reselections completes
+- cohérence des etats des joueurs entre gridboard et popin selection
+- indicateurs lorsque selection à refaire
+- simplification popin sélection
+- pin plus simple et moins souvent
+- nouvelle popin de sélection dédiée
+- Gestion du nob de joueur à sélecitonner par match
+- popin joueurs
+- popin spectacle et améliorations ui selection
+- navigation saison > accueil
+- operations protégées par pin code
+- design spectaculaire
+- Migration de données gestion des saisons
+- ajout d'une gestion des saisons
+- amélioration des boutons de sélection  et confirmation en cas de relance de sélection
+- added support for editing players
+- added deletion support for players
+- ficed alignement and added possibility to add players
+- events  add/edit/delete
+- deploy with github pages
+- Add production env file for GitHub Pages
+- remove wrong licene notice from README
+- Add MIT license
+- Add MIT license and usage notice
+- Initial commit for impro selector
+- Initial commit
+
+---
+
 ## [2.0.0] - 2026-06-04
 
 ### 📝 Other Changes

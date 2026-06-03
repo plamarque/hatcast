@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.0.1",
+    "date": "2026-06-04",
+    "changes": [
+      "✨ Ajoute un onglet 'Dispos' pour gérer facilement tes disponibilités.",
+      "✨ Améliore l'interface de la modale de sélection pour une expérience utilisateur plus fluide.",
+      "🐛 Corrige un bug qui empêchait l'affichage des disponibilités sur mobile.",
+      "🐛 Résout un problème de décalage dans l'affichage des événements sur la page d'accueil."
+    ]
+  },
+  {
     "version": "2.0.0",
     "date": "2026-06-04",
     "changes": [
