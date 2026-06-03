@@ -2,6 +2,22 @@
 
 ## [2.0.0] - 2026-06-03
 
+### 🐛 Bug Fixes
+- fix(ci): Run prod deploy when e2e-smoke is skipped
+- fix(ci): Write Cloud Run env-vars-file as YAML map
+- fix(ci): Use tags-ignore only for RC exclusion
+- fix(ci): Green staging release — env file and no RC tag workflow
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+
+---
+
+## [2.0.0] - 2026-06-03
+
 ### 📝 Other Changes
 - chore(v2): promote v2 to staging-v2
 - ops(ci): Close OPS-5 tag-first prod deploy
