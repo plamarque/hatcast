@@ -19,7 +19,7 @@ stakeholderDecisions:
   - align-chrome-with-agenda-and-stats
   - settings-list-not-stacked-cards
   - placeholders-for-planned-account-features
-  - logout-on-identity-tab-only
+  - logout-in-page-header
 supersedes:
   - '2026-05-28 scroll layout (story 17.24) — structure remplacée par onglets 17.34'
 relatedArtifacts:
@@ -37,7 +37,7 @@ relatedArtifacts:
 
 **Principle:** Mon compte = **paramètres du compte HatCast** : identité, préférences membre globales, notifications, sécurité, à propos. Pseudo et rôles préférés sont **uniques par utilisateur** (pas par troupe) — voir amendement [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) § Mon compte — section Préférences membre.
 
-**Historique :** La spec scroll unique (2026-05-28, story **17.24**) est **obsolète** pour la structure de navigation ; le contenu fonctionnel qu’elle a introduit (header hub, placeholders 1.6/1.7) reste valide et est réparti dans les onglets ci-dessous. **Amendement 2026-06-03 :** **Se déconnecter** uniquement sur l’onglet **Identité** (plus de bouton sous tous les onglets).
+**Historique :** La spec scroll unique (2026-05-28, story **17.24**) est **obsolète** pour la structure de navigation ; le contenu fonctionnel qu’elle a introduit (header hub, placeholders 1.6/1.7) reste valide et est réparti dans les onglets ci-dessous. **Amendement 2026-06-03 (révisé) :** **Se déconnecter** dans le **header de page** (à droite du titre L1), visible depuis **tous** les onglets — remplace le placement dans l’onglet Identité (C8b).
 
 ---
 
@@ -66,7 +66,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | C6 | **Placeholders Epic 1** | Lignes **désactivées** ou badge « Bientôt » + `matTooltip` jusqu’à stories **1.6** / **1.7**. |
 | C7 | **PWA** | **Pas** sur cet écran — **Installer l'app** reste dans le menu compte global (FR40), story **17.25**. |
 | C8a | **Menu compte sur `/compte`** | **Pas** de trigger menu compte (rail footer, avatar shell) sur `/compte` ni `/compte/*` — même règle qu’avant **17.25**. |
-| C8b | **Déconnexion** | Bouton **Se déconnecter** **uniquement** sur l’onglet **Identité** (`/compte`) — **pas** sous les autres onglets, **pas** de footer global sous le `router-outlet`. Même flux que [`UserAccountMenuItemsComponent`](../../apps/web/src/app/shared/user-account-menu/user-account-menu-items.ts). |
+| C8b | **Déconnexion** | Bouton **Se déconnecter** dans le **header de page** (`account-placeholder`), aligné à **droite** du titre **Mon compte**, visible sur **tous** les onglets — **pas** dans le contenu d’un onglet, **pas** de footer sous le `router-outlet`. `mat-button` texte + icône `logout` ; libellé masqué ≤ 480 px avec `aria-label="Se déconnecter"`. Même flux que [`UserAccountMenuItemsComponent`](../../apps/web/src/app/shared/user-account-menu/user-account-menu-items.ts). |
 | C9 | **Nav shell** | `/compte` garde la **barre membre** (Accueil · Agenda · Stats) ; pas de 4ᵉ onglet « Compte ». |
 | C10 | **Zone sensible** | **Pas d’onglet dédié** — « Supprimer mon compte » en bas de l’onglet **Sécurité**, séparé visuellement (`overline` + token `error`). |
 
@@ -76,13 +76,13 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 
 | # | Onglet | Contenu | Icône M3 | Route |
 |---|--------|---------|----------|-------|
-| 1 | **Identité** | Avatar, email (lecture seule), nom affiché (`displayName`), **Se déconnecter** | `person` | `/compte` (défaut) ou `/compte/identite` |
+| 1 | **Identité** | Avatar, email (lecture seule), nom affiché (`displayName`) | `person` | `/compte` (défaut) ou `/compte/identite` |
 | 2 | **Préférences** | Pseudo membre + rôles préférés (`MemberPreferencesForm`) | `tune` | `/compte/preferences` |
 | 3 | **Notifications** | Push (`PushNotificationsSection`) + catégories (`NotificationPreferencesSection`) | `notifications` | `/compte/notifications` |
 | 4 | **Sécurité** | Changer e-mail · Changer MDP · hint Google-only · **Supprimer mon compte** (zone sensible) | `lock` | `/compte/securite` |
 | 5 | **À propos** | Version app + ouverture changelog (`data-testid="account-app-version"`, story **10.3**) | `info` | `/compte/a-propos` |
 
-**Déconnexion (C8b) :** visible **uniquement** sur l’onglet **Identité**, sous la zone avatar / e-mail (`mat-stroked-button`, pleine largeur, `data-testid="account-logout"`). Absente des onglets Préférences, Notifications, Sécurité et À propos — la déconnexion reste aussi disponible via le **menu compte global** sur les autres routes membre (**17.25**).
+**Déconnexion (C8b) :** dans le **header de page**, à droite du `h1` **Mon compte** (`mat-button`, icône `logout`, `data-testid="account-logout"`) — visible quel que soit l’onglet actif. Absente du contenu des onglets. Sur les autres routes membre, la déconnexion reste aussi dans le **menu compte global** (**17.25**).
 
 ### Deep links et compatibilité
 
@@ -98,7 +98,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 
 ## Parcours utilisateur
 
-**Léa** ouvre le menu avatar depuis l’agenda → **Mon compte**. Elle arrive sur **Identité**, change sa photo en deux taps, peut **Se déconnecter** depuis cet onglet si besoin, bascule sur **Préférences** pour ajuster son pseudo et ses rôles par défaut (valables dans toutes ses troupes), puis ouvre **Notifications** pour activer le push. Elle repère **Sécurité** pour le changement de mot de passe (encore « Bientôt »), sans bouton déconnexion redondant sur chaque onglet.
+**Léa** ouvre le menu avatar depuis l’agenda → **Mon compte**. Elle arrive sur **Identité**, change sa photo en deux taps, bascule sur **Préférences** pour ajuster son pseudo et ses rôles par défaut (valables dans toutes ses troupes), puis ouvre **Notifications** pour activer le push. Depuis n’importe quel onglet, **Se déconnecter** reste accessible en haut à droite — utile car le menu avatar est masqué sur `/compte`.
 
 ---
 
@@ -108,7 +108,7 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  Mon compte                                                 │
+│  Mon compte                          [ Se déconnecter ]    │
 │  Paramètres de votre compte HatCast.                        │
 ├────────────────────────────────────────────────────────────┤
 │  Identité │ Préférences │ Notifications │ Sécurité │ À propos│
@@ -120,8 +120,9 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 | **Titre (`h1`)** | `Mon compte` |
 | **Sous-titre** | `Paramètres de votre compte HatCast.` (une ligne) — voir [ux-voice-and-tone.md](./ux-voice-and-tone.md) |
 | **Barre d’onglets** | Sous le sous-titre ; **scrollable horizontalement** sur mobile (`mat-tab-nav-bar`) |
-| **Actions header** | **Aucun** menu avatar sur cette route (C8a) |
+| **Actions header** | **Se déconnecter** à droite du titre (C8b) ; **aucun** menu avatar sur cette route (C8a) |
 | **Typo** | `font-size: 1.75rem` titre ; sous-titre `opacity: 0.85`, `0.95rem` |
+| **Layout header** | Ligne 1 : `flex` `space-between` — `h1` à gauche, action à droite ; ligne 2 : sous-titre pleine largeur |
 
 ---
 
@@ -134,8 +135,6 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 │  [Avatar 72px]   patrice@example.com                        │
 │                  Léa Martin (si displayName)                │
 │                  [ menu photo : Choisir · Google · × ]      │
-├────────────────────────────────────────────────────────────┤
-│  [ Se déconnecter ]                                         │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -145,7 +144,7 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 | **displayName** | Afficher si présent ; édition **hors scope** sauf décision future. |
 | **Photo** | Menu compact sur l’avatar (pattern actuel `account-placeholder`) ; formats / 2 Mo via tooltip ou hint une ligne. |
 | **Google** | « Utiliser ma photo Google » seulement si `hasGoogleAccount`. |
-| **Déconnexion** | Bouton `mat-stroked-button` pleine largeur en bas de l’onglet ; `data-testid="account-logout"` ; **absent** des autres onglets (C8b). |
+| **Déconnexion** | **Header de page** uniquement (C8b) — **pas** dans cet onglet. |
 
 ### Onglet 2 — Préférences
 
@@ -206,13 +205,12 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 
 ```
 ┌─────────────────────────┐
-│ Mon compte              │
+│ Mon compte  [ Déco… ]   │  ← icône seule ≤ 480 px
 │ Paramètres de votre…    │
 ├─────────────────────────┤
 │ Identité│Préf│Notif│…   │  ← tabs scrollables
 ├─────────────────────────┤
 │ [Avatar] email@…        │
-│ [ Se déconnecter ]      │  ← uniquement sur Identité
 ├─────────────────────────┤
 │ Accueil │ Agenda │ Stats│
 └─────────────────────────┘
@@ -246,7 +244,7 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 | `TroupeHubPreferencesSheet` | `MemberPreferencesForm` sur `/compte` |
 | **Retour aux troupes** (footer) | Nav shell membre |
 | Onglet **Zone sensible** séparé | Sous-section dans **Sécurité** (C10) |
-| Menu avatar en header | Pas de menu sur `/compte` (C8a) ; déconnexion sur onglet Identité (C8b) |
+| Menu avatar en header | Pas de menu sur `/compte` (C8a) ; déconnexion dans le header page (C8b) |
 
 ---
 
@@ -272,7 +270,7 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 | Shell onglets | `account-placeholder` (ou `account-settings`) : header + `mat-tab-nav-bar` + `<router-outlet>` |
 | Extraire panels | Optionnel : un composant par onglet sous `pages/account/` |
 | Fragment legacy | Redirect `/compte#notifications` → `/compte/notifications` |
-| Déconnexion | Dans `account-identity-tab` — **pas** dans le shell sous le `router-outlet` |
+| Déconnexion | Dans le **shell** `account-placeholder` (header, C8b) — **pas** dans un onglet ni sous le `router-outlet` |
 | Tests | `account-placeholder.spec.ts` : navigation onglets, deep links, présence sections ; conserver tests avatar / version |
 | Story file | [17-34-mon-compte-onglets-securite-preferences.md](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) |
 
@@ -282,7 +280,7 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 
 | Story | Contenu sur `/compte` |
 |-------|------------------------|
-| **17.34** | Layout onglets, routes, redirect fragment, déconnexion onglet **Identité** |
+| **17.34** | Layout onglets, routes, redirect fragment, déconnexion header page (C8b) |
 | **17.33** | Formulaire préférences membre (onglet **Préférences**) |
 | **1.6** | Activer lignes Sécurité + dialogs email / mot de passe (FR36) |
 | **1.7** | Activer suppression compte (FR37) |
@@ -300,7 +298,7 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 |----------|---------|
 | Pseudo / rôles **globaux** sur Mon compte ? | **Oui** (C1, C2) — 17.24 scroll obsolète |
 | 5 onglets sans « Zone sensible » séparé ? | **Oui** (C10) |
-| Déconnexion uniquement sur onglet Identité ? | **Oui** (C8b) — amendement 2026-06-03 |
+| Déconnexion dans le header page (tous onglets) ? | **Oui** (C8b) — amendement 2026-06-03 révisé |
 | Placeholders visibles avant 1.6/1.7 ? | **Oui** (C6) |
 | Header sans menu avatar ? | **Oui** (C8a) |
 

@@ -196,6 +196,16 @@ Cas minimum :
 
 ---
 
+## Amendement UX — déconnexion header (2026-06-03)
+
+**Contexte :** Sur `/compte`, le menu avatar est masqué (C8a) ; la déconnexion dans l’onglet Identité seule obligeait un changement d’onglet.
+
+**Changement :** C8b révisé — **Se déconnecter** dans le **header** `account-placeholder` (droite du `h1`), visible sur **tous** les onglets ; retiré de `account-identity-tab`.
+
+**Spec :** [ux-design-mon-compte.md](../planning-artifacts/ux-design-mon-compte.md) C8b (amendement révisé 2026-06-03).
+
+---
+
 ## Dev Agent Record
 
 ### Agent Model Used

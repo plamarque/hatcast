@@ -437,7 +437,7 @@ describe('AccountPlaceholder', () => {
     expect(navigate).toHaveBeenCalledWith(['/compte/notifications'], { replaceUrl: true })
   })
 
-  it('déconnecte et redirige vers connexion depuis l’onglet Identité', async () => {
+  it('déconnecte et redirige vers connexion depuis le header', async () => {
     const { fixture, logout, navigate } = await setup()
     const logoutBtn = fixture.nativeElement.querySelector(
       '[data-testid="account-logout"]',
@@ -449,13 +449,13 @@ describe('AccountPlaceholder', () => {
     expect(navigate).toHaveBeenCalledWith(['/connexion'], { replaceUrl: true })
   })
 
-  it('n’affiche pas Se déconnecter sur les autres onglets', async () => {
+  it('affiche Se déconnecter dans le header sur tous les onglets', async () => {
     const { fixture, router } = await setup()
     await router.navigateByUrl('/compte/preferences')
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('[data-testid="account-logout"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-logout"]')).toBeTruthy()
   })
 
   it('redirige vers connexion avec snackbar si la session est invalide', async () => {

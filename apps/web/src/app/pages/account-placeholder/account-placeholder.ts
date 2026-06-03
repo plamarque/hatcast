@@ -1,4 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTabLink, MatTabNav, MatTabNavPanel } from '@angular/material/tabs'
@@ -13,6 +15,8 @@ import { AccountPageContext } from './account-page-context'
 @Component({
   selector: 'app-account-placeholder',
   imports: [
+    MatButtonModule,
+    MatIconModule,
     MatProgressSpinnerModule,
     MatTabNav,
     MatTabLink,
@@ -49,6 +53,11 @@ export class AccountPlaceholder implements OnInit {
 
   protected user() {
     return this.ctx.user()
+  }
+
+  protected async logout(): Promise<void> {
+    await this.auth.logout()
+    await this.router.navigate(['/connexion'], { replaceUrl: true })
   }
 
   private async redirectLegacyNotificationsFragment(): Promise<void> {

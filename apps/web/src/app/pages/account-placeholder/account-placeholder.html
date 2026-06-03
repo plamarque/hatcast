@@ -1,9 +1,24 @@
 <div class="account-page">
   <header class="account-page__header">
-    <div class="account-page__titles">
+    <div class="account-page__header-topline">
       <h1 class="account-page__title">Mon compte</h1>
-      <p class="account-page__subtitle">Paramètres de votre compte HatCast.</p>
+      @if (!loading() && user()) {
+        <div class="account-page__header-actions">
+          <button
+            type="button"
+            mat-button
+            class="account-page__logout"
+            data-testid="account-logout"
+            aria-label="Se déconnecter"
+            (click)="logout()"
+          >
+            <mat-icon aria-hidden="true">logout</mat-icon>
+            <span class="account-page__logout-label">Se déconnecter</span>
+          </button>
+        </div>
+      }
     </div>
+    <p class="account-page__subtitle">Paramètres de votre compte HatCast.</p>
   </header>
 
   @if (loading()) {
