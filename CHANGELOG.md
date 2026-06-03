@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0] - 2026-06-04
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- ops(v2): Sync changelog.json in staging release pipeline
+
+---
+
 ## [2.0.0] - 2026-06-03
 
 ### 🐛 Bug Fixes
