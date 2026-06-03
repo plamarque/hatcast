@@ -2,6 +2,16 @@
 
 ## [2.0.0] - 2026-06-03
 
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- ops(ci): Close OPS-5 tag-first prod deploy
+- ops(ci): Deploy prod from semver tags and inject super-admin
+- docs(ops): Close OPS-4 after manual recette
+
+---
+
+## [2.0.0] - 2026-06-03
+
 ### ✨ New Features
 - feat(share): Complete story 6.15 M3 announce dialogs
 - feat(web): Complete story 1.6 account email and password
