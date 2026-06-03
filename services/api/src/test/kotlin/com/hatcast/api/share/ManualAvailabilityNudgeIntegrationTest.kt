@@ -68,7 +68,7 @@ class ManualAvailabilityNudgeIntegrationTest {
     private lateinit var seasonParticipantService: SeasonParticipantService
 
     @Autowired
-    private lateinit var manualNudgeRepository: EventManualAvailabilityNudgeRepository
+    private lateinit var manualShareNotifyRepository: EventManualShareNotifyRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -209,7 +209,7 @@ class ManualAvailabilityNudgeIntegrationTest {
             )            .andExpect(status().isOk)
             .andExpect(jsonPath("$.total").isNumber)
             .andExpect(jsonPath("$.guardDays").value(3))
-            .andExpect(jsonPath("$.lastManualNudgeAt").isEmpty)
+            .andExpect(jsonPath("$.lastManualNotifyAt").isEmpty)
     }
 
     @Test
@@ -288,8 +288,10 @@ class ManualAvailabilityNudgeIntegrationTest {
                     .content(
                         """{"intent":"availability_nudge","messageText":"$message"}""",
                     ).with(csrf()),
-            ).andExpect(status().isOk)
+            )            .andExpect(status().isOk)
             .andExpect(jsonPath("$.accepted").value(true))
+            .andExpect(jsonPath("$.notifiedCount").isNumber)
+            .andExpect(jsonPath("$.intent").value("availability_nudge"))
 
         verify(notificationDispatcher).dispatch(
             argThat { ctx: NotificationDispatchContext ->
@@ -300,7 +302,11 @@ class ManualAvailabilityNudgeIntegrationTest {
             },
         )
 
-        org.junit.jupiter.api.Assertions.assertNotNull(manualNudgeRepository.findById(eventId).orElse(null))
+        org.junit.jupiter.api.Assertions.assertNotNull(
+            manualShareNotifyRepository
+                .findById(EventManualShareNotifyId(eventId, "availability_nudge"))
+                .orElse(null),
+        )
 
         mockMvc
             .perform(
@@ -308,7 +314,7 @@ class ManualAvailabilityNudgeIntegrationTest {
                     .param("intent", "availability_nudge")
                     .cookie(admin),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.lastManualNudgeAt").exists())
+            .andExpect(jsonPath("$.lastManualNotifyAt").exists())
     }
 
     @Test

@@ -18,6 +18,11 @@ import {
   ShareAnnounceDialog,
   type ShareAnnounceDialogData,
 } from '../share-announce/share-announce-dialog'
+import {
+  SHARE_ANNOUNCE_SNACK_DURATION_MS,
+  shareAnnounceSnackMessage,
+  type ShareAnnounceNotifyResult,
+} from '../share-announce/share-announce-snack'
 import { AvailabilityMoiPanel } from './availability-moi-panel'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
 import { AvailabilityTousPanel } from './availability-tous-panel'
@@ -121,7 +126,7 @@ export class EventDisposTab implements OnDestroy {
   protected openNudgeDialog(): void {
     if (!this.canNudgeAvailability()) return
     const ev = this.event()
-    const ref = this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, boolean | undefined>(
+    const ref = this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, ShareAnnounceNotifyResult | undefined>(
       ShareAnnounceDialog,
       {
         data: {
@@ -134,16 +139,18 @@ export class EventDisposTab implements OnDestroy {
           eventTitle: ev.title,
           eventDateIso: ev.startsAt,
           roleLines: [],
+          availabilityOpenedAt: ev.availabilityOpenedAt ?? null,
         },
         width: 'min(42rem, 96vw)',
         maxHeight: '92vh',
         autoFocus: 'first-titled-element',
-        panelClass: 'share-announce-dialog-panel',
       },
     )
-    ref.afterClosed().subscribe((sent) => {
-      if (sent) {
-        this.snack.open('Rappel envoyé.', 'OK', { duration: 4000 })
+    ref.afterClosed().subscribe((result) => {
+      if (result) {
+        this.snack.open(shareAnnounceSnackMessage(result), 'OK', {
+          duration: SHARE_ANNOUNCE_SNACK_DURATION_MS,
+        })
       }
     })
   }

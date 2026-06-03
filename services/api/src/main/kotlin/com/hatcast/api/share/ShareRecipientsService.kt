@@ -65,7 +65,7 @@ class ShareRecipientsService(
     private val troupeAccess: TroupeAccessService,
     private val notificationPort: CompositionNotificationPort,
     private val recipientResolver: NotificationRecipientResolver,
-    private val manualNudgeRepository: EventManualAvailabilityNudgeRepository,
+    private val manualShareNotifyRepository: EventManualShareNotifyRepository,
     private val pushEligibilityPort: PushNotificationEligibilityPort,
     private val manualNudgeProperties: ManualAvailabilityNudgeProperties,
 ) {
@@ -102,6 +102,7 @@ class ShareRecipientsService(
         if (preview.isEmpty()) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Message vide")
         }
+        val previewResponse = buildResponse(eventId, participantIds, intent)
         notificationPort.requestManualAnnouncement(
             eventId = eventId,
             seasonId = seasonId,
@@ -109,10 +110,19 @@ class ShareRecipientsService(
             messagePreview = preview,
             actorUserId = principal.userId,
         )
-        if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
-            recordManualNudge(eventId, principal.userId)
-        }
-        return ShareNotifyResponseDto()
+        recordManualNotify(eventId, intent, principal.userId)
+        val notifiedCount =
+            if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
+                previewResponse.notifiableCount
+            } else {
+                0
+            }
+        return ShareNotifyResponseDto(
+            accepted = true,
+            notifiedCount = notifiedCount,
+            manualCount = previewResponse.manualCount,
+            intent = intentApiValue(intent),
+        )
     }
 
     private fun parseIntent(raw: String): ShareRecipientIntent =
@@ -240,25 +250,19 @@ class ShareRecipientsService(
         participantIds: Set<UUID>,
         intent: ShareRecipientIntent,
     ): ShareRecipientsResponseDto {
-        val guardDays =
-            if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
-                manualNudgeProperties.manualAvailabilityNudgeGuardDays
-            } else {
-                null
-            }
-        val lastManualNudgeAt =
-            if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
-                manualNudgeRepository.findById(eventId).orElse(null)?.lastSentAt
-            } else {
-                null
-            }
+        val guardDays = manualNudgeProperties.manualAvailabilityNudgeGuardDays
+        val lastManualNotifyAt =
+            manualShareNotifyRepository
+                .findById(EventManualShareNotifyId(eventId, intentApiValue(intent)))
+                .orElse(null)
+                ?.lastSentAt
         if (participantIds.isEmpty()) {
             return ShareRecipientsResponseDto(
                 total = 0,
                 notifiableCount = 0,
                 manualCount = 0,
                 recipients = emptyList(),
-                lastManualNudgeAt = lastManualNudgeAt,
+                lastManualNotifyAt = lastManualNotifyAt,
                 guardDays = guardDays,
             )
         }
@@ -297,25 +301,28 @@ class ShareRecipientsService(
             notifiableCount = notifiableCount,
             manualCount = manualCount,
             recipients = recipients,
-            lastManualNudgeAt = lastManualNudgeAt,
+            lastManualNotifyAt = lastManualNotifyAt,
             guardDays = guardDays,
         )
     }
 
-    private fun recordManualNudge(
+    private fun recordManualNotify(
         eventId: UUID,
+        intent: ShareRecipientIntent,
         actorUserId: UUID,
     ) {
         val now = Instant.now()
-        val existing = manualNudgeRepository.findById(eventId).orElse(null)
+        val intentValue = intentApiValue(intent)
+        val key = EventManualShareNotifyId(eventId, intentValue)
+        val existing = manualShareNotifyRepository.findById(key).orElse(null)
         if (existing != null) {
             existing.lastSentAt = now
             existing.lastActorUserId = actorUserId
-            manualNudgeRepository.save(existing)
+            manualShareNotifyRepository.save(existing)
         } else {
-            manualNudgeRepository.save(
-                EventManualAvailabilityNudgeEntity(
-                    eventId = eventId,
+            manualShareNotifyRepository.save(
+                EventManualShareNotifyEntity(
+                    id = key,
                     lastSentAt = now,
                     lastActorUserId = actorUserId,
                 ),

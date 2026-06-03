@@ -257,6 +257,8 @@ class ShareRecipientsIntegrationTest {
                     ).with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.accepted").value(true))
+            .andExpect(jsonPath("$.notifiedCount").value(0))
+            .andExpect(jsonPath("$.intent").value("draw"))
 
         verify(notificationPort).requestManualAnnouncement(
             eq(eventId),
@@ -353,6 +355,63 @@ class ShareRecipientsIntegrationTest {
                         """{"intent":"draw","messageText":"Late draw"}""",
                     ).with(csrf()),
             ).andExpect(status().isConflict)
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET draw returns guardDays and lastManualNotifyAt after POST`() {
+        val cookie = adminCookie("sub-share-admin-guard-draw")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val participantId = createParticipant(seasonId, "Ivy", "ivy@example.com")
+        seedComposition(eventId, participantId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"intent":"draw","messageText":"Draw share test"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.notifiedCount").value(0))
+            .andExpect(jsonPath("$.manualCount").isNumber)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "draw")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.guardDays").value(3))
+            .andExpect(jsonPath("$.lastManualNotifyAt").exists())
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET composition guard is independent from draw`() {
+        val cookie = adminCookie("sub-share-admin-guard-compo")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val participantId = createParticipant(seasonId, "Jack", "jack@example.com")
+        seedComposition(eventId, participantId, validatedAt = Instant.now())
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"intent":"draw","messageText":"Should fail"}""")
+                    .with(csrf()),
+            ).andExpect(status().isConflict)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "composition")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.lastManualNotifyAt").isEmpty)
     }
 
 }

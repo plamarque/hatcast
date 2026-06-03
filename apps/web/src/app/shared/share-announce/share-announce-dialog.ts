@@ -1,3 +1,4 @@
+import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
@@ -7,7 +8,14 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog'
+import { MatExpansionModule } from '@angular/material/expansion'
+import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatIconModule } from '@angular/material/icon'
+import { MatInputModule } from '@angular/material/input'
+import { MatListModule } from '@angular/material/list'
+import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { firstValueFrom } from 'rxjs'
 
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
@@ -22,6 +30,7 @@ import {
   ConfirmDialog,
   type ConfirmDialogData,
 } from '../../pages/seasons-list/confirm-dialog'
+import type { ShareAnnounceNotifyResult } from './share-announce-snack'
 
 export interface ShareAnnounceDialogData {
   intent: ShareAnnounceIntent
@@ -33,6 +42,8 @@ export interface ShareAnnounceDialogData {
   eventTitle: string
   eventDateIso: string
   roleLines: RoleAssignmentLine[]
+  availabilityOpenedAt?: string | null
+  compositionValidatedAt?: string | null
 }
 
 function calendarDaysSince(iso: string, now = new Date()): number {
@@ -44,14 +55,27 @@ function calendarDaysSince(iso: string, now = new Date()): number {
 
 @Component({
   selector: 'app-share-announce-dialog',
-  imports: [FormsModule, MatButtonModule, MatDialogModule, MatProgressSpinnerModule],
+  imports: [
+    FormsModule,
+    TextFieldModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatExpansionModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatListModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+  ],
   templateUrl: './share-announce-dialog.html',
   styleUrl: './share-announce-dialog.scss',
 })
 export class ShareAnnounceDialog {
-  private readonly ref = inject(MatDialogRef<ShareAnnounceDialog>)
+  private readonly ref = inject(MatDialogRef<ShareAnnounceDialog, ShareAnnounceNotifyResult | undefined>)
   private readonly dialog = inject(MatDialog)
   private readonly api = inject(ShareAnnounceApiService)
+  private readonly snack = inject(MatSnackBar)
   protected readonly data = inject<ShareAnnounceDialogData>(MAT_DIALOG_DATA)
 
   protected readonly dialogTitleId = 'share-announce-dialog-title'
@@ -63,14 +87,16 @@ export class ShareAnnounceDialog {
         ? 'Annoncer la compo'
         : this.data.intent === 'availability_nudge'
           ? 'Rappel disponibilité'
-          : 'Annoncer la disponibilité'
+          : 'Annonce de spectacle'
 
   protected readonly messageLabel =
     this.data.intent === 'composition'
-      ? 'Annoncez la compo avec ce message :'
+      ? 'Annonce la compo avec ce message :'
       : this.data.intent === 'availability_nudge'
         ? 'Message de rappel (modifiable) :'
-        : 'Message à copier pour les contacts manuels :'
+        : this.data.intent === 'event'
+          ? 'Message pour inviter à indiquer les dispos :'
+          : 'Message à partager (modifiable) :'
 
   protected readonly subtitleDate = formatShareEventDate(this.data.eventDateIso)
 
@@ -91,7 +117,9 @@ export class ShareAnnounceDialog {
   protected readonly sendError = signal<string | null>(null)
   protected readonly recipientsSummary = signal<string | null>(null)
   protected readonly guardDays = signal<number | null>(null)
-  protected readonly guardWarning = signal<string | null>(null)
+  protected readonly lastManualNotifyAt = signal<string | null>(null)
+  protected readonly notifiableCount = signal(0)
+  protected readonly manualCount = signal(0)
   protected readonly recipientCards = signal<
     Array<{
       participantId: string
@@ -105,8 +133,25 @@ export class ShareAnnounceDialog {
     void this.loadRecipients()
   }
 
-  protected close(): void {
-    this.ref.close()
+  protected showCharHint(): boolean {
+    return this.messageText.length > 450
+  }
+
+  protected notifyButtonLabel(): string {
+    const count = this.notifiableCount()
+    if (count === 0) {
+      return 'Aucune notification automatique'
+    }
+    return `Notifier ${count} personne${count > 1 ? 's' : ''}`
+  }
+
+  protected async copyMessage(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.messageText)
+      this.snack.open('Message copié.', 'OK', { duration: 3000 })
+    } catch {
+      this.snack.open('Copie impossible.', 'OK', { duration: 4000 })
+    }
   }
 
   protected openWhatsApp(): void {
@@ -116,11 +161,15 @@ export class ShareAnnounceDialog {
     }
   }
 
+  protected retryLoadRecipients(): void {
+    void this.loadRecipients()
+  }
+
   protected async sendNotifications(): Promise<void> {
     if (this.sending()) return
-    const warning = this.guardWarning()
-    if (warning) {
-      const confirmed = await this.confirmResend(warning)
+    const confirmMessage = this.guardConfirmMessage()
+    if (confirmMessage) {
+      const confirmed = await this.confirmResend(confirmMessage)
       if (!confirmed) return
     }
     this.sending.set(true)
@@ -136,13 +185,37 @@ export class ShareAnnounceDialog {
       this.sendError.set(result.errorMessage ?? 'Envoi impossible.')
       return
     }
-    this.ref.close(true)
+    this.ref.close({
+      intent: this.data.intent,
+      notifiedCount: result.data.notifiedCount,
+      manualCount: result.data.manualCount,
+    })
+  }
+
+  private guardConfirmMessage(): string | null {
+    const lastAt = this.lastManualNotifyAt()
+    const guardDays = this.guardDays()
+    if (!lastAt || guardDays == null) {
+      return null
+    }
+    const days = calendarDaysSince(lastAt)
+    if (days >= guardDays) {
+      return null
+    }
+    const dayLabel = days <= 1 ? `${days} jour` : `${days} jours`
+    return this.data.intent === 'availability_nudge'
+      ? `Un rappel a déjà été envoyé il y a ${dayLabel}.`
+      : `Un envoi pour ce type d'annonce a déjà été fait il y a ${dayLabel}.`
   }
 
   private async confirmResend(message: string): Promise<boolean> {
+    const title =
+      this.data.intent === 'availability_nudge'
+        ? 'Renvoyer un rappel ?'
+        : 'Renvoyer cette annonce ?'
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
       data: {
-        title: 'Renvoyer un rappel ?',
+        title,
         message,
         confirmLabel: 'Envoyer quand même',
       },
@@ -154,6 +227,7 @@ export class ShareAnnounceDialog {
   private async loadRecipients(): Promise<void> {
     this.loadingRecipients.set(true)
     this.recipientsError.set(false)
+    this.lastManualNotifyAt.set(null)
     const result = await this.api.getRecipients(
       this.data.seasonId,
       this.data.eventId,
@@ -164,19 +238,15 @@ export class ShareAnnounceDialog {
       this.recipientsError.set(true)
       return
     }
-    const { total, notifiableCount, manualCount, recipients, lastManualNudgeAt, guardDays } =
+    const { total, notifiableCount, manualCount, recipients, lastManualNotifyAt, guardDays } =
       result.data
+    this.notifiableCount.set(notifiableCount)
+    this.manualCount.set(manualCount)
     this.recipientsSummary.set(
-      `${total} personne${total > 1 ? 's' : ''} à prévenir — ${notifiableCount} notifiable${notifiableCount > 1 ? 's' : ''}, ${manualCount} manuellement`,
+      `${total} personne${total > 1 ? 's' : ''} concernée${total > 1 ? 's' : ''} — ${notifiableCount} notifiable${notifiableCount > 1 ? 's' : ''} automatiquement, ${manualCount} à contacter manuellement`,
     )
     this.guardDays.set(guardDays ?? null)
-    if (lastManualNudgeAt && guardDays != null) {
-      const days = calendarDaysSince(lastManualNudgeAt)
-      if (days < guardDays) {
-        const dayLabel = days <= 1 ? `${days} jour` : `${days} jours`
-        this.guardWarning.set(`Un rappel a déjà été envoyé il y a ${dayLabel}.`)
-      }
-    }
+    this.lastManualNotifyAt.set(lastManualNotifyAt ?? null)
     this.recipientCards.set(
       recipients.map((r) => ({
         participantId: r.participantId,

@@ -54,6 +54,8 @@ import { normalizeRoleSlots } from '../../core/events/event-types'
 import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
+import { isEventDraft } from '../../core/events/event-draft'
+import { openEventAnnounceDialog } from '../../shared/share-announce/share-announce-open'
 
 @Component({
   selector: 'app-event-detail',
@@ -153,6 +155,13 @@ export class EventDetail implements OnDestroy, OnInit {
         action: () => this.openEdit(),
       })
     }
+    if (this.canAnnouncePublishedEvent()) {
+      items.push({
+        label: 'Annoncer',
+        icon: 'campaign',
+        action: () => this.openAnnounceEvent(),
+      })
+    }
     if (this.canOpenEventParticipantsAdmin(ev.id)) {
       items.push({
         label: 'Participants',
@@ -181,6 +190,13 @@ export class EventDetail implements OnDestroy, OnInit {
     const perms = this.seasonPermissions()
     if (!ev || !perms) return false
     return canManageCompositionForEvent(perms, ev.id)
+  })
+  protected readonly canAnnouncePublishedEvent = computed(() => {
+    const ev = this.event()
+    if (!ev || ev.archived || isEventDraft(ev)) {
+      return false
+    }
+    return this.canManageComposition()
   })
   protected readonly equipeStatus = computed(() => {
     const ev = this.event()
@@ -325,6 +341,25 @@ export class EventDetail implements OnDestroy, OnInit {
         return
       }
       this.applyEventDetailUpdate(ev, updated)
+    })
+  }
+
+  protected openAnnounceEvent(): void {
+    const ev = this.event()
+    const seasonId = this.seasonId()
+    const seasonSlug = this.slug()
+    const troupeSlug = this.contextTroupeSlug() || this.routeTroupeSlug()
+    if (!ev || !seasonId || !seasonSlug || !troupeSlug) {
+      return
+    }
+    if (!this.canAnnouncePublishedEvent()) {
+      return
+    }
+    openEventAnnounceDialog(this.dialog, this.snack, {
+      seasonId,
+      seasonSlug,
+      troupeSlug,
+      event: ev,
     })
   }
 

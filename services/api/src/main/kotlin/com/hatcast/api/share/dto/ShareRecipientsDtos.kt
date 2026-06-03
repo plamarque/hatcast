@@ -22,7 +22,7 @@ data class ShareRecipientsResponseDto(
     val notifiableCount: Int,
     val manualCount: Int,
     val recipients: List<ShareRecipientDto>,
-    val lastManualNudgeAt: Instant? = null,
+    val lastManualNotifyAt: Instant? = null,
     val guardDays: Int? = null,
 )
 
@@ -35,4 +35,7 @@ data class ShareNotifyRequestDto(
 
 data class ShareNotifyResponseDto(
     val accepted: Boolean = true,
+    val notifiedCount: Int = 0,
+    val manualCount: Int = 0,
+    val intent: String = "",
 )

@@ -59,7 +59,9 @@ describe('EventDetail', () => {
   let router: Router
 
   beforeEach(async () => {
-    paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a', eventSlug: 'event-2' }))
+    paramMap$ = new BehaviorSubject(
+      convertToParamMap({ troupeSlug: 'troupe', seasonSlug: 'season-a', eventSlug: 'event-2' }),
+    )
     queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
     loadEventMock = vi.fn().mockResolvedValue({ ok: true, status: 200, data: ev('event-2') })
     archiveEvent = vi.fn().mockResolvedValue({ ok: true })
@@ -288,7 +290,122 @@ describe('EventDetail', () => {
     const cmp = fixture.componentInstance as unknown as {
       eventAdminItems: () => Array<{ label: string }>
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Modifier', 'Participants', 'Désactiver'])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual([
+      'Modifier',
+      'Annoncer',
+      'Participants',
+      'Désactiver',
+    ])
+  })
+
+  it('includes Annoncer in admin menu when published and canManageComposition', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }),
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(loadEventMock).toHaveBeenCalled()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual([
+      'Modifier',
+      'Annoncer',
+      'Participants',
+      'Désactiver',
+    ])
+  })
+
+  it('hides Annoncer in admin menu for draft events', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { availabilityOpenedAt: null }),
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(loadEventMock).toHaveBeenCalled()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    expect(cmp.eventAdminItems().map((i) => i.label)).not.toContain('Annoncer')
+  })
+
+  it('opens announce dialog from admin menu action', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }),
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(loadEventMock).toHaveBeenCalled()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string; action: () => void }>
+    }
+    const announce = cmp.eventAdminItems().find((i) => i.label === 'Annoncer')
+    expect(announce).toBeTruthy()
+    announce?.action()
+    expect(dialogOpen).toHaveBeenCalled()
   })
 
   it('selects Dispos tab when showAvailability=true', async () => {

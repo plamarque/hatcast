@@ -629,7 +629,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ShareRecipient'
-        lastManualNudgeAt:
+        lastManualNotifyAt:
           type: string
           format: date-time
           nullable: true
@@ -643,17 +643,23 @@ components:
       properties:
         intent:
           type: string
-          enum: [draw, composition, event]
+          enum: [draw, composition, event, availability_nudge]
         messageText:
           type: string
           maxLength: 500
 
     ShareNotifyResponse:
       type: object
-      required: [accepted]
+      required: [accepted, notifiedCount, manualCount, intent]
       properties:
         accepted:
           type: boolean
+        notifiedCount:
+          type: integer
+        manualCount:
+          type: integer
+        intent:
+          type: string
 
     CompositionResponse:
       type: object

@@ -1,3 +1,8 @@
+## Deferred from: code review of 6-15-refonte-modales-annonces-notify-manuel.md (2026-06-03)
+
+- `event-equipe-tab` duplicates `MatDialog.open` instead of `openShareAnnounceDialog` helper — consistency only; behavior OK.
+- `notifiedCount` on POST uses GET preview, not dispatcher outcome — pre-existing **NFR-R2** pattern from 6.10b; acceptable for MVP.
+
 ## Deferred from: code review of 1-7-suppression-de-compte.md (2026-06-03)
 
 - `FirebaseAuth.deleteUser` appelé dans la méthode `@Transactional` — transaction DB tenue plus longtemps ; pattern acceptable MVP, optimisable via `@TransactionalEventListener` post-commit. [`AccountDeletionService.kt:79`]

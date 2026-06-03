@@ -1,93 +1,123 @@
-<div class="share-announce-dialog" [attr.aria-labelledby]="dialogTitleId">
-  <header class="share-announce-dialog__header">
-    <button
-      type="button"
-      class="share-announce-dialog__close"
-      aria-label="Fermer"
-      (click)="close()"
-    >
-      ✕
-    </button>
-    <h2 class="share-announce-dialog__title" [id]="dialogTitleId">{{ dialogTitle }}</h2>
-    <p class="share-announce-dialog__subtitle">
-      {{ data.eventTitle }} — {{ subtitleDate }}
-    </p>
-  </header>
+<h2 mat-dialog-title [id]="dialogTitleId">{{ dialogTitle }}</h2>
+<button
+  type="button"
+  mat-icon-button
+  class="share-announce-dialog__close"
+  mat-dialog-close
+  aria-label="Fermer"
+>
+  <mat-icon>close</mat-icon>
+</button>
 
-  <div class="share-announce-dialog__body">
-    <label class="share-announce-dialog__label" for="share-message">{{ messageLabel }}</label>
+<mat-dialog-content class="share-announce-dialog__content">
+  <p class="share-announce-dialog__subtitle">
+    {{ data.eventTitle }} — {{ subtitleDate }}
+  </p>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="share-announce-dialog__message-field">
+    <mat-label>{{ messageLabel }}</mat-label>
     <textarea
-      id="share-message"
-      class="share-announce-dialog__textarea"
-      rows="12"
+      matInput
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="14"
+      cdkAutosizeMaxRows="24"
+      maxlength="500"
       [(ngModel)]="messageText"
     ></textarea>
+    @if (showCharHint()) {
+      <mat-hint>{{ messageText.length }}/500</mat-hint>
+    } @else {
+      <mat-hint>WhatsApp et les notifications utilisent le texte ci-dessus.</mat-hint>
+    }
+  </mat-form-field>
 
-    <div class="share-announce-dialog__whatsapp-row">
-      <button type="button" class="share-announce-dialog__whatsapp" (click)="openWhatsApp()">
-        Envoyer par WhatsApp
-      </button>
-    </div>
-
-    <section class="share-announce-dialog__recipients" aria-label="Personnes à prévenir">
-      <h3 class="share-announce-dialog__recipients-title">Personnes à prévenir</h3>
-      <p class="share-announce-dialog__recipients-hint">
-        Les cartes vertes ont au moins un canal automatique (email ou push). Les cartes jaunes
-        nécessitent un contact manuel.
-      </p>
-
-      @if (guardWarning(); as warning) {
-        <p class="share-announce-dialog__guard-warning" role="status">{{ warning }}</p>
+  <div class="share-announce-dialog__actions-row">
+    <button
+      type="button"
+      mat-flat-button
+      color="primary"
+      class="share-announce-dialog__action-btn"
+      [disabled]="sending() || loadingRecipients() || recipientsError() || notifiableCount() === 0"
+      (click)="sendNotifications()"
+    >
+      @if (sending()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        {{ notifyButtonLabel() }}
       }
+    </button>
+    <button
+      type="button"
+      mat-stroked-button
+      class="share-announce-dialog__action-btn"
+      aria-label="Copier le message"
+      (click)="copyMessage()"
+    >
+      <mat-icon>content_copy</mat-icon>
+      Copier
+    </button>
+    <button
+      type="button"
+      mat-stroked-button
+      class="share-announce-dialog__action-btn"
+      (click)="openWhatsApp()"
+      title="Ouvre WhatsApp avec ce message"
+    >
+      <mat-icon>chat</mat-icon>
+      WhatsApp
+    </button>
+  </div>
 
-      @if (loadingRecipients()) {
-        <div class="share-announce-dialog__recipients-loading" role="status">
-          <mat-spinner diameter="28" />
-        </div>
-      } @else if (recipientsError()) {
-        <p class="share-announce-dialog__recipients-error" role="alert">
-          Impossible de charger les destinataires.
-        </p>
-      } @else if (recipientsSummary(); as summary) {
-        <p class="share-announce-dialog__recipients-summary">{{ summary }}</p>
-        <ul class="share-announce-dialog__recipient-list">
-          @for (card of recipientCards(); track card.participantId) {
-            <li
-              class="share-announce-dialog__recipient-card"
-              [class.share-announce-dialog__recipient-card--manual]="!card.notifiable"
-            >
-              <span class="share-announce-dialog__recipient-name">{{ card.displayName }}</span>
-              @if (card.notifiable) {
-                <span class="share-announce-dialog__recipient-badge" aria-hidden="true">✓</span>
-              } @else {
-                <span class="share-announce-dialog__recipient-badge share-announce-dialog__recipient-badge--warn" aria-hidden="true">⚠</span>
-              }
-              @if (card.emailObfuscated) {
-                <span class="share-announce-dialog__recipient-email">{{ card.emailObfuscated }}</span>
-              }
-            </li>
-          }
-        </ul>
+  <section class="share-announce-dialog__notifications" aria-label="Notifications">
+    <h3 class="share-announce-dialog__section-title">Notifications</h3>
+
+    @if (loadingRecipients()) {
+      <mat-progress-bar mode="indeterminate" aria-busy="true" />
+    } @else if (recipientsError()) {
+      <p class="share-announce-dialog__error" role="alert">Impossible de charger les destinataires.</p>
+      <button type="button" mat-stroked-button (click)="retryLoadRecipients()">Réessayer</button>
+    } @else if (recipientsSummary(); as summary) {
+      <p class="share-announce-dialog__recipients-summary">{{ summary }}</p>
+
+      @if (recipientCards().length > 0) {
+        <mat-expansion-panel class="share-announce-dialog__recipients-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Voir le détail</mat-panel-title>
+            <mat-panel-description>
+              {{ notifiableCount() }} auto · {{ manualCount() }} manuel
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+          <mat-list>
+            @for (card of recipientCards(); track card.participantId) {
+              <mat-list-item>
+                @if (card.notifiable) {
+                  <mat-icon matListItemIcon color="primary">check_circle</mat-icon>
+                } @else {
+                  <mat-icon matListItemIcon class="share-announce-dialog__manual-icon">warning</mat-icon>
+                }
+                <span matListItemTitle>{{ card.displayName }}</span>
+                @if (card.emailObfuscated) {
+                  <span matListItemLine>{{ card.emailObfuscated }}</span>
+                }
+              </mat-list-item>
+            }
+          </mat-list>
+        </mat-expansion-panel>
       }
-    </section>
-
-    @if (sendError(); as err) {
-      <p class="share-announce-dialog__send-error" role="alert">{{ err }}</p>
     }
 
-    <div class="share-announce-dialog__notify-row">
-      <button
-        type="button"
-        class="share-announce-dialog__notify"
-        [disabled]="sending() || loadingRecipients() || recipientsError()"
-        (click)="sendNotifications()"
-      >
-        @if (sending()) {
-          <mat-spinner diameter="20" />
-        } @else {
-          Envoyer les notifications
-        }
-      </button>
-    </div>
-  </div>
-</div>
+    @if (notifiableCount() === 0 && !loadingRecipients() && !recipientsError()) {
+      <p class="share-announce-dialog__zero-hint" role="status">
+        Utilise Copier ou WhatsApp pour les {{ manualCount() }} contact{{ manualCount() > 1 ? 's' : '' }} manuel{{ manualCount() > 1 ? 's' : '' }}.
+      </p>
+    }
+  </section>
+
+  @if (sendError(); as err) {
+    <p class="share-announce-dialog__error" role="alert">{{ err }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="share-announce-dialog__footer">
+  <button type="button" mat-button mat-dialog-close [disabled]="sending()">Fermer</button>
+</mat-dialog-actions>
