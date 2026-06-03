@@ -27,7 +27,13 @@
     <form [formGroup]="form" class="account-delete-dialog__form">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-delete-dialog__field">
         <mat-label>Confirmation</mat-label>
-        <input matInput formControlName="confirmPhrase" autocomplete="off" spellcheck="false" />
+        <input
+          matInput
+          formControlName="confirmPhrase"
+          autocomplete="off"
+          spellcheck="false"
+          (input)="onConfirmPhraseInput()"
+        />
         @if (form.controls.confirmPhrase.hasError('required')) {
           <mat-error>Saisie requise.</mat-error>
         } @else if (form.controls.confirmPhrase.hasError('pattern')) {
@@ -44,12 +50,18 @@
           }
         </mat-form-field>
       } @else if (data.hasGoogleAccount) {
-        <p class="account-delete-dialog__reauth-hint">
-          Confirmez votre identité avec Google avant la suppression.
-        </p>
-        <div class="account-delete-dialog__google-host">
-          <div #googleReauthHost class="account-delete-dialog__google-button-host"></div>
-        </div>
+        @if (confirmPhraseValid()) {
+          <p class="account-delete-dialog__reauth-hint">
+            Confirmez votre identité avec Google avant la suppression.
+          </p>
+          <div class="account-delete-dialog__google-host">
+            <div #googleReauthHost class="account-delete-dialog__google-button-host"></div>
+          </div>
+        } @else {
+          <p class="account-delete-dialog__reauth-hint">
+            Saisissez « SUPPRIMER » ci-dessus pour afficher la confirmation Google.
+          </p>
+        }
       }
     </form>
   </mat-dialog-content>

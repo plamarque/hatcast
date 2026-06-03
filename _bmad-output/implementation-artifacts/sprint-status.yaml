@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-03T12:30:00+02:00"
+last_updated: "2026-06-03T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -67,7 +67,7 @@ development_status:
   1-4-session-persistante-se-souvenir-de-moi: done
   1-5-deconnexion: done
   1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes: done
-  1-7-suppression-de-compte: review
+  1-7-suppression-de-compte: done
   epic-1-retrospective: optional
 
   epic-2: in-progress
@@ -131,7 +131,7 @@ development_status:
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
   6-13-publish-notifications-hors-transaction: done
   6-14-snapshot-chances-au-tirage: done
-  6-15-refonte-modales-annonces-notify-manuel: backlog  # P0 V2.0.0 — SCP 2026-06-02
+  6-15-refonte-modales-annonces-notify-manuel: review  # P0 V2.0.0 — SCP 2026-06-02
   epic-6-retrospective: optional
 
   epic-7: backlog

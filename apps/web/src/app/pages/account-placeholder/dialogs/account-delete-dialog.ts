@@ -106,8 +106,22 @@ export class AccountDeleteDialog implements OnDestroy {
 
   protected goToStep2(): void {
     this.step.set(2)
-    if (!this.hasPassword()) {
-      requestAnimationFrame(() => this.initGoogleReauth())
+  }
+
+  protected confirmPhraseValid(): boolean {
+    return this.form.controls.confirmPhrase.valid
+  }
+
+  protected onConfirmPhraseInput(): void {
+    if (!this.hasPassword() && this.data.hasGoogleAccount && this.confirmPhraseValid()) {
+      // Host appears after @if (confirmPhraseValid()) renders on the next CD cycle.
+      setTimeout(() => this.initGoogleReauth(), 0)
+      return
+    }
+    if (!this.confirmPhraseValid()) {
+      this.clearGsiPoll()
+      this.googleReauthReady.set(false)
+      this.googleHost()?.nativeElement.replaceChildren()
     }
   }
 
@@ -166,6 +180,13 @@ export class AccountDeleteDialog implements OnDestroy {
     if (this.submitting()) {
       return
     }
+    if (!this.confirmPhraseValid()) {
+      this.snack.open('Saisissez exactement « SUPPRIMER » avant de continuer.', 'OK', {
+        duration: 8000,
+      })
+      return
+    }
+
     this.submitting.set(true)
     try {
       const result = await this.authApi.deleteAccount(credential)
@@ -181,6 +202,10 @@ export class AccountDeleteDialog implements OnDestroy {
         'OK',
         { duration: 10_000 },
       )
+    } catch (e: unknown) {
+      const code =
+        typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
+      this.snack.open(userMessageForAccountDeletionReAuth(code), 'OK', { duration: 8000 })
     } finally {
       this.submitting.set(false)
     }

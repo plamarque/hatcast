@@ -1,3 +1,8 @@
+## Deferred from: code review of 1-7-suppression-de-compte.md (2026-06-03)
+
+- `FirebaseAuth.deleteUser` appelé dans la méthode `@Transactional` — transaction DB tenue plus longtemps ; pattern acceptable MVP, optimisable via `@TransactionalEventListener` post-commit. [`AccountDeletionService.kt:79`]
+- Index `idx_users_deleted_at` sur toute la colonne vs index partiel `WHERE deleted_at IS NULL` — l’AC 8 le marque optionnel ; impact perf négligeable à ce stage. [`V53__users_deleted_at.sql`]
+
 ## Deferred from: code review of 1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes.md (2026-06-03)
 
 - Ligne « Supprimer mon compte » activée dans `account-security-tab` — AC 1.6 exigeait disabled jusqu’à 1.7 ; travail 1.7 déjà sur la branche (`AccountDeleteDialog`). À valider dans la revue 1.7.

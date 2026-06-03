@@ -136,4 +136,59 @@ describe('AccountDeleteDialog', () => {
     expect(navigate).toHaveBeenCalledWith(['/connexion'])
     expect(close).toHaveBeenCalledWith(true)
   })
+
+  it('bloque la suppression Google sans SUPPRIMER', async () => {
+    const { fixture, deleteAccount, snack } = await setup({
+      hasPassword: false,
+      hasGoogleAccount: true,
+    })
+    const continueBtn = Array.from(
+      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+    ).find((b) => b.textContent?.includes('Continuer')) as HTMLButtonElement
+    continueBtn.click()
+    fixture.detectChanges()
+
+    await (
+      fixture.componentInstance as unknown as {
+        onGoogleReauthCredential: (credential: string) => Promise<void>
+      }
+    ).onGoogleReauthCredential('google-jwt')
+
+    expect(deleteAccount).not.toHaveBeenCalled()
+    expect(snack.open).toHaveBeenCalledWith(
+      'Saisissez exactement « SUPPRIMER » avant de continuer.',
+      'OK',
+      { duration: 8000 },
+    )
+  })
+
+  it('supprime le compte après SUPPRIMER et credential Google', async () => {
+    const { fixture, deleteAccount, logout, navigate, close } = await setup({
+      hasPassword: false,
+      hasGoogleAccount: true,
+    })
+    const continueBtn = Array.from(
+      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+    ).find((b) => b.textContent?.includes('Continuer')) as HTMLButtonElement
+    continueBtn.click()
+    fixture.detectChanges()
+
+    const phraseInput = fixture.nativeElement.querySelector(
+      'input[formcontrolname="confirmPhrase"]',
+    ) as HTMLInputElement
+    phraseInput.value = 'SUPPRIMER'
+    phraseInput.dispatchEvent(new Event('input'))
+    fixture.detectChanges()
+
+    await (
+      fixture.componentInstance as unknown as {
+        onGoogleReauthCredential: (credential: string) => Promise<void>
+      }
+    ).onGoogleReauthCredential('google-jwt')
+
+    expect(deleteAccount).toHaveBeenCalledWith('google-jwt')
+    expect(logout).toHaveBeenCalled()
+    expect(navigate).toHaveBeenCalledWith(['/connexion'])
+    expect(close).toHaveBeenCalledWith(true)
+  })
 })

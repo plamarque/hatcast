@@ -1,6 +1,6 @@
 # Story 1.7: Account deletion — Mon compte (explicit confirmation & consequences)
 
-Status: review
+Status: done
 
 baseline_commit: 8d4868aa629123e5bfa83f10289664034fd6e279
 
@@ -37,7 +37,7 @@ so that my **personal data is handled per product policy (FR37)** and I understa
    - Verifies the token matches the **current session user** (`google_sub` or `idp_uid` / email per auth path).
    - **Rejects (409)** if the user is the **sole active `TROUPE_ADMIN`** of any troupe (reuse last-admin logic from [`TroupeMembershipService.ensureLastAdminRemains`](../../services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMembershipService.kt) — message lists affected troupe name/slug when possible).
    - **Rejects (409)** if account already deleted (`deleted_at` not null).
-   - In one transaction: set **`users.deleted_at`**, **anonymize PII** on `users` row (clear `email`, `display_name`, `member_display_name`, `google_sub`, `idp_uid`, `avatar_url`, `avatar_updated_at`; reset `push_notifications_enabled=false`, `notification_preferences={}`; keep **`id`** and **`slug`** for FK integrity).
+   - In one transaction: set **`users.deleted_at`**, **anonymize PII** on `users` row (clear `email`, `display_name`, `member_display_name`, `avatar_url`, `avatar_updated_at`; reset `push_notifications_enabled=false`, `notification_preferences={}`; keep **`id`** and **`slug`** for FK integrity). **`google_sub`** (and **`idp_uid`** until best-effort Firebase `deleteUser`) **may remain** while `deleted_at` is set so sign-in lookup can reject deleted accounts (AC 6) without allowing a new account on the same Google/IdP identity.
    - Sets **all active troupe memberships** to **`INACTIVE`** (revokes app access) — **do not** call [`SeasonParticipantMembershipSync.removeForMembershipAcrossTroupe`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantMembershipSync.kt) (that path sets `season_participants.status = REMOVED` and **excludes the row from stats** — wrong for account delete).
    - **Anonymizes linked roster rows (AC 10):** for each `season_participants` / `event_participants` linked to the user, clear **`normalized_email`**, set **`user_id = NULL`** (schema allows `ON DELETE SET NULL`), **keep `display_name`** and **`status = ACTIVE`** so [`SeasonStatisticsService`](../../services/api/src/main/kotlin/com/hatcast/api/season/SeasonStatisticsService.kt) still includes the row (`findBySeason_IdAndStatus… ACTIVE`). Historical availabilities/compositions/slots remain keyed by **`season_participant_id`** / anonymized **`users.id`** — counts unchanged.
    - Deletes stored avatar binary if present ([`AvatarService`](../../services/api/src/main/kotlin/com/hatcast/api/avatar/AvatarService.kt)).
@@ -283,6 +283,7 @@ Composer
 - 2026-06-03 : Story created (`bmad-create-story`) — P0 V2.0.0 ; multi-step confirmation with explicit consequences (user constraint).
 - 2026-06-03 : Amendement — preserve season statistics on delete (anonymize account, keep `season_participants` ACTIVE ; no `removeForMembershipAcrossTroupe` cascade).
 - 2026-06-03 : Implementation complete — API + UI + tests ; status → review.
+- 2026-06-03 : Code review — AC 5 amendé (rétention `google_sub`/`idp_uid` si `deleted_at` set) ; garde phrase NFR-S3 sur chemin Google-only ; tests GIS ajoutés ; status → done.
 
 ---
 
@@ -294,8 +295,17 @@ Composer
 - [x] Liens vers fichiers code existants à réutiliser
 - [x] `npm run test` / `./gradlew test` mentionnés
 
+### Review Findings
+
+- [x] [Review][Decision] `google_sub` conservé après suppression vs AC 5 — **Résolu (A)** : AC 5 amendé pour autoriser la rétention de `google_sub` / `idp_uid` tant que `deleted_at` est set (blocage re-login AC 6).
+- [x] [Review][Patch] Contournement NFR-S3 sur le chemin Google-only — garde phrase dans `onGoogleReauthCredential()` ; bouton GIS affiché seulement après `SUPPRIMER` valide. [`account-delete-dialog.ts`]
+- [x] [Review][Patch] Test web chemin Google-only + garde phrase — ajouté dans `account-delete-dialog.spec.ts`.
+- [x] [Review][Patch] `onGoogleReauthCredential` sans `catch` — aligné sur `confirmDelete()`.
+- [x] [Review][Defer] `FirebaseAuth.deleteUser` appelé dans la méthode `@Transactional` — transaction DB tenue plus longtemps ; pattern acceptable MVP, optimisable via `@TransactionalEventListener` post-commit. [`AccountDeletionService.kt:79`]
+- [x] [Review][Defer] Index `idx_users_deleted_at` sur toute la colonne vs index partiel `WHERE deleted_at IS NULL` — l’AC 8 le marque optionnel ; impact perf négligeable à ce stade. [`V53__users_deleted_at.sql`]
+
 ## Story completion status
 
-- **Status:** review
+- **Status:** done
 - **Sprint key:** `1-7-suppression-de-compte`
-- **Note:** Ultimate context engine analysis completed — includes stats preservation on delete (anonymize user, do not REMOVED season participants).
+- **Note:** Ultimate context engine analysis completed — includes stats preservation on delete (anonymize user, do not REMOVED season participants). Code review 2026-06-03 : patches appliqués, AC 5 amendé (rétention identifiants auth).
