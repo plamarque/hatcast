@@ -1,3 +1,8 @@
+## Deferred from: code review of ops-9-posthog-hatcast-app.md (2026-06-04)
+
+- `package-lock.json` version monorepo `0.47.1` → `2.0.0` dans le diff OPS-9 — bruit de versionnement, pas de régression analytics.
+- Déploiement prod sans `HATCAST_POSTHOG_PROJECT_API_KEY` — PostHog désactivé sans échec build ; runbook §7.5 documente le secret obligatoire pour AC14.
+
 ## Deferred from: code review of ops-11-simplified-release-cli.md (2026-06-04)
 
 - `--dry-run` release copie tout le dépôt (~2 min) — pattern sandbox hérité OPS-4 (`release-staging.sh`).

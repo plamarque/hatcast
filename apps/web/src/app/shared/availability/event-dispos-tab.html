@@ -55,6 +55,7 @@
         [readOnly]="subjectReadOnly()"
         [proxyMode]="subjectProxyMode()"
         [archived]="event().archived"
+        [availabilityOpenedAt]="event().availabilityOpenedAt ?? null"
         (saved)="onSaved($event)"
       />
     } @else {

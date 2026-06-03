@@ -18,6 +18,7 @@ export interface OpenAgendaAvailabilityDialogParams {
   roleSlots: RoleSlots
   subjectDisplayName: string
   fallbackStatus: AvailabilityStatus
+  availabilityOpenedAt?: string | null
 }
 
 export async function openAgendaAvailabilityDialog(
@@ -46,6 +47,7 @@ export async function openAgendaAvailabilityDialog(
         roleSlots: params.roleSlots,
         initialRoleKeys,
         initialComment,
+        availabilityOpenedAt: params.availabilityOpenedAt ?? null,
       },
       width: 'min(100vw - 2rem, 26rem)',
       autoFocus: 'first-tabbable',

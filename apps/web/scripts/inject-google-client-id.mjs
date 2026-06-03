@@ -8,6 +8,8 @@
  *   HATCAST_FIREBASE_WEB_API_KEY, HATCAST_FIREBASE_AUTH_DOMAIN, HATCAST_FIREBASE_PROJECT_ID
  * Optionnel (Web Push story 8.1 — sinon GET /v1/config/public) :
  *   HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY
+ * Optionnel (PostHog FR47 / OPS-9 — vide = pas d’analytics) :
+ *   HATCAST_POSTHOG_PROJECT_API_KEY
  */
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -24,6 +26,7 @@ const apiKey = process.env.HATCAST_FIREBASE_WEB_API_KEY?.trim() ?? ''
 const authDomain = process.env.HATCAST_FIREBASE_AUTH_DOMAIN?.trim() ?? ''
 const projectId = process.env.HATCAST_FIREBASE_PROJECT_ID?.trim() ?? ''
 const vapidPublicKey = process.env.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY?.trim() ?? ''
+const posthogApiKey = process.env.HATCAST_POSTHOG_PROJECT_API_KEY?.trim() ?? ''
 
 const content = `import type { FirebaseOptions } from 'firebase/app'
 /** Généré par scripts/inject-google-client-id.mjs au build Docker/CI — ne pas y mettre de secret serveur. */
@@ -34,6 +37,9 @@ export const environment = {
   demoTroupeId: 'a0000001-0000-4000-8000-000000000099',
   /** Clé VAPID publique Web Push — injectée au build (fallback : GET /v1/config/public). */
   webPushVapidPublicKey: ${JSON.stringify(vapidPublicKey)},
+  posthogApiKey: ${JSON.stringify(posthogApiKey)},
+  posthogApiHost: 'https://e.hatcast.app',
+  posthogUiHost: 'https://eu.posthog.com',
   firebase: {
     apiKey: ${JSON.stringify(apiKey)},
     authDomain: ${JSON.stringify(authDomain)},

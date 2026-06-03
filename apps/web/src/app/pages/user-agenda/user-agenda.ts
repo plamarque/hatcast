@@ -329,6 +329,8 @@ export class UserAgenda implements OnInit {
       troupeId: item.troupeId,
       roleSlots,
       fallbackStatus: status,
+      availabilityOpenedAt:
+        eventRes.ok && eventRes.data ? (eventRes.data.availabilityOpenedAt ?? null) : null,
     })
     if (!result) {
       return

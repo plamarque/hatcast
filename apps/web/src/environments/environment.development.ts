@@ -8,6 +8,10 @@ export const environment = {
   demoTroupeId: 'a0000001-0000-4000-8000-000000000099',
   /** Clé VAPID publique Web Push — optionnel en local (sinon GET /v1/config/public). */
   webPushVapidPublicKey: '',
+  /** Optional local PostHog key — leave empty to disable analytics (no network calls). */
+  posthogApiKey: '',
+  posthogApiHost: '',
+  posthogUiHost: 'https://eu.posthog.com',
   /**
    * Config Web du projet GCP avec Identity Platform (Console : paramètres projet → applications Web,
    * ou console Firebase liée au même projet). Laisser vide pour masquer email/mot de passe en local.

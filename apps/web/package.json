@@ -28,6 +28,7 @@
     "@angular/service-worker": "^21.2.9",
     "firebase": "^11.0.2",
     "ngx-mat-timepicker": "^21.0.1",
+    "posthog-js": "^1.379.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

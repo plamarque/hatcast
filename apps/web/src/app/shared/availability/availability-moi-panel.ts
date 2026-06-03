@@ -20,6 +20,7 @@ export class AvailabilityMoiPanel {
   readonly readOnly = input(false)
   readonly proxyMode = input(false)
   readonly archived = input(false)
+  readonly availabilityOpenedAt = input<string | null>(null)
 
   readonly saved = output<AvailabilityFormSavedPayload>()
 

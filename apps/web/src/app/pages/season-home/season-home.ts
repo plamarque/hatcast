@@ -955,6 +955,7 @@ export class SeasonHome implements OnDestroy, OnInit {
       troupeId: s.troupeId,
       roleSlots: normalizeRoleSlots(ev.roleSlots),
       fallbackStatus: payload.status,
+      availabilityOpenedAt: ev.availabilityOpenedAt ?? null,
     })
     if (!result) {
       return

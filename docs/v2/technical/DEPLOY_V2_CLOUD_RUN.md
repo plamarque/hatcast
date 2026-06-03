@@ -385,10 +385,53 @@ Recette : § vérifications techniques ci-dessus sur `https://hatcast.app` ; `BA
 
 | ID | Sujet |
 |----|--------|
-| **OPS-9** | PostHog EU — sous-domaine `e.hatcast.app` en **DNS only** (proxy managé PostHog) |
+| **OPS-9** | PostHog EU — voir **§7.5** |
 | **OPS-10** | E-mail `noreply@hatcast.app` / `info@hatcast.app` — SPF/DKIM, `HATCAST_NOTIFICATION_EMAIL_FROM` |
 
 Story : [_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md](../../_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md). PLAN § Wave V2.0.0 Wave F ; SCP amend. 2026-06-03.
+
+### 7.5 PostHog EU + proxy `e.hatcast.app` (OPS-9 / FR47)
+
+Analytics produit **MVP** : opérateurs via le projet PostHog uniquement (pas d’UI dans l’app). Événements workflow anonymisés côté `apps/web` (`posthog-js`).
+
+#### Projet PostHog Cloud EU
+
+1. Créer un projet sur **[eu.posthog.com](https://eu.posthog.com)** (région **EU**).
+2. Récupérer la **Project API Key** (clé publique d’ingestion — même classe que `apiKey` Firebase côté front).
+3. Dashboards pilote : filtrer **`is_demo_troupe != true`** pour exclure la troupe Démo (FR64 / ADR-0015).
+
+**Événement `notification_link_opened` (MVP)** : déclenché dès que l’URL contient `?tab=dispos|equipe`, `?showConfirm=true` ou `?showAvailability=true` — y compris navigation manuelle ou favori, pas seulement un clic email/push (pas de param `src=notif` dans cette story). Interpréter les KPI « suivi notification » comme indicateur de **deep-link tab**, pas de source notif exclusive.
+
+#### Proxy managé (recommandé)
+
+1. PostHog → **Organization settings** → **Proxy** → **New managed proxy**.
+2. Sous-domaine : **`e.hatcast.app`** (label DNS `e` uniquement).
+3. Cloudflare (zone `hatcast.app`) : enregistrement **CNAME** `e` → cible affichée par PostHog (ex. `*.proxy-eu.posthog.com` ou équivalent EU dans l’UI).
+4. **DNS only (nuage gris)** jusqu’à statut **live** dans PostHog ; ensuite laisser en gris (mode managé — **ne pas** passer en proxied orange pour ce CNAME).
+5. Le SPA prod utilise `api_host: https://e.hatcast.app` et `ui_host: https://eu.posthog.com`.
+
+**Fallback (hors scope par défaut)** : Worker Cloudflare + proxied orange si le proxy managé échoue (zone hold, etc.) — documenter l’incident, ne pas mélanger avec l’apex `hatcast.app` (orange pour l’app).
+
+#### Build & secrets GitHub
+
+| Secret / variable | Environnement | Rôle |
+|-------------------|---------------|------|
+| `HATCAST_POSTHOG_PROJECT_API_KEY` | **production** (recommandé) | Injectée au build Docker via `inject-google-client-id.mjs` → `environment.posthogApiKey` |
+| *(vide)* | staging, development, local, CI | PostHog **désactivé** (aucun appel réseau) |
+
+Workflow : `.github/workflows/deploy-v2-cloud-run.yml` passe `--build-arg HATCAST_POSTHOG_PROJECT_API_KEY=…` sur l’image unique.
+
+Local optionnel : `HATCAST_POSTHOG_PROJECT_API_KEY` dans `.env` + `./scripts/start-dev.sh --with-push` (régénère `environment.ts`).
+
+#### Recette post-déploiement (AC14)
+
+1. Ouvrir `https://hatcast.app`, se connecter.
+2. DevTools → **Network** : après une action (ex. première dispo sur un événement non-démo), les requêtes d’ingestion vont vers **`https://e.hatcast.app`** (pas `eu.i.posthog.com` directement).
+3. PostHog EU → **Live events** : vérifier `availability_first_submission` ou autre événement FR47.
+
+#### Staging vs prod
+
+Par défaut **prod seule** reçoit la clé. Pour un projet PostHog staging séparé, ajouter le secret sur l’environnement GitHub `staging` et documenter la décision PO.
 
 ## Références
 

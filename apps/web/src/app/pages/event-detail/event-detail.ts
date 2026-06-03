@@ -9,6 +9,8 @@ import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import { resolveNotificationLinkTab } from '../../core/analytics/notification-link-tab'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import {
   type EventDetailTab,
@@ -48,7 +50,10 @@ import { EventDetailDraftBanner } from './event-detail-draft-banner'
 import { EventDetailHeader } from './event-detail-header'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
 import { CompositionApiService } from '../../core/composition/composition-api.service'
-import { computeCompositionLifecycleView } from '../../core/composition/composition-lifecycle'
+import {
+  computeCompositionLifecycleView,
+  computeRawCompositionLifecycle,
+} from '../../core/composition/composition-lifecycle'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { normalizeRoleSlots } from '../../core/events/event-types'
 import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
@@ -77,6 +82,7 @@ import { openEventAnnounceDialog } from '../../shared/share-announce/share-annou
   styleUrls: ['./event-detail.scss', '../../shared/composition/composition-equipe-status-header.scss'],
 })
 export class EventDetail implements OnDestroy, OnInit {
+  private readonly analytics = inject(ProductAnalyticsService)
   private readonly auth = inject(AuthApiService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly participantApi = inject(ParticipantApiService)
@@ -90,6 +96,7 @@ export class EventDetail implements OnDestroy, OnInit {
   private routeSubscription = Subscription.EMPTY
   private querySubscription = Subscription.EMPTY
   private loadRequestId = 0
+  private lastNotificationLinkCaptureKey = ''
 
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('seasonSlug') ?? '')),
@@ -269,6 +276,7 @@ export class EventDetail implements OnDestroy, OnInit {
     const tab = resolveEventDetailTab(params)
     this.activeTab.set(tab)
     this.showConfirmPending.set(params.get('showConfirm') === 'true')
+    this.maybeCaptureNotificationLinkOpened(params)
 
     const tabParam = params.get('tab')
     if (tabParam && !isEventDetailTabParamKnown(tabParam)) {
@@ -461,14 +469,49 @@ export class EventDetail implements OnDestroy, OnInit {
     this.event.set(updated)
   }
 
+  private maybeCaptureNotificationLinkOpened(params: ParamMap): void {
+    const linkTab = resolveNotificationLinkTab(params)
+    if (!linkTab) {
+      return
+    }
+    const ev = this.event()
+    const seasonId = this.seasonId()
+    const troupeId = this.troupeId()
+    if (!ev || !seasonId || !troupeId) {
+      return
+    }
+    const captureKey = `${ev.id}:${linkTab}`
+    if (this.lastNotificationLinkCaptureKey === captureKey) {
+      return
+    }
+    this.lastNotificationLinkCaptureKey = captureKey
+    this.analytics.captureNotificationLinkOpened(
+      this.analytics.eventContext(ev.id, seasonId, troupeId),
+      { link_tab: linkTab },
+    )
+  }
+
   /** Patch event lifecycle fields from composition response — avoids redundant full reload (PERF-001). */
   protected syncCompositionFromEquipe(composition: CompositionResponse): void {
     const ev = this.event()
     if (!ev) {
       return
     }
+    const prevComposition = this.composition()
+    const roleSlots = normalizeRoleSlots(ev.roleSlots)
+    const prevLifecycle = computeRawCompositionLifecycle(prevComposition, roleSlots)
     this.composition.set(composition)
     this.compositionLoaded.set(true)
+    const nextLifecycle = computeRawCompositionLifecycle(composition, roleSlots)
+    if (nextLifecycle === 'complete' && prevLifecycle !== 'complete') {
+      this.analytics.captureCompositionAllConfirmationsReceived(
+        this.analytics.eventContext(ev.id, this.seasonId(), this.troupeId()),
+        {
+          validated_at: composition.validatedAt ?? null,
+          completed_at: new Date().toISOString(),
+        },
+      )
+    }
     const lifecycleView = computeCompositionLifecycleView(
       composition,
       normalizeRoleSlots(ev.roleSlots),
@@ -506,6 +549,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.composition.set(null)
       this.compositionLoaded.set(false)
       this.resetResolvedContext()
+      this.lastNotificationLinkCaptureKey = ''
     }
     if (!troupeSlug || !seasonSlug || !routeSegment) {
       this.loading.set(false)
@@ -575,6 +619,7 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     this.event.set(found)
     this.seasonPermissions.set(permissionsResult.ok && permissionsResult.data ? permissionsResult.data : null)
+    this.maybeCaptureNotificationLinkOpened(this.route.snapshot.queryParamMap)
 
     void this.loadComposition(resolved.season.id, found.id)
 

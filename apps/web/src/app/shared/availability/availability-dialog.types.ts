@@ -12,6 +12,8 @@ export interface AvailabilityDialogData {
   roleSlots: RoleSlots
   initialRoleKeys?: string[] | null
   initialComment?: string | null
+  /** ISO when availability window is open (FR47 — required for first-submission capture). */
+  availabilityOpenedAt?: string | null
 }
 
 export interface AvailabilityDialogResult {
