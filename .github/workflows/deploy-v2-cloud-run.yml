@@ -1,7 +1,7 @@
 # Déploie l’image V2 (Nginx + Angular + Spring) vers Cloud Run.
 # Prérequis : secrets dépôt + secrets par environnement GitHub — voir docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md
 # Branches : v2 → development, staging-v2 → staging. Production is tag-first (vX.Y.Z).
-# Gate E2E smoke : staging-v2 branch + RC tags (vX.Y.Z-rc.N) before staging deploy.
+# Gate E2E smoke : staging-v2 branch push before staging deploy (RC tags = audit only, no CI).
 # La branche git `staging` reste réservée au déploiement V1 (Firebase) — voir DEPLOY_V2_CLOUD_RUN.md.
 # Noms configurables côté scripts : scripts/v2/branches.env (YAML GitHub = seconde source à maintenir).
 name: Deploy V2 (Cloud Run)
@@ -11,9 +11,13 @@ on:
   push:
     branches: [v2, staging-v2]
     tags:
-      - 'v*.*.*'
-      - 'v*.*.*-rc.*'
+      - 'v*'
+    tags-ignore:
+      - '*-rc.*'
     paths:
+      - 'package.json'
+      - 'CHANGELOG.md'
+      - 'CHANGELOG_FR.md'
       - 'apps/web/**'
       - 'services/api/**'
       - 'deploy/v2/**'
@@ -181,69 +185,96 @@ jobs:
           docker push "${{ secrets.GCP_ARTIFACT_REGISTRY }}:latest"
 
       - name: Deploy to Cloud Run
+        env:
+          HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID: ${{ secrets.HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID }}
+          HATCAST_DATASOURCE_URL: ${{ secrets.HATCAST_DATASOURCE_URL }}
+          HATCAST_DATASOURCE_USERNAME: ${{ secrets.HATCAST_DATASOURCE_USERNAME }}
+          HATCAST_DATASOURCE_PASSWORD: ${{ secrets.HATCAST_DATASOURCE_PASSWORD }}
+          HATCAST_CORS_ALLOWED_ORIGINS: ${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          HATCAST_SUPER_ADMIN_EMAILS: ${{ secrets.HATCAST_SUPER_ADMIN_EMAILS }}
+          HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY: ${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}
+          HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY: ${{ secrets.HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY }}
+          HATCAST_WEB_PUSH_VAPID_SUBJECT: ${{ secrets.HATCAST_WEB_PUSH_VAPID_SUBJECT }}
+          HATCAST_NOTIFICATION_EMAIL_ENABLED: ${{ secrets.HATCAST_NOTIFICATION_EMAIL_ENABLED }}
+          HATCAST_NOTIFICATION_EMAIL_FROM: ${{ secrets.HATCAST_NOTIFICATION_EMAIL_FROM }}
+          SPRING_MAIL_HOST: ${{ secrets.SPRING_MAIL_HOST }}
+          SPRING_MAIL_PORT: ${{ secrets.SPRING_MAIL_PORT }}
+          SPRING_MAIL_USERNAME: ${{ secrets.SPRING_MAIL_USERNAME }}
+          SPRING_MAIL_PASSWORD: ${{ secrets.SPRING_MAIL_PASSWORD }}
+          SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH }}
+          SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE }}
+          HATCAST_MIGRATION_API_KEY: ${{ secrets.HATCAST_MIGRATION_API_KEY }}
+          HATCAST_MIGRATION_OPERATOR_EMAIL: ${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}
+          TARGET_ENV: ${{ needs.classify-ref.outputs.target_env }}
         run: |
-          set -e
-          V="HATCAST_SPRING_PROFILE=cloud"
-          V="${V},HATCAST_SERVER_PORT=8081"
-          V="${V},HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID=${{ secrets.HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID }}"
-          V="${V},HATCAST_DATASOURCE_URL=${{ secrets.HATCAST_DATASOURCE_URL }}"
-          V="${V},HATCAST_DATASOURCE_USERNAME=${{ secrets.HATCAST_DATASOURCE_USERNAME }}"
-          V="${V},HATCAST_DATASOURCE_PASSWORD=${{ secrets.HATCAST_DATASOURCE_PASSWORD }}"
-          V="${V},HATCAST_CORS_ALLOWED_ORIGINS=${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}"
-          V="${V},GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}"
-          if [ -n "${{ secrets.HATCAST_SUPER_ADMIN_EMAILS }}" ]; then
-            V="${V},HATCAST_SUPER_ADMIN_EMAILS=${{ secrets.HATCAST_SUPER_ADMIN_EMAILS }}"
+          set -euo pipefail
+          ENV_FILE="${RUNNER_TEMP}/cloudrun-env.yaml"
+          : > "${ENV_FILE}"
+          append_env() {
+            printf '%s=%s\n' "$1" "$2" >> "${ENV_FILE}"
+          }
+          append_env HATCAST_SPRING_PROFILE cloud
+          append_env HATCAST_SERVER_PORT 8081
+          append_env HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID "${HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID}"
+          append_env HATCAST_DATASOURCE_URL "${HATCAST_DATASOURCE_URL}"
+          append_env HATCAST_DATASOURCE_USERNAME "${HATCAST_DATASOURCE_USERNAME}"
+          append_env HATCAST_DATASOURCE_PASSWORD "${HATCAST_DATASOURCE_PASSWORD}"
+          append_env HATCAST_CORS_ALLOWED_ORIGINS "${HATCAST_CORS_ALLOWED_ORIGINS}"
+          append_env GOOGLE_CLOUD_PROJECT "${GCP_PROJECT_ID}"
+          if [ -n "${HATCAST_SUPER_ADMIN_EMAILS}" ]; then
+            append_env HATCAST_SUPER_ADMIN_EMAILS "${HATCAST_SUPER_ADMIN_EMAILS}"
           else
             echo "::warning::HATCAST_SUPER_ADMIN_EMAILS not set — platform admin (join policy, admin routes) disabled until configured (see DEPLOY_V2_CLOUD_RUN.md)"
           fi
-          if [ -n "${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}" ]; then
-            V="${V},HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY=${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}"
+          if [ -n "${HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY}" ]; then
+            append_env HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY "${HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY}"
           else
             echo "::warning::HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY not set — push opt-in on /compte will fail until configured (see DEPLOY_V2_CLOUD_RUN.md)"
           fi
-          if [ -n "${{ secrets.HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY }}" ]; then
-            V="${V},HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY=${{ secrets.HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY }}"
+          if [ -n "${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY}" ]; then
+            append_env HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY "${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY}"
           else
             echo "::warning::HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY not set — server push send (story 8.3) disabled until configured"
           fi
-          if [ -n "${{ secrets.HATCAST_WEB_PUSH_VAPID_SUBJECT }}" ]; then
-            V="${V},HATCAST_WEB_PUSH_VAPID_SUBJECT=${{ secrets.HATCAST_WEB_PUSH_VAPID_SUBJECT }}"
+          if [ -n "${HATCAST_WEB_PUSH_VAPID_SUBJECT}" ]; then
+            append_env HATCAST_WEB_PUSH_VAPID_SUBJECT "${HATCAST_WEB_PUSH_VAPID_SUBJECT}"
           fi
-          if [ -n "${{ secrets.HATCAST_NOTIFICATION_EMAIL_ENABLED }}" ]; then
-            V="${V},HATCAST_NOTIFICATION_EMAIL_ENABLED=${{ secrets.HATCAST_NOTIFICATION_EMAIL_ENABLED }}"
+          if [ -n "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" ]; then
+            append_env HATCAST_NOTIFICATION_EMAIL_ENABLED "${HATCAST_NOTIFICATION_EMAIL_ENABLED}"
           fi
-          if [ -n "${{ secrets.HATCAST_NOTIFICATION_EMAIL_FROM }}" ]; then
-            V="${V},HATCAST_NOTIFICATION_EMAIL_FROM=${{ secrets.HATCAST_NOTIFICATION_EMAIL_FROM }}"
+          if [ -n "${HATCAST_NOTIFICATION_EMAIL_FROM}" ]; then
+            append_env HATCAST_NOTIFICATION_EMAIL_FROM "${HATCAST_NOTIFICATION_EMAIL_FROM}"
           fi
-          if [ -n "${{ secrets.SPRING_MAIL_HOST }}" ]; then
-            V="${V},SPRING_MAIL_HOST=${{ secrets.SPRING_MAIL_HOST }}"
+          if [ -n "${SPRING_MAIL_HOST}" ]; then
+            append_env SPRING_MAIL_HOST "${SPRING_MAIL_HOST}"
           fi
-          if [ -n "${{ secrets.SPRING_MAIL_PORT }}" ]; then
-            V="${V},SPRING_MAIL_PORT=${{ secrets.SPRING_MAIL_PORT }}"
+          if [ -n "${SPRING_MAIL_PORT}" ]; then
+            append_env SPRING_MAIL_PORT "${SPRING_MAIL_PORT}"
           fi
-          if [ -n "${{ secrets.SPRING_MAIL_USERNAME }}" ]; then
-            V="${V},SPRING_MAIL_USERNAME=${{ secrets.SPRING_MAIL_USERNAME }}"
+          if [ -n "${SPRING_MAIL_USERNAME}" ]; then
+            append_env SPRING_MAIL_USERNAME "${SPRING_MAIL_USERNAME}"
           fi
-          if [ -n "${{ secrets.SPRING_MAIL_PASSWORD }}" ]; then
-            V="${V},SPRING_MAIL_PASSWORD=${{ secrets.SPRING_MAIL_PASSWORD }}"
+          if [ -n "${SPRING_MAIL_PASSWORD}" ]; then
+            append_env SPRING_MAIL_PASSWORD "${SPRING_MAIL_PASSWORD}"
           fi
-          if [ -n "${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH }}" ]; then
-            V="${V},SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH }}"
+          if [ -n "${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH}" ]; then
+            append_env SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH "${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH}"
           fi
-          if [ -n "${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE }}" ]; then
-            V="${V},SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=${{ secrets.SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE }}"
+          if [ -n "${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE}" ]; then
+            append_env SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE "${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE}"
           fi
-          if [ "${{ secrets.HATCAST_NOTIFICATION_EMAIL_ENABLED }}" = "true" ]; then
-            if [ -z "${{ secrets.SPRING_MAIL_HOST }}" ] || [ -z "${{ secrets.SPRING_MAIL_USERNAME }}" ] || [ -z "${{ secrets.SPRING_MAIL_PASSWORD }}" ]; then
+          if [ "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" = "true" ]; then
+            if [ -z "${SPRING_MAIL_HOST}" ] || [ -z "${SPRING_MAIL_USERNAME}" ] || [ -z "${SPRING_MAIL_PASSWORD}" ]; then
               echo "::warning::HATCAST_NOTIFICATION_EMAIL_ENABLED=true but SPRING_MAIL_HOST/USERNAME/PASSWORD incomplete — email send will be skipped (see DEPLOY_V2_CLOUD_RUN.md)"
             fi
           fi
-          V="${V},JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0"
-          if [ "${{ needs.classify-ref.outputs.target_env }}" = "staging" ]; then
-            if [ -n "${{ secrets.HATCAST_MIGRATION_API_KEY }}" ] && [ -n "${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}" ]; then
-              V="${V},HATCAST_MIGRATION_API_ENABLED=true"
-              V="${V},HATCAST_MIGRATION_API_KEY=${{ secrets.HATCAST_MIGRATION_API_KEY }}"
-              V="${V},HATCAST_MIGRATION_OPERATOR_EMAIL=${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}"
+          append_env JAVA_TOOL_OPTIONS -XX:MaxRAMPercentage=75.0
+          if [ "${TARGET_ENV}" = "staging" ]; then
+            if [ -n "${HATCAST_MIGRATION_API_KEY}" ] && [ -n "${HATCAST_MIGRATION_OPERATOR_EMAIL}" ]; then
+              append_env HATCAST_MIGRATION_API_ENABLED true
+              append_env HATCAST_MIGRATION_API_KEY "${HATCAST_MIGRATION_API_KEY}"
+              append_env HATCAST_MIGRATION_OPERATOR_EMAIL "${HATCAST_MIGRATION_OPERATOR_EMAIL}"
             else
               echo "::warning::Migration API key not configured — headless migrate:v2:run will not work until HATCAST_MIGRATION_API_KEY and HATCAST_MIGRATION_OPERATOR_EMAIL are set on environment staging"
             fi
@@ -257,7 +288,7 @@ jobs:
             --memory 1Gi \
             --cpu 1 \
             --startup-probe=initialDelaySeconds=0,timeoutSeconds=10,periodSeconds=10,failureThreshold=60,httpGet.path=/,httpGet.port=8080 \
-            --set-env-vars="${V}"
+            --env-vars-file="${ENV_FILE}"
           # --allow-unauthenticated peut échouer à appliquer IAM ; voir DEPLOY_V2_CLOUD_RUN.md §4.1
           gcloud run services add-iam-policy-binding "${SERVICE_NAME}" \
             --region "${GCP_REGION}" \
