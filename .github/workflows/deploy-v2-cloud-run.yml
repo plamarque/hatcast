@@ -1,7 +1,7 @@
 # Déploie l’image V2 (Nginx + Angular + Spring) vers Cloud Run.
 # Prérequis : secrets dépôt + secrets par environnement GitHub — voir docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md
-# Branches : v2 → development, staging-v2 → staging, production-v2 → production (Neon + Cloud Run).
-# Gate E2E smoke (staging-v2 uniquement) : job e2e-smoke avant deploy — pas sur v2 (dev cloud) ni production-v2.
+# Branches : v2 → development, staging-v2 → staging. Production is tag-first (vX.Y.Z).
+# Gate E2E smoke : staging-v2 branch + RC tags (vX.Y.Z-rc.N) before staging deploy.
 # La branche git `staging` reste réservée au déploiement V1 (Firebase) — voir DEPLOY_V2_CLOUD_RUN.md.
 # Noms configurables côté scripts : scripts/v2/branches.env (YAML GitHub = seconde source à maintenir).
 name: Deploy V2 (Cloud Run)
@@ -9,7 +9,10 @@ name: Deploy V2 (Cloud Run)
 on:
   workflow_dispatch:
   push:
-    branches: [v2, staging-v2, production-v2]
+    branches: [v2, staging-v2]
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-rc.*'
     paths:
       - 'apps/web/**'
       - 'services/api/**'
@@ -28,26 +31,44 @@ permissions:
 
 jobs:
   e2e-smoke:
-    if: github.ref_name == 'staging-v2'
+    if: |
+      github.ref_name == 'staging-v2' ||
+      (github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(github.ref_name, '-rc.'))
     uses: ./.github/workflows/e2e-smoke.yml
 
   deploy:
     needs: e2e-smoke
     if: |
       always() &&
-      (github.ref_name != 'staging-v2' || needs.e2e-smoke.result == 'success')
+      (
+        (
+          github.ref_name != 'staging-v2' &&
+          !(github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(github.ref_name, '-rc.'))
+        ) ||
+        needs.e2e-smoke.result == 'success'
+      )
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref_name == 'production-v2' && 'production' || github.ref_name == 'staging-v2' && 'staging' || 'development' }}
+      name: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-rc.') && 'production' || github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(github.ref_name, '-rc.') && 'staging' || github.ref_name == 'staging-v2' && 'staging' || 'development' }}
     env:
-      # Surcharge : variable d’environnement GitHub `GCP_REGION` ou `vars` dépôt (défaut europe-west1)
-      GCP_REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
+      # Defaults: prod tags (vX.Y.Z) -> europe-west1 (custom domain mapping),
+      # v2/staging-v2/rc tags -> europe-west9. Can be overridden by env var GCP_REGION.
+      GCP_REGION: ${{ vars.GCP_REGION || ((github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-rc.')) && 'europe-west1' || 'europe-west9') }}
       IMAGE_TAG: ${{ secrets.GCP_ARTIFACT_REGISTRY }}:${{ github.sha }}
+      RELEASE_REF: ${{ github.ref_name }}
       # Par env : `CLOUD_RUN_SERVICE_NAME` dans l’environnement GitHub ; défauts hatcast-v2 / -staging / -dev
-      SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE_NAME || (github.ref_name == 'production-v2' && 'hatcast-v2' || github.ref_name == 'staging-v2' && 'hatcast-v2-staging' || 'hatcast-v2-dev') }}
+      SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE_NAME || (github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-rc.') && 'hatcast-v2' || github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(github.ref_name, '-rc.') && 'hatcast-v2-staging' || github.ref_name == 'staging-v2' && 'hatcast-v2-staging' || 'hatcast-v2-dev') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Deployment context
+        run: |
+          echo "ref_type=${{ github.ref_type }}"
+          echo "ref_name=${RELEASE_REF}"
+          echo "service=${SERVICE_NAME}"
+          echo "region=${GCP_REGION}"
+          echo "image=${IMAGE_TAG}"
 
       - name: Check required secrets
         run: |
@@ -61,6 +82,14 @@ jobs:
           test -n "${{ secrets.HATCAST_DATASOURCE_USERNAME }}" || (echo "Missing environment secret HATCAST_DATASOURCE_USERNAME" && exit 1)
           test -n "${{ secrets.HATCAST_DATASOURCE_PASSWORD }}" || (echo "Missing environment secret HATCAST_DATASOURCE_PASSWORD" && exit 1)
           test -n "${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}" || (echo "Missing environment secret HATCAST_CORS_ALLOWED_ORIGINS" && exit 1)
+
+      - name: Enforce OPS-8 production invariants
+        if: |
+          github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-rc.')
+        run: |
+          test "${GCP_REGION}" = "europe-west1" || (echo "production tag deploys must use europe-west1 for hatcast.app domain mapping" && exit 1)
+          test "${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}" = "https://hatcast.app" || (echo "production HATCAST_CORS_ALLOWED_ORIGINS must be https://hatcast.app" && exit 1)
+          test -n "${{ secrets.HATCAST_SUPER_ADMIN_EMAILS }}" || (echo "production requires HATCAST_SUPER_ADMIN_EMAILS (comma-separated operator emails — never commit values)" && exit 1)
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -102,6 +131,11 @@ jobs:
           V="${V},HATCAST_DATASOURCE_PASSWORD=${{ secrets.HATCAST_DATASOURCE_PASSWORD }}"
           V="${V},HATCAST_CORS_ALLOWED_ORIGINS=${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}"
           V="${V},GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}"
+          if [ -n "${{ secrets.HATCAST_SUPER_ADMIN_EMAILS }}" ]; then
+            V="${V},HATCAST_SUPER_ADMIN_EMAILS=${{ secrets.HATCAST_SUPER_ADMIN_EMAILS }}"
+          else
+            echo "::warning::HATCAST_SUPER_ADMIN_EMAILS not set — platform admin (join policy, admin routes) disabled until configured (see DEPLOY_V2_CLOUD_RUN.md)"
+          fi
           if [ -n "${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}" ]; then
             V="${V},HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY=${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}"
           else
@@ -145,7 +179,7 @@ jobs:
             fi
           fi
           V="${V},JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0"
-          if [ "${{ github.ref_name }}" = "staging-v2" ]; then
+          if [ "${{ github.ref_name }}" = "staging-v2" ] || [[ "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]]; then
             if [ -n "${{ secrets.HATCAST_MIGRATION_API_KEY }}" ] && [ -n "${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}" ]; then
               V="${V},HATCAST_MIGRATION_API_ENABLED=true"
               V="${V},HATCAST_MIGRATION_API_KEY=${{ secrets.HATCAST_MIGRATION_API_KEY }}"

@@ -1,6 +1,6 @@
 # Workflow Git / déploiement HatCast V2
 
-Guide opérationnel pour le flux **développement local → `v2` (dev Cloud Run) → `staging-v2` (recette) → `production-v2` (prod V2)**. La configuration infra (Neon, secrets GitHub, OAuth) reste dans [DEPLOY_V2_CLOUD_RUN.md](DEPLOY_V2_CLOUD_RUN.md).
+Guide opérationnel pour le flux **développement local → `v2` (dev Cloud Run) → `staging-v2` (recette) → tags semver (`vX.Y.Z-rc.N` puis `vX.Y.Z`)**. La configuration infra (Neon, secrets GitHub, OAuth) reste dans [DEPLOY_V2_CLOUD_RUN.md](DEPLOY_V2_CLOUD_RUN.md).
 
 ## Schéma
 
@@ -12,7 +12,8 @@ flowchart LR
   subgraph git [Git]
     V2[v2]
     STG[staging-v2]
-    PROD[production-v2]
+    RC[vX.Y.Z-rc.N]
+    REL[vX.Y.Z]
   end
   subgraph ci [GitHub Actions]
     CRdev[Cloud Run dev]
@@ -24,8 +25,10 @@ flowchart LR
   V2 -->|promote-to-staging.sh| STG
   STG -->|git push| CRstg
   STG -->|release-staging.sh| STG
-  STG -->|release-production.sh| PROD
-  PROD -->|git push + tag| CRprod
+  STG -->|tag RC| RC
+  RC -->|promote-tag-to-prod.sh| REL
+  RC -->|push tag RC| CRstg
+  REL -->|push tag prod| CRprod
 ```
 
 | Étape | Branche git | Action | CI / service |
@@ -33,7 +36,7 @@ flowchart LR
 | Dev local | — | `./scripts/start-dev.sh` | Neon branche **`local`** (`.env`), pas de push requis |
 | Dev cloud | `v2` | `git push origin v2` | Env GitHub `development` → `hatcast-v2-dev` |
 | Staging | `staging-v2` | `./scripts/v2/promote-to-staging.sh` puis `./scripts/v2/release-staging.sh` | Env `staging` → `hatcast-v2-staging` ; **gate E2E smoke** avant deploy (pas sur `v2` dev cloud) |
-| Production | `production-v2` | `./scripts/v2/release-production.sh` | Env `production` → `hatcast-v2` |
+| Production | Tag `vX.Y.Z` | `./scripts/v2/promote-tag-to-prod.sh --version=X.Y.Z` | Env `production` → `hatcast-v2` |
 
 ## Configuration des branches
 
@@ -43,7 +46,6 @@ Fichier central (scripts) : [`scripts/v2/branches.env`](../../../scripts/v2/bran
 |----------|--------|
 | `HATCAST_V2_BRANCH_DEV` | `v2` |
 | `HATCAST_V2_BRANCH_STAGING` | `staging-v2` |
-| `HATCAST_V2_BRANCH_PRODUCTION` | `production-v2` |
 
 **Renommer une branche** (cutover futur) :
 
@@ -72,6 +74,7 @@ git push origin v2
 - Déclenche le workflow **Deploy V2 (Cloud Run)** uniquement si les fichiers modifiés correspondent aux `paths` du workflow (`apps/web/`, `services/api/`, `deploy/v2/`, `Dockerfile`, etc.). Un push qui ne touche que `docs/` ou `scripts/` **ne redéploie pas** — utiliser **workflow_dispatch** dans l’onglet Actions pour forcer un deploy si besoin.
 - Environnement GitHub : **`development`**
 - Service typique : **`hatcast-v2-dev`**
+- Région Cloud Run par défaut : **`europe-west9`** (override possible via variable d’environnement GitHub `GCP_REGION`)
 - Base Neon : branche **`development`** (secrets `HATCAST_DATASOURCE_*` de l’env GitHub — distincte de la branche **`local`** du `.env` poste)
 - Suivi : onglet **Actions** du dépôt GitHub
 
@@ -140,41 +143,55 @@ Options : `--patch`, `--minor`, `--major`, `--version=X.Y.Z`, `--dry-run`, `--he
 5. Met à jour `CHANGELOG.md` (et `CHANGELOG_FR.md` si présent) depuis le tag RC précédent ou le dernier tag release
 6. Commit `chore(v2): release staging vX.Y.Z-rc.N`, tag annoté `vX.Y.Z-rc.N`, push **branche + tag**
 
-Le **déploiement** Cloud Run staging reste déclenché par le **push sur `staging-v2`** (workflow existant). Le tag RC sert de piste d’audit immuable ; le déploiement sur tag seul est **OPS-5**.
+Le **déploiement** Cloud Run staging est déclenché soit par le **push sur `staging-v2`**, soit par le **push d’un tag RC** `vX.Y.Z-rc.N`.
 
 ### Flux opérateur staging
 
 ```
 v2 → promote-to-staging.sh → release-staging.sh → tag vX.Y.Z-rc.N
-→ push staging-v2 → CI deploy + smoke E2E → recette
-→ (OPS-5) promote même semver en prod
+→ push staging-v2/tag RC → CI deploy + smoke E2E → recette
+→ promote-tag-to-prod.sh --version=X.Y.Z
 ```
 
-## Release production V2
+## Release production V2 (tag-first OPS-5)
 
-Script : [`scripts/v2/release-production.sh`](../../../scripts/v2/release-production.sh) — **à lancer depuis `staging-v2`**.
+Script : [`scripts/v2/promote-tag-to-prod.sh`](../../../scripts/v2/promote-tag-to-prod.sh) — à lancer après validation d’un RC staging.
 
 ```bash
-git checkout staging-v2
-git pull origin staging-v2
+# Simulation
+./scripts/v2/promote-tag-to-prod.sh --dry-run --version=2.0.0
 
-./scripts/v2/release-production.sh --dry-run --patch   # simulation
-./scripts/v2/release-production.sh --patch             # release réelle
+# Réel (promote le dernier v2.0.0-rc.N vers v2.0.0)
+./scripts/v2/promote-tag-to-prod.sh --version=2.0.0
+
+# Variante avec RC explicite
+./scripts/v2/promote-tag-to-prod.sh --version=2.0.0 --rc-tag=v2.0.0-rc.3
 ```
 
-Options : `--major`, `--minor`, `--patch` (défaut), `--version=X.Y.Z`, `--dry-run`, `--help`.
+Options : `--version=X.Y.Z` (obligatoire), `--rc-tag=vX.Y.Z-rc.N` (optionnel), `--dry-run`, `--force`, `--help`.
 
 Étapes (réel) :
 
-1. Détection **hotfixes** : commits sur `origin/production-v2` absents de `staging-v2` → menu rebase / continuer / stop
-2. Version de référence lue sur **`production-v2`** (`apps/web/public/version.txt`, sinon `package.json` racine)
-3. Bump **identique** dans `package.json` (racine) et `apps/web/package.json` — **échec si divergence**
-4. Écrit `apps/web/public/version.txt`, met à jour `CHANGELOG.md` (et `CHANGELOG_FR.md` si présent)
-5. Commit + push `staging-v2`
-6. Merge **no-ff** vers `production-v2`, tag `vX.Y.Z`, push branche + tag
-7. Rebase `staging-v2` sur `production-v2` + push
+1. Vérifie la version cible et récupère les tags distants (`git fetch --tags`).
+2. Résout le tag RC source (`vX.Y.Z-rc.N`) et son commit.
+3. Vérifie qu’un éventuel tag prod `vX.Y.Z` déjà présent pointe le même commit (sinon fail-fast).
+4. Crée le tag annoté `vX.Y.Z` sur le commit RC source (si absent).
+5. Push du tag prod vers `origin`.
+6. Le workflow CI déploie la prod depuis le tag `vX.Y.Z` (pas besoin de branche de production dédiée).
 
-Le **déploiement** Cloud Run prod est déclenché par le push sur `production-v2` (pas par le script).
+`release-production.sh` reste disponible en **flux legacy/transitoire**, mais le flux recommandé est désormais **tag-first**.
+
+### Invariants OPS-8 (`hatcast.app`)
+
+Le workflow CI applique des garde-fous explicites sur la cible **production** (tag `vX.Y.Z`) :
+
+- `GCP_REGION` doit être `europe-west1` (domain mapping natif Cloud Run pour `hatcast.app`)
+- `HATCAST_CORS_ALLOWED_ORIGINS` doit être exactement `https://hatcast.app`
+
+Par défaut, sans override explicite :
+
+- tag `vX.Y.Z` (prod) -> `europe-west1`
+- `staging-v2` et `v2` -> `europe-west9`
 
 ### Versioning
 
@@ -188,7 +205,7 @@ Les entrées `CHANGELOG.md` racine sont partagées avec le monorepo (V1 + V2) ; 
 ## Rollback
 
 - **Cloud Run** : redéployer une révision précédente dans la console GCP, ou re-déployer une image taguée par un commit/tag Git antérieur via `workflow_dispatch` sur le workflow V2.
-- **Git** : ne pas réécrire l’historique de `production-v2` sans accord d’équipe ; préférer un commit de revert sur `staging-v2` puis nouvelle release.
+- **Git** : ne pas réécrire l’historique des tags de release ; corriger sur `staging-v2` puis republier un nouveau tag.
 
 ## Checklist de test (avant cutover utilisateurs)
 
@@ -211,33 +228,21 @@ Ordre recommandé **sans impacter la prod V1** (`main` / Firebase) :
 
 ### 3. Release (simulation)
 
-- [ ] Sur `staging-v2` : `./scripts/v2/release-production.sh --dry-run --patch`
-- [ ] Vérifier merges/tags simulés et versions bump dans le sandbox `.dry-run-sandbox-v2`
+- [ ] Sur `staging-v2` : `./scripts/v2/promote-tag-to-prod.sh --dry-run --version=2.0.0`
+- [ ] Vérifier que la simulation cible bien le dernier tag `v2.0.0-rc.N`
 
 ### 4. Production (première fois)
 
-- [ ] Branche `production-v2` créée et poussée sur `origin`
-- [ ] **Settings → Environments → production → Deployment branches** : autoriser `production-v2` (pas `main` pour la CI V2)
 - [ ] Secrets Neon/OAuth/CORS **production** renseignés
-- [ ] `./scripts/v2/release-production.sh --patch` (réel)
+- [ ] `./scripts/v2/promote-tag-to-prod.sh --version=2.0.0` (réel)
 - [ ] Tag `v*` présent ; deploy Cloud Run prod vert
 - [ ] Smoke test prod **sans** bascule DNS / utilisateurs tant que le cutover n’est pas décidé
 
 ## Actions manuelles GitHub (hors dépôt)
 
-1. **Créer `production-v2`** (si absente) :
-
-   ```bash
-   git fetch origin
-   git checkout staging-v2
-   git pull origin staging-v2
-   git checkout -b production-v2
-   git push -u origin production-v2
-   ```
-
-2. **Environments → production → Deployment branches** : selected branch **`production-v2`**
-3. **Environments → staging → Deployment branches** : **`staging-v2`** (pas `staging` V1)
-4. **Environments → development → Deployment branches** : **`v2`**
+1. **Environments → staging → Deployment branches** : **`staging-v2`** (pas `staging` V1)
+2. **Environments → development → Deployment branches** : **`v2`**
+3. **Environments → production** : vérifier permissions/tags policy compatibles avec les pushes de tags `v*.*.*` (flux tag-first)
 
 ## Références
 

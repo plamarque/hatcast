@@ -50,13 +50,13 @@ L’URL d’image sera du type :
 
 Créer **trois environnements** dans **Settings > Environments** : `development`, `staging`, `production`.
 
-**Mapping branche git → environnement → service Cloud Run (recommandé)** :
+**Mapping trigger git → environnement → service Cloud Run (recommandé)** :
 
-| Branche git | Environnement GitHub | Branche Neon (voir §5) | Exemple de nom de service Cloud Run |
+| Trigger git | Environnement GitHub | Branche Neon (voir §5) | Exemple de nom de service Cloud Run |
 |-------------|----------------------|-------------------------|-------------------------------------|
-| `v2` | `development` | `development` ou `dev` | `hatcast-v2-dev` |
-| `staging-v2` | `staging` | `staging` | `hatcast-v2-staging` |
-| `production-v2` | `production` | branche **primary** (prod) | `hatcast-v2` |
+| `v2` (push) | `development` | `development` ou `dev` | `hatcast-v2-dev` |
+| `staging-v2` (push) + `vX.Y.Z-rc.N` (tag RC) | `staging` | `staging` | `hatcast-v2-staging` |
+| `vX.Y.Z` (tag prod) | `production` | branche **primary** (prod) | `hatcast-v2` |
 
 La branche git **`staging`** reste dédiée au déploiement **V1** (Firebase Hosting, workflow [`.github/workflows/deploy-staging.yml`](../../.github/workflows/deploy-staging.yml)). Pour la V2, utiliser **`staging-v2`** : même environnement GitHub `staging` et mêmes secrets, sans déclencher ni mélanger les pipelines legacy.
 
@@ -66,11 +66,12 @@ Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflow
 
 Sur **`staging-v2` uniquement**, le workflow de déploiement exécute d’abord le smoke Playwright ([`.github/workflows/e2e-smoke.yml`](../../.github/workflows/e2e-smoke.yml), profil API `e2e`, recette 3.19 S2–S5). Le job **deploy** ne démarre que si ce smoke est **vert**.
 
-| Branche | Cloud Run cible | Gate E2E avant deploy |
+| Trigger | Cloud Run cible | Gate E2E avant deploy |
 |---------|-----------------|------------------------|
-| `v2` | `hatcast-v2-dev` (development) | **Non** |
-| `staging-v2` | `hatcast-v2-staging` | **Oui** |
-| `production-v2` | `hatcast-v2` (production) | **Non** |
+| `v2` (push) | `hatcast-v2-dev` (development) | **Non** |
+| `staging-v2` (push) | `hatcast-v2-staging` | **Oui** |
+| `vX.Y.Z-rc.N` (tag RC) | `hatcast-v2-staging` | **Oui** |
+| `vX.Y.Z` (tag prod) | `hatcast-v2` (production) | **Non** |
 
 Le même workflow `e2e-smoke.yml` reste aussi déclenché en **standalone** sur les PR et les push vers `v2` (palier 2 CI, sans bloquer le deploy dev cloud).
 
@@ -130,17 +131,17 @@ Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (
 | `HATCAST_DATASOURCE_USERNAME` | Utilisateur Neon |
 | `HATCAST_DATASOURCE_PASSWORD` | Mot de passe Neon |
 | `HATCAST_CORS_ALLOWED_ORIGINS` | Origine **exacte** du service Cloud Run **de cet env** (schéma `https://`, sans chemin), ex. `https://hatcast-v2-dev-xxxxx-ew.a.run.app` |
-| `HATCAST_SUPER_ADMIN_EMAILS` | Emails séparés par des virgules — admin plateforme (menu Membres, join policy, bootstrap Démo). **Prod/staging :** inclure au minimum `patrice.lamarque@gmail.com` ; `impropick@gmail.com` optionnel (ADR-0015). Ne pas committer les valeurs. |
+| `HATCAST_SUPER_ADMIN_EMAILS` | Emails opérateurs séparés par des virgules — admin plateforme (menu Membres, join policy, routes `/v1/admin/*`). **Obligatoire** sur l’environnement GitHub **`production`** (gate CI tag `vX.Y.Z`). Injecté sur Cloud Run par le workflow ; **ne jamais** committer les adresses dans le dépôt. |
 | `HATCAST_MIGRATION_API_KEY` | **Staging uniquement** — clé longue aléatoire pour l’orchestrateur `migrate:v2:run` ([ADR-0017](../adr/0017-v2-migration-api-key.md)). Jamais activé en prod sans décision explicite. |
 | `HATCAST_MIGRATION_OPERATOR_EMAIL` | **Staging uniquement** — email d’un `UserEntity` existant (super-admin plateforme) utilisé comme opérateur CLI. Pair avec `HATCAST_MIGRATION_API_KEY`. |
 | `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` | Clé VAPID **publique** Web Push (opt-in navigateur, story 8.1). Même valeur que V1 (`legacy/src/services/configService.js`). Exposée au SPA via `GET /v1/config/public`. **Recommandé** dans les trois environnements GitHub (`development`, `staging`, `production`). |
 | `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` | Clé VAPID **privée** — **story 8.3** (envoi `web-push`). Non présente dans le dépôt V1 (FCM Admin SDK). Récupérer dans **Firebase Console → Project settings → Cloud Messaging → Web configuration** (paire associée à la clé publique). Ne pas committer. |
 | `HATCAST_WEB_PUSH_VAPID_SUBJECT` | (Optionnel) Claim VAPID `sub` — défaut `mailto:contact@hatcast.app` dans `application.yml`. |
 | `HATCAST_NOTIFICATION_EMAIL_ENABLED` | `true` ou `false` — active l’envoi email story **8.3** (défaut API : `false`). |
-| `HATCAST_NOTIFICATION_EMAIL_FROM` | En-tête From, ex. `HatCast <impropick@gmail.com>` (parité V1 prod). Pas de guillemets dans l’UI GitHub Secrets. |
+| `HATCAST_NOTIFICATION_EMAIL_FROM` | En-tête From, ex. `HatCast <noreply@hatcast.app>`. Pas de guillemets dans l’UI GitHub Secrets. |
 | `SPRING_MAIL_HOST` | Hôte SMTP, ex. `smtp.gmail.com`. Requis si `HATCAST_NOTIFICATION_EMAIL_ENABLED=true`. |
 | `SPRING_MAIL_PORT` | Port SMTP, ex. `587`. |
-| `SPRING_MAIL_USERNAME` | Utilisateur SMTP, ex. `impropick@gmail.com`. |
+| `SPRING_MAIL_USERNAME` | Utilisateur SMTP (adresse configurée chez le fournisseur). |
 | `SPRING_MAIL_PASSWORD` | Mot de passe d’application Google (16 caractères ; espaces affichés par Google acceptés tels quels dans le secret). |
 | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` pour Gmail. |
 | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` pour Gmail sur port 587. |
@@ -152,10 +153,10 @@ Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflow
 | Secret | Valeur type |
 |--------|-------------|
 | `HATCAST_NOTIFICATION_EMAIL_ENABLED` | `true` |
-| `HATCAST_NOTIFICATION_EMAIL_FROM` | `HatCast <impropick@gmail.com>` |
+| `HATCAST_NOTIFICATION_EMAIL_FROM` | `HatCast <noreply@example.com>` (votre expéditeur prod) |
 | `SPRING_MAIL_HOST` | `smtp.gmail.com` |
 | `SPRING_MAIL_PORT` | `587` |
-| `SPRING_MAIL_USERNAME` | `impropick@gmail.com` |
+| `SPRING_MAIL_USERNAME` | Compte SMTP configuré |
 | `SPRING_MAIL_PASSWORD` | App Password Google (collé tel quel, espaces OK) |
 | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` |
 | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` |
@@ -237,7 +238,7 @@ Voir [V2_GOOGLE_OAUTH_SETUP.md](V2_GOOGLE_OAUTH_SETUP.md) pour le détail multi-
 ## 5. PostgreSQL sur Neon (un projet, quatre branches)
 
 - Créer un **projet Neon** ([console](https://console.neon.tech)).
-- **Branche primary** : données de **production** (alignée avec les déploiements depuis `production-v2`).
+- **Branche primary** : données de **production** (alignée avec les déploiements depuis le tag prod `vX.Y.Z`).
 - Branches enfant (depuis la primary ou selon votre politique Neon) :
   - **`staging`** — recette V2 (`staging-v2` → Cloud Run staging).
   - **`development`** — **cloud dev seulement** (`v2` → `hatcast-v2-dev`, secrets GitHub `development`). Profil Spring **`cloud`** : Flyway **`db/migration` uniquement** (ADR-0014) — pas de seeds Les Improbots.
@@ -349,7 +350,7 @@ Souvent **Nginx** est prêt avant que **Spring** n’écoute sur `HATCAST_SERVER
 
 ## 7. Prod custom domain `hatcast.app` (OPS-8, V2.0.0)
 
-**Scope :** production uniquement (`hatcast-v2`, environnement GitHub **`production`**, branche **`production-v2`**). **Staging** (`hatcast-v2-staging`) et **dev cloud** (`hatcast-v2-dev`) restent en **`europe-west9`** avec leurs URLs `*.run.app` — pas de migration.
+**Scope :** production uniquement (`hatcast-v2`, environnement GitHub **`production`**, trigger tag **`vX.Y.Z`**). **Staging** (`hatcast-v2-staging`) et **dev cloud** (`hatcast-v2-dev`) restent en **`europe-west9`** avec leurs URLs `*.run.app` — pas de migration.
 
 **Registrar / DNS :** **`hatcast.app`** chez **Cloudflare** (Registrar + zone DNS). **Prod Cloud Run :** région **`europe-west1`** (domain mapping natif — **non** disponible en `europe-west9`).
 

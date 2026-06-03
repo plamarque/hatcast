@@ -443,3 +443,7 @@
 ## Deferred from: code review of ops-4-release-staging-tag-rc.md (2026-06-03)
 
 - Story tracking inconsistency: `PLAN.md` marks OPS-4 as `done` while `_bmad-output/implementation-artifacts/sprint-status.yaml` keeps `ops-4-release-staging-tag-rc: review`; keep sprint/status synchronization as a dedicated closure step.
+
+## Deferred from: code review of ops-5-prod-deploy-from-semver-tag.md (2026-06-03)
+
+- Fragilite preexistante de la construction `--set-env-vars` CSV dans le workflow deploy Cloud Run (valeurs contenant `,` ou `=`), non introduite par OPS-5; a traiter dans un hardening CI/CD dedie.

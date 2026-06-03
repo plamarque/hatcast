@@ -164,7 +164,7 @@ Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [
 ### V2 (Cloud Run — branche `staging-v2`)
 
 - **Promotion staging :** `./scripts/v2/promote-to-staging.sh [--dry-run] [--ff-only]`
-- **Release production :** depuis `staging-v2`, `./scripts/v2/release-production.sh [--dry-run] [--patch|--minor|--major|--version=X.Y.Z]`
+- **Release production (tag-first) :** `./scripts/v2/promote-tag-to-prod.sh --version=X.Y.Z [--rc-tag=vX.Y.Z-rc.N] [--dry-run]`
 - Guide : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md)
 
 ---

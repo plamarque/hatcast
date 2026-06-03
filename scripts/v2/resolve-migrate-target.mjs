@@ -88,7 +88,7 @@ export function resolveMigrateTarget(target, env = process.env) {
   const deployBranches = {
     development: env.HATCAST_V2_BRANCH_DEV || 'v2',
     staging: env.HATCAST_V2_BRANCH_STAGING || 'staging-v2',
-    production: env.HATCAST_V2_BRANCH_PRODUCTION || 'production-v2',
+    production: env.HATCAST_V2_PRODUCTION_RELEASE_REF || 'tag:vX.Y.Z',
   }
 
   /** Label passé à migrate:malice:load (--target) */
