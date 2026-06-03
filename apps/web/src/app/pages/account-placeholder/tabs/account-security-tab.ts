@@ -46,7 +46,8 @@ export class AccountSecurityTab implements OnInit {
   }
 
   protected openChangeEmailDialog(): void {
-    const email = this.ctx.user()?.email?.trim()
+    const user = this.ctx.user()
+    const email = user?.email?.trim()
     if (!email) {
       this.snack.open('Adresse e-mail non disponible. Veuillez vous reconnecter.', 'OK', {
         duration: 8000,
@@ -56,7 +57,11 @@ export class AccountSecurityTab implements OnInit {
 
     this.dialog.open(AccountChangeEmailDialog, {
       width: 'min(100vw - 2rem, 28rem)',
-      data: { currentEmail: email } satisfies AccountChangeEmailDialogData,
+      panelClass: 'account-security-dialog',
+      data: {
+        currentEmail: email,
+        hasGoogleAccount: user?.hasGoogleAccount === true,
+      } satisfies AccountChangeEmailDialogData,
     })
   }
 
@@ -72,6 +77,7 @@ export class AccountSecurityTab implements OnInit {
 
     this.dialog.open(AccountChangePasswordDialog, {
       width: 'min(100vw - 2rem, 28rem)',
+      panelClass: 'account-security-dialog',
       data: {
         hasPasswordProvider: this.hasPasswordProvider(),
         accountEmail: email,

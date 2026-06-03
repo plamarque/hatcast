@@ -85,6 +85,14 @@ export function userMessageForRequiresRecentLogin(): string {
   return 'Veuillez vous reconnecter pour modifier votre email'
 }
 
+export function userMessageForMissingFirebaseConfig(): string {
+  return 'Identity Platform n’est pas configuré sur cette instance (clés Firebase manquantes).'
+}
+
+export function userMessageForMissingFirebaseSession(): string {
+  return 'Votre session Identity Platform a expiré. Reconnectez-vous pour modifier votre adresse e-mail.'
+}
+
 /** Demande de changement d’e-mail (verifyBeforeUpdateEmail) — messages sûrs (NFR-S1). */
 export function userMessageForEmailUpdateRequest(code = ''): string {
   switch (code) {

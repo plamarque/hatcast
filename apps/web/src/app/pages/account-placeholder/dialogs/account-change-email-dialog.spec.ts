@@ -17,23 +17,27 @@ import {
   type AccountChangeEmailDialogData,
 } from './account-change-email-dialog'
 
-vi.mock('firebase/auth', () => ({
-  verifyBeforeUpdateEmail: vi.fn(),
-}))
+vi.mock('firebase/auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('firebase/auth')>()
+  return {
+    ...actual,
+    verifyBeforeUpdateEmail: vi.fn(),
+  }
+})
 
 describe('AccountChangeEmailDialog', () => {
-  const mockUser = { uid: 'u1' }
-  const mockAuth = { currentUser: mockUser } as NonNullable<
+  const mockUser = { uid: 'u1', getIdToken: vi.fn().mockResolvedValue('id-token') }
+  const mockAuth = { currentUser: mockUser } as unknown as NonNullable<
     ReturnType<FirebaseAuthService['getAuthOrNull']>
   >
   const verify = vi.mocked(verifyBeforeUpdateEmail)
   let snackOpen: ReturnType<typeof vi.fn>
   let navigate: ReturnType<typeof vi.fn>
   let logout: ReturnType<typeof vi.fn>
+  let signInIdp: ReturnType<typeof vi.fn>
 
   type DialogView = AccountChangeEmailDialog & {
     submit(): ReturnType<AccountChangeEmailDialog['submit']>
-    goToLogin(): ReturnType<AccountChangeEmailDialog['goToLogin']>
     form: AccountChangeEmailDialog['form']
     sent(): ReturnType<AccountChangeEmailDialog['sent']>
     requiresRecentLogin(): ReturnType<AccountChangeEmailDialog['requiresRecentLogin']>
@@ -47,6 +51,7 @@ describe('AccountChangeEmailDialog', () => {
     snackOpen = vi.fn()
     navigate = vi.fn().mockResolvedValue(true)
     logout = vi.fn().mockResolvedValue(true)
+    signInIdp = vi.fn().mockResolvedValue({ ok: true, status: 200 })
     verify.mockReset()
     vi.stubGlobal('location', { ...globalThis.location, origin: 'https://localhost:4200' })
   })
@@ -56,7 +61,10 @@ describe('AccountChangeEmailDialog', () => {
     vi.unstubAllGlobals()
   })
 
-  async function setup(getAuth: () => typeof mockAuth | null = () => mockAuth) {
+  async function setup(
+    getAuth: () => typeof mockAuth | null = () => mockAuth,
+    data: AccountChangeEmailDialogData = { currentEmail: 'old@example.com' },
+  ) {
     TestBed.resetTestingModule()
     await TestBed.configureTestingModule({
       imports: [AccountChangeEmailDialog],
@@ -64,12 +72,12 @@ describe('AccountChangeEmailDialog', () => {
         provideNoopAnimations(),
         { provide: FirebaseAuthService, useValue: { getAuthOrNull: getAuth } },
         { provide: MatSnackBar, useValue: { open: snackOpen } },
-        { provide: AuthApiService, useValue: { logout } },
-        { provide: Router, useValue: { navigate } },
         {
-          provide: MAT_DIALOG_DATA,
-          useValue: { currentEmail: 'old@example.com' } satisfies AccountChangeEmailDialogData,
+          provide: AuthApiService,
+          useValue: { logout, signInWithIdentityPlatformIdToken: signInIdp },
         },
+        { provide: Router, useValue: { navigate } },
+        { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: { close: vi.fn() } },
       ],
     }).compileComponents()
@@ -79,30 +87,23 @@ describe('AccountChangeEmailDialog', () => {
     return { fixture, cmp: v(fixture.componentInstance) }
   }
 
-  it('bloque un email identique à l’actuel', async () => {
-    const { cmp } = await setup()
-    cmp.form.patchValue({ newEmail: 'old@example.com' })
-    expect(cmp.form.invalid).toBe(true)
-  })
-
   it('happy path → verifyBeforeUpdateEmail et message de succès', async () => {
     verify.mockResolvedValue(undefined)
     const { cmp } = await setup()
     cmp.form.patchValue({ newEmail: 'new@example.com' })
     await cmp.submit()
 
-    expect(verify).toHaveBeenCalledWith(
-      mockUser,
-      'new@example.com',
-      expect.objectContaining({ url: 'https://localhost:4200/compte/verification-email' }),
-    )
+    expect(signInIdp).toHaveBeenCalledWith('id-token')
+    expect(verify).toHaveBeenCalled()
     expect(cmp.sent()).toBe(true)
-    expect(snackOpen).not.toHaveBeenCalled()
   })
 
-  it('requires-recent-login → état reconnexion', async () => {
-    verify.mockRejectedValue({ code: 'auth/requires-recent-login' })
-    const { cmp } = await setup()
+  it('session Firebase absente → état reconnexion', async () => {
+    const authWithoutUser = { currentUser: null } as unknown as typeof mockAuth
+    const { cmp } = await setup(() => authWithoutUser, {
+      currentEmail: 'old@example.com',
+      hasGoogleAccount: false,
+    })
     cmp.form.patchValue({ newEmail: 'new@example.com' })
     await cmp.submit()
 

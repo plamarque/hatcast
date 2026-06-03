@@ -1,3 +1,7 @@
+## Deferred from: code review of 1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes.md (2026-06-03)
+
+- Ligne « Supprimer mon compte » activée dans `account-security-tab` — AC 1.6 exigeait disabled jusqu’à 1.7 ; travail 1.7 déjà sur la branche (`AccountDeleteDialog`). À valider dans la revue 1.7.
+
 ## Deferred from: code review of story 1.2b (2026-06-03)
 
 - Duplication GSI Login/Signup (~140 LOC) — extraction optionnelle non obligatoire par story 1.2b.

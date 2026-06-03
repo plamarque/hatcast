@@ -92,7 +92,7 @@ describe('AccountChangePasswordDialog', () => {
 
     expect(send).toHaveBeenCalledWith(mockAuth, 'user@test.com', {
       url: 'https://localhost:4200/reinitialiser-mot-de-passe',
-      handleCodeInApp: false,
+      handleCodeInApp: true,
     })
     expect(cmp.sent()).toBe(true)
   })

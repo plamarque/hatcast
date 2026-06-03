@@ -1,0 +1,67 @@
+.account-security-dialog .mat-mdc-dialog-surface {
+  border-radius: 1rem;
+}
+
+.account-security-dialog__intro {
+  margin: 0 0 1rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 88%, transparent);
+}
+
+.account-security-dialog__current {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 70%, transparent);
+}
+
+.account-security-dialog__current-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.account-security-dialog__current-value {
+  display: block;
+  word-break: break-all;
+}
+
+.account-security-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-security-dialog__field {
+  width: 100%;
+}
+
+.account-security-dialog__message {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.account-security-dialog__help {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+}
+
+.account-security-dialog__actions {
+  gap: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .account-security-dialog__actions {
+    flex-wrap: wrap;
+  }
+
+  .account-security-dialog__actions button {
+    min-height: 3rem;
+  }
+}

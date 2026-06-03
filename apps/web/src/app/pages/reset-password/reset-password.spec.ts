@@ -116,9 +116,9 @@ describe('ResetPassword', () => {
     expect(verify).not.toHaveBeenCalled()
   })
 
-  it('passe en missing si oobCode est absent', async () => {
+  it('passe en reconnect si oobCode est absent', async () => {
     const { cmp } = await setupComponent({})
-    expect(cmp.phase()).toBe('missing')
+    expect(cmp.phase()).toBe('reconnect')
     expect(verify).not.toHaveBeenCalled()
   })
 

@@ -59,6 +59,20 @@ so that I keep my credentials up to date — including a **backup password** if 
 - [x] **AC 7 — Docs** — Short note in OpenAPI auth descriptions (optional) ; no new REST mutations.
 - [x] **AC 8 — Tests** — Update [`account-placeholder.spec.ts`](../../apps/web/src/app/pages/account-placeholder/account-placeholder.spec.ts) (enabled buttons, dialog open, **Google user sees enabled password row** with « Définir » label + hint) ; unit tests for new dialogs with mocked `firebase/auth` (Vitest pattern from `forgot-password.spec.ts`) ; run `npm run test -w @hatcast/web -- --watch=false`.
 
+### Review Findings
+
+- [ ] [Review][Decision] `handleCodeInApp: true` vs AC 5 (`false`) — Story AC 5 and 1.3 baseline use `handleCodeInApp: false` ; implementation centralizes `passwordResetEmailSettings()` / `verifyBeforeUpdateEmailSettings()` with `handleCodeInApp: true` (also changes `/connexion` forgot-password). Confirm whether in-app handling on `/reinitialiser-mot-de-passe` and `/compte/verification-email` is intentional ; if not, restore `false` for password reset and keep `true` only for email verification if needed.
+
+- [ ] [Review][Patch] Faux succès sans `oobCode` sur `/compte/verification-email` [`account-email-verification.ts:44-51`] — When `oobCode` is absent, `syncHatcastSessionFromFirebase` + `finishSuccess()` runs for any logged-in user, showing « Adresse e-mail mise à jour » without applying a code. Require `oobCode` or a verified post-redirect signal before success.
+
+- [ ] [Review][Patch] `sendPasswordResetEmail` n’utilise pas `auth.currentUser.email` [`account-change-password-dialog.ts:61-75`] — AC 5 requires `currentUser.email` ; dialog sends `data.accountEmail` from HatCast session only. Prefer `auth.currentUser?.email?.trim() ?? data.accountEmail` after session guard.
+
+- [ ] [Review][Patch] Libellé mot de passe pas rafraîchi après définition [`account-security-tab.ts:37-41`] — `hasPasswordProvider` is set once in `ngOnInit`. After user completes reset email flow and returns without full reload, row may still show « Définir un mot de passe ». Refresh signal on dialog close or `onAuthStateChanged`.
+
+- [ ] [Review][Patch] Re-auth Google silencieuse [`account-change-email-dialog.ts:99-104`] — `ensureFirebaseCurrentUser` returns `null` on popup failure/block without snackbar ; user only sees `requiresRecentLogin` UI. Surface a distinct message when popup/reauth fails.
+
+- [x] [Review][Defer] Ligne « Supprimer mon compte » activée [`account-security-tab.html:39-47`] — AC 1 (1.6) requires disabled until 1.7 ; branch includes story 1.7 work (`AccountDeleteDialog`). Validate in 1.7 review, not 1.6 patch scope.
+
 ---
 
 ## Dev Notes

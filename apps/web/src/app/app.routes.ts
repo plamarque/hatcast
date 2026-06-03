@@ -49,6 +49,7 @@ export const routes: Routes = [
   { path: 'inscription', component: Signup },
   { path: 'mot-de-passe-oublie', component: ForgotPassword },
   { path: 'reinitialiser-mot-de-passe', component: ResetPassword },
+  { path: 'compte/verification-email', component: AccountEmailVerification },
   {
     path: '',
     component: MemberShell,
@@ -56,7 +57,6 @@ export const routes: Routes = [
       { path: 'accueil', component: MemberHomeTodo },
       { path: 'agenda', component: UserAgenda },
       { path: 'membre/:userSlug', component: MemberSeasonGlance },
-      { path: 'compte/verification-email', component: AccountEmailVerification },
       {
         path: 'compte',
         component: AccountPlaceholder,

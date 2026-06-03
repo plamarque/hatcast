@@ -1,28 +1,71 @@
 .account-email-verification {
   display: flex;
   justify-content: center;
-  padding: 2rem 1rem;
-  min-height: 40vh;
+  align-items: center;
+  min-height: min(100vh - 6rem, 32rem);
+  padding: 1.5rem 1rem;
 }
 
 .account-email-verification__card {
-  width: min(100%, 28rem);
+  width: min(100%, 26rem);
 }
 
-.account-email-verification__center {
+.account-email-verification__body {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.5rem 1.25rem 1.25rem;
+}
+
+.account-email-verification__body--center {
   align-items: center;
-  gap: 1rem;
-  padding: 2rem 1rem;
   text-align: center;
+  padding-block: 2rem;
 }
 
-.account-email-verification mat-card-content p {
-  margin: 0 0 1rem;
-  line-height: 1.5;
+.account-email-verification__icon {
+  font-size: 2rem;
+  width: 2rem;
+  height: 2rem;
+  color: var(--mat-sys-primary);
 }
 
-.account-email-verification button {
+.account-email-verification__icon--ok {
+  color: var(--mat-sys-tertiary, var(--mat-sys-primary));
+}
+
+.account-email-verification__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.account-email-verification__lead {
+  margin: 0;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 86%, transparent);
+}
+
+.account-email-verification__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.account-email-verification__actions button {
   min-height: 3rem;
+}
+
+@media (max-width: 480px) {
+  .account-email-verification__actions {
+    flex-direction: column;
+  }
+
+  .account-email-verification__actions button {
+    width: 100%;
+  }
 }

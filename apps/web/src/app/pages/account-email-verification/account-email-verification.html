@@ -2,50 +2,66 @@
   <mat-card appearance="outlined" class="account-email-verification__card">
     @switch (phase()) {
       @case ('loading') {
-        <mat-card-content class="account-email-verification__center">
+        <mat-card-content class="account-email-verification__body account-email-verification__body--center">
           <mat-spinner diameter="40" aria-label="Vérification en cours" />
-          <p>Vérification de votre adresse e-mail…</p>
+          <p class="account-email-verification__lead">Vérification de votre adresse e-mail…</p>
         </mat-card-content>
       }
       @case ('no-config') {
-        <mat-card-header>
-          <mat-card-title>Configuration indisponible</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Identity Platform n’est pas configuré sur cette instance.</p>
+        <mat-card-content class="account-email-verification__body">
+          <mat-icon class="account-email-verification__icon" aria-hidden="true">error_outline</mat-icon>
+          <h1 class="account-email-verification__title">Configuration indisponible</h1>
+          <p class="account-email-verification__lead">
+            Identity Platform n’est pas configuré sur cette instance.
+          </p>
         </mat-card-content>
       }
-      @case ('missing') {
-        <mat-card-header>
-          <mat-card-title>Lien incomplet</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Ce lien de vérification est incomplet. Relancez le changement d’e-mail depuis Mon compte.</p>
-          <button type="button" mat-flat-button color="primary" (click)="goToAccount()">
-            Mon compte
-          </button>
+      @case ('reconnect') {
+        <mat-card-content class="account-email-verification__body">
+          <mat-icon class="account-email-verification__icon account-email-verification__icon--ok" aria-hidden="true">
+            mark_email_read
+          </mat-icon>
+          <h1 class="account-email-verification__title">Presque terminé</h1>
+          <p class="account-email-verification__lead">
+            Google Identity Platform a traité votre lien de vérification. Reconnectez-vous pour synchroniser
+            la nouvelle adresse e-mail avec HatCast.
+          </p>
+          <div class="account-email-verification__actions">
+            <button type="button" mat-flat-button color="primary" (click)="goToLogin()">
+              Se reconnecter
+            </button>
+            <button type="button" mat-stroked-button routerLink="/compte/securite">
+              Onglet Sécurité
+            </button>
+          </div>
         </mat-card-content>
       }
       @case ('invalid') {
-        <mat-card-header>
-          <mat-card-title>Lien invalide ou expiré</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Ce lien ne peut plus être utilisé. Demandez un nouvel e-mail depuis Mon compte → Sécurité.</p>
-          <button type="button" mat-stroked-button routerLink="/compte/securite">
-            Onglet Sécurité
-          </button>
+        <mat-card-content class="account-email-verification__body">
+          <mat-icon class="account-email-verification__icon" aria-hidden="true">link_off</mat-icon>
+          <h1 class="account-email-verification__title">Lien invalide ou expiré</h1>
+          <p class="account-email-verification__lead">
+            Ce lien ne peut plus être utilisé. Demandez un nouvel e-mail depuis Mon compte → Sécurité.
+          </p>
+          <div class="account-email-verification__actions">
+            <button type="button" mat-flat-button color="primary" routerLink="/compte/securite">
+              Onglet Sécurité
+            </button>
+          </div>
         </mat-card-content>
       }
       @case ('success') {
-        <mat-card-header>
-          <mat-card-title>Adresse e-mail mise à jour</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Votre adresse email a été mise à jour.</p>
-          <button type="button" mat-flat-button color="primary" (click)="goToAccount()">
-            Retour à Mon compte
-          </button>
+        <mat-card-content class="account-email-verification__body">
+          <mat-icon class="account-email-verification__icon account-email-verification__icon--ok" aria-hidden="true">
+            check_circle
+          </mat-icon>
+          <h1 class="account-email-verification__title">Adresse e-mail mise à jour</h1>
+          <p class="account-email-verification__lead">Votre adresse email a été mise à jour.</p>
+          <div class="account-email-verification__actions">
+            <button type="button" mat-flat-button color="primary" (click)="goToAccount()">
+              Retour à Mon compte
+            </button>
+          </div>
         </mat-card-content>
       }
     }
