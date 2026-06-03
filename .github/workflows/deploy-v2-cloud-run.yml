@@ -30,34 +30,94 @@ permissions:
   id-token: write
 
 jobs:
+  classify-ref:
+    runs-on: ubuntu-latest
+    outputs:
+      target_env: ${{ steps.classify.outputs.target_env }}
+      default_region: ${{ steps.classify.outputs.default_region }}
+      default_service: ${{ steps.classify.outputs.default_service }}
+      requires_smoke: ${{ steps.classify.outputs.requires_smoke }}
+    steps:
+      - name: Classify ref and enforce semver policy
+        id: classify
+        run: |
+          set -euo pipefail
+          ref_type="${GITHUB_REF_TYPE}"
+          ref_name="${GITHUB_REF_NAME}"
+
+          target_env=""
+          default_region="europe-west9"
+          default_service="hatcast-v2-dev"
+          requires_smoke="false"
+
+          if [[ "${ref_type}" == "branch" ]]; then
+            case "${ref_name}" in
+              v2)
+                target_env="development"
+                default_service="hatcast-v2-dev"
+                ;;
+              staging-v2)
+                target_env="staging"
+                default_service="hatcast-v2-staging"
+                requires_smoke="true"
+                ;;
+              *)
+                echo "❌ Unsupported branch for deploy workflow: ${ref_name}" >&2
+                exit 1
+                ;;
+            esac
+          elif [[ "${ref_type}" == "tag" ]]; then
+            if [[ "${ref_name}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              target_env="production"
+              default_region="europe-west1"
+              default_service="hatcast-v2"
+            elif [[ "${ref_name}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]]; then
+              target_env="staging"
+              default_service="hatcast-v2-staging"
+              requires_smoke="true"
+            else
+              echo "❌ Invalid semver tag format for deploy workflow: ${ref_name}" >&2
+              echo "   Allowed tags: vX.Y.Z or vX.Y.Z-rc.N" >&2
+              exit 1
+            fi
+          else
+            echo "❌ Unsupported ref type for deploy workflow: ${ref_type}" >&2
+            exit 1
+          fi
+
+          {
+            echo "target_env=${target_env}"
+            echo "default_region=${default_region}"
+            echo "default_service=${default_service}"
+            echo "requires_smoke=${requires_smoke}"
+          } >> "${GITHUB_OUTPUT}"
+
   e2e-smoke:
+    needs: classify-ref
     if: |
-      github.ref_name == 'staging-v2' ||
-      (github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(github.ref_name, '-rc.'))
+      needs.classify-ref.result == 'success' &&
+      needs.classify-ref.outputs.requires_smoke == 'true'
     uses: ./.github/workflows/e2e-smoke.yml
 
   deploy:
-    needs: e2e-smoke
+    needs: [classify-ref, e2e-smoke]
     if: |
-      always() &&
+      needs.classify-ref.result == 'success' &&
       (
-        (
-          github.ref_name != 'staging-v2' &&
-          !(github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(github.ref_name, '-rc.'))
-        ) ||
+        needs.classify-ref.outputs.requires_smoke != 'true' ||
         needs.e2e-smoke.result == 'success'
       )
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-rc.') && 'production' || github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(github.ref_name, '-rc.') && 'staging' || github.ref_name == 'staging-v2' && 'staging' || 'development' }}
+      name: ${{ needs.classify-ref.outputs.target_env }}
     env:
       # Defaults: prod tags (vX.Y.Z) -> europe-west1 (custom domain mapping),
       # v2/staging-v2/rc tags -> europe-west9. Can be overridden by env var GCP_REGION.
-      GCP_REGION: ${{ vars.GCP_REGION || ((github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-rc.')) && 'europe-west1' || 'europe-west9') }}
+      GCP_REGION: ${{ vars.GCP_REGION || needs.classify-ref.outputs.default_region }}
       IMAGE_TAG: ${{ secrets.GCP_ARTIFACT_REGISTRY }}:${{ github.sha }}
       RELEASE_REF: ${{ github.ref_name }}
       # Par env : `CLOUD_RUN_SERVICE_NAME` dans l’environnement GitHub ; défauts hatcast-v2 / -staging / -dev
-      SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE_NAME || (github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-rc.') && 'hatcast-v2' || github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(github.ref_name, '-rc.') && 'hatcast-v2-staging' || github.ref_name == 'staging-v2' && 'hatcast-v2-staging' || 'hatcast-v2-dev') }}
+      SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE_NAME || needs.classify-ref.outputs.default_service }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -85,7 +145,7 @@ jobs:
 
       - name: Enforce OPS-8 production invariants
         if: |
-          github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-rc.')
+          needs.classify-ref.outputs.target_env == 'production'
         run: |
           test "${GCP_REGION}" = "europe-west1" || (echo "production tag deploys must use europe-west1 for hatcast.app domain mapping" && exit 1)
           test "${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}" = "https://hatcast.app" || (echo "production HATCAST_CORS_ALLOWED_ORIGINS must be https://hatcast.app" && exit 1)
@@ -179,7 +239,7 @@ jobs:
             fi
           fi
           V="${V},JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0"
-          if [ "${{ github.ref_name }}" = "staging-v2" ] || [[ "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]]; then
+          if [ "${{ needs.classify-ref.outputs.target_env }}" = "staging" ]; then
             if [ -n "${{ secrets.HATCAST_MIGRATION_API_KEY }}" ] && [ -n "${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}" ]; then
               V="${V},HATCAST_MIGRATION_API_ENABLED=true"
               V="${V},HATCAST_MIGRATION_API_KEY=${{ secrets.HATCAST_MIGRATION_API_KEY }}"

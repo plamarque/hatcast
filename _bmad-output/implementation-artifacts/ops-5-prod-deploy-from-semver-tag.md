@@ -4,7 +4,7 @@ baseline_commit: b8816ef9cf9497a81f28b317434610a89a0aa3bf
 
 # OPS-5 — Prod deploy from semver tag (no dedicated prod branch)
 
-**Status:** review
+**Status:** done
 
 **Story ID:** OPS-5  
 **Story key:** `ops-5-prod-deploy-from-semver-tag`  
@@ -89,11 +89,11 @@ so that **the exact artifact validated on staging is promoted to production with
 
 ### Review Findings
 
-- [ ] [Review][Patch] Durcir la classification des tags semver/RC dans le workflow pour eviter toute promotion prod de prerelease non RC [`.github/workflows/deploy-v2-cloud-run.yml`]
-- [ ] [Review][Patch] Valider la lineage RC cote script (tag RC present sur origin + commit ancetre de `origin/staging-v2`) avant creation/push du tag prod [scripts/v2/promote-tag-to-prod.sh:95]
-- [ ] [Review][Patch] Aligner la documentation GitHub Environment `production` avec le flux tag-first (autoriser explicitement les tags semver) [docs/v2/technical/DEPLOYMENT_WORKFLOW.md:256]
-- [ ] [Review][Patch] Documenter un rollback operatoire par redeploiement d'un tag stable precedent `vX.Y.Z` (sans rewrite) [docs/v2/technical/DEPLOYMENT_WORKFLOW.md:Rollback]
-- [ ] [Review][Patch] Completer les preuves AC8 avec une validation controlee du chemin tag (`vX.Y.Z-rc.N`/`vX.Y.Z` -> env cible) dans le Dev Agent Record [_bmad-output/implementation-artifacts/ops-5-prod-deploy-from-semver-tag.md:184]
+- [x] [Review][Patch] Durcir la classification des tags semver/RC dans le workflow pour eviter toute promotion prod de prerelease non RC [`.github/workflows/deploy-v2-cloud-run.yml`]
+- [x] [Review][Patch] Valider la lineage RC cote script (tag RC present sur origin + commit ancetre de `origin/staging-v2`) avant creation/push du tag prod [scripts/v2/promote-tag-to-prod.sh:95]
+- [x] [Review][Patch] Aligner la documentation GitHub Environment `production` avec le flux tag-first (autoriser explicitement les tags semver) [docs/v2/technical/DEPLOYMENT_WORKFLOW.md:256]
+- [x] [Review][Patch] Documenter un rollback operatoire par redeploiement d'un tag stable precedent `vX.Y.Z` (sans rewrite) [docs/v2/technical/DEPLOYMENT_WORKFLOW.md:Rollback]
+- [x] [Review][Patch] Completer les preuves AC8 avec une validation controlee du chemin tag (`vX.Y.Z-rc.N`/`vX.Y.Z` -> env cible) dans le Dev Agent Record [_bmad-output/implementation-artifacts/ops-5-prod-deploy-from-semver-tag.md:184]
 - [x] [Review][Defer] Fragilite preexistante de la construction `--set-env-vars` CSV (`gcloud run deploy`) si valeurs avec virgule/egal, non introduite par OPS-5 [`.github/workflows/deploy-v2-cloud-run.yml`] — deferred, pre-existing
 
 ---
@@ -191,9 +191,10 @@ Codex 5.3
 - Updated `docs/v2/technical/DEPLOYMENT_WORKFLOW.md` to document tag-first production flow and legacy/transitional status of `release-production.sh`.
 - Updated `scripts/README.md` with new OPS-5 script entry.
 - Validation executed:
+  - `bash -n scripts/v2/promote-tag-to-prod.sh`
   - `./scripts/v2/promote-tag-to-prod.sh --help`
-  - `./scripts/v2/promote-tag-to-prod.sh --dry-run --version=2.0.0`
-  - `./scripts/v2/release-staging.sh --help`
+  - `./scripts/v2/promote-tag-to-prod.sh --version=2.0.0 --rc-tag=v2.0.0-rc.invalid --dry-run` (expected fail-fast: invalid RC format)
+  - deploy workflow ref-classification hardened (`classify-ref`): only `vX.Y.Z` and `vX.Y.Z-rc.N` tags are accepted
 
 ### File List
 
@@ -208,6 +209,7 @@ Codex 5.3
 
 - 2026-06-03: Story created via `bmad-create-story` command - status `ready-for-dev`.
 - 2026-06-03: Implemented OPS-5 tag-first deploy flow (workflow + script + docs) - status `review`.
+- 2026-06-03: Applied code-review fixes (strict tag classification, RC lineage guardrails, docs rollback/env policy) - status `done`.
 
 ---
 

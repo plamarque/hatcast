@@ -100,6 +100,32 @@ fi
 RC_COMMIT="$(git rev-list -n 1 "${RC_TAG}")"
 TAG_MESSAGE="Release V2 ${BASE_VERSION} promoted from ${RC_TAG}"
 
+REMOTE_RC_COMMIT="$(git ls-remote --tags origin "refs/tags/${RC_TAG}^{}" | awk '{print $1}' | sed -n '1p')"
+if [[ -z "${REMOTE_RC_COMMIT}" ]]; then
+  REMOTE_RC_COMMIT="$(git ls-remote --tags origin "refs/tags/${RC_TAG}" | awk '{print $1}' | sed -n '1p')"
+fi
+if [[ -z "${REMOTE_RC_COMMIT}" ]]; then
+  echo "❌ Le tag RC ${RC_TAG} n'existe pas sur origin." >&2
+  echo "   Refus de promouvoir un tag uniquement local." >&2
+  exit 1
+fi
+if [[ "${REMOTE_RC_COMMIT}" != "${RC_COMMIT}" ]]; then
+  echo "❌ Le tag RC local ${RC_TAG} diverge d'origin (${REMOTE_RC_COMMIT})." >&2
+  echo "   Veuillez synchroniser les tags avant promotion." >&2
+  exit 1
+fi
+
+STAGING_REMOTE_REF="$(hatcast_v2_origin_ref "${HATCAST_V2_BRANCH_STAGING}")"
+if ! git rev-parse --verify "${STAGING_REMOTE_REF}^{commit}" >/dev/null 2>&1; then
+  echo "❌ Référence distante de staging introuvable : ${STAGING_REMOTE_REF}" >&2
+  exit 1
+fi
+if ! git merge-base --is-ancestor "${RC_COMMIT}" "${STAGING_REMOTE_REF}"; then
+  echo "❌ Le commit RC ${RC_COMMIT} n'appartient pas à la lignée ${STAGING_REMOTE_REF}." >&2
+  echo "   Promotion refusée: RC non validé dans la lignée staging." >&2
+  exit 1
+fi
+
 remote_prod_exists=false
 if git ls-remote --tags origin "refs/tags/${PROD_TAG}" | rg -q .; then
   remote_prod_exists=true
@@ -159,7 +185,20 @@ if [[ "${local_prod_exists}" == false && "${remote_prod_exists}" == false ]]; th
 fi
 
 if [[ "${remote_prod_exists}" == false ]]; then
-  git push origin "${PROD_TAG}"
+  # Re-check distant state just before push to make concurrent runs idempotent.
+  REMOTE_PUSH_COMMIT="$(git ls-remote --tags origin "refs/tags/${PROD_TAG}^{}" | awk '{print $1}' | sed -n '1p')"
+  if [[ -z "${REMOTE_PUSH_COMMIT}" ]]; then
+    REMOTE_PUSH_COMMIT="$(git ls-remote --tags origin "refs/tags/${PROD_TAG}" | awk '{print $1}' | sed -n '1p')"
+  fi
+  if [[ -n "${REMOTE_PUSH_COMMIT}" ]]; then
+    if [[ "${REMOTE_PUSH_COMMIT}" != "${RC_COMMIT}" ]]; then
+      echo "❌ Le tag distant ${PROD_TAG} a été créé entre-temps sur un autre commit (${REMOTE_PUSH_COMMIT})." >&2
+      exit 1
+    fi
+    echo "ℹ️  Tag distant ${PROD_TAG} déjà présent et conforme; pas de push nécessaire."
+  else
+    git push origin "${PROD_TAG}"
+  fi
 else
   echo "ℹ️  Tag distant ${PROD_TAG} déjà présent et conforme; pas de push nécessaire."
 fi

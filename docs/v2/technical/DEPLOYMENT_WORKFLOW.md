@@ -204,8 +204,9 @@ Les entrées `CHANGELOG.md` racine sont partagées avec le monorepo (V1 + V2) ; 
 
 ## Rollback
 
-- **Cloud Run** : redéployer une révision précédente dans la console GCP, ou re-déployer une image taguée par un commit/tag Git antérieur via `workflow_dispatch` sur le workflow V2.
-- **Git** : ne pas réécrire l’historique des tags de release ; corriger sur `staging-v2` puis republier un nouveau tag.
+- **Tag-first (recommandé)** : redéployer un tag stable antérieur (`vX.Y.Z`) via un run manuel du workflow V2 ciblant ce tag (ou re-push contrôlé du tag si votre gouvernance l’autorise).
+- **Cloud Run** : alternative rapide via re-déploiement d’une révision précédente dans la console GCP.
+- **Git** : ne jamais réécrire un tag release distant (pas de force-push / history rewrite). En cas de correctif, repartir de `staging-v2`, valider, puis publier un **nouveau** tag semver.
 
 ## Checklist de test (avant cutover utilisateurs)
 
@@ -242,7 +243,7 @@ Ordre recommandé **sans impacter la prod V1** (`main` / Firebase) :
 
 1. **Environments → staging → Deployment branches** : **`staging-v2`** (pas `staging` V1)
 2. **Environments → development → Deployment branches** : **`v2`**
-3. **Environments → production** : vérifier permissions/tags policy compatibles avec les pushes de tags `v*.*.*` (flux tag-first)
+3. **Environments → production** : configurer une policy compatible **tags semver** (ex. selected branches and tags incluant `v*.*.*`) pour autoriser le flux tag-first OPS-5
 
 ## Références
 
