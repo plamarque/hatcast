@@ -18,10 +18,25 @@ Ce dossier contient les scripts utiles pour les migrations, le déploiement, la 
 - **`test-dev-server.sh`** : Lance le serveur de développement V1 et vérifie qu’il démarre (port 5173 ; utile surtout pour le scénario décrit ci-dessous avec la V1).
 
 ### 📦 Gestion des versions
-- **`release-version.sh`** : Release **V1** (Firebase) depuis la branche `staging` → `main`
+
+#### V2 Cloud Run (OPS-11 — interface développeur)
+
+| Script | Rôle |
+|--------|------|
+| **`deploy_staging.sh`** | Merge `v2` → `staging-v2` + push (E2E + deploy staging) |
+| **`release_version.sh`** | Release semver staging (auto-detect RC) ; `--patch` / `--minor` / `--major` |
+| **`deploy_prod.sh`** | Dernier RC → tag prod `vX.Y.Z` ; `--redeploy` pour relancer la CI |
+
+Implémentation bas niveau : `scripts/v2/promote-to-staging.sh`, `release-staging.sh`, `promote-tag-to-prod.sh`.
+
+#### V1 Firebase (legacy)
+
+- **`release-version-v1.sh`** : Release V1 depuis la branche `staging` → `main`
+- **`release-version.sh`** : Compat — délègue vers `release-version-v1.sh`
+
 - **`generate-changelog.js`** : Notes utilisateur pour `apps/web/public/changelog.json` (OpenAI, principes Argil — Story 10.3 / OPS-6)
 
-### ☁️ Déploiement V2 (Cloud Run)
+### ☁️ Déploiement V2 (Cloud Run — scripts bas niveau)
 - **`v2/branches.env`** : Noms de branches Git V2 (`v2`, `staging-v2`) — voir `v2/branches.env.example`
 - **`v2/lib/git-branches.sh`** : Helpers Git partagés (fetch, arbre propre, branche courante)
 - **`v2/promote-to-staging.sh`** : Merge `origin/v2` → `staging-v2` + push (CI staging)

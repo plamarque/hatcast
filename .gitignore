@@ -49,6 +49,7 @@ firebase-debug.log
 
 # Dry-run sandbox
 .dry-run-sandbox/
+.dry-run-sandbox-v2/
 
 # Replay algorithm simulation output
 scripts/replay/output/

@@ -16,8 +16,10 @@ usage() {
   cat << EOF
 Usage: $(basename "$0") [OPTIONS]
 
-Promouvoir le développement V2 vers staging : merge origin/\$HATCAST_V2_BRANCH_DEV
-dans \$HATCAST_V2_BRANCH_STAGING puis push (workflow Deploy V2 → environnement staging).
+Promouvoir le développement V2 vers staging : merge origin/$HATCAST_V2_BRANCH_DEV
+dans $HATCAST_V2_BRANCH_STAGING puis push (workflow Deploy V2 → environnement staging).
+
+Façade développeur : ./scripts/deploy_staging.sh
 
 Options:
   --dry-run, -n   Afficher les commits et commandes sans exécuter
@@ -91,6 +93,8 @@ if [[ "${DRY_RUN}" == true ]]; then
   echo "   git push origin ${HATCAST_V2_BRANCH_STAGING}"
   echo "   git checkout ${HATCAST_V2_BRANCH_DEV}"
   echo ""
+  echo "⏳ Après le push : attendre le smoke E2E vert avant ./scripts/release_version.sh"
+  echo ""
   echo "✅ DRY RUN terminé."
   exit 0
 fi
@@ -105,6 +109,7 @@ echo ""
 echo "✅ Push effectué sur origin/${HATCAST_V2_BRANCH_STAGING}"
 echo "🌐 Suivre le déploiement : ${ACTIONS_URL}"
 echo "☁️  Service Cloud Run attendu : hatcast-v2-staging (environnement GitHub « staging »)"
+echo "⏳ Attendre le smoke E2E vert avant ./scripts/release_version.sh"
 
 git checkout "${HATCAST_V2_BRANCH_DEV}"
 echo "↩️  Retour sur la branche ${HATCAST_V2_BRANCH_DEV}"

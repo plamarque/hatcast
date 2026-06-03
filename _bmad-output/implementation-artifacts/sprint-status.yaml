@@ -49,6 +49,7 @@ development_status:
   ops-4-release-staging-tag-rc: done  # P0 V2.0.0 — SCP 2026-06-02
   ops-5-prod-deploy-from-semver-tag: done
   ops-6-version-changelog-pipeline: done
+  ops-11-simplified-release-cli: done
   ops-7-branch-cutover-post-m4: backlog
   ops-8-prod-domain-hatcast-app: in-progress  # P0 V2.0.0 — SCP amend 2026-06-03 ; gate M4
   ops-9-posthog-hatcast-app: backlog  # P1 V2.0.0 — post-M4 ; G-005

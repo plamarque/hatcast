@@ -107,6 +107,46 @@ hatcast_latest_release_tag() {
   return 1
 }
 
+# Remote tag names matching vX.Y.Z-rc.N (sorted ascending by version).
+hatcast_remote_rc_tag_names() {
+  local base="${1:-}"
+  git ls-remote --tags origin 2>/dev/null \
+    | awk '{print $2}' \
+    | sed -n 's|^refs/tags/\(v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*-rc\.[0-9][0-9]*\)$|\1|p' \
+    | while IFS= read -r tag; do
+        if [[ -z "${base}" ]] || [[ "${tag}" =~ ^v${base}-rc\.[0-9]+$ ]]; then
+          echo "${tag}"
+        fi
+      done \
+    | sort -V
+}
+
+# Latest vX.Y.Z-rc.N on origin (after git fetch --tags).
+hatcast_latest_remote_rc_tag() {
+  local base="${1:-}"
+  hatcast_remote_rc_tag_names "${base}" | tail -n 1
+}
+
+# Latest vX.Y.Z prod tag on origin (no -rc suffix).
+hatcast_latest_remote_release_tag() {
+  git ls-remote --tags origin 2>/dev/null \
+    | awk '{print $2}' \
+    | sed -n 's|^refs/tags/\(v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$|\1|p' \
+    | sort -V \
+    | tail -n 1
+}
+
+# Commit SHA for a remote tag (peeled when annotated).
+hatcast_remote_tag_commit() {
+  local tag="$1"
+  local sha=""
+  sha="$(git ls-remote --tags origin "refs/tags/${tag}^{}" 2>/dev/null | awk '{print $1}' | sed -n '1p')"
+  if [[ -z "${sha}" ]]; then
+    sha="$(git ls-remote --tags origin "refs/tags/${tag}" 2>/dev/null | awk '{print $1}' | sed -n '1p')"
+  fi
+  echo "${sha}"
+}
+
 # Resolve staging RC release: prints "BASE_SEMVER RC_NUM TAG_NAME" (e.g. 2.0.0 3 v2.0.0-rc.3).
 # $1=bump (empty|patch|minor|major)  $2=explicit_version  $3=file_base_hint (stripped)  $4=file_raw_hint (optional, may contain -SNAPSHOT)
 hatcast_resolve_staging_rc_release() {

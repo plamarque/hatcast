@@ -365,7 +365,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 4. **6.15** — modales annonces (M3, notify manuel, anti-spam)  
 5. **10.5** + **10.6** — aides install contextuelles + opt-in notifs post-install  
 6. **Recette 1.2** + **1.3** + **1.7** — inscription + reset MDP gates + suppression compte  
-7. **OPS-4** → **OPS-6** — release staging par tag ; prod depuis artefact taggué  
+7. **OPS-4** → **OPS-6** — release staging par tag ; prod depuis artefact taggué ; **OPS-11** — CLI développeur (4 commandes)  
 8. Tour écrans staging + replay migration × **≥3**  
 9. Tag **v2.0.0** staging → prod → **M4** (trafic **`hatcast.app`**) → **OPS-7** (branches `v1` / `staging-v1`, rename `main` / `staging`)  
 10. **OPS-9** (PostHog) + **OPS-10** (`@hatcast.app` mail) — **P1**, après **M4** ou en fin de vague si capacité (non bloquant cutover)
@@ -463,8 +463,9 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
 | **OPS-4** | Release staging par tag (`vX.Y.Z-rc.N`) | **P0** | done | Script `release-staging.sh` |
-| **OPS-5** | Prod depuis artefact taggué (sans branche prod dédiée) | **P0** | backlog | Règle : tag prod = tag validé staging |
-| **OPS-6** | Couplage version / CHANGELOG / `changelog.json` / `version.txt` | **P0** | backlog | Réutilise `version-changelog.sh` |
+| **OPS-5** | Prod depuis artefact taggué (sans branche prod dédiée) | **P0** | done | Règle : tag prod = tag validé staging |
+| **OPS-6** | Couplage version / CHANGELOG / `changelog.json` / `version.txt` | **P0** | done | Réutilise `version-changelog.sh` |
+| **OPS-11** | CLI release V2 simplifiée (4 commandes dev) | **P0** | done | Façades `deploy_staging.sh`, `release_version.sh`, `deploy_prod.sh` — story [ops-11](_bmad-output/implementation-artifacts/ops-11-simplified-release-cli.md) |
 | **OPS-7** | Cutover branches post-M4 | **P0** | backlog | `v1`, `staging-v1` archives ; `v2`→`main` ; `staging-v2`→`staging` |
 
 #### Wave F — Domaine prod `hatcast.app` (2026-06-03)
@@ -479,12 +480,14 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 
 **Dev local inchangé :** Neon branche **`local`** + `./scripts/start-dev.sh`. **Dev cloud inchangé :** push **`v2`** → **`europe-west9`**.
 
-**Flux cible :**
+**Flux cible (OPS-11 — interface développeur) :**
 
 ```
-v2 → promote-to-staging.sh → release-staging.sh → tag rc → deploy staging
-→ recette → promote-tag-to-prod v2.0.0 → deploy prod (même tag)
+git push (v2) → ./scripts/deploy_staging.sh → ./scripts/release_version.sh [--patch|--minor|--major]
+→ recette staging → ./scripts/deploy_prod.sh
 ```
+
+Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md). Scripts bas niveau : `scripts/v2/*.sh`.
 
 #### Wave E — Gates cutover
 

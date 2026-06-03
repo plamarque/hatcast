@@ -24,6 +24,8 @@ Usage: $(basename "$0") [OPTIONS]
 Promote a staging RC lineage to production tag vX.Y.Z.
 This script only creates/pushes tags. Production deploy is handled by CI on tag push.
 
+Façade développeur : ./scripts/deploy_prod.sh (auto-detect dernier RC)
+
 Options:
   --version=X.Y.Z   Required semver target (example: 2.0.0)
   --rc-tag=vX.Y.Z-rc.N

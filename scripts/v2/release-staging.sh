@@ -33,6 +33,8 @@ Release staging HatCast V2 (depuis la branche staging configurée).
 Bump version produit (racine + apps/web), CHANGELOG, tag annoté vX.Y.Z-rc.N, push staging-v2 + tag.
 Le déploiement staging est assuré par GitHub Actions sur push de staging-v2 (pas sur le tag seul — OPS-5).
 
+Façade développeur : ./scripts/release_version.sh [--patch|--minor|--major]
+
 Sans option de bump : incrémente uniquement le numéro RC (ex. v2.0.0-rc.2 → v2.0.0-rc.3).
 Avec --patch|--minor|--major : bump la semver de base et repart à rc.1.
 

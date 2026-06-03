@@ -1,6 +1,23 @@
 # Workflow Git / déploiement HatCast V2
 
-Guide opérationnel pour le flux **développement local → `v2` (dev Cloud Run) → `staging-v2` (recette) → tags semver (`vX.Y.Z-rc.N` puis `vX.Y.Z`)**. La configuration infra (Neon, secrets GitHub, OAuth) reste dans [DEPLOY_V2_CLOUD_RUN.md](DEPLOY_V2_CLOUD_RUN.md).
+Guide opérationnel pour le flux **développement local → dev Cloud Run → staging (recette) → production**. La configuration infra (Neon, secrets GitHub, OAuth) reste dans [DEPLOY_V2_CLOUD_RUN.md](DEPLOY_V2_CLOUD_RUN.md).
+
+## Quick start développeur (OPS-11)
+
+Quatre gestes — pas de manipulation manuelle de branches ni de tags :
+
+```bash
+git push origin v2                              # 1. dev cloud
+./scripts/deploy_staging.sh                     # 2. staging + gate E2E smoke
+./scripts/release_version.sh --patch            # 3. release (ou --minor / --major ; sans flag = RC+1)
+./scripts/deploy_prod.sh                        # 4. prod (après recette staging)
+```
+
+Options utiles : `--dry-run` / `-n` sur chaque script ; `./scripts/deploy_prod.sh --redeploy` pour relancer la CI prod sans nouveau tag.
+
+**Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) pour V2 (flux V1 Firebase). V2 : [`scripts/release_version.sh`](../../../scripts/release_version.sh) (underscore).
+
+Détail tags / branches / scripts bas niveau : sections suivantes et [`scripts/v2/`](../../../scripts/v2/).
 
 ## Schéma
 
@@ -22,11 +39,11 @@ flowchart LR
   end
   DevLocal --> V2
   V2 -->|git push| CRdev
-  V2 -->|promote-to-staging.sh| STG
+  V2 -->|deploy_staging.sh| STG
   STG -->|git push| CRstg
-  STG -->|release-staging.sh| STG
+  STG -->|release_version.sh| STG
   STG -->|tag RC| RC
-  RC -->|promote-tag-to-prod.sh| REL
+  RC -->|deploy_prod.sh| REL
   RC -.->|tag RC audit| RC
   REL -->|push tag prod| CRprod
 ```
@@ -35,8 +52,8 @@ flowchart LR
 |-------|-------------|--------|----------------|
 | Dev local | — | `./scripts/start-dev.sh` | Neon branche **`local`** (`.env`), pas de push requis |
 | Dev cloud | `v2` | `git push origin v2` | Env GitHub `development` → `hatcast-v2-dev` |
-| Staging | `staging-v2` | `./scripts/v2/promote-to-staging.sh` puis `./scripts/v2/release-staging.sh` | Env `staging` → `hatcast-v2-staging` ; **gate E2E smoke** avant deploy (pas sur `v2` dev cloud) |
-| Production | Tag `vX.Y.Z` | `./scripts/v2/promote-tag-to-prod.sh --version=X.Y.Z` | Env `production` → `hatcast-v2` |
+| Staging | `staging-v2` | `./scripts/deploy_staging.sh` puis `./scripts/release_version.sh` | Env `staging` → `hatcast-v2-staging` ; **gate E2E smoke** avant deploy |
+| Production | Tag `vX.Y.Z` | `./scripts/deploy_prod.sh` | Env `production` → `hatcast-v2` |
 
 ## Configuration des branches
 
@@ -82,17 +99,14 @@ Prérequis : environnement `development` autorise la branche `v2` ; secrets Neon
 
 ## Promotion vers staging
 
-Script : [`scripts/v2/promote-to-staging.sh`](../../../scripts/v2/promote-to-staging.sh)
+Script façade : [`scripts/deploy_staging.sh`](../../../scripts/deploy_staging.sh) — implémentation [`scripts/v2/promote-to-staging.sh`](../../../scripts/v2/promote-to-staging.sh)
 
 ```bash
 # Simulation
-./scripts/v2/promote-to-staging.sh --dry-run
+./scripts/deploy_staging.sh --dry-run
 
-# Réel (merge --no-ff par défaut)
-./scripts/v2/promote-to-staging.sh
-
-# Merge fast-forward uniquement
-./scripts/v2/promote-to-staging.sh --ff-only
+# Réel
+./scripts/deploy_staging.sh
 ```
 
 Comportement :
@@ -103,28 +117,25 @@ Comportement :
 4. CI : smoke E2E Playwright (recette 3.19) puis deploy Cloud Run — le deploy staging **échoue** si le smoke est rouge
 5. Rappel URL Actions + service `hatcast-v2-staging`
 
-**Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) (flux V1 Firebase / `staging` → `main`).
+**Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) (flux V1 Firebase). V2 : [`scripts/release_version.sh`](../../../scripts/release_version.sh).
 
 ## Release staging RC (V2)
 
-Script : [`scripts/v2/release-staging.sh`](../../../scripts/v2/release-staging.sh) — **à lancer depuis `staging-v2`**, après promotion du code depuis `v2`.
+Script façade : [`scripts/release_version.sh`](../../../scripts/release_version.sh) — implémentation [`scripts/v2/release-staging.sh`](../../../scripts/v2/release-staging.sh). Peut être lancé depuis `v2` (bascule automatique sur `staging-v2`).
 
 ```bash
-git checkout staging-v2
-git pull origin staging-v2
-
-# Première RC cutover (arbre encore en X.Y.Z-SNAPSHOT, aucun tag RC) :
-./scripts/v2/release-staging.sh --version=2.0.0
-
 # RC suivante (incrémente rc.N uniquement) :
-./scripts/v2/release-staging.sh
+./scripts/release_version.sh
+
+# Bump semver + rc.1 :
+./scripts/release_version.sh --patch
 
 # Simulation
-./scripts/v2/release-staging.sh --dry-run
-./scripts/v2/release-staging.sh --dry-run --patch   # bump semver + rc.1
+./scripts/release_version.sh --dry-run
+./scripts/release_version.sh --dry-run --patch
 ```
 
-Options : `--patch`, `--minor`, `--major`, `--version=X.Y.Z`, `--dry-run`, `--help`.
+Options avancées (script bas niveau uniquement) : `--version=X.Y.Z` (première RC cutover), `--no-user-changelog`.
 
 ### Règles tags RC
 
@@ -149,27 +160,27 @@ Le **déploiement** Cloud Run staging est déclenché par le **push sur `staging
 ### Flux opérateur staging
 
 ```
-v2 → promote-to-staging.sh → release-staging.sh → tag vX.Y.Z-rc.N
-→ push staging-v2 → CI deploy + smoke E2E → recette (tag RC sans workflow)
-→ promote-tag-to-prod.sh --version=X.Y.Z
+v2 → deploy_staging.sh → release_version.sh → tag vX.Y.Z-rc.N
+→ push staging-v2 → CI deploy + smoke E2E → recette
+→ deploy_prod.sh
 ```
 
 ## Release production V2 (tag-first OPS-5)
 
-Script : [`scripts/v2/promote-tag-to-prod.sh`](../../../scripts/v2/promote-tag-to-prod.sh) — à lancer après validation d’un RC staging.
+Script façade : [`scripts/deploy_prod.sh`](../../../scripts/deploy_prod.sh) — implémentation [`scripts/v2/promote-tag-to-prod.sh`](../../../scripts/v2/promote-tag-to-prod.sh). Détecte automatiquement le dernier RC distant.
 
 ```bash
 # Simulation
-./scripts/v2/promote-tag-to-prod.sh --dry-run --version=2.0.0
+./scripts/deploy_prod.sh --dry-run
 
-# Réel (promote le dernier v2.0.0-rc.N vers v2.0.0)
-./scripts/v2/promote-tag-to-prod.sh --version=2.0.0
+# Réel (dernier vX.Y.Z-rc.N → vX.Y.Z)
+./scripts/deploy_prod.sh
 
-# Variante avec RC explicite
-./scripts/v2/promote-tag-to-prod.sh --version=2.0.0 --rc-tag=v2.0.0-rc.3
+# Re-déployer la prod sans nouveau tag
+./scripts/deploy_prod.sh --redeploy
 ```
 
-Options : `--version=X.Y.Z` (obligatoire), `--rc-tag=vX.Y.Z-rc.N` (optionnel), `--dry-run`, `--force`, `--help`.
+Si prod est déjà taguée sur un commit plus ancien que le dernier RC (ex. prod rc.3, staging rc.4), le script refuse et suggère `./scripts/release_version.sh --patch`.
 
 Étapes (réel) :
 

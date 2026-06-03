@@ -1,3 +1,7 @@
+## Deferred from: code review of ops-11-simplified-release-cli.md (2026-06-04)
+
+- `--dry-run` release copie tout le dépôt (~2 min) — pattern sandbox hérité OPS-4 (`release-staging.sh`).
+
 ## Deferred from: code review of ops-6-version-changelog-pipeline.md (2026-06-03)
 
 - Nettoyage JSON OpenAI via `.replace(/\n/g, '\\n')` sur la réponse entière — fragile si le modèle renvoie du JSON multi-lignes ; pattern pré-existant dans `generate-changelog.js`.
