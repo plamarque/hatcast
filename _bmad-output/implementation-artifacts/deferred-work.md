@@ -439,3 +439,7 @@
 - QA maskable manuelle (DevTools safe area, maskable.app, devices) — explicitement reportée à Story 10.4 ; calcul script 18 % plausible (AC4, M3-5).
 - Cache SW/OS des anciennes icônes jusqu’à « Mettre à jour » ou réinstallation — comportement connu Story 10.2, hors scope correctif 10.7.
 - Script `generate-icons.sh` zsh-only — convention repo existante, documentée en en-tête.
+
+## Deferred from: code review of ops-4-release-staging-tag-rc.md (2026-06-03)
+
+- Story tracking inconsistency: `PLAN.md` marks OPS-4 as `done` while `_bmad-output/implementation-artifacts/sprint-status.yaml` keeps `ops-4-release-staging-tag-rc: review`; keep sprint/status synchronization as a dedicated closure step.

@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-03T12:00:00+02:00"
+last_updated: "2026-06-03T15:24:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -46,7 +46,7 @@ story_location: "{project-root}/_bmad-output/implementation-artifacts"
 development_status:
   # Hygiene / ops (PLAN backlog — SCP 2026-05-28)
   ops-2-ci-integration-tests-postgres: done
-  ops-4-release-staging-tag-rc: backlog  # P0 V2.0.0 — SCP 2026-06-02
+  ops-4-release-staging-tag-rc: done  # P0 V2.0.0 — SCP 2026-06-02
   ops-5-prod-deploy-from-semver-tag: backlog
   ops-6-version-changelog-pipeline: backlog
   ops-7-branch-cutover-post-m4: backlog
