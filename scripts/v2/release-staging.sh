@@ -22,6 +22,8 @@ DRY_STAGING=""
 ROOT_PACKAGE="package.json"
 WEB_PACKAGE="apps/web/package.json"
 VERSION_TXT="apps/web/public/version.txt"
+CHANGELOG_JSON="apps/web/public/changelog.json"
+NO_USER_CHANGELOG=false
 
 usage() {
   cat << EOF
@@ -43,6 +45,7 @@ Options:
   --minor             Bump minor + rc.1
   --major             Bump major + rc.1
   --version=X.Y.Z     Version de base explicite + rc.1
+  --no-user-changelog Ne pas modifier apps/web/public/changelog.json
   --help, -h          Aide
 
 Configuration : scripts/v2/branches.env
@@ -56,6 +59,7 @@ for arg in "$@"; do
     --minor) VERSION_BUMP="minor"; bump_flag_count=$((bump_flag_count + 1)) ;;
     --patch) VERSION_BUMP="patch"; bump_flag_count=$((bump_flag_count + 1)) ;;
     --version=*) EXPLICIT_VERSION="${arg#*=}" ;;
+    --no-user-changelog) NO_USER_CHANGELOG=true ;;
     --help|-h)
       usage
       exit 0
@@ -270,6 +274,12 @@ echo "📝 Génération CHANGELOG (${COMMIT_RANGE})…"
 hatcast_generate_changelog_md "${NEW_VERSION}" "${BUILD_DATE}" "${COMMIT_RANGE}"
 hatcast_mirror_changelog_fr "${NEW_VERSION}" "${BUILD_DATE}"
 
+if [[ "${NO_USER_CHANGELOG}" == true ]]; then
+  echo "⏭️  ${CHANGELOG_JSON} inchangé (--no-user-changelog)"
+else
+  hatcast_generate_changelog_json_for_release "${NEW_VERSION}" "${BUILD_DATE}" "${COMMIT_RANGE}" "false"
+fi
+
 if [[ -f CHANGELOG.md ]]; then
   echo ""
   echo "📄 Extrait CHANGELOG :"
@@ -279,14 +289,26 @@ fi
 
 COMMIT_MSG="chore(v2): release staging ${RELEASE_TAG_NAME}"
 
+RELEASE_GIT_ADD="${ROOT_PACKAGE} ${WEB_PACKAGE} ${VERSION_TXT} CHANGELOG.md"
+if [[ -f CHANGELOG_FR.md ]]; then
+  RELEASE_GIT_ADD+=" CHANGELOG_FR.md"
+fi
+if [[ "${NO_USER_CHANGELOG}" != true ]]; then
+  RELEASE_GIT_ADD+=" ${CHANGELOG_JSON}"
+fi
+
 if [[ "${DRY_RUN}" == true ]]; then
-  print_cmd_only "git add ${ROOT_PACKAGE} ${WEB_PACKAGE} ${VERSION_TXT} CHANGELOG.md CHANGELOG_FR.md"
+  if [[ "${NO_USER_CHANGELOG}" != true ]]; then
+    echo "📝 changelog.json : mise à jour prévue → ${CHANGELOG_JSON} (version ${NEW_VERSION})"
+    jq empty "${CHANGELOG_JSON}" 2>/dev/null && echo "   └─ JSON valide (jq empty)" || echo "   └─ (fichier absent ou invalide avant écriture sandbox)"
+  fi
+  print_cmd_only "git add ${RELEASE_GIT_ADD}"
   print_cmd_only "git commit -m \"${COMMIT_MSG}\""
   print_cmd_only "git tag -a \"${RELEASE_TAG_NAME}\" -m \"Staging RC ${RELEASE_TAG_NAME} (${BUILD_DATE}, ${GIT_HASH})\""
   print_cmd_only "git push origin ${HATCAST_V2_BRANCH_STAGING}"
   print_cmd_only "git push origin \"${RELEASE_TAG_NAME}\""
 else
-  execute_cmd "git add ${ROOT_PACKAGE} ${WEB_PACKAGE} ${VERSION_TXT} CHANGELOG.md CHANGELOG_FR.md" "Indexation fichiers version"
+  execute_cmd "git add ${RELEASE_GIT_ADD}" "Indexation fichiers version"
   execute_cmd "git commit -m \"${COMMIT_MSG}\"" "Commit sur staging"
   execute_cmd "git tag -a \"${RELEASE_TAG_NAME}\" -m \"Staging RC ${RELEASE_TAG_NAME} (${BUILD_DATE}, ${GIT_HASH})\"" "Tag ${RELEASE_TAG_NAME}"
   execute_cmd "git push origin ${HATCAST_V2_BRANCH_STAGING}" "Push staging"

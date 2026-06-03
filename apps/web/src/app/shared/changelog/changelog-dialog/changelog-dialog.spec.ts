@@ -77,4 +77,20 @@ describe('ChangelogDialog', () => {
     expect(text).toContain('Version 1.0.0');
     expect(text).toContain('Test');
   });
+
+  it('shows empty-version message when a release has no user-facing changes', async () => {
+    const { fixture } = await setup({
+      versions: [
+        {
+          version: '2.0.1',
+          date: '2026-06-03',
+          changes: [],
+        },
+      ],
+    });
+
+    const text = fixture.nativeElement.textContent ?? '';
+    expect(text).toContain('Version 2.0.1');
+    expect(text).toContain('Cette mise à jour ne change rien de visible pour toi');
+  });
 });

@@ -1,3 +1,7 @@
+## Deferred from: code review of ops-6-version-changelog-pipeline.md (2026-06-03)
+
+- Nettoyage JSON OpenAI via `.replace(/\n/g, '\\n')` sur la réponse entière — fragile si le modèle renvoie du JSON multi-lignes ; pattern pré-existant dans `generate-changelog.js`.
+
 ## Deferred from: code review of 6-15-refonte-modales-annonces-notify-manuel.md (2026-06-03)
 
 - `event-equipe-tab` duplicates `MatDialog.open` instead of `openShareAnnounceDialog` helper — consistency only; behavior OK.

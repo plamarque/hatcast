@@ -141,7 +141,8 @@ Options : `--patch`, `--minor`, `--major`, `--version=X.Y.Z`, `--dry-run`, `--he
 3. Alignement `package.json` racine ↔ `apps/web/package.json` (racine legacy `0.x` → alignée sur web V2)
 4. Écrit `apps/web/public/version.txt` (ligne 1 = semver produit **sans** `-rc.N` ; ligne 2 = `Staging RC build - DATE`)
 5. Met à jour `CHANGELOG.md` (et `CHANGELOG_FR.md` si présent) depuis le tag RC précédent ou le dernier tag release
-6. Commit `chore(v2): release staging vX.Y.Z-rc.N`, tag annoté `vX.Y.Z-rc.N`, push **branche + tag**
+6. Met à jour **`apps/web/public/changelog.json`** (notes « Nouveautés » PWA, Story 10.3) : même plage git que le CHANGELOG technique, transformation OpenAI optionnelle (`scripts/generate-changelog.js`, principes Argil), ou entrée **curated** pour la version **`2.0.0`** (`scripts/v2/changelog-entries/v2.0.0-cutover.json`). Sans clé OpenAI ou en cas d’échec : entrée avec `"changes": []` (pas de sujets de commit). Flag **`--no-user-changelog`** pour ne pas toucher ce fichier.
+7. Commit `chore(v2): release staging vX.Y.Z-rc.N`, tag annoté `vX.Y.Z-rc.N`, push **branche + tag**
 
 Le **déploiement** Cloud Run staging est déclenché par le **push sur `staging-v2`** uniquement (un run CI). Le tag RC `vX.Y.Z-rc.N` est poussé pour l’audit et `promote-tag-to-prod` ; il **ne** déclenche **pas** le workflow (évite un échec « environment protection » sur l’env `staging`).
 
@@ -196,9 +197,13 @@ Par défaut, sans override explicite :
 ### Versioning
 
 - Fichier affiché / build : `apps/web/public/version.txt` (généré à chaque release)
+- Journal utilisateur PWA : `apps/web/public/changelog.json` (généré par `release-staging.sh`, consommé par le dialogue « Nouveautés »)
 - Semver produit : `package.json` racine **et** `apps/web/package.json` doivent rester alignés
 - Tags Git prod : `vX.Y.Z` sur le commit de release
 - Tags Git staging RC : `vX.Y.Z-rc.N` (suffixe RC **uniquement** sur le tag, pas dans `package.json` / `version.txt`)
+- Promotion prod (`promote-tag-to-prod.sh`) : **aucun** bump fichier — le tag prod pointe le commit RC qui contient déjà `version.txt` et `changelog.json`
+
+**`changelog.json` (OPS-6)** : prérequis `jq` ; `OPENAI_API_KEY` dans `.env` / `.env.local` pour des puces utilisateur (sinon liste vide). Référence éditoriale : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). Cutover `2.0.0` : fichier curated, pas git/OpenAI. `--no-user-changelog` : laisser le JSON existant. Smoke : `jq empty apps/web/public/changelog.json` et `check-pwa.sh` §5.
 
 Les entrées `CHANGELOG.md` racine sont partagées avec le monorepo (V1 + V2) ; privilégier des messages de commit Conventional Commits explicites (`feat:`, `fix:`, …) et mentionner « V2 » dans le corps si utile pour le lecteur.
 

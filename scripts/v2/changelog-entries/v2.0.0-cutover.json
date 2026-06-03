@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "date": "__BUILD_DATE__",
+  "source": "curated-cutover",
+  "notes": "PO-approved V2.0.0 launch notes — V1→V2 product summary, not git-derived. Edit here before cutover; date replaced at release by release-staging.sh.",
+  "changes": [
+    "✨ Bienvenue dans HatCast 2 — nouvelle application plus fluide ; tes saisons, spectacles et disponibilités sont conservés",
+    "✨ Mon agenda — tous tes prochains spectacles, toutes troupes confondues, dans une seule liste chronologique",
+    "✨ À faire — retrouve en un coup d'œil les dispos à renseigner et les compositions à confirmer",
+    "✨ Navigation repensée — Accueil, Agenda et Stats, hub troupe et repères clairs entre ligue et troupe",
+    "✨ Saisons et troupes — consulte l'agenda, l'historique et les statistiques de participation au même endroit",
+    "✨ Disponibilités et équipes — dispos par rôle, tirage équitable, confirmation ou déclinaison de ta participation",
+    "✨ Notifications — sois prévenu quand un spectacle s'ouvre aux dispos ou quand tu es dans la composition (push / e-mail)",
+    "✨ Installe HatCast 2 sur ton écran d'accueil — nouvelle icône, mises à jour avec journal des nouveautés",
+    "✨ Mon compte — connexion Google ou e-mail, préférences et sécurité regroupées (mot de passe, suppression de compte)"
+  ]
+}
