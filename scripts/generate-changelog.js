@@ -7,6 +7,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+/**
+ * User-facing release notes for apps/web/public/changelog.json (Story 10.3 « Nouveautés »).
+ * Editorial principles: https://www.argil.io/playbooks/product/writing-product-updates-and-releases
+ * — outcomes over output, « so what » test, zero noise (empty list beats vague bullets).
+ */
 async function generateUserFocusedChangelog(technicalJson, version) {
   try {
     // Parse the technical JSON
@@ -20,91 +25,88 @@ async function generateUserFocusedChangelog(technicalJson, version) {
 
     const date = technicalData.date || new Date().toISOString().split('T')[0];
 
-    // Créer un prompt plus simple et robuste
     const changesText = technicalData.changes.map(change => {
-      // Nettoyer le changement (supprimer l'emoji et le préfixe)
       const cleanChange = change.replace(/^[✨🐛🔧📝] /, '').trim();
       return `- ${cleanChange}`;
     }).join('\n');
 
-    const prompt = `Traduis ces changements techniques en français utilisateur, style décontracté et direct (utilise "tu", "on"). 
+    const prompt = `Tu rédiges les « nouveautés » affichées dans l'app HatCast (impro / troupes / saisons / dispos / compositions).
+Public : membres de troupe, pas des développeurs. Style : français, « tu » ou « on », direct et concret.
 
-RÈGLES IMPORTANTES :
-- FILTRE et EXCLUT automatiquement :
-  * Les ajouts de logs de débogage (debug logs, console.log, logger.debug, etc.)
-  * Les corrections de logs ou suppression de logs
-  * Les modifications de props, CSS, styles, padding, margins
-  * Les corrections de types TypeScript
-  * Les ajustements de z-index, positioning
-  * Les nettoyages de code (cleanup, refactor sans impact utilisateur)
-  * Les corrections de warnings de compilation
-  * Les améliorations de performance internes non visibles
-- INCLUS SEULEMENT :
-  * Les nouvelles fonctionnalités visibles par l'utilisateur
-  * Les corrections de bugs qui affectent l'expérience utilisateur
-  * Les améliorations substantielles de l'interface
-  * Les nouvelles options, boutons, fenêtres
-- REGROUPE les changements similaires en grandes catégories (max 6-8 points au total)
-- REMPLACE "modal/modale" par "fenêtre" pour plus de clarté utilisateur
-- REMPLACE les noms techniques de composants par des descriptions user-friendly :
-  * "PlayerModal" → "fenêtre de détail de joueur"
-  * "EventDetailsModal" → "fenêtre de détail d'événement"
-  * "SelectionModal" → "fenêtre de sélection"
-  * "AvailabilityModal" → "fenêtre de disponibilité"
-  * "ViewHeader" → "en-tête de vue"
-  * "AvailabilityCell" → "cellule de disponibilité"
-- Garde les termes techniques comme "MC", "DJ", "compo", "Long Form", etc.
-- Utilise les emojis appropriés : ✨ pour les nouvelles fonctionnalités, 🐛 pour les corrections, 🔧 pour les améliorations
-- Réponds UNIQUEMENT avec le JSON suivant, sans texte avant ou après
-- Chaque changement doit être une chaîne de caractères valide JSON (échapper les guillemets)
-- Ne mets PAS de guillemets autour du JSON entier
+Principes éditoriaux (Argil — product updates) :
+1. **Résultat avant livrable** — chaque ligne décrit ce que l'utilisateur peut **faire ou constater**, pas ce que l'équipe a codé.
+2. **Test « et alors ? »** — si le bénéfice utilisateur n'est pas évident en 3 secondes, **supprime** la ligne (ne la reformule pas en jargon).
+3. **Titre = bénéfice** — « Partage un spectacle avec ton équipe en un clic », pas « Nouveau système de permissions ».
+4. **Court et scannable** — max **5** puces par version ; une idée par ligne (~120 caractères).
+5. **Zéro bruit** — en cas de doute, **n'inclus pas** la ligne. Mieux vaut une liste vide qu'une liste floue ou technique.
 
-EXEMPLES DE FILTRAGE :
-- EXCLURE : "Add debug logs", "Remove console.log", "Fix TypeScript types", "Adjust padding", "Cleanup unused code"
-- INCLURE : "Add new button", "Fix login issue", "Improve mobile layout", "Add new feature"
+INCLURE seulement si l'utilisateur le remarque ou en tire un bénéfice :
+- Nouvelle action ou parcours (connexion, dispos, compo, notifications, compte…)
+- Correction d'un bug qui gênait l'usage réel
+- Amélioration visible de l'interface ou du confort (mobile, clarté, rapidité perçue)
 
-Changements à traduire :
+EXCLURE systématiquement (ne jamais mentionner) :
+- Logs, CI, déploiement, migrations, refactors, tests, types, lint, dépendances
+- Renommages internes, composants, routes API, scripts, ADR, docs techniques
+- Ajustements CSS/padding/z-index non perceptibles
+- « Amélioration de la stabilité / performances » sans exemple concret côté utilisateur
+- Messages de commit bruts ou traduits mot à mot
+
+Vocabulaire HatCast (OK) : troupe, ligue, saison, spectacle, dispos, compo, MC, DJ, orga, PWA, agenda.
+Remplacer « modal/modale » par « fenêtre » ; pas de noms de fichiers ou de classes Angular.
+
+Emojis : ✨ nouveauté, 🐛 correction ressentie, 🔧 amélioration visible (pas 🔧 pour du technique).
+
+Si **aucun** changement ne passe le filtre ci-dessus, renvoie \`"changes": []\` — c'est attendu et préférable au bruit.
+
+Changements techniques à filtrer (source interne, ne pas recopier tel quel) :
 ${changesText}
 
-Réponds UNIQUEMENT avec ce JSON :
+Réponds UNIQUEMENT avec ce JSON (pas de markdown, pas de texte autour) :
 {
   "version": "${version}",
   "date": "${date}",
   "changes": [
-    "✨ changement traduit 1",
-    "🐛 changement traduit 2"
+    "✨ …",
+    "🐛 …"
   ]
 }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Modèle rapide et économique
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "Tu es un expert en rédaction de changelogs orientés utilisateur. Tu génères des JSON de changelogs en français en les rendant accessibles et centrés sur la valeur utilisateur. Tu réponds UNIQUEMENT avec du JSON valide."
+          content:
+            "Tu es rédacteur de notes de version produit pour une app grand public. " +
+            "Tu appliques le test « et alors ? » : une ligne = un bénéfice utilisateur clair, ou rien. " +
+            "Tu réponds UNIQUEMENT avec du JSON valide. Une liste changes vide est un succès si le diff est purement technique."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.3, // Faible température pour plus de cohérence
-      max_tokens: 2000 // Plus de tokens pour éviter les réponses tronquées
+      temperature: 0.25,
+      max_tokens: 2000
     });
 
     const jsonResponse = response.choices[0].message.content.trim();
-    
+
     // Nettoyer la réponse JSON (supprimer les caractères problématiques)
     let cleanJson = jsonResponse
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Supprimer les caractères de contrôle
-      .replace(/\n/g, '\\n') // Échapper les retours à la ligne
-      .replace(/\r/g, '\\r') // Échapper les retours chariot
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
       .trim();
-    
+
     // Validate JSON
     try {
       const parsed = JSON.parse(cleanJson);
       if (parsed.version && parsed.date && Array.isArray(parsed.changes)) {
+        if (parsed.changes.length === 0) {
+          console.error('ℹ️  Aucune nouveauté utilisateur retenue pour cette version (liste vide — OK).');
+        }
         return cleanJson;
       } else {
         console.error('❌ JSON invalide: structure incorrecte');

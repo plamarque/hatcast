@@ -302,3 +302,200 @@ hatcast_mirror_changelog_fr() {
   } > "${temp_fr}"
   mv "${temp_fr}" CHANGELOG_FR.md
 }
+
+# --- changelog.json (V2 PWA — Story 10.3 / OPS-6) ---
+
+if _hatcast_git_root="$(git rev-parse --show-toplevel 2>/dev/null)" && [[ -n "${_hatcast_git_root}" ]]; then
+  _HATCAST_REPO_ROOT="${_hatcast_git_root}"
+else
+  _HATCAST_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+fi
+HATCAST_CHANGELOG_JSON_REL="apps/web/public/changelog.json"
+
+hatcast_changelog_json_path() {
+  echo "${_HATCAST_REPO_ROOT}/${HATCAST_CHANGELOG_JSON_REL}"
+}
+
+hatcast_load_openai_env() {
+  # shellcheck source=../load-dotenv.sh
+  source "${_HATCAST_REPO_ROOT}/scripts/load-dotenv.sh"
+  load_dotenv "${_HATCAST_REPO_ROOT}/.env"
+  load_dotenv "${_HATCAST_REPO_ROOT}/.env.local"
+}
+
+# Curated cutover entry (e.g. 2.0.0) — stdout JSON object; return 1 if no file.
+hatcast_load_cutover_changelog_entry() {
+  local version="$1"
+  local build_date="$2"
+  local entry_file="${_HATCAST_REPO_ROOT}/scripts/v2/changelog-entries/v${version}-cutover.json"
+
+  if [[ ! -f "${entry_file}" ]]; then
+    entry_file="${_HATCAST_REPO_ROOT}/scripts/v2/changelog-entries/${version}-cutover.json"
+  fi
+  if [[ ! -f "${entry_file}" ]]; then
+    return 1
+  fi
+
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ jq requis pour changelog.json (installer jq)." >&2
+    return 1
+  fi
+
+  jq -c --arg date "${build_date}" 'del(.source, .notes) | .date = $date' "${entry_file}"
+}
+
+# Technical JSON from git log (same range/filters as hatcast_generate_changelog_md).
+hatcast_build_technical_changelog_json() {
+  local version="$1"
+  local date="$2"
+  local commit_range="${3:-HEAD}"
+
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ jq requis pour changelog.json." >&2
+    return 1
+  fi
+
+  local -a changes=()
+  local commit_line commit_msg line
+
+  while IFS= read -r commit_line; do
+    commit_msg="$(echo "${commit_line}" | cut -d' ' -f2-)"
+    if [[ "${commit_msg}" =~ ^(chore: bump version|release: version|chore\(v2\): bump version|chore\(v2\): release staging) ]]; then
+      continue
+    fi
+    if [[ "${commit_msg}" =~ ^feat ]]; then
+      line="✨ ${commit_msg}"
+    elif [[ "${commit_msg}" =~ ^fix ]]; then
+      line="🐛 ${commit_msg}"
+    elif [[ "${commit_msg}" =~ ^(improve|perf|refactor|style) ]]; then
+      line="🔧 ${commit_msg}"
+    else
+      line="📝 ${commit_msg}"
+    fi
+    changes+=("${line}")
+  done < <(git log --oneline "${commit_range}" 2>/dev/null || true)
+
+  local changes_json="[]"
+  if [[ ${#changes[@]} -gt 0 ]]; then
+    changes_json="$(printf '%s\n' "${changes[@]}" | jq -R -s 'split("\n") | map(select(length > 0))')"
+  fi
+
+  jq -nc --arg version "${version}" --arg date "${date}" --argjson changes "${changes_json}" \
+    '{version: $version, date: $date, changes: $changes}'
+}
+
+hatcast_changelog_json_empty_entry() {
+  local version="$1"
+  local date="$2"
+  jq -nc --arg version "${version}" --arg date "${date}" \
+    '{version: $version, date: $date, changes: []}'
+}
+
+hatcast_transform_changelog_json_with_openai() {
+  local technical_json="$1"
+  local version="$2"
+
+  hatcast_load_openai_env
+
+  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+    return 1
+  fi
+
+  local temp_out
+  temp_out="$(mktemp)"
+  if OPENAI_API_KEY="${OPENAI_API_KEY}" node "${_HATCAST_REPO_ROOT}/scripts/generate-changelog.js" \
+    "${technical_json}" "${version}" >"${temp_out}"; then
+    local result
+    result="$(cat "${temp_out}")"
+    rm -f "${temp_out}"
+    if [[ -n "${result}" ]] && echo "${result}" | jq -e '.version and .date and (.changes | type == "array")' >/dev/null 2>&1; then
+      echo "${result}"
+      return 0
+    fi
+  else
+    rm -f "${temp_out}"
+  fi
+  return 1
+}
+
+# Merge or prepend version entry in apps/web/public/changelog.json.
+hatcast_update_changelog_json_file() {
+  local new_version_json="$1"
+  local version="$2"
+  local changelog_file
+  changelog_file="$(hatcast_changelog_json_path)"
+
+  if ! echo "${new_version_json}" | jq empty 2>/dev/null; then
+    echo "❌ JSON entrée changelog invalide pour ${version}." >&2
+    return 1
+  fi
+
+  mkdir -p "$(dirname "${changelog_file}")"
+
+  if [[ -f "${changelog_file}" ]] && [[ -s "${changelog_file}" ]]; then
+    if ! jq empty "${changelog_file}" 2>/dev/null; then
+      echo "⚠️  ${HATCAST_CHANGELOG_JSON_REL} invalide — régénération." >&2
+      echo "[${new_version_json}]" >"${changelog_file}"
+    else
+      if ! jq --argjson new_version "${new_version_json}" \
+        --arg snapshot_seed "${version}-SNAPSHOT" \
+        'if any(.[]; .version == $new_version.version) then
+           map(if .version == $new_version.version then $new_version else . end)
+         else
+           [$new_version] + .
+         end
+         | map(select(.version != $snapshot_seed))' "${changelog_file}" >"${changelog_file}.tmp" 2>/dev/null; then
+        echo "❌ Échec jq sur ${HATCAST_CHANGELOG_JSON_REL}." >&2
+        return 1
+      fi
+      mv "${changelog_file}.tmp" "${changelog_file}"
+    fi
+  else
+    echo "[${new_version_json}]" >"${changelog_file}"
+  fi
+
+  if ! jq empty "${changelog_file}" 2>/dev/null; then
+    echo "❌ ${HATCAST_CHANGELOG_JSON_REL} invalide après mise à jour." >&2
+    return 1
+  fi
+
+  echo "✅ ${HATCAST_CHANGELOG_JSON_REL} mis à jour (version ${version})"
+  return 0
+}
+
+# Orchestrator for release-staging.sh
+hatcast_generate_changelog_json_for_release() {
+  local version="$1"
+  local date="$2"
+  local commit_range="$3"
+  local no_user_changelog="${4:-false}"
+  local changelog_file entry_json technical_json user_json
+
+  changelog_file="$(hatcast_changelog_json_path)"
+
+  if [[ "${no_user_changelog}" == "true" ]]; then
+    echo "⏭️  ${HATCAST_CHANGELOG_JSON_REL} inchangé (--no-user-changelog)"
+    return 0
+  fi
+
+  if entry_json="$(hatcast_load_cutover_changelog_entry "${version}" "${date}")"; then
+    echo "ℹ️  Changelog ${version} : entrée cutover curated (pas de git/OpenAI)"
+    hatcast_update_changelog_json_file "${entry_json}" "${version}"
+    return $?
+  fi
+
+  echo "📝 Génération ${HATCAST_CHANGELOG_JSON_REL} (${commit_range})…"
+  if ! technical_json="$(hatcast_build_technical_changelog_json "${version}" "${date}" "${commit_range}")"; then
+    echo "❌ Impossible de construire le JSON technique changelog." >&2
+    return 1
+  fi
+
+  if user_json="$(hatcast_transform_changelog_json_with_openai "${technical_json}" "${version}")"; then
+    echo "ℹ️  Notes utilisateur générées (OpenAI / Argil)"
+  else
+    echo "⚠️  OpenAI indisponible ou échec — entrée ${version} avec changes: [] (pas de fallback technique)." >&2
+    user_json="$(hatcast_changelog_json_empty_entry "${version}" "${date}")"
+  fi
+
+  hatcast_update_changelog_json_file "${user_json}" "${version}"
+}

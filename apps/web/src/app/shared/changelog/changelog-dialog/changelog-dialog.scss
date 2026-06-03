@@ -61,6 +61,13 @@
   color: color-mix(in srgb, var(--mat-sys-on-surface) 60%, transparent);
 }
 
+.changelog-dialog__version-empty {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 75%, transparent);
+}
+
 .changelog-dialog__changes {
   list-style: none;
   margin: 0;
