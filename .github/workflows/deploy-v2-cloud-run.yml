@@ -10,8 +10,7 @@ on:
   workflow_dispatch:
   push:
     branches: [v2, staging-v2]
-    tags:
-      - 'v*'
+    # Prod tags only (vX.Y.Z). RC tags (*-rc.*) are audit for promote-tag-to-prod — no CI (GitHub forbids tags + tags-ignore together).
     tags-ignore:
       - '*-rc.*'
     paths:
