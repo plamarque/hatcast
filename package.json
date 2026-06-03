@@ -1,6 +1,6 @@
 {
   "name": "hatcast-monorepo",
-  "version": "0.47.1",
+  "version": "2.0.0",
   "private": true,
   "description": "HatCast monorepo: legacy/ (V1 Vue), apps/web (V2 client), services/api (V2 API)",
   "workspaces": [

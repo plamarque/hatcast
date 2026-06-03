@@ -1,2 +1,4 @@
-2.0.0-SNAPSHOT
-Development build - 2026-06-02
+2.0.0
+Staging RC build - 2026-06-03
+Git: c438bb14
+Build: 2026-06-03T15:43:52+0200
