@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.0.2",
+    "date": "2026-06-04",
+    "changes": [
+      "✨ Améliore l'interface de la page Saisons avec un design plus clair.",
+      "✨ Ajoute des notifications push pour les demandes de disponibilité.",
+      "🐛 Corrige l'affichage des disponibilités dans la modale d'événement.",
+      "🐛 Résout les problèmes de connexion/déconnexion sur la page d'accueil.",
+      "🐛 Corrige le bug de sélection multi-rôles pour éviter les doublons."
+    ]
+  },
+  {
     "version": "2.0.1",
     "date": "2026-06-04",
     "changes": [
