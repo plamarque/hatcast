@@ -211,7 +211,10 @@ jobs:
           ENV_FILE="${RUNNER_TEMP}/cloudrun-env.yaml"
           : > "${ENV_FILE}"
           append_env() {
-            printf '%s=%s\n' "$1" "$2" >> "${ENV_FILE}"
+            local key="$1" val="$2"
+            val="${val//\\/\\\\}"
+            val="${val//\"/\\\"}"
+            printf '%s: "%s"\n' "${key}" "${val}" >> "${ENV_FILE}"
           }
           append_env HATCAST_SPRING_PROFILE cloud
           append_env HATCAST_SERVER_PORT 8081
