@@ -54,21 +54,9 @@ for arg in "$@"; do
   esac
 done
 
-current="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-
 if [[ "${is_dry_run}" == false ]]; then
   if [[ -n "$(git status --porcelain)" ]]; then
     echo "❌ L’arbre de travail n’est pas propre — committez ou stash avant release." >&2
-    exit 1
-  fi
-
-  if [[ "${current}" == "${HATCAST_V2_BRANCH_DEV}" ]]; then
-    echo "ℹ️  Bascule sur ${HATCAST_V2_BRANCH_STAGING} pour la release…"
-    hatcast_v2_fetch
-    git checkout "${HATCAST_V2_BRANCH_STAGING}"
-    git pull origin "${HATCAST_V2_BRANCH_STAGING}"
-  elif [[ "${current}" != "${HATCAST_V2_BRANCH_STAGING}" ]]; then
-    echo "❌ Branche courante : ${current} — attendu ${HATCAST_V2_BRANCH_DEV} ou ${HATCAST_V2_BRANCH_STAGING}." >&2
     exit 1
   fi
 fi
@@ -82,14 +70,5 @@ if ((${#FORWARD_ARGS[@]} > 0)); then
 else
   "${SCRIPT_DIR}/v2/release-staging.sh"
 fi
-exit_code=$?
 
-if [[ "${is_dry_run}" == false && "${current}" == "${HATCAST_V2_BRANCH_DEV}" ]]; then
-  current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-  if [[ "${current_branch}" != "${HATCAST_V2_BRANCH_DEV}" ]]; then
-    git checkout "${HATCAST_V2_BRANCH_DEV}" 2>/dev/null || true
-  fi
-  echo "↩️  Sur ${HATCAST_V2_BRANCH_DEV} (version.txt / changelog.json synchronisés depuis staging)"
-fi
-
-exit "${exit_code}"
+exit $?

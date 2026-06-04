@@ -91,6 +91,46 @@ hatcast_v2_github_actions_url() {
   fi
 }
 
+HATCAST_V2_ORIGINAL_BRANCH=""
+
+hatcast_v2_remember_current_branch() {
+  HATCAST_V2_ORIGINAL_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+}
+
+hatcast_v2_restore_remembered_branch() {
+  local current
+  if [[ -z "${HATCAST_V2_ORIGINAL_BRANCH}" ]]; then
+    return 0
+  fi
+  current="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  if [[ "${current}" == "${HATCAST_V2_ORIGINAL_BRANCH}" ]]; then
+    return 0
+  fi
+  echo "↩️  Retour sur ${HATCAST_V2_ORIGINAL_BRANCH}…"
+  git checkout "${HATCAST_V2_ORIGINAL_BRANCH}" 2>/dev/null || true
+}
+
+# Checkout staging-v2 (pull) from v2 or staging-v2 — no manual branch switch needed.
+hatcast_v2_prepare_staging_worktree() {
+  local current
+  current="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+
+  if [[ "${current}" == "${HATCAST_V2_BRANCH_STAGING}" ]]; then
+    git pull origin "${HATCAST_V2_BRANCH_STAGING}"
+    return 0
+  fi
+
+  if [[ "${current}" == "${HATCAST_V2_BRANCH_DEV}" ]]; then
+    echo "ℹ️  Bascule sur ${HATCAST_V2_BRANCH_STAGING} pour la release…"
+    git checkout "${HATCAST_V2_BRANCH_STAGING}"
+    git pull origin "${HATCAST_V2_BRANCH_STAGING}"
+    return 0
+  fi
+
+  echo "❌ Branche courante : ${current} — attendu ${HATCAST_V2_BRANCH_DEV} ou ${HATCAST_V2_BRANCH_STAGING}." >&2
+  exit 1
+}
+
 # After release-staging.sh: merge staging-v2 → dev so version.txt, changelog.json and
 # package.json bumps are available on the dev branch (local ng serve, next promote cycle).
 hatcast_v2_sync_release_artifacts_to_dev() {
