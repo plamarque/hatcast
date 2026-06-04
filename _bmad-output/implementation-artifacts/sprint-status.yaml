@@ -258,7 +258,7 @@ development_status:
 
   epic-19: in-progress  # P1 Waves A-B post-MEP ; Waves C-D formulas/policies ; SCP 2026-06-04 (+b)
   19-1-spec-normative-v1-adr-draw-weight-engine: done
-  19-2-golden-tests-v1-js-kotlin: backlog
+  19-2-golden-tests-v1-js-kotlin: review
   19-3-fixtures-orchestration-draw-complet: backlog
   19-4-doc-orga-membre-comprendre-les-cotes: backlog
   19-5-pipeline-draw-weight-factor: backlog

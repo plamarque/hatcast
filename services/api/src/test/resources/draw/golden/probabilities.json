@@ -1,0 +1,163 @@
+[
+  {
+    "id": "REF-P1",
+    "description": "Three equal candidates one place",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" },
+        { "key": "C", "displayName": "Carol" }
+      ],
+      "pastSelectionCountByParticipant": {}
+    },
+    "expected": { "chancePercentsSorted": [33, 33, 33] },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "REF-P2",
+    "description": "Two equal candidates one place",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": {}
+    },
+    "expected": { "chancePercentsSorted": [50, 50] },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "REF-P3",
+    "description": "Eight equal candidates five places",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 5,
+      "candidates": [
+        { "key": "P1", "displayName": "P1" },
+        { "key": "P2", "displayName": "P2" },
+        { "key": "P3", "displayName": "P3" },
+        { "key": "P4", "displayName": "P4" },
+        { "key": "P5", "displayName": "P5" },
+        { "key": "P6", "displayName": "P6" },
+        { "key": "P7", "displayName": "P7" },
+        { "key": "P8", "displayName": "P8" }
+      ],
+      "pastSelectionCountByParticipant": {}
+    },
+    "expected": { "allChancePercent": 63, "candidateCount": 8 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "REF-P4",
+    "description": "History skew favors less-selected participant",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 2, "B": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 25, "B": 75 },
+      "higherChanceKey": "B"
+    },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "T-P5",
+    "description": "Single place weight ratio 3:1",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "candidates": [
+        { "key": "A", "displayName": "A" },
+        { "key": "B", "displayName": "B" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 2 }
+    },
+    "expected": { "chancePercentsByKey": { "A": 75, "B": 25 } },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "T-P6",
+    "description": "Multi-place unbalanced weights within tolerance",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 5,
+      "candidates": [
+        { "key": "P1", "displayName": "P1" },
+        { "key": "P2", "displayName": "P2" },
+        { "key": "P3", "displayName": "P3" },
+        { "key": "P4", "displayName": "P4" },
+        { "key": "P5", "displayName": "P5" },
+        { "key": "P6", "displayName": "P6" },
+        { "key": "P7", "displayName": "P7" },
+        { "key": "P8", "displayName": "P8" }
+      ],
+      "pastSelectionCountByParticipant": {
+        "P1": 0,
+        "P2": 10,
+        "P3": 10,
+        "P4": 10,
+        "P5": 10,
+        "P6": 10,
+        "P7": 10,
+        "P8": 10
+      }
+    },
+    "expected": {
+      "chancePercentsByKey": {
+        "P1": 99,
+        "P2": 38,
+        "P3": 38,
+        "P4": 38,
+        "P5": 38,
+        "P6": 38,
+        "P7": 38,
+        "P8": 38
+      }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "T-P7",
+    "description": "Half-up rounding on mixed close probabilities",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 2,
+      "candidates": [
+        { "key": "C1", "displayName": "C1" },
+        { "key": "C2", "displayName": "C2" },
+        { "key": "C3", "displayName": "C3" }
+      ],
+      "pastSelectionCountByParticipant": { "C1": 1, "C2": 0, "C3": 3 }
+    },
+    "expected": { "chancePercentsSorted": [84, 60, 35] },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "T-S1",
+    "description": "Strictly descending order with adjacent one-point gaps",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "candidates": [
+        { "key": "A", "displayName": "A" },
+        { "key": "B", "displayName": "B" },
+        { "key": "C", "displayName": "C" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 1, "C": 5 }
+    },
+    "expected": {
+      "chancePercentsOrdered": [60, 30, 10],
+      "strictlyDescending": true
+    },
+    "tolerancePercent": 0
+  }
+]

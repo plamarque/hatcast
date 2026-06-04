@@ -1,0 +1,84 @@
+[
+  {
+    "id": "REF-D1",
+    "description": "Single candidate deterministic draw",
+    "function": "performWeightedDraw",
+    "input": {
+      "seed": 42,
+      "candidates": [{ "key": "A", "displayName": "Alice", "weight": 5.0, "pastSelectionCount": 0 }]
+    },
+    "expected": { "selectedIndex": 0 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "REF-D2",
+    "description": "Seeded draw selects first cumulative bucket",
+    "function": "performWeightedDraw",
+    "input": {
+      "seed": 42,
+      "candidates": [
+        { "key": "A", "displayName": "A", "weight": 3.0, "pastSelectionCount": 0 },
+        { "key": "B", "displayName": "B", "weight": 1.0, "pastSelectionCount": 0 },
+        { "key": "C", "displayName": "C", "weight": 1.0, "pastSelectionCount": 0 }
+      ]
+    },
+    "expected": {
+      "selectedIndex": 0,
+      "totalWeight": 5.0,
+      "randomValue": 1.1315763298615888
+    },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "REF-D3",
+    "description": "Seeded draw selects light candidate",
+    "function": "performWeightedDraw",
+    "input": {
+      "seed": 7,
+      "candidates": [
+        { "key": "H", "displayName": "Heavy", "weight": 10.0, "pastSelectionCount": 0 },
+        { "key": "L", "displayName": "Light", "weight": 1.0, "pastSelectionCount": 0 }
+      ]
+    },
+    "expected": {
+      "selectedIndex": 1,
+      "totalWeight": 11.0,
+      "randomValue": 10.533073649264582
+    },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "T-D4",
+    "description": "Cumulative walk near upper totalWeight boundary",
+    "function": "performWeightedDraw",
+    "input": {
+      "seed": 355,
+      "candidates": [
+        { "key": "H", "displayName": "Heavy", "weight": 10.0, "pastSelectionCount": 0 },
+        { "key": "L", "displayName": "Light", "weight": 1.0, "pastSelectionCount": 0 }
+      ]
+    },
+    "expected": {
+      "selectedIndex": 1,
+      "totalWeight": 11.0,
+      "randomValue": 10.998398336462905
+    },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "T-D5",
+    "description": "Same seed yields identical selection across repeated runs",
+    "function": "performWeightedDrawRepeatable",
+    "input": {
+      "seed": 42,
+      "repeatCount": 100,
+      "candidates": [
+        { "key": "A", "displayName": "A", "weight": 3.0, "pastSelectionCount": 0 },
+        { "key": "B", "displayName": "B", "weight": 1.0, "pastSelectionCount": 0 },
+        { "key": "C", "displayName": "C", "weight": 1.0, "pastSelectionCount": 0 }
+      ]
+    },
+    "expected": { "selectedIndex": 0, "allRunsIdentical": true },
+    "tolerancePercent": 0
+  }
+]

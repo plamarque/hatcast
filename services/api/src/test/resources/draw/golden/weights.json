@@ -1,0 +1,57 @@
+[
+  {
+    "id": "REF-W1",
+    "description": "Fresh participant weight",
+    "function": "weightForParticipant",
+    "input": { "pastSelectionCount": 0, "requiredCount": 5 },
+    "expected": { "weight": 5.0 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "REF-W2",
+    "description": "Veteran participant weight",
+    "function": "weightForParticipant",
+    "input": { "pastSelectionCount": 3, "requiredCount": 5 },
+    "expected": { "weight": 1.25 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "REF-W3",
+    "description": "Weight at four decimal places",
+    "function": "weightForParticipant",
+    "input": { "pastSelectionCount": 2, "requiredCount": 2 },
+    "expected": { "weight": 0.6667, "decimalPlaces": 4 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "T-INV1",
+    "description": "toWeightedCandidates weights match scoreCandidates pipeline",
+    "function": "invariantWeightsMatchScores",
+    "input": {
+      "requiredCount": 2,
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" },
+        { "key": "C", "displayName": "Carol" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 1, "C": 3 }
+    },
+    "expected": { "weightsMatchScores": true },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "T-W4",
+    "description": "Empty and zero-weight edge cases without crash",
+    "function": "edgeCombined",
+    "input": {
+      "cases": ["emptyScore", "emptyDraw", "zeroWeightScore", "zeroWeightDraw"]
+    },
+    "expected": {
+      "emptyScoreSize": 0,
+      "emptyDrawNull": true,
+      "zeroWeightPercent": 0,
+      "zeroWeightDrawNull": true
+    },
+    "tolerancePercent": 0
+  }
+]

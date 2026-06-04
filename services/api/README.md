@@ -95,6 +95,20 @@ Depuis `services/api/` :
 
 Profil Spring **`test`** (`@ActiveProfiles("test")` sur les suites `@SpringBootTest`). Aucune variable `HATCAST_DATASOURCE_*` ni branche Neon requise.
 
+### Golden draw suite (Epic 19.2)
+
+Regression gate for [`AvailabilityChanceCalculator`](src/main/kotlin/com/hatcast/api/availability/AvailabilityChanceCalculator.kt) — frozen vectors from [`docs/v2/technical/draw-weight-engine-v1-spec.md`](../../docs/v2/technical/draw-weight-engine-v1-spec.md) § Golden test contract.
+
+```bash
+./gradlew test --tests 'com.hatcast.api.availability.DrawGoldenTest'
+```
+
+- Fixtures : `src/test/resources/draw/golden/*.json` (IDs `REF-*`, `T-*`).
+- Runner : `DrawGoldenTest.kt` (parameterized; never uses `Random.Default` in golden draws).
+- CI : workflow [`api-test.yml`](../../.github/workflows/api-test.yml) runs the full `./gradlew test` on PRs touching `services/api/**` (includes golden + `CompositionDrawService` regressions).
+
+Optional vector regeneration (normative algorithm change only) : [`scripts/draw/freeze-golden-vectors.kts`](../../scripts/draw/freeze-golden-vectors.kts).
+
 ### H2 (CI et local) vs PostgreSQL (Neon)
 
 | Environnement | Moteur | Config |
