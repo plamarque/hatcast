@@ -133,7 +133,6 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly showConfirmPending = signal(false)
   protected readonly contextTroupeName = signal('')
   protected readonly contextTroupeSlug = signal('')
-  protected readonly contextTroupeIsDemo = signal(false)
   protected readonly contextTroupeLogoUrl = signal<string | null>(null)
   protected readonly contextLeagueTitle = signal('')
   protected readonly contextSeasonSlug = signal('')
@@ -637,7 +636,6 @@ export class EventDetail implements OnDestroy, OnInit {
     this.troupeId.set(resolved.troupe.id)
     this.contextTroupeName.set(resolved.troupe.name)
     this.contextTroupeSlug.set(resolved.troupe.slug)
-    this.contextTroupeIsDemo.set(resolved.troupe.isDemo)
     this.contextTroupeLogoUrl.set(resolved.troupe.logoUrl ?? null)
     this.contextLeagueTitle.set(resolved.season.title)
     this.contextSeasonSlug.set(resolved.season.slug)
@@ -711,7 +709,6 @@ export class EventDetail implements OnDestroy, OnInit {
   private resetResolvedContext(): void {
     this.contextTroupeName.set('')
     this.contextTroupeSlug.set('')
-    this.contextTroupeIsDemo.set(false)
     this.contextTroupeLogoUrl.set(null)
     this.contextLeagueTitle.set('')
     this.contextSeasonSlug.set('')

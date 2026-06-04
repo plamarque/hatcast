@@ -150,7 +150,7 @@ Operator steps after Cloud Run deploy (staging or production):
 1. Open deployed URL → sign in (Google or email).
 2. Navigate to `/troupes` (or empty `/agenda` CTA).
 3. Click **Rejoindre la troupe de démonstration**.
-4. Confirm redirect to **`/saison/saison-2026-2027`** and breadcrumb **Démo** chip.
+4. Confirm redirect to **`/saison/saison-2026-2027`** and breadcrumb trail **Démo › Saison 2026-2027** (no separate Démo chip — Story 18.4b).
 5. Open a **preparing** spectacle (e.g. seeded event `c0000004-…0099` if visible) → set availability → save.
 6. Optional: verify super-admin can open admin surfaces when `HATCAST_SUPER_ADMIN_EMAILS` includes operator email.
 

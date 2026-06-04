@@ -168,7 +168,6 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly troupeId = signal<string | null>(null)
   protected readonly troupeName = signal<string | null>(null)
   protected readonly troupeSlug = signal<string | null>(null)
-  protected readonly troupeIsDemo = signal(false)
   protected readonly troupeLogoUrl = signal<string | null>(null)
 
   protected readonly season = signal<SeasonResponse | null>(null)
@@ -591,7 +590,6 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
     this.troupeSlug.set(resolved.troupe.slug)
-    this.troupeIsDemo.set(resolved.troupe.isDemo)
     this.troupeLogoUrl.set(resolved.troupe.logoUrl ?? null)
     this.season.set(resolved.season)
     rememberLastVisitedSeasonSlug(resolved.season.slug, resolved.troupe.id)

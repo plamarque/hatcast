@@ -255,16 +255,15 @@ describe('ContextBreadcrumb', () => {
     ).toContain('Participants')
   })
 
-  it('affiche le chip Démo et l’aria-label troupe Démo quand troupeIsDemo', async () => {
+  it('n’affiche pas de chip Démo dans le fil d’Ariane', async () => {
     const fixture = await setup('season')
-    fixture.componentRef.setInput('troupeIsDemo', true)
+    fixture.componentRef.setInput('troupeName', 'Démo')
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
 
-    expect(el.querySelector('.context-breadcrumb__demo-chip')?.textContent).toContain('Démo')
+    expect(el.querySelector('.context-breadcrumb__demo-chip')).toBeNull()
     const troupeLink = el.querySelector('a.context-breadcrumb__troupe') as HTMLAnchorElement
-    expect(troupeLink.getAttribute('aria-label')).toContain('troupe Démo')
-    expect(el.querySelector('.context-breadcrumb__demo-chip--mobile')).toBeTruthy()
+    expect(troupeLink.getAttribute('aria-label')).toBe('Troupe : Démo, Saison 2025-26')
   })
 
 })

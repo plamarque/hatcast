@@ -330,7 +330,7 @@ Checklist manuelle après déploiement couplé SPA + API (staging ou production)
 1. Ouvrir l’URL du service → se connecter (Google ou email).
 2. Aller sur `/troupes` (ou CTA vide sur `/agenda`).
 3. Cliquer **Rejoindre la troupe de démonstration**.
-4. Vérifier la redirection vers **`/saison/demo/saison-2026-2027`** et le fil d’Ariane / chip **Démo**.
+4. Vérifier la redirection vers **`/saison/demo/saison-2026-2027`** et le fil d’Ariane **Démo › Saison 2026-2027** (sans chip badge).
 5. Ouvrir un spectacle **en préparation** (ex. événement seed bootstrap si visible) → renseigner une première disponibilité → enregistrer.
 6. (Optionnel) Avec `HATCAST_SUPER_ADMIN_EMAILS` incluant l’email opérateur, vérifier l’accès aux surfaces admin plateforme.
 
