@@ -17,11 +17,11 @@ import { getPendingPostLoginRedirect, clearPendingPostLoginRedirect } from '../.
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { AccountPlaceholder } from './account-placeholder'
+import { LegacyAccountTabRedirect } from './legacy-account-tab-redirect'
 import { AccountAboutTab } from './tabs/account-about-tab'
-import { AccountIdentityTab } from './tabs/account-identity-tab'
+import { AccountProfileTab } from './tabs/account-profile-tab'
 import { AccountNotificationsTab } from './tabs/account-notifications-tab'
 import { AccountPreferencesTab } from './tabs/account-preferences-tab'
-import { AccountSecurityTab } from './tabs/account-security-tab'
 import { AccountChangeEmailDialog } from './dialogs/account-change-email-dialog'
 import { AccountChangePasswordDialog } from './dialogs/account-change-password-dialog'
 import { AccountDeleteDialog } from './dialogs/account-delete-dialog'
@@ -35,10 +35,11 @@ const accountRoutes = [
     path: 'compte',
     component: AccountPlaceholder,
     children: [
-      { path: '', component: AccountIdentityTab },
+      { path: '', component: AccountProfileTab },
       { path: 'preferences', component: AccountPreferencesTab },
       { path: 'notifications', component: AccountNotificationsTab },
-      { path: 'securite', component: AccountSecurityTab },
+      { path: 'securite', component: LegacyAccountTabRedirect },
+      { path: 'identite', component: LegacyAccountTabRedirect },
       { path: 'a-propos', component: AccountAboutTab },
       { path: '**', redirectTo: '' },
     ],
@@ -57,7 +58,9 @@ describe('AccountPlaceholder', () => {
     const navigate = vi.fn().mockResolvedValue(true)
     const logout = vi.fn().mockResolvedValue({ ok: true, status: 200 })
     const openChangelog = vi.fn()
-    const dialogOpen = vi.fn()
+    const dialogOpen = vi.fn().mockReturnValue({
+      afterClosed: () => ({ subscribe: vi.fn() }),
+    })
     const getPreferences = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -197,7 +200,10 @@ describe('AccountPlaceholder', () => {
     TestBed.overrideProvider(MatSnackBar, { useValue: snack })
 
     const router = TestBed.inject(Router)
-    vi.spyOn(router, 'navigate').mockImplementation(navigate)
+    vi.spyOn(router, 'navigate').mockImplementation(function (this: Router, commands, extras) {
+      navigate(commands, extras)
+      return Router.prototype.navigate.apply(this, [commands, extras] as Parameters<Router['navigate']>)
+    })
 
     const fixture = TestBed.createComponent(AccountRouteHost)
     fixture.detectChanges()
@@ -236,14 +242,15 @@ describe('AccountPlaceholder', () => {
     expect(text).toContain('Paramètres de votre compte HatCast.')
   })
 
-  it('affiche les cinq onglets de navigation', async () => {
+  it('affiche les quatre onglets de navigation', async () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
-    expect(text).toContain('Identité')
+    expect(text).toContain('Mon profil')
     expect(text).toContain('Préférences')
     expect(text).toContain('Notifications')
-    expect(text).toContain('Sécurité')
     expect(text).toContain('À propos')
+    expect(text).not.toContain('Identité')
+    expect(text).not.toContain('Sécurité')
   })
 
   it('propose un menu sur l’avatar pour la photo', async () => {
@@ -262,7 +269,7 @@ describe('AccountPlaceholder', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Choisir une image')
   })
 
-  it('affiche la zone identité avec e-mail, displayName et pseudo éditable', async () => {
+  it('affiche Mon profil avec e-mail, icône edit, displayName et pseudo éditable', async () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
     expect(text).toContain('lea@example.com')
@@ -271,7 +278,11 @@ describe('AccountPlaceholder', () => {
     expect(
       fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]'),
     ).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-email-edit"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-change-email"]')).toBeNull()
     expect(text).not.toContain('Photo de profil')
+    expect(text).toContain('Modes de connexion')
+    expect(text).toContain('Zone sensible')
   })
 
   it('navigue vers chaque onglet via la barre d’onglets', async () => {
@@ -299,11 +310,6 @@ describe('AccountPlaceholder', () => {
     await fixture.whenStable()
     expect(router.url).toContain('/compte/preferences')
     expect(fixture.nativeElement.querySelector('[data-testid="member-preferences-save"]')).toBeTruthy()
-
-    clickTab('Sécurité')
-    await fixture.whenStable()
-    expect(router.url).toContain('/compte/securite')
-    expect(fixture.nativeElement.querySelector('[data-testid="account-change-email"]')).toBeTruthy()
 
     clickTab('À propos')
     await fixture.whenStable()
@@ -342,12 +348,8 @@ describe('AccountPlaceholder', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="account-troupe-preferences"]')).toBeNull()
   })
 
-  it('active le changement de mot de passe sur Sécurité', async () => {
-    const { fixture, router, dialogOpen } = await setup()
-    await router.navigateByUrl('/compte/securite')
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+  it('active le changement de mot de passe sur Mon profil', async () => {
+    const { fixture, dialogOpen } = await setup()
 
     const button = fixture.nativeElement.querySelector(
       '[data-testid="account-reset-password"]',
@@ -364,15 +366,11 @@ describe('AccountPlaceholder', () => {
     )
   })
 
-  it('active le changement d’e-mail et la suppression de compte sur Sécurité', async () => {
-    const { fixture, router, dialogOpen } = await setup()
-    await router.navigateByUrl('/compte/securite')
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+  it('active le changement d’e-mail et la suppression de compte sur Mon profil', async () => {
+    const { fixture, dialogOpen } = await setup()
 
     const emailButton = fixture.nativeElement.querySelector(
-      '[data-testid="account-change-email"]',
+      '[data-testid="account-email-edit"]',
     ) as HTMLButtonElement
     const deleteButton = fixture.nativeElement.querySelector(
       '[data-testid="account-delete"]',
@@ -383,7 +381,7 @@ describe('AccountPlaceholder', () => {
     expect(dialogOpen).toHaveBeenCalledWith(
       AccountChangeEmailDialog,
       expect.objectContaining({
-        data: { currentEmail: 'lea@example.com' },
+        data: expect.objectContaining({ currentEmail: 'lea@example.com' }),
       }),
     )
 
@@ -403,9 +401,31 @@ describe('AccountPlaceholder', () => {
     expect(fixture.nativeElement.textContent).toContain('Zone sensible')
   })
 
-  it('Google-only : ligne mot de passe activée avec Définir et hint secours', async () => {
-    const { fixture, router, dialogOpen } = await setup({ hasGoogleAccount: true })
+  it('redirige /compte/securite vers Mon profil', async () => {
+    const { fixture, router, navigate } = await setup()
     await router.navigateByUrl('/compte/securite')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(router.url).toBe('/compte')
+    expect(navigate).toHaveBeenCalledWith(['/compte'], { replaceUrl: true })
+    expect(fixture.nativeElement.querySelector('[data-testid="account-email-edit"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-reset-password"]')).toBeTruthy()
+  })
+
+  it('redirige /compte/identite vers Mon profil', async () => {
+    const { fixture, router, navigate } = await setup({ routerUrl: '/compte/identite' })
+
+    expect(router.url).toBe('/compte')
+    expect(navigate).toHaveBeenCalledWith(['/compte'], { replaceUrl: true })
+    expect(fixture.nativeElement.querySelector('[data-testid="account-email-edit"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')).toBeTruthy()
+  })
+
+  it('Google-only : mot de passe Définir et hint secours sur Mon profil', async () => {
+    const { fixture, router, dialogOpen } = await setup({ hasGoogleAccount: true })
+    await router.navigateByUrl('/compte')
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
@@ -463,7 +483,7 @@ describe('AccountPlaceholder', () => {
     expect(openChangelog).toHaveBeenCalled()
   })
 
-  it('redirige une route enfant /compte inconnue vers Identité', async () => {
+  it('redirige une route enfant /compte inconnue vers Mon profil', async () => {
     const { fixture, router } = await setup()
     await router.navigateByUrl('/compte/unknown')
     fixture.detectChanges()

@@ -99,12 +99,12 @@ flowchart TB
 
 - **Pas** de 4ᵉ onglet « Compte » dans la nav Accueil · Agenda · Stats.
 - **Pas** de panneau hamburger pour le compte.
-- **Desktop rail :** libellé sous l’avatar = **pseudo membre** (C11), mis à jour après enregistrement sur `/compte` Identité.
+- **Desktop rail :** libellé sous l’avatar = **pseudo membre** (C11), mis à jour après enregistrement sur `/compte` **Mon profil**.
 - Composant menu partagé : [`app-user-account-menu-items`](../../apps/web/src/app/shared/user-account-menu/user-account-menu-items.ts) (ne pas dupliquer les entrées).
 
 **Référence M3 (justification) :** les guidelines placent souvent le profil dans la **top app bar** ; le **footer rail** est un agencement **custom** accepté lorsque le rail est déjà le chrome persistant (évite une double barre titre + avatar). Menus ancrés au trigger, hiérarchie identité → actions → déconnexion.
 
-**Story d’implémentation :** **17.25** (chrome rail) ; amendement libellé pseudo → **17.35** (avec pseudo Identité).
+**Story d’implémentation :** **17.25** (chrome rail) ; **17.35** (pseudo Mon profil) ; **17.36** (fusion onglet Mon profil).
 
 ### Wireframes chrome compte
 

@@ -168,11 +168,40 @@
   flex: 1 1 12rem;
 }
 
+.account-page__email-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+}
+
 .account-page__email {
   margin: 0;
   font-size: 1rem;
   line-height: 1.4;
   word-break: break-word;
+}
+
+.account-page__auth-hint {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 50%, transparent);
+}
+
+.account-page__auth-hint-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.account-page__auth-hint-body {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  opacity: 0.85;
 }
 
 .account-page__display-name {
@@ -246,7 +275,9 @@
 @media (max-width: 480px) {
   .account-page__list a[mat-list-item],
   .account-page__list button[mat-list-item],
-  .account-page__avatar-trigger {
+  .account-page__avatar-trigger,
+  .account-page__email-row button[mat-icon-button],
+  .account-page__section button[mat-stroked-button] {
     min-height: 3rem;
     min-width: 3rem;
   }

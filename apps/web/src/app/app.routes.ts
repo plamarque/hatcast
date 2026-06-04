@@ -2,12 +2,12 @@ import { Routes } from '@angular/router';
 
 import { MemberShell } from './layout/member-shell/member-shell';
 import { AccountPlaceholder } from './pages/account-placeholder/account-placeholder';
+import { LegacyAccountTabRedirect } from './pages/account-placeholder/legacy-account-tab-redirect';
 import { AccountEmailVerification } from './pages/account-email-verification/account-email-verification';
 import { AccountAboutTab } from './pages/account-placeholder/tabs/account-about-tab';
-import { AccountIdentityTab } from './pages/account-placeholder/tabs/account-identity-tab';
+import { AccountProfileTab } from './pages/account-placeholder/tabs/account-profile-tab';
 import { AccountNotificationsTab } from './pages/account-placeholder/tabs/account-notifications-tab';
 import { AccountPreferencesTab } from './pages/account-placeholder/tabs/account-preferences-tab';
-import { AccountSecurityTab } from './pages/account-placeholder/tabs/account-security-tab';
 import { AuthRedirect } from './pages/auth-redirect/auth-redirect';
 import { ForgotPassword } from './pages/forgot-password/forgot-password';
 import { MemberHomeTodo } from './pages/member-home-todo/member-home-todo';
@@ -61,10 +61,11 @@ export const routes: Routes = [
         path: 'compte',
         component: AccountPlaceholder,
         children: [
-          { path: '', component: AccountIdentityTab },
+          { path: '', component: AccountProfileTab },
           { path: 'preferences', component: AccountPreferencesTab },
           { path: 'notifications', component: AccountNotificationsTab },
-          { path: 'securite', component: AccountSecurityTab },
+          { path: 'securite', component: LegacyAccountTabRedirect },
+          { path: 'identite', component: LegacyAccountTabRedirect },
           { path: 'a-propos', component: AccountAboutTab },
           { path: '**', redirectTo: '' },
         ],

@@ -361,7 +361,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 0. **OPS-8** — prod Cloud Run **`europe-west1`** + domain mapping **`hatcast.app`** + Cloudflare orange (staging/dev cloud restent **`europe-west9`** / `*.run.app`)  
 1. ~~**MEP iso-V1 slice**~~ — **done** (4.1, 9.0, 3.21, 8.1, 8.3, 6.10b, 8.2, 8.5, 8.6, 9.1 — voir `sprint-status.yaml`)  
 2. **10.4** → **10.2** + **10.3** + **10.7** — PWA recette, MAJ client, version/changelog, icône HatCast 2  
-3. **1.2b** + **17.34** + **1.6** — UX inscription dédiée + Mon compte (onglets) + email / MDP connecté  
+3. **1.2b** + **17.34** + **17.35** + **17.36** + **1.6** — UX inscription + Mon compte (4 onglets, profil unifié) + email / MDP connecté  
 4. **6.15** — modales annonces (M3, notify manuel, anti-spam)  
 5. **10.5** + **10.6** — aides install contextuelles + opt-in notifs post-install  
 6. **Recette 1.2** + **1.3** + **1.7** — inscription + reset MDP gates + suppression compte  
@@ -447,10 +447,12 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 |----|-------|----------|--------|-------|
 | **1.2** | Inscription email / mot de passe | P0 recette | done | Code livré (**1-2**) ; **recette gate** cutover (staging → prod) — lien « Créer un compte » sur `/connexion` |
 | **1.2b** | UX inscription dédiée (parité V1) | **P0** | backlog | Routes `/connexion` + `/inscription` — spec [ux-design-auth-inscription-1-2b.md](_bmad-output/planning-artifacts/ux-design-auth-inscription-1-2b.md) |
-| **17.34** | Mon compte — onglets / sections, raccourcis prefs | **P0** | backlog | UX [ux-design-mon-compte.md](_bmad-output/planning-artifacts/ux-design-mon-compte.md) |
-| **1.6** | Changement email + mot de passe connecté | **P0** | backlog | FR36 ; Google + email/password |
+| **17.34** | Mon compte — onglets / sections, raccourcis prefs | **P0** | done | UX [ux-design-mon-compte.md](_bmad-output/planning-artifacts/ux-design-mon-compte.md) |
+| **17.35** | Mon compte — pseudo sur profil + libellé rail | **P0** | done | Amendement UX 2026-06-04a |
+| **17.36** | Mon compte — fusion Mon profil (4 onglets) | **P0** | done | UX amend. 2026-06-04b ; après **17.35** |
+| **1.6** | Changement email + mot de passe connecté | **P0** | done | FR36 ; déclencheurs déplacés vers Mon profil (**17.36**) |
 | **1.3** | Reset mot de passe (mot de passe oublié) | P0 recette | done | Gate E2E staging Identity Platform |
-| **1.7** | Suppression de compte (zone sensible) | **P0** | backlog | FR37 ; exclu MEP → **in** V2.0.0 |
+| **1.7** | Suppression de compte (zone sensible) | **P0** | done | FR37 ; UI déplacée vers Mon profil (**17.36**) |
 
 #### Wave C — Modales annonces
 

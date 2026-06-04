@@ -1,6 +1,6 @@
 @if (ctx.user(); as u) {
-  <section class="account-page__identity" aria-labelledby="account-identity-heading">
-    <h2 id="account-identity-heading" class="account-page__visually-hidden">Identité</h2>
+  <section class="account-page__identity" aria-labelledby="account-profile-heading">
+    <h2 id="account-profile-heading" class="account-page__visually-hidden">Mon profil</h2>
     <div class="account-page__identity-row">
       <div class="account-page__avatar-wrap">
         <button
@@ -71,7 +71,18 @@
         }
       </div>
       <div class="account-page__identity-text">
-        <p class="account-page__email">{{ u.email }}</p>
+        <p class="account-page__email-row">
+          <span class="account-page__email">{{ u.email }}</span>
+          <button
+            mat-icon-button
+            type="button"
+            data-testid="account-email-edit"
+            aria-label="Modifier l'adresse e-mail"
+            (click)="openChangeEmailDialog()"
+          >
+            <mat-icon>edit</mat-icon>
+          </button>
+        </p>
         @if (ctx.accountDisplayName(); as name) {
           <p class="account-page__display-name">{{ name }}</p>
         }
@@ -121,5 +132,49 @@
         </button>
       </div>
     }
+  </section>
+
+  <section class="account-page__section" aria-labelledby="account-auth-modes-heading">
+    <h2 id="account-auth-modes-heading" class="account-page__section-title">Modes de connexion</h2>
+    @if (u.hasGoogleAccount) {
+      <p class="account-page__section-hint" data-testid="account-google-status">
+        Connexion Google activée sur ce compte.
+      </p>
+    }
+    <button
+      mat-stroked-button
+      type="button"
+      data-testid="account-reset-password"
+      (click)="openChangePasswordDialog()"
+    >
+      {{ passwordRowLabel() }}
+    </button>
+    @if (u.hasGoogleAccount && !hasPasswordProvider()) {
+      <div class="account-page__auth-hint" data-testid="account-google-password-hint">
+        <p class="account-page__auth-hint-title">Connexion Google et mot de passe secours</p>
+        <p class="account-page__auth-hint-body">
+          Vous pouvez continuer à vous connecter avec Google. Un mot de passe HatCast sert de secours si
+          vous perdez l’accès à Google.
+        </p>
+      </div>
+    }
+  </section>
+
+  <section
+    class="account-page__section account-page__section--danger"
+    aria-labelledby="account-danger-heading"
+  >
+    <h2 id="account-danger-heading" class="account-page__section-title">Zone sensible</h2>
+    <mat-nav-list class="account-page__list">
+      <button
+        type="button"
+        mat-list-item
+        class="account-page__list-item--danger"
+        data-testid="account-delete"
+        (click)="openDeleteAccountDialog()"
+      >
+        <span matListItemTitle>Supprimer mon compte</span>
+      </button>
+    </mat-nav-list>
   </section>
 }

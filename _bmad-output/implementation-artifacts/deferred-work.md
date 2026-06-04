@@ -1,3 +1,9 @@
+## Deferred from: code review of 17-36-mon-compte-onglet-mon-profil.md (2026-06-04)
+
+- Subscription `afterClosed()` non nettoyée dans `openChangePasswordDialog` — pattern hérité de l’ancien onglet Sécurité ; risque fuite mineur.
+- Checklist M3-5 non documentée explicitement dans Dev Notes — process/doc ; implémentation M3 conforme aux critères de la story.
+- Dépassement budget bundle initial (+31 kB) au build — pré-existant hors périmètre story.
+
 ## Deferred from: code review of 17-35-mon-compte-pseudo-identite-rail-label.md (2026-06-04)
 
 - AC9 suite complète `npm run test -w @hatcast/web` — ~80 échecs pré-existants hors périmètre 17.35 ; les 19 tests story passent via `ng test`.

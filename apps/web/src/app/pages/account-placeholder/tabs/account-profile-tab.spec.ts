@@ -1,5 +1,6 @@
 import { signal } from '@angular/core'
-import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { TestBed } from '@angular/core/testing'
+import { MatDialog } from '@angular/material/dialog'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { describe, expect, it, vi } from 'vitest'
@@ -7,9 +8,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { MemberDisplayNameService } from '../../../core/account/member-display-name.service'
 import { MePreferencesApiService } from '../../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../../core/auth/auth-api.service'
+import { FirebaseAuthService } from '../../../core/auth/firebase-auth.service'
 import { TroupeContextService } from '../../../core/troupes/troupe-context.service'
 import { AccountPageContext } from '../account-page-context'
-import { AccountIdentityTab } from './account-identity-tab'
+import { AccountChangeEmailDialog } from '../dialogs/account-change-email-dialog'
+import { AccountProfileTab } from './account-profile-tab'
 
 const troupeA = {
   id: 't1',
@@ -29,8 +32,9 @@ const troupeA = {
   upcomingEventCount: 0,
 }
 
-async function setup(options: { patchOk?: boolean } = {}) {
+async function setup(options: { patchOk?: boolean; hasGoogleAccount?: boolean } = {}) {
   const snack = { open: vi.fn() }
+  const dialogOpen = vi.fn()
   const patchPreferences = vi.fn().mockResolvedValue(
     options.patchOk === false
       ? { ok: false, status: 500 }
@@ -53,7 +57,7 @@ async function setup(options: { patchOk?: boolean } = {}) {
       email: 'lea@example.com',
       displayName: 'Léa Martin',
       avatarUrl: null,
-      hasGoogleAccount: false,
+      hasGoogleAccount: options.hasGoogleAccount ?? false,
     }),
     avatarSaving: signal(false),
     avatarDisplayName: () => 'Léa Martin',
@@ -64,10 +68,24 @@ async function setup(options: { patchOk?: boolean } = {}) {
   }
 
   await TestBed.configureTestingModule({
-    imports: [AccountIdentityTab, NoopAnimationsModule],
+    imports: [AccountProfileTab, NoopAnimationsModule],
     providers: [
       { provide: AccountPageContext, useValue: pageCtx },
       { provide: MatSnackBar, useValue: snack },
+      { provide: MatDialog, useValue: { open: dialogOpen } },
+      {
+        provide: FirebaseAuthService,
+        useValue: {
+          getAuthOrNull: () => ({
+            currentUser: {
+              providerData: options.hasGoogleAccount
+                ? [{ providerId: 'google.com' }]
+                : [{ providerId: 'password' }],
+              email: 'lea@example.com',
+            },
+          }),
+        },
+      },
       {
         provide: MePreferencesApiService,
         useValue: { patchPreferences },
@@ -94,7 +112,7 @@ async function setup(options: { patchOk?: boolean } = {}) {
   }).compileComponents()
   TestBed.overrideProvider(MatSnackBar, { useValue: snack })
 
-  const fixture = TestBed.createComponent(AccountIdentityTab)
+  const fixture = TestBed.createComponent(AccountProfileTab)
   fixture.detectChanges()
   for (let i = 0; i < 20; i++) {
     await fixture.whenStable()
@@ -108,6 +126,7 @@ async function setup(options: { patchOk?: boolean } = {}) {
   return {
     fixture,
     snack,
+    dialogOpen,
     patchPreferences,
     patchMembershipDisplayName,
     setFromSave,
@@ -115,16 +134,32 @@ async function setup(options: { patchOk?: boolean } = {}) {
   }
 }
 
-describe('AccountIdentityTab', () => {
-  it('renders pseudo field with save button', async () => {
+describe('AccountProfileTab', () => {
+  it('renders pseudo field with save button and email edit icon', async () => {
     const { fixture } = await setup()
     expect(fixture.nativeElement.textContent).toContain('Nom affiché dans toutes vos troupes.')
     expect(fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-email-edit"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-change-email"]')).toBeNull()
+  })
+
+  it('opens change email dialog from edit icon', async () => {
+    const { fixture, dialogOpen } = await setup()
+    const editBtn = fixture.nativeElement.querySelector(
+      '[data-testid="account-email-edit"]',
+    ) as HTMLButtonElement
+    editBtn.click()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      AccountChangeEmailDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({ currentEmail: 'lea@example.com' }),
+      }),
+    )
   })
 
   it('rejects empty pseudo without API call', async () => {
     const { fixture, patchPreferences } = await setup()
-    const component = fixture.componentInstance as AccountIdentityTab
+    const component = fixture.componentInstance as AccountProfileTab
     component['onPseudoInput']('   ')
     await component['savePseudo']()
     fixture.detectChanges()
@@ -135,7 +170,7 @@ describe('AccountIdentityTab', () => {
   it('saves pseudo via PATCH and syncs rail service and troupes', async () => {
     const { fixture, snack, patchPreferences, patchMembershipDisplayName, setFromSave, memberDisplayNameSignal } =
       await setup()
-    const component = fixture.componentInstance as AccountIdentityTab
+    const component = fixture.componentInstance as AccountProfileTab
     component['onPseudoInput']('Léa B')
 
     await component['savePseudo']()
@@ -150,7 +185,7 @@ describe('AccountIdentityTab', () => {
 
   it('shows error snack when patch fails', async () => {
     const { fixture, snack } = await setup({ patchOk: false })
-    const component = fixture.componentInstance as AccountIdentityTab
+    const component = fixture.componentInstance as AccountProfileTab
     component['onPseudoInput']('Léa B')
 
     await component['savePseudo']()
