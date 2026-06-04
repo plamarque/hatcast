@@ -579,6 +579,7 @@ class AvailabilityControllerIntegrationTest {
             .andExpect(jsonPath("$.content[?(@.id == '$matchEventId')].templateType").value("match"))
             .andExpect(jsonPath("$.content[?(@.id == '$matchEventId')].roleSlots.player").value(5))
             .andExpect(jsonPath("$.content[?(@.id == '$matchEventId')].roleSlots.volunteer").value(5))
+            .andExpect(jsonPath("$.content[?(@.id == '$matchEventId')].roleSlots.coach").value(1))
 
         mockMvc
             .perform(

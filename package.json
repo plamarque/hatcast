@@ -35,13 +35,9 @@
     "migrate:v2:validate-replay": "node scripts/v2/validate-replay-log.mjs",
     "reconcile:season-event-counts": "node scripts/v2/reconcile-season-event-counts.mjs",
     "test:migrate": "node --test scripts/v1/*.test.js scripts/v2/migrate-lib/*.test.mjs",
-    "generate:improbots-seed": "node scripts/v2/generate-improbots-seed-sql.js",
-    "generate:improbots-composition-seed": "node scripts/v2/generate-improbots-seed-sql.js --composition-only",
-    "generate:improbots-mvp-pilot-seed": "node scripts/v2/generate-improbots-seed-sql.js --mvp-pilot-only",
-    "generate:improbots-events-seed": "node scripts/v2/generate-improbots-seed-sql.js --events-seed-only",
-    "generate:malice-seed": "npm run generate:improbots-seed",
-    "generate:malice-composition-seed": "npm run generate:improbots-composition-seed",
-    "generate:malice-mvp-pilot-seed": "npm run generate:improbots-mvp-pilot-seed"
+    "generate:improbots-dev-seed": "node scripts/v2/generate-improbots-seed-sql.js",
+    "generate:improbots-seed": "npm run generate:improbots-dev-seed",
+    "generate:malice-seed": "npm run generate:improbots-dev-seed"
   },
   "engines": {
     "node": ">=20"

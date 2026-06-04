@@ -61,11 +61,11 @@ cd services/api
 
 | Profil | Usage |
 |--------|--------|
-| `dev` (défaut) | Poste local : Neon branche **`local`** via `HATCAST_DATASOURCE_*` dans `.env` ; Flyway `db/migration` + `db/seed`. |
+| `dev` (défaut) | Poste local : Neon branche **`local`** via `HATCAST_DATASOURCE_*` dans `.env` ; Flyway `db/migration` + `db/seed` + `db/seed-postgresql`. |
 | `cloud` | Cloud Run : en-têtes `Forwarded`, cookie session **Secure**, `HATCAST_CORS_ALLOWED_ORIGINS` obligatoire — voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). |
 | `test` | Réservé à `./gradlew test` : base **H2 en mémoire** isolée (pas de Neon requis en CI). |
 
-En **dev**, Flyway charge `db/migration` + `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)). Si le démarrage échoue avec *« resolved migration not applied … 3.1 »*, la base a été migrée avant l’ajout du seed `V3_1` : le profil `dev` active `out-of-order` + `repair-on-migrate` pour l’appliquer. Sinon, réinitialiser la branche Neon **`local`** (reset) puis relancer `bootRun`. La branche **`development`** (cloud dev) ne doit pas recevoir les seeds — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §5.
+En **dev**, Flyway charge `db/migration` + `db/seed` + `db/seed-postgresql` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)). Les données **Les Improbots** vivent surtout dans le repeatable **`R__seed_improbots_dev_demo.sql`** ; les anciennes migrations seed (`V6`, `V17`, …) sont des stubs no-op. Regénération : `npm run generate:improbots-dev-seed` (voir [DEVELOPMENT.md](../../DEVELOPMENT.md)). Si le démarrage échoue avec *« resolved migration not applied … 3.1 »*, la base a été migrée avant l’ajout du seed `V3_1` : le profil `dev` active `out-of-order` + `repair-on-migrate` pour l’appliquer. Sinon, réinitialiser la branche Neon **`local`** (reset) puis relancer `bootRun`. La branche **`development`** (cloud dev) ne doit pas recevoir les seeds — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §5.
 
 ## CORS
 
@@ -109,7 +109,7 @@ La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml
 
 ### Flyway en profil `test`
 
-Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` (données `@seed.improbots.test` pour `MemberSeasonGlanceIntegrationTest`, etc.). Le profil **cloud** exclut `db/seed` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
+Comme en **dev** : `spring.flyway.locations` = `classpath:db/migration` + `classpath:db/seed` + `classpath:db/seed-postgresql` (données `@seed.improbots.test` via `R__seed_improbots_dev_demo.sql`, etc.). Le profil **cloud** exclut `db/seed` et `db/seed-postgresql` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)).
 
 ### Profil `e2e` (Playwright V2)
 

@@ -77,7 +77,7 @@ Le workflow YAML est une **deuxième source de vérité** (limitation GitHub Act
 
 - Stack : [`scripts/start-dev.sh`](../../../scripts/start-dev.sh) — API `http://127.0.0.1:8080`, front `https://localhost:4200`
 - Base : Neon branche **`local`** — variables `HATCAST_DATASOURCE_*` dans **`.env`** à la racine (voir [`.env.example`](../../../.env.example), [DEVELOPMENT.md](../../../DEVELOPMENT.md)). **Ne pas** utiliser la branche **`development`** en local : elle est réservée à Cloud Run `hatcast-v2-dev` (profil `cloud`, sans seeds Flyway).
-- Profil Spring **`dev`** : Flyway applique `db/migration` + `db/seed` (Les Improbots, recette MVP). Resets / regénération seed sur **`local`** sans impacter le déploiement cloud.
+- Profil Spring **`dev`** : Flyway applique `db/migration` + `db/seed` + `db/seed-postgresql` (Les Improbots via `R__seed_improbots_dev_demo.sql`). Resets / regénération seed sur **`local`** sans impacter le déploiement cloud (`npm run generate:improbots-dev-seed`).
 - Aucun push Git n’est requis pour travailler en local
 
 ## Déploiement dev (push sur `v2`)

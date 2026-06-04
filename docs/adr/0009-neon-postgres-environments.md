@@ -8,7 +8,7 @@
      - **`primary`** (ou équivalent) — production V2 (`production-v2` → Cloud Run prod).
      - **`staging`** — recette V2 (`staging-v2` → Cloud Run staging).
      - **`development`** — déploiement cloud **dev** uniquement (`v2` → `hatcast-v2-dev`, secrets GitHub environnement `development`).
-     - **`local`** — développement **sur poste** (`./scripts/start-dev.sh`, profil Spring `dev`, Flyway `db/migration` + `db/seed`) ; **jamais** injectée dans Cloud Run.
+     - **`local`** — développement **sur poste** (`./scripts/start-dev.sh`, profil Spring `dev`, Flyway `db/migration` + `db/seed` + `db/seed-postgresql`) ; **jamais** injectée dans Cloud Run.
   3. **Connexion:** Chaque branche expose sa propre **chaîne JDBC** (hôte, utilisateur, mot de passe) ; TLS requis (`sslmode=require` ou équivalent dans l’URL JDBC).
   4. **CI/CD:** Les secrets **`HATCAST_DATASOURCE_*`** et **`HATCAST_CORS_ALLOWED_ORIGINS`** sont stockés par **environnement GitHub** (`development`, `staging`, `production`) et reliés aux branches git **`v2`**, **`staging-v2`**, **`production-v2`** respectivement. Le fichier **`.env` local** pointe vers la branche Neon **`local`** (pas `development`).
   5. **Pas de Cloud SQL** pour la couche données V2 tant que cette ADR s’applique : pas de connecteur Unix socket ni rôle **Cloud SQL Client** requis sur le compte d’exécution Cloud Run pour cette base.

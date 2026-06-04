@@ -6,6 +6,28 @@ import org.junit.jupiter.api.Test
 import org.springframework.web.server.ResponseStatusException
 
 class EventRoleSlotsTest {
+    /** V2 front preset — [apps/web/src/app/core/events/event-types.ts] ROLE_TEMPLATES.match */
+    private val matchPresetV2: Map<String, Int> =
+        mapOf(
+            "player" to 5,
+            "mc" to 1,
+            "referee" to 1,
+            "assistant_referee" to 2,
+            "volunteer" to 5,
+            "coach" to 1,
+            "dj" to 0,
+            "lighting" to 0,
+            "stage_manager" to 0,
+        )
+
+    @Test
+    fun `slotsFor match includes coach and matches V2 front preset`() {
+        val slots = RoleTemplates.slotsFor("match")
+        matchPresetV2.forEach { (key, expected) ->
+            assertEquals(expected, slots[key], "role $key")
+        }
+    }
+
     @Test
     fun `slotsFor cabaret matches V1 defaults`() {
         val slots = RoleTemplates.slotsFor("cabaret")

@@ -4,11 +4,12 @@ import assert from 'node:assert/strict'
 import {
   assignObfuscatedEmails,
   buildAvailabilityRows,
-  buildMalicieCompositionSeedSql,
-  buildMalicieMvpPilotSeedSql,
-  buildMalicieSeedSql,
-  MVP_PILOT_EVENTS,
+  buildCompositionSqlLines,
+  buildFlywaySupersededVersionedStubs,
+  buildImprobotsDevDemoSql,
   buildMembersWithIds,
+  buildMvpPilotSqlLines,
+  MVP_PILOT_EVENTS,
   parseMembersCsv,
   pickRoleKeys,
   SEED_COMPOSITION_DRAFTS,
@@ -70,13 +71,28 @@ describe('generate-improbots-seed-sql', () => {
     assert.deepEqual(keys, ['player', 'volunteer'])
   })
 
-  it('sql output contains obfuscated domain and no gmail', () => {
-    const sql = buildMalicieSeedSql(SAMPLE_CSV)
+  it('dev demo sql contains obfuscated domain and current schema inserts', () => {
+    const members = buildMembersWithIds(assignObfuscatedEmails(parseMembersCsv(SAMPLE_CSV)))
+    const availability = buildAvailabilityRows(members, SEED_EVENTS)
+    const sql = buildImprobotsDevDemoSql(members, availability)
     assert.match(sql, /@seed\.improbots\.test/)
-    assert.match(sql, /INSERT INTO users \(id, google_sub, idp_uid, email, display_name, activated_at/)
-    assert.match(sql, /UPDATE events SET template_type/)
-    assert.match(sql, /INSERT INTO event_availability/)
+    assert.match(sql, /INSERT INTO users \(id, google_sub, idp_uid, email, display_name, slug/)
+    assert.match(sql, /INSERT INTO events \(id, season_id, slug, title/)
+    assert.match(sql, /INSERT INTO event_availability \(id, event_id, user_id/)
+    assert.match(sql, /season_participant_id/)
+    assert.match(sql, /-- MVP pilot recette/)
+    assert.match(sql, /'match'.*"coach":1/)
     assert.doesNotMatch(sql, /gmail\.com/)
+    assert.doesNotMatch(sql, /DO \$improbots_/)
+  })
+
+  it('superseded versioned seeds are no-op stubs', () => {
+    const stubs = buildFlywaySupersededVersionedStubs()
+    assert.equal(stubs.length, 7)
+    for (const stub of stubs) {
+      assert.match(stub.sql, /R__seed_improbots_dev_demo\.sql/)
+      assert.match(stub.sql, /SELECT 1 WHERE 1 = 0/)
+    }
   })
 
   it('deterministic availability gate', () => {
@@ -94,24 +110,25 @@ describe('generate-improbots-seed-sql', () => {
     }
   })
 
-  it('composition sql references event_compositions and assigned slots', () => {
-    const sql = buildMalicieCompositionSeedSql()
+  it('composition sql uses season_participant_id and idempotent inserts', () => {
+    const sql = buildCompositionSqlLines({ repair: true }).join('\n')
     assert.match(sql, /INSERT INTO event_compositions/)
     assert.match(sql, /INSERT INTO event_composition_slots/)
+    assert.match(sql, /season_participant_id, event_participant_id/)
+    assert.match(sql, /WHERE NOT EXISTS/)
     assert.match(sql, /Cabaret de rentrée/)
-    assert.match(sql, /2026-10-15T12:00:00Z/)
   })
 
-  it('builds MVP pilot seed SQL with six prefixed events', () => {
-    const sql = buildMalicieMvpPilotSeedSql()
+  it('builds MVP pilot lines with six prefixed events', () => {
+    const sql = buildMvpPilotSqlLines({ repair: true }).join('\n')
     assert.equal(MVP_PILOT_EVENTS.length, 6)
     for (const ev of MVP_PILOT_EVENTS) {
       assert.match(sql, new RegExp(ev.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
     }
     assert.match(sql, /INSERT INTO season_organizers/)
-    assert.doesNotMatch(sql, /ON CONFLICT/)
     assert.match(sql, /WHERE NOT EXISTS/)
     assert.match(sql, /\[MVP\] 04 · Déclin et compléter/)
     assert.match(sql, /CONFIRMED/)
+    assert.match(sql, /event_availability \(id, event_id, user_id/)
   })
 })

@@ -1,6 +1,6 @@
 # Recette MVP pilote — un seul admin (Patrice)
 
-Données générées par `npm run generate:improbots-mvp-pilot-seed` → migration `V22__seed_mvp_pilot_recette.sql`.
+Données générées par `npm run generate:improbots-dev-seed` → `R__seed_improbots_dev_demo.sql` (section MVP pilot).
 
 ## Prérequis
 
@@ -127,5 +127,5 @@ Cocher dans `PLAN.md` la DoD MVP après scénarios **01–04** (05 = contrôle v
 Regénérer le seed :
 
 ```bash
-npm run generate:improbots-mvp-pilot-seed
+npm run generate:improbots-dev-seed
 ```

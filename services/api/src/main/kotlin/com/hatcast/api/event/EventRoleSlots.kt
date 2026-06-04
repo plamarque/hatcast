@@ -3,7 +3,10 @@ package com.hatcast.api.event
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
-/** Event type and role slot validation — V1 parity ([legacy/src/services/storage.js]). */
+/**
+ * Event type and role slot validation — mostly aligned with [legacy/src/services/storage.js] (V1).
+ * Exception: `match.coach = 1` (V2 default) vs legacy V1 `COACH: 0` on match.
+ */
 object EventTypes {
     const val DEFAULT_CREATE = "cabaret"
     const val DEFAULT_LEGACY = "custom"
@@ -77,6 +80,7 @@ object RoleTemplates {
                     "referee" to 1,
                     "assistant_referee" to 2,
                     "volunteer" to 5,
+                    "coach" to 1,
                 ),
             "catch" to
                 mapOf(

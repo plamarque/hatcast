@@ -294,7 +294,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **2-10** | Liste membres : corriger N+1 emails | P1 | done | DW-068 |
 | **12-7** | Agenda : annulation requêtes obsolètes + verrou navigation post-login | P1 | done | DW-044, DW-054 |
 | **6-13** | Publish : notifications hors transaction | P2 | done | DW-085 |
-| **DOC-1** | Archive deferred (en-tête + IDs triage 2026-05-28) | P2 | backlog | H-ARCHIVE |
+| **DOC-1** | Archive deferred (en-tête + IDs triage 2026-05-28) | P2 | [x] | H-ARCHIVE — [`deferred-work-archive.md`](_bmad-output/implementation-artifacts/deferred-work-archive.md), actif [`deferred-work.md`](_bmad-output/implementation-artifacts/deferred-work.md), triage juin [`deferred-triage-2026-06.md`](_bmad-output/implementation-artifacts/deferred-triage-2026-06.md) (2026-06-04) |
 
 **Pre-prod / migration (PLAN, pas SPEC) — story produit :**
 
@@ -517,7 +517,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **M1** | Infra pre-prod | Staging live — **dès OPS-2 vert** (option B PO) |
 | **MIG-0** | Story **2.11** — première troupe + admin sur env `cloud` | Import CSV 2.3 possible |
 | **MIG-2 → MIG-4** | Export / import V1 sur Neon staging | Données réelles ; tags déplacement |
-| **Iso-V1** | Liste §5 [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md) (pas le deferred brut) | Parité produit ciblée ; ex. **17.24**, Epic **4** |
+| **Iso-V1** | Liste §5 [deferred-triage-2026-05.md](_bmad-output/implementation-artifacts/deferred-triage-2026-05.md) ; actif P0–P2 [deferred-triage-2026-06.md](_bmad-output/implementation-artifacts/deferred-triage-2026-06.md) | Parité produit ciblée ; ex. **17.24**, Epic **4** |
 | **Hygiene H2 + growth** | Deferred D/C restant, [growth-backlog.md](_bmad-output/planning-artifacts/growth-backlog.md) | Post-staging |
 
 ~~**Ordre de session actuel (2 stories max) :**~~ *(remplacé par § 2026-06-01)*
