@@ -3,9 +3,14 @@ import { Injectable } from '@angular/core'
 import { csrfHeaders } from '../http/hatcast-csrf'
 import type { ShareAnnounceIntent } from '../messaging/share-announce-messages'
 
+export interface ShareRecipientChannelStatus {
+  eligible: boolean
+  notified: boolean
+}
+
 export interface ShareRecipientChannels {
-  email: boolean
-  push: boolean
+  email: ShareRecipientChannelStatus
+  push: ShareRecipientChannelStatus
 }
 
 export interface ShareRecipient {
@@ -22,6 +27,44 @@ export interface ShareRecipientsResponse {
   recipients: ShareRecipient[]
   lastManualNotifyAt?: string | null
   guardDays?: number | null
+}
+
+/** Accepts nested DTO (6.16+) or legacy flat booleans from a stale API. */
+export function normalizeShareRecipientChannelStatus(value: unknown): ShareRecipientChannelStatus {
+  if (typeof value === 'boolean') {
+    return { eligible: value, notified: false }
+  }
+  if (value && typeof value === 'object') {
+    const obj = value as { eligible?: unknown; notified?: unknown }
+    return {
+      eligible: obj.eligible === true,
+      notified: obj.notified === true,
+    }
+  }
+  return { eligible: false, notified: false }
+}
+
+function normalizeShareRecipient(raw: ShareRecipient): ShareRecipient {
+  return {
+    ...raw,
+    channels: {
+      email: normalizeShareRecipientChannelStatus(raw.channels?.email),
+      push: normalizeShareRecipientChannelStatus(raw.channels?.push),
+    },
+  }
+}
+
+export function normalizeShareRecipientsResponse(data: ShareRecipientsResponse): ShareRecipientsResponse {
+  const recipients = data.recipients.map(normalizeShareRecipient)
+  const notifiableCount = recipients.filter(
+    (r) => r.channels.email.eligible || r.channels.push.eligible,
+  ).length
+  return {
+    ...data,
+    recipients,
+    notifiableCount,
+    manualCount: recipients.length - notifiableCount,
+  }
 }
 
 export interface ShareNotifyResponse {
@@ -59,7 +102,7 @@ export class ShareAnnounceApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as ShareRecipientsResponse
+      const data = normalizeShareRecipientsResponse((await res.json()) as ShareRecipientsResponse)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

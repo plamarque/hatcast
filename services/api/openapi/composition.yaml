@@ -596,8 +596,17 @@ components:
       required: [email, push]
       properties:
         email:
-          type: boolean
+          $ref: '#/components/schemas/ShareRecipientChannelStatus'
         push:
+          $ref: '#/components/schemas/ShareRecipientChannelStatus'
+
+    ShareRecipientChannelStatus:
+      type: object
+      required: [eligible, notified]
+      properties:
+        eligible:
+          type: boolean
+        notified:
           type: boolean
 
     ShareRecipient:

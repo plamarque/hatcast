@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-04T24:00:00+02:00
+# last_updated: 2026-06-04T18:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-04T15:01:00+02:00"
+last_updated: "2026-06-04T21:05:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -127,12 +127,15 @@ development_status:
   6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: done
   6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: done
   6-10-partage-et-annonce-message-editable-canaux: done
-  6-10b-rappel-manuel-disponibilite-garde-anti-spam: done  # P1 — SCP 2026-06-01
+  6-10b-rappel-manuel-disponibilite-garde-anti-spam: done  # P1 — SCP 2026-06-01 ; entry toolbar → 6.10c
+  6-10c-deplacer-rappel-dispos-menu-gear-evenement: done  # UX D11 2026-06-04 — gear Relance dispos ; code review OK
   6-11-retour-visuel-et-performances-onglet-equipe: done
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
   6-13-publish-notifications-hors-transaction: done
   6-14-snapshot-chances-au-tirage: done
   6-15-refonte-modales-annonces-notify-manuel: done  # P0 V2.0.0 — code review 2026-06-03
+  6-16-statut-canal-destinataires-modales-partager-annoncer: done  # D10 UX 2026-06-04 — recette + review OK
+  6-17-dispatch-annonce-manuelle-transparence-dates: backlog  # tech-spec-share-announce-transparency-6-17.md
   epic-6-retrospective: optional
 
   epic-7: backlog

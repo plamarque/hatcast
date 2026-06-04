@@ -10,6 +10,10 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.isAvailabilityOpen
 import com.hatcast.api.notification.ManualAvailabilityNudgeProperties
 import com.hatcast.api.notification.NotificationCategory
+import com.hatcast.api.notification.NotificationChannel
+import com.hatcast.api.notification.NotificationDeliveryLogRepository
+import com.hatcast.api.notification.NotificationDeliveryStatus
+import com.hatcast.api.notification.NotificationIntent
 import com.hatcast.api.notification.NotificationRecipientResolver
 import com.hatcast.api.notification.PushNotificationEligibilityPort
 import com.hatcast.api.organizer.OrganizerAccessRules
@@ -21,6 +25,7 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.share.dto.ShareNotifyRequestDto
 import com.hatcast.api.share.dto.ShareNotifyResponseDto
+import com.hatcast.api.share.dto.ShareRecipientChannelStatusDto
 import com.hatcast.api.share.dto.ShareRecipientChannelsDto
 import com.hatcast.api.share.dto.ShareRecipientDto
 import com.hatcast.api.share.dto.ShareRecipientsResponseDto
@@ -68,6 +73,7 @@ class ShareRecipientsService(
     private val manualShareNotifyRepository: EventManualShareNotifyRepository,
     private val pushEligibilityPort: PushNotificationEligibilityPort,
     private val manualNudgeProperties: ManualAvailabilityNudgeProperties,
+    private val deliveryLogRepository: NotificationDeliveryLogRepository,
 ) {
     @Transactional(readOnly = true)
     fun getRecipients(
@@ -269,6 +275,8 @@ class ShareRecipientsService(
         val rows = loadParticipantRows(eventId, participantIds)
         val nudgeIntent = intent == ShareRecipientIntent.AVAILABILITY_NUDGE
         val pushCategory = NotificationCategory.AVAILABILITY_REQUEST
+        val logIntents = resolveDeliveryLogIntents(intent)
+        val notifiedKeys = loadNotifiedChannelKeys(eventId, rows, logIntents)
         val recipients =
             rows
                 .sortedByFrenchDisplayName { it.displayName }
@@ -284,16 +292,32 @@ class ShareRecipientsService(
                         emailObfuscated = EmailObfuscation.obfuscate(row.email),
                         channels =
                             ShareRecipientChannelsDto(
-                                email = hasEmail,
-                                push = hasPush,
+                                email =
+                                    ShareRecipientChannelStatusDto(
+                                        eligible = hasEmail,
+                                        notified =
+                                            isChannelNotified(
+                                                row.userId,
+                                                NotificationChannel.EMAIL,
+                                                notifiedKeys,
+                                            ),
+                                    ),
+                                push =
+                                    ShareRecipientChannelStatusDto(
+                                        eligible = hasPush,
+                                        notified =
+                                            isChannelNotified(
+                                                row.userId,
+                                                NotificationChannel.PUSH,
+                                                notifiedKeys,
+                                            ),
+                                    ),
                             ),
                     )
                 }
         val notifiableCount =
-            if (nudgeIntent) {
-                recipients.count { it.channels.email || it.channels.push }
-            } else {
-                recipients.count { it.channels.email }
+            recipients.count { recipient ->
+                recipient.channels.email.eligible || recipient.channels.push.eligible
             }
         val manualCount = recipients.size - notifiableCount
         return ShareRecipientsResponseDto(
@@ -304,6 +328,60 @@ class ShareRecipientsService(
             lastManualNotifyAt = lastManualNotifyAt,
             guardDays = guardDays,
         )
+    }
+
+    private fun resolveDeliveryLogIntents(intent: ShareRecipientIntent): Set<NotificationIntent> =
+        when (intent) {
+            ShareRecipientIntent.AVAILABILITY_NUDGE ->
+                setOf(NotificationIntent.MANUAL_AVAILABILITY_NUDGE)
+            ShareRecipientIntent.EVENT ->
+                setOf(NotificationIntent.AVAILABILITY_OPENED)
+            ShareRecipientIntent.DRAW,
+            ShareRecipientIntent.COMPOSITION,
+            -> emptySet()
+        }
+
+    private data class NotifiedChannelKey(
+        val userId: UUID,
+        val channel: NotificationChannel,
+    )
+
+    private fun loadNotifiedChannelKeys(
+        eventId: UUID,
+        rows: List<ParticipantRow>,
+        logIntents: Set<NotificationIntent>,
+    ): Set<NotifiedChannelKey> {
+        if (logIntents.isEmpty()) {
+            return emptySet()
+        }
+        val userIds = rows.mapNotNull { it.userId }.toSet()
+        if (userIds.isEmpty()) {
+            return emptySet()
+        }
+        val statuses =
+            setOf(
+                NotificationDeliveryStatus.SENT,
+                NotificationDeliveryStatus.PARTIAL,
+            )
+        return deliveryLogRepository
+            .findByEventIdAndUserIdInAndIntentInAndStatusIn(
+                eventId = eventId,
+                userIds = userIds,
+                intents = logIntents,
+                statuses = statuses,
+            ).map { NotifiedChannelKey(it.userId, it.channel) }
+            .toSet()
+    }
+
+    private fun isChannelNotified(
+        userId: UUID?,
+        channel: NotificationChannel,
+        notifiedKeys: Set<NotifiedChannelKey>,
+    ): Boolean {
+        if (userId == null) {
+            return false
+        }
+        return NotifiedChannelKey(userId, channel) in notifiedKeys
     }
 
     private fun recordManualNotify(

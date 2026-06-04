@@ -46,6 +46,21 @@ export interface ShareAnnounceDialogData {
   compositionValidatedAt?: string | null
 }
 
+interface RecipientChannelStatus {
+  eligible: boolean
+  notified: boolean
+}
+
+interface RecipientCard {
+  participantId: string
+  displayName: string
+  manualOnly: boolean
+  channels: {
+    email: RecipientChannelStatus
+    push: RecipientChannelStatus
+  }
+}
+
 function calendarDaysSince(iso: string, now = new Date()): number {
   const from = new Date(iso)
   const startFrom = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate())
@@ -120,17 +135,30 @@ export class ShareAnnounceDialog {
   protected readonly lastManualNotifyAt = signal<string | null>(null)
   protected readonly notifiableCount = signal(0)
   protected readonly manualCount = signal(0)
-  protected readonly recipientCards = signal<
-    Array<{
-      participantId: string
-      displayName: string
-      emailObfuscated: string | null
-      notifiable: boolean
-    }>
-  >([])
+  protected readonly recipientCards = signal<RecipientCard[]>([])
 
   constructor() {
     void this.loadRecipients()
+  }
+
+  protected rowAriaLabel(card: RecipientCard): string {
+    if (card.manualOnly) {
+      return `${card.displayName} — contact manuel`
+    }
+    const parts: string[] = []
+    if (card.channels.email.eligible) {
+      parts.push(
+        card.channels.email.notified
+          ? 'email déjà envoyé'
+          : 'email prévu au prochain envoi',
+      )
+    }
+    if (card.channels.push.eligible) {
+      parts.push(
+        card.channels.push.notified ? 'push déjà envoyé' : 'push prévu au prochain envoi',
+      )
+    }
+    return `${card.displayName} — ${parts.join(', ')}`
   }
 
   protected showCharHint(): boolean {
@@ -248,12 +276,16 @@ export class ShareAnnounceDialog {
     this.guardDays.set(guardDays ?? null)
     this.lastManualNotifyAt.set(lastManualNotifyAt ?? null)
     this.recipientCards.set(
-      recipients.map((r) => ({
-        participantId: r.participantId,
-        displayName: r.displayName,
-        emailObfuscated: r.emailObfuscated,
-        notifiable: r.channels.email || r.channels.push,
-      })),
+      recipients.map((r) => {
+        const emailEligible = r.channels.email.eligible
+        const pushEligible = r.channels.push.eligible
+        return {
+          participantId: r.participantId,
+          displayName: r.displayName,
+          manualOnly: !emailEligible && !pushEligible,
+          channels: r.channels,
+        }
+      }),
     )
   }
 }

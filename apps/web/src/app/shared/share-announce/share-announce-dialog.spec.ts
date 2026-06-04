@@ -14,15 +14,27 @@ const recipientsMock = {
   ok: true as const,
   status: 200,
   data: {
-    total: 1,
+    total: 2,
     notifiableCount: 1,
-    manualCount: 0,
+    manualCount: 1,
     recipients: [
       {
         participantId: 'p-1',
         displayName: 'Alice',
         emailObfuscated: 'ali••@ex••.com',
-        channels: { email: true, push: false },
+        channels: {
+          email: { eligible: true, notified: true },
+          push: { eligible: false, notified: false },
+        },
+      },
+      {
+        participantId: 'p-2',
+        displayName: 'Bob',
+        emailObfuscated: null,
+        channels: {
+          email: { eligible: false, notified: false },
+          push: { eligible: false, notified: false },
+        },
       },
     ],
     guardDays: 3,
@@ -362,5 +374,69 @@ describe('ShareAnnounceDialog', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Notifier 1 personne')
     })
+  })
+
+  it('shows channel pills and legend without obfuscated email in expanded detail', async () => {
+    const fixture = await configureDialog(baseDialogData)
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeTruthy()
+    })
+
+    const header = fixture.nativeElement.querySelector(
+      'mat-expansion-panel-header',
+    ) as HTMLElement
+    header.click()
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain(
+        'Icône colorée = déjà notifié · grise = prévu au prochain envoi · absente = canal indisponible',
+      )
+    })
+
+    expect(fixture.nativeElement.textContent).not.toContain('ali••@ex••.com')
+    expect(fixture.nativeElement.textContent).toContain('Contact manuel')
+    const mailIcon = fixture.nativeElement.querySelector(
+      '.share-announce-dialog__channels mat-icon',
+    ) as HTMLElement
+    expect(mailIcon?.classList.contains('mat-primary')).toBe(true)
+    expect(mailIcon?.classList.contains('share-announce-dialog__channel--pending')).toBe(false)
+  })
+
+  it('shows pending grey channel icon when eligible but not yet notified', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        ...recipientsMock.data,
+        recipients: [
+          {
+            participantId: 'p-3',
+            displayName: 'Carol',
+            emailObfuscated: 'car••@ex••.com',
+            channels: {
+              email: { eligible: true, notified: false },
+              push: { eligible: true, notified: false },
+            },
+          },
+        ],
+      },
+    })
+
+    const fixture = await configureDialog(baseDialogData, { getRecipients })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeTruthy()
+    })
+
+    const header = fixture.nativeElement.querySelector(
+      'mat-expansion-panel-header',
+    ) as HTMLElement
+    header.click()
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelectorAll('.share-announce-dialog__channel--pending').length).toBe(2)
+    })
+    expect(
+      fixture.nativeElement.querySelector('.share-announce-dialog__channels .mat-primary'),
+    ).toBeNull()
   })
 })

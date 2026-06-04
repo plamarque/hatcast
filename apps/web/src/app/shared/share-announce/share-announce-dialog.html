@@ -89,19 +89,43 @@
           </mat-expansion-panel-header>
           <mat-list>
             @for (card of recipientCards(); track card.participantId) {
-              <mat-list-item>
-                @if (card.notifiable) {
-                  <mat-icon matListItemIcon color="primary">check_circle</mat-icon>
-                } @else {
+              <mat-list-item [attr.aria-label]="rowAriaLabel(card)">
+                @if (card.manualOnly) {
                   <mat-icon matListItemIcon class="share-announce-dialog__manual-icon">warning</mat-icon>
                 }
-                <span matListItemTitle>{{ card.displayName }}</span>
-                @if (card.emailObfuscated) {
-                  <span matListItemLine>{{ card.emailObfuscated }}</span>
+                @if (card.manualOnly) {
+                  <span matListItemTitle>{{ card.displayName }}</span>
+                }
+                @if (card.manualOnly) {
+                  <span matListItemLine>Contact manuel</span>
+                }
+                @if (!card.manualOnly) {
+                  <span matListItemTitle class="share-announce-dialog__recipient-name">{{ card.displayName }}</span>
+                }
+                @if (!card.manualOnly) {
+                  <span matListItemMeta class="share-announce-dialog__channels">
+                    @if (card.channels.email.eligible) {
+                      <mat-icon
+                        [color]="card.channels.email.notified ? 'primary' : undefined"
+                        [class.share-announce-dialog__channel--pending]="!card.channels.email.notified"
+                        aria-hidden="true"
+                      >mail</mat-icon>
+                    }
+                    @if (card.channels.push.eligible) {
+                      <mat-icon
+                        [color]="card.channels.push.notified ? 'primary' : undefined"
+                        [class.share-announce-dialog__channel--pending]="!card.channels.push.notified"
+                        aria-hidden="true"
+                      >notifications_active</mat-icon>
+                    }
+                  </span>
                 }
               </mat-list-item>
             }
           </mat-list>
+          <p class="share-announce-dialog__channel-legend">
+            Icône colorée = déjà notifié · grise = prévu au prochain envoi · absente = canal indisponible
+          </p>
         </mat-expansion-panel>
       }
     }
