@@ -12,7 +12,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md) and [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 - **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
-- **V2 deploy (Cloud Run + Neon):** Déploiement **development** (push `v2`) en place. Slice **MEP iso-V1** largement **done** (`sprint-status.yaml`). **Prochaine vague :** § **Wave V2.0.0** — polish PWA/compte/modales, pipeline **tag-based** staging→prod, domaine prod **`hatcast.app`** (**OPS-8**), puis **M4** cutover. SCP : [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) (amendement domaine **2026-06-03**). Guide actuel (branche `production-v2`) : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) — **OPS-4/5** le remplaceront par deploy sur **tags semver**. Domaine **enregistré chez Cloudflare** (2026-06-03).
+- **V2 deploy (Cloud Run + Neon):** Déploiement **development** (push `v2`) en place. Slice **MEP iso-V1** largement **done** (`sprint-status.yaml`). **Prochaine vague :** § **Wave V2.0.0** — polish PWA/compte/modales, pipeline **tag-based** staging→prod (**OPS-4–6 done**), domaine prod **`https://hatcast.app`** (**OPS-8 done** 2026-06-04), puis **M4** cutover. SCP : [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) (amendement domaine **2026-06-03**). Guide release : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + CLI **OPS-11**.
 
 ---
 
@@ -268,7 +268,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **M1** Infra pre-prod | [x] | Env GitHub `staging`, Neon branch, deploy `staging-v2` | SPA + API + Flyway OK ; E2E gate TEST-1 sur staging |
 | **M2** Playbook migration (périmètre actuel) | [x] doc | Runbook + scripts `export:v1-*:prod` ; imports CSV 2.3 | Users + membres prod → staging |
 | **M3** Boucle reset / rejouer | [x] doc | Procédure C du runbook | ≥ 1 cycle reset documenté (cible : 3 avant cutover) |
-| **M4** Cutover production | [ ] | **`hatcast.app`** + **OPS-8** + checklist merge / go-live | Gate V2.0.0 |
+| **M4** Cutover production | [ ] | **`hatcast.app`** live (**OPS-8 done**) + checklist merge / go-live | Gate V2.0.0 |
 
 **Backlog ops (PLAN, pas SPEC) :**
 
@@ -358,7 +358,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 
 **Ordre de session actuel — SCP [V2.0.0 cutover](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) (MAJ domaine 2026-06-03) :**
 
-0. **OPS-8** — prod Cloud Run **`europe-west1`** + domain mapping **`hatcast.app`** + Cloudflare orange (staging/dev cloud restent **`europe-west9`** / `*.run.app`)  
+0. ~~**OPS-8**~~ — **done** 2026-06-04 — prod Cloud Run **`europe-west1`** + **`https://hatcast.app`** (staging/dev cloud **`europe-west9`** / `*.run.app`)  
 1. ~~**MEP iso-V1 slice**~~ — **done** (4.1, 9.0, 3.21, 8.1, 8.3, 6.10b, 8.2, 8.5, 8.6, 9.1 — voir `sprint-status.yaml`)  
 2. **10.4** → **10.2** + **10.3** + **10.7** — PWA recette, MAJ client, version/changelog, icône HatCast 2  
 3. **1.2b** + **17.34** + **17.35** + **17.36** + **1.6** — UX inscription + Mon compte (4 onglets, profil unifié) + email / MDP connecté  
@@ -477,8 +477,8 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
-| **OPS-8** | Prod `hatcast.app` — Cloud Run **`europe-west1`**, domain mapping, CF proxy orange, OAuth/CORS/Firebase | **P0** | backlog | Gate **M4** ; doc [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) § prod custom domain ; story [ops-8](_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md) |
-| **OPS-9** | PostHog EU — SDK + reverse proxy (`e.hatcast.app`, nuage **gris**) | **P1** | backlog | Promote **G-005** ; FR47 ; **non bloquant M4** ; story [ops-9](_bmad-output/implementation-artifacts/ops-9-posthog-hatcast-app.md) |
+| **OPS-8** | Prod `hatcast.app` — Cloud Run **`europe-west1`**, domain mapping, CF proxy orange, OAuth/CORS/Firebase | **P0** | done | Live **2026-06-04** ; doc [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §7 ; story [ops-8](_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md) |
+| **OPS-9** | PostHog EU — SDK + reverse proxy (`e.hatcast.app`, nuage **gris**) | **P1** | done | Promote **G-005** ; FR47 ; **non bloquant M4** ; story [ops-9](_bmad-output/implementation-artifacts/ops-9-posthog-hatcast-app.md) |
 | **OPS-10** | Adresses `@hatcast.app` (`noreply@`, `info@`) — DNS mail, FROM prod, recette | **P1** | backlog | Réception : CF Email Routing → Gmail ; envoi : SPF/DKIM (Workspace ou SMTP domaine) ; **non bloquant M4** ; story [ops-10](_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md) |
 
 **Dev local inchangé :** Neon branche **`local`** + `./scripts/start-dev.sh`. **Dev cloud inchangé :** push **`v2`** → **`europe-west9`**.
@@ -638,8 +638,8 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **MIG-4** | **Done 2026-06** | Import `deplacement` → `category=deplacements` |
 | **Annuaire public (4.1)** | **Done 2026-06** | Découvrir sans login ; hub gated membre/admin |
 | **Iso-V1 / MEP gate** | **Closed 2026-06-02** | Slice fonctionnelle done — voir `sprint-status.yaml` |
-| **V2.0.0 / cutover gate** | **Open** | § Wave V2.0.0 : **OPS-8**, **10.x**, **1.2b**, **1.6/1.7**, **6.15**, **17.34**, **OPS-4–6**, replay ×3, recette **1.2** + **1.3** ; **OPS-9/10** P1 post-M4 |
-| **Domaine prod** | **Registered 2026-06-03** | **`hatcast.app`** — Cloudflare Registrar |
+| **V2.0.0 / cutover gate** | **Open** | § Wave V2.0.0 : ~~**OPS-8**~~ **done**, **10.x**, replay ×3, tag **v2.0.0** ; **OPS-10** P1 post-M4 |
+| **Domaine prod** | **Live 2026-06-04** | **`https://hatcast.app`** — Cloudflare Registrar + orange proxy → Cloud Run west1 |
 
 ### PRD / UX references (V2)
 

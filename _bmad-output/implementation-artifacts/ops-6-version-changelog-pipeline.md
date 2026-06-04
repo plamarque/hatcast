@@ -302,7 +302,7 @@ No Vitest/Gradle tests required (scripts-only story). Consider a small **shell t
 | 10.3 | done | UI consumer of `changelog.json` |
 | 10.4 | done | PWA smoke validates both static files |
 | OPS-7 | backlog | Branch cutover; no blocker |
-| OPS-8 | in-progress | Domain cutover; independent |
+| OPS-8 | done | Domain cutover; independent |
 
 ### Project context reference
 

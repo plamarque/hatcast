@@ -69,7 +69,7 @@ The **MEP remainder SCP (2026-06-02)** closed the functional gap list but **unde
 | **OPS-5** | Prod deploy from semver tag (no prod branch) | P0 | backlog |
 | **OPS-6** | Version/changelog pipeline coupling | P0 | backlog |
 | **OPS-7** | Branch cutover runbook + doc updates | P0 | backlog (execute post-cutover) |
-| **OPS-8** | Prod `hatcast.app` — Cloud Run `europe-west1`, domain mapping, Cloudflare orange, OAuth/CORS | P0 | backlog |
+| **OPS-8** | Prod `hatcast.app` — Cloud Run `europe-west1`, domain mapping, Cloudflare orange, OAuth/CORS | P0 | done (2026-06-04) |
 | **OPS-9** | PostHog EU + reverse proxy `e.hatcast.app` | P1 | backlog (non bloquant M4) |
 | **OPS-10** | E-mail `@hatcast.app` (`noreply@`, `info@`) — DNS, FROM prod | P1 | backlog (non bloquant M4) |
 | **MIG-E2** | Migration replay × ≥3 from scratch | P0 gate | open |
@@ -241,7 +241,7 @@ v2 (dev cloud) → promote-to-staging → release-staging.sh → tag rc → stag
 - [ ] Announcement modals : M3, manual notify, anti-spam
 - [ ] Migration replay ×3 green
 - [ ] V1 preserved on `v1` / `staging-v1` after cutover
-- [ ] **OPS-8** : prod served on **`https://hatcast.app`** (Cloudflare orange → Cloud Run `europe-west1`)
+- [x] **OPS-8** : prod served on **`https://hatcast.app`** (Cloudflare orange → Cloud Run `europe-west1`) — **2026-06-04**
 - [ ] **OPS-9** / **OPS-10** : done or explicitly deferred post-release (P1)
 
 ### Next BMad steps

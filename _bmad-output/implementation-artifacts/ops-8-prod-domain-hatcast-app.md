@@ -1,10 +1,10 @@
 ---
-baseline_commit: b8816ef9cf9497a81f28b317434610a89a0aa3bf
+baseline_commit: baa9473fd003ed50cc4de0c82e3085798b5ec9d8
 ---
 
 # Story OPS-8 : Prod custom domain `hatcast.app`
 
-Status: in-progress
+Status: done
 
 **Story ID:** OPS-8  
 **Story key:** `ops-8-prod-domain-hatcast-app`  
@@ -42,15 +42,15 @@ so that **V2 cutover M4 runs on a canonical branded domain with OAuth/CORS/PWA w
 ## Tasks / Subtasks
 
 - [x] **Scope:** `docs/v2/technical/`, `.github` environments/secrets, GCP Cloud Run/Artifact Registry, Cloudflare DNS/TLS/cache — sans refactor UI/API métier.
-- [ ] **AC1** — Configurer l’environnement GitHub `production`: `GCP_REGION=europe-west1`, `GCP_ARTIFACT_REGISTRY` en west1, `HATCAST_CORS_ALLOWED_ORIGINS=https://hatcast.app`.
-- [ ] **AC1** — Vérifier existence du repository Artifact Registry `europe-west1` et permissions du service account CI.
-- [ ] **AC1 + AC5** — Déployer `hatcast-v2` en `europe-west1` tout en laissant `hatcast-v2-staging` / `hatcast-v2-dev` inchangés en `europe-west9`.
-- [ ] **AC2** — Configurer domain mapping Cloud Run `hatcast.app`, Search Console si requis, DNS Cloudflare (phase grey -> cert Active -> orange).
-- [ ] **AC6** — Valider IAM `roles/run.invoker` pour `allUsers` et règles cache Cloudflare bypass `/v1/*` + `/actuator/*`.
-- [ ] **AC3** — Mettre à jour OAuth Authorized JavaScript origins + Firebase/Identity Platform authorized domains avec `hatcast.app`.
-- [ ] **AC3** — Vérifier `GET /v1/auth/me` post-login Google sans erreurs CORS/origin mismatch.
-- [ ] **AC4** — Exécuter `BASE_URL=https://hatcast.app ./scripts/check-pwa.sh` et journaliser le résultat dans la completion note.
-- [ ] **AC5** — Smoke staging/dev cloud (`*.run.app`) après bascule prod ; documenter absence de régression.
+- [x] **AC1** — Configurer l’environnement GitHub `production`: `GCP_REGION=europe-west1`, `GCP_ARTIFACT_REGISTRY` en west1, `HATCAST_CORS_ALLOWED_ORIGINS=https://hatcast.app`.
+- [x] **AC1** — Vérifier existence du repository Artifact Registry `europe-west1` et permissions du service account CI.
+- [x] **AC1 + AC5** — Déployer `hatcast-v2` en `europe-west1` tout en laissant `hatcast-v2-staging` / `hatcast-v2-dev` inchangés en `europe-west9`.
+- [x] **AC2** — Configurer domain mapping Cloud Run `hatcast.app`, Search Console si requis, DNS Cloudflare (phase grey -> cert Active -> orange).
+- [x] **AC6** — Valider IAM `roles/run.invoker` pour `allUsers` et règles cache Cloudflare bypass `/v1/*` + `/actuator/*`.
+- [x] **AC3** — Mettre à jour OAuth Authorized JavaScript origins + Firebase/Identity Platform authorized domains avec `hatcast.app`.
+- [x] **AC3** — Vérifier `GET /v1/auth/me` post-login Google sans erreurs CORS/origin mismatch.
+- [x] **AC4** — Exécuter `BASE_URL=https://hatcast.app ./scripts/check-pwa.sh` et journaliser le résultat dans la completion note.
+- [x] **AC5** — Smoke staging/dev cloud (`*.run.app`) après bascule prod ; documenter absence de régression.
 - [x] **Docs** — Mettre à jour `DEPLOY_V2_CLOUD_RUN.md` seulement si des étapes opératoires divergent de la section §7 existante.
 
 ## Dev Notes
@@ -72,8 +72,8 @@ so that **V2 cutover M4 runs on a canonical branded domain with OAuth/CORS/PWA w
 | Story | Status | Relationship |
 |-------|--------|--------------|
 | OPS-4 | done | Pipeline staging RC disponible, non bloquant pour mapping domaine |
-| OPS-5 | backlog | Promotion prod tag-based, complémentaire à OPS-8 |
-| OPS-6 | backlog | Synchronisation version/changelog, non requis pour DNS/domain mapping |
+| OPS-5 | done | Promotion prod tag-based, complémentaire à OPS-8 |
+| OPS-6 | done | Synchronisation version/changelog, non requis pour DNS/domain mapping |
 | OPS-7 | backlog | Exécuté après M4, pas prérequis OPS-8 |
 
 ### Architecture compliance
@@ -111,7 +111,7 @@ so that **V2 cutover M4 runs on a canonical branded domain with OAuth/CORS/PWA w
 
 ### Agent Model Used
 
-Codex 5.3
+Codex 5.3 / Composer
 
 ### Completion Notes List
 
@@ -119,11 +119,16 @@ Codex 5.3
 - Story passée en `in-progress` avec `baseline_commit` renseigné.
 - CI V2 renforcée pour OPS-8: région par défaut branch-aware (`production-v2` en `europe-west1`, autres branches V2 en `europe-west9`) et garde-fous `production-v2` (`GCP_REGION=europe-west1`, `HATCAST_CORS_ALLOWED_ORIGINS=https://hatcast.app`).
 - Runbook de déploiement V2 mis à jour avec les invariants OPS-8 et les defaults de région.
-- Blocage restant: validations/déploiements Cloud Run + DNS Cloudflare + OAuth/Firebase + recette `check-pwa.sh` nécessitent accès GCP/Cloudflare/GitHub Environments non disponible depuis cette session.
+- **2026-06-04 — Clôture ops (PO recette) :** prod live sur `https://hatcast.app` (Cloudflare orange → Cloud Run `europe-west1`) ; login Google + `GET /v1/auth/me` OK ; smoke staging/dev cloud (`*.run.app`) sans régression.
+- **2026-06-04 — PWA smoke :** `BASE_URL=https://hatcast.app ./scripts/check-pwa.sh` → **PASSED** (0 errors, 0 warnings ; `version.txt` → 2.0.2).
+- **2026-06-04 — API prod :** `/actuator/health` → 200 ; `/v1/auth/me` sans session → 401 (attendu) ; trafic API via CF sans blocage CORS.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `PLAN.md`
+- `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md`
 - `.github/workflows/deploy-v2-cloud-run.yml`
 - `docs/v2/technical/DEPLOYMENT_WORKFLOW.md`
 
@@ -131,6 +136,7 @@ Codex 5.3
 
 - 2026-06-03: Story OPS-8 créée/normalisée au format template et prête pour dev.
 - 2026-06-03: Démarrage implémentation OPS-8 (in-progress), garde-fous CI prod `hatcast.app` + documentation workflow mise à jour.
+- 2026-06-04: Clôture OPS-8 — recettes prod/staging/dev validées par PO ; statut **done**.
 
 ---
 

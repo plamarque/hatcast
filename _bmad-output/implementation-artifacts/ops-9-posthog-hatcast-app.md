@@ -235,7 +235,7 @@ posthog.init(apiKey, {
 
 | Story | Status | Relationship |
 |-------|--------|--------------|
-| OPS-8 | in-progress | **Hard** — need `hatcast.app` + Cloudflare access for `e` CNAME |
+| OPS-8 | done | Prod domain live ; `e.hatcast.app` CNAME configured |
 | 11.1 | backlog | Functional spec; OPS-9 implements subset |
 | 18.3 | done | Demo exclusion rules |
 
