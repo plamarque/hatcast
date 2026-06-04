@@ -131,6 +131,15 @@ hatcast_v2_prepare_staging_worktree() {
   exit 1
 }
 
+# Leave the worktree on dev with origin pulled — resume coding without manual git steps.
+hatcast_v2_checkout_dev_updated() {
+  echo ""
+  echo "↩️  Prêt pour le dev sur ${HATCAST_V2_BRANCH_DEV} (version.txt, changelog.json à jour)…"
+  git checkout "${HATCAST_V2_BRANCH_DEV}"
+  git pull origin "${HATCAST_V2_BRANCH_DEV}"
+  HATCAST_V2_ORIGINAL_BRANCH="${HATCAST_V2_BRANCH_DEV}"
+}
+
 # After release-staging.sh: merge staging-v2 → dev so version.txt, changelog.json and
 # package.json bumps are available on the dev branch (local ng serve, next promote cycle).
 hatcast_v2_sync_release_artifacts_to_dev() {
@@ -149,6 +158,8 @@ hatcast_v2_sync_release_artifacts_to_dev() {
     echo "   git pull origin ${HATCAST_V2_BRANCH_DEV}"
     echo "   git merge --no-ff ${staging_ref} -m \"${merge_msg}\""
     echo "   git push origin ${HATCAST_V2_BRANCH_DEV}"
+    echo "   git checkout ${HATCAST_V2_BRANCH_DEV}"
+    echo "   git pull origin ${HATCAST_V2_BRANCH_DEV}"
     return 0
   fi
 
@@ -164,10 +175,12 @@ hatcast_v2_sync_release_artifacts_to_dev() {
 
   if git merge-base --is-ancestor "${staging_ref}" HEAD; then
     echo "ℹ️  ${HATCAST_V2_BRANCH_DEV} contient déjà ${staging_ref} — rien à synchroniser."
+    hatcast_v2_checkout_dev_updated
     return 0
   fi
 
   git merge --no-ff "${staging_ref}" -m "${merge_msg}"
   git push origin "${HATCAST_V2_BRANCH_DEV}"
   echo "✅ ${HATCAST_V2_BRANCH_DEV} synchronisé (version.txt, changelog.json, package.json)"
+  hatcast_v2_checkout_dev_updated
 }
