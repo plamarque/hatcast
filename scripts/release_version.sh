@@ -85,8 +85,11 @@ fi
 exit_code=$?
 
 if [[ "${is_dry_run}" == false && "${current}" == "${HATCAST_V2_BRANCH_DEV}" ]]; then
-  git checkout "${HATCAST_V2_BRANCH_DEV}" 2>/dev/null || true
-  echo "↩️  Retour sur ${HATCAST_V2_BRANCH_DEV}"
+  current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  if [[ "${current_branch}" != "${HATCAST_V2_BRANCH_DEV}" ]]; then
+    git checkout "${HATCAST_V2_BRANCH_DEV}" 2>/dev/null || true
+  fi
+  echo "↩️  Sur ${HATCAST_V2_BRANCH_DEV} (version.txt / changelog.json synchronisés depuis staging)"
 fi
 
 exit "${exit_code}"

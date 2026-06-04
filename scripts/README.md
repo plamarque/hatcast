@@ -40,7 +40,7 @@ Implémentation bas niveau : `scripts/v2/promote-to-staging.sh`, `release-stagin
 - **`v2/branches.env`** : Noms de branches Git V2 (`v2`, `staging-v2`) — voir `v2/branches.env.example`
 - **`v2/lib/git-branches.sh`** : Helpers Git partagés (fetch, arbre propre, branche courante)
 - **`v2/promote-to-staging.sh`** : Merge `origin/v2` → `staging-v2` + push (CI staging)
-- **`v2/release-staging.sh`** : Release staging V2 depuis `staging-v2` (version, `CHANGELOG.md`, **`apps/web/public/changelog.json`**, tag RC `vX.Y.Z-rc.N`, push branche + tag). Options : `--no-user-changelog` (ne pas modifier le JSON utilisateur), `--dry-run`. Cutover `2.0.0` : entrée curated dans `v2/changelog-entries/v2.0.0-cutover.json`. Prérequis : **`jq`** ; `OPENAI_API_KEY` optionnel (sinon `changes: []` pour la version)
+- **`v2/release-staging.sh`** : Release staging V2 depuis `staging-v2` (version, `CHANGELOG.md`, **`apps/web/public/changelog.json`**, tag RC `vX.Y.Z-rc.N`, push branche + tag, **sync `staging-v2` → `v2`**). Options : `--no-user-changelog` (ne pas modifier le JSON utilisateur), `--dry-run`. Cutover `2.0.0` : entrée curated dans `v2/changelog-entries/v2.0.0-cutover.json`. Prérequis : **`jq`** ; `OPENAI_API_KEY` optionnel (sinon `changes: []` pour la version)
 - **`v2/promote-tag-to-prod.sh`** : Promotion RC -> prod par tag (`vX.Y.Z-rc.N` -> `vX.Y.Z`), sans merge branch prod
 - **`v2/release-production.sh`** : Wrapper de compatibilité (deprecated) qui redirige vers `v2/promote-tag-to-prod.sh` (flux OPS-5 tag-first)
 - **`lib/version-changelog.sh`** : Fonctions semver, CHANGELOG Markdown et **`changelog.json`** V2 (usage opt-in depuis `release-staging.sh`)

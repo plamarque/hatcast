@@ -154,6 +154,7 @@ Options avancées (script bas niveau uniquement) : `--version=X.Y.Z` (première 
 5. Met à jour `CHANGELOG.md` (et `CHANGELOG_FR.md` si présent) depuis le tag RC précédent ou le dernier tag release
 6. Met à jour **`apps/web/public/changelog.json`** (notes « Nouveautés » PWA, Story 10.3) : même plage git que le CHANGELOG technique, transformation OpenAI optionnelle (`scripts/generate-changelog.js`, principes Argil), ou entrée **curated** pour la version **`2.0.0`** (`scripts/v2/changelog-entries/v2.0.0-cutover.json`). Sans clé OpenAI ou en cas d’échec : entrée avec `"changes": []` (pas de sujets de commit). Flag **`--no-user-changelog`** pour ne pas toucher ce fichier.
 7. Commit `chore(v2): release staging vX.Y.Z-rc.N`, tag annoté `vX.Y.Z-rc.N`, push **branche + tag**
+8. **Sync dev** : merge `origin/staging-v2` → `v2` + push (version.txt, changelog.json, package.json) pour que le dev local et les prochains `deploy_staging.sh` restent alignés
 
 Le **déploiement** Cloud Run staging est déclenché par le **push sur `staging-v2`** uniquement (un run CI). Le tag RC `vX.Y.Z-rc.N` est poussé pour l’audit et `promote-tag-to-prod` ; il **ne** déclenche **pas** le workflow (évite un échec « environment protection » sur l’env `staging`).
 
@@ -161,7 +162,8 @@ Le **déploiement** Cloud Run staging est déclenché par le **push sur `staging
 
 ```
 v2 → deploy_staging.sh → release_version.sh → tag vX.Y.Z-rc.N
-→ push staging-v2 → CI deploy + smoke E2E → recette
+→ push staging-v2 → sync staging-v2 → v2
+→ CI deploy + smoke E2E → recette
 → deploy_prod.sh
 ```
 
