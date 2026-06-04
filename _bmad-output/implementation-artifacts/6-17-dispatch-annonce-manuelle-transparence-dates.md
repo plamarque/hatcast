@@ -1,6 +1,6 @@
 # Story 6.17: Manual event announce dispatch + channel transparency dates
 
-Status: review
+Status: done
 
 baseline_commit: bd842b8a4565556d62260da3f1d7259e5d527615
 
@@ -232,7 +232,14 @@ Composer (dev-story workflow)
 ### Change Log
 
 - 2026-06-04 : Story created (ready-for-dev) from tech spec + sprint 6.17.
-- 2026-06-04 : Implemented dispatch, transparency dates, front aria/snack ; status → review.
+- 2026-06-04 : Code review — patch tests `lastNotifiedAt` nudge + GET event `MANUAL_AVAILABILITY_ANNOUNCE` ; status → done.
+
+### Review Findings
+
+- [x] [Review][Patch] GET nudge test omits `lastNotifiedAt` assertion [`ShareRecipientsIntegrationTest.kt`]
+- [x] [Review][Patch] No GET `event` test with `MANUAL_AVAILABILITY_ANNOUNCE` delivery log (tech spec § Tests #1) [`ShareRecipientsIntegrationTest.kt`]
+- [x] [Review][Defer] Guard confirm copy refactor (`formatManualNotifyGuardAge`, event title) hors scope 6.17 — tests green, UX D7 wording drift [`share-announce-dialog.ts`] — deferred, pre-existing scope creep acceptable
+- [x] [Review][Defer] `notifiedCount` = preview `notifiableCount` vs dispatch réel (DW-108 / NFR-R2) — deferred, pattern 6.10b conservé par design
 
 ---
 

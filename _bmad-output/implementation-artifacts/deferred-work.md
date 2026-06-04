@@ -6,6 +6,13 @@
 
 ---
 
+## Deferred from: code review of 6-17-dispatch-annonce-manuelle-transparence-dates (2026-06-04)
+
+- Guard confirm copy refactor (`formatManualNotifyGuardAge`, event title in `guardConfirmMessage`) — hors scope story 6.17 ; tests verts ; aligner UX D7 si PO le souhaite.
+- `notifiedCount` preview vs dispatch réel (DW-108 / NFR-R2) — pattern hérité 6.10b, conservé volontairement en 6.17.
+
+---
+
 ## Meta — qualité / CI
 
 - **DW-120** — Suite `npm run test -w @hatcast/web` : échecs pré-existants documentés dans plusieurs revues (`event-detail.spec.ts` routes canoniques, `event-dispos-tab.spec.ts` « 100 % », mocks Firebase compte). Ne pas dupliquer par story ; traiter via gate CI ou ISSUES.

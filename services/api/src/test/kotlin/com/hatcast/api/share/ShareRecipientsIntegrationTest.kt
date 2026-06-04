@@ -481,6 +481,53 @@ class ShareRecipientsIntegrationTest {
 
     @Test
     @Tag("FR31")
+    fun `GET event intent reflects MANUAL_AVAILABILITY_ANNOUNCE delivery logs as notified`() {
+        val cookie = adminCookie("sub-share-admin-event-manual-announce")
+        memberCookie("sub-share-member-event-manual-announce")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val memberUser =
+            userRepository.findByGoogleSub("sub-share-member-event-manual-announce") ?: error("Missing user")
+        val participant =
+            seasonParticipantRepository
+                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, com.hatcast.api.participant.ParticipantStatus.ACTIVE)
+                .firstOrNull { it.user?.id == memberUser.id }
+                ?: error("Missing roster participant")
+        deliveryLogRepository.save(
+            NotificationDeliveryLogEntity(
+                intent = NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE,
+                userId = memberUser.id,
+                channel = NotificationChannel.EMAIL,
+                status = NotificationDeliveryStatus.SENT,
+                eventId = eventId,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "event")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.eligible",
+                ).value(true),
+            ).andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.notified",
+                ).value(true),
+            ).andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.lastNotifiedAt",
+                ).exists(),
+            )
+    }
+
+    @Test
+    @Tag("FR31")
     fun `POST event notify returns notifiedCount from preview and calls notification port`() {
         val cookie = adminCookie("sub-share-admin-event-post")
         val seasonId = createSeason(cookie)
@@ -553,6 +600,10 @@ class ShareRecipientsIntegrationTest {
                 jsonPath(
                     "$.recipients[?(@.participantId == '${participant.id}')].channels.email.notified",
                 ).value(true),
+            ).andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.lastNotifiedAt",
+                ).exists(),
             )
     }
 
