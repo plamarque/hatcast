@@ -365,16 +365,16 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 - **Contexte :** fin de saison **V1** sur `selections.la-malice.fr` (~**4 spectacles** jusqu’à **août 2026**) ; démo **V2** au responsable commission spectacle ; accord sur **date** et **périmètre** de bascule prod.
 - **Déjà en place :** **`hatcast.app`** sert la **V2 en prod technique** (**OPS-8** [x] live **2026-06-04**, **E3** [x] jusqu’à **v2.0.3** — scripts `deploy_staging` / `release_version` / `deploy_prod` validés bout en bout).
 - **Pas encore :** bascule **audience** (comms membres, arrêt V1 comme outil principal, **OPS-7** branches, fenêtre migration prod si distincte de staging).
-- **Avant M4 (recommandé) :** ~~**OPS-10**~~ [x] ; clôturer **6.17** (`review`) ; recette **1.2** / **1.3** sur prod si pas fait ; collecte retours démo stakeholder → éventuel **`bmad-correct-course`** ou stories ciblées.
+- **Avant M4 (recommandé) :** ~~**OPS-10**~~ [x] ; ~~**6.17**~~ [x] ; recette **1.2** / **1.3** sur prod si pas fait ; collecte retours démo stakeholder → éventuel **`bmad-correct-course`** ou stories ciblées.
 
 **Ordre de session actuel (post-release train) :**
 
 1. **Démo V2** stakeholder + notes besoins saison prochaine  
-2. **`bmad-code-review`** — story **6.17** (statut `review` dans `sprint-status.yaml`)  
+2. ~~**6.17**~~ [x] — annonces manuelles + transparence `lastNotifiedAt` ([6-17](_bmad-output/implementation-artifacts/6-17-dispatch-annonce-manuelle-transparence-dates.md))  
 3. ~~**OPS-10**~~ [x] — `@hatcast.app` via Cloudflare (réception + FROM prod)  
 4. **Décision fenêtre M4** — date, comms, critères go/no-go (V1 fin saison, migration prod, formation orga)  
 5. **M4** + **OPS-7** (après décision PO + commission)  
-6. Backlog **hors vague** — § récap ci-dessous ; prioriser selon retours démo
+6. Backlog **hors vague** — § récap ci-dessous ; prioriser selon retours démo (ex. **Epic 19** — **19-2** en `review`)
 
 *(Historique ordre SCP 2026-06-02 : waves A–F code + **E1**/**E2**/**E3** — voir `sprint-status.yaml`.)*
 
@@ -467,7 +467,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
 | **6.15** | Refonte modales annonces + notify manuel simplifié | **P0** | done | M3 ; copy/WhatsApp ; anti-spam (pattern **6.10b**) ; intents draw/compo/dispos |
-| **6.17** | Dispatch annonce manuelle + `lastNotifiedAt` canal | **P0** | review | Story [6-17](_bmad-output/implementation-artifacts/6-17-dispatch-annonce-manuelle-transparence-dates.md) — clôturer via `bmad-code-review` |
+| **6.17** | Dispatch annonce manuelle + `lastNotifiedAt` canal | **P0** | [x] done | Story [6-17](_bmad-output/implementation-artifacts/6-17-dispatch-annonce-manuelle-transparence-dates.md) |
 
 #### Wave D — Pipeline release (OPS)
 
@@ -512,7 +512,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **Gate release train (code + deploy) :** [x] Waves **A–D** + **OPS-8** + **E1** + **E2** + **E3**.
 
-**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis suggérés : décision PO + ~~**OPS-10**~~ [x] (mail) + **6.17** clos + recette **1.2**/**1.3** prod si pas fait.
+**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis techniques [x] (**OPS-10**, **6.17**) ; reste : décision PO + recette **1.2**/**1.3** prod si pas fait + comms.
 
 **Avant M4 (PO 2026-06-05) :** **OPS-10** [x] staging validé 2026-06-05. **OPS-9** [x] (`sprint-status.yaml`).
 
