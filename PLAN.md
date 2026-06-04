@@ -12,7 +12,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md) and [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 - **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
-- **V2 deploy (Cloud Run + Neon):** Déploiement **development** (push `v2`) en place. Slice **MEP iso-V1** largement **done** (`sprint-status.yaml`). **Prochaine vague :** § **Wave V2.0.0** — polish PWA/compte/modales, pipeline **tag-based** staging→prod, domaine prod **`hatcast.app`** (**OPS-8**), puis **M4** cutover. SCP : [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) (amendement domaine **2026-06-03**). Guide actuel (branche `production-v2`) : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) — **OPS-4/5** le remplaceront par deploy sur **tags semver**. Domaine **enregistré chez Cloudflare** (2026-06-03).
+- **V2 deploy (Cloud Run + Neon):** **Release train V2.0.x** validé (**E3** : tags semver staging→prod, prod actuelle **v2.0.3** sur **`https://hatcast.app`**). **MEP iso-V1** + vague **V2.0.0** (code) **done** ; **M4 bascule utilisateurs** **reportée** (fin saison V1 ~4 spectacles jusqu’à août 2026 ; fenêtre + scope à caler avec commission spectacle après démo V2). SCP : [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md). Pipeline : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + **OPS-11**.
 
 ---
 
@@ -268,7 +268,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **M1** Infra pre-prod | [x] | Env GitHub `staging`, Neon branch, deploy `staging-v2` | SPA + API + Flyway OK ; E2E gate TEST-1 sur staging |
 | **M2** Playbook migration (périmètre actuel) | [x] doc | Runbook + scripts `export:v1-*:prod` ; imports CSV 2.3 | Users + membres prod → staging |
 | **M3** Boucle reset / rejouer | [x] doc | Procédure C du runbook | ≥ 1 cycle reset documenté (cible : 3 avant cutover) |
-| **M4** Cutover production | [ ] | **`hatcast.app`** + **OPS-8** + checklist merge / go-live | Gate V2.0.0 |
+| **M4** Cutover production | **reporté** | Trafic membres V1→V2 ; fenêtre PO + commission spectacle (post-démo stakeholder) | **OPS-8** + **E3** [x] ; voir § Wave V2.0.0 amend. M4 |
 
 **Backlog ops (PLAN, pas SPEC) :**
 
@@ -310,7 +310,8 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **3.6**, **3.6b** | Statistiques / Historique ligue (FR53–54) |
 | **Epic 13** (13.1–13.5 ; **13.6 reporté**) | Multi-saisons actives, roster — **13.6 ligue déplacements** remplacé par tags (ADR 0013) |
 | **Epic 14** (14.1–14.5) | **Superseded** par **Epic 17** — SCP [2026-06-01](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-epic14-superseded-by-epic17.md) ; ne pas planifier 14.x |
-| **Epic 17** (17.1–17.15) | Navigation troupe-first, catégories spectacle, slugs, polish formulaire/Infos — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 |
+| **Epic 17** (17.1–17.15) | Navigation troupe-first, catégories spectacle, slugs, polish formulaire/Infos — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 ; tirage partitionné tag → **Epic 19.8** (ex-**17.9**) |
+| **Epic 19** (19.1–19.22) | Moteur tirage — parité V1, facteurs, **formules & politiques admin** — SCP [2026-06-04](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-04-epic19-draw-weight-engine.md) |
 | **Epic 16** (16.1) | Clin d’œil `/membre/:slug` |
 | **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Voir § **Wave iso-V1 — MEP remainder (2026-06-02)** — **4.1**, **8.1/8.3**, **9-0**, **10.2/10.3** **in** MEP ; **9.1**, **4.2**, **7**, **11**, **15** post-MEP |
 | **5.4**, **5.5**, **6.8**, **6.10** | Commentaire dispo, proxy dispo, proxy confirmation, partage WhatsApp |
@@ -332,6 +333,9 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **Post-MVP** | Multi-saisons | **Epic 13** (sans **13.6** travel) | Activation concurrente |
 | **Post-MVP** | Clin d’œil | **Epic 16** | `/membre/:slug` |
 | **Post-MVP** | Stats & exports | **3.6**, **3.6b**, **17.10** | Statistiques / Historique (ADR 0012) ; filtre compartiments (**17.10**) |
+| **Post-MVP** | Draw engine hardening | **Epic 19** **19.1→19.4** (Wave A) | Parité V1 verrouillée, ADR 0019, golden tests |
+| **Post-MVP** | Draw factors (extensible) | **Epic 19** **19.5→19.14** | Pipeline + facteurs optionnels (ex-**17.9** → **19.8**) |
+| **Post-MVP** | Formules & politiques tirage | **Epic 19** **19.15→19.22** | Catalogue admin, politique troupe/saison, choix orga |
 | **Post-MVP** | Polish compo (pilote) | **6.11** | Feedback visuel + perfs onglet Équipe (profilage) |
 | **Post-MVP** | Transverse | **5.4+**, **6.10**, **Epics 4**, **7–11**, **15** | Selon priorité produit ; **5.5**, **6.8** livrés pour pilote |
 
@@ -352,23 +356,27 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 |-------|--------|---------|
 | **Clôture epics** | **3**, **17** → done | Hub / stats / filtres stabilisés |
 | **MEP iso-V1** | § **Wave iso-V1 — MEP remainder** | **Done** — gate closed |
-| **V2.0.0 cutover** | § **Wave V2.0.0** | Polish + release pipeline + **M4** |
-| **Replay prod gate** | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** | Après slice MEP ; schéma stable |
-| **M4 cutover** | `hatcast.app`, OAuth, push, comms | **OPS-8** + gate E3 |
+| **V2.0.0 cutover** | § **Wave V2.0.0** | Code + release train **done** ; **M4** utilisateurs **reporté** |
+| **Replay prod gate** | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** | [x] **E2** |
+| **M4 cutover** | Comms + bascule trafic prod | **Reporté** — voir amend. PO ci-dessous |
 
-**Ordre de session actuel — SCP [V2.0.0 cutover](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md) (MAJ domaine 2026-06-03) :**
+**Amendement PO — report M4 (2026-06-05) :**
 
-0. **OPS-8** — prod Cloud Run **`europe-west1`** + domain mapping **`hatcast.app`** + Cloudflare orange (staging/dev cloud restent **`europe-west9`** / `*.run.app`)  
-1. ~~**MEP iso-V1 slice**~~ — **done** (4.1, 9.0, 3.21, 8.1, 8.3, 6.10b, 8.2, 8.5, 8.6, 9.1 — voir `sprint-status.yaml`)  
-2. **10.4** → **10.2** + **10.3** + **10.7** — PWA recette, MAJ client, version/changelog, icône HatCast 2  
-3. **1.2b** + **17.34** + **17.35** + **17.36** + **1.6** — UX inscription + Mon compte (4 onglets, profil unifié) + email / MDP connecté  
-4. **6.15** — modales annonces (M3, notify manuel, anti-spam)  
-5. **10.5** + **10.6** — aides install contextuelles + opt-in notifs post-install  
-6. **Recette 1.2** + **1.3** + **1.7** — inscription + reset MDP gates + suppression compte  
-7. **OPS-4** → **OPS-6** — release staging par tag ; prod depuis artefact taggué ; **OPS-11** — CLI développeur (4 commandes)  
-8. Tour écrans staging + replay migration × **≥3**  
-9. Tag **v2.0.0** staging → prod → **M4** (trafic **`hatcast.app`**) → **OPS-7** (branches `v1` / `staging-v1`, rename `main` / `staging`)  
-10. **OPS-9** (PostHog) + **OPS-10** (`@hatcast.app` mail) — **P1**, après **M4** ou en fin de vague si capacité (non bloquant cutover)
+- **Contexte :** fin de saison **V1** sur `selections.la-malice.fr` (~**4 spectacles** jusqu’à **août 2026**) ; démo **V2** au responsable commission spectacle ; accord sur **date** et **périmètre** de bascule prod.
+- **Déjà en place :** **`hatcast.app`** sert la **V2 en prod technique** (**OPS-8** [x], **E3** [x] jusqu’à **v2.0.3** — scripts `deploy_staging` / `release_version` / `deploy_prod` validés bout en bout).
+- **Pas encore :** bascule **audience** (comms membres, arrêt V1 comme outil principal, **OPS-7** branches, fenêtre migration prod si distincte de staging).
+- **Avant M4 (recommandé) :** **OPS-10** (CF Email Routing → Gmail + `noreply@` / notifs Spring) ; clôturer **6.17** (`review`) ; recette **1.2** / **1.3** sur prod si pas fait ; collecte retours démo stakeholder → éventuel **`bmad-correct-course`** ou stories ciblées.
+
+**Ordre de session actuel (post-release train) :**
+
+1. **Démo V2** stakeholder + notes besoins saison prochaine  
+2. **`bmad-code-review`** — story **6.17** (statut `review` dans `sprint-status.yaml`)  
+3. **OPS-10** — `@hatcast.app` via Cloudflare (réception + FROM prod)  
+4. **Décision fenêtre M4** — date, comms, critères go/no-go (V1 fin saison, migration prod, formation orga)  
+5. **M4** + **OPS-7** (après décision PO + commission)  
+6. Backlog **hors vague** — § récap ci-dessous ; prioriser selon retours démo
+
+*(Historique ordre SCP 2026-06-02 : waves A–F code + **E1**/**E2**/**E3** — voir `sprint-status.yaml`.)*
 
 *(Historique MEP : SCP [2026-06-02 iso-V1](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md).)*
 
@@ -428,7 +436,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 
 ### Wave V2.0.0 — cutover prod (2026-06-02)
 
-**Décision PO :** SCP [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md). **Objectif :** release nommée **v2.0.0** — polish UX + sécurité compte + pipeline release par **tags** + bascule prod (**M4**).
+**Décision PO :** SCP [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md). **Objectif initial :** release **v2.0.x** + bascule prod (**M4**). **État 2026-06-05 :** train release et infra prod **faits** ; **M4** (bascule utilisateurs / fin V1) **reporté** — voir amendement PO § ordre de session.
 
 #### Wave A — PWA, release client & identité visuelle
 
@@ -459,7 +467,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
 | **6.15** | Refonte modales annonces + notify manuel simplifié | **P0** | done | M3 ; copy/WhatsApp ; anti-spam (pattern **6.10b**) ; intents draw/compo/dispos |
-| **6.17** | Dispatch annonce manuelle + `lastNotifiedAt` canal | **P0** | backlog | [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md) ; après **6.16** |
+| **6.17** | Dispatch annonce manuelle + `lastNotifiedAt` canal | **P0** | review | Story [6-17](_bmad-output/implementation-artifacts/6-17-dispatch-annonce-manuelle-transparence-dates.md) — clôturer via `bmad-code-review` |
 
 #### Wave D — Pipeline release (OPS)
 
@@ -477,9 +485,9 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
-| **OPS-8** | Prod `hatcast.app` — Cloud Run **`europe-west1`**, domain mapping, CF proxy orange, OAuth/CORS/Firebase | **P0** | backlog | Gate **M4** ; doc [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) § prod custom domain ; story [ops-8](_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md) |
-| **OPS-9** | PostHog EU — SDK + reverse proxy (`e.hatcast.app`, nuage **gris**) | **P1** | backlog | Promote **G-005** ; FR47 ; **non bloquant M4** ; story [ops-9](_bmad-output/implementation-artifacts/ops-9-posthog-hatcast-app.md) |
-| **OPS-10** | Adresses `@hatcast.app` (`noreply@`, `info@`) — DNS mail, FROM prod, recette | **P1** | backlog | Réception : CF Email Routing → Gmail ; envoi : SPF/DKIM (Workspace ou SMTP domaine) ; **non bloquant M4** ; story [ops-10](_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md) |
+| **OPS-8** | Prod `hatcast.app` — Cloud Run **`europe-west1`**, domain mapping, CF proxy orange, OAuth/CORS/Firebase | **P0** | [x] done | Gate **M4** ; story [ops-8](_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md) |
+| **OPS-9** | PostHog EU — SDK + reverse proxy (`e.hatcast.app`, nuage **gris**) | **P1** | [x] done | Story [ops-9](_bmad-output/implementation-artifacts/ops-9-posthog-hatcast-app.md) |
+| **OPS-10** | Adresses `@hatcast.app` (`noreply@`, `info@`) — DNS mail, FROM prod, recette | **P1** | backlog | **Avant M4** (PO 2026-06-05) : CF Email Routing → Gmail ; SPF/DKIM envoi ; story [ops-10](_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md) |
 
 **Dev local inchangé :** Neon branche **`local`** + `./scripts/start-dev.sh`. **Dev cloud inchangé :** push **`v2`** → **`europe-west9`**.
 
@@ -496,17 +504,38 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 | ID | Titre | Condition |
 |----|-------|-----------|
-| **E1** | Tour écrans staging | Checklist parcours membre + orga signée PO |
-| **E2** | Replay migration | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** |
-| **E3** | Release v2.0.0 | Tag staging validé → tag prod |
-| **M4** | Bascule prod | Trafic **`https://hatcast.app`** ; OAuth/CORS/push VAPID ; comms utilisateurs ; prérequis **OPS-8** vert |
-| **E4** | Renommage branches | **OPS-7** après M4 |
+| **E1** | Tour écrans staging | [x] Checklist signée PO 2026-06-04 — [e1-cutover-screen-tour-staging-v2.0.0.md](_bmad-output/implementation-artifacts/e1-cutover-screen-tour-staging-v2.0.0.md) |
+| **E2** | Replay migration | [x] Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** (`validate-replay --min=3`) |
+| **E3** | Release semver staging → prod | [x] Pipeline validé ; prod **v2.0.3** (ajustements patch via `release_version.sh`) |
+| **M4** | Bascule audience prod | **Reporté** — fin saison V1 ; accord commission spectacle ; comms + critères go-live |
+| **E4** | Renommage branches | **OPS-7** — **après M4** |
 
-**Gate V2.0.0 / cutover :** **OPS-8** done + Waves **A–D** done + **E1** + **E2** + recette **1.2** + **1.3** + tag **v2.0.0** staging puis prod.
+**Gate release train (code + deploy) :** [x] Waves **A–D** + **OPS-8** + **E1** + **E2** + **E3**.
 
-**P1 fin de vague (non bloquant M4) :** **OPS-9** (PostHog), **OPS-10** (e-mail `@hatcast.app`). Epic **11** analytics détaillé reste **post-V2.0.0** sauf périmètre **OPS-9**.
+**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis suggérés : décision PO + **OPS-10** (mail) + **6.17** clos + recette **1.2**/**1.3** prod si pas fait.
 
-**Hors V2.0.0 (inchangé) :** **4.2**, **7.x**, **9.2**, **11.x** (hors **OPS-9**), **13.x**, **8.4** (ops orga).
+**Avant M4 (PO 2026-06-05) :** **OPS-10** (CF Email Routing → Gmail, `noreply@` notifs) — plus **post-M4** seulement. **OPS-9** [x] (`sprint-status.yaml`).
+
+**Hors V2.0.0 :** voir § **Récap backlog hors vague** ci-dessous.
+
+#### Récap backlog hors vague V2.0.0
+
+| ID / epic | Sujet | Piste décision |
+|-----------|--------|----------------|
+| **4.2** | Pages publiques saison / événement sans login | Découverte SEO/partage ; après M4 ou si stakeholder le demande |
+| **7.x** | Invitations / onboarding troupe | Croissance ; pas bloquant Malice |
+| **9.2** | Audit « changements me concernant » (UI membre) | Conformité / transparence ; P1 produit |
+| **8.4** | Notifications ops organisateurs (FR31b) | P2 ; extension 8.3 |
+| **11.x** | Analytics détaillé (hors **OPS-9** min) | PostHog posé ; dashboards / funnels plus tard |
+| **13.x** | Multi-saisons actives, roster ligue | Gros chantier ; **13.6** déplacements → tags (ADR-0013) |
+| **15.x** | Encounters | Réserve produit |
+| **Epic 14** | Hub troupe legacy | **Superseded** par **17.x** — ne pas rouvrir |
+| **3.6 / 3.6b** | Stats ligue / historique export | Post-MVP navigation |
+| **17.26+** | Hub onglets Saisons/Membres, polish | P2 [growth-backlog](_bmad-output/planning-artifacts/growth-backlog.md) |
+| **DW-020–021** | Historique compositions passées | Réserve SPEC si exigé |
+| **OPS-7** | Rename branches `main` / `staging` | **Après M4** uniquement |
+| **OPS-3** | Smoke PWA automatisé staging | P2 hygiene |
+| **BUG-008** | Refresh toggles push Mon compte | Low ; [ISSUES.md](ISSUES.md) ; post-M4 OK |
 
 
 ### Execution order revised (2026-05-28) — historique
@@ -551,8 +580,8 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **17.6** | `events.slug` — migration, API, routes `/saison/:troupeSlug/:seasonSlug/event/:eventSlug`, redirect UUID | P1 | — |
 | **17.7** | `category` + glossaire catégories par troupe (API) | P1 | ADR 0013 |
 | **17.8** | Onglet **Infos** — tag optionnel, autocomplete, aide (pas dans modale spectacle) | P1 | 17.7 |
-| **17.9** | Tirage / chances partitionnés par `(saison, category)` | P2 | 17.7 |
-| **17.10** | Stats : filtre multi **groupes de spectacles** (principal + tags) ; retrait bandeau DEPLACEMENT ; export aligné ; lecture legacy `deplacement` sans backfill DB | P2 | 3.6, 17.7, 17.8 ; 17.9 recommandé avant |
+| **17.9** | Tirage / chances partitionnés par `(saison, equity_tag)` — **impl → 19.8** | P2 | 17.7, **19.6** |
+| **17.10** | Stats : filtre multi **groupes de spectacles** (principal + tags) ; retrait bandeau DEPLACEMENT ; export aligné ; lecture legacy `deplacement` sans backfill DB | P2 | 3.6, 17.7, 17.8 ; **19.8** recommandé avant tirage tagué |
 | **17.12** | Slug spectacle auto — retirer champ « Identifiant URL » du formulaire | P2 | 17.6 |
 | **17.13** | Formulaire spectacle — datepicker + heure/minute Material | P2 | — |
 | **17.14** | Infos — type + rôles en modales ; alléger `EventFormDialog` | P2 | 17.8 recommandé |
@@ -572,7 +601,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **Story 17.11** (P1) — aligne le chrome des pages admin Participants / Membres (LIMIT-002) ; fichier story prêt pour dev après **17.5** recommandé.
 
-**DoD phase domaine (17.7–17.10) :** tag persisté (saisie Infos **17.8**) ; tirage respecte compartiments (**17.9**) ; stats filtrables par compartiment(s), sans colonnes DEPLACEMENT dédiées (**17.10**). Migration données `deplacement` → tag : **MIG-4**, pas 17.10.
+**DoD phase domaine (17.7–17.10) :** tag persisté (saisie Infos **17.8**) ; tirage respecte compartiments (**19.8**, ex-**17.9**) ; stats filtrables par compartiment(s), sans colonnes DEPLACEMENT dédiées (**17.10**). Migration données `deplacement` → tag : **MIG-4**, pas 17.10.
 
 **UX filtre compartiments (17.10) :** [_bmad-output/planning-artifacts/ux-design-stats-equity-compartment-filter-17-10.md](_bmad-output/planning-artifacts/ux-design-stats-equity-compartment-filter-17-10.md) ; amendement [ux-design-season-historique-statistiques.md](_bmad-output/planning-artifacts/ux-design-season-historique-statistiques.md) (D9).
 
@@ -580,6 +609,48 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **UX spec :** [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (amended 2026-05-25).  
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 17.
+
+---
+
+### Epic 19 — Moteur de tirage pondéré (parité V1, facteurs, formules & politiques)
+
+**Added:** 2026-06-04 — SCP [draw weight engine](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-04-epic19-draw-weight-engine.md) ; amendements **(b–c)** formules, politiques par catégorie, choix au tirage.
+
+**Objectif :** Verrouiller parité V1 + golden tests ; pipeline de facteurs ; catalogue **multi-formules** ; **politiques** troupe/saison avec règles **par catégorie de spectacle** ; résolution au niveau **événement** ; choix opérateur **au tirage** si ≥2 formules autorisées (ex. **match** → formule parité genre). **Complète** Epic **6** — ne remplace pas **6.4** / **6.14**.
+
+**Modèle résolution (Wave D) :** `event.category` → règle catégorie dans politique saison (sinon troupe) → sinon `defaultRule` → formule système V1. Pas de politique persistée par événement en MVP.
+
+| Story | Titre | Priorité | Depends |
+|-------|-------|----------|---------|
+| **19.1** | Spec normative V1 + ADR 0019 | P1 | 6.4, 6.14 |
+| **19.2** | Golden tests V1 JS ↔ Kotlin | P1 | 19.1 |
+| **19.3** | Fixtures orchestration draw complet | P1 | 19.2 |
+| **19.4** | Doc orga/membre — comprendre les cotes | P1 | 19.1 |
+| **19.5** | Pipeline `DrawWeightFactor` | P1 | 19.3 |
+| **19.6** | `PastParticipationFactor` (= V1) | P1 | 19.5 |
+| **19.7** | Breakdown explicabilité par facteur | P2 | 19.6 |
+| **19.8** | Durcissement partition `category` (ex-**17.9** done) | P2 | 19.6 |
+| **19.9–19.14** | Facteurs optionnels (rejouer, rôle, genre, mix, classe, bénévole) | P2 | 19.6 |
+| **19.15** | SPEC/ADR — modèle formules & politiques | P2 | 19.1, 19.5 |
+| **19.16** | Persistance formules + défaut système V1 | P2 | 19.15, 19.6 |
+| **19.17** | API CRUD formules (admin troupe) | P2 | 19.16 |
+| **19.18** | API politiques troupe / saison | P2 | 19.17, 3.5 |
+| **19.19** | UI admin — éditeur de formules | P2 | 19.17, 17.2 |
+| **19.20** | UI admin — politiques de tirage | P2 | 19.18, 19.19 |
+| **19.21** | UI orga — choix formule au tirage | P2 | 19.18, 6.4 |
+| **19.22** | Snapshot formule au tirage | P2 | 19.21, 6.14 |
+
+**DoD Wave A (19.1–19.4) :** ADR 0019 ; suite golden CI ; doc cotes ; zéro dérive formulaire vs V1.
+
+**DoD Wave B (19.5–19.6) :** un seul chemin de calcul ; facteur historique seul actif par défaut ; golden 19.2 vert.
+
+**DoD Wave D (19.15–19.22) :** catalogue multi-formules ; politique avec règles **par catégorie** (clé exacte = **OQ-19-01**, stakeholder) ; résolution événement ; sélecteur orga si `CHOICE` ≥2 ; snapshot auditable.
+
+**Open questions :** SCP §5b — premier jet epic, amendable post-stakeholder sans re-ouvrir **6.4**.
+
+**Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 19.
+
+---
 
 ### Epic 9 — Audit et historique des changements significatifs
 
@@ -638,7 +709,8 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **MIG-4** | **Done 2026-06** | Import `deplacement` → `category=deplacements` |
 | **Annuaire public (4.1)** | **Done 2026-06** | Découvrir sans login ; hub gated membre/admin |
 | **Iso-V1 / MEP gate** | **Closed 2026-06-02** | Slice fonctionnelle done — voir `sprint-status.yaml` |
-| **V2.0.0 / cutover gate** | **Open** | § Wave V2.0.0 : **OPS-8**, **10.x**, **1.2b**, **1.6/1.7**, **6.15**, **17.34**, **OPS-4–6**, replay ×3, recette **1.2** + **1.3** ; **OPS-9/10** P1 post-M4 |
+| **V2.0.0 release train** | **Closed** | Code + **E1**/**E2**/**E3** + **OPS-8** ; prod **v2.0.3** sur `hatcast.app` |
+| **M4 cutover gate** | **Deferred** | Report PO 2026-06-05 ; V1 jusqu’à ~août ; démo commission spectacle |
 | **Domaine prod** | **Registered 2026-06-03** | **`hatcast.app`** — Cloudflare Registrar |
 
 ### PRD / UX references (V2)
