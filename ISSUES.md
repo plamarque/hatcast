@@ -10,6 +10,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-008 — changelog.json user notes wrong on first RC of a semver line
+- **ID**: BUG-008
+- **Status**: Fixed (2026-06-04)
+- **Severity**: High (PWA « Nouveautés » — misleading release notes)
+- **Affected area**: `scripts/lib/version-changelog.sh` (`hatcast_staging_changelog_range`), `scripts/generate-changelog.js`, `apps/web/public/changelog.json`
+- **Observed behavior**: For `vX.Y.Z-rc.1`, the changelog range fell back to bare `git log HEAD` (~entire repo history) when tag `vX.Y.Z` did not exist yet. OpenAI then produced generic HatCast bullets (Dispos, modales, Saisons…) unrelated to the actual RC delta. `CHANGELOG.md` sections for `2.0.1`–`2.0.2` were similarly inflated.
+- **Expected behavior**: Range = previous RC tag or latest **production** tag strictly older than the target version; empty `changes[]` when the diff has no user-facing commits; OpenAI must not invent features absent from the source commit list.
+- **Fix**: `hatcast_latest_prod_tag_before` + RC fallback on prior patch line; fail fast instead of `HEAD`; skip OpenAI when no feat/fix commits; stricter prompt; corrected `changelog.json` entries for `2.0.1`–`2.0.3`.
+
 ### BUG-007 — Member shell chrome hidden on canonical saison URLs
 - **ID**: BUG-007
 - **Status**: Fixed (2026-06-03)

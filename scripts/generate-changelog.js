@@ -25,6 +25,11 @@ async function generateUserFocusedChangelog(technicalJson, version) {
 
     const date = technicalData.date || new Date().toISOString().split('T')[0];
 
+    if (!Array.isArray(technicalData.changes) || technicalData.changes.length === 0) {
+      console.error('ℹ️  Aucun commit utilisateur dans le diff — liste vide (OpenAI ignoré).');
+      return JSON.stringify({ version, date, changes: [] });
+    }
+
     const changesText = technicalData.changes.map(change => {
       const cleanChange = change.replace(/^[✨🐛🔧📝] /, '').trim();
       return `- ${cleanChange}`;
@@ -39,6 +44,7 @@ Principes éditoriaux (Argil — product updates) :
 3. **Titre = bénéfice** — « Partage un spectacle avec ton équipe en un clic », pas « Nouveau système de permissions ».
 4. **Court et scannable** — max **5** puces par version ; une idée par ligne (~120 caractères).
 5. **Zéro bruit** — en cas de doute, **n'inclus pas** la ligne. Mieux vaut une liste vide qu'une liste floue ou technique.
+6. **Ancrage strict** — chaque puce doit découler **explicitement** d'au moins une ligne « Changements techniques » ci-dessous. **N'invente jamais** de fonctionnalité, écran ou correction absente de cette liste.
 
 INCLURE seulement si l'utilisateur le remarque ou en tire un bénéfice :
 - Nouvelle action ou parcours (connexion, dispos, compo, notifications, compte…)
@@ -80,7 +86,8 @@ Réponds UNIQUEMENT avec ce JSON (pas de markdown, pas de texte autour) :
           content:
             "Tu es rédacteur de notes de version produit pour une app grand public. " +
             "Tu appliques le test « et alors ? » : une ligne = un bénéfice utilisateur clair, ou rien. " +
-            "Tu réponds UNIQUEMENT avec du JSON valide. Une liste changes vide est un succès si le diff est purement technique."
+            "Tu réponds UNIQUEMENT avec du JSON valide. Une liste changes vide est un succès si le diff est purement technique. " +
+            "Interdit d'ajouter une puce qui ne correspond à aucune ligne source fournie."
         },
         {
           role: "user",

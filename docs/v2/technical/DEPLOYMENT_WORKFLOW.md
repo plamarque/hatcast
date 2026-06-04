@@ -216,7 +216,7 @@ Par défaut, sans override explicite :
 - Tags Git staging RC : `vX.Y.Z-rc.N` (suffixe RC **uniquement** sur le tag, pas dans `package.json` / `version.txt`)
 - Promotion prod (`promote-tag-to-prod.sh`) : **aucun** bump fichier — le tag prod pointe le commit RC qui contient déjà `version.txt` et `changelog.json`
 
-**`changelog.json` (OPS-6)** : prérequis `jq` ; `OPENAI_API_KEY` dans `.env` / `.env.local` pour des puces utilisateur (sinon liste vide). Référence éditoriale : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). Cutover `2.0.0` : fichier curated, pas git/OpenAI. `--no-user-changelog` : laisser le JSON existant. Smoke : `jq empty apps/web/public/changelog.json` et `check-pwa.sh` §5.
+**`changelog.json` (OPS-6)** : prérequis `jq` ; plage git = tag RC précédent ou **dernier tag prod strictement antérieur** à la version cible pour `rc.1` (jamais `HEAD` seul). OpenAI ignoré si le diff ne contient aucun `feat`/`fix`/`improve`/`perf`/`refactor`/`style`. `OPENAI_API_KEY` dans `.env` / `.env.local` pour des puces utilisateur (sinon liste vide). Référence éditoriale : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). Cutover `2.0.0` : fichier curated, pas git/OpenAI. `--no-user-changelog` : laisser le JSON existant. Smoke : `jq empty apps/web/public/changelog.json` et `check-pwa.sh` §5.
 
 Les entrées `CHANGELOG.md` racine sont partagées avec le monorepo (V1 + V2) ; privilégier des messages de commit Conventional Commits explicites (`feat:`, `fix:`, …) et mentionner « V2 » dans le corps si utile pour le lecteur.
 

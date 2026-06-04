@@ -107,6 +107,63 @@ hatcast_latest_release_tag() {
   return 1
 }
 
+# Latest production tag vX.Y.Z strictly older than $1 (semver compare).
+hatcast_latest_prod_tag_before() {
+  local new_base="$1"
+  local tag tbase
+
+  while IFS= read -r tag; do
+    if [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      tbase="${tag#v}"
+      # V2 staging : ignorer les tags prod V1 (v0.x) — trop bruyants pour le journal V2.
+      if [[ ! "${tbase}" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
+        continue
+      fi
+      if [[ "${tbase}" == "${new_base}" ]]; then
+        continue
+      fi
+      if [[ "$(printf '%s\n%s\n' "${tbase}" "${new_base}" | sort -V | head -1)" != "${tbase}" ]]; then
+        continue
+      fi
+      if ! git merge-base --is-ancestor "${tag}" HEAD >/dev/null 2>&1; then
+        continue
+      fi
+      echo "${tag}"
+      return 0
+    fi
+  done < <(git tag -l 'v*.*.*' --sort=-v:refname)
+  return 1
+}
+
+# Decrement patch component (2.0.1 -> 2.0.0). Fails on 0.0.0.
+hatcast_decrement_patch_semver() {
+  local version="$1"
+  local major minor patch
+  IFS='.' read -r major minor patch <<< "${version}"
+  if [[ -z "${patch}" || "${patch}" -le 0 ]]; then
+    return 1
+  fi
+  patch=$((patch - 1))
+  echo "${major}.${minor}.${patch}"
+}
+
+# True when commit_range has at least one feat/fix/improve/perf/refactor/style commit (after release skips).
+hatcast_changelog_range_has_user_facing_commits() {
+  local commit_range="${1:-HEAD..HEAD}"
+  local commit_line commit_msg
+
+  while IFS= read -r commit_line; do
+    commit_msg="$(echo "${commit_line}" | cut -d' ' -f2-)"
+    if [[ "${commit_msg}" =~ ^(chore: bump version|release: version|chore\(v2\): bump version|chore\(v2\): release staging) ]]; then
+      continue
+    fi
+    if [[ "${commit_msg}" =~ ^(feat|fix|improve|perf|refactor|style) ]]; then
+      return 0
+    fi
+  done < <(git log --oneline "${commit_range}" 2>/dev/null || true)
+  return 1
+}
+
 # Remote tag names matching vX.Y.Z-rc.N (sorted ascending by version).
 hatcast_remote_rc_tag_names() {
   local base="${1:-}"
@@ -226,9 +283,18 @@ hatcast_staging_changelog_range() {
       return 1
     fi
   else
-    prev_tag="$(hatcast_latest_release_tag "${base}" || true)"
+    # rc.1 : dernière RC de la lignée patch précédente, sinon dernier tag prod < base (jamais v${base} ni HEAD seul).
+    local prior_base=""
+    prior_base="$(hatcast_decrement_patch_semver "${base}" || true)"
+    if [[ -n "${prior_base}" ]]; then
+      prev_tag="$(hatcast_latest_rc_tag "${prior_base}" || true)"
+    fi
     if [[ -z "${prev_tag}" ]]; then
-      echo "HEAD"
+      prev_tag="$(hatcast_latest_prod_tag_before "${base}" || true)"
+    fi
+    if [[ -z "${prev_tag}" ]]; then
+      echo "⚠️  Aucune ancre changelog pour ${base}-rc.1 — plage vide (HEAD..HEAD)." >&2
+      echo "HEAD..HEAD"
       return 0
     fi
   fi
@@ -530,7 +596,10 @@ hatcast_generate_changelog_json_for_release() {
     return 1
   fi
 
-  if user_json="$(hatcast_transform_changelog_json_with_openai "${technical_json}" "${version}")"; then
+  if ! hatcast_changelog_range_has_user_facing_commits "${commit_range}"; then
+    echo "ℹ️  Aucun commit feat/fix dans ${commit_range} — entrée ${version} avec changes: [] (OpenAI ignoré)."
+    user_json="$(hatcast_changelog_json_empty_entry "${version}" "${date}")"
+  elif user_json="$(hatcast_transform_changelog_json_with_openai "${technical_json}" "${version}")"; then
     echo "ℹ️  Notes utilisateur générées (OpenAI / Argil)"
   else
     echo "⚠️  OpenAI indisponible ou échec — entrée ${version} avec changes: [] (pas de fallback technique)." >&2
