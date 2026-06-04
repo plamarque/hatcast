@@ -31,7 +31,7 @@ Profil **`dev`** : `management.health.mail.enabled=false` ([`application-dev.yml
 
 **`./gradlew bootRun` seul** : pas de Mailpit automatique ; configurer SMTP manuellement ou utiliser `start-dev.sh`.
 
-Cloud Run / staging : `SPRING_MAIL_*` (Gmail) via secrets GitHub — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
+Cloud Run / staging / prod : **OPS-10** — `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_EMAIL_SENDING_API_TOKEN` (prioritaire) ; legacy `SPRING_MAIL_*` (Mailpit local via `start-dev.sh` uniquement). Voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §7.6.
 
 ### Notifications push Web (story 8.3)
 
@@ -94,6 +94,20 @@ Depuis `services/api/` :
 ```
 
 Profil Spring **`test`** (`@ActiveProfiles("test")` sur les suites `@SpringBootTest`). Aucune variable `HATCAST_DATASOURCE_*` ni branche Neon requise.
+
+### Golden draw suite (Epic 19.2)
+
+Regression gate for [`AvailabilityChanceCalculator`](src/main/kotlin/com/hatcast/api/availability/AvailabilityChanceCalculator.kt) — frozen vectors from [`docs/v2/technical/draw-weight-engine-v1-spec.md`](../../docs/v2/technical/draw-weight-engine-v1-spec.md) § Golden test contract.
+
+```bash
+./gradlew test --tests 'com.hatcast.api.availability.DrawGoldenTest'
+```
+
+- Fixtures : `src/test/resources/draw/golden/*.json` (IDs `REF-*`, `T-*`).
+- Runner : `DrawGoldenTest.kt` (parameterized; never uses `Random.Default` in golden draws).
+- CI : workflow [`api-test.yml`](../../.github/workflows/api-test.yml) runs the full `./gradlew test` on PRs touching `services/api/**` (includes golden + `CompositionDrawService` regressions).
+
+Optional vector regeneration (normative algorithm change only) : [`scripts/draw/freeze-golden-vectors.kts`](../../scripts/draw/freeze-golden-vectors.kts).
 
 ### H2 (CI et local) vs PostgreSQL (Neon)
 

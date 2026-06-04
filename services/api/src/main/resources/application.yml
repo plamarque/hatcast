@@ -67,6 +67,9 @@ hatcast:
     email:
       enabled: ${HATCAST_NOTIFICATION_EMAIL_ENABLED:false}
       from: ${HATCAST_NOTIFICATION_EMAIL_FROM:HatCast <noreply@hatcast.app>}
+      cloudflare:
+        account-id: ${CLOUDFLARE_ACCOUNT_ID:}
+        api-token: ${CLOUDFLARE_EMAIL_SENDING_API_TOKEN:}
   notifications:
     manual-availability-nudge-guard-days: ${HATCAST_MANUAL_AVAILABILITY_NUDGE_GUARD_DAYS:3}
 

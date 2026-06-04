@@ -16,6 +16,7 @@ import {
 import { exportParticipantsJson, smokeCounts } from './neon.mjs'
 import { runNpmScript } from './spawn.mjs'
 import { shouldRunStep, validateConfig } from './config.mjs'
+import { deriveExpectedCounts } from './expected-counts.mjs'
 
 function saveState(config, state) {
   mkdirSync(config.runDir, { recursive: true })
@@ -231,10 +232,8 @@ export async function runPipeline(config, logger) {
         `--season-v2=${state.seasonV2}`,
         `--participants=${participantsPath}`,
       ])
-      const manifest = readJson(join(state.artifactDir, 'manifest.json'))
-      const rejects = readJson(join(state.artifactDir, 'rejects.json'))
-      assertEqual('manifest.events', manifest.counts.events, config.thresholds.events)
-      assertMax('rejects.mig2', rejects.count ?? rejects.rejects?.length ?? 0, config.thresholds.rejectsMig2)
+      const expected = deriveExpectedCounts(state.artifactDir)
+      assertMax('rejects.mig2', expected.rejectsMig2, config.thresholds.rejectsMig2)
       runNpmScript('migrate:malice:load', loadArgs(config, [join(state.artifactDir, 'load.sql')], { dryRun: true }))
       if (config.yes && !config.dryRun) {
         runNpmScript('migrate:malice:load', loadArgs(config, [join(state.artifactDir, 'load.sql')]))
@@ -255,9 +254,8 @@ export async function runPipeline(config, logger) {
       const raw = join(state.artifactDir, 'raw.json')
       const manifest = join(state.artifactDir, 'manifest.json')
       runNpmScript('migrate:malice:transform:ac', [`--raw=${raw}`, `--manifest=${manifest}`])
-      const rejectsAc = readJson(join(state.artifactDir, 'rejects-ac.json'))
-      const acCount = rejectsAc.count ?? rejectsAc.rejects?.length ?? 0
-      assertMax('rejects.mig3', acCount, config.thresholds.rejectsMig3)
+      const expected = deriveExpectedCounts(state.artifactDir, { requireAc: true })
+      assertMax('rejects.mig3', expected.rejectsMig3, config.thresholds.rejectsMig3)
       const loadSql = join(state.artifactDir, 'load.sql')
       const loadAc = join(state.artifactDir, 'load-ac.sql')
       const eventCount = config.databaseUrl
@@ -267,8 +265,7 @@ export async function runPipeline(config, logger) {
             ]),
           ))
         : 0
-      const sqlFiles =
-        eventCount >= config.thresholds.events ? [loadAc] : [loadSql, loadAc]
+      const sqlFiles = eventCount >= expected.events ? [loadAc] : [loadSql, loadAc]
       runNpmScript('migrate:malice:load', loadArgs(config, sqlFiles, { dryRun: true }))
       if (config.yes && !config.dryRun) {
         runNpmScript('migrate:malice:load', loadArgs(config, sqlFiles))
@@ -278,6 +275,7 @@ export async function runPipeline(config, logger) {
         await reconcileSeasonEventCount(config.databaseUrl, state.seasonV2)
         logger.info('b5', 'Reconciled seasons.event_count after availability/composition load')
       }
+      state.expectedCounts = expected
       state.stepsCompleted.push('b5')
       saveState(config, state)
     })
@@ -288,21 +286,24 @@ export async function runPipeline(config, logger) {
       logger.info('smoke', 'Skipped in dry-run (no Neon writes)')
     } else {
     await logger.runStep('smoke', async () => {
+      if (!state.artifactDir) throw new Error('artifactDir missing — run b4 first')
+      const expected =
+        state.expectedCounts ?? deriveExpectedCounts(state.artifactDir, { requireAc: true })
       const { reconcileSeasonEventCount } = await import('./neon.mjs')
       await reconcileSeasonEventCount(config.databaseUrl, state.seasonV2)
       const counts = await smokeCounts(config.databaseUrl, state.seasonV2)
-      assertEqual('events', counts.events, config.thresholds.events)
-      assertEqual('season_event_count', counts.season_event_count, counts.events_non_archived)
-      assertMin(
-        'availability',
-        counts.availability,
-        config.thresholds.availability,
-        config.thresholds.availabilityTolerance,
+      logger.info(
+        'smoke',
+        `Expected from artifacts: events=${expected.events} availability=${expected.availability} compositions=${expected.compositions}`,
       )
-      assertEqual('compositions', counts.compositions, config.thresholds.compositions)
+      assertEqual('events', counts.events, expected.events)
+      assertEqual('season_event_count', counts.season_event_count, counts.events_non_archived)
+      assertEqual('availability', counts.availability, expected.availability)
+      assertEqual('compositions', counts.compositions, expected.compositions)
+      assertEqual('seed_users', counts.seed_users, config.thresholds.seedUsers)
       const eventsPage = await api.listSeasonEvents(state.seasonV2, 0, 100)
-      assertMin('api.events', eventsPage.totalElements ?? eventsPage.content?.length ?? 0, config.thresholds.events)
-      state.smoke = counts
+      assertMin('api.events', eventsPage.totalElements ?? eventsPage.content?.length ?? 0, expected.events)
+      state.smoke = { ...counts, expected }
       state.stepsCompleted.push('smoke')
       saveState(config, state)
     })

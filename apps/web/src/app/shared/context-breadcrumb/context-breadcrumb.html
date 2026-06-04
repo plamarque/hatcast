@@ -28,9 +28,6 @@
           }
           <span class="context-breadcrumb__troupe-name">{{ troupeName() }}</span>
         </a>
-        @if (troupeIsDemo()) {
-          <mat-chip class="context-breadcrumb__demo-chip" aria-label="Troupe Démo">Démo</mat-chip>
-        }
       </div>
     </li>
     @if (layout() !== 'troupe') {
@@ -100,11 +97,6 @@
         </span>
       }
     </a>
-    @if (troupeIsDemo()) {
-      <mat-chip class="context-breadcrumb__demo-chip context-breadcrumb__demo-chip--mobile" aria-label="Troupe Démo">
-        Démo
-      </mat-chip>
-    }
     @if (layout() !== 'troupe' && seasonTitle()) {
       @if (seasonIsLink()) {
         <a

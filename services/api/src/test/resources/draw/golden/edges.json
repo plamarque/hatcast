@@ -1,0 +1,18 @@
+[
+  {
+    "id": "REF-E1",
+    "description": "Empty candidates return null draw and empty scores",
+    "function": "edge",
+    "input": { "case": "empty" },
+    "expected": { "drawNull": true, "scoreSize": 0 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "REF-E2",
+    "description": "Zero weight returns null draw and zero percent",
+    "function": "edge",
+    "input": { "case": "zeroWeight" },
+    "expected": { "drawNull": true, "chancePercent": 0 },
+    "tolerancePercent": 0
+  }
+]

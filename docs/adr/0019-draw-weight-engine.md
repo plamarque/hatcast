@@ -1,0 +1,19 @@
+# ADR-0019: Draw weight engine (V1 parity, factor pipeline, golden regression)
+
+- **Status:** Accepted
+- **Context:** Epic 6 delivered MVP weighted draw for V2 (`AvailabilityChanceCalculator`, `CompositionDrawService`, draw-time snapshots in **6.14**). The algorithm is business-critical for fairness (**FR19**, **FR20**, **FR24**) and must remain explainable: **displayed % must use the same weight path as the server draw**. V1 production (`legacy/chancesService.js`) ships only past-participation malus today, but V2 will need pluggable factors (gender parity, volunteer bonus, category compartment hardening, etc.) without silent formula drift. Investigation **2026-06-04** confirmed core formula alignment but documented intentional gaps (category compartment **G-01**, replay harness **G-04**) and V2-only extensions (snapshots **E-01**, history modes **E-02**). Product context: [Sprint Change Proposal Epic 19](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-04-epic19-draw-weight-engine.md).
+- **Decision:**
+  1. **Normative V1 spec** — [`docs/v2/technical/draw-weight-engine-v1-spec.md`](../v2/technical/draw-weight-engine-v1-spec.md) is the authoritative contract for V1 parity, golden tests, and delta tracking. SPEC and DOMAIN reference this document and this ADR; they do **not** duplicate the full formula.
+  2. **Invariant** — **Displayed % = draw weights:** one calculator pipeline (`AvailabilityChanceCalculator` today) serves weighted draw selection, Dispos **Tous %**, and Équipe explainability. Any refactor must keep this invariant or amend this ADR with updated golden coverage.
+  3. **Factor pipeline (Wave B+)** — Future weights compose as `finalWeight = base × Π factorMultiplier`. Default V1 parity = single **`PastParticipationFactor`** equivalent to current `weightForParticipant`. Exact interface and registration are implemented in stories **19.5–19.7**; this ADR records the objective only.
+  4. **Non-regression** — Story **19.2** implements a golden JSON fixture suite under `services/api/src/test/resources/draw/golden/` per normative spec § **Golden test contract (19.2 handoff)**. Wave A golden authority = spec + ADR, **not** `scripts/replay/chancesLogic.js` alone (**G-04**).
+  5. **Draw-time snapshots (6.14)** — Persisted `%` at draw opening (`event_draw_chance_snapshots`) store draw-time odds, not formula id. Formula/policy id on snapshots is deferred to **19.22** (Wave D). Note **E-04**: opening snapshot `%` uses `openingCrossRoleExcluded`; per-step `steps[]` `%` evolves during the same request — both behaviours remain documented and test-covered (**19.2** / **19.3**).
+  6. **Wave D sketch (non-normative)** — Troupe-scoped **`DrawFormula`** catalog and **`DrawPolicy`** (troupe/season scope, category rules, mandatory vs organizer choice at draw) resolved via `event.category`. Detail, SPEC/DOMAIN amendment, and API/UI are gated to story **19.15** and follow-ons **19.16–19.22**. No Wave D implementation before Wave B factor pipeline lands.
+- **Consequences:**
+  - **Positive:** Auditable evolution of fairness rules; clear V1↔V2 delta for category compartment (**19.8**); developers can implement **19.2** without reading `legacy/`.
+  - **Negative:** Normative doc maintenance burden; golden CI cost; intentional V2 category evolution remains a documented drift until **19.8** locks behaviour.
+- **Alternatives considered:**
+  - **Re-open story 6.4 code** — Rejected (SCP); hardening is Epic 19, not a rewrite of shipped MVP.
+  - **Change formula without ADR + golden** — Rejected; business-critical path requires regression suite.
+  - **Free-form scripting for organizer formulas in MVP Wave D** — Rejected; formulas are structured catalog entries (**19.15**).
+  - **Use `chancesLogic.js` as sole golden reference** — Rejected; missing `exactSelectionProbability` (**G-04**).

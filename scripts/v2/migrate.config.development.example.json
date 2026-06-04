@@ -11,10 +11,6 @@
   "replayLogPath": "export/malice/replay-log.jsonl",
   "allowImportErrors": 0,
   "thresholds": {
-    "events": 55,
-    "availability": 1226,
-    "availabilityTolerance": 2,
-    "compositions": 32,
     "rejectsMig2": 0,
     "rejectsMig3": 2,
     "seedUsers": 0

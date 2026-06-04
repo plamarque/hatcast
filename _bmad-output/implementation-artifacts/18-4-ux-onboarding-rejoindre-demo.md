@@ -14,7 +14,7 @@ so that **I land on the Demo agenda** and understand it is a sandbox.
 
 1. **Given** `/troupes` with no membership, **when** the user clicks **Rejoindre la troupe de démonstration**, **then** the app calls `POST /v1/troupes/{id}/memberships/me` with `environment.demoTroupeId` = `a0000001-0000-4000-8000-000000000099` (prod Démo UUID from [ADR-0015](../../docs/adr/0015-v2-demo-troupe-product-bootstrap.md)). [Source: epics 18.4 AC1; FR61]
 2. **Given** a successful join, **when** the flow completes, **then** `TroupeContextService.reloadAndSelect(demoId)` runs, a success snackbar is shown, and the user is redirected to the Demo season workspace **`/saison/saison-2026-2027`** (fallback: `/troupes/demo` hub if season slug resolution fails). [Source: epics 18.4 AC2; FR64]
-3. **Given** Demo troupe context (`isDemo === true`), **when** the member navigates saison surfaces, **then** a discrete **« Démo »** indicator (`mat-chip`, tokens `--mat-sys-*`) appears in **`context-breadcrumb`** next to the troupe name, and a one-line helper on **`troupe-hub`** when `slug === 'demo'`: *« Bac à sable — crée ta troupe quand tu es prêt·e »*. Context-switcher menu appends **« (Démo) »** to the troupe label when `isDemo`. [Source: epics 18.4 AC3; FR64]
+3. **Given** Demo troupe context (`isDemo === true`), **when** the member navigates saison surfaces, **then** sandbox affordances are: one-line helper on **`troupe-hub`** when `slug === 'demo'`: *« Bac à sable — crée ta troupe quand tu es prêt·e »*; context-switcher menu appends **« (Démo) »** to the troupe label when `isDemo`. **Amended (Story 18.4b, 2026-06-04):** no **`mat-chip`** in **`context-breadcrumb`** — troupe name « Démo » is sufficient; chip was redundant. [Source: epics 18.4 AC3; FR64; [18-4b](./18-4b-remove-breadcrumb-demo-chip.md)]
 4. **Given** `demoTroupeId` is empty/falsy in environment, **when** join is attempted, **then** snackbar **« Troupe de démonstration indisponible. »** — preserve current behaviour. [Source: epics 18.4 AC4]
 5. **Given** FR49 empty-agenda / no-participation states on **`/agenda`** and **`/accueil`**, **when** displayed, **then** copy mentions joining the Demo sandbox and offers a CTA to **`/troupes`** (empty membership section with join button) or an inline **`mat-stroked-button`** calling the same shared join flow. [Source: epics 18.4 AC5; FR49; cross-check Story 17.19 AC7]
 6. **Given** the same join action on **`seasons-list`** (legacy route), **when** join succeeds, **then** behaviour matches AC2 (context reload + redirect to Demo season — not only reload seasons in place). [Source: epics 18.4; `seasons-list` parity]
@@ -117,7 +117,7 @@ so that **I land on the Demo agenda** and understand it is a sandbox.
 
 | Location | Rationale |
 |----------|-----------|
-| **`context-breadcrumb` `mat-chip`** | Visible on every saison workspace (primary member context) |
+| ~~**`context-breadcrumb` `mat-chip`**~~ | **Superseded by 18.4b** — troupe name « Démo » in trail suffices |
 | **`context-switcher` menu suffix** | Clarifies which troupe is sandbox when switching |
 | **`troupe-hub` hint line** | Explains sandbox purpose before entering a season |
 

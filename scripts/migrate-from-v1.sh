@@ -88,15 +88,13 @@ hatcast_github_repo_slug() {
 migration_api_preflight() {
   local body http_code
   body="$(mktemp)"
+  # GET /v1/auth/me with migration key — no troupe creation (POST /v1/troupes polluted staging).
   http_code="$(curl -sS -o "${body}" -w "%{http_code}" \
-    -X POST \
-    -H "Content-Type: application/json" \
     -H "X-Hatcast-Migration-Key: ${HATCAST_MIGRATION_API_KEY}" \
-    -d '{"name":"migrate-from-v1 preflight"}' \
-    "${MIGRATE_API_BASE%/}/v1/troupes")"
-  if [[ "${http_code}" == "201" ]]; then
+    "${MIGRATE_API_BASE%/}/v1/auth/me")"
+  if [[ "${http_code}" == "200" ]]; then
     rm -f "${body}"
-    echo "   Migration API OK (201)"
+    echo "   Migration API OK (GET /v1/auth/me → 200)"
     return 0
   fi
   echo "❌ Migration API preflight failed (HTTP ${http_code})." >&2

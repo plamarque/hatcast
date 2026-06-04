@@ -10,8 +10,17 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
-### BUG-008 — changelog.json user notes wrong on first RC of a semver line
+### BUG-008 — Push opt-in does not refresh notification preference toggles until tab revisit
 - **ID**: BUG-008
+- **Status**: Open
+- **Severity**: Low (UX — confusing but not blocking; accepted at E1 cutover 2026-06-04)
+- **Affected area**: V2 `apps/web` — Mon compte → onglet **Notifications** ; global push activation vs per-category email/push switches
+- **Observed behavior**: After enabling browser push from the account hub, the per-category push toggles in the Notifications tab do not update visually immediately; leaving the tab and returning shows they were enabled automatically in the background.
+- **Expected behavior**: Toggles reflect the new push subscription state without requiring navigation away from the tab (or show a brief loading/sync state).
+- **Notes/context**: Found during gate **E1** staging screen tour ([e1-cutover-screen-tour-staging-v2.0.0.md](_bmad-output/implementation-artifacts/e1-cutover-screen-tour-staging-v2.0.0.md) §2.4). PO accepted for V2.0.0 cutover; fix can wait until post-M4 unless prioritized.
+
+### BUG-009 — changelog.json user notes wrong on first RC of a semver line
+- **ID**: BUG-009
 - **Status**: Fixed (2026-06-04)
 - **Severity**: High (PWA « Nouveautés » — misleading release notes)
 - **Affected area**: `scripts/lib/version-changelog.sh` (`hatcast_staging_changelog_range`), `scripts/generate-changelog.js`, `apps/web/public/changelog.json`

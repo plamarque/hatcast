@@ -328,12 +328,14 @@ npm run migrate:v2:validate-replay -- --path=export/malice/replay-log.jsonl --mi
 
 Each cycle: **Procedure C1–C2** (Neon reset + redeploy if needed) → `./scripts/migrate-from-v1.sh`.
 
-| Cycle | Expected smoke counts (Malice) | Notes |
-|-------|-------------------------------|-------|
-| 1 | events=55, availability≈1226±2, compositions=32 | Thresholds in `migrate.config.example.json` |
-| 2–3 | Same as cycle 1 | No undocumented manual fixes |
+| Cycle | Expected smoke counts | Notes |
+|-------|----------------------|-------|
+| 1–3 | **Auto** from artifacts (`manifest.json` + `rejects-ac.json` counts) | No manual `events`/`compositions` in config — live V1 export drives expectations |
+| Rejects ceiling | `thresholds.rejectsMig2` / `rejectsMig3` in config (optional max) | Raise only if you accept mapping rejects |
 
-If counts drift, adjust `thresholds` in `migrate.config.json` and document in `notes` field of replay log only when rejects are accepted.
+**Preflight API:** `migrate-from-v1.sh` checks `GET /v1/auth/me` with the migration key (no `POST /v1/troupes`). Older runs may have left a troupe named `migrate-from-v1 preflight` on staging — remove manually in Neon/SQL if it pollutes the annuaire (no delete-troupe API yet).
+
+If counts drift between cycles, that is expected (V1 prod is live); each cycle re-exports and re-derives expectations from its artifact folder.
 
 ## Security notes
 

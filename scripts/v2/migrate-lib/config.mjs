@@ -125,11 +125,8 @@ export function parseConfig(argv = process.argv.slice(2)) {
     confirmProd:
       parseArgValue(argv, '--confirm-prod=') ??
       (envResolved?.requiresProdConfirm ? envResolved.prodConfirmSlug : null),
+    /** Optional ceilings only — row counts come from artifacts (deriveExpectedCounts). */
     thresholds: {
-      events: base.thresholds?.events ?? 55,
-      availability: base.thresholds?.availability ?? 1226,
-      availabilityTolerance: base.thresholds?.availabilityTolerance ?? 2,
-      compositions: base.thresholds?.compositions ?? 32,
       rejectsMig2: base.thresholds?.rejectsMig2 ?? 0,
       rejectsMig3: base.thresholds?.rejectsMig3 ?? 2,
       seedUsers: base.thresholds?.seedUsers ?? 0,

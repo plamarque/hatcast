@@ -4,10 +4,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
+/**
+ * Smoke tests for [AvailabilityChanceCalculator].
+ * Frozen reference vectors live in [DrawGoldenTest] (REF-P*, REF-W*, etc.).
+ */
 class AvailabilityChanceCalculatorTest {
     private val alice = AvailabilityChanceCalculator.Candidate(UUID.randomUUID(), "Alice", null)
-    private val bob = AvailabilityChanceCalculator.Candidate(UUID.randomUUID(), "Bob", null)
-    private val carol = AvailabilityChanceCalculator.Candidate(UUID.randomUUID(), "Carol", null)
 
     @Test
     fun `empty candidates returns empty list`() {
@@ -19,37 +21,5 @@ class AvailabilityChanceCalculatorTest {
         val scored = AvailabilityChanceCalculator.scoreCandidates(listOf(alice), 2)
         assertEquals(1, scored.size)
         assertEquals(100, scored[0].chancePercent)
-    }
-
-    @Test
-    fun `equal weights split percent when no history and one place`() {
-        val scored = AvailabilityChanceCalculator.scoreCandidates(listOf(alice, bob, carol), 1)
-        assertEquals(listOf(33, 33, 33), scored.map { it.chancePercent }.sorted())
-    }
-
-    @Test
-    fun `equal weights use multi draw probability when several places`() {
-        val candidates =
-            (1..8).map {
-                AvailabilityChanceCalculator.Candidate(UUID.randomUUID(), "P$it", null)
-            }
-        val scored = AvailabilityChanceCalculator.scoreCandidates(candidates, 5)
-        assertEquals(63, scored.first().chancePercent)
-        assert(scored.all { it.chancePercent == 63 })
-    }
-
-    @Test
-    fun `single place keeps weight ratio`() {
-        val scored = AvailabilityChanceCalculator.scoreCandidates(listOf(alice, bob), 1)
-        assertEquals(50, scored[0].chancePercent)
-        assertEquals(50, scored[1].chancePercent)
-    }
-
-    @Test
-    fun `candidates are sorted by chance descending`() {
-        val past = mapOf(alice.participantId to 2, bob.participantId to 0)
-        val scored = AvailabilityChanceCalculator.scoreCandidates(listOf(alice, bob), 1, past)
-        assertEquals(bob.participantId, scored[0].participantId)
-        assert(scored[0].chancePercent > scored[1].chancePercent)
     }
 }

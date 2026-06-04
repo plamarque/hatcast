@@ -174,6 +174,7 @@ Tous les scripts acceptent `--dry-run` / `-n` et `--help`.
 
 - 2026-06-04 : Story créée (retour PO post-cutover — DX release instable).
 - 2026-06-04 : Implémentation façades OPS-11 + doc.
+- 2026-06-04 : Migration smoke — attentes dérivées des artefacts ; preflight sans POST troupe.
 
 ### Review Findings
 

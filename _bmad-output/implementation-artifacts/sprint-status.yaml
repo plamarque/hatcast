@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-04T20:00:00+02:00
+# last_updated: 2026-06-04T23:41:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-04T23:30:00+02:00"
+last_updated: "2026-06-05T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -52,8 +52,8 @@ development_status:
   ops-11-simplified-release-cli: done
   ops-7-branch-cutover-post-m4: backlog
   ops-8-prod-domain-hatcast-app: done  # P0 V2.0.0 — prod https://hatcast.app live 2026-06-04 ; gate M4 prérequis OK
-  ops-9-posthog-hatcast-app: done  # P1 V2.0.0 — post-M4 ; G-005
-  ops-10-email-hatcast-app: backlog  # P1 V2.0.0 — post-M4
+  ops-9-posthog-hatcast-app: done  # P1 V2.0.0 — G-005
+  ops-10-email-hatcast-app: in-progress  # P1 — patch revue appliqué ; secrets GH + recette staging restants
 
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
@@ -136,7 +136,7 @@ development_status:
   6-14-snapshot-chances-au-tirage: done
   6-15-refonte-modales-annonces-notify-manuel: done  # P0 V2.0.0 — code review 2026-06-03
   6-16-statut-canal-destinataires-modales-partager-annoncer: done  # D10 UX 2026-06-04 — recette + review OK
-  6-17-dispatch-annonce-manuelle-transparence-dates: review  # tech-spec-share-announce-transparency-6-17.md
+  6-17-dispatch-annonce-manuelle-transparence-dates: done  # tech-spec-share-announce-transparency-6-17.md
   epic-6-retrospective: optional
 
   epic-7: backlog
@@ -255,3 +255,28 @@ development_status:
   18-4-ux-onboarding-rejoindre-demo: done
   18-5-configuration-prod-tests-separation-demo: done
   epic-18-retrospective: optional
+
+  epic-19: in-progress  # P1 Waves A-B post-MEP ; Waves C-D formulas/policies ; SCP 2026-06-04 (+b)
+  19-1-spec-normative-v1-adr-draw-weight-engine: done
+  19-2-golden-tests-v1-js-kotlin: review
+  19-3-fixtures-orchestration-draw-complet: backlog
+  19-4-doc-orga-membre-comprendre-les-cotes: backlog
+  19-5-pipeline-draw-weight-factor: backlog
+  19-6-facteur-past-participation-v1: backlog
+  19-7-breakdown-explicabilite-par-facteur: backlog
+  19-8-facteur-equity-tag-history-ex-17-9: backlog  # harden 17.9 (category compartment) into factor pipeline + golden
+  19-9-facteur-rejouer-immediatement: backlog
+  19-10-facteur-nombre-demandes-role: backlog
+  19-11-facteur-parite-genre: backlog
+  19-12-facteur-mix-equipe: backlog
+  19-13-facteur-classes-spectacle: backlog
+  19-14-facteur-bonus-malus-benevole: backlog
+  19-15-spec-formules-politiques-adr: backlog
+  19-16-persistance-formules-defaut-v1: backlog
+  19-17-api-crud-formules-tirage: backlog
+  19-18-api-politiques-tirage-troupe-saison: backlog
+  19-19-ui-admin-editeur-formules: backlog
+  19-20-ui-admin-politiques-tirage: backlog
+  19-21-ui-orga-choix-formule-tirage: backlog
+  19-22-snapshot-formule-au-tirage: backlog
+  epic-19-retrospective: optional

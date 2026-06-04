@@ -2,6 +2,8 @@
 
 Status: done
 
+> **Historical implementation notes; normative contract → [ADR 0019](../../docs/adr/0019-draw-weight-engine.md) + [draw-weight-engine-v1-spec.md](../../docs/v2/technical/draw-weight-engine-v1-spec.md) (story 19.1).**
+
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
 ## Story
