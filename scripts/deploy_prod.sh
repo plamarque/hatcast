@@ -128,7 +128,14 @@ echo "📦 deploy_prod — ${RC_TAG} → ${PROD_TAG}"
 echo "   Commit : ${RC_COMMIT:0:12}"
 echo ""
 
-exec "${SCRIPT_DIR}/v2/promote-tag-to-prod.sh" \
-  --version="${BASE_VERSION}" \
-  --rc-tag="${RC_TAG}" \
-  "${FORWARD_ARGS[@]}"
+# Bash 3.2 (macOS) + set -u : ne pas expandre un tableau vide avec "${arr[@]}".
+if ((${#FORWARD_ARGS[@]} > 0)); then
+  exec "${SCRIPT_DIR}/v2/promote-tag-to-prod.sh" \
+    --version="${BASE_VERSION}" \
+    --rc-tag="${RC_TAG}" \
+    "${FORWARD_ARGS[@]}"
+else
+  exec "${SCRIPT_DIR}/v2/promote-tag-to-prod.sh" \
+    --version="${BASE_VERSION}" \
+    --rc-tag="${RC_TAG}"
+fi

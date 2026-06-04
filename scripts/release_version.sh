@@ -32,6 +32,7 @@ EOF
 }
 
 FORWARD_ARGS=()
+is_dry_run=false
 for arg in "$@"; do
   case "${arg}" in
     --help|-h)
@@ -43,18 +44,14 @@ for arg in "$@"; do
       echo "   Première RC cutover : contactez ops ou utilisez scripts/v2/release-staging.sh --version=X.Y.Z une fois." >&2
       exit 1
       ;;
+    --dry-run|-n)
+      is_dry_run=true
+      FORWARD_ARGS+=("${arg}")
+      ;;
     *)
       FORWARD_ARGS+=("${arg}")
       ;;
   esac
-done
-
-is_dry_run=false
-for arg in "${FORWARD_ARGS[@]}"; do
-  if [[ "${arg}" == "--dry-run" || "${arg}" == "-n" ]]; then
-    is_dry_run=true
-    break
-  fi
 done
 
 current="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
@@ -79,7 +76,12 @@ fi
 echo "📦 release_version — semver staging (auto-detect tags distants)"
 echo ""
 
-"${SCRIPT_DIR}/v2/release-staging.sh" "${FORWARD_ARGS[@]}"
+# Bash 3.2 (macOS) + set -u : ne pas expandre un tableau vide avec "${arr[@]}".
+if ((${#FORWARD_ARGS[@]} > 0)); then
+  "${SCRIPT_DIR}/v2/release-staging.sh" "${FORWARD_ARGS[@]}"
+else
+  "${SCRIPT_DIR}/v2/release-staging.sh"
+fi
 exit_code=$?
 
 if [[ "${is_dry_run}" == false && "${current}" == "${HATCAST_V2_BRANCH_DEV}" ]]; then
