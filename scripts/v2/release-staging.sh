@@ -39,7 +39,9 @@ Sans option de bump : incrémente uniquement le numéro RC (ex. v2.0.0-rc.2 → 
 Avec --patch|--minor|--major : bump la semver de base et repart à rc.1.
 
 Première RC cutover (arbre encore en X.Y.Z-SNAPSHOT, aucun tag RC) :
-  git checkout staging-v2 && ./scripts/v2/release-staging.sh --version=2.0.0
+  ./scripts/v2/release-staging.sh --version=2.0.0
+
+Peut être lancé depuis ${HATCAST_V2_BRANCH_DEV} ou ${HATCAST_V2_BRANCH_STAGING} — le script gère les checkouts.
 
 Options:
   --dry-run, -n       Simulation (sandbox .dry-run-sandbox-v2, branche dry-run-staging-v2-*)
@@ -231,9 +233,11 @@ if [[ "${DRY_RUN}" == true ]]; then
   CURRENT_STAGING="${DRY_STAGING}"
 else
   echo "🚀 Release staging V2 (RC tag)"
-  hatcast_v2_assert_branch "${HATCAST_V2_BRANCH_STAGING}"
+  hatcast_v2_remember_current_branch
   hatcast_v2_assert_clean
   hatcast_v2_fetch
+  hatcast_v2_prepare_staging_worktree
+  trap hatcast_v2_restore_remembered_branch EXIT
   CURRENT_STAGING="${HATCAST_V2_BRANCH_STAGING}"
 fi
 
