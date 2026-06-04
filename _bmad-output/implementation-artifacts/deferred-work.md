@@ -6,6 +6,12 @@
 
 ---
 
+## Deferred from: code review of 19-1-spec-normative-v1-adr-draw-weight-engine (2026-06-04)
+
+- Working tree non isolé à 19.1 (`git status` contient des changements non liés à la story) ; risque de livraison polluée si commit groupé ; hors scope de correction dans cette revue.
+
+---
+
 ## Deferred from: code review of 6-17-dispatch-annonce-manuelle-transparence-dates (2026-06-04)
 
 - Guard confirm copy refactor (`formatManualNotifyGuardAge`, event title in `guardConfirmMessage`) — hors scope story 6.17 ; tests verts ; aligner UX D7 si PO le souhaite.

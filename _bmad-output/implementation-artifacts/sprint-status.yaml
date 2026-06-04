@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-04T23:30:00+02:00
+# last_updated: 2026-06-04T23:41:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-04T23:30:00+02:00"
+last_updated: "2026-06-04T23:41:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -256,8 +256,8 @@ development_status:
   18-5-configuration-prod-tests-separation-demo: done
   epic-18-retrospective: optional
 
-  epic-19: backlog  # P1 Waves A-B post-MEP ; Waves C-D formulas/policies ; SCP 2026-06-04 (+b)
-  19-1-spec-normative-v1-adr-draw-weight-engine: backlog
+  epic-19: in-progress  # P1 Waves A-B post-MEP ; Waves C-D formulas/policies ; SCP 2026-06-04 (+b)
+  19-1-spec-normative-v1-adr-draw-weight-engine: done
   19-2-golden-tests-v1-js-kotlin: backlog
   19-3-fixtures-orchestration-draw-complet: backlog
   19-4-doc-orga-membre-comprendre-les-cotes: backlog
