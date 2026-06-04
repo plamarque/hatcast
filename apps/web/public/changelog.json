@@ -1,5 +1,34 @@
 [
   {
+    "version": "2.0.3",
+    "date": "2026-06-04",
+    "changes": [
+      "✨ Améliore l'interface de sélection des joueurs avec des indications visuelles.",
+      "🐛 Corrige l'affichage des disponibilités lors de la sélection."
+    ]
+  },
+  {
+    "version": "2.0.2",
+    "date": "2026-06-04",
+    "changes": [
+      "✨ Améliore l'interface de la page Saisons avec un design plus clair.",
+      "✨ Ajoute des notifications push pour les demandes de disponibilité.",
+      "🐛 Corrige l'affichage des disponibilités dans la modale d'événement.",
+      "🐛 Résout les problèmes de connexion/déconnexion sur la page d'accueil.",
+      "🐛 Corrige le bug de sélection multi-rôles pour éviter les doublons."
+    ]
+  },
+  {
+    "version": "2.0.1",
+    "date": "2026-06-04",
+    "changes": [
+      "✨ Ajoute un onglet 'Dispos' pour gérer facilement tes disponibilités.",
+      "✨ Améliore l'interface de la modale de sélection pour une expérience utilisateur plus fluide.",
+      "🐛 Corrige un bug qui empêchait l'affichage des disponibilités sur mobile.",
+      "🐛 Résout un problème de décalage dans l'affichage des événements sur la page d'accueil."
+    ]
+  },
+  {
     "version": "2.0.0",
     "date": "2026-06-04",
     "changes": [
