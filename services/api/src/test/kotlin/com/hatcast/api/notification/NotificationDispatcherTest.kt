@@ -200,6 +200,10 @@ class NotificationDispatcherTest {
         )
         assertEquals(
             NotificationCategory.AVAILABILITY_REQUEST,
+            NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.AVAILABILITY_REQUEST,
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE.toCategory(),
         )
         assertEquals(

@@ -32,6 +32,16 @@ class NotificationPayloadBuilder {
                     body = "🎭 On a besoin de toi pour $eventTitle le $eventDate !",
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=dispos",
                 )
+            NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE -> {
+                val body =
+                    customMessageBody?.trim()?.takeIf { it.isNotEmpty() }
+                        ?: "🎭 On a besoin de toi pour $eventTitle le $eventDate !"
+                NotificationPayload(
+                    title = "📢 Annonce spectacle",
+                    body = body,
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=dispos",
+                )
+            }
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE -> {
                 val body =
                     customMessageBody?.trim()?.takeIf { it.isNotEmpty() }
@@ -126,6 +136,8 @@ class NotificationPayloadBuilder {
         return when (intent) {
             NotificationIntent.AVAILABILITY_OPENED ->
                 "Disponibilité demandée · $eventTitle ($eventDate)"
+            NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE ->
+                "Annonce spectacle · $eventTitle ($eventDate)"
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE ->
                 "Rappel disponibilité · $eventTitle ($eventDate)"
             NotificationIntent.CONFIRMATION_REQUEST ->

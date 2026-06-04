@@ -91,7 +91,9 @@ class NotificationDispatcher(
 
     private fun resolveRecipients(context: NotificationDispatchContext): List<NotificationRecipient> =
         when (context.intent) {
-            NotificationIntent.AVAILABILITY_OPENED ->
+            NotificationIntent.AVAILABILITY_OPENED,
+            NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE,
+            ->
                 recipientResolver.resolveConcernedRosterRecipients(context.seasonId, context.eventId)
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE ->
                 recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)

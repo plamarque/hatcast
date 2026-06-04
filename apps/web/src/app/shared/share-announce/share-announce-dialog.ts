@@ -49,6 +49,19 @@ export interface ShareAnnounceDialogData {
 interface RecipientChannelStatus {
   eligible: boolean
   notified: boolean
+  lastNotifiedAt?: string | null
+}
+
+function formatNotifiedDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(iso))
+  } catch {
+    return iso
+  }
 }
 
 interface RecipientCard {
@@ -66,6 +79,13 @@ function calendarDaysSince(iso: string, now = new Date()): number {
   const startFrom = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate())
   const startNow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
   return Math.floor((startNow - startFrom) / (24 * 60 * 60 * 1000))
+}
+
+/** French age label for manual-notify anti-spam confirm (calendar days, not hours). */
+export function formatManualNotifyGuardAge(days: number): string {
+  if (days <= 0) return "aujourd'hui"
+  if (days === 1) return 'hier'
+  return `il y a ${days} jours`
 }
 
 @Component({
@@ -147,15 +167,23 @@ export class ShareAnnounceDialog {
     }
     const parts: string[] = []
     if (card.channels.email.eligible) {
+      const at = card.channels.email.lastNotifiedAt
       parts.push(
         card.channels.email.notified
-          ? 'email déjà envoyé'
+          ? at
+            ? `email déjà envoyé le ${formatNotifiedDate(at)}`
+            : 'email déjà envoyé'
           : 'email prévu au prochain envoi',
       )
     }
     if (card.channels.push.eligible) {
+      const at = card.channels.push.lastNotifiedAt
       parts.push(
-        card.channels.push.notified ? 'push déjà envoyé' : 'push prévu au prochain envoi',
+        card.channels.push.notified
+          ? at
+            ? `push déjà envoyé le ${formatNotifiedDate(at)}`
+            : 'push déjà envoyé'
+          : 'push prévu au prochain envoi',
       )
     }
     return `${card.displayName} — ${parts.join(', ')}`
@@ -230,10 +258,20 @@ export class ShareAnnounceDialog {
     if (days >= guardDays) {
       return null
     }
-    const dayLabel = days <= 1 ? `${days} jour` : `${days} jours`
-    return this.data.intent === 'availability_nudge'
-      ? `Un rappel a déjà été envoyé il y a ${dayLabel}.`
-      : `Un envoi pour ce type d'annonce a déjà été fait il y a ${dayLabel}.`
+    const age = formatManualNotifyGuardAge(days)
+    const title = this.data.eventTitle.trim()
+    const eventRef = title ? `« ${title} »` : 'ce spectacle'
+
+    switch (this.data.intent) {
+      case 'availability_nudge':
+        return `Un rappel de disponibilité a déjà été envoyé pour ${eventRef} ${age}.`
+      case 'event':
+        return `Une annonce a déjà été envoyée pour ${eventRef} ${age}.`
+      case 'draw':
+        return `Un partage du tirage a déjà été enregistré pour ${eventRef} ${age}.`
+      case 'composition':
+        return `Une annonce de composition a déjà été enregistrée pour ${eventRef} ${age}.`
+    }
   }
 
   private async confirmResend(message: string): Promise<boolean> {

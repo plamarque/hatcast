@@ -8,6 +8,7 @@ import java.util.UUID
 data class ShareRecipientChannelStatusDto(
     val eligible: Boolean,
     val notified: Boolean,
+    val lastNotifiedAt: Instant? = null,
 )
 
 data class ShareRecipientChannelsDto(

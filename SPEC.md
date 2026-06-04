@@ -71,7 +71,7 @@ When the organizer expands recipient detail in the share dialog:
 - Exact API intent names, menu labels, or implementation order (PLAN / UX artifacts).
 - Tooltip copy *« Notifié le … »* vs inline date — UX choice; **last-send date for organizers is in scope** as a requirement, presentation is not fixed here.
 
-**Known divergence (runtime):** As of story **6.16**, manual Notifier for `event` is stubbed; GET lacks `lastNotifiedAt`; `draw` / `composition` remain stub. Target API and mapping: [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md) (story **6.17**).
+**Runtime note:** Manual `event` announce and per-channel `lastNotifiedAt` are implemented (story **6.17**). `draw` / `composition` POST dispatch remains stub until story **6.18**.
 
 ---
 

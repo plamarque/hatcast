@@ -8,7 +8,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { buildWhatsAppSendUrl } from '../../core/messaging/share-announce-messages'
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
 import { ConfirmDialog } from '../../pages/seasons-list/confirm-dialog'
-import { ShareAnnounceDialog, type ShareAnnounceDialogData } from './share-announce-dialog'
+import {
+  formatManualNotifyGuardAge,
+  ShareAnnounceDialog,
+  type ShareAnnounceDialogData,
+} from './share-announce-dialog'
 
 const recipientsMock = {
   ok: true as const,
@@ -92,6 +96,14 @@ async function configureDialog(
   fixture.detectChanges()
   return fixture
 }
+
+describe('formatManualNotifyGuardAge', () => {
+  it('uses natural French for same day, yesterday, and older', () => {
+    expect(formatManualNotifyGuardAge(0)).toBe("aujourd'hui")
+    expect(formatManualNotifyGuardAge(1)).toBe('hier')
+    expect(formatManualNotifyGuardAge(2)).toBe('il y a 2 jours')
+  })
+})
 
 describe('ShareAnnounceDialog', () => {
   it('prefills draw template and shows M3 share actions', async () => {
@@ -193,6 +205,40 @@ describe('ShareAnnounceDialog', () => {
     expect(title?.textContent?.trim()).toBe('Annonce de spectacle')
   })
 
+  it('rowAriaLabel includes French date when lastNotifiedAt is set', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        total: 1,
+        notifiableCount: 1,
+        manualCount: 0,
+        recipients: [
+          {
+            participantId: 'p-1',
+            displayName: 'Alice',
+            emailObfuscated: 'ali••@ex••.com',
+            channels: {
+              email: {
+                eligible: true,
+                notified: true,
+                lastNotifiedAt: '2026-06-02T14:30:00.000Z',
+              },
+              push: { eligible: false, notified: false },
+            },
+          },
+        ],
+      },
+    })
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'event' }, { getRecipients })
+    await vi.waitFor(() => {
+      expect(fixture.componentInstance['recipientCards']().length).toBe(1)
+    })
+    const label = fixture.componentInstance['rowAriaLabel'](fixture.componentInstance['recipientCards']()[0])
+    expect(label).toContain('email déjà envoyé le')
+    expect(label).toMatch(/juin.*2026/i)
+  })
+
   it('places Notifier before Copier in the actions row', async () => {
     const fixture = await configureDialog(baseDialogData)
     await vi.waitFor(() => {
@@ -235,7 +281,7 @@ describe('ShareAnnounceDialog', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('notifiable')
     })
-    expect(fixture.nativeElement.textContent).not.toContain('Un envoi pour ce type d\'annonce')
+    expect(fixture.nativeElement.textContent).not.toContain('déjà été enregistré pour')
   })
 
   it('does not show guard bandeau before notify click for nudge', async () => {
@@ -255,7 +301,7 @@ describe('ShareAnnounceDialog', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('notifiable')
     })
-    expect(fixture.nativeElement.textContent).not.toContain('Un rappel a déjà été envoyé')
+    expect(fixture.nativeElement.textContent).not.toContain('rappel de disponibilité a déjà été envoyé')
   })
 
   it('opens confirm dialog and blocks send when guard is active and user declines', async () => {
@@ -302,7 +348,9 @@ describe('ShareAnnounceDialog', () => {
         ConfirmDialog,
         expect.objectContaining({
           data: expect.objectContaining({
-            message: expect.stringContaining('Un rappel a déjà été envoyé'),
+            message: expect.stringMatching(
+              /Un rappel de disponibilité a déjà été envoyé pour .+ (aujourd'hui|hier|il y a \d+ jours)\./,
+            ),
           }),
         }),
       )

@@ -167,7 +167,7 @@ Product owner definition (2026-06-04):
 
 **Audience (decided 2026-06-04):** Two UI entry points remain intentional (UX **D12**). **Annoncer** (`event`) targets the **full** active season roster. **Relance dispos** (`availability_nudge`) targets only participants with **`unknown`** availability. Same modal shell and dispatch stack; different audience, title, and default template.
 
-**Known divergence (runtime vs this intent):** Manual Notifier for `event` is still stubbed (no `MANUAL_AVAILABILITY_ANNOUNCE` dispatch); GET `event` maps “notified” only to `AVAILABILITY_OPENED`, not manual sends; GET lacks per-channel `lastNotifiedAt`. Target behaviour and implementation slice: [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md) (story **6.17**).
+**Runtime (story 6.17):** POST `event` dispatches `MANUAL_AVAILABILITY_ANNOUNCE`; GET maps `notified` / `lastNotifiedAt` per intent family (see [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md)). `draw` / `composition` dispatch remains stub (**6.18**).
 
 ---
 

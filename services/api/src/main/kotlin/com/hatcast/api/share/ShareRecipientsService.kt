@@ -118,10 +118,13 @@ class ShareRecipientsService(
         )
         recordManualNotify(eventId, intent, principal.userId)
         val notifiedCount =
-            if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
-                previewResponse.notifiableCount
-            } else {
-                0
+            when (intent) {
+                ShareRecipientIntent.AVAILABILITY_NUDGE,
+                ShareRecipientIntent.EVENT,
+                -> previewResponse.notifiableCount
+                ShareRecipientIntent.DRAW,
+                ShareRecipientIntent.COMPOSITION,
+                -> 0
             }
         return ShareNotifyResponseDto(
             accepted = true,
@@ -273,17 +276,18 @@ class ShareRecipientsService(
             )
         }
         val rows = loadParticipantRows(eventId, participantIds)
-        val nudgeIntent = intent == ShareRecipientIntent.AVAILABILITY_NUDGE
+        val availabilityPushIntent =
+            intent == ShareRecipientIntent.EVENT || intent == ShareRecipientIntent.AVAILABILITY_NUDGE
         val pushCategory = NotificationCategory.AVAILABILITY_REQUEST
         val logIntents = resolveDeliveryLogIntents(intent)
-        val notifiedKeys = loadNotifiedChannelKeys(eventId, rows, logIntents)
+        val channelDelivery = loadChannelDeliveryState(eventId, rows, logIntents)
         val recipients =
             rows
                 .sortedByFrenchDisplayName { it.displayName }
                 .map { row ->
                     val hasEmail = !row.email.isNullOrBlank()
                     val hasPush =
-                        nudgeIntent &&
+                        availabilityPushIntent &&
                             row.userId != null &&
                             pushEligibilityPort.isPushAllowedForCategory(row.userId, pushCategory)
                     ShareRecipientDto(
@@ -293,24 +297,18 @@ class ShareRecipientsService(
                         channels =
                             ShareRecipientChannelsDto(
                                 email =
-                                    ShareRecipientChannelStatusDto(
-                                        eligible = hasEmail,
-                                        notified =
-                                            isChannelNotified(
-                                                row.userId,
-                                                NotificationChannel.EMAIL,
-                                                notifiedKeys,
-                                            ),
+                                    channelStatusFor(
+                                        row.userId,
+                                        NotificationChannel.EMAIL,
+                                        hasEmail,
+                                        channelDelivery,
                                     ),
                                 push =
-                                    ShareRecipientChannelStatusDto(
-                                        eligible = hasPush,
-                                        notified =
-                                            isChannelNotified(
-                                                row.userId,
-                                                NotificationChannel.PUSH,
-                                                notifiedKeys,
-                                            ),
+                                    channelStatusFor(
+                                        row.userId,
+                                        NotificationChannel.PUSH,
+                                        hasPush,
+                                        channelDelivery,
                                     ),
                             ),
                     )
@@ -333,9 +331,16 @@ class ShareRecipientsService(
     private fun resolveDeliveryLogIntents(intent: ShareRecipientIntent): Set<NotificationIntent> =
         when (intent) {
             ShareRecipientIntent.AVAILABILITY_NUDGE ->
-                setOf(NotificationIntent.MANUAL_AVAILABILITY_NUDGE)
+                setOf(
+                    NotificationIntent.AVAILABILITY_OPENED,
+                    NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
+                    NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE,
+                )
             ShareRecipientIntent.EVENT ->
-                setOf(NotificationIntent.AVAILABILITY_OPENED)
+                setOf(
+                    NotificationIntent.AVAILABILITY_OPENED,
+                    NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE,
+                )
             ShareRecipientIntent.DRAW,
             ShareRecipientIntent.COMPOSITION,
             -> emptySet()
@@ -346,42 +351,67 @@ class ShareRecipientsService(
         val channel: NotificationChannel,
     )
 
-    private fun loadNotifiedChannelKeys(
+    private data class ChannelDeliveryState(
+        val notified: Boolean,
+        val lastNotifiedAt: Instant?,
+    )
+
+    private fun loadChannelDeliveryState(
         eventId: UUID,
         rows: List<ParticipantRow>,
         logIntents: Set<NotificationIntent>,
-    ): Set<NotifiedChannelKey> {
+    ): Map<NotifiedChannelKey, ChannelDeliveryState> {
         if (logIntents.isEmpty()) {
-            return emptySet()
+            return emptyMap()
         }
         val userIds = rows.mapNotNull { it.userId }.toSet()
         if (userIds.isEmpty()) {
-            return emptySet()
+            return emptyMap()
         }
         val statuses =
             setOf(
                 NotificationDeliveryStatus.SENT,
                 NotificationDeliveryStatus.PARTIAL,
             )
-        return deliveryLogRepository
+        val latestByKey = mutableMapOf<NotifiedChannelKey, Instant>()
+        deliveryLogRepository
             .findByEventIdAndUserIdInAndIntentInAndStatusIn(
                 eventId = eventId,
                 userIds = userIds,
                 intents = logIntents,
                 statuses = statuses,
-            ).map { NotifiedChannelKey(it.userId, it.channel) }
-            .toSet()
+            ).forEach { log ->
+                val key = NotifiedChannelKey(log.userId, log.channel)
+                val createdAt = log.createdAt
+                val previous = latestByKey[key]
+                if (previous == null || createdAt.isAfter(previous)) {
+                    latestByKey[key] = createdAt
+                }
+            }
+        return latestByKey.mapValues { (_, at) ->
+            ChannelDeliveryState(notified = true, lastNotifiedAt = at)
+        }
     }
 
-    private fun isChannelNotified(
+    private fun channelStatusFor(
         userId: UUID?,
         channel: NotificationChannel,
-        notifiedKeys: Set<NotifiedChannelKey>,
-    ): Boolean {
+        eligible: Boolean,
+        channelDelivery: Map<NotifiedChannelKey, ChannelDeliveryState>,
+    ): ShareRecipientChannelStatusDto {
         if (userId == null) {
-            return false
+            return ShareRecipientChannelStatusDto(
+                eligible = eligible,
+                notified = false,
+                lastNotifiedAt = null,
+            )
         }
-        return NotifiedChannelKey(userId, channel) in notifiedKeys
+        val state = channelDelivery[NotifiedChannelKey(userId, channel)]
+        return ShareRecipientChannelStatusDto(
+            eligible = eligible,
+            notified = state?.notified == true,
+            lastNotifiedAt = state?.lastNotifiedAt,
+        )
     }
 
     private fun recordManualNotify(

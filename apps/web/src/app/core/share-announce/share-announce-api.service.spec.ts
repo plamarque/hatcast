@@ -28,8 +28,16 @@ describe('normalizeShareRecipientsResponse', () => {
       ],
     })
 
-    expect(normalized.recipients[0].channels.email).toEqual({ eligible: true, notified: false })
-    expect(normalized.recipients[0].channels.push).toEqual({ eligible: false, notified: false })
+    expect(normalized.recipients[0].channels.email).toEqual({
+      eligible: true,
+      notified: false,
+      lastNotifiedAt: null,
+    })
+    expect(normalized.recipients[0].channels.push).toEqual({
+      eligible: false,
+      notified: false,
+      lastNotifiedAt: null,
+    })
     expect(normalized.recipients[1].channels.email.eligible).toBe(false)
     expect(normalized.notifiableCount).toBe(1)
     expect(normalized.manualCount).toBe(1)
@@ -61,6 +69,24 @@ describe('normalizeShareRecipientsResponse', () => {
 
 describe('normalizeShareRecipientChannelStatus', () => {
   it('returns false/false for unknown shapes', () => {
-    expect(normalizeShareRecipientChannelStatus(null)).toEqual({ eligible: false, notified: false })
+    expect(normalizeShareRecipientChannelStatus(null)).toEqual({
+      eligible: false,
+      notified: false,
+      lastNotifiedAt: null,
+    })
+  })
+
+  it('passes through lastNotifiedAt when provided', () => {
+    expect(
+      normalizeShareRecipientChannelStatus({
+        eligible: true,
+        notified: true,
+        lastNotifiedAt: '2026-06-02T14:30:00Z',
+      }),
+    ).toEqual({
+      eligible: true,
+      notified: true,
+      lastNotifiedAt: '2026-06-02T14:30:00Z',
+    })
   })
 })

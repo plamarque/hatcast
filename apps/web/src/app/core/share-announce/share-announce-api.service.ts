@@ -6,6 +6,7 @@ import type { ShareAnnounceIntent } from '../messaging/share-announce-messages'
 export interface ShareRecipientChannelStatus {
   eligible: boolean
   notified: boolean
+  lastNotifiedAt?: string | null
 }
 
 export interface ShareRecipientChannels {
@@ -32,16 +33,21 @@ export interface ShareRecipientsResponse {
 /** Accepts nested DTO (6.16+) or legacy flat booleans from a stale API. */
 export function normalizeShareRecipientChannelStatus(value: unknown): ShareRecipientChannelStatus {
   if (typeof value === 'boolean') {
-    return { eligible: value, notified: false }
+    return { eligible: value, notified: false, lastNotifiedAt: null }
   }
   if (value && typeof value === 'object') {
-    const obj = value as { eligible?: unknown; notified?: unknown }
+    const obj = value as { eligible?: unknown; notified?: unknown; lastNotifiedAt?: unknown }
+    const lastNotifiedAt =
+      typeof obj.lastNotifiedAt === 'string' && obj.lastNotifiedAt.length > 0
+        ? obj.lastNotifiedAt
+        : null
     return {
       eligible: obj.eligible === true,
       notified: obj.notified === true,
+      lastNotifiedAt,
     }
   }
-  return { eligible: false, notified: false }
+  return { eligible: false, notified: false, lastNotifiedAt: null }
 }
 
 function normalizeShareRecipient(raw: ShareRecipient): ShareRecipient {

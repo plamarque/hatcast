@@ -23,7 +23,17 @@ describe('shareAnnounceSnackMessage', () => {
     ).toBe('Demande enregistrée.')
   })
 
-  it('returns enregistrement copy for event intent after notify', () => {
+  it('returns count-aware copy for event intent with dispatch', () => {
+    expect(
+      shareAnnounceSnackMessage({
+        intent: 'event',
+        notifiedCount: 2,
+        manualCount: 0,
+      }),
+    ).toBe('2 notifications envoyées.')
+  })
+
+  it('returns enregistrement copy for event when notifiedCount is zero', () => {
     expect(
       shareAnnounceSnackMessage({
         intent: 'event',
