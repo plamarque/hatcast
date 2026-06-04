@@ -4,7 +4,7 @@ baseline_commit: 079da9e1648b6e552dac02503e9e8f95215a7699
 
 # Story OPS-10 : Courriel `@hatcast.app` (routing + envoi transactionnel)
 
-**Status:** in-progress  
+**Status:** done  
 **Story ID:** OPS-10  
 **Story key:** `ops-10-email-hatcast-app`  
 **Priority:** P1 (V2.0.0 — **recommandé avant M4**, PO 2026-06-05)  
@@ -260,7 +260,7 @@ Réponse `"success": true` et mail reçu → passer à l’intégration API.
 
 - [x] **Phase A** — Routing : enable, destination `impropick@gmail.com`, règles `info` / `noreply` / catch-all (AC 1–3, 6–7)
 - [x] **Phase B** — Sending : domaine vérifié, DMARC `p=none`, token API, curl test (AC 4–5)
-- [ ] **Phase C** — (Optionnel) Gmail « envoyer en tant que » `info@`
+- [x] **Phase C** — Gmail « envoyer en tant que » `info@` (smtp.gmail.com + vérif forward, 2026-06-05)
 - [x] Capturer captures d’écran ou notes dans **Dev Agent Record** (dates, choix catch-all)
 
 ### Dev — API Spring
@@ -277,15 +277,15 @@ Réponse `"success": true` et mail reçu → passer à l’intégration API.
 
 - [x] **`DEPLOY_V2_CLOUD_RUN.md` §7.6** — synthèse + lien vers ce fichier (AC 11)
 - [x] **`.env.example`** — commenter migration CF Sending vs anciennes lignes Gmail SMTP prod
-- [x] **`sprint-status.yaml`** → `review`
+- [x] **`sprint-status.yaml`** → `done`
 
 ### Recette bout en bout (staging puis prod)
 
-- [ ] Reset mot de passe → mail reçu, `From: noreply@hatcast.app`, lien `hatcast.app` OK
-- [ ] Notif métier (ex. dispo / composition) → idem
-- [ ] `info@` → forward OK
-- [ ] `noreply@` inbound → Drop OK
-- [ ] Score mail-tester ≥ 8/10 ou équivalent documenté
+- [x] Reset mot de passe → mail reçu, `From: noreply@hatcast.app`, lien staging OK (PO 2026-06-05)
+- [x] Notif métier → `@hatcast.app` OK staging (PO 2026-06-05)
+- [x] `info@` → forward OK
+- [x] `noreply@` inbound → Drop OK (implicite ops)
+- [ ] Score mail-tester ≥ 8/10 — **waived** (recette staging + headers OK suffisants)
 
 ### Review Findings
 
@@ -348,10 +348,10 @@ Composer (dev OPS-10)
 
 ### Completion Notes List
 
-- Ops A–B validés PO (Routing, Sending, curl, `info@` forward).
+- Ops A–B–C validés (Routing, Sending, curl, `info@` forward, Gmail send-as `info@`).
 - API : `CloudflareEmailSendingClient` (RestClient) prioritaire si `CLOUDFLARE_*` ; fallback `JavaMailSender` (Mailpit local).
-- Deploy : secrets `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_EMAIL_SENDING_API_TOKEN` ; warning si email enabled sans CF ni SMTP.
-- **À faire opérateur** : ajouter secrets GitHub staging/prod ; déployer ; recette notif sur staging ; retirer `SPRING_MAIL_*` prod si plus utilisés.
+- Deploy : secrets `CLOUDFLARE_*` sur staging ; recette staging OK (notifs + reset MDP, From `@hatcast.app`).
+- Clôture PO 2026-06-05. Prod : réutiliser mêmes secrets au prochain deploy prod si pas déjà fait.
 
 ### File List
 
@@ -379,9 +379,9 @@ Composer (dev OPS-10)
 | 5 | Sending domain verified | [x] |
 | 6 | DMARC `p=none` publié | [x] |
 | 7 | curl CF Sending OK | [x] |
-| 8 | Staging API notif + reset MDP | ☐ |
-| 9 | Prod idem | ☐ |
-| 10 | mail-tester / headers OK | ☐ |
+| 8 | Staging API notif + reset MDP | [x] PO 2026-06-05 |
+| 9 | Prod idem | ☐ (staging seul validé ; prod = même secrets au deploy) |
+| 10 | mail-tester / headers OK | waived |
 
 ### Session ops 2026-06-05 (phases A–B)
 

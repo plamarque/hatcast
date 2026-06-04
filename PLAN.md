@@ -365,13 +365,13 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 - **Contexte :** fin de saison **V1** sur `selections.la-malice.fr` (~**4 spectacles** jusqu’à **août 2026**) ; démo **V2** au responsable commission spectacle ; accord sur **date** et **périmètre** de bascule prod.
 - **Déjà en place :** **`hatcast.app`** sert la **V2 en prod technique** (**OPS-8** [x] live **2026-06-04**, **E3** [x] jusqu’à **v2.0.3** — scripts `deploy_staging` / `release_version` / `deploy_prod` validés bout en bout).
 - **Pas encore :** bascule **audience** (comms membres, arrêt V1 comme outil principal, **OPS-7** branches, fenêtre migration prod si distincte de staging).
-- **Avant M4 (recommandé) :** **OPS-10** (CF Email Routing → Gmail + `noreply@` / notifs Spring) ; clôturer **6.17** (`review`) ; recette **1.2** / **1.3** sur prod si pas fait ; collecte retours démo stakeholder → éventuel **`bmad-correct-course`** ou stories ciblées.
+- **Avant M4 (recommandé) :** ~~**OPS-10**~~ [x] ; clôturer **6.17** (`review`) ; recette **1.2** / **1.3** sur prod si pas fait ; collecte retours démo stakeholder → éventuel **`bmad-correct-course`** ou stories ciblées.
 
 **Ordre de session actuel (post-release train) :**
 
 1. **Démo V2** stakeholder + notes besoins saison prochaine  
 2. **`bmad-code-review`** — story **6.17** (statut `review` dans `sprint-status.yaml`)  
-3. **OPS-10** — `@hatcast.app` via Cloudflare (réception + FROM prod)  
+3. ~~**OPS-10**~~ [x] — `@hatcast.app` via Cloudflare (réception + FROM prod)  
 4. **Décision fenêtre M4** — date, comms, critères go/no-go (V1 fin saison, migration prod, formation orga)  
 5. **M4** + **OPS-7** (après décision PO + commission)  
 6. Backlog **hors vague** — § récap ci-dessous ; prioriser selon retours démo
@@ -487,7 +487,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 |----|-------|----------|--------|-------|
 | **OPS-8** | Prod `hatcast.app` — Cloud Run **`europe-west1`**, domain mapping, CF proxy orange, OAuth/CORS/Firebase | **P0** | [x] done | Live **2026-06-04** ; doc [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §7 ; story [ops-8](_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md) |
 | **OPS-9** | PostHog EU — SDK + reverse proxy (`e.hatcast.app`, nuage **gris**) | **P1** | [x] done | Story [ops-9](_bmad-output/implementation-artifacts/ops-9-posthog-hatcast-app.md) |
-| **OPS-10** | Adresses `@hatcast.app` (`noreply@`, `info@`) — DNS mail, FROM prod, recette | **P1** | in-progress | **Avant M4** (PO 2026-06-05) : CF Email Routing → Gmail ; SPF/DKIM envoi ; story [ops-10](_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md) |
+| **OPS-10** | Adresses `@hatcast.app` (`noreply@`, `info@`) — DNS mail, FROM prod, recette | **P1** | [x] done | Staging recette OK 2026-06-05 ; [ops-10](_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md) |
 
 **Dev local inchangé :** Neon branche **`local`** + `./scripts/start-dev.sh`. **Dev cloud inchangé :** push **`v2`** → **`europe-west9`**.
 
@@ -512,9 +512,9 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **Gate release train (code + deploy) :** [x] Waves **A–D** + **OPS-8** + **E1** + **E2** + **E3**.
 
-**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis suggérés : décision PO + **OPS-10** (mail) + **6.17** clos + recette **1.2**/**1.3** prod si pas fait.
+**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis suggérés : décision PO + ~~**OPS-10**~~ [x] (mail) + **6.17** clos + recette **1.2**/**1.3** prod si pas fait.
 
-**Avant M4 (PO 2026-06-05) :** **OPS-10** (CF Email Routing → Gmail, `noreply@` notifs) — plus **post-M4** seulement. **OPS-9** [x] (`sprint-status.yaml`).
+**Avant M4 (PO 2026-06-05) :** **OPS-10** [x] staging validé 2026-06-05. **OPS-9** [x] (`sprint-status.yaml`).
 
 **Hors V2.0.0 :** voir § **Récap backlog hors vague** ci-dessous.
 
