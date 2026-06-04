@@ -4,31 +4,11 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { describe, expect, it, vi } from 'vitest'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
-import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { MemberPreferencesForm } from './member-preferences-form'
-
-const troupeA = {
-  id: 't1',
-  name: 'Troupe A',
-  slug: 'troupe-a',
-  isDemo: false,
-  joinPolicy: 'OPEN' as const,
-  membership: {
-    id: 'm1',
-    displayName: 'Léa',
-    status: 'ACTIVE' as const,
-    baselineRole: 'MEMBER' as const,
-    createdAt: '',
-    updatedAt: '',
-  },
-  activeMemberCount: 2,
-  upcomingEventCount: 0,
-}
 
 async function setup(options: {
   loadOk?: boolean
   patchOk?: boolean
-  troupes?: (typeof troupeA)[]
 } = {}) {
   const snack = { open: vi.fn() }
   const patchPreferences = vi.fn().mockResolvedValue(
@@ -38,8 +18,8 @@ async function setup(options: {
           ok: true,
           status: 200,
           data: {
-            memberDisplayName: 'Léa B',
-            preferredRoleKeys: ['volunteer', 'player'],
+            memberDisplayName: 'Léa',
+            preferredRoleKeys: ['volunteer', 'player', 'mc'],
           },
         },
   )
@@ -55,19 +35,11 @@ async function setup(options: {
           },
         },
   )
-  const patchMembershipDisplayName = vi.fn()
 
   await TestBed.configureTestingModule({
     imports: [MemberPreferencesForm, NoopAnimationsModule],
     providers: [
       { provide: MatSnackBar, useValue: snack },
-      {
-        provide: TroupeContextService,
-        useValue: {
-          activeTroupes: () => options.troupes ?? [troupeA],
-          patchMembershipDisplayName,
-        },
-      },
       {
         provide: MePreferencesApiService,
         useValue: { getPreferences, patchPreferences },
@@ -87,27 +59,35 @@ async function setup(options: {
     }
   }
 
-  return { fixture, snack, getPreferences, patchPreferences, patchMembershipDisplayName }
+  return { fixture, snack, getPreferences, patchPreferences }
 }
 
 describe('MemberPreferencesForm', () => {
-  it('saves pseudo via single account preferences PATCH', async () => {
+  it('does not render pseudo field', async () => {
+    const { fixture } = await setup()
+    expect(fixture.nativeElement.textContent).not.toContain('Nom affiché dans toutes vos troupes.')
+    expect(fixture.nativeElement.querySelector('mat-label')?.textContent?.trim()).not.toBe('Pseudo')
+  })
+
+  it('saves preferred roles via PATCH with preferredRoleKeys only', async () => {
     const { fixture, patchPreferences, snack } = await setup()
     const component = fixture.componentInstance as MemberPreferencesForm
-    component['onPseudoInput']('Léa B')
+    component['togglePreferredRole']('mc', true)
 
     await component['save']()
     await fixture.whenStable()
 
     expect(patchPreferences).toHaveBeenCalledTimes(1)
-    expect(patchPreferences).toHaveBeenCalledWith({ memberDisplayName: 'Léa B' })
+    expect(patchPreferences).toHaveBeenCalledWith({
+      preferredRoleKeys: ['volunteer', 'player', 'mc'],
+    })
     expect(snack.open).toHaveBeenCalledWith('Préférences enregistrées', 'OK', { duration: 3000 })
   })
 
   it('shows error snack when preferences patch fails', async () => {
     const { fixture, snack } = await setup({ patchOk: false })
     const component = fixture.componentInstance as MemberPreferencesForm
-    component['onPseudoInput']('Autre pseudo')
+    component['togglePreferredRole']('mc', true)
 
     await component['save']()
     await fixture.whenStable()

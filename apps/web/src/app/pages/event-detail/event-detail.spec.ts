@@ -55,6 +55,7 @@ describe('EventDetail', () => {
   let listMyTroupes: ReturnType<typeof vi.fn>
   let getSeasonBySlug: ReturnType<typeof vi.fn>
   let getComposition: ReturnType<typeof vi.fn>
+  let getEventAvailabilitySummary: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
   let router: Router
 
@@ -124,6 +125,10 @@ describe('EventDetail', () => {
       ok: true,
       data: { visibility: 'none', slots: [] },
     })
+    getEventAvailabilitySummary = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { participants: [], roles: [], roleSlots: {}, eventId: 'event-2' },
+    })
     dialogOpen = vi.fn().mockReturnValue({
       componentInstance: {},
       afterClosed: () => new BehaviorSubject(undefined).asObservable(),
@@ -181,10 +186,7 @@ describe('EventDetail', () => {
         {
           provide: AvailabilityApiService,
           useValue: {
-            getEventAvailabilitySummary: vi.fn().mockResolvedValue({
-              ok: true,
-              data: { participants: [], roles: [], roleSlots: {}, eventId: 'event-2' },
-            }),
+            getEventAvailabilitySummary,
           },
         },
         {
@@ -369,6 +371,325 @@ describe('EventDetail', () => {
       eventAdminItems: () => Array<{ label: string }>
     }
     expect(cmp.eventAdminItems().map((i) => i.label)).not.toContain('Annoncer')
+  })
+
+  it('hides Relance dispos in admin menu for draft events', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { availabilityOpenedAt: null }),
+    })
+    getEventAvailabilitySummary.mockResolvedValue({
+      ok: true,
+      data: {
+        eventId: 'event-2',
+        roleSlots: {},
+        roles: [],
+        participants: [
+          {
+            participantId: 'p1',
+            userId: 'user-1',
+            displayName: 'Patrice',
+            avatarUrl: null,
+            status: 'unknown',
+            roleKeys: [],
+            comment: null,
+          },
+        ],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(loadEventMock).toHaveBeenCalled()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    expect(cmp.eventAdminItems().map((i) => i.label)).not.toContain('Relance dispos')
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+  })
+
+  it('includes Relance dispos after Annoncer when unknown participants exist', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }),
+    })
+    getEventAvailabilitySummary.mockResolvedValue({
+      ok: true,
+      data: {
+        eventId: 'event-2',
+        roleSlots: {},
+        roles: [],
+        participants: [
+          {
+            participantId: 'p1',
+            userId: 'user-1',
+            displayName: 'Patrice',
+            avatarUrl: null,
+            status: 'unknown',
+            roleKeys: [],
+            comment: null,
+          },
+        ],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    await vi.waitFor(() => {
+      expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-2', false)
+      expect(cmp.eventAdminItems().map((i) => i.label)).toEqual([
+        'Modifier',
+        'Annoncer',
+        'Relance dispos',
+        'Participants',
+        'Désactiver',
+      ])
+    })
+  })
+
+  it('hides Relance dispos when no unknown participants', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }),
+    })
+    getEventAvailabilitySummary.mockResolvedValue({
+      ok: true,
+      data: {
+        eventId: 'event-2',
+        roleSlots: {},
+        roles: [],
+        participants: [
+          {
+            participantId: 'p1',
+            userId: 'user-1',
+            displayName: 'Patrice',
+            avatarUrl: null,
+            status: 'available',
+            roleKeys: ['player'],
+            comment: null,
+          },
+        ],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    await vi.waitFor(() => {
+      expect(getEventAvailabilitySummary).toHaveBeenCalled()
+      expect(cmp.eventAdminItems().map((i) => i.label)).not.toContain('Relance dispos')
+    })
+  })
+
+  it('hides Relance dispos for members without canManageComposition', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }),
+    })
+    getEventAvailabilitySummary.mockResolvedValue({
+      ok: true,
+      data: {
+        eventId: 'event-2',
+        roleSlots: {},
+        roles: [],
+        participants: [
+          {
+            participantId: 'p1',
+            userId: 'user-2',
+            displayName: 'Alex',
+            avatarUrl: null,
+            status: 'unknown',
+            roleKeys: [],
+            comment: null,
+          },
+        ],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(loadEventMock).toHaveBeenCalled()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    expect(cmp.eventAdminItems().map((i) => i.label)).not.toContain('Relance dispos')
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+  })
+
+  it('hides Relance dispos when event is archived', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', {
+        archived: true,
+        availabilityOpenedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    })
+    getEventAvailabilitySummary.mockResolvedValue({
+      ok: true,
+      data: {
+        eventId: 'event-2',
+        roleSlots: {},
+        roles: [],
+        participants: [
+          {
+            participantId: 'p1',
+            userId: 'user-1',
+            displayName: 'Patrice',
+            avatarUrl: null,
+            status: 'unknown',
+            roleKeys: [],
+            comment: null,
+          },
+        ],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(loadEventMock).toHaveBeenCalled()
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    expect(cmp.eventAdminItems().map((i) => i.label)).not.toContain('Relance dispos')
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+  })
+
+  it('opens nudge dialog from Relance dispos admin menu action', async () => {
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }),
+    })
+    getEventAvailabilitySummary.mockResolvedValue({
+      ok: true,
+      data: {
+        eventId: 'event-2',
+        roleSlots: {},
+        roles: [],
+        participants: [
+          {
+            participantId: 'p1',
+            userId: 'user-1',
+            displayName: 'Patrice',
+            avatarUrl: null,
+            status: 'unknown',
+            roleKeys: [],
+            comment: null,
+          },
+        ],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string; action: () => void }>
+    }
+    await vi.waitFor(() => {
+      expect(getEventAvailabilitySummary).toHaveBeenCalled()
+      expect(cmp.eventAdminItems().find((i) => i.label === 'Relance dispos')).toBeTruthy()
+    })
+    const relance = cmp.eventAdminItems().find((i) => i.label === 'Relance dispos')
+    relance?.action()
+    expect(dialogOpen).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({ intent: 'availability_nudge' }),
+      }),
+    )
   })
 
   it('opens announce dialog from admin menu action', async () => {

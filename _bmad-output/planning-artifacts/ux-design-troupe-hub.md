@@ -67,7 +67,7 @@ Référence implémentation : [`troupe-hub.html`](../../apps/web/src/app/pages/t
 | T3 | **Menu engrenage — Membres** | Conserver **Membres** → `/troupe/:slug/admin/membres` (inchangé). |
 | T4 | **Ordre des entrées** | **Modifier** · **Nouvelle saison** · **Membres** (actions création/édition avant navigation admin lourde). |
 | T5 | **Préférences troupe** | **Supprimer** le bouton **Préférences dans cette troupe** et le bottom sheet `TroupeHubPreferencesSheet` du hub. |
-| T6 | **Préférences globales** | Sur **Mon compte** : section **Préférences membre** avec **pseudo** (unique, toutes troupes) et **rôles préférés** (unique, toutes troupes). Remplacer la section actuelle « Préférences par troupe » (lien vers `/troupes`). |
+| T6 | **Préférences globales** | Sur **Mon compte** : **pseudo membre** sur l’onglet **Identité** ; **rôles préférés** sur l’onglet **Préférences** (un jeu unique pour toutes les troupes). Remplacer la section actuelle « Préférences par troupe » (lien vers `/troupes`). Voir [ux-design-mon-compte.md](./ux-design-mon-compte.md) amendement 2026-06-04. |
 | T7 | **Hero** | Logo + nom (+ description courte en lecture seule si présente, sous le nom, `body-medium`, max 2 lignes tronquées). Pas de bouton d’action membre dans le hero. |
 | T8 | **Section Saisons** | Titre **Saisons** seul à gauche ; **aucun** CTA primary dans l’en-tête de section pour les admins. |
 | T9 | **Non-admins** | Pas de menu engrenage (`items.length === 0`). Préférences via **Mon compte** uniquement. |
@@ -256,38 +256,41 @@ Réutiliser / extraire la logique de [`formatSeasonDates`](../../apps/web/src/ap
 
 ---
 
-## Mon compte — section Préférences membre (amendement `ux-design-mon-compte.md`)
+## Mon compte — pseudo (Identité) et rôles (Préférences)
+
+**Amendement 2026-06-04 :** le pseudo membre est sur l’onglet **Identité** ; les rôles préférés restent sur **Préférences**. Spec normative : [ux-design-mon-compte.md](./ux-design-mon-compte.md).
 
 Remplace la **Zone B — Préférences par troupe** (lien vers `/troupes`).
 
-### Wireframe
+### Wireframe (cible onglets 17.34+)
+
+**Onglet Identité :**
 
 ```
 ┌─────────────────────────┐
-│ Mon compte              │
-│ Identité et sécurité…   │
-├─────────────────────────┤
 │ [○]  email@…            │
-│      Nom du compte        │
-├─────────────────────────┤
-│ PRÉFÉRENCES MEMBRE       │
+│      Nom compte Google  │
 │ Pseudo                   │
 │ [ Léa________________ ]  │
+│ [ Enregistrer ]          │
+└─────────────────────────┘
+```
+
+**Onglet Préférences :**
+
+```
+┌─────────────────────────┐
 │ Rôles préférés           │
 │ ☑ Comédien·ne  ☑ Volontaire … │
 │ [ Enregistrer ]          │
-├─────────────────────────┤
-│ SÉCURITÉ                │
-│ …                       │
 └─────────────────────────┘
 ```
 
 | Élément | Détail |
 |---------|--------|
-| **Titre section** | **Préférences membre** (`h2` / overline, même rythme que **Sécurité**) |
-| **Pseudo** | Un seul `mat-form-field` ; hint : *Nom affiché dans toutes vos troupes.* ; max 255 ; non vide à l’enregistrement. |
-| **Rôles préférés** | Grille `mat-checkbox` identique à l’actuel `TroupeHubPreferencesSheet` (clés, labels, emoji, règle `volunteer` non désactivable). |
-| **Enregistrement** | Un bouton **Enregistrer** pour la section (ou auto-save par bloc — **préférer un bouton** pour limiter les appels API). Snack succès / erreur. |
+| **Pseudo** | Onglet **Identité** — un seul `mat-form-field` ; hint : *Nom affiché dans toutes vos troupes.* ; max 255 ; non vide à l’enregistrement. |
+| **Rôles préférés** | Onglet **Préférences** — grille `mat-checkbox` identique à l’actuel `TroupeHubPreferencesSheet` (clés, labels, emoji, règle `volunteer` non désactivable). |
+| **Enregistrement** | Un bouton **Enregistrer** par onglet (patch partiel API). Snack succès / erreur. |
 | **Retiré** | Lien **Préférences par troupe** ; bottom sheet hub ; toute liste « un pseudo par troupe » sur `/compte`. |
 
 ### Amendements `ux-design-mon-compte.md`

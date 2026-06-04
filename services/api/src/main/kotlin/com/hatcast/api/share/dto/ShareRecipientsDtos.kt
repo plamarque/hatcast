@@ -5,14 +5,21 @@ import jakarta.validation.constraints.Size
 import java.time.Instant
 import java.util.UUID
 
+data class ShareRecipientChannelStatusDto(
+    val eligible: Boolean,
+    val notified: Boolean,
+    val lastNotifiedAt: Instant? = null,
+)
+
 data class ShareRecipientChannelsDto(
-    val email: Boolean,
-    val push: Boolean,
+    val email: ShareRecipientChannelStatusDto,
+    val push: ShareRecipientChannelStatusDto,
 )
 
 data class ShareRecipientDto(
     val participantId: UUID,
     val displayName: String,
+    /** Kept for backward compatibility; not used by the V2 share dialog (D10). */
     val emailObfuscated: String?,
     val channels: ShareRecipientChannelsDto,
 )

@@ -1,7 +1,3 @@
-.event-dispos__nudge {
-  flex-shrink: 0;
-}
-
 .event-dispos__toolbar {
   display: flex;
   flex-wrap: nowrap;
@@ -50,10 +46,5 @@
 @media (max-width: 480px) {
   .event-dispos__toolbar {
     gap: 0.4rem;
-  }
-
-  .event-dispos__nudge {
-    min-height: 3rem;
-    min-width: 3rem;
   }
 }

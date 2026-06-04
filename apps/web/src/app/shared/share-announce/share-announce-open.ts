@@ -69,3 +69,11 @@ export function openEventAnnounceDialog(
 ): void {
   openShareAnnounceDialog(dialog, snack, { ...ctx, intent: 'event', roleLines: [] })
 }
+
+export function openAvailabilityNudgeDialog(
+  dialog: MatDialog,
+  snack: MatSnackBar,
+  ctx: Omit<OpenShareAnnounceDialogContext, 'intent' | 'roleLines' | 'compositionValidatedAt'>,
+): void {
+  openShareAnnounceDialog(dialog, snack, { ...ctx, intent: 'availability_nudge', roleLines: [] })
+}

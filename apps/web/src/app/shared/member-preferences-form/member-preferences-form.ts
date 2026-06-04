@@ -8,7 +8,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
-import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import {
   canDisablePreferredRole,
   orderedRoleKeys,
@@ -30,20 +29,6 @@ import {
   ],
   template: `
     <div class="member-preferences-form">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="member-preferences-form__field">
-        <mat-label>Pseudo</mat-label>
-        <input
-          matInput
-          maxlength="255"
-          [ngModel]="pseudo()"
-          (ngModelChange)="onPseudoInput($event)"
-        />
-        @if (pseudoError()) {
-          <mat-error>Le pseudo ne peut pas être vide.</mat-error>
-        }
-      </mat-form-field>
-      <p class="member-preferences-form__hint">Nom affiché dans toutes vos troupes.</p>
-
       <h3 class="member-preferences-form__roles-heading">Rôles préférés</h3>
       <p class="member-preferences-form__hint">
         Rôles pré-cochés par défaut lors de la saisie de disponibilité.
@@ -130,36 +115,24 @@ import {
 })
 export class MemberPreferencesForm implements OnInit {
   private readonly mePreferencesApi = inject(MePreferencesApiService)
-  private readonly troupeContext = inject(TroupeContextService)
   private readonly snack = inject(MatSnackBar)
 
   protected readonly roleKeys = orderedRoleKeys()
-  protected readonly pseudo = signal('')
-  protected readonly pseudoError = signal(false)
   protected readonly preferredRoles = signal<string[]>([])
   protected readonly preferredRolesLoading = signal(true)
   protected readonly saving = signal(false)
   protected readonly loadFailed = signal(false)
 
-  private initialPseudo = ''
   private initialRoles: string[] = []
 
   protected readonly canSave = computed(() => {
-    const pseudoChanged = this.pseudo().trim() !== this.initialPseudo
     const rolesChanged =
       [...this.preferredRoles()].sort().join(',') !== [...this.initialRoles].sort().join(',')
-    return this.pseudo().trim().length > 0 && (pseudoChanged || rolesChanged)
+    return rolesChanged
   })
 
   async ngOnInit(): Promise<void> {
     await this.loadPreferences()
-  }
-
-  protected onPseudoInput(value: string): void {
-    this.pseudo.set(value)
-    if (value.trim()) {
-      this.pseudoError.set(false)
-    }
   }
 
   protected roleLabel(key: RoleKey): string {
@@ -193,43 +166,24 @@ export class MemberPreferencesForm implements OnInit {
   }
 
   protected async save(): Promise<void> {
-    const nextPseudo = this.pseudo().trim()
-    if (!nextPseudo) {
-      this.pseudoError.set(true)
-      return
-    }
-
-    const pseudoChanged = nextPseudo !== this.initialPseudo
     const rolesChanged =
       [...this.preferredRoles()].sort().join(',') !== [...this.initialRoles].sort().join(',')
-    const body: { memberDisplayName?: string; preferredRoleKeys?: string[] } = {}
-    if (pseudoChanged) {
-      body.memberDisplayName = nextPseudo
-    }
-    if (rolesChanged) {
-      body.preferredRoleKeys = this.preferredRoles()
+    if (!rolesChanged) {
+      return
     }
 
     this.saving.set(true)
     try {
-      const result = await this.mePreferencesApi.patchPreferences(body)
+      const result = await this.mePreferencesApi.patchPreferences({
+        preferredRoleKeys: this.preferredRoles(),
+      })
       if (!result.ok || !result.data) {
         this.snack.open('Enregistrement impossible', 'OK', { duration: 5000 })
         return
       }
 
-      this.initialPseudo = result.data.memberDisplayName
       this.initialRoles = [...result.data.preferredRoleKeys]
-      this.pseudo.set(result.data.memberDisplayName)
       this.preferredRoles.set(result.data.preferredRoleKeys)
-
-      const troupes = this.troupeContext.activeTroupes()
-      for (const troupe of troupes) {
-        this.troupeContext.patchMembershipDisplayName(
-          troupe.id,
-          result.data.memberDisplayName,
-        )
-      }
 
       this.snack.open('Préférences enregistrées', 'OK', { duration: 3000 })
     } finally {
@@ -247,8 +201,6 @@ export class MemberPreferencesForm implements OnInit {
         this.snack.open('Impossible de charger vos préférences.', 'OK', { duration: 5000 })
         return
       }
-      this.initialPseudo = result.data.memberDisplayName.trim()
-      this.pseudo.set(this.initialPseudo)
       this.preferredRoles.set(result.data.preferredRoleKeys)
       this.initialRoles = [...result.data.preferredRoleKeys]
     } finally {

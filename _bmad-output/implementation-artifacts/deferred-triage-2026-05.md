@@ -201,21 +201,11 @@ Chaque puce de `deferred-work.md` reçoit un **ID** `DW-###`. Croisement **story
 
 ---
 
-## 7. Actions proposées sur `deferred-work.md` (diff minimal)
+## 7. Actions proposées sur `deferred-work.md` — **fait (DOC-1, 2026-06-04)**
 
-**Recommandation :** ajouter en **tête** de `deferred-work.md` (sans supprimer l’historique) :
-
-```markdown
-## Archive / closed (triage 2026-05-28)
-
-Voir [deferred-triage-2026-05.md](deferred-triage-2026-05.md). IDs archivés : DW-018, DW-022–024, DW-029, DW-030, DW-037, DW-040–041, DW-070, DW-073, DW-075, DW-028 (note pgcrypto obsolète).
-
-Les entrées actives restent ci-dessous, append-only inchangé.
-```
-
-**Alternative :** créer `deferred-work-archive.md` avec copie **verbatim** des sections fermées + table ID → date triage ; garder `deferred-work.md` pour le actif seulement (plus lourd, risque de désync).
-
-**Ne pas** supprimer de lignes sans recopier les IDs dans l’archive.
+- Archive verbatim : [`deferred-work-archive.md`](deferred-work-archive.md)
+- Actif P0–P2 : [`deferred-work.md`](deferred-work.md)
+- Triage juin + DW-101+ : [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md)
 
 ---
 

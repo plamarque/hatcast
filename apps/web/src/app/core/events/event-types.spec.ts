@@ -10,6 +10,13 @@ import {
 } from './event-types'
 
 describe('event-types', () => {
+  it('applyTemplate returns match defaults including coach', () => {
+    const slots = applyTemplate('match')
+    expect(slots['coach']).toBe(1)
+    expect(slots['player']).toBe(5)
+    expect(slots['referee']).toBe(1)
+  })
+
   it('applyTemplate returns cabaret defaults', () => {
     const slots = applyTemplate('cabaret')
     expect(slots['player']).toBe(5)
@@ -34,6 +41,7 @@ describe('event-types', () => {
       'mc',
       'player',
       'assistant_referee',
+      'coach',
       'volunteer',
     ])
   })

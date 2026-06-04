@@ -11,7 +11,7 @@ class AvailabilityRoleRulesTest {
     fun `rolesRequiredForEvent keeps only roles with positive slots in draw order`() {
         val roles = AvailabilityRoleRules.rolesRequiredForEvent(RoleTemplates.slotsFor("match"))
 
-        assertEquals(listOf("referee", "mc", "player", "assistant_referee", "volunteer"), roles)
+        assertEquals(listOf("referee", "mc", "player", "assistant_referee", "coach", "volunteer"), roles)
     }
 
     @Test

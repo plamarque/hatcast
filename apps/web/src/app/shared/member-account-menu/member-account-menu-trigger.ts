@@ -1,12 +1,12 @@
-import { Component, computed, DestroyRef, inject, input, OnInit, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, input, OnInit, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { MatButtonModule } from '@angular/material/button'
 import { MatMenuModule } from '@angular/material/menu'
 import { NavigationEnd, Router } from '@angular/router'
 import { filter } from 'rxjs/operators'
 
+import { MemberDisplayNameService } from '../../core/account/member-display-name.service'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
-import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { UserAccountMenuItemsComponent } from '../user-account-menu/user-account-menu-items'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
 import {
@@ -35,7 +35,7 @@ export class MemberAccountMenuTrigger implements OnInit {
   protected readonly sessionUser = computed(() => readAuthSessionUser(this.auth))
   private readonly router = inject(Router)
   private readonly destroyRef = inject(DestroyRef)
-  private readonly troupeContext = inject(TroupeContextService)
+  private readonly memberDisplayName = inject(MemberDisplayNameService)
 
   private readonly currentUrl = signal(this.router.url)
 
@@ -51,13 +51,23 @@ export class MemberAccountMenuTrigger implements OnInit {
     return shouldShowAccountMenuLogout(this.currentUrl())
   })
 
-  protected readonly displayLabel = computed(() =>
-    this.troupeContext.currentUserDisplayLabel(this.sessionUser()),
+  protected readonly railLabel = computed(() =>
+    this.memberDisplayName.railLabel(this.sessionUser()),
   )
 
   protected readonly accountAriaLabel = computed(
-    () => `Menu compte : ${this.displayLabel()}`,
+    () => `Menu compte : ${this.railLabel()}`,
   )
+
+  constructor() {
+    effect(() => {
+      const user = this.sessionUser()
+      this.memberDisplayName.syncSessionUser(user?.slug ?? null)
+      if (user) {
+        void this.memberDisplayName.loadFromApi()
+      }
+    })
+  }
 
   ngOnInit(): void {
     this.syncCurrentUrl()

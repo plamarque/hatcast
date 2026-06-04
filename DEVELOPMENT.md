@@ -84,9 +84,35 @@ Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [
 
 | Troupe | UUID (suffixe) | Source | Cible du bouton « Rejoindre la démo » |
 |--------|----------------|--------|--------------------------------------|
-| **Les Improbots** | `…000001` | `db/seed` (V3_1+, dev/CI) | Non |
+| **Les Improbots** | `…000001` | Flyway dev (voir ci-dessous) | Non |
 | **Démo** | `…000099` | `db/migration` V33+ (tous profils incl. cloud) | Oui (`environment.demoTroupeId` / `DEMO_TROUPE_ID`) |
 | **La Malice** | variable | migration V1 réelle | Non (jamais seed Flyway) |
+
+#### Les Improbots — seeds dev Flyway
+
+Données fictionnelles pour recette locale, tests H2/e2e et reset Neon branche **`local`**. **Absent du profil `cloud`** (staging/prod — [ADR-0014](docs/adr/0014-v2-preprod-migration-no-seed.md)).
+
+| Emplacement | Rôle |
+|-------------|------|
+| `db/seed/V3_1`, `V4` | Troupe + saison (portable H2/PostgreSQL, idempotent) |
+| `db/seed/V30`, `V31`, `V47`, … | Compléments dev (context switcher, QA drafts, etc.) |
+| `db/seed/V6`, `V17`, `V19`, `V22`, `V26`, `V48`, `V49` | **Stubs no-op** — conservés pour l’historique Flyway (`SELECT 1 WHERE 1 = 0`) |
+| **`db/seed-postgresql/R__seed_improbots_dev_demo.sql`** | **Seed unique** : ~30 spectacles, roster, dispos, compositions, MVP pilot, Historique — inserts idempotents (`NOT EXISTS`), schéma courant (`slug`, `season_participant_id`, `availability.id`, preset match `coach: 1`, etc.) |
+
+**Profils Spring** (`dev`, `test`, `e2e`) : Flyway charge `db/migration` + `db/seed` + **`db/seed-postgresql`**. Le profil `dev` active `out-of-order: true` et `repair-on-migrate: true` (checksums après regénération).
+
+**Regénérer** (après édition de `members.csv` à la racine — gitignored, PII) :
+
+```bash
+npm run generate:improbots-dev-seed
+# alias : npm run generate:improbots-seed | generate:malice-seed
+```
+
+Écrit `R__seed_improbots_dev_demo.sql` + met à jour les stubs versionnés. Sans `members.csv`, le générateur relit le SQL existant (`R__seed_improbots_dev_demo.sql`).
+
+**Reset Neon branche `local`** (schéma prod cloné, sans données Improbots) : reset branche → `./scripts/start-dev.sh` → Flyway applique migrations prod, stubs versionnés, puis le **`R__`** (repeatable, après toutes les versionnées). Pas de patch out-of-order par seed historique.
+
+Recette MVP pilot (Patrice) : [scripts/v2/MVP-PILOT-RECETTE.md](scripts/v2/MVP-PILOT-RECETTE.md). Générateur : [scripts/v2/generate-improbots-seed-sql.js](scripts/v2/generate-improbots-seed-sql.js).
 
 **Troupe Démo prod (ADR-0015) :** bootstrap idempotent Flyway `V33`–`V37` + repeatable `R__bootstrap_demo_admin_memberships.sql` (`db/migration`, profil `cloud` inclus). UUID `a0000001-0000-4000-8000-000000000099`. Les liens `TROUPE_ADMIN` pour `patrice.lamarque@gmail.com` / `impropick@gmail.com` sont appliqués idempotent à chaque migrate Flyway dès que les comptes `users` existent (première connexion Google sur Neon vide incluse). Smoke manuel après join : `/saison/demo/saison-2026-2027` — checklist opérateur dans [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) § Post-deploy smoke.
 

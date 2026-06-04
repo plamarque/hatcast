@@ -1,6 +1,6 @@
 # Profil dev local (HATCAST_SPRING_PROFILE=dev, défaut dans application.yml).
-# Seeds Flyway : classpath:db/seed (absent en cloud/staging — voir ADR-0014).
-# Regénération de migrations seed (V17/V19/V22…) : repair aligne les checksums Flyway.
+# Seeds Flyway : db/seed (troupe/saison V3_1/V4 + stubs) + db/seed-postgresql (R__seed_improbots_dev_demo.sql).
+# Regénération : npm run generate:improbots-dev-seed — repair-on-migrate aligne les checksums Flyway.
 # Super-admin : HATCAST_SUPER_ADMIN_EMAILS dans .env local (voir .env.example) — pas de défaut commité.
 #
 # Mail optionnel en local (Mailpit via start-dev.sh) : pas de health check SMTP sur actuator/health.
@@ -11,7 +11,7 @@ management:
 
 spring:
   flyway:
-    locations: classpath:db/migration,classpath:db/seed
+    locations: classpath:db/migration,classpath:db/seed,classpath:db/seed-postgresql
     # Seeds déplacés dans db/seed (OPS-1) : V3_1 peut arriver après V4+ sur une base Neon déjà migrée.
     out-of-order: true
     repair-on-migrate: true

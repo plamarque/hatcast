@@ -30,6 +30,7 @@ describe('availability-role-rules', () => {
 
   it('pre-checks preferred roles by intersection with event roles', () => {
     expect(preferredRoleIntersection(ROLE_TEMPLATES.match, ['coach', 'player', 'mc'])).toEqual([
+      'coach',
       'player',
       'mc',
       'volunteer',

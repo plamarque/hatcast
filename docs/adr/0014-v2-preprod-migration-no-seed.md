@@ -9,9 +9,9 @@
   - The cutover date from V1 (Firebase Hosting) to V2 is **not fixed**; pre-prod must support **resetting Neon staging and replaying migration** until production cutover is approved.
   - V1 production uses Firestore database id **`(default)`** ([ADR-0002](0002-multi-database-firestore.md), `configService.js` prod profile) — not the `staging` or `development` Firestore databases.
 - **Decision:**
-  1. **Flyway split:** `classpath:db/migration` = schema and **product bootstrap** (Demo troupe per [ADR-0015](0015-v2-demo-troupe-product-bootstrap.md)); `classpath:db/seed` = dev/test seed SQL (**Les Improbots**, MVP pilot, etc.).
+  1. **Flyway split:** `classpath:db/migration` = schema and **product bootstrap** (Demo troupe per [ADR-0015](0015-v2-demo-troupe-product-bootstrap.md)); `classpath:db/seed` = troupe/saison stubs + compléments dev versionnés ; **`classpath:db/seed-postgresql`** = seed repeatable **Les Improbots** (`R__seed_improbots_dev_demo.sql`, dev/test/e2e only).
   2. **Profiles:**
-     - `dev` and `test` → Flyway locations `db/migration` + `db/seed`.
+     - `dev`, `test`, and `e2e` → Flyway locations `db/migration` + `db/seed` + `db/seed-postgresql`.
      - `cloud` (Cloud Run staging/production) → Flyway locations **`db/migration` only** (`application-cloud.yml`).
   3. **Pre-prod data source:** V1 → V2 export scripts run against Firestore **`--database=default`** (production data). Operators use `npm run export:v1-users:prod` / `export:v1-members:prod` or explicit `--database=default`.
   4. **Pre-prod content:** After deploy, Postgres staging contains **only** schema + data imported via documented CSV/API migration (today: users + troupe members per [v1-troupe-members-csv-recipe.md](../v2/migration/v1-troupe-members-csv-recipe.md)). No `@seed.improbots.test` accounts unless manually imported. Optional **Démo** bootstrap from migration ([ADR-0015](0015-v2-demo-troupe-product-bootstrap.md)) may coexist.

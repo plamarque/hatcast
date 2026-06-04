@@ -13,17 +13,6 @@
   </div>
 } @else if (summary(); as s) {
   <div class="event-dispos__toolbar">
-    @if (canNudgeAvailability()) {
-      <button
-        mat-stroked-button
-        type="button"
-        class="event-dispos__nudge"
-        (click)="openNudgeDialog()"
-      >
-        Rappel dispos
-      </button>
-    }
-
     @if (canSwitchSubject() && viewMode() === 'moi') {
       <app-availability-subject-selector
         [participants]="selectors()"

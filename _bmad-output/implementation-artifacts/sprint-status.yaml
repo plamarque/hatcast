@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-04T23:30:00+02:00
+# last_updated: 2026-06-04T20:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-04T14:00:00+02:00"
+last_updated: "2026-06-04T22:20:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -98,6 +98,7 @@ development_status:
   3-19-retrait-roster-saison-sans-desactivation-troupe: done
   3-20-statistiques-cellules-evenement-participation-couleur-emoji: done
   3-21-brouillon-evenement-et-publication-ouverture-dispos: done  # P0 MEP — unblocks 8.3
+  3-22-match-template-coach-api-seeds: done  # P0 — DW-101/102 done ; coach:1 API + seeds dev + review fixes
   epic-3-retrospective: optional
 
   epic-4: in-progress
@@ -127,12 +128,15 @@ development_status:
   6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: done
   6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: done
   6-10-partage-et-annonce-message-editable-canaux: done
-  6-10b-rappel-manuel-disponibilite-garde-anti-spam: done  # P1 — SCP 2026-06-01
+  6-10b-rappel-manuel-disponibilite-garde-anti-spam: done  # P1 — SCP 2026-06-01 ; entry toolbar → 6.10c
+  6-10c-deplacer-rappel-dispos-menu-gear-evenement: done  # UX D11 2026-06-04 — gear Relance dispos ; code review OK
   6-11-retour-visuel-et-performances-onglet-equipe: done
   6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
   6-13-publish-notifications-hors-transaction: done
   6-14-snapshot-chances-au-tirage: done
   6-15-refonte-modales-annonces-notify-manuel: done  # P0 V2.0.0 — code review 2026-06-03
+  6-16-statut-canal-destinataires-modales-partager-annoncer: done  # D10 UX 2026-06-04 — recette + review OK
+  6-17-dispatch-annonce-manuelle-transparence-dates: review  # tech-spec-share-announce-transparency-6-17.md
   epic-6-retrospective: optional
 
   epic-7: backlog
@@ -206,7 +210,7 @@ development_status:
   16-2-statistiques-avatar-navigation-profil-membre: done
   epic-16-retrospective: optional
 
-  epic-17: done
+  epic-17: in-progress
   17-1-breadcrumb-contexte-responsive: done
   17-2-bandeau-administration-par-scope: done
   17-3-page-troupes-mes-troupes-decouvrir: done
@@ -239,6 +243,8 @@ development_status:
   17-31-modifier-saison-gear-workspace: done
   17-33-preferences-membre-compte-utilisateur: done
   17-34-mon-compte-onglets-securite-preferences: done  # P0 V2.0.0 — SCP 2026-06-02
+  17-35-mon-compte-pseudo-identite-rail-label: done  # UX amend 2026-06-04 — C2/C2b/C11
+  17-36-mon-compte-onglet-mon-profil: done  # UX amend 2026-06-04b — fusion Identité+Sécurité
   epic-17-retrospective: optional
 
   epic-18: in-progress

@@ -68,12 +68,13 @@
             <app-event-dispos-tab
               [seasonId]="seasonId()"
               [seasonSlug]="slug()"
-      [troupeSlug]="routeTroupeSlug()"
+              [troupeSlug]="routeTroupeSlug()"
               [troupeId]="troupeId()"
               [event]="ev"
               [currentUserId]="user()?.id ?? ''"
               [canSwitchSubject]="canSwitchSubject()"
               [canManageComposition]="canManageComposition()"
+              (summaryChanged)="onDisposSummaryChanged($event)"
             />
           </section>
         }

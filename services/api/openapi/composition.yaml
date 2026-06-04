@@ -344,6 +344,10 @@ paths:
       description: >
         Liste les destinataires selon l'intent (`draw`, `composition`, `event`, `availability_nudge`).
         Emails obfusqués côté serveur. Requiert `canManageComposition`.
+        Pour `event`, les pastilles `notified` / `lastNotifiedAt` agrègent les logs
+        `AVAILABILITY_OPENED` et `MANUAL_AVAILABILITY_ANNOUNCE` (SENT/PARTIAL).
+        Pour `availability_nudge`, agrégation `AVAILABILITY_OPENED`, `MANUAL_AVAILABILITY_NUDGE`
+        et `MANUAL_AVAILABILITY_ANNOUNCE`.
       security:
         - cookieAuth: []
       parameters:
@@ -374,10 +378,11 @@ paths:
   /seasons/{seasonId}/events/{eventId}/share-recipients/notify:
     post:
       tags: [Composition]
-      summary: Envoyer les notifications manuelles (stub FR31)
+      summary: Envoyer les notifications manuelles
       description: >
-        Enregistre l'intention d'annonce manuelle via `CompositionNotificationPort`
-        (stub DEBUG ; livraison réelle Epic 8). Requiert `canManageComposition`.
+        Dispatch `MANUAL_AVAILABILITY_ANNOUNCE` pour `event`, `MANUAL_AVAILABILITY_NUDGE`
+        pour `availability_nudge` ; `draw` / `composition` restent stub (notifiedCount=0).
+        Requiert `canManageComposition`.
       security:
         - cookieAuth: []
       parameters:
@@ -596,9 +601,22 @@ components:
       required: [email, push]
       properties:
         email:
-          type: boolean
+          $ref: '#/components/schemas/ShareRecipientChannelStatus'
         push:
+          $ref: '#/components/schemas/ShareRecipientChannelStatus'
+
+    ShareRecipientChannelStatus:
+      type: object
+      required: [eligible, notified]
+      properties:
+        eligible:
           type: boolean
+        notified:
+          type: boolean
+        lastNotifiedAt:
+          type: string
+          format: date-time
+          nullable: true
 
     ShareRecipient:
       type: object

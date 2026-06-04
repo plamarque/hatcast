@@ -9,8 +9,16 @@ import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotEntity
 import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.SlotParticipationStatus
+import com.hatcast.api.notification.NotificationChannel
+import com.hatcast.api.notification.NotificationDeliveryLogEntity
+import com.hatcast.api.notification.NotificationDeliveryLogRepository
+import com.hatcast.api.notification.NotificationDeliveryStatus
+import com.hatcast.api.notification.NotificationIntent
+import com.hatcast.api.notification.UserPushSubscriptionEntity
+import com.hatcast.api.notification.UserPushSubscriptionRepository
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
@@ -71,6 +79,15 @@ class ShareRecipientsIntegrationTest {
 
     @Autowired
     private lateinit var slotRepository: EventCompositionSlotRepository
+
+    @Autowired
+    private lateinit var seasonParticipantService: SeasonParticipantService
+
+    @Autowired
+    private lateinit var deliveryLogRepository: NotificationDeliveryLogRepository
+
+    @Autowired
+    private lateinit var pushSubscriptionRepository: UserPushSubscriptionRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -200,8 +217,10 @@ class ShareRecipientsIntegrationTest {
             .andExpect(jsonPath("$.notifiableCount").value(1))
             .andExpect(jsonPath("$.manualCount").value(0))
             .andExpect(jsonPath("$.recipients[0].displayName").value("Alice"))
-            .andExpect(jsonPath("$.recipients[0].channels.email").value(true))
-            .andExpect(jsonPath("$.recipients[0].channels.push").value(false))
+            .andExpect(jsonPath("$.recipients[0].channels.email.eligible").value(true))
+            .andExpect(jsonPath("$.recipients[0].channels.email.notified").value(false))
+            .andExpect(jsonPath("$.recipients[0].channels.push.eligible").value(false))
+            .andExpect(jsonPath("$.recipients[0].channels.push.notified").value(false))
             .andExpect(jsonPath("$.recipients[0].emailObfuscated").value("ali••@ex••.com"))
     }
 
@@ -412,6 +431,218 @@ class ShareRecipientsIntegrationTest {
                     .cookie(cookie),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.lastManualNotifyAt").isEmpty)
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET event intent reflects AVAILABILITY_OPENED delivery logs as notified`() {
+        val cookie = adminCookie("sub-share-admin-event-notified")
+        memberCookie("sub-share-member-event-notified")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val memberUser = userRepository.findByGoogleSub("sub-share-member-event-notified") ?: error("Missing user")
+        val participant =
+            seasonParticipantRepository
+                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, com.hatcast.api.participant.ParticipantStatus.ACTIVE)
+                .firstOrNull { it.user?.id == memberUser.id }
+                ?: error("Missing roster participant")
+        deliveryLogRepository.save(
+            NotificationDeliveryLogEntity(
+                intent = NotificationIntent.AVAILABILITY_OPENED,
+                userId = memberUser.id,
+                channel = NotificationChannel.EMAIL,
+                status = NotificationDeliveryStatus.SENT,
+                eventId = eventId,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "event")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.eligible",
+                ).value(true),
+            ).andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.notified",
+                ).value(true),
+            ).andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.lastNotifiedAt",
+                ).exists(),
+            )
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `POST event notify returns notifiedCount from preview and calls notification port`() {
+        val cookie = adminCookie("sub-share-admin-event-post")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        createParticipant(seasonId, "Laura", "laura@example.com")
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"intent":"event","messageText":"📢 Invite dispos test"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.accepted").value(true))
+            .andExpect(jsonPath("$.intent").value("event"))
+            .andExpect(jsonPath("$.notifiedCount").value(org.hamcrest.Matchers.greaterThan(0)))
+
+        verify(notificationPort).requestManualAnnouncement(
+            eq(eventId),
+            eq(seasonId),
+            eq("event"),
+            eq("📢 Invite dispos test"),
+            any(),
+        )
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET availability_nudge reflects AVAILABILITY_OPENED delivery logs as notified`() {
+        val cookie = adminCookie("sub-share-admin-nudge-opened")
+        memberCookie("sub-share-member-nudge-opened")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val memberUser = userRepository.findByGoogleSub("sub-share-member-nudge-opened") ?: error("Missing user")
+        val participant =
+            seasonParticipantRepository
+                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, com.hatcast.api.participant.ParticipantStatus.ACTIVE)
+                .firstOrNull { it.user?.id == memberUser.id }
+                ?: error("Missing roster participant")
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        deliveryLogRepository.save(
+            NotificationDeliveryLogEntity(
+                intent = NotificationIntent.AVAILABILITY_OPENED,
+                userId = memberUser.id,
+                channel = NotificationChannel.EMAIL,
+                status = NotificationDeliveryStatus.SENT,
+                eventId = eventId,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "availability_nudge")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.notified",
+                ).value(true),
+            )
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET event intent marks push eligible when subscription and prefs allow`() {
+        val cookie = adminCookie("sub-share-admin-event-push")
+        memberCookie("sub-share-member-event-push")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val memberUser = userRepository.findByGoogleSub("sub-share-member-event-push") ?: error("Missing user")
+        memberUser.pushNotificationsEnabled = true
+        userRepository.save(memberUser)
+        pushSubscriptionRepository.save(
+            UserPushSubscriptionEntity(
+                user = memberUser,
+                endpoint = "https://fcm.googleapis.com/fcm/send/event-push-${memberUser.id}",
+                p256dhKey = "p256dh",
+                authKey = "auth",
+            ),
+        )
+        val participant =
+            seasonParticipantRepository
+                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, com.hatcast.api.participant.ParticipantStatus.ACTIVE)
+                .firstOrNull { it.user?.id == memberUser.id }
+                ?: error("Missing roster participant")
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "event")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.push.eligible",
+                ).value(true),
+            )
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `GET availability_nudge reflects MANUAL_AVAILABILITY_NUDGE delivery logs as notified`() {
+        val cookie = adminCookie("sub-share-admin-nudge-notified")
+        memberCookie("sub-share-member-nudge-notified")
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId)
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val memberUser = userRepository.findByGoogleSub("sub-share-member-nudge-notified") ?: error("Missing user")
+        val participant =
+            seasonParticipantRepository
+                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, com.hatcast.api.participant.ParticipantStatus.ACTIVE)
+                .firstOrNull { it.user?.id == memberUser.id }
+                ?: error("Missing roster participant")
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        deliveryLogRepository.save(
+            NotificationDeliveryLogEntity(
+                intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
+                userId = memberUser.id,
+                channel = NotificationChannel.EMAIL,
+                status = NotificationDeliveryStatus.SENT,
+                eventId = eventId,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                    .param("intent", "availability_nudge")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.eligible",
+                ).value(true),
+            ).andExpect(
+                jsonPath(
+                    "$.recipients[?(@.participantId == '${participant.id}')].channels.email.notified",
+                ).value(true),
+            )
     }
 
 }

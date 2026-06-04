@@ -26,6 +26,55 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 
 ---
 
+## Organizer share and announce (V2 target)
+
+Normative intent for organizers with **`canManageComposition`** (exact routes and UI chrome in [_bmad-output/planning-artifacts/ux-design-share-announce-6-15.md_](_bmad-output/planning-artifacts/ux-design-share-announce-6-15.md) and DOMAIN glossary). Applies to the Angular + Spring V2 stack.
+
+### Purpose
+
+Give organizers **transparent control** over manual event communication: who can be reached automatically, who was **already** reached on which channel, who must be contacted manually, and whether a **resend** is reasonable — especially when **several organizers** administer the same event.
+
+### Availability announcement vs reminder (single path)
+
+- **Availability announcement** and **availability reminder** are the **same capability** from the organizer’s perspective: open the share dialog, edit the message, optionally Notifier / Copier / WhatsApp.
+- **Reminder** = any **subsequent** send of the availability-request family on the same event after at least one prior send of that family (including the automatic notification at publication, when it occurs).
+- The product **may** adapt **dialog title** and **default message template** on a reminder so it is clearly a relance, not the first announcement.
+- **Automatic send at publication** (`AVAILABILITY_OPENED` when availability opens) is the **first** system-initiated availability notification; it counts toward “already notified” for transparency but does not replace the manual share dialog for custom copy / WhatsApp / optional manual Notifier.
+
+**Recipient sets (decided 2026-06-04):** **Annoncer** = full active season roster; **Relance dispos** = participants with **`unknown`** availability only. Two menu entries (UX D12) — see DOMAIN.md and [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md).
+
+### Other send families (same transparency rules)
+
+Draw share, composition announce, and future manual sends must follow the **same organizer transparency model** once HatCast performs real dispatch:
+
+- Per-recipient **channel eligibility** (email / push / none → manual contact).
+- Per-channel **notified** state when a successful delivery is logged.
+- **Last successful send** information exposed to organizers (date/time per channel or per send — exact UX in UX spec; required for anti-spam judgment).
+- **Anti-spam:** soft guard (e.g. confirm if a recent send of the **same send family** on the same event) so a second organizer does not unknowingly spam; aligned with `lastManualNotifyAt` / delivery log history.
+
+### Recipient detail (organizer)
+
+When the organizer expands recipient detail in the share dialog:
+
+- **Given** GET share-recipients succeeds, **when** detail is shown, **then** each row shows display name and per-channel status: **absent** (not eligible), **pending** (eligible, not yet successfully notified for the relevant intent(s)), **notified** (successful delivery logged on that channel).
+- **Given** a recipient has no eligible channel, **when** detail is shown, **then** the UI indicates **manual contact** (no channel pills).
+- **Given** a participant joined the roster **after** an earlier send, **when** detail is shown, **then** they appear as eligible but not notified until a new send reaches them.
+
+### Notified semantics (normative)
+
+- **Notified** on a channel means at least one **`notification_delivery_log`** row for that `(event_id, user_id, channel)` with status **`SENT` or `PARTIAL`** for the notification intent(s) mapped to the current send family — **including manual organizer sends**, not only automatic publication.
+- Applies to **all** send families once real dispatch exists (availability, draw, composition, …).
+- Failed or skipped attempts do **not** count as notified.
+
+### Non-goals (this spec section)
+
+- Exact API intent names, menu labels, or implementation order (PLAN / UX artifacts).
+- Tooltip copy *« Notifié le … »* vs inline date — UX choice; **last-send date for organizers is in scope** as a requirement, presentation is not fixed here.
+
+**Runtime note:** Manual `event` announce and per-channel `lastNotifiedAt` are implemented (story **6.17**). `draw` / `composition` POST dispatch remains stub until story **6.18**.
+
+---
+
 ## Actors / personas
 
 - **Anonymous visitor:** Can view public content (e.g. landing, help). Cannot access season data that requires auth.
@@ -246,3 +295,5 @@ This section specifies the **event details as full screen** slice in full. It de
 - **OPEN QUESTION:** Intended behaviour when Firestore is unreachable (e.g. full offline) for draw and admin is not specified.
 - **ASSUMPTION:** Current Firestore rules (public read on seasons and subcollections) are intentional for "view seasons and events" without login; any lock-down would be a product/security decision.
 - **OPEN QUESTION:** Whether GitHub Pages is still a supported deploy target or legacy; deployment authority is Firebase Hosting per CI and firebase.json.
+- **Resolved (2026-06-04):** Availability reminder audience = non-responders (`unknown`) only; announcement = full roster — see DOMAIN.md and tech spec **6.17**.
+- **ASSUMPTION (V2 share/announce):** Multiple organizers on the same event share the same visibility into delivery log / last-send state; no per-organizer private send history.

@@ -36,11 +36,11 @@
         mat-tab-link
         routerLink="/compte"
         routerLinkActive
-        #identityRla="routerLinkActive"
-        [active]="identityRla.isActive"
+        #profileRla="routerLinkActive"
+        [active]="profileRla.isActive"
         [routerLinkActiveOptions]="{ exact: true }"
       >
-        Identité
+        Mon profil
       </a>
       <a
         mat-tab-link
@@ -59,15 +59,6 @@
         [active]="notificationsRla.isActive"
       >
         Notifications
-      </a>
-      <a
-        mat-tab-link
-        routerLink="/compte/securite"
-        routerLinkActive
-        #securityRla="routerLinkActive"
-        [active]="securityRla.isActive"
-      >
-        Sécurité
       </a>
       <a
         mat-tab-link

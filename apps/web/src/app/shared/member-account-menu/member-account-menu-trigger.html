@@ -12,12 +12,12 @@
           <app-user-avatar
             class="member-account-menu-trigger__avatar"
             [style.--user-avatar-size.px]="24"
-            [displayName]="displayLabel()"
+            [displayName]="railLabel()"
             [avatarUrl]="sessionUser()?.avatarUrl ?? null"
             [size]="24"
           />
         </span>
-        <span class="member-account-menu-trigger__rail-label">Compte</span>
+        <span class="member-account-menu-trigger__rail-label">{{ railLabel() }}</span>
       </span>
     </button>
   } @else {
@@ -31,7 +31,7 @@
       <app-user-avatar
         class="member-account-menu-trigger__avatar"
         [style.--user-avatar-size.px]="32"
-        [displayName]="displayLabel()"
+        [displayName]="railLabel()"
         [avatarUrl]="sessionUser()?.avatarUrl ?? null"
         [size]="32"
       />

@@ -83,8 +83,21 @@ class CompositionWorkflowNotificationAdapter(
             )
             return
         }
+        if (intent == "event") {
+            dispatcher.dispatch(
+                NotificationDispatchContext(
+                    intent = NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE,
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    troupeId = null,
+                    actorUserId = actorUserId,
+                    customMessageBody = messagePreview,
+                ),
+            )
+            return
+        }
         log.debug(
-            "manual_announcement_requested eventId={} seasonId={} intent={} messagePreviewLength={} actorUserId={}",
+            "manual_announcement_requested eventId={} seasonId={} intent={} messagePreviewLength={} actorUserId={} member_dispatch=skipped",
             eventId,
             seasonId,
             intent,

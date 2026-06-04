@@ -1,18 +1,16 @@
 /**
- * Generates Flyway V17 seed SQL for Les Improbots dev season:
- * - ~32 troupe members from members.csv (obfuscated emails)
- * - Event template_type + role_slots for all 30 seed events
- * - Partial realistic event_availability matrix
+ * Generates Les Improbots dev demo data as a single idempotent Flyway repeatable seed
+ * (PostgreSQL + H2 test/e2e via seed-postgresql classpath).
  *
  * Usage:
- *   node scripts/v2/generate-improbots-seed-sql.js
- *   node scripts/v2/generate-improbots-seed-sql.js --input=members.csv --output=services/api/src/main/resources/db/seed/V17__seed_improbots_members_events_availability.sql
+ *   npm run generate:improbots-dev-seed
+ *   node scripts/v2/generate-improbots-seed-sql.js --input=members.csv
  *
  * Regenerate after editing members.csv (gitignored at repo root — PII).
  * Only the generated SQL (obfuscated emails) is committed.
  */
 
-import { readFileSync, writeFileSync } from 'fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 
@@ -36,7 +34,7 @@ const ROLE_KEYS = [
 ]
 
 const ROLE_PRESETS = {
-  match: { player: 5, mc: 1, referee: 1, assistant_referee: 2, volunteer: 5 },
+  match: { player: 5, mc: 1, referee: 1, assistant_referee: 2, volunteer: 5, coach: 1 },
   catch: { player: 9, mc: 1, dj: 1 },
   cabaret: { player: 5, mc: 1, dj: 1 },
   longform: { player: 4, mc: 1, dj: 1 },
@@ -153,6 +151,59 @@ export const SEED_PAST_EVENTS = [
     startsAt: '2026-05-10T15:00:00Z',
     archived: true,
   },
+]
+
+/** Disponibilités Historique (story 3.6b) — mix Dispo / Pas dispo pour filtres. */
+const SEED_HISTORIQUE_AVAILABILITY = [
+  { id: 'e0000001-0000-4000-8000-000000000001', eventId: 'c0000031-0000-4000-8000-000000000031', participantId: 'f0000001-0000-4000-8000-000000000022', status: 'AVAILABLE', roleKeys: ['player'] },
+  { id: 'e0000001-0000-4000-8000-000000000002', eventId: 'c0000032-0000-4000-8000-000000000032', participantId: 'f0000001-0000-4000-8000-000000000022', status: 'UNAVAILABLE', roleKeys: [] },
+  { id: 'e0000001-0000-4000-8000-000000000003', eventId: 'c0000033-0000-4000-8000-000000000033', participantId: 'f0000001-0000-4000-8000-000000000022', status: 'AVAILABLE', roleKeys: ['mc'] },
+  { id: 'e0000001-0000-4000-8000-000000000004', eventId: 'c0000034-0000-4000-8000-000000000034', participantId: 'f0000001-0000-4000-8000-000000000022', status: 'AVAILABLE', roleKeys: ['player'] },
+  { id: 'e0000001-0000-4000-8000-000000000005', eventId: 'c0000035-0000-4000-8000-000000000035', participantId: 'f0000001-0000-4000-8000-000000000022', status: 'UNAVAILABLE', roleKeys: [] },
+  { id: 'e0000001-0000-4000-8000-000000000006', eventId: 'c0000039-0000-4000-8000-000000000039', participantId: 'f0000001-0000-4000-8000-000000000022', status: 'AVAILABLE', roleKeys: ['dj'] },
+  { id: 'e0000001-0000-4000-8000-000000000007', eventId: 'c0000031-0000-4000-8000-000000000031', participantId: 'f0000001-0000-4000-8000-000000000018', status: 'AVAILABLE', roleKeys: ['player'] },
+  { id: 'e0000001-0000-4000-8000-000000000008', eventId: 'c0000031-0000-4000-8000-000000000031', participantId: 'f0000001-0000-4000-8000-000000000005', status: 'AVAILABLE', roleKeys: ['dj'] },
+  { id: 'e0000001-0000-4000-8000-000000000009', eventId: 'c0000032-0000-4000-8000-000000000032', participantId: 'f0000001-0000-4000-8000-000000000006', status: 'AVAILABLE', roleKeys: ['mc'] },
+  { id: 'e0000001-0000-4000-8000-00000000000a', eventId: 'c0000033-0000-4000-8000-000000000033', participantId: 'f0000001-0000-4000-8000-000000000006', status: 'UNAVAILABLE', roleKeys: [] },
+]
+
+const SEED_HISTORIQUE_COMPOSITIONS = [
+  {
+    eventId: 'c0000031-0000-4000-8000-000000000031',
+    validatedAt: '2026-04-13T10:00:00Z',
+    publishedAt: '2026-04-13T10:00:00Z',
+    slots: [
+      { id: '90001001-0000-4000-8000-000000000001', roleKey: 'player', slotIndex: 0, participantSeq: 22, status: 'CONFIRMED' },
+      { id: '90001001-0000-4000-8000-000000000002', roleKey: 'player', slotIndex: 1, participantSeq: 18, status: 'CONFIRMED' },
+      { id: '90001001-0000-4000-8000-000000000003', roleKey: 'player', slotIndex: 2, participantSeq: 5, status: 'CONFIRMED' },
+      { id: '90001001-0000-4000-8000-000000000004', roleKey: 'mc', slotIndex: 0, participantSeq: 6, status: 'CONFIRMED' },
+      { id: '90001001-0000-4000-8000-000000000005', roleKey: 'dj', slotIndex: 0, participantSeq: 25, status: 'CONFIRMED' },
+    ],
+  },
+  {
+    eventId: 'c0000032-0000-4000-8000-000000000032',
+    validatedAt: null,
+    publishedAt: '2026-04-06T12:00:00Z',
+    slots: [
+      { id: '90001002-0000-4000-8000-000000000001', roleKey: 'player', slotIndex: 0, participantSeq: 18, status: 'PENDING' },
+      { id: '90001002-0000-4000-8000-000000000002', roleKey: 'mc', slotIndex: 0, participantSeq: 6, status: 'PENDING' },
+    ],
+  },
+]
+
+const FLYWAY_IMPROBOTS_SUPERSEDED_STUB = `-- Superseded by db/seed-postgresql/R__seed_improbots_dev_demo.sql
+-- Regenerate: npm run generate:improbots-dev-seed
+SELECT 1 WHERE 1 = 0;
+`
+
+const SUPERSEDED_VERSIONED_SEED_FILES = [
+  'V6__seed_events_la_malice_2026_2027.sql',
+  'V17__seed_malice_members_events_availability.sql',
+  'V19__seed_malice_composition_drafts.sql',
+  'V22__seed_mvp_pilot_recette.sql',
+  'V26__seed_malice_past_events_historique.sql',
+  'V49__seed_improbots_event_details.sql',
+  'V48__seed_availability_opened_at_backfill.sql',
 ]
 
 /** Sync with V6 event IDs c0000001 … c0000030 — descriptions, lieux et horaires variés pour QA UI. */
@@ -587,93 +638,395 @@ function mvpPilotSlotId(index) {
 
 const MVP_PILOT_EVENT_IDS = new Set(MVP_PILOT_EVENTS.map((event) => event.id))
 
-function eventDetailsUpdateSql(event) {
-  return (
-    `UPDATE events SET title = ${sqlString(event.title)}, description = ${sqlString(event.description)}, ` +
-    `location = ${sqlString(event.location)}, starts_at = ${sqlString(event.startsAt)}, updated_at = CURRENT_TIMESTAMP ` +
-    `WHERE id = ${sqlString(event.id)};`
-  )
+function slugFromTitle(title) {
+  const trimmed = (title || '').trim()
+  if (!trimmed) return ''
+  const lower = stripAccents(trimmed).toLowerCase()
+  const alnum = lower.replace(/[^a-z0-9]+/g, '-')
+  const collapsed = alnum.replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+  return collapsed.slice(0, 128)
 }
 
-/** Flyway V6 — INSERT initial des 30 spectacles saison Les Improbots. */
-export function buildImprobotsEventsV6Sql() {
-  const valueRows = SEED_EVENTS.map((event) => {
-    return (
-      `    (${sqlString(event.id)}, ${sqlString(SEED_SEASON_ID)}, ${sqlString(event.title)}, ${sqlString(event.description)}, ` +
-      `${sqlString(event.location)}, ${sqlString(event.startsAt)}, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
-    )
+/** Slugs uniques par saison — aligné sur EventSlugGenerator.allocateUniqueSlug (API). */
+function allocateEventSlugs(events) {
+  const used = new Set()
+  return events.map((event) => {
+    let base = slugFromTitle(event.title)
+    if (!base) {
+      base = `event-${event.id.replace(/-/g, '').slice(0, 12)}`
+    }
+    let n = 1
+    let candidate = base
+    while (used.has(candidate)) {
+      n += 1
+      const suffix = `-${n}`
+      const maxBase = Math.max(1, 128 - suffix.length)
+      candidate = base.slice(0, maxBase).replace(/-+$/, '') + suffix
+    }
+    used.add(candidate)
+    return { ...event, slug: candidate }
   })
+}
 
-  return `${[
-    '-- Seed dev/test : saison complète (~30 spectacles) pour Les Improbots 2026-2027',
-    '-- Objectif: alimenter l\'écran saison/agenda avec un volume réaliste (2 à 4 événements / mois).',
-    '-- Saison seed : b0000001-0000-4000-8000-000000000001 (V4).',
-    '-- Généré par scripts/v2/generate-improbots-seed-sql.js — regénérer: npm run generate:improbots-events-seed',
-    '-- Pas de colonne slug ici : V6 s\'exécute avant db/migration V24 qui backfill events.slug depuis title.',
+function buildSeasonEventInsertPlain(event) {
+  const slots = event.roleSlots ?? slotsFor(event.templateType, event.customSlots ?? null)
+  const slotsJson = JSON.stringify(slots)
+  const id = sqlString(event.id)
+  return [
+    `INSERT INTO events (id, season_id, slug, title, description, location, starts_at, archived, template_type, role_slots, created_at, updated_at)`,
+    `SELECT CAST(${id} AS uuid), CAST(${sqlString(SEED_SEASON_ID)} AS uuid), ${sqlString(event.slug)}, ${sqlString(event.title)}, ${sqlString(event.description)}, ${sqlString(event.location)}, ${sqlString(event.startsAt)}, FALSE, ${sqlString(event.templateType)}, ${sqlString(slotsJson)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (SELECT 1 FROM events e WHERE e.id = CAST(${id} AS uuid));`,
+  ].join('\n')
+}
+
+function buildPastEventInsertPlain(event) {
+  const slots = event.roleSlots ?? slotsFor(event.templateType, event.customSlots ?? null)
+  const slotsJson = JSON.stringify(slots)
+  const category = event.category ? sqlString(event.category) : 'NULL'
+  const archived = event.archived ? 'TRUE' : 'FALSE'
+  const id = sqlString(event.id)
+  return [
+    `INSERT INTO events (id, season_id, slug, title, description, location, starts_at, archived, template_type, role_slots, category, created_at, updated_at)`,
+    `SELECT CAST(${id} AS uuid), CAST(${sqlString(SEED_SEASON_ID)} AS uuid), ${sqlString(event.slug)}, ${sqlString(event.title)}, ${sqlString(event.description)}, ${sqlString(event.location)}, ${sqlString(event.startsAt)}, ${archived}, ${sqlString(event.templateType)}, ${sqlString(slotsJson)}, ${category}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (SELECT 1 FROM events e WHERE e.id = CAST(${id} AS uuid));`,
+  ].join('\n')
+}
+
+function buildHistoriqueTroupeCategoryInsert() {
+  return [
+    'INSERT INTO troupe_categories (id, troupe_id, slug, label)',
+    'SELECT',
+    "    'a1000001-0000-4000-8000-000000000001',",
+    "    'a0000001-0000-4000-8000-000000000001',",
+    "    'deplacements',",
+    "    'Déplacements'",
+    'WHERE NOT EXISTS (',
+    "    SELECT 1 FROM troupe_categories",
+    "    WHERE troupe_id = 'a0000001-0000-4000-8000-000000000001'",
+    "      AND slug = 'deplacements'",
+    ');',
+  ].join('\n')
+}
+
+function buildHistoriqueAvailabilityInsert(row) {
+  const roleKeysJson = JSON.stringify(row.roleKeys)
+  return [
+    'INSERT INTO event_availability (id, event_id, user_id, season_participant_id, status, role_keys, created_at, updated_at)',
+    `SELECT CAST(${sqlString(row.id)} AS uuid), CAST(${sqlString(row.eventId)} AS uuid), NULL, CAST(${sqlString(row.participantId)} AS uuid), '${row.status}', ${sqlString(roleKeysJson)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (SELECT 1 FROM event_availability ea WHERE ea.id = CAST(${sqlString(row.id)} AS uuid));`,
+  ].join('\n')
+}
+
+function buildHistoriqueCompositionInsert(composition) {
+  const validated = composition.validatedAt ? sqlString(composition.validatedAt) : 'NULL'
+  const published = composition.publishedAt ? sqlString(composition.publishedAt) : 'NULL'
+  return [
+    'INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)',
+    `SELECT CAST(${sqlString(composition.eventId)} AS uuid), ${validated}, ${published}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (SELECT 1 FROM event_compositions ec WHERE ec.event_id = CAST(${sqlString(composition.eventId)} AS uuid));`,
+  ].join('\n')
+}
+
+function buildHistoriqueCompositionSlotInsert(composition, slot) {
+  const participantId = participantIdFromSeq(slot.participantSeq)
+  return [
+    'INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, participation_status, waived, created_at, updated_at)',
+    `SELECT CAST(${sqlString(slot.id)} AS uuid), CAST(${sqlString(composition.eventId)} AS uuid), ${sqlString(slot.roleKey)}, ${slot.slotIndex}, CAST(${sqlString(participantId)} AS uuid), '${slot.status}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots ecs WHERE ecs.id = CAST(${sqlString(slot.id)} AS uuid));`,
+  ].join('\n')
+}
+
+function buildHistoriquePastSqlLines() {
+  const lines = [
+    '-- Glossaire catégorie pour le déplacement passé (ADR-0013).',
+    buildHistoriqueTroupeCategoryInsert(),
     '',
-    'INSERT INTO events (id, season_id, title, description, location, starts_at, archived, created_at, updated_at)',
-    'VALUES',
-    valueRows.join(',\n'),
-    ';',
+    '-- Disponibilités passées (filtres Historique).',
+  ]
+  for (const row of SEED_HISTORIQUE_AVAILABILITY) {
+    lines.push(buildHistoriqueAvailabilityInsert(row))
+  }
+  lines.push('', '-- Compositions passées (Historique).')
+  for (const composition of SEED_HISTORIQUE_COMPOSITIONS) {
+    lines.push(buildHistoriqueCompositionInsert(composition))
+    for (const slot of composition.slots) {
+      lines.push(buildHistoriqueCompositionSlotInsert(composition, slot))
+    }
+  }
+  return lines
+}
+
+function buildV17InsertWithSlugPlain(member) {
+  const id = sqlString(member.userId)
+  return [
+    `INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)`,
+    `SELECT CAST(${id} AS uuid), ${sqlString(member.googleSub)}, NULL, ${sqlString(member.obfuscatedEmail)}, ${sqlString(member.displayName)}, ${sqlString(member.slug)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST(${id} AS uuid));`,
+  ].join('\n')
+}
+
+function buildV17MembershipInsertPlain(member) {
+  const id = sqlString(member.membershipId)
+  return [
+    `INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, preferred_role_keys, created_at, updated_at)`,
+    `SELECT CAST(${id} AS uuid), CAST(${sqlString(SEED_TROUPE_ID)} AS uuid), CAST(${sqlString(member.userId)} AS uuid), 'ACTIVE', '${member.baselineRole}', ${sqlString(member.displayName)}, '[]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (SELECT 1 FROM troupe_memberships tm WHERE tm.id = CAST(${id} AS uuid));`,
+  ].join('\n')
+}
+
+function buildV17ParticipantInsertPlain(member) {
+  const id = sqlString(member.participantId)
+  return [
+    `INSERT INTO season_participants (id, season_id, display_name, normalized_email, user_id, troupe_membership_id, status, created_at, updated_at)`,
+    `SELECT CAST(${id} AS uuid), CAST(${sqlString(SEED_SEASON_ID)} AS uuid), ${sqlString(member.displayName)}, ${sqlString(member.obfuscatedEmail)}, CAST(${sqlString(member.userId)} AS uuid), CAST(${sqlString(member.membershipId)} AS uuid), 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (SELECT 1 FROM season_participants sp WHERE sp.id = CAST(${id} AS uuid));`,
+  ].join('\n')
+}
+
+export function availabilityIdFromSeq(seq) {
+  return `80000001-0000-4000-8000-${String(seq).padStart(12, '0')}`
+}
+
+function buildV17AvailabilityInsertPlain(row) {
+  const roleKeysJson = JSON.stringify(row.roleKeys)
+  const id = sqlString(row.id)
+  return [
+    `INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)`,
+    `SELECT CAST(${id} AS uuid), CAST(${sqlString(row.eventId)} AS uuid), CAST(${sqlString(row.userId)} AS uuid), '${row.status}', ${sqlString(roleKeysJson)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `WHERE NOT EXISTS (`,
+    `    SELECT 1 FROM event_availability ea`,
+    `    WHERE ea.event_id = CAST(${sqlString(row.eventId)} AS uuid) AND ea.user_id = CAST(${sqlString(row.userId)} AS uuid)`,
+    `);`,
+  ].join('\n')
+}
+
+function buildV17SeasonParticipantCountUpdatePlain() {
+  return [
+    'UPDATE seasons',
+    'SET',
+    "    participant_count = (SELECT COUNT(*) FROM season_participants sp WHERE sp.season_id = seasons.id AND sp.status = 'ACTIVE'),",
+    '    updated_at = CURRENT_TIMESTAMP',
+    `WHERE id = ${sqlString(SEED_SEASON_ID)};`,
+  ].join('\n')
+}
+
+function buildAvailabilityOpenedAtBackfillLines() {
+  return [
+    '-- Story 3.21: ouvrir les dispos sur les spectacles seedés (après inserts availability).',
+    'UPDATE events e',
+    'SET availability_opened_at = e.created_at,',
+    '    updated_at = CURRENT_TIMESTAMP',
+    'WHERE availability_opened_at IS NULL',
+    '  AND EXISTS (',
+    '    SELECT 1',
+    '    FROM event_availability ea',
+    '    WHERE ea.event_id = e.id',
+    '  );',
     '',
+    '-- QA drafts (V47): garder deux spectacles fermés pour recette publish flow.',
+    'UPDATE events',
+    'SET availability_opened_at = NULL,',
+    '    updated_at = CURRENT_TIMESTAMP',
+    'WHERE id IN (',
+    "    'c0000025-0000-4000-8000-000000000025',",
+    "    'c0000026-0000-4000-8000-000000000026'",
+    ');',
+  ]
+}
+
+function buildV6SeasonCountUpdate() {
+  return [
     '-- Maintenir les stats saison cohérentes avec les seeds.',
     'UPDATE seasons',
     'SET',
     '    event_count = (SELECT COUNT(*) FROM events e WHERE e.season_id = seasons.id AND e.archived = FALSE),',
     '    updated_at = CURRENT_TIMESTAMP',
     `WHERE id = ${sqlString(SEED_SEASON_ID)};`,
+  ].join('\n')
+}
+
+/** Single idempotent dev demo seed — schéma courant (slug, season_participant_id, availability.id). */
+export function buildImprobotsDevDemoSql(members, availability) {
+  const seasonEvents = allocateEventSlugs(
+    SEED_EVENTS.map((event) => ({
+      ...event,
+      roleSlots: slotsFor(event.templateType, event.customSlots ?? null),
+    })),
+  )
+  const pastEvents = SEED_PAST_EVENTS.map((event) => ({
+    ...event,
+    roleSlots: slotsFor(event.templateType, event.customSlots ?? null),
+  }))
+
+  return `${[
+    '-- Generated by scripts/v2/generate-improbots-seed-sql.js — do not edit by hand.',
+    '-- Regenerate: npm run generate:improbots-dev-seed',
+    '-- Les Improbots dev demo : events, roster, dispos, compositions, MVP pilot, Historique.',
+    '-- Idempotent (NOT EXISTS) — safe on Neon reset depuis prod et sur H2 test/e2e.',
+    '',
+    `-- ${members.length} members, ${seasonEvents.length} season events, ${pastEvents.length} past events, ${availability.length} availability rows`,
+    '',
+    '-- Season events (Les Improbots 2026-2027)',
+    ...seasonEvents.map((event) => buildSeasonEventInsertPlain(event)),
+    '',
+    '-- Past events (Historique, story 3.6b)',
+    ...pastEvents.map((event) => buildPastEventInsertPlain(event)),
+    '',
+    '-- Users (@seed.improbots.test — members.csv gitignored)',
+    ...members.flatMap((member) => buildV17InsertWithSlugPlain(member)),
+    '',
+    '-- Troupe memberships',
+    ...members.flatMap((member) => buildV17MembershipInsertPlain(member)),
+    '',
+    '-- Season participants',
+    ...members.flatMap((member) => buildV17ParticipantInsertPlain(member)),
+    '',
+    '-- Event availability (partial matrix)',
+    ...availability.flatMap((row) => buildV17AvailabilityInsertPlain(row)),
+    '',
+    '-- Historique (catégories, dispos et compositions passées)',
+    ...buildHistoriquePastSqlLines(),
+    '',
+    '-- Composition drafts (story 6.3)',
+    ...buildCompositionSqlLines({ repair: true }),
+    '',
+    '-- MVP pilot recette',
+    ...buildMvpPilotSqlLines({ repair: true }),
+    '',
+    ...buildAvailabilityOpenedAtBackfillLines(),
+    '',
+    buildV17SeasonParticipantCountUpdatePlain(),
+    buildV6SeasonCountUpdate(),
     '',
   ].join('\n')}\n`
 }
 
-/** Flyway V49 — enrichit descriptions, lieux et horaires (bases dev déjà migrées). */
-export function buildImprobotsEventsEnrichmentSql() {
-  const seasonEvents = SEED_EVENTS.filter((event) => !MVP_PILOT_EVENT_IDS.has(event.id))
-  const lines = [
-    '-- Generated by scripts/v2/generate-improbots-seed-sql.js — do not edit by hand.',
-    '-- Regenerate: npm run generate:improbots-events-seed',
-    '-- Descriptions, lieux et horaires variés pour QA UI (onglet Infos, cartes agenda).',
-    '-- Exclut les spectacles [MVP] (V22) — métadonnées MVP dans le générateur MVP.',
-    '',
-    `-- ${seasonEvents.length} spectacles saison + ${SEED_PAST_EVENTS.length} passés (V26)`,
-    '',
-  ]
-
-  for (const event of seasonEvents) {
-    lines.push(`-- ${event.title}`)
-    lines.push(eventDetailsUpdateSql(event))
-  }
-
-  lines.push('', '-- Spectacles passés (Historique, V26)')
-  for (const event of SEED_PAST_EVENTS) {
-    lines.push(`-- ${event.title}`)
-    lines.push(eventDetailsUpdateSql(event))
-  }
-
-  lines.push('')
-  return `${lines.join('\n')}\n`
+export function buildFlywaySupersededVersionedStubs() {
+  return SUPERSEDED_VERSIONED_SEED_FILES.map((file) => ({
+    file,
+    sql: `${FLYWAY_IMPROBOTS_SUPERSEDED_STUB}\n`,
+  }))
 }
 
-/**
- * Flyway V22 — MVP pilot recette: 6 spectacles, dispos complètes, états de composition ciblés.
- */
-export function buildMalicieMvpPilotSeedSql() {
+function buildCompositionCompositionInsert(draft, { repair }) {
+  const validated = draft.validatedAt ? sqlString(draft.validatedAt) : 'NULL'
+  const published = draft.publishedAt ? sqlString(draft.publishedAt) : 'NULL'
+  if (repair) {
+    return [
+      'INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)',
+      `SELECT CAST(${sqlString(draft.eventId)} AS uuid), ${validated}, ${published}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+      `WHERE NOT EXISTS (SELECT 1 FROM event_compositions ec WHERE ec.event_id = CAST(${sqlString(draft.eventId)} AS uuid));`,
+    ].join('\n')
+  }
+  return (
+    'INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at) VALUES (' +
+    `${sqlString(draft.eventId)}, ${validated}, ${published}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`
+  )
+}
+
+function buildCompositionSlotInsert(draft, slot, slotId, { repair }) {
+  const participantId = participantIdFromSeq(slot.participantSeq)
+  if (repair) {
+    return [
+      'INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)',
+      `SELECT CAST(${sqlString(slotId)} AS uuid), CAST(${sqlString(draft.eventId)} AS uuid), ${sqlString(slot.roleKey)}, ${slot.slotIndex}, CAST(${sqlString(participantId)} AS uuid), NULL, '${slot.participationStatus}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+      `WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots ecs WHERE ecs.id = CAST(${sqlString(slotId)} AS uuid));`,
+    ].join('\n')
+  }
+  return (
+    'INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, participant_id, participation_status, waived, created_at, updated_at) VALUES (' +
+    `${sqlString(slotId)}, ${sqlString(draft.eventId)}, ${sqlString(slot.roleKey)}, ${slot.slotIndex}, ${sqlString(participantId)}, '${slot.participationStatus}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`
+  )
+}
+
+/** SQL lines for V19 (fresh participant_id) or R__ repair (season_participant_id, idempotent). */
+export function buildCompositionSqlLines({ repair = false } = {}) {
+  let slotSeq = 1
+  const lines = ['-- event_compositions']
+  for (const draft of SEED_COMPOSITION_DRAFTS) {
+    lines.push(`-- ${draft.label}`)
+    lines.push(buildCompositionCompositionInsert(draft, { repair }))
+  }
+  lines.push('', '-- event_composition_slots')
+  for (const draft of SEED_COMPOSITION_DRAFTS) {
+    for (const slot of draft.slots) {
+      const slotId = compositionSlotIdFromSeq(slotSeq)
+      slotSeq += 1
+      lines.push(buildCompositionSlotInsert(draft, slot, slotId, { repair }))
+    }
+  }
+  return lines
+}
+
+export function mvpPilotAvailabilityIdFromSeq(seq) {
+  return `80000002-0000-4000-8000-${String(seq).padStart(12, '0')}`
+}
+
+function buildMvpAvailabilityInsert(ev, userId, availId, availRoleKeys, { repair }) {
+  if (repair) {
+    return [
+      'INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)',
+      `SELECT CAST(${sqlString(availId)} AS uuid), CAST(${sqlString(ev.id)} AS uuid), CAST(${sqlString(userId)} AS uuid), 'AVAILABLE', ${sqlString(availRoleKeys)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+      'WHERE NOT EXISTS (',
+      '    SELECT 1 FROM event_availability ea',
+      `    WHERE ea.event_id = CAST(${sqlString(ev.id)} AS uuid) AND ea.user_id = CAST(${sqlString(userId)} AS uuid)`,
+      ');',
+    ].join('\n')
+  }
+  return `INSERT INTO event_availability (event_id, user_id, status, role_keys, created_at, updated_at) VALUES (${sqlString(ev.id)}, ${sqlString(userId)}, 'AVAILABLE', ${sqlString(availRoleKeys)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`
+}
+
+function buildMvpCompositionInsert(eventId, validatedAt, publishedAt, { repair }) {
+  if (repair) {
+    return [
+      'INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at)',
+      `SELECT CAST(${sqlString(eventId)} AS uuid), ${sqlString(validatedAt)}, ${sqlString(publishedAt)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+      `WHERE NOT EXISTS (SELECT 1 FROM event_compositions ec WHERE ec.event_id = CAST(${sqlString(eventId)} AS uuid));`,
+    ].join('\n')
+  }
+  return `INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at) VALUES (${sqlString(eventId)}, ${sqlString(validatedAt)}, ${sqlString(publishedAt)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`
+}
+
+function buildMvpCompositionSlotInsert(eventId, slot, slotId, { repair }) {
+  const participantId = participantIdFromSeq(slot.participantSeq)
+  if (repair) {
+    return [
+      'INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at)',
+      `SELECT CAST(${sqlString(slotId)} AS uuid), CAST(${sqlString(eventId)} AS uuid), ${sqlString(slot.roleKey)}, ${slot.slotIndex}, CAST(${sqlString(participantId)} AS uuid), NULL, '${slot.status}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+      `WHERE NOT EXISTS (SELECT 1 FROM event_composition_slots ecs WHERE ecs.id = CAST(${sqlString(slotId)} AS uuid));`,
+    ].join('\n')
+  }
+  return `INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at) VALUES (${sqlString(slotId)}, ${sqlString(eventId)}, ${sqlString(slot.roleKey)}, ${slot.slotIndex}, ${sqlString(participantId)}, NULL, '${slot.status}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`
+}
+
+function buildMvpDeclineInsert(gapsEventId, validatedAt, { repair }) {
+  const declineId = deterministicUuid('a0000002', 1)
+  if (repair) {
+    return [
+      'INSERT INTO event_composition_declines (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, declined_by_user_id, declined_at, note, created_at)',
+      `SELECT CAST(${sqlString(declineId)} AS uuid), CAST(${sqlString(gapsEventId)} AS uuid), 'player', 2, CAST(${sqlString(participantIdFromSeq(28))} AS uuid), NULL, CAST(${sqlString(deterministicUuid('d0000001', 28))} AS uuid), ${sqlString(validatedAt)}, NULL, CURRENT_TIMESTAMP`,
+      `WHERE NOT EXISTS (SELECT 1 FROM event_composition_declines ecd WHERE ecd.id = CAST(${sqlString(declineId)} AS uuid));`,
+    ].join('\n')
+  }
+  return `INSERT INTO event_composition_declines (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, declined_by_user_id, declined_at, note, created_at) VALUES (${sqlString(declineId)}, ${sqlString(gapsEventId)}, 'player', 2, ${sqlString(participantIdFromSeq(28))}, NULL, ${sqlString(deterministicUuid('d0000001', 28))}, ${sqlString(validatedAt)}, NULL, CURRENT_TIMESTAMP);`
+}
+
+/** SQL lines for V22 (fresh) or R__ repair (availability with id, idempotent). */
+export function buildMvpPilotSqlLines({ repair = false } = {}) {
   const eventIds = MVP_PILOT_EVENTS.map((e) => e.id)
+  const eventIdsSql = eventIds.map(sqlString).join(', ')
   const roleKeysJson = JSON.stringify(MVP_PILOT_ROLE_SLOTS)
   const availRoleKeys = JSON.stringify(['player', 'mc', 'dj'])
+  const validatedAt = '2026-06-01T12:00:00Z'
+  const publishedAt = '2026-06-01T12:00:00Z'
+
   const lines = [
-    '-- Generated by scripts/v2/generate-improbots-seed-sql.js — do not edit by hand.',
-    '-- Regenerate: npm run generate:improbots-mvp-pilot-seed',
-    '-- MVP pilot: one admin (Patrice) validates composition flows with proxy dispos/confirmations.',
-    '',
-    `-- ${MVP_PILOT_EVENTS.length} events, cast of ${MVP_PILOT_CAST.length}, 5 slots per spectacle`,
-    '',
     '-- Patrice = season organizer (canManageComposition on all season events)',
-    `INSERT INTO season_organizers (season_id, user_id, granted_by_user_id, granted_at)`,
-    `SELECT ${sqlString(SEED_SEASON_ID)}, ${sqlString(MVP_PILOT_USER_ID)}, ${sqlString(MVP_PILOT_USER_ID)}, CURRENT_TIMESTAMP`,
-    `WHERE NOT EXISTS (`,
-    `  SELECT 1 FROM season_organizers WHERE season_id = ${sqlString(SEED_SEASON_ID)} AND user_id = ${sqlString(MVP_PILOT_USER_ID)}`,
-    `);`,
+    'INSERT INTO season_organizers (season_id, user_id, granted_by_user_id, granted_at)',
+    `SELECT CAST(${sqlString(SEED_SEASON_ID)} AS uuid), CAST(${sqlString(MVP_PILOT_USER_ID)} AS uuid), CAST(${sqlString(MVP_PILOT_USER_ID)} AS uuid), CURRENT_TIMESTAMP`,
+    'WHERE NOT EXISTS (',
+    `  SELECT 1 FROM season_organizers WHERE season_id = CAST(${sqlString(SEED_SEASON_ID)} AS uuid) AND user_id = CAST(${sqlString(MVP_PILOT_USER_ID)} AS uuid)`,
+    ');',
     '',
     '-- Spectacles MVP (titles, dates, minimal role_slots)',
   ]
@@ -686,41 +1039,29 @@ export function buildMalicieMvpPilotSeedSql() {
   }
 
   lines.push('', '-- Reset availability + composition on MVP events only')
-  lines.push(
-    `DELETE FROM event_composition_declines WHERE event_id IN (${eventIds.map(sqlString).join(', ')});`,
-  )
-  lines.push(
-    `DELETE FROM event_composition_slots WHERE event_id IN (${eventIds.map(sqlString).join(', ')});`,
-  )
-  lines.push(
-    `DELETE FROM event_compositions WHERE event_id IN (${eventIds.map(sqlString).join(', ')});`,
-  )
-  lines.push(
-    `DELETE FROM event_availability WHERE event_id IN (${eventIds.map(sqlString).join(', ')});`,
-  )
+  lines.push(`DELETE FROM event_composition_declines WHERE event_id IN (${eventIdsSql});`)
+  lines.push(`DELETE FROM event_composition_slots WHERE event_id IN (${eventIdsSql});`)
+  lines.push(`DELETE FROM event_compositions WHERE event_id IN (${eventIdsSql});`)
+  lines.push(`DELETE FROM event_availability WHERE event_id IN (${eventIdsSql});`)
 
   lines.push('', '-- Full availability for MVP cast (Dispo + candidature player/mc/dj)')
+  let availSeq = 1
   for (const ev of MVP_PILOT_EVENTS) {
     for (const member of MVP_PILOT_CAST) {
       const userId = deterministicUuid('d0000001', member.userSeq)
-      lines.push(
-        `INSERT INTO event_availability (event_id, user_id, status, role_keys, created_at, updated_at) VALUES (${sqlString(ev.id)}, ${sqlString(userId)}, 'AVAILABLE', ${sqlString(availRoleKeys)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-      )
+      const availId = mvpPilotAvailabilityIdFromSeq(availSeq)
+      availSeq += 1
+      lines.push(buildMvpAvailabilityInsert(ev, userId, availId, availRoleKeys, { repair }))
     }
   }
-
-  const validatedAt = '2026-06-01T12:00:00Z'
-  const publishedAt = '2026-06-01T12:00:00Z'
-  let slotIndex = 1
 
   const awaitingEvent = MVP_PILOT_EVENTS.find((e) => e.scenario === 'awaiting-confirmations')
   const gapsEvent = MVP_PILOT_EVENTS.find((e) => e.scenario === 'gaps-to-fill')
   const completeEvent = MVP_PILOT_EVENTS.find((e) => e.scenario === 'complete')
 
+  let slotIndex = 1
   lines.push('', '-- [MVP] 03 — validated, all slots filled, participation PENDING')
-  lines.push(
-    `INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at) VALUES (${sqlString(awaitingEvent.id)}, ${sqlString(validatedAt)}, ${sqlString(publishedAt)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-  )
+  lines.push(buildMvpCompositionInsert(awaitingEvent.id, validatedAt, publishedAt, { repair }))
   const awaitingSlots = [
     { roleKey: 'player', slotIndex: 0, participantSeq: 1, status: 'PENDING' },
     { roleKey: 'player', slotIndex: 1, participantSeq: 18, status: 'PENDING' },
@@ -729,16 +1070,12 @@ export function buildMalicieMvpPilotSeedSql() {
     { roleKey: 'dj', slotIndex: 0, participantSeq: 5, status: 'PENDING' },
   ]
   for (const slot of awaitingSlots) {
-    lines.push(
-      `INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at) VALUES (${sqlString(mvpPilotSlotId(slotIndex))}, ${sqlString(awaitingEvent.id)}, ${sqlString(slot.roleKey)}, ${slot.slotIndex}, ${sqlString(participantIdFromSeq(slot.participantSeq))}, NULL, '${slot.status}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-    )
+    lines.push(buildMvpCompositionSlotInsert(awaitingEvent.id, slot, mvpPilotSlotId(slotIndex), { repair }))
     slotIndex += 1
   }
 
   lines.push('', '-- [MVP] 04 — validated, gap on player slot 2 (Sophie declined)')
-  lines.push(
-    `INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at) VALUES (${sqlString(gapsEvent.id)}, ${sqlString(validatedAt)}, ${sqlString(publishedAt)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-  )
+  lines.push(buildMvpCompositionInsert(gapsEvent.id, validatedAt, publishedAt, { repair }))
   const gapsSlots = [
     { roleKey: 'player', slotIndex: 0, participantSeq: 1, status: 'CONFIRMED' },
     { roleKey: 'player', slotIndex: 1, participantSeq: 18, status: 'PENDING' },
@@ -746,19 +1083,13 @@ export function buildMalicieMvpPilotSeedSql() {
     { roleKey: 'dj', slotIndex: 0, participantSeq: 5, status: 'CONFIRMED' },
   ]
   for (const slot of gapsSlots) {
-    lines.push(
-      `INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at) VALUES (${sqlString(mvpPilotSlotId(slotIndex))}, ${sqlString(gapsEvent.id)}, ${sqlString(slot.roleKey)}, ${slot.slotIndex}, ${sqlString(participantIdFromSeq(slot.participantSeq))}, NULL, '${slot.status}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-    )
+    lines.push(buildMvpCompositionSlotInsert(gapsEvent.id, slot, mvpPilotSlotId(slotIndex), { repair }))
     slotIndex += 1
   }
-  lines.push(
-    `INSERT INTO event_composition_declines (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, declined_by_user_id, declined_at, note, created_at) VALUES (${sqlString(deterministicUuid('a0000002', 1))}, ${sqlString(gapsEvent.id)}, 'player', 2, ${sqlString(participantIdFromSeq(28))}, NULL, ${sqlString(deterministicUuid('d0000001', 28))}, ${sqlString(validatedAt)}, NULL, CURRENT_TIMESTAMP);`,
-  )
+  lines.push(buildMvpDeclineInsert(gapsEvent.id, validatedAt, { repair }))
 
   lines.push('', '-- [MVP] 05 — validated, all CONFIRMED (reference complete state)')
-  lines.push(
-    `INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at) VALUES (${sqlString(completeEvent.id)}, ${sqlString(validatedAt)}, ${sqlString(publishedAt)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-  )
+  lines.push(buildMvpCompositionInsert(completeEvent.id, validatedAt, publishedAt, { repair }))
   const completeSlots = [
     { roleKey: 'player', slotIndex: 0, participantSeq: 1, status: 'CONFIRMED' },
     { roleKey: 'player', slotIndex: 1, participantSeq: 18, status: 'CONFIRMED' },
@@ -767,52 +1098,151 @@ export function buildMalicieMvpPilotSeedSql() {
     { roleKey: 'dj', slotIndex: 0, participantSeq: 5, status: 'CONFIRMED' },
   ]
   for (const slot of completeSlots) {
-    lines.push(
-      `INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, season_participant_id, event_participant_id, participation_status, waived, created_at, updated_at) VALUES (${sqlString(mvpPilotSlotId(slotIndex))}, ${sqlString(completeEvent.id)}, ${sqlString(slot.roleKey)}, ${slot.slotIndex}, ${sqlString(participantIdFromSeq(slot.participantSeq))}, NULL, '${slot.status}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-    )
+    lines.push(buildMvpCompositionSlotInsert(completeEvent.id, slot, mvpPilotSlotId(slotIndex), { repair }))
     slotIndex += 1
   }
 
-  lines.push('')
-  return `${lines.join('\n')}\n`
+  return lines
 }
 
-export function buildMalicieCompositionSeedSql() {
-  let slotSeq = 1
-  const slotCount = SEED_COMPOSITION_DRAFTS.reduce((n, d) => n + d.slots.length, 0)
-  const lines = [
-    '-- Generated by scripts/v2/generate-improbots-seed-sql.js — do not edit by hand.',
-    '-- Regenerate: npm run generate:improbots-composition-seed',
-    '-- Story 6.3: draft compositions for Équipe tab QA (requires V18 event_compositions tables).',
-    '',
-    `-- ${SEED_COMPOSITION_DRAFTS.length} compositions, ${slotCount} assigned slots`,
-    '',
-    '-- event_compositions',
-  ]
-
-  for (const draft of SEED_COMPOSITION_DRAFTS) {
-    lines.push(`-- ${draft.label}`)
-    lines.push(
-      'INSERT INTO event_compositions (event_id, validated_at, published_at, created_at, updated_at) VALUES (' +
-        `${sqlString(draft.eventId)}, ${draft.validatedAt ? sqlString(draft.validatedAt) : 'NULL'}, ${draft.publishedAt ? sqlString(draft.publishedAt) : 'NULL'}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-    )
+/** Parse user INSERT lines from an existing dev demo / legacy seed SQL file. */
+export function parseLegacyUserInsertsFromV17(sql) {
+  const members = []
+  const valuesRe =
+    /INSERT INTO users \(id, google_sub, idp_uid, email, display_name, activated_at, created_at, updated_at\) VALUES \('([^']+)', '([^']+)', NULL, '([^']+)', '((?:''|[^'])*)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP\);/g
+  let match
+  while ((match = valuesRe.exec(sql)) !== null) {
+    const obfuscatedEmail = match[3]
+    members.push({
+      userId: match[1],
+      googleSub: match[2],
+      obfuscatedEmail,
+      displayName: match[4].replace(/''/g, "'"),
+      slug: obfuscatedEmail.split('@')[0],
+    })
   }
+  if (members.length > 0) return members
 
-  lines.push('', '-- event_composition_slots')
-  for (const draft of SEED_COMPOSITION_DRAFTS) {
-    for (const slot of draft.slots) {
-      const slotId = compositionSlotIdFromSeq(slotSeq)
-      const participantId = participantIdFromSeq(slot.participantSeq)
-      slotSeq += 1
-      lines.push(
-        'INSERT INTO event_composition_slots (id, event_id, role_key, slot_index, participant_id, participation_status, waived, created_at, updated_at) VALUES (' +
-          `${sqlString(slotId)}, ${sqlString(draft.eventId)}, ${sqlString(slot.roleKey)}, ${slot.slotIndex}, ${sqlString(participantId)}, '${slot.participationStatus}', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-      )
+  const selectWithSlugRe =
+    /SELECT CAST\('([^']+)' AS uuid\), '([^']+)', NULL, '([^']+)', '((?:''|[^'])*)', '([^']+)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP/g
+  while ((match = selectWithSlugRe.exec(sql)) !== null) {
+    members.push({
+      userId: match[1],
+      googleSub: match[2],
+      obfuscatedEmail: match[3],
+      displayName: match[4].replace(/''/g, "'"),
+      slug: match[5],
+    })
+  }
+  if (members.length > 0) return members
+
+  const selectRe =
+    /SELECT CAST\('([^']+)' AS uuid\), '([^']+)', NULL, '([^']+)', '((?:''|[^'])*)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP/g
+  while ((match = selectRe.exec(sql)) !== null) {
+    const obfuscatedEmail = match[3]
+    members.push({
+      userId: match[1],
+      googleSub: match[2],
+      obfuscatedEmail,
+      displayName: match[4].replace(/''/g, "'"),
+      slug: obfuscatedEmail.split('@')[0],
+    })
+  }
+  return members
+}
+
+/** Parse dependent rows (memberships, participants) from dev demo / legacy seed SQL. */
+export function parseLegacyMalicieMembersFromV17(sql) {
+  const users = parseLegacyUserInsertsFromV17(sql)
+  const byUserId = new Map(users.map((user, index) => {
+    const seq = index + 1
+    return [user.userId, {
+      ...user,
+      membershipId: deterministicUuid('e0000001', seq),
+      participantId: deterministicUuid('f0000001', seq),
+      baselineRole: 'MEMBER',
+    }]
+  }))
+  const membershipValuesRe =
+    /INSERT INTO troupe_memberships \(id, troupe_id, user_id, status, baseline_role, display_name, preferred_role_keys, created_at, updated_at\) VALUES \('([^']+)', '[^']+', '([^']+)', 'ACTIVE', '([^']+)', '((?:''|[^'])*)', '\[\]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP\);/g
+  let match
+  while ((match = membershipValuesRe.exec(sql)) !== null) {
+    const user = byUserId.get(match[2])
+    if (!user) continue
+    user.membershipId = match[1]
+    user.baselineRole = match[3]
+    user.displayName = match[4].replace(/''/g, "'")
+  }
+  const membershipSelectRe =
+    /SELECT CAST\('([^']+)' AS uuid\), CAST\('[^']+' AS uuid\), CAST\('([^']+)' AS uuid\), 'ACTIVE', '([^']+)', '((?:''|[^'])*)', '\[\]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP/g
+  while ((match = membershipSelectRe.exec(sql)) !== null) {
+    const user = byUserId.get(match[2])
+    if (!user) continue
+    user.membershipId = match[1]
+    user.baselineRole = match[3]
+    user.displayName = match[4].replace(/''/g, "'")
+  }
+  const participantValuesRe =
+    /INSERT INTO season_participants \(id, season_id, display_name, normalized_email, user_id, troupe_membership_id, status, created_at, updated_at\) VALUES \('([^']+)', '[^']+', '((?:''|[^'])*)', '([^']+)', '([^']+)', '([^']+)', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP\);/g
+  while ((match = participantValuesRe.exec(sql)) !== null) {
+    const user = byUserId.get(match[4])
+    if (!user) continue
+    user.participantId = match[1]
+    user.obfuscatedEmail = match[3]
+  }
+  const participantSelectRe =
+    /SELECT CAST\('([^']+)' AS uuid\), CAST\('[^']+' AS uuid\), '((?:''|[^'])*)', '([^']+)', CAST\('([^']+)' AS uuid\), CAST\('([^']+)' AS uuid\), 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP/g
+  while ((match = participantSelectRe.exec(sql)) !== null) {
+    const user = byUserId.get(match[4])
+    if (!user) continue
+    user.participantId = match[1]
+    user.obfuscatedEmail = match[3]
+  }
+  return [...byUserId.values()].filter((member) => member.membershipId && member.participantId)
+}
+
+export function parseLegacyAvailabilityFromV17(sql) {
+  const withIdRe =
+    /INSERT INTO event_availability \(id, event_id, user_id, status, role_keys, created_at, updated_at\)\s+SELECT CAST\('([^']+)' AS uuid\), CAST\('([^']+)' AS uuid\), CAST\('([^']+)' AS uuid\), '([^']+)', '((?:''|\\'|[^'])*)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP/g
+  const rows = []
+  let match
+  while ((match = withIdRe.exec(sql)) !== null) {
+    rows.push({
+      id: match[1],
+      eventId: match[2],
+      userId: match[3],
+      status: match[4],
+      roleKeys: JSON.parse(match[5].replace(/''/g, "'")),
+    })
+  }
+  if (rows.length > 0) return rows
+
+  const valuesRe =
+    /INSERT INTO event_availability \(event_id, user_id, status, role_keys, created_at, updated_at\) VALUES \('([^']+)', '([^']+)', '([^']+)', '((?:''|\\'|[^'])*)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP\);/g
+  while ((match = valuesRe.exec(sql)) !== null) {
+    rows.push({
+      eventId: match[1],
+      userId: match[2],
+      status: match[3],
+      roleKeys: JSON.parse(match[4].replace(/''/g, "'")),
+    })
+  }
+  if (rows.length === 0) {
+    const selectRe =
+      /INSERT INTO event_availability \(event_id, user_id, status, role_keys, created_at, updated_at\)\s+SELECT CAST\('([^']+)' AS uuid\), CAST\('([^']+)' AS uuid\), '([^']+)', '((?:''|\\'|[^'])*)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP/g
+    while ((match = selectRe.exec(sql)) !== null) {
+      rows.push({
+        eventId: match[1],
+        userId: match[2],
+        status: match[3],
+        roleKeys: JSON.parse(match[4].replace(/''/g, "'")),
+      })
     }
   }
-
-  lines.push('')
-  return `${lines.join('\n')}\n`
+  return rows.map((row, index) => ({
+    ...row,
+    id: row.id ?? availabilityIdFromSeq(index + 1),
+  }))
 }
 
 export function sqlString(value) {
@@ -848,6 +1278,7 @@ export function assignObfuscatedEmails(members) {
     return {
       ...member,
       obfuscatedEmail: `${candidate}@${SEED_EMAIL_DOMAIN}`,
+      slug: candidate,
     }
   })
 }
@@ -962,6 +1393,7 @@ export function buildAvailabilityRows(members, events) {
       const slots = slotsFor(event.templateType, event.customSlots ?? null)
       if (isUnavailable(ui, ei)) {
         rows.push({
+          id: availabilityIdFromSeq(rows.length + 1),
           eventId: event.id,
           userId: members[ui].userId,
           status: 'UNAVAILABLE',
@@ -969,6 +1401,7 @@ export function buildAvailabilityRows(members, events) {
         })
       } else {
         rows.push({
+          id: availabilityIdFromSeq(rows.length + 1),
           eventId: event.id,
           userId: members[ui].userId,
           status: 'AVAILABLE',
@@ -993,166 +1426,74 @@ export function buildMembersWithIds(obfuscatedMembers) {
   })
 }
 
-export function buildMalicieSeedSql(membersCsvText) {
-  const parsed = parseMembersCsv(membersCsvText)
-  const obfuscated = assignObfuscatedEmails(parsed)
-  const members = buildMembersWithIds(obfuscated)
-  const events = SEED_EVENTS.map((e) => ({
-    ...e,
-    roleSlots: slotsFor(e.templateType, e.customSlots ?? null),
-  }))
-  const availability = buildAvailabilityRows(members, events)
-
-  const lines = [
-    '-- Generated by scripts/v2/generate-improbots-seed-sql.js — do not edit by hand.',
-    '-- Regenerate: node scripts/v2/generate-improbots-seed-sql.js',
-    '-- Emails are obfuscated (@seed.improbots.test); members.csv at repo root is gitignored.',
-    '',
-    `-- ${members.length} users, ${events.length} event type updates, ${availability.length} availability rows`,
-    '',
-  ]
-
-  lines.push('-- Users')
-  for (const m of members) {
-    lines.push(
-      `INSERT INTO users (id, google_sub, idp_uid, email, display_name, activated_at, created_at, updated_at) VALUES (` +
-        `${sqlString(m.userId)}, ${sqlString(m.googleSub)}, NULL, ${sqlString(m.obfuscatedEmail)}, ${sqlString(m.displayName)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-    )
-  }
-
-  lines.push('', '-- Troupe memberships (Les Improbots)')
-  for (const m of members) {
-    lines.push(
-      `INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, preferred_role_keys, created_at, updated_at) VALUES (` +
-        `${sqlString(m.membershipId)}, ${sqlString(SEED_TROUPE_ID)}, ${sqlString(m.userId)}, 'ACTIVE', '${m.baselineRole}', ${sqlString(m.displayName)}, '[]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-    )
-  }
-
-  lines.push('', '-- Season participants')
-  for (const m of members) {
-    lines.push(
-      `INSERT INTO season_participants (id, season_id, display_name, normalized_email, user_id, troupe_membership_id, status, created_at, updated_at) VALUES (` +
-        `${sqlString(m.participantId)}, ${sqlString(SEED_SEASON_ID)}, ${sqlString(m.displayName)}, ${sqlString(m.obfuscatedEmail)}, ${sqlString(m.userId)}, ${sqlString(m.membershipId)}, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-    )
-  }
-
-  lines.push('', '-- Event types and role slots')
-  for (const event of events) {
-    const slotsJson = JSON.stringify(event.roleSlots)
-    lines.push(
-      `UPDATE events SET template_type = ${sqlString(event.templateType)}, role_slots = ${sqlString(slotsJson)}, updated_at = CURRENT_TIMESTAMP WHERE id = ${sqlString(event.id)};`,
-    )
-  }
-
-  lines.push('', '-- Event availability (partial matrix)')
-  for (const row of availability) {
-    const roleKeysJson = JSON.stringify(row.roleKeys)
-    lines.push(
-      `INSERT INTO event_availability (event_id, user_id, status, role_keys, created_at, updated_at) VALUES (` +
-        `${sqlString(row.eventId)}, ${sqlString(row.userId)}, '${row.status}', ${sqlString(roleKeysJson)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);`,
-    )
-  }
-
-  lines.push(
-    '',
-    'UPDATE seasons',
-    'SET',
-    "    participant_count = (SELECT COUNT(*) FROM season_participants sp WHERE sp.season_id = seasons.id AND sp.status = 'ACTIVE'),",
-    '    updated_at = CURRENT_TIMESTAMP',
-    `WHERE id = ${sqlString(SEED_SEASON_ID)};`,
-    '',
-  )
-
-  return `${lines.join('\n')}\n`
-}
-
 function parseArgs() {
   const args = process.argv.slice(2)
   let input = join(REPO_ROOT, 'members.csv')
-  let output = join(
+  let devDemoOutput = join(
     REPO_ROOT,
-    'services/api/src/main/resources/db/seed/V17__seed_malice_members_events_availability.sql',
+    'services/api/src/main/resources/db/seed-postgresql/R__seed_improbots_dev_demo.sql',
   )
-  let compositionOutput = join(
-    REPO_ROOT,
-    'services/api/src/main/resources/db/seed/V19__seed_malice_composition_drafts.sql',
-  )
-  let compositionOnly = false
-  let mvpPilotOnly = false
-  let eventsSeedOnly = false
-  let mvpPilotOutput = join(
-    REPO_ROOT,
-    'services/api/src/main/resources/db/seed/V22__seed_mvp_pilot_recette.sql',
-  )
-  let eventsV6Output = join(
-    REPO_ROOT,
-    'services/api/src/main/resources/db/seed/V6__seed_events_la_malice_2026_2027.sql',
-  )
-  let eventsEnrichmentOutput = join(
-    REPO_ROOT,
-    'services/api/src/main/resources/db/seed/V49__seed_improbots_event_details.sql',
-  )
+  let seedDir = join(REPO_ROOT, 'services/api/src/main/resources/db/seed')
   for (const arg of args) {
     if (arg.startsWith('--input=')) input = arg.slice(8)
-    else if (arg.startsWith('--output=')) output = arg.slice(9)
-    else if (arg.startsWith('--composition-output=')) compositionOutput = arg.slice(21)
-    else if (arg.startsWith('--mvp-pilot-output=')) mvpPilotOutput = arg.slice(19)
-    else if (arg.startsWith('--events-v6-output=')) eventsV6Output = arg.slice(19)
-    else if (arg.startsWith('--events-enrichment-output=')) eventsEnrichmentOutput = arg.slice(27)
-    else if (arg === '--composition-only') compositionOnly = true
-    else if (arg === '--mvp-pilot-only') mvpPilotOnly = true
-    else if (arg === '--events-seed-only') eventsSeedOnly = true
+    else if (arg.startsWith('--dev-demo-output=')) devDemoOutput = arg.slice(18)
   }
-  return {
-    input,
-    output,
-    compositionOutput,
-    compositionOnly,
-    mvpPilotOnly,
-    eventsSeedOnly,
-    mvpPilotOutput,
-    eventsV6Output,
-    eventsEnrichmentOutput,
+  return { input, devDemoOutput, seedDir }
+}
+
+function loadMembersAndAvailability(input, devDemoOutput) {
+  let parsed = []
+  try {
+    parsed = parseMembersCsv(readFileSync(input, 'utf8'))
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
   }
+
+  if (parsed.length > 0) {
+    const obfuscated = assignObfuscatedEmails(parsed)
+    const members = buildMembersWithIds(obfuscated)
+    const events = SEED_EVENTS.map((event) => ({
+      ...event,
+      roleSlots: slotsFor(event.templateType, event.customSlots ?? null),
+    }))
+    return { members, availability: buildAvailabilityRows(members, events) }
+  }
+
+  const fallbackPaths = [
+    devDemoOutput,
+    join(REPO_ROOT, 'services/api/src/main/resources/db/seed/V17__seed_malice_members_events_availability.sql'),
+  ]
+  for (const path of fallbackPaths) {
+    try {
+      const sql = readFileSync(path, 'utf8')
+      const members = parseLegacyMalicieMembersFromV17(sql)
+      if (members.length === 0) continue
+      const availability = parseLegacyAvailabilityFromV17(sql)
+      console.error(`No members in ${input} — loaded ${members.length} members from ${path}`)
+      return { members, availability }
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err
+    }
+  }
+
+  throw new Error(`No members in ${input} and no existing dev demo seed to parse`)
 }
 
 function main() {
-  const {
-    input,
-    output,
-    compositionOutput,
-    compositionOnly,
-    mvpPilotOnly,
-    eventsSeedOnly,
-    mvpPilotOutput,
-    eventsV6Output,
-    eventsEnrichmentOutput,
-  } = parseArgs()
-  if (eventsSeedOnly) {
-    writeFileSync(eventsV6Output, buildImprobotsEventsV6Sql(), 'utf8')
-    writeFileSync(eventsEnrichmentOutput, buildImprobotsEventsEnrichmentSql(), 'utf8')
-    console.error(`Wrote ${eventsV6Output}`)
-    console.error(`Wrote ${eventsEnrichmentOutput}`)
-    return
+  const { input, devDemoOutput, seedDir } = parseArgs()
+  const { members, availability } = loadMembersAndAvailability(input, devDemoOutput)
+
+  mkdirSync(dirname(devDemoOutput), { recursive: true })
+  writeFileSync(devDemoOutput, buildImprobotsDevDemoSql(members, availability), 'utf8')
+  console.error(`Wrote ${devDemoOutput}`)
+
+  for (const { file, sql } of buildFlywaySupersededVersionedStubs()) {
+    const path = join(seedDir, file)
+    writeFileSync(path, sql, 'utf8')
+    console.error(`Wrote ${path}`)
   }
-  if (mvpPilotOnly) {
-    const sql = buildMalicieMvpPilotSeedSql()
-    writeFileSync(mvpPilotOutput, sql, 'utf8')
-    console.error(`Wrote ${mvpPilotOutput}`)
-    return
-  }
-  if (compositionOnly) {
-    const sql = buildMalicieCompositionSeedSql()
-    writeFileSync(compositionOutput, sql, 'utf8')
-    console.error(`Wrote ${compositionOutput}`)
-    return
-  }
-  const csvText = readFileSync(input, 'utf8')
-  const sql = buildMalicieSeedSql(csvText)
-  writeFileSync(output, sql, 'utf8')
-  console.error(`Wrote ${output}`)
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main()
 }

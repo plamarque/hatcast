@@ -1,4 +1,8 @@
-/** V1 parity — [legacy/src/services/storage.js] */
+/**
+ * V2 presets — mostly aligned with [legacy/src/services/storage.js] (V1).
+ * Exception: `match.coach = 1` (V2 default) vs legacy V1 `COACH: 0` on match.
+ * Historical events imported with coach:0 stay as-is until edited (story 3.22).
+ */
 
 export const ROLE_KEYS = [
   'player',
@@ -128,7 +132,7 @@ export const ROLE_TEMPLATES: Record<EventTypeId, Record<RoleKey, number>> = {
     referee: 1,
     assistant_referee: 2,
     lighting: 0,
-    coach: 0,
+    coach: 1,
     stage_manager: 0,
   },
   catch: {

@@ -1,7 +1,6 @@
 import { Component, computed, effect, inject, input, OnDestroy, output, signal, viewChild } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatDialog } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
@@ -14,15 +13,6 @@ import type { EventResponse } from '../../core/events/event-api.service'
 import { isEventDraft } from '../../core/events/event-draft'
 import type { AvailabilityFormSavedPayload } from './availability-form'
 import { ParticipantApiService, type ParticipantSelector } from '../../core/participants/participant-api.service'
-import {
-  ShareAnnounceDialog,
-  type ShareAnnounceDialogData,
-} from '../share-announce/share-announce-dialog'
-import {
-  SHARE_ANNOUNCE_SNACK_DURATION_MS,
-  shareAnnounceSnackMessage,
-  type ShareAnnounceNotifyResult,
-} from '../share-announce/share-announce-snack'
 import { AvailabilityMoiPanel } from './availability-moi-panel'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
 import { AvailabilityTousPanel } from './availability-tous-panel'
@@ -46,7 +36,6 @@ export class EventDisposTab implements OnDestroy {
   private readonly availabilityApi = inject(AvailabilityApiService)
   private readonly participantApi = inject(ParticipantApiService)
   private readonly snack = inject(MatSnackBar)
-  private readonly dialog = inject(MatDialog)
 
   readonly seasonId = input.required<string>()
   readonly seasonSlug = input.required<string>()
@@ -58,6 +47,7 @@ export class EventDisposTab implements OnDestroy {
   readonly canManageComposition = input(false)
 
   readonly viewModeChange = output<DisposViewMode>()
+  readonly summaryChanged = output<EventAvailabilitySummary>()
 
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
@@ -89,15 +79,6 @@ export class EventDisposTab implements OnDestroy {
     () => isEventDraft(this.event()) && !this.canManageComposition(),
   )
 
-  protected readonly canNudgeAvailability = computed(() => {
-    if (!this.canManageComposition()) return false
-    if (isEventDraft(this.event())) return false
-    if (this.event().archived) return false
-    const s = this.summary()
-    if (!s) return false
-    return s.participants.some((p) => p.status === 'unknown')
-  })
-
   protected readonly subjectProxyMode = computed(() => {
     const subject = this.subjectParticipant()
     if (!subject || !this.canSwitchSubject()) return false
@@ -121,38 +102,6 @@ export class EventDisposTab implements OnDestroy {
 
   ngOnDestroy(): void {
     this.loadRequestId++
-  }
-
-  protected openNudgeDialog(): void {
-    if (!this.canNudgeAvailability()) return
-    const ev = this.event()
-    const ref = this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, ShareAnnounceNotifyResult | undefined>(
-      ShareAnnounceDialog,
-      {
-        data: {
-          intent: 'availability_nudge',
-          seasonId: this.seasonId(),
-          eventId: ev.id,
-          troupeSlug: this.troupeSlug(),
-          seasonSlug: this.seasonSlug(),
-          eventSlug: ev.slug,
-          eventTitle: ev.title,
-          eventDateIso: ev.startsAt,
-          roleLines: [],
-          availabilityOpenedAt: ev.availabilityOpenedAt ?? null,
-        },
-        width: 'min(42rem, 96vw)',
-        maxHeight: '92vh',
-        autoFocus: 'first-titled-element',
-      },
-    )
-    ref.afterClosed().subscribe((result) => {
-      if (result) {
-        this.snack.open(shareAnnounceSnackMessage(result), 'OK', {
-          duration: SHARE_ANNOUNCE_SNACK_DURATION_MS,
-        })
-      }
-    })
   }
 
   protected async setViewMode(mode: DisposViewMode): Promise<void> {
@@ -205,7 +154,9 @@ export class EventDisposTab implements OnDestroy {
           }
         : p,
     )
-    this.summary.set({ ...current, participants })
+    const next = { ...current, participants }
+    this.summary.set(next)
+    this.summaryChanged.emit(next)
 
     const subject = participants.find((p) => p.participantId === participantId)
     if (subject) {
@@ -243,6 +194,7 @@ export class EventDisposTab implements OnDestroy {
     }
 
     this.summary.set(summaryResult.data)
+    this.summaryChanged.emit(summaryResult.data)
     this.summaryIncludesChances = false
     if (selectorsResult.ok && selectorsResult.data) {
       this.selectors.set(selectorsResult.data)
@@ -272,6 +224,7 @@ export class EventDisposTab implements OnDestroy {
     if (requestId !== this.loadRequestId) return
     if (!result.ok || !result.data) return
     this.summary.set(result.data)
+    this.summaryChanged.emit(result.data)
     this.summaryIncludesChances = includeChances
 
     const currentId = this.subjectParticipantId()

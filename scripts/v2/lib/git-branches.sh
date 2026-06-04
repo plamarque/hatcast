@@ -90,3 +90,44 @@ hatcast_v2_github_actions_url() {
     echo "(voir l’onglet Actions du dépôt GitHub)"
   fi
 }
+
+# After release-staging.sh: merge staging-v2 → dev so version.txt, changelog.json and
+# package.json bumps are available on the dev branch (local ng serve, next promote cycle).
+hatcast_v2_sync_release_artifacts_to_dev() {
+  local dry_run="$1"
+  local release_tag_name="$2"
+  local dev_ref staging_ref merge_msg
+
+  dev_ref="$(hatcast_v2_origin_ref "${HATCAST_V2_BRANCH_DEV}")"
+  staging_ref="$(hatcast_v2_origin_ref "${HATCAST_V2_BRANCH_STAGING}")"
+  merge_msg="chore(v2): sync release ${release_tag_name} artifacts to ${HATCAST_V2_BRANCH_DEV}"
+
+  if [[ "${dry_run}" == true ]]; then
+    echo ""
+    echo "🔄 Sync ${HATCAST_V2_BRANCH_STAGING} → ${HATCAST_V2_BRANCH_DEV} (version.txt, changelog.json) :"
+    echo "   git checkout ${HATCAST_V2_BRANCH_DEV}"
+    echo "   git pull origin ${HATCAST_V2_BRANCH_DEV}"
+    echo "   git merge --no-ff ${staging_ref} -m \"${merge_msg}\""
+    echo "   git push origin ${HATCAST_V2_BRANCH_DEV}"
+    return 0
+  fi
+
+  if ! git rev-parse --verify "${staging_ref}" >/dev/null 2>&1; then
+    echo "⚠️  ${staging_ref} introuvable — sync dev ignorée." >&2
+    return 0
+  fi
+
+  echo ""
+  echo "🔄 Synchronisation version/changelog vers ${HATCAST_V2_BRANCH_DEV}…"
+  git checkout "${HATCAST_V2_BRANCH_DEV}"
+  git pull origin "${HATCAST_V2_BRANCH_DEV}"
+
+  if git merge-base --is-ancestor "${staging_ref}" HEAD; then
+    echo "ℹ️  ${HATCAST_V2_BRANCH_DEV} contient déjà ${staging_ref} — rien à synchroniser."
+    return 0
+  fi
+
+  git merge --no-ff "${staging_ref}" -m "${merge_msg}"
+  git push origin "${HATCAST_V2_BRANCH_DEV}"
+  echo "✅ ${HATCAST_V2_BRANCH_DEV} synchronisé (version.txt, changelog.json, package.json)"
+}

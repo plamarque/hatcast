@@ -54,6 +54,28 @@
   margin-bottom: 0.5rem;
 }
 
+.share-announce-dialog__recipient-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.share-announce-dialog__channels {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.share-announce-dialog__channel--pending {
+  color: color-mix(in srgb, var(--mat-sys-on-surface-variant) 40%, transparent);
+}
+
+.share-announce-dialog__channel-legend {
+  margin: 0.5rem 0 0;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
 .share-announce-dialog__manual-icon {
   color: var(--mat-sys-error);
 }

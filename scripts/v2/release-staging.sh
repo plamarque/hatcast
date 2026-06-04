@@ -320,6 +320,7 @@ fi
 ACTIONS_URL="$(hatcast_v2_github_actions_url)"
 
 if [[ "${DRY_RUN}" == true ]]; then
+  hatcast_v2_sync_release_artifacts_to_dev "true" "${RELEASE_TAG_NAME}"
   echo ""
   echo "✅ DRY RUN terminé — tag prévu : ${RELEASE_TAG_NAME} (produit ${NEW_VERSION})"
   echo "📊 En réel : push ${HATCAST_V2_BRANCH_STAGING} → CI staging (1 run) ; tag ${RELEASE_TAG_NAME} = audit / promote prod"
@@ -329,4 +330,5 @@ else
   echo "🌐 CI : ${ACTIONS_URL}"
   echo "☁️  Service Cloud Run : hatcast-v2-staging (push branche ${HATCAST_V2_BRANCH_STAGING})"
   echo "ℹ️  Le tag RC ne déclenche pas la CI (évite un run rouge) ; requis pour promote-tag-to-prod."
+  hatcast_v2_sync_release_artifacts_to_dev "false" "${RELEASE_TAG_NAME}"
 fi
