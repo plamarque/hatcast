@@ -9,6 +9,10 @@ import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 
+import {
+  AvailabilityApiService,
+  type EventAvailabilitySummary,
+} from '../../core/availability/availability-api.service'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { resolveNotificationLinkTab } from '../../core/analytics/notification-link-tab'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
@@ -60,7 +64,10 @@ import { CompositionEquipeStatusHeader } from '../../shared/composition/composit
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
 import { isEventDraft } from '../../core/events/event-draft'
-import { openEventAnnounceDialog } from '../../shared/share-announce/share-announce-open'
+import {
+  openAvailabilityNudgeDialog,
+  openEventAnnounceDialog,
+} from '../../shared/share-announce/share-announce-open'
 
 @Component({
   selector: 'app-event-detail',
@@ -89,6 +96,7 @@ export class EventDetail implements OnDestroy, OnInit {
   private readonly eventsApi = inject(EventApiService)
   private readonly compositionApi = inject(CompositionApiService)
   private readonly organizerApi = inject(OrganizerApiService)
+  private readonly availabilityApi = inject(AvailabilityApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
@@ -131,6 +139,7 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly contextSeasonSlug = signal('')
   protected readonly composition = signal<CompositionResponse | null>(null)
   protected readonly compositionLoaded = signal(false)
+  protected readonly disposSummary = signal<EventAvailabilitySummary | null>(null)
 
   protected readonly canManageEvents = computed(
     () => this.seasonPermissions()?.canManageEvents === true,
@@ -169,6 +178,13 @@ export class EventDetail implements OnDestroy, OnInit {
         action: () => this.openAnnounceEvent(),
       })
     }
+    if (this.canRelanceDispos()) {
+      items.push({
+        label: 'Relance dispos',
+        icon: 'notifications_active',
+        action: () => this.openRelanceDispos(),
+      })
+    }
     if (this.canOpenEventParticipantsAdmin(ev.id)) {
       items.push({
         label: 'Participants',
@@ -204,6 +220,20 @@ export class EventDetail implements OnDestroy, OnInit {
       return false
     }
     return this.canManageComposition()
+  })
+  protected readonly canRelanceDispos = computed(() => {
+    if (!this.canManageComposition()) {
+      return false
+    }
+    const ev = this.event()
+    if (!ev || isEventDraft(ev) || ev.archived || ev.availabilityOpenedAt == null) {
+      return false
+    }
+    const summary = this.disposSummary()
+    if (!summary) {
+      return false
+    }
+    return summary.participants.some((p) => p.status === 'unknown')
   })
   protected readonly equipeStatus = computed(() => {
     const ev = this.event()
@@ -371,8 +401,32 @@ export class EventDetail implements OnDestroy, OnInit {
     })
   }
 
+  protected openRelanceDispos(): void {
+    const ev = this.event()
+    const seasonId = this.seasonId()
+    const seasonSlug = this.slug()
+    const troupeSlug = this.contextTroupeSlug() || this.routeTroupeSlug()
+    if (!ev || !seasonId || !seasonSlug || !troupeSlug) {
+      return
+    }
+    if (!this.canRelanceDispos()) {
+      return
+    }
+    openAvailabilityNudgeDialog(this.dialog, this.snack, {
+      seasonId,
+      seasonSlug,
+      troupeSlug,
+      event: ev,
+    })
+  }
+
+  protected onDisposSummaryChanged(summary: EventAvailabilitySummary): void {
+    this.disposSummary.set(summary)
+  }
+
   private applyEventDetailUpdate(before: EventResponse, after: EventResponse): void {
     this.event.set(after)
+    void this.loadDisposSummary(after)
     const message = this.eventUpdateSnackMessage(before, after)
     this.snack.open(message, 'OK', { duration: 4000 })
   }
@@ -459,6 +513,7 @@ export class EventDetail implements OnDestroy, OnInit {
     const r = await this.eventsApi.unarchiveEvent(seasonId, ev.id)
     if (r.ok && r.data) {
       this.event.set(r.data)
+      void this.loadDisposSummary(r.data)
       this.snack.open('Spectacle réactivé.', 'OK', { duration: 4000 })
     } else {
       this.snack.open('Réactivation impossible.', 'OK', { duration: 6000 })
@@ -467,6 +522,7 @@ export class EventDetail implements OnDestroy, OnInit {
 
   protected onEventInfosUpdated(updated: EventResponse): void {
     this.event.set(updated)
+    void this.loadDisposSummary(updated)
   }
 
   private maybeCaptureNotificationLinkOpened(params: ParamMap): void {
@@ -548,6 +604,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.event.set(null)
       this.composition.set(null)
       this.compositionLoaded.set(false)
+      this.disposSummary.set(null)
       this.resetResolvedContext()
       this.lastNotificationLinkCaptureKey = ''
     }
@@ -621,6 +678,7 @@ export class EventDetail implements OnDestroy, OnInit {
     this.seasonPermissions.set(permissionsResult.ok && permissionsResult.data ? permissionsResult.data : null)
     this.maybeCaptureNotificationLinkOpened(this.route.snapshot.queryParamMap)
 
+    void this.loadDisposSummary(found)
     void this.loadComposition(resolved.season.id, found.id)
 
     this.canSwitchSubject.set(
@@ -657,6 +715,25 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextTroupeLogoUrl.set(null)
     this.contextLeagueTitle.set('')
     this.contextSeasonSlug.set('')
+  }
+
+  private async loadDisposSummary(event: EventResponse): Promise<void> {
+    const seasonId = this.seasonId()
+    const perms = this.seasonPermissions()
+    if (!seasonId || !perms || !canManageCompositionForEvent(perms, event.id)) {
+      this.disposSummary.set(null)
+      return
+    }
+    if (isEventDraft(event) || event.archived || event.availabilityOpenedAt == null) {
+      this.disposSummary.set(null)
+      return
+    }
+    const requestId = this.loadRequestId
+    const result = await this.availabilityApi.getEventAvailabilitySummary(seasonId, event.id, false)
+    if (requestId !== this.loadRequestId) {
+      return
+    }
+    this.disposSummary.set(result.ok && result.data ? result.data : null)
   }
 
   private async loadComposition(seasonId: string, eventId: string): Promise<void> {

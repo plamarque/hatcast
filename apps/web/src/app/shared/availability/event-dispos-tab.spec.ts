@@ -204,7 +204,7 @@ describe('EventDisposTab', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Afficher les chances')
   })
 
-  it('shows Rappel dispos for organizer when unknown participants exist', async () => {
+  it('does not show Rappel dispos button for organizer when unknown participants exist', async () => {
     const { fixture } = await setup(true)
     fixture.componentRef.setInput('canManageComposition', true)
     fixture.componentRef.setInput('event', {
@@ -221,10 +221,11 @@ describe('EventDisposTab', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('Rappel dispos')
+    expect(fixture.nativeElement.textContent).not.toContain('Rappel dispos')
+    expect(fixture.nativeElement.querySelector('.event-dispos__nudge')).toBeNull()
   })
 
-  it('hides Rappel dispos for regular members', async () => {
+  it('does not show Rappel dispos button for regular members', async () => {
     const { fixture } = await setup(false)
     fixture.componentRef.setInput('canManageComposition', false)
     fixture.componentRef.setInput('event', {
@@ -242,5 +243,6 @@ describe('EventDisposTab', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.textContent).not.toContain('Rappel dispos')
+    expect(fixture.nativeElement.querySelector('.event-dispos__nudge')).toBeNull()
   })
 })

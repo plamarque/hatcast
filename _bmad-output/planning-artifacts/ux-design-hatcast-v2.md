@@ -333,7 +333,7 @@ Implement once as a **shared modal (or wizard step)**; only **title**, **default
 
 - **File:** [`ux-references/pattern-share-announce-modal-v1.png`](ux-references/pattern-share-announce-modal-v1.png) — example **« Annoncer Compo »** for *Apérock Mai*.
 
-### Structure (cible M3 — story 6.15, amendée recette 2026-06-03)
+### Structure (cible M3 — story 6.15 ; D10 statut canal 2026-06-04)
 
 **Spec détaillée :** [**ux-design-share-announce-6-15.md**](./ux-design-share-announce-6-15.md).
 
@@ -355,6 +355,7 @@ Implement once as a **shared modal (or wizard step)**; only **title**, **default
 **Notifications**
 
 - Résumé N/X/Y ; liste nominative **repliée** (`mat-expansion-panel`) **sous** la rangée d’actions.
+- **Détail (D10) :** pastilles **email / push** par destinataire — absent · gris · coloré ; **sans** email obfusqué ; légende sous la liste.
 - Garde anti-spam : **ConfirmDialog au clic Notifier** seulement — **pas** de bandeau dans le dialog.
 
 **Footer**
@@ -374,7 +375,7 @@ Implement once as a **shared modal (or wizard step)**; only **title**, **default
 | **Spectacle / event** | Post-publish banner **ou** menu gear · **Annoncer** → *Annonce de spectacle* (`event`). |
 | **Tirage au sort** | Équipe overflow · **Partager** (`draw`). |
 | **Composition (Équipe)** | **Annoncer la compo** (`composition`). |
-| **Dispos** | **Rappel dispos** (`availability_nudge`). |
+| **Relance dispos** | Menu gear événement · **Relance dispos** → *Rappel disponibilité* (`availability_nudge`) — story **6.10c** ; **plus** de bouton toolbar Dispos. |
 
 Helper : [`share-announce-open.ts`](../../apps/web/src/app/shared/share-announce/share-announce-open.ts).
 
