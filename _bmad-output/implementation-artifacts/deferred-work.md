@@ -6,6 +6,13 @@
 
 ---
 
+## Deferred from: code review of ops-10-email-hatcast-app (2026-06-05)
+
+- RestClient sans timeout explicite sur `CloudflareEmailSendingClient` — risque blocage thread notif ; pattern RestClient sans timeout ailleurs ; faible volume transactionnel.
+- Pas de test unitaire du chemin SMTP/Mailpit dans `EmailNotificationSender` — chemin dev local secondaire ; couverture CF prioritaire suffisante pour clôture code.
+
+---
+
 ## Deferred from: code review of 19-1-spec-normative-v1-adr-draw-weight-engine (2026-06-04)
 
 - Working tree non isolé à 19.1 (`git status` contient des changements non liés à la story) ; risque de livraison polluée si commit groupé ; hors scope de correction dans cette revue.

@@ -200,6 +200,8 @@ jobs:
           HATCAST_WEB_PUSH_VAPID_SUBJECT: ${{ secrets.HATCAST_WEB_PUSH_VAPID_SUBJECT }}
           HATCAST_NOTIFICATION_EMAIL_ENABLED: ${{ secrets.HATCAST_NOTIFICATION_EMAIL_ENABLED }}
           HATCAST_NOTIFICATION_EMAIL_FROM: ${{ secrets.HATCAST_NOTIFICATION_EMAIL_FROM }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_EMAIL_SENDING_API_TOKEN: ${{ secrets.CLOUDFLARE_EMAIL_SENDING_API_TOKEN }}
           SPRING_MAIL_HOST: ${{ secrets.SPRING_MAIL_HOST }}
           SPRING_MAIL_PORT: ${{ secrets.SPRING_MAIL_PORT }}
           SPRING_MAIL_USERNAME: ${{ secrets.SPRING_MAIL_USERNAME }}
@@ -269,9 +271,23 @@ jobs:
           if [ -n "${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE}" ]; then
             append_env SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE "${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE}"
           fi
+          if [ -n "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            append_env CLOUDFLARE_ACCOUNT_ID "${CLOUDFLARE_ACCOUNT_ID}"
+          fi
+          if [ -n "${CLOUDFLARE_EMAIL_SENDING_API_TOKEN}" ]; then
+            append_env CLOUDFLARE_EMAIL_SENDING_API_TOKEN "${CLOUDFLARE_EMAIL_SENDING_API_TOKEN}"
+          fi
           if [ "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" = "true" ]; then
-            if [ -z "${SPRING_MAIL_HOST}" ] || [ -z "${SPRING_MAIL_USERNAME}" ] || [ -z "${SPRING_MAIL_PASSWORD}" ]; then
-              echo "::warning::HATCAST_NOTIFICATION_EMAIL_ENABLED=true but SPRING_MAIL_HOST/USERNAME/PASSWORD incomplete — email send will be skipped (see DEPLOY_V2_CLOUD_RUN.md)"
+            cf_ok=false
+            smtp_ok=false
+            if [ -n "${CLOUDFLARE_ACCOUNT_ID}" ] && [ -n "${CLOUDFLARE_EMAIL_SENDING_API_TOKEN}" ]; then
+              cf_ok=true
+            fi
+            if [ -n "${SPRING_MAIL_HOST}" ] && [ -n "${SPRING_MAIL_USERNAME}" ] && [ -n "${SPRING_MAIL_PASSWORD}" ]; then
+              smtp_ok=true
+            fi
+            if [ "${cf_ok}" = "false" ] && [ "${smtp_ok}" = "false" ]; then
+              echo "::warning::HATCAST_NOTIFICATION_EMAIL_ENABLED=true but neither CLOUDFLARE_* (OPS-10) nor SPRING_MAIL_* complete — email send will be skipped (see DEPLOY_V2_CLOUD_RUN.md §7.6)"
             fi
           fi
           append_env JAVA_TOOL_OPTIONS -XX:MaxRAMPercentage=75.0

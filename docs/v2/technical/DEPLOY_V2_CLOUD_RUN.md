@@ -139,27 +139,27 @@ Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (
 | `HATCAST_WEB_PUSH_VAPID_SUBJECT` | (Optionnel) Claim VAPID `sub` — défaut `mailto:contact@hatcast.app` dans `application.yml`. |
 | `HATCAST_NOTIFICATION_EMAIL_ENABLED` | `true` ou `false` — active l’envoi email story **8.3** (défaut API : `false`). |
 | `HATCAST_NOTIFICATION_EMAIL_FROM` | En-tête From, ex. `HatCast <noreply@hatcast.app>`. Pas de guillemets dans l’UI GitHub Secrets. |
-| `SPRING_MAIL_HOST` | Hôte SMTP, ex. `smtp.gmail.com`. Requis si `HATCAST_NOTIFICATION_EMAIL_ENABLED=true`. |
-| `SPRING_MAIL_PORT` | Port SMTP, ex. `587`. |
-| `SPRING_MAIL_USERNAME` | Utilisateur SMTP (adresse configurée chez le fournisseur). |
-| `SPRING_MAIL_PASSWORD` | Mot de passe d’application Google (16 caractères ; espaces affichés par Google acceptés tels quels dans le secret). |
-| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` pour Gmail. |
-| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` pour Gmail sur port 587. |
+| `CLOUDFLARE_ACCOUNT_ID` | ID compte Cloudflare — **OPS-10** envoi via [Email Sending](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/) (recommandé staging/prod). |
+| `CLOUDFLARE_EMAIL_SENDING_API_TOKEN` | Token API permission **Email Sending: Edit** (dashboard → Connect to Email Service → Create Email Sending token). |
+| `SPRING_MAIL_HOST` | (Legacy / secours) Hôte SMTP — **local Mailpit** via `start-dev.sh` ; plus requis en prod si `CLOUDFLARE_*` est défini. |
+| `SPRING_MAIL_PORT` | Port SMTP (legacy). |
+| `SPRING_MAIL_USERNAME` | Utilisateur SMTP (legacy). |
+| `SPRING_MAIL_PASSWORD` | Mot de passe SMTP (legacy). |
+| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` pour Gmail (legacy). |
+| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` pour Gmail sur port 587 (legacy). |
 
-Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) injecte ces secrets (s’ils existent) dans `--set-env-vars` à chaque déploiement Cloud Run. **Push seul :** VAPID publique + privée suffisent. **Email :** définir `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` **et** la paire `SPRING_MAIL_*` complète.
+Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) injecte ces secrets (s’ils existent) dans `--set-env-vars` à chaque déploiement Cloud Run. **Push seul :** VAPID publique + privée suffisent. **Email (OPS-10) :** `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` **et** `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_EMAIL_SENDING_API_TOKEN` (prioritaire sur `SPRING_MAIL_*`).
 
-**Parité V1 prod (Gmail)** — exemple de jeu de secrets par environnement :
+**Staging / prod (Cloudflare Email Sending — OPS-10)** :
 
 | Secret | Valeur type |
 |--------|-------------|
 | `HATCAST_NOTIFICATION_EMAIL_ENABLED` | `true` |
-| `HATCAST_NOTIFICATION_EMAIL_FROM` | `HatCast <noreply@example.com>` (votre expéditeur prod) |
-| `SPRING_MAIL_HOST` | `smtp.gmail.com` |
-| `SPRING_MAIL_PORT` | `587` |
-| `SPRING_MAIL_USERNAME` | Compte SMTP configuré |
-| `SPRING_MAIL_PASSWORD` | App Password Google (collé tel quel, espaces OK) |
-| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` |
-| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` |
+| `HATCAST_NOTIFICATION_EMAIL_FROM` | `HatCast <noreply@hatcast.app>` |
+| `CLOUDFLARE_ACCOUNT_ID` | ID compte (dashboard Cloudflare) |
+| `CLOUDFLARE_EMAIL_SENDING_API_TOKEN` | Token Email Sending |
+
+Runbook ops (Routing `info@` / `noreply@`, DNS) : [_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md](../../_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md). Vérification DNS : `./scripts/ops-10-check-mail-dns.sh`.
 
 **Local (`.env`)** : guillemets doubles si la valeur contient des espaces (`SPRING_MAIL_PASSWORD="…"`, `HATCAST_NOTIFICATION_EMAIL_FROM="HatCast <…>"`). **GitHub Secrets** : coller la valeur brute, sans guillemets.
 
@@ -170,7 +170,7 @@ Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflow
 | `./scripts/start-dev.sh` + `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` | Script force `127.0.0.1:1025` | Docker auto (`hatcast-mailpit`), UI http://127.0.0.1:8025, arrêt à la fin du script |
 | `./scripts/start-dev.sh` + `HATCAST_NOTIFICATION_EMAIL_ENABLED=false` | — | Non démarré |
 | `npm run dev:api` / `bootRun` seul | Variables `.env` telles quelles | Non géré par le script |
-| Cloud Run (dev/staging/prod) | Secrets `SPRING_MAIL_*` (Gmail) | N/A |
+| Cloud Run (dev/staging/prod) | Secrets `CLOUDFLARE_*` (OPS-10) ou legacy `SPRING_MAIL_*` | N/A |
 
 Dans `.env` local, **`HATCAST_NOTIFICATION_EMAIL_ENABLED=true`** suffit pour la recette email via `start-dev.sh` — pas besoin de `SPRING_MAIL_*` local (le script écrase vers Mailpit). Voir [DEVELOPMENT.md](../../../DEVELOPMENT.md) et [`.env.example`](../../../.env.example).
 
@@ -386,9 +386,21 @@ Recette : § vérifications techniques ci-dessus sur `https://hatcast.app` ; `BA
 | ID | Sujet |
 |----|--------|
 | **OPS-9** | PostHog EU — voir **§7.5** |
-| **OPS-10** | E-mail `noreply@hatcast.app` / `info@hatcast.app` — SPF/DKIM, `HATCAST_NOTIFICATION_EMAIL_FROM` |
+| **OPS-10** | E-mail `@hatcast.app` — voir **§7.6** |
 
 Story : [_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md](../../_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md). PLAN § Wave V2.0.0 Wave F ; SCP amend. 2026-06-03.
+
+### 7.6 Courriel `@hatcast.app` (OPS-10)
+
+**Réception (Email Routing)** : `info@hatcast.app` → boîte Gmail opérateur ; `noreply@hatcast.app` → **Drop** (pas de boîte). DNS : MX/SPF/DKIM routing sur `@` — vérifier avec `./scripts/ops-10-check-mail-dns.sh`.
+
+**Envoi applicatif (Email Sending)** : notifs API story **8.3** via REST Cloudflare (`noreply@hatcast.app`). Secrets Cloud Run : `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_EMAIL_SENDING_API_TOKEN`, `HATCAST_NOTIFICATION_EMAIL_ENABLED=true`, `HATCAST_NOTIFICATION_EMAIL_FROM=HatCast <noreply@hatcast.app>`.
+
+**Reset mot de passe (story 1.3)** : toujours **Firebase / Identity Platform** côté client — pas l’API Spring ; s’assurer que les domaines autorisés incluent `hatcast.app` (OPS-8).
+
+**Local** : `./scripts/start-dev.sh` + `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` → **Mailpit** (pas d’appel Cloudflare sauf test manuel).
+
+Détail dashboard (phases A–B) : [_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md](../../_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md).
 
 ### 7.5 PostHog EU + proxy `e.hatcast.app` (OPS-9 / FR47)
 

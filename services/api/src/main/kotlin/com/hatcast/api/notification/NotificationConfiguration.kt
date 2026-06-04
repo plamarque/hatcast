@@ -9,6 +9,7 @@ import java.security.Security
 @EnableConfigurationProperties(
     WebPushProperties::class,
     NotificationEmailProperties::class,
+    CloudflareEmailSendingProperties::class,
     ManualAvailabilityNudgeProperties::class,
 )
 class NotificationConfiguration {

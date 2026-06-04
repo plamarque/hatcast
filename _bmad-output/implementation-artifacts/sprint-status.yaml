@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-04T23:41:00+02:00"
+last_updated: "2026-06-05T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -53,7 +53,7 @@ development_status:
   ops-7-branch-cutover-post-m4: backlog
   ops-8-prod-domain-hatcast-app: done  # P0 V2.0.0 — https://hatcast.app ; prod west1
   ops-9-posthog-hatcast-app: done  # P1 V2.0.0 — G-005
-  ops-10-email-hatcast-app: backlog  # P1 — avant M4 (CF Email Routing → Gmail) ; PO 2026-06-05
+  ops-10-email-hatcast-app: in-progress  # P1 — patch revue appliqué ; secrets GH + recette staging restants
 
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
   mig-2-export-v1-seasons-events-and-mapping-manifest: done

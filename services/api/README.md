@@ -31,7 +31,7 @@ Profil **`dev`** : `management.health.mail.enabled=false` ([`application-dev.yml
 
 **`./gradlew bootRun` seul** : pas de Mailpit automatique ; configurer SMTP manuellement ou utiliser `start-dev.sh`.
 
-Cloud Run / staging : `SPRING_MAIL_*` (Gmail) via secrets GitHub — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
+Cloud Run / staging / prod : **OPS-10** — `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_EMAIL_SENDING_API_TOKEN` (prioritaire) ; legacy `SPRING_MAIL_*` (Mailpit local via `start-dev.sh` uniquement). Voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §7.6.
 
 ### Notifications push Web (story 8.3)
 
