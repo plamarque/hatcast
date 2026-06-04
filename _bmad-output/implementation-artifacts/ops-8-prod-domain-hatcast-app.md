@@ -4,7 +4,7 @@ baseline_commit: b8816ef9cf9497a81f28b317434610a89a0aa3bf
 
 # Story OPS-8 : Prod custom domain `hatcast.app`
 
-Status: in-progress
+Status: done
 
 **Story ID:** OPS-8  
 **Story key:** `ops-8-prod-domain-hatcast-app`  

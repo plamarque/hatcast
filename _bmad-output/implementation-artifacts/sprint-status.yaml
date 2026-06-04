@@ -51,9 +51,9 @@ development_status:
   ops-6-version-changelog-pipeline: done
   ops-11-simplified-release-cli: done
   ops-7-branch-cutover-post-m4: backlog
-  ops-8-prod-domain-hatcast-app: in-progress  # P0 V2.0.0 — SCP amend 2026-06-03 ; gate M4
-  ops-9-posthog-hatcast-app: done  # P1 V2.0.0 — post-M4 ; G-005
-  ops-10-email-hatcast-app: backlog  # P1 V2.0.0 — post-M4
+  ops-8-prod-domain-hatcast-app: done  # P0 V2.0.0 — https://hatcast.app ; prod west1
+  ops-9-posthog-hatcast-app: done  # P1 V2.0.0 — G-005
+  ops-10-email-hatcast-app: backlog  # P1 — avant M4 (CF Email Routing → Gmail) ; PO 2026-06-05
 
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
