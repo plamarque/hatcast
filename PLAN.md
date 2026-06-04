@@ -458,7 +458,8 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 
 | ID | Titre | Priorité | Statut | Notes |
 |----|-------|----------|--------|-------|
-| **6.15** | Refonte modales annonces + notify manuel simplifié | **P0** | backlog | M3 ; copy/WhatsApp ; anti-spam (pattern **6.10b**) ; intents draw/compo/dispos |
+| **6.15** | Refonte modales annonces + notify manuel simplifié | **P0** | done | M3 ; copy/WhatsApp ; anti-spam (pattern **6.10b**) ; intents draw/compo/dispos |
+| **6.17** | Dispatch annonce manuelle + `lastNotifiedAt` canal | **P0** | backlog | [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md) ; après **6.16** |
 
 #### Wave D — Pipeline release (OPS)
 

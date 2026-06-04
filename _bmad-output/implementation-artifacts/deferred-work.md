@@ -1,3 +1,7 @@
+## Deferred from: code review of 6-10c-deplacer-rappel-dispos-menu-gear-evenement.md (2026-06-04)
+
+- Échecs `event-detail.spec.ts` hors périmètre 6.10c (routes canoniques `/saison/:troupeSlug/…`, breadcrumb) — les tests Relance dispos ajoutés passent ; suite globale web déjà rouge ailleurs.
+
 ## Deferred from: one-shot spec-match-default-coach-v2 (2026-06-04)
 
 - **`RoleTemplates.slotsFor("match")` API (Kotlin)** — reste sans coach ; tout POST/PATCH `templateType: match` sans `roleSlots` explicites recrée l’ancien preset. Hors scope « V2 front only » ; aligner si l’API devient source des defaults.

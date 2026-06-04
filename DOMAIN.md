@@ -38,6 +38,12 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Event roster exclusion (V2):** Local filter (`event_participant_exclusions`) — hides a season participant from one event’s roster only. Does not change troupe membership or season participant status.
 - **Season roster removal (V2):** Soft removal from one season’s active roster (`season_participants.status = REMOVED`, or equivalent). Does not deactivate troupe membership. Other seasons of the same troupe are unaffected.
 - **Account deletion (V2, FR37):** Self-service removal of a HatCast **user account** from Mon compte. Anonymizes personal data on the `users` row (`deleted_at`, cleared email/names/avatar/IdP ids); revokes sign-in permanently. Distinct from troupe admin **Retirer** (FR7) and from season/event roster removal. See business rules below.
+- **Organizer share / announce (V2):** Manual organizer workflow to share an editable message about an event (Notifier, Copier, WhatsApp) and, when enabled, dispatch HatCast notifications (email / push) to recipients. Implemented as one dialog shell with intent-specific title, default message, audience, and guard rules. French UI examples: *Annonce de spectacle*, *Rappel disponibilité*, *Partager le tirage*, *Annoncer la compo*.
+- **Availability announcement (*annonce de disponibilités*):** First organizer-initiated send (manual or automatic at publication) that invites season participants to indicate availability for a **published** event. Same **business family** as a availability reminder — not a separate product capability.
+- **Availability reminder (*relance de disponibilités*):** Any **subsequent** organizer send of the same availability-request family on the same event, after at least one prior send of that family. Uses the **same orchestration path** as the first announcement; only presentation (title, default message tone) differs so members and organizers can tell a reminder from the initial announcement.
+- **Channel eligibility (share recipients):** Per recipient and channel (email, push), whether HatCast **can** attempt delivery for the current send (e.g. normalized email present; push allowed for category and user preferences).
+- **Channel notified (share recipients):** Per recipient and channel, whether HatCast **already delivered** (or partially delivered) for the relevant notification intent(s) on this event — backed by `notification_delivery_log` with status `SENT` or `PARTIAL`. Used so organizers see who still needs manual follow-up (Copier / WhatsApp) and whether a resend is fair.
+- **Notification delivery log (V2):** Append-only record of notification attempts per `(event_id, user_id, channel, intent, status)`. Source of truth for “already notified” in organizer recipient detail. Distinct from `event_manual_share_notify` (anti-spam timestamp for manual POST per dialog intent).
 
 ---
 
@@ -147,6 +153,21 @@ La zone spectacles affiche les participations par mois. Chaque mois est une colo
 - **Availability:** Set per event; no formal state machine; values reflect available/unavailable (and possibly other states in UI; see `AvailabilityCell.vue`, `playerAvailabilityService.js`). **V2:** three API states plus optional per-role candidacy via `role_keys` when status is `available`.
 - **Draw workflow:** Admin triggers draw → selection algorithm runs → casts written/updated → optional announce. No intermediate "draft" cast state clearly modelled; cast is the result of the last draw for that event.
 - **Event draft vs open (V2, Story 3.21):** A **spectacle** (event) may be in **draft** (`events.availability_opened_at` NULL) before organizers publish it for availability collection. While draft: ordinary members do not see it in season or user agendas; they may still open the event detail URL if they have a link and see a draft banner without depositing availability. **Publishing** sets `availability_opened_at` and enables member availability writes. **Closing availability** (revert to draft) clears that timestamp without deleting existing availability rows. Distinct from **composition draft** (`event_compositions.published_at`, Story 6.3).
+
+### Organizer share / announce — availability lifecycle (V2, normative intent)
+
+Product owner definition (2026-06-04):
+
+1. **Publication** may trigger an **automatic** availability notification (`AVAILABILITY_OPENED`) when availability opens — members are informed without opening the share dialog.
+2. The organizer may then use the **same manual send path** (share dialog: message + Notifier / Copier / WhatsApp) for availability-related communication.
+3. The **first** such manual send on an event (after publication) is an **availability announcement** (*annonce*).
+4. Any **later** manual send on the **same event** for the same business purpose is a **availability reminder** (*relance*) — **not** a different product action: same dialog workflow, same dispatch path; **title and default message template** may differ to signal “reminder”.
+5. **Recipient transparency:** For every send family (availability, draw share, composition announce, …), organizers must see per recipient: which channels are eligible, which channels already received a successful HatCast delivery, and (when exposed in UI) **when** the last successful send occurred — so multiple organizers avoid accidental spam and can target people added to the roster after an earlier send.
+6. **Manual contact:** Recipients with **no** eligible channel remain organizer responsibility (Copier / WhatsApp); the UI must make that visible.
+
+**Audience (decided 2026-06-04):** Two UI entry points remain intentional (UX **D12**). **Annoncer** (`event`) targets the **full** active season roster. **Relance dispos** (`availability_nudge`) targets only participants with **`unknown`** availability. Same modal shell and dispatch stack; different audience, title, and default template.
+
+**Known divergence (runtime vs this intent):** Manual Notifier for `event` is still stubbed (no `MANUAL_AVAILABILITY_ANNOUNCE` dispatch); GET `event` maps “notified” only to `AVAILABILITY_OPENED`, not manual sends; GET lacks per-channel `lastNotifiedAt`. Target behaviour and implementation slice: [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md) (story **6.17**).
 
 ---
 

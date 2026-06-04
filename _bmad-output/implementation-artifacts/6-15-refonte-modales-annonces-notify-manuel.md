@@ -121,7 +121,7 @@ Primary spec: [**ux-design-share-announce-6-15.md**](../planning-artifacts/ux-de
 | `draw` | Équipe overflow Partager | Stub log |
 | `composition` | Équipe Annoncer la compo | Stub log |
 | `event` | Post-publish banner **or** gear **Annoncer** | Stub log |
-| `availability_nudge` | Dispos Rappel dispos | `MANUAL_AVAILABILITY_NUDGE` dispatch |
+| `availability_nudge` | Dispos Rappel dispos *(entry → gear **Relance dispos** en **6.10c**)* | `MANUAL_AVAILABILITY_NUDGE` dispatch |
 
 ### Anti-spam (extend 6.10b)
 

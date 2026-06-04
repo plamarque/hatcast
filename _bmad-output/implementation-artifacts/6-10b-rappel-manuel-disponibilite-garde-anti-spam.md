@@ -4,7 +4,7 @@ baseline_commit: 3c0718f8cc8a227ac804c84ef929898534673c1a
 
 Status: done
 
-<!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
+<!-- Entry point UI toolbar Dispos superseded by story 6.10c (gear Relance dispos) — 2026-06-04 ; métier inchangé -->
 
 ## Story
 
