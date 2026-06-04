@@ -6,6 +6,35 @@
 
 ---
 
+## Archive append (hygiène 2026-06-05)
+
+Sections retirées de `deferred-work.md` actif — stories **done** ou dette **D** sans action requise.
+
+### Deferred from: code review of ops-10-email-hatcast-app (2026-06-05)
+
+- RestClient sans timeout explicite sur `CloudflareEmailSendingClient` — risque blocage thread notif ; faible volume.
+- Pas de test unitaire chemin SMTP/Mailpit dans `EmailNotificationSender` — couverture CF prioritaire ; story **ops-10** **done**.
+
+### Deferred from: code review of 19-1-spec-normative-v1-adr-draw-weight-engine (2026-06-04)
+
+- Working tree non isolé à 19.1 — process commit ; story **19.1** **done**.
+
+### Deferred from: code review of 6-17-dispatch-annonce-manuelle-transparence-dates (2026-06-04)
+
+- Guard confirm copy refactor (`formatManualNotifyGuardAge`, titre événement) — polish UX D7 optionnel ; story **6.17** **done**.
+- `notifiedCount` = preview `notifiableCount` (pas comptage dispatch SENT) — **DW-108** reste actif P1 ; reporté 6.18+ / NFR-R2.
+
+### Template match (fermé story 3.22, 2026-06-04)
+
+- **DW-101 / DW-102** — API `RoleTemplates` + seeds dev `coach: 1` — story [3-22-match-template-coach-api-seeds.md](3-22-match-template-coach-api-seeds.md) **done**.
+- **DW-103** — Matchs historiques `coach: 0` → `detectTemplateFromRoles` = `custom` si édition — **accepté**, pas de backfill massif (AC4–5 story 3.22).
+
+### DW-111 — replay migration (fermé 2026-06-05)
+
+- ≥3 cycles `migrate-from-v1.sh` + `npm run migrate:v2:validate-replay -- --min=3` — validé PO ; aligné PLAN § **E2** [x]. Log typique : `export/malice/replay-log.jsonl` (hors git).
+
+---
+
 ## Deferred from: code review of 6-10c-deplacer-rappel-dispos-menu-gear-evenement.md (2026-06-04)
 
 - Échecs `event-detail.spec.ts` hors périmètre 6.10c (routes canoniques `/saison/:troupeSlug/…`, breadcrumb) — les tests Relance dispos ajoutés passent ; suite globale web déjà rouge ailleurs.

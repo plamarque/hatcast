@@ -53,7 +53,7 @@ development_status:
   ops-7-branch-cutover-post-m4: backlog
   ops-8-prod-domain-hatcast-app: done  # P0 V2.0.0 — prod https://hatcast.app live 2026-06-04 ; gate M4 prérequis OK
   ops-9-posthog-hatcast-app: done  # P1 V2.0.0 — G-005
-  ops-10-email-hatcast-app: in-progress  # P1 — patch revue appliqué ; secrets GH + recette staging restants
+  ops-10-email-hatcast-app: done  # P1 — staging recette OK 2026-06-05 ; Routing + CF Sending + Gmail info@
 
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
