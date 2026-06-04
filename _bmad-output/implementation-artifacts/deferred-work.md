@@ -1,3 +1,10 @@
+## Deferred from: one-shot spec-match-default-coach-v2 (2026-06-04)
+
+- **`RoleTemplates.slotsFor("match")` API (Kotlin)** — reste sans coach ; tout POST/PATCH `templateType: match` sans `roleSlots` explicites recrée l’ancien preset. Hors scope « V2 front only » ; aligner si l’API devient source des defaults.
+- **Seeds Malice / demo (`V17`, `V34`, `generate-improbots-seed-sql.js`)** — matchs seedés gardent `coach: 0` ; recette dev diverge des nouveaux matchs créés via template V2.
+- **Matchs historiques en base** — `coach: 0` ≠ nouveau template → `detectTemplateFromRoles` renvoie `custom` après édition d’un slot ; comportement pré-existant lors d’écart template/slots, amplifié par ce changement.
+- **Commentaire « V1 parity » en tête de `event-types.ts`** — match diverge volontairement de legacy pour le coach ; story 3.4 non mise à jour.
+
 ## Deferred from: code review of 17-36-mon-compte-onglet-mon-profil.md (2026-06-04)
 
 - Subscription `afterClosed()` non nettoyée dans `openChangePasswordDialog` — pattern hérité de l’ancien onglet Sécurité ; risque fuite mineur.

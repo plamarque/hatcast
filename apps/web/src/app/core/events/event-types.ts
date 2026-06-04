@@ -128,7 +128,7 @@ export const ROLE_TEMPLATES: Record<EventTypeId, Record<RoleKey, number>> = {
     referee: 1,
     assistant_referee: 2,
     lighting: 0,
-    coach: 0,
+    coach: 1,
     stage_manager: 0,
   },
   catch: {
