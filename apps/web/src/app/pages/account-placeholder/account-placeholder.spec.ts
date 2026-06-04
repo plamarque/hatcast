@@ -7,6 +7,8 @@ import { provideRouter, Router, RouterOutlet } from '@angular/router'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AppVersionService } from '../../core/app/app-version.service'
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import { MemberDisplayNameService } from '../../core/account/member-display-name.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
@@ -56,6 +58,21 @@ describe('AccountPlaceholder', () => {
     const logout = vi.fn().mockResolvedValue({ ok: true, status: 200 })
     const openChangelog = vi.fn()
     const dialogOpen = vi.fn()
+    const getPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { memberDisplayName: 'Léa', preferredRoleKeys: ['volunteer', 'player'] },
+    })
+    const patchPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { memberDisplayName: 'Léa B', preferredRoleKeys: ['volunteer', 'player'] },
+    })
+    const memberDisplayNameSignal = signal('Léa')
+    const loadMemberDisplayName = vi.fn().mockImplementation(async () => {
+      memberDisplayNameSignal.set('Léa')
+      return true
+    })
 
     const user = {
       id: 'u1',
@@ -133,6 +150,23 @@ describe('AccountPlaceholder', () => {
         },
         { provide: AuthApiService, useValue: {} },
         {
+          provide: MePreferencesApiService,
+          useValue: { getPreferences, patchPreferences },
+        },
+        {
+          provide: MemberDisplayNameService,
+          useValue: {
+            memberDisplayName: memberDisplayNameSignal,
+            loadFromApi: loadMemberDisplayName,
+            syncSessionUser: vi.fn(),
+            setFromSave: (value: string) => memberDisplayNameSignal.set(value.trim()),
+            railLabel: (user: { email?: string | null } | null) => {
+              const pseudo = memberDisplayNameSignal().trim()
+              return pseudo || user?.email?.trim() || 'Compte'
+            },
+          },
+        },
+        {
           provide: AppVersionService,
           useValue: {
             version: signal(options.appVersion ?? '0.0.0'),
@@ -174,8 +208,14 @@ describe('AccountPlaceholder', () => {
       await fixture.whenStable()
       await new Promise((resolve) => setTimeout(resolve, 0))
       fixture.detectChanges()
-      if (fixture.nativeElement.querySelector('[data-testid="account-avatar-menu-trigger"]')) {
-        break
+      const identityReady =
+        fixture.nativeElement.querySelector('[data-testid="account-avatar-menu-trigger"]') &&
+        (fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]') ||
+          fixture.nativeElement.querySelector('.account-page__pseudo-spinner'))
+      if (identityReady) {
+        if (fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')) {
+          break
+        }
       }
       if (
         options.session?.ok === false &&
@@ -186,7 +226,7 @@ describe('AccountPlaceholder', () => {
       }
     }
 
-    return { fixture, snack, navigate, logout, openChangelog, router, dialogOpen }
+    return { fixture, snack, navigate, logout, openChangelog, router, dialogOpen, getPreferences, patchPreferences }
   }
 
   it('affiche le titre et le sous-titre hub membre', async () => {
@@ -222,11 +262,15 @@ describe('AccountPlaceholder', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Choisir une image')
   })
 
-  it('affiche la zone identité avec e-mail et displayName', async () => {
+  it('affiche la zone identité avec e-mail, displayName et pseudo éditable', async () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
     expect(text).toContain('lea@example.com')
     expect(text).toContain('Léa Martin')
+    expect(text).toContain('Nom affiché dans toutes vos troupes.')
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]'),
+    ).toBeTruthy()
     expect(text).not.toContain('Photo de profil')
   })
 
@@ -267,7 +311,7 @@ describe('AccountPlaceholder', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="account-app-version"]')).toBeTruthy()
   })
 
-  it('n’affiche pas pseudo ni rôles par troupe sur Préférences', async () => {
+  it('n’affiche pas le pseudo sur Préférences (rôles seuls)', async () => {
     const { fixture, router } = await setup()
     await router.navigateByUrl('/compte/preferences')
     fixture.detectChanges()
@@ -275,13 +319,15 @@ describe('AccountPlaceholder', () => {
     fixture.detectChanges()
 
     const text = fixture.nativeElement.textContent ?? ''
+    expect(text).not.toContain('Nom affiché dans toutes vos troupes.')
     expect(text).not.toContain('Pseudo par troupe')
     expect(text).not.toContain('Rôles préférés par troupe')
     expect(text).not.toContain('Retour aux troupes')
     expect(text).not.toContain('prochaine livraison')
+    expect(fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')).toBeNull()
   })
 
-  it('affiche pseudo et rôles globaux sur l’onglet Préférences', async () => {
+  it('affiche les rôles globaux sur l’onglet Préférences', async () => {
     const { fixture, router } = await setup()
     await router.navigateByUrl('/compte/preferences')
     fixture.detectChanges()
@@ -289,7 +335,6 @@ describe('AccountPlaceholder', () => {
     fixture.detectChanges()
 
     const text = fixture.nativeElement.textContent ?? ''
-    expect(text).toContain('Nom affiché dans toutes vos troupes.')
     expect(text).toContain('Rôles préférés')
     expect(
       fixture.nativeElement.querySelector('[data-testid="member-preferences-save"]'),

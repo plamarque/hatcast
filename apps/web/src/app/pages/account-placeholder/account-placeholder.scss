@@ -97,6 +97,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
+  margin-bottom: 0.25rem;
 }
 
 .account-page__avatar-wrap {
@@ -178,6 +179,31 @@
   margin: 0.25rem 0 0;
   font-size: 0.95rem;
   opacity: 0.85;
+}
+
+.account-page__pseudo-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.account-page__pseudo-field {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+
+.account-page__pseudo-spinner {
+  display: block;
+  margin-top: 1.25rem;
+}
+
+.account-page__pseudo-save {
+  min-height: 3rem;
 }
 
 .account-page__file-input {

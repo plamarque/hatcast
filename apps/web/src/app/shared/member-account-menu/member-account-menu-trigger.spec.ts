@@ -4,15 +4,17 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { MemberDisplayNameService } from '../../core/account/member-display-name.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { PwaInstallService } from '../../core/pwa/pwa-install.service'
-import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { MemberAccountMenuTrigger } from './member-account-menu-trigger'
 
 describe('MemberAccountMenuTrigger', () => {
   let fixture: ComponentFixture<MemberAccountMenuTrigger>
   let router: Router
   let ensureSession: ReturnType<typeof vi.fn>
+  let loadFromApi: ReturnType<typeof vi.fn>
+  const memberDisplayName = signal('')
   const sessionUser = signal<{
     slug: string
     email: string
@@ -22,6 +24,11 @@ describe('MemberAccountMenuTrigger', () => {
 
   beforeEach(async () => {
     sessionUser.set(null)
+    memberDisplayName.set('')
+    loadFromApi = vi.fn().mockImplementation(async () => {
+      memberDisplayName.set('Alice Membre')
+      return true
+    })
     ensureSession = vi.fn().mockImplementation(async () => {
       const user = {
         slug: 'alice',
@@ -47,10 +54,17 @@ describe('MemberAccountMenuTrigger', () => {
           useValue: { ensureHatcastSession: ensureSession, sessionUser },
         },
         {
-          provide: TroupeContextService,
+          provide: MemberDisplayNameService,
           useValue: {
-            currentUserDisplayLabel: (u: { displayName?: string | null; email?: string | null }) =>
-              u?.displayName ?? u?.email ?? 'Compte',
+            memberDisplayName,
+            loadFromApi,
+            syncSessionUser: vi.fn(),
+            railLabel: (user: { email?: string | null } | null) => {
+              const pseudo = memberDisplayName().trim()
+              if (pseudo) return pseudo
+              return user?.email?.trim() || 'Compte'
+            },
+            setFromSave: (value: string) => memberDisplayName.set(value.trim()),
           },
         },
         {
@@ -87,6 +101,7 @@ describe('MemberAccountMenuTrigger', () => {
   it('shows trigger on shell route after session loads', async () => {
     await renderAt('/agenda')
     expect(ensureSession).toHaveBeenCalled()
+    expect(loadFromApi).toHaveBeenCalled()
     expect(fixture.nativeElement.querySelector('.member-account-menu-trigger')).not.toBeNull()
   })
 
@@ -106,7 +121,7 @@ describe('MemberAccountMenuTrigger', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Mon compte')
   })
 
-  it('renders rail variant with avatar and Compte label (not display name)', async () => {
+  it('renders rail variant with avatar and member pseudo label', async () => {
     await router.navigateByUrl('/agenda')
     fixture = TestBed.createComponent(MemberAccountMenuTrigger)
     fixture.componentRef.setInput('variant', 'rail-footer')
@@ -117,11 +132,28 @@ describe('MemberAccountMenuTrigger', () => {
       expect(fixture.nativeElement.querySelector('.member-account-menu-trigger--rail')).not.toBeNull()
     })
     expect(fixture.nativeElement.querySelector('app-user-avatar')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('Compte')
-    expect(fixture.nativeElement.textContent).not.toContain('Alice')
+    expect(fixture.nativeElement.textContent).toContain('Alice Membre')
+    expect(fixture.nativeElement.textContent).not.toContain('Compte')
   })
 
-  it('renders shell icon variant with avatar only', async () => {
+  it('falls back to email when pseudo is empty', async () => {
+    loadFromApi.mockImplementation(async () => {
+      memberDisplayName.set('')
+      return true
+    })
+    await router.navigateByUrl('/agenda')
+    fixture = TestBed.createComponent(MemberAccountMenuTrigger)
+    fixture.componentRef.setInput('variant', 'rail-footer')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('.member-account-menu-trigger--rail')).not.toBeNull()
+    })
+    expect(fixture.nativeElement.textContent).toContain('alice@example.com')
+  })
+
+  it('uses pseudo in aria-label for shell icon variant', async () => {
     await router.navigateByUrl('/agenda')
     fixture = TestBed.createComponent(MemberAccountMenuTrigger)
     fixture.componentRef.setInput('variant', 'shell-mobile-icon')
@@ -131,7 +163,11 @@ describe('MemberAccountMenuTrigger', () => {
       fixture.detectChanges()
       expect(fixture.nativeElement.querySelector('.member-account-menu-trigger--shell-icon')).not.toBeNull()
     })
-    expect(fixture.nativeElement.textContent).not.toContain('Alice')
+    const button = fixture.nativeElement.querySelector(
+      '.member-account-menu-trigger--shell-icon',
+    ) as HTMLButtonElement
+    expect(button.getAttribute('aria-label')).toBe('Menu compte : Alice Membre')
+    expect(fixture.nativeElement.textContent).not.toContain('Alice Membre')
   })
 
   it('stays visible when session user is already cached before init', async () => {

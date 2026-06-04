@@ -77,5 +77,49 @@
         }
       </div>
     </div>
+
+    @if (preferencesLoading()) {
+      <mat-spinner
+        class="account-page__pseudo-spinner"
+        diameter="24"
+        role="status"
+        aria-label="Chargement du pseudo"
+      />
+    } @else if (!loadFailed()) {
+      <div class="account-page__pseudo-block">
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="account-page__pseudo-field"
+        >
+          <mat-label>Pseudo</mat-label>
+          <input
+            matInput
+            maxlength="255"
+            [ngModel]="pseudo()"
+            (ngModelChange)="onPseudoInput($event)"
+          />
+          <mat-hint>Nom affiché dans toutes vos troupes.</mat-hint>
+          @if (pseudoError()) {
+            <mat-error>Le pseudo ne peut pas être vide.</mat-error>
+          }
+        </mat-form-field>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          class="account-page__pseudo-save"
+          data-testid="account-pseudo-save"
+          [disabled]="!canSavePseudo()"
+          (click)="savePseudo()"
+        >
+          @if (saving()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Enregistrer
+          }
+        </button>
+      </div>
+    }
   </section>
 }

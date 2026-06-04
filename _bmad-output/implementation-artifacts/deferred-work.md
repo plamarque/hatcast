@@ -1,3 +1,8 @@
+## Deferred from: code review of 17-35-mon-compte-pseudo-identite-rail-label.md (2026-06-04)
+
+- AC9 suite complète `npm run test -w @hatcast/web` — ~80 échecs pré-existants hors périmètre 17.35 ; les 19 tests story passent via `ng test`.
+- `account-placeholder.spec.ts` tests Sécurité (mock Firebase `onAuthStateChanged`) — échecs pré-existants documentés en Dev Notes.
+
 ## Deferred from: code review of ops-9-posthog-hatcast-app.md (2026-06-04)
 
 - `package-lock.json` version monorepo `0.47.1` → `2.0.0` dans le diff OPS-9 — bruit de versionnement, pas de régression analytics.

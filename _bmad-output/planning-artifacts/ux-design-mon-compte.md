@@ -4,6 +4,7 @@ author: Sally (UX) + Patrice
 date: '2026-06-03'
 status: approved
 relatedStories:
+  - '17.35'
   - '17.34'
   - '17.33'
   - '17.25'
@@ -15,6 +16,8 @@ relatedStories:
   - '10.3'
 stakeholderDecisions:
   - global-member-preferences-on-compte
+  - pseudo-on-identity-tab-not-preferences
+  - rail-footer-shows-member-pseudo-not-compte-label
   - tabbed-layout-five-tabs
   - align-chrome-with-agenda-and-stats
   - settings-list-not-stacked-cards
@@ -33,11 +36,11 @@ relatedArtifacts:
 
 # UX Design — Mon compte (`/compte`)
 
-**Purpose:** Écran **Mon compte** aligné sur le shell membre (**Accueil**, **Agenda**, **Stats**), organisé en **onglets** (story **17.34**) pour réduire le scroll et clarifier les regroupements. Préférences membre **globales** (pseudo + rôles préférés pour toutes les troupes) sur l’onglet **Préférences**.
+**Purpose:** Écran **Mon compte** aligné sur le shell membre (**Accueil**, **Agenda**, **Stats**), organisé en **onglets** (story **17.34**) pour réduire le scroll et clarifier les regroupements. **Pseudo membre global** sur l’onglet **Identité** ; **rôles préférés globaux** sur l’onglet **Préférences**.
 
-**Principle:** Mon compte = **paramètres du compte HatCast** : identité, préférences membre globales, notifications, sécurité, à propos. Pseudo et rôles préférés sont **uniques par utilisateur** (pas par troupe) — voir amendement [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) § Mon compte — section Préférences membre.
+**Principle:** Mon compte = **paramètres du compte HatCast** : identité (dont pseudo membre), préférences de jeu (rôles), notifications, sécurité, à propos. Pseudo et rôles préférés sont **uniques par utilisateur** (pas par troupe) — voir amendement [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) § Mon compte — section Préférences membre.
 
-**Historique :** La spec scroll unique (2026-05-28, story **17.24**) est **obsolète** pour la structure de navigation ; le contenu fonctionnel qu’elle a introduit (header hub, placeholders 1.6/1.7) reste valide et est réparti dans les onglets ci-dessous. **Amendement 2026-06-03 (révisé) :** **Se déconnecter** dans le **header de page** (à droite du titre L1), visible depuis **tous** les onglets — remplace le placement dans l’onglet Identité (C8b).
+**Historique :** La spec scroll unique (2026-05-28, story **17.24**) est **obsolète** pour la structure de navigation ; le contenu fonctionnel qu’elle a introduit (header hub, placeholders 1.6/1.7) reste valide et est réparti dans les onglets ci-dessous. **Amendement 2026-06-03 (révisé) :** **Se déconnecter** dans le **header de page** (à droite du titre L1), visible depuis **tous** les onglets — remplace le placement dans l’onglet Identité (C8b). **Amendement 2026-06-04 :** le **pseudo membre** (`memberDisplayName`) est éditable sur l’onglet **Identité** (avec avatar et e-mail), **pas** sur **Préférences** — décision produit Patrice non capturée dans la version approuvée du 2026-06-03 ; corrige la régression perçue post-**17.34**. **C11 :** le footer rail desktop affiche le **pseudo** sous l’avatar (plus le libellé statique « Compte »).
 
 ---
 
@@ -58,8 +61,9 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 
 | # | Sujet | Décision |
 |---|--------|----------|
-| C1 | **Périmètre écran** | Compte **global** : identité, **pseudo membre**, **rôles préférés globaux**, notifications push/catégories, sécurité (email / mot de passe connecté), suppression de compte, version app. |
-| C2 | **Préférences membre** | **Un seul pseudo** et **un jeu de rôles préférés** pour toutes les troupes — formulaire sur l’onglet **Préférences** (`MemberPreferencesForm`). **Pas** de pseudo par troupe sur `/compte` ni dans le hub troupe. |
+| C1 | **Périmètre écran** | Compte **global** : identité (**avatar**, **e-mail**, **pseudo membre**), **rôles préférés globaux**, notifications push/catégories, sécurité (email / mot de passe connecté), suppression de compte, version app. |
+| C2 | **Pseudo membre** | **Un seul pseudo** (`memberDisplayName`) pour toutes les troupes — champ éditable sur l’onglet **Identité** (sous l’e-mail). Hint : *Nom affiché dans toutes vos troupes.* ; max 255 ; non vide à l’enregistrement. **Pas** de pseudo par troupe sur `/compte` ni dans le hub troupe. |
+| C2b | **Rôles préférés** | **Un jeu de rôles préférés** pour toutes les troupes — formulaire sur l’onglet **Préférences** (grille `mat-checkbox` ; composant dérivé de `MemberPreferencesForm` **sans** le champ pseudo). |
 | C3 | **Chrome page** | Même squelette que **Mon agenda** / **Mes Stats** : conteneur `max-width: 56rem`, header `h1` + `p` sous-titre. Typo L1/L2 : [`ux-design-hub-section-headers.md`](ux-design-hub-section-headers.md). |
 | C4 | **Navigation interne** | **5 onglets** Material (`mat-tab-nav-bar` + `mat-tab-link` + routes enfants) — pas de scroll unique pour tout le contenu. |
 | C5 | **Avatar** | Gestion **photo de profil** (story **2.6**) dans l’onglet **Identité** — zone compacte en tête d’onglet. |
@@ -69,6 +73,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | C8b | **Déconnexion** | Bouton **Se déconnecter** dans le **header de page** (`account-placeholder`), aligné à **droite** du titre **Mon compte**, visible sur **tous** les onglets — **pas** dans le contenu d’un onglet, **pas** de footer sous le `router-outlet`. `mat-button` texte + icône `logout` ; libellé masqué ≤ 480 px avec `aria-label="Se déconnecter"`. Même flux que [`UserAccountMenuItemsComponent`](../../apps/web/src/app/shared/user-account-menu/user-account-menu-items.ts). |
 | C9 | **Nav shell** | `/compte` garde la **barre membre** (Accueil · Agenda · Stats) ; pas de 4ᵉ onglet « Compte ». |
 | C10 | **Zone sensible** | **Pas d’onglet dédié** — « Supprimer mon compte » en bas de l’onglet **Sécurité**, séparé visuellement (`overline` + token `error`). |
+| C11 | **Libellé rail desktop** | Sur viewport **≥ 840 px**, le footer rail ([`member-account-menu-trigger`](../../apps/web/src/app/shared/member-account-menu/member-account-menu-trigger.html) variant `rail-footer`) affiche sous l’avatar le **pseudo membre** (`memberDisplayName`, même source que C2) — **pas** le libellé générique « Compte ». Troncature `ellipsis` ; fallbacks si pseudo indisponible : **e-mail** → « Compte ». Mobile **< 840 px** : avatar seul inchangé ; `aria-label` = `Menu compte : {pseudo ou fallback}`. Voir [ux-hub-a-faire.md](./ux-hub-a-faire.md) § Menu compte. |
 
 ---
 
@@ -76,8 +81,8 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 
 | # | Onglet | Contenu | Icône M3 | Route |
 |---|--------|---------|----------|-------|
-| 1 | **Identité** | Avatar, email (lecture seule), nom affiché (`displayName`) | `person` | `/compte` (défaut) ou `/compte/identite` |
-| 2 | **Préférences** | Pseudo membre + rôles préférés (`MemberPreferencesForm`) | `tune` | `/compte/preferences` |
+| 1 | **Identité** | Avatar, email (lecture seule), **pseudo membre** (éditable), `displayName` auth si présent (lecture seule, distinct du pseudo) | `person` | `/compte` (défaut) ou `/compte/identite` |
+| 2 | **Préférences** | Rôles préférés globaux uniquement (sans pseudo) | `tune` | `/compte/preferences` |
 | 3 | **Notifications** | Push (`PushNotificationsSection`) + catégories (`NotificationPreferencesSection`) | `notifications` | `/compte/notifications` |
 | 4 | **Sécurité** | Changer e-mail · Changer MDP · hint Google-only · **Supprimer mon compte** (zone sensible) | `lock` | `/compte/securite` |
 | 5 | **À propos** | Version app + ouverture changelog (`data-testid="account-app-version"`, story **10.3**) | `info` | `/compte/a-propos` |
@@ -98,7 +103,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 
 ## Parcours utilisateur
 
-**Léa** ouvre le menu avatar depuis l’agenda → **Mon compte**. Elle arrive sur **Identité**, change sa photo en deux taps, bascule sur **Préférences** pour ajuster son pseudo et ses rôles par défaut (valables dans toutes ses troupes), puis ouvre **Notifications** pour activer le push. Depuis n’importe quel onglet, **Se déconnecter** reste accessible en haut à droite — utile car le menu avatar est masqué sur `/compte`.
+**Léa** ouvre le menu avatar depuis l’agenda → **Mon compte**. Elle arrive sur **Identité**, change sa photo en deux taps et met à jour son **pseudo** sur le même onglet, bascule sur **Préférences** pour ajuster ses rôles par défaut (valables dans toutes ses troupes), puis ouvre **Notifications** pour activer le push. Depuis n’importe quel onglet, **Se déconnecter** reste accessible en haut à droite — utile car le menu avatar est masqué sur `/compte`.
 
 ---
 
@@ -133,29 +138,35 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 ```
 ┌────────────────────────────────────────────────────────────┐
 │  [Avatar 72px]   patrice@example.com                        │
-│                  Léa Martin (si displayName)                │
+│                  Léa Martin (si displayName auth)         │
 │                  [ menu photo : Choisir · Google · × ]      │
+├────────────────────────────────────────────────────────────┤
+│  Pseudo                                                     │
+│  [ Léa________________________________ ]                    │
+│  Nom affiché dans toutes vos troupes.                      │
+│  [ Enregistrer ]                                            │
 └────────────────────────────────────────────────────────────┘
 ```
 
 | Règle | Détail |
 |-------|--------|
 | **Email** | Lecture seule, `body-large` ; pas de champ éditable tant que **1.6** non livrée. |
-| **displayName** | Afficher si présent ; édition **hors scope** sauf décision future. |
+| **Pseudo membre** | `mat-form-field` éditable ; source API `GET/PATCH /v1/me/preferences` (`memberDisplayName` seul ou avec patch partiel) ; hint : *Nom affiché dans toutes vos troupes.* ; max 255 ; non vide ; bouton **Enregistrer** dédié ou regroupé avec la zone identité ; snack succès / erreur. |
+| **displayName auth** | Nom du fournisseur (ex. Google) — afficher en lecture seule **sous** l’e-mail si présent et **distinct** du pseudo ; **ne pas** confondre avec le pseudo membre. |
 | **Photo** | Menu compact sur l’avatar (pattern actuel `account-placeholder`) ; formats / 2 Mo via tooltip ou hint une ligne. |
 | **Google** | « Utiliser ma photo Google » seulement si `hasGoogleAccount`. |
 | **Déconnexion** | **Header de page** uniquement (C8b) — **pas** dans cet onglet. |
 
 ### Onglet 2 — Préférences
 
-Contenu : [`MemberPreferencesForm`](../../apps/web/src/app/shared/member-preferences-form/member-preferences-form.ts).
+Contenu : grille rôles préférés (extrait de [`MemberPreferencesForm`](../../apps/web/src/app/shared/member-preferences-form/member-preferences-form.ts) **sans** le champ pseudo, ou composant dédié `MemberPreferredRolesForm`).
 
 | Élément | Détail |
 |---------|--------|
-| **Pseudo** | Un `mat-form-field` ; hint : *Nom affiché dans toutes vos troupes.* ; max 255 ; non vide à l’enregistrement. |
 | **Rôles préférés** | Grille `mat-checkbox` (clés, labels, emoji, règle `volunteer` non désactivable). |
-| **Enregistrement** | Bouton **Enregistrer** pour la section ; snack succès / erreur. |
-| **Retiré** | Lien « Préférences par troupe », bottom sheet hub, pseudo par troupe. |
+| **Enregistrement** | Bouton **Enregistrer** pour la section ; snack succès / erreur ; API `PATCH /v1/me/preferences` (`preferredRoleKeys` seul). |
+| **Retiré de cet onglet** | Champ **Pseudo** (déplacé Identité, amendement 2026-06-04). |
+| **Retiré (historique)** | Lien « Préférences par troupe », bottom sheet hub, pseudo par troupe. |
 
 Source amendement troupe hub : [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) § Mon compte — section Préférences membre.
 
@@ -211,6 +222,7 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 │ Identité│Préf│Notif│…   │  ← tabs scrollables
 ├─────────────────────────┤
 │ [Avatar] email@…        │
+│ Pseudo [___________]    │
 ├─────────────────────────┤
 │ Accueil │ Agenda │ Stats│
 └─────────────────────────┘
@@ -238,8 +250,9 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 |--------|----------------|
 | Page scroll unique (17.24) | 5 onglets (**17.34**) |
 | Carte « Paramètres du compte » + paragraphe livraison | Sous-titre header + onglets |
-| **Pseudo par troupe** (N cartes) | Onglet **Préférences** — pseudo global |
+| **Pseudo par troupe** (N cartes) | Onglet **Identité** — pseudo global |
 | **Rôles préférés par troupe** | Onglet **Préférences** — rôles globaux |
+| **Pseudo sur onglet Préférences** (17.33–17.34) | Onglet **Identité** (amendement 2026-06-04) |
 | Lien **Préférences par troupe** → `/troupes` | Formulaire inline Préférences |
 | `TroupeHubPreferencesSheet` | `MemberPreferencesForm` sur `/compte` |
 | **Retour aux troupes** (footer) | Nav shell membre |
@@ -269,6 +282,8 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 | Routes enfants | `app.routes.ts` : `/compte`, `/compte/preferences`, `/compte/notifications`, `/compte/securite`, `/compte/a-propos` (+ redirect `#notifications`) |
 | Shell onglets | `account-placeholder` (ou `account-settings`) : header + `mat-tab-nav-bar` + `<router-outlet>` |
 | Extraire panels | Optionnel : un composant par onglet sous `pages/account/` |
+| Pseudo → Identité | `account-identity-tab` : champ pseudo + save ; retirer pseudo de `MemberPreferencesForm` ou scinder en pseudo / rôles |
+| Rail pseudo (C11) | `member-account-menu-trigger` : remplacer libellé statique « Compte » par `memberDisplayName` (fallback e-mail → « Compte ») ; rafraîchir après save Identité |
 | Fragment legacy | Redirect `/compte#notifications` → `/compte/notifications` |
 | Déconnexion | Dans le **shell** `account-placeholder` (header, C8b) — **pas** dans un onglet ni sous le `router-outlet` |
 | Tests | `account-placeholder.spec.ts` : navigation onglets, deep links, présence sections ; conserver tests avatar / version |
@@ -281,7 +296,8 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 | Story | Contenu sur `/compte` |
 |-------|------------------------|
 | **17.34** | Layout onglets, routes, redirect fragment, déconnexion header page (C8b) |
-| **17.33** | Formulaire préférences membre (onglet **Préférences**) |
+| **17.33** | API préférences membre globales (`/v1/me/preferences`) |
+| **17.35** (proposée) | Déplacer pseudo → onglet **Identité** ; Préférences = rôles seuls ; **libellé rail desktop = pseudo** (C11) |
 | **1.6** | Activer lignes Sécurité + dialogs email / mot de passe (FR36) |
 | **1.7** | Activer suppression compte (FR37) |
 | **2.6** | Photo de profil (onglet **Identité**) |
@@ -296,10 +312,12 @@ Comptes **Google-only** : pas de ligne mot de passe ; hint *Connexion via Google
 
 | Question | Réponse |
 |----------|---------|
-| Pseudo / rôles **globaux** sur Mon compte ? | **Oui** (C1, C2) — 17.24 scroll obsolète |
+| Pseudo / rôles **globaux** sur Mon compte ? | **Oui** (C1, C2, C2b) — 17.24 scroll obsolète |
+| Pseudo sur **Identité**, rôles sur **Préférences** ? | **Oui** (C2 / C2b) — amendement 2026-06-04 |
+| Rail desktop : pseudo sous l’avatar (pas « Compte ») ? | **Oui** (C11) — amendement 2026-06-04 |
 | 5 onglets sans « Zone sensible » séparé ? | **Oui** (C10) |
 | Déconnexion dans le header page (tous onglets) ? | **Oui** (C8b) — amendement 2026-06-03 révisé |
 | Placeholders visibles avant 1.6/1.7 ? | **Oui** (C6) |
 | Header sans menu avatar ? | **Oui** (C8a) |
 
-**Statut :** `approved` (2026-06-03) — story d’implémentation : [17-34-mon-compte-onglets-securite-preferences.md](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md).
+**Statut :** `approved` (2026-06-03, amendé 2026-06-04 — placement pseudo Identité) — stories : [17-34](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) (onglets, done) ; **17.35** (proposée — pseudo → Identité).

@@ -83,27 +83,28 @@ flowchart TB
 
 ---
 
-## Menu compte — placement responsive (2026-05-28)
+## Menu compte — placement responsive (2026-05-28, amendé 2026-06-04)
 
 **Contexte :** le menu compte était dupliqué dans le **header de chaque page** (avatar + nom + chevron), ce qui réduit la place utile pour titres et filtres (agenda). Alignement avec des références produit (Cursor, ChatGPT) et avec **Material 3** : le rail officiel ne porte que les **destinations primaires** ; le compte est une **extension footer** du rail (pattern d’écosystème), pas une 4ᵉ destination de nav.
 
-| Breakpoint | Emplacement du trigger | Menu (`mat-menu`) | Header de page |
-|------------|------------------------|-------------------|----------------|
-| **≥ 840 px** (desktop) | **Bas du rail** membre : avatar + nom tronqué + chevron | Mon compte, Installer l’app (si applicable), séparateur, Se déconnecter | **Aucun** menu compte dans les headers des routes où la nav globale est visible ([`shouldShowMemberNav`](../../apps/web/src/app/layout/member-shell/member-shell-nav-visibility.ts)) |
-| **< 840 px** (mobile) | **Coin haut-droit du shell** : **avatar seul** (zone tactile ≥ 48 dp), sans nom ni `expand_more` | Idem | **Aucun** menu compte dupliqué dans les headers de ces mêmes routes |
-| **`/compte`** | **Masqué** (pas de trigger rail ni shell) — [ux-design-mon-compte.md](./ux-design-mon-compte.md) C8 | Déconnexion (et actions sensibles) **dans la page** ; PWA reste accessible depuis une autre route avant visite compte, ou ligne dédiée si besoin ultérieur | Titre + sous-titre uniquement |
-| **Routes sans nav globale** (`/connexion`, flux mot de passe) | N/A | N/A | Inchangé |
-| **Routes legacy hors `shouldShowMemberNav`** | Conserver le trigger **local** dans le header de la page jusqu’à rattachement au shell | `app-user-account-menu-items` existant | — |
+| Breakpoint | Emplacement du trigger | Libellé visible | Menu (`mat-menu`) | Header de page |
+|------------|------------------------|-----------------|-------------------|----------------|
+| **≥ 840 px** (desktop) | **Bas du rail** membre : avatar + **pseudo membre** tronqué | **Pseudo** (`memberDisplayName`, [ux-design-mon-compte.md](./ux-design-mon-compte.md) C2 / C11) — **pas** « Compte ». Fallbacks : e-mail → « Compte ». | Mon compte, Installer l’app (si applicable), séparateur, Se déconnecter | **Aucun** menu compte dans les headers des routes où la nav globale est visible ([`shouldShowMemberNav`](../../apps/web/src/app/layout/member-shell/member-shell-nav-visibility.ts)) |
+| **< 840 px** (mobile) | **Coin haut-droit du shell** : **avatar seul** (zone tactile ≥ 48 dp) | Aucun ; `aria-label="Menu compte : {pseudo ou fallback}"` | Idem | **Aucun** menu compte dupliqué dans les headers de ces mêmes routes |
+| **`/compte`** | **Masqué** (pas de trigger rail ni shell) — [ux-design-mon-compte.md](./ux-design-mon-compte.md) C8 | — | Déconnexion (et actions sensibles) **dans la page** ; PWA reste accessible depuis une autre route avant visite compte, ou ligne dédiée si besoin ultérieur | Titre + sous-titre uniquement |
+| **Routes sans nav globale** (`/connexion`, flux mot de passe) | N/A | N/A | N/A | Inchangé |
+| **Routes legacy hors `shouldShowMemberNav`** | Conserver le trigger **local** dans le header de la page jusqu’à rattachement au shell | Selon variante locale | `app-user-account-menu-items` existant | — |
 
-**Règles produit (inchangées) :**
+**Règles produit (inchangées sauf C11 pseudo rail) :**
 
 - **Pas** de 4ᵉ onglet « Compte » dans la nav Accueil · Agenda · Stats.
 - **Pas** de panneau hamburger pour le compte.
+- **Desktop rail :** libellé sous l’avatar = **pseudo membre** (C11), mis à jour après enregistrement sur `/compte` Identité.
 - Composant menu partagé : [`app-user-account-menu-items`](../../apps/web/src/app/shared/user-account-menu/user-account-menu-items.ts) (ne pas dupliquer les entrées).
 
 **Référence M3 (justification) :** les guidelines placent souvent le profil dans la **top app bar** ; le **footer rail** est un agencement **custom** accepté lorsque le rail est déjà le chrome persistant (évite une double barre titre + avatar). Menus ancrés au trigger, hiérarchie identité → actions → déconnexion.
 
-**Story d’implémentation :** **17.25** — [`17-25-menu-compte-rail-desktop-avatar-mobile.md`](../implementation-artifacts/17-25-menu-compte-rail-desktop-avatar-mobile.md).
+**Story d’implémentation :** **17.25** (chrome rail) ; amendement libellé pseudo → **17.35** (avec pseudo Identité).
 
 ### Wireframes chrome compte
 
@@ -116,7 +117,7 @@ flowchart TB
 │📊│                      │
 │  │                      │
 │──│                      │
-│👤│  Patrice… ▾          │  ← footer rail ; mat-menu vers le haut
+│👤│  Léa…                │  ← footer rail ; pseudo tronqué (pas « Compte »)
 └──┴──────────────────────┘
 ```
 
