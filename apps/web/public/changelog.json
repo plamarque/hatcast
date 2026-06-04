@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.0.3",
+    "date": "2026-06-04",
+    "changes": [
+      "✨ Améliore l'interface de sélection des joueurs avec des indications visuelles.",
+      "🐛 Corrige l'affichage des disponibilités lors de la sélection."
+    ]
+  },
+  {
     "version": "2.0.2",
     "date": "2026-06-04",
     "changes": [
