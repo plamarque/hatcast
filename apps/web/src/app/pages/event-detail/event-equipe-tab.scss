@@ -49,6 +49,75 @@
   }
 }
 
+.event-equipe-tab__guidances {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.5rem;
+  background: color-mix(
+    in srgb,
+    var(--mat-sys-surface-container-high, var(--mat-sys-surface)) 55%,
+    transparent
+  );
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 35%, transparent);
+}
+
+.event-equipe-tab__guidance {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-height: 1.625rem;
+  cursor: default;
+}
+
+.event-equipe-tab__parity {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: var(--mat-sys-body-small-size, 0.8125rem);
+  font-weight: 600;
+  line-height: 1.35;
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+.event-equipe-tab__parity-label {
+  min-width: 0;
+}
+
+.event-equipe-tab__parity--bon {
+  background: var(--hatcast-participation-available-badge-bg);
+  color: var(--hatcast-participation-available-badge-fg);
+}
+
+.event-equipe-tab__parity--acceptable {
+  background: var(--hatcast-participation-neutral-badge-bg);
+  color: var(--hatcast-participation-neutral-badge-fg);
+}
+
+.event-equipe-tab__parity--faible {
+  background: var(--hatcast-participation-declined-badge-bg);
+  color: var(--hatcast-participation-declined-badge-fg);
+}
+
+@media (max-width: 480px) {
+  .event-equipe-tab__guidances {
+    row-gap: 0.25rem;
+  }
+
+  .event-equipe-tab__guidance {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+}
+
 .event-equipe-tab__grid {
   list-style: none;
   margin: 0;

@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-05T23:30:00+02:00
+# last_updated: 2026-06-06T00:20:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-05T23:25:00+02:00"
+last_updated: "2026-06-06T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -59,7 +59,7 @@ development_status:
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: done
   mig-4-deplacements-category-import: done
-  mig-7-backfill-users-gender-from-v1: backlog  # P1 — depends 2.12 ; comptes activés V2 ; gender NULL only
+  mig-7-backfill-users-gender-from-v1: ready-for-dev  # P1 — depends 2.12 (done) ; NULL-only guard + runbook + smoke
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
@@ -143,7 +143,7 @@ development_status:
   6-17-dispatch-annonce-manuelle-transparence-dates: done  # tech-spec-share-announce-transparency-6-17.md
   6-18-aide-contextuelle-statut-composition: done  # UX ux-design-composition-status-help.md — approved 2026-06-05
   6-19-export-calendrier-et-navigation-lieu-onglet-infos: done  # UX ux-hatcast-2026-06-05 EXPERIENCE.md — parité V1 calendrier + maps Infos
-  6-21-hint-parite-genre-composition-player: backlog  # P2 — SCP 2026-06-05 G-011 ; depends 2.12
+  6-21-hint-parite-genre-composition-player: done  # P2 — SCP 2026-06-05 G-011 ; depends 2.12* (done) ; UI strip only
   epic-6-retrospective: optional
 
   epic-7: backlog

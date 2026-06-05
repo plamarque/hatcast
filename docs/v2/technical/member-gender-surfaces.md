@@ -129,7 +129,8 @@ flowchart TB
 | Draw animation winner line | `selection_status` | `candidate.gender` | N/A | draw steps | ✅ | **Only** surface for Sélectionné·e prefix |
 | Multi-role on event warning | `role_event` | assignee gender | N/A | client-side | ✅ | |
 | Consecutive show warning | `role_event` | assignee gender | N/A | client-side | ✅ | |
-| Team gender parity strip | `parity` | slot genders | N/A | composition | ❌ | Story **6.21** |
+| Équipe — guidances composition (team-level) | `guidance` | — | N/A | client | ✅ | `composition-guidances` strip ; mixité pill (**6.21**) ; extensible futurs signaux équipe |
+| Team gender parity indicator | `parity` | slot genders | N/A | composition | ✅ | Pill inside guidances ; `composition-player-gender-parity.ts` ; copy **Mixité** ; **not** lifecycle status badge |
 
 ---
 

@@ -5,7 +5,7 @@ sources:
   - _bmad-output/specs/spec-member-gender-parity/SPEC.md
   - _bmad-output/specs/spec-member-gender-parity/member-gender.md
   - _bmad-output/planning-artifacts/ux-design-mon-compte.md
-updated: 2026-06-05
+updated: 2026-06-06
 screen1_status: frozen
 ---
 
@@ -27,14 +27,14 @@ screen1_status: frozen
 | Mon profil | `/compte` → `account-profile-tab` | Set optional gender (segmented control + shared save) |
 | Dispos / Équipe / confirmations | various | Show gender-aware labels (**2.12b**) |
 | Avatars | `app-user-avatar` | Letter + tone fallback by gender (**2.12** / **2.12c**) |
-| Équipe parity strip | `event-equipe-tab` | Organizer F/M summary on `player` slots (**6.21**) |
+| Équipe guidances (mixité) | `event-equipe-tab` → `composition-guidances` | Team-level organizer hints; mixité pill (**6.21**) |
 | Statistiques ligue | season stats view | Season aggregate parity (**16.3**) |
 
 Closure: self-service gender on Mon profil; derived presentation everywhere else; organizer sees aggregate on Équipe without per-person gender badge.
 
 ## Voice and Tone
 
-Respectful, optional, never prescriptive about balance.
+Respectful, optional, never prescriptive about balance. **V2 posture:** HatCast **guides** organizers as guardrails; they may **ignore** low-priority hints like parity.
 
 | Context | Copy |
 |---------|------|
@@ -45,11 +45,13 @@ Respectful, optional, never prescriptive about balance.
 | Save (shared) | **Enregistrer** |
 | Snackbar success | *Profil enregistré* |
 | Snackbar error | *Enregistrement impossible* |
-| Parity strip — counts | *Joueurs : {f} F · {m} H* |
-| Parity strip — with ratio | *Joueurs : {f} F · {m} H ({pct} % femmes)* |
-| Parity strip — no known gender | *Parité : genre non renseigné pour les comédiens·nes assigné·e·s* |
-| Parity strip — no player slots filled | *(hidden)* |
-| Season card title (16.3) | **Parité sur scène (Comédien·ne)** |
+| Parity — bon | *Mixité équilibrée* |
+| Parity — acceptable | *Mixité acceptable* |
+| Parity — faible | *Mixité faible* |
+| Parity — hidden (unknown gender in compo) | *(hidden)* |
+| Parity — tooltip detail (optional) | *{f} F · {m} H* (only when `u = 0`) |
+| Parity — hidden | No player slots filled |
+| Season card title (16.3) | **Mixité sur scène (Comédien·ne)** |
 | Season card body | *{f} femmes · {m} hommes sur {total} sélections connues ({pct} % femmes)* |
 | `aria-label` gender group | Question text via `aria-labelledby="account-gender-label"` |
 
@@ -102,20 +104,32 @@ V1 used gender emoji (`playerAvatars.js`) — **V2 normative behaviour is letter
 
 Fallback: `non_specified` → inclusive tables (`Comédien·ne`, …).
 
-### Composition parity strip (story 6.21)
+### Composition guidances — team level (story 6.21+)
 
 | Rule | Behavior |
 |------|----------|
-| Audience | Users with `canManageComposition` / edit slots on Équipe (organizers) |
-| Position | Above slot grid (see `DESIGN.md`) |
-| Data | Client-side from slots + participant `gender` on composition DTO, or server field `compositionGenderParity` |
-| Role filter | Count only `roleKey === 'player'` filled slots |
-| Ratio | Show `% femmes` only when `f + m > 0` |
-| `u > 0` | Append « · {u} non renseigné(s) » when at least one assigned player has `non_specified` |
-| Updates | Same refresh as slot assign/clear/draw |
-| Tone | Informational — **no** modal, **no** disable validate/draw |
+| Audience | `canManageComposition` only |
+| Position | **`composition-guidances`** strip above slot grid (see `DESIGN.md`) — not lifecycle status badge; not per-slot row |
+| Extensibility | Same strip hosts future team-level hints (e.g. originality vs previous show) |
+| vs slot warnings | **6.20** / multi-role stay **under each slot row** — different level |
 
-**Distinct from 6.20:** consecutive warning is per-slot, warning color, role-specific; parity strip is global summary, primary tint.
+### Composition parity indicator (story 6.21)
+
+| Rule | Behavior |
+|------|----------|
+| Audience | `canManageComposition` only |
+| Position | One **pill** inside `composition-guidances` — not standalone orphan line |
+| Data | Client-side from filled `player` slots + `participantGender` |
+| Score | Only when **all** filled `player` slots have known gender (`u = 0`) and `n = f + m ≥ 2`. **écart** `= |f − m|`: **bon** if `écart = 0`; **acceptable** if `écart = 1`; **faible** if `écart ≥ 2`. If `u > 0` → **hidden** (cannot pronounce on mixité) |
+| Colors | **Bon** green · **Acceptable** grey · **Faible** orange — semantic tokens in DESIGN.md |
+| Main line | Qualitative label only — **no** F/H counts |
+| Detail | Optional tooltip/tap with `{f} F · {m} H` when indicator visible |
+| Updates | Same refresh as slot assign/clear/draw |
+| Blocking | **Never** — indicator only; orgas may ignore |
+| Event flag | **None** in 6.21 — no « spectacle cherche la parité » |
+| Cross-team | **Out of scope** — bi-team match/catch parity deferred (Epic 15 rencontre) |
+
+**Distinct from 6.20:** consecutive warning is per-slot, warning amber; parity is a **team-level** pill in guidances strip with score colors (green / grey / orange).
 
 ### Season parity card (story 16.3)
 
@@ -125,28 +139,29 @@ Fallback: `non_specified` → inclusive tables (`Comédien·ne`, …).
 
 ## State Patterns
 
-| State | Gender field | Parity strip |
-|-------|--------------|--------------|
+| State | Gender field | Parity indicator |
+|-------|--------------|------------------|
 | Loading | Spinner replaces profile block | Hidden until composition loaded |
 | Default | **Non spéc.** segment selected (centre) | — |
 | Dirty | Enregistrer enabled when pseudo or gender changed | — |
 | Saving | Spinner in Enregistrer button | — |
 | Error | Revert pseudo + gender to last saved; snackbar error | — |
 | Empty player slots | — | Hidden |
-| f+m=0, slots filled | — | « genre non renseigné… » copy |
-| f+m>0 | — | Counts + optional % |
+| Any assigned player with unknown gender (`u > 0`) | — | Hidden |
+| All known, `n < 2` | — | Hidden |
+| All known, `n ≥ 2` | — | Score line bon / acceptable / faible (colored) |
 
 ## Interaction Primitives
 
 1. **Edit profile** — adjust pseudo and/or gender → tap **Enregistrer** → PATCH → *Profil enregistré*.
-2. **Compose team** — assign players → strip recalculates live.
+2. **Compose team** — assign players → indicator recalculates (often *acceptable* on odd counts).
 3. **View season stats** — open Statistiques → see aggregate card (16.3).
 
 ## Accessibility Floor
 
 - Gender question visible (`#account-gender-label`); toggle group `aria-labelledby`.
 - Toggle segments ≥ 48dp touch height; wrap allowed on narrow screens.
-- Parity strip: `role="status"`; icon decorative; full sentence in text node.
+- Parity indicator: `role="status"`; icon decorative; qualitative label in text node; score color is supplementary to copy.
 - Contrast ≥ 4.5:1 on strip text (NFR-A1).
 - Gender tone difference is supplementary — segment label always in text.
 
@@ -169,14 +184,14 @@ Fallback: `non_specified` → inclusive tables (`Comédien·ne`, …).
 ### Flow C — Organisateur Marie compose un match
 
 1. Marie opens spectacle → **Équipe**, composition brouillon.
-2. Strip shows *Joueurs : 1 F · 3 H (25 % femmes)* after assignments.
-3. Marie assigns another woman → strip updates to *2 F · 3 H (40 % femmes)*.
-4. **Climax:** Marie voit l’équilibre sans blocage; elle valide quand elle veut.
+2. After assigning five players (2 F · 3 H), line shows *Mixité acceptable* in **grey**.
+3. She swaps to 1 F · 4 H → line updates to *Mixité faible* in **orange** — she may ignore and validate anyway.
+4. **Climax:** Signal visible, zero friction, no blocking.
 
 ## Responsive & Platform
 
 - Gender toggle: horizontal segments, wrap on ≤ 480px.
-- Parity strip: single line desktop; wrap allowed mobile; abbreviations F/H conserve space.
+- Guidances strip: pills wrap on ≤ 480px.
 - Season card: stacks with other stat cards on mobile.
 
 ## Inspiration & Anti-patterns
@@ -189,9 +204,11 @@ Fallback: `non_specified` → inclusive tables (`Comédien·ne`, …).
 - Immediate PATCH on every toggle tap (surprising vs pseudo).
 - Vertical radio list or dropdown for gender.
 - Forcing gender at signup.
-- Red/green « good/bad » parity gauge.
-- Showing « Homme/Femme » badge on other members’ avatars.
-- Parity strip in Dispos tab (out of scope 6.21).
+- Red/green « good/bad » blocking gauge.
+- Full-width bandeau consuming vertical space.
+- Exact F/H counts in main line (use tooltip instead).
+- Parity indicator in Dispos tab (out of scope 6.21).
+- Cross-team parity enforcement on match/catch (future).
 
 ## API expectations (UI)
 
@@ -202,12 +219,14 @@ gender?: 'male' | 'female' | 'non_specified'
 // Composition participant (for labels + parity)
 participantGender?: 'male' | 'female' | 'non_specified'
 
-// Optional server-computed (6.21)
-interface CompositionGenderParity {
+// Optional tooltip detail (6.21)
+interface CompositionPlayerGenderParity {
   female: number
   male: number
   unspecified: number
-  femaleShare: number | null // 0–1 when female+male > 0
+  score: 'bon' | 'acceptable' | 'faible' | null  // null → hidden (u > 0, n < 2, or no players)
+  label: string
+  detailLabel: string | null
 }
 ```
 
@@ -215,5 +234,6 @@ interface CompositionGenderParity {
 
 | ID | Question | UX assumption |
 |----|----------|-------------|
-| OQ-UX-1 | Match-only strip? | All events — strip when `player` slots exist |
+| OQ-UX-1 | Match-only indicator? | **Resolved:** all events with filled `player` slots when orga |
+| OQ-UX-3 | Mixité rencontre bi-équipes | **Deferred** — Epic 15 / future ; 6.21 = single composition only |
 | OQ-UX-2 | Snackbar on profile save? | **Resolved:** shared *Profil enregistré* ; error always snackbar |

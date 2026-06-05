@@ -2208,6 +2208,374 @@ describe('EventEquipeTab', () => {
     })
   })
 
+  it('shows gender parity indicator for organizer when all player slots have known genders', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 2,
+            participantId: 'p-3',
+            participantDisplayName: 'Claire',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 3,
+            participantId: 'p-4',
+            participantDisplayName: 'David',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 4,
+            participantId: 'p-5',
+            participantDisplayName: 'Eric',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 5 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const guidances = fixture.nativeElement.querySelector(
+        '[data-testid="composition-guidances"]',
+      ) as HTMLElement
+      expect(guidances).toBeTruthy()
+      expect(guidances.getAttribute('aria-label')).toBe('Indicateurs de composition')
+      const indicator = guidances.querySelector(
+        '[data-testid="composition-gender-parity-indicator"]',
+      ) as HTMLElement
+      expect(indicator).toBeTruthy()
+      expect(indicator.textContent).toContain('Mixité acceptable')
+      expect(indicator.classList.contains('event-equipe-tab__parity--acceptable')).toBe(true)
+      expect(indicator.getAttribute('aria-label')).toBe('Mixité acceptable — 2 F · 3 H')
+    })
+  })
+
+  it('shows bon gender parity score for balanced 2F2H composition', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 2,
+            participantId: 'p-3',
+            participantDisplayName: 'Claire',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 3,
+            participantId: 'p-4',
+            participantDisplayName: 'David',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 4 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const indicator = fixture.nativeElement.querySelector(
+        '[data-testid="composition-gender-parity-indicator"]',
+      ) as HTMLElement
+      expect(indicator).toBeTruthy()
+      expect(indicator.textContent).toContain('Mixité équilibrée')
+      expect(indicator.classList.contains('event-equipe-tab__parity--bon')).toBe(true)
+      expect(indicator.getAttribute('aria-label')).toBe('Mixité équilibrée — 2 F · 2 H')
+    })
+  })
+
+  it('shows faible gender parity score for skewed 1F4H composition', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 2,
+            participantId: 'p-3',
+            participantDisplayName: 'Claire',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 3,
+            participantId: 'p-4',
+            participantDisplayName: 'David',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 4,
+            participantId: 'p-5',
+            participantDisplayName: 'Eric',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 5 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const indicator = fixture.nativeElement.querySelector(
+        '[data-testid="composition-gender-parity-indicator"]',
+      ) as HTMLElement
+      expect(indicator).toBeTruthy()
+      expect(indicator.textContent).toContain('Mixité faible')
+      expect(indicator.classList.contains('event-equipe-tab__parity--faible')).toBe(true)
+      expect(indicator.getAttribute('aria-label')).toBe('Mixité faible — 1 F · 4 H')
+    })
+  })
+
+  it('hides gender parity indicator when fewer than two known-gender players are filled', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 2 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+    ).toBeNull()
+  })
+
+  it('hides gender parity indicator while draw is in progress', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 2 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+      ).toBeTruthy()
+    })
+
+    ;(fixture.componentInstance as unknown as { drawing: { set: (v: boolean) => void } }).drawing.set(
+      true,
+    )
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+    ).toBeNull()
+  })
+
+  it('hides gender parity indicator when a filled player has unknown gender', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'non_specified',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+    ).toBeNull()
+  })
+
+  it('hides gender parity indicator for member without canManageComposition', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', false)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+    ).toBeNull()
+  })
+
   it('hides Compléter and gap slot picker for member without canManageComposition', async () => {
     getComposition.mockResolvedValue({
       ok: true,

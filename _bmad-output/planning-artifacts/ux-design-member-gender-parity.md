@@ -1,6 +1,6 @@
 # UX — Member gender & team parity (Epic 2.12 / 6.21 / 16.3)
 
-**Status:** **Approved — Screen 1 frozen** (2026-06-05, Patrice sign-off) · Screens 2–3 unchanged pending stories **6.21** / **16.3**  
+**Status:** **Approved — Screen 1 frozen** (2026-06-05) · **Screen 2 approved** (2026-06-05, Patrice) · **Screen 2 placement amended** (2026-06-06, guidances strip) · Screen 3 pending **16.3**  
 **Spines:** [DESIGN.md](ux-designs/ux-member-gender-parity-2026-06-05/DESIGN.md) · [EXPERIENCE.md](ux-designs/ux-member-gender-parity-2026-06-05/EXPERIENCE.md)  
 **Normative:** [spec-member-gender-parity](../specs/spec-member-gender-parity/SPEC.md)
 
@@ -96,33 +96,65 @@ Quel genre utiliser pour me désigner ?
 
 **Slot row layout (grid, role pill, whole-row tap):** [_ux-design-composition-equipe-slot-rows.md_](ux-design-composition-equipe-slot-rows.md). Role labels in pills use `auditRoleDisplay`; assignee-specific copy uses `getRoleLabel(role, participantGender)` (story **2.12b**).
 
-### Parity strip (story **6.21**)
+### Parity indicator (story **6.21**) — **approved 2026-06-05**
+
+### Posture produit
+
+- **Indicateur** pour orgas — garde-fou, **ignorable** ; HatCast V2 **guide** sans chercher la solution optimale.
+- **Non bloquant** : jamais de désactivation Valider / Tirer / Compléter.
+- Pas de notion « ce spectacle cherche la parité » en 6.21 (match/catch bi-équipes = futur rencontre / Epic 15).
 
 ### Audience
 
-Organizers with composition edit rights — same class as consecutive-show warnings.
+Organizers with `canManageComposition` only.
 
-### Placement
+### Placement — **amended 2026-06-06** (Patrice, recette 6.21)
 
-**Above** the slot grid, below draw animation.
+**Bloc « Guidances composition »** (`composition-guidances`) au-dessus de la grille, sous l’animation de tirage — **pas** à côté du badge d’état lifecycle (« À compléter », etc.) dans le chrome événement.
+
+| Niveau | Contenu | Exemple |
+|--------|---------|---------|
+| **Équipe** (guidances) | Signaux agrégés, garde-fous ignorable | Mixité (**6.21**) ; futurs indicateurs (ex. originalité compo) |
+| **Créneau** (sous la ligne slot) | Alertes contextuelles par assignation | Rejeu possible (**6.20**), deux rôles le même soir |
+
+- Conteneur discret : fond `surface-container-high` léger, bordure `outline-variant`, pills en `flex-wrap`.
+- Chaque signal = pill score-colored (`event-equipe-tab__guidance`) — **pas** bandeau pleine largeur.
+- Section masquée quand aucun signal équipe actif.
+
+### Score (genres connus sur `player` assignés, `n = f + m`)
+
+**Écart** (PO confirmé 2026-06-05) : `écart = |f − m|` — calculé uniquement quand **tous** les `player` assignés ont un genre connu (`u = 0`) et `n = f + m ≥ 2`. Si `u > 0` → **rien n'est affiché** (mixité non calculable).
+
+| Score | Règle (`écart`) | Couleur sémantique |
+|-------|-----------------|-------------------|
+| **Bon** | `écart = 0` | Vert |
+| **Acceptable** | `écart = 1` | Gris |
+| **Faible** | `écart ≥ 2` | Orange |
+
+Exemples : 2 F · 3 H → écart 1 → acceptable ; 2 F · 2 H → écart 0 → bon ; 1 F · 4 H → écart 3 → faible ; 0 F · 3 H → écart 3 → faible.
+
+Effectifs impairs (3, 5…) : le score « acceptable » est le cas le plus fréquent.
 
 ### Visual (M3)
 
-| Element | Token |
-|---------|--------|
-| Background | `color-mix(in srgb, var(--mat-sys-primary) 10%, transparent)` |
-| Icon | `groups`, 18px, `aria-hidden` |
-| Text | `body-small` |
-| Tone | **Info** — not warning (contrast with **6.20**) |
+| Element | Spec |
+|---------|------|
+| Form | Single line, `body-small`, optional `mat-icon` `groups` (18px, decorative) |
+| **Bon** | Tokens vert participation (`--hatcast-participation-available-badge-*`) |
+| **Acceptable** | Tokens gris neutre (`--hatcast-participation-neutral-badge-*`) |
+| **Faible** | Tokens orange tertiary (`--hatcast-participation-declined-badge-*`) — **not** warning amber (**6.20**) |
+| Chiffres | **Not** in main line ; optional tap/tooltip : *{f} F · {m} H* (uniquement si tous les genres assignés sont connus) |
 
-### Copy (FR)
+### Copy (FR) — ligne principale
 
-| Condition | Template |
-|-----------|----------|
-| f+m > 0 | *Joueurs : {f} F · {m} H ({pct} % femmes)* |
-| f+m > 0, u > 0 | append *· {u} non renseigné(s)* |
-| slots filled, f+m = 0 | *Parité : genre non renseigné pour les comédiens·nes assigné·e·s* |
-| no player slots filled | hidden |
+| Score / état | Template |
+|--------------|----------|
+| Bon | *Mixité équilibrée* |
+| Acceptable | *Mixité acceptable* |
+| Faible | *Mixité faible* |
+| Aucun `player` rempli | *(hidden)* |
+| Au moins un `player` rempli avec genre **inconnu** (`u > 0`) | *(hidden — on ne se prononce pas)* |
+| Tous genres connus mais `n = f + m < 2` | *(hidden)* |
 
 ---
 
@@ -130,7 +162,7 @@ Organizers with composition edit rights — same class as consecutive-show warni
 
 Outlined `mat-card` in season stats summary:
 
-- **Title:** Parité sur scène (Comédien·ne)
+- **Title:** Mixité sur scène (Comédien·ne)
 - **Body:** *{f} femmes · {m} hommes sur {total} sélections connues ({pct} % femmes)*
 
 Hidden when no validated `player` selections with known gender.

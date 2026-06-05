@@ -94,6 +94,13 @@
 
 - Couplage `rolePillLabel` → `auditRoleDisplay` pour pills de slots vides — pattern pré-existant ; refactor séparé si souhaité.
 
+## Deferred from: code review of 6-21-hint-parite-genre-composition-player (2026-06-06)
+
+- Harmoniser délais `matTooltip` sur la pill mixité avec les warnings slot voisins — cohérence UX mineure.
+- Formuler le détail mixité en langage naturel dans `aria-label` (éviter abréviations F/H) — amélioration a11y optionnelle.
+- Genre de slot potentiellement périmé si le membre met à jour son profil après assignation — modèle slot existant (2.12b).
+- Resynchroniser `epics.md` §6.21 avec UX amendée — drift documentaire.
+
 ## Deferred from: code review of 2-12b + 2-12c combined (2026-06-05)
 
 - Tables de libellés dupliquées web (`event-roles.ts`) / API (`RoleLabels.kt`) — pas de divergence constatée ; synchronisation manuelle à prévoir si tables évoluent.

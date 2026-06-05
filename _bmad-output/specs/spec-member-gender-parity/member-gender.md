@@ -79,9 +79,23 @@ u = slots where gender is non_specified, null user, or unlinked participant with
 femaleShare = f / (f + m)   // 0.0–1.0
 ```
 
-`u` does not enter `femaleShare`. UI may show « X non renseigné(s) » when `u > 0`.
+`u` does not enter `femaleShare` or the **6.21** mixité score. If **any** filled `player` slot has unknown gender (`u > 0`), the Équipe mixité indicator is **hidden** — we cannot pronounce on mixité.
 
-**Organizer hint (6.21):** informational strip on Équipe tab; example copy: « Joueurs : 2 F · 4 H » or « Parité : 33 % femmes »; tone info (not warning). Updates on same refresh path as slots.
+**Mixité score (6.21)** — only when `u = 0` and `n = f + m ≥ 2`:
+
+```
+écart = |f − m|
+```
+
+| écart | Score | UI copy |
+|-------|-------|---------|
+| 0 | bon | *Mixité équilibrée* |
+| 1 | acceptable | *Mixité acceptable* |
+| ≥ 2 | faible | *Mixité faible* |
+
+Requires `u = 0` and `n ≥ 2`; otherwise indicator hidden (including when any genre unknown).
+
+**Organizer hint (6.21):** mixité pill inside team-level **`composition-guidances`** strip on Équipe tab (above slot grid, not lifecycle status badge) — score from **écart** above; colors green / grey / orange (semantic tokens). Counts in optional tooltip only. Non-blocking; orgas may ignore. Slot-level warnings (**6.20**, multi-role) remain per-row.
 
 **Season aggregate (16.3):** expose `{ female, male, femaleShare }` for the season; presentation on Statistiques ligue unless OQ-2 resolves otherwise.
 

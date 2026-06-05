@@ -34,6 +34,7 @@ import {
   resolveEquipeToolbarLayout,
   type EquipeActionId,
 } from '../../core/composition/composition-equipe-actions'
+import { computeCompositionPlayerGenderParity } from '../../core/composition/composition-player-gender-parity'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
@@ -322,6 +323,29 @@ export class EventEquipeTab {
     const index = this.drawStepIndex()
     return steps[index] ?? null
   })
+
+  protected readonly playerGenderParity = computed(() =>
+    computeCompositionPlayerGenderParity(this.composition()?.slots ?? []),
+  )
+
+  protected readonly visiblePlayerGenderParity = computed(() => {
+    if (
+      !this.canManageComposition() ||
+      this.loading() ||
+      this.loadError() ||
+      this.animatingDraw() ||
+      this.drawing() ||
+      this.showEmptyState()
+    ) {
+      return null
+    }
+    return this.playerGenderParity()
+  })
+
+  /** Team-level organizer hints above the slot grid (mixité, future signals). */
+  protected readonly showCompositionGuidances = computed(
+    () => this.visiblePlayerGenderParity() != null,
+  )
 
   protected readonly slotRows = computed((): SlotRow[] => {
     const ev = this.event()

@@ -1,7 +1,7 @@
 ---
 name: HatCast V2 — Member gender & team parity
 description: Visual delta for optional gender on Mon profil and composition parity info strip — inherits HatCast Material 3 theme.
-status: approved-screen1
+status: approved-screen1-screen2-amended-guidances-2026-06-06
 sources:
   - _bmad-output/specs/spec-member-gender-parity/SPEC.md
   - _bmad-output/planning-artifacts/ux-design-mon-compte.md
@@ -41,13 +41,27 @@ components:
     control: mat-button-toggle-group horizontal, wrap on narrow screens
     question-id: account-gender-label
     order: female | non_specified | male
-  composition-parity-strip:
-    background: 'color-mix(in srgb, var(--mat-sys-primary) 10%, transparent)'
-    foreground: '{colors.on-primary-container}'
+  composition-guidances:
+    container: event-equipe-tab__guidances
+    testid: composition-guidances
+    aria-label: Indicateurs de composition
+    layout: flex-wrap pills in subtle strip
+  composition-parity-indicator:
+    form: guidance-pill inside composition-guidances
     icon: groups
     icon-size: 18px
-    radius: '{rounded.parity-strip}'
-    border: '1px solid color-mix(in srgb, var(--mat-sys-primary) 22%, transparent)'
+    score-bon-tokens: '{components.participation-available-badge}'
+    score-acceptable-tokens: '{components.participation-neutral-badge}'
+    score-faible-tokens: '{components.participation-declined-badge}'
+  participation-available-badge:
+    bg: '--hatcast-participation-available-badge-bg'
+    fg: '--hatcast-participation-available-badge-fg'
+  participation-neutral-badge:
+    bg: '--hatcast-participation-neutral-badge-bg'
+    fg: '--hatcast-participation-neutral-badge-fg'
+  participation-declined-badge:
+    bg: '--hatcast-participation-declined-badge-bg'
+    fg: '--hatcast-participation-declined-badge-fg'
   season-parity-card:
     note: 'mat-card outlined on Statistiques ligue — same token family as other summary cards'
 ---
@@ -73,15 +87,21 @@ Apply to:
 
 **Do not use** `--mat-sys-secondary-*` or raw `#rrggbb` for gender.
 
-## Colors — parity strip (6.21)
+## Colors — parity indicator (6.21)
 
-| Role | Token |
-|------|--------|
-| Parity strip background | `color-mix(in srgb, var(--mat-sys-primary) 10%, transparent)` |
-| Parity strip text | `{colors.on-primary-container}` or `{colors.on-surface}` if contrast fails |
-| Parity strip border | `color-mix(in srgb, var(--mat-sys-primary) 22%, transparent)` |
+Semantic score colors — reuse HatCast participation badge tokens (no raw hex):
 
-**Do not use** `--mat-sys-error` or warning amber for parity strip (reserved for 6.20 / multi-role warnings).
+| Score | Semantic | Token pair |
+|-------|----------|------------|
+| **Bon** | Vert (positive) | `--hatcast-participation-available-badge-bg` / `-fg` |
+| **Acceptable** | Gris (neutral) | `--hatcast-participation-neutral-badge-bg` / `-fg` |
+| **Faible** | Orange (attention, not error) | `--hatcast-participation-declined-badge-bg` / `-fg` |
+
+Apply as **text + optional soft pill background** on the compact line — not a full-width bandeau.
+
+**Do not use** `--mat-sys-error`, warning amber per-slot triggers (**6.20**), or `--hatcast-sys-pending` (reserved pending confirmation).
+
+**Note:** orange « faible » shares the tertiary family with declined/désistement badges — context is copy + placement, not avatar gender tone.
 
 ## Typography
 
@@ -89,7 +109,7 @@ Apply to:
 |---------|--------|
 | Gender question | `.account-page__gender-label` — 0.875rem, medium weight, `on-surface-variant` |
 | Toggle labels | 0.8125rem, `body-medium` |
-| Parity strip | `body-small`, single line preferred |
+| Parity indicator | `body-small`, single line, score-colored text |
 
 **No** `mat-hint` under pseudo or gender on Mon profil (2026-06-05).
 
@@ -118,19 +138,28 @@ Quel genre utiliser pour me désigner ?
 - Save button: `.account-page__profile-save`, `min-height: 3rem`.
 - Spinner while loading preferences replaces entire block.
 
-### Équipe — parity strip
+### Équipe — guidances composition (team-level) — **amended 2026-06-06**
 
-Above `<ul class="event-equipe-tab__grid">`, below draw animation block.
+Above `<ul class="event-equipe-tab__grid">`, below draw animation. **Not** in `event-detail` lifecycle status row.
 
 ```
-┌─────────────────────────────────────────────┐
-│ 👥  Joueurs : 2 F · 4 H  (33 % femmes)      │
-└─────────────────────────────────────────────┘
+┌─ Indicateurs de composition (guidances strip) ─────┐
+│  👥 Mixité acceptable   (future pills…)           │
+└───────────────────────────────────────────────────┘
 [ slot grid … ]
+  └─ per row: ⚠ slot-level warnings (6.20, multi-role)
 ```
 
-- Horizontal flex: icon + text; wrap on narrow screens.
-- Margin-bottom: `0.75rem` before grid.
+- Container: `section.event-equipe-tab__guidances`, `data-testid="composition-guidances"`, `aria-label="Indicateurs de composition"`.
+- Hidden when `showCompositionGuidances` is false (no active team-level signals).
+- Each pill: `div.event-equipe-tab__guidance` + signal-specific modifiers.
+
+**Parity pill** (`composition-gender-parity-indicator`):
+
+- Classes: `event-equipe-tab__parity--bon|acceptable|faible`.
+- Optional tap/tooltip → *2 F · 3 H* (only when all assigned genders known).
+
+**Rejected placement:** parity chip beside lifecycle badge (« À compléter ») — mixes workflow state with qualitative composition hints.
 
 ## Shapes
 
@@ -152,10 +181,17 @@ Above `<ul class="event-equipe-tab__grid">`, below draw animation block.
 - Single primary flat button; disabled when pseudo empty, unchanged, loading, or saving.
 - Spinner 20px inside button while PATCH in flight.
 
-### `composition-parity-strip`
+### `composition-guidances`
 
-- Container: `div.event-equipe-tab__parity-strip`, `role="status"`.
+- Container: `section.event-equipe-tab__guidances`, `data-testid="composition-guidances"`.
+- Extensible: add future team-level pills inside the same strip (e.g. composition originality).
+
+### `composition-parity-indicator`
+
+- Container: `div.event-equipe-tab__guidance.event-equipe-tab__parity`, `role="status"`, `data-testid="composition-gender-parity-indicator"`.
+- Modifier classes: `--bon`, `--acceptable`, `--faible` only.
 - `mat-icon` `groups`, `aria-hidden="true"`.
+- Optional: `matTooltip` or button with tooltip for numeric detail (progressive disclosure).
 
 ### `season-parity-card` (story 16.3)
 
@@ -176,4 +212,6 @@ Above `<ul class="event-equipe-tab__grid">`, below draw animation block.
 - Don't use emoji avatars on Mon profil (letter only).
 - Don't use blue/pink gender coding.
 - Don't show gender field on Préférences or Notifications tabs.
+- Don't use full-width tinted bandeau (vertical budget on mobile).
+- Don't show exact F/H counts in the main line (tooltip optional).
 - Don't block toolbar actions when parity is imbalanced.
