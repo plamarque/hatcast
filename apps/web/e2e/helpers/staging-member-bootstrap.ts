@@ -45,6 +45,18 @@ async function csrfHeaders(page: Page): Promise<Record<string, string>> {
   return xsrf ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrf) } : {}
 }
 
+/** Prime Spring CSRF cookie (GET is exempt; PATCH/POST require X-XSRF-TOKEN). */
+async function ensureCsrfToken(page: Page): Promise<void> {
+  const me = await page.request.get('/v1/auth/me')
+  if (!me.ok()) {
+    throw new Error(`CSRF bootstrap GET /v1/auth/me → ${me.status()}: ${await me.text()}`)
+  }
+  const cookies = await page.context().cookies()
+  if (!cookies.some((c) => c.name === 'XSRF-TOKEN')) {
+    throw new Error('Missing XSRF-TOKEN cookie after /v1/auth/me (staging CSRF bootstrap)')
+  }
+}
+
 async function apiJson<T>(page: Page, method: string, path: string, data?: unknown): Promise<T> {
   const headers = await csrfHeaders(page)
   const response = await page.request.fetch(path, {
@@ -166,6 +178,7 @@ export async function ensureStagingE2eMemberReady(page: Page): Promise<void> {
 
   await signInWithEmailPassword(page, orgaEmail, orgaPassword)
   await page.goto('/agenda')
+  await ensureCsrfToken(page)
 
   const troupeId = await resolveTroupeId(page)
   const membership = await findTroupeMember(page, troupeId, email)
