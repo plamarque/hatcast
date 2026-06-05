@@ -388,9 +388,23 @@ Verrouiller la **parité V1**, documenter et tester le tirage, refactorer vers u
 
 **Hors scope Epic 19 :** modifier `legacy/` ; UI animation tirage (Epic **6**, UX-DR6) ; éditeur de formule « langage libre » / scripts custom (MVP = facteurs catalogués + paramètres).
 
+### Epic 20 — Prestige des spectacles (étoiles, stats, lien tirage)
+
+Permettre aux organisateurs de renseigner un **prestige optionnel** (1–5 étoiles) sur tout spectacle, de l’**afficher** (fiche + agenda), d’**agréger** les points de prestige par participant sur la saison, puis — via **19.13** — d’utiliser ce total comme **2ᵉ critère de malus** au tirage (après le nb de sélections).
+
+**Règles PO (2026-06-05) :** étoiles sur **tous** les spectacles ; **optionnel** (null → 0 point) ; crédit à la **validation composition** ; **JEU** 100 %, **DECORUM** 50 %, **BÉNÉVOLE** 0 ; formule de malus tirage calibrée dans **19.13**.
+
+**Complète Epic 3** (métadonnée événement) et **3.6** (stats) — **19.13** consomme **20.6**.
+
+**Priorité :** Waves **1–2** P2 (post-MEP) ; intégration tirage **19.13** P2+ après **19.6** + **20.6**.
+
+**SCP :** [sprint-change-proposal-2026-06-05-epic20-prestige-spectacles.md](./sprint-change-proposal-2026-06-05-epic20-prestige-spectacles.md)
+
+**Hors scope Epic 20 :** notation artistique / avis ; prestige imposé par catégorie ; crédit bénévole ; formule de tirage (→ **19.13**).
+
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→19.8** (partition category — ex-**17.9**) ; **Epic 19.1→19.3** avant **19.5** ; **19.5→19.6** avant **19.8+** et Wave **D** ; **19.15→19.18** avant UI **19.19–19.21** ; chrome admin **17.2** recommandé ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** après **17.8** ; **17.18→17.22** (hub membre) ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→19.8** (partition category — ex-**17.9**) ; **Epic 19.1→19.3** avant **19.5** ; **19.5→19.6** avant **19.8+** et Wave **D** ; **20.1→20.2** avant **20.3–20.5** ; **20.6** avant **20.7** et **19.13** ; **19.13** après **19.6** + **20.6** ; **19.15→19.18** avant UI **19.19–19.21** ; chrome admin **17.2** recommandé ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** après **17.8** ; **17.18→17.22** (hub membre) ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -2347,17 +2361,19 @@ afin de **renouveler** les dynamiques de jeu.
 
 ---
 
-#### Story 19.13 : Facteur classes de spectacle (5★, 4★, 3★, …)
+#### Story 19.13 : Facteur historique prestige (`PrestigeHistoryFactor`)
 
 En tant qu **organisateur**,  
-je veux des **bonus/malus** selon la « classe » du spectacle pour un membre,  
-afin de **répartir** les formats exigeants.
+je veux un **malus au tirage** basé sur le **total de points de prestige** accumulés par un membre sur la saison,  
+afin de **répartir** les spectacles prestigieux (2ᵉ critère d’équité, après le nb de sélections).
 
 **Acceptance Criteria**
 
-1. **Given** taxonomie classes (SPEC + modèle persistance), **when** facteur activé, **then** multiplicateur selon historique par classe.
-2. **Given** facteur off, **when** tirage, **then** V1 strict.
-3. **Priorité :** P2 backlog. **Depends :** 19.6, modèle événement/métadonnées.
+1. **Given** données **20.6** (`prestigePointsTotal` par participant, règles crédit PO : JEU 100 %, DECORUM 50 %, bénévole 0, événement sans étoiles → 0), **when** facteur activé dans une formule, **then** multiplicateur **malus** appliqué au poids du candidat selon son total prestige passé (même saison ; même compartiment `category` que l’historique tirage si **19.8** actif).
+2. **Given** facteur **off** (défaut), **when** tirage, **then** golden **19.2** inchangé (seul `PastParticipationFactor` actif = V1).
+3. **Given** implémentation, **when** spec formule rédigée dans la story, **then** courbe de malus documentée + fixtures golden (calibration PO — recherche à l’implémentation ; pas de formule figée dans Epic 20).
+4. **Given** explainability (**19.7**), **when** facteur actif, **then** `factorBreakdown` inclut `PrestigeHistoryFactor` avec total prestige et multiplicateur.
+5. **Couverture :** FR20 ; croissance équité. **Priorité :** P2 backlog. **Depends :** **19.6**, **20.6**. **UI :** N/A (comportement via % Dispos / tirage).
 
 ---
 
@@ -2514,3 +2530,151 @@ afin que **l’explicabilité** reste cohérente si les politiques changent plus
 | FR19 | 5.3, 6.14, **19.2**, **19.3**, **19.6**, **19.21** |
 | FR20 | 6.4, **19.3**, **19.6**, **19.8+**, **19.18**, **19.21** |
 | FR24 | 6.4, **19.4**, **19.7**, **19.22** |
+
+---
+
+### Epic 20 — Prestige des spectacles (étoiles, stats, lien tirage)
+
+**Contexte (2026-06-05) :** Les organisateurs veulent signaler le prestige d’un spectacle (1–5 étoiles, **optionnel**), l’afficher aux membres, agréger un **score saison** par participant, puis — via **19.13** — pénaliser au tirage ceux qui ont accumulé le plus de prestige (2ᵉ critère après le nb de sélections).
+
+**Règles métier PO (normatives — détail DOMAIN/SPEC en 20.1) :**
+
+| Règle | Valeur |
+|-------|--------|
+| Périmètre | Tous spectacles, toutes catégories |
+| Optionnalité | `prestigeStars` null → événement ne crédite personne |
+| Moment | Slot **validé** (composition validée) |
+| Crédit JEU (`player`) | `+P` (100 % des étoiles) |
+| Crédit DECORUM | `+P × 0,5` |
+| Bénévole | `+0` |
+| Tirage | Malus sur total prestige passé → **19.13** (formule calibrée là) |
+
+**Waves :**
+
+| Wave | Stories | Objectif |
+|------|---------|----------|
+| **1** | 20.1–20.5 | Spec, API, formulaire, fiche Infos, agenda |
+| **2** | 20.6–20.7 | Stats API + UI score saison |
+| **3** | **19.13** | Facteur tirage (Epic 19) — after **19.6** + **20.6** |
+
+**SCP :** [sprint-change-proposal-2026-06-05-epic20-prestige-spectacles.md](./sprint-change-proposal-2026-06-05-epic20-prestige-spectacles.md)
+
+---
+
+#### Story 20.1 : SPEC + DOMAIN — modèle prestige spectacle
+
+En tant que **PO / architecte**,  
+je veux un **modèle normatif** du prestige spectacle et des crédits participant,  
+afin que **API, UI et tirage** partagent les mêmes règles.
+
+**Acceptance Criteria**
+
+1. **Given** amendement **DOMAIN.md** + **SPEC.md** (approuvé PO), **when** publié, **then** définit : `prestigeStars` (entier 1–5 \| null) sur événement ; sémantique indicatif (pas note artistique) ; règles de crédit JEU/DECORUM/BÉNÉVOLE ; agrégat `prestigePointsTotal` ; lien vers **19.13** pour malus tirage (sans formule chiffrée ici).
+2. **Given** alignement stats, **when** lu, **then** réutilise taxonomie rôles **DOMAIN** (JEU / DECORUM / BÉNÉVOLE) — pas de crédit bénévole.
+3. **Couverture :** extension FR12 (métadonnée événement). **Priorité :** P2. **UI :** N/A.
+
+---
+
+#### Story 20.2 : API — `prestigeStars` sur événement
+
+En tant qu **organisateur**,  
+je veux **enregistrer ou effacer** le prestige d’un spectacle via l’API,  
+afin de **persister** le choix 1–5 étoiles ou l’absence de prestige.
+
+**Acceptance Criteria**
+
+1. **Given** migration Flyway, **when** appliquée, **then** colonne nullable `prestige_stars` (CHECK 1–5 ou NULL) sur `events`.
+2. **Given** create/update event, **when** `prestigeStars` fourni, **then** validé (1–5) ; omission ou null → pas de prestige.
+3. **Given** GET event / list events, **when** réponse, **then** champ `prestigeStars` exposé (OpenAPI mis à jour).
+4. **Given** permissions existantes création/édition événement, **when** PATCH prestige, **then** mêmes garde-fous orga/admin.
+5. **Couverture :** FR12. **Priorité :** P2. **Depends :** 20.1. **UI :** N/A.
+
+---
+
+#### Story 20.3 : UI orga — sélecteur étoiles (formulaire spectacle)
+
+En tant qu **organisateur**,  
+je veux **choisir optionnellement** le prestige (1–5 étoiles) à la création ou édition d’un spectacle,  
+afin de **qualifier** un format exigeant sans obligation.
+
+**Acceptance Criteria**
+
+1. **Given** `EventFormDialog`, **when** orga ouvre create/edit, **then** contrôle M3 « Prestige » (étoiles 1–5 + état « Aucun » / clear) — **optionnel**, pas de valeur par défaut imposée.
+2. **Given** save, **when** soumis, **then** body API inclut `prestigeStars` ou null.
+3. **Given** edit, **when** événement a déjà un prestige, **then** contrôle pré-rempli.
+4. **Given** brouillon (**3.21**), **when** non publié, **then** prestige éditable ; visibilité membre alignée règles publication (OQ-20-01).
+5. **Couverture :** FR12, UX-DR11. **Priorité :** P2. **Depends :** 20.2, **17.13**.
+
+---
+
+#### Story 20.4 : UI — étoiles sur fiche événement (Infos)
+
+En tant qu **membre ou orga**,  
+je veux **voir le prestige** d’un spectacle sur sa fiche,  
+afin de **repérer** un format prestigieux.
+
+**Acceptance Criteria**
+
+1. **Given** événement avec `prestigeStars`, **when** onglet Infos, **then** affichage étoiles (Material 3, `aria-label` explicite) à côté titre ou métadonnées date/lieu.
+2. **Given** `prestigeStars` null, **when** Infos, **then** **aucun** bloc étoiles (pas de « 0 étoile »).
+3. **Given** visiteur autorisé (scope événement), **when** lecture, **then** même affichage read-only.
+4. **Couverture :** FR13. **Priorité :** P2. **Depends :** 20.2. **UI :** checklist M3.
+
+---
+
+#### Story 20.5 : UI — étoiles sur agenda et listes saison
+
+En tant qu **membre**,  
+je veux **voir les étoiles** sur l’agenda et les listes d’événements à venir,  
+afin d’**anticiper** les spectacles prestigieux.
+
+**Acceptance Criteria**
+
+1. **Given** ligne agenda (**3.3**, **12.x**), **when** `prestigeStars` non null, **then** icônes étoiles compactes (max 5) sans casser la mise en page mobile.
+2. **Given** null, **when** rendu, **then** pas d’espace réservé vide.
+3. **Given** filtres agenda existants, **when** appliqués, **then** étoiles conservées sur lignes visibles.
+4. **Couverture :** FR13, UX-DR12. **Priorité :** P2. **Depends :** 20.2, **3.3**.
+
+---
+
+#### Story 20.6 : API — points de prestige participant / saison
+
+En tant qu **membre ou orga**,  
+je veux le **total de points de prestige** accumulés par participant sur une saison,  
+afin d’alimenter **stats** et le futur facteur tirage **19.13**.
+
+**Acceptance Criteria**
+
+1. **Given** slots validés sur événements avec `prestigeStars = P`, **when** agrégation, **then** crédit par slot selon rôle : JEU `+P`, DECORUM `+P×0.5`, bénévole `+0` ; événement sans étoiles ignoré.
+2. **Given** endpoint stats saison (extension **3.6** ou dédié), **when** GET, **then** `prestigePointsTotal` par `participantId` (nombre décimal ou demi-entiers documentés).
+3. **Given** même règles compartiment que tirage si applicable, **when** documenté en 20.1, **then** comportement explicite pour stats filtrées **17.10** (TBD OQ-20-02 — défaut : total saison complet).
+4. **Given** tests intégration, **when** seed avec mix rôles/étoiles, **then** totaux assertés.
+5. **Couverture :** stats croissance. **Priorité :** P2. **Depends :** 20.1, 20.2, **3.6**. **UI :** N/A.
+
+---
+
+#### Story 20.7 : UI — score prestige dans les statistiques saison
+
+En tant qu **membre**,  
+je veux **voir mon score de prestige** (et celui des autres) dans les stats saison,  
+afin de **suivre** la répartition des spectacles prestigieux.
+
+**Acceptance Criteria**
+
+1. **Given** stats saison (**3.6** / **17.10**), **when** grille chargée, **then** colonne ou indicateur « Prestige » affichant `prestigePointsTotal` (format lisible, ex. demi-points pour decorum).
+2. **Given** filtre compartiments **17.10**, **when** appliqué, **then** comportement aligné spec **20.6** / OQ-20-02.
+3. **Given** participant sans crédit, **when** affichage, **then** `0` ou tiret cohérent avec autres colonnes numériques.
+4. **Couverture :** FR13 stats. **Priorité :** P2. **Depends :** 20.6, **17.10**. **UI :** checklist M3.
+
+---
+
+### Couverture Epic 20 (contrôle croisé)
+
+| Besoin | Story(s) |
+|--------|----------|
+| Modèle normatif | **20.1** |
+| Persistance + API event | **20.2** |
+| Saisie orga | **20.3** |
+| Affichage fiche / agenda | **20.4**, **20.5** |
+| Agrégat stats | **20.6**, **20.7** |
+| Malus tirage | **19.13** (Epic 19, after **20.6**) |

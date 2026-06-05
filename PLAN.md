@@ -312,6 +312,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **Epic 14** (14.1–14.5) | **Superseded** par **Epic 17** — SCP [2026-06-01](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-epic14-superseded-by-epic17.md) ; ne pas planifier 14.x |
 | **Epic 17** (17.1–17.15) | Navigation troupe-first, catégories spectacle, slugs, polish formulaire/Infos — [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) ; détail § Epic 17 ; tirage partitionné tag → **Epic 19.8** (ex-**17.9**) |
 | **Epic 19** (19.1–19.22) | Moteur tirage — parité V1, facteurs, **formules & politiques admin** — SCP [2026-06-04](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-04-epic19-draw-weight-engine.md) |
+| **Epic 20** (20.1–20.7) | Prestige spectacles — étoiles optionnelles, stats saison, lien **19.13** — SCP [2026-06-05](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-05-epic20-prestige-spectacles.md) |
 | **Epic 16** (16.1) | Clin d’œil `/membre/:slug` |
 | **Epic 4**, **7**, **8**, **9**, **10**, **11**, **15** | Voir § **Wave iso-V1 — MEP remainder (2026-06-02)** — **4.1**, **8.1/8.3**, **9-0**, **10.2/10.3** **in** MEP ; **9.1**, **4.2**, **7**, **11**, **15** post-MEP |
 | **5.4**, **5.5**, **6.8**, **6.10** | Commentaire dispo, proxy dispo, proxy confirmation, partage WhatsApp |
@@ -336,6 +337,9 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **Post-MVP** | Draw engine hardening | **Epic 19** **19.1→19.4** (Wave A) | Parité V1 verrouillée, ADR 0019, golden tests |
 | **Post-MVP** | Draw factors (extensible) | **Epic 19** **19.5→19.14** | Pipeline + facteurs optionnels (ex-**17.9** → **19.8**) |
 | **Post-MVP** | Formules & politiques tirage | **Epic 19** **19.15→19.22** | Catalogue admin, politique troupe/saison, choix orga |
+| **Post-MVP** | Prestige spectacles (étoiles) | **Epic 20** **20.1→20.5** (Wave 1) | Saisie optionnelle, affichage fiche + agenda |
+| **Post-MVP** | Stats prestige saison | **Epic 20** **20.6→20.7** (Wave 2) | Score agrégé participant |
+| **Post-MVP** | Facteur tirage prestige | **Epic 19** **19.13** (Wave C) | Malus 2ᵉ critère — after **19.6** + **20.6** |
 | **Post-MVP** | Polish compo (pilote) | **6.11** | Feedback visuel + perfs onglet Équipe (profilage) |
 | **Post-MVP** | Transverse | **5.4+**, **6.10**, **Epics 4**, **7–11**, **15** | Selon priorité produit ; **5.5**, **6.8** livrés pour pilote |
 
@@ -650,6 +654,34 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 **Open questions :** SCP §5b — premier jet epic, amendable post-stakeholder sans re-ouvrir **6.4**.
 
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 19.
+
+---
+
+### Epic 20 — Prestige des spectacles (étoiles, stats, lien tirage)
+
+**Added:** 2026-06-05 — SCP [prestige spectacles](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-05-epic20-prestige-spectacles.md) ; source G-009.
+
+**Objectif :** Prestige **optionnel** (1–5 étoiles) sur tout spectacle ; affichage fiche + agenda ; score saison par participant ; malus tirage via **19.13** (2ᵉ critère après nb sélections).
+
+**Règles PO :** null → 0 point ; crédit à validation composition ; JEU 100 %, DECORUM 50 %, bénévole 0 ; formule malus calibrée dans **19.13**.
+
+| Story | Titre | Priorité | Depends |
+|-------|-------|----------|---------|
+| **20.1** | SPEC + DOMAIN — modèle prestige | P2 | — |
+| **20.2** | API — `prestigeStars` événement | P2 | 20.1 |
+| **20.3** | UI orga — sélecteur étoiles (formulaire) | P2 | 20.2, 17.13 |
+| **20.4** | UI — étoiles fiche Infos | P2 | 20.2 |
+| **20.5** | UI — étoiles agenda | P2 | 20.2, 3.3 |
+| **20.6** | API — `prestigePointsTotal` participant/saison | P2 | 20.1, 20.2, 3.6 |
+| **20.7** | UI — score stats saison | P2 | 20.6, 17.10 |
+
+**DoD Wave 1 (20.1–20.5) :** orga peut renseigner ou laisser vide ; étoiles visibles Infos + agenda ; null = rien affiché.
+
+**DoD Wave 2 (20.6–20.7) :** totaux corrects (mix rôles) en tests ; colonne stats visible.
+
+**Lien Epic 19 :** **19.13** `PrestigeHistoryFactor` — **after 19.6 + 20.6** ; factor off by default.
+
+**Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 20.
 
 ---
 
