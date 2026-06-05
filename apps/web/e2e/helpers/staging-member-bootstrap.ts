@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-import { ensureStagingCsrfToken, readAnyCsrfToken } from './staging-csrf'
+import { ensureStagingCsrfToken, readContextCsrfToken } from './staging-csrf'
 import { signInWithEmailPassword } from './staging-auth'
 
 type TroupeListItem = { id: string; slug: string }
@@ -147,7 +147,8 @@ export async function reactivateStagingE2eMemberAsOrga(orgaPage: Page): Promise<
     return
   }
 
-  const csrfToken = (await readAnyCsrfToken(orgaPage)) ?? (await ensureStagingCsrfToken(orgaPage))
+  const csrfToken =
+    (await readContextCsrfToken(orgaPage)) ?? (await ensureStagingCsrfToken(orgaPage))
   const membership = await findTroupeMember(orgaPage, troupeId, email)
   if (membership.status !== 'ACTIVE') {
     await apiMutate<TroupeMember>(
