@@ -26,7 +26,12 @@ test.describe('E1 — membre stats perso (mobile)', () => {
     const fx = await resolveE1Context(request)
     await assertMobileViewport(page)
     await page.goto('/agenda')
-    await page.getByRole('tab', { name: 'Stats' }).click()
+    const statsTab = page.getByRole('tab', { name: 'Stats' })
+    // MemberStatsShortcutService.refresh() is async; link defaults to /accueil until slug loads.
+    await expect(statsTab).toHaveAttribute('href', new RegExp(`/membre/${fx.memberUserSlug}`), {
+      timeout: 30_000,
+    })
+    await statsTab.click()
     await expect(page).toHaveURL(new RegExp(`/membre/${fx.memberUserSlug}`), { timeout: 30_000 })
     await expect(page.locator('h1.member-glance-page__title')).toContainText('Mes Stats')
   })
