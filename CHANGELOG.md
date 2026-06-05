@@ -1,5 +1,91 @@
 # Changelog
 
+## [2.1.0] - 2026-06-06
+
+### ✨ New Features
+- feat(migration): Backfill users.gender NULL-only (MIG-7)
+- feat(composition): Add player gender mixity hint
+- feat(gender): Add labels and avatar tone fallbacks
+- feat(composition): Harmonize equipe slot rows and hints
+- feat(account): Add optional member gender on profile
+- feat(composition): Add consecutive-show warning UX
+- feat(composition): Fix cross-role draw exclusion and multi-role hint
+- feat(event-detail): Add calendar export and maps on Infos tab
+- feat(composition): Add contextual status help on event detail
+- feat(api): Add Cloudflare Email Sending for OPS-10
+
+### 🔧 Improvements
+- refactor(web): Remove redundant Démo chip from breadcrumb
+
+### 🐛 Bug Fixes
+- fix(web): Unblock CI equipe tab style budget
+- fix(changelog): Hide versions with no user-facing notes
+- fix(dev): Prefer Mailpit over Cloudflare locally
+- fix(e2e): Wait for Stats nav link before click on staging
+- fix(e2e): Avoid document.cookie read on about:blank
+- fix(api): Publish CSRF cookie on authenticated GET requests
+- fix(e2e): Use single locator for agenda CSRF bootstrap
+- fix(e2e): Persist CSRF in admin storage for staging bootstrap
+- fix(availability): Pin dispos tab toggle to the right
+- fix(season-agenda): Move format icon to badge row
+- fix(shell): Align admin gear with mobile avatar
+- fix(season-home): Fix event form dialog mobile layout
+- fix(e2e): Drop mobile-only Agenda tab check in orga bootstrap
+- fix(e2e): Prime CSRF via admin session for staging member setup
+- fix(e2e): Use browser fetch for staging member bootstrap CSRF
+- fix(e2e): Fix staging event discovery and member CSRF
+- fix(ci): Use structural checks in E1 migration gate
+- fix(ci): Wire Neon credentials into E1 migration assert
+- fix(composition): Reset slot styling when cleared
+- fix(v2): Derive migration smoke counts from artifacts
+- fix(ops): Correct V2 changelog git range and notes
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- docs(plan): Track 2.1.0 demo feedback and defer Epic 19
+- docs(ux): Document equipe slot row layout
+- docs(plan): Add member gender parity backlog and spec
+- docs(plan): Add Epic 20 spectacle prestige backlog
+- chore(v2): promote v2 to staging-v2
+- chore(ci): Re-enable E1 preprod gate on staging deploy
+- chore(v2): promote v2 to staging-v2
+- chore(ci): Temporarily disable E1 preprod gate on staging deploy
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- docs(bmad): Add 6.19 UX specs and investigation
+- docs(season-home): Add event form dialog layout fix spec
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(ci): Rename E2E smoke job step label
+- chore(v2): promote v2 to staging-v2
+- docs(spec): Add spec for empty slot styling fix
+- test(e2e): Add E1 preprod gate for staging cutover
+- chore(v2): sync release v2.0.4-rc.1 artifacts to v2
+- chore(v2): promote v2 to staging-v2
+- docs(deferred): Refresh active backlog after DOC-1 hygiene
+- docs(plan): Mark story 6.17 done in PLAN
+- docs(ops-10): Close story after staging email recipe
+- chore(v2): Promote v2 to staging-v2
+- docs(plan): Record E1 gate, OPS-8 done, and M4 deferral
+- test(draw): Add golden fixture suite for draw calculator
+- docs(draw): Add normative V1 spec and ADR 0019
+- docs(plan): Add Epic 19 draw engine backlog
+- test(share): Close story 6.17 review with coverage gaps
+- chore(v2): promote v2 to staging-v2
+- docs(ops): Close OPS-8 prod domain story
+- chore(v2): Leave dev branch updated after release sync
+- chore(v2): sync release v2.0.3-rc.1 artifacts to v2
+
+---
+
 ## [2.0.4] - 2026-06-05
 
 ### ✨ New Features
