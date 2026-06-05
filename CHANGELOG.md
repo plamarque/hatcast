@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.0.4] - 2026-06-05
+
+### ✨ New Features
+- feat(api): Add Cloudflare Email Sending for OPS-10
+
+### 🔧 Improvements
+- refactor(web): Remove redundant Démo chip from breadcrumb
+
+### 🐛 Bug Fixes
+- fix(v2): Derive migration smoke counts from artifacts
+- fix(ops): Correct V2 changelog git range and notes
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs(deferred): Refresh active backlog after DOC-1 hygiene
+- docs(plan): Mark story 6.17 done in PLAN
+- docs(ops-10): Close story after staging email recipe
+- chore(v2): Promote v2 to staging-v2
+- docs(plan): Record E1 gate, OPS-8 done, and M4 deferral
+- test(draw): Add golden fixture suite for draw calculator
+- docs(draw): Add normative V1 spec and ADR 0019
+- docs(plan): Add Epic 19 draw engine backlog
+- test(share): Close story 6.17 review with coverage gaps
+- chore(v2): promote v2 to staging-v2
+- docs(ops): Close OPS-8 prod domain story
+- chore(v2): Leave dev branch updated after release sync
+- chore(v2): sync release v2.0.3-rc.1 artifacts to v2
+
+---
+
 ## [2.0.3] - 2026-06-04
 
 ### ✨ New Features
