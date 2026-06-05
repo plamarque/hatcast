@@ -33,6 +33,22 @@
       />
     }
 
+    <ng-template #slotBody let-row="row">
+      @if (row.slot?.participantDisplayName; as name) {
+        <app-user-avatar
+          class="event-equipe-tab__avatar"
+          [displayName]="name"
+          [avatarUrl]="row.slot?.participantAvatarUrl ?? null"
+          [gender]="row.slot?.participantGender ?? null"
+          [size]="32"
+        />
+        <span class="event-equipe-tab__name">{{ name }}</span>
+      } @else {
+        <span class="event-equipe-tab__slot-vacant" aria-hidden="true"></span>
+        <span class="event-equipe-tab__placeholder">{{ emptySlotPlaceholder }}</span>
+      }
+    </ng-template>
+
     <ng-template #slotWarningsBelow let-row="row">
       @if (consecutiveWarningTooltip(row); as tooltip) {
         <button
@@ -52,11 +68,23 @@
           <span>{{ consecutiveShowWarningShortLabel }}</span>
         </button>
       }
-      @if (multiRoleWarningMessage(row); as multiRoleMsg) {
-        <span class="event-equipe-tab__multi-role-warning" role="note">
+      @if (multiRoleWarningTooltip(row); as multiRoleTooltip) {
+        <button
+          type="button"
+          class="event-equipe-tab__multi-role-warning-trigger"
+          #multiRoleWarningTooltip="matTooltip"
+          [matTooltip]="multiRoleTooltip"
+          matTooltipPosition="below"
+          matTooltipTouchGestures="on"
+          matTooltipShowDelay="0"
+          matTooltipHideDelay="1500"
+          matTooltipClass="event-equipe-tab__multi-role-warning-tooltip"
+          (click)="onConsecutiveWarningClick($event, multiRoleWarningTooltip)"
+          [attr.aria-label]="multiRoleTooltip"
+        >
           <mat-icon aria-hidden="true">warning_amber</mat-icon>
-          <span class="event-equipe-tab__multi-role-warning-text">{{ multiRoleMsg }}</span>
-        </span>
+          <span>{{ multiRoleOnEventWarningShortLabel }}</span>
+        </button>
       }
     </ng-template>
 
@@ -79,27 +107,24 @@
           [class.event-equipe-tab__row--gap-empty]="canTapGapSlot(row)"
           [class.event-equipe-tab__row--editable]="canEditSlots() || canTapGapSlot(row)"
           [class.event-equipe-tab__row--participation]="isParticipationSlotTappable(row)"
+          [class.event-equipe-tab__row--tappable]="isSlotRowTappable(row)"
         >
-          <span class="event-equipe-tab__role" aria-hidden="true">{{ row.roleEmoji }}</span>
-          @if (canEditSlots() || canTapGapSlot(row)) {
-            <div class="event-equipe-tab__slot-col">
-              <button
-                type="button"
-                class="event-equipe-tab__slot event-equipe-tab__slot-button"
-                (click)="openSlotPicker(row)"
-              >
-                @if (row.slot?.participantDisplayName; as name) {
-                  <span class="event-equipe-tab__avatar" aria-hidden="true">
-                    {{ name.charAt(0).toUpperCase() }}
-                  </span>
-                  <span class="event-equipe-tab__name">{{ name }}</span>
-                } @else {
-                  <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
-                }
-              </button>
-              <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
-            </div>
-            @if (row.slot?.participantId) {
+          @if (isSlotRowTappable(row)) {
+            <button
+              type="button"
+              class="event-equipe-tab__row-hit"
+              [class.event-equipe-tab__row-hit--has-clear]="canEditSlots() && !!row.slot?.participantId"
+              [class.event-equipe-tab__row-hit--readonly]="isForeignParticipationSlot(row)"
+              [disabled]="isSlotRowHitDisabled(row)"
+              [attr.aria-label]="slotRowAriaLabel(row)"
+              (click)="onSlotRowClick(row)"
+            >
+              <span class="event-equipe-tab__role-pill">{{ rolePillLabel(row.roleKey) }}</span>
+              <span class="event-equipe-tab__slot">
+                <ng-container *ngTemplateOutlet="slotBody; context: { row: row }" />
+              </span>
+            </button>
+            @if (canEditSlots() && row.slot?.participantId) {
               <button
                 type="button"
                 class="event-equipe-tab__clear"
@@ -109,60 +134,15 @@
                 <mat-icon>close</mat-icon>
               </button>
             }
-          } @else if (
-            isCompositionLocked() &&
-            row.slot?.participantId &&
-            hasViewerParticipantIdentity() &&
-            !canTapParticipationSlot(row) &&
-            !canTapProxyParticipationSlot(row)
-          ) {
-            <div class="event-equipe-tab__slot-col">
-              <button
-                type="button"
-                class="event-equipe-tab__slot event-equipe-tab__slot-button event-equipe-tab__slot-button--readonly"
-                (click)="onForeignParticipationSlotTap()"
-              >
-                @if (row.slot?.participantDisplayName; as name) {
-                  <span class="event-equipe-tab__avatar" aria-hidden="true">
-                    {{ name.charAt(0).toUpperCase() }}
-                  </span>
-                  <span class="event-equipe-tab__name">{{ name }}</span>
-                }
-              </button>
-              <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
-            </div>
-          } @else if (isParticipationSlotTappable(row)) {
-            <div class="event-equipe-tab__slot-col">
-              <button
-                type="button"
-                class="event-equipe-tab__slot event-equipe-tab__slot-button"
-                [disabled]="updatingParticipation()"
-                (click)="onSlotRowClick(row)"
-              >
-                @if (row.slot?.participantDisplayName; as name) {
-                  <span class="event-equipe-tab__avatar" aria-hidden="true">
-                    {{ name.charAt(0).toUpperCase() }}
-                  </span>
-                  <span class="event-equipe-tab__name">{{ name }}</span>
-                }
-              </button>
-              <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
-            </div>
           } @else {
-            <div class="event-equipe-tab__slot-col">
-              <div class="event-equipe-tab__slot">
-                @if (row.slot?.participantDisplayName; as name) {
-                  <span class="event-equipe-tab__avatar" aria-hidden="true">
-                    {{ name.charAt(0).toUpperCase() }}
-                  </span>
-                  <span class="event-equipe-tab__name">{{ name }}</span>
-                } @else {
-                  <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
-                }
-              </div>
-              <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
-            </div>
+            <span class="event-equipe-tab__role-pill">{{ rolePillLabel(row.roleKey) }}</span>
+            <span class="event-equipe-tab__slot event-equipe-tab__slot--readonly">
+              <ng-container *ngTemplateOutlet="slotBody; context: { row: row }" />
+            </span>
           }
+          <div class="event-equipe-tab__warnings">
+            <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
+          </div>
         </li>
       }
     </ul>
@@ -184,15 +164,19 @@
             <ul class="event-equipe-tab__declines-list">
               @for (decline of declines(); track decline.id) {
                 <li class="event-equipe-tab__row event-equipe-tab__row--declined">
-                  <span class="event-equipe-tab__role" aria-hidden="true">{{
-                    declineRoleEmoji(decline.roleKey)
+                  <span class="event-equipe-tab__role-pill">{{
+                    rolePillLabel(decline.roleKey)
                   }}</span>
-                  <div class="event-equipe-tab__slot">
-                    <span class="event-equipe-tab__avatar" aria-hidden="true">
-                      {{ decline.participantDisplayName.charAt(0).toUpperCase() }}
-                    </span>
+                  <span class="event-equipe-tab__slot">
+                    <app-user-avatar
+                      class="event-equipe-tab__avatar"
+                      [displayName]="decline.participantDisplayName"
+                      [avatarUrl]="decline.participantAvatarUrl ?? null"
+                      [gender]="decline.participantGender ?? null"
+                      [size]="32"
+                    />
                     <span class="event-equipe-tab__name">{{ decline.participantDisplayName }}</span>
-                  </div>
+                  </span>
                   @if (canFillGaps() && hasEmptySlotForRole(decline.roleKey)) {
                     <button
                       type="button"

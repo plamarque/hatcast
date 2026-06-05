@@ -1,4 +1,5 @@
-import { roleLabelSingular, type RoleKey } from '../../shared/event-roles/event-roles'
+import { getRoleLabel, type RoleKey } from '../../shared/event-roles/event-roles'
+import type { MemberGender } from '../account/member-gender'
 import { AGENDA_TIME_ZONE } from '../../pages/season-home/season-events.utils'
 
 export interface ConsecutiveShowWarning {
@@ -35,8 +36,9 @@ export function formatConsecutiveShowWarningTooltip(
 export function formatConsecutiveShowWarningMessage(
   warning: ConsecutiveShowWarning,
   roleKey: RoleKey | string,
+  assigneeGender?: MemberGender | unknown,
 ): string {
-  const roleLabel = roleLabelSingular(roleKey as RoleKey)
+  const roleLabel = getRoleLabel(roleKey as RoleKey, assigneeGender)
   const formattedDate = formatConsecutiveShowWarningDate(warning.previousEventStartsAt)
   return `Déjà en ${roleLabel} au spectacle « ${warning.previousEventTitle} » (${formattedDate}).`
 }

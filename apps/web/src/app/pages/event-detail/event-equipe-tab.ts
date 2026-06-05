@@ -9,6 +9,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import type { MemberGender } from '../../core/account/member-gender'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { computeRawCompositionLifecycle } from '../../core/composition/composition-lifecycle'
 import {
@@ -22,7 +24,10 @@ import {
   CONSECUTIVE_SHOW_WARNING_SHORT_LABEL,
   formatConsecutiveShowWarningTooltip,
 } from '../../core/composition/consecutive-show-warning'
-import { formatMultiRoleOnEventWarningMessage } from '../../core/composition/multi-role-on-event-warning'
+import {
+  formatMultiRoleOnEventWarningTooltip,
+  MULTI_ROLE_ON_EVENT_WARNING_SHORT_LABEL,
+} from '../../core/composition/multi-role-on-event-warning'
 import {
   canValidateComposition,
   isEquipePrimaryAction,
@@ -38,6 +43,8 @@ import {
   rolesWithSlots,
   type RoleKey,
 } from '../../core/events/event-types'
+import { auditRoleDisplay } from '../../core/audit/audit-display-labels'
+import { getRoleLabel } from '../../shared/event-roles/event-roles'
 import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
 import {
   CompositionParticipationDialog,
@@ -61,6 +68,7 @@ import {
   shareAnnounceSnackMessage,
   type ShareAnnounceNotifyResult,
 } from '../../shared/share-announce/share-announce-snack'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
 
@@ -85,12 +93,14 @@ interface SlotRow {
     MatTooltipModule,
     EventEquipeEmpty,
     CompositionDrawAnimation,
+    UserAvatarComponent,
   ],
   templateUrl: './event-equipe-tab.html',
   styleUrl: './event-equipe-tab.scss',
 })
 export class EventEquipeTab {
   private readonly compositionApi = inject(CompositionApiService)
+  private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly analytics = inject(ProductAnalyticsService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
@@ -448,6 +458,41 @@ export class EventEquipeTab {
     return this.canTapParticipationSlot(row) || this.canTapProxyParticipationSlot(row)
   }
 
+  protected isForeignParticipationSlot(row: SlotRow): boolean {
+    return (
+      this.isCompositionLocked() &&
+      row.slot?.participantId != null &&
+      this.hasViewerParticipantIdentity() &&
+      !this.canTapParticipationSlot(row) &&
+      !this.canTapProxyParticipationSlot(row)
+    )
+  }
+
+  protected isSlotRowTappable(row: SlotRow): boolean {
+    return (
+      this.canEditSlots() ||
+      this.canTapGapSlot(row) ||
+      this.isParticipationSlotTappable(row) ||
+      this.isForeignParticipationSlot(row)
+    )
+  }
+
+  protected isSlotRowHitDisabled(row: SlotRow): boolean {
+    return this.isParticipationSlotTappable(row) && this.updatingParticipation()
+  }
+
+  protected slotRowAriaLabel(row: SlotRow): string {
+    const role = this.rolePillLabel(row.roleKey)
+    const name = row.slot?.participantDisplayName
+    if (this.canEditSlots() || this.canTapGapSlot(row)) {
+      return name ? `Modifier ${name}, ${role}` : `Assigner ${role}`
+    }
+    if (this.isParticipationSlotTappable(row)) {
+      return name ? `Participation de ${name}, ${role}` : role
+    }
+    return name ? `${name}, ${role}` : role
+  }
+
   protected readonly consecutiveShowWarningShortLabel = CONSECUTIVE_SHOW_WARNING_SHORT_LABEL
 
   protected consecutiveWarningTooltip(row: SlotRow): string | null {
@@ -464,12 +509,20 @@ export class EventEquipeTab {
     tooltip.toggle()
   }
 
-  protected multiRoleWarningMessage(row: SlotRow): string | null {
+  protected readonly multiRoleOnEventWarningShortLabel =
+    MULTI_ROLE_ON_EVENT_WARNING_SHORT_LABEL
+
+  protected multiRoleWarningTooltip(row: SlotRow): string | null {
     const warning = row.slot?.multiRoleOnEventWarning
-    if (!warning) {
+    const name = row.slot?.participantDisplayName
+    if (!warning || !name) {
       return null
     }
-    return formatMultiRoleOnEventWarningMessage(warning)
+    return formatMultiRoleOnEventWarningTooltip(
+      warning,
+      name,
+      row.slot?.participantGender,
+    )
   }
 
   protected onSlotRowClick(row: SlotRow): void {
@@ -485,12 +538,7 @@ export class EventEquipeTab {
       void this.openParticipationModal(row, { mode: 'proxy' })
       return
     }
-    if (
-      this.isCompositionLocked() &&
-      row.slot?.participantId &&
-      this.hasViewerParticipantIdentity() &&
-      !this.viewerParticipantIds().has(row.slot.participantId)
-    ) {
+    if (this.isForeignParticipationSlot(row)) {
       this.onForeignParticipationSlotTap()
     }
   }
@@ -563,14 +611,25 @@ export class EventEquipeTab {
       list.push(name)
       byRole.set(row.roleKey, list)
     }
+    const gendersByRole = new Map<string, (string | undefined)[]>()
+    for (const row of this.slotRows()) {
+      const name = row.slot?.participantDisplayName
+      if (!name) continue
+      const list = gendersByRole.get(row.roleKey) ?? []
+      list.push(row.slot?.participantGender ?? undefined)
+      gendersByRole.set(row.roleKey, list)
+    }
     return [...byRole.entries()].map(([roleKey, displayNames]) => ({
       roleKey: roleKey as RoleKey,
       displayNames,
+      participantGenders: gendersByRole.get(roleKey),
     }))
   }
 
-  protected declineRoleEmoji(roleKey: string): string {
-    return ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
+  protected readonly emptySlotPlaceholder = 'À pourvoir'
+
+  protected rolePillLabel(roleKey: string): string {
+    return auditRoleDisplay(roleKey)
   }
 
   private findOwnAssignedParticipationRow(): SlotRow | null {
@@ -582,6 +641,21 @@ export class EventEquipeTab {
       }
     }
     return null
+  }
+
+  private async resolveParticipationRoleGender(
+    mode: 'self' | 'proxy',
+    slotGender: MemberGender | null | undefined,
+  ): Promise<MemberGender | undefined> {
+    if (mode === 'proxy') {
+      return slotGender ?? undefined
+    }
+    const prefs = await this.mePreferencesApi.getPreferences()
+    const viewerGender = prefs.ok ? prefs.data?.gender : undefined
+    if (viewerGender === 'male' || viewerGender === 'female') {
+      return viewerGender
+    }
+    return slotGender ?? undefined
   }
 
   protected async openParticipationModal(
@@ -603,6 +677,10 @@ export class EventEquipeTab {
     }
     const ev = this.event()
     const assigneeName = slot.participantDisplayName ?? 'ce participant'
+    const roleGender = await this.resolveParticipationRoleGender(
+      options.mode,
+      slot.participantGender,
+    )
     const dialogRef = this.dialog.open<
       CompositionParticipationDialog,
       CompositionParticipationDialogData,
@@ -611,7 +689,7 @@ export class EventEquipeTab {
       data: {
         eventTitle: ev.title,
         eventDate: ev.startsAt,
-        roleLabel: row.roleLabel,
+        roleLabel: getRoleLabel(row.roleKey as RoleKey, roleGender),
         roleEmoji: row.roleEmoji,
         currentStatus: slot.participationStatus,
         mode: options.mode,

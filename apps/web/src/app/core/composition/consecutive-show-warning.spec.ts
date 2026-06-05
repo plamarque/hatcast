@@ -30,9 +30,14 @@ describe('consecutive-show-warning', () => {
     )
   })
 
-  it('keeps legacy inline message helper', () => {
+  it('keeps legacy inline message helper with inclusive default', () => {
     const message = formatConsecutiveShowWarningMessage(warning, 'player')
     expect(message).toContain('Comédien·ne')
     expect(message).toContain('« Cabaret du 12 »')
+  })
+
+  it('uses gender-aware role label when assignee gender is known', () => {
+    const message = formatConsecutiveShowWarningMessage(warning, 'player', 'female')
+    expect(message).toContain('Comédienne')
   })
 })
