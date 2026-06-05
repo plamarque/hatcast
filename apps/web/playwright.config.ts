@@ -28,6 +28,7 @@ export default defineConfig({
     {
       name: 'setup-member',
       testMatch: /auth-member\.setup\.ts/,
+      dependencies: isStagingTarget ? ['setup-admin'] : [],
     },
     {
       name: 'e1-mobile-member',
