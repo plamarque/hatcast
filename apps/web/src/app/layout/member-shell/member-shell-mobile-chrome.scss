@@ -27,6 +27,11 @@
       var(--member-shell-corner-inset, max(0.5rem, env(safe-area-inset-right, 0px))) +
         var(--member-shell-corner-size, 3rem) + var(--member-shell-corner-gap, 0.35rem)
     );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--member-shell-corner-size, 3rem);
+    height: var(--member-shell-corner-size, 3rem);
     margin: 0;
   }
 

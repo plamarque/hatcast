@@ -1,5 +1,29 @@
 .scope-admin-menu__trigger {
   flex-shrink: 0;
+  --mdc-icon-button-state-layer-size: var(--member-shell-corner-size, 3rem);
+  --mdc-icon-button-icon-size: 1.5rem;
+  box-sizing: border-box;
+  width: var(--member-shell-corner-size, 3rem);
+  height: var(--member-shell-corner-size, 3rem);
+  min-width: var(--member-shell-corner-size, 3rem);
+  min-height: var(--member-shell-corner-size, 3rem);
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  .mat-mdc-button-touch-target {
+    width: var(--member-shell-corner-size, 3rem);
+    height: var(--member-shell-corner-size, 3rem);
+  }
+
+  .mat-icon {
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    line-height: 1.5rem;
+  }
 
   &:focus-visible {
     outline: 2px solid currentColor;
