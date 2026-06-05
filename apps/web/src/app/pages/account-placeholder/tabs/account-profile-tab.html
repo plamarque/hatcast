@@ -131,6 +131,52 @@
           }
         </button>
       </div>
+
+      <div class="account-page__gender-block">
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="account-page__gender-field"
+        >
+          <mat-label>{{ genderFieldLabel }}</mat-label>
+          <mat-select
+            data-testid="account-gender-select"
+            [ngModel]="gender()"
+            (ngModelChange)="onGenderInput($event)"
+          >
+            @for (option of genderOptions; track option.value) {
+              <mat-option
+                [value]="option.value"
+                [attr.data-testid]="
+                  option.value === 'male'
+                    ? 'account-gender-male'
+                    : option.value === 'female'
+                      ? 'account-gender-female'
+                      : 'account-gender-non-specified'
+                "
+              >
+                {{ option.label }}
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>Personnalise les libellés de rôles et l'avatar par défaut.</mat-hint>
+        </mat-form-field>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          class="account-page__gender-save"
+          data-testid="account-gender-save"
+          [disabled]="!canSaveGender()"
+          (click)="saveGender()"
+        >
+          @if (genderSaving()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Enregistrer
+          }
+        </button>
+      </div>
     }
   </section>
 

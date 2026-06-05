@@ -9,8 +9,14 @@ import { MatInputModule } from '@angular/material/input'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatSelectModule } from '@angular/material/select'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
+import {
+  MEMBER_GENDER_FIELD_LABEL,
+  MEMBER_GENDER_OPTIONS,
+  type MemberGender,
+} from '../../../core/account/member-gender'
 import { MemberDisplayNameService } from '../../../core/account/member-display-name.service'
 import { MePreferencesApiService } from '../../../core/account/me-preferences-api.service'
 import { hasPasswordProvider } from '../../../core/auth/firebase-auth-providers'
@@ -42,6 +48,7 @@ import {
     MatListModule,
     MatMenuModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     MatSnackBarModule,
     UserAvatarComponent,
   ],
@@ -60,12 +67,17 @@ export class AccountProfileTab implements OnInit, OnDestroy {
 
   protected readonly pseudo = signal('')
   protected readonly pseudoError = signal(false)
+  protected readonly gender = signal<MemberGender>('non_specified')
+  protected readonly genderSaving = signal(false)
+  protected readonly genderFieldLabel = MEMBER_GENDER_FIELD_LABEL
+  protected readonly genderOptions = MEMBER_GENDER_OPTIONS
   protected readonly preferencesLoading = signal(true)
   protected readonly saving = signal(false)
   protected readonly loadFailed = signal(false)
   protected readonly hasPasswordProvider = signal(false)
 
   private initialPseudo = ''
+  private initialGender: MemberGender = 'non_specified'
   private authStateUnsubscribe: (() => void) | null = null
 
   protected readonly canSavePseudo = computed(() => {
@@ -74,6 +86,15 @@ export class AccountProfileTab implements OnInit, OnDestroy {
       trimmed.length > 0 &&
       trimmed !== this.initialPseudo &&
       !this.saving() &&
+      !this.preferencesLoading() &&
+      !this.loadFailed()
+    )
+  })
+
+  protected readonly canSaveGender = computed(() => {
+    return (
+      this.gender() !== this.initialGender &&
+      !this.genderSaving() &&
       !this.preferencesLoading() &&
       !this.loadFailed()
     )
@@ -136,6 +157,28 @@ export class AccountProfileTab implements OnInit, OnDestroy {
       this.snack.open('Pseudo enregistré', 'OK', { duration: 3000 })
     } finally {
       this.saving.set(false)
+    }
+  }
+
+  protected onGenderInput(value: MemberGender): void {
+    this.gender.set(value)
+  }
+
+  protected async saveGender(): Promise<void> {
+    this.genderSaving.set(true)
+    try {
+      const result = await this.mePreferencesApi.patchPreferences({ gender: this.gender() })
+      if (!result.ok || !result.data) {
+        this.gender.set(this.initialGender)
+        this.snack.open('Enregistrement impossible', 'OK', { duration: 5000 })
+        return
+      }
+
+      this.initialGender = result.data.gender
+      this.gender.set(result.data.gender)
+      this.snack.open('Préférence enregistrée', 'OK', { duration: 3000 })
+    } finally {
+      this.genderSaving.set(false)
     }
   }
 
@@ -218,14 +261,19 @@ export class AccountProfileTab implements OnInit, OnDestroy {
     this.loadFailed.set(false)
     try {
       this.memberDisplayName.syncSessionUser(this.ctx.user()?.slug ?? null)
-      const ok = await this.memberDisplayName.loadFromApi()
-      if (!ok) {
+      const result = await this.mePreferencesApi.getPreferences()
+      if (!result.ok || !result.data) {
         this.loadFailed.set(true)
         this.snack.open('Impossible de charger vos préférences.', 'OK', { duration: 5000 })
         return
       }
-      this.initialPseudo = this.memberDisplayName.memberDisplayName()
+
+      this.initialPseudo = result.data.memberDisplayName
       this.pseudo.set(this.initialPseudo)
+      this.memberDisplayName.setFromSave(result.data.memberDisplayName)
+
+      this.initialGender = result.data.gender
+      this.gender.set(result.data.gender)
     } finally {
       this.preferencesLoading.set(false)
     }

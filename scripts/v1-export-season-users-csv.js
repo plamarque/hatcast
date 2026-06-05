@@ -58,7 +58,7 @@ Options:
   --no-role-only-emails Skip emails found only in roles.users/admins (no player doc)
   --help                Show this help
 
-Output columns: email, displayName
+Output columns: email, displayName, gender
 
 Next step: import users CSV in V2 (Membres → Importer utilisateurs), then import members CSV.
 Accounts stay inactive until each user signs in to V2 (Google or password reset).

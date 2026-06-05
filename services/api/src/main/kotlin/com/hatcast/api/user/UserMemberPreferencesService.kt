@@ -28,11 +28,12 @@ class UserMemberPreferencesService(
         userId: UUID,
         body: PatchUserMemberPreferencesRequest,
     ): UserMemberPreferencesResponseDto {
-        if (body.memberDisplayName == null && body.preferredRoleKeys == null) {
+        if (body.memberDisplayName == null && body.preferredRoleKeys == null && body.gender == null) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucune préférence à mettre à jour.")
         }
         val user = requireUser(userId)
         val now = Instant.now()
+        var syncMemberships = false
 
         body.memberDisplayName?.let { raw ->
             val normalized =
@@ -42,15 +43,26 @@ class UserMemberPreferencesService(
                         "Le nom affiché ne peut pas être vide.",
                     )
             user.memberDisplayName = normalized
+            syncMemberships = true
         }
 
         body.preferredRoleKeys?.let { raw ->
             user.preferredRoleKeys = PreferredRoleKeys.normalize(raw)
+            syncMemberships = true
+        }
+
+        body.gender?.let { raw ->
+            val parsed =
+                MemberGender.fromWireOrNull(raw)
+                    ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Genre invalide.")
+            user.gender = parsed
         }
 
         user.updatedAt = now
         userRepository.save(user)
-        syncActiveMemberships(user, now)
+        if (syncMemberships) {
+            syncActiveMemberships(user, now)
+        }
         return toResponse(user)
     }
 
@@ -83,6 +95,7 @@ class UserMemberPreferencesService(
         UserMemberPreferencesResponseDto(
             memberDisplayName = resolvedMemberDisplayName(user),
             preferredRoleKeys = PreferredRoleKeys.effectiveKeys(user.preferredRoleKeys),
+            gender = MemberGender.effective(user.gender).wireValue,
         )
 
     fun resolvedMemberDisplayName(user: UserEntity): String =

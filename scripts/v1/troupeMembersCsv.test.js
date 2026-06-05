@@ -7,7 +7,9 @@ import {
   escapeCsvField,
   formatMemberCsv,
   formatUserCsv,
+  mapV1GenderToV2,
   playerDisplayName,
+  resolveGenderForEmail,
 } from './troupeMembersCsv.js'
 
 describe('troupeMembersCsv', () => {
@@ -68,14 +70,28 @@ describe('troupeMembersCsv', () => {
     const { rows } = buildV2UserRowsFromV1Season({
       seasonId: 'season-1',
       seasonData: { roles: { admins: ['admin@example.com'] } },
-      players: [{ id: 'p1', email: 'admin@example.com', name: 'Admin', order: 1 }],
+      players: [{ id: 'p1', email: 'admin@example.com', name: 'Admin', order: 1, gender: 'female' }],
     })
-    assert.deepEqual(rows, [{ email: 'admin@example.com', displayName: 'Admin' }])
+    assert.deepEqual(rows, [{ email: 'admin@example.com', displayName: 'Admin', gender: 'female' }])
+  })
+
+  it('maps V1 gender values to V2 wire format', () => {
+    assert.equal(mapV1GenderToV2('male'), 'male')
+    assert.equal(mapV1GenderToV2('non-specified'), 'non_specified')
+    assert.equal(mapV1GenderToV2('unknown'), 'non_specified')
+  })
+
+  it('prefers most recently updated non-unspecified gender per email', () => {
+    const gender = resolveGenderForEmail([
+      { gender: 'male', updatedAt: { toMillis: () => 100 } },
+      { gender: 'female', updatedAt: { toMillis: () => 200 } },
+    ])
+    assert.equal(gender, 'female')
   })
 
   it('formats user csv', () => {
-    const csv = formatUserCsv([{ email: 'a@example.com', displayName: 'Alice' }])
-    assert.match(csv, /^email,displayName/)
-    assert.match(csv, /a@example.com,Alice/)
+    const csv = formatUserCsv([{ email: 'a@example.com', displayName: 'Alice', gender: 'female' }])
+    assert.match(csv, /^email,displayName,gender/)
+    assert.match(csv, /a@example.com,Alice,female/)
   })
 })

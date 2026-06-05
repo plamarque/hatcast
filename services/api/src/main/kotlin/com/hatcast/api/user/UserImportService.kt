@@ -59,7 +59,7 @@ class UserImportService(
         }
         val email = row.email ?: return rowError(row.rowNumber, null, UserImportErrorCode.INVALID_EMAIL, "Email manquant.")
         return try {
-            when (val outcome = userAccountService.importMigrationUser(email, row.displayName)) {
+            when (val outcome = userAccountService.importMigrationUser(email, row.displayName, row.gender)) {
                 UserAccountImportOutcome.CREATED ->
                     rowSuccess(row.rowNumber, email, "Compte créé — en attente de première connexion.")
                 UserAccountImportOutcome.UPDATED ->

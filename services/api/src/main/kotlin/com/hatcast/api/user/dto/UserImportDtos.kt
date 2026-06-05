@@ -2,6 +2,7 @@ package com.hatcast.api.user.dto
 
 import com.hatcast.api.user.UserImportErrorCode
 import com.hatcast.api.user.UserImportRowOutcome
+import com.hatcast.api.user.MemberGender
 
 data class UserImportSummaryDto(
     val success: Int,
@@ -27,6 +28,7 @@ data class UserCsvRowDto(
     val valid: Boolean,
     val email: String?,
     val displayName: String?,
+    val gender: MemberGender?,
     val errorCode: UserImportErrorCode?,
     val errorMessage: String?,
 ) {
@@ -35,12 +37,14 @@ data class UserCsvRowDto(
             rowNumber: Int,
             email: String,
             displayName: String?,
+            gender: MemberGender? = null,
         ): UserCsvRowDto =
             UserCsvRowDto(
                 rowNumber = rowNumber,
                 valid = true,
                 email = email,
                 displayName = displayName,
+                gender = gender,
                 errorCode = null,
                 errorMessage = null,
             )
@@ -56,6 +60,7 @@ data class UserCsvRowDto(
                 valid = false,
                 email = email,
                 displayName = null,
+                gender = null,
                 errorCode = code,
                 errorMessage = message,
             )

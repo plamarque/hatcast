@@ -184,6 +184,7 @@ class AccountDeletionService(
         user.email = null
         user.displayName = null
         user.memberDisplayName = null
+        user.gender = null
         user.avatarUrl = null
         user.avatarUpdatedAt = null
         user.pushNotificationsEnabled = false

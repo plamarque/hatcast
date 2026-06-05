@@ -23,12 +23,22 @@ npm run export:v1-users -- --season=SEASON_ID --output=users.csv
 Format CSV :
 
 ```csv
-email,displayName
-alice@example.com,Alice
-bob@example.com,Bob
+email,displayName,gender
+alice@example.com,Alice,female
+bob@example.com,Bob,non_specified
 ```
 
-Sources V1 : `players.email`, `players.name`, plus emails présents dans `roles.admins` / `roles.users`.
+Sources V1 : `players.email`, `players.name`, `players.gender`, plus emails présents dans `roles.admins` / `roles.users`.
+
+### Mapping genre V1 → V2 (colonne `gender`)
+
+| V1 `players.gender` | V2 `users.gender` (CSV) |
+|---------------------|-------------------------|
+| `male` | `male` |
+| `female` | `female` |
+| `non-specified`, `unknown`, null, invalide | `non_specified` |
+
+Si plusieurs fiches `players` partagent le même email, l’export retient la valeur **non** `non_specified` la plus récemment mise à jour (`updatedAt`), sinon `non_specified`. Ré-importer le CSV utilisateurs après déploiement met à jour le genre des comptes stub non encore activés.
 
 ## Étape 2 — Importer les utilisateurs en V2
 

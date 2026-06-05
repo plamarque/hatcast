@@ -68,7 +68,11 @@ class MemberSeasonGlanceServiceTest {
         whenever(statsProvider.loadMonthlyChart(seedSeasonId, userId)).thenReturn(emptyList())
         whenever(statsProvider.loadFavoriteRoleCounts(seedSeasonId, userId)).thenReturn(emptyList())
         whenever(userMemberPreferencesService.getPreferences(userId)).thenReturn(
-            UserMemberPreferencesResponseDto(memberDisplayName = "Self", preferredRoleKeys = emptyList()),
+            UserMemberPreferencesResponseDto(
+                memberDisplayName = "Self",
+                preferredRoleKeys = emptyList(),
+                gender = "non_specified",
+            ),
         )
 
         val result =
@@ -120,7 +124,11 @@ class MemberSeasonGlanceServiceTest {
         whenever(statsProvider.loadMonthlyChart(primarySeasonId, userId)).thenReturn(emptyList())
         whenever(statsProvider.loadFavoriteRoleCounts(primarySeasonId, userId)).thenReturn(emptyList())
         whenever(userMemberPreferencesService.getPreferences(userId)).thenReturn(
-            UserMemberPreferencesResponseDto(memberDisplayName = "Multi", preferredRoleKeys = emptyList()),
+            UserMemberPreferencesResponseDto(
+                memberDisplayName = "Multi",
+                preferredRoleKeys = emptyList(),
+                gender = "non_specified",
+            ),
         )
 
         val result =

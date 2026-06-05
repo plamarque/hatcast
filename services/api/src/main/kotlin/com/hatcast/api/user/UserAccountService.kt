@@ -16,6 +16,7 @@ class UserAccountService(
     fun importMigrationUser(
         rawEmail: String,
         displayName: String? = null,
+        gender: MemberGender? = null,
     ): UserAccountImportOutcome {
         val email = rawEmail.trim().lowercase()
         require(email.isNotEmpty() && email.contains("@")) { "Email invalide." }
@@ -28,6 +29,10 @@ class UserAccountService(
             var changed = false
             if (normalizedDisplayName != null && existing.displayName != normalizedDisplayName) {
                 existing.displayName = normalizedDisplayName
+                changed = true
+            }
+            if (gender != null && existing.gender != gender) {
+                existing.gender = gender
                 changed = true
             }
             if (changed) {
@@ -44,6 +49,7 @@ class UserAccountService(
                 idpUid = null,
                 email = email,
                 displayName = normalizedDisplayName,
+                gender = gender,
                 activatedAt = null,
                 createdAt = now,
                 updatedAt = now,

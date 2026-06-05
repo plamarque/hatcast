@@ -156,6 +156,7 @@ class AccountDeletionIntegrationTest {
         assertNull(userAfter.email)
         assertNull(userAfter.displayName)
         assertNull(userAfter.memberDisplayName)
+        assertNull(userAfter.gender)
 
         val membershipAfter =
             membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, userAfter.id)!!

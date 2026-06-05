@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-05T18:00:00+02:00
+# last_updated: 2026-06-05T20:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-05T18:00:00+02:00"
+last_updated: "2026-06-05T20:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -83,7 +83,7 @@ development_status:
   2-8-admin-membres-route-ui-ux-dr10: done
   2-9-post-login-et-derniere-ligue-visitee-v1-parity: done
   2-10-liste-membres-corriger-n1-emails: done
-  2-12-genre-optionnel-profil-membre-api-mon-compte: backlog  # P1 — SCP 2026-06-05 G-011 ; V1 parity foundation
+  2-12-genre-optionnel-profil-membre-api-mon-compte: review  # P1 — SCP 2026-06-05 G-011 ; V1 parity foundation
   2-12b-libelles-roles-adaptes-genre: backlog  # P1 — depends 2.12
   2-12c-avatars-repli-selon-genre: backlog  # P1 — depends 2.12, 2.6
   epic-2-retrospective: done

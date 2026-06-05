@@ -2,9 +2,12 @@ import { Injectable } from '@angular/core'
 
 import { csrfHeaders } from '../http/hatcast-csrf'
 
+import type { MemberGender } from './member-gender'
+
 export interface UserMemberPreferences {
   memberDisplayName: string
   preferredRoleKeys: string[]
+  gender: MemberGender
 }
 
 export type ApiResult<T> = { ok: boolean; status: number; data?: T }
@@ -27,6 +30,7 @@ export class MePreferencesApiService {
   async patchPreferences(body: {
     memberDisplayName?: string
     preferredRoleKeys?: string[]
+    gender?: MemberGender
   }): Promise<ApiResult<UserMemberPreferences>> {
     try {
       const res = await fetch('/v1/me/preferences', {

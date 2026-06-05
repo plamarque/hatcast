@@ -18,6 +18,7 @@ import jakarta.servlet.http.Cookie
 import org.hibernate.SessionFactory
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -1099,6 +1100,37 @@ class TroupeMembershipIntegrationTest {
             "TROUPE_ADMIN",
             findMemberInAdminList(adminCookie, "csv-migrated-2@example.com").get("baselineRole").asText(),
         )
+    }
+
+    @Test
+    fun `troupe admin import users csv with gender persists on user`() {
+        val adminCookie = signInAndJoin("sub-csv-users-gender", "csv-users-gender@example.com", "Users Gender Admin")
+        promoteSeedMemberToAdmin("sub-csv-users-gender")
+
+        val usersCsv =
+            """
+            email,displayName,gender
+            csv-gender-1@example.com,Genre Un,female
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/users/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "users.csv",
+                            "text/csv",
+                            usersCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.success").value(1))
+
+        val user = userRepository.findFirstByEmailIgnoreCase("csv-gender-1@example.com")
+        assertNotNull(user)
+        assertEquals(com.hatcast.api.user.MemberGender.FEMALE, user!!.gender)
     }
 
     private fun findMemberInAdminList(
