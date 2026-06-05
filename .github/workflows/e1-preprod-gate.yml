@@ -1,0 +1,88 @@
+# E1 cutover preprod gate (T2) — staging Cloud Run + Neon Malice.
+# Blocking: e1-mobile-member P0 ; e1-desktop-orga P0 ; migration counts §6.
+# Design: _bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md
+name: E1 preprod gate (staging)
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: e1-preprod-gate-staging
+  cancel-in-progress: false
+
+jobs:
+  e1-preprod-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: staging
+    env:
+      BASE_URL: ${{ secrets.HATCAST_E2E_STAGING_BASE_URL }}
+      PLAYWRIGHT_STAGING_E2E: '1'
+      PLAYWRIGHT_BASE_URL: ${{ secrets.HATCAST_E2E_STAGING_BASE_URL }}
+      PLAYWRIGHT_API_BASE_URL: ${{ secrets.HATCAST_E2E_STAGING_BASE_URL }}
+      PLAYWRIGHT_REUSE_SERVERS: '1'
+      HATCAST_E2E_ORGA_EMAIL: ${{ secrets.HATCAST_E2E_ORGA_EMAIL }}
+      HATCAST_E2E_ORGA_PASSWORD: ${{ secrets.HATCAST_E2E_ORGA_PASSWORD }}
+      HATCAST_E2E_MEMBER_EMAIL: ${{ secrets.HATCAST_E2E_MEMBER_EMAIL }}
+      HATCAST_E2E_MEMBER_PASSWORD: ${{ secrets.HATCAST_E2E_MEMBER_PASSWORD }}
+      HATCAST_E2E_TROUPE_SLUG: ${{ vars.HATCAST_E2E_TROUPE_SLUG }}
+      HATCAST_E2E_SEASON_SLUG: ${{ vars.HATCAST_E2E_SEASON_SLUG }}
+      HATCAST_E2E_MEMBER_SLUG: ${{ vars.HATCAST_E2E_MEMBER_SLUG }}
+      HATCAST_E2E_EVENT_DISPOS_SLUG: ${{ vars.HATCAST_E2E_EVENT_DISPOS_SLUG }}
+      HATCAST_E2E_EVENT_ACTIVITE_SLUG: ${{ vars.HATCAST_E2E_EVENT_ACTIVITE_SLUG }}
+      HATCAST_E2E_EVENT_DRAW_SLUG: ${{ vars.HATCAST_E2E_EVENT_DRAW_SLUG }}
+      HATCAST_E2E_EVENT_PENDING_SLUG: ${{ vars.HATCAST_E2E_EVENT_PENDING_SLUG }}
+      HATCAST_DATASOURCE_URL: ${{ secrets.HATCAST_DATASOURCE_URL }}
+    steps:
+      - name: Check required configuration
+        run: |
+          set -euo pipefail
+          test -n "${BASE_URL}" || (echo "Missing secret HATCAST_E2E_STAGING_BASE_URL" && exit 1)
+          test -n "${HATCAST_E2E_ORGA_EMAIL}" || (echo "Missing secret HATCAST_E2E_ORGA_EMAIL" && exit 1)
+          test -n "${HATCAST_E2E_ORGA_PASSWORD}" || (echo "Missing secret HATCAST_E2E_ORGA_PASSWORD" && exit 1)
+          test -n "${HATCAST_E2E_MEMBER_EMAIL}" || (echo "Missing secret HATCAST_E2E_MEMBER_EMAIL" && exit 1)
+          test -n "${HATCAST_E2E_MEMBER_PASSWORD}" || (echo "Missing secret HATCAST_E2E_MEMBER_PASSWORD" && exit 1)
+          test -n "${HATCAST_E2E_SEASON_SLUG}" || (echo "Missing var HATCAST_E2E_SEASON_SLUG on environment staging" && exit 1)
+          test -n "${HATCAST_E2E_MEMBER_SLUG}" || (echo "Missing var HATCAST_E2E_MEMBER_SLUG on environment staging" && exit 1)
+          test -n "${HATCAST_DATASOURCE_URL}" || (echo "Missing secret HATCAST_DATASOURCE_URL (Neon staging)" && exit 1)
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install monorepo dependencies
+        run: npm ci
+
+      - name: Staging health check (E1-SAN §0)
+        run: curl -fsS "${BASE_URL}/actuator/health" | head -c 500
+
+      - name: PWA smoke (E1 §7 partial)
+        run: BASE_URL="${BASE_URL}" ./scripts/check-pwa.sh
+
+      - name: Migration counts assert (E1 §6)
+        run: node scripts/v2/e1-staging-migration-assert.mjs
+
+      - name: Install Playwright Chromium
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E1 Playwright gate (mobile blocking + desktop orga)
+        working-directory: apps/web
+        env:
+          CI: 'true'
+        run: >
+          npm run test:e2e --
+          --project=e1-mobile-member
+          --project=e1-desktop-orga
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e1-preprod-playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14

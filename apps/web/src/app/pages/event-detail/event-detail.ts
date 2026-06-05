@@ -31,6 +31,7 @@ import { canManageComposition as canManageCompositionForEvent } from '../../core
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import {
   ParticipantApiService,
+  type ParticipantSelector,
 } from '../../core/participants/participant-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
@@ -68,6 +69,25 @@ import {
   openAvailabilityNudgeDialog,
   openEventAnnounceDialog,
 } from '../../shared/share-announce/share-announce-open'
+
+function findLinkedSeasonParticipant(
+  selectors: ParticipantSelector[],
+  user: UserSummary,
+): ParticipantSelector | null {
+  const byUserId = selectors.find((p) => p.userId === user.id)
+  if (byUserId) {
+    return byUserId
+  }
+  const name = user.displayName?.trim()
+  if (!name) {
+    return null
+  }
+  return (
+    selectors.find(
+      (p) => p.displayName.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0,
+    ) ?? null
+  )
+}
 
 @Component({
   selector: 'app-event-detail',
@@ -640,12 +660,12 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextLeagueTitle.set(resolved.season.title)
     this.contextSeasonSlug.set(resolved.season.slug)
     const isUuidSegment = UUID_IN_PATH_REGEX.test(routeSegment)
-    const [eventResult, permissionsResult, participantsResult] = await Promise.all([
+    const [eventResult, permissionsResult, selectorsResult] = await Promise.all([
       isUuidSegment
         ? this.eventsApi.getEvent(resolved.season.id, routeSegment)
         : this.eventsApi.getEventBySlug(resolved.season.id, routeSegment),
       this.organizerApi.mySeasonPermissions(resolved.season.id),
-      this.participantApi.listSeasonParticipants(resolved.season.id),
+      this.participantApi.listSeasonParticipantSelectors(resolved.season.id),
     ])
 
     if (requestId !== this.loadRequestId) {
@@ -684,10 +704,10 @@ export class EventDetail implements OnDestroy, OnInit {
         ? canManageCompositionForEvent(permissionsResult.data, found.id)
         : false,
     )
-    const userId = this.user()?.id
+    const user = this.user()
     const linked =
-      participantsResult.ok && participantsResult.data && userId
-        ? participantsResult.data.find((p) => p.userId === userId && p.status === 'ACTIVE') ?? null
+      selectorsResult.ok && selectorsResult.data && user
+        ? findLinkedSeasonParticipant(selectorsResult.data, user)
         : null
     this.linkedParticipantId.set(linked?.id ?? null)
     this.linkedParticipantName.set(linked?.displayName ?? null)

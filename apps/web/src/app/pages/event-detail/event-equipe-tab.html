@@ -67,8 +67,12 @@
         <li
           class="event-equipe-tab__row"
           [class.event-equipe-tab__row--filled]="row.slot?.participantId"
-          [class.event-equipe-tab__row--pending]="row.slot?.participationStatus === 'pending'"
-          [class.event-equipe-tab__row--confirmed]="row.slot?.participationStatus === 'confirmed'"
+          [class.event-equipe-tab__row--pending]="
+            row.slot?.participantId && row.slot?.participationStatus === 'pending'
+          "
+          [class.event-equipe-tab__row--confirmed]="
+            row.slot?.participantId && row.slot?.participationStatus === 'confirmed'
+          "
           [class.event-equipe-tab__row--empty]="!row.slot?.participantId"
           [class.event-equipe-tab__row--gap-empty]="canTapGapSlot(row)"
           [class.event-equipe-tab__row--editable]="canEditSlots() || canTapGapSlot(row)"

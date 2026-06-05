@@ -193,7 +193,7 @@ describe('EventDetail', () => {
           provide: ParticipantApiService,
           useValue: {
             listSeasonParticipantSelectors: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-            listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+            listSeasonParticipantSelectors: vi.fn().mockResolvedValue({ ok: true, data: [] }),
           },
         },
         {

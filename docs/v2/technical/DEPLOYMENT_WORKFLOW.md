@@ -114,8 +114,9 @@ Comportement :
 1. Arbre de travail propre, `git fetch origin`
 2. Liste les commits `origin/staging-v2..origin/v2` ; si vide → exit 0
 3. `checkout staging-v2`, `pull`, `merge origin/v2`, `push origin staging-v2`
-4. CI : smoke E2E Playwright (recette 3.19) puis deploy Cloud Run — le deploy staging **échoue** si le smoke est rouge
-5. Rappel URL Actions + service `hatcast-v2-staging`
+4. CI : smoke E2E Playwright (recette 3.19 + E1 T1) puis deploy Cloud Run — le deploy staging **échoue** si le smoke est rouge
+5. **Gate E1 préprod (T2)** : après deploy staging réussi, workflow [`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) — health, PWA, comptes migration Malice, Playwright mobile membre + desktop orga sur l’URL staging réelle
+6. Rappel URL Actions + service `hatcast-v2-staging`
 
 **Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) (flux V1 Firebase). V2 : [`scripts/release_version.sh`](../../../scripts/release_version.sh).
 
@@ -163,9 +164,78 @@ Le **déploiement** Cloud Run staging est déclenché par le **push sur `staging
 ```
 v2 → deploy_staging.sh → release_version.sh → tag vX.Y.Z-rc.N
 → push staging-v2 → sync staging-v2 → v2
-→ CI deploy + smoke E2E → recette
+→ CI deploy + smoke E2E → gate E1 préprod (T2) → recette
 → deploy_prod.sh
 ```
+
+### 2.6 Gate E1 préprod (T2 — avant promote prod)
+
+**Objectif :** bloquer `promote-tag-to-prod` si les parcours nominaux membre (mobile) et orga (desktop) échouent sur **staging Cloud Run** avec les données **La Malice** migrées.
+
+| Palier | Workflow | Quand | Environnement |
+|--------|----------|-------|---------------|
+| **T1** | [`e2e-smoke.yml`](../../../.github/workflows/e2e-smoke.yml) | PR / push `v2`, **avant** deploy staging | API profil `e2e` + `localhost:4200` |
+| **T2** | [`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) | **Après** deploy staging (`staging-v2`) ; manuel `workflow_dispatch` | URL staging + Neon + Identity Platform |
+
+Le job T2 est déclenché automatiquement par [`deploy-v2-cloud-run.yml`](../../../.github/workflows/deploy-v2-cloud-run.yml) à la fin d’un deploy **staging** réussi. Il est aussi lançable à la main (Actions → **E1 preprod gate (staging)** → **Run workflow**).
+
+**Bootstrap membre staging :** au setup Playwright (`auth-member.setup.ts`), l’orga E2E réactive automatiquement le compte `HATCAST_E2E_MEMBER_EMAIL` s’il est `INACTIVE` / `REMOVED` (PATCH adhésion troupe → `ACTIVE`, puis `POST …/participants/{id}/reinclude` si besoin). Désactiver : `HATCAST_E2E_SKIP_MEMBER_REACTIVATE=1`.
+
+**Spectacles Malice :** `resolveE1Context` interroge l’API (`scope=all`) et retient un event avec `availabilityOpenedAt` — **à venir en priorité**, sinon **le plus récent passé** (navigation directe `/saison/…/event/{slug}`, pas dépendant de l’agenda « upcoming »). Override : `HATCAST_E2E_EVENT_DISPOS_SLUG` / `_DRAW_SLUG`.
+
+**Critères de sortie (PO) :** 100 % P0 `e1-mobile-member` (échec = bloquant) ; 100 % P0 `e1-desktop-orga` ; `e1-staging-migration-assert.mjs` vert ; `check-pwa.sh` vert.
+
+#### Secrets / variables (environnement GitHub `staging`)
+
+| Nom | Type | Rôle |
+|-----|------|------|
+| `HATCAST_E2E_STAGING_BASE_URL` | secret | Origine HTTPS Cloud Run (`PLAYWRIGHT_BASE_URL`) |
+| `HATCAST_E2E_ORGA_EMAIL` / `HATCAST_E2E_ORGA_PASSWORD` | secrets | Login desktop orga (Identity Platform) |
+| `HATCAST_E2E_MEMBER_EMAIL` / `HATCAST_E2E_MEMBER_PASSWORD` | secrets | Login mobile membre |
+| `HATCAST_DATASOURCE_URL` | secret | JDBC Neon staging (assert migration §6) |
+| `HATCAST_E2E_TROUPE_SLUG` | variable | défaut `la-malice` |
+| `HATCAST_E2E_SEASON_SLUG` | variable | slug saison Malice migrée (ex. `malice-2025-2026`) |
+| `HATCAST_E2E_MEMBER_SLUG` | variable | slug utilisateur membre test (`/membre/{slug}`) |
+| `HATCAST_E2E_EVENT_DISPOS_SLUG` | variable | **optionnel** — force un spectacle ; sinon auto (dispos ouvertes, à venir puis passé) |
+| `HATCAST_E2E_EVENT_DRAW_SLUG` | variable | optionnel — tirage orga (défaut : premier non validé, sinon dispos) |
+| `HATCAST_E2E_EVENT_ACTIVITE_SLUG` | variable | optionnel — défaut = spectacle dispos retenu |
+
+#### Lancer le gate manuellement
+
+**CI (recommandé)** — après un deploy staging ou pour re-valider sans redeploy :
+
+1. GitHub → **Actions** → **E1 preprod gate (staging)** → **Run workflow** (branche `staging-v2` ou tag RC).
+2. Vérifier le job vert ; en cas d’échec, télécharger l’artifact `e1-preprod-playwright-report`.
+
+**Local (debug)** — avec comptes et slugs Malice dans l’environnement :
+
+```bash
+# Prérequis : secrets ci-dessus exportés (jamais commités)
+export PLAYWRIGHT_STAGING_E2E=1
+export PLAYWRIGHT_BASE_URL="https://hatcast-v2-staging-….run.app"
+export PLAYWRIGHT_API_BASE_URL="$PLAYWRIGHT_BASE_URL"
+export HATCAST_E2E_ORGA_EMAIL="…"
+export HATCAST_E2E_ORGA_PASSWORD="…"
+export HATCAST_E2E_MEMBER_EMAIL="…"
+export HATCAST_E2E_MEMBER_PASSWORD="…"
+export HATCAST_E2E_SEASON_SLUG="malice-2025-2026"
+export HATCAST_E2E_MEMBER_SLUG="…"
+# Slugs spectacle : optionnels — découverte API (dispos ouvertes ; passé OK si saison figée)
+
+# §6 migration (Neon staging)
+export HATCAST_DATASOURCE_URL="jdbc:postgresql://…"
+node scripts/v2/e1-staging-migration-assert.mjs
+
+# PWA
+BASE_URL="$PLAYWRIGHT_BASE_URL" ./scripts/check-pwa.sh
+
+# Playwright E1 uniquement
+cd apps/web
+npx playwright install chromium
+npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
+```
+
+**Avant `deploy_prod.sh` :** confirmer qu’un run T2 récent est **vert** sur le commit RC cible (ou lancer `workflow_dispatch` juste avant promote).
 
 ## Release production V2 (tag-first OPS-5)
 
@@ -243,6 +313,7 @@ Ordre recommandé **sans impacter la prod V1** (`main` / Firebase) :
 - [ ] `./scripts/v2/promote-to-staging.sh` (réel)
 - [ ] Sur `staging-v2` : `./scripts/v2/release-staging.sh --dry-run` puis `./scripts/v2/release-staging.sh --version=2.0.0` (première RC cutover) ou `./scripts/v2/release-staging.sh` (RC suivante)
 - [ ] Job CI → environnement `staging`, service `hatcast-v2-staging`
+- [ ] **Gate E1 préprod (T2)** vert sur ce deploy ([`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) ou `workflow_dispatch`)
 - [ ] Recette fonctionnelle sur staging (parcours critique métier)
 
 ### 3. Release (simulation)

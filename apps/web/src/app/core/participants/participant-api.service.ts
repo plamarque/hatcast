@@ -41,6 +41,7 @@ export interface ParticipantSelector {
   displayName: string
   avatarUrl: string | null
   kind: ParticipantKind
+  userId?: string | null
 }
 
 type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>

@@ -319,3 +319,7 @@ components:
           nullable: true
         kind:
           $ref: '#/components/schemas/ParticipantKind'
+        userId:
+          type: string
+          format: uuid
+          nullable: true

@@ -350,6 +350,13 @@ describe('EventEquipeTab', () => {
             participantDisplayName: 'Alice',
             participationStatus: 'pending',
           },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participationStatus: 'pending',
+          },
         ],
       },
     })
@@ -367,6 +374,13 @@ describe('EventEquipeTab', () => {
             participantDisplayName: null,
             participationStatus: 'pending',
           },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participationStatus: 'pending',
+          },
         ],
       },
     })
@@ -374,14 +388,17 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-equipe-tab__clear')).not.toBeNull()
+      expect(fixture.nativeElement.querySelectorAll('.event-equipe-tab__clear').length).toBe(2)
     })
 
-    const clearBtn = fixture.nativeElement.querySelector(
-      '.event-equipe-tab__clear',
-    ) as HTMLButtonElement
+    const rowsBefore = Array.from(
+      fixture.nativeElement.querySelectorAll('.event-equipe-tab__row'),
+    ) as HTMLElement[]
+    expect(rowsBefore[0].classList.contains('event-equipe-tab__row--pending')).toBe(true)
+    expect(rowsBefore[1].classList.contains('event-equipe-tab__row--pending')).toBe(true)
+
+    const clearBtn = rowsBefore[0].querySelector('.event-equipe-tab__clear') as HTMLButtonElement
     clearBtn.click()
-    fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(assignCompositionSlot).toHaveBeenCalledWith(
@@ -392,6 +409,15 @@ describe('EventEquipeTab', () => {
         null,
       )
     })
+    fixture.detectChanges()
+
+    const rowsAfter = Array.from(
+      fixture.nativeElement.querySelectorAll('.event-equipe-tab__row'),
+    ) as HTMLElement[]
+    expect(rowsAfter[0].classList.contains('event-equipe-tab__row--pending')).toBe(false)
+    expect(rowsAfter[0].classList.contains('event-equipe-tab__row--empty')).toBe(true)
+    expect(rowsAfter[0].classList.contains('event-equipe-tab__row--filled')).toBe(false)
+    expect(rowsAfter[1].classList.contains('event-equipe-tab__row--pending')).toBe(true)
   })
 
   it('hides edit controls when composition is locked', async () => {
