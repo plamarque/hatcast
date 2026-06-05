@@ -67,16 +67,16 @@ async function waitForCsrfToken(page: Page, timeoutMs = 30_000): Promise<string>
   throw new Error('Timed out waiting for XSRF-TOKEN after agenda load (staging CSRF bootstrap)')
 }
 
-/** Load agenda so the SPA issues authenticated GET /v1/* and sets XSRF-TOKEN. */
+/** Load a member-shell route so the SPA issues authenticated GET /v1/* and sets XSRF-TOKEN. */
 async function primeOrgaApiSession(page: Page): Promise<string> {
-  const agendaResponse = page.waitForResponse(
+  const apiReady = page.waitForResponse(
     (res) => res.request().method() === 'GET' && /\/v1\//.test(res.url()) && res.ok(),
-    { timeout: 30_000 },
+    { timeout: 45_000 },
   )
   await page.goto('/agenda')
-  await agendaResponse.catch(() => null)
-  await expect(page.getByRole('tab', { name: 'Agenda' })).toBeVisible({ timeout: 30_000 })
-  return waitForCsrfToken(page)
+  await expect(page).not.toHaveURL(/\/connexion/, { timeout: 30_000 })
+  await apiReady
+  return waitForCsrfToken(page, 15_000)
 }
 
 async function apiJson<T>(
