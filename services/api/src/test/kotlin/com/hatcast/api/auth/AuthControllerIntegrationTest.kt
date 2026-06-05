@@ -64,11 +64,18 @@ class AuthControllerIntegrationTest {
         val cookie = result.response.getCookie("HATCAST_SESSION")
         requireNotNull(cookie) { "session cookie expected" }
 
-        mockMvc
-            .perform(
-                get("/v1/auth/me").cookie(cookie),
-            ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.user.email").value("user@example.com"))
+        val me =
+            mockMvc
+                .perform(
+                    get("/v1/auth/me").cookie(cookie),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.user.email").value("user@example.com"))
+                .andReturn()
+
+        val xsrf = me.response.getCookie("XSRF-TOKEN")
+        requireNotNull(xsrf) { "XSRF-TOKEN cookie expected on authenticated GET" }
+        check(!xsrf.isHttpOnly) { "XSRF-TOKEN must be readable by the SPA" }
+        check(xsrf.value.isNotBlank())
     }
 
     @Test

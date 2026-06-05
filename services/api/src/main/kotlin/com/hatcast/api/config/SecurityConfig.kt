@@ -26,6 +26,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 class SecurityConfig(
     @Value("\${hatcast.cors.allowed-origins}") private val allowedOrigins: String,
     @Value("\${hatcast.e2e.api-enabled:false}") private val e2eApiEnabled: Boolean,
+    private val csrfCookiePublishingFilter: CsrfCookiePublishingFilter,
     private val migrationApiKeyAuthenticationFilter: MigrationApiKeyAuthenticationFilter,
     private val migrationApiKeyRequestMatcher: MigrationApiKeyRequestMatcher,
     private val e2eApiKeyAuthenticationFilter: ObjectProvider<E2eApiKeyAuthenticationFilter>,
@@ -53,6 +54,7 @@ class SecurityConfig(
                     migrationApiKeyRequestMatcher,
                 )
             }
+            http.addFilterAfter(csrfCookiePublishingFilter, CsrfFilter::class.java)
         }
         http
             .authorizeHttpRequests { auth ->
