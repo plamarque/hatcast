@@ -110,3 +110,7 @@
 ## Deferred from: code review of spec-changelog-skip-empty-versions (2026-06-06)
 
 - Duplicate `/changelog.json` fetch on auto-open success path — `currentVersionHasUserFacingNotes` then `loadChangelog` when dialog opens; optimize later if needed.
+
+## Deferred from: code review of mig-7-backfill-users-gender-from-v1 (2026-06-06)
+
+- AC6 smoke SQL sans seuil numérique — comparaison manuelle `with_gender` vs export V1 suffisante pour l'iso-V1 gate ; pas de critère pass/fail chiffré imposé.

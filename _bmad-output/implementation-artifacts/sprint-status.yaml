@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-06T12:00:00+02:00"
+last_updated: "2026-06-06T00:47:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -59,7 +59,7 @@ development_status:
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: done
   mig-4-deplacements-category-import: done
-  mig-7-backfill-users-gender-from-v1: ready-for-dev  # P1 — depends 2.12 (done) ; NULL-only guard + runbook + smoke
+  mig-7-backfill-users-gender-from-v1: done  # P1 — Track A: prod CSV backfill ; Track B: V57+improbots seeds ; code review 2026-06-06
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
@@ -264,9 +264,9 @@ development_status:
   18-5-configuration-prod-tests-separation-demo: done
   epic-18-retrospective: optional
 
-  epic-19: in-progress  # P1 Waves A-B post-MEP ; Waves C-D formulas/policies ; SCP 2026-06-04 (+b)
+  epic-19: backlog  # DEFERRED post-2.1.0 — tirage/formules custom ; PO 2026-06 ; 19.1 done, 19.2 paused
   19-1-spec-normative-v1-adr-draw-weight-engine: done
-  19-2-golden-tests-v1-js-kotlin: review
+  19-2-golden-tests-v1-js-kotlin: review  # paused — epic deferred
   19-3-fixtures-orchestration-draw-complet: backlog
   19-4-doc-orga-membre-comprendre-les-cotes: backlog
   19-5-pipeline-draw-weight-factor: backlog

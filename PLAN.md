@@ -285,7 +285,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **MIG-4** | Import : `template_type=deplacement` → **`category=deplacements`** (+ retrait progressif format `deplacement`) | **P1** | [x] | **Gate iso-V1 / prod** — recette staging OK |
 | **MIG-5** | Orchestrateur headless `migrate:v2:run` + clé API migration (ADR-0017) | P1 | [x] | Bootstrap API → B1–B5 → smoke ; reprise `--from-step` ; gate replay `migrate:v2:validate-replay` |
 | **MIG-6** | Script unique `./scripts/migrate-from-v1.sh` + auto-provision opérateur + CLI `.mjs` | P1 | [x] | Charge `.env.local` ; prompt reset Neon ; `npm run migrate:from-v1` ; dry-run sans faux échec smoke |
-| **MIG-7** | Backfill `users.gender` depuis V1 pour comptes **déjà migrés / activés** (`gender IS NULL` only) | **P1** | backlog | Story [mig-7](_bmad-output/implementation-artifacts/mig-7-backfill-users-gender-from-v1.md) ; depends **2.12** ; gate iso-V1 parité genre V1 |
+| **MIG-7** | Backfill `users.gender` depuis V1 pour comptes **déjà migrés / activés** (`gender IS NULL` only) | **P1** | [x] | Story [mig-7](_bmad-output/implementation-artifacts/mig-7-backfill-users-gender-from-v1.md) ; depends **2.12** ; gate iso-V1 parité genre V1 |
 
 **Hygiene H1 (PLAN, pas SPEC) — stories à créer via BMad :**
 

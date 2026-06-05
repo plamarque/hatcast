@@ -1165,11 +1165,146 @@ class TroupeMembershipIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.summary.success").value(1))
+            .andExpect(jsonPath("$.rows[0].message").value("Genre complété depuis l'import V1."))
 
         val userAfter = userRepository.findFirstByEmailIgnoreCase(userEmail)
         assertNotNull(userAfter)
         assertEquals(com.hatcast.api.user.MemberGender.MALE, userAfter!!.gender)
         assertEquals("Active Gender User", userAfter.displayName)
+    }
+
+    @Test
+    fun `troupe admin import users csv does not overwrite gender on activated user`() {
+        val userEmail = "csv-gender-no-overwrite@example.com"
+        signInAndJoin("sub-csv-gender-no-overwrite", userEmail, "No Overwrite User")
+        val userBefore = userRepository.findFirstByEmailIgnoreCase(userEmail)
+        assertNotNull(userBefore)
+        userBefore!!.gender = com.hatcast.api.user.MemberGender.FEMALE
+        userRepository.save(userBefore)
+
+        val adminCookie =
+            signInAndJoin(
+                "sub-csv-gender-no-overwrite-admin",
+                "csv-gender-no-overwrite-admin@example.com",
+                "No Overwrite Admin",
+            )
+        promoteSeedMemberToAdmin("sub-csv-gender-no-overwrite-admin")
+
+        val usersCsv =
+            """
+            email,displayName,gender
+            $userEmail,Ignored Name,male
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/users/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "users.csv",
+                            "text/csv",
+                            usersCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.skipped").value(1))
+            .andExpect(jsonPath("$.rows[0].message").value("Compte déjà actif — genre déjà renseigné."))
+
+        val userAfter = userRepository.findFirstByEmailIgnoreCase(userEmail)
+        assertNotNull(userAfter)
+        assertEquals(com.hatcast.api.user.MemberGender.FEMALE, userAfter!!.gender)
+        assertEquals("No Overwrite User", userAfter.displayName)
+    }
+
+    @Test
+    fun `troupe admin import users csv skips unchanged activated user without gender column`() {
+        val userEmail = "csv-gender-active-unchanged@example.com"
+        signInAndJoin("sub-csv-gender-active-unchanged", userEmail, "Active Unchanged User")
+        val userBefore = userRepository.findFirstByEmailIgnoreCase(userEmail)
+        assertNotNull(userBefore)
+        assertNull(userBefore!!.gender)
+
+        val adminCookie =
+            signInAndJoin(
+                "sub-csv-gender-active-unchanged-admin",
+                "csv-gender-active-unchanged-admin@example.com",
+                "Active Unchanged Admin",
+            )
+        promoteSeedMemberToAdmin("sub-csv-gender-active-unchanged-admin")
+
+        val usersCsv =
+            """
+            email,displayName
+            $userEmail,Ignored Name
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/users/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "users.csv",
+                            "text/csv",
+                            usersCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.skipped").value(1))
+            .andExpect(jsonPath("$.rows[0].message").value("Compte déjà actif — inchangé."))
+
+        val userAfter = userRepository.findFirstByEmailIgnoreCase(userEmail)
+        assertNotNull(userAfter)
+        assertNull(userAfter!!.gender)
+        assertEquals("Active Unchanged User", userAfter.displayName)
+    }
+
+    @Test
+    fun `troupe admin import users csv skips activated user with gender when csv has no gender column`() {
+        val userEmail = "csv-gender-active-no-col@example.com"
+        signInAndJoin("sub-csv-gender-active-no-col", userEmail, "Active Has Gender User")
+        val userBefore = userRepository.findFirstByEmailIgnoreCase(userEmail)
+        assertNotNull(userBefore)
+        userBefore!!.gender = com.hatcast.api.user.MemberGender.FEMALE
+        userRepository.save(userBefore)
+
+        val adminCookie =
+            signInAndJoin(
+                "sub-csv-gender-active-no-col-admin",
+                "csv-gender-active-no-col-admin@example.com",
+                "Active No Col Admin",
+            )
+        promoteSeedMemberToAdmin("sub-csv-gender-active-no-col-admin")
+
+        val usersCsv =
+            """
+            email,displayName
+            $userEmail,Ignored Name
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/users/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "users.csv",
+                            "text/csv",
+                            usersCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.skipped").value(1))
+            .andExpect(jsonPath("$.rows[0].message").value("Compte déjà actif — inchangé."))
+
+        val userAfter = userRepository.findFirstByEmailIgnoreCase(userEmail)
+        assertNotNull(userAfter)
+        assertEquals(com.hatcast.api.user.MemberGender.FEMALE, userAfter!!.gender)
+        assertEquals("Active Has Gender User", userAfter.displayName)
     }
 
     @Test

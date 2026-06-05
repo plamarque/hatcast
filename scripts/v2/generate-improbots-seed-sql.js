@@ -756,13 +756,37 @@ function buildHistoriquePastSqlLines() {
   return lines
 }
 
+function seedGenderSqlLiteral(displayName) {
+  const gender = inferSeedGenderFromDisplayName(displayName)
+  return gender === 'non_specified' ? 'NULL' : sqlString(gender)
+}
+
 function buildV17InsertWithSlugPlain(member) {
   const id = sqlString(member.userId)
+  const gender = seedGenderSqlLiteral(member.displayName)
   return [
-    `INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)`,
-    `SELECT CAST(${id} AS uuid), ${sqlString(member.googleSub)}, NULL, ${sqlString(member.obfuscatedEmail)}, ${sqlString(member.displayName)}, ${sqlString(member.slug)}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
+    `INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)`,
+    `SELECT CAST(${id} AS uuid), ${sqlString(member.googleSub)}, NULL, ${sqlString(member.obfuscatedEmail)}, ${sqlString(member.displayName)}, ${sqlString(member.slug)}, ${gender}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP`,
     `WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST(${id} AS uuid));`,
   ].join('\n')
+}
+
+function buildImprobotsGenderBackfillLines(members) {
+  const lines = [
+    '',
+    '-- MIG-7 : genres seed Improbots inférés du prénom (gender IS NULL seulement).',
+  ]
+  for (const member of members) {
+    const gender = inferSeedGenderFromDisplayName(member.displayName)
+    if (gender === 'non_specified') {
+      continue
+    }
+    lines.push(
+      `UPDATE users SET gender = ${sqlString(gender)}, updated_at = CURRENT_TIMESTAMP`,
+      `WHERE id = ${sqlString(member.userId)} AND gender IS NULL;`,
+    )
+  }
+  return lines
 }
 
 function buildV17MembershipInsertPlain(member) {
@@ -894,6 +918,8 @@ export function buildImprobotsDevDemoSql(members, availability) {
     ...buildMvpPilotSqlLines({ repair: true }),
     '',
     ...buildAvailabilityOpenedAtBackfillLines(),
+    '',
+    ...buildImprobotsGenderBackfillLines(members),
     '',
     buildV17SeasonParticipantCountUpdatePlain(),
     buildV6SeasonCountUpdate(),
@@ -1123,6 +1149,19 @@ export function parseLegacyUserInsertsFromV17(sql) {
   }
   if (members.length > 0) return members
 
+  const selectWithSlugGenderRe =
+    /SELECT CAST\('([^']+)' AS uuid\), '([^']+)', NULL, '([^']+)', '((?:''|[^'])*)', '([^']+)', (?:'(male|female|non_specified)'|NULL), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP/g
+  while ((match = selectWithSlugGenderRe.exec(sql)) !== null) {
+    members.push({
+      userId: match[1],
+      googleSub: match[2],
+      obfuscatedEmail: match[3],
+      displayName: match[4].replace(/''/g, "'"),
+      slug: match[5],
+    })
+  }
+  if (members.length > 0) return members
+
   const selectWithSlugRe =
     /SELECT CAST\('([^']+)' AS uuid\), '([^']+)', NULL, '([^']+)', '((?:''|[^'])*)', '([^']+)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP/g
   while ((match = selectWithSlugRe.exec(sql)) !== null) {
@@ -1252,6 +1291,79 @@ export function sqlString(value) {
 
 export function stripAccents(text) {
   return text.normalize('NFD').replace(/\p{M}/gu, '')
+}
+
+/** First word of display name — seed gender inference (MIG-7). */
+export function firstTokenFromDisplayName(displayName) {
+  const trimmed = (displayName || '').trim()
+  if (!trimmed) return ''
+  const token = trimmed.split(/[\s+]+/)[0] ?? ''
+  return stripAccents(token.replace(/[.,]+$/g, '')).toLowerCase()
+}
+
+const SEED_FEMALE_FIRST_NAMES = new Set([
+  'angie',
+  'anneke',
+  'camille',
+  'celine',
+  'charlene',
+  'emilie',
+  'eve',
+  'gigi',
+  'helene',
+  'laetita',
+  'laura',
+  'marjo',
+  'sandrine',
+  'sophie',
+  'stephanie',
+  'vero',
+  'viviane',
+])
+
+const SEED_MALE_FIRST_NAMES = new Set([
+  'antoine',
+  'aurelien',
+  'bruno',
+  'edouard',
+  'fermin',
+  'max',
+  'nico',
+  'nicolas',
+  'olivier',
+  'patrice',
+  'patrick',
+  'pierrick',
+  'rachid',
+  'will',
+])
+
+/**
+ * Infer male/female for fictitious seed personas from given name.
+ * Returns `non_specified` when unknown — composition parity hint stays hidden.
+ */
+export function inferSeedGenderFromDisplayName(displayName) {
+  const lower = (displayName || '').trim().toLowerCase()
+  if (lower.includes('auryl')) {
+    return 'male'
+  }
+  const token = firstTokenFromDisplayName(displayName)
+  if (!token) {
+    return 'non_specified'
+  }
+  if (SEED_FEMALE_FIRST_NAMES.has(token)) {
+    return 'female'
+  }
+  if (SEED_MALE_FIRST_NAMES.has(token)) {
+    return 'male'
+  }
+  if (token.endsWith('a') || token.endsWith('e') || token.endsWith('ine')) {
+    return 'female'
+  }
+  if (token.endsWith('o') || token.endsWith('as') || token.endsWith('el') || token.endsWith('ien')) {
+    return 'male'
+  }
+  return 'non_specified'
 }
 
 export function slugFromDisplayName(displayName) {

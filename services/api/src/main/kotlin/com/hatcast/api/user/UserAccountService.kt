@@ -24,21 +24,24 @@ class UserAccountService(
         val existing = userRepository.findFirstByEmailIgnoreCase(email)
         if (existing != null) {
             if (existing.activatedAt != null) {
-                // V1 backfill: activated accounts may still lack gender — update gender only (not displayName).
-                if (gender != null && existing.gender != gender) {
+                // V1 backfill (MIG-7): activated accounts may still lack gender — NULL-only, never overwrite Mon compte.
+                if (gender != null && existing.gender == null) {
                     existing.gender = gender
                     existing.updatedAt = Instant.now()
                     userRepository.save(existing)
-                    return UserAccountImportOutcome.UPDATED
+                    return UserAccountImportOutcome.GENDER_BACKFILLED
                 }
-                return UserAccountImportOutcome.SKIPPED
+                if (gender != null && existing.gender != null) {
+                    return UserAccountImportOutcome.SKIPPED_GENDER_ALREADY_SET
+                }
+                return UserAccountImportOutcome.SKIPPED_ACTIVE_UNCHANGED
             }
             var changed = false
             if (normalizedDisplayName != null && existing.displayName != normalizedDisplayName) {
                 existing.displayName = normalizedDisplayName
                 changed = true
             }
-            if (gender != null && existing.gender != gender) {
+            if (gender != null && existing.gender == null) {
                 existing.gender = gender
                 changed = true
             }
@@ -75,8 +78,12 @@ class UserAccountService(
         when (importMigrationUser(rawEmail, displayName)) {
             UserAccountImportOutcome.CREATED,
             UserAccountImportOutcome.UPDATED,
+            UserAccountImportOutcome.GENDER_BACKFILLED,
             -> Unit
-            UserAccountImportOutcome.SKIPPED -> Unit
+            UserAccountImportOutcome.SKIPPED,
+            UserAccountImportOutcome.SKIPPED_GENDER_ALREADY_SET,
+            UserAccountImportOutcome.SKIPPED_ACTIVE_UNCHANGED,
+            -> Unit
         }
         return userRepository.findFirstByEmailIgnoreCase(rawEmail.trim().lowercase())
             ?: error("Utilisateur introuvable après provisionnement.")

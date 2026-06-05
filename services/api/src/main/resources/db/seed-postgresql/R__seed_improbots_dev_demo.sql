@@ -3,7 +3,7 @@
 -- Les Improbots dev demo : events, roster, dispos, compositions, MVP pilot, Historique.
 -- Idempotent (NOT EXISTS) — safe on Neon reset depuis prod et sur H2 test/e2e.
 
--- 32 members, 30 season events, 10 past events, 697 availability rows
+-- 32 members, 30 season events, 10 past events, 805 availability rows
 
 -- Season events (Les Improbots 2026-2027)
 INSERT INTO events (id, season_id, slug, title, description, location, starts_at, archived, template_type, role_slots, created_at, updated_at)
@@ -130,101 +130,101 @@ SELECT CAST('c000003a-0000-4000-8000-00000000003a' AS uuid), CAST('b0000001-0000
 WHERE NOT EXISTS (SELECT 1 FROM events e WHERE e.id = CAST('c000003a-0000-4000-8000-00000000003a' AS uuid));
 
 -- Users (@seed.improbots.test — members.csv gitignored)
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'seed-improbots-01', NULL, 'angie@seed.improbots.test', 'Angie', 'angie', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'seed-improbots-01', NULL, 'angie@seed.improbots.test', 'Angie', 'angie', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000002' AS uuid), 'seed-improbots-02', NULL, 'anneke@seed.improbots.test', 'Anneke', 'anneke', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000002' AS uuid), 'seed-improbots-02', NULL, 'anneke@seed.improbots.test', 'Anneke', 'anneke', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000002' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000003' AS uuid), 'seed-improbots-03', NULL, 'antoine@seed.improbots.test', 'Antoine', 'antoine', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000003' AS uuid), 'seed-improbots-03', NULL, 'antoine@seed.improbots.test', 'Antoine', 'antoine', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000003' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000004' AS uuid), 'seed-improbots-04', NULL, 'aurelien@seed.improbots.test', 'Aurélien', 'aurelien', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000004' AS uuid), 'seed-improbots-04', NULL, 'aurelien@seed.improbots.test', 'Aurélien', 'aurelien', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000004' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'seed-improbots-05', NULL, 'bruno@seed.improbots.test', 'Bruno', 'bruno', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'seed-improbots-05', NULL, 'bruno@seed.improbots.test', 'Bruno', 'bruno', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'seed-improbots-06', NULL, 'camille@seed.improbots.test', 'Camille', 'camille', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'seed-improbots-06', NULL, 'camille@seed.improbots.test', 'Camille', 'camille', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000007' AS uuid), 'seed-improbots-07', NULL, 'celine@seed.improbots.test', 'Céline', 'celine', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000007' AS uuid), 'seed-improbots-07', NULL, 'celine@seed.improbots.test', 'Céline', 'celine', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000007' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000008' AS uuid), 'seed-improbots-08', NULL, 'charlene@seed.improbots.test', 'Charlène', 'charlene', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000008' AS uuid), 'seed-improbots-08', NULL, 'charlene@seed.improbots.test', 'Charlène', 'charlene', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000008' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000009' AS uuid), 'seed-improbots-09', NULL, 'edouard@seed.improbots.test', 'Edouard', 'edouard', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000009' AS uuid), 'seed-improbots-09', NULL, 'edouard@seed.improbots.test', 'Edouard', 'edouard', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000009' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000010' AS uuid), 'seed-improbots-10', NULL, 'emilie@seed.improbots.test', 'Emilie', 'emilie', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000010' AS uuid), 'seed-improbots-10', NULL, 'emilie@seed.improbots.test', 'Emilie', 'emilie', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000010' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000011' AS uuid), 'seed-improbots-11', NULL, 'eve@seed.improbots.test', 'Eve', 'eve', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000011' AS uuid), 'seed-improbots-11', NULL, 'eve@seed.improbots.test', 'Eve', 'eve', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000011' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000012' AS uuid), 'seed-improbots-12', NULL, 'fermin@seed.improbots.test', 'Fermín', 'fermin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000012' AS uuid), 'seed-improbots-12', NULL, 'fermin@seed.improbots.test', 'Fermín', 'fermin', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000012' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000013' AS uuid), 'seed-improbots-13', NULL, 'gigi@seed.improbots.test', 'Gigi', 'gigi', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000013' AS uuid), 'seed-improbots-13', NULL, 'gigi@seed.improbots.test', 'Gigi', 'gigi', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000013' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000014' AS uuid), 'seed-improbots-14', NULL, 'helene@seed.improbots.test', 'Hélène', 'helene', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000014' AS uuid), 'seed-improbots-14', NULL, 'helene@seed.improbots.test', 'Hélène', 'helene', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000014' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000015' AS uuid), 'seed-improbots-15', NULL, 'laetita@seed.improbots.test', 'Laetita', 'laetita', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000015' AS uuid), 'seed-improbots-15', NULL, 'laetita@seed.improbots.test', 'Laetita', 'laetita', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000015' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000016' AS uuid), 'seed-improbots-16', NULL, 'laura@seed.improbots.test', 'Laura', 'laura', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000016' AS uuid), 'seed-improbots-16', NULL, 'laura@seed.improbots.test', 'Laura', 'laura', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000016' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000017' AS uuid), 'seed-improbots-17', NULL, 'marjo@seed.improbots.test', 'Marjo', 'marjo', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000017' AS uuid), 'seed-improbots-17', NULL, 'marjo@seed.improbots.test', 'Marjo', 'marjo', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000017' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'seed-improbots-18', NULL, 'max@seed.improbots.test', 'Max', 'max', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'seed-improbots-18', NULL, 'max@seed.improbots.test', 'Max', 'max', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000019' AS uuid), 'seed-improbots-19', NULL, 'nico@seed.improbots.test', 'Nico', 'nico', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000019' AS uuid), 'seed-improbots-19', NULL, 'nico@seed.improbots.test', 'Nico', 'nico', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000019' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000020' AS uuid), 'seed-improbots-20', NULL, 'nicolas-n@seed.improbots.test', 'Nicolas N.', 'nicolas-n', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000020' AS uuid), 'seed-improbots-20', NULL, 'nicolas-n@seed.improbots.test', 'Nicolas N.', 'nicolas-n', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000020' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000021' AS uuid), 'seed-improbots-21', NULL, 'olivier@seed.improbots.test', 'Olivier', 'olivier', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000021' AS uuid), 'seed-improbots-21', NULL, 'olivier@seed.improbots.test', 'Olivier', 'olivier', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000021' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'seed-improbots-22', NULL, 'patrice@seed.improbots.test', 'Patrice', 'patrice', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'seed-improbots-22', NULL, 'patrice@seed.improbots.test', 'Patrice', 'patrice', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000023' AS uuid), 'seed-improbots-23', NULL, 'auryl@seed.improbots.test', 'patrice lamarque+auryl', 'auryl', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000023' AS uuid), 'seed-improbots-23', NULL, 'auryl@seed.improbots.test', 'patrice lamarque+auryl', 'auryl', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000023' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000024' AS uuid), 'seed-improbots-24', NULL, 'patrick@seed.improbots.test', 'Patrick', 'patrick', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000024' AS uuid), 'seed-improbots-24', NULL, 'patrick@seed.improbots.test', 'Patrick', 'patrick', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000024' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000025' AS uuid), 'seed-improbots-25', NULL, 'pierrick@seed.improbots.test', 'Pierrick', 'pierrick', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000025' AS uuid), 'seed-improbots-25', NULL, 'pierrick@seed.improbots.test', 'Pierrick', 'pierrick', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000025' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000026' AS uuid), 'seed-improbots-26', NULL, 'rachid@seed.improbots.test', 'Rachid', 'rachid', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000026' AS uuid), 'seed-improbots-26', NULL, 'rachid@seed.improbots.test', 'Rachid', 'rachid', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000026' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000027' AS uuid), 'seed-improbots-27', NULL, 'sandrine@seed.improbots.test', 'Sandrine', 'sandrine', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000027' AS uuid), 'seed-improbots-27', NULL, 'sandrine@seed.improbots.test', 'Sandrine', 'sandrine', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000027' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'seed-improbots-28', NULL, 'sophie@seed.improbots.test', 'Sophie', 'sophie', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'seed-improbots-28', NULL, 'sophie@seed.improbots.test', 'Sophie', 'sophie', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000029' AS uuid), 'seed-improbots-29', NULL, 'stephanie@seed.improbots.test', 'Stéphanie', 'stephanie', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000029' AS uuid), 'seed-improbots-29', NULL, 'stephanie@seed.improbots.test', 'Stéphanie', 'stephanie', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000029' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000030' AS uuid), 'seed-improbots-30', NULL, 'vero@seed.improbots.test', 'Véro', 'vero', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000030' AS uuid), 'seed-improbots-30', NULL, 'vero@seed.improbots.test', 'Véro', 'vero', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000030' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000031' AS uuid), 'seed-improbots-31', NULL, 'viviane@seed.improbots.test', 'Viviane', 'viviane', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000031' AS uuid), 'seed-improbots-31', NULL, 'viviane@seed.improbots.test', 'Viviane', 'viviane', 'female', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000031' AS uuid));
-INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, activated_at, created_at, updated_at)
-SELECT CAST('d0000001-0000-4000-8000-000000000032' AS uuid), 'seed-improbots-32', NULL, 'will@seed.improbots.test', 'Will', 'will', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)
+SELECT CAST('d0000001-0000-4000-8000-000000000032' AS uuid), 'seed-improbots-32', NULL, 'will@seed.improbots.test', 'Will', 'will', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000032' AS uuid));
 
 -- Troupe memberships
@@ -4606,6 +4606,654 @@ WHERE NOT EXISTS (
     SELECT 1 FROM event_availability ea
     WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
 );
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000001' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000002' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000003' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000004' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000005' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000006' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000007' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000008' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000009' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000010' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000011' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000012' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000013' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000014' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000015' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000016' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000017' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000018' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000019' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000020' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000021' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000022' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000023' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000024' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000025' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000026' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000027' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000028' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000029' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000030' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000031' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000032' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000033' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000034' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000035' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000036' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000001' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000002' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000003' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000004' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000005' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000006' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000007' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000008' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000009' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000010' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000011' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000012' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000013' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000014' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000015' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000016' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000017' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000018' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000019' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000020' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000021' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000022' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000023' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000024' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000025' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000026' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000027' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000028' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000029' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000030' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000031' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000032' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000033' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000034' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000035' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000036' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000001' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000002' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000003' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000004' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000005' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000006' AS uuid), CAST('c0000009-0000-4000-8000-000000000009' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000009-0000-4000-8000-000000000009' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000007' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000008' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000009' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000010' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000011' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000012' AS uuid), CAST('c0000014-0000-4000-8000-000000000014' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000014-0000-4000-8000-000000000014' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000013' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000014' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000015' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000016' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000017' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000018' AS uuid), CAST('c0000010-0000-4000-8000-000000000010' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000010-0000-4000-8000-000000000010' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000019' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000020' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000021' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000022' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000023' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000024' AS uuid), CAST('c0000012-0000-4000-8000-000000000012' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000012-0000-4000-8000-000000000012' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000025' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000026' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000027' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000028' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000029' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000030' AS uuid), CAST('c0000018-0000-4000-8000-000000000018' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000018-0000-4000-8000-000000000018' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000031' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000032' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000005' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000005' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000033' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000006' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000006' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000034' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000018' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000018' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000035' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000028' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000028' AS uuid)
+);
+INSERT INTO event_availability (id, event_id, user_id, status, role_keys, created_at, updated_at)
+SELECT CAST('80000002-0000-4000-8000-000000000036' AS uuid), CAST('c0000020-0000-4000-8000-000000000020' AS uuid), CAST('d0000001-0000-4000-8000-000000000022' AS uuid), 'AVAILABLE', '["player","mc","dj"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_availability ea
+    WHERE ea.event_id = CAST('c0000020-0000-4000-8000-000000000020' AS uuid) AND ea.user_id = CAST('d0000001-0000-4000-8000-000000000022' AS uuid)
+);
 
 -- Historique (catégories, dispos et compositions passées)
 -- Glossaire catégorie pour le déplacement passé (ADR-0013).
@@ -5097,6 +5745,73 @@ WHERE id IN (
     'c0000025-0000-4000-8000-000000000025',
     'c0000026-0000-4000-8000-000000000026'
 );
+
+
+-- MIG-7 : genres seed Improbots inférés du prénom (gender IS NULL seulement).
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000001' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000002' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000003' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000004' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000005' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000006' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000007' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000008' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000009' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000010' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000011' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000012' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000013' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000014' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000015' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000016' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000017' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000018' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000019' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000020' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000021' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000022' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000023' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000024' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000025' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000026' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000027' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000028' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000029' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000030' AND gender IS NULL;
+UPDATE users SET gender = 'female', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000031' AND gender IS NULL;
+UPDATE users SET gender = 'male', updated_at = CURRENT_TIMESTAMP
+WHERE id = 'd0000001-0000-4000-8000-000000000032' AND gender IS NULL;
 
 UPDATE seasons
 SET
