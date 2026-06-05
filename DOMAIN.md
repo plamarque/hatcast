@@ -125,6 +125,20 @@ Dans un **compartiment** (`SpectacleCategory.slug` — `principal`, `deplacement
 
 Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur décliné. Visible **organisateur uniquement** (API + onglet Équipe). Le resolver est réutilisable pour le facteur tirage Epic **19.9** (hors scope 6.20).
 
+### Exclusion cross-rôle au tirage (composition)
+
+Lors d’un **tirage automatique** (`CompositionDrawService`), un participant ne peut pas occuper **deux rôles** sur le **même événement** :
+
+- Le set d’exclusion cross-rôle (`crossRoleExcluded`) est **initialisé** avec tous les assignés déjà présents sur la composition avant le tirage (y compris assignation manuelle sur un rôle traité **plus tard** dans l’ordre de priorité : arbitre → DJ → MC → joueur → …).
+- Chaque nouveau pick durant la requête est ajouté au set ; les pools des rôles suivants excluent ces participants.
+- Lors d’un **re-tirage complet** d’un rôle (`isFullRedraw`), les assignés de **ce** rôle sont retirés du set avant re-pick pour rester éligibles sur ce rôle uniquement.
+
+**Assignation manuelle (FR21) :** un organisateur **peut** cumuler plusieurs rôles pour la même personne sur un même spectacle. Le tirage auto ne doit jamais produire ce cumul seul.
+
+### Avertissement cumul multi-rôles sur le même spectacle (composition)
+
+Lorsqu’un participant occupe **plus d’un `roleKey`** sur le **même événement** (typiquement via assignation manuelle), un **avertissement non bloquant** (`multiRoleOnEventWarning`, champ `otherRoleKeys`) s’affiche sur **chaque** créneau concerné. Visible **organisateur uniquement** (API + onglet Équipe). N’empêche ni l’assignation, ni le tirage sur les autres rôles, ni la validation.
+
 ### Parité de genre — profil, libellés et métriques (Stories 2.12–2.12c, 6.21, 16.3)
 
 Contrat détaillé : [_spec-member-gender-parity_](_bmad-output/specs/spec-member-gender-parity/SPEC.md).

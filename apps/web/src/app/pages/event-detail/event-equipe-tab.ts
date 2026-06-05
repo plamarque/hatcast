@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common'
 import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
@@ -16,6 +17,7 @@ import {
   type CompositionSlot,
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
+import { formatMultiRoleOnEventWarningMessage } from '../../core/composition/multi-role-on-event-warning'
 import {
   canValidateComposition,
   isEquipePrimaryAction,
@@ -68,6 +70,7 @@ interface SlotRow {
 @Component({
   selector: 'app-event-equipe-tab',
   imports: [
+    NgTemplateOutlet,
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
@@ -437,6 +440,14 @@ export class EventEquipeTab {
 
   protected isParticipationSlotTappable(row: SlotRow): boolean {
     return this.canTapParticipationSlot(row) || this.canTapProxyParticipationSlot(row)
+  }
+
+  protected multiRoleWarningMessage(row: SlotRow): string | null {
+    const warning = row.slot?.multiRoleOnEventWarning
+    if (!warning) {
+      return null
+    }
+    return formatMultiRoleOnEventWarningMessage(warning)
   }
 
   protected onSlotRowClick(row: SlotRow): void {
@@ -841,6 +852,9 @@ export class EventEquipeTab {
     }
     const displayName =
       step.candidates.find((c) => c.participantId === participantId)?.displayName ?? null
+    const pendingSlot = this.pendingDrawComposition()?.slots.find(
+      (s) => s.roleKey === step.roleKey && s.slotIndex === step.slotIndex,
+    )
     const slots = [...comp.slots]
     const existingIndex = slots.findIndex(
       (s) => s.roleKey === step.roleKey && s.slotIndex === step.slotIndex,
@@ -851,6 +865,7 @@ export class EventEquipeTab {
       participantId,
       participantDisplayName: displayName,
       participationStatus: 'pending',
+      multiRoleOnEventWarning: pendingSlot?.multiRoleOnEventWarning ?? null,
     }
     if (existingIndex >= 0) {
       slots[existingIndex] = slot

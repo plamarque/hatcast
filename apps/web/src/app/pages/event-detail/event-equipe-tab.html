@@ -33,6 +33,15 @@
       />
     }
 
+    <ng-template #slotWarningsBelow let-row="row">
+      @if (multiRoleWarningMessage(row); as multiRoleMsg) {
+        <span class="event-equipe-tab__multi-role-warning" role="note">
+          <mat-icon aria-hidden="true">warning_amber</mat-icon>
+          <span class="event-equipe-tab__multi-role-warning-text">{{ multiRoleMsg }}</span>
+        </span>
+      }
+    </ng-template>
+
     <ul
       class="event-equipe-tab__grid"
       aria-label="Composition de l'équipe"
@@ -55,20 +64,23 @@
         >
           <span class="event-equipe-tab__role" aria-hidden="true">{{ row.roleEmoji }}</span>
           @if (canEditSlots() || canTapGapSlot(row)) {
-            <button
-              type="button"
-              class="event-equipe-tab__slot event-equipe-tab__slot-button"
-              (click)="openSlotPicker(row)"
-            >
-              @if (row.slot?.participantDisplayName; as name) {
-                <span class="event-equipe-tab__avatar" aria-hidden="true">
-                  {{ name.charAt(0).toUpperCase() }}
-                </span>
-                <span class="event-equipe-tab__name">{{ name }}</span>
-              } @else {
-                <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
-              }
-            </button>
+            <div class="event-equipe-tab__slot-col">
+              <button
+                type="button"
+                class="event-equipe-tab__slot event-equipe-tab__slot-button"
+                (click)="openSlotPicker(row)"
+              >
+                @if (row.slot?.participantDisplayName; as name) {
+                  <span class="event-equipe-tab__avatar" aria-hidden="true">
+                    {{ name.charAt(0).toUpperCase() }}
+                  </span>
+                  <span class="event-equipe-tab__name">{{ name }}</span>
+                } @else {
+                  <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
+                }
+              </button>
+              <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
+            </div>
             @if (row.slot?.participantId) {
               <button
                 type="button"
@@ -86,42 +98,51 @@
             !canTapParticipationSlot(row) &&
             !canTapProxyParticipationSlot(row)
           ) {
-            <button
-              type="button"
-              class="event-equipe-tab__slot event-equipe-tab__slot-button event-equipe-tab__slot-button--readonly"
-              (click)="onForeignParticipationSlotTap()"
-            >
-              @if (row.slot?.participantDisplayName; as name) {
-                <span class="event-equipe-tab__avatar" aria-hidden="true">
-                  {{ name.charAt(0).toUpperCase() }}
-                </span>
-                <span class="event-equipe-tab__name">{{ name }}</span>
-              }
-            </button>
+            <div class="event-equipe-tab__slot-col">
+              <button
+                type="button"
+                class="event-equipe-tab__slot event-equipe-tab__slot-button event-equipe-tab__slot-button--readonly"
+                (click)="onForeignParticipationSlotTap()"
+              >
+                @if (row.slot?.participantDisplayName; as name) {
+                  <span class="event-equipe-tab__avatar" aria-hidden="true">
+                    {{ name.charAt(0).toUpperCase() }}
+                  </span>
+                  <span class="event-equipe-tab__name">{{ name }}</span>
+                }
+              </button>
+              <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
+            </div>
           } @else if (isParticipationSlotTappable(row)) {
-            <button
-              type="button"
-              class="event-equipe-tab__slot event-equipe-tab__slot-button"
-              [disabled]="updatingParticipation()"
-              (click)="onSlotRowClick(row)"
-            >
-              @if (row.slot?.participantDisplayName; as name) {
-                <span class="event-equipe-tab__avatar" aria-hidden="true">
-                  {{ name.charAt(0).toUpperCase() }}
-                </span>
-                <span class="event-equipe-tab__name">{{ name }}</span>
-              }
-            </button>
+            <div class="event-equipe-tab__slot-col">
+              <button
+                type="button"
+                class="event-equipe-tab__slot event-equipe-tab__slot-button"
+                [disabled]="updatingParticipation()"
+                (click)="onSlotRowClick(row)"
+              >
+                @if (row.slot?.participantDisplayName; as name) {
+                  <span class="event-equipe-tab__avatar" aria-hidden="true">
+                    {{ name.charAt(0).toUpperCase() }}
+                  </span>
+                  <span class="event-equipe-tab__name">{{ name }}</span>
+                }
+              </button>
+              <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
+            </div>
           } @else {
-            <div class="event-equipe-tab__slot">
-              @if (row.slot?.participantDisplayName; as name) {
-                <span class="event-equipe-tab__avatar" aria-hidden="true">
-                  {{ name.charAt(0).toUpperCase() }}
-                </span>
-                <span class="event-equipe-tab__name">{{ name }}</span>
-              } @else {
-                <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
-              }
+            <div class="event-equipe-tab__slot-col">
+              <div class="event-equipe-tab__slot">
+                @if (row.slot?.participantDisplayName; as name) {
+                  <span class="event-equipe-tab__avatar" aria-hidden="true">
+                    {{ name.charAt(0).toUpperCase() }}
+                  </span>
+                  <span class="event-equipe-tab__name">{{ name }}</span>
+                } @else {
+                  <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
+                }
+              </div>
+              <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
             </div>
           }
         </li>

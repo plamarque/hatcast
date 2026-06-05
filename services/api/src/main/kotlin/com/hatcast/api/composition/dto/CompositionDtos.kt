@@ -4,6 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.time.Instant
 import java.util.UUID
 
+data class MultiRoleOnEventWarningDto(
+    val otherRoleKeys: List<String>,
+)
+
 data class CompositionSlotDto(
     val roleKey: String,
     val slotIndex: Int,
@@ -12,6 +16,7 @@ data class CompositionSlotDto(
     val participationStatus: String,
     val chancePercent: Int? = null,
     val pastSelectionCount: Int? = null,
+    val multiRoleOnEventWarning: MultiRoleOnEventWarningDto? = null,
 )
 
 data class CompositionDeclineDto(

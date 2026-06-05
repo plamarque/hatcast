@@ -1783,6 +1783,52 @@ describe('EventEquipeTab', () => {
     })
   })
 
+  it('shows multi-role warning hint for organizer when participant holds two roles', async () => {
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 1, dj: 1 } }),
+    )
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Patrice',
+            participationStatus: 'pending',
+            multiRoleOnEventWarning: { otherRoleKeys: ['dj'] },
+          },
+          {
+            roleKey: 'dj',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Patrice',
+            participationStatus: 'pending',
+            multiRoleOnEventWarning: { otherRoleKeys: ['player'] },
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const hints = fixture.nativeElement.querySelectorAll(
+        '.event-equipe-tab__multi-role-warning',
+      )
+      expect(hints.length).toBe(2)
+      const texts = [...hints].map((el: Element) => el.textContent ?? '')
+      expect(texts.every((t) => /Attention/.test(t))).toBe(true)
+      expect(texts.some((t) => /DJ/.test(t))).toBe(true)
+      expect(texts.some((t) => /Comédien/.test(t))).toBe(true)
+    })
+  })
+
   it('hides Compléter and gap slot picker for member without canManageComposition', async () => {
     getComposition.mockResolvedValue({
       ok: true,

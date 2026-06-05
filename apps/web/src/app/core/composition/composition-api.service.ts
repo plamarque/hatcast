@@ -8,6 +8,10 @@ export type CompositionVisibility =
   | 'publishedDraft'
   | 'validated'
 
+export interface MultiRoleOnEventWarning {
+  otherRoleKeys: string[]
+}
+
 export interface CompositionSlot {
   roleKey: string
   slotIndex: number
@@ -16,6 +20,7 @@ export interface CompositionSlot {
   participationStatus: 'pending' | 'confirmed' | 'declined'
   chancePercent?: number | null
   pastSelectionCount?: number | null
+  multiRoleOnEventWarning?: MultiRoleOnEventWarning | null
 }
 
 export interface CompositionDrawStepCandidate {

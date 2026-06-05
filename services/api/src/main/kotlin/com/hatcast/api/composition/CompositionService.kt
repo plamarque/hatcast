@@ -53,6 +53,7 @@ class CompositionService(
     private val auditRecorder: AuditEventRecorder,
     private val auditEventRepository: AuditEventRepository,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
+    private val multiRoleOnEventWarningService: MultiRoleOnEventWarningService,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -317,6 +318,12 @@ class CompositionService(
             if (canViewSlots) {
                 val participantIds = slots.mapNotNull { it.assignedParticipantId() }.toSet()
                 val displayNames = resolveDisplayNames(eventId, participantIds)
+                val multiRoleWarningsBySlot =
+                    if (resolvedCanManage) {
+                        multiRoleOnEventWarningService.warningsBySlotKey(slots)
+                    } else {
+                        emptyMap()
+                    }
                 slots.map { slot ->
                     val assignedId = slot.assignedParticipantId()
                     val odds =
@@ -332,6 +339,8 @@ class CompositionService(
                         participationStatus = slot.participationStatus.name.lowercase(),
                         chancePercent = odds?.first,
                         pastSelectionCount = odds?.second,
+                        multiRoleOnEventWarning =
+                            multiRoleWarningsBySlot[slot.roleKey to slot.slotIndex],
                     )
                 }
             } else {
