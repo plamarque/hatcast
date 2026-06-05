@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core'
 
+import type { MemberGender } from '../account/member-gender'
+import { effectiveMemberGender } from '../account/member-gender'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export type CompositionVisibility =
@@ -8,14 +10,28 @@ export type CompositionVisibility =
   | 'publishedDraft'
   | 'validated'
 
+export interface ConsecutiveShowWarning {
+  previousEventId: string
+  previousEventTitle: string
+  previousEventStartsAt: string
+}
+
+export interface MultiRoleOnEventWarning {
+  otherRoleKeys: string[]
+}
+
 export interface CompositionSlot {
   roleKey: string
   slotIndex: number
   participantId?: string | null
   participantDisplayName?: string | null
+  participantAvatarUrl?: string | null
+  participantGender?: MemberGender | null
   participationStatus: 'pending' | 'confirmed' | 'declined'
   chancePercent?: number | null
   pastSelectionCount?: number | null
+  consecutiveShowWarning?: ConsecutiveShowWarning | null
+  multiRoleOnEventWarning?: MultiRoleOnEventWarning | null
 }
 
 export interface CompositionDrawStepCandidate {
@@ -23,6 +39,7 @@ export interface CompositionDrawStepCandidate {
   displayName: string
   chancePercent: number
   weight: number
+  gender?: MemberGender
 }
 
 export interface CompositionDrawStep {
@@ -45,6 +62,8 @@ export interface CompositionCandidate {
   chancePercent: number
   pastSelectionCount: number
   alreadyAssignedRoleKeys?: string[] | null
+  avatarUrl?: string | null
+  gender?: MemberGender
 }
 
 export interface CompositionCandidateListResponse {
@@ -57,6 +76,8 @@ export interface CompositionDecline {
   id: string
   participantId: string
   participantDisplayName: string
+  participantAvatarUrl?: string | null
+  participantGender?: MemberGender
   roleKey: string
   slotIndex: number
   declinedAt: string
@@ -84,6 +105,23 @@ type CompositionApiResult<T> = ({ ok: true; status: number; data: T } | Composit
   errorMessage?: string
 }
 
+function normalizeCompositionResponse(data: CompositionResponse): CompositionResponse {
+  return {
+    ...data,
+    slots: data.slots.map((slot) => ({
+      ...slot,
+      participantGender:
+        slot.participantGender != null
+          ? effectiveMemberGender(slot.participantGender)
+          : null,
+    })),
+    declines: data.declines?.map((decline) => ({
+      ...decline,
+      participantGender: effectiveMemberGender(decline.participantGender),
+    })),
+  }
+}
+
 async function readApiErrorMessage(res: Response): Promise<string | undefined> {
   try {
     const body = (await res.json()) as { message?: string }
@@ -108,7 +146,7 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
-      const data = (await res.json()) as CompositionResponse
+      const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -131,7 +169,7 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as CompositionResponse
+      const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -154,7 +192,7 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as CompositionResponse
+      const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -177,7 +215,7 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as CompositionResponse
+      const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -205,7 +243,18 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
-      const data = (await res.json()) as CompositionDrawResponse
+      const raw = (await res.json()) as CompositionDrawResponse
+      const data: CompositionDrawResponse = {
+        ...raw,
+        composition: normalizeCompositionResponse(raw.composition),
+        steps: raw.steps.map((step) => ({
+          ...step,
+          candidates: step.candidates.map((candidate) => ({
+            ...candidate,
+            gender: effectiveMemberGender(candidate.gender),
+          })),
+        })),
+      }
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -227,7 +276,14 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as CompositionCandidateListResponse
+      const raw = (await res.json()) as CompositionCandidateListResponse
+      const data: CompositionCandidateListResponse = {
+        ...raw,
+        candidates: raw.candidates.map((candidate) => ({
+          ...candidate,
+          gender: effectiveMemberGender(candidate.gender),
+        })),
+      }
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -257,7 +313,7 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as CompositionResponse
+      const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -281,7 +337,7 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as CompositionResponse
+      const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -312,7 +368,7 @@ export class CompositionApiService {
       if (!res.ok) {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
-      const data = (await res.json()) as CompositionResponse
+      const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

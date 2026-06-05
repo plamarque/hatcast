@@ -128,7 +128,12 @@ export function participantOptionsForPicker(
 ): ParticipantPickerOption[] {
   return options
     .filter((o): o is ParticipantFilterOption & { id: string } => o.id != null)
-    .map((o) => ({ id: o.id, label: o.label }))
+    .map((o) => ({
+      id: o.id,
+      label: o.label,
+      avatarUrl: o.avatarUrl ?? null,
+      gender: o.gender ?? null,
+    }))
 }
 
 export function eventFilterOptionFromResponse(

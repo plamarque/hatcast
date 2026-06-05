@@ -1,5 +1,10 @@
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 import {
   assignObfuscatedEmails,
@@ -9,7 +14,11 @@ import {
   buildImprobotsDevDemoSql,
   buildMembersWithIds,
   buildMvpPilotSqlLines,
+  inferSeedGenderFromDisplayName,
+  firstTokenFromDisplayName,
   MVP_PILOT_EVENTS,
+  parseLegacyMalicieMembersFromV17,
+  parseLegacyUserInsertsFromV17,
   parseMembersCsv,
   pickRoleKeys,
   SEED_COMPOSITION_DRAFTS,
@@ -71,12 +80,53 @@ describe('generate-improbots-seed-sql', () => {
     assert.deepEqual(keys, ['player', 'volunteer'])
   })
 
+  it('assigns gender to every improbots seed persona', () => {
+    const sql = readFileSync(
+      join(REPO_ROOT, 'services/api/src/main/resources/db/seed-postgresql/R__seed_improbots_dev_demo.sql'),
+      'utf8',
+    )
+    const members = parseLegacyMalicieMembersFromV17(sql)
+    assert.equal(members.length, 32)
+    for (const member of members) {
+      assert.notEqual(
+        inferSeedGenderFromDisplayName(member.displayName),
+        'non_specified',
+        `expected gender for ${member.displayName}`,
+      )
+    }
+  })
+
+  it('parseLegacyUserInsertsFromV17 includes rows with NULL gender literal', () => {
+    const sql = [
+      "INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)",
+      "SELECT CAST('d0000001-0000-4000-8000-000000000001' AS uuid), 'sub-a', NULL, 'alex@seed.test', 'Alex', 'alex', 'male', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP",
+      "WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000001-0000-4000-8000-000000000001' AS uuid));",
+      "INSERT INTO users (id, google_sub, idp_uid, email, display_name, slug, gender, activated_at, created_at, updated_at)",
+      "SELECT CAST('d0000002-0000-4000-8000-000000000002' AS uuid), 'sub-b', NULL, 'unknown@seed.test', 'Unknown', 'unknown', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP",
+      "WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = CAST('d0000002-0000-4000-8000-000000000002' AS uuid));",
+    ].join('\n')
+    const users = parseLegacyUserInsertsFromV17(sql)
+    assert.equal(users.length, 2)
+    assert.equal(users[1].displayName, 'Unknown')
+  })
+
+  it('infers seed gender from display name first token', () => {
+    assert.equal(firstTokenFromDisplayName('Nicolas N.'), 'nicolas')
+    assert.equal(firstTokenFromDisplayName('patrice lamarque+auryl'), 'patrice')
+    assert.equal(inferSeedGenderFromDisplayName('Sophie'), 'female')
+    assert.equal(inferSeedGenderFromDisplayName('Bruno'), 'male')
+    assert.equal(inferSeedGenderFromDisplayName('patrice lamarque+auryl'), 'male')
+    assert.equal(inferSeedGenderFromDisplayName('Camille'), 'female')
+  })
+
   it('dev demo sql contains obfuscated domain and current schema inserts', () => {
     const members = buildMembersWithIds(assignObfuscatedEmails(parseMembersCsv(SAMPLE_CSV)))
     const availability = buildAvailabilityRows(members, SEED_EVENTS)
     const sql = buildImprobotsDevDemoSql(members, availability)
     assert.match(sql, /@seed\.improbots\.test/)
-    assert.match(sql, /INSERT INTO users \(id, google_sub, idp_uid, email, display_name, slug/)
+    assert.match(sql, /INSERT INTO users \(id, google_sub, idp_uid, email, display_name, slug, gender/)
+    assert.match(sql, /MIG-7 : genres seed Improbots/)
+    assert.match(sql, /UPDATE users SET gender = 'female'/)
     assert.match(sql, /INSERT INTO events \(id, season_id, slug, title/)
     assert.match(sql, /INSERT INTO event_availability \(id, event_id, user_id/)
     assert.match(sql, /season_participant_id/)

@@ -44,6 +44,9 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Channel eligibility (share recipients):** Per recipient and channel (email, push), whether HatCast **can** attempt delivery for the current send (e.g. normalized email present; push allowed for category and user preferences).
 - **Channel notified (share recipients):** Per recipient and channel, whether HatCast **already delivered** (or partially delivered) for the relevant notification intent(s) on this event — backed by `notification_delivery_log` with status `SENT` or `PARTIAL`. Used so organizers see who still needs manual follow-up (Copier / WhatsApp) and whether a resend is fair.
 - **Notification delivery log (V2):** Append-only record of notification attempts per `(event_id, user_id, channel, intent, status)`. Source of truth for “already notified” in organizer recipient detail. Distinct from `event_manual_share_notify` (anti-spam timestamp for manual POST per dialog intent).
+- **Member gender (V2, optional):** Self-declared account attribute on `users.gender`: `male` | `female` | `non_specified`. French UI: Homme / Femme / Non précisé. Default `non_specified`. Drives gender-aware **role labels** and **avatar fallback** when set; inclusive middot labels when not. Not troupe-scoped. Normative detail: [_spec-member-gender-parity/member-gender.md_](_bmad-output/specs/spec-member-gender-parity/member-gender.md).
+- **Gender-aware role label:** Display string for a `roleKey` chosen from masculine, feminine, or inclusive tables based on linked `users.gender`. V1 reference: `legacy/src/services/storage.js` `getRoleLabel`.
+- **Team gender parity (player role):** Count of filled composition slots with `roleKey = player` where linked user gender is `female` or `male`. Ratio `femaleShare = f / (f + m)` excludes `non_specified` and unlinked participants from the denominator. Used for organizer hint (**6.21**) and optional season aggregate (**16.3**).
 
 ---
 
@@ -115,6 +118,37 @@ La vue **Statistiques** (ex-Compositions / Historique stats V1) affiche des stat
 - **Spectacle local** (match, cabaret, longform, freeform, catch, custom, survey) dans une **ligue spectacle** → colonnes JEU / DECORUM / BÉNÉVOLE selon les règles ci-dessous.
 - **Déplacement (V2 cible) :** événements avec **`category = deplacements`** (ou équivalent troupe) → comptés en **DEPLACEMENT** uniquement pour stats/chances ; ne comptent pas dans JEU/DECORUM de la catégorie principale.
 - **Legacy :** événement `templateType = deplacement` → migrer vers `category = deplacements` ; règles de lecture jusqu’à migration (ADR 0013).
+
+### Avertissement rejeu spectacle précédent (composition, Story 6.20)
+
+Dans un **compartiment** (`SpectacleCategory.slug` — `principal`, `deplacements`, ou catégorie personnalisée), le **prédécesseur immédiat** d’un événement courant est le dernier événement **strictement antérieur** (tie-break : `startsAt`, `createdAt`, `id`) de la même saison, **même compartiment**, composition **validée** (`event_compositions.validated_at IS NOT NULL`), non archivé.
+
+Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur décliné. Visible **organisateur uniquement** (API + onglet Équipe). Le resolver est réutilisable pour le facteur tirage Epic **19.9** (hors scope 6.20).
+
+### Exclusion cross-rôle au tirage (composition)
+
+Lors d’un **tirage automatique** (`CompositionDrawService`), un participant ne peut pas occuper **deux rôles** sur le **même événement** :
+
+- Le set d’exclusion cross-rôle (`crossRoleExcluded`) est **initialisé** avec tous les assignés déjà présents sur la composition avant le tirage (y compris assignation manuelle sur un rôle traité **plus tard** dans l’ordre de priorité : arbitre → DJ → MC → joueur → …).
+- Chaque nouveau pick durant la requête est ajouté au set ; les pools des rôles suivants excluent ces participants.
+- Lors d’un **re-tirage complet** d’un rôle (`isFullRedraw`), les assignés de **ce** rôle sont retirés du set avant re-pick pour rester éligibles sur ce rôle uniquement.
+
+**Assignation manuelle (FR21) :** un organisateur **peut** cumuler plusieurs rôles pour la même personne sur un même spectacle. Le tirage auto ne doit jamais produire ce cumul seul.
+
+### Avertissement cumul multi-rôles sur le même spectacle (composition)
+
+Lorsqu’un participant occupe **plus d’un `roleKey`** sur le **même événement** (typiquement via assignation manuelle), un **avertissement non bloquant** (`multiRoleOnEventWarning`, champ `otherRoleKeys`) s’affiche sur **chaque** créneau concerné. Visible **organisateur uniquement** (API + onglet Équipe). N’empêche ni l’assignation, ni le tirage sur les autres rôles, ni la validation.
+
+### Parité de genre — profil, libellés et métriques (Stories 2.12–2.12c, 6.21, 16.3)
+
+Contrat détaillé : [_spec-member-gender-parity_](_bmad-output/specs/spec-member-gender-parity/SPEC.md).
+
+- **Profil :** `users.gender` optionnel ; édition **self-service** Mon compte → Mon profil ; jamais obligatoire pour dispos, tirage ou validation.
+- **Libellés :** si genre `male` ou `female`, libellés de rôle selon tables V1 ; si `non_specified`, formes inclusives (`Comédien·ne`, etc.).
+- **Avatars :** sans photo custom/Google, initiale du nom sur teinte selon genre (violet / orange / gris — tokens `--hatcast-member-gender-*` ; V2 remplace les emoji V1).
+- **Hint composition (6.21) :** bande informative orga sur l’onglet Équipe — effectifs F/M sur créneaux `player` remplis (genres connus) ; **non bloquant**.
+- **Stats saison (16.3) :** agrégat F/M et `femaleShare` sur participations `player` validées ; `non_specified` exclu du dénominateur du ratio.
+- **Tirage :** facteur optionnel **19.11** — hors scope de cette règle ; dépend de **2.12** et pipeline **19.6**.
 
 Les participations en déplacement **ne comptent jamais** dans JEU ou DECORUM d’une ligue spectacle. Implémenté dans `legacy/src/components/CastsView.vue`, `calculatePlayerRoleStats`.
 

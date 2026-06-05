@@ -53,6 +53,7 @@ class MeMemberPreferencesIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.memberDisplayName").value("Me Pref Get"))
             .andExpect(jsonPath("$.preferredRoleKeys.length()").value(RoleKeys.ALL.size))
+            .andExpect(jsonPath("$.gender").value("non_specified"))
     }
 
     @Test
@@ -148,6 +149,84 @@ class MeMemberPreferencesIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"memberDisplayName":"X"}"""),
             ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `patch gender persists each allowed value without syncing memberships display name`() {
+        val cookie =
+            signInAndJoinTwoTroupes(
+                "sub-me-pref-gender",
+                "me-pref-gender@example.com",
+                "Gender User",
+            )
+        val user = userRepository.findByGoogleSub("sub-me-pref-gender")!!
+
+        for (wire in listOf("male", "female", "non_specified")) {
+            mockMvc
+                .perform(
+                    patch("/v1/me/preferences")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"gender":"$wire"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.gender").value(wire))
+        }
+
+        val refreshedUser = userRepository.findById(user.id).orElseThrow()
+        assertEquals(com.hatcast.api.user.MemberGender.NON_SPECIFIED, refreshedUser.gender)
+
+        val memberships = membershipRepository.findActiveByUserId(user.id)
+        memberships.forEach { membership ->
+            assertEquals("Gender User", membership.displayName)
+        }
+    }
+
+    @Test
+    fun `patch gender only accepts allowed values`() {
+        val cookie = signInAndJoin("sub-me-pref-gender-bad", "me-pref-gender-bad@example.com", "Bad Gender")
+
+        mockMvc
+            .perform(
+                patch("/v1/me/preferences")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"gender":"unknown"}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("Genre invalide."))
+    }
+
+    @Test
+    fun `patch gender requires csrf`() {
+        val cookie = signInAndJoin("sub-me-pref-gender-csrf", "me-pref-gender-csrf@example.com", "Gender CSRF")
+
+        mockMvc
+            .perform(
+                patch("/v1/me/preferences")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"gender":"female"}"""),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `gender is not exposed on auth me or member season glance`() {
+        val cookie = signInAndJoin("sub-me-pref-privacy", "me-pref-privacy@example.com", "Me Pref Privacy")
+
+        mockMvc
+            .perform(
+                patch("/v1/me/preferences")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"gender":"female"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/auth/me").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.user.gender").doesNotExist())
     }
 
     private fun signInAndJoin(

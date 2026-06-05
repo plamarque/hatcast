@@ -49,6 +49,75 @@
   }
 }
 
+.event-equipe-tab__guidances {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.5rem;
+  background: color-mix(
+    in srgb,
+    var(--mat-sys-surface-container-high, var(--mat-sys-surface)) 55%,
+    transparent
+  );
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 35%, transparent);
+}
+
+.event-equipe-tab__guidance {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-height: 1.625rem;
+  cursor: default;
+}
+
+.event-equipe-tab__parity {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: var(--mat-sys-body-small-size, 0.8125rem);
+  font-weight: 600;
+  line-height: 1.35;
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+.event-equipe-tab__parity-label {
+  min-width: 0;
+}
+
+.event-equipe-tab__parity--bon {
+  background: var(--hatcast-participation-available-badge-bg);
+  color: var(--hatcast-participation-available-badge-fg);
+}
+
+.event-equipe-tab__parity--acceptable {
+  background: var(--hatcast-participation-neutral-badge-bg);
+  color: var(--hatcast-participation-neutral-badge-fg);
+}
+
+.event-equipe-tab__parity--faible {
+  background: var(--hatcast-participation-declined-badge-bg);
+  color: var(--hatcast-participation-declined-badge-fg);
+}
+
+@media (max-width: 480px) {
+  .event-equipe-tab__guidances {
+    row-gap: 0.25rem;
+  }
+
+  .event-equipe-tab__guidance {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+}
+
 .event-equipe-tab__grid {
   list-style: none;
   margin: 0;
@@ -59,10 +128,16 @@
 }
 
 .event-equipe-tab__row {
-  display: flex;
+  --equipe-role-col: 7.25rem;
+  --equipe-clear-col: 2.5rem;
+
+  display: grid;
+  grid-template-columns: var(--equipe-role-col) minmax(0, 1fr) var(--equipe-clear-col);
+  grid-template-rows: auto auto;
+  column-gap: 0.65rem;
+  row-gap: 0.3rem;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.85rem;
+  padding: 0.6rem 0.7rem;
   border-radius: 0.65rem;
   background: rgba(255, 255, 255, 0.05);
 }
@@ -89,26 +164,78 @@
   background: var(--hatcast-participation-declined-gradient-strong);
 }
 
-.event-equipe-tab__row--pending .event-equipe-tab__avatar,
-.event-equipe-tab__row--confirmed .event-equipe-tab__avatar,
-.event-equipe-tab__row--declined .event-equipe-tab__avatar {
-  background: color-mix(in srgb, #fff 22%, transparent);
-  color: #fff;
-}
-
 .event-equipe-tab__row--pending .event-equipe-tab__clear,
 .event-equipe-tab__row--confirmed .event-equipe-tab__clear {
   background: color-mix(in srgb, #fff 14%, transparent);
   color: #fff;
 }
 
-.event-equipe-tab__row--participation .event-equipe-tab__slot-button {
+.event-equipe-tab__row-hit {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
+  text-align: left;
+  font: inherit;
+
+  &:hover,
+  &:focus-visible {
+    outline: 2px solid rgba(0, 188, 212, 0.45);
+    outline-offset: 2px;
+    border-radius: 0.35rem;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.72;
+  }
 }
 
-.event-equipe-tab__slot-button--readonly {
-  cursor: default;
+.event-equipe-tab__row-hit--has-clear {
+  grid-column: 1 / 3;
+}
+
+.event-equipe-tab__row-hit--readonly {
+  cursor: pointer;
   opacity: 0.95;
+}
+
+.event-equipe-tab__row > .event-equipe-tab__role-pill {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.event-equipe-tab__row > .event-equipe-tab__slot--readonly {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.event-equipe-tab__clear {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.event-equipe-tab__warnings {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+
+  &:empty {
+    display: none;
+  }
 }
 
 .event-equipe-tab__row--empty {
@@ -185,78 +312,157 @@
   background: rgba(156, 39, 176, 0.35);
 }
 
-.event-equipe-tab__role {
-  font-size: 1.25rem;
-  width: 1.75rem;
-  text-align: center;
-  flex-shrink: 0;
+.event-equipe-tab__role-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 40%, transparent);
+  background: color-mix(in srgb, var(--mat-sys-surface-container-high) 88%, transparent);
+  color: var(--mat-sys-on-surface);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-equipe-tab__row > .event-equipe-tab__slot,
+.event-equipe-tab__row-hit .event-equipe-tab__role-pill {
+  grid-column: 1;
+}
+
+.event-equipe-tab__row-hit .event-equipe-tab__slot {
+  grid-column: 2;
 }
 
 .event-equipe-tab__slot {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  column-gap: 0.65rem;
   align-items: center;
-  gap: 0.65rem;
   min-width: 0;
-  flex: 1;
+  width: 100%;
+}
+
+.event-equipe-tab__slot-vacant {
+  width: 2rem;
+  height: 2rem;
+}
+
+.event-equipe-tab__consecutive-warning-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.1rem 0.45rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--mat-sys-body-small-size, 0.7rem);
+  line-height: 1.35;
+  color: var(--mat-sys-on-surface);
+  background: color-mix(
+    in srgb,
+    var(--mat-sys-surface-container-high, var(--mat-sys-surface)) 94%,
+    transparent
+  );
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    width: 0.95rem;
+    height: 0.95rem;
+    color: var(--mat-sys-error);
+  }
+}
+
+.event-equipe-tab__multi-role-warning-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.1rem 0.45rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--mat-sys-body-small-size, 0.7rem);
+  line-height: 1.35;
+  color: var(--mat-sys-on-surface);
+  background: color-mix(
+    in srgb,
+    var(--mat-sys-surface-container-high, var(--mat-sys-surface)) 94%,
+    transparent
+  );
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    width: 0.95rem;
+    height: 0.95rem;
+    color: var(--mat-sys-error);
+  }
+}
+
+// Participation rows (pending / confirmed / declined) — light text on gradient;
+// hint needs its own opaque strip, not a wash over the row background.
+.event-equipe-tab__row--pending,
+.event-equipe-tab__row--confirmed,
+.event-equipe-tab__row--declined {
+  .event-equipe-tab__consecutive-warning-trigger,
+  .event-equipe-tab__multi-role-warning-trigger {
+    color: #fff;
+    background: color-mix(in srgb, #000 44%, transparent);
+
+    mat-icon {
+      color: color-mix(in srgb, var(--mat-sys-error) 35%, #fff);
+    }
+  }
+}
+
+::ng-deep .event-equipe-tab__consecutive-warning-tooltip,
+::ng-deep .event-equipe-tab__multi-role-warning-tooltip {
+  max-width: min(20rem, calc(100vw - 2rem));
+  white-space: normal;
+  line-height: 1.4;
 }
 
 .event-equipe-tab__avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: rgba(0, 188, 212, 0.25);
-  font-weight: 600;
-  font-size: 0.95rem;
   flex-shrink: 0;
 }
 
 .event-equipe-tab__name {
   font-weight: 500;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .event-equipe-tab__placeholder {
-  padding: 0.35rem 0.65rem;
-  border: 1px dashed rgba(255, 255, 255, 0.28);
-  border-radius: 0.45rem;
-  font-size: 0.9rem;
-  opacity: 0.75;
+  font-size: var(--mat-sys-body-medium-size, 0.875rem);
+  font-weight: 500;
+  opacity: 0.68;
 }
 
-.event-equipe-tab__row--editable {
+.event-equipe-tab__row--tappable {
   cursor: default;
-}
-
-.event-equipe-tab__slot-button {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-  padding: 0;
-
-  &:hover,
-  &:focus-visible {
-    outline: 2px solid rgba(0, 188, 212, 0.45);
-    outline-offset: 2px;
-    border-radius: 0.35rem;
-  }
 }
 
 .event-equipe-tab__clear {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
+  justify-self: end;
+  width: 2.5rem;
+  height: 2.5rem;
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -339,8 +545,15 @@
   gap: 0.5rem;
 }
 
+.event-equipe-tab__declines-list .event-equipe-tab__slot {
+  grid-column: 2;
+  grid-row: 1;
+}
+
 .event-equipe-tab__declines-restore {
-  flex-shrink: 0;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
   display: inline-flex;
   align-items: center;
   justify-content: center;

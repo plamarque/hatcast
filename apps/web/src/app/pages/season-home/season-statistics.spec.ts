@@ -27,6 +27,7 @@ describe('SeasonStatistics', () => {
         displayName: 'Alice',
         userSlug: 'alice-dupont',
         avatarUrl: null,
+        gender: 'female',
         annual: { totalJeu: { selections: 0, dispos: 0, declines: 0 } },
         monthSummary: { '2026-03': { selections: 0, dispos: 0, declines: 0 } },
         byMonth: {},
@@ -87,6 +88,14 @@ describe('SeasonStatistics', () => {
     expect(fixture.nativeElement.querySelectorAll('app-user-avatar').length).toBe(2)
   })
 
+  it('applies gender tone on statistics avatars without photo', async () => {
+    const fixture = await setup()
+    const femaleAvatar = fixture.nativeElement.querySelector(
+      '.season-statistics__participant--link app-user-avatar.user-avatar--tone-female',
+    ) as HTMLElement
+    expect(femaleAvatar).toBeTruthy()
+  })
+
   it('navigates to member glance when linked participant cell is clicked', async () => {
     const navigateSpy = vi.fn()
     const fixture = await setup(navigateSpy)
@@ -145,6 +154,14 @@ describe('SeasonStatistics', () => {
     const cells = fixture.nativeElement.querySelectorAll('app-participation-event-cell')
     expect(cells.length).toBe(2)
     expect(fixture.nativeElement.querySelector('.participation-event-cell--selected')).toBeTruthy()
+  })
+
+  it('genres role tooltip from participant gender on stats cells', async () => {
+    const fixture = await setup()
+    const cell = fixture.nativeElement.querySelector(
+      '.participation-event-cell--selected[aria-label="Comédienne"]',
+    )
+    expect(cell).toBeTruthy()
   })
 
   it('falls back to neutral legacy text when eventCellDetails is absent', async () => {

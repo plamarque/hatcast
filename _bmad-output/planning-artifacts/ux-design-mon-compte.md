@@ -76,7 +76,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | # | Sujet | Décision |
 |---|--------|----------|
 | C1 | **Périmètre écran** | Compte **global** : **profil** (**avatar**, **e-mail**, **pseudo**, modes de connexion, suppression), **rôles préférés globaux**, notifications push/catégories, version app. |
-| C2 | **Pseudo membre** | **Un seul pseudo** (`memberDisplayName`) pour toutes les troupes — champ éditable sur l’onglet **Mon profil** (sous la zone avatar/e-mail). Hint : *Nom affiché dans toutes vos troupes.* ; max 255 ; non vide à l’enregistrement. **Pas** de pseudo par troupe sur `/compte` ni dans le hub troupe. |
+| C2 | **Pseudo membre** | **Un seul pseudo** (`memberDisplayName`) pour toutes les troupes — champ éditable sur l’onglet **Mon profil** (bloc profil avec genre, voir [ux-design-member-gender-parity.md](./ux-design-member-gender-parity.md) Screen 1). Max 255 ; non vide à l’enregistrement. **Pas** de hint sous le champ pseudo (2026-06-05). **Pas** de pseudo par troupe sur `/compte` ni dans le hub troupe. |
 | C2b | **Rôles préférés** | **Un jeu de rôles préférés** pour toutes les troupes — formulaire sur l’onglet **Préférences** (grille `mat-checkbox` ; composant dérivé de `MemberPreferencesForm` **sans** le champ pseudo). |
 | C3 | **Chrome page** | Même squelette que **Mon agenda** / **Mes Stats** : conteneur `max-width: 56rem`, header `h1` + `p` sous-titre. Typo L1/L2 : [`ux-design-hub-section-headers.md`](ux-design-hub-section-headers.md). |
 | C4 | **Navigation interne** | **4 onglets** Material (`mat-tab-nav-bar` + `mat-tab-link` + routes enfants) — **Mon profil** · Préférences · Notifications · À propos. **Pas** d’onglet Sécurité séparé (fusion **17.36**). |
@@ -178,7 +178,7 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 | Règle | Détail |
 |-------|--------|
 | **Email** | Affiché en `body-large` à côté de l’avatar ; **pas** de ligne liste dédiée. **Modifier** : `mat-icon-button` `edit` (`data-testid="account-email-edit"`) → `AccountChangeEmailDialog` (**1.6**). Conserver `data-testid="account-change-email"` sur le déclencheur si tests existants — ou alias documenté en story **17.36**. |
-| **Pseudo membre** | Inchangé **17.35** : `mat-form-field` + **Enregistrer** (`data-testid="account-pseudo-save"`) ; API `GET/PATCH /v1/me/preferences`. |
+| **Pseudo membre** | Bloc profil unifié : `mat-form-field` Pseudo + toggle genre + **un** **Enregistrer** (`data-testid="account-profile-save"`) ; API `GET/PATCH /v1/me/preferences`. Voir [ux-design-member-gender-parity.md](./ux-design-member-gender-parity.md) Screen 1. |
 | **displayName auth** | Lecture seule sous l’e-mail si présent et **distinct** du pseudo. |
 | **Photo** | Menu compact sur l’avatar (story **2.6**) ; « Utiliser ma photo Google » si `hasGoogleAccount`. |
 | **Modes de connexion (C12)** | Titre section `h2` ou `overline` *Modes de connexion* ; lignes texte pour Google et MDP ; bouton texte ou `mat-stroked-button` pour MDP (`data-testid="account-reset-password"`) — libellé *Changer* / *Définir* selon `hasPasswordProvider` ; hint Google + secours conservé. |

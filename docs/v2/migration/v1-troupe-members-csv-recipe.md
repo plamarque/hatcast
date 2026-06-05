@@ -23,12 +23,24 @@ npm run export:v1-users -- --season=SEASON_ID --output=users.csv
 Format CSV :
 
 ```csv
-email,displayName
-alice@example.com,Alice
-bob@example.com,Bob
+email,displayName,gender
+alice@example.com,Alice,female
+bob@example.com,Bob,non_specified
 ```
 
-Sources V1 : `players.email`, `players.name`, plus emails présents dans `roles.admins` / `roles.users`.
+Sources V1 : `players.email`, `players.name`, `players.gender`, plus emails présents dans `roles.admins` / `roles.users`.
+
+### Mapping genre V1 → V2 (colonne `gender`)
+
+| V1 `players.gender` | V2 `users.gender` (CSV) |
+|---------------------|-------------------------|
+| `male` | `male` |
+| `female` | `female` |
+| `non-specified`, `unknown`, null, invalide | `non_specified` |
+
+Si plusieurs fiches `players` partagent le même email, l’export retient la valeur **non** `non_specified` la plus récemment mise à jour (`updatedAt`), sinon `non_specified`.
+
+**Règle MIG-7 (NULL-only) :** ré-importer le CSV utilisateurs met à jour `users.gender` **seulement si la valeur en base est encore `NULL`**. Les stubs non activés peuvent aussi recevoir `displayName` ; pour les comptes **déjà activés**, seul le genre est complété — le pseudo compte n’est jamais écrasé. Un genre déjà renseigné (Mon compte ou import antérieur) est **préservé** même si le CSV V1 diffère.
 
 ## Étape 2 — Importer les utilisateurs en V2
 

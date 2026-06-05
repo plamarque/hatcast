@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 
+import { UserAvatarComponent } from '../user-avatar/user-avatar'
 import type { ParticipantPickerData, ParticipantPickerResult } from './filter.types'
 
 @Component({
@@ -21,6 +22,7 @@ import type { ParticipantPickerData, ParticipantPickerResult } from './filter.ty
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    UserAvatarComponent,
   ],
   templateUrl: './filter-participant-picker.html',
   styleUrl: './filter-picker-shell.scss',

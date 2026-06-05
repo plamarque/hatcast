@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 
+import { effectiveMemberGender, type MemberGender } from '../account/member-gender'
 import type { UserAgendaParticipationFilters } from '../agenda/user-agenda-api.service'
 import type {
   FavoriteRoleCount,
@@ -22,6 +23,7 @@ export interface MemberSeasonGlance {
   monthlyChart: MemberProfileMonth[]
   favoriteRoleCounts: FavoriteRoleCount[]
   preferredRoleKeys?: string[] | null
+  gender?: MemberGender
 }
 
 export type ApiResult<T> = { ok: boolean; status: number; data?: T; errorMessage?: string }
@@ -53,7 +55,11 @@ export class MemberSeasonGlanceApiService {
         }
         return { ok: false, status: res.status, errorMessage }
       }
-      const data = (await res.json()) as MemberSeasonGlance
+      const raw = (await res.json()) as MemberSeasonGlance
+      const data: MemberSeasonGlance = {
+        ...raw,
+        gender: effectiveMemberGender(raw.gender),
+      }
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

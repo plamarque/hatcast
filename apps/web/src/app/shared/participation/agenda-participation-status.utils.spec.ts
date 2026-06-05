@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { agendaParticipationStatusFromFocus } from './agenda-participation-status.utils'
 
 describe('agendaParticipationStatusFromFocus', () => {
-  it('maps in-team confirmed selection to selected cell', () => {
+  it('maps in-team confirmed selection to selected cell with inclusive default', () => {
     const view = agendaParticipationStatusFromFocus({
       availabilityStatus: 'available',
       compositionRoleKey: 'player',
@@ -12,6 +12,20 @@ describe('agendaParticipationStatusFromFocus', () => {
     })
     expect(view.cell.status).toBe('selected')
     expect(view.cell.label).toBe('Comédien·ne')
+  })
+
+  it('uses gender-aware role label when gender is provided', () => {
+    const view = agendaParticipationStatusFromFocus(
+      {
+        availabilityStatus: 'available',
+        compositionRoleKey: 'player',
+        inTeam: true,
+        slotParticipationStatus: 'confirmed',
+      },
+      false,
+      'male',
+    )
+    expect(view.cell.label).toBe('Comédien')
   })
 
   it('maps pending selection to pending cell', () => {

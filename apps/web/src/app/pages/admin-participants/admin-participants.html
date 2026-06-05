@@ -99,13 +99,21 @@
 
 <ng-template #seasonParticipantRow let-p>
   <li class="admin-participants__row">
-    <div class="admin-participants__row-main">
-      <div class="admin-participants__row-primary">
-        <strong>{{ p.displayName }}</strong>
-        @if (p.email) {
-          <span class="admin-participants__email">{{ p.email }}</span>
-        }
-      </div>
+    <app-user-avatar
+      class="admin-participants__avatar"
+      [style.--user-avatar-size.px]="32"
+      [displayName]="p.displayName"
+      [avatarUrl]="p.avatarUrl ?? null"
+      [gender]="p.gender ?? null"
+      [size]="32"
+    />
+    <div class="admin-participants__identity">
+      <strong class="admin-participants__name">{{ p.displayName }}</strong>
+      @if (p.email) {
+        <span class="admin-participants__email">{{ p.email }}</span>
+      }
+    </div>
+    <div class="admin-participants__controls">
       <mat-chip-set class="admin-participants__chips">
         @if (showKindChip(p.kind)) {
           <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
@@ -132,8 +140,6 @@
           </mat-chip>
         }
       </mat-chip-set>
-    </div>
-    <div class="admin-participants__row-actions">
       @if (isEditableParticipant(p)) {
         <button
           type="button"
@@ -162,10 +168,12 @@
 </ng-template>
 
 <mat-menu #seasonParticipationRoleMenu="matMenu">
-  <button type="button" mat-menu-item (click)="selectSeasonParticipationRole(false)">
-    {{ participantRoleLabel }}
-  </button>
-  <button type="button" mat-menu-item (click)="selectSeasonParticipationRole(true)">
-    {{ seasonOrganizerMenuLabel }}
-  </button>
+  @if (participationRoleMenuParticipant(); as menuParticipant) {
+    <button type="button" mat-menu-item (click)="selectSeasonParticipationRole(false)">
+      {{ participantRoleLabel(menuParticipant.gender ?? null) }}
+    </button>
+    <button type="button" mat-menu-item (click)="selectSeasonParticipationRole(true)">
+      {{ organizerRoleMenuLabel('saison', menuParticipant.gender ?? null) }}
+    </button>
+  }
 </mat-menu>

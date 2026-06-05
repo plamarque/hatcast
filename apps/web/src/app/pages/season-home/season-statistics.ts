@@ -13,7 +13,7 @@ import type {
 import { ParticipationEventCell } from '../../shared/participation/participation-event-cell'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { StatRatioDisplay } from './stat-ratio-display'
-import { monthLabel } from './season-statistics.utils'
+import { genderStatisticsEventCell, monthLabel } from './season-statistics.utils'
 
 export type StatisticsColumnVisibility = {
   showJeuDetails: boolean
@@ -126,7 +126,7 @@ export class SeasonStatistics {
   ): StatisticsEventCell {
     const detail = row.eventCellDetails?.[eventId]
     if (detail) {
-      return detail
+      return genderStatisticsEventCell(detail, row.gender ?? null)
     }
     const legacy = row.eventCells[eventId] ?? '—'
     return {

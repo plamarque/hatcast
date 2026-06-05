@@ -28,21 +28,27 @@ data class SeasonParticipantAdminDto(
     val kind: ParticipantKind,
     val status: ParticipantStatus,
     val removable: Boolean,
+    val avatarUrl: String? = null,
+    val gender: String = "non_specified",
 ) {
     companion object {
         fun from(
             entity: SeasonParticipantEntity,
             includeEmail: Boolean,
+            avatarUrl: String? = null,
+            gender: String = "non_specified",
         ): SeasonParticipantAdminDto =
             SeasonParticipantAdminDto(
                 id = entity.id,
                 displayName = entity.displayName,
                 email = if (includeEmail) entity.normalizedEmail else null,
-                userId = entity.user?.id,
+                userId = entity.user?.id ?: entity.troupeMembership?.user?.id,
                 troupeMembershipId = entity.troupeMembership?.id,
                 kind = entity.kind(),
                 status = entity.status,
                 removable = entity.troupeMembership == null,
+                avatarUrl = avatarUrl,
+                gender = gender,
             )
     }
 }
@@ -84,25 +90,33 @@ data class EventRosterParticipantDto(
     val userId: UUID?,
     val kind: ParticipantKind,
     val source: EventRosterSource,
+    val avatarUrl: String? = null,
+    val gender: String = "non_specified",
 ) {
     companion object {
         fun fromSeason(
             entity: SeasonParticipantEntity,
             includeEmail: Boolean,
+            avatarUrl: String? = null,
+            gender: String = "non_specified",
         ): EventRosterParticipantDto =
             EventRosterParticipantDto(
                 seasonParticipantId = entity.id,
                 eventParticipantId = null,
                 displayName = entity.displayName,
                 email = if (includeEmail) entity.normalizedEmail else null,
-                userId = entity.user?.id,
+                userId = entity.user?.id ?: entity.troupeMembership?.user?.id,
                 kind = entity.kind(),
                 source = EventRosterSource.SEASON,
+                avatarUrl = avatarUrl,
+                gender = gender,
             )
 
         fun fromEvent(
             entity: EventParticipantEntity,
             includeEmail: Boolean,
+            avatarUrl: String? = null,
+            gender: String = "non_specified",
         ): EventRosterParticipantDto =
             EventRosterParticipantDto(
                 seasonParticipantId = entity.seasonParticipant?.id,
@@ -112,6 +126,8 @@ data class EventRosterParticipantDto(
                 userId = entity.user?.id,
                 kind = entity.kind(),
                 source = EventRosterSource.EVENT,
+                avatarUrl = avatarUrl,
+                gender = gender,
             )
     }
 }
@@ -123,11 +139,13 @@ data class ParticipantSelectorDto(
     val kind: ParticipantKind,
     /** Linked account when roster row is tied to a user (Activité / Dispos « moi »). */
     val userId: UUID? = null,
+    val gender: String = "non_specified",
 ) {
     companion object {
         fun from(
             entity: SeasonParticipantEntity,
             avatarUrl: String?,
+            gender: String,
         ): ParticipantSelectorDto =
             ParticipantSelectorDto(
                 id = entity.id,
@@ -135,6 +153,7 @@ data class ParticipantSelectorDto(
                 avatarUrl = avatarUrl,
                 kind = entity.kind(),
                 userId = entity.user?.id ?: entity.troupeMembership?.user?.id,
+                gender = gender,
             )
     }
 }

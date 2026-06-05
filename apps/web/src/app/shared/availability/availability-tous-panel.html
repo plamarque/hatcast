@@ -42,17 +42,14 @@
                 [attr.aria-label]="participantAriaLabel(candidate)"
                 (click)="onParticipantClick(candidate.participantId)"
               >
-                @if (candidate.avatarUrl) {
-                  <img matListItemAvatar [src]="candidate.avatarUrl" alt="" />
-                } @else {
-                  <span
-                    matListItemAvatar
-                    class="availability-tous__avatar-fallback"
-                    aria-hidden="true"
-                  >
-                    {{ candidate.displayName.charAt(0) }}
-                  </span>
-                }
+                <app-user-avatar
+                  matListItemAvatar
+                  class="availability-tous__avatar"
+                  [displayName]="candidate.displayName"
+                  [avatarUrl]="candidate.avatarUrl ?? null"
+                  [gender]="participantGender(candidate.participantId)"
+                  [size]="28"
+                />
                 <span matListItemTitle>{{ candidate.displayName }}</span>
                 @if (loadingChances()) {
                   <span matListItemMeta class="availability-tous__chance-skeleton" aria-hidden="true">
@@ -98,13 +95,14 @@
             [attr.aria-label]="participantAriaLabel(p)"
             (click)="onParticipantClick(p.participantId)"
           >
-            @if (p.avatarUrl) {
-              <img matListItemAvatar [src]="p.avatarUrl" alt="" />
-            } @else {
-              <span matListItemAvatar class="availability-tous__avatar-fallback" aria-hidden="true">
-                {{ p.displayName.charAt(0) }}
-              </span>
-            }
+            <app-user-avatar
+              matListItemAvatar
+              class="availability-tous__avatar"
+              [displayName]="p.displayName"
+              [avatarUrl]="p.avatarUrl ?? null"
+              [gender]="p.gender ?? null"
+              [size]="28"
+            />
             <span matListItemTitle>{{ p.displayName }}</span>
             <span matListItemMeta class="availability-tous__status">{{ statusLabel(p.status) }}</span>
           </button>

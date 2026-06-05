@@ -2,7 +2,8 @@ package com.hatcast.api.notification
 
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventService
-import com.hatcast.api.season.SeasonStatisticsService
+import com.hatcast.api.role.RoleLabels
+import com.hatcast.api.user.MemberGender
 import org.springframework.stereotype.Component
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -18,12 +19,16 @@ class NotificationPayloadBuilder {
         actorDisplayName: String? = null,
         proxyChangeSummary: ProxyChangeSummary? = null,
         customMessageBody: String? = null,
+        recipientGender: MemberGender? = null,
     ): NotificationPayload {
         val seasonSlug = event.season.slug
         val eventSlug = event.slug
         val eventTitle = event.title
         val eventDate = formatEventDate(event)
-        val roleLabel = roleKey?.let { SeasonStatisticsService.ROLE_LABELS[it] ?: it }
+        val roleLabel =
+            roleKey?.let { key ->
+                RoleLabels.label(key, MemberGender.effective(recipientGender))
+            }
 
         return when (intent) {
             NotificationIntent.AVAILABILITY_OPENED ->

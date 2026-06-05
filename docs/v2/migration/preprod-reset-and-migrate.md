@@ -154,6 +154,30 @@ Review script warnings (emails in `roles` without player doc, etc.).
 
 See [v1-troupe-members-csv-recipe.md](v1-troupe-members-csv-recipe.md) for auth linking (Google first login, optional Identity Platform import).
 
+> **Genre (story 2.12 + MIG-7):** l’export `users.csv` inclut la colonne `gender` depuis V1. L’import met à jour `users.gender` **uniquement si la valeur V2 est encore `NULL`** (stubs et comptes activés) — jamais d’écrasement d’un genre déjà renseigné (Mon compte). Messages de ligne distincts : *« Genre complété depuis l'import V1. »* (succès), *« Compte déjà actif — genre déjà renseigné. »* (ignoré). Voir **B2b** pour un re-import ciblé sur staging déjà migré.
+
+### B2b — Gender backfill (MIG-7)
+
+Use when staging was loaded **before** MIG-7 or when activated users still have `users.gender IS NULL` after the initial B2 import.
+
+1. Re-export V1 users (or reuse the latest `users.csv` if V1 data unchanged):
+
+```bash
+npm run export:v1-users:prod -- --season=SEASON_ID --output=./export/users.csv
+```
+
+2. Sign in as **troupe admin** on staging → **Membres** → **Importer utilisateurs CSV** → same `users.csv`.
+3. Review row outcomes: success rows show *« Genre complété depuis l'import V1. »* ; conflicting CSV gender on accounts that already have a genre shows *« Compte déjà actif — genre déjà renseigné. »* (skipped, no overwrite).
+
+**Smoke SQL (staging/prod):**
+
+```sql
+SELECT COUNT(*) AS with_gender FROM users WHERE gender IS NOT NULL;
+SELECT gender, COUNT(*) FROM users GROUP BY gender;
+```
+
+Compare `with_gender` to the V1 export row count (minus emails without resolvable gender). Expect `male` / `female` / `non_specified` distribution aligned with V1 `players.gender` resolution rules.
+
 ### B3 — Post-migration smoke test (members)
 
 - [ ] Member count matches export (minus rejected rows).

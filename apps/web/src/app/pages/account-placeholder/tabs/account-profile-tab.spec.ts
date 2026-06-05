@@ -32,20 +32,56 @@ const troupeA = {
   upcomingEventCount: 0,
 }
 
-async function setup(options: { patchOk?: boolean; hasGoogleAccount?: boolean } = {}) {
+async function setup(options: {
+  patchOk?: boolean
+  hasGoogleAccount?: boolean
+  gender?: 'male' | 'female' | 'non_specified' | null
+} = {}) {
   const snack = { open: vi.fn() }
   const dialogOpen = vi.fn()
-  const patchPreferences = vi.fn().mockResolvedValue(
-    options.patchOk === false
-      ? { ok: false, status: 500 }
-      : {
-          ok: true,
-          status: 200,
-          data: { memberDisplayName: 'Léa B', preferredRoleKeys: ['volunteer'] },
+  const initialGender = options.gender ?? 'non_specified'
+  const patchPreferences = vi.fn().mockImplementation(
+    async (body: { memberDisplayName?: string; gender?: string }) => {
+      if (options.patchOk === false) {
+        return { ok: false, status: 500 }
+      }
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          memberDisplayName: body.memberDisplayName ?? 'Léa',
+          preferredRoleKeys: ['volunteer'],
+          gender: body.gender ?? (initialGender ?? 'non_specified'),
         },
+      }
+    },
   )
+  const getPreferences = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: {
+      memberDisplayName: 'Léa',
+      preferredRoleKeys: ['volunteer'],
+      ...(options.gender === null
+        ? {}
+        : { gender: initialGender }),
+    },
+  })
   const memberDisplayNameSignal = signal('Léa')
-  const setFromSave = vi.fn((value: string) => memberDisplayNameSignal.set(value.trim()))
+  const memberGenderSignal = signal<'male' | 'female' | 'non_specified'>(
+    initialGender ?? 'non_specified',
+  )
+  const setGenderPreview = vi.fn((gender: 'male' | 'female' | 'non_specified' | null) => {
+    if (gender !== null) {
+      memberGenderSignal.set(gender)
+    }
+  })
+  const setFromSave = vi.fn((value: string, gender?: 'male' | 'female' | 'non_specified') => {
+    memberDisplayNameSignal.set(value.trim())
+    if (gender !== undefined) {
+      memberGenderSignal.set(gender)
+    }
+  })
   const loadFromApi = vi.fn().mockImplementation(async () => {
     memberDisplayNameSignal.set('Léa')
     return true
@@ -88,15 +124,17 @@ async function setup(options: { patchOk?: boolean; hasGoogleAccount?: boolean } 
       },
       {
         provide: MePreferencesApiService,
-        useValue: { patchPreferences },
+        useValue: { patchPreferences, getPreferences },
       },
       {
         provide: MemberDisplayNameService,
         useValue: {
           memberDisplayName: memberDisplayNameSignal,
+          memberGender: memberGenderSignal,
           loadFromApi,
           syncSessionUser: vi.fn(),
           setFromSave,
+          setGenderPreview,
           railLabel: () => memberDisplayNameSignal(),
         },
       },
@@ -130,17 +168,20 @@ async function setup(options: { patchOk?: boolean; hasGoogleAccount?: boolean } 
     patchPreferences,
     patchMembershipDisplayName,
     setFromSave,
+    setGenderPreview,
     memberDisplayNameSignal,
+    memberGenderSignal,
+    getPreferences,
   }
 }
 
 describe('AccountProfileTab', () => {
-  it('renders pseudo field with save button and email edit icon', async () => {
+  it('renders profile fields with single save button and email edit icon', async () => {
     const { fixture } = await setup()
-    expect(fixture.nativeElement.textContent).toContain('Nom affiché dans toutes vos troupes.')
-    expect(fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('Pseudo')
+    expect(fixture.nativeElement.querySelector('[data-testid="account-profile-save"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')).toBeNull()
     expect(fixture.nativeElement.querySelector('[data-testid="account-email-edit"]')).toBeTruthy()
-    expect(fixture.nativeElement.querySelector('[data-testid="account-change-email"]')).toBeNull()
   })
 
   it('opens change email dialog from edit icon', async () => {
@@ -161,7 +202,7 @@ describe('AccountProfileTab', () => {
     const { fixture, patchPreferences } = await setup()
     const component = fixture.componentInstance as AccountProfileTab
     component['onPseudoInput']('   ')
-    await component['savePseudo']()
+    await component['saveProfile']()
     fixture.detectChanges()
     expect(patchPreferences).not.toHaveBeenCalled()
     expect(component['pseudoError']()).toBe(true)
@@ -173,14 +214,14 @@ describe('AccountProfileTab', () => {
     const component = fixture.componentInstance as AccountProfileTab
     component['onPseudoInput']('Léa B')
 
-    await component['savePseudo']()
+    await component['saveProfile']()
     await fixture.whenStable()
 
     expect(patchPreferences).toHaveBeenCalledWith({ memberDisplayName: 'Léa B' })
-    expect(setFromSave).toHaveBeenCalledWith('Léa B')
+    expect(setFromSave).toHaveBeenCalledWith('Léa B', 'non_specified')
     expect(memberDisplayNameSignal()).toBe('Léa B')
     expect(patchMembershipDisplayName).toHaveBeenCalledWith('t1', 'Léa B')
-    expect(snack.open).toHaveBeenCalledWith('Pseudo enregistré', 'OK', { duration: 3000 })
+    expect(snack.open).toHaveBeenCalledWith('Profil enregistré', 'OK', { duration: 3000 })
   })
 
   it('shows error snack when patch fails', async () => {
@@ -188,9 +229,55 @@ describe('AccountProfileTab', () => {
     const component = fixture.componentInstance as AccountProfileTab
     component['onPseudoInput']('Léa B')
 
-    await component['savePseudo']()
+    await component['saveProfile']()
     await fixture.whenStable()
 
     expect(snack.open).toHaveBeenCalledWith('Enregistrement impossible', 'OK', { duration: 5000 })
+  })
+
+  it('pre-selects non_specified when API omits gender', async () => {
+    const { fixture } = await setup({ gender: null })
+    const neutralToggle = fixture.nativeElement.querySelector(
+      '[data-testid="account-gender-non-specified"]',
+    ) as HTMLElement
+    expect(neutralToggle.classList.contains('mat-button-toggle-checked')).toBe(true)
+    expect((fixture.componentInstance as AccountProfileTab)['gender']()).toBe('non_specified')
+  })
+
+  it('uses gender toggle group and saves gender with shared Enregistrer', async () => {
+    const { fixture, snack, patchPreferences, setGenderPreview } = await setup({ gender: 'male' })
+    expect(fixture.nativeElement.querySelector('[data-testid="account-gender-group"]')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('Quel genre utiliser pour me désigner ?')
+    expect(fixture.nativeElement.textContent).toContain('Masculin')
+
+    const component = fixture.componentInstance as AccountProfileTab
+    const saveBtn = fixture.nativeElement.querySelector(
+      '[data-testid="account-profile-save"]',
+    ) as HTMLButtonElement
+    expect(saveBtn.disabled).toBe(true)
+
+    component['onGenderInput']('female')
+    fixture.detectChanges()
+    expect(setGenderPreview).toHaveBeenCalledWith('female')
+    expect(saveBtn.disabled).toBe(false)
+
+    await component['saveProfile']()
+    await fixture.whenStable()
+
+    expect(patchPreferences).toHaveBeenCalledWith({ gender: 'female' })
+    expect(component['gender']()).toBe('female')
+    expect(snack.open).toHaveBeenCalledWith('Profil enregistré', 'OK', { duration: 3000 })
+  })
+
+  it('shows error snack when gender save fails and reverts selection', async () => {
+    const { fixture, snack } = await setup({ patchOk: false, gender: 'male' })
+    const component = fixture.componentInstance as AccountProfileTab
+
+    component['onGenderInput']('female')
+    await component['saveProfile']()
+    await fixture.whenStable()
+
+    expect(snack.open).toHaveBeenCalledWith('Enregistrement impossible', 'OK', { duration: 5000 })
+    expect(component['gender']()).toBe('male')
   })
 })

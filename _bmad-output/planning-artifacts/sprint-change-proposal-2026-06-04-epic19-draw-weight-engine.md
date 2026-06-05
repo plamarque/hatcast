@@ -101,7 +101,7 @@ The **weighted random draw** drives composition fairness (**FR20**, **FR24**) an
 | **19.10** | Malus nombre de demandes de rôle | C | 19.6 |
 | **19.11** | Parité de genre | C | 19.6 |
 | **19.12** | Mix équipe (éviter mêmes co-équipiers) | C | 19.6 |
-| **19.13** | Classes de spectacle (5★, 4★, 3★, …) | C | 19.6 |
+| **19.13** | Facteur historique prestige (`PrestigeHistoryFactor`) | C | 19.6, **20.6** |
 | **19.14** | Bonus/malus bénévole | C | 19.6 |
 | **19.15** | SPEC + ADR — formulas & policies model | D | 19.1, 19.5 |
 | **19.16** | Persistence + system V1 default formula | D | 19.15, 19.6 |

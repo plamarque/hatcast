@@ -42,6 +42,8 @@ describe('CompositionParticipationDialog', () => {
     expect(fixture.nativeElement.textContent).toContain('Gala')
     expect(fixture.nativeElement.textContent).toContain('Comédien·ne')
     expect(fixture.nativeElement.textContent).toContain('Confirmer ma participation')
+    const note = fixture.nativeElement.querySelector('#participation-note') as HTMLTextAreaElement
+    expect(note.placeholder).toBe('Message pour les orgas.')
   })
 
   it('closes with status only on confirm', () => {

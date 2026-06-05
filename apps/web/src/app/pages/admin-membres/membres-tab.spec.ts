@@ -22,6 +22,7 @@ describe('MembresTab', () => {
             {
               id: 'm1',
               userId: 'u1',
+              userSlug: 'admin',
               email: 'admin@example.com',
               displayName: 'Admin',
               status: 'ACTIVE',
@@ -224,6 +225,14 @@ describe('MembresTab', () => {
       duration: 4000,
     })
     expect(api.listMembers).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows inclusive troupe admin role chip', async () => {
+    const { fixture } = await setup()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(text(fixture)).toContain('Administrateur·ice')
   })
 
   it('does not show season organizer or participant role chips', async () => {

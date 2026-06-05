@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core'
 
+import type { MemberGender } from '../account/member-gender'
+import { effectiveMemberGender } from '../account/member-gender'
 import { csrfHeaders } from '../http/hatcast-csrf'
 import type { AvailabilityStatus } from './availability-status'
 
@@ -22,6 +24,7 @@ export interface SummaryParticipant {
   userId?: string | null
   displayName: string
   avatarUrl?: string | null
+  gender?: MemberGender
   status: AvailabilityStatus
   roleKeys: string[]
   comment?: string | null
@@ -50,6 +53,16 @@ export interface EventAvailabilitySummary {
   participants: SummaryParticipant[]
   roles: SummaryRole[]
   chanceSource?: ChanceSource | null
+}
+
+function normalizeSummary(data: EventAvailabilitySummary): EventAvailabilitySummary {
+  return {
+    ...data,
+    participants: data.participants.map((participant) => ({
+      ...participant,
+      gender: effectiveMemberGender(participant.gender),
+    })),
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -144,7 +157,7 @@ export class AvailabilityApiService {
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
-      const data = (await res.json()) as EventAvailabilitySummary
+      const data = normalizeSummary((await res.json()) as EventAvailabilitySummary)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

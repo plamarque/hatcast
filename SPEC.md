@@ -75,6 +75,47 @@ When the organizer expands recipient detail in the share dialog:
 
 ---
 
+## Member gender & team parity (V2 target)
+
+Normative intent for **optional member gender** on the account profile and **gender-aware presentation** (V1 parity). Full contract: [_bmad-output/specs/spec-member-gender-parity/SPEC.md_](_bmad-output/specs/spec-member-gender-parity/SPEC.md) + companion [_member-gender.md_](_bmad-output/specs/spec-member-gender-parity/member-gender.md). Stories **2.12–2.12c**, **6.21**, **16.3**; draw factor **19.11** is downstream.
+
+### Purpose
+
+Let members **optionally** declare gender (Homme / Femme / Non précisé) so HatCast can:
+
+1. Show **natural role labels** when gender is known (e.g. Comédienne vs Comédien·ne).
+2. Use **distinct fallback avatars** when no custom/Google photo exists.
+3. Help organizers see **player-role gender balance** on a composition (informational hint).
+4. Optionally expose **season-level aggregate parity** on validated `player` participations.
+
+Gender is **never required**; workflows must not block when unset.
+
+### Profile (member self-service)
+
+- **Given** a signed-in user, **when** they edit **Mon compte → Mon profil**, **then** they can set gender to Homme, Femme, or Non précisé (default).
+- **Given** gender is saved, **when** the API persists, **then** `users.gender` is `male` | `female` | `non_specified`.
+- **Given** gender is unset or Non précisé, **when** role labels render, **then** inclusive middot forms remain (current V2 behaviour).
+
+### Labels and avatars
+
+- **Given** a participant's gender is known, **when** a role label is shown in dispos, équipe, or confirmation flows, **then** labels follow the V1 gender tables (see companion).
+- **Given** no custom or Google avatar, **when** avatar renders, **then** fallback is the display-name initial on a gender tone (purple / orange / grey per `member-gender.md`) — not V1 emoji.
+
+### Composition parity hint (organizer)
+
+- **Given** a composition draft with filled `player` slots, **when** an organizer views the Équipe tab, **then** a **non-blocking** inline summary shows F/M counts among slots with known gender (story **6.21**).
+- **Given** imbalance or partial data, **when** the hint is shown, **then** assign, draw, and validate remain allowed.
+
+### Season parity statistics (optional expose)
+
+- **Given** validated compositions in a season, **when** aggregate parity is requested, **then** counts and female share are computed on `player` slots only, excluding `non_specified` from the ratio (story **16.3**).
+
+### Non-goals (this spec section)
+
+- Mandatory gender; admin editing another member's gender (Wave A); blocking on imbalance; draw weighting (**19.11**).
+
+---
+
 ## Actors / personas
 
 - **Anonymous visitor:** Can view public content (e.g. landing, help). Cannot access season data that requires auth.
@@ -164,6 +205,10 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - Composition management is done **only** in the **Composition** tab of the event-details modal. There is **no separate composition popup** (SelectionModal is no longer opened as an overlay).
   - The Composition tab is **always available** in event details for the event (e.g. always show the tab, including when there is no cast yet), so users can run a draw or view empty state from the tab. Visibility of the tab may still depend on user role or context where event details are shown (e.g. logged-in only, as today for the tabs block).
   - The Composition tab contains **all** composition features that currently exist in the composition popup: run draw (Tirage), simulations (Simuler + algorithm choice), validate (Valider), unlock (Déverrouiller), announce (Annoncer la compo), send via WhatsApp (Envoyer), reset (Effacer), fill cast (Remplir), manual slot edit, declined-players handling, status badges, PIN when required, and opening of EventAnnounceModal / DrawAnnounceModal / HowItWorks as needed. Same permission and state rules apply (e.g. `canManageCompositionValue`, `canCasterEditManually`, confirmation/organizer state).
+  - **Consecutive-show warning (organizer UX, Story 6.20):** When an organizer assigns or draws a participant into a slot, a **non-blocking inline hint** on that slot warns if they already held the **same role** on the **immediately preceding validated show** in the **same category compartment** (see DOMAIN.md). Members do not see this hint.
+  - **Multi-role on same event (organizer UX):** When a participant holds **more than one role** on the **current** event (typically via manual assign per FR21), a **non-blocking inline hint** on each affected slot lists the **other** role(s) on that event (see DOMAIN.md). Members do not see this hint. Assign, draw, and validate remain allowed.
+  - **Auto-draw cross-role rule:** A weighted draw must **never** assign the same participant to two roles on one event. Pre-existing assignees on the draft composition count toward cross-role exclusion before roles are processed in priority order (see DOMAIN.md and [draw-weight-engine-v1-spec.md](docs/v2/technical/draw-weight-engine-v1-spec.md)).
+  - **Gender parity hint (organizer UX, Story 6.21):** A **non-blocking** summary of female/male counts among filled **`player`** slots with known gender (see SPEC § Member gender & team parity). Distinct from consecutive-show warning.
   - **Composition actions** (Tirage, Simuler, Valider, Déverrouiller, Annoncer, Effacer, Remplir, Envoyer, clear slot) are visible and usable only for users who can manage composition (Super Admin, Season Admin, Event Admin, or Caster). **Manual selection** (click on an empty slot to choose a player) is reserved for **administrators only** (Season Admin, Event Admin, Super Admin); casters cannot fill slots manually.
   - Slot click in the Composition tab continues to open the confirmation flow (confirm/decline) for the selected player as today; no change to that behaviour.
   - Entry points that previously opened a composition popup now open or focus **event details with the Composition tab selected**: on the full-screen event view there is no footer "Composition Équipe" button — users open the Composition tab via the **Équipe** tab; TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo`. No separate modal layer for composition.

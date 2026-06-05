@@ -122,10 +122,15 @@ FOR slotIndex FROM 0 TO requiredCount - 1:
 
 ## Cross-role exclusion (one draw request)
 
-During a single multi-role draw request, a participant assigned to **any** slot is excluded from later role pools.
+During a single multi-role draw request, a participant assigned to **any** slot on the event is excluded from later role pools. **Manual multi-role stacking on the same event (FR21) is allowed; auto-draw must not produce it.**
 
-**V1:** `excludedPlayers` / `allAlreadySelected` passed into `drawForRole` (`GridBoard.vue:7277-7304`, `:7498-7514`).  
-**V2:** `crossRoleExcluded` set (`CompositionDrawService.kt:128-129`, `:269-270`).
+**V1:** `excludedPlayers` / `allAlreadySelected` passed into `drawForRole` (`GridBoard.vue:7277-7304`, `:7498-7514`). V1 seeds from assignments **already placed** on the in-progress composition before each role is drawn.
+
+**V2:** `crossRoleExcluded` in `CompositionDrawService.kt`:
+
+1. **Initialized** from all assignees already on the composition (`openingCrossRoleExcluded` → mutable copy at draw start). Required so a participant pre-assigned on a role processed **later** in priority order (e.g. player) is excluded when drawing an **earlier** role (e.g. DJ).
+2. **Grows** after each pick in the same request (`:273`).
+3. **Full role redraw:** assignees cleared for that role are **removed** from `crossRoleExcluded` before re-pick so they can be drawn again for that role only (`isFullRedraw` block).
 
 Order of roles: **`ROLE_PRIORITY_ORDER`** (V1 `storage.js:122-131`; V2 `EventRoleSlots.kt:51-61` / `RoleKeys.PRIORITY_ORDER`).
 

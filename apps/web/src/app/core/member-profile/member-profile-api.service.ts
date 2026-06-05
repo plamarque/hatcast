@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 
+import { effectiveMemberGender, type MemberGender } from '../account/member-gender'
 import { csrfHeaders } from '../http/hatcast-csrf'
 import type { ParticipationChartStatus } from '../participation/participation-status'
 
@@ -43,6 +44,7 @@ export interface MemberProfileSummary {
   monthlyChart: MemberProfileMonth[]
   favoriteRoleCounts: FavoriteRoleCount[]
   preferredRoleKeys?: string[] | null
+  gender?: MemberGender
 }
 
 export interface PreferredRolesResponse {
@@ -64,7 +66,11 @@ export class MemberProfileApiService {
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
-      const data = (await res.json()) as MemberProfileSummary
+      const raw = (await res.json()) as MemberProfileSummary
+      const data: MemberProfileSummary = {
+        ...raw,
+        gender: effectiveMemberGender(raw.gender),
+      }
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

@@ -14,6 +14,7 @@ const mockSummary = {
       userId: 'user-1',
       displayName: 'Patrice',
       avatarUrl: null,
+      gender: 'female' as const,
       status: 'available' as const,
       roleKeys: ['player'],
       comment: null,
@@ -96,5 +97,21 @@ describe('AvailabilityTousPanel', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.textContent).not.toContain('au moment du tirage')
+  })
+
+  it('applies gender tone on letter avatars in role candidate list', async () => {
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityTousPanel, NoopAnimationsModule],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', mockSummary)
+    fixture.detectChanges()
+
+    const avatar = fixture.nativeElement.querySelector(
+      'app-user-avatar.user-avatar--tone-female',
+    ) as HTMLElement
+    expect(avatar).toBeTruthy()
+    expect(avatar.textContent).toContain('P')
   })
 })

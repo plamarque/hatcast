@@ -4,12 +4,14 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
+import type { MemberGender } from '../../core/account/member-gender'
 import type {
   ChanceSource,
   EventAvailabilitySummary,
   SummaryParticipant,
   SummaryRoleCandidate,
 } from '../../core/availability/availability-api.service'
+import { UserAvatarComponent } from '../user-avatar/user-avatar'
 import { chanceColorClass } from '../../core/availability/availability-chances'
 import {
   ROLE_EMOJIS,
@@ -20,7 +22,13 @@ import {
 
 @Component({
   selector: 'app-availability-tous-panel',
-  imports: [MatExpansionModule, MatIconModule, MatListModule, MatTooltipModule],
+  imports: [
+    MatExpansionModule,
+    MatIconModule,
+    MatListModule,
+    MatTooltipModule,
+    UserAvatarComponent,
+  ],
   templateUrl: './availability-tous-panel.html',
   styleUrl: './availability-tous-panel.scss',
 })
@@ -78,6 +86,12 @@ export class AvailabilityTousPanel {
       default:
         return 'Non renseigné'
     }
+  }
+
+  protected participantGender(participantId: string): MemberGender | null {
+    return (
+      this.summary().participants.find((p) => p.participantId === participantId)?.gender ?? null
+    )
   }
 
   protected participantAriaLabel(candidate: SummaryRoleCandidate | SummaryParticipant): string {

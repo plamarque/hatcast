@@ -1,12 +1,13 @@
-import { Component, input, output } from '@angular/core'
+import { Component, computed, input, output } from '@angular/core'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatSelectModule } from '@angular/material/select'
 
 import type { ParticipantSelector } from '../../core/participants/participant-api.service'
+import { UserAvatarComponent } from '../user-avatar/user-avatar'
 
 @Component({
   selector: 'app-availability-subject-selector',
-  imports: [MatFormFieldModule, MatSelectModule],
+  imports: [MatFormFieldModule, MatSelectModule, UserAvatarComponent],
   templateUrl: './availability-subject-selector.html',
   styleUrl: './availability-subject-selector.scss',
 })
@@ -16,6 +17,11 @@ export class AvailabilitySubjectSelector {
   readonly disabled = input(false)
 
   readonly selectedParticipantIdChange = output<string>()
+
+  protected readonly selectedParticipant = computed(() => {
+    const id = this.selectedParticipantId()
+    return this.participants().find((p) => p.id === id) ?? null
+  })
 
   protected emitSelection(participantId: string): void {
     if (participantId === this.selectedParticipantId()) return

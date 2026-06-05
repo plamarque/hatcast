@@ -16,6 +16,7 @@
           [style.--user-avatar-size.px]="24"
           [displayName]="userDisplayLabel(u)"
           [avatarUrl]="u.avatarUrl ?? null"
+          [gender]="memberDisplayName.avatarGender()"
           [size]="24"
         />
         <span class="seasons__user-label">{{ userDisplayLabel(u) }}</span>

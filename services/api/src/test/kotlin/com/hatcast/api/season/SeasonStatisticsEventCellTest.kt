@@ -18,6 +18,7 @@ import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -142,6 +143,29 @@ class SeasonStatisticsEventCellTest {
         assertEquals("declined", cell.status)
         assertEquals("Décliné (J)", cell.label)
         assertEquals("player", cell.roleKey)
+    }
+
+    @Test
+    fun `buildEventCell uses gendered role label for linked participant`() {
+        val event = sampleEvent()
+        val cell =
+            service.buildEventCell(
+                event = event,
+                validated = true,
+                declines = emptyList(),
+                participantId = participantId,
+                availableRoleKeys = emptyList(),
+                unavailable = false,
+                selectionSlot =
+                    SeasonStatisticsService.SelectionSlotInfo(
+                        roleKey = "player",
+                        participationStatus = SlotParticipationStatus.CONFIRMED,
+                    ),
+                gender = MemberGender.FEMALE,
+            )
+
+        assertEquals("Comédienne", cell.label)
+        assertEquals("Comédienne", cell.tooltip)
     }
 
     @Test

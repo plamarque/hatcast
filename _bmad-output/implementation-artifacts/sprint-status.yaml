@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-05T14:00:00+02:00
+# last_updated: 2026-06-06T00:20:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-05T14:00:00+02:00"
+last_updated: "2026-06-06T00:47:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -59,6 +59,7 @@ development_status:
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: done
   mig-4-deplacements-category-import: done
+  mig-7-backfill-users-gender-from-v1: done  # P1 — Track A: prod CSV backfill ; Track B: V57+improbots seeds ; code review 2026-06-06
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
@@ -83,6 +84,9 @@ development_status:
   2-8-admin-membres-route-ui-ux-dr10: done
   2-9-post-login-et-derniere-ligue-visitee-v1-parity: done
   2-10-liste-membres-corriger-n1-emails: done
+  2-12-genre-optionnel-profil-membre-api-mon-compte: done  # P1 — SCP 2026-06-05 G-011 ; V1 parity foundation
+  2-12b-libelles-roles-adaptes-genre: done  # P1 — depends 2.12
+  2-12c-avatars-repli-selon-genre: done  # P1 — depends 2.12, 2.6 ; closure with 2.12b
   epic-2-retrospective: done
 
   epic-3: in-progress  # 3.21 draft/publish — SCP 2026-06-01 notifications
@@ -139,6 +143,7 @@ development_status:
   6-17-dispatch-annonce-manuelle-transparence-dates: done  # tech-spec-share-announce-transparency-6-17.md
   6-18-aide-contextuelle-statut-composition: done  # UX ux-design-composition-status-help.md — approved 2026-06-05
   6-19-export-calendrier-et-navigation-lieu-onglet-infos: done  # UX ux-hatcast-2026-06-05 EXPERIENCE.md — parité V1 calendrier + maps Infos
+  6-21-hint-parite-genre-composition-player: done  # P2 — SCP 2026-06-05 G-011 ; depends 2.12* (done) ; UI strip only
   epic-6-retrospective: optional
 
   epic-7: backlog
@@ -210,6 +215,7 @@ development_status:
   epic-16: in-progress
   16-1-route-membre-saison-clin-oeil-filtres: done
   16-2-statistiques-avatar-navigation-profil-membre: done
+  16-3-statistiques-parite-genre-saison-player: backlog  # P2 — SCP 2026-06-05 G-011 ; depends 2.12
   epic-16-retrospective: optional
 
   epic-17: in-progress
@@ -258,9 +264,9 @@ development_status:
   18-5-configuration-prod-tests-separation-demo: done
   epic-18-retrospective: optional
 
-  epic-19: in-progress  # P1 Waves A-B post-MEP ; Waves C-D formulas/policies ; SCP 2026-06-04 (+b)
+  epic-19: backlog  # DEFERRED post-2.1.0 — tirage/formules custom ; PO 2026-06 ; 19.1 done, 19.2 paused
   19-1-spec-normative-v1-adr-draw-weight-engine: done
-  19-2-golden-tests-v1-js-kotlin: review
+  19-2-golden-tests-v1-js-kotlin: review  # paused — epic deferred
   19-3-fixtures-orchestration-draw-complet: backlog
   19-4-doc-orga-membre-comprendre-les-cotes: backlog
   19-5-pipeline-draw-weight-factor: backlog
@@ -271,7 +277,7 @@ development_status:
   19-10-facteur-nombre-demandes-role: backlog
   19-11-facteur-parite-genre: backlog
   19-12-facteur-mix-equipe: backlog
-  19-13-facteur-classes-spectacle: backlog
+  19-13-facteur-prestige-history-ex-19-13: backlog  # PrestigeHistoryFactor — depends 19.6 + 20.6
   19-14-facteur-bonus-malus-benevole: backlog
   19-15-spec-formules-politiques-adr: backlog
   19-16-persistance-formules-defaut-v1: backlog
@@ -282,3 +288,13 @@ development_status:
   19-21-ui-orga-choix-formule-tirage: backlog
   19-22-snapshot-formule-au-tirage: backlog
   epic-19-retrospective: optional
+
+  epic-20: backlog  # P2 post-MEP ; prestige stars capture/display/stats ; SCP 2026-06-05 (G-009)
+  20-1-spec-domain-modele-prestige: backlog
+  20-2-api-prestige-stars-evenement: backlog
+  20-3-ui-orga-selecteur-etoiles-formulaire: backlog
+  20-4-ui-etoiles-fiche-infos: backlog
+  20-5-ui-etoiles-agenda: backlog
+  20-6-api-prestige-points-total-participant-saison: backlog
+  20-7-ui-score-prestige-stats-saison: backlog
+  epic-20-retrospective: optional

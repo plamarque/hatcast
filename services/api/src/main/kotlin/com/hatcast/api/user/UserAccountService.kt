@@ -16,6 +16,7 @@ class UserAccountService(
     fun importMigrationUser(
         rawEmail: String,
         displayName: String? = null,
+        gender: MemberGender? = null,
     ): UserAccountImportOutcome {
         val email = rawEmail.trim().lowercase()
         require(email.isNotEmpty() && email.contains("@")) { "Email invalide." }
@@ -23,11 +24,25 @@ class UserAccountService(
         val existing = userRepository.findFirstByEmailIgnoreCase(email)
         if (existing != null) {
             if (existing.activatedAt != null) {
-                return UserAccountImportOutcome.SKIPPED
+                // V1 backfill (MIG-7): activated accounts may still lack gender — NULL-only, never overwrite Mon compte.
+                if (gender != null && existing.gender == null) {
+                    existing.gender = gender
+                    existing.updatedAt = Instant.now()
+                    userRepository.save(existing)
+                    return UserAccountImportOutcome.GENDER_BACKFILLED
+                }
+                if (gender != null && existing.gender != null) {
+                    return UserAccountImportOutcome.SKIPPED_GENDER_ALREADY_SET
+                }
+                return UserAccountImportOutcome.SKIPPED_ACTIVE_UNCHANGED
             }
             var changed = false
             if (normalizedDisplayName != null && existing.displayName != normalizedDisplayName) {
                 existing.displayName = normalizedDisplayName
+                changed = true
+            }
+            if (gender != null && existing.gender == null) {
+                existing.gender = gender
                 changed = true
             }
             if (changed) {
@@ -44,6 +59,7 @@ class UserAccountService(
                 idpUid = null,
                 email = email,
                 displayName = normalizedDisplayName,
+                gender = gender,
                 activatedAt = null,
                 createdAt = now,
                 updatedAt = now,
@@ -62,8 +78,12 @@ class UserAccountService(
         when (importMigrationUser(rawEmail, displayName)) {
             UserAccountImportOutcome.CREATED,
             UserAccountImportOutcome.UPDATED,
+            UserAccountImportOutcome.GENDER_BACKFILLED,
             -> Unit
-            UserAccountImportOutcome.SKIPPED -> Unit
+            UserAccountImportOutcome.SKIPPED,
+            UserAccountImportOutcome.SKIPPED_GENDER_ALREADY_SET,
+            UserAccountImportOutcome.SKIPPED_ACTIVE_UNCHANGED,
+            -> Unit
         }
         return userRepository.findFirstByEmailIgnoreCase(rawEmail.trim().lowercase())
             ?: error("Utilisateur introuvable après provisionnement.")

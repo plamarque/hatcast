@@ -464,4 +464,12 @@ $_hatcast-pending-dark: mat.define-theme(
   --hatcast-chance-high: var(--hatcast-sys-positive);
   --hatcast-chance-medium: var(--hatcast-sys-pending);
   --hatcast-chance-low: var(--mat-sys-error);
+
+  // --- Optional member gender (avatar letter + profile toggle selection) ---
+  --hatcast-member-gender-female-bg: var(--mat-sys-tertiary-container);
+  --hatcast-member-gender-female-fg: var(--mat-sys-on-tertiary-container);
+  --hatcast-member-gender-male-bg: var(--mat-sys-primary-container);
+  --hatcast-member-gender-male-fg: var(--mat-sys-on-primary-container);
+  --hatcast-member-gender-neutral-bg: var(--hatcast-participation-neutral-container);
+  --hatcast-member-gender-neutral-fg: var(--hatcast-participation-neutral-on);
 }

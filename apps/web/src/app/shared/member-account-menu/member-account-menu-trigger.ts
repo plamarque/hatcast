@@ -35,7 +35,7 @@ export class MemberAccountMenuTrigger implements OnInit {
   protected readonly sessionUser = computed(() => readAuthSessionUser(this.auth))
   private readonly router = inject(Router)
   private readonly destroyRef = inject(DestroyRef)
-  private readonly memberDisplayName = inject(MemberDisplayNameService)
+  protected readonly memberDisplayName = inject(MemberDisplayNameService)
 
   private readonly currentUrl = signal(this.router.url)
 

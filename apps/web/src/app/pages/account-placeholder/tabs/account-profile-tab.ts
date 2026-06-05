@@ -2,6 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal, ViewEncapsulati
 import { FormsModule } from '@angular/forms'
 import { onAuthStateChanged, type Auth } from 'firebase/auth'
 import { MatButtonModule } from '@angular/material/button'
+import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatDialog } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
@@ -11,6 +12,11 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
+import {
+  effectiveMemberGender,
+  MEMBER_GENDER_FIELD_LABEL,
+  type MemberGender,
+} from '../../../core/account/member-gender'
 import { MemberDisplayNameService } from '../../../core/account/member-display-name.service'
 import { MePreferencesApiService } from '../../../core/account/me-preferences-api.service'
 import { hasPasswordProvider } from '../../../core/auth/firebase-auth-providers'
@@ -36,6 +42,7 @@ import {
   imports: [
     FormsModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -60,19 +67,24 @@ export class AccountProfileTab implements OnInit, OnDestroy {
 
   protected readonly pseudo = signal('')
   protected readonly pseudoError = signal(false)
+  protected readonly gender = signal<MemberGender>('non_specified')
+  protected readonly genderFieldLabel = MEMBER_GENDER_FIELD_LABEL
   protected readonly preferencesLoading = signal(true)
   protected readonly saving = signal(false)
   protected readonly loadFailed = signal(false)
   protected readonly hasPasswordProvider = signal(false)
 
   private initialPseudo = ''
+  private initialGender: MemberGender = 'non_specified'
   private authStateUnsubscribe: (() => void) | null = null
 
-  protected readonly canSavePseudo = computed(() => {
+  protected readonly canSaveProfile = computed(() => {
     const trimmed = this.pseudo().trim()
+    const pseudoDirty = trimmed !== this.initialPseudo
+    const genderDirty = this.gender() !== this.initialGender
     return (
+      (pseudoDirty || genderDirty) &&
       trimmed.length > 0 &&
-      trimmed !== this.initialPseudo &&
       !this.saving() &&
       !this.preferencesLoading() &&
       !this.loadFailed()
@@ -105,35 +117,60 @@ export class AccountProfileTab implements OnInit, OnDestroy {
     }
   }
 
-  protected async savePseudo(): Promise<void> {
-    const nextPseudo = this.pseudo().trim()
-    if (!nextPseudo) {
+  protected onGenderInput(value: MemberGender): void {
+    const resolved = effectiveMemberGender(value)
+    this.gender.set(resolved)
+    this.memberDisplayName.setGenderPreview(resolved)
+  }
+
+  protected async saveProfile(): Promise<void> {
+    const trimmed = this.pseudo().trim()
+    if (!trimmed) {
       this.pseudoError.set(true)
       return
     }
 
+    const pseudoDirty = trimmed !== this.initialPseudo
+    const genderDirty = this.gender() !== this.initialGender
+    if (!pseudoDirty && !genderDirty) {
+      return
+    }
+
+    const body: { memberDisplayName?: string; gender?: MemberGender } = {}
+    if (pseudoDirty) {
+      body.memberDisplayName = trimmed
+    }
+    if (genderDirty) {
+      body.gender = this.gender()
+    }
+
     this.saving.set(true)
     try {
-      const result = await this.mePreferencesApi.patchPreferences({
-        memberDisplayName: nextPseudo,
-      })
+      const result = await this.mePreferencesApi.patchPreferences(body)
       if (!result.ok || !result.data) {
+        this.pseudo.set(this.initialPseudo)
+        this.gender.set(this.initialGender)
+        this.memberDisplayName.setGenderPreview(null)
         this.snack.open('Enregistrement impossible', 'OK', { duration: 5000 })
         return
       }
 
       this.initialPseudo = result.data.memberDisplayName
       this.pseudo.set(result.data.memberDisplayName)
-      this.memberDisplayName.setFromSave(result.data.memberDisplayName)
+      this.initialGender = effectiveMemberGender(result.data.gender)
+      this.gender.set(this.initialGender)
+      this.memberDisplayName.setFromSave(result.data.memberDisplayName, this.initialGender)
 
-      for (const troupe of this.troupeContext.activeTroupes()) {
-        this.troupeContext.patchMembershipDisplayName(
-          troupe.id,
-          result.data.memberDisplayName,
-        )
+      if (pseudoDirty) {
+        for (const troupe of this.troupeContext.activeTroupes()) {
+          this.troupeContext.patchMembershipDisplayName(
+            troupe.id,
+            result.data.memberDisplayName,
+          )
+        }
       }
 
-      this.snack.open('Pseudo enregistré', 'OK', { duration: 3000 })
+      this.snack.open('Profil enregistré', 'OK', { duration: 3000 })
     } finally {
       this.saving.set(false)
     }
@@ -218,14 +255,19 @@ export class AccountProfileTab implements OnInit, OnDestroy {
     this.loadFailed.set(false)
     try {
       this.memberDisplayName.syncSessionUser(this.ctx.user()?.slug ?? null)
-      const ok = await this.memberDisplayName.loadFromApi()
-      if (!ok) {
+      const result = await this.mePreferencesApi.getPreferences()
+      if (!result.ok || !result.data) {
         this.loadFailed.set(true)
         this.snack.open('Impossible de charger vos préférences.', 'OK', { duration: 5000 })
         return
       }
-      this.initialPseudo = this.memberDisplayName.memberDisplayName()
+
+      this.initialPseudo = result.data.memberDisplayName
       this.pseudo.set(this.initialPseudo)
+      const resolvedGender = effectiveMemberGender(result.data.gender)
+      this.initialGender = resolvedGender
+      this.gender.set(resolvedGender)
+      this.memberDisplayName.setFromSave(result.data.memberDisplayName, resolvedGender)
     } finally {
       this.preferencesLoading.set(false)
     }

@@ -224,6 +224,10 @@ a.context-breadcrumb__mobile-title {
   text-overflow: ellipsis;
 }
 
+a.context-breadcrumb__mobile-event-title {
+  display: block;
+}
+
 .context-breadcrumb__sep--mobile {
   flex-shrink: 0;
 }
@@ -254,6 +258,31 @@ a.context-breadcrumb__mobile-title {
   /* Desktop : nom troupe complet ; picto générique masqué (logo réel seulement). */
   .context-breadcrumb__troupe .context-breadcrumb__logo-badge {
     display: none;
+  }
+}
+
+@media (max-width: 839px) {
+  /* Event admin sub-pages (leaf + long event title): compact row earlier than 480px. */
+  .context-breadcrumb--event.context-breadcrumb--with-leaf {
+    display: flex;
+    align-items: center;
+
+    .context-breadcrumb__trail--desktop {
+      display: none;
+    }
+
+    .context-breadcrumb__mobile-row {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+
+      app-context-switcher {
+        display: flex;
+        align-items: center;
+        flex: 1 1 0;
+        min-width: 0;
+      }
+    }
   }
 }
 

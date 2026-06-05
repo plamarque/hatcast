@@ -59,11 +59,29 @@ class UserImportService(
         }
         val email = row.email ?: return rowError(row.rowNumber, null, UserImportErrorCode.INVALID_EMAIL, "Email manquant.")
         return try {
-            when (val outcome = userAccountService.importMigrationUser(email, row.displayName)) {
+            when (val outcome = userAccountService.importMigrationUser(email, row.displayName, row.gender)) {
                 UserAccountImportOutcome.CREATED ->
                     rowSuccess(row.rowNumber, email, "Compte créé — en attente de première connexion.")
                 UserAccountImportOutcome.UPDATED ->
                     rowSuccess(row.rowNumber, email, "Profil mis à jour — en attente de première connexion.")
+                UserAccountImportOutcome.GENDER_BACKFILLED ->
+                    rowSuccess(row.rowNumber, email, "Genre complété depuis l'import V1.")
+                UserAccountImportOutcome.SKIPPED_GENDER_ALREADY_SET ->
+                    UserImportRowResultDto(
+                        rowNumber = row.rowNumber,
+                        outcome = UserImportRowOutcome.SKIPPED,
+                        email = email,
+                        code = null,
+                        message = "Compte déjà actif — genre déjà renseigné.",
+                    )
+                UserAccountImportOutcome.SKIPPED_ACTIVE_UNCHANGED ->
+                    UserImportRowResultDto(
+                        rowNumber = row.rowNumber,
+                        outcome = UserImportRowOutcome.SKIPPED,
+                        email = email,
+                        code = null,
+                        message = "Compte déjà actif — inchangé.",
+                    )
                 UserAccountImportOutcome.SKIPPED ->
                     UserImportRowResultDto(
                         rowNumber = row.rowNumber,
@@ -107,5 +125,8 @@ class UserImportService(
 enum class UserAccountImportOutcome {
     CREATED,
     UPDATED,
+    GENDER_BACKFILLED,
     SKIPPED,
+    SKIPPED_GENDER_ALREADY_SET,
+    SKIPPED_ACTIVE_UNCHANGED,
 }

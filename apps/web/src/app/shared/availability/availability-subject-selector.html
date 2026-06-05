@@ -6,16 +6,30 @@
     (selectionChange)="emitSelection($event.value)"
     aria-label="Choisir un participant"
   >
+    @if (selectedParticipant(); as selected) {
+      <mat-select-trigger>
+        <span class="subject-selector__option">
+          <app-user-avatar
+            class="subject-selector__avatar"
+            [displayName]="selected.displayName"
+            [avatarUrl]="selected.avatarUrl"
+            [gender]="selected.gender ?? null"
+            [size]="24"
+          />
+          <span>{{ selected.displayName }}</span>
+        </span>
+      </mat-select-trigger>
+    }
     @for (p of participants(); track p.id) {
       <mat-option [value]="p.id">
         <span class="subject-selector__option">
-          @if (p.avatarUrl) {
-            <img class="subject-selector__avatar" [src]="p.avatarUrl" alt="" />
-          } @else {
-            <span class="subject-selector__avatar subject-selector__avatar--fallback" aria-hidden="true">
-              {{ p.displayName.charAt(0) }}
-            </span>
-          }
+          <app-user-avatar
+            class="subject-selector__avatar"
+            [displayName]="p.displayName"
+            [avatarUrl]="p.avatarUrl"
+            [gender]="p.gender ?? null"
+            [size]="24"
+          />
           <span>{{ p.displayName }}</span>
         </span>
       </mat-option>

@@ -3,6 +3,7 @@ package com.hatcast.api.audit
 import com.hatcast.api.audit.dto.AuditIdentityDto
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import com.hatcast.api.avatar.AvatarService
@@ -66,6 +67,7 @@ class AuditIdentityResolver(
             displayName = displayName,
             email = obfuscatedEmail(user?.email),
             avatarUrl = avatarForUser(user),
+            gender = genderForUser(user),
         )
     }
 
@@ -85,6 +87,7 @@ class AuditIdentityResolver(
                         ?: "Sujet supprimé",
                 email = obfuscatedEmail(participant?.normalizedEmail),
                 avatarUrl = avatarForUser(participant?.user),
+                gender = genderForUser(participant?.user),
             )
         }
         entity.subjectEventParticipantId?.let { id ->
@@ -98,6 +101,7 @@ class AuditIdentityResolver(
                         ?: "Sujet supprimé",
                 email = obfuscatedEmail(participant?.normalizedEmail),
                 avatarUrl = avatarForUser(participant?.user),
+                gender = genderForUser(participant?.user),
             )
         }
         entity.subjectUserId?.let { id ->
@@ -111,6 +115,7 @@ class AuditIdentityResolver(
                         ?: "Utilisateur anonymisé",
                 email = obfuscatedEmail(user?.email),
                 avatarUrl = avatarForUser(user),
+                gender = genderForUser(user),
             )
         }
         return metadataName?.let {
@@ -172,6 +177,9 @@ private fun collectDrawParticipantIds(
 
 private fun avatarForUser(user: UserEntity?): String? =
     user?.let { AvatarService.publicAvatarUrl(it.id, it.avatarUpdatedAt) }
+
+private fun genderForUser(user: UserEntity?): String =
+    MemberGender.effective(user?.gender).wireValue
 
 data class AuditIdentityContext(
     val users: Map<UUID, com.hatcast.api.user.UserEntity>,

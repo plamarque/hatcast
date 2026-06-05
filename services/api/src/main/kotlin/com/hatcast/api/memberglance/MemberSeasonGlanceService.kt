@@ -8,11 +8,13 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.memberglance.dto.MemberSeasonGlanceResponseDto
 import com.hatcast.api.memberprofile.MemberProfileStatsProvider
+import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserMemberPreferencesService
 import com.hatcast.api.user.UserRepository
 import org.springframework.http.HttpStatus
@@ -31,6 +33,7 @@ class MemberSeasonGlanceService(
     private val statsProvider: MemberProfileStatsProvider,
     private val troupeAccess: TroupeAccessService,
     private val userMemberPreferencesService: UserMemberPreferencesService,
+    private val avatarService: AvatarService,
 ) {
     @Transactional(readOnly = true)
     fun getSeasonGlance(
@@ -86,7 +89,7 @@ class MemberSeasonGlanceService(
             userId = targetUserId,
             userSlug = targetUser.slug ?: userSlug,
             displayName = selfPreferences?.memberDisplayName ?: troupeMembership.displayName,
-            avatarUrl = AvatarService.publicAvatarUrl(targetUser.id, targetUser.avatarUpdatedAt),
+            avatarUrl = ParticipantRowPresentation.avatarUrl(avatarService, targetUser),
             isSelf = isSelf,
             resolvedSeasonId = seasonId,
             troupeId = resolvedSeason.troupe.id,
@@ -103,6 +106,7 @@ class MemberSeasonGlanceService(
             favoriteRoleCounts = favoriteRoleCounts,
             preferredRoleKeys =
                 selfPreferences?.preferredRoleKeys,
+            gender = MemberGender.effective(targetUser.gender).wireValue,
         )
     }
 

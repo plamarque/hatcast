@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 
+import { effectiveMemberGender, type MemberGender } from '../account/member-gender'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export type ParticipantKind = 'MEMBER' | 'LINKED' | 'MANAGED' | 'NAME_ONLY'
@@ -13,6 +14,8 @@ export interface SeasonParticipantAdmin {
   kind: ParticipantKind
   status: 'ACTIVE' | 'REMOVED'
   removable: boolean
+  avatarUrl?: string | null
+  gender?: MemberGender
 }
 
 export type EventRosterSource = 'SEASON' | 'EVENT'
@@ -25,6 +28,8 @@ export interface EventRosterParticipant {
   userId: string | null
   kind: ParticipantKind
   source: EventRosterSource
+  avatarUrl?: string | null
+  gender?: MemberGender
 }
 
 export interface EventParticipantAdmin {
@@ -42,14 +47,19 @@ export interface ParticipantSelector {
   avatarUrl: string | null
   kind: ParticipantKind
   userId?: string | null
+  gender?: MemberGender
 }
 
-type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>
+type ApiResponse<T> = { ok: boolean; status: number; data?: T }
+type ApiResult<T> = Promise<ApiResponse<T>>
 
 @Injectable({ providedIn: 'root' })
 export class ParticipantApiService {
   async listSeasonParticipants(seasonId: string): ApiResult<SeasonParticipantAdmin[]> {
-    return this.getList(`/v1/seasons/${encodeURIComponent(seasonId)}/participants`)
+    const result = await this.getList<SeasonParticipantAdmin>(
+      `/v1/seasons/${encodeURIComponent(seasonId)}/participants`,
+    )
+    return this.normalizeParticipantRows(result)
   }
 
   async createSeasonParticipant(
@@ -92,16 +102,29 @@ export class ParticipantApiService {
   }
 
   async listSeasonParticipantSelectors(seasonId: string): ApiResult<ParticipantSelector[]> {
-    return this.getList(`/v1/seasons/${encodeURIComponent(seasonId)}/participants/selectors`)
+    const result = await this.getList<ParticipantSelector>(
+      `/v1/seasons/${encodeURIComponent(seasonId)}/participants/selectors`,
+    )
+    if (!result.ok || !result.data) {
+      return result
+    }
+    return {
+      ...result,
+      data: result.data.map((row) => ({
+        ...row,
+        gender: effectiveMemberGender(row.gender),
+      })),
+    }
   }
 
   async listEventParticipantRoster(
     seasonId: string,
     eventId: string,
   ): ApiResult<EventRosterParticipant[]> {
-    return this.getList(
+    const result = await this.getList<EventRosterParticipant>(
       `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants/roster`,
     )
+    return this.normalizeParticipantRows(result)
   }
 
   async excludeSeasonParticipantFromEvent(
@@ -154,6 +177,21 @@ export class ParticipantApiService {
     return this.deleteResource(
       `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants/${encodeURIComponent(participantId)}`,
     )
+  }
+
+  private normalizeParticipantRows<T extends { gender?: MemberGender }>(
+    result: ApiResponse<T[]>,
+  ): ApiResponse<T[]> {
+    if (!result.ok || !result.data) {
+      return result
+    }
+    return {
+      ...result,
+      data: result.data.map((row) => ({
+        ...row,
+        gender: effectiveMemberGender(row.gender),
+      })),
+    }
   }
 
   private async getList<T>(url: string): ApiResult<T[]> {

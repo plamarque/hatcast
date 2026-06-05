@@ -11,6 +11,8 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.user.MemberGender
+import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -47,6 +49,9 @@ class DemoBootstrapIntegrationTest {
 
     @Autowired
     private lateinit var lifecycleService: CompositionLifecycleService
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
 
     private val demoTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000099")
     private val demoSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000099")
@@ -109,6 +114,26 @@ class DemoBootstrapIntegrationTest {
         val participantCount =
             seasonParticipantRepository.countBySeason_IdAndStatus(demoSeasonId, ParticipantStatus.ACTIVE)
         assertTrue(participantCount >= 8)
+
+        val demoPersonaIds =
+            listOf(
+                UUID.fromString("d0000001-0000-4000-8000-000000000099"),
+                UUID.fromString("d0000002-0000-4000-8000-000000000099"),
+                UUID.fromString("d0000003-0000-4000-8000-000000000099"),
+                UUID.fromString("d0000004-0000-4000-8000-000000000099"),
+                UUID.fromString("d0000005-0000-4000-8000-000000000099"),
+                UUID.fromString("d0000006-0000-4000-8000-000000000099"),
+                UUID.fromString("d0000007-0000-4000-8000-000000000099"),
+                UUID.fromString("d0000008-0000-4000-8000-000000000099"),
+            )
+        val demoPersonas = userRepository.findAllById(demoPersonaIds)
+        assertEquals(8, demoPersonas.size)
+        demoPersonas.forEach { user ->
+            assertTrue(
+                MemberGender.effective(user.gender) != MemberGender.NON_SPECIFIED,
+                "demo persona ${user.displayName} should have inferred gender",
+            )
+        }
 
         val preparingEventId = UUID.fromString("c0000004-0000-4000-8000-000000000099")
         assertTrue(availabilityRepository.findByEvent_Id(preparingEventId).isNotEmpty())

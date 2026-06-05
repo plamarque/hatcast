@@ -10,6 +10,7 @@ import {
   SHOW_CHANGELOG_AFTER_RELOAD_KEY,
   changelogSeenStorageKey,
 } from '../../core/app/changelog-keys';
+import { ChangelogService } from '../../core/app/changelog.service';
 import { ChangelogDialog } from './changelog-dialog/changelog-dialog';
 
 @Injectable({ providedIn: 'root' })
@@ -17,6 +18,7 @@ export class ChangelogDialogService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly dialog = inject(MatDialog);
   private readonly appVersion = inject(AppVersionService);
+  private readonly changelog = inject(ChangelogService);
 
   open(): void {
     this.openDialog();
@@ -45,7 +47,17 @@ export class ChangelogDialogService {
       return;
     }
 
+    const hasNotes = await this.changelog.currentVersionHasUserFacingNotes(version);
+    if (hasNotes === null) {
+      return;
+    }
+
     sessionStorage.removeItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY);
+    if (!hasNotes) {
+      localStorage.setItem(changelogSeenStorageKey(version), '1');
+      return;
+    }
+
     await this.openDialogAndWait({ markSeenOnCloseForVersion: version });
   }
 

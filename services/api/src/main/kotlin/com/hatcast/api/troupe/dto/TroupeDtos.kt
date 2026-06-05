@@ -3,6 +3,7 @@ package com.hatcast.api.troupe.dto
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.hatcast.api.avatar.AvatarService
+import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.troupe.TroupeJoinPolicy
@@ -100,13 +101,17 @@ data class TroupeMemberAdminDto(
     val email: String?,
     val displayName: String,
     val avatarUrl: String?,
+    val gender: String = "non_specified",
     val status: TroupeMembershipStatus,
     val baselineRole: TroupeBaselineRole,
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
     companion object {
-        fun from(entity: TroupeMembershipEntity): TroupeMemberAdminDto {
+        fun from(
+            entity: TroupeMembershipEntity,
+            avatarService: AvatarService,
+        ): TroupeMemberAdminDto {
             val slug =
                 entity.user.slug?.trim()?.takeIf { it.isNotEmpty() }
                     ?: throw IllegalStateException("User ${entity.user.id} has no slug")
@@ -116,7 +121,8 @@ data class TroupeMemberAdminDto(
                 userSlug = slug,
                 email = entity.user.email,
                 displayName = entity.displayName,
-                avatarUrl = AvatarService.publicAvatarUrl(entity.user.id, entity.user.avatarUpdatedAt),
+                avatarUrl = ParticipantRowPresentation.avatarUrl(avatarService, entity.user),
+                gender = ParticipantRowPresentation.genderWire(entity.user),
                 status = entity.status,
                 baselineRole = entity.baselineRole,
                 createdAt = entity.createdAt,

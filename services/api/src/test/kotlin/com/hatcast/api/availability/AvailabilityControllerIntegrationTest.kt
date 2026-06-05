@@ -15,6 +15,7 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.hamcrest.Matchers.empty
@@ -533,6 +534,52 @@ class AvailabilityControllerIntegrationTest {
                 newcomerMembership.id,
             )
         assert(stillUnsynced == null)
+    }
+
+    @Test
+    fun `summary exposes participant gender for linked users`() {
+        val cookie = memberCookie("sub-avail-summary-gender")
+        val user = userRepository.findByGoogleSub("sub-avail-summary-gender")!!
+        user.gender = MemberGender.FEMALE
+        userRepository.save(user)
+        val (seasonId, eventId) = createSeasonAndEvent(cookie)
+        syncSeasonParticipants(seasonId)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.participants[?(@.userId == '${user.id}')].gender").value("female"))
+
+        val nameOnlyId = createSeasonParticipant(seasonId, "Sans compte")
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(
+                jsonPath("$.participants[?(@.participantId == '$nameOnlyId')].gender").value("non_specified"),
+            )
+    }
+
+    @Test
+    fun `summary omits avatarUrl when avatar bytes missing`() {
+        val cookie = memberCookie("sub-avail-summary-avatar-guard")
+        val user = userRepository.findByGoogleSub("sub-avail-summary-avatar-guard")!!
+        user.gender = MemberGender.MALE
+        user.avatarUpdatedAt = Instant.now()
+        userRepository.save(user)
+        val (seasonId, eventId) = createSeasonAndEvent(cookie)
+        syncSeasonParticipants(seasonId)
+
+        val response =
+            mockMvc
+                .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(cookie))
+                .andExpect(status().isOk)
+                .andReturn()
+        val participant =
+            mapper.readTree(response.response.contentAsString).get("participants").first {
+                it.get("userId").asText() == user.id.toString()
+            }
+        assert(participant.get("gender").asText() == "male")
+        assert(participant.get("avatarUrl").isNull)
     }
 
     @Test

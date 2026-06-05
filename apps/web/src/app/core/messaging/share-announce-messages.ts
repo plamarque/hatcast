@@ -1,5 +1,7 @@
 import { ROLE_DISPLAY_ORDER, type RoleKey } from '../events/event-types'
-import { roleEmoji, roleLabelSingular } from '../../shared/event-roles/event-roles'
+import type { MemberGender } from '../account/member-gender'
+import { effectiveMemberGender } from '../account/member-gender'
+import { getRoleLabel, roleEmoji } from '../../shared/event-roles/event-roles'
 import { buildEventUrls } from './event-urls'
 
 export type ShareAnnounceIntent = 'draw' | 'composition' | 'event' | 'availability_nudge'
@@ -7,22 +9,45 @@ export type ShareAnnounceIntent = 'draw' | 'composition' | 'event' | 'availabili
 export interface RoleAssignmentLine {
   roleKey: RoleKey
   displayNames: string[]
+  participantGenders?: (MemberGender | unknown | undefined)[]
 }
 
-function pluralizeRoleLabel(label: string, count: number): string {
-  if (count <= 1) return label
-  if (label.endsWith('.e')) return label.replace('.e', '.es')
-  return `${label}s`
+function resolvePluralGender(
+  genders: (MemberGender | unknown | undefined)[] | undefined,
+  count: number,
+): MemberGender | unknown {
+  if (!genders?.length) {
+    return 'non_specified'
+  }
+  const resolved = genders.map((g) => effectiveMemberGender(g))
+  if (count === 1) {
+    return resolved[0]
+  }
+  const unique = new Set(resolved)
+  if (unique.size === 1 && !unique.has('non_specified')) {
+    return resolved[0]
+  }
+  return 'non_specified'
 }
 
 export function buildRoleListText(lines: RoleAssignmentLine[]): string[] {
   const result: string[] = []
-  const byRole = new Map(lines.map((l) => [l.roleKey, l.displayNames.filter(Boolean)]))
+  const byRole = new Map(lines.map((l) => [l.roleKey, l]))
   for (const roleKey of ROLE_DISPLAY_ORDER) {
-    const names = byRole.get(roleKey) ?? []
+    const line = byRole.get(roleKey)
+    const rawNames = line?.displayNames ?? []
+    const rawGenders = line?.participantGenders
+    const paired = rawNames
+      .map((name, index) => ({ name: name?.trim(), gender: rawGenders?.[index] }))
+      .filter((entry) => Boolean(entry.name))
+    const names = paired.map((entry) => entry.name as string)
     if (names.length === 0) continue
     const emoji = roleEmoji(roleKey)
-    const label = pluralizeRoleLabel(roleLabelSingular(roleKey), names.length)
+    const gender = resolvePluralGender(
+      paired.map((entry) => entry.gender),
+      names.length,
+    )
+    const label = getRoleLabel(roleKey, gender, names.length > 1)
     result.push(`${emoji} ${label} : ${names.join(', ')}`)
   }
   return result

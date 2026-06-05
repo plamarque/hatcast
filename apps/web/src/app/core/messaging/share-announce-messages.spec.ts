@@ -35,7 +35,7 @@ describe('share-announce-messages', () => {
     })
     expect(msg).toContain('🎲')
     expect(msg).toContain('TIRAGE')
-    expect(msg).toContain('Comédien·nes')
+    expect(msg).toContain('Comédiens·nes')
     expect(msg).toContain('Alice')
   })
 

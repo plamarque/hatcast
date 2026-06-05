@@ -36,11 +36,7 @@ export class ChangelogService {
     this.error.set(false);
 
     try {
-      const response = await fetch('/changelog.json', { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const raw = (await response.json()) as ChangelogVersionRaw[];
+      const raw = await fetchChangelogRaw();
       this.versions.set(transformChangelogVersions(raw));
     } catch {
       this.error.set(true);
@@ -49,6 +45,40 @@ export class ChangelogService {
       this.loading.set(false);
     }
   }
+
+  /**
+   * Whether a semver entry in changelog.json has at least one user-facing line.
+   * Returns `null` when the changelog cannot be loaded (distinct from empty notes).
+   */
+  async currentVersionHasUserFacingNotes(version: string): Promise<boolean | null> {
+    if (!isPlatformBrowser(this.platformId)) {
+      return false;
+    }
+
+    try {
+      const raw = await fetchChangelogRaw();
+      return versionHasUserFacingChanges(raw, version);
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function fetchChangelogRaw(): Promise<ChangelogVersionRaw[]> {
+  const response = await fetch('/changelog.json', { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return (await response.json()) as ChangelogVersionRaw[];
+}
+
+/** True when the version exists in raw changelog data with a non-empty changes list. */
+export function versionHasUserFacingChanges(
+  raw: ChangelogVersionRaw[],
+  version: string,
+): boolean {
+  const entry = raw.find((item) => item.version === version);
+  return (entry?.changes?.length ?? 0) > 0;
 }
 
 /** Maps a raw change line to emoji + description (V1 parity). */
@@ -88,13 +118,15 @@ export function compareSemverDescending(a: string, b: string): number {
 }
 
 export function transformChangelogVersions(raw: ChangelogVersionRaw[]): ChangelogVersion[] {
-  const transformed = raw.map((entry) => ({
-    version: entry.version,
-    date: entry.date,
-    changes: entry.changes.map((change, index) =>
-      parseChangelogChange(change, entry.version, index),
-    ),
-  }));
+  const transformed = raw
+    .map((entry) => ({
+      version: entry.version,
+      date: entry.date,
+      changes: entry.changes.map((change, index) =>
+        parseChangelogChange(change, entry.version, index),
+      ),
+    }))
+    .filter((entry) => entry.changes.length > 0);
 
   return transformed.sort((a, b) => compareSemverDescending(a.version, b.version));
 }

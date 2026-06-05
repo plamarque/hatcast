@@ -53,4 +53,5 @@ data class MemberProfileSummaryDto(
     val monthlyChart: List<MemberProfileMonthDto> = emptyList(),
     val favoriteRoleCounts: List<FavoriteRoleCountDto> = emptyList(),
     val preferredRoleKeys: List<String>? = null,
+    val gender: String = "non_specified",
 )

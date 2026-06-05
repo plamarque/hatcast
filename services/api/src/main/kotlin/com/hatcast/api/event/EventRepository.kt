@@ -2,9 +2,9 @@ package com.hatcast.api.event
 
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
 import java.util.UUID
 
@@ -127,5 +127,38 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
     )
     fun findValidatedOpenEventsStartingFrom(
         @Param("fromInclusive") fromInclusive: Instant,
+    ): List<EventEntity>
+
+    /**
+     * Last validated event strictly before [beforeEventId] in the same category compartment.
+     * Category filter aligned with [com.hatcast.api.composition.EventCompositionSlotRepository].
+     */
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        INNER JOIN EventCompositionEntity c ON c.eventId = e.id
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND c.validatedAt IS NOT NULL
+          AND (
+            e.startsAt < :beforeStartsAt
+            OR (e.startsAt = :beforeStartsAt AND e.createdAt < :beforeCreatedAt)
+            OR (e.startsAt = :beforeStartsAt AND e.createdAt = :beforeCreatedAt AND e.id < :beforeEventId)
+          )
+          AND (
+            (:categorySlug = 'principal' AND e.category IS NULL AND e.templateType <> 'deplacement')
+            OR (:categorySlug = 'deplacements' AND (e.category = 'deplacements' OR (e.category IS NULL AND e.templateType = 'deplacement')))
+            OR (:categorySlug NOT IN ('principal', 'deplacements') AND e.category = :categorySlug)
+          )
+        ORDER BY e.startsAt DESC, e.createdAt DESC, e.id DESC
+        """,
+    )
+    fun findImmediateValidatedPredecessorInCategory(
+        @Param("seasonId") seasonId: UUID,
+        @Param("beforeEventId") beforeEventId: UUID,
+        @Param("beforeStartsAt") beforeStartsAt: Instant,
+        @Param("beforeCreatedAt") beforeCreatedAt: Instant,
+        @Param("categorySlug") categorySlug: String,
+        pageable: Pageable,
     ): List<EventEntity>
 }

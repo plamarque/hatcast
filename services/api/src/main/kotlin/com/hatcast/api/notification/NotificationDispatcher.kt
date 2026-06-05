@@ -2,6 +2,7 @@ package com.hatcast.api.notification
 
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectProvider
@@ -43,8 +44,12 @@ class NotificationDispatcher(
             }
 
             val category = context.intent.toCategory(context.reminderWindow)
+            val genderByUserId =
+                userRepository
+                    .findAllById(recipients.map { it.userId }.toSet())
+                    .associate { it.id to it.gender }
             for (recipient in recipients) {
-                deliverToRecipient(context, recipient, event, category)
+                deliverToRecipient(context, recipient, event, category, genderByUserId)
             }
         } catch (ex: Exception) {
             log.error(
@@ -62,8 +67,10 @@ class NotificationDispatcher(
         recipient: NotificationRecipient,
         event: EventEntity,
         category: NotificationCategory,
+        genderByUserId: Map<UUID, MemberGender?>,
     ) {
         try {
+            val recipientGender = genderByUserId[recipient.userId]
             val payload =
                 payloadBuilder.build(
                     intent = context.intent,
@@ -73,6 +80,7 @@ class NotificationDispatcher(
                     actorDisplayName = context.actorDisplayName,
                     proxyChangeSummary = context.proxyChangeSummary,
                     customMessageBody = context.customMessageBody,
+                    recipientGender = recipientGender,
                 )
             val emailSubject = payloadBuilder.buildEmailSubject(context.intent, event)
             deliverPush(recipient.userId, category, payload, context.intent, context.eventId)

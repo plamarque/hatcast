@@ -18,6 +18,7 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.role.RoleLabels
 import com.hatcast.api.season.dto.ParticipantStatisticsRowDto
 import com.hatcast.api.season.dto.SeasonStatisticsResponseDto
 import com.hatcast.api.season.dto.StatCountsDto
@@ -26,6 +27,7 @@ import com.hatcast.api.season.dto.StatisticsEventDto
 import com.hatcast.api.season.dto.StatisticsParticipantDto
 import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.troupe.TroupeAccessService
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.springframework.http.HttpStatus
@@ -63,19 +65,6 @@ class SeasonStatisticsService(
                 "volunteer" to "B",
                 "lighting" to "L",
                 "stage_manager" to "R",
-            )
-
-        val ROLE_LABELS: Map<String, String> =
-            mapOf(
-                "player" to "Comédien·ne",
-                "mc" to "MC",
-                "dj" to "DJ",
-                "referee" to "Arbitre",
-                "assistant_referee" to "Assistant·e",
-                "coach" to "Coach",
-                "volunteer" to "Bénévole",
-                "lighting" to "Lumière",
-                "stage_manager" to "Régisseur·euse",
             )
 
         val ROLE_DISPLAY_ORDER =
@@ -187,6 +176,10 @@ class SeasonStatisticsService(
         val participantId = participant.id
         val displayName = participant.displayName
         val (userSlug, avatarUrl) = participantProfileIdentity(participant)
+        val memberGender =
+            linkedUser(participant)?.let { MemberGender.effective(it.gender) }
+                ?: MemberGender.NON_SPECIFIED
+        val gender = memberGender.wireValue
         val annual = emptyCountsMap()
         val monthSummary = mutableMapOf<String, StatCountBucket>()
         val byMonth = mutableMapOf<String, MutableMap<String, StatCounts>>()
@@ -253,6 +246,7 @@ class SeasonStatisticsService(
                     availableRoleKeys = availableRoleKeys,
                     unavailable = unavailable,
                     selectionSlot = selectionSlot,
+                    gender = memberGender,
                 )
             eventCellDetails[event.id] = cell
             eventCells[event.id] = eventCellExportLabel(cell)
@@ -263,6 +257,7 @@ class SeasonStatisticsService(
             displayName = displayName,
             userSlug = userSlug,
             avatarUrl = avatarUrl,
+            gender = gender,
             annual = annual.mapValues { (_, c) -> StatCountsDto(c.selections, c.dispos, c.declines) },
             monthSummary = monthSummary.mapValues { (_, c) -> StatCountsDto(c.selections, c.dispos, c.declines) },
             byMonth =
@@ -371,6 +366,7 @@ class SeasonStatisticsService(
         availableRoleKeys: List<String>,
         unavailable: Boolean,
         selectionSlot: SelectionSlotInfo?,
+        gender: MemberGender = MemberGender.NON_SPECIFIED,
     ): StatisticsEventCellDto {
         val declinedRoles =
             declines
@@ -387,11 +383,11 @@ class SeasonStatisticsService(
                 status = "declined",
                 label = label,
                 roleKey = primaryRole,
-                tooltip = primaryRole?.let { "${ROLE_LABELS[it] ?: it} — Décliné" } ?: label,
+                tooltip = primaryRole?.let { "${RoleLabels.label(it, gender)} — Décliné" } ?: label,
             )
         }
         if (selectionSlot != null && validated) {
-            val roleLabel = ROLE_LABELS[selectionSlot.roleKey] ?: selectionSlot.roleKey
+            val roleLabel = RoleLabels.label(selectionSlot.roleKey, gender)
             return when (selectionSlot.participationStatus) {
                 SlotParticipationStatus.PENDING ->
                     StatisticsEventCellDto(

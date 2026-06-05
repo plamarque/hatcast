@@ -438,6 +438,30 @@ components:
       type: string
       enum: [none, organizerDraft, publishedDraft, validated]
 
+    ConsecutiveShowWarning:
+      type: object
+      required: [previousEventId, previousEventTitle, previousEventStartsAt]
+      description: Non-blocking hint when assignee held the same role on the immediately preceding validated show in the same category compartment (organizer only).
+      properties:
+        previousEventId:
+          type: string
+          format: uuid
+        previousEventTitle:
+          type: string
+        previousEventStartsAt:
+          type: string
+          format: date-time
+
+    MultiRoleOnEventWarning:
+      type: object
+      required: [otherRoleKeys]
+      description: Non-blocking hint when assignee also holds other role(s) on the same event (organizer only; manual stacking allowed).
+      properties:
+        otherRoleKeys:
+          type: array
+          items:
+            type: string
+
     CompositionSlot:
       type: object
       required: [roleKey, slotIndex, participationStatus]
@@ -461,6 +485,14 @@ components:
           nullable: true
         pastSelectionCount:
           type: integer
+          nullable: true
+        consecutiveShowWarning:
+          allOf:
+            - $ref: '#/components/schemas/ConsecutiveShowWarning'
+          nullable: true
+        multiRoleOnEventWarning:
+          allOf:
+            - $ref: '#/components/schemas/MultiRoleOnEventWarning'
           nullable: true
 
     DrawCompositionRequest:

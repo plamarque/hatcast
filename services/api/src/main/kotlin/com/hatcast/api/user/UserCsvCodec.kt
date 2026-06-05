@@ -55,7 +55,14 @@ object UserCsvCodec {
             )
         }
         val displayName = fields["displayname"]?.takeIf { it.isNotEmpty() }
-        return UserCsvRowDto.valid(rowNumber = rowNumber, email = email, displayName = displayName)
+        val gender =
+            fields["gender"]?.takeIf { it.isNotEmpty() }?.let { MemberGender.fromV1Csv(it) }
+        return UserCsvRowDto.valid(
+            rowNumber = rowNumber,
+            email = email,
+            displayName = displayName,
+            gender = gender,
+        )
     }
 
     private fun parseRecords(content: String): List<List<String>> {

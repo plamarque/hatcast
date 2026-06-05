@@ -6,6 +6,7 @@ import com.hatcast.api.event.RoleKeys
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertTrue
+import java.time.Instant
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -152,6 +153,19 @@ class MemberProfileIntegrationTest {
             .andExpect(jsonPath("$.preferredRoleKeys").doesNotExist())
 
         assertTrue(targetCookie.name.isNotEmpty())
+    }
+
+    @Test
+    fun `member profile summary omits avatarUrl when avatar bytes missing`() {
+        val cookie = signInAndJoin("sub-profile-avatar-guard", "profile-avatar-guard@example.com", "Avatar Guard")
+        val user = userRepository.findByGoogleSub("sub-profile-avatar-guard")!!
+        user.avatarUpdatedAt = Instant.now()
+        userRepository.save(user)
+
+         mockMvc
+            .perform(get("/v1/seasons/$seedSeasonId/member-profile/${user.id}").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.avatarUrl").isEmpty)
     }
 
     @Test

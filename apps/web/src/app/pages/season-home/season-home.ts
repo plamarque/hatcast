@@ -203,7 +203,12 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly participantOptions = computed<ParticipantFilterOption[]>(() => {
     const opts: ParticipantFilterOption[] = [{ id: null, label: 'Tous' }]
     for (const p of this.participantSelectors()) {
-      opts.push({ id: p.id, label: p.displayName })
+      opts.push({
+        id: p.id,
+        label: p.displayName,
+        avatarUrl: p.avatarUrl,
+        gender: p.gender ?? null,
+      })
     }
     return opts
   })

@@ -4,7 +4,7 @@
  */
 
 export const V2_CSV_HEADER = ['email', 'displayName', 'baselineRole', 'status']
-export const V2_USER_CSV_HEADER = ['email', 'displayName']
+export const V2_USER_CSV_HEADER = ['email', 'displayName', 'gender']
 
 /**
  * @param {string} value
@@ -36,12 +36,12 @@ export function formatMemberCsv(rows) {
 }
 
 /**
- * @param {Array<{ email: string, displayName: string }>} rows
+ * @param {Array<{ email: string, displayName: string, gender?: string }>} rows
  */
 export function formatUserCsv(rows) {
   const lines = [formatCsvLine(V2_USER_CSV_HEADER)]
   for (const row of rows) {
-    lines.push(formatCsvLine([row.email, row.displayName]))
+    lines.push(formatCsvLine([row.email, row.displayName, row.gender ?? 'non_specified']))
   }
   return `${lines.join('\n')}\n`
 }
@@ -181,7 +181,51 @@ export function buildV2MemberRowsFromV1Season({
 }
 
 /**
- * Build V2 user import rows (email + displayName only) from V1 season data.
+ * Map V1 player gender to V2 wire value.
+ *
+ * @param {string | null | undefined} raw
+ */
+export function mapV1GenderToV2(raw) {
+  const value = (raw || '').trim().toLowerCase()
+  if (value === 'male') return 'male'
+  if (value === 'female') return 'female'
+  return 'non_specified'
+}
+
+/**
+ * @param {object} player
+ */
+function playerUpdatedAtMs(player) {
+  const ts = player.updatedAt
+  if (!ts) return 0
+  if (typeof ts.toMillis === 'function') return ts.toMillis()
+  if (typeof ts.toDate === 'function') return ts.toDate().getTime()
+  if (typeof ts === 'number') return ts
+  return 0
+}
+
+/**
+ * Resolve gender for one email from all linked V1 player rows.
+ *
+ * @param {Array<object>} playersForEmail
+ */
+export function resolveGenderForEmail(playersForEmail) {
+  let best = 'non_specified'
+  let bestScore = -1
+  for (const player of playersForEmail) {
+    const mapped = mapV1GenderToV2(player.gender)
+    if (mapped === 'non_specified') continue
+    const score = playerUpdatedAtMs(player) || 1
+    if (score >= bestScore) {
+      best = mapped
+      bestScore = score
+    }
+  }
+  return best
+}
+
+/**
+ * Build V2 user import rows from V1 season data.
  *
  * @param {object} params
  * @param {string} params.seasonId
@@ -189,7 +233,7 @@ export function buildV2MemberRowsFromV1Season({
  * @param {Array<object>} params.players
  * @param {object} [params.options]
  * @param {boolean} [params.options.includeRoleOnlyEmails=true]
- * @returns {{ rows: Array<{ email: string, displayName: string }>, skipped: Array<{ reason: string, detail: string }>, warnings: string[] }}
+ * @returns {{ rows: Array<{ email: string, displayName: string, gender: string }>, skipped: Array<{ reason: string, detail: string }>, warnings: string[] }}
  */
 export function buildV2UserRowsFromV1Season({
   seasonId,
@@ -203,6 +247,19 @@ export function buildV2UserRowsFromV1Season({
     players,
     options,
   })
-  const rows = memberRows.map(({ email, displayName }) => ({ email, displayName }))
+  /** @type {Map<string, Array<object>>} */
+  const playersByEmail = new Map()
+  for (const player of players) {
+    const email = normalizeEmail(player.email)
+    if (!email || !email.includes('@')) continue
+    const bucket = playersByEmail.get(email) ?? []
+    bucket.push(player)
+    playersByEmail.set(email, bucket)
+  }
+  const rows = memberRows.map(({ email, displayName }) => ({
+    email,
+    displayName,
+    gender: resolveGenderForEmail(playersByEmail.get(email) ?? []),
+  }))
   return { rows, skipped, warnings }
 }

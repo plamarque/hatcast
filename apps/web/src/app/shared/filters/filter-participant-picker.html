@@ -48,7 +48,13 @@
         [attr.data-testid]="'participant-picker-row-' + option.id"
         (click)="toggleParticipant(option.id)"
       >
-        <mat-icon class="filter-picker-shell__row-icon" aria-hidden="true">person</mat-icon>
+        <app-user-avatar
+          class="filter-picker-shell__row-avatar"
+          [displayName]="option.label"
+          [avatarUrl]="option.avatarUrl ?? null"
+          [gender]="option.gender ?? null"
+          [size]="24"
+        />
         <span class="filter-picker-shell__row-title">{{ option.label }}</span>
         <mat-checkbox
           class="filter-picker-shell__row-check"

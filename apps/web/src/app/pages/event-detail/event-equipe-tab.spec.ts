@@ -5,6 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { Subject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { CompositionApiService } from '../../core/composition/composition-api.service'
 import { emptyRoleSlots } from '../../core/events/event-types'
 import type { EventResponse } from '../../core/events/event-api.service'
@@ -41,6 +42,7 @@ describe('EventEquipeTab', () => {
   let restoreDeclinedParticipant: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
   let snackOpen: ReturnType<typeof vi.fn>
+  let getPreferences: ReturnType<typeof vi.fn>
   let dialogAfterClosed: Subject<
     | { participantId: string }
     | { status: string; note?: string | null }
@@ -110,6 +112,15 @@ describe('EventEquipeTab', () => {
       close: vi.fn(),
     })
     snackOpen = vi.fn()
+    getPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        memberDisplayName: 'Moi',
+        preferredRoleKeys: [],
+        gender: 'non_specified',
+      },
+    })
 
     await TestBed.configureTestingModule({
       imports: [EventEquipeTab, NoopAnimationsModule],
@@ -130,6 +141,10 @@ describe('EventEquipeTab', () => {
         },
         { provide: MatDialog, useValue: { open: dialogOpen } },
         { provide: MatSnackBar, useValue: { open: snackOpen } },
+        {
+          provide: MePreferencesApiService,
+          useValue: { getPreferences },
+        },
       ],
     }).compileComponents()
 
@@ -149,6 +164,47 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Aucun tirage pour le moment')
+    })
+  })
+
+  it('genres role pill from assignee gender on filled slots', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Léa',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: null,
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 2 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const pills = [
+        ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role-pill'),
+      ].map((el: Element) => el.textContent?.trim())
+      expect(pills[0]).toBe('🎭 Comédienne')
+      expect(pills[1]).toBe('🎭 Comédien·ne')
     })
   })
 
@@ -176,10 +232,10 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.querySelectorAll('.event-equipe-tab__row').length).toBe(4)
     })
 
-    const roleEmojis = [
-      ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role'),
+    const rolePills = [
+      ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role-pill'),
     ].map((el: Element) => el.textContent?.trim())
-    expect(roleEmojis).toEqual(['🎧', '🎤', '🎭', '🎭'])
+    expect(rolePills).toEqual(['🎧 DJ', '🎤 MC', '🎭 Comédien·ne', '🎭 Comédien·ne'])
   })
 
   it('does not show composition draft banner inline on équipe tab (global chrome)', async () => {
@@ -305,11 +361,11 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-equipe-tab__slot-button')).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__row-hit')).not.toBeNull()
     })
 
     const slotBtn = fixture.nativeElement.querySelector(
-      '.event-equipe-tab__slot-button',
+      '.event-equipe-tab__row-hit',
     ) as HTMLButtonElement
     slotBtn.click()
     fixture.detectChanges()
@@ -445,7 +501,7 @@ describe('EventEquipeTab', () => {
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__clear')).toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Déverrouiller')
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__validate')).toBeNull()
-    expect(fixture.nativeElement.querySelector('.event-equipe-tab__slot-button')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__row-hit')).not.toBeNull()
   })
 
   it('lets organizer open participation modal on own slot when locked', async () => {
@@ -484,17 +540,118 @@ describe('EventEquipeTab', () => {
     const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
     const ownRow = [...rows].find((row) => row.textContent?.includes('Organisateur'))
     expect(ownRow).toBeDefined()
-    const ownBtn = ownRow!.querySelector('.event-equipe-tab__slot-button') as HTMLButtonElement
+    const ownBtn = ownRow!.querySelector('.event-equipe-tab__row-hit') as HTMLButtonElement
     ownBtn.click()
     fixture.detectChanges()
-    expect(dialogOpen).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          mode: 'self',
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            mode: 'self',
+          }),
         }),
-      }),
-    )
+      )
+    })
+  })
+
+  it('passes gender-aware roleLabel into participation dialog when slot has participantGender', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-female'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-female',
+            participantDisplayName: 'Camille',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Camille')
+    })
+
+    const btn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__row-hit',
+    ) as HTMLButtonElement
+    btn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            roleLabel: 'Comédienne',
+          }),
+        }),
+      )
+    })
+  })
+
+  it('uses viewer preferences gender for self participation when slot omits participantGender', async () => {
+    getPreferences.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        memberDisplayName: 'Camille',
+        preferredRoleKeys: [],
+        gender: 'female',
+      },
+    })
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-viewer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-viewer',
+            participantDisplayName: 'Camille',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', false)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Camille')
+    })
+
+    const btn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__row-hit',
+    ) as HTMLButtonElement
+    btn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            mode: 'self',
+            roleLabel: 'Comédienne',
+          }),
+        }),
+      )
+    })
   })
 
   it('shows Valider for organizer draft with assigned slot', async () => {
@@ -806,13 +963,15 @@ describe('EventEquipeTab', () => {
     })
 
     const slotBtn = fixture.nativeElement.querySelector(
-      '.event-equipe-tab__row--participation .event-equipe-tab__slot-button',
+      '.event-equipe-tab__row--participation .event-equipe-tab__row-hit',
     ) as HTMLButtonElement
     expect(slotBtn).not.toBeNull()
     slotBtn.click()
     fixture.detectChanges()
 
-    expect(dialogOpen).toHaveBeenCalled()
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalled()
+    })
   })
 
   it('auto-opens participation modal when showConfirmPending and own assigned slot', async () => {
@@ -905,19 +1064,21 @@ describe('EventEquipeTab', () => {
     const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
     const foreignRow = [...rows].find((row) => row.textContent?.includes('Autre membre'))
     expect(foreignRow).toBeDefined()
-    const foreignBtn = foreignRow!.querySelector('.event-equipe-tab__slot-button') as HTMLButtonElement
+    const foreignBtn = foreignRow!.querySelector('.event-equipe-tab__row-hit') as HTMLButtonElement
     foreignBtn.click()
     fixture.detectChanges()
 
-    expect(dialogOpen).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          mode: 'proxy',
-          assigneeDisplayName: 'Autre membre',
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            mode: 'proxy',
+            assigneeDisplayName: 'Autre membre',
+          }),
         }),
-      }),
-    )
+      )
+    })
   })
 
   it('shows proxy decline confirm copy referencing assignee name', async () => {
@@ -973,9 +1134,13 @@ describe('EventEquipeTab', () => {
 
     const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
     const foreignRow = [...rows].find((row) => row.textContent?.includes('Autre membre'))
-    const foreignBtn = foreignRow!.querySelector('.event-equipe-tab__slot-button') as HTMLButtonElement
+    const foreignBtn = foreignRow!.querySelector('.event-equipe-tab__row-hit') as HTMLButtonElement
     foreignBtn.click()
     fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(1)
+    })
 
     dialogAfterClosed.next({ status: 'declined' })
     fixture.detectChanges()
@@ -1040,7 +1205,7 @@ describe('EventEquipeTab', () => {
     })
 
     const readonlyBtn = fixture.nativeElement.querySelector(
-      '.event-equipe-tab__slot-button--readonly',
+      '.event-equipe-tab__row-hit--readonly',
     ) as HTMLButtonElement
     readonlyBtn.click()
     fixture.detectChanges()
@@ -1158,17 +1323,21 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-equipe-tab__slot-button')).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__row-hit')).not.toBeNull()
     })
 
     const emitted = vi.fn()
     fixture.componentInstance.compositionPublished.subscribe(emitted)
 
     const slotBtn = fixture.nativeElement.querySelector(
-      '.event-equipe-tab__slot-button',
+      '.event-equipe-tab__row-hit',
     ) as HTMLButtonElement
     slotBtn.click()
     fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalled()
+    })
 
     dialogAfterClosed.next({ status: 'confirmed' })
     fixture.detectChanges()
@@ -1310,7 +1479,7 @@ describe('EventEquipeTab', () => {
     })
 
     const gapBtn = fixture.nativeElement.querySelector(
-      '.event-equipe-tab__row--gap-empty .event-equipe-tab__slot-button',
+      '.event-equipe-tab__row--gap-empty .event-equipe-tab__row-hit',
     ) as HTMLButtonElement
     gapBtn.click()
     fixture.detectChanges()
@@ -1324,7 +1493,7 @@ describe('EventEquipeTab', () => {
     getCompositionCandidates.mockClear()
 
     const filledBtn = fixture.nativeElement.querySelector(
-      '.event-equipe-tab__row--filled .event-equipe-tab__slot-button',
+      '.event-equipe-tab__row--filled .event-equipe-tab__row-hit',
     ) as HTMLButtonElement
     filledBtn.click()
     fixture.detectChanges()
@@ -1685,6 +1854,8 @@ describe('EventEquipeTab', () => {
               slotIndex: 0,
               participantId: 'p-drawn',
               participantDisplayName: 'Drawn',
+              participantGender: 'female',
+              participantAvatarUrl: '/v1/users/u-1/avatar?v=1',
               participationStatus: 'pending',
             },
           ],
@@ -1693,7 +1864,15 @@ describe('EventEquipeTab', () => {
           {
             roleKey: 'player',
             slotIndex: 0,
-            candidates: [{ participantId: 'p-drawn', displayName: 'Drawn', chancePercent: 100, weight: 1 }],
+            candidates: [
+              {
+                participantId: 'p-drawn',
+                displayName: 'Drawn',
+                chancePercent: 100,
+                weight: 1,
+                gender: 'female',
+              },
+            ],
             selectedParticipantId: 'p-drawn',
             randomValue: 0.5,
             totalWeight: 1,
@@ -1724,6 +1903,11 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Drawn')
     })
+
+    const avatar = fixture.nativeElement.querySelector(
+      'app-user-avatar.event-equipe-tab__avatar',
+    ) as HTMLElement
+    expect(avatar.classList.contains('user-avatar--tone-female')).toBe(true)
   })
 
   it('does not refetch composition after draw animation completes', async () => {
@@ -1781,6 +1965,615 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.textContent).toContain('Drawn')
       expect(getComposition).not.toHaveBeenCalled()
     })
+  })
+
+  const consecutiveWarning = {
+    previousEventId: 'evt-prev',
+    previousEventTitle: 'Cabaret du 12',
+    previousEventStartsAt: '2026-06-05T17:00:00.000Z',
+  }
+
+  it('shows consecutive-show warning trigger with short label and tooltip copy for organizer', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+            consecutiveShowWarning: consecutiveWarning,
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const trigger = fixture.nativeElement.querySelector(
+        '.event-equipe-tab__consecutive-warning-trigger',
+      ) as HTMLButtonElement
+      expect(trigger).toBeTruthy()
+      expect(trigger.textContent).toContain('Joue deux fois de suite')
+      expect(trigger.querySelector('mat-icon')?.textContent?.trim()).toBe('warning_amber')
+      const ariaLabel = trigger.getAttribute('aria-label') ?? ''
+      expect(ariaLabel).toContain('Alice est dans la composition du spectacle précédent du')
+      expect(ariaLabel).toContain('« Cabaret du 12 »')
+      expect(ariaLabel).toMatch(/5 juin 2026/)
+      expect(trigger.getAttribute('mattooltiptouchgestures')).toBe('on')
+    })
+  })
+
+  it('toggles consecutive warning tooltip on tap without bubbling', () => {
+    const stopPropagation = vi.fn()
+    const toggle = vi.fn()
+    const event = { stopPropagation } as unknown as MouseEvent
+    const tooltip = { toggle }
+
+    ;(
+      fixture.componentInstance as unknown as {
+        onConsecutiveWarningClick(event: MouseEvent, tooltip: { toggle(): void }): void
+      }
+    ).onConsecutiveWarningClick(event, tooltip)
+
+    expect(stopPropagation).toHaveBeenCalled()
+    expect(toggle).toHaveBeenCalled()
+  })
+
+  it('shows multi-role warning trigger with short label and tooltip copy for organizer', async () => {
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 1, dj: 1 } }),
+    )
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Patrice',
+            participantGender: 'male',
+            participationStatus: 'pending',
+            multiRoleOnEventWarning: { otherRoleKeys: ['dj'] },
+          },
+          {
+            roleKey: 'dj',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Patrice',
+            participantGender: 'male',
+            participationStatus: 'pending',
+            multiRoleOnEventWarning: { otherRoleKeys: ['player'] },
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const triggers = fixture.nativeElement.querySelectorAll(
+        '.event-equipe-tab__multi-role-warning-trigger',
+      )
+      expect(triggers.length).toBe(2)
+      const texts = [...triggers].map((el: Element) => el.textContent ?? '')
+      expect(texts.every((t) => t.includes('Deux rôles le même soir'))).toBe(true)
+      const djRowTrigger = triggers[0] as HTMLButtonElement
+      expect(djRowTrigger.getAttribute('aria-label')).toBe(
+        'Patrice est également Comédien dans cette compo.',
+      )
+    })
+  })
+
+  it('hides consecutive-show hint when API omits warning', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-equipe-tab__consecutive-warning-trigger'),
+      ).toBeNull()
+    })
+  })
+
+  it('removes consecutive-show hint after slot clear', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+            consecutiveShowWarning: consecutiveWarning,
+          },
+        ],
+      },
+    })
+    assignCompositionSlot.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: null,
+            participantDisplayName: null,
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-equipe-tab__consecutive-warning-trigger'),
+      ).toBeTruthy()
+    })
+
+    const clearBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__clear',
+    ) as HTMLButtonElement
+    clearBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-equipe-tab__consecutive-warning-trigger'),
+      ).toBeNull()
+    })
+  })
+
+  it('places consecutive warning below slot name and outside slot button at 375px width', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+            consecutiveShowWarning: {
+              ...consecutiveWarning,
+              previousEventTitle:
+                'Spectacle au titre très long pour vérifier la troncature sur mobile',
+            },
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    Object.defineProperty(fixture.nativeElement, 'clientWidth', {
+      configurable: true,
+      value: 375,
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const slotButton = fixture.nativeElement.querySelector(
+        '.event-equipe-tab__row-hit',
+      ) as HTMLElement
+      const trigger = fixture.nativeElement.querySelector(
+        '.event-equipe-tab__consecutive-warning-trigger',
+      ) as HTMLElement
+      expect(slotButton).toBeTruthy()
+      expect(trigger).toBeTruthy()
+      expect(slotButton.contains(trigger)).toBe(false)
+      const slotRect = slotButton.getBoundingClientRect()
+      const triggerRect = trigger.getBoundingClientRect()
+      expect(triggerRect.top).toBeGreaterThanOrEqual(slotRect.bottom - 2)
+    })
+  })
+
+  it('shows gender parity indicator for organizer when all player slots have known genders', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 2,
+            participantId: 'p-3',
+            participantDisplayName: 'Claire',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 3,
+            participantId: 'p-4',
+            participantDisplayName: 'David',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 4,
+            participantId: 'p-5',
+            participantDisplayName: 'Eric',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 5 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const guidances = fixture.nativeElement.querySelector(
+        '[data-testid="composition-guidances"]',
+      ) as HTMLElement
+      expect(guidances).toBeTruthy()
+      expect(guidances.getAttribute('aria-label')).toBe('Indicateurs de composition')
+      const indicator = guidances.querySelector(
+        '[data-testid="composition-gender-parity-indicator"]',
+      ) as HTMLElement
+      expect(indicator).toBeTruthy()
+      expect(indicator.textContent).toContain('Mixité acceptable')
+      expect(indicator.classList.contains('event-equipe-tab__parity--acceptable')).toBe(true)
+      expect(indicator.getAttribute('aria-label')).toBe('Mixité acceptable — 2 F · 3 H')
+    })
+  })
+
+  it('shows bon gender parity score for balanced 2F2H composition', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 2,
+            participantId: 'p-3',
+            participantDisplayName: 'Claire',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 3,
+            participantId: 'p-4',
+            participantDisplayName: 'David',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 4 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const indicator = fixture.nativeElement.querySelector(
+        '[data-testid="composition-gender-parity-indicator"]',
+      ) as HTMLElement
+      expect(indicator).toBeTruthy()
+      expect(indicator.textContent).toContain('Mixité équilibrée')
+      expect(indicator.classList.contains('event-equipe-tab__parity--bon')).toBe(true)
+      expect(indicator.getAttribute('aria-label')).toBe('Mixité équilibrée — 2 F · 2 H')
+    })
+  })
+
+  it('shows faible gender parity score for skewed 1F4H composition', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 2,
+            participantId: 'p-3',
+            participantDisplayName: 'Claire',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 3,
+            participantId: 'p-4',
+            participantDisplayName: 'David',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 4,
+            participantId: 'p-5',
+            participantDisplayName: 'Eric',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 5 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const indicator = fixture.nativeElement.querySelector(
+        '[data-testid="composition-gender-parity-indicator"]',
+      ) as HTMLElement
+      expect(indicator).toBeTruthy()
+      expect(indicator.textContent).toContain('Mixité faible')
+      expect(indicator.classList.contains('event-equipe-tab__parity--faible')).toBe(true)
+      expect(indicator.getAttribute('aria-label')).toBe('Mixité faible — 1 F · 4 H')
+    })
+  })
+
+  it('hides gender parity indicator when fewer than two known-gender players are filled', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 2 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+    ).toBeNull()
+  })
+
+  it('hides gender parity indicator while draw is in progress', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 2 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+      ).toBeTruthy()
+    })
+
+    ;(fixture.componentInstance as unknown as { drawing: { set: (v: boolean) => void } }).drawing.set(
+      true,
+    )
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+    ).toBeNull()
+  })
+
+  it('hides gender parity indicator when a filled player has unknown gender', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'non_specified',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+    ).toBeNull()
+  })
+
+  it('hides gender parity indicator for member without canManageComposition', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participantGender: 'male',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', false)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Alice')
+    })
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
+    ).toBeNull()
   })
 
   it('hides Compléter and gap slot picker for member without canManageComposition', async () => {

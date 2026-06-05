@@ -148,9 +148,11 @@
   }
 
   <mat-menu #roleMenu="matMenu">
-    <button type="button" mat-menu-item (click)="selectRole('MEMBER')">Membre</button>
-    <button type="button" mat-menu-item (click)="selectRole('TROUPE_ADMIN')">
-      Administrateur·ice de troupe
-    </button>
+    @if (roleMenuMember(); as menuMember) {
+      <button type="button" mat-menu-item (click)="selectRole('MEMBER')">Membre</button>
+      <button type="button" mat-menu-item (click)="selectRole('TROUPE_ADMIN')">
+        Administrateur·ice de troupe
+      </button>
+    }
   </mat-menu>
 </section>

@@ -20,7 +20,9 @@ import com.hatcast.api.inbox.dto.InboxShortcutsDto
 import com.hatcast.api.inbox.dto.MeInboxResponse
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
-import com.hatcast.api.season.SeasonStatisticsService
+import com.hatcast.api.role.RoleLabels
+import com.hatcast.api.user.MemberGender
+import com.hatcast.api.user.UserRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -40,6 +42,7 @@ class MeInboxService(
   private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
   private val participantFocusService: EventParticipantFocusService,
   private val draftVisibility: EventDraftVisibility,
+  private val userRepository: UserRepository,
 ) {
   @Transactional(readOnly = true)
   fun getInbox(principal: SessionUserPrincipal): MeInboxResponse {
@@ -95,6 +98,10 @@ class MeInboxService(
         eventRepository.findAllById(slotEventIds).associateBy { it.id }
       }
     val viewerIdsByEventId = mutableMapOf<UUID, Set<UUID>>()
+    val viewerGender =
+      MemberGender.effective(
+        userRepository.findById(userId).orElse(null)?.gender,
+      )
 
     val confirmActions =
       pendingSlots.mapNotNull { slot ->
@@ -114,7 +121,7 @@ class MeInboxService(
         if (assigneeId !in viewerIds) {
           return@mapNotNull null
         }
-        val roleLabel = SeasonStatisticsService.ROLE_LABELS[slot.roleKey] ?: slot.roleKey
+        val roleLabel = RoleLabels.label(slot.roleKey, viewerGender)
         InboxActionDto.compositionConfirmPending(row, slot.roleKey, roleLabel)
       }
 

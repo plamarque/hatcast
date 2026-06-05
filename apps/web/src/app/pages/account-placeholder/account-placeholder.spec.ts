@@ -216,10 +216,10 @@ describe('AccountPlaceholder', () => {
       fixture.detectChanges()
       const identityReady =
         fixture.nativeElement.querySelector('[data-testid="account-avatar-menu-trigger"]') &&
-        (fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]') ||
+        (fixture.nativeElement.querySelector('[data-testid="account-profile-save"]') ||
           fixture.nativeElement.querySelector('.account-page__pseudo-spinner'))
       if (identityReady) {
-        if (fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')) {
+        if (fixture.nativeElement.querySelector('[data-testid="account-profile-save"]')) {
           break
         }
       }
@@ -274,9 +274,9 @@ describe('AccountPlaceholder', () => {
     const text = fixture.nativeElement.textContent ?? ''
     expect(text).toContain('lea@example.com')
     expect(text).toContain('Léa Martin')
-    expect(text).toContain('Nom affiché dans toutes vos troupes.')
+    expect(text).toContain('Pseudo')
     expect(
-      fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]'),
+      fixture.nativeElement.querySelector('[data-testid="account-profile-save"]'),
     ).toBeTruthy()
     expect(fixture.nativeElement.querySelector('[data-testid="account-email-edit"]')).toBeTruthy()
     expect(fixture.nativeElement.querySelector('[data-testid="account-change-email"]')).toBeNull()
@@ -330,7 +330,7 @@ describe('AccountPlaceholder', () => {
     expect(text).not.toContain('Rôles préférés par troupe')
     expect(text).not.toContain('Retour aux troupes')
     expect(text).not.toContain('prochaine livraison')
-    expect(fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-profile-save"]')).toBeNull()
   })
 
   it('affiche les rôles globaux sur l’onglet Préférences', async () => {
@@ -420,7 +420,7 @@ describe('AccountPlaceholder', () => {
     expect(router.url).toBe('/compte')
     expect(navigate).toHaveBeenCalledWith(['/compte'], { replaceUrl: true })
     expect(fixture.nativeElement.querySelector('[data-testid="account-email-edit"]')).toBeTruthy()
-    expect(fixture.nativeElement.querySelector('[data-testid="account-pseudo-save"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="account-profile-save"]')).toBeTruthy()
   })
 
   it('Google-only : mot de passe Définir et hint secours sur Mon profil', async () => {

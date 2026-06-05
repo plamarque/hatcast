@@ -8,6 +8,7 @@ import {
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 
 import type { CompositionCandidate } from '../../core/composition/composition-api.service'
+import { UserAvatarComponent } from '../user-avatar/user-avatar'
 
 export interface CompositionSlotPickerDialogData {
   roleLabel: string
@@ -22,7 +23,7 @@ export interface CompositionSlotPickerDialogResult {
 
 @Component({
   selector: 'app-composition-slot-picker-dialog',
-  imports: [MatButtonModule, MatDialogModule, MatProgressSpinnerModule],
+  imports: [MatButtonModule, MatDialogModule, MatProgressSpinnerModule, UserAvatarComponent],
   templateUrl: './composition-slot-picker-dialog.html',
   styleUrl: './composition-slot-picker-dialog.scss',
 })
@@ -47,10 +48,6 @@ export class CompositionSlotPickerDialog {
 
   protected cancel(): void {
     this.ref.close(undefined)
-  }
-
-  protected initial(name: string): string {
-    return name.charAt(0).toUpperCase()
   }
 
   protected assignedElsewhereLabel(roleKeys: string[] | null | undefined): string | null {

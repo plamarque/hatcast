@@ -32,6 +32,9 @@ class UserEntity(
     /** Pseudo membre partagé entre troupes (story 17.33). Null → résolution via displayName/email. */
     @Column(name = "member_display_name", length = 255)
     var memberDisplayName: String? = null,
+    /** Genre optionnel (story 2.12). Null → `non_specified` en lecture. */
+    @Column(name = "gender", length = 32)
+    var gender: MemberGender? = null,
     @Convert(converter = PreferredRoleKeysJsonConverter::class)
     @Column(name = "preferred_role_keys", nullable = false, length = 1024)
     var preferredRoleKeys: List<String> = emptyList(),

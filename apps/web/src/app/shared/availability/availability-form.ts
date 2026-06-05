@@ -25,12 +25,13 @@ import {
   preferredRoleIntersection,
 } from '../../core/availability/availability-role-rules'
 import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
+import type { MemberGender } from '../../core/account/member-gender'
 import {
   ROLE_EMOJIS,
-  ROLE_LABELS,
   type RoleKey,
   type RoleSlots,
 } from '../../core/events/event-types'
+import { getRoleLabel } from '../event-roles/event-roles'
 
 export const AVAILABILITY_COMMENT_MAX_LENGTH = 500
 
@@ -66,6 +67,7 @@ export class AvailabilityForm {
   readonly roleSlots = input.required<RoleSlots>()
   readonly subjectDisplayName = input.required<string>()
   readonly subjectParticipantId = input<string | null>(null)
+  readonly subjectGender = input<MemberGender | unknown>('non_specified')
   readonly readOnly = input(false)
   readonly proxyMode = input(false)
   readonly archived = input(false)
@@ -97,7 +99,7 @@ export class AvailabilityForm {
     candidateRolesForEvent(this.roleSlots()).map((key) => ({
       key,
       emoji: ROLE_EMOJIS[key],
-      label: ROLE_LABELS[key],
+      label: getRoleLabel(key, this.subjectGender()),
     })),
   )
   private preferredRoleKeysPromise: Promise<string[]> | null = null

@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common'
 import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
@@ -6,7 +7,10 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
+import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import { effectiveMemberGender, type MemberGender } from '../../core/account/member-gender'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { computeRawCompositionLifecycle } from '../../core/composition/composition-lifecycle'
 import {
@@ -17,11 +21,20 @@ import {
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
 import {
+  CONSECUTIVE_SHOW_WARNING_SHORT_LABEL,
+  formatConsecutiveShowWarningTooltip,
+} from '../../core/composition/consecutive-show-warning'
+import {
+  formatMultiRoleOnEventWarningTooltip,
+  MULTI_ROLE_ON_EVENT_WARNING_SHORT_LABEL,
+} from '../../core/composition/multi-role-on-event-warning'
+import {
   canValidateComposition,
   isEquipePrimaryAction,
   resolveEquipeToolbarLayout,
   type EquipeActionId,
 } from '../../core/composition/composition-equipe-actions'
+import { computeCompositionPlayerGenderParity } from '../../core/composition/composition-player-gender-parity'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
@@ -31,6 +44,8 @@ import {
   rolesWithSlots,
   type RoleKey,
 } from '../../core/events/event-types'
+import { auditRoleDisplay } from '../../core/audit/audit-display-labels'
+import { getRoleLabel } from '../../shared/event-roles/event-roles'
 import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
 import {
   CompositionParticipationDialog,
@@ -54,6 +69,7 @@ import {
   shareAnnounceSnackMessage,
   type ShareAnnounceNotifyResult,
 } from '../../shared/share-announce/share-announce-snack'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
 
@@ -68,20 +84,24 @@ interface SlotRow {
 @Component({
   selector: 'app-event-equipe-tab',
   imports: [
+    NgTemplateOutlet,
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
     MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTooltipModule,
     EventEquipeEmpty,
     CompositionDrawAnimation,
+    UserAvatarComponent,
   ],
   templateUrl: './event-equipe-tab.html',
   styleUrl: './event-equipe-tab.scss',
 })
 export class EventEquipeTab {
   private readonly compositionApi = inject(CompositionApiService)
+  private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly analytics = inject(ProductAnalyticsService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
@@ -304,6 +324,29 @@ export class EventEquipeTab {
     return steps[index] ?? null
   })
 
+  protected readonly playerGenderParity = computed(() =>
+    computeCompositionPlayerGenderParity(this.composition()?.slots ?? []),
+  )
+
+  protected readonly visiblePlayerGenderParity = computed(() => {
+    if (
+      !this.canManageComposition() ||
+      this.loading() ||
+      this.loadError() ||
+      this.animatingDraw() ||
+      this.drawing() ||
+      this.showEmptyState()
+    ) {
+      return null
+    }
+    return this.playerGenderParity()
+  })
+
+  /** Team-level organizer hints above the slot grid (mixité, future signals). */
+  protected readonly showCompositionGuidances = computed(
+    () => this.visiblePlayerGenderParity() != null,
+  )
+
   protected readonly slotRows = computed((): SlotRow[] => {
     const ev = this.event()
     const comp = this.composition()
@@ -439,6 +482,77 @@ export class EventEquipeTab {
     return this.canTapParticipationSlot(row) || this.canTapProxyParticipationSlot(row)
   }
 
+  protected isForeignParticipationSlot(row: SlotRow): boolean {
+    return (
+      this.isCompositionLocked() &&
+      row.slot?.participantId != null &&
+      this.hasViewerParticipantIdentity() &&
+      !this.canTapParticipationSlot(row) &&
+      !this.canTapProxyParticipationSlot(row)
+    )
+  }
+
+  protected isSlotRowTappable(row: SlotRow): boolean {
+    return (
+      this.canEditSlots() ||
+      this.canTapGapSlot(row) ||
+      this.isParticipationSlotTappable(row) ||
+      this.isForeignParticipationSlot(row)
+    )
+  }
+
+  protected isSlotRowHitDisabled(row: SlotRow): boolean {
+    return this.isParticipationSlotTappable(row) && this.updatingParticipation()
+  }
+
+  protected slotRowAriaLabel(row: SlotRow): string {
+    const role = this.rolePillLabel(
+      row.roleKey,
+      row.slot?.participantGender,
+      !!row.slot?.participantId,
+    )
+    const name = row.slot?.participantDisplayName
+    if (this.canEditSlots() || this.canTapGapSlot(row)) {
+      return name ? `Modifier ${name}, ${role}` : `Assigner ${role}`
+    }
+    if (this.isParticipationSlotTappable(row)) {
+      return name ? `Participation de ${name}, ${role}` : role
+    }
+    return name ? `${name}, ${role}` : role
+  }
+
+  protected readonly consecutiveShowWarningShortLabel = CONSECUTIVE_SHOW_WARNING_SHORT_LABEL
+
+  protected consecutiveWarningTooltip(row: SlotRow): string | null {
+    const warning = row.slot?.consecutiveShowWarning
+    const name = row.slot?.participantDisplayName
+    if (!warning || !name) {
+      return null
+    }
+    return formatConsecutiveShowWarningTooltip(warning, name)
+  }
+
+  protected onConsecutiveWarningClick(event: MouseEvent, tooltip: MatTooltip): void {
+    event.stopPropagation()
+    tooltip.toggle()
+  }
+
+  protected readonly multiRoleOnEventWarningShortLabel =
+    MULTI_ROLE_ON_EVENT_WARNING_SHORT_LABEL
+
+  protected multiRoleWarningTooltip(row: SlotRow): string | null {
+    const warning = row.slot?.multiRoleOnEventWarning
+    const name = row.slot?.participantDisplayName
+    if (!warning || !name) {
+      return null
+    }
+    return formatMultiRoleOnEventWarningTooltip(
+      warning,
+      name,
+      row.slot?.participantGender,
+    )
+  }
+
   protected onSlotRowClick(row: SlotRow): void {
     if (this.canEditSlots() || this.canTapGapSlot(row)) {
       void this.openSlotPicker(row)
@@ -452,12 +566,7 @@ export class EventEquipeTab {
       void this.openParticipationModal(row, { mode: 'proxy' })
       return
     }
-    if (
-      this.isCompositionLocked() &&
-      row.slot?.participantId &&
-      this.hasViewerParticipantIdentity() &&
-      !this.viewerParticipantIds().has(row.slot.participantId)
-    ) {
+    if (this.isForeignParticipationSlot(row)) {
       this.onForeignParticipationSlotTap()
     }
   }
@@ -530,14 +639,35 @@ export class EventEquipeTab {
       list.push(name)
       byRole.set(row.roleKey, list)
     }
+    const gendersByRole = new Map<string, (string | undefined)[]>()
+    for (const row of this.slotRows()) {
+      const name = row.slot?.participantDisplayName
+      if (!name) continue
+      const list = gendersByRole.get(row.roleKey) ?? []
+      list.push(row.slot?.participantGender ?? undefined)
+      gendersByRole.set(row.roleKey, list)
+    }
     return [...byRole.entries()].map(([roleKey, displayNames]) => ({
       roleKey: roleKey as RoleKey,
       displayNames,
+      participantGenders: gendersByRole.get(roleKey),
     }))
   }
 
-  protected declineRoleEmoji(roleKey: string): string {
-    return ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
+  protected readonly emptySlotPlaceholder = 'À pourvoir'
+
+  /** Inclusive label for empty slots; gender-aware when a participant is assigned. */
+  protected rolePillLabel(
+    roleKey: string,
+    participantGender?: MemberGender | null,
+    hasAssignee = false,
+  ): string {
+    const key = roleKey as RoleKey
+    if (hasAssignee) {
+      const emoji = ROLE_EMOJIS[key] ?? '•'
+      return `${emoji} ${getRoleLabel(key, participantGender)}`
+    }
+    return auditRoleDisplay(roleKey)
   }
 
   private findOwnAssignedParticipationRow(): SlotRow | null {
@@ -549,6 +679,32 @@ export class EventEquipeTab {
       }
     }
     return null
+  }
+
+  private viewerGenderLoad: Promise<MemberGender | undefined> | null = null
+
+  private loadViewerGender(): Promise<MemberGender | undefined> {
+    if (!this.viewerGenderLoad) {
+      this.viewerGenderLoad = this.mePreferencesApi.getPreferences().then((prefs) => {
+        const gender = prefs.ok ? prefs.data?.gender : undefined
+        return gender === 'male' || gender === 'female' ? gender : undefined
+      })
+    }
+    return this.viewerGenderLoad
+  }
+
+  private async resolveParticipationRoleGender(
+    mode: 'self' | 'proxy',
+    slotGender: MemberGender | null | undefined,
+  ): Promise<MemberGender | undefined> {
+    if (mode === 'proxy') {
+      return slotGender ?? undefined
+    }
+    const viewerGender = await this.loadViewerGender()
+    if (viewerGender === 'male' || viewerGender === 'female') {
+      return viewerGender
+    }
+    return slotGender ?? undefined
   }
 
   protected async openParticipationModal(
@@ -570,6 +726,10 @@ export class EventEquipeTab {
     }
     const ev = this.event()
     const assigneeName = slot.participantDisplayName ?? 'ce participant'
+    const roleGender = await this.resolveParticipationRoleGender(
+      options.mode,
+      slot.participantGender,
+    )
     const dialogRef = this.dialog.open<
       CompositionParticipationDialog,
       CompositionParticipationDialogData,
@@ -578,7 +738,7 @@ export class EventEquipeTab {
       data: {
         eventTitle: ev.title,
         eventDate: ev.startsAt,
-        roleLabel: row.roleLabel,
+        roleLabel: getRoleLabel(row.roleKey as RoleKey, roleGender),
         roleEmoji: row.roleEmoji,
         currentStatus: slot.participationStatus,
         mode: options.mode,
@@ -839,8 +999,12 @@ export class EventEquipeTab {
     if (!participantId) {
       return
     }
+    const selectedCandidate = step.candidates.find((c) => c.participantId === participantId)
+    const pendingSlot = this.pendingDrawComposition()?.slots.find(
+      (s) => s.roleKey === step.roleKey && s.slotIndex === step.slotIndex,
+    )
     const displayName =
-      step.candidates.find((c) => c.participantId === participantId)?.displayName ?? null
+      selectedCandidate?.displayName ?? pendingSlot?.participantDisplayName ?? null
     const slots = [...comp.slots]
     const existingIndex = slots.findIndex(
       (s) => s.roleKey === step.roleKey && s.slotIndex === step.slotIndex,
@@ -850,7 +1014,15 @@ export class EventEquipeTab {
       slotIndex: step.slotIndex,
       participantId,
       participantDisplayName: displayName,
+      participantAvatarUrl: pendingSlot?.participantAvatarUrl ?? null,
+      participantGender:
+        pendingSlot?.participantGender ??
+        (selectedCandidate?.gender != null
+          ? effectiveMemberGender(selectedCandidate.gender)
+          : null),
       participationStatus: 'pending',
+      consecutiveShowWarning: pendingSlot?.consecutiveShowWarning ?? null,
+      multiRoleOnEventWarning: pendingSlot?.multiRoleOnEventWarning ?? null,
     }
     if (existingIndex >= 0) {
       slots[existingIndex] = slot
@@ -877,7 +1049,10 @@ export class EventEquipeTab {
       CompositionSlotPickerDialogResult | undefined
     >(CompositionSlotPickerDialog, {
       data: {
-        roleLabel: row.roleLabel,
+        roleLabel: getRoleLabel(
+          row.roleKey as RoleKey,
+          row.slot?.participantGender,
+        ),
         candidates: [],
         loading: true,
         error: null,

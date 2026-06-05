@@ -96,9 +96,13 @@ Produce a **proven** (citation-backed) list of gaps between V1 production draw s
 
 ---
 
-### Finding 9: Cross-role exclusion during one draw — aligned
+### Finding 9: Cross-role exclusion during one draw — aligned (fix 2026-06-05)
 
-**Evidence:** V1 `GridBoard.vue:7277-7304` (`allAlreadySelected` / `excludedPlayers`). V2 `CompositionDrawService.kt:128-129,269-270` (`crossRoleExcluded`).
+**Evidence:** V1 `GridBoard.vue:7277-7304` (`allAlreadySelected` / `excludedPlayers`). V2 `CompositionDrawService.kt` (`crossRoleExcluded`).
+
+**Gap (fixed 2026-06-05):** V2 initially seeded `crossRoleExcluded` empty and only accumulated assignees as roles were processed in priority order. A participant **pre-assigned** on a role drawn **later** (e.g. player) could be picked again for an **earlier** role (e.g. DJ). Fix: initialize `crossRoleExcluded` from all pre-existing assignees; on full role redraw, remove that role's assignees from the set before re-pick.
+
+**Related UX:** `multiRoleOnEventWarning` — non-blocking organizer hint when manual assign stacks multiple roles on the same event (FR21 allowed).
 
 ---
 

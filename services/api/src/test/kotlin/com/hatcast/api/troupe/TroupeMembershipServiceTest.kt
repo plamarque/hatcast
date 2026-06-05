@@ -1,6 +1,7 @@
 package com.hatcast.api.troupe
 
 import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
@@ -36,6 +37,7 @@ class TroupeMembershipServiceTest {
     private val membershipSync = mock<com.hatcast.api.participant.SeasonParticipantMembershipSync>()
     private val seasonParticipantRepository = mock<SeasonParticipantRepository>()
     private val auditRecorder = mock<AuditEventRecorder>()
+    private val avatarService = mock<AvatarService>()
     private val userMemberPreferencesService =
         mock<UserMemberPreferencesService>().also { prefs ->
             whenever(prefs.resolvedMemberDisplayName(any())).thenAnswer { invocation ->
@@ -56,6 +58,7 @@ class TroupeMembershipServiceTest {
             userMemberPreferencesService,
             seasonParticipantRepository,
             auditRecorder,
+            avatarService,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

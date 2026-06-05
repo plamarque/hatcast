@@ -90,7 +90,8 @@
   }
 
   [matListItemAvatar],
-  .mat-mdc-list-item-avatar {
+  .mat-mdc-list-item-avatar,
+  app-user-avatar.availability-tous__avatar {
     width: 1.75rem;
     height: 1.75rem;
     flex-shrink: 0;
@@ -118,17 +119,6 @@
     outline: none;
     border: none;
   }
-}
-
-.availability-tous__avatar-fallback {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
-  font-size: 0.75rem;
-  font-weight: 700;
 }
 
 .availability-tous__chance {

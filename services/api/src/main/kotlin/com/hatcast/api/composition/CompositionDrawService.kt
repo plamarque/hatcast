@@ -25,6 +25,7 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
+import com.hatcast.api.user.ParticipantGenderResolver
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -53,6 +54,7 @@ class CompositionDrawService(
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
+    private val participantGenderResolver: ParticipantGenderResolver,
 ) {
     @Transactional
     fun drawComposition(
@@ -125,7 +127,16 @@ class CompositionDrawService(
                 }.groupBy { it.roleKey }
 
         val eligibleById = eligible.associateBy { it.participantId }
-        val crossRoleExcluded = mutableSetOf<UUID>()
+        val genderByParticipantId =
+            participantGenderResolver.resolveByParticipantIds(
+                eventId,
+                eligible.map { it.participantId }.toSet(),
+            )
+        val openingCrossRoleExcluded =
+            allSlots.mapNotNull { it.assignedParticipantId() }.toMutableSet()
+        // Seed from all pre-existing assignees so roles drawn earlier in priority order still
+        // exclude participants already placed on roles processed later (e.g. player before dj).
+        val crossRoleExcluded = openingCrossRoleExcluded.toMutableSet()
         val steps = mutableListOf<CompositionDrawStepDto>()
         val newlyAssignedParticipantIds = mutableListOf<UUID>()
         val slotsToPersist = mutableListOf<EventCompositionSlotEntity>()
@@ -134,8 +145,6 @@ class CompositionDrawService(
         // Roles whose existing snapshot rows are safe to replace (fully cleared and redrawn).
         val fullyRedrawnRoleKeys = mutableSetOf<String>()
 
-        val openingCrossRoleExcluded =
-            allSlots.mapNotNull { it.assignedParticipantId() }.toMutableSet()
         captureOpeningDrawSnapshots(
             requiredRoles = requiredRoles,
             normalizedSlots = normalizedSlots,
@@ -161,6 +170,11 @@ class CompositionDrawService(
             if (isFullRedraw) {
                 for (index in 0 until requiredCount) {
                     roleSlots[index]?.let { slot ->
+                        slot.assignedParticipantId()?.let { participantId ->
+                            if (!isAssignedOnAnotherRole(participantId, roleKey, allSlots)) {
+                                crossRoleExcluded.remove(participantId)
+                            }
+                        }
                         if (slot.hasAssignee()) {
                             slot.clearAssignee()
                             slot.updatedAt = now
@@ -237,6 +251,9 @@ class CompositionDrawService(
                                         displayName = it.displayName,
                                         chancePercent = it.chancePercent,
                                         weight = it.weight,
+                                        gender =
+                                            genderByParticipantId[it.participantId]
+                                                ?: "non_specified",
                                     )
                                 },
                             selectedParticipantId = null,
@@ -281,6 +298,9 @@ class CompositionDrawService(
                                     displayName = it.displayName,
                                     chancePercent = it.chancePercent,
                                     weight = it.weight,
+                                    gender =
+                                        genderByParticipantId[it.participantId]
+                                            ?: "non_specified",
                                 )
                             },
                         selectedParticipantId = selectedId,
@@ -353,6 +373,22 @@ class CompositionDrawService(
         }
         return event
     }
+
+    /**
+     * True when [participantId] still holds a slot on a role other than [roleKeyBeingRedrawn].
+     * Used before un-excluding assignees cleared by a full role redraw — manual multi-role stacks
+     * must stay cross-role excluded so auto-draw never re-picks the same person twice.
+     */
+    private fun isAssignedOnAnotherRole(
+        participantId: UUID,
+        roleKeyBeingRedrawn: String,
+        slots: List<EventCompositionSlotEntity>,
+    ): Boolean =
+        slots.any { slot ->
+            slot.hasAssignee() &&
+                slot.assignedParticipantId() == participantId &&
+                slot.roleKey != roleKeyBeingRedrawn
+        }
 
     private enum class DrawMode {
         FULL,

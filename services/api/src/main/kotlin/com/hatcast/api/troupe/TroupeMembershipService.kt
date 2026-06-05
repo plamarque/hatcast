@@ -16,6 +16,7 @@ import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
 import com.hatcast.api.agenda.AgendaTimeBoundary
+import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.participant.SeasonParticipantMembershipSync
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonRepository
@@ -50,6 +51,7 @@ class TroupeMembershipService(
     private val userMemberPreferencesService: UserMemberPreferencesService,
     private val seasonParticipantRepository: SeasonParticipantRepository,
     private val auditRecorder: AuditEventRecorder,
+    private val avatarService: AvatarService,
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
@@ -204,7 +206,7 @@ class TroupeMembershipService(
         val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "displayName"))
         val p = fetchMembershipPageWithUsers(troupeId, pageable)
         return PagedTroupeMembersResponse(
-            content = p.content.map(TroupeMemberAdminDto::from),
+            content = p.content.map { TroupeMemberAdminDto.from(it, avatarService) },
             page = p.number,
             size = p.size,
             totalElements = p.totalElements,
@@ -360,7 +362,7 @@ class TroupeMembershipService(
                     ),
                 )
             }
-            return TroupeMemberAdminDto.from(saved)
+            return TroupeMemberAdminDto.from(saved, avatarService)
         }
         val displayName = normalizeDisplayName(body.displayName)
         if (displayName != null) {
@@ -388,10 +390,10 @@ class TroupeMembershipService(
                     after = AuditSnapshots.membership(saved),
                 ),
             )
-            TroupeMemberAdminDto.from(saved)
+            TroupeMemberAdminDto.from(saved, avatarService)
         } catch (ex: DataIntegrityViolationException) {
             val concurrent = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id) ?: throw ex
-            TroupeMemberAdminDto.from(concurrent)
+            TroupeMemberAdminDto.from(concurrent, avatarService)
         }
     }
 
@@ -462,7 +464,7 @@ class TroupeMembershipService(
                 ),
             )
         }
-        return TroupeMemberAdminDto.from(saved)
+        return TroupeMemberAdminDto.from(saved, avatarService)
     }
 
     @Transactional(readOnly = true)
