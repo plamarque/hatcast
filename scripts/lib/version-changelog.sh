@@ -307,6 +307,21 @@ hatcast_staging_changelog_range() {
   echo "${prev_tag}..HEAD"
 }
 
+# User-facing changelog.json always spans the full release (rc.1 anchor), not rc.N−1..HEAD.
+# rc.2+ only adds technical commits to CHANGELOG.md; OpenAI on the delta often returns [] and
+# must not replace rc.1 notes (OPS-6 / Story 10.3).
+hatcast_staging_changelog_user_json_range() {
+  local base="$1"
+  local rc="$2"
+
+  if [[ "${rc}" -gt 1 ]]; then
+    echo "ℹ️  RC.${rc} : notes utilisateur sur plage release complète (ancre rc.1, pas rc.$((rc - 1))..HEAD)." >&2
+    hatcast_staging_changelog_range "${base}" "1"
+  else
+    hatcast_staging_changelog_range "${base}" "${rc}"
+  fi
+}
+
 # Génère le bloc ## [version] dans CHANGELOG.md (racine).
 # $1=new_version $2=build_date $3=commit_range (ex. v0.1.0..HEAD)
 hatcast_generate_changelog_md() {
@@ -537,6 +552,17 @@ hatcast_update_changelog_json_file() {
   fi
 
   mkdir -p "$(dirname "${changelog_file}")"
+
+  if [[ -f "${changelog_file}" ]] && [[ -s "${changelog_file}" ]] && jq empty "${changelog_file}" 2>/dev/null; then
+    local existing_changes new_changes
+    existing_changes="$(jq -r --arg v "${version}" \
+      '[.[] | select(.version == $v) | .changes | length] | first // 0' "${changelog_file}")"
+    new_changes="$(echo "${new_version_json}" | jq '.changes | length')"
+    if [[ "${existing_changes}" -gt 0 && "${new_changes}" -eq 0 ]]; then
+      echo "ℹ️  Entrée ${version} inchangée — nouvelles notes vides, conservation des puces existantes."
+      return 0
+    fi
+  fi
 
   if [[ -f "${changelog_file}" ]] && [[ -s "${changelog_file}" ]]; then
     if ! jq empty "${changelog_file}" 2>/dev/null; then
