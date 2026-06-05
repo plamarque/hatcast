@@ -49,22 +49,24 @@ Le build production écrit les artefacts dans `dist/web/`. Configuration : `angu
 
 Point de référence pour un futur chantier perf — comparer un nouveau `ng build` à ces chiffres pour mesurer la dérive.
 
-| Mesure | Baseline (2026-06-02) | Budget warning | Budget error |
+| Mesure | Baseline (2026-06-06) | Budget warning | Budget error |
 |--------|----------------------:|----------------|--------------|
-| Bundle **initial** (raw) | **2,16 MB** | 2,25 MB | 3 MB |
-| Bundle **initial** (transfer estimé) | **~398 kB** | — | — |
-| Styles composant (`anyComponentStyle`, max observé) | **10,55 kB** | 9 kB | 12 kB |
+| Bundle **initial** (raw) | **2,33 MB** | 2,25 MB | 3 MB |
+| Bundle **initial** (transfer estimé) | **~419 kB** | — | — |
+| Feuille **styles** globale (`styles-*.css`) | **~43 kB** | — | — |
+| Styles composant (`anyComponentStyle`, max observé) | **aucun dépassement** (max ~6,4 kB) | 9 kB | 12 kB |
 
 Fichiers SCSS les plus lourds à la baseline (candidats prioritaires si on réduit les styles) :
 
 | Fichier | Taille |
 |---------|-------:|
-| `pages/event-detail/event-equipe-tab.scss` | 10,55 kB |
 | `pages/member-home-todo/member-home-todo.scss` | 6,42 kB |
 | `shared/member-nav/member-nav.scss` | 5,47 kB |
 | `shared/audit-journal-list/audit-line-view.scss` | 5,33 kB |
 | `shared/member-profile/member-profile-dialog.scss` | 4,67 kB |
 | `shared/context-breadcrumb/context-breadcrumb.scss` | 4,47 kB |
+
+Styles onglet **Équipe** (grille, lignes, déclins) : partial global `styles/_hatcast-equipe-composition.scss` (importé dans `styles.scss`) — hors budget `anyComponentStyle` du composant `event-equipe-tab`.
 
 **Reproduire la mesure :** `npm run build -w @hatcast/web` — le résumé Angular CLI affiche « Initial total » (raw + transfer estimé). Les dépassements de budget par fichier SCSS n’apparaissent qu’en warning si le seuil est dépassé.
 
