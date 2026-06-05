@@ -53,11 +53,9 @@
               <span class="agenda-card__weekday">{{ ev.dayName }}</span>
             </div>
             <div class="agenda-card__body">
-              <div class="agenda-card__title-row">
-                <span class="agenda-card__type-icon" aria-hidden="true">{{ typeIcon(ev.templateType) }}</span>
-                <h2 class="agenda-card__title">{{ ev.title }}</h2>
-              </div>
+              <h2 class="agenda-card__title">{{ ev.title }}</h2>
               <div class="agenda-card__badges">
+                <span class="agenda-card__type-icon" aria-hidden="true">{{ typeIcon(ev.templateType) }}</span>
                 <app-composition-status-badge [badge]="ev.teamStatusBadge" />
                 @if (categoryBadgeLabel(ev); as tagLabel) {
                   <span class="agenda-card__badge agenda-card__badge--category">{{ tagLabel }}</span>
