@@ -8,6 +8,12 @@ export type CompositionVisibility =
   | 'publishedDraft'
   | 'validated'
 
+export interface ConsecutiveShowWarning {
+  previousEventId: string
+  previousEventTitle: string
+  previousEventStartsAt: string
+}
+
 export interface MultiRoleOnEventWarning {
   otherRoleKeys: string[]
 }
@@ -20,6 +26,7 @@ export interface CompositionSlot {
   participationStatus: 'pending' | 'confirmed' | 'declined'
   chancePercent?: number | null
   pastSelectionCount?: number | null
+  consecutiveShowWarning?: ConsecutiveShowWarning | null
   multiRoleOnEventWarning?: MultiRoleOnEventWarning | null
 }
 

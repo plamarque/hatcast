@@ -4,6 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.time.Instant
 import java.util.UUID
 
+data class ConsecutiveShowWarningDto(
+    val previousEventId: UUID,
+    val previousEventTitle: String,
+    val previousEventStartsAt: Instant,
+)
+
 data class MultiRoleOnEventWarningDto(
     val otherRoleKeys: List<String>,
 )
@@ -16,6 +22,7 @@ data class CompositionSlotDto(
     val participationStatus: String,
     val chancePercent: Int? = null,
     val pastSelectionCount: Int? = null,
+    val consecutiveShowWarning: ConsecutiveShowWarningDto? = null,
     val multiRoleOnEventWarning: MultiRoleOnEventWarningDto? = null,
 )
 

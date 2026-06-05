@@ -1783,6 +1783,65 @@ describe('EventEquipeTab', () => {
     })
   })
 
+  const consecutiveWarning = {
+    previousEventId: 'evt-prev',
+    previousEventTitle: 'Cabaret du 12',
+    previousEventStartsAt: '2026-06-05T17:00:00.000Z',
+  }
+
+  it('shows consecutive-show warning trigger with short label and tooltip copy for organizer', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+            consecutiveShowWarning: consecutiveWarning,
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const trigger = fixture.nativeElement.querySelector(
+        '.event-equipe-tab__consecutive-warning-trigger',
+      ) as HTMLButtonElement
+      expect(trigger).toBeTruthy()
+      expect(trigger.textContent).toContain('Joue deux fois de suite')
+      expect(trigger.querySelector('mat-icon')?.textContent?.trim()).toBe('warning_amber')
+      const ariaLabel = trigger.getAttribute('aria-label') ?? ''
+      expect(ariaLabel).toContain('Alice est dans la composition du spectacle précédent du')
+      expect(ariaLabel).toContain('« Cabaret du 12 »')
+      expect(ariaLabel).toMatch(/5 juin 2026/)
+      expect(trigger.getAttribute('mattooltiptouchgestures')).toBe('on')
+    })
+  })
+
+  it('toggles consecutive warning tooltip on tap without bubbling', () => {
+    const stopPropagation = vi.fn()
+    const toggle = vi.fn()
+    const event = { stopPropagation } as unknown as MouseEvent
+    const tooltip = { toggle }
+
+    ;(
+      fixture.componentInstance as unknown as {
+        onConsecutiveWarningClick(event: MouseEvent, tooltip: { toggle(): void }): void
+      }
+    ).onConsecutiveWarningClick(event, tooltip)
+
+    expect(stopPropagation).toHaveBeenCalled()
+    expect(toggle).toHaveBeenCalled()
+  })
+
   it('shows multi-role warning hint for organizer when participant holds two roles', async () => {
     fixture.componentRef.setInput(
       'event',
@@ -1826,6 +1885,138 @@ describe('EventEquipeTab', () => {
       expect(texts.every((t) => /Attention/.test(t))).toBe(true)
       expect(texts.some((t) => /DJ/.test(t))).toBe(true)
       expect(texts.some((t) => /Comédien/.test(t))).toBe(true)
+    })
+  })
+
+  it('hides consecutive-show hint when API omits warning', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-equipe-tab__consecutive-warning-trigger'),
+      ).toBeNull()
+    })
+  })
+
+  it('removes consecutive-show hint after slot clear', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+            consecutiveShowWarning: consecutiveWarning,
+          },
+        ],
+      },
+    })
+    assignCompositionSlot.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: null,
+            participantDisplayName: null,
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-equipe-tab__consecutive-warning-trigger'),
+      ).toBeTruthy()
+    })
+
+    const clearBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__clear',
+    ) as HTMLButtonElement
+    clearBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-equipe-tab__consecutive-warning-trigger'),
+      ).toBeNull()
+    })
+  })
+
+  it('places consecutive warning below slot name and outside slot button at 375px width', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Alice',
+            participationStatus: 'pending',
+            consecutiveShowWarning: {
+              ...consecutiveWarning,
+              previousEventTitle:
+                'Spectacle au titre très long pour vérifier la troncature sur mobile',
+            },
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    Object.defineProperty(fixture.nativeElement, 'clientWidth', {
+      configurable: true,
+      value: 375,
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const slotButton = fixture.nativeElement.querySelector(
+        '.event-equipe-tab__slot-button',
+      ) as HTMLElement
+      const trigger = fixture.nativeElement.querySelector(
+        '.event-equipe-tab__consecutive-warning-trigger',
+      ) as HTMLElement
+      expect(slotButton).toBeTruthy()
+      expect(trigger).toBeTruthy()
+      expect(slotButton.contains(trigger)).toBe(false)
+      const slotRect = slotButton.getBoundingClientRect()
+      const triggerRect = trigger.getBoundingClientRect()
+      expect(triggerRect.top).toBeGreaterThanOrEqual(slotRect.bottom - 2)
     })
   })
 

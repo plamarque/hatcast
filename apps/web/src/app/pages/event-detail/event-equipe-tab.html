@@ -34,6 +34,24 @@
     }
 
     <ng-template #slotWarningsBelow let-row="row">
+      @if (consecutiveWarningTooltip(row); as tooltip) {
+        <button
+          type="button"
+          class="event-equipe-tab__consecutive-warning-trigger"
+          #consecutiveWarningTooltip="matTooltip"
+          [matTooltip]="tooltip"
+          matTooltipPosition="below"
+          matTooltipTouchGestures="on"
+          matTooltipShowDelay="0"
+          matTooltipHideDelay="1500"
+          matTooltipClass="event-equipe-tab__consecutive-warning-tooltip"
+          (click)="onConsecutiveWarningClick($event, consecutiveWarningTooltip)"
+          [attr.aria-label]="tooltip"
+        >
+          <mat-icon aria-hidden="true">warning_amber</mat-icon>
+          <span>{{ consecutiveShowWarningShortLabel }}</span>
+        </button>
+      }
       @if (multiRoleWarningMessage(row); as multiRoleMsg) {
         <span class="event-equipe-tab__multi-role-warning" role="note">
           <mat-icon aria-hidden="true">warning_amber</mat-icon>

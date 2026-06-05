@@ -438,6 +438,20 @@ components:
       type: string
       enum: [none, organizerDraft, publishedDraft, validated]
 
+    ConsecutiveShowWarning:
+      type: object
+      required: [previousEventId, previousEventTitle, previousEventStartsAt]
+      description: Non-blocking hint when assignee held the same role on the immediately preceding validated show in the same category compartment (organizer only).
+      properties:
+        previousEventId:
+          type: string
+          format: uuid
+        previousEventTitle:
+          type: string
+        previousEventStartsAt:
+          type: string
+          format: date-time
+
     MultiRoleOnEventWarning:
       type: object
       required: [otherRoleKeys]
@@ -471,6 +485,10 @@ components:
           nullable: true
         pastSelectionCount:
           type: integer
+          nullable: true
+        consecutiveShowWarning:
+          allOf:
+            - $ref: '#/components/schemas/ConsecutiveShowWarning'
           nullable: true
         multiRoleOnEventWarning:
           allOf:

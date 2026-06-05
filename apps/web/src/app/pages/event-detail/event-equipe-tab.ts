@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
+import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { computeRawCompositionLifecycle } from '../../core/composition/composition-lifecycle'
@@ -17,6 +18,10 @@ import {
   type CompositionSlot,
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
+import {
+  CONSECUTIVE_SHOW_WARNING_SHORT_LABEL,
+  formatConsecutiveShowWarningTooltip,
+} from '../../core/composition/consecutive-show-warning'
 import { formatMultiRoleOnEventWarningMessage } from '../../core/composition/multi-role-on-event-warning'
 import {
   canValidateComposition,
@@ -77,6 +82,7 @@ interface SlotRow {
     MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTooltipModule,
     EventEquipeEmpty,
     CompositionDrawAnimation,
   ],
@@ -440,6 +446,22 @@ export class EventEquipeTab {
 
   protected isParticipationSlotTappable(row: SlotRow): boolean {
     return this.canTapParticipationSlot(row) || this.canTapProxyParticipationSlot(row)
+  }
+
+  protected readonly consecutiveShowWarningShortLabel = CONSECUTIVE_SHOW_WARNING_SHORT_LABEL
+
+  protected consecutiveWarningTooltip(row: SlotRow): string | null {
+    const warning = row.slot?.consecutiveShowWarning
+    const name = row.slot?.participantDisplayName
+    if (!warning || !name) {
+      return null
+    }
+    return formatConsecutiveShowWarningTooltip(warning, name)
+  }
+
+  protected onConsecutiveWarningClick(event: MouseEvent, tooltip: MatTooltip): void {
+    event.stopPropagation()
+    tooltip.toggle()
   }
 
   protected multiRoleWarningMessage(row: SlotRow): string | null {
@@ -865,6 +887,7 @@ export class EventEquipeTab {
       participantId,
       participantDisplayName: displayName,
       participationStatus: 'pending',
+      consecutiveShowWarning: pendingSlot?.consecutiveShowWarning ?? null,
       multiRoleOnEventWarning: pendingSlot?.multiRoleOnEventWarning ?? null,
     }
     if (existingIndex >= 0) {
