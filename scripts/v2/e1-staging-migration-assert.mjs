@@ -8,6 +8,7 @@
  *
  * Env (CI staging environment):
  *   HATCAST_DATASOURCE_URL | NEON_STAGING_URL | HATCAST_MIGRATE_DATABASE_URL
+ *   HATCAST_DATASOURCE_USERNAME + HATCAST_DATASOURCE_PASSWORD (when JDBC URL has no userinfo)
  *   HATCAST_E2E_TROUPE_SLUG (default la-malice)
  *   HATCAST_E2E_SEASON_SLUG (required)
  *   HATCAST_E2E_EVENTS_EXPECTED (default 55)
@@ -16,6 +17,7 @@
  *   HATCAST_E2E_DEPLACEMENTS_TOLERANCE (default 0)
  */
 
+import { buildPostgresConnectionUrl } from '../migrate-malice-load.mjs'
 import { withClient } from './migrate-lib/neon.mjs'
 
 function parseArgs(argv) {
@@ -40,11 +42,17 @@ function parseArgs(argv) {
     }
   }
   out.seasonSlug = out.seasonSlug ?? process.env.HATCAST_E2E_SEASON_SLUG?.trim()
-  out.databaseUrl =
+  const rawDatabaseUrl =
     out.databaseUrl ??
     process.env.HATCAST_DATASOURCE_URL?.trim() ??
     process.env.NEON_STAGING_URL?.trim() ??
     process.env.HATCAST_MIGRATE_DATABASE_URL?.trim()
+  out.databaseUrl = rawDatabaseUrl
+    ? buildPostgresConnectionUrl(rawDatabaseUrl, {
+        username: process.env.HATCAST_DATASOURCE_USERNAME,
+        password: process.env.HATCAST_DATASOURCE_PASSWORD ?? '',
+      })
+    : undefined
   return out
 }
 

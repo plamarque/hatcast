@@ -34,6 +34,8 @@ jobs:
       HATCAST_E2E_EVENT_DRAW_SLUG: ${{ vars.HATCAST_E2E_EVENT_DRAW_SLUG }}
       HATCAST_E2E_EVENT_PENDING_SLUG: ${{ vars.HATCAST_E2E_EVENT_PENDING_SLUG }}
       HATCAST_DATASOURCE_URL: ${{ secrets.HATCAST_DATASOURCE_URL }}
+      HATCAST_DATASOURCE_USERNAME: ${{ secrets.HATCAST_DATASOURCE_USERNAME }}
+      HATCAST_DATASOURCE_PASSWORD: ${{ secrets.HATCAST_DATASOURCE_PASSWORD }}
     steps:
       - name: Check required configuration
         run: |
@@ -46,6 +48,8 @@ jobs:
           test -n "${HATCAST_E2E_SEASON_SLUG}" || (echo "Missing var HATCAST_E2E_SEASON_SLUG on environment staging" && exit 1)
           test -n "${HATCAST_E2E_MEMBER_SLUG}" || (echo "Missing var HATCAST_E2E_MEMBER_SLUG on environment staging" && exit 1)
           test -n "${HATCAST_DATASOURCE_URL}" || (echo "Missing secret HATCAST_DATASOURCE_URL (Neon staging)" && exit 1)
+          test -n "${HATCAST_DATASOURCE_USERNAME}" || (echo "Missing secret HATCAST_DATASOURCE_USERNAME (Neon staging)" && exit 1)
+          test -n "${HATCAST_DATASOURCE_PASSWORD}" || (echo "Missing secret HATCAST_DATASOURCE_PASSWORD (Neon staging)" && exit 1)
 
       - uses: actions/checkout@v4
 

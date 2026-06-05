@@ -193,6 +193,7 @@ Le job T2 est déclenché automatiquement par [`deploy-v2-cloud-run.yml`](../../
 | `HATCAST_E2E_ORGA_EMAIL` / `HATCAST_E2E_ORGA_PASSWORD` | secrets | Login desktop orga (Identity Platform) |
 | `HATCAST_E2E_MEMBER_EMAIL` / `HATCAST_E2E_MEMBER_PASSWORD` | secrets | Login mobile membre |
 | `HATCAST_DATASOURCE_URL` | secret | JDBC Neon staging (assert migration §6) |
+| `HATCAST_DATASOURCE_USERNAME` / `HATCAST_DATASOURCE_PASSWORD` | secrets | Credentials Neon (même paire que deploy Cloud Run ; requis par `pg` pour §6) |
 | `HATCAST_E2E_TROUPE_SLUG` | variable | défaut `la-malice` |
 | `HATCAST_E2E_SEASON_SLUG` | variable | slug saison Malice migrée (ex. `malice-2025-2026`) |
 | `HATCAST_E2E_MEMBER_SLUG` | variable | slug utilisateur membre test (`/membre/{slug}`) |
@@ -224,6 +225,8 @@ export HATCAST_E2E_MEMBER_SLUG="…"
 
 # §6 migration (Neon staging)
 export HATCAST_DATASOURCE_URL="jdbc:postgresql://…"
+export HATCAST_DATASOURCE_USERNAME="…"
+export HATCAST_DATASOURCE_PASSWORD="…"
 node scripts/v2/e1-staging-migration-assert.mjs
 
 # PWA

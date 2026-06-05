@@ -8,6 +8,8 @@ import {
   planLoad,
   resolveExpectHost,
   normalizePostgresUrl,
+  buildPostgresConnectionUrl,
+  resolveHatcastDatasourceUrl,
 } from '../migrate-malice-load.mjs'
 
 const STAGING_URL =
@@ -157,6 +159,37 @@ describe('migrate-malice-load — normalizePostgresUrl', () => {
       ),
       'postgresql://neondb_owner:secret@ep-plain-mode-al95cugr-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require',
     )
+  })
+})
+
+describe('migrate-malice-load — buildPostgresConnectionUrl', () => {
+  const jdbcHostOnly =
+    'jdbc:postgresql://ep-plain-mode-al95cugr-pooler.eu-west9.aws.neon.tech:5432/neondb?sslmode=require'
+
+  it('injects Spring datasource username/password when JDBC URL has no userinfo', () => {
+    const url = buildPostgresConnectionUrl(jdbcHostOnly, {
+      username: 'neondb_owner',
+      password: 'secret',
+    })
+    assert.match(url, /^postgresql:\/\/neondb_owner:secret@ep-plain-mode/)
+    assert.match(url, /sslmode=require/)
+  })
+
+  it('leaves URL unchanged when userinfo is already present', () => {
+    const withCreds = 'postgresql://u:p@ep-plain-mode-al95cugr.eu/neondb?sslmode=require'
+    assert.equal(
+      buildPostgresConnectionUrl(withCreds, { username: 'ignored', password: 'ignored' }),
+      withCreds,
+    )
+  })
+
+  it('resolveHatcastDatasourceUrl merges HATCAST_DATASOURCE_* env', () => {
+    const url = resolveHatcastDatasourceUrl({
+      HATCAST_DATASOURCE_URL: jdbcHostOnly,
+      HATCAST_DATASOURCE_USERNAME: 'neondb_owner',
+      HATCAST_DATASOURCE_PASSWORD: 'secret',
+    })
+    assert.match(url, /^postgresql:\/\/neondb_owner:secret@/)
   })
 })
 
