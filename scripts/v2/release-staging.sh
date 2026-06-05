@@ -252,10 +252,14 @@ BUILD_DATE="$(date +%Y-%m-%d)"
 GIT_HASH="$(git rev-parse --short HEAD)"
 BUILD_TIME="$(date '+%Y-%m-%dT%H:%M:%S%z')"
 COMMIT_RANGE="$(hatcast_staging_changelog_range "${NEW_VERSION}" "${RC_NUM}")"
+USER_CHANGELOG_RANGE="$(hatcast_staging_changelog_user_json_range "${NEW_VERSION}" "${RC_NUM}")"
 
 echo "📋 Version produit : ${NEW_VERSION}"
 echo "📋 Tag RC : ${RELEASE_TAG_NAME} (rc.${RC_NUM})"
 echo "📋 Plage CHANGELOG : ${COMMIT_RANGE}"
+if [[ "${USER_CHANGELOG_RANGE}" != "${COMMIT_RANGE}" ]]; then
+  echo "📋 Plage changelog.json (utilisateur) : ${USER_CHANGELOG_RANGE}"
+fi
 
 if [[ "${DRY_RUN}" == true ]]; then
   echo "🤔 Confirmation release ${RELEASE_TAG_NAME} : oui (dry-run)"
@@ -283,7 +287,7 @@ hatcast_mirror_changelog_fr "${NEW_VERSION}" "${BUILD_DATE}"
 if [[ "${NO_USER_CHANGELOG}" == true ]]; then
   echo "⏭️  ${CHANGELOG_JSON} inchangé (--no-user-changelog)"
 else
-  hatcast_generate_changelog_json_for_release "${NEW_VERSION}" "${BUILD_DATE}" "${COMMIT_RANGE}" "false"
+  hatcast_generate_changelog_json_for_release "${NEW_VERSION}" "${BUILD_DATE}" "${USER_CHANGELOG_RANGE}" "false"
 fi
 
 if [[ -f CHANGELOG.md ]]; then
