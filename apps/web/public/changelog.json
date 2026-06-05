@@ -2,9 +2,7 @@
   {
     "version": "2.1.0",
     "date": "2026-06-06",
-    "changes": [
-      "🐛 La fenêtre de formulaire d'événement est maintenant bien adaptée pour mobile."
-    ]
+    "changes": []
   },
   {
     "version": "2.0.4",
