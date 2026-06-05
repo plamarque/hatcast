@@ -17,22 +17,94 @@
 
   <div class="event-infos__field">
     <span class="event-infos__label">Date</span>
-    <div class="event-infos__value event-infos__value--with-icon">
-      <mat-icon aria-hidden="true">event</mat-icon>
-      <span>{{ formatDate(event().startsAt) }}</span>
-    </div>
+    @if (dateExportEnabled()) {
+      <button
+        type="button"
+        class="event-infos__action-row"
+        [matMenuTriggerFor]="calendarMenu"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="calendarMenuOpen()"
+        aria-label="Ajouter à votre agenda"
+        (menuOpened)="onCalendarMenuOpened()"
+        (menuClosed)="onCalendarMenuClosed()"
+      >
+        <mat-icon aria-hidden="true">event</mat-icon>
+        <span class="event-infos__action-text">{{ formatDate(event().startsAt) }}</span>
+        <mat-icon
+          class="event-infos__chevron"
+          [class.event-infos__chevron--open]="calendarMenuOpen()"
+          aria-hidden="true"
+        >
+          expand_more
+        </mat-icon>
+      </button>
+      <mat-menu
+        #calendarMenu="matMenu"
+        class="event-infos__menu-panel"
+        aria-label="Options d'agenda"
+      >
+        <div class="event-infos__menu-header" matMenuItem disabled>
+          Ajouter à votre agenda :
+        </div>
+        <button type="button" mat-menu-item (click)="exportToGoogleCalendar()">
+          Google
+        </button>
+        <button type="button" mat-menu-item (click)="exportToOutlook()">
+          Outlook
+        </button>
+        <button type="button" mat-menu-item (click)="exportToAppleCalendar()">
+          Apple
+        </button>
+      </mat-menu>
+    } @else {
+      <div class="event-infos__action-row event-infos__action-row--disabled">
+        <mat-icon aria-hidden="true">event</mat-icon>
+        <span class="event-infos__action-text event-infos__action-text--muted">
+          {{ formatDate(event().startsAt) }}
+        </span>
+      </div>
+    }
   </div>
 
   <div class="event-infos__field">
     <span class="event-infos__label">Lieu</span>
-    <div class="event-infos__value event-infos__value--with-icon">
-      <mat-icon aria-hidden="true">place</mat-icon>
-      @if (event().location) {
-        <span>{{ event().location }}</span>
-      } @else {
+    @if (locationInteractive()) {
+      <button
+        type="button"
+        class="event-infos__action-row"
+        [matMenuTriggerFor]="mapsMenu"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="mapsMenuOpen()"
+        aria-label="Ouvrir le lieu dans une appli de navigation"
+        [title]="event().location!"
+        (menuOpened)="onMapsMenuOpened()"
+        (menuClosed)="onMapsMenuClosed()"
+      >
+        <mat-icon aria-hidden="true">place</mat-icon>
+        <span class="event-infos__action-text event-infos__action-text--truncate">{{
+          event().location
+        }}</span>
+        <mat-icon
+          class="event-infos__chevron"
+          [class.event-infos__chevron--open]="mapsMenuOpen()"
+          aria-hidden="true"
+        >
+          expand_more
+        </mat-icon>
+      </button>
+      <mat-menu #mapsMenu="matMenu" class="event-infos__menu-panel">
+        <button type="button" mat-menu-item (click)="openGoogleMaps()">
+          Ouvrir dans Google Maps
+        </button>
+        <button type="button" mat-menu-item (click)="openWaze()">
+          Ouvrir dans Waze
+        </button>
+      </mat-menu>
+    } @else {
+      <div class="event-infos__value">
         <span class="event-infos__empty">Non renseigné</span>
-      }
-    </div>
+      </div>
+    }
   </div>
 
   <section class="event-infos__format" aria-labelledby="event-infos-format-label">

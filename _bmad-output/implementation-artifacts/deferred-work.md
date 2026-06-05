@@ -74,3 +74,9 @@
 ## Deferred from: code review (6-18-aide-contextuelle-statut-composition.md — 2026-06-05)
 
 - Pas de gestion du focus à l’ouverture du panneau reveal — hors AC story 6.18 ; amélioration a11y disclosure (pattern ARIA).
+
+---
+
+## Deferred from: code review of 6-19-export-calendrier-et-navigation-lieu-onglet-infos (2026-06-05)
+
+- `::ng-deep` sur `.event-infos__menu-panel` pour `max-height` safe-area — waiver M3-5 documenté ; alternative `overlayPanelClass` globale reportée (pattern overlay existant dans le repo).
