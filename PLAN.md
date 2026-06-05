@@ -341,6 +341,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **Post-MVP** | Stats prestige saison | **Epic 20** **20.6→20.7** (Wave 2) | Score agrégé participant |
 | **Post-MVP** | Facteur tirage prestige | **Epic 19** **19.13** (Wave C) | Malus 2ᵉ critère — after **19.6** + **20.6** |
 | **Post-MVP** | Polish compo (pilote) | **6.11** | Feedback visuel + perfs onglet Équipe (profilage) |
+| **Post-MVP** | Genre & parité V1 | **2.12–2.12c**, **6.21**, **16.3** | Profil genre, libellés, avatars ; hint parité ; stats ; prérequis **19.11** |
 | **Post-MVP** | Transverse | **5.4+**, **6.10**, **Epics 4**, **7–11**, **15** | Selon priorité produit ; **5.5**, **6.8** livrés pour pilote |
 
 **Ordre de session suggéré (2 stories max — règle retro) :**
@@ -473,6 +474,18 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | **6.15** | Refonte modales annonces + notify manuel simplifié | **P0** | done | M3 ; copy/WhatsApp ; anti-spam (pattern **6.10b**) ; intents draw/compo/dispos |
 | **6.17** | Dispatch annonce manuelle + `lastNotifiedAt` canal | **P0** | [x] done | Story [6-17](_bmad-output/implementation-artifacts/6-17-dispatch-annonce-manuelle-transparence-dates.md) |
 | **6.18** | Aide contextuelle statut composition + espacement chrome détail | **P2** | done | UX [ux-design-composition-status-help.md](_bmad-output/planning-artifacts/ux-design-composition-status-help.md) ; G-002 pilote |
+| **6.21** | Hint parité genre sur composition (rôle `player`) | **P2** | backlog | G-011 ; depends **2.12** ; SCP [2026-06-05](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-05-member-gender-parity.md) |
+
+#### Wave C2 — Genre membre & parité (V1 parity — SCP 2026-06-05 G-011)
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **2.12** | Genre optionnel — profil, API, Mon compte | **P1** | backlog | Fondation ; gate **`bmad-spec`** + **`bmad-ux`** avant dev |
+| **2.12b** | Libellés de rôles adaptés au genre | **P1** | backlog | depends **2.12** ; port V1 `getRoleLabel` |
+| **2.12c** | Avatars de repli selon genre | **P1** | backlog | depends **2.12**, **2.6** |
+| **16.3** | Stats parité genre saison (`player`) | **P2** | backlog | depends **2.12** ; expose agrégat optionnel |
+
+**Tirage (plus tard) :** **19.11** facteur parité genre — depends **2.12** + **19.6** (inchangé Epic 19).
 
 #### Wave D — Pipeline release (OPS)
 

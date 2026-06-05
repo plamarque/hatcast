@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-05T14:00:00+02:00
+# last_updated: 2026-06-05T18:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-05T14:00:00+02:00"
+last_updated: "2026-06-05T18:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -83,6 +83,9 @@ development_status:
   2-8-admin-membres-route-ui-ux-dr10: done
   2-9-post-login-et-derniere-ligue-visitee-v1-parity: done
   2-10-liste-membres-corriger-n1-emails: done
+  2-12-genre-optionnel-profil-membre-api-mon-compte: backlog  # P1 — SCP 2026-06-05 G-011 ; V1 parity foundation
+  2-12b-libelles-roles-adaptes-genre: backlog  # P1 — depends 2.12
+  2-12c-avatars-repli-selon-genre: backlog  # P1 — depends 2.12, 2.6
   epic-2-retrospective: done
 
   epic-3: in-progress  # 3.21 draft/publish — SCP 2026-06-01 notifications
@@ -139,6 +142,7 @@ development_status:
   6-17-dispatch-annonce-manuelle-transparence-dates: done  # tech-spec-share-announce-transparency-6-17.md
   6-18-aide-contextuelle-statut-composition: done  # UX ux-design-composition-status-help.md — approved 2026-06-05
   6-19-export-calendrier-et-navigation-lieu-onglet-infos: done  # UX ux-hatcast-2026-06-05 EXPERIENCE.md — parité V1 calendrier + maps Infos
+  6-21-hint-parite-genre-composition-player: backlog  # P2 — SCP 2026-06-05 G-011 ; depends 2.12
   epic-6-retrospective: optional
 
   epic-7: backlog
@@ -210,6 +214,7 @@ development_status:
   epic-16: in-progress
   16-1-route-membre-saison-clin-oeil-filtres: done
   16-2-statistiques-avatar-navigation-profil-membre: done
+  16-3-statistiques-parite-genre-saison-player: backlog  # P2 — SCP 2026-06-05 G-011 ; depends 2.12
   epic-16-retrospective: optional
 
   epic-17: in-progress

@@ -255,7 +255,7 @@ Les utilisateurs peuvent **créer un compte** et se connecter (**Google** ou **e
 
 ### Epic 2 — Troupes, adhésion et profil membre
 
-Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des membres et rôles de base par les admins, **import/export CSV des membres** (migration V1→V2 et administration), navigation entre troupes, pseudo par troupe et avatar (y compris image Google).
+Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des membres et rôles de base par les admins, **import/export CSV des membres** (migration V1→V2 et administration), navigation entre troupes, pseudo par troupe, **genre optionnel sur le profil compte** (libellés de rôles et avatars adaptés, V1 parity — stories **2.12–2.12c**), et avatar (y compris image Google).
 
 **FRs couverts :** FR6, FR7, FR8, FR9, FR10, FR42
 
@@ -647,6 +647,51 @@ afin de comprendre mon activité dans la saison.
 - **Given** le périmètre produit pour les rôles favoris troupe, **when** le membre configure ses rôles favoris depuis le popover ou l’écran associé, **then** ces préférences sont persistées et utilisées pour la pré-sélection en Story 5.2 (FR46).
 - **Given** le CTA « Planning » (ou libellé équivalent), **when** l’utilisateur l’active, **then** il est conduit au flux agenda/liste prévu.
 - **Couverture :** UX-DR8 (interim popover) ; **FR58–FR59 → Story 16.1** ; FR46 ; FR9/FR10.
+
+---
+
+#### Story 2.12 : Genre optionnel — profil membre, API, Mon compte *(P1 — SCP 2026-06-05 G-011)*
+
+En tant que **membre**,  
+je veux **déclarer optionnellement mon genre** sur mon profil compte,  
+afin que l’application puisse **personnaliser libellés et avatars** tout en laissant **Non précisé** pour la notation inclusive.
+
+**Acceptance Criteria**
+
+1. **Given** un utilisateur connecté, **when** il ouvre **Mon compte → Mon profil**, **then** un contrôle **Genre** propose **Homme**, **Femme**, **Non précisé** (défaut).
+2. **Given** un enregistrement, **when** l’API persiste, **then** `users.gender` vaut `male` | `female` | `non_specified`.
+3. **Given** genre absent ou `non_specified`, **when** un libellé de rôle est affiché, **then** la forme inclusive actuelle est conservée.
+4. **Given** import V1, **when** backfill s’exécute, **then** mapping V1 → V2 documenté dans la story (voir SCP G-011).
+5. **Couverture :** FR9/FR10 ; parité V1. **Priorité :** P1. **Depends :** **17.36** (done). **Blocks :** **2.12b**, **19.11**. **UX :** [ux-design-member-gender-parity.md](ux-design-member-gender-parity.md). **SCP :** [sprint-change-proposal-2026-06-05-member-gender-parity.md](sprint-change-proposal-2026-06-05-member-gender-parity.md).
+
+---
+
+#### Story 2.12b : Libellés de rôles adaptés au genre *(P1 — SCP 2026-06-05)*
+
+En tant que **membre ou organisateur**,  
+je veux des **libellés de rôles accordés au genre déclaré** (ex. Comédienne),  
+afin d’éviter la notation avec point médian quand le genre est connu.
+
+**Acceptance Criteria**
+
+1. **Given** les tables V1 portées côté web, **when** `getRoleLabel(role, gender)` est appelé, **then** le résultat correspond à V1 `storage.js` pour tous les `RoleKeys.ALL`.
+2. **Given** dispos, équipe, confirmations, **when** le genre participant est connu, **then** les libellés utilisent ce genre.
+3. **Given** `non_specified`, **when** affichage, **then** libellés inclusifs inchangés.
+4. **Couverture :** parité V1. **Priorité :** P1. **Depends :** **2.12**.
+
+---
+
+#### Story 2.12c : Avatars de repli selon le genre *(P1 — SCP 2026-06-05)*
+
+En tant que **membre**,  
+je veux un **avatar par défaut distinct** selon mon genre quand je n’ai pas de photo,  
+afin d’être identifiable visuellement (parité V1).
+
+**Acceptance Criteria**
+
+1. **Given** pas d’avatar custom ni Google, **when** rendu, **then** emoji 👨 / 👩 / 👤 selon genre (V1 `playerAvatars.js`).
+2. **Given** photo custom ou Google, **when** affichage, **then** pas d’emoji genre.
+3. **Couverture :** FR10. **Priorité :** P1. **Depends :** **2.12**, **2.6** (done).
 
 ---
 
@@ -1080,6 +1125,42 @@ afin de relancer sans attendre les rappels automatiques, tout en évitant le spa
 
 ---
 
+#### Story 6.20 : Avertissement rejeu spectacle précédent (même rôle, même compartiment) *(P2 — SCP 2026-06-05)*
+
+En tant qu’**organisateur** constituant l’équipe,  
+je veux un **avertissement visible mais non bloquant** sur un créneau lorsque la personne assignée occupait **déjà le même rôle** au **spectacle validé chronologiquement précédent** dans le **même compartiment** (catégorie),  
+afin de **décider en connaissance de cause** de maintenir ou changer ce choix.
+
+**Acceptance Criteria**
+
+1. **Given** la position chronologique et le compartiment (`SpectacleCategory.slug`) de l’événement courant, **when** le système résout le prédécesseur immédiat, **then** c’est le dernier événement antérieur de la saison dans le **même compartiment** avec composition **validée** (non archivé).
+2. **Given** aucun prédécesseur, **when** un créneau est assigné, **then** aucun avertissement.
+3. **Given** un prédécesseur P et une assignation (participant X, rôle R), **when** X occupait R sur P (slot validé, non `DECLINED`), **then** le créneau affiche un hint inline avec **titre** et **date** de P (FR, sans modale).
+4. **Given** P dans un **compartiment différent**, **when** assignation, **then** **pas** d’avertissement (ex. déplacement puis apéro/principal).
+5. **Given** une composition **brouillon**, **when** l’assignation déclenche l’avertissement, **then** il reste visible pour les orgas (prévention avant validation).
+6. **Given** assignation **manuelle** ou **tirage auto**, **when** les slots sont persistés, **then** même comportement après refresh API.
+7. **Given** un avertissement affiché, **when** l’orga retire ou remplace le slot, **then** l’avertissement disparaît ou se met à jour.
+8. **Given** le hint UI, **when** rendu, **then** tokens Material 3 warning ; checklist [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) ; pas de modale.
+9. **Couverture :** FR21 (UX assignation) ; complète sans implémenter **19.9** (facteur tirage). **Priorité :** P2. **Depends :** **6.5**, **17.7**. **UX :** [ux-design-composition-consecutive-show-warning.md](ux-design-composition-consecutive-show-warning.md). **SCP :** [sprint-change-proposal-2026-06-05-composition-consecutive-show-warning.md](sprint-change-proposal-2026-06-05-composition-consecutive-show-warning.md).
+
+---
+
+#### Story 6.21 : Hint parité de genre sur composition (rôle player) *(P2 — SCP 2026-06-05 G-011)*
+
+En tant qu’**organisateur** constituant l’équipe,  
+je veux un **résumé compact de parité F/H** sur les créneaux **Comédien·ne** (`player`) du brouillon,  
+afin de **voir l’équilibre** sans que mes choix soient bloqués.
+
+**Acceptance Criteria**
+
+1. **Given** un brouillon avec créneaux `player` remplis, **when** l’onglet Équipe s’affiche, **then** une bande informative montre les effectifs F/M (genres connus uniquement).
+2. **Given** aucun genre connu sur les `player` assignés, **when** affichage, **then** pas de ratio ou copy « parité non calculable » (UX spec).
+3. **Given** modification des slots, **when** refresh API, **then** le hint se met à jour.
+4. **Given** le hint, **when** rendu, **then** ton informatif M3 ; pas de modale ; non bloquant.
+5. **Couverture :** FR21. **Priorité :** P2. **Depends :** **2.12**, **6.5** (done). **UX :** [ux-design-member-gender-parity.md](ux-design-member-gender-parity.md) § Équipe parity strip. **SCP :** [sprint-change-proposal-2026-06-05-member-gender-parity.md](sprint-change-proposal-2026-06-05-member-gender-parity.md).
+
+---
+
 ### Epic 7 — Invitations self-service et contributeurs externes (post-MVP)
 
 #### Story 7.1 : Invitations self-service pour contributeurs externes *(post-MVP)*
@@ -1498,6 +1579,20 @@ afin de suivre ma participation et consulter celle des autres membres autorisés
 - **Couverture :** FR55, FR58–FR59 ; UX-DR8.
 
 **Story file:** [_bmad-output/implementation-artifacts/16-1-route-membre-saison-clin-oeil-filtres.md](../implementation-artifacts/16-1-route-membre-saison-clin-oeil-filtres.md)
+
+---
+
+#### Story 16.3 : Statistiques de parité de genre (saison, rôle player) *(P2 — SCP 2026-06-05 G-011)*
+
+En tant que **membre ou organisateur**,  
+je veux voir des **statistiques agrégées de parité F/H** sur les participations **Comédien·ne** validées dans la saison,  
+afin de **suivre l’équilibre** de la troupe sans identifier les individus.
+
+**Acceptance Criteria**
+
+1. **Given** compositions validées, **when** stats saison sont calculées, **then** l’API retourne effectifs F/M et part F sur rôle `player` (genres connus seulement).
+2. **Given** affichage UI (surface PO : Statistiques ligue ou profil), **when** rendu, **then** agrégat clairement libellé ; pas de fiche individuelle par genre.
+3. **Couverture :** extension FR60. **Priorité :** P2. **Depends :** **2.12**, infra stats **3.6** (done). **SCP :** [sprint-change-proposal-2026-06-05-member-gender-parity.md](sprint-change-proposal-2026-06-05-member-gender-parity.md).
 
 ---
 
@@ -2310,6 +2405,8 @@ En tant qu **organisateur**,
 je veux **pénaliser ou interdire** de retirer quelqu’un qui vient de jouer au spectacle précédent,  
 afin de **rotations** plus équitables.
 
+**Note (SCP 2026-06-05):** même définition de « spectacle précédent » / compartiment que **6.20** (avertissement UX informatif) — réutiliser le resolver SQL ; **6.20** ne pénalise pas le tirage.
+
 **Acceptance Criteria**
 
 1. **Given** config troupe (seuil / ban), **when** candidat a joué l’événement chronologiquement précédent (même saison, même compartiment si **19.8**), **then** multiplicateur malus ou **exclusion** du pool.
@@ -2343,7 +2440,7 @@ afin d’**équilibrer** la composition.
 
 1. **Given** genre membre disponible (`gender` / non spécifié), **when** facteur activé avec cible PO, **then** multiplicateur appliqué sans exclure « non spécifié » sauf règle SPEC.
 2. **Given** facteur off, **when** tirage, **then** V1 strict.
-3. **Priorité :** P2 backlog. **Depends :** 19.6, **2.x** profil genre.
+3. **Priorité :** P2 backlog. **Depends :** 19.6, **2.12** (genre profil membre).
 
 ---
 
