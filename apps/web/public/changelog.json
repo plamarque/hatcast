@@ -3,13 +3,9 @@
     "version": "2.1.0",
     "date": "2026-06-06",
     "changes": [
-      "✨ Mon compte — tu peux renseigner ton genre sur ton profil (optionnel)",
-      "✨ Équipe — indication de mixité et lignes de rôles plus lisibles sur la composition",
-      "✨ Composition — alerte si tu enchaînes plusieurs spectacles d'affilée",
-      "✨ Infos spectacle — ajoute la date à ton calendrier et ouvre le lieu dans Plans",
-      "✨ Tirage — meilleure prise en compte des multi-rôles et des joueurs déjà tirés ailleurs",
-      "✨ Équipe — texte d'aide sur le statut de composition (à compléter, à valider…)",
-      "🔧 Mobile — formulaire d'événement, menu admin et onglet dispos plus confortables"
+      "✨ Exporter ton spectacle directement dans ton calendrier depuis l'onglet Infos.",
+      "✨ Accède facilement aux cartes de localisation pour tes événements dans l'onglet Infos.",
+      "🐛 La fenêtre de formulaire d'événement s'affiche correctement sur mobile."
     ]
   },
   {

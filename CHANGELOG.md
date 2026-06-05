@@ -2,6 +2,20 @@
 
 ## [2.1.0] - 2026-06-06
 
+### 🔧 Improvements
+- refactor(web): Extract équipe tab SCSS for budget
+
+### 🐛 Bug Fixes
+- fix(ops): Preserve 2.1.0 user changelog across RCs
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): sync release v2.1.0-rc.2 artifacts to v2
+
+---
+
+## [2.1.0] - 2026-06-06
+
 ### 🐛 Bug Fixes
 - fix(e2e): Stabilize smoke agenda and organizer labels
 
