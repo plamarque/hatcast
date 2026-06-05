@@ -1,8 +1,11 @@
 .form {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  min-width: min(100vw - 3rem, 24rem);
+  max-width: 24rem;
+  padding-top: 0.5rem;
+  width: 100%;
 }
 
 .publish-draft-toggle,
@@ -11,13 +14,16 @@
 }
 
 .full {
+  min-width: 0;
   width: 100%;
 }
 
 .datetime-section {
   border: none;
   margin: 0;
+  min-width: 0;
   padding: 0;
+  width: 100%;
 }
 
 .datetime-section__legend {
@@ -30,38 +36,36 @@
 .datetime-row {
   align-items: flex-start;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .datetime-row__date,
 .datetime-row__time {
+  min-width: 0;
   width: auto;
 }
 
 .datetime-row__date {
-  flex: 1 1 0;
-  max-width: 13rem;
-  min-width: 0;
+  flex: 1 1 9rem;
+  max-width: 100%;
 }
 
 .datetime-row__time {
-  flex: 0 0 6.75rem;
+  flex: 0 1 6.75rem;
   max-width: 6.75rem;
 }
 
-@media (max-width: 22rem) {
+@media (min-width: 26rem) {
   .datetime-row {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .datetime-row__date {
-    flex: 1 1 100%;
-    max-width: none;
-  }
-
-  .datetime-row__time {
-    flex: 0 0 6.75rem;
+    flex: 1 1 0;
+    max-width: 13rem;
   }
 }
 
