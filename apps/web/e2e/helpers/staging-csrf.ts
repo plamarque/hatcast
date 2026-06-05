@@ -2,11 +2,19 @@ import { expect, type Page, type Response } from '@playwright/test'
 
 /** Same as apps/web/src/app/core/http/hatcast-csrf.ts */
 export async function readBrowserCsrfToken(page: Page): Promise<string | null> {
-  return page.evaluate(() => {
-    const prefix = 'XSRF-TOKEN='
-    const row = document.cookie.split('; ').find((c) => c.startsWith(prefix))
-    return row ? decodeURIComponent(row.slice(prefix.length)) : null
-  })
+  const url = page.url()
+  if (!url.startsWith('http')) {
+    return null
+  }
+  try {
+    return await page.evaluate(() => {
+      const prefix = 'XSRF-TOKEN='
+      const row = document.cookie.split('; ').find((c) => c.startsWith(prefix))
+      return row ? decodeURIComponent(row.slice(prefix.length)) : null
+    })
+  } catch {
+    return null
+  }
 }
 
 export async function readContextCsrfToken(page: Page): Promise<string | null> {
