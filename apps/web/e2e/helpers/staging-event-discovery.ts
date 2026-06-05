@@ -140,13 +140,14 @@ export async function discoverStagingE1Context(
     throw new Error('Missing HATCAST_E2E_SEASON_SLUG')
   }
 
-  const troupes = await apiGet<TroupeListItem[]>('/v1/troupes')
+  const troupes = await apiGet<TroupeListItem[]>(request, '/v1/troupes')
   const troupe = troupes.find((t) => t.slug === troupeSlug)
   if (!troupe) {
     throw new Error(`Troupe "${troupeSlug}" not visible for current session`)
   }
 
   const season = await apiGet<SeasonRef>(
+    request,
     `/v1/troupes/${troupe.id}/seasons/by-slug/${encodeURIComponent(seasonSlug)}`,
   )
   const events = await listSeasonEvents(request, season.id)
