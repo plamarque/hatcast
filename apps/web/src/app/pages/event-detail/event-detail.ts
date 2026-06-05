@@ -59,7 +59,9 @@ import {
   computeCompositionLifecycleView,
   computeRawCompositionLifecycle,
 } from '../../core/composition/composition-lifecycle'
+import { canValidateComposition as resolveCanValidateComposition } from '../../core/composition/composition-equipe-actions'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
+import { showCompositionDraftBanner as shouldShowCompositionDraftBanner } from '../../core/composition/composition-visibility'
 import { normalizeRoleSlots } from '../../core/events/event-types'
 import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { EventEquipeTab } from './event-equipe-tab'
@@ -158,6 +160,7 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly contextSeasonSlug = signal('')
   protected readonly composition = signal<CompositionResponse | null>(null)
   protected readonly compositionLoaded = signal(false)
+  protected readonly compositionInteractionBlocked = signal(false)
   protected readonly disposSummary = signal<EventAvailabilitySummary | null>(null)
 
   protected readonly canManageEvents = computed(
@@ -254,6 +257,16 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     return summary.participants.some((p) => p.status === 'unknown')
   })
+  protected readonly canValidateComposition = computed(() =>
+    resolveCanValidateComposition({
+      canManageComposition: this.canManageComposition(),
+      composition: this.composition(),
+      compositionInteractionBlocked: this.compositionInteractionBlocked(),
+    }),
+  )
+  protected readonly showCompositionDraftBanner = computed(() =>
+    shouldShowCompositionDraftBanner(this.composition(), this.canManageComposition()),
+  )
   protected readonly equipeStatus = computed(() => {
     const ev = this.event()
     if (!ev || !this.compositionLoaded()) {
@@ -263,6 +276,7 @@ export class EventDetail implements OnDestroy, OnInit {
       composition: this.composition(),
       canManageComposition: this.canManageComposition(),
       roleSlots: normalizeRoleSlots(ev.roleSlots),
+      suppressValidateCtaInGuideline: this.canValidateComposition(),
     })
   })
   protected readonly canViewAuditEvent = computed(() => {
@@ -338,8 +352,15 @@ export class EventDetail implements OnDestroy, OnInit {
     }
   }
 
+  protected onCompositionInteractionBlockedChange(blocked: boolean): void {
+    this.compositionInteractionBlocked.set(blocked)
+  }
+
   protected onTabChange(index: number): void {
     const tab = this.visibleTabs()[index] ?? 'infos'
+    if (tab !== 'equipe') {
+      this.compositionInteractionBlocked.set(false)
+    }
     this.activeTab.set(tab)
     void this.router.navigate([], {
       relativeTo: this.route,

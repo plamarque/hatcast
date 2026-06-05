@@ -193,7 +193,6 @@ describe('EventDetail', () => {
           provide: ParticipantApiService,
           useValue: {
             listSeasonParticipantSelectors: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-            listSeasonParticipantSelectors: vi.fn().mockResolvedValue({ ok: true, data: [] }),
           },
         },
         {
@@ -748,7 +747,7 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Aucun tirage pour le moment')
   })
 
-  it('omits manager guideline on Infos tab', async () => {
+  it('shows help trigger above tabs without open panel on Infos tab', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -800,10 +799,134 @@ describe('EventDetail', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.composition-equipe-status__hint')).toBeNull()
+      expect(fixture.nativeElement.querySelector('[data-testid="composition-status-hint"]')).toBeNull()
       expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
-      expect(fixture.nativeElement.querySelector('.event-detail__status .composition-equipe-status__badge')).not.toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('.event-detail__status [data-testid="composition-status-badge"]'),
+      ).not.toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('.event-detail__status [data-testid="composition-status-help-trigger"]'),
+      ).not.toBeNull()
     })
+  })
+
+  it('opens composition help panel from event detail status chrome', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: true,
+        isSeasonOrganizer: true,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        ...ev('event-2', {
+          roleSlots: { ...emptyRoleSlots(), player: 2 },
+        }),
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-status-help-trigger"]'),
+      ).not.toBeNull()
+    })
+
+    const trigger = fixture.nativeElement.querySelector(
+      '[data-testid="composition-status-help-trigger"]',
+    ) as HTMLButtonElement
+    trigger.click()
+    fixture.detectChanges()
+
+    const hint = fixture.nativeElement.querySelector(
+      '[data-testid="composition-status-hint"]',
+    ) as HTMLElement
+    expect(hint).not.toBeNull()
+    expect(hint.textContent).toContain('À composer')
+  })
+
+  it('omits validate sentence from help panel when validate CTA is available on équipe tab', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: true,
+        isSeasonOrganizer: true,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    loadEventMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        ...ev('event-2', {
+          roleSlots: { ...emptyRoleSlots(), player: 2 },
+        }),
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-status-help-trigger"]'),
+      ).not.toBeNull()
+    })
+
+    const trigger = fixture.nativeElement.querySelector(
+      '[data-testid="composition-status-help-trigger"]',
+    ) as HTMLButtonElement
+    trigger.click()
+    fixture.detectChanges()
+
+    const hint = fixture.nativeElement.querySelector(
+      '[data-testid="composition-status-hint"]',
+    ) as HTMLElement
+    expect(hint.textContent).toContain('En préparation')
+    expect(hint.textContent).not.toContain('Valider')
   })
 
   it('shows équipe status badge above tabs on Dispos tab', async () => {
@@ -843,8 +966,57 @@ describe('EventDetail', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-detail__status .composition-equipe-status__badge')).not.toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('.event-detail__status [data-testid="composition-status-badge"]'),
+      ).not.toBeNull()
       expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
+      expect(
+        fixture.nativeElement.querySelector('.event-detail__status [data-testid="composition-status-help-trigger"]'),
+      ).toBeNull()
+    })
+  })
+
+  it('shows composition draft banner in global status chrome for organizer', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    mySeasonPermissions.mockResolvedValue({
+      ok: true,
+      data: {
+        isTroupeAdmin: true,
+        isSeasonOrganizer: true,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const statusChrome = fixture.nativeElement.querySelector('.event-detail__status') as HTMLElement
+      expect(statusChrome?.textContent).toContain('Composition en brouillon')
+      expect(
+        statusChrome.querySelector('[data-testid="composition-status-help-trigger"]'),
+      ).not.toBeNull()
     })
   })
 

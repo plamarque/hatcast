@@ -68,3 +68,15 @@
 - **DW-115** — Grant organisateur : race check-then-insert. [`OrganizerAccessService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/organizer/OrganizerAccessService.kt)
 - **DW-116** — Event picker max 250 sans signal. *(17-28)*
 - **DW-117** — `member-season-glance` : `loadGlance()` sans token génération. *(17-27)*
+
+---
+
+## Deferred from: code review (6-18-aide-contextuelle-statut-composition.md — 2026-06-05)
+
+- Pas de gestion du focus à l’ouverture du panneau reveal — hors AC story 6.18 ; amélioration a11y disclosure (pattern ARIA).
+
+---
+
+## Deferred from: code review of 6-19-export-calendrier-et-navigation-lieu-onglet-infos (2026-06-05)
+
+- `::ng-deep` sur `.event-infos__menu-panel` pour `max-height` safe-area — waiver M3-5 documenté ; alternative `overlayPanelClass` globale reportée (pattern overlay existant dans le repo).

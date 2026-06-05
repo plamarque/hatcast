@@ -27,7 +27,10 @@
 
     @if (equipeStatus(); as status) {
       <div class="event-detail__status">
-        <app-composition-equipe-status-header [status]="status" />
+        <app-composition-equipe-status-header
+          [status]="status"
+          [showDraftBanner]="showCompositionDraftBanner()"
+        />
       </div>
     }
 
@@ -48,6 +51,8 @@
             [event]="ev"
             [seasonId]="seasonId()"
             [troupeId]="troupeId()"
+            [troupeSlug]="routeTroupeSlug()"
+            [seasonSlug]="slug()"
             [canManageEvents]="canManageEvents()"
             [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
             [canManageComposition]="canManageComposition()"
@@ -94,6 +99,7 @@
             [canManageComposition]="canManageComposition()"
             [showConfirmPending]="showConfirmPending()"
             (compositionPublished)="syncCompositionFromEquipe($event)"
+            (compositionInteractionBlockedChange)="onCompositionInteractionBlockedChange($event)"
           />
         }
       </mat-tab>

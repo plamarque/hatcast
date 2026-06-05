@@ -18,6 +18,11 @@
     font-size: 0.8125rem;
     line-height: 1.25;
   }
+
+  > .agenda-card__type-icon {
+    align-self: center;
+    margin-inline-end: 0.35rem;
+  }
 }
 
 .agenda-card__badge {

@@ -7,17 +7,52 @@
 @if (showBadge() && status(); as s) {
   <div class="composition-equipe-status composition-equipe-status--badge-only">
     <div class="composition-equipe-status__head">
-      <span
-        class="composition-equipe-status__badge"
-        [class.composition-equipe-status__badge--success]="s.tone === 'success'"
-        [class.composition-equipe-status__badge--warning]="s.tone === 'warning'"
-        [class.composition-equipe-status__badge--info]="s.tone === 'info'"
-      >
-        {{ s.label }}
-      </span>
+      <div class="composition-equipe-status__badge-row">
+        <span
+          class="composition-equipe-status__badge"
+          data-testid="composition-status-badge"
+          [class.composition-equipe-status__badge--success]="s.tone === 'success'"
+          [class.composition-equipe-status__badge--warning]="s.tone === 'warning'"
+          [class.composition-equipe-status__badge--info]="s.tone === 'info'"
+        >
+          {{ s.label }}
+        </span>
+        @if (showHelpTrigger(s)) {
+          <button
+            type="button"
+            mat-icon-button
+            class="composition-equipe-status__help"
+            data-testid="composition-status-help-trigger"
+            id="composition-status-help-trigger"
+            [attr.aria-label]="helpAriaLabel(s.label)"
+            [attr.aria-expanded]="helpPanelOpen()"
+            [attr.aria-controls]="helpPanelOpen() ? 'composition-status-help-panel' : null"
+            (click)="toggleHelpPanel()"
+          >
+            <mat-icon>help_outline</mat-icon>
+          </button>
+        }
+      </div>
       <div class="composition-equipe-status__actions">
         <ng-content />
       </div>
     </div>
+    @if (helpPanelOpen() && s.managerGuideline; as guideline) {
+      <div
+        id="composition-status-help-panel"
+        class="composition-equipe-status__help-panel"
+        [class.composition-equipe-status__help-panel--success]="s.tone === 'success'"
+        data-testid="composition-status-help-panel"
+        role="region"
+        aria-labelledby="composition-status-help-trigger"
+      >
+        <p
+          class="composition-equipe-status__hint composition-equipe-status__hint--panel"
+          data-testid="composition-status-hint"
+        >
+          {{ guideline }}
+        </p>
+      </div>
+    }
   </div>
 }

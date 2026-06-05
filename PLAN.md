@@ -468,6 +468,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 |----|-------|----------|--------|-------|
 | **6.15** | Refonte modales annonces + notify manuel simplifié | **P0** | done | M3 ; copy/WhatsApp ; anti-spam (pattern **6.10b**) ; intents draw/compo/dispos |
 | **6.17** | Dispatch annonce manuelle + `lastNotifiedAt` canal | **P0** | [x] done | Story [6-17](_bmad-output/implementation-artifacts/6-17-dispatch-annonce-manuelle-transparence-dates.md) |
+| **6.18** | Aide contextuelle statut composition + espacement chrome détail | **P2** | done | UX [ux-design-composition-status-help.md](_bmad-output/planning-artifacts/ux-design-composition-status-help.md) ; G-002 pilote |
 
 #### Wave D — Pipeline release (OPS)
 

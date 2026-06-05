@@ -206,4 +206,45 @@ describe('resolveCompositionEquipeStatus', () => {
     expect(status?.managerGuideline).toContain('En préparation')
     expect(status?.managerGuideline).not.toContain('Valider')
   })
+
+  it('quotes exact toolbar button labels in manager guidelines', () => {
+    const none = resolveCompositionEquipeStatus({
+      composition: comp(),
+      canManageComposition: true,
+      roleSlots,
+    })
+    expect(none?.managerGuideline).toContain('« Tirer au sort »')
+    expect(none?.managerGuideline).not.toMatch(/[🫵✨📢🔓🔧✅🧠⚠️⏳🔒🎉]/)
+
+    const complete = resolveCompositionEquipeStatus({
+      composition: comp({
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          { roleKey: 'player', slotIndex: 0, participantId: 'p-1', participationStatus: 'confirmed' },
+          { roleKey: 'player', slotIndex: 1, participantId: 'p-2', participationStatus: 'confirmed' },
+        ],
+      }),
+      canManageComposition: true,
+      roleSlots,
+    })
+    expect(complete?.managerGuideline).toContain('« Annoncer la compo »')
+    expect(complete?.managerGuideline).toContain('« Déverrouiller »')
+
+    const pending = resolveCompositionEquipeStatus({
+      composition: comp({
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: [
+          { roleKey: 'player', slotIndex: 0, participantId: 'p-1', participationStatus: 'confirmed' },
+          { roleKey: 'player', slotIndex: 1, participantId: 'p-2', participationStatus: 'pending' },
+        ],
+      }),
+      canManageComposition: true,
+      roleSlots,
+    })
+    expect(pending?.managerGuideline).toContain('« Annoncer la compo »')
+    expect(pending?.managerGuideline).toContain('revenir en édition')
+    expect(pending?.managerGuideline).not.toContain('masquer')
+  })
 })

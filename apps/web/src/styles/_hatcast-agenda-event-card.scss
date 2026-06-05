@@ -115,19 +115,13 @@
   min-height: var(--agenda-participation-cell-size, 4.75rem);
 }
 
-.agenda-card__title-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.4rem;
-}
-
 .agenda-card__type-icon {
   flex-shrink: 0;
-  margin-top: 0.1rem;
   opacity: 0.85;
-  font-size: 1.2rem;
-  width: 1.2rem;
-  height: 1.2rem;
+  font-size: 1.1rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  line-height: 1;
 }
 
 .agenda-card__title {

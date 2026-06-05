@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-04T23:41:00+02:00
+# last_updated: 2026-06-05T14:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-05T12:00:00+02:00"
+last_updated: "2026-06-05T14:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -137,6 +137,8 @@ development_status:
   6-15-refonte-modales-annonces-notify-manuel: done  # P0 V2.0.0 — code review 2026-06-03
   6-16-statut-canal-destinataires-modales-partager-annoncer: done  # D10 UX 2026-06-04 — recette + review OK
   6-17-dispatch-annonce-manuelle-transparence-dates: done  # tech-spec-share-announce-transparency-6-17.md
+  6-18-aide-contextuelle-statut-composition: done  # UX ux-design-composition-status-help.md — approved 2026-06-05
+  6-19-export-calendrier-et-navigation-lieu-onglet-infos: done  # UX ux-hatcast-2026-06-05 EXPERIENCE.md — parité V1 calendrier + maps Infos
   epic-6-retrospective: optional
 
   epic-7: backlog

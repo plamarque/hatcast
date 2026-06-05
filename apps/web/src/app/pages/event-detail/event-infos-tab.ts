@@ -1,12 +1,27 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { DOCUMENT } from '@angular/common'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
+import { MatMenuModule } from '@angular/material/menu'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import type { EventResponse } from '../../core/events/event-api.service'
 import { EventApiService } from '../../core/events/event-api.service'
+import {
+  buildGoogleCalendarUrl,
+  buildIcsContent,
+  buildOutlookCalendarUrl,
+  CALENDAR_SNACKBAR_DURATION_MS,
+  CALENDAR_SNACKBAR_MESSAGES,
+  isCalendarStartsAtValid,
+  isEventPastForCalendar,
+  sanitizeIcsFilename,
+  triggerIcsDownload,
+  type CalendarExportContext,
+} from '../../core/events/event-calendar-export'
+import { buildGoogleMapsSearchUrl, buildWazeUrl } from '../../core/events/event-maps'
 import {
   type EventTypeId,
   getEventTypeIcon,
@@ -17,6 +32,7 @@ import {
   ROLE_LABELS,
   rolesWithSlots,
 } from '../../core/events/event-types'
+import { getPwaBrowserInfo } from '../../core/pwa/pwa-browser-info'
 import {
   type TroupeCategory,
   TroupeApiService,
@@ -40,6 +56,7 @@ import {
   type EventTypeRolesDialogData,
   type EventTypeRolesDialogResult,
 } from './event-type-roles-dialog'
+
 @Component({
   selector: 'app-event-infos-tab',
   imports: [
@@ -47,6 +64,7 @@ import {
     MatChipsModule,
     MatDialogModule,
     MatIconModule,
+    MatMenuModule,
     MatSnackBarModule,
   ],
   templateUrl: './event-infos-tab.html',
@@ -58,10 +76,13 @@ export class EventInfosTab {
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
+  private readonly doc = inject(DOCUMENT)
 
   readonly event = input.required<EventResponse>()
   readonly seasonId = input.required<string>()
   readonly troupeId = input.required<string>()
+  readonly troupeSlug = input.required<string>()
+  readonly seasonSlug = input.required<string>()
   readonly canManageEvents = input(false)
   readonly canManageEventOrganizers = input(false)
   readonly canManageComposition = input(false)
@@ -73,6 +94,8 @@ export class EventInfosTab {
   protected readonly glossary = signal<TroupeCategory[]>([])
   protected readonly organizers = signal<OrganizerResponse[]>([])
   protected readonly saving = signal(false)
+  protected readonly calendarMenuOpen = signal(false)
+  protected readonly mapsMenuOpen = signal(false)
 
   protected readonly showCategorySection = computed(
     () => this.canManageEvents() || this.event().category != null,
@@ -98,6 +121,20 @@ export class EventInfosTab {
     return this.glossary().find((t) => t.slug === slug)?.label ?? slug
   })
 
+  protected readonly dateExportEnabled = computed(() => {
+    const ev = this.event()
+    if (!ev.slug?.trim()) {
+      return false
+    }
+    return isCalendarStartsAtValid(ev.startsAt)
+  })
+
+  protected readonly locationInteractive = computed(() => !!this.event().location?.trim())
+
+  protected readonly isPastEvent = computed(() =>
+    isEventPastForCalendar(this.event().startsAt),
+  )
+
   constructor() {
     effect(() => {
       const troupeId = this.troupeId()
@@ -116,6 +153,10 @@ export class EventInfosTab {
   }
 
   protected formatDate(iso: string): string {
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) {
+      return 'Date invalide'
+    }
     return new Intl.DateTimeFormat('fr-FR', {
       weekday: 'long',
       day: 'numeric',
@@ -125,6 +166,74 @@ export class EventInfosTab {
       minute: '2-digit',
       timeZone: AGENDA_TIME_ZONE,
     }).format(new Date(iso))
+  }
+
+  protected onCalendarMenuOpened(): void {
+    this.calendarMenuOpen.set(true)
+  }
+
+  protected onCalendarMenuClosed(): void {
+    this.calendarMenuOpen.set(false)
+  }
+
+  protected onMapsMenuOpened(): void {
+    this.mapsMenuOpen.set(true)
+  }
+
+  protected onMapsMenuClosed(): void {
+    this.mapsMenuOpen.set(false)
+  }
+
+  protected exportToGoogleCalendar(): void {
+    this.runCalendarExport(() => {
+      const url = buildGoogleCalendarUrl(this.event(), this.exportContext())
+      return { kind: 'window' as const, url, successMessage: CALENDAR_SNACKBAR_MESSAGES.google }
+    })
+  }
+
+  protected exportToOutlook(): void {
+    this.runCalendarExport(() => {
+      const url = buildOutlookCalendarUrl(this.event(), this.exportContext())
+      return { kind: 'window' as const, url, successMessage: CALENDAR_SNACKBAR_MESSAGES.outlook }
+    })
+  }
+
+  protected exportToAppleCalendar(): void {
+    this.runCalendarExport(() => {
+      const ev = this.event()
+      const ics = buildIcsContent(ev, this.exportContext())
+      const filename = sanitizeIcsFilename(ev.title, ev.startsAt)
+      triggerIcsDownload(ics, filename, this.doc)
+      const ua = this.doc.defaultView?.navigator.userAgent ?? ''
+      const browser = getPwaBrowserInfo(ua)
+      const isIosSafari = browser.isIOS && (browser.isSafari || browser.isSafariMobile)
+      return {
+        kind: 'download' as const,
+        successMessage: isIosSafari
+          ? CALENDAR_SNACKBAR_MESSAGES.icsIos
+          : CALENDAR_SNACKBAR_MESSAGES.icsDownload,
+      }
+    })
+  }
+
+  protected openGoogleMaps(): void {
+    const location = this.event().location?.trim()
+    if (!location) {
+      return
+    }
+    if (this.openExternalUrl(buildGoogleMapsSearchUrl(location)) === null) {
+      this.showPopupBlockedSnack()
+    }
+  }
+
+  protected openWaze(): void {
+    const location = this.event().location?.trim()
+    if (!location) {
+      return
+    }
+    if (this.openExternalUrl(buildWazeUrl(location)) === null) {
+      this.showPopupBlockedSnack()
+    }
   }
 
   protected onCategoryChipClick(): void {
@@ -228,6 +337,62 @@ export class EventInfosTab {
 
   protected removeCategory(): void {
     void this.persistTag(null)
+  }
+
+  private exportContext(): CalendarExportContext {
+    return {
+      origin: this.doc.location.origin,
+      troupeSlug: this.troupeSlug(),
+      seasonSlug: this.seasonSlug(),
+    }
+  }
+
+  private runCalendarExport(
+    action: () =>
+      | { kind: 'window'; url: string; successMessage: string }
+      | { kind: 'download'; successMessage: string },
+  ): void {
+    try {
+      const result = action()
+      if (result.kind === 'window') {
+        const opened = this.openExternalUrl(result.url)
+        if (opened === null) {
+          this.showPopupBlockedSnack()
+          return
+        }
+      }
+      this.showCalendarSuccess(result.successMessage)
+    } catch {
+      this.snack.open(CALENDAR_SNACKBAR_MESSAGES.error, 'OK', {
+        duration: CALENDAR_SNACKBAR_DURATION_MS,
+      })
+    }
+  }
+
+  private openExternalUrl(url: string): Window | null {
+    if (!url.startsWith('https://')) {
+      throw new Error('External URL must use HTTPS')
+    }
+    return this.doc.defaultView?.open(url, '_blank', 'noopener,noreferrer') ?? null
+  }
+
+  private showCalendarSuccess(message: string): void {
+    const displayMessage = this.isPastEvent()
+      ? `${message} ${CALENDAR_SNACKBAR_MESSAGES.pastEvent}`
+      : message
+    const isIcsMessage =
+      message === CALENDAR_SNACKBAR_MESSAGES.icsDownload ||
+      message === CALENDAR_SNACKBAR_MESSAGES.icsIos
+    this.snack.open(displayMessage, 'OK', {
+      duration: CALENDAR_SNACKBAR_DURATION_MS,
+      politeness: isIcsMessage ? 'assertive' : 'polite',
+    })
+  }
+
+  private showPopupBlockedSnack(): void {
+    this.snack.open(CALENDAR_SNACKBAR_MESSAGES.popupBlocked, 'OK', {
+      duration: CALENDAR_SNACKBAR_DURATION_MS,
+    })
   }
 
   private async persistTypeRoles(result: {
