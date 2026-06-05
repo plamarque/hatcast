@@ -562,6 +562,10 @@ hatcast_update_changelog_json_file() {
       echo "ℹ️  Entrée ${version} inchangée — nouvelles notes vides, conservation des puces existantes."
       return 0
     fi
+    if [[ "${existing_changes}" -gt 0 && "${new_changes}" -lt "${existing_changes}" ]]; then
+      echo "ℹ️  Entrée ${version} inchangée — nouvelles notes (${new_changes}) moins complètes que l'existant (${existing_changes})."
+      return 0
+    fi
   fi
 
   if [[ -f "${changelog_file}" ]] && [[ -s "${changelog_file}" ]]; then
