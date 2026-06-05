@@ -26,16 +26,18 @@ Surface a **non-blocking** hint when a slot assignment repeats the **same role**
 
 ## Layout (mobile-first)
 
-Extend each filled slot row in the Équipe list:
+Follow the shared Équipe row grid: [_ux-design-composition-equipe-slot-rows.md_](ux-design-composition-equipe-slot-rows.md).
 
 ```
-[emoji role] [ avatar | Name          ] [× clear]
-             [ ⚠ Déjà en MC au spectacle « Match Malice » (12 juin 2026) ]
+[🎤 MC]        (○) Name                           [×]
+               [⚠ Rejeu possible]  → tooltip on tap
 ```
 
-**Placement:** second line **below** participant name, full width of slot column, left-aligned with name (not avatar).
+**Placement:** second grid row, columns 2–3; **left edge aligned with the avatar** (not the name).
 
-**Density:** single line if possible; truncate long titles with ellipsis + `title` tooltip for full string.
+**Trigger:** compact pill (short label + `warning_amber` icon); **full sentence** in `matTooltip` / `aria-label` on tap — same pattern as multi-role hint.
+
+**Density:** short label on row; truncate long titles in tooltip.
 
 ---
 

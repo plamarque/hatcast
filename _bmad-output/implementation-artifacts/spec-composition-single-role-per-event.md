@@ -28,7 +28,7 @@ context:
 - `CompositionDrawService.kt` — cross-role exclusion seed + full-redraw un-exclude
 - `MultiRoleOnEventWarningService.kt` — same-event multi-role hint
 - `CompositionService.kt` — attach `multiRoleOnEventWarning` on slots
-- `event-equipe-tab.html` — inline hint UI
+- `event-equipe-tab.html` — inline hint UI + slot row layout ([UX slot rows](../planning-artifacts/ux-design-composition-equipe-slot-rows.md))
 
 ## Tasks & Acceptance
 

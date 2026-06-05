@@ -752,20 +752,23 @@ Same **event header** and **tab bar** as [Infos](#screen-event-detail-infos-tab)
 
 ### Slot grid (roles)
 
+**Normative layout (V2 — validated 2026-06-05):** [_ux-design-composition-equipe-slot-rows.md_](ux-design-composition-equipe-slot-rows.md).
+
 **Layout**
 
-- **One slot per required role** for this event — e.g. **+ DJ**, **+ MC**, several **+ Joueur·se** as configured.
-- **Empty slot:** **dashed** rounded rectangle, **+** prefix, **role label** + **emoji** — clearly a **placeholder**.
-- **Filled slot:** **avatar**, **name**, **role icon**; **×** (or equivalent) to **clear** the slot **while composition is not validated**.
+- **One slot row per required role** — e.g. DJ, MC, several **Comédien·ne** as configured.
+- **Fixed 3-column grid:** role **pill** (emoji + label, same family as Activité audit pills) | **avatar + name** or **« À pourvoir »** | **×** clear when editable.
+- **Role pill always visible** — filled or empty; vacant copy is muted **« À pourvoir »** (no inner dashed box; gap-empty rows keep a **dashed row border** after declines).
+- **Organizer hints** (consecutive show **6.20**, multi-role same event) — compact pill on a **second line**, left edge aligned with the **avatar**; detail in `matTooltip` on tap.
 
 **Interaction — organizers / administrators**
 
-- **Tap slot** → surface **candidates** for that role in an **ordered list** with **percentage** (same family of odds as [Dispos → Tous](#screen-event-detail-dispos-tab)) so **manual assignment** is quick and informed.
-- **Clear** removes the assignee; slot returns to **empty**; allowed **until validation** (full or partial reset—see **Effacer** below).
+- **Tap the whole row** (pill + body) → **candidate list** with **%** (Dispos family).
+- **×** clears the assignee (does not open the picker); allowed **until validation**.
 
 **Interaction — members (post-publish rules)**
 
-- **Tap their own slot** (the one that concerns them) to open [**Confirmer ma participation**](#pattern-confirm-participation-modal) — **not** every member taps every slot: **organizers/admins** may open **confirmation for any slot** they manage; **normal members** interact with **their assignment** only (permissions in SPEC).
+- **Tap their row** (pill + body) → [**Confirmer ma participation**](#pattern-confirm-participation-modal). **Organizers/admins** may open confirmation for managed slots; **members** only for **their** assignment (SPEC).
 
 ### Actions: draw and simulate
 
@@ -875,8 +878,8 @@ When someone taps **Décliner** in [**Confirmer ma participation**](#pattern-con
 
 ### Acceptance hints (for QA / design review)
 
-- [ ] Every **role** required for the event has a **slot**; empty vs filled states are **obvious**.
-- [ ] **Slot** opens **ordered** candidate list with **%** for manual pick; **×** clears when **editable**.
+- [ ] Every **role** required for the event has a **slot row**; role **pill** + empty/filled body are **obvious** ([slot-rows spec](ux-design-composition-equipe-slot-rows.md)).
+- [ ] **Whole row** opens **ordered** candidate list with **%**; **×** clears when **editable** (independent of row tap).
 - [ ] **Tirer au sort** shows **segmented bar + cursor** animation reflecting **weights**; **Simuler** behaves per SPEC (non-destructive vs draft).
 - [ ] **Orange/pending** styling distinguishes **not-yet-final** assignments from **confirmed** (green or other—align SPEC).
 - [ ] **Valider** **locks** slot edits and **reveals** composition to non–org/admin as designed; **no** accidental edit after share without **unlock**.
