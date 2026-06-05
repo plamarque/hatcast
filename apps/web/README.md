@@ -53,13 +53,13 @@ Point de référence pour un futur chantier perf — comparer un nouveau `ng bui
 |--------|----------------------:|----------------|--------------|
 | Bundle **initial** (raw) | **2,16 MB** | 2,25 MB | 3 MB |
 | Bundle **initial** (transfer estimé) | **~398 kB** | — | — |
-| Styles composant (`anyComponentStyle`, max observé) | **6,42 kB** | 7 kB | 10 kB |
+| Styles composant (`anyComponentStyle`, max observé) | **10,55 kB** | 9 kB | 12 kB |
 
 Fichiers SCSS les plus lourds à la baseline (candidats prioritaires si on réduit les styles) :
 
 | Fichier | Taille |
 |---------|-------:|
-| `pages/event-detail/event-equipe-tab.scss` | 6,42 kB |
+| `pages/event-detail/event-equipe-tab.scss` | 10,55 kB |
 | `pages/member-home-todo/member-home-todo.scss` | 6,42 kB |
 | `shared/member-nav/member-nav.scss` | 5,47 kB |
 | `shared/audit-journal-list/audit-line-view.scss` | 5,33 kB |
