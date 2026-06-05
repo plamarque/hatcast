@@ -9,6 +9,8 @@ import com.hatcast.api.support.EventTestSupport
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.participant.SeasonParticipantService
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -26,12 +28,18 @@ import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.awt.Color
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
 import java.time.Instant
 import java.util.UUID
+import javax.imageio.ImageIO
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -64,8 +72,22 @@ class CompositionIntegrationTest {
     @Autowired
     private lateinit var slotRepository: EventCompositionSlotRepository
 
+    @Autowired
+    private lateinit var seasonParticipantService: SeasonParticipantService
+
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
+
+    private fun tinyPngBytes(): ByteArray {
+        val image = BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB)
+        val graphics = image.createGraphics()
+        graphics.color = Color.BLUE
+        graphics.fillRect(0, 0, 8, 8)
+        graphics.dispose()
+        val out = ByteArrayOutputStream()
+        ImageIO.write(image, "png", out)
+        return out.toByteArray()
+    }
 
     private fun memberCookie(googleSub: String, admin: Boolean = false): jakarta.servlet.http.Cookie {
         val cookie =
@@ -363,6 +385,81 @@ class CompositionIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.visibility").value("validated"))
             .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Frank"))
+    }
+
+    @Test
+    fun `GET composition exposes participantGender for linked user`() {
+        val adminCookie = memberCookie("sub-compo-admin-gender", admin = true)
+        val memberCookie = memberCookie("sub-compo-member-gender")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Gender slot")
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val user = userRepository.findByGoogleSub("sub-compo-member-gender")!!
+        user.gender = MemberGender.MALE
+        userRepository.save(user)
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+                ?: error("Missing membership")
+        val participantId =
+            seasonParticipantRepository
+                .findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)
+                ?.id
+                ?: error("Missing linked participant")
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(adminCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantGender").value("male"))
+    }
+
+    @Test
+    fun `GET composition exposes participantAvatarUrl for linked user with stored photo`() {
+        val adminCookie = memberCookie("sub-compo-admin-avatar", admin = true)
+        val memberCookie = memberCookie("sub-compo-member-avatar")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Avatar slot")
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonParticipantService.ensureMembershipParticipants(season)
+        val user = userRepository.findByGoogleSub("sub-compo-member-avatar")!!
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+                ?: error("Missing membership")
+        val participantId =
+            seasonParticipantRepository
+                .findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)
+                ?.id
+                ?: error("Missing linked participant")
+
+        mockMvc
+            .perform(
+                multipart("/v1/auth/me/avatar")
+                    .file(MockMultipartFile("file", "avatar.png", "image/png", tinyPngBytes()))
+                    .cookie(memberCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(adminCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantAvatarUrl").isNotEmpty)
+    }
+
+    @Test
+    fun `GET composition uses non_specified gender for unlinked participant`() {
+        val adminCookie = memberCookie("sub-compo-admin-gender-unlinked", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Unlinked gender slot")
+        val participantId = createSeasonParticipant(seasonId, "Name only")
+        seedDraftComposition(eventId, participantId)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(adminCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantGender").value("non_specified"))
     }
 
     @Test

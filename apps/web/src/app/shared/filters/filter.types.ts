@@ -1,3 +1,4 @@
+import type { MemberGender } from '../../core/account/member-gender'
 import type { UserAgendaParticipationFilters } from '../../core/agenda/user-agenda-api.service'
 import {
   statsCategoriesFilterLabel,
@@ -70,6 +71,8 @@ export interface FilterPanelResult {
 export interface ParticipantPickerOption {
   id: string
   label: string
+  avatarUrl?: string | null
+  gender?: MemberGender | null
 }
 
 export interface ParticipantPickerData {

@@ -27,6 +27,7 @@ data class SummaryParticipantDto(
     val userId: java.util.UUID? = null,
     val displayName: String,
     val avatarUrl: String? = null,
+    val gender: String = "non_specified",
     val status: String,
     val roleKeys: List<String> = emptyList(),
     val comment: String? = null,

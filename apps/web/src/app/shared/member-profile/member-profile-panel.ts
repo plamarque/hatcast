@@ -17,9 +17,9 @@ import {
 } from '../../core/participation/participation-status'
 import {
   canDisablePreferredRole,
+  getRoleLabel,
   orderedRoleKeys,
   roleEmoji,
-  roleLabelSingular,
   type RoleKey,
 } from '../event-roles/event-roles'
 @Component({
@@ -74,7 +74,7 @@ export class MemberProfilePanel {
   ]
 
   protected roleLabel(key: RoleKey): string {
-    return roleLabelSingular(key)
+    return getRoleLabel(key, this.profile().gender)
   }
 
   protected roleEmoji(key: RoleKey): string {

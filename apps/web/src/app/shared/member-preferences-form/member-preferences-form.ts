@@ -8,11 +8,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import type { MemberGender } from '../../core/account/member-gender'
 import {
   canDisablePreferredRole,
+  getRoleLabel,
   orderedRoleKeys,
   roleEmoji,
-  roleLabelSingular,
   type RoleKey,
 } from '../../shared/event-roles/event-roles'
 
@@ -122,6 +123,7 @@ export class MemberPreferencesForm implements OnInit {
   protected readonly preferredRolesLoading = signal(true)
   protected readonly saving = signal(false)
   protected readonly loadFailed = signal(false)
+  protected readonly viewerGender = signal<MemberGender>('non_specified')
 
   private initialRoles: string[] = []
 
@@ -136,7 +138,7 @@ export class MemberPreferencesForm implements OnInit {
   }
 
   protected roleLabel(key: RoleKey): string {
-    return roleLabelSingular(key)
+    return getRoleLabel(key, this.viewerGender())
   }
 
   protected roleEmoji(key: RoleKey): string {
@@ -203,6 +205,7 @@ export class MemberPreferencesForm implements OnInit {
       }
       this.preferredRoles.set(result.data.preferredRoleKeys)
       this.initialRoles = [...result.data.preferredRoleKeys]
+      this.viewerGender.set(result.data.gender)
     } finally {
       this.preferredRolesLoading.set(false)
     }

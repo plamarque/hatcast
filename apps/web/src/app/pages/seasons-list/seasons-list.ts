@@ -11,6 +11,7 @@ import { MatSelectChange, MatSelectModule } from '@angular/material/select'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
+import { MemberDisplayNameService } from '../../core/account/member-display-name.service'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
@@ -59,6 +60,7 @@ export class SeasonsList implements OnInit {
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
+  protected readonly memberDisplayName = inject(MemberDisplayNameService)
 
   protected readonly loadingSession = signal(true)
   protected readonly loadingList = signal(false)
@@ -100,6 +102,8 @@ export class SeasonsList implements OnInit {
     this.loadingSession.set(false)
     this.platformAdmin.set(r.data.platformAdmin === true)
     this.user.set(r.data.user)
+    this.memberDisplayName.syncSessionUser(r.data.user.slug ?? null)
+    void this.memberDisplayName.loadFromApi()
     await this.loadTroupeAndSeasons(0)
   }
 

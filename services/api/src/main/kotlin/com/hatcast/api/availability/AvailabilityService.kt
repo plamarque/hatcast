@@ -12,6 +12,7 @@ import com.hatcast.api.availability.dto.SummaryParticipantDto
 import com.hatcast.api.availability.dto.SummaryRoleCandidateDto
 import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
+import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
 import com.hatcast.api.composition.CompositionSelectionHistoryService
 import com.hatcast.api.composition.SelectionHistoryMode
@@ -60,6 +61,7 @@ class AvailabilityService(
     private val auditRecorder: AuditEventRecorder,
     private val draftVisibility: EventDraftVisibility,
     private val eventPublisher: ApplicationEventPublisher,
+    private val avatarService: AvatarService,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -211,6 +213,7 @@ class AvailabilityService(
                     userId = row.userId,
                     displayName = row.displayName,
                     avatarUrl = row.avatarUrl,
+                    gender = row.gender,
                     status = apiStatus,
                     roleKeys = roleKeys,
                     comment = availability?.comment?.takeIf { it.isNotBlank() },
@@ -708,6 +711,7 @@ class AvailabilityService(
         val userId: UUID?,
         val displayName: String,
         val avatarUrl: String?,
+        val gender: String,
     )
 
     private fun loadEligibleParticipants(
@@ -764,13 +768,13 @@ class AvailabilityService(
         user: UserEntity?,
         displayName: String,
     ): EligibleParticipantRow {
-        val avatarUrl =
-            user?.let { AvatarService.publicAvatarUrl(it.id, it.avatarUpdatedAt) }
+        val avatarUrl = ParticipantRowPresentation.avatarUrl(avatarService, user)
         return EligibleParticipantRow(
             participantId = participantId,
             userId = user?.id,
             displayName = displayName,
             avatarUrl = avatarUrl,
+            gender = com.hatcast.api.user.MemberGender.effective(user?.gender).wireValue,
         )
     }
 

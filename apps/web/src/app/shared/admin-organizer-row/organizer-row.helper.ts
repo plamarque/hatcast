@@ -1,3 +1,4 @@
+import { effectiveMemberGender, type MemberGender } from '../../core/account/member-gender'
 import type { OrganizerResponse } from '../../core/permissions/organizer-api.service'
 
 export type OrganizerScope = 'saison' | 'spectacle'
@@ -5,6 +6,26 @@ export type OrganizerScope = 'saison' | 'spectacle'
 export const PARTICIPANT_ROLE_LABEL = 'Participant·e'
 
 export const ORGANIZER_ROLE_LABEL = 'Organisateur·ice'
+
+const PARTICIPANT_ROLE_BY_GENDER: Record<MemberGender, string> = {
+  male: 'Participant',
+  female: 'Participante',
+  non_specified: PARTICIPANT_ROLE_LABEL,
+}
+
+const ORGANIZER_ROLE_BY_GENDER: Record<MemberGender, string> = {
+  male: 'Organisateur',
+  female: 'Organisatrice',
+  non_specified: ORGANIZER_ROLE_LABEL,
+}
+
+export function participantRoleLabel(gender?: MemberGender | null): string {
+  return PARTICIPANT_ROLE_BY_GENDER[effectiveMemberGender(gender)]
+}
+
+export function organizerRoleLabel(gender?: MemberGender | null): string {
+  return ORGANIZER_ROLE_BY_GENDER[effectiveMemberGender(gender)]
+}
 
 export const PROMOTE_TOOLTIP =
   'Liez un compte HatCast pour promouvoir organisateur·ice'
@@ -54,15 +75,18 @@ export function canAssignOrganizerRole(email: string | null | undefined): boolea
 export function participationRoleChipLabel(
   isOrganizer: boolean,
   menuEnabled: boolean,
+  gender?: MemberGender | null,
 ): string {
-  const label = isOrganizer ? ORGANIZER_ROLE_LABEL : PARTICIPANT_ROLE_LABEL
+  const label = isOrganizer ? organizerRoleLabel(gender) : participantRoleLabel(gender)
   return menuEnabled ? `${label} ▾` : label
 }
 
-export function organizerRoleMenuLabel(scope: OrganizerScope): string {
-  return scope === 'spectacle'
-    ? `${ORGANIZER_ROLE_LABEL} du spectacle`
-    : `${ORGANIZER_ROLE_LABEL} de saison`
+export function organizerRoleMenuLabel(
+  scope: OrganizerScope,
+  gender?: MemberGender | null,
+): string {
+  const base = organizerRoleLabel(gender)
+  return scope === 'spectacle' ? `${base} du spectacle` : `${base} de saison`
 }
 
 export function organizerChipTooltip(scope: OrganizerScope): string {

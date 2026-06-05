@@ -141,6 +141,11 @@
   color: var(--mat-sys-primary);
 }
 
+.filter-picker-shell__row-avatar {
+  grid-column: 1;
+  flex-shrink: 0;
+}
+
 .filter-picker-shell__row-text {
   display: flex;
   flex-direction: column;

@@ -210,7 +210,8 @@
   opacity: 0.85;
 }
 
-.account-page__pseudo-block {
+.account-page__pseudo-block,
+.account-page__profile-block {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -231,28 +232,52 @@
   margin-top: 1.25rem;
 }
 
-.account-page__pseudo-save {
+.account-page__pseudo-save,
+.account-page__profile-save {
   min-height: 3rem;
 }
 
-.account-page__gender-block {
+.account-page__gender-row {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1rem;
-  margin-top: 1.25rem;
+  gap: 0.5rem;
   width: 100%;
-  max-width: 28rem;
 }
 
-.account-page__gender-field {
-  display: block;
-  width: 100%;
+.account-page__gender-label {
   margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant);
 }
 
-.account-page__gender-save {
-  min-height: 3rem;
+.account-page__gender-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+
+  mat-button-toggle {
+    flex: 1 1 auto;
+    min-height: 2.75rem;
+    padding-inline: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .mat-button-toggle-checked.account-page__gender-toggle-option--female {
+    background: var(--hatcast-member-gender-female-bg);
+    color: var(--hatcast-member-gender-female-fg);
+  }
+
+  .mat-button-toggle-checked.account-page__gender-toggle-option--neutral {
+    background: var(--hatcast-member-gender-neutral-bg);
+    color: var(--hatcast-member-gender-neutral-fg);
+  }
+
+  .mat-button-toggle-checked.account-page__gender-toggle-option--male {
+    background: var(--hatcast-member-gender-male-bg);
+    color: var(--hatcast-member-gender-male-fg);
+  }
 }
 
 .account-page__file-input {
@@ -298,7 +323,8 @@
   .account-page__avatar-trigger,
   .account-page__email-row button[mat-icon-button],
   .account-page__section button[mat-stroked-button],
-  .account-page__gender-save {
+  .account-page__profile-save,
+  .account-page__gender-toggle mat-button-toggle {
     min-height: 3rem;
     min-width: 3rem;
   }

@@ -19,6 +19,10 @@ data class CompositionSlotDto(
     val slotIndex: Int,
     val participantId: UUID?,
     val participantDisplayName: String?,
+    /** Public avatar URL when linked user has stored photo; null when empty or no photo. */
+    val participantAvatarUrl: String? = null,
+    /** Linked user gender when slot is filled; null when empty. */
+    val participantGender: String? = null,
     val participationStatus: String,
     val chancePercent: Int? = null,
     val pastSelectionCount: Int? = null,
@@ -30,6 +34,8 @@ data class CompositionDeclineDto(
     val id: UUID,
     val participantId: UUID,
     val participantDisplayName: String,
+    val participantAvatarUrl: String? = null,
+    val participantGender: String = "non_specified",
     val roleKey: String,
     val slotIndex: Int,
     val declinedAt: Instant,
@@ -61,6 +67,7 @@ data class CompositionDrawStepCandidateDto(
     val displayName: String,
     val chancePercent: Int,
     val weight: Double,
+    val gender: String = "non_specified",
 )
 
 data class CompositionDrawStepDto(
@@ -88,6 +95,8 @@ data class CompositionCandidateDto(
     val chancePercent: Int,
     val pastSelectionCount: Int,
     val alreadyAssignedRoleKeys: List<String>? = null,
+    val avatarUrl: String? = null,
+    val gender: String = "non_specified",
 )
 
 data class CompositionCandidateListResponseDto(

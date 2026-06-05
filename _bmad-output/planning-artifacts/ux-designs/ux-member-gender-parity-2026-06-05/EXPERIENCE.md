@@ -6,6 +6,7 @@ sources:
   - _bmad-output/specs/spec-member-gender-parity/member-gender.md
   - _bmad-output/planning-artifacts/ux-design-mon-compte.md
 updated: 2026-06-05
+screen1_status: frozen
 ---
 
 # HatCast V2 — Member gender & team parity — Experience Spine
@@ -23,9 +24,9 @@ updated: 2026-06-05
 
 | Surface | Route / component | Purpose |
 |---------|-------------------|---------|
-| Mon profil | `/compte` → `account-profile-tab` | Set optional gender |
+| Mon profil | `/compte` → `account-profile-tab` | Set optional gender (segmented control + shared save) |
 | Dispos / Équipe / confirmations | various | Show gender-aware labels (**2.12b**) |
-| Avatars | `app-user-avatar` | Emoji fallback by gender (**2.12c**) |
+| Avatars | `app-user-avatar` | Letter + tone fallback by gender (**2.12** / **2.12c**) |
 | Équipe parity strip | `event-equipe-tab` | Organizer F/M summary on `player` slots (**6.21**) |
 | Statistiques ligue | season stats view | Season aggregate parity (**16.3**) |
 
@@ -37,36 +38,58 @@ Respectful, optional, never prescriptive about balance.
 
 | Context | Copy |
 |---------|------|
-| Fieldset legend | **Genre** |
-| Radio — Homme | **Homme** |
-| Radio — Femme | **Femme** |
-| Radio — Non précisé | **Non précisé** |
-| Hint under gender | *Personnalise les libellés de rôles (ex. Comédienne) et l’avatar par défaut. Vous pouvez laisser Non précisé.* |
-| Snackbar success (optional) | *Genre enregistré* |
-| Snackbar error | *Impossible d’enregistrer le genre. Réessayez.* |
+| Gender question | **Quel genre utiliser pour me désigner ?** |
+| Toggle — Féminin | **Féminin** · `aria-label`: *Féminin (ex: une improvisatrice)* |
+| Toggle — Non spéc. | **Non spéc.** · `aria-label`: *Non spécifié (ex: un.e improvisateur.trice)* |
+| Toggle — Masculin | **Masculin** · `aria-label`: *Masculin (ex: un improvisateur)* |
+| Save (shared) | **Enregistrer** |
+| Snackbar success | *Profil enregistré* |
+| Snackbar error | *Enregistrement impossible* |
 | Parity strip — counts | *Joueurs : {f} F · {m} H* |
 | Parity strip — with ratio | *Joueurs : {f} F · {m} H ({pct} % femmes)* |
 | Parity strip — no known gender | *Parité : genre non renseigné pour les comédiens·nes assigné·e·s* |
 | Parity strip — no player slots filled | *(hidden)* |
 | Season card title (16.3) | **Parité sur scène (Comédien·ne)** |
 | Season card body | *{f} femmes · {m} hommes sur {total} sélections connues ({pct} % femmes)* |
-| `aria-label` gender group | *Genre pour les libellés et l’avatar* |
+| `aria-label` gender group | Question text via `aria-labelledby="account-gender-label"` |
+
+**Removed copy (2026-06-05):** pseudo hint *Nom affiché dans toutes vos troupes.* ; gender hint *Personnalise les libellés…* — deemed redundant on Mon profil.
 
 `{pct}` = rounded integer 0–100. `{f}`, `{m}` use **F** / **H** abbreviations in strip (space-efficient).
 
 ## Component Patterns
 
-### Gender field (story 2.12)
+### Gender field (story 2.12) — **FROZEN 2026-06-05**
 
 | Rule | Behavior |
 |------|----------|
-| Placement | After pseudo block, before « Modes de connexion » |
-| Control | `mat-radio-group`, vertical, 3 options |
-| Default | **Non précisé** when API null / `non_specified` |
-| Save | **Immediate** on `change` → `PATCH` profile; disable radios while saving |
-| Loading | Show group disabled + spinner on first load from API |
+| Placement | Inside `.account-page__profile-block`: pseudo field → gender toggle → **one** Enregistrer |
+| Control | `mat-button-toggle-group`, 3 segments, horizontal (wrap on narrow) |
+| Order | **Féminin** (left) · **Non spéc.** (centre) · **Masculin** (right) |
+| Default | **Non spéc.** pre-selected when API null / absent / `non_specified` |
+| Binding | `ngModel` on group (not `[value]` alone — async mount) |
+| Save | **Shared** with pseudo: user taps **Enregistrer** ; PATCH sends only dirty fields |
+| Dirty state | Button enabled when pseudo or gender differs from last saved values |
+| Loading | Spinner replaces profile block until preferences load |
+| Saving | Spinner inside Enregistrer button ; block duplicate submit |
+| Hints | **None** under pseudo or gender |
+| Live preview | Avatar letter + tone on Mon profil reflects current toggle (even before save) |
 | Visibility | Signed-in user on own Mon profil only |
 | Privacy | Other members **do not** see this control or raw value on `/membre` |
+
+### Avatar fallback (story 2.12 / 2.12c)
+
+When no `avatarUrl` and no Google photo:
+
+| Gender | Letter | Tone |
+|--------|--------|------|
+| `non_specified` | First letter of display name | Grey (neutral) |
+| `female` | First letter | Orange (tertiary container) |
+| `male` | First letter | Purple (primary container) |
+
+Selected toggle segment uses the **same** tone tokens. Custom/Google photo unchanged.
+
+V1 used gender emoji (`playerAvatars.js`) — **V2 normative behaviour is letter + tone only** (all surfaces, not only Mon profil).
 
 ### Gender-aware labels (story 2.12b)
 
@@ -78,10 +101,6 @@ Respectful, optional, never prescriptive about balance.
 | Confirmation dialogs | Assigned role label uses participant gender |
 
 Fallback: `non_specified` → inclusive tables (`Comédien·ne`, …).
-
-### Avatar fallback (story 2.12c)
-
-When no `avatarUrl` and no Google photo: 👨 / 👩 / 👤 per `DESIGN.md` companion spec. Custom/Google photo unchanged.
 
 ### Composition parity strip (story 6.21)
 
@@ -108,42 +127,43 @@ When no `avatarUrl` and no Google photo: 👨 / 👩 / 👤 per `DESIGN.md` comp
 
 | State | Gender field | Parity strip |
 |-------|--------------|--------------|
-| Loading | Spinner, radios disabled | Hidden until composition loaded |
-| Default | Non précisé selected | — |
-| Saving | Radios disabled, inline spinner | — |
-| Error | Revert selection or keep UI; snackbar error | — |
+| Loading | Spinner replaces profile block | Hidden until composition loaded |
+| Default | **Non spéc.** segment selected (centre) | — |
+| Dirty | Enregistrer enabled when pseudo or gender changed | — |
+| Saving | Spinner in Enregistrer button | — |
+| Error | Revert pseudo + gender to last saved; snackbar error | — |
 | Empty player slots | — | Hidden |
 | f+m=0, slots filled | — | « genre non renseigné… » copy |
 | f+m>0 | — | Counts + optional % |
 
 ## Interaction Primitives
 
-1. **Select gender** — tap radio → PATCH → optional snackbar.
+1. **Edit profile** — adjust pseudo and/or gender → tap **Enregistrer** → PATCH → *Profil enregistré*.
 2. **Compose team** — assign players → strip recalculates live.
 3. **View season stats** — open Statistiques → see aggregate card (16.3).
 
 ## Accessibility Floor
 
-- Fieldset `legend` visible; radio group labelled.
-- Radio rows ≥ 48dp touch height.
+- Gender question visible (`#account-gender-label`); toggle group `aria-labelledby`.
+- Toggle segments ≥ 48dp touch height; wrap allowed on narrow screens.
 - Parity strip: `role="status"`; icon decorative; full sentence in text node.
 - Contrast ≥ 4.5:1 on strip text (NFR-A1).
-- No information conveyed by color alone for parity (counts always in text).
+- Gender tone difference is supplementary — segment label always in text.
 
 ## Key Flows
 
 ### Flow A — Alex déclare son genre (Mon profil)
 
-1. Alex opens **Mon compte** → onglet **Mon profil** (déjà connecté).
-2. Scrolls past avatar, e-mail, pseudo.
-3. Reads hint under **Genre**; selects **Femme**.
-4. Brief spinner; optional snackbar *Genre enregistré*.
-5. **Climax:** On prochain spectacle, sa ligne dispo affiche **Comédienne** au lieu de **Comédien·ne**.
+1. Alex opens **Mon compte** → onglet **Mon profil**.
+2. Scrolls past avatar, e-mail ; **Non spéc.** is already selected on the toggle.
+3. Taps **Féminin** — avatar letter turns orange (preview).
+4. Taps **Enregistrer** → snackbar *Profil enregistré*.
+5. **Climax:** On prochain spectacle, sa ligne dispo affiche **Comédienne** (**2.12b**).
 
-### Flow B — Sam garde Non précisé
+### Flow B — Sam garde Non spécifié
 
-1. Sam never touches Genre; default stays **Non précisé**.
-2. All labels remain inclusive; avatar fallback 👤.
+1. Sam never touches the toggle; **Non spéc.** stays selected (centre, grey tone).
+2. All labels remain inclusive; avatar letter stays grey.
 3. **Climax:** Aucune friction — aucun prompt pour « compléter le profil ».
 
 ### Flow C — Organisateur Marie compose un match
@@ -155,16 +175,19 @@ When no `avatarUrl` and no Google photo: 👨 / 👩 / 👤 per `DESIGN.md` comp
 
 ## Responsive & Platform
 
-- Gender radios: full-width stack on ≤ 480px.
+- Gender toggle: horizontal segments, wrap on ≤ 480px.
 - Parity strip: single line desktop; wrap allowed mobile; abbreviations F/H conserve space.
 - Season card: stacks with other stat cards on mobile.
 
 ## Inspiration & Anti-patterns
 
-**From V1 (`PlayerModal`):** explanatory hint for why gender matters — adapted to shorter M3 hint.
+**From V1 (`PlayerModal`):** question copy and inclusive `aria-label` examples — **without** the long explanatory hint (removed as clutter).
 
 **Anti-patterns**
 
+- Separate Enregistrer buttons for pseudo and gender.
+- Immediate PATCH on every toggle tap (surprising vs pseudo).
+- Vertical radio list or dropdown for gender.
 - Forcing gender at signup.
 - Red/green « good/bad » parity gauge.
 - Showing « Homme/Femme » badge on other members’ avatars.
@@ -193,4 +216,4 @@ interface CompositionGenderParity {
 | ID | Question | UX assumption |
 |----|----------|-------------|
 | OQ-UX-1 | Match-only strip? | All events — strip when `player` slots exist |
-| OQ-UX-2 | Snackbar on gender save? | Optional subtle success; error always snackbar |
+| OQ-UX-2 | Snackbar on profile save? | **Resolved:** shared *Profil enregistré* ; error always snackbar |

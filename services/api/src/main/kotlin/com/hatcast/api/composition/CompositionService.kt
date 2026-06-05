@@ -26,6 +26,8 @@ import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.user.ParticipantAvatarResolver
+import com.hatcast.api.user.ParticipantGenderResolver
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -55,6 +57,8 @@ class CompositionService(
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
     private val consecutiveShowWarningService: ConsecutiveShowWarningService,
     private val multiRoleOnEventWarningService: MultiRoleOnEventWarningService,
+    private val participantGenderResolver: ParticipantGenderResolver,
+    private val participantAvatarResolver: ParticipantAvatarResolver,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -319,6 +323,10 @@ class CompositionService(
             if (canViewSlots) {
                 val participantIds = slots.mapNotNull { it.assignedParticipantId() }.toSet()
                 val displayNames = resolveDisplayNames(eventId, participantIds)
+                val gendersByParticipantId =
+                    participantGenderResolver.resolveByParticipantIds(eventId, participantIds)
+                val avatarUrlsByParticipantId =
+                    participantAvatarResolver.resolveByParticipantIds(eventId, participantIds)
                 val consecutiveWarningsBySlot =
                     if (resolvedCanManage) {
                         consecutiveShowWarningService.warningsBySlotKey(event, slots)
@@ -343,6 +351,10 @@ class CompositionService(
                         participantId = assignedId,
                         participantDisplayName =
                             assignedId?.let { displayNames[it] },
+                        participantAvatarUrl =
+                            assignedId?.let { avatarUrlsByParticipantId[it] },
+                        participantGender =
+                            assignedId?.let { gendersByParticipantId[it] },
                         participationStatus = slot.participationStatus.name.lowercase(),
                         chancePercent = odds?.first,
                         pastSelectionCount = odds?.second,
@@ -393,6 +405,10 @@ class CompositionService(
                 row.seasonParticipantId ?: row.eventParticipantId
             }.toSet()
         val displayNames = resolveDisplayNames(eventId, participantIds)
+        val gendersByParticipantId =
+            participantGenderResolver.resolveByParticipantIds(eventId, participantIds)
+        val avatarUrlsByParticipantId =
+            participantAvatarResolver.resolveByParticipantIds(eventId, participantIds)
         return rows.map { row ->
             val participantId =
                 row.seasonParticipantId ?: row.eventParticipantId
@@ -401,6 +417,8 @@ class CompositionService(
                 id = row.id,
                 participantId = participantId,
                 participantDisplayName = displayNames[participantId] ?: "Participant",
+                participantAvatarUrl = avatarUrlsByParticipantId[participantId],
+                participantGender = gendersByParticipantId[participantId] ?: "non_specified",
                 roleKey = row.roleKey,
                 slotIndex = row.slotIndex,
                 declinedAt = row.declinedAt,

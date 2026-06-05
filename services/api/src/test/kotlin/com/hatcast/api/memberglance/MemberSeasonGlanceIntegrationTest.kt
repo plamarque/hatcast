@@ -10,6 +10,7 @@ import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeRepository
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertTrue
+import java.time.Instant
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -77,6 +78,23 @@ class MemberSeasonGlanceIntegrationTest {
             .andExpect(jsonPath("$.isSelf").value(true))
             .andExpect(jsonPath("$.resolvedSeasonId").value(seedSeasonId.toString()))
             .andExpect(jsonPath("$.filterBarVisible").isBoolean)
+            .andExpect(jsonPath("$.gender").value("non_specified"))
+    }
+
+    @Test
+    fun `GET season-glance omits avatarUrl when avatar bytes missing`() {
+        val cookie = signInAndJoin("sub-glance-avatar-guard", "glance-avatar-guard@example.com", "Glance Avatar")
+        val user = userRepository.findByGoogleSub("sub-glance-avatar-guard")!!
+        user.avatarUpdatedAt = Instant.now()
+        userRepository.save(user)
+
+        mockMvc
+            .perform(
+                get("/v1/members/${user.slug}/season-glance")
+                    .cookie(cookie)
+                    .param("seasonId", seedSeasonId.toString()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.avatarUrl").isEmpty)
     }
 
     @Test

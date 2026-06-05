@@ -18,9 +18,13 @@
             role="option"
             (click)="select(candidate.participantId)"
           >
-            <span class="composition-slot-picker__avatar" aria-hidden="true">
-              {{ initial(candidate.displayName) }}
-            </span>
+            <app-user-avatar
+              class="composition-slot-picker__avatar"
+              [displayName]="candidate.displayName"
+              [avatarUrl]="candidate.avatarUrl ?? null"
+              [gender]="candidate.gender ?? null"
+              [size]="32"
+            />
             <span class="composition-slot-picker__meta">
               <span class="composition-slot-picker__name">{{ candidate.displayName }}</span>
               @if (assignedElsewhereLabel(candidate.alreadyAssignedRoleKeys); as subtitle) {

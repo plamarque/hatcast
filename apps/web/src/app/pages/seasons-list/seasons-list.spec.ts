@@ -7,6 +7,7 @@ import { Router, provideRouter } from '@angular/router'
 import { of } from 'rxjs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { DEMO_ACTIVE_SEASON_SLUG } from '../../core/troupes/demo-troupe.constants'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
@@ -374,6 +375,48 @@ describe('SeasonsList', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(seasonApi.listSeasons).toHaveBeenLastCalledWith('troupe-1', 0, 20)
+  })
+
+  it('applique la teinte genre sur l’avatar du menu compte', async () => {
+    const getPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { memberDisplayName: 'Léa', preferredRoleKeys: [], gender: 'female' },
+    })
+    TestBed.resetTestingModule()
+    await TestBed.configureTestingModule({
+      imports: [SeasonsList, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        { provide: MatDialog, useValue: dialog },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        {
+          provide: AuthApiService,
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: {
+                user: { email: 'lea@example.com', slug: 'lea' },
+                platformAdmin: false,
+              },
+            }),
+          },
+        },
+        { provide: MePreferencesApiService, useValue: { getPreferences } },
+        { provide: TroupeApiService, useValue: troupeApi },
+        { provide: DemoTroupeJoinService, useValue: demoJoin },
+        { provide: SeasonApiService, useValue: seasonApi },
+      ],
+    }).compileComponents()
+    const genderFixture = TestBed.createComponent(SeasonsList)
+    await settle(genderFixture)
+    await vi.waitFor(() => {
+      genderFixture.detectChanges()
+      const avatar = genderFixture.nativeElement.querySelector(
+        'app-user-avatar.user-avatar--tone-female',
+      )
+      expect(avatar).not.toBeNull()
+    })
+    expect(getPreferences).toHaveBeenCalled()
   })
 })
 

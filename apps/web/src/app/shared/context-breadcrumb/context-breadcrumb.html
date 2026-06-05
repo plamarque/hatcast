@@ -1,6 +1,7 @@
 <nav
   class="context-breadcrumb"
   [class.context-breadcrumb--event]="layout() === 'event'"
+  [class.context-breadcrumb--with-leaf]="!!leafTitle()?.trim()"
   aria-label="Fil d'Ariane"
 >
   <ol class="context-breadcrumb__trail context-breadcrumb__trail--desktop">
@@ -122,13 +123,25 @@
     }
     @if (layout() === 'event' && eventTitle()?.trim()) {
       <span class="context-breadcrumb__sep context-breadcrumb__sep--mobile" aria-hidden="true">›</span>
-      @if (leafTitle()?.trim()) {
+      @if (leafTitle()?.trim() && !mobileOmitLeaf()) {
         <span class="context-breadcrumb__mobile-event-title">{{ eventTitle() }}</span>
+      } @else if (eventIsLink()) {
+        <a
+          class="context-breadcrumb__mobile-event-title context-breadcrumb__link"
+          [routerLink]="saisonEventPath(troupeSlug(), seasonSlug(), eventSlug()!)"
+        >
+          {{ eventTitle() }}
+        </a>
       } @else {
-        <span class="context-breadcrumb__mobile-event-title" aria-current="page">{{ eventTitle() }}</span>
+        <span
+          class="context-breadcrumb__mobile-event-title"
+          [attr.aria-current]="!leafTitle()?.trim() ? 'page' : null"
+        >
+          {{ eventTitle() }}
+        </span>
       }
     }
-    @if (leafTitle()?.trim()) {
+    @if (leafTitle()?.trim() && !mobileOmitLeaf()) {
       <span class="context-breadcrumb__sep context-breadcrumb__sep--mobile" aria-hidden="true">›</span>
       <span class="context-breadcrumb__mobile-title" aria-current="page">{{ leafTitle() }}</span>
     }

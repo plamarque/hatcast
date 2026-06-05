@@ -1,7 +1,8 @@
 package com.hatcast.api.notification
 
 import com.hatcast.api.composition.SlotParticipationStatus
-import com.hatcast.api.season.SeasonStatisticsService
+import com.hatcast.api.role.RoleLabels
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -54,7 +55,11 @@ class ProxyWorkflowNotificationAdapter(
         if (actorUserId == subjectUserId) {
             return
         }
-        val roleLabel = SeasonStatisticsService.ROLE_LABELS[roleKey] ?: roleKey
+        val subjectGender =
+            MemberGender.effective(
+                userRepository.findById(subjectUserId).orElse(null)?.gender,
+            )
+        val roleLabel = RoleLabels.label(roleKey, subjectGender)
         dispatcher.dispatch(
             NotificationDispatchContext(
                 intent = NotificationIntent.PROXY_CONFIRMATION_RECORDED,

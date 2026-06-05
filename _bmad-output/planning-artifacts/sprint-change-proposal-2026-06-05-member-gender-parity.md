@@ -25,7 +25,7 @@
 | **Default** | **Non précisé** when unset — inclusive middot labels remain (V1 rule) |
 | **Scope** | **Account-level** (`users` table), not troupe-scoped — same as avatar / member display name |
 | **Labels** | Adapt role labels wherever a **participant** is shown with a role (dispos, équipe, confirmations, stats cells) |
-| **Avatars** | When no custom/Google photo: distinct fallback emoji by gender (V1: 👨 / 👩 / 👤) |
+| **Avatars** | When no custom/Google photo: distinct letter fallback by gender tone (V2: purple / orange / grey — replaces V1 emoji) |
 | **Parity — internal** | Compute F/M counts on **player** (`player`) slots in a composition draft or validated team |
 | **Parity — exposed** | Optional season-level statistic (proportion women/men among **player** selections) |
 | **Parity — hint** | Non-blocking inline hint for organizers during composition (e.g. imbalance on `player` role) |
@@ -166,8 +166,8 @@ so that I am visually recognizable (V1 parity).
 
 **Acceptance Criteria**
 
-1. **Given** no custom avatar and no Google photo, **when** avatar renders, **then** emoji fallback is 👨 / 👩 / 👤 by gender (V1 `playerAvatars.js`).
-2. **Given** custom or Google avatar, **when** displayed, **then** gender emoji is **not** used.
+1. **Given** no custom avatar and no Google photo, **when** avatar renders, **then** letter fallback uses gender tone (male → purple, female → orange, non_specified → grey — `member-gender.md`).
+2. **Given** custom or Google avatar, **when** displayed, **then** photo is shown — gender tone not applied to the image.
 3. **Couverture:** FR10. **Priorité:** P1. **Depends:** **2.12**, **2.6** (done).
 
 ---
@@ -254,7 +254,7 @@ so I can understand troupe parity over time.
 
 - Member sets Femme → dispos/équipe show « Comédienne » for `player` role.
 - Member leaves Non précisé → « Comédien·ne » unchanged.
-- Avatar without photo shows 👩/👨/👤.
+- Avatar without photo shows gender-distinct letter tone (orange / purple / grey).
 - No workflow blocked when gender unset.
 
 ---

@@ -11,6 +11,7 @@ import com.hatcast.api.support.EventTestSupport
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -394,6 +395,38 @@ class CompositionDrawIntegrationTest {
             .mapNotNull { slot ->
                 slot.get("participantId")?.takeIf { !it.isNull }?.asText()
             }.toSet()
+
+    @Test
+    @Tag("FR20")
+    fun `POST draw exposes candidate gender on animation steps`() {
+        val adminCookie = memberCookie("sub-draw-admin-gender-step", admin = true)
+        val member1 = memberCookie("sub-draw-member-gender-step-a")
+        val member2 = memberCookie("sub-draw-member-gender-step-b")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId)
+        setAvailability(member1, seasonId, eventId, "available")
+        setAvailability(member2, seasonId, eventId, "available")
+        val user = userRepository.findByGoogleSub("sub-draw-member-gender-step-a")!!
+        user.gender = MemberGender.FEMALE
+        userRepository.save(user)
+        val femaleParticipantId = participantIdForUser(seasonId, "sub-draw-member-gender-step-a").toString()
+
+        val body = draw(adminCookie, seasonId, eventId)
+        val steps = body.get("steps")
+        assertTrue(steps.size() > 0)
+        val candidates = steps[0].get("candidates")
+        assertTrue(candidates.size() > 0)
+
+        var foundFemale = false
+        for (index in 0 until candidates.size()) {
+            val candidate = candidates[index]
+            if (candidate.get("participantId")?.asText() == femaleParticipantId) {
+                assertEquals("female", candidate.get("gender").asText())
+                foundFemale = true
+            }
+        }
+        assertTrue(foundFemale, "Female participant should appear in draw candidates with gender=female")
+    }
 
     @Test
     @Tag("FR20")

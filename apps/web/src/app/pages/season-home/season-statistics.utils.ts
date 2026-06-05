@@ -1,4 +1,9 @@
-import type { StatCounts } from '../../core/seasons/season-statistics-api.service'
+import { effectiveMemberGender, type MemberGender } from '../../core/account/member-gender'
+import type {
+  StatCounts,
+  StatisticsEventCell,
+} from '../../core/seasons/season-statistics-api.service'
+import { getRoleLabel, type RoleKey } from '../../shared/event-roles/event-roles'
 
 export type { StatCounts }
 
@@ -72,6 +77,39 @@ export function formatStatCell(counts: StatCounts | undefined): {
     percent: pct !== null ? `(${pct}%)` : null,
     tooltip: statTooltip(selections, dispos, declines),
     empty: false,
+  }
+}
+
+/** Applies participant gender to role label/tooltip on stats event cells. */
+export function genderStatisticsEventCell(
+  cell: StatisticsEventCell,
+  gender?: MemberGender | null,
+): StatisticsEventCell {
+  const roleKey = cell.roleKey as RoleKey | null | undefined
+  if (!roleKey) {
+    return cell
+  }
+  const roleLabel = getRoleLabel(roleKey, effectiveMemberGender(gender))
+  switch (cell.status) {
+    case 'pending':
+      return {
+        ...cell,
+        label: roleLabel,
+        tooltip: `${roleLabel} — En attente de confirmation`,
+      }
+    case 'selected':
+      return { ...cell, label: roleLabel, tooltip: roleLabel }
+    case 'declined':
+      if (cell.label.startsWith('Décliné (')) {
+        return { ...cell, tooltip: `${roleLabel} — Décliné` }
+      }
+      return {
+        ...cell,
+        label: roleLabel,
+        tooltip: `${roleLabel} — Décliné`,
+      }
+    default:
+      return cell
   }
 }
 

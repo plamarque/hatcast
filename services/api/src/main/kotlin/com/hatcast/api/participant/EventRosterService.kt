@@ -5,6 +5,7 @@ import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.audit.AuditRecordRequest
 import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.dto.EventRosterParticipantDto
 import com.hatcast.api.participant.dto.EventRosterSource
@@ -26,6 +27,7 @@ class EventRosterService(
     private val seasonParticipantService: SeasonParticipantService,
     private val participantAccess: ParticipantAccessService,
     private val auditRecorder: AuditEventRecorder,
+    private val avatarService: AvatarService,
 ) {
     @Transactional(readOnly = true)
     fun listRoster(
@@ -153,7 +155,7 @@ class EventRosterService(
 
         for (row in seasonRows.sortedByFrenchDisplayName { it.displayName }) {
             val key = "season:${row.id}"
-            roster[key] = EventRosterParticipantDto.fromSeason(row, includeEmail)
+            roster[key] = rosterDtoFromSeason(row, includeEmail)
             row.user?.id?.let { seenUserIds.add(it) }
         }
 
@@ -175,10 +177,36 @@ class EventRosterService(
                 continue
             }
             val key = "event:${row.id}"
-            roster[key] = EventRosterParticipantDto.fromEvent(row, includeEmail)
+            roster[key] = rosterDtoFromEvent(row, includeEmail)
             userId?.let { seenUserIds.add(it) }
         }
 
         return roster.values.toList()
+    }
+
+    private fun rosterDtoFromSeason(
+        row: SeasonParticipantEntity,
+        includeEmail: Boolean,
+    ): EventRosterParticipantDto {
+        val user = ParticipantRowPresentation.linkedUser(row)
+        return EventRosterParticipantDto.fromSeason(
+            row,
+            includeEmail,
+            ParticipantRowPresentation.avatarUrl(avatarService, user),
+            ParticipantRowPresentation.genderWire(user),
+        )
+    }
+
+    private fun rosterDtoFromEvent(
+        row: EventParticipantEntity,
+        includeEmail: Boolean,
+    ): EventRosterParticipantDto {
+        val user = ParticipantRowPresentation.linkedUser(row)
+        return EventRosterParticipantDto.fromEvent(
+            row,
+            includeEmail,
+            ParticipantRowPresentation.avatarUrl(avatarService, user),
+            ParticipantRowPresentation.genderWire(user),
+        )
     }
 }

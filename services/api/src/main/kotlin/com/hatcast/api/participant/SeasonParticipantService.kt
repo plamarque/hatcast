@@ -6,6 +6,7 @@ import com.hatcast.api.audit.AuditRecordRequest
 import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.avatar.AvatarService
+import com.hatcast.api.user.UserEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.dto.ParticipantCreateRequest
 import com.hatcast.api.participant.dto.ParticipantSelectorDto
@@ -17,7 +18,7 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
-import com.hatcast.api.user.UserEntity
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
@@ -37,6 +38,7 @@ class SeasonParticipantService(
     private val participantLink: ParticipantLinkService,
     private val membershipSync: SeasonParticipantMembershipSync,
     private val auditRecorder: AuditEventRecorder,
+    private val avatarService: AvatarService,
 ) {
     @Transactional
     fun listAdmin(
@@ -48,9 +50,17 @@ class SeasonParticipantService(
         ensureMembershipParticipants(season)
         val includeEmail = participantAccess.canViewParticipantEmail(seasonId, principal)
         return seasonParticipantRepository
-            .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE)
+            .findActiveForSeasonWithAssociations(seasonId, ParticipantStatus.ACTIVE)
             .sortedByFrenchDisplayName { it.displayName }
-            .map { SeasonParticipantAdminDto.from(it, includeEmail) }
+            .map { row ->
+                val user = ParticipantRowPresentation.linkedUser(row)
+                SeasonParticipantAdminDto.from(
+                    row,
+                    includeEmail,
+                    ParticipantRowPresentation.avatarUrl(avatarService, user),
+                    ParticipantRowPresentation.genderWire(user),
+                )
+            }
     }
 
     @Transactional
@@ -67,11 +77,12 @@ class SeasonParticipantService(
                 row.troupeMembership == null ||
                     row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
             }.map { row ->
-                val avatarUrl =
-                    row.user?.let { user ->
-                        AvatarService.publicAvatarUrl(user.id, user.avatarUpdatedAt)
-                    }
-                ParticipantSelectorDto.from(row, avatarUrl)
+                val avatarUrl = selectorAvatarUrl(row.user ?: row.troupeMembership?.user)
+                ParticipantSelectorDto.from(
+                    row,
+                    avatarUrl,
+                    selectorGender(row),
+                )
             }
     }
 
@@ -491,4 +502,10 @@ class SeasonParticipantService(
         season.updatedAt = Instant.now()
         seasonRepository.save(season)
     }
+
+    private fun selectorGender(row: SeasonParticipantEntity): String =
+        ParticipantRowPresentation.genderWire(ParticipantRowPresentation.linkedUser(row))
+
+    private fun selectorAvatarUrl(user: UserEntity?): String? =
+        ParticipantRowPresentation.avatarUrl(avatarService, user)
 }

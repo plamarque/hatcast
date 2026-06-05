@@ -24,6 +24,13 @@ class UserAccountService(
         val existing = userRepository.findFirstByEmailIgnoreCase(email)
         if (existing != null) {
             if (existing.activatedAt != null) {
+                // V1 backfill: activated accounts may still lack gender — update gender only (not displayName).
+                if (gender != null && existing.gender != gender) {
+                    existing.gender = gender
+                    existing.updatedAt = Instant.now()
+                    userRepository.save(existing)
+                    return UserAccountImportOutcome.UPDATED
+                }
                 return UserAccountImportOutcome.SKIPPED
             }
             var changed = false

@@ -99,7 +99,7 @@ Gender is **never required**; workflows must not block when unset.
 ### Labels and avatars
 
 - **Given** a participant's gender is known, **when** a role label is shown in dispos, équipe, or confirmation flows, **then** labels follow the V1 gender tables (see companion).
-- **Given** no custom or Google avatar, **when** avatar renders, **then** fallback emoji follows V1 (👨 / 👩 / 👤).
+- **Given** no custom or Google avatar, **when** avatar renders, **then** fallback is the display-name initial on a gender tone (purple / orange / grey per `member-gender.md`) — not V1 emoji.
 
 ### Composition parity hint (organizer)
 

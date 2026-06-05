@@ -80,3 +80,22 @@
 ## Deferred from: code review of 6-19-export-calendrier-et-navigation-lieu-onglet-infos (2026-06-05)
 
 - `::ng-deep` sur `.event-infos__menu-panel` pour `max-height` safe-area — waiver M3-5 documenté ; alternative `overlayPanelClass` globale reportée (pattern overlay existant dans le repo).
+
+---
+
+## Deferred from: code review of 2-12-genre-optionnel-profil-membre-api-mon-compte (2026-06-05)
+
+- OpenAPI preferences schema not updated — story marks OpenAPI optional (17.33 precedent).
+- Concurrent PATCH last-write-wins — no `@Version` on `UserEntity`; pre-existing pattern.
+- NULL vs persisted `non_specified` in DB — both read as `non_specified` via `MemberGender.effective`; acceptable Wave A.
+- V1 export gender dedupe tie-break order-dependent on equal `updatedAt` — low migration risk.
+
+## Deferred from: code review of 2-12b-libelles-roles-adaptes-genre (2026-06-05)
+
+- Couplage `rolePillLabel` → `auditRoleDisplay` pour pills de slots vides — pattern pré-existant ; refactor séparé si souhaité.
+
+## Deferred from: code review of 2-12b + 2-12c combined (2026-06-05)
+
+- Tables de libellés dupliquées web (`event-roles.ts`) / API (`RoleLabels.kt`) — pas de divergence constatée ; synchronisation manuelle à prévoir si tables évoluent.
+- `context-breadcrumb` modifié dans le working tree — hors périmètre 2.12b/2.12c ; committer séparément.
+- Couleurs hex de repli dans `user-avatar.scss` — fallbacks M3 préexistants sous les tokens genre (2.12c).

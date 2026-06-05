@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core'
 
+import { effectiveMemberGender, type MemberGender } from '../account/member-gender'
+
 export type AuditActionType =
   | 'AVAILABILITY_CREATED'
   | 'AVAILABILITY_UPDATED'
@@ -45,6 +47,7 @@ export interface AuditIdentity {
   displayName: string
   email?: string | null
   avatarUrl?: string | null
+  gender?: MemberGender
 }
 
 export interface AuditScope {
@@ -115,10 +118,32 @@ export class AuditApiService {
         credentials: 'include',
       })
       if (!res.ok) return { ok: false, status: res.status }
-      return { ok: true, status: res.status, data: (await res.json()) as PagedAuditEventsResponse }
+      const raw = (await res.json()) as PagedAuditEventsResponse
+      return {
+        ok: true,
+        status: res.status,
+        data: {
+          ...raw,
+          content: raw.content.map((row) => ({
+            ...row,
+            actor: normalizeAuditIdentity(row.actor),
+            subject: normalizeAuditIdentity(row.subject),
+          })),
+        },
+      }
     } catch {
       return { ok: false, status: 0 }
     }
+  }
+}
+
+function normalizeAuditIdentity(identity: AuditIdentity | null | undefined): AuditIdentity | null {
+  if (!identity) {
+    return null
+  }
+  return {
+    ...identity,
+    gender: effectiveMemberGender(identity.gender),
   }
 }
 

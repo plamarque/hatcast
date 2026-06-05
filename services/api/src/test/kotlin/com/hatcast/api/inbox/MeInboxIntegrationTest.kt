@@ -21,6 +21,7 @@ import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeRepository
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import org.hamcrest.Matchers.hasSize
 import org.junit.jupiter.api.Test
@@ -375,6 +376,10 @@ class MeInboxIntegrationTest {
     val member = signIn("inbox-confirm-member", "inbox-confirm-member@example.com", "Inbox Confirm Member")
     val seasonId = createSeason(admin.cookie, "Inbox confirm season")
     val eventId = createEvent(admin.cookie, seasonId, "Confirm match")
+    val memberUser = userRepository.findByGoogleSub("inbox-confirm-member")!!
+    memberUser.gender = MemberGender.FEMALE
+    userRepository.save(memberUser)
+
     val linkedId = participantIdForUser(seasonId, "inbox-confirm-member")
     seedValidatedComposition(eventId, linkedId)
 
@@ -384,7 +389,7 @@ class MeInboxIntegrationTest {
       .andExpect(jsonPath("$.actions", hasSize<Any>(2)))
       .andExpect(jsonPath("$.actions[0].type").value("composition_confirm_pending"))
       .andExpect(jsonPath("$.actions[0].roleKey").value("player"))
-      .andExpect(jsonPath("$.actions[0].roleLabel").value("Comédien·ne"))
+      .andExpect(jsonPath("$.actions[0].roleLabel").value("Comédienne"))
       .andExpect(
         jsonPath("$.actions[0].deepLink").value(org.hamcrest.Matchers.containsString("showConfirm=true")),
       )

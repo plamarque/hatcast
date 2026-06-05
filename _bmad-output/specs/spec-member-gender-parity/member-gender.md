@@ -47,13 +47,15 @@ Plural forms follow the same V1 `ROLE_LABELS_PLURAL_BY_GENDER` tables.
 
 ## Avatar fallback
 
-When `avatar_url` is absent and Google photo is not used (story **2.6** rules):
+When `avatar_url` is absent and Google photo is not used (story **2.6** rules), V2 shows the **first letter** of the display name on a **gender tone** background (`app-user-avatar` + `--hatcast-member-gender-*` tokens). V1 used emoji (`legacy/src/services/playerAvatars.js`) — **not** ported to V2 runtime.
 
-| gender | emoji |
-|--------|-------|
-| `male` | 👨 |
-| `female` | 👩 |
-| `non_specified` | 👤 |
+| gender | Letter | Tone (M3 tokens) | Host class |
+|--------|--------|------------------|------------|
+| `male` | First char (uppercase) | Purple (`--hatcast-member-gender-male-bg/fg`) | `user-avatar--tone-male` |
+| `female` | Same | Orange (`--hatcast-member-gender-female-bg/fg`) | `user-avatar--tone-female` |
+| `non_specified` | Same | Grey (`--hatcast-member-gender-neutral-bg/fg`) | `user-avatar--tone-neutral` |
+
+Custom or Google photo takes precedence; tone applies only on letter fallback.
 
 ## Team gender parity — definitions
 
@@ -86,8 +88,13 @@ femaleShare = f / (f + m)   // 0.0–1.0
 ## Privacy
 
 - Wave A: `gender` writable by self only; not listed on public `/membre/:userSlug` header.
+- Wave B (2.12b): `gender` on **operational** participant rows (composition, dispos summary, draw candidates) and on **troupe-visible member season glance** (`MemberSeasonGlanceResponseDto`) for gender-aware role pills on profile — not on admin member list API.
 - Derived labels and avatars are visible in troupe operational UI (expected).
 - Aggregate season stats must not enable inferring an individual's gender beyond what labels already show in grids.
+
+## Implementation surfaces (registry)
+
+Normative label tables and privacy rules stay in this file. For the **per-screen inventory** (labels, avatars, API fields, status, tests), see [member-gender-surfaces.md](../../../docs/v2/technical/member-gender-surfaces.md). Update that registry when adding or changing a gender-aware UI surface.
 
 ## Downstream
 

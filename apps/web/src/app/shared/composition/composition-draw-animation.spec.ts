@@ -58,6 +58,49 @@ describe('CompositionDrawAnimation', () => {
     expect(fixture.nativeElement.querySelector('.composition-draw-animation__bar')).toBeNull()
   })
 
+  it('shows gender-aware selection prefix for female winner', () => {
+    fixture.componentRef.setInput('step', {
+      roleKey: 'player',
+      slotIndex: 0,
+      candidates: [
+        {
+          participantId: 'a',
+          displayName: 'Alice',
+          chancePercent: 100,
+          weight: 1,
+          gender: 'female',
+        },
+      ],
+      selectedParticipantId: 'a',
+      randomValue: 0.5,
+      totalWeight: 1,
+    })
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Sélectionnée : Alice')
+  })
+
+  it('shows inclusive selection prefix when gender is unknown', () => {
+    fixture.componentRef.setInput('step', {
+      roleKey: 'player',
+      slotIndex: 0,
+      candidates: [
+        {
+          participantId: 'a',
+          displayName: 'Alex',
+          chancePercent: 100,
+          weight: 1,
+        },
+      ],
+      selectedParticipantId: 'a',
+      randomValue: 0.5,
+      totalWeight: 1,
+    })
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Sélectionné·e : Alex')
+  })
+
   it('emits finished after play animation delay', () => {
     const finished = vi.fn()
     fixture.componentInstance.finished.subscribe(finished)

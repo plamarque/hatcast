@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 
+import { effectiveMemberGender, type MemberGender } from '../account/member-gender'
 import type { ParticipationChartStatus } from '../participation/participation-status'
 
 export interface StatCounts {
@@ -29,6 +30,7 @@ export interface ParticipantStatisticsRow {
   displayName: string
   userSlug?: string | null
   avatarUrl?: string | null
+  gender?: MemberGender
   annual: Record<string, StatCounts>
   /** V1 month rollup — participations / dispos / declines per validated event. */
   monthSummary: Record<string, StatCounts>
@@ -81,7 +83,14 @@ export class SeasonStatisticsApiService {
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
-      const data = (await res.json()) as SeasonStatisticsResponse
+      const raw = (await res.json()) as SeasonStatisticsResponse
+      const data: SeasonStatisticsResponse = {
+        ...raw,
+        rows: raw.rows.map((row) => ({
+          ...row,
+          gender: effectiveMemberGender(row.gender),
+        })),
+      }
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

@@ -10,7 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
-import type { MemberGender } from '../../core/account/member-gender'
+import { effectiveMemberGender, type MemberGender } from '../../core/account/member-gender'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { computeRawCompositionLifecycle } from '../../core/composition/composition-lifecycle'
 import {
@@ -482,7 +482,11 @@ export class EventEquipeTab {
   }
 
   protected slotRowAriaLabel(row: SlotRow): string {
-    const role = this.rolePillLabel(row.roleKey)
+    const role = this.rolePillLabel(
+      row.roleKey,
+      row.slot?.participantGender,
+      !!row.slot?.participantId,
+    )
     const name = row.slot?.participantDisplayName
     if (this.canEditSlots() || this.canTapGapSlot(row)) {
       return name ? `Modifier ${name}, ${role}` : `Assigner ${role}`
@@ -628,7 +632,17 @@ export class EventEquipeTab {
 
   protected readonly emptySlotPlaceholder = 'À pourvoir'
 
-  protected rolePillLabel(roleKey: string): string {
+  /** Inclusive label for empty slots; gender-aware when a participant is assigned. */
+  protected rolePillLabel(
+    roleKey: string,
+    participantGender?: MemberGender | null,
+    hasAssignee = false,
+  ): string {
+    const key = roleKey as RoleKey
+    if (hasAssignee) {
+      const emoji = ROLE_EMOJIS[key] ?? '•'
+      return `${emoji} ${getRoleLabel(key, participantGender)}`
+    }
     return auditRoleDisplay(roleKey)
   }
 
@@ -643,6 +657,18 @@ export class EventEquipeTab {
     return null
   }
 
+  private viewerGenderLoad: Promise<MemberGender | undefined> | null = null
+
+  private loadViewerGender(): Promise<MemberGender | undefined> {
+    if (!this.viewerGenderLoad) {
+      this.viewerGenderLoad = this.mePreferencesApi.getPreferences().then((prefs) => {
+        const gender = prefs.ok ? prefs.data?.gender : undefined
+        return gender === 'male' || gender === 'female' ? gender : undefined
+      })
+    }
+    return this.viewerGenderLoad
+  }
+
   private async resolveParticipationRoleGender(
     mode: 'self' | 'proxy',
     slotGender: MemberGender | null | undefined,
@@ -650,8 +676,7 @@ export class EventEquipeTab {
     if (mode === 'proxy') {
       return slotGender ?? undefined
     }
-    const prefs = await this.mePreferencesApi.getPreferences()
-    const viewerGender = prefs.ok ? prefs.data?.gender : undefined
+    const viewerGender = await this.loadViewerGender()
     if (viewerGender === 'male' || viewerGender === 'female') {
       return viewerGender
     }
@@ -950,11 +975,12 @@ export class EventEquipeTab {
     if (!participantId) {
       return
     }
-    const displayName =
-      step.candidates.find((c) => c.participantId === participantId)?.displayName ?? null
+    const selectedCandidate = step.candidates.find((c) => c.participantId === participantId)
     const pendingSlot = this.pendingDrawComposition()?.slots.find(
       (s) => s.roleKey === step.roleKey && s.slotIndex === step.slotIndex,
     )
+    const displayName =
+      selectedCandidate?.displayName ?? pendingSlot?.participantDisplayName ?? null
     const slots = [...comp.slots]
     const existingIndex = slots.findIndex(
       (s) => s.roleKey === step.roleKey && s.slotIndex === step.slotIndex,
@@ -964,6 +990,12 @@ export class EventEquipeTab {
       slotIndex: step.slotIndex,
       participantId,
       participantDisplayName: displayName,
+      participantAvatarUrl: pendingSlot?.participantAvatarUrl ?? null,
+      participantGender:
+        pendingSlot?.participantGender ??
+        (selectedCandidate?.gender != null
+          ? effectiveMemberGender(selectedCandidate.gender)
+          : null),
       participationStatus: 'pending',
       consecutiveShowWarning: pendingSlot?.consecutiveShowWarning ?? null,
       multiRoleOnEventWarning: pendingSlot?.multiRoleOnEventWarning ?? null,
@@ -993,7 +1025,10 @@ export class EventEquipeTab {
       CompositionSlotPickerDialogResult | undefined
     >(CompositionSlotPickerDialog, {
       data: {
-        roleLabel: row.roleLabel,
+        roleLabel: getRoleLabel(
+          row.roleKey as RoleKey,
+          row.slot?.participantGender,
+        ),
         candidates: [],
         loading: true,
         error: null,

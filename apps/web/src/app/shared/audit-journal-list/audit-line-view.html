@@ -26,6 +26,7 @@
           [style.--user-avatar-size.px]="24"
           [displayName]="actor.displayName"
           [avatarUrl]="actor.avatarUrl"
+          [gender]="actor.gender"
           [size]="24"
         />
       </button>
@@ -45,6 +46,7 @@
             <app-user-avatar
               [displayName]="actor.displayName"
               [avatarUrl]="actor.avatarUrl"
+              [gender]="actor.gender"
               [size]="24"
             />
             <span class="audit-line__actor-popover-name">{{ actor.displayName }}</span>
@@ -62,6 +64,7 @@
         <app-user-avatar
           [displayName]="subject.displayName"
           [avatarUrl]="subject.avatarUrl"
+          [gender]="subject.gender"
           [size]="24"
         />
         <span class="audit-line__person-name">{{ subject.displayName }}</span>

@@ -97,8 +97,46 @@ describe('MemberProfilePanel', () => {
 
     const headings = fixture.nativeElement.querySelectorAll('h2.member-profile__section-title')
     expect(headings.length).toBe(2)
+    expect(fixture.nativeElement.textContent).toContain('Comédien·ne')
     expect(headings[0]?.textContent?.trim()).toContain("clin d")
     expect(headings[1]?.textContent?.trim()).toBe('Rôles favoris')
     expect(fixture.nativeElement.querySelector('h3.member-profile__section-title')).toBeNull()
+  })
+
+  it('uses gender-aware labels for favorite roles and chart tooltips', async () => {
+    await TestBed.configureTestingModule({
+      imports: [MemberProfilePanel, NoopAnimationsModule],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(MemberProfilePanel)
+    const profile: MemberProfileSummary = {
+      ...profileWithChart,
+      gender: 'female',
+      monthlyChart: [
+        {
+          monthKey: '2026-03',
+          blocks: [
+            {
+              eventId: 'e2',
+              status: 'selected',
+              eventTitle: 'Match Cambo',
+              eventDate: '2026-03-15',
+              roleKey: 'player',
+            },
+          ],
+        },
+      ],
+      favoriteRoleCounts: [{ roleKey: 'player', count: 3 }],
+    }
+    fixture.componentRef.setInput('profile', profile)
+    fixture.componentRef.setInput('showPreferredRoles', false)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Comédienne')
+    expect(fixture.nativeElement.textContent).not.toContain('Comédien·ne')
+    const block = profile.monthlyChart[0].blocks[0]
+    expect(fixture.componentInstance['chartBlockTooltip'](block)).toBe(
+      'Match Cambo\n15/03\nComédienne',
+    )
   })
 })

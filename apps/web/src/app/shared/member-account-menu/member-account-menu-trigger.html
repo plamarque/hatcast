@@ -14,6 +14,7 @@
             [style.--user-avatar-size.px]="24"
             [displayName]="railLabel()"
             [avatarUrl]="sessionUser()?.avatarUrl ?? null"
+            [gender]="memberDisplayName.avatarGender()"
             [size]="24"
           />
         </span>
@@ -33,6 +34,7 @@
         [style.--user-avatar-size.px]="32"
         [displayName]="railLabel()"
         [avatarUrl]="sessionUser()?.avatarUrl ?? null"
+        [gender]="memberDisplayName.avatarGender()"
         [size]="32"
       />
     </button>

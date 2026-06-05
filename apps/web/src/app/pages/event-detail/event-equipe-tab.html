@@ -37,6 +37,7 @@
       @if (row.slot?.participantDisplayName; as name) {
         <app-user-avatar
           class="event-equipe-tab__avatar"
+          [style.--user-avatar-size.px]="32"
           [displayName]="name"
           [avatarUrl]="row.slot?.participantAvatarUrl ?? null"
           [gender]="row.slot?.participantGender ?? null"
@@ -119,7 +120,9 @@
               [attr.aria-label]="slotRowAriaLabel(row)"
               (click)="onSlotRowClick(row)"
             >
-              <span class="event-equipe-tab__role-pill">{{ rolePillLabel(row.roleKey) }}</span>
+              <span class="event-equipe-tab__role-pill">{{
+                rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
+              }}</span>
               <span class="event-equipe-tab__slot">
                 <ng-container *ngTemplateOutlet="slotBody; context: { row: row }" />
               </span>
@@ -135,7 +138,9 @@
               </button>
             }
           } @else {
-            <span class="event-equipe-tab__role-pill">{{ rolePillLabel(row.roleKey) }}</span>
+            <span class="event-equipe-tab__role-pill">{{
+              rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
+            }}</span>
             <span class="event-equipe-tab__slot event-equipe-tab__slot--readonly">
               <ng-container *ngTemplateOutlet="slotBody; context: { row: row }" />
             </span>
@@ -165,11 +170,12 @@
               @for (decline of declines(); track decline.id) {
                 <li class="event-equipe-tab__row event-equipe-tab__row--declined">
                   <span class="event-equipe-tab__role-pill">{{
-                    rolePillLabel(decline.roleKey)
+                    rolePillLabel(decline.roleKey, decline.participantGender, true)
                   }}</span>
                   <span class="event-equipe-tab__slot">
                     <app-user-avatar
                       class="event-equipe-tab__avatar"
+                      [style.--user-avatar-size.px]="32"
                       [displayName]="decline.participantDisplayName"
                       [avatarUrl]="decline.participantAvatarUrl ?? null"
                       [gender]="decline.participantGender ?? null"

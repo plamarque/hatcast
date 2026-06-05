@@ -145,7 +145,7 @@ Contrat détaillé : [_spec-member-gender-parity_](_bmad-output/specs/spec-membe
 
 - **Profil :** `users.gender` optionnel ; édition **self-service** Mon compte → Mon profil ; jamais obligatoire pour dispos, tirage ou validation.
 - **Libellés :** si genre `male` ou `female`, libellés de rôle selon tables V1 ; si `non_specified`, formes inclusives (`Comédien·ne`, etc.).
-- **Avatars :** sans photo custom/Google, emoji 👨 / 👩 / 👤 selon genre (V1).
+- **Avatars :** sans photo custom/Google, initiale du nom sur teinte selon genre (violet / orange / gris — tokens `--hatcast-member-gender-*` ; V2 remplace les emoji V1).
 - **Hint composition (6.21) :** bande informative orga sur l’onglet Équipe — effectifs F/M sur créneaux `player` remplis (genres connus) ; **non bloquant**.
 - **Stats saison (16.3) :** agrégat F/M et `femaleShare` sur participations `player` validées ; `non_specified` exclu du dénominateur du ratio.
 - **Tirage :** facteur optionnel **19.11** — hors scope de cette règle ; dépend de **2.12** et pipeline **19.6**.

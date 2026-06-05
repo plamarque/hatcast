@@ -5,7 +5,9 @@ import {
   canAssignOrganizerRole,
   findRowOrganizer,
   isRowOrganizer,
+  organizerRoleLabel,
   organizerRoleMenuLabel,
+  participantRoleLabel,
   participationRoleChipLabel,
 } from './organizer-row.helper'
 
@@ -43,10 +45,18 @@ describe('organizer-row.helper', () => {
   it('formats participation role chip label', () => {
     expect(participationRoleChipLabel(false, true)).toBe('Participant·e ▾')
     expect(participationRoleChipLabel(true, false)).toBe('Organisateur·ice')
+    expect(participationRoleChipLabel(false, false, 'male')).toBe('Participant')
+    expect(participationRoleChipLabel(true, false, 'female')).toBe('Organisatrice')
+  })
+
+  it('formats gendered participation role labels', () => {
+    expect(participantRoleLabel('female')).toBe('Participante')
+    expect(organizerRoleLabel('male')).toBe('Organisateur')
   })
 
   it('formats organizer menu label by scope', () => {
     expect(organizerRoleMenuLabel('spectacle')).toContain('spectacle')
     expect(organizerRoleMenuLabel('saison')).toContain('saison')
+    expect(organizerRoleMenuLabel('spectacle', 'female')).toBe('Organisatrice du spectacle')
   })
 })

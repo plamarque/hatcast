@@ -11,6 +11,7 @@ import com.hatcast.api.support.EventTestSupport
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -234,6 +235,9 @@ class CompositionParticipationIntegrationTest {
         val eventId = createEvent(adminCookie, seasonId, "Decline flow", playerCount = 2)
         val linkedId = participantIdForUser(seasonId, "sub-part-decline-member")
         seedValidatedComposition(eventId, linkedId)
+        val user = userRepository.findByGoogleSub("sub-part-decline-member")!!
+        user.gender = MemberGender.FEMALE
+        userRepository.save(user)
 
         mockMvc
             .perform(
@@ -247,6 +251,7 @@ class CompositionParticipationIntegrationTest {
             .andExpect(jsonPath("$.slots[0].participationStatus").value("pending"))
             .andExpect(jsonPath("$.declines.length()").value(1))
             .andExpect(jsonPath("$.declines[0].participantId").value(linkedId.toString()))
+            .andExpect(jsonPath("$.declines[0].participantGender").value("female"))
             .andExpect(jsonPath("$.declines[0].note").value("Indispo"))
 
         val declines = declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId)

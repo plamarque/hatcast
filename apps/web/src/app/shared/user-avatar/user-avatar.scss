@@ -5,13 +5,28 @@
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  background: var(--mat-sys-primary-container, #e8def8);
-  color: var(--mat-sys-on-primary-container, #1d192b);
+  background: var(--user-avatar-bg, var(--mat-sys-primary-container, #e8def8));
+  color: var(--user-avatar-fg, var(--mat-sys-on-primary-container, #1d192b));
   font-weight: 600;
   line-height: 1;
   width: var(--user-avatar-size, 2rem);
   height: var(--user-avatar-size, 2rem);
   font-size: calc(var(--user-avatar-size, 2rem) * 0.45);
+}
+
+:host(.user-avatar--tone-neutral) {
+  --user-avatar-bg: var(--hatcast-member-gender-neutral-bg);
+  --user-avatar-fg: var(--hatcast-member-gender-neutral-fg);
+}
+
+:host(.user-avatar--tone-female) {
+  --user-avatar-bg: var(--hatcast-member-gender-female-bg);
+  --user-avatar-fg: var(--hatcast-member-gender-female-fg);
+}
+
+:host(.user-avatar--tone-male) {
+  --user-avatar-bg: var(--hatcast-member-gender-male-bg);
+  --user-avatar-fg: var(--hatcast-member-gender-male-fg);
 }
 
 .user-avatar__img {

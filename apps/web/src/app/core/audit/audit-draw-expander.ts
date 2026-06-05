@@ -26,7 +26,7 @@ function resolveDrawSubject(
   if (!participantId) return null
   const label = row.relatedParticipantLabels?.[participantId]
   if (!label) return null
-  return { displayName: label, avatarUrl: null }
+  return { displayName: label, avatarUrl: null, gender: null }
 }
 
 export function expandDrawAuditLines(

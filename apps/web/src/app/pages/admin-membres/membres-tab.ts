@@ -28,9 +28,9 @@ import {
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
-import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { AddMemberDialog, type AddMemberDialogData } from './add-member-dialog'
 import { ImportResultsDialog, type ImportResultsDialogData } from './import-results-dialog'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 @Component({
   selector: 'app-membres-tab',

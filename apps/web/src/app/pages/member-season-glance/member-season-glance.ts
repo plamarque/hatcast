@@ -116,6 +116,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       stats: g.stats,
       monthlyChart: g.monthlyChart,
       favoriteRoleCounts: g.favoriteRoleCounts,
+      gender: g.gender,
     }
   }
 

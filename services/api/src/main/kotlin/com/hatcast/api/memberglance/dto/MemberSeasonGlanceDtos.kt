@@ -21,4 +21,6 @@ data class MemberSeasonGlanceResponseDto(
     val monthlyChart: List<MemberProfileMonthDto>,
     val favoriteRoleCounts: List<FavoriteRoleCountDto>,
     val preferredRoleKeys: List<String>?,
+    /** Wire value for gender-aware role labels on troupe-visible profile (not on /v1/auth/me). */
+    val gender: String = "non_specified",
 )

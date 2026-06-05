@@ -31,8 +31,8 @@ V1 let members optionally declare gender so the product could show **natural rol
   success: A member with `female` + `player` role sees « Comédienne » (not « Comédien·ne ») in dispos, équipe, and confirmation surfaces; `non_specified` keeps current inclusive labels.
 
 - id: CAP-3
-  intent: When no custom or Google avatar exists, the product shows a gender-distinct default avatar emoji for linked users with known gender.
-  success: Fallback avatars match V1 mapping (male → 👨, female → 👩, non_specified → 👤) without overriding uploaded or Google photos.
+  intent: When no custom or Google avatar exists, the product shows a gender-distinct letter fallback (initial + M3 tone) for linked users with known gender.
+  success: Fallback avatars use tone by gender (male → purple, female → orange, non_specified → grey per `member-gender.md`) without overriding uploaded or Google photos.
 
 - id: CAP-4
   intent: Organizers composing a team see a non-blocking summary of female/male counts among filled `player` slots with known gender.
@@ -62,7 +62,7 @@ V1 let members optionally declare gender so the product could show **natural rol
 
 ## Success signal
 
-A troupe member sets **Femme** on Mon profil; on the next spectacle their `player` slot shows **Comédienne**, their fallback avatar is 👩, and an organizer sees an updated F/M strip on the Équipe tab — while a member who keeps **Non précisé** sees unchanged inclusive labels and is never prompted to choose.
+A troupe member sets **Femme** on Mon profil; on the next spectacle their `player` slot shows **Comédienne**, their letter fallback avatar uses the orange tone, and an organizer sees an updated F/M strip on the Équipe tab — while a member who keeps **Non précisé** sees unchanged inclusive labels and is never prompted to choose.
 
 ## Open Questions
 

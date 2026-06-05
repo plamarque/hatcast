@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core'
 
 import { csrfHeaders } from '../http/hatcast-csrf'
 
-import type { MemberGender } from './member-gender'
+import { effectiveMemberGender, type MemberGender } from './member-gender'
 
 export interface UserMemberPreferences {
   memberDisplayName: string
@@ -21,7 +21,11 @@ export class MePreferencesApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as UserMemberPreferences
-      return { ok: true, status: res.status, data }
+      return {
+        ok: true,
+        status: res.status,
+        data: { ...data, gender: effectiveMemberGender(data.gender) },
+      }
     } catch {
       return { ok: false, status: 0 }
     }
@@ -46,7 +50,11 @@ export class MePreferencesApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as UserMemberPreferences
-      return { ok: true, status: res.status, data }
+      return {
+        ok: true,
+        status: res.status,
+        data: { ...data, gender: effectiveMemberGender(data.gender) },
+      }
     } catch {
       return { ok: false, status: 0 }
     }

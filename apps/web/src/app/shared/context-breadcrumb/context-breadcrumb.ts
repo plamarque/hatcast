@@ -35,6 +35,8 @@ export class ContextBreadcrumb {
   readonly eventTitle = input<string | null>(null)
   readonly eventSlug = input<string | null>(null)
   readonly leafTitle = input<string | null>(null)
+  /** Admin sub-pages with a separate mobile H1: omit leaf from the compact mobile row. */
+  readonly mobileOmitLeaf = input(false)
   readonly layout = input<ContextBreadcrumbLayout>('season')
 
   constructor() {

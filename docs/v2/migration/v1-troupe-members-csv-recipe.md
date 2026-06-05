@@ -38,7 +38,7 @@ Sources V1 : `players.email`, `players.name`, `players.gender`, plus emails pré
 | `female` | `female` |
 | `non-specified`, `unknown`, null, invalide | `non_specified` |
 
-Si plusieurs fiches `players` partagent le même email, l’export retient la valeur **non** `non_specified` la plus récemment mise à jour (`updatedAt`), sinon `non_specified`. Ré-importer le CSV utilisateurs après déploiement met à jour le genre des comptes stub non encore activés.
+Si plusieurs fiches `players` partagent le même email, l’export retient la valeur **non** `non_specified` la plus récemment mise à jour (`updatedAt`), sinon `non_specified`. Ré-importer le CSV utilisateurs met à jour le genre des **stubs non encore activés** (display name inclus) et, pour les **comptes déjà activés**, le **genre seul** (le pseudo compte n’est pas écrasé).
 
 ## Étape 2 — Importer les utilisateurs en V2
 

@@ -25,6 +25,7 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
+import com.hatcast.api.user.ParticipantGenderResolver
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -53,6 +54,7 @@ class CompositionDrawService(
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
+    private val participantGenderResolver: ParticipantGenderResolver,
 ) {
     @Transactional
     fun drawComposition(
@@ -125,6 +127,11 @@ class CompositionDrawService(
                 }.groupBy { it.roleKey }
 
         val eligibleById = eligible.associateBy { it.participantId }
+        val genderByParticipantId =
+            participantGenderResolver.resolveByParticipantIds(
+                eventId,
+                eligible.map { it.participantId }.toSet(),
+            )
         val openingCrossRoleExcluded =
             allSlots.mapNotNull { it.assignedParticipantId() }.toMutableSet()
         // Seed from all pre-existing assignees so roles drawn earlier in priority order still
@@ -244,6 +251,9 @@ class CompositionDrawService(
                                         displayName = it.displayName,
                                         chancePercent = it.chancePercent,
                                         weight = it.weight,
+                                        gender =
+                                            genderByParticipantId[it.participantId]
+                                                ?: "non_specified",
                                     )
                                 },
                             selectedParticipantId = null,
@@ -288,6 +298,9 @@ class CompositionDrawService(
                                     displayName = it.displayName,
                                     chancePercent = it.chancePercent,
                                     weight = it.weight,
+                                    gender =
+                                        genderByParticipantId[it.participantId]
+                                            ?: "non_specified",
                                 )
                             },
                         selectedParticipantId = selectedId,

@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-05T20:00:00+02:00
+# last_updated: 2026-06-05T23:30:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-05T20:00:00+02:00"
+last_updated: "2026-06-05T23:25:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -59,6 +59,7 @@ development_status:
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
   mig-3-availability-compositions-migration-pipeline: done
   mig-4-deplacements-category-import: done
+  mig-7-backfill-users-gender-from-v1: backlog  # P1 — depends 2.12 ; comptes activés V2 ; gender NULL only
 
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
@@ -83,9 +84,9 @@ development_status:
   2-8-admin-membres-route-ui-ux-dr10: done
   2-9-post-login-et-derniere-ligue-visitee-v1-parity: done
   2-10-liste-membres-corriger-n1-emails: done
-  2-12-genre-optionnel-profil-membre-api-mon-compte: review  # P1 — SCP 2026-06-05 G-011 ; V1 parity foundation
-  2-12b-libelles-roles-adaptes-genre: backlog  # P1 — depends 2.12
-  2-12c-avatars-repli-selon-genre: backlog  # P1 — depends 2.12, 2.6
+  2-12-genre-optionnel-profil-membre-api-mon-compte: done  # P1 — SCP 2026-06-05 G-011 ; V1 parity foundation
+  2-12b-libelles-roles-adaptes-genre: done  # P1 — depends 2.12
+  2-12c-avatars-repli-selon-genre: done  # P1 — depends 2.12, 2.6 ; closure with 2.12b
   epic-2-retrospective: done
 
   epic-3: in-progress  # 3.21 draft/publish — SCP 2026-06-01 notifications

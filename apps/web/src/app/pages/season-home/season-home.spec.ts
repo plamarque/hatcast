@@ -284,7 +284,7 @@ describe('SeasonHome', () => {
     }
     expect(cmp.participantOptions()).toEqual([
       { id: null, label: 'Tous' },
-      { id: 'p-1', label: 'Alice' },
+      { id: 'p-1', label: 'Alice', avatarUrl: null, gender: null },
     ])
   })
 

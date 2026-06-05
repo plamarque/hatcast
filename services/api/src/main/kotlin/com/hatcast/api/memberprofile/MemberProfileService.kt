@@ -3,6 +3,7 @@ package com.hatcast.api.memberprofile
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.memberprofile.dto.MemberProfileSummaryDto
+import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.memberprofile.dto.PreferredRolesResponseDto
 import com.hatcast.api.memberprofile.dto.UpdatePreferredRolesRequest
 import com.hatcast.api.season.SeasonRepository
@@ -10,6 +11,7 @@ import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipService
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserMemberPreferencesService
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -25,6 +27,7 @@ class MemberProfileService(
     private val troupeAccess: TroupeAccessService,
     private val statsProvider: MemberProfileStatsProvider,
     private val userMemberPreferencesService: UserMemberPreferencesService,
+    private val avatarService: AvatarService,
 ) {
     @Transactional(readOnly = true)
     fun getProfileSummary(
@@ -52,10 +55,7 @@ class MemberProfileService(
             membershipId = targetMembership.id,
             displayName = targetMembership.displayName,
             avatarUrl =
-                AvatarService.publicAvatarUrl(
-                    targetMembership.user.id,
-                    targetMembership.user.avatarUpdatedAt,
-                ),
+                ParticipantRowPresentation.avatarUrl(avatarService, targetMembership.user),
             isSelf = isSelf,
             stats = stats,
             monthlyChart = monthlyChart,
@@ -68,6 +68,7 @@ class MemberProfileService(
                 } else {
                     null
                 },
+            gender = MemberGender.effective(targetMembership.user.gender).wireValue,
         )
     }
 

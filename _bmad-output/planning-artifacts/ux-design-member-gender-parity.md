@@ -63,7 +63,7 @@ Shared tokens `--hatcast-member-gender-*` (see DESIGN.md):
 | `female` | Orange (`tertiary-container`) | Same orange |
 | `male` | Purple (`primary-container`) | Same purple |
 
-Avatar remains **first letter** of display name — no emoji fallback on Mon profil / account menu (story **2.12c** scope may extend elsewhere).
+Avatar remains **first letter** of display name on a **gender tone** — no V1 emoji fallback (all surfaces including Mon profil / account menu).
 
 Live preview: avatar on Mon profil and rail/menu account trigger reflect **unsaved** gender selection (letter + tone).
 
@@ -140,7 +140,7 @@ Hidden when no validated `player` selections with known gender.
 ## Cross-surface — labels & avatars
 
 - **2.12b:** `getRoleLabel(role, gender)` on dispos, équipe, confirmations — see [member-gender.md](../specs/spec-member-gender-parity/member-gender.md).
-- **2.12c:** Letter + tone fallback in `app-user-avatar` when no photo (Screen 1 tones above); emoji mapping deprecated for V2 Mon profil.
+- **2.12c:** Letter + tone fallback in `app-user-avatar` when no photo (Screen 1 tones above) on all operational surfaces.
 
 ---
 

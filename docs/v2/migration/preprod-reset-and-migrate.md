@@ -154,6 +154,8 @@ Review script warnings (emails in `roles` without player doc, etc.).
 
 See [v1-troupe-members-csv-recipe.md](v1-troupe-members-csv-recipe.md) for auth linking (Google first login, optional Identity Platform import).
 
+> **Genre (story 2.12 + MIG-7):** l’export `users.csv` inclut la colonne `gender` depuis V1. L’import standard ne met à jour le genre que pour les **stubs non activés**. Pour les comptes **déjà connectés en V2** avec `users.gender` NULL, exécuter le backfill décrit dans [mig-7-backfill-users-gender-from-v1.md](../../_bmad-output/implementation-artifacts/mig-7-backfill-users-gender-from-v1.md) (PLAN **MIG-7**, backlog).
+
 ### B3 — Post-migration smoke test (members)
 
 - [ ] Member count matches export (minus rejected rows).

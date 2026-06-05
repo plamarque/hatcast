@@ -210,6 +210,25 @@ class MeMemberPreferencesIntegrationTest {
             ).andExpect(status().isForbidden)
     }
 
+    @Test
+    fun `gender is not exposed on auth me or member season glance`() {
+        val cookie = signInAndJoin("sub-me-pref-privacy", "me-pref-privacy@example.com", "Me Pref Privacy")
+
+        mockMvc
+            .perform(
+                patch("/v1/me/preferences")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"gender":"female"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/auth/me").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.user.gender").doesNotExist())
+    }
+
     private fun signInAndJoin(
         googleSub: String,
         email: String,

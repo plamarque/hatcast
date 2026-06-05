@@ -255,6 +255,21 @@ describe('ContextBreadcrumb', () => {
     ).toContain('Participants')
   })
 
+  it('omits admin leaf from mobile row when mobileOmitLeaf is set on event layout', async () => {
+    const fixture = await setup('event')
+    fixture.componentRef.setInput('leafTitle', 'Participants')
+    fixture.componentRef.setInput('eventSlug', 'match-bim')
+    fixture.componentRef.setInput('mobileOmitLeaf', true)
+    fixture.detectChanges()
+    const mobileRow = fixture.nativeElement.querySelector('.context-breadcrumb__mobile-row') as HTMLElement
+
+    expect(mobileRow.querySelector('[aria-current="page"]')).toBeNull()
+    expect(mobileRow.querySelector('a.context-breadcrumb__mobile-event-title')?.textContent).toContain(
+      'Match BIM',
+    )
+    expect(mobileRow.textContent).not.toContain('Participants')
+  })
+
   it('n’affiche pas de chip Démo dans le fil d’Ariane', async () => {
     const fixture = await setup('season')
     fixture.componentRef.setInput('troupeName', 'Démo')

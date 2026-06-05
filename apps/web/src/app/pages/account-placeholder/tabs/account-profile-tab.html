@@ -17,6 +17,7 @@
             [style.--user-avatar-size.px]="72"
             [displayName]="ctx.avatarDisplayName()"
             [avatarUrl]="u.avatarUrl ?? null"
+            [gender]="gender()"
             [size]="72"
           />
           <span class="account-page__avatar-badge" aria-hidden="true">
@@ -97,7 +98,7 @@
         aria-label="Chargement du pseudo"
       />
     } @else if (!loadFailed()) {
-      <div class="account-page__pseudo-block">
+      <div class="account-page__profile-block">
         <mat-form-field
           appearance="outline"
           subscriptSizing="dynamic"
@@ -110,67 +111,59 @@
             [ngModel]="pseudo()"
             (ngModelChange)="onPseudoInput($event)"
           />
-          <mat-hint>Nom affiché dans toutes vos troupes.</mat-hint>
           @if (pseudoError()) {
             <mat-error>Le pseudo ne peut pas être vide.</mat-error>
           }
         </mat-form-field>
-        <button
-          mat-flat-button
-          color="primary"
-          type="button"
-          class="account-page__pseudo-save"
-          data-testid="account-pseudo-save"
-          [disabled]="!canSavePseudo()"
-          (click)="savePseudo()"
-        >
-          @if (saving()) {
-            <mat-spinner diameter="20" />
-          } @else {
-            Enregistrer
-          }
-        </button>
-      </div>
 
-      <div class="account-page__gender-block">
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="account-page__gender-field"
-        >
-          <mat-label>{{ genderFieldLabel }}</mat-label>
-          <mat-select
-            data-testid="account-gender-select"
+        <div class="account-page__gender-row">
+          <p class="account-page__gender-label" id="account-gender-label">{{ genderFieldLabel }}</p>
+          <mat-button-toggle-group
+            name="memberGender"
+            class="account-page__gender-toggle"
+            data-testid="account-gender-group"
             [ngModel]="gender()"
             (ngModelChange)="onGenderInput($event)"
+            hideSingleSelectionIndicator
+            aria-labelledby="account-gender-label"
           >
-            @for (option of genderOptions; track option.value) {
-              <mat-option
-                [value]="option.value"
-                [attr.data-testid]="
-                  option.value === 'male'
-                    ? 'account-gender-male'
-                    : option.value === 'female'
-                      ? 'account-gender-female'
-                      : 'account-gender-non-specified'
-                "
-              >
-                {{ option.label }}
-              </mat-option>
-            }
-          </mat-select>
-          <mat-hint>Personnalise les libellés de rôles et l'avatar par défaut.</mat-hint>
-        </mat-form-field>
+            <mat-button-toggle
+              value="female"
+              class="account-page__gender-toggle-option--female"
+              aria-label="Féminin (ex: une improvisatrice)"
+              data-testid="account-gender-female"
+            >
+              Féminin
+            </mat-button-toggle>
+            <mat-button-toggle
+              value="non_specified"
+              class="account-page__gender-toggle-option--neutral"
+              aria-label="Non spécifié (ex: un.e improvisateur.trice)"
+              data-testid="account-gender-non-specified"
+            >
+              Non spéc.
+            </mat-button-toggle>
+            <mat-button-toggle
+              value="male"
+              class="account-page__gender-toggle-option--male"
+              aria-label="Masculin (ex: un improvisateur)"
+              data-testid="account-gender-male"
+            >
+              Masculin
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
         <button
           mat-flat-button
           color="primary"
           type="button"
-          class="account-page__gender-save"
-          data-testid="account-gender-save"
-          [disabled]="!canSaveGender()"
-          (click)="saveGender()"
+          class="account-page__profile-save"
+          data-testid="account-profile-save"
+          [disabled]="!canSaveProfile()"
+          (click)="saveProfile()"
         >
-          @if (genderSaving()) {
+          @if (saving()) {
             <mat-spinner diameter="20" />
           } @else {
             Enregistrer

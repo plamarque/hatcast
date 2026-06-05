@@ -1,6 +1,7 @@
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import type { StatisticsEventCell } from '../../core/seasons/season-statistics-api.service'
-import { roleLabelSingular, type RoleKey } from '../event-roles/event-roles'
+import { getRoleLabel, type RoleKey } from '../event-roles/event-roles'
+import type { MemberGender } from '../../core/account/member-gender'
 import type { ParticipantFocusSummary } from '../../pages/season-home/season-participant-focus'
 import { participantFocusFromEvent } from '../../pages/season-home/season-participant-focus'
 
@@ -14,10 +15,11 @@ export interface AgendaParticipationStatusView {
 export function agendaParticipationStatusFromFocus(
   focus: ParticipantFocusSummary,
   canEditAvailability = false,
+  gender?: MemberGender | unknown,
 ): AgendaParticipationStatusView {
   if (focus.inTeam && focus.compositionRoleKey) {
     const roleKey = focus.compositionRoleKey as RoleKey
-    const roleLabel = roleLabelSingular(roleKey)
+    const roleLabel = getRoleLabel(roleKey, gender)
     if (focus.slotParticipationStatus === 'pending') {
       return {
         cell: {
@@ -76,10 +78,12 @@ export function agendaParticipationStatusFromEvent(
     participantFocus?: ParticipantFocusSummary | null
   },
   canEditAvailability = false,
+  gender?: MemberGender | unknown,
 ): AgendaParticipationStatusView {
   return agendaParticipationStatusFromFocus(
     participantFocusFromEvent(ev),
     canEditAvailability,
+    gender,
   )
 }
 

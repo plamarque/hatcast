@@ -43,12 +43,13 @@ import {
   normalizeEmail,
   organizerRoleMenuLabel,
   ORGANIZER_LIST_RELOAD_FAILED,
-  PARTICIPANT_ROLE_LABEL,
+  participantRoleLabel,
   PARTICIPATION_ROLE_UPDATE_FAILED,
   participationRoleChipLabel,
   PROMOTE_TOOLTIP,
 } from '../../shared/admin-organizer-row/organizer-row.helper'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EditParticipantDialog } from '../../shared/edit-participant-dialog/edit-participant-dialog'
 import { AddEventParticipantDialog } from './add-event-participant-dialog'
@@ -68,6 +69,7 @@ import { AddEventParticipantDialog } from './add-event-participant-dialog'
     MatTooltipModule,
     RouterLink,
     ContextBreadcrumb,
+    UserAvatarComponent,
   ],
   templateUrl: './admin-event-participants.html',
   styleUrl: './admin-event-participants.scss',
@@ -87,8 +89,8 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   private loadRequestId = 0
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-  protected readonly participantRoleLabel = PARTICIPANT_ROLE_LABEL
-  protected readonly eventOrganizerMenuLabel = organizerRoleMenuLabel('spectacle')
+  protected readonly participantRoleLabel = participantRoleLabel
+  protected readonly organizerRoleMenuLabel = organizerRoleMenuLabel
   protected readonly promoteTooltip = PROMOTE_TOOLTIP
   protected readonly canAssignOrganizerRole = canAssignOrganizerRole
   protected readonly participationRoleMenuParticipant =
@@ -272,6 +274,7 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
     return participationRoleChipLabel(
       this.isEventOrganizer(participant),
       this.participationRoleMenuEnabled(participant),
+      participant.gender ?? null,
     )
   }
 

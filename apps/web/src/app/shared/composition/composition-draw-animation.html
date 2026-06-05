@@ -34,8 +34,8 @@
       ></span>
     </div>
 
-    @if (selectedLabel(); as winner) {
-      <p class="composition-draw-animation__winner">Sélectionné : {{ winner }}</p>
+    @if (selectedWinner(); as winner) {
+      <p class="composition-draw-animation__winner">{{ winner.prefix }} : {{ winner.displayName }}</p>
     } @else {
       <p class="composition-draw-animation__winner composition-draw-animation__winner--empty">
         Aucun candidat disponible pour ce slot.

@@ -1,6 +1,7 @@
 import { Component, computed, input, output, signal } from '@angular/core'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 
+import { drawSelectionStatusLabel } from '../../core/account/member-gender'
 import type { CompositionDrawStep } from '../../core/composition/composition-api.service'
 
 @Component({
@@ -39,7 +40,7 @@ export class CompositionDrawAnimation {
     }))
   })
 
-  protected readonly selectedLabel = computed(() => {
+  protected readonly selectedWinner = computed(() => {
     const step = this.step()
     if (!step) {
       return null
@@ -48,7 +49,14 @@ export class CompositionDrawAnimation {
     if (!selectedId) {
       return null
     }
-    return step.candidates.find((c) => c.participantId === selectedId)?.displayName ?? null
+    const candidate = step.candidates.find((c) => c.participantId === selectedId)
+    if (!candidate) {
+      return null
+    }
+    return {
+      displayName: candidate.displayName,
+      prefix: drawSelectionStatusLabel(candidate.gender),
+    }
   })
 
   play(): void {

@@ -11,6 +11,7 @@ data class AuditIdentityDto(
     val displayName: String,
     val email: String? = null,
     val avatarUrl: String? = null,
+    val gender: String = "non_specified",
 )
 
 data class AuditScopeDto(

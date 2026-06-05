@@ -4,7 +4,7 @@ import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.SlotParticipationStatus
-import com.hatcast.api.season.SeasonStatisticsService
+import com.hatcast.api.role.RoleLabels
 
 object ProxyNotificationLabels {
     fun availabilityStatusLabel(apiStatus: String): String =
@@ -41,7 +41,7 @@ object ProxyNotificationLabels {
         if (roleKeys.isEmpty()) {
             return null
         }
-        return roleKeys.joinToString(", ") { SeasonStatisticsService.ROLE_LABELS[it] ?: it }
+        return roleKeys.joinToString(", ") { RoleLabels.label(it) }
     }
 
     fun buildAvailabilityChangeFromAudit(

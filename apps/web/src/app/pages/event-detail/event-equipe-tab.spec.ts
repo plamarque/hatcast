@@ -167,6 +167,47 @@ describe('EventEquipeTab', () => {
     })
   })
 
+  it('genres role pill from assignee gender on filled slots', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'Léa',
+            participantGender: 'female',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: null,
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput(
+      'event',
+      ev({ roleSlots: { ...emptyRoleSlots(), player: 2 } }),
+    )
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const pills = [
+        ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role-pill'),
+      ].map((el: Element) => el.textContent?.trim())
+      expect(pills[0]).toBe('🎭 Comédienne')
+      expect(pills[1]).toBe('🎭 Comédien·ne')
+    })
+  })
+
   it('lists composition slots in V1 draw order (priority, not display order)', async () => {
     fixture.componentRef.setInput(
       'event',
@@ -1813,6 +1854,8 @@ describe('EventEquipeTab', () => {
               slotIndex: 0,
               participantId: 'p-drawn',
               participantDisplayName: 'Drawn',
+              participantGender: 'female',
+              participantAvatarUrl: '/v1/users/u-1/avatar?v=1',
               participationStatus: 'pending',
             },
           ],
@@ -1821,7 +1864,15 @@ describe('EventEquipeTab', () => {
           {
             roleKey: 'player',
             slotIndex: 0,
-            candidates: [{ participantId: 'p-drawn', displayName: 'Drawn', chancePercent: 100, weight: 1 }],
+            candidates: [
+              {
+                participantId: 'p-drawn',
+                displayName: 'Drawn',
+                chancePercent: 100,
+                weight: 1,
+                gender: 'female',
+              },
+            ],
             selectedParticipantId: 'p-drawn',
             randomValue: 0.5,
             totalWeight: 1,
@@ -1852,6 +1903,11 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Drawn')
     })
+
+    const avatar = fixture.nativeElement.querySelector(
+      'app-user-avatar.event-equipe-tab__avatar',
+    ) as HTMLElement
+    expect(avatar.classList.contains('user-avatar--tone-female')).toBe(true)
   })
 
   it('does not refetch composition after draw animation completes', async () => {

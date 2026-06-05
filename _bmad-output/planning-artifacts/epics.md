@@ -689,8 +689,8 @@ afin d’être identifiable visuellement (parité V1).
 
 **Acceptance Criteria**
 
-1. **Given** pas d’avatar custom ni Google, **when** rendu, **then** emoji 👨 / 👩 / 👤 selon genre (V1 `playerAvatars.js`).
-2. **Given** photo custom ou Google, **when** affichage, **then** pas d’emoji genre.
+1. **Given** pas d’avatar custom ni Google, **when** rendu, **then** initiale du nom sur teinte selon genre (violet / orange / gris — `app-user-avatar` + `--hatcast-member-gender-*` ; parité d’intention V1, pas les emoji `playerAvatars.js`).
+2. **Given** photo custom ou Google, **when** affichage, **then** photo affichée — pas de teinte genre sur l’image.
 3. **Couverture :** FR10. **Priorité :** P1. **Depends :** **2.12**, **2.6** (done).
 
 ---

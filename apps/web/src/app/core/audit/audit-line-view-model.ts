@@ -1,3 +1,4 @@
+import type { MemberGender } from '../account/member-gender'
 import type { AuditEventRow, AuditIdentity } from './audit-api.service'
 import {
   auditAvailabilityPillTone,
@@ -18,6 +19,7 @@ export type { AuditPillTone }
 export interface AuditPersonView {
   displayName: string
   avatarUrl: string | null
+  gender: MemberGender | null
 }
 
 export interface AuditVisualPill {
@@ -61,6 +63,7 @@ function toPerson(identity: AuditIdentity | null | undefined): AuditPersonView |
   return {
     displayName: identity.displayName,
     avatarUrl: identity.avatarUrl ?? null,
+    gender: identity.gender ?? null,
   }
 }
 

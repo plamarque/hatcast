@@ -1,6 +1,7 @@
 import {
   effectiveDispos,
   formatStatExportValue,
+  genderStatisticsEventCell,
   statPercent,
   statTooltip,
 } from './season-statistics.utils'
@@ -22,5 +23,19 @@ describe('season-statistics.utils', () => {
 
   it('builds tooltip with declines', () => {
     expect(statTooltip(1, 4, 2)).toContain('désistement')
+  })
+
+  it('genres stats event cell tooltip for female player', () => {
+    const cell = genderStatisticsEventCell(
+      {
+        status: 'selected',
+        label: 'Comédien·ne',
+        roleKey: 'player',
+        tooltip: 'Comédien·ne',
+      },
+      'female',
+    )
+    expect(cell.label).toBe('Comédienne')
+    expect(cell.tooltip).toBe('Comédienne')
   })
 })

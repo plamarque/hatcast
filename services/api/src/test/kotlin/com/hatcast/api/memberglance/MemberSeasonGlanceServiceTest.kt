@@ -1,6 +1,7 @@
 package com.hatcast.api.memberglance
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.memberprofile.MemberProfileStatsProvider
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
@@ -41,6 +42,7 @@ class MemberSeasonGlanceServiceTest {
     private val statsProvider: MemberProfileStatsProvider = mock()
     private val troupeAccess: TroupeAccessService = mock()
     private val userMemberPreferencesService: UserMemberPreferencesService = mock()
+    private val avatarService: AvatarService = mock()
 
     private val service =
         MemberSeasonGlanceService(
@@ -51,6 +53,7 @@ class MemberSeasonGlanceServiceTest {
             statsProvider = statsProvider,
             troupeAccess = troupeAccess,
             userMemberPreferencesService = userMemberPreferencesService,
+            avatarService = avatarService,
         )
 
     @Test

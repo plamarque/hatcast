@@ -24,6 +24,8 @@ import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.text.FrenchCollator
 import com.hatcast.api.troupe.TroupeAccessService
+import com.hatcast.api.user.ParticipantAvatarResolver
+import com.hatcast.api.user.ParticipantGenderResolver
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -51,6 +53,8 @@ class CompositionSlotAssignmentService(
     private val auditRecorder: AuditEventRecorder,
     private val auditEventRepository: AuditEventRepository,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
+    private val participantGenderResolver: ParticipantGenderResolver,
+    private val participantAvatarResolver: ParticipantAvatarResolver,
 ) {
     @Transactional(readOnly = true)
     fun getCandidates(
@@ -119,6 +123,11 @@ class CompositionSlotAssignmentService(
             )
         val assignedRoleKeysByParticipant = assignedRoleKeysByParticipant(eventId)
 
+        val participantIds = scored.map { it.participantId }.toSet()
+        val gendersByParticipantId =
+            participantGenderResolver.resolveByParticipantIds(eventId, participantIds)
+        val avatarUrlsByParticipantId =
+            participantAvatarResolver.resolveByParticipantIds(eventId, participantIds)
         val candidates =
             scored
                 .sortedWith(
@@ -132,6 +141,8 @@ class CompositionSlotAssignmentService(
                         pastSelectionCount = row.pastSelectionCount,
                         alreadyAssignedRoleKeys =
                             assignedRoleKeysByParticipant[row.participantId]?.takeIf { it.isNotEmpty() },
+                        avatarUrl = avatarUrlsByParticipantId[row.participantId],
+                        gender = gendersByParticipantId[row.participantId] ?: "non_specified",
                     )
                 }
 
