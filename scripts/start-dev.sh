@@ -14,7 +14,7 @@
 #   HATCAST_SKIP_TAILSCALE_SERVE=1 — équivalent à --no-tailscale
 #   HATCAST_START_DEV_WITH_PUSH=1 — équivalent à --with-push
 #   HATCAST_NOTIFICATION_EMAIL_ENABLED=true — démarre Mailpit (Docker), force SMTP local pour l’API,
-#   arrête Mailpit à la fin du script ; voir `.env.example`.
+#   désactive CLOUDFLARE_* du .env (Mailpit prioritaire), arrête Mailpit à la fin du script ; voir `.env.example`.
 #   --with-push + EMAIL_ENABLED : push (VAPID dans .env) et emails (Mailpit) en parallèle pour story 8.3.
 #   --with-push : avant le build prod, injecte environment.ts depuis .env (HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID
 #   → GOOGLE_OAUTH_WEB_CLIENT_ID, HATCAST_FIREBASE_*, HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY) via inject-google-client-id.mjs.
@@ -180,14 +180,15 @@ inject_web_prod_environment() {
   node "$ROOT/apps/web/scripts/inject-google-client-id.mjs"
 }
 
-# start-dev pilote Mailpit : SMTP local pour bootRun (ignore les SPRING_MAIL_* Gmail du .env).
+# start-dev pilote Mailpit : SMTP local pour bootRun (ignore SPRING_MAIL_* Gmail et CLOUDFLARE_* du .env).
 configure_local_mailpit_smtp() {
   mailpit_enabled || return 0
   export SPRING_MAIL_HOST=127.0.0.1
   export SPRING_MAIL_PORT="${MAILPIT_SMTP_PORT}"
   unset SPRING_MAIL_USERNAME SPRING_MAIL_PASSWORD \
     SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH \
-    SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE 2>/dev/null || true
+    SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE \
+    CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_EMAIL_SENDING_API_TOKEN 2>/dev/null || true
 }
 
 ensure_mailpit() {
