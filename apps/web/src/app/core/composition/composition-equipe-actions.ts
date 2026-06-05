@@ -1,6 +1,45 @@
+import type { CompositionResponse } from './composition-api.service'
+
 export type EquipeActionId = 'validate' | 'fill' | 'announce' | 'draw' | 'unlock' | 'share'
 
 export type EquipePrimaryAction = 'validate' | 'fill' | 'announce' | 'draw'
+
+/** Visible toolbar / overflow labels — keep in sync with event-equipe-tab.html. */
+export const EQUIPE_ACTION_LABELS: Record<EquipeActionId, string> = {
+  validate: 'Valider',
+  draw: 'Tirer au sort',
+  announce: 'Annoncer la compo',
+  fill: 'Compléter',
+  unlock: 'Déverrouiller',
+  share: 'Partager',
+}
+
+/** Quoted action name for guidelines (matches UI button text). */
+export function quotedEquipeActionLabel(id: EquipeActionId): string {
+  return `« ${EQUIPE_ACTION_LABELS[id]} »`
+}
+
+export interface CanValidateCompositionInput {
+  canManageComposition: boolean
+  composition: CompositionResponse | null | undefined
+  compositionInteractionBlocked?: boolean
+}
+
+/** Validate CTA eligibility — shared by event-detail chrome and équipe tab toolbar. */
+export function canValidateComposition(input: CanValidateCompositionInput): boolean {
+  const {
+    canManageComposition,
+    composition,
+    compositionInteractionBlocked = false,
+  } = input
+  if (!canManageComposition || !composition || composition.validatedAt != null) {
+    return false
+  }
+  if (compositionInteractionBlocked) {
+    return false
+  }
+  return (composition.slots ?? []).some((slot) => slot.participantId != null)
+}
 
 /** Visibility flags for Équipe toolbar actions (mirrors event-equipe-tab computeds). */
 export interface EquipeActionFlags {

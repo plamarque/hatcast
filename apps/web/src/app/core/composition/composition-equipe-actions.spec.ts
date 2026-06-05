@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  canValidateComposition,
+  EQUIPE_ACTION_LABELS,
   resolveEquipePrimaryAction,
   resolveEquipeToolbarLayout,
   shouldPutShareInOverflow,
@@ -77,6 +79,50 @@ describe('shouldPutShareInOverflow', () => {
         }),
       ),
     ).toBe(true)
+  })
+})
+
+describe('canValidateComposition', () => {
+  it('returns false when composition is locked or interaction blocked', () => {
+    const composition = {
+      publishedAt: null,
+      validatedAt: null,
+      visibility: 'organizerDraft' as const,
+      slots: [{ roleKey: 'player', slotIndex: 0, participantId: 'p-1', participationStatus: 'pending' as const }],
+    }
+
+    expect(
+      canValidateComposition({
+        canManageComposition: true,
+        composition,
+      }),
+    ).toBe(true)
+
+    expect(
+      canValidateComposition({
+        canManageComposition: true,
+        composition: { ...composition, validatedAt: '2026-01-01T00:00:00.000Z' },
+      }),
+    ).toBe(false)
+
+    expect(
+      canValidateComposition({
+        canManageComposition: true,
+        composition,
+        compositionInteractionBlocked: true,
+      }),
+    ).toBe(false)
+  })
+})
+
+describe('EQUIPE_ACTION_LABELS', () => {
+  it('matches event-equipe-tab toolbar button copy', () => {
+    expect(EQUIPE_ACTION_LABELS.validate).toBe('Valider')
+    expect(EQUIPE_ACTION_LABELS.draw).toBe('Tirer au sort')
+    expect(EQUIPE_ACTION_LABELS.announce).toBe('Annoncer la compo')
+    expect(EQUIPE_ACTION_LABELS.fill).toBe('Compléter')
+    expect(EQUIPE_ACTION_LABELS.unlock).toBe('Déverrouiller')
+    expect(EQUIPE_ACTION_LABELS.share).toBe('Partager')
   })
 })
 

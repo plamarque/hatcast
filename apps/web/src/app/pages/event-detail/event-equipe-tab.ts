@@ -17,13 +17,12 @@ import {
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
 import {
+  canValidateComposition,
   isEquipePrimaryAction,
   resolveEquipeToolbarLayout,
   type EquipeActionId,
 } from '../../core/composition/composition-equipe-actions'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
-import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
-import { showCompositionDraftBanner } from '../../core/composition/composition-visibility'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
   normalizeRoleSlots,
@@ -77,10 +76,9 @@ interface SlotRow {
     MatSnackBarModule,
     EventEquipeEmpty,
     CompositionDrawAnimation,
-    CompositionEquipeStatusHeader,
   ],
   templateUrl: './event-equipe-tab.html',
-  styleUrls: ['./event-equipe-tab.scss', '../../shared/composition/composition-equipe-status-header.scss'],
+  styleUrl: './event-equipe-tab.scss',
 })
 export class EventEquipeTab {
   private readonly compositionApi = inject(CompositionApiService)
@@ -99,6 +97,7 @@ export class EventEquipeTab {
   readonly showConfirmPending = input(false)
 
   readonly compositionPublished = output<CompositionResponse>()
+  readonly compositionInteractionBlockedChange = output<boolean>()
 
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
@@ -165,20 +164,16 @@ export class EventEquipeTab {
     return this.slotRows().length === 0
   })
 
-  protected readonly showDraftBanner = computed(() =>
-    showCompositionDraftBanner(this.composition(), this.canManageComposition()),
-  )
-
   protected readonly hasAssignedSlot = computed(() =>
     (this.composition()?.slots ?? []).some((slot) => slot.participantId != null),
   )
 
-  protected readonly canValidate = computed(
-    () =>
-      this.canManageComposition() &&
-      !this.isCompositionLocked() &&
-      this.hasAssignedSlot() &&
-      !this.compositionInteractionBlocked(),
+  protected readonly canValidate = computed(() =>
+    canValidateComposition({
+      canManageComposition: this.canManageComposition(),
+      composition: this.composition(),
+      compositionInteractionBlocked: this.compositionInteractionBlocked(),
+    }),
   )
 
   protected readonly canUnlock = computed(
@@ -366,6 +361,10 @@ export class EventEquipeTab {
         previousEventId = eventId
         void this.load(seasonId, eventId)
       }
+    })
+
+    effect(() => {
+      this.compositionInteractionBlockedChange.emit(this.compositionInteractionBlocked())
     })
 
     effect(() => {

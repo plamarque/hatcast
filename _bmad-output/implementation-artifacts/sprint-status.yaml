@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-04T23:41:00+02:00
+# last_updated: 2026-06-05T13:21:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -137,6 +137,7 @@ development_status:
   6-15-refonte-modales-annonces-notify-manuel: done  # P0 V2.0.0 — code review 2026-06-03
   6-16-statut-canal-destinataires-modales-partager-annoncer: done  # D10 UX 2026-06-04 — recette + review OK
   6-17-dispatch-annonce-manuelle-transparence-dates: done  # tech-spec-share-announce-transparency-6-17.md
+  6-18-aide-contextuelle-statut-composition: done  # UX ux-design-composition-status-help.md — approved 2026-06-05
   epic-6-retrospective: optional
 
   epic-7: backlog

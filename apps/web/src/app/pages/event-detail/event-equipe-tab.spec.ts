@@ -182,7 +182,7 @@ describe('EventEquipeTab', () => {
     expect(roleEmojis).toEqual(['🎧', '🎤', '🎭', '🎭'])
   })
 
-  it('shows composition draft banner for organizer unvalidated draft', async () => {
+  it('does not show composition draft banner inline on équipe tab (global chrome)', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -204,16 +204,14 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain(
-        'Composition en brouillon',
-      )
+      expect(fixture.nativeElement.textContent).toContain('Alice')
     })
-    expect(fixture.nativeElement.textContent).toContain('Alice')
+    expect(fixture.nativeElement.textContent).not.toContain('Composition en brouillon')
     expect(fixture.nativeElement.textContent).toContain('Valider')
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
   })
 
-  it('shows draft banner for organizer when publishedAt is set but not validated', async () => {
+  it('does not show draft banner inline when publishedAt is set but not validated', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -235,9 +233,9 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Composition en brouillon')
       expect(fixture.nativeElement.textContent).toContain('Bob')
     })
+    expect(fixture.nativeElement.textContent).not.toContain('Composition en brouillon')
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
   })
 
@@ -522,8 +520,8 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Valider')
-      expect(fixture.nativeElement.textContent).toContain('En préparation')
     })
+    expect(fixture.nativeElement.textContent).not.toContain('En préparation')
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
     expect(
       fixture.nativeElement.textContent,
@@ -1188,7 +1186,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('shows Confirmations en cours guideline on validated pending composition', async () => {
+  it('does not show inline status badge in équipe tab on validated pending composition', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1217,8 +1215,9 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Confirmations :')
+      expect(fixture.nativeElement.textContent).not.toContain('Confirmations :')
       expect(fixture.nativeElement.querySelector('.composition-equipe-status__badge')).toBeNull()
+      expect(fixture.nativeElement.textContent).toContain('Annoncer la compo')
     })
   })
 
@@ -1556,7 +1555,7 @@ describe('EventEquipeTab', () => {
     expect(drawBtn.classList.contains('mat-mdc-unelevated-button')).toBe(true)
   })
 
-  it('omits validate CTA from status hint when actions lead is shown', async () => {
+  it('does not render inline manager guideline in équipe tab body', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1583,11 +1582,8 @@ describe('EventEquipeTab', () => {
       )
     })
 
-    const guideline = fixture.nativeElement.querySelector(
-      '.event-equipe-tab__slots-guideline',
-    ) as HTMLElement
-    expect(guideline.textContent).toContain('En préparation')
-    expect(guideline.textContent).not.toContain('Valider')
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__slots-guideline')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__manual-hint')).toBeNull()
   })
 
   it('shows draw preparing panel while HTTP request is in flight', async () => {

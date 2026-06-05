@@ -1,4 +1,5 @@
 import type { CompositionResponse } from './composition-api.service'
+import { quotedEquipeActionLabel } from './composition-equipe-actions'
 import { ROLE_DISPLAY_ORDER } from '../events/event-types'
 
 export type CompositionEquipeStatusType =
@@ -109,7 +110,7 @@ export function resolveCompositionEquipeStatus(
         label: 'À composer',
         tone: 'neutral',
       },
-      '🫵 À composer : Cliquez dans les emplacements pour sélectionner un participant ou ✨ Tirez au sort pour faire une sélection automatique.',
+      `À composer : Cliquez dans un emplacement pour choisir un participant, ou utilisez ${quotedEquipeActionLabel('draw')} pour une proposition automatique.`,
       canManageComposition,
     )
   }
@@ -121,7 +122,7 @@ export function resolveCompositionEquipeStatus(
         label: 'Équipe complète',
         tone: 'success',
       },
-      '🎉 Équipe complète : 📢 Annoncez la compo définitive ou 🔓 Déverrouillez pour faire des changements.',
+      `Équipe complète : Utilisez ${quotedEquipeActionLabel('announce')} pour la diffusion, ou ${quotedEquipeActionLabel('unlock')} pour modifier la composition.`,
       canManageComposition,
     )
   }
@@ -133,7 +134,7 @@ export function resolveCompositionEquipeStatus(
         label: 'À compléter',
         tone: 'warning',
       },
-      '⚠️ À compléter : La composition a été validée mais certains emplacements sont vides. Finalisez la compo en cliquant dans un emplacement vide ou sur le bouton 🔧 Compléter pour un choix aléatoire.',
+      `À compléter : La composition est validée mais certains emplacements sont vides. Cliquez dans un emplacement vide ou utilisez ${quotedEquipeActionLabel('fill')} pour un tirage sur les créneaux restants.`,
       canManageComposition,
     )
   }
@@ -145,7 +146,7 @@ export function resolveCompositionEquipeStatus(
         label: 'À vérifier',
         tone: 'warning',
       },
-      '⚠️ À vérifier : La composition de l\'équipe contient des personnes désistées, vérifiez que tout le monde est toujours disponible.',
+      'À vérifier : Des participants ont décliné. Vérifiez les disponibilités et ajustez la composition si besoin.',
       canManageComposition,
     )
   }
@@ -157,14 +158,14 @@ export function resolveCompositionEquipeStatus(
         label: 'Confirmations en cours',
         tone: 'info',
       },
-      '⏳ Confirmations : 📢 Annoncez la compo, puis récoltez les confirmations des participants. ⚠️ La compo actuelle est visible de tous. 🔒 Déverrouillez pour la masquer.',
+      `Confirmations en cours : Utilisez ${quotedEquipeActionLabel('announce')} pour informer les participants et recueillir leurs confirmations. La composition est visible par tous. ${quotedEquipeActionLabel('unlock')} permet de revenir en édition.`,
       canManageComposition,
     )
   }
 
   const draftGuideline = suppressValidateCtaInGuideline
-    ? '🧠 En préparation : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez-la aux responsables si vous le désirez.'
-    : '🧠 En préparation : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez-la aux responsables si vous le désirez et, lorsque vous serez prêt, cliquez sur ✅ Valider pour la rendre visible à tout le monde.'
+    ? `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la aux responsables si vous le désirez.`
+    : `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la via ${quotedEquipeActionLabel('share')} si besoin, puis ${quotedEquipeActionLabel('validate')} pour la rendre visible à tous.`
 
   return withGuideline(
     {
