@@ -93,12 +93,17 @@ export async function readdExternalByName(page: Page, name: string) {
   await page.getByRole('dialog').getByRole('button', { name: 'Ajouter' }).click()
 }
 
+const SEASON_ORGANIZER_MENU_LABEL = /Organisat(eur|rice)(·ice)? de saison/
+const SEASON_ORGANIZER_CHIP_LABEL = /Organisat(eur|rice)/
+
 export async function promoteToSeasonOrganizer(page: Page, memberName: string) {
   const row = seasonMemberRow(page, memberName)
   await row.locator('.admin-participation-role-chip').click()
-  await page.getByRole('menuitem', { name: 'Organisateur·ice de saison' }).click()
+  await page.getByRole('menuitem', { name: SEASON_ORGANIZER_MENU_LABEL }).click()
   await expect(page.getByText('Organisateur·ice ajouté·e.')).toBeVisible()
-  await expect(row.locator('.admin-participation-role-chip')).toContainText('Organisateur·ice')
+  await expect(row.locator('.admin-participation-role-chip')).toContainText(
+    SEASON_ORGANIZER_CHIP_LABEL,
+  )
 }
 
 export async function removeMemberFromTroupe(page: Page, troupeSlug: string, memberName: string) {

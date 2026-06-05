@@ -7,6 +7,7 @@ import com.hatcast.api.audit.AuditRecordRequest
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.e2e.dto.E1CutoverFixtureResponse
+import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantMembershipSync
@@ -19,6 +20,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @Service
@@ -56,6 +59,7 @@ class E1CutoverFixtureService(
         val drawEvent = loadEvent(EVENT_DRAW_ID, season.id)
         val activiteEvent = loadEvent(EVENT_ACTIVITE_ID, season.id)
         val pendingEvent = loadEvent(EVENT_PENDING_ID, season.id)
+        rollPilotEventsToUpcoming(drawEvent, activiteEvent, pendingEvent)
 
         clearComposition(drawEvent.id)
         ensureActiviteAudit(season.id, activiteEvent.id, MEMBER_USER_ID, participant.id)
@@ -106,6 +110,27 @@ class E1CutoverFixtureService(
         participant.removalSource = null
         participant.updatedAt = now
         seasonParticipantRepository.save(participant)
+    }
+
+    /** Keep MVP pilot events on the member agenda (`scope=upcoming`) regardless of seed calendar dates. */
+    private fun rollPilotEventsToUpcoming(
+        drawEvent: EventEntity,
+        activiteEvent: EventEntity,
+        pendingEvent: EventEntity,
+    ) {
+        val now = Instant.now()
+        if (drawEvent.startsAt.isAfter(now)) {
+            return
+        }
+        val anchor = now.plus(1, ChronoUnit.DAYS)
+        val updatedAt = now
+        drawEvent.startsAt = anchor
+        activiteEvent.startsAt = anchor.plus(2, ChronoUnit.DAYS)
+        pendingEvent.startsAt = anchor.plus(4, ChronoUnit.DAYS)
+        listOf(drawEvent, activiteEvent, pendingEvent).forEach { event ->
+            event.updatedAt = updatedAt
+            eventRepository.save(event)
+        }
     }
 
     private fun clearComposition(eventId: UUID) {
