@@ -78,6 +78,6 @@ export async function ensureStagingCsrfToken(page: Page): Promise<string> {
     return fromNetwork
   }
 
-  await expect(page.locator('app-user-agenda, .user-agenda')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('app-user-agenda')).toBeVisible({ timeout: 30_000 })
   return waitForCsrfToken(page, 30_000)
 }
