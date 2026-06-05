@@ -39,46 +39,90 @@ function memberEmail(): string {
   return email
 }
 
-async function csrfHeaders(page: Page): Promise<Record<string, string>> {
-  const cookies = await page.context().cookies()
-  const xsrf = cookies.find((c) => c.name === 'XSRF-TOKEN')?.value
-  return xsrf ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrf) } : {}
-}
-
-/** Prime Spring CSRF cookie (GET is exempt; PATCH/POST require X-XSRF-TOKEN). */
-async function ensureCsrfToken(page: Page): Promise<void> {
-  const me = await page.request.get('/v1/auth/me')
-  if (!me.ok()) {
-    throw new Error(`CSRF bootstrap GET /v1/auth/me → ${me.status()}: ${await me.text()}`)
-  }
-  const cookies = await page.context().cookies()
-  if (!cookies.some((c) => c.name === 'XSRF-TOKEN')) {
-    throw new Error('Missing XSRF-TOKEN cookie after /v1/auth/me (staging CSRF bootstrap)')
-  }
-}
-
-async function apiJson<T>(page: Page, method: string, path: string, data?: unknown): Promise<T> {
-  const headers = await csrfHeaders(page)
-  const response = await page.request.fetch(path, {
-    method,
-    headers: {
-      ...headers,
-      ...(data !== undefined ? { 'Content-Type': 'application/json' } : {}),
-    },
-    data,
+/** Same as apps/web/src/app/core/http/hatcast-csrf.ts — document.cookie, not Playwright cookie jar. */
+async function readBrowserCsrfToken(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const prefix = 'XSRF-TOKEN='
+    const row = document.cookie.split('; ').find((c) => c.startsWith(prefix))
+    return row ? decodeURIComponent(row.slice(prefix.length)) : null
   })
-  if (!response.ok()) {
-    throw new Error(`${method} ${path} → ${response.status()}: ${await response.text()}`)
+}
+
+/** Prime Spring CSRF via in-page fetch (sets document.cookie like Angular HttpClient). */
+async function ensureBrowserCsrfToken(page: Page): Promise<string> {
+  let token = await readBrowserCsrfToken(page)
+  if (token) {
+    return token
   }
-  if (response.status() === 204) {
-    return undefined as T
+
+  const primed = await page.evaluate(async () => {
+    const res = await fetch('/v1/auth/me', { credentials: 'include' })
+    if (!res.ok) {
+      return { ok: false as const, status: res.status, body: await res.text() }
+    }
+    const prefix = 'XSRF-TOKEN='
+    const row = document.cookie.split('; ').find((c) => c.startsWith(prefix))
+    return {
+      ok: true as const,
+      token: row ? decodeURIComponent(row.slice(prefix.length)) : null,
+    }
+  })
+
+  if (!primed.ok) {
+    throw new Error(`CSRF bootstrap GET /v1/auth/me → ${primed.status}: ${primed.body}`)
   }
-  return response.json() as Promise<T>
+  if (!primed.token) {
+    throw new Error('Missing XSRF-TOKEN in document.cookie after /v1/auth/me (staging CSRF bootstrap)')
+  }
+  return primed.token
+}
+
+async function browserApiJson<T>(
+  page: Page,
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  await ensureBrowserCsrfToken(page)
+  const result = await page.evaluate(
+    async ({ method, path, body }) => {
+      const prefix = 'XSRF-TOKEN='
+      const row = document.cookie.split('; ').find((c) => c.startsWith(prefix))
+      const xsrf = row ? decodeURIComponent(row.slice(prefix.length)) : ''
+      const headers: Record<string, string> = {}
+      if (xsrf) {
+        headers['X-XSRF-TOKEN'] = xsrf
+      }
+      if (body !== undefined) {
+        headers['Content-Type'] = 'application/json'
+      }
+      const res = await fetch(path, {
+        method,
+        credentials: 'include',
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      })
+      const text = await res.text()
+      if (!res.ok) {
+        return { ok: false as const, status: res.status, text }
+      }
+      if (res.status === 204 || text.length === 0) {
+        return { ok: true as const, data: null }
+      }
+      return { ok: true as const, data: JSON.parse(text) as unknown }
+    },
+    { method, path, body },
+  )
+
+  if (!result.ok) {
+    throw new Error(`${method} ${path} → ${result.status}: ${result.text}`)
+  }
+  return result.data as T
 }
 
 async function resolveTroupeId(page: Page): Promise<string> {
   const slug = troupeSlug()
-  const troupes = await apiJson<TroupeListItem[]>(page, 'GET', '/v1/troupes')
+  const troupes = await browserApiJson<TroupeListItem[]>(page, 'GET', '/v1/troupes')
   const troupe = troupes.find((t) => t.slug === slug)
   if (!troupe) {
     throw new Error(`Troupe "${slug}" not found in orga /v1/troupes`)
@@ -89,7 +133,7 @@ async function resolveTroupeId(page: Page): Promise<string> {
 async function findTroupeMember(page: Page, troupeId: string, email: string): Promise<TroupeMember> {
   const target = email.toLowerCase()
   for (let pageIndex = 0; pageIndex < 20; pageIndex++) {
-    const paged = await apiJson<PagedMembers>(
+    const paged = await browserApiJson<PagedMembers>(
       page,
       'GET',
       `/v1/troupes/${troupeId}/members?page=${pageIndex}&size=100`,
@@ -113,7 +157,7 @@ async function ensureTroupeMembershipActive(
   if (membership.status === 'ACTIVE') {
     return
   }
-  await apiJson<TroupeMember>(
+  await browserApiJson<TroupeMember>(
     page,
     'PATCH',
     `/v1/troupes/${troupeId}/members/${membership.id}`,
@@ -126,12 +170,12 @@ async function ensureSeasonParticipantActive(
   troupeId: string,
   email: string,
 ): Promise<void> {
-  const season = await apiJson<SeasonRef>(
+  const season = await browserApiJson<SeasonRef>(
     page,
     'GET',
     `/v1/troupes/${troupeId}/seasons/by-slug/${encodeURIComponent(seasonSlug())}`,
   )
-  const participants = await apiJson<SeasonParticipant[]>(
+  const participants = await browserApiJson<SeasonParticipant[]>(
     page,
     'GET',
     `/v1/seasons/${season.id}/participants`,
@@ -146,7 +190,7 @@ async function ensureSeasonParticipantActive(
   if (row.status === 'ACTIVE') {
     return
   }
-  await apiJson<void>(
+  await browserApiJson<void>(
     page,
     'POST',
     `/v1/seasons/${season.id}/participants/${row.id}/reinclude`,
@@ -178,14 +222,13 @@ export async function ensureStagingE2eMemberReady(page: Page): Promise<void> {
 
   await signInWithEmailPassword(page, orgaEmail, orgaPassword)
   await page.goto('/agenda')
-  await ensureCsrfToken(page)
 
   const troupeId = await resolveTroupeId(page)
   const membership = await findTroupeMember(page, troupeId, email)
   await ensureTroupeMembershipActive(page, troupeId, membership)
   await ensureSeasonParticipantActive(page, troupeId, email)
 
-  await apiJson<void>(page, 'POST', '/v1/auth/logout')
+  await browserApiJson<void>(page, 'POST', '/v1/auth/logout')
   await signInWithEmailPassword(page, email, memberPassword)
   await page.goto('/agenda')
   await expect(page).not.toHaveURL(/\/connexion/)
