@@ -76,7 +76,7 @@ cd apps/web
 npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
 ```
 
-Migration §6 (hors Playwright) :
+Migration §6 (hors Playwright) — sanity structurel (pas de comptes figés 55/7) :
 
 ```bash
 node scripts/v2/e1-staging-migration-assert.mjs

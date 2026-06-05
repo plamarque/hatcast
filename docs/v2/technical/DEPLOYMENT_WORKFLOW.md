@@ -185,6 +185,8 @@ Le job T2 est déclenché automatiquement par [`deploy-v2-cloud-run.yml`](../../
 
 **Critères de sortie (PO) :** 100 % P0 `e1-mobile-member` (échec = bloquant) ; 100 % P0 `e1-desktop-orga` ; `e1-staging-migration-assert.mjs` vert ; `check-pwa.sh` vert.
 
+**Assert migration §6 (sanity, pas comptes figés) :** saison trouvée ; roster actif ≥ 1 ; events non archivés ≥ 1 ; `seasons.event_count` = events non archivés ; ≥ 1 déplacement ; ≥ 1 spectacle avec dispos ouvertes. Les totaux (36 events, 4 déplacements, etc.) sont **loggés** mais ne bloquent pas — les chiffres V1 évoluent (archivage, nouveaux spectacles). Parité stricte optionnelle via `HATCAST_E2E_EVENTS_EXPECTED` (replay migration local uniquement).
+
 #### Secrets / variables (environnement GitHub `staging`)
 
 | Nom | Type | Rôle |
