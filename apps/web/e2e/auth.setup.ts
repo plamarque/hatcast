@@ -6,6 +6,7 @@ import { E2E_ADMIN_ID_TOKEN } from './fixtures/e1-cutover.constants'
 import { isStagingE2e } from './helpers/e1-staging'
 import { prepareE2ePage } from './helpers/e1.ui'
 import { resetE1CutoverFixture, resetStory319Fixture, signInWithE2eToken } from './helpers/e2e-api'
+import { ensureStagingCsrfToken } from './helpers/staging-csrf'
 import { signInWithEmailPassword } from './helpers/staging-auth'
 
 const authFile = path.join(__dirname, '.auth', 'admin.json')
@@ -31,8 +32,12 @@ setup('authenticate e2e admin + reset fixtures', async ({ page, request, baseURL
     await signInWithE2eToken(page.request, E2E_ADMIN_ID_TOKEN, baseURL!)
   }
 
-  await page.goto('/agenda')
-  await expect(page).not.toHaveURL(/\/connexion/)
+  if (isStagingE2e()) {
+    await ensureStagingCsrfToken(page)
+  } else {
+    await page.goto('/agenda')
+    await expect(page).not.toHaveURL(/\/connexion/)
+  }
 
   await page.context().storageState({ path: authFile })
 })

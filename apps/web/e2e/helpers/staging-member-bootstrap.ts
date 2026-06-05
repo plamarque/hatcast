@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
+import { ensureStagingCsrfToken, readAnyCsrfToken } from './staging-csrf'
 import { signInWithEmailPassword } from './staging-auth'
 
 type TroupeListItem = { id: string; slug: string }
@@ -39,47 +40,15 @@ function memberEmail(): string {
   return email
 }
 
-/** Same as apps/web/src/app/core/http/hatcast-csrf.ts */
-async function readBrowserCsrfToken(page: Page): Promise<string | null> {
-  return page.evaluate(() => {
-    const prefix = 'XSRF-TOKEN='
-    const row = document.cookie.split('; ').find((c) => c.startsWith(prefix))
-    return row ? decodeURIComponent(row.slice(prefix.length)) : null
-  })
-}
-
-async function readContextCsrfToken(page: Page): Promise<string | null> {
-  const cookies = await page.context().cookies()
-  const xsrf = cookies.find((c) => c.name === 'XSRF-TOKEN')?.value
-  return xsrf ? decodeURIComponent(xsrf) : null
-}
-
-/** Wait until Angular has primed Spring CSRF (first /v1/* after agenda load). */
-async function waitForCsrfToken(page: Page, timeoutMs = 30_000): Promise<string> {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    const token = (await readBrowserCsrfToken(page)) ?? (await readContextCsrfToken(page))
-    if (token) {
-      return token
-    }
-    await page.waitForTimeout(250)
+async function apiGet<T>(page: Page, path: string): Promise<T> {
+  const response = await page.request.get(path)
+  if (!response.ok()) {
+    throw new Error(`GET ${path} → ${response.status()}: ${await response.text()}`)
   }
-  throw new Error('Timed out waiting for XSRF-TOKEN after agenda load (staging CSRF bootstrap)')
+  return response.json() as Promise<T>
 }
 
-/** Load a member-shell route so the SPA issues authenticated GET /v1/* and sets XSRF-TOKEN. */
-async function primeOrgaApiSession(page: Page): Promise<string> {
-  const apiReady = page.waitForResponse(
-    (res) => res.request().method() === 'GET' && /\/v1\//.test(res.url()) && res.ok(),
-    { timeout: 45_000 },
-  )
-  await page.goto('/agenda')
-  await expect(page).not.toHaveURL(/\/connexion/, { timeout: 30_000 })
-  await apiReady
-  return waitForCsrfToken(page, 15_000)
-}
-
-async function apiJson<T>(
+async function apiMutate<T>(
   page: Page,
   csrfToken: string,
   method: string,
@@ -103,9 +72,9 @@ async function apiJson<T>(
   return response.json() as Promise<T>
 }
 
-async function resolveTroupeId(page: Page, csrfToken: string): Promise<string> {
+async function resolveTroupeId(page: Page): Promise<string> {
   const slug = troupeSlug()
-  const troupes = await apiJson<TroupeListItem[]>(page, csrfToken, 'GET', '/v1/troupes')
+  const troupes = await apiGet<TroupeListItem[]>(page, '/v1/troupes')
   const troupe = troupes.find((t) => t.slug === slug)
   if (!troupe) {
     throw new Error(`Troupe "${slug}" not found in orga /v1/troupes`)
@@ -113,18 +82,11 @@ async function resolveTroupeId(page: Page, csrfToken: string): Promise<string> {
   return troupe.id
 }
 
-async function findTroupeMember(
-  page: Page,
-  csrfToken: string,
-  troupeId: string,
-  email: string,
-): Promise<TroupeMember> {
+async function findTroupeMember(page: Page, troupeId: string, email: string): Promise<TroupeMember> {
   const target = email.toLowerCase()
   for (let pageIndex = 0; pageIndex < 20; pageIndex++) {
-    const paged = await apiJson<PagedMembers>(
+    const paged = await apiGet<PagedMembers>(
       page,
-      csrfToken,
-      'GET',
       `/v1/troupes/${troupeId}/members?page=${pageIndex}&size=100`,
     )
     const hit = paged.content.find((m) => m.email?.toLowerCase() === target)
@@ -138,40 +100,17 @@ async function findTroupeMember(
   throw new Error(`Troupe member not found for ${email} (troupe ${troupeId})`)
 }
 
-async function ensureTroupeMembershipActive(
+async function findSeasonParticipant(
   page: Page,
-  csrfToken: string,
-  troupeId: string,
-  membership: TroupeMember,
-): Promise<void> {
-  if (membership.status === 'ACTIVE') {
-    return
-  }
-  await apiJson<TroupeMember>(
-    page,
-    csrfToken,
-    'PATCH',
-    `/v1/troupes/${troupeId}/members/${membership.id}`,
-    { status: 'ACTIVE' },
-  )
-}
-
-async function ensureSeasonParticipantActive(
-  page: Page,
-  csrfToken: string,
   troupeId: string,
   email: string,
-): Promise<void> {
-  const season = await apiJson<SeasonRef>(
+): Promise<{ season: SeasonRef; participant: SeasonParticipant }> {
+  const season = await apiGet<SeasonRef>(
     page,
-    csrfToken,
-    'GET',
     `/v1/troupes/${troupeId}/seasons/by-slug/${encodeURIComponent(seasonSlug())}`,
   )
-  const participants = await apiJson<SeasonParticipant[]>(
+  const participants = await apiGet<SeasonParticipant[]>(
     page,
-    csrfToken,
-    'GET',
     `/v1/seasons/${season.id}/participants`,
   )
   const target = email.toLowerCase()
@@ -181,15 +120,16 @@ async function ensureSeasonParticipantActive(
       `Season participant not found for ${email} on ${seasonSlug()} — check migration/import`,
     )
   }
-  if (row.status === 'ACTIVE') {
-    return
+  return { season, participant: row }
+}
+
+async function memberNeedsReactivation(page: Page, troupeId: string, email: string): Promise<boolean> {
+  const membership = await findTroupeMember(page, troupeId, email)
+  if (membership.status !== 'ACTIVE') {
+    return true
   }
-  await apiJson<void>(
-    page,
-    csrfToken,
-    'POST',
-    `/v1/seasons/${season.id}/participants/${row.id}/reinclude`,
-  )
+  const { participant } = await findSeasonParticipant(page, troupeId, email)
+  return participant.status !== 'ACTIVE'
 }
 
 /**
@@ -202,11 +142,32 @@ export async function reactivateStagingE2eMemberAsOrga(orgaPage: Page): Promise<
   }
 
   const email = memberEmail()
-  const csrfToken = await primeOrgaApiSession(orgaPage)
-  const troupeId = await resolveTroupeId(orgaPage, csrfToken)
-  const membership = await findTroupeMember(orgaPage, csrfToken, troupeId, email)
-  await ensureTroupeMembershipActive(orgaPage, csrfToken, troupeId, membership)
-  await ensureSeasonParticipantActive(orgaPage, csrfToken, troupeId, email)
+  const troupeId = await resolveTroupeId(orgaPage)
+  if (!(await memberNeedsReactivation(orgaPage, troupeId, email))) {
+    return
+  }
+
+  const csrfToken = (await readAnyCsrfToken(orgaPage)) ?? (await ensureStagingCsrfToken(orgaPage))
+  const membership = await findTroupeMember(orgaPage, troupeId, email)
+  if (membership.status !== 'ACTIVE') {
+    await apiMutate<TroupeMember>(
+      orgaPage,
+      csrfToken,
+      'PATCH',
+      `/v1/troupes/${troupeId}/members/${membership.id}`,
+      { status: 'ACTIVE' },
+    )
+  }
+
+  const { season, participant } = await findSeasonParticipant(orgaPage, troupeId, email)
+  if (participant.status !== 'ACTIVE') {
+    await apiMutate<void>(
+      orgaPage,
+      csrfToken,
+      'POST',
+      `/v1/seasons/${season.id}/participants/${participant.id}/reinclude`,
+    )
+  }
 }
 
 /** Login membre E2E sur staging (après réactivation orga). */
@@ -239,6 +200,7 @@ export async function ensureStagingE2eMemberReady(page: Page): Promise<void> {
 
   await signInWithEmailPassword(page, orgaEmail, orgaPassword)
   await reactivateStagingE2eMemberAsOrga(page)
-  await apiJson<void>(page, await waitForCsrfToken(page), 'POST', '/v1/auth/logout')
+  const csrfToken = await ensureStagingCsrfToken(page)
+  await apiMutate<void>(page, csrfToken, 'POST', '/v1/auth/logout')
   await signInStagingE2eMember(page)
 }
