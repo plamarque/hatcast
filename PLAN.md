@@ -12,7 +12,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md) and [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 - **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
-- **V2 deploy (Cloud Run + Neon):** **Release train V2.0.x** validé (**E3** : tags semver staging→prod, prod actuelle **v2.0.3** sur **`https://hatcast.app`**). **MEP iso-V1** + vague **V2.0.0** (code) **done** ; **M4 bascule utilisateurs** **reportée** (fin saison V1 ~4 spectacles jusqu’à août 2026 ; fenêtre + scope à caler avec commission spectacle après démo V2). SCP : [sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md). Pipeline : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + **OPS-11**.
+- **V2 deploy (Cloud Run + Neon):** **Release train V2.0.x** validé (**E3**, prod **v2.0.3+** sur **`https://hatcast.app`**). **Vague 2.1.0** en cours — retours **démo commission spectacle** (implémentation presque terminée). **M4** bascule audience **reportée** (fin saison V1 ~août 2026). **Epic 19** (tirage / formules custom) **reporté** version ultérieure. Pipeline : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + **OPS-11**.
 
 ---
 
@@ -371,16 +371,22 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 - **Contexte :** fin de saison **V1** sur `selections.la-malice.fr` (~**4 spectacles** jusqu’à **août 2026**) ; démo **V2** au responsable commission spectacle ; accord sur **date** et **périmètre** de bascule prod.
 - **Déjà en place :** **`hatcast.app`** sert la **V2 en prod technique** (**OPS-8** [x] live **2026-06-04**, **E3** [x] jusqu’à **v2.0.3** — scripts `deploy_staging` / `release_version` / `deploy_prod` validés bout en bout).
 - **Pas encore :** bascule **audience** (comms membres, arrêt V1 comme outil principal, **OPS-7** branches, fenêtre migration prod si distincte de staging).
-- **Avant M4 (recommandé) :** ~~**OPS-10**~~ [x] ; ~~**6.17**~~ [x] ; recette **1.2** / **1.3** sur prod si pas fait ; collecte retours démo stakeholder → éventuel **`bmad-correct-course`** ou stories ciblées.
+- **Avant M4 (recommandé) :** ~~**OPS-10**~~ [x] ; ~~**6.17**~~ [x] ; ~~**démo stakeholder**~~ [x] ; **release 2.1.0** (retours démo — en cours) ; recette **1.2** / **1.3** sur prod si pas fait ; accord **date M4** avec commission.
 
-**Ordre de session actuel (post-release train) :**
+**Amendement PO — démo commission + vague 2.1.0 (2026-06) :**
 
-1. **Démo V2** stakeholder + notes besoins saison prochaine  
-2. ~~**6.17**~~ [x] — annonces manuelles + transparence `lastNotifiedAt` ([6-17](_bmad-output/implementation-artifacts/6-17-dispatch-annonce-manuelle-transparence-dates.md))  
-3. ~~**OPS-10**~~ [x] — `@hatcast.app` via Cloudflare (réception + FROM prod)  
+- **Démo V2** au responsable commission spectacle : **faite** ; retours notés et pris en charge (WIP, presque terminé).
+- **Release cible :** **`v2.1.0`** (`./scripts/release_version.sh` → recette staging → `./scripts/deploy_prod.sh`) dès les retours mergés.
+- **Epic 19** (moteur tirage, formules & politiques custom) : **reporté version ultérieure** — ne pas bloquer 2.1.0 ni M4 ; fondations **19.1** [x] / **19.2** en pause conservées au backlog.
+
+**Ordre de session actuel (post-démo) :**
+
+1. ~~**Démo V2** stakeholder~~ [x] — retours commission spectacle  
+2. **Finaliser retours démo** → merge sur `v2` / `staging-v2`  
+3. **Release 2.1.0** — tag staging validé → prod (`release_version` + `deploy_prod`)  
 4. **Décision fenêtre M4** — date, comms, critères go/no-go (V1 fin saison, migration prod, formation orga)  
 5. **M4** + **OPS-7** (après décision PO + commission)  
-6. Backlog **hors vague** — § récap ci-dessous ; prioriser selon retours démo (ex. **Epic 19** — **19-2** en `review`)
+6. Backlog **hors vague** — § récap ; **Epic 19** après 2.1.0 / M4 selon priorité PO
 
 *(Historique ordre SCP 2026-06-02 : waves A–F code + **E1**/**E2**/**E3** — voir `sprint-status.yaml`.)*
 
@@ -633,6 +639,8 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 ### Epic 19 — Moteur de tirage pondéré (parité V1, facteurs, formules & politiques)
 
+**Statut PO (2026-06) :** **Reporté version ultérieure** — après **v2.1.0** (retours démo) et indépendamment de **M4**. Ne pas planifier **19.3+** (formules custom, politiques admin, UI) avant décision PO explicite. **19.1** (spec + ADR) reste une fondation documentaire ; **19.2** (golden) en pause.
+
 **Added:** 2026-06-04 — SCP [draw weight engine](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-04-epic19-draw-weight-engine.md) ; amendements **(b–c)** formules, politiques par catégorie, choix au tirage.
 
 **Objectif :** Verrouiller parité V1 + golden tests ; pipeline de facteurs ; catalogue **multi-formules** ; **politiques** troupe/saison avec règles **par catégorie de spectacle** ; résolution au niveau **événement** ; choix opérateur **au tirage** si ≥2 formules autorisées (ex. **match** → formule parité genre). **Complète** Epic **6** — ne remplace pas **6.4** / **6.14**.
@@ -756,8 +764,10 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **MIG-4** | **Done 2026-06** | Import `deplacement` → `category=deplacements` |
 | **Annuaire public (4.1)** | **Done 2026-06** | Découvrir sans login ; hub gated membre/admin |
 | **Iso-V1 / MEP gate** | **Closed 2026-06-02** | Slice fonctionnelle done — voir `sprint-status.yaml` |
-| **V2.0.0 release train** | **Closed** | Code + **E1**/**E2**/**E3** + **OPS-8** ; prod **v2.0.3** sur `hatcast.app` |
-| **M4 cutover gate** | **Deferred** | Report PO 2026-06-05 ; V1 jusqu’à ~août ; démo commission spectacle |
+| **V2.0.0 release train** | **Closed** | Code + **E1**/**E2**/**E3** + **OPS-8** ; prod sur `hatcast.app` |
+| **V2.1.0 (retours démo)** | **In progress** | Démo commission faite ; implémentation retours presque terminée |
+| **M4 cutover gate** | **Deferred** | Après 2.1.0 + accord date ; V1 jusqu’à ~août |
+| **Epic 19 (tirage / formules)** | **Deferred** | Version ultérieure — PO 2026-06 |
 | **Domaine prod** | **Live 2026-06-04** | **`https://hatcast.app`** — Cloudflare Registrar + orange proxy → Cloud Run west1 |
 
 ### PRD / UX references (V2)
