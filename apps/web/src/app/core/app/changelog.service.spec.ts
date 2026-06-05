@@ -4,6 +4,7 @@ import {
   compareSemverDescending,
   parseChangelogChange,
   transformChangelogVersions,
+  versionHasUserFacingChanges,
   type ChangelogVersionRaw,
 } from './changelog.service';
 
@@ -51,5 +52,48 @@ describe('transformChangelogVersions', () => {
 
     expect(result.map((v) => v.version)).toEqual(['0.2.0', '0.1.0']);
     expect(result[0].changes[0].emoji).toBe('✨');
+  });
+
+  it('omits versions with no user-facing changes', () => {
+    const raw: ChangelogVersionRaw[] = [
+      {
+        version: '2.0.4',
+        date: '2026-06-05',
+        changes: [],
+      },
+      {
+        version: '2.0.3',
+        date: '2026-06-04',
+        changes: ['✨ Visible change'],
+      },
+      {
+        version: '2.0.2',
+        date: '2026-06-04',
+        changes: [],
+      },
+    ];
+
+    const result = transformChangelogVersions(raw);
+
+    expect(result.map((v) => v.version)).toEqual(['2.0.3']);
+  });
+});
+
+describe('versionHasUserFacingChanges', () => {
+  const raw: ChangelogVersionRaw[] = [
+    { version: '2.0.4', date: '2026-06-05', changes: [] },
+    { version: '2.0.3', date: '2026-06-04', changes: ['✨ Visible change'] },
+  ];
+
+  it('returns true when the version has changes', () => {
+    expect(versionHasUserFacingChanges(raw, '2.0.3')).toBe(true);
+  });
+
+  it('returns false when the version has an empty changes list', () => {
+    expect(versionHasUserFacingChanges(raw, '2.0.4')).toBe(false);
+  });
+
+  it('returns false when the version is missing from the changelog', () => {
+    expect(versionHasUserFacingChanges(raw, '9.9.9')).toBe(false);
   });
 });

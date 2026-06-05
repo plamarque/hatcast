@@ -106,3 +106,7 @@
 - Tables de libellés dupliquées web (`event-roles.ts`) / API (`RoleLabels.kt`) — pas de divergence constatée ; synchronisation manuelle à prévoir si tables évoluent.
 - `context-breadcrumb` modifié dans le working tree — hors périmètre 2.12b/2.12c ; committer séparément.
 - Couleurs hex de repli dans `user-avatar.scss` — fallbacks M3 préexistants sous les tokens genre (2.12c).
+
+## Deferred from: code review of spec-changelog-skip-empty-versions (2026-06-06)
+
+- Duplicate `/changelog.json` fetch on auto-open success path — `currentVersionHasUserFacingNotes` then `loadChangelog` when dialog opens; optimize later if needed.

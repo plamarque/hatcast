@@ -12,6 +12,7 @@ import {
   SHOW_CHANGELOG_AFTER_RELOAD_KEY,
   changelogSeenStorageKey,
 } from '../../core/app/changelog-keys';
+import { ChangelogService } from '../../core/app/changelog.service';
 import { ChangelogDialog } from './changelog-dialog/changelog-dialog';
 import { ChangelogDialogService } from './changelog-dialog.service';
 
@@ -20,6 +21,7 @@ describe('ChangelogDialogService', () => {
   let afterClosed$: Subject<void>;
   let version: string;
   let ensureLoaded: ReturnType<typeof vi.fn>;
+  let currentVersionHasUserFacingNotes: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     afterClosed$ = new Subject<void>();
@@ -28,6 +30,7 @@ describe('ChangelogDialogService', () => {
     });
     version = '1.2.3';
     ensureLoaded = vi.fn().mockResolvedValue(undefined);
+    currentVersionHasUserFacingNotes = vi.fn().mockResolvedValue(true);
     sessionStorage.clear();
     localStorage.clear();
 
@@ -42,6 +45,10 @@ describe('ChangelogDialogService', () => {
             version: () => version,
             ensureLoaded,
           },
+        },
+        {
+          provide: ChangelogService,
+          useValue: { currentVersionHasUserFacingNotes },
         },
       ],
     });
@@ -74,9 +81,11 @@ describe('ChangelogDialogService', () => {
 
     const pending = createService().maybeAutoOpenAfterPwaUpdate();
     await Promise.resolve();
+    await Promise.resolve();
 
     expect(sessionStorage.getItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY)).toBeNull();
     expect(ensureLoaded).toHaveBeenCalled();
+    expect(currentVersionHasUserFacingNotes).toHaveBeenCalledWith('1.2.3');
     expect(dialogOpen).toHaveBeenCalled();
     expect(localStorage.getItem(changelogSeenStorageKey('1.2.3'))).toBeNull();
 
@@ -84,6 +93,28 @@ describe('ChangelogDialogService', () => {
     await pending;
 
     expect(localStorage.getItem(changelogSeenStorageKey('1.2.3'))).toBe('1');
+  });
+
+  it('skips auto-open when current version has no user-facing notes but marks it seen', async () => {
+    currentVersionHasUserFacingNotes.mockResolvedValue(false);
+    sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
+
+    await createService().maybeAutoOpenAfterPwaUpdate();
+
+    expect(sessionStorage.getItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY)).toBeNull();
+    expect(dialogOpen).not.toHaveBeenCalled();
+    expect(localStorage.getItem(changelogSeenStorageKey('1.2.3'))).toBe('1');
+  });
+
+  it('does not mark version seen when changelog fetch fails', async () => {
+    currentVersionHasUserFacingNotes.mockResolvedValue(null);
+    sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
+
+    await createService().maybeAutoOpenAfterPwaUpdate();
+
+    expect(sessionStorage.getItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY)).toBe('1');
+    expect(dialogOpen).not.toHaveBeenCalled();
+    expect(localStorage.getItem(changelogSeenStorageKey('1.2.3'))).toBeNull();
   });
 
   it('does not auto-open when version is fallback (keeps reload flag)', async () => {

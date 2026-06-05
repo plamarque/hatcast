@@ -30,20 +30,14 @@
             <span class="changelog-dialog__version-label">Version {{ entry.version }}</span>
             <span class="changelog-dialog__version-date">{{ entry.date }}</span>
           </header>
-          @if (entry.changes.length === 0) {
-            <p class="changelog-dialog__version-empty" role="status">
-              Cette mise à jour ne change rien de visible pour toi.
-            </p>
-          } @else {
-            <ul class="changelog-dialog__changes">
-              @for (change of entry.changes; track change.id) {
-                <li class="changelog-dialog__change">
-                  <span class="changelog-dialog__emoji" aria-hidden="true">{{ change.emoji }}</span>
-                  <span class="changelog-dialog__description">{{ change.description }}</span>
-                </li>
-              }
-            </ul>
-          }
+          <ul class="changelog-dialog__changes">
+            @for (change of entry.changes; track change.id) {
+              <li class="changelog-dialog__change">
+                <span class="changelog-dialog__emoji" aria-hidden="true">{{ change.emoji }}</span>
+                <span class="changelog-dialog__description">{{ change.description }}</span>
+              </li>
+            }
+          </ul>
         </section>
       }
     </div>
