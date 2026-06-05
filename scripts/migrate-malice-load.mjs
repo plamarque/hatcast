@@ -109,10 +109,54 @@ export function normalizePostgresUrl(databaseUrl) {
     for (const key of ['channelBinding', 'channel_binding']) {
       if (u.searchParams.has(key)) u.searchParams.delete(key)
     }
+    return u.toString()
   } catch {
     /* leave as-is if not parseable */
   }
   return trimmed
+}
+
+/**
+ * Spring Cloud Run stores JDBC host + credentials separately (`HATCAST_DATASOURCE_*`).
+ * pg/psql need userinfo in the URL when username/password are not in the JDBC string.
+ *
+ * @param {string|null|undefined} databaseUrl
+ * @param {{ username?: string | null | undefined; password?: string | null | undefined }} [credentials]
+ * @returns {string|null|undefined}
+ */
+export function buildPostgresConnectionUrl(databaseUrl, { username, password } = {}) {
+  const normalized = normalizePostgresUrl(databaseUrl)
+  if (!normalized) return normalized
+  try {
+    const u = new URL(normalized)
+    if (u.username) return normalized
+    const user = username?.trim()
+    if (!user) return normalized
+    u.username = user
+    u.password = typeof password === 'string' ? password : ''
+    return u.toString()
+  } catch {
+    return normalized
+  }
+}
+
+/**
+ * Resolve a pg-ready URL from HatCast datasource env (JDBC URL + optional username/password).
+ *
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {string}
+ */
+export function resolveHatcastDatasourceUrl(env = process.env) {
+  const databaseUrl =
+    env.HATCAST_DATASOURCE_URL?.trim() ||
+    env.HATCAST_MIGRATE_DATABASE_URL?.trim() ||
+    env.NEON_STAGING_URL?.trim() ||
+    env.DATABASE_URL?.trim() ||
+    ''
+  return buildPostgresConnectionUrl(databaseUrl, {
+    username: env.HATCAST_DATASOURCE_USERNAME,
+    password: env.HATCAST_DATASOURCE_PASSWORD ?? '',
+  })
 }
 
 /**
