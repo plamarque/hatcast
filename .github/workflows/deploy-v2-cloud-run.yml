@@ -3,7 +3,6 @@
 # Branches : v2 → development, staging-v2 → staging. Production is tag-first (vX.Y.Z).
 # Gate E2E smoke : staging-v2 branch push before staging deploy (RC tags = audit only, no CI).
 # Gate E1 préprod (T2) : après deploy staging réussi — e1-preprod-gate.yml (mobile + orga + migration Malice).
-# TEMP disabled (2026-06-05) — réactiver le job e1-preprod-gate quand E1-MEM-021 est vert.
 # La branche git `staging` reste réservée au déploiement V1 (Firebase) — voir DEPLOY_V2_CLOUD_RUN.md.
 # Noms configurables côté scripts : scripts/v2/branches.env (YAML GitHub = seconde source à maintenir).
 name: Deploy V2 (Cloud Run)
@@ -321,6 +320,9 @@ jobs:
 
   e1-preprod-gate:
     needs: [classify-ref, deploy]
-    if: false
+    if: |
+      needs.classify-ref.result == 'success' &&
+      needs.deploy.result == 'success' &&
+      needs.classify-ref.outputs.target_env == 'staging'
     uses: ./.github/workflows/e1-preprod-gate.yml
     secrets: inherit
