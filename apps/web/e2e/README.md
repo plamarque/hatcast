@@ -21,28 +21,67 @@ Playwright démarre automatiquement :
 2. Front : `ng serve --ssl` → `https://localhost:4200`
 
 Par défaut, les serveurs sont **toujours démarrés par Playwright** (profil `e2e`, CSRF désactivé côté API).
-Pour réutiliser des processus déjà lancés : `PLAYWRIGHT_REUSE_SERVERS=1 npm run test:e2e` — l'API **doit** alors tourner avec `HATCAST_SPRING_PROFILE=e2e` (sinon échecs auth/CSRF).
+
+- Réutiliser des processus déjà lancés : `PLAYWRIGHT_REUSE_SERVERS=1 npm run test:e2e` — l'API **doit** tourner avec `HATCAST_SPRING_PROFILE=e2e`.
+- Cibler un projet : `npm run test:e2e -- --project=e1-mobile-member`
+
+## Projets Playwright
+
+| Projet | Device | Auth | Specs |
+|--------|--------|------|-------|
+| `setup-admin` | — | `e2e-admin` + reset 3.19 & E1 | `auth.setup.ts` |
+| `setup-member` | — | `e2e-member` (Angie) + reset E1 | `auth-member.setup.ts` |
+| `e1-mobile-member` | Pixel 5 | membre | `e1/*.mobile.spec.ts` |
+| `e1-desktop-orga` | Desktop Chrome | admin | `e1/*.desktop.spec.ts` |
+| `chromium-3-19` | Desktop Chrome | admin | `recette-3.19.spec.ts` |
+
+Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md`) : mobile membre + desktop orga en parallèle après les setups.
 
 ## Auth & fixtures
 
-- **Auth mock** : `POST /v1/auth/google` avec `{ "idToken": "e2e-admin" }` (voir `E2eGoogleIdTokenService`).
-- **Fixtures** : `POST /v1/e2e/fixtures/story-3-19/reset` + en-tête `X-Hatcast-E2E-Key: e2e-fixtures-secret`.
-- État auth Playwright : `e2e/.auth/admin.json` (généré par `auth.setup.ts`, gitignored).
+- **Auth mock** : `POST /v1/auth/google` avec `{ "idToken": "e2e-admin" }` ou `"e2e-member"` (voir `E2eGoogleIdTokenService`).
+- **Fixtures** :
+  - `POST /v1/e2e/fixtures/story-3-19/reset`
+  - `POST /v1/e2e/fixtures/e1-cutover/reset` (MVP pilot Les Improbots, Angie, audit seed)
+- En-tête : `X-Hatcast-E2E-Key: e2e-fixtures-secret`
+- États auth : `e2e/.auth/admin.json`, `e2e/.auth/member.json` (gitignored)
 
 ## Smoke / recette 3.19
 
-`recette-3.19.spec.ts` — cahier manuel `scripts/v2/RECETTE-3.19-RETRAIT-ROSTER-SAISON.md` :
+`recette-3.19.spec.ts` — cahier manuel `scripts/v2/RECETTE-3.19-RETRAIT-ROSTER-SAISON.md` (S1–S9).
 
-| Scénario | Couverture E2E |
-|----------|----------------|
-| S1 | Exclusion événement |
-| S2 | Retrait saison membre |
-| S3 | Garde de sync (reload) |
-| S4 | Portée saison-locale |
-| S5 | Ré-inclusion via Ajouter + exclusion événement conservée |
-| S6 | Cascade troupe + réactivation |
-| S7 | Rétrogradation organisateur·ice de saison |
-| S8 | Externe name-only |
-| S9 | Conservation historique composition (API, même `season_participant_id`) |
+## E1 cutover nominal
 
-Fixtures : `POST /v1/e2e/fixtures/story-3-19/reset` (membre Max, externe « Invité Recette E2E », saisons A/B).
+Specs sous `e2e/e1/` — stats perso, activité spectacle (membre), stats saison, audit (orga), composition MVP.
+
+### T1 — CI local / `e2e-smoke.yml`
+
+Profil API `e2e`, fixtures `POST /v1/e2e/fixtures/e1-cutover/reset`, tokens `e2e-admin` / `e2e-member`.
+
+```bash
+cd apps/web && npm run test:e2e
+```
+
+### T2 — Gate préprod staging (`e1-preprod-gate.yml`)
+
+Cible **Cloud Run staging** (La Malice migrée), pas de profil `e2e`. Auth email/mot de passe ; slugs saison + membre en env ; **spectacles découverts via API** (dispos ouvertes, passé accepté).
+
+```bash
+export PLAYWRIGHT_STAGING_E2E=1
+export PLAYWRIGHT_BASE_URL="https://hatcast-v2-staging-….run.app"
+# … voir docs/v2/technical/DEPLOYMENT_WORKFLOW.md § 2.6
+# HATCAST_E2E_EVENT_*_SLUG optionnels (pin manuel)
+
+cd apps/web
+npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
+```
+
+Migration §6 (hors Playwright) :
+
+```bash
+node scripts/v2/e1-staging-migration-assert.mjs
+```
+
+**CI manuelle :** Actions → **E1 preprod gate (staging)** → Run workflow (environnement `staging`).
+
+**Compte membre inactif :** le setup réactive automatiquement adhésion troupe + roster saison via l’orga E2E (`staging-member-bootstrap.ts`).

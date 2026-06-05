@@ -13,6 +13,7 @@ import java.time.Instant
  *
  * Known tokens (idToken value):
  * - `e2e-admin` → Patrice seed (TROUPE_ADMIN Les Improbots + super-admin plateforme)
+ * - `e2e-member` → Angie seed (membre troupe, sans admin)
  */
 @Service
 @Profile("e2e")
@@ -33,6 +34,12 @@ class E2eGoogleIdTokenService(
                     googleSub = "seed-improbots-22",
                     email = "patrice@seed.improbots.test",
                     name = "Patrice",
+                ),
+            "e2e-member" to
+                Persona(
+                    googleSub = "seed-improbots-01",
+                    email = "angie@seed.improbots.test",
+                    name = "Angie",
                 ),
         )
 

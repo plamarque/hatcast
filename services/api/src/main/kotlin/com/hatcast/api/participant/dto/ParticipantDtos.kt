@@ -121,6 +121,8 @@ data class ParticipantSelectorDto(
     val displayName: String,
     val avatarUrl: String?,
     val kind: ParticipantKind,
+    /** Linked account when roster row is tied to a user (Activité / Dispos « moi »). */
+    val userId: UUID? = null,
 ) {
     companion object {
         fun from(
@@ -132,6 +134,7 @@ data class ParticipantSelectorDto(
                 displayName = entity.displayName,
                 avatarUrl = avatarUrl,
                 kind = entity.kind(),
+                userId = entity.user?.id ?: entity.troupeMembership?.user?.id,
             )
     }
 }

@@ -136,7 +136,7 @@ HATCAST_SPRING_PROFILE=e2e ./gradlew bootRun
 - Base **H2** isolée, Flyway **migration + seed** (Les Improbots).
 - **Auth Google mockée** : `E2eGoogleIdTokenService` — token `e2e-admin` → `patrice@seed.improbots.test` (TROUPE_ADMIN Les Improbots ; super-admin plateforme).
 - **CSRF désactivé** (`hatcast.e2e.api-enabled=true`) pour les mutations Playwright sans bootstrap `XSRF-TOKEN`.
-- **Fixtures hybrides** (option C) : seed minimal + `POST /v1/e2e/fixtures/story-3-19/reset` (en-tête `X-Hatcast-E2E-Key`, clé par défaut `e2e-fixtures-secret` dans `application-e2e.yml`).
+- **Fixtures hybrides** (option C) : seed minimal + `POST /v1/e2e/fixtures/story-3-19/reset` et `POST /v1/e2e/fixtures/e1-cutover/reset` (en-tête `X-Hatcast-E2E-Key`, clé par défaut `e2e-fixtures-secret` dans `application-e2e.yml`). Tokens : `e2e-admin`, `e2e-member` (Angie).
 - Package : [`src/main/kotlin/com/hatcast/api/e2e/`](src/main/kotlin/com/hatcast/api/e2e/). CI : [`.github/workflows/e2e-smoke.yml`](../../.github/workflows/e2e-smoke.yml).
 
 ### Compatibilité SQL H2 (shims test uniquement)

@@ -1,8 +1,37 @@
 import type { APIRequestContext, Page } from '@playwright/test'
 
-import { E2E_API_KEY } from '../fixtures/story-3-19.constants'
+import { E2E_API_KEY } from '../fixtures/e1-cutover.constants'
 
 const apiBase = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8080'
+
+export type E1CutoverFixture = {
+  troupeSlug: string
+  seasonSlug: string
+  seasonId: string
+  memberDisplayName: string
+  memberEmail: string
+  memberUserSlug: string
+  memberUserId: string
+  memberSeasonParticipantId: string
+  eventDrawSlug: string
+  eventDrawTitle: string
+  eventActiviteSlug: string
+  eventActiviteTitle: string
+  eventPendingSlug: string
+  eventPendingTitle: string
+}
+
+export async function resetE1CutoverFixture(request: APIRequestContext): Promise<E1CutoverFixture> {
+  const response = await request.post(`${apiBase}/v1/e2e/fixtures/e1-cutover/reset`, {
+    headers: {
+      'X-Hatcast-E2E-Key': E2E_API_KEY,
+    },
+  })
+  if (!response.ok()) {
+    throw new Error(`E1 fixture reset failed (${response.status()}): ${await response.text()}`)
+  }
+  return response.json() as Promise<E1CutoverFixture>
+}
 
 export type Story319Fixture = {
   troupeSlug: string
