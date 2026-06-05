@@ -146,21 +146,22 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-.event-equipe-tab__row--pending {
+.event-equipe-tab__row--pending,
+.event-equipe-tab__row--confirmed,
+.event-equipe-tab__row--declined {
   color: #fff;
   border: 1px solid color-mix(in srgb, #fff 32%, transparent);
+}
+
+.event-equipe-tab__row--pending {
   background: var(--hatcast-participation-pending-gradient-strong);
 }
 
 .event-equipe-tab__row--confirmed {
-  color: #fff;
-  border: 1px solid color-mix(in srgb, #fff 32%, transparent);
   background: var(--hatcast-participation-selected-gradient-strong);
 }
 
 .event-equipe-tab__row--declined {
-  color: #fff;
-  border: 1px solid color-mix(in srgb, #fff 32%, transparent);
   background: var(--hatcast-participation-declined-gradient-strong);
 }
 
@@ -355,34 +356,7 @@
   height: 2rem;
 }
 
-.event-equipe-tab__consecutive-warning-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0.1rem 0.45rem;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--mat-sys-body-small-size, 0.7rem);
-  line-height: 1.35;
-  color: var(--mat-sys-on-surface);
-  background: color-mix(
-    in srgb,
-    var(--mat-sys-surface-container-high, var(--mat-sys-surface)) 94%,
-    transparent
-  );
-
-  mat-icon {
-    flex-shrink: 0;
-    font-size: 0.95rem;
-    width: 0.95rem;
-    height: 0.95rem;
-    color: var(--mat-sys-error);
-  }
-}
-
+.event-equipe-tab__consecutive-warning-trigger,
 .event-equipe-tab__multi-role-warning-trigger {
   display: inline-flex;
   align-items: center;
@@ -411,8 +385,7 @@
   }
 }
 
-// Participation rows (pending / confirmed / declined) — light text on gradient;
-// hint needs its own opaque strip, not a wash over the row background.
+// Participation rows — light text on gradient; hint needs its own opaque strip.
 .event-equipe-tab__row--pending,
 .event-equipe-tab__row--confirmed,
 .event-equipe-tab__row--declined {
@@ -481,16 +454,6 @@
     background: rgba(244, 67, 54, 0.25);
     outline: none;
   }
-}
-
-.event-equipe-tab__publish,
-.event-equipe-tab__validate,
-.event-equipe-tab__fill,
-.event-equipe-tab__share,
-.event-equipe-tab__announce,
-.event-equipe-tab__draw,
-.event-equipe-tab__unlock {
-  // Semantic hooks for tests — Material handles shape and colors.
 }
 
 .event-equipe-tab__declines {
