@@ -107,23 +107,15 @@ test.describe('Recette 3.19 — retrait roster saison (E2E)', () => {
   test('S8 — retrait participant externe name-only', async ({ page, request }) => {
     const fx = await resetStory319Fixture(request)
     await page.goto(seasonParticipantsPath(fx.seasonASlug))
-    await expect(
-      page.locator('li.admin-participants__row', { hasText: fx.externalParticipantName }),
-    ).toBeVisible({ timeout: 30_000 })
+    await expectSeasonMemberVisible(page, fx.externalParticipantName)
 
     await removeExternalFromSeason(page, fx.externalParticipantName)
     await page.reload()
-    await expect(
-      page.locator('li.admin-participants__row', { hasText: fx.externalParticipantName }),
-    ).toHaveCount(0)
+    await expectSeasonMemberAbsent(page, fx.externalParticipantName)
 
     await readdExternalByName(page, fx.externalParticipantName)
-    await expect(
-      page.locator('li.admin-participants__row', { hasText: fx.externalParticipantName }),
-    ).toBeVisible()
+    await expectSeasonMemberVisible(page, fx.externalParticipantName)
     await page.reload()
-    await expect(
-      page.locator('li.admin-participants__row', { hasText: fx.externalParticipantName }),
-    ).toBeVisible()
+    await expectSeasonMemberVisible(page, fx.externalParticipantName)
   })
 })
