@@ -12,16 +12,37 @@ export function troupeMembresPath(troupeSlug: string) {
   return `/troupe/${troupeSlug}/admin/membres`
 }
 
+function participantRowByDisplayName(
+  page: Page,
+  rowSelector: string,
+  nameSelector: string,
+  memberName: string,
+) {
+  return page.locator(rowSelector).filter({
+    has: page.locator(nameSelector).getByText(memberName, { exact: true }),
+  })
+}
+
 function seasonMemberRow(page: Page, memberName: string) {
-  return page.locator('li.admin-participants__row', { hasText: memberName })
+  return participantRowByDisplayName(
+    page,
+    'li.admin-participants__row',
+    '.admin-participants__name',
+    memberName,
+  )
 }
 
 function eventMemberRow(page: Page, memberName: string) {
-  return page.locator('li.admin-event-participants__row', { hasText: memberName })
+  return participantRowByDisplayName(
+    page,
+    'li.admin-event-participants__row',
+    '.admin-event-participants__name',
+    memberName,
+  )
 }
 
 function troupeMemberRow(page: Page, memberName: string) {
-  return page.locator('li.membres-tab__row', { hasText: memberName })
+  return participantRowByDisplayName(page, 'li.membres-tab__row', '.membres-tab__name', memberName)
 }
 
 export async function expectSeasonMemberVisible(page: Page, memberName: string) {
