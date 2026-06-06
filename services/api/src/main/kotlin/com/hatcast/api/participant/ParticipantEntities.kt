@@ -2,6 +2,7 @@ package com.hatcast.api.participant
 
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.troupe.TroupeMembershipEntity
+import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Embeddable
@@ -48,6 +49,9 @@ class SeasonParticipantEntity(
     @Enumerated(EnumType.STRING)
     @Column(name = "removal_source", length = 32)
     var removalSource: SeasonParticipantRemovalSource? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(length = 32)
+    var gender: MemberGender? = null,
 ) {
     fun kind(): ParticipantKind =
         when {
@@ -85,6 +89,9 @@ class EventParticipantEntity(
     var updatedAt: Instant = Instant.now(),
     @Column(name = "removed_at")
     var removedAt: Instant? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(length = 32)
+    var gender: MemberGender? = null,
 ) {
     fun kind(): ParticipantKind =
         when {

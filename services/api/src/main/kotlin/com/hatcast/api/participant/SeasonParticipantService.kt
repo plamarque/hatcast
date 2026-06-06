@@ -19,7 +19,6 @@ import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
-import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
@@ -59,7 +58,6 @@ class SeasonParticipantService(
                     row,
                     includeEmail,
                     ParticipantRowPresentation.avatarUrl(avatarService, user),
-                    ParticipantRowPresentation.genderWire(user),
                 )
             }
     }
@@ -79,11 +77,7 @@ class SeasonParticipantService(
                     row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
             }.map { row ->
                 val avatarUrl = selectorAvatarUrl(row.user ?: row.troupeMembership?.user)
-                ParticipantSelectorDto.from(
-                    row,
-                    avatarUrl,
-                    selectorGender(row),
-                )
+                ParticipantSelectorDto.from(row, avatarUrl)
             }
     }
 
@@ -108,7 +102,7 @@ class SeasonParticipantService(
         // rattaché à `season_participant_id` réapparaît alors tel quel.
         val reactivatable = findReactivatableRemoved(seasonId, linkedUser, normalizedEmail, displayName)
         if (reactivatable != null) {
-            return reactivateRemoved(season, reactivatable, displayName, normalizedEmail, linkedUser, principal.userId)
+            return reactivateRemoved(season, reactivatable, displayName, normalizedEmail, linkedUser, principal.userId, body.gender)
         }
 
         if (
@@ -131,7 +125,9 @@ class SeasonParticipantService(
                     status = ParticipantStatus.ACTIVE,
                     createdAt = now,
                     updatedAt = now,
-                ),
+                ).also {
+                    ParticipantGenderWriteSupport.applyGenderFromRequest(it, linkedUser, body.gender)
+                },
             )
         refreshParticipantCount(season)
         auditRecorder.record(
@@ -184,6 +180,7 @@ class SeasonParticipantService(
         requestedEmail: String?,
         linkedUser: UserEntity?,
         actorUserId: UUID,
+        genderRaw: String? = null,
     ): SeasonParticipantAdminDto {
         val beforeSnapshot = AuditSnapshots.seasonParticipant(existing)
         val membership = existing.troupeMembership
@@ -220,6 +217,7 @@ class SeasonParticipantService(
             existing.normalizedEmail = requestedEmail
             existing.user = linkedUser
         }
+        ParticipantGenderWriteSupport.applyGenderFromRequest(existing, existing.user, genderRaw)
         val now = Instant.now()
         existing.status = ParticipantStatus.ACTIVE
         existing.removedAt = null
@@ -280,6 +278,7 @@ class SeasonParticipantService(
         existing.displayName = displayName
         existing.normalizedEmail = normalizedEmail
         existing.user = participantLink.resolveUserId(normalizedEmail)?.let { userRepository.findById(it).orElse(null) }
+        ParticipantGenderWriteSupport.applyGenderFromRequest(existing, existing.user, body.gender)
         existing.updatedAt = Instant.now()
         val saved = seasonParticipantRepository.save(existing)
         auditRecorder.record(
@@ -512,9 +511,6 @@ class SeasonParticipantService(
         season.updatedAt = Instant.now()
         seasonRepository.save(season)
     }
-
-    private fun selectorGender(row: SeasonParticipantEntity): String =
-        ParticipantRowPresentation.genderWire(ParticipantRowPresentation.linkedUser(row))
 
     private fun selectorAvatarUrl(user: UserEntity?): String? =
         ParticipantRowPresentation.avatarUrl(avatarService, user)

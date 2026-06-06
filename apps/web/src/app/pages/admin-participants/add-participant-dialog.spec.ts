@@ -82,6 +82,7 @@ type Harness = {
   onMemberSelected: (member: { userId: string; displayName: string; email: string | null }) => void
   displayName: () => string
   email: () => string
+  gender: { set: (value: 'male' | 'female' | 'non_specified') => void }
   selectedMember: () => unknown
   submit: () => Promise<void>
   error: () => string
@@ -275,6 +276,35 @@ describe('AddParticipantDialog', () => {
     })
     const { listSeasonParticipants: list } = await setup({ listSeasonParticipants })
     expect(list).toHaveBeenCalledWith('season-1')
+  })
+
+  it('includes gender in create payload for name-only add', async () => {
+    const createSeasonParticipant = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    const { harness } = await setup({
+      listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      createSeasonParticipant,
+    })
+    harness().onDisplayNameInput('Marie')
+    harness().gender.set('female')
+    await harness().submit()
+    expect(createSeasonParticipant).toHaveBeenCalledWith('season-1', {
+      displayName: 'Marie',
+      gender: 'female',
+    })
+  })
+
+  it('omits gender when typeahead selects member with account M/F', async () => {
+    const createSeasonParticipant = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    const { harness } = await setup({
+      listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      createSeasonParticipant,
+    })
+    harness().onMemberSelected(troupeMembers.content[1])
+    await harness().submit()
+    expect(createSeasonParticipant).toHaveBeenCalledWith('season-1', {
+      displayName: 'Bob',
+      email: 'bob@example.com',
+    })
   })
 
   it('shows validation error when name is empty', async () => {

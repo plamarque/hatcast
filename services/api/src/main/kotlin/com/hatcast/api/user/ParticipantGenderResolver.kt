@@ -1,6 +1,9 @@
 package com.hatcast.api.user
 
+import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.ParticipantRowPresentation
+import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -9,7 +12,6 @@ import java.util.UUID
 class ParticipantGenderResolver(
     private val seasonParticipantRepository: SeasonParticipantRepository,
     private val eventParticipantRepository: EventParticipantRepository,
-    private val userRepository: UserRepository,
 ) {
     fun resolveByParticipantIds(
         eventId: UUID,
@@ -18,36 +20,28 @@ class ParticipantGenderResolver(
         if (participantIds.isEmpty()) {
             return emptyMap()
         }
-        val userIdByParticipantId = linkedMapOf<UUID, UUID>()
+        val genderByParticipantId = linkedMapOf<UUID, String>()
         val seasonRows = seasonParticipantRepository.findAllById(participantIds)
         for (row in seasonRows) {
-            row.user?.id?.let { userIdByParticipantId[row.id] = it }
+            genderByParticipantId[row.id] = ParticipantRowPresentation.effectiveGenderWire(row)
         }
-        val unresolved = participantIds - userIdByParticipantId.keys
+        val unresolved = participantIds - genderByParticipantId.keys
         if (unresolved.isNotEmpty()) {
             eventParticipantRepository
                 .findAllById(unresolved)
                 .filter { it.event.id == eventId }
                 .forEach { row ->
-                    row.user?.id?.let { userIdByParticipantId[row.id] = it }
+                    genderByParticipantId[row.id] = ParticipantRowPresentation.effectiveGenderWire(row)
                 }
         }
-        val userIds = userIdByParticipantId.values.toSet()
-        val genderByUserId =
-            if (userIds.isEmpty()) {
-                emptyMap()
-            } else {
-                userRepository
-                    .findAllById(userIds)
-                    .associate { it.id to MemberGender.effective(it.gender).wireValue }
-            }
         return participantIds.associateWith { participantId ->
-            val userId = userIdByParticipantId[participantId]
-            if (userId == null) {
-                MemberGender.NON_SPECIFIED.wireValue
-            } else {
-                genderByUserId[userId] ?: MemberGender.NON_SPECIFIED.wireValue
-            }
+            genderByParticipantId[participantId] ?: MemberGender.NON_SPECIFIED.wireValue
         }
     }
+
+    fun effectiveGenderWire(seasonParticipant: SeasonParticipantEntity): String =
+        ParticipantRowPresentation.effectiveGenderWire(seasonParticipant)
+
+    fun effectiveGenderWire(eventParticipant: EventParticipantEntity): String =
+        ParticipantRowPresentation.effectiveGenderWire(eventParticipant)
 }

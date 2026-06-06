@@ -1,5 +1,8 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.availability.EventAvailabilityEntity
+import com.hatcast.api.availability.EventAvailabilityIndex
+import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantExclusionRepository
@@ -139,5 +142,38 @@ class CompositionParticipantPoolTest {
         assertTrue(names.contains("Standalone Guest"))
         assertFalse(names.contains("Linked To Removed"))
         assertEquals(1, pool.size)
+    }
+
+    @Test
+    fun `buildRolePool includes name-only season participant with participant-scoped availability`() {
+        val marie = seasonRow("Marie", user = null)
+        val eligible =
+            listOf(
+                CompositionEligibleParticipant(
+                    participantId = marie.id,
+                    userId = null,
+                    displayName = marie.displayName,
+                    source = CompositionParticipantSource.SEASON,
+                ),
+            )
+        val availability =
+            EventAvailabilityEntity(
+                event = event,
+                seasonParticipant = marie,
+                status = StoredAvailabilityStatus.AVAILABLE,
+                roleKeys = listOf("player"),
+                recordedByUserId = UUID.randomUUID(),
+            )
+        val index = EventAvailabilityIndex.fromRows(listOf(availability))
+
+        val pool =
+            CompositionParticipantPool.buildRolePool(
+                eligible = eligible,
+                availabilityIndex = index,
+                roleKey = "player",
+                excluded = emptySet(),
+            )
+
+        assertEquals(listOf("Marie"), pool.map { it.displayName })
     }
 }

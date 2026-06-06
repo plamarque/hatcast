@@ -193,7 +193,6 @@ class EventRosterService(
             row,
             includeEmail,
             ParticipantRowPresentation.avatarUrl(avatarService, user),
-            ParticipantRowPresentation.genderWire(user),
         )
     }
 
@@ -206,7 +205,6 @@ class EventRosterService(
             row,
             includeEmail,
             ParticipantRowPresentation.avatarUrl(avatarService, user),
-            ParticipantRowPresentation.genderWire(user),
         )
     }
 }

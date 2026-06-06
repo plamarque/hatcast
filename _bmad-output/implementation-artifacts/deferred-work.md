@@ -135,3 +135,20 @@
 - **DW-123** — Budget bundle **initial** prod (~2,33 MB raw, +75 kB vs warning 2,25 MB) — chantier séparé (lazy routes, dépendances, tree-shaking) ; le refactor équipe a déplacé du CSS composant → global sans réduction nette du initial.
 - **DW-124** — Alléger les SCSS composants restants si dérive (`member-home-todo.scss` ~6,4 kB, `member-nav.scss` ~5,5 kB, etc.) — candidats dans README baseline § bundle.
 - **DW-125** — Découpage optionnel de `event-equipe-tab` en sous-composants (`slot-row`, `declines`) si maintenance difficile — **non requis** tant que `anyComponentStyle` reste OK.
+
+## Deferred from: code review of 2-21-troupe-externes-carnet (2026-06-06)
+
+- Réactivation inactive par `displayName` ambiguë si homonymes — homonymes MVP acceptés ADR-0021.
+- Pas d'index sur `normalized_email` pour matching carnet — perf MVP.
+- `addExterne` côté front ne parse pas le corps d'erreur API — UX mineure.
+- Renommage externe ne propage pas vers `season_participants` liés — story 3.23.
+- Modifications genre participant dans le même diff hors périmètre 2.21 — lot participant-gender mélangé.
+
+## Deferred from: code review of 3-8c-participant-add-typeahead (2026-06-06)
+
+- Échecs API silencieux (`listMembers` / roster) — même pattern que `event-organizers-dialog` ; pas de régression vs référence story.
+- Double fetch réseau à l'ouverture du dialog (parent + dialog) — optimisation hors scope Lot A.
+- Duplication template/logique entre dialogs saison et événement — story autorise inline ; helper filtre déjà extrait.
+- Pas d'état loading pendant `initializeSuggestions` — `event-organizers-dialog` n'en a pas non plus.
+- M3-5 checklist sans artefact attaché — validation manuelle dans Dev Notes uniquement.
+- `openAddDialog` retour silencieux si `troupeId` manquant — pattern défensif pré-existant.

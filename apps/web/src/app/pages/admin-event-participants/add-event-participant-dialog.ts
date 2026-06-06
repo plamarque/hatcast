@@ -9,11 +9,16 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 
+import {
+  effectiveMemberGender,
+  type MemberGender,
+} from '../../core/account/member-gender'
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
 import {
   type TroupeMemberAdmin,
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
+import { ParticipantGenderToggleField } from '../../shared/participant-add/participant-gender-toggle-field'
 import { filterTroupeMemberSuggestions } from '../../shared/participant-add/participant-member-suggestions'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
@@ -31,6 +36,7 @@ export interface AddEventParticipantDialogData {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
+    ParticipantGenderToggleField,
     UserAvatarComponent,
   ],
   template: `
@@ -81,6 +87,14 @@ export interface AddEventParticipantDialogData {
             placeholder="participant@example.com"
           />
         </mat-form-field>
+        @if (showGenderField()) {
+          <app-participant-gender-toggle-field
+            [value]="gender()"
+            (valueChange)="gender.set($event)"
+            [readOnlyManagedOnAccount]="genderManagedOnAccount()"
+            [accountGender]="selectedMember()?.gender ?? null"
+          />
+        }
         <p class="participant-form-dialog__hint">
           Suggestions : membres actifs de la troupe. Si l'email correspond à un compte HatCast, le
           participant sera lié automatiquement. L'email pourra aussi servir aux invitations et
@@ -160,6 +174,17 @@ export class AddEventParticipantDialog implements OnInit {
   protected readonly excludedUserIds = signal<Set<string>>(new Set())
   protected readonly excludedDisplayNames = signal<Set<string>>(new Set())
   protected readonly selectedMember = signal<TroupeMemberAdmin | null>(null)
+  protected readonly gender = signal<MemberGender>('non_specified')
+
+  protected readonly showGenderField = computed(() => true)
+
+  protected readonly genderManagedOnAccount = computed(() => {
+    const member = this.selectedMember()
+    if (!member) {
+      return false
+    }
+    return effectiveMemberGender(member.gender) !== 'non_specified'
+  })
 
   protected readonly filteredSuggestions = computed(() =>
     filterTroupeMemberSuggestions(
@@ -180,6 +205,7 @@ export class AddEventParticipantDialog implements OnInit {
     this.selectedMember.set(null)
     if (hadSelection) {
       this.email.set('')
+      this.gender.set('non_specified')
     }
     this.error.set('')
   }
@@ -200,6 +226,7 @@ export class AddEventParticipantDialog implements OnInit {
     this.selectedMember.set(member)
     this.displayName.set(member.displayName)
     this.email.set(member.email ?? '')
+    this.gender.set('non_specified')
     this.error.set('')
   }
 
@@ -213,10 +240,14 @@ export class AddEventParticipantDialog implements OnInit {
     this.error.set('')
     try {
       const email = this.email().trim()
-      const r = await this.api.createEventParticipant(this.data.seasonId, this.data.eventId, {
+      const body: { displayName: string; email?: string; gender?: MemberGender } = {
         displayName: name,
         email: email || undefined,
-      })
+      }
+      if (!this.genderManagedOnAccount()) {
+        body.gender = this.gender()
+      }
+      const r = await this.api.createEventParticipant(this.data.seasonId, this.data.eventId, body)
       if (!r.ok) {
         this.error.set(this.errorMessage(r.status))
         return

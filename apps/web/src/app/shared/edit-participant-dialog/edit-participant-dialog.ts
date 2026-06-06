@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import {
   MAT_DIALOG_DATA,
@@ -8,7 +8,12 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 
+import {
+  effectiveMemberGender,
+  type MemberGender,
+} from '../../core/account/member-gender'
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
+import { ParticipantGenderToggleField } from '../participant-add/participant-gender-toggle-field'
 
 export type EditParticipantDialogData =
   | {
@@ -17,6 +22,9 @@ export type EditParticipantDialogData =
       participantId: string
       displayName: string
       email: string | null
+      userId?: string | null
+      genderManagedOnAccount?: boolean
+      participantGender?: MemberGender | null
     }
   | {
       scope: 'event'
@@ -25,11 +33,20 @@ export type EditParticipantDialogData =
       participantId: string
       displayName: string
       email: string | null
+      userId?: string | null
+      genderManagedOnAccount?: boolean
+      participantGender?: MemberGender | null
     }
 
 @Component({
   selector: 'app-edit-participant-dialog',
-  imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  imports: [
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    ParticipantGenderToggleField,
+  ],
   template: `
     <h2 mat-dialog-title>Modifier le participant</h2>
     <mat-dialog-content>
@@ -52,6 +69,13 @@ export type EditParticipantDialogData =
             placeholder="participant@example.com"
           />
         </mat-form-field>
+        @if (showGenderField()) {
+          <app-participant-gender-toggle-field
+            [value]="gender()"
+            (valueChange)="gender.set($event)"
+            [readOnlyManagedOnAccount]="genderManagedOnAccount()"
+          />
+        }
         <p class="participant-form-dialog__hint">
           Si l'email correspond à un compte HatCast, le participant sera lié et pourra devenir
           organisateur·ice.
@@ -108,8 +132,15 @@ export class EditParticipantDialog {
 
   protected readonly displayName = signal(this.data.displayName)
   protected readonly email = signal(this.data.email ?? '')
+  protected readonly gender = signal<MemberGender>(this.initialGender())
   protected readonly saving = signal(false)
   protected readonly error = signal('')
+
+  protected readonly genderManagedOnAccount = computed(
+    () => this.data.genderManagedOnAccount === true,
+  )
+
+  protected readonly showGenderField = computed(() => true)
 
   async submit(): Promise<void> {
     const name = this.displayName().trim()
@@ -120,9 +151,12 @@ export class EditParticipantDialog {
     this.saving.set(true)
     this.error.set('')
     try {
-      const body = {
+      const body: { displayName: string; email?: string; gender?: MemberGender } = {
         displayName: name,
         email: this.email().trim() || undefined,
+      }
+      if (!this.genderManagedOnAccount()) {
+        body.gender = this.gender()
       }
       const r =
         this.data.scope === 'season'
@@ -145,6 +179,14 @@ export class EditParticipantDialog {
     } finally {
       this.saving.set(false)
     }
+  }
+
+  private initialGender(): MemberGender {
+    const stored = this.data.participantGender
+    if (stored != null) {
+      return effectiveMemberGender(stored)
+    }
+    return 'non_specified'
   }
 
   private errorMessage(status: number): string {

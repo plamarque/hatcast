@@ -16,6 +16,8 @@ export interface SeasonParticipantAdmin {
   removable: boolean
   avatarUrl?: string | null
   gender?: MemberGender
+  participantGender?: MemberGender | null
+  genderManagedOnAccount?: boolean
 }
 
 export type EventRosterSource = 'SEASON' | 'EVENT'
@@ -30,6 +32,8 @@ export interface EventRosterParticipant {
   source: EventRosterSource
   avatarUrl?: string | null
   gender?: MemberGender
+  participantGender?: MemberGender | null
+  genderManagedOnAccount?: boolean
 }
 
 export interface EventParticipantAdmin {
@@ -64,7 +68,7 @@ export class ParticipantApiService {
 
   async createSeasonParticipant(
     seasonId: string,
-    body: { displayName: string; email?: string },
+    body: { displayName: string; email?: string; gender?: MemberGender },
   ): ApiResult<SeasonParticipantAdmin> {
     return this.postJson(
       `/v1/seasons/${encodeURIComponent(seasonId)}/participants`,
@@ -75,7 +79,7 @@ export class ParticipantApiService {
   async updateSeasonParticipant(
     seasonId: string,
     participantId: string,
-    body: { displayName: string; email?: string },
+    body: { displayName: string; email?: string; gender?: MemberGender },
   ): ApiResult<SeasonParticipantAdmin> {
     return this.patchJson(
       `/v1/seasons/${encodeURIComponent(seasonId)}/participants/${encodeURIComponent(participantId)}`,
@@ -149,7 +153,7 @@ export class ParticipantApiService {
   async createEventParticipant(
     seasonId: string,
     eventId: string,
-    body: { displayName: string; email?: string },
+    body: { displayName: string; email?: string; gender?: MemberGender },
   ): ApiResult<EventParticipantAdmin> {
     return this.postJson(
       `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants`,
@@ -161,7 +165,7 @@ export class ParticipantApiService {
     seasonId: string,
     eventId: string,
     participantId: string,
-    body: { displayName: string; email?: string },
+    body: { displayName: string; email?: string; gender?: MemberGender },
   ): ApiResult<EventParticipantAdmin> {
     return this.patchJson(
       `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants/${encodeURIComponent(participantId)}`,
@@ -179,7 +183,7 @@ export class ParticipantApiService {
     )
   }
 
-  private normalizeParticipantRows<T extends { gender?: MemberGender }>(
+  private normalizeParticipantRows<T extends { gender?: MemberGender; participantGender?: MemberGender | null }>(
     result: ApiResponse<T[]>,
   ): ApiResponse<T[]> {
     if (!result.ok || !result.data) {
@@ -190,6 +194,10 @@ export class ParticipantApiService {
       data: result.data.map((row) => ({
         ...row,
         gender: effectiveMemberGender(row.gender),
+        participantGender:
+          row.participantGender == null
+            ? null
+            : effectiveMemberGender(row.participantGender),
       })),
     }
   }

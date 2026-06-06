@@ -1,5 +1,6 @@
 package com.hatcast.api.user
 
+import com.hatcast.api.participant.ParticipantGenderCascadeService
 import com.hatcast.api.troupe.MemberDisplayNameResolver
 import com.hatcast.api.troupe.PreferredRoleKeys
 import com.hatcast.api.troupe.TroupeMembershipRepository
@@ -16,6 +17,7 @@ import java.util.UUID
 class UserMemberPreferencesService(
     private val userRepository: UserRepository,
     private val membershipRepository: TroupeMembershipRepository,
+    private val participantGenderCascade: ParticipantGenderCascadeService,
 ) {
     @Transactional(readOnly = true)
     fun getPreferences(userId: UUID): UserMemberPreferencesResponseDto {
@@ -34,6 +36,7 @@ class UserMemberPreferencesService(
         val user = requireUser(userId)
         val now = Instant.now()
         var syncMemberships = false
+        var cascadeParticipantGender = false
 
         body.memberDisplayName?.let { raw ->
             val normalized =
@@ -56,12 +59,16 @@ class UserMemberPreferencesService(
                 MemberGender.fromWireOrNull(raw)
                     ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Genre invalide.")
             user.gender = parsed
+            cascadeParticipantGender = true
         }
 
         user.updatedAt = now
         userRepository.save(user)
         if (syncMemberships) {
             syncActiveMemberships(user, now)
+        }
+        if (cascadeParticipantGender) {
+            participantGenderCascade.syncLinkedParticipantGender(user.id, MemberGender.effective(user.gender))
         }
         return toResponse(user)
     }

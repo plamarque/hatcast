@@ -223,6 +223,9 @@ export class AdminParticipants implements OnDestroy, OnInit {
         participantId: participant.id,
         displayName: participant.displayName,
         email: participant.email,
+        userId: participant.userId,
+        genderManagedOnAccount: participant.genderManagedOnAccount ?? false,
+        participantGender: participant.participantGender ?? null,
       },
       width: 'min(100vw - 2rem, 28rem)',
     })

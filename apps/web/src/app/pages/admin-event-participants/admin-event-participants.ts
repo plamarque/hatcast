@@ -248,6 +248,9 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
               participantId: participant.eventParticipantId,
               displayName: participant.displayName,
               email: participant.email,
+              userId: participant.userId,
+              genderManagedOnAccount: participant.genderManagedOnAccount ?? false,
+              participantGender: participant.participantGender ?? null,
             }
           : {
               scope: 'season',
@@ -255,6 +258,9 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
               participantId: participant.seasonParticipantId!,
               displayName: participant.displayName,
               email: participant.email,
+              userId: participant.userId,
+              genderManagedOnAccount: participant.genderManagedOnAccount ?? false,
+              participantGender: participant.participantGender ?? null,
             },
       width: 'min(100vw - 2rem, 28rem)',
     })
