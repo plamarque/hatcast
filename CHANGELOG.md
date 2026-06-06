@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1] - 2026-06-06
+
+### 📦 Release
+- Version release (V2)
+
+---
+
 ## [2.1.0] - 2026-06-06
 
 ### 🐛 Bug Fixes
