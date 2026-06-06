@@ -10,7 +10,7 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 
 - **Troupe:** The performing group / organisation whose **identity** and **seasons** are managed together in admin. (May map 1:1 to a tenant or org in the target data model; legacy code often scopes by **season** only—see ARCH when migrating.)
 - **Troupe membership (V2):** Link between a `users` row and a troupe. `ACTIVE` memberships grant member read access to troupe-scoped V2 data; `INACTIVE` memberships are retained for audit/history but no longer grant troupe access.
-- **Baseline troupe role (V2):** Role stored on a troupe membership. Current values are `MEMBER` and `TROUPE_ADMIN`. `MEMBER` grants active-member read access only. `TROUPE_ADMIN` grants troupe-level administration: members, baseline roles, seasons, events, and organizer delegation.
+- **Baseline troupe role (V2):** Role stored on a troupe membership. Values: `MEMBER`, `TROUPE_ADMIN`, and **`EXTERNE`** (French UI: **Externe** — troupe contact-book entry; see [ADR 0021](docs/adr/0021-troupe-externes-carnet-invitations.md)). `MEMBER` grants active-member read access only. `TROUPE_ADMIN` grants troupe-level administration. **`EXTERNE` grants no member hub or browse-all-seasons access by itself** — only organizer recall in admin and invitation-derived guest access when roster-scoped.
 - **Organizer delegation (V2):** Narrow season/event-scoped permission represented by `season_organizers` and `event_organizers`. It does not make a user a troupe admin and must not be encoded as a baseline troupe role.
 - **Season (V2 code/DB: `season`; French UI: Saison):** A first-class programme container within a troupe: temporal bounds, stable participant roster, events, draws, and season-scoped views (Agenda, Historique, Statistiques). Has a slug (URL-safe id), **unique within the troupe** (not globally — two troupes may share the same season slug, e.g. `saison-2026-2027`). Canonical route: **`/saison/:troupeSlug/:seasonSlug`**. Legacy **`/saison/:seasonSlug`** redirects to canonical when unambiguous among the user’s memberships; otherwise a chooser. See [ADR 0011](docs/adr/0011-league-model-and-user-agenda.md), [ADR 0013](docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md).
 - **League:** **Deprecated** — reserved for a future inter-troupe concept. Use **Saison** in UI and `season*` in API/JSON field names for the programme container within a troupe.
@@ -34,7 +34,9 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Magic link:** Passwordless auth link; stored in `magicLinks` or `accountMagicLinks`, processed in `magicLinks.js` and auth views.
 - **Push queue / reminder queue:** Firestore collections (`pushQueue`, `reminderQueue`) consumed by Cloud Functions to send push notifications or email reminders (see `functions/index.js`).
 - **Display filter (participants / events):** User-selected subset of players or events to display in the grid views. `null` = all; `Set<id>` = only those IDs. State in GridBoard (`selectedPlayerIds`, `selectedEventIds`); UI in PlayerSelectorModal, EventSelectorModal, ViewHeader.
-- **Season participant (V2):** Person on a season roster (`season_participants`). May be synced from an active troupe membership or added explicitly (name-only, linked user, prelinked email). Distinct from troupe membership.
+- **Season participant (V2):** Person on a season roster (`season_participants`). May be synced from an active **`MEMBER`** or **`TROUPE_ADMIN`** troupe membership, added explicitly (name-only, linked user, prelinked email), or linked from an **`EXTERNE`** carnet entry via organizer add flows. Distinct from full troupe member access when the person is **`EXTERNE`** only.
+- **Troupe externe / carnet (V2):** Active `troupe_memberships` row with `baseline_role = EXTERNE`. Organizer-managed **contact book** for people the troupe may re-invite (punctual or recurring). **Display name required**; email and HatCast account **optional** (name-only contacts are valid). Carnet alone grants **no** member app access. Managed in the same **Membres** admin UI as members and admins. See [ADR 0021](docs/adr/0021-troupe-externes-carnet-invitations.md).
+- **Invitation scope (V2, externe):** Normative scope for what a roster invitation allows (dispos, notifications, agenda visibility). **`SEASON`** — all published season events (subject to per-event exclusions); **`EVENT`** — only explicitly invited spectacle(s). Scope is carried on season/event participation, not inferred from carnet alone.
 - **Event roster exclusion (V2):** Local filter (`event_participant_exclusions`) — hides a season participant from one event’s roster only. Does not change troupe membership or season participant status.
 - **Season roster removal (V2):** Soft removal from one season’s active roster (`season_participants.status = REMOVED`, or equivalent). Does not deactivate troupe membership. Other seasons of the same troupe are unaffected.
 - **Account deletion (V2, FR37):** Self-service removal of a HatCast **user account** from Mon compte. Anonymizes personal data on the `users` row (`deleted_at`, cleared email/names/avatar/IdP ids); revokes sign-in permanently. Distinct from troupe admin **Retirer** (FR7) and from season/event roster removal. See business rules below.
@@ -45,8 +47,10 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Channel notified (share recipients):** Per recipient and channel, whether HatCast **already delivered** (or partially delivered) for the relevant notification intent(s) on this event — backed by `notification_delivery_log` with status `SENT` or `PARTIAL`. Used so organizers see who still needs manual follow-up (Copier / WhatsApp) and whether a resend is fair.
 - **Notification delivery log (V2):** Append-only record of notification attempts per `(event_id, user_id, channel, intent, status)`. Source of truth for “already notified” in organizer recipient detail. Distinct from `event_manual_share_notify` (anti-spam timestamp for manual POST per dialog intent).
 - **Member gender (V2, optional):** Self-declared account attribute on `users.gender`: `male` | `female` | `non_specified`. French UI: Homme / Femme / Non précisé. Default `non_specified`. Drives gender-aware **role labels** and **avatar fallback** when set; inclusive middot labels when not. Not troupe-scoped. Normative detail: [_spec-member-gender-parity/member-gender.md_](_bmad-output/specs/spec-member-gender-parity/member-gender.md).
-- **Gender-aware role label:** Display string for a `roleKey` chosen from masculine, feminine, or inclusive tables based on linked `users.gender`. V1 reference: `legacy/src/services/storage.js` `getRoleLabel`.
-- **Team gender parity (player role):** Count of filled composition slots with `roleKey = player` where linked user gender is `female` or `male`. Ratio `femaleShare = f / (f + m)` excludes `non_specified` and unlinked participants from the denominator. Used for organizer hint (**6.21**) and optional season aggregate (**16.3**).
+- **Participant gender (organizer-set, V2):** Optional attribute on `season_participants.gender` / `event_participants.gender` — same enum as member gender. Set by **organizers** when adding or editing a roster row whose linked account has **no** `male`/`female` (name-only guest, pre-linked email without account, or account Non spéc./unset). **Not** a substitute for member self-service when account gender is M/F. See [ADR 0020](docs/adr/0020-participant-gender-organizer-operational.md).
+- **Effective participant gender:** Gender used for role labels, avatar tone, mixité (**6.21**), and season parity aggregate (**16.3**). Precedence: linked account `male`/`female` → else participant row `male`/`female` → else `non_specified`. On member Mon compte PATCH to M/F, cascade sync all linked participant rows; on PATCH to Non spéc., clear participant gender (organizer may re-set on roster). Story **2.12d**.
+- **Gender-aware role label:** Display string for a `roleKey` chosen from masculine, feminine, or inclusive tables based on **effective participant gender**. V1 reference: `legacy/src/services/storage.js` `getRoleLabel`.
+- **Team gender parity (player role):** Count of filled composition slots with `roleKey = player` where **effective gender** is `female` or `male`. Ratio `femaleShare = f / (f + m)` excludes `non_specified` from the denominator. Used for organizer hint (**6.21**) and optional season aggregate (**16.3**).
 
 ---
 
@@ -63,7 +67,7 @@ Cast *──* Player (with role and status: pending | confirmed | declined)
 User (auth) *──* Player (via claim / association)
 User (V2) *──* Troupe (via troupe_memberships)
 Troupe (V2) 1──* Season
-TroupeMembership (V2) has baseline role MEMBER | TROUPE_ADMIN
+TroupeMembership (V2) has baseline role MEMBER | TROUPE_ADMIN | EXTERNE
 Season/Event organizer delegation (V2) is scoped separately from baseline role
 User 1──* userPreferences, userPushTokens, userNavigation
 ```
@@ -87,6 +91,7 @@ User 1──* userPreferences, userPushTokens, userNavigation
   - **Season roster removal:** Sets `season_participants.status = REMOVED` for that season only (admin Participants). Does not change `troupe_memberships`. Membership sync must not re-activate season-admin removals while membership stays `ACTIVE`.
   - **Season re-inclusion:** Performed through the **add-participant** flow (no dedicated button). Re-adding a previously removed person — matched by linked user, then email, then display name — **reactivates the same `season_participant_id`** (clears `removal_source`, re-syncs a member’s name/email from the membership) instead of creating a duplicate, so availability/composition history reappears. Re-adding a member is rejected while their troupe membership is `INACTIVE` (reactivate the membership first).
   - **Troupe membership removal:** Sets `troupe_memberships.status = INACTIVE` and cascades `REMOVED` on all linked season participants for that troupe. Revokes troupe app access. Reactivation reuses the same rows so historical data becomes visible again.
+- **Participant inclusion cascade on add (V2, upward):** When organizers add a guest, the product **upserts** carnet and roster rows so reuse does not require a separate Membres step. **Event add** upserts **`EXTERNE`** carnet + event roster (season roster per invitation scope / opt-in). **Season add** upserts **`EXTERNE`** carnet + season roster with **`SEASON`** scope when applicable. Re-inclusion reuses stable identities (`troupe_membership_id`, `season_participant_id`, `event_participant_id`). **`EXTERNE` rows are not auto-synced to every season** like `MEMBER` rows. See [ADR 0021](docs/adr/0021-troupe-externes-carnet-invitations.md). *(Removal remains no upward cascade — sprint-change-proposal 2026-05-31.)*
 - **Account deletion (V2, FR37):** Initiated by the signed-in user from account settings (explicit multi-step confirmation). **Must not** be implemented as troupe membership removal plus season sync — account delete has different effects on statistics and identity:
   - **`users` row:** Set `deleted_at`; clear identifiable PII (email, display names, avatar, IdP/Google ids). **Do not** hard-delete the row (`audit_events.actor_user_id` and historical domain rows may still reference `users.id`).
   - **`troupe_memberships`:** All active memberships for that user → `INACTIVE` (same app-access revocation as admin Retirer).
@@ -95,7 +100,7 @@ User 1──* userPreferences, userPushTokens, userNavigation
   - **Sign-in:** Subsequent Google / Identity Platform sign-in for that identity is rejected (`403`) — account cannot be reactivated through normal auth.
   - **Last active troupe admin:** Deletion is rejected while the user is the sole active `TROUPE_ADMIN` of any troupe (same invariant as membership demotion).
   - **Contrast:** Admin **Retirer** removes the person from the **stats grid** (`season_participants.status = REMOVED`); account deletion removes **login and PII** only — troupe governance statistics stay intact.
-- **Season participant roster vs troupe membership:** A troupe member may be absent from one season’s roster while remaining an active troupe member and present on other seasons.
+- **Season participant roster vs troupe membership:** A **`MEMBER`** may be absent from one season’s roster while remaining an active troupe member and present on other seasons. An **`EXTERNE`** may be in the troupe carnet without any season roster row until invited.
 - **Demo direct join limitation (V2):** Direct self-join is limited to troupes with **`join_policy = OPEN`** (including the production **Démo** troupe per [ADR-0015](docs/adr/0015-v2-demo-troupe-product-bootstrap.md)) and creates/reactivates `MEMBER` memberships only. Dev seed fiction uses troupe **Les Improbots** (`db/seed`); **La Malice** is reserved for real V1 migration data — not Flyway seed.
 - **One cast per event:** For a given event there is at most one cast; the draw produces or updates it (observed in storage/cast usage).
 - **Cast status values:** Player status in a cast is one of: pending, confirmed, declined (see `castService.getPlayerCastStatus`).
@@ -139,15 +144,17 @@ Lors d’un **tirage automatique** (`CompositionDrawService`), un participant ne
 
 Lorsqu’un participant occupe **plus d’un `roleKey`** sur le **même événement** (typiquement via assignation manuelle), un **avertissement non bloquant** (`multiRoleOnEventWarning`, champ `otherRoleKeys`) s’affiche sur **chaque** créneau concerné. Visible **organisateur uniquement** (API + onglet Équipe). N’empêche ni l’assignation, ni le tirage sur les autres rôles, ni la validation.
 
-### Parité de genre — profil, libellés et métriques (Stories 2.12–2.12c, 6.21, 16.3)
+### Parité de genre — profil, libellés et métriques (Stories 2.12–2.12d, 6.21, 16.3)
 
-Contrat détaillé : [_spec-member-gender-parity_](_bmad-output/specs/spec-member-gender-parity/SPEC.md).
+Contrat détaillé : [_spec-member-gender-parity_](_bmad-output/specs/spec-member-gender-parity/SPEC.md) · [ADR 0020](docs/adr/0020-participant-gender-organizer-operational.md).
 
 - **Profil :** `users.gender` optionnel ; édition **self-service** Mon compte → Mon profil ; jamais obligatoire pour dispos, tirage ou validation.
-- **Libellés :** si genre `male` ou `female`, libellés de rôle selon tables V1 ; si `non_specified`, formes inclusives (`Comédien·ne`, etc.).
-- **Avatars :** sans photo custom/Google, initiale du nom sur teinte selon genre (violet / orange / gris — tokens `--hatcast-member-gender-*` ; V2 remplace les emoji V1).
-- **Hint composition (6.21) :** bande informative orga sur l’onglet Équipe — effectifs F/M sur créneaux `player` remplis (genres connus) ; **non bloquant**.
-- **Stats saison (16.3) :** agrégat F/M et `femaleShare` sur participations `player` validées ; `non_specified` exclu du dénominateur du ratio.
+- **Roster (2.12d) :** `participant.gender` optionnel ; édition **organisateur** à l’ajout ou à la modification lorsque le compte lié n’a pas M/F ; lecture seule lorsque le compte a M/F. L’orga qui ajoute un invité non reconnu renseigne le genre au niveau participant.
+- **Effectif (precedence) :** genre effectif = compte M/F si présent, sinon participant M/F, sinon `non_specified`. Cascade Mon compte → lignes participant liées (sync M/F ; effacement si Non spéc.).
+- **Libellés :** si genre effectif `male` ou `female`, libellés de rôle selon tables V1 ; si `non_specified`, formes inclusives (`Comédien·ne`, etc.).
+- **Avatars :** sans photo custom/Google, initiale du nom sur teinte selon genre effectif (violet / orange / gris — tokens `--hatcast-member-gender-*` ; V2 remplace les emoji V1).
+- **Hint composition (6.21) :** bande informative orga sur l’onglet Équipe — effectifs F/M sur créneaux `player` remplis (genres effectifs connus) ; **non bloquant**.
+- **Stats saison (16.3) :** agrégat F/M et `femaleShare` sur participations `player` validées ; genre effectif ; `non_specified` exclu du dénominateur du ratio.
 - **Tirage :** facteur optionnel **19.11** — hors scope de cette règle ; dépend de **2.12** et pipeline **19.6**.
 
 Les participations en déplacement **ne comptent jamais** dans JEU ou DECORUM d’une ligue spectacle. Implémenté dans `legacy/src/components/CastsView.vue`, `calculatePlayerRoleStats`.

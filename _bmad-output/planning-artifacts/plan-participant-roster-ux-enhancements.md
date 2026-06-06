@@ -49,6 +49,18 @@ When adding a season or event participant, the organizer types a name and HatCas
 - Mandatory email
 - Gender field on add dialog
 
+### Lot A — Delivered scope (2026-06-06)
+
+Story **3.8c** shipped with **active troupe members** (`MEMBER` | `TROUPE_ADMIN`) as the suggestion pool — correct per Lot A AC. **ADR-0021** requires a follow-up (SCP [sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md](sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md), approved 2026-06-06).
+
+### Lot A-ext — Typeahead carnet pool *(P3 — story 3.8d)*
+
+**Depends:** **2.21** (carnet), **3.23** (cascade creates carnet rows on add).
+
+**Intent:** Extend suggestion pool to **`MEMBER` + `TROUPE_ADMIN` + `EXTERNE`** active carnet rows plus existing season roster entries per UI context (ADR-0021 §4.3). Selecting a carnet entry pre-fills name/email; organizer sets invitation scope on add (P2 UI).
+
+**Do not reopen** story 3.8c — implement as **3.8d**.
+
 ### BMAD next steps
 
 | Step | Skill | Invocation |
@@ -69,13 +81,17 @@ Optional phase 2: same control when admin edits a **troupe member** (user-backed
 
 ### Domain decision (required before story)
 
-| Case | Today | Proposed |
-|------|-------|----------|
-| Participant linked to user | Gender from `users.gender` only | Read-only in admin UI **or** defer to Mon compte — **no org override in phase 1** |
-| Name-only participant | Treated as unknown (`u`) in mixité | New optional `gender` on `season_participants` / `event_participants` |
-| Troupe member (admin) | Gender on user | Phase 2: admin PATCH user gender (same UX as **2.12**) |
+**Status:** **Approved 2026-06-06** — [sprint-change-proposal-2026-06-06-participant-gender-lot-b.md](sprint-change-proposal-2026-06-06-participant-gender-lot-b.md) · [ADR 0020](../../docs/adr/0020-participant-gender-organizer-operational.md)
 
-**Recommendation:** Phase 1 = participant-level gender for unlinked rows only. Phase 2 = member admin edit if still needed.
+| Case | Today | Decided |
+|------|-------|---------|
+| Participant linked to user with account M/F | Gender from `users.gender` only | Read-only in admin UI — account wins |
+| Name-only / account without M/F | Treated as unknown (`u`) in mixité | Optional `gender` on participant tables; org sets at add/edit |
+| User M↔F change | N/A | Cascade sync all linked participant rows |
+| User → Non spéc. | N/A | **Option B:** clear participant gender; org may re-set on roster |
+| Troupe member (admin) | Gender on user | Phase 2: admin PATCH user gender (**2-12e**, optional) |
+
+**Recommendation:** Phase 1 = dual-layer model + story **2-12d**. Phase 2 = member admin edit if still needed.
 
 ### Approach
 
@@ -140,4 +156,5 @@ Nothing in this plan is **required** for the current sprint closure. Safe to pic
 
 | Date | Change |
 |------|--------|
-| 2026-06-06 | Initial plan captured from stakeholder session (bmad-help structuring) |
+| 2026-06-06 | Domain decision approved (SCP + ADR 0020); story 2.12d added to epics/sprint-status |
+| 2026-06-06 | SCP ADR-0021 approved; Lot A-ext / story 3.8d added; stories 2.21, 3.23, 3.25 backlog |

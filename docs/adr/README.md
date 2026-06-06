@@ -41,6 +41,8 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0017](0017-v2-migration-api-key.md) | V2 pre-prod migration CLI: optional API key auth for headless orchestrator (`migrate:v2:run`) | Accepted |
 | [0018](0018-v2-audit-events-postgres.md) | V2 audit write path: append-only `audit_events` table + `AuditEventRecorder` (same transaction as domain) | Accepted |
 | [0019](0019-draw-weight-engine.md) | V2 draw weight engine: normative V1 spec, factor-pipeline objective, golden regression, `% = draw` invariant | Accepted |
+| [0020](0020-participant-gender-organizer-operational.md) | Participant-level gender: organizer operational layer, effective precedence, cascade on Mon compte PATCH | Accepted |
+| [0021](0021-troupe-externes-carnet-invitations.md) | Troupe externes (carnet), invitation scope (season vs event), upward inclusion on add | Accepted |
 
 ---
 

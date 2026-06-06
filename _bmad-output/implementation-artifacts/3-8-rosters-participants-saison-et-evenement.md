@@ -14,7 +14,7 @@ so that **teams can include troupe members, external contributors, and one-off p
 
 1. **Given** a user with `canManageSeasonParticipants`, **when** they add a season participant with a **display name** and **optional email**, **then** the participant is persisted, appears in season participant selectors, and can be consumed by availability/composition flows per permissions — **FR43**.
 2. **Given** active troupe members for the season’s troupe, **when** an authorized user lists season participants, **then** those members appear **by default** in the roster (via membership sync or union — see Dev Notes) with correct display names and optional user linkage — **FR43**, **FR13** default access.
-3. **Given** a user with `canManageEventParticipants` for a spectacle, **when** they add an **event-only** participant, **then** the participant is available **only for that event** and does **not** become a troupe member or season-wide participant — **FR44**.
+3. **Given** a user with `canManageEventParticipants` for a spectacle, **when** they add an **event-scoped** guest, **then** the system upserts an **`EXTERNE`** troupe carnet row (name required; email/account optional), creates or reuses an **event roster** row, and applies **invitation scope `EVENT`** so the guest is **not** available for season-wide dispos on unrelated spectacles unless the organizer explicitly opts in to a season roster row with documented scope — **FR44**, **ADR-0021**. The guest **must not** receive `MEMBER` baseline role or member-hub access. *(Amended SCP 2026-06-06 — implementation in stories **2.21**, **3.23**.)*
 4. **Given** an email matching an existing HatCast **`users`** row (case-insensitive, trimmed), **when** a participant is created or updated with that email, **then** `user_id` is set on the participant row where permitted — **FR45**.
 5. **Given** an email with **no activated account** (`users.activated_at IS NULL` or no row), **when** the participant is created, **then** they remain a **managed participant** (usable in admin workflows) and may be linked **automatically on first successful sign-in** with the same normalized email — **FR45**.
 6. **Given** **no email**, **when** the participant is created, **then** they remain **name-only** and admin-managed — **FR45**.
@@ -159,6 +159,8 @@ On **`GET /participants`** (admin) and **`GET /participants/selectors`**:
 - **Troupe admin “Retirer”** (Membres tab only): deactivates troupe membership (Story **2.2**); cascades `REMOVED` on all linked season participants for that troupe.
 - **Membership sync:** upserts ACTIVE season rows for ACTIVE troupe memberships **except** rows explicitly removed at season scope (sync guard — story **3.19**).
 - **Re-inclusion:** admin “Réintégrer à la saison” reactivates the same row; historical FKs remain valid.
+
+**`EXTERNE` carnet (ADR-0021, SCP 2026-06-06):** `ensureMembershipParticipants` syncs **`MEMBER`** and **`TROUPE_ADMIN`** only — **never** `EXTERNE`. Organizer add flows (season or event) upsert carnet + roster per upward inclusion cascade. Season participant rows for externes carry **`invitation_scope`** (`SEASON` | `EVENT`). See stories **2.21**, **3.23**.
 
 ### Email linking rules (**FR45**)
 

@@ -255,7 +255,7 @@ Les utilisateurs peuvent **créer un compte** et se connecter (**Google** ou **e
 
 ### Epic 2 — Troupes, adhésion et profil membre
 
-Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des membres et rôles de base par les admins, **import/export CSV des membres** (migration V1→V2 et administration), navigation entre troupes, pseudo par troupe, **genre optionnel sur le profil compte** (libellés de rôles et avatars adaptés, V1 parity — stories **2.12–2.12c**), et avatar (y compris image Google).
+Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des membres et rôles de base par les admins, **import/export CSV des membres** (migration V1→V2 et administration), navigation entre troupes, pseudo par troupe, **genre optionnel sur le profil compte** (libellés de rôles et avatars adaptés, V1 parity — stories **2.12–2.12d**), et avatar (y compris image Google).
 
 **FRs couverts :** FR6, FR7, FR8, FR9, FR10, FR42
 
@@ -695,6 +695,39 @@ afin d’être identifiable visuellement (parité V1).
 
 ---
 
+#### Story 2.12d : Genre participant — saisie orga et cascade Mon compte *(P2 — SCP 2026-06-06)*
+
+En tant qu’**organisateur**,  
+je veux **renseigner le genre** sur une ligne participant (ajout ou édition) lorsque le compte lié n’a pas M/F,  
+afin que la **mixité** (**6.21**) et les libellés genrés fonctionnent pour les invités et les membres sans genre Mon compte.
+
+**Acceptance Criteria**
+
+1. **Given** ajout manuel **non reconnu** (name-only), **when** l’orga choisit **Féminin** et enregistre, **then** `participant.gender = female` et le genre effectif est `female` sur roster, composition et dispos.
+2. **Given** utilisateur **reconnu avec M/F** sur Mon compte, **when** ajout ou édition participant, **then** genre affiché depuis le compte (lecture seule) ; PATCH participant n’accepte pas d’override.
+3. **Given** utilisateur reconnu **sans M/F** (Non spéc. / unset), **when** ajout au roster, **then** l’orga peut renseigner le genre sur la ligne participant.
+4. **Given** participant name-only `female` sur un slot `player` rempli et tous les autres slots `player` ont un genre effectif connu, **when** onglet Équipe, **then** pill mixité visible (**6.21**).
+5. **Given** membre PATCH Mon compte **M ↔ F**, **when** sauvegardé, **then** toutes les lignes participant liées synchronisées au nouveau genre compte.
+6. **Given** membre PATCH Mon compte vers **Non spéc.**, **when** sauvegardé, **then** lignes participant liées effacées (`non_specified`) ; l’orga peut re-saisir sur le roster (Option B).
+7. **Couverture :** extension parité genre / mixité. **Priorité :** P2. **Depends :** **2.12** (done), **6.21** (done), **3.8** (done). **Blocks :** —. **UX :** toggle Mon compte réutilisé ([ux-design-member-gender-parity.md](ux-design-member-gender-parity.md) Screen 1). **SCP :** [sprint-change-proposal-2026-06-06-participant-gender-lot-b.md](sprint-change-proposal-2026-06-06-participant-gender-lot-b.md). **ADR :** [0020](../../docs/adr/0020-participant-gender-organizer-operational.md). **Plan :** Lot B phase 1 — [plan-participant-roster-ux-enhancements.md](plan-participant-roster-ux-enhancements.md).
+
+---
+
+#### Story 2.21 : Troupe externes — carnet `EXTERNE` *(P1 — ADR-0021, SCP 2026-06-06)*
+
+En tant qu’**administrateur de troupe**,  
+je veux gérer des **Externes** dans la même UI Membres (name-only autorisé, email optionnel),  
+afin de conserver un **carnet de contacts** réutilisable sans accorder l’accès membre complet.
+
+**Acceptance Criteria**
+
+1. **Given** le modèle troupe, **when** `TroupeBaselineRole` est étendu, **then** `EXTERNE` est persisté (Flyway + OpenAPI).
+2. **Given** Membres admin, **when** l’admin ajoute un externe, **then** nom affiché requis, email optionnel ; chip/filtre **Externe** visible.
+3. **Given** retrait du carnet, **when** confirmé, **then** `troupe_memberships.status = INACTIVE` ; historique saison/événement conservé.
+4. **Given** sync membership → saison, **when** `ensureMembershipParticipants` s’exécute, **then** les lignes `EXTERNE` ne sont **pas** auto-ajoutées comme les `MEMBER`.
+5. **Given** un compte lié `EXTERNE` seul, **when** accès membre, **then** pas de hub troupe / lecture membre équivalente `MEMBER`.
+6. **Couverture :** ADR-0021 P1. **Priorité :** P1. **Depends :** **2.2**, **2.8** (done). **Blocks :** **3.23**, **3.8d**. **SCP :** [sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md](sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md). **ADR :** [0021](../../docs/adr/0021-troupe-externes-carnet-invitations.md).
+
 ### Epic 3 — Saisons, spectacles et gouvernance organisateur
 
 #### Story 3.1 : Gestion des saisons (création, édition, archivage) et liste saisons
@@ -824,7 +857,7 @@ afin d’inclure membres troupe, contributeurs externes et participants ponctuel
 **Acceptance Criteria**
 
 - **Given** un administrateur de saison, **when** il ajoute un participant saison avec nom affiché et email optionnel, **then** le participant apparaît dans les sélecteurs saison et peut être utilisé par les flux dispos/composition selon permissions (FR43).
-- **Given** un administrateur d’événement, **when** il ajoute un participant événement-only, **then** le participant n’est disponible que pour cet événement et ne devient pas membre troupe ni participant saison entier (FR44).
+- **Given** un administrateur d’événement, **when** il ajoute un invité **scope spectacle**, **then** le système upsert un carnet **`EXTERNE`**, une ligne roster événement, et un scope **`EVENT`** par défaut — sans accès membre ni dispos saison entière sauf opt-in explicite (FR44, ADR-0021). *(Amendé SCP 2026-06-06.)*
 - **Given** un email correspondant à un utilisateur HatCast existant, **when** le participant est créé, **then** il est lié à cet utilisateur où permis (FR45).
 - **Given** un email sans compte activé, **when** le participant est créé, **then** il reste un participant géré et peut être lié automatiquement à la **première connexion** avec le même email (FR45).
 - **Given** aucun email, **when** le participant est créé, **then** il reste name-only et admin-géré (FR45).
@@ -835,6 +868,52 @@ afin d’inclure membres troupe, contributeurs externes et participants ponctuel
 **Dépendances :** Story 2.2 (permissions admin troupe) ; Story 3.5 (organisateurs saison/événement). **Doit être livrée avant Stories 5.1–5.5 et 6.4–6.9.**
 
 **Couverture :** FR43, FR44, FR45 ; UX-DR10 ; NFR-S5.
+
+---
+
+#### Story 3.23 : Scope d’invitation et cascade à l’ajout *(P2 — ADR-0021, SCP 2026-06-06)*
+
+En tant qu’**organisateur** ajoutant un invité au niveau saison ou spectacle,  
+je veux que le système upsert carnet + roster avec le **scope d’invitation** correct,  
+afin que les parcours Laetitia (saison) et Ruben (spectacle) fonctionnent sans étape Membres séparée.
+
+**Acceptance Criteria**
+
+1. **Given** le schéma participant, **when** migré, **then** `season_participants.invitation_scope` (`SEASON` | `EVENT`) est exposé (Flyway + OpenAPI).
+2. **Given** ajout saison, **when** externe créé, **then** carnet `EXTERNE` + ligne saison scope **`SEASON`**.
+3. **Given** ajout spectacle, **when** invité one-shot, **then** carnet + ligne événement scope **`EVENT`** par défaut ; pas de dispos saison entière sans opt-in.
+4. **Given** ré-inclusion, **when** même personne, **then** réutilisation des IDs stables (membership, season_participant, event_participant).
+5. **Couverture :** FR43, FR44, FR45 ; ADR-0021 P2. **Priorité :** P1. **Depends :** **2.21**, **3.8** (done). **Blocks :** **3.8d**, **3.25**. **SCP :** [sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md](sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md).
+
+---
+
+#### Story 3.8d : Typeahead ajout participant — pool carnet *(P3 — ADR-0021, Lot A-ext)*
+
+En tant qu’**organisateur** sur « Ajouter un participant »,  
+je veux des suggestions incluant les **Externes** et lignes roster pertinentes,  
+afin de ré-inviter Ruben ou Laetitia sans ressaisie.
+
+**Acceptance Criteria**
+
+1. **Given** le dialog ajout, **when** l’orga tape un nom, **then** suggestions = `MEMBER` + `TROUPE_ADMIN` + `EXTERNE` actifs + roster saison selon contexte.
+2. **Given** sélection carnet, **when** soumis, **then** nom/email préremplis ; scope défini via UI **3.23**.
+3. **Given** aucune suggestion, **when** nom libre soumis, **then** création name-only inchangée (FR45).
+4. **Couverture :** FR43–FR45 ; plan Lot A-ext. **Priorité :** P2. **Depends :** **2.21**, **3.23**. **Extends :** **3.8c** (done, pas de réouverture CR).
+
+---
+
+#### Story 3.25 : Accès invité scopé pour externes liés *(P4 — ADR-0021)*
+
+En tant qu’**invité externe** avec compte HatCast lié,  
+je veux dispos et agenda **uniquement** sur les événements de mon scope d’invitation,  
+afin de participer sans accès hub membre troupe.
+
+**Acceptance Criteria**
+
+1. **Given** `EXTERNE` + scope **`SEASON`**, **when** compte lié, **then** agenda utilisateur inclut les événements saison publiés ; dispos sur ces événements ; pas d’espace saison membre complet.
+2. **Given** `EXTERNE` + scope **`EVENT`**, **when** compte lié, **then** agenda + dispos uniquement sur le(s) spectacle(s) invité(s).
+3. **Given** carnet seul, **when** pas d’invitation active, **then** pas d’accès app membre.
+4. **Couverture :** FR48 ; ADR-0021 P4, ADR-0011. **Priorité :** P2. **Depends :** **3.23**, Epic **12** (`/agenda`). **Blocks :** Epic **7** self-service (soft).
 
 ---
 
@@ -1167,12 +1246,12 @@ afin de **voir l’équilibre** sans que mes choix soient bloqués.
 
 En tant qu’organisateur,  
 je veux envoyer une **invitation self-service** pour un rôle et un périmètre d’événements lorsque la troupe a activé cette capacité,  
-afin de faire onboarder un contributeur externe **sans** adhésion troupe préalable (s’appuie sur FR43–FR45 pour les participants gérés en MVP).
+afin de faire onboarder un contributeur externe **sans** adhésion `MEMBER` préalable (s’appuie sur carnet **EXTERNE** + FR43–FR45 — ADR-0021).
 
 **Acceptance Criteria**
 
 - **Given** la capacité self-service activée pour la troupe, **when** l’organisateur crée une invitation avec rôle et périmètre, **then** l’invité reçoit le flux prévu (lien, email, etc.) et l’invitation est traçable.
-- **Couverture :** FR38 *(post-MVP)* ; NFR-S2.
+- **Couverture :** FR38 *(post-MVP)* ; NFR-S2. **Depends :** **2.21**, **3.23** (carnet + scope avant self-service).
 
 ---
 
