@@ -1,51 +1,68 @@
-<section class="account-page__section" aria-labelledby="account-about-heading">
-  <h2 id="account-about-heading" class="account-page__section-title">À propos</h2>
-  <div class="account-page__about-actions">
+<div class="account-page__about-panel" aria-labelledby="account-about-heading">
+  <h2 id="account-about-heading" class="account-page__visually-hidden">À propos de HatCast</h2>
+
+  <div class="account-page__about-brand">
+    <img
+      class="account-page__about-logo"
+      src="/icons/logo-hatcast-2.svg"
+      alt=""
+      width="48"
+      height="48"
+      aria-hidden="true"
+    />
+    <div class="account-page__about-brand-text">
+      <p class="account-page__about-app-name">HatCast</p>
+      <p class="account-page__about-version" data-testid="account-app-version">
+        Version {{ version() }}
+      </p>
+    </div>
+  </div>
+
+  <div class="account-page__about-actions" role="group" aria-label="Actions À propos">
     <button
       type="button"
-      mat-stroked-button
-      class="account-page__version"
-      data-testid="account-app-version"
-      [matTooltip]="versionTooltip()"
+      class="account-page__about-action"
+      data-testid="account-changelog"
       [attr.aria-label]="versionTooltip()"
       (click)="openChangelog()"
     >
-      <img
-        class="account-page__version-logo"
-        src="/icons/logo-hatcast-2.svg"
-        alt=""
-        width="32"
-        height="32"
-        aria-hidden="true"
-      />
-      v{{ version() }}
+      <mat-icon class="account-page__about-action-icon" aria-hidden="true">new_releases</mat-icon>
+      <span class="account-page__about-action-text">Nouveautés</span>
+      <mat-icon class="account-page__about-action-chevron" aria-hidden="true">chevron_right</mat-icon>
     </button>
+
     @if (manualCheckAvailable()) {
       <button
         type="button"
-        mat-stroked-button
-        class="account-page__check-updates"
+        class="account-page__about-action"
         data-testid="account-check-updates"
+        [disabled]="checkingUpdates()"
         [attr.aria-label]="
           checkingUpdates()
             ? 'Vérification des mises à jour en cours'
             : 'Vérifier les mises à jour de HatCast'
         "
-        [disabled]="checkingUpdates()"
         (click)="checkForUpdates()"
       >
         @if (checkingUpdates()) {
           <mat-progress-spinner
-            class="account-page__check-updates-spinner"
+            class="account-page__about-action-spinner"
             diameter="20"
             mode="indeterminate"
             aria-hidden="true"
           />
         } @else {
-          <mat-icon aria-hidden="true">system_update</mat-icon>
+          <mat-icon class="account-page__about-action-icon" aria-hidden="true">system_update</mat-icon>
         }
-        Vérifier les mises à jour
+        <span class="account-page__about-action-text">Vérifier les mises à jour</span>
+        @if (!checkingUpdates()) {
+          <mat-icon class="account-page__about-action-chevron" aria-hidden="true">chevron_right</mat-icon>
+        }
       </button>
     }
   </div>
-</section>
+
+  <p class="account-page__about-copyright" data-testid="account-about-copyright">
+    © 2025–2026 Patrice Lamarque
+  </p>
+</div>

@@ -1,9 +1,7 @@
 import { Component, inject, ViewEncapsulation } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 
 import { AppVersionService } from '../../../core/app/app-version.service'
 import {
@@ -22,11 +20,9 @@ const CHECK_RESULT_MESSAGES: Record<Exclude<ManualUpdateCheckResult, 'busy'>, st
 @Component({
   selector: 'app-account-about-tab',
   imports: [
-    MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule,
   ],
   templateUrl: './account-about-tab.html',
   styleUrl: '../account-placeholder.scss',

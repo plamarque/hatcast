@@ -15,6 +15,7 @@ relatedStories:
   - '8.1'
   - '8.2'
   - '10.3'
+  - '10.2'
 stakeholderDecisions:
   - global-member-preferences-on-compte
   - pseudo-on-identity-tab-not-preferences
@@ -26,13 +27,17 @@ stakeholderDecisions:
   - settings-list-not-stacked-cards
   - placeholders-for-planned-account-features
   - logout-in-page-header
+  - about-tab-identity-card-and-compact-action-rows
 supersedes:
   - '2026-05-28 scroll layout (story 17.24) — structure remplacée par onglets 17.34'
+  - '2026-06-06 onglet À propos — carte identité + lignes d’action (plus boutons pill version / MAJ)'
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-hub-a-faire.md
   - _bmad-output/planning-artifacts/ux-design-troupe-hub.md
   - _bmad-output/planning-artifacts/epics.md
+  - _bmad-output/implementation-artifacts/spec-about-manual-pwa-update-check.md
   - apps/web/src/app/pages/account-placeholder/account-placeholder.html
+  - apps/web/src/app/pages/account-placeholder/tabs/account-about-tab.html
   - apps/web/src/app/shared/member-preferences-form/member-preferences-form.ts
   - docs/v2/technical/FRONTEND_UI.md
 ---
@@ -99,7 +104,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | 1 | **Mon profil** | Avatar ; e-mail + **icône modifier** ; `displayName` auth si distinct ; **pseudo** ; **Modes de connexion** (Google, MDP) ; **Zone sensible** (suppression) | `person` | `/compte` (défaut) |
 | 2 | **Préférences** | Rôles préférés globaux uniquement (sans pseudo) | `tune` | `/compte/preferences` |
 | 3 | **Notifications** | Push (`PushNotificationsSection`) + catégories (`NotificationPreferencesSection`) | `notifications` | `/compte/notifications` |
-| 4 | **À propos** | Version app + ouverture changelog (`data-testid="account-app-version"`, story **10.3**) | `info` | `/compte/a-propos` |
+| 4 | **À propos** | Carte identité app + actions (changelog, check MAJ PWA si SW actif) + copyright | `info` | `/compte/a-propos` |
 
 **Compat routes obsolètes :** `/compte/securite` et `/compte/identite` → **redirect** vers `/compte` (`replaceUrl: true`) — liens e-mail, vérif compte, stories **1.6**/**1.7**.
 
@@ -209,11 +214,32 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 
 ### Onglet 4 — À propos
 
+**Amendement 2026-06-06** — carte identité + lignes d’action compactes (aligné Préférences / Notifications) ; check MAJ manuel (**10.2** + [spec-about-manual-pwa-update-check.md](../implementation-artifacts/spec-about-manual-pwa-update-check.md)).
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  [logo 48px]  HatCast                                      │
+│               Version X.Y.Z                                │
+├────────────────────────────────────────────────────────────┤
+│  ✨ Nouveautés                                    ›        │
+│  📲 Vérifier les mises à jour                     ›        │  ← si SW PWA actif
+├────────────────────────────────────────────────────────────┤
+│           © 2025–2026 Patrice Lamarque                     │
+└────────────────────────────────────────────────────────────┘
+```
+
 | Élément | Détail |
 |---------|--------|
-| **Version** | Bouton `mat-stroked-button` avec logo HatCast 2 + `vX.Y.Z` ; clic → dialog changelog (**10.3**) |
-| **Test id** | `data-testid="account-app-version"` — stable pour déplacements futurs |
-| **Hors scope 10.3** | Liens GitHub/MIT, badge environnement — réservés story ultérieure |
+| **Conteneur** | `account-page__about-panel` — même surface que `account-page__preferences-panel` (tokens M3, `surface-container` 55 %). |
+| **Identité** | Logo HatCast 2 (48 px) + nom app + **Version X.Y.Z** en texte secondaire — **pas** de bouton pill version. |
+| **Nouveautés** | Ligne action plate (`account-page__about-action`) : icône `new_releases`, libellé, chevron `chevron_right` ; clic → dialog changelog MatDialog (**10.3**). |
+| **Vérifier les mises à jour** | Même pattern ; icône `system_update` ; visible **uniquement** si service worker actif (`SwUpdate.isEnabled`, prod / recette `--with-push`). Spinner pendant le check ; snackbar résultat (à jour / disponible / erreur). Si MAJ en attente → réaffiche la bannière **Mettre à jour** (**10.2**), y compris après dismiss session. |
+| **Copyright** | Pied de carte, typo 0.75 rem, centré : `© 2025–2026 Patrice Lamarque`. |
+| **Test ids** | `account-app-version` (libellé version) · `account-changelog` · `account-check-updates` · `account-about-copyright` |
+| **Accessibilité** | Lignes action ≥ 48 dp ; `aria-label` dynamique pendant vérification MAJ ; titre section masqué visuellement (`account-page__visually-hidden`) — l’onglet porte déjà « À propos ». |
+| **Hors scope** | Liens GitHub / licence MIT, badge environnement — story ultérieure ; pas de badge permanent « MAJ dispo » sur la ligne action. |
+
+**Parcours MAJ en attente (non installée) :** l’app reste sur l’ancienne version ; le SW a téléchargé la nouvelle en arrière-plan. Bannière auto (**10.2**) ou check manuel → snackbar « Une mise à jour est disponible » + bannière → **Mettre à jour** → reload + changelog auto (**10.3**). Fermer la bannière = repousser (session), pas annuler la MAJ.
 
 ---
 
@@ -286,7 +312,8 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | Rail pseudo (C11) | Inchangé **17.35** — rafraîchir après save pseudo sur Mon profil |
 | Fragment legacy | Redirect `/compte#notifications` → `/compte/notifications` |
 | Déconnexion | Dans le **shell** `account-placeholder` (header, C8b) — **pas** dans un onglet ni sous le `router-outlet` |
-| Tests | `account-placeholder.spec.ts` : navigation onglets, deep links, présence sections ; conserver tests avatar / version |
+| Tests | `account-placeholder.spec.ts` : navigation onglets, deep links, présence sections ; `account-about-tab.spec.ts` : carte, changelog, check MAJ |
+| À propos UI | `tabs/account-about-tab.html` + `account-placeholder.scss` (`.account-page__about-*`) |
 | Story file | [17-34-mon-compte-onglets-securite-preferences.md](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) |
 
 ---
@@ -304,6 +331,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | **2.6** | Photo de profil (onglet **Mon profil**) |
 | **8.1** / **8.2** | Push + catégories (onglet **Notifications**) |
 | **10.3** | Version + changelog (onglet **À propos**) |
+| **10.2** | Check MAJ manuel + bannière apply-on-click (complète le parcours **À propos**) |
 | **FR9** | Pseudo membre — **global** (amendement vs per-troupe) |
 | **FR46** | Rôles préférés — **global** |
 

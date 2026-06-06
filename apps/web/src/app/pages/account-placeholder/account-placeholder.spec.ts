@@ -12,6 +12,7 @@ import { MemberDisplayNameService } from '../../core/account/member-display-name
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
+import { PwaUpdateService } from '../../core/pwa/pwa-update.service'
 import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { getPendingPostLoginRedirect, clearPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
@@ -179,6 +180,14 @@ describe('AccountPlaceholder', () => {
         {
           provide: ChangelogDialogService,
           useValue: { open: openChangelog, maybeAutoOpenAfterPwaUpdate: vi.fn() },
+        },
+        {
+          provide: PwaUpdateService,
+          useValue: {
+            checking: signal(false),
+            isManualCheckAvailable: false,
+            checkForUpdatesManually: vi.fn(),
+          },
         },
       ],
     }).compileComponents()
@@ -473,13 +482,16 @@ describe('AccountPlaceholder', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const versionButton = fixture.nativeElement.querySelector(
+    const versionLabel = fixture.nativeElement.querySelector(
       '[data-testid="account-app-version"]',
-    ) as HTMLButtonElement
-    expect(versionButton).toBeTruthy()
-    expect(versionButton.textContent).toContain('v2.1.0')
+    ) as HTMLElement
+    expect(versionLabel).toBeTruthy()
+    expect(versionLabel.textContent).toContain('2.1.0')
 
-    versionButton.click()
+    const changelogButton = fixture.nativeElement.querySelector(
+      '[data-testid="account-changelog"]',
+    ) as HTMLButtonElement
+    changelogButton.click()
     expect(openChangelog).toHaveBeenCalled()
   })
 

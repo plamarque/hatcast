@@ -38,12 +38,16 @@ describe('AccountAboutTab', () => {
     return { fixture, snackOpen, checkForUpdatesManually, openChangelog }
   }
 
-  it('renders version button and check-updates when manual check is available', () => {
+  it('renders brand card with version and action list', () => {
     const { fixture } = setup()
     const el = fixture.nativeElement as HTMLElement
 
     expect(el.querySelector('[data-testid="account-app-version"]')?.textContent).toContain('1.2.3')
+    expect(el.querySelector('[data-testid="account-changelog"]')).toBeTruthy()
     expect(el.querySelector('[data-testid="account-check-updates"]')).toBeTruthy()
+    expect(el.querySelector('[data-testid="account-about-copyright"]')?.textContent).toContain(
+      'Patrice Lamarque',
+    )
   })
 
   it('hides check-updates when manual check is unavailable', () => {
@@ -51,6 +55,7 @@ describe('AccountAboutTab', () => {
     const el = fixture.nativeElement as HTMLElement
 
     expect(el.querySelector('[data-testid="account-check-updates"]')).toBeNull()
+    expect(el.querySelector('[data-testid="account-changelog"]')).toBeTruthy()
   })
 
   it('checkForUpdates shows snackbar with result message', async () => {
