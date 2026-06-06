@@ -107,7 +107,7 @@ development_status:
   3-22-match-template-coach-api-seeds: done  # P0 — DW-101/102 done ; coach:1 API + seeds dev + review fixes
   3-8c-participant-add-typeahead: done  # Lot A — plan-participant-roster-ux-enhancements.md ; code review 2026-06-06
   3-23-invitation-scope-cascade-add: done  # P2 — SCP 2026-06-06 ADR-0021 ; depends 2.21 ; code review + TEA PASS 2026-06-06
-  3-24-admin-membres-edit-dialog: backlog  # P2 — UX dette 3.23 scénario F ; web-only
+  3-24-admin-membres-edit-dialog: done  # P2 — UX dette 3.23 scénario F ; web-only ; code review 2026-06-06
   3-8d-participant-add-typeahead-carnet: backlog  # P3 — Lot A-ext ; depends 2.21, 3.23
   3-25-externe-guest-scoped-access: backlog  # P4 — SCP 2026-06-06 ADR-0021 ; depends 3.23, Epic 12
   epic-3-retrospective: optional

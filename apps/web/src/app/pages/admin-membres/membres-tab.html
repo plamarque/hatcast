@@ -116,28 +116,21 @@
             (avatarClick)="openMemberProfile(member)"
           />
           <div class="membres-tab__identity">
-            @if (editingMemberId() === member.id) {
-              <input
-                class="membres-tab__name-input"
-                [value]="editingName()"
-                (input)="editingName.set($any($event.target).value)"
-                (blur)="saveDisplayName(member)"
-                (keydown)="onNameKeydown($event, member)"
-              />
-            } @else {
-              <button
-                type="button"
-                class="membres-tab__name-btn"
-                (click)="startNameEdit(member)"
-              >
-                {{ member.displayName }}
-              </button>
-            }
+            <span class="membres-tab__name">{{ member.displayName }}</span>
             <span class="membres-tab__email">{{
               member.email || (isExterne(member) ? 'Sans email' : 'Email indisponible')
             }}</span>
           </div>
           <div class="membres-tab__controls">
+            <button
+              type="button"
+              mat-icon-button
+              [disabled]="saving()"
+              [attr.aria-label]="isExterne(member) ? 'Modifier cet externe' : 'Modifier le membre'"
+              (click)="openEditMember(member)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
             <div class="membres-tab__chips">
               @if (isExterne(member)) {
                 <mat-chip class="membres-tab__role-chip membres-tab__role-chip--static">

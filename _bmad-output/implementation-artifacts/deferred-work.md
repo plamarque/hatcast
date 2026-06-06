@@ -18,6 +18,13 @@
 | **19.1** | 2026-06-04 | SPEC/ADR moteur tirage V1 — doc only |
 | **DW-111** | 2026-06-05 | Replay migration × **≥3** — `migrate-from-v1.sh` + gate `validate-replay --min=3` (PO ; log hors git : `export/malice/replay-log.jsonl`) |
 | **3.23** | 2026-06-06 | Invitation scope + cascade add — TEA PASS ; manual recette A–G ; defers ci-dessous |
+| **3.24** | 2026-06-06 | Modale édition Admin Membres — discoverability scénario F **3.23** ; 22/22 tests ; 1 defer optionnel (test `email: null`) ci-dessous |
+
+---
+
+## Deferred from: code review of 3-24-admin-membres-edit-dialog (2026-06-06)
+
+- Test PATCH email externe vidé (`email: null`) absent — logique submit présente, couverture optionnelle post-3.23.
 
 ---
 

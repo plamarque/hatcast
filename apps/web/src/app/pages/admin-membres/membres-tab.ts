@@ -29,6 +29,10 @@ import {
 } from '../../core/troupes/troupe-api.service'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { AddMemberDialog, type AddMemberDialogData } from './add-member-dialog'
+import {
+  EditTroupeMemberDialog,
+  type EditTroupeMemberDialogData,
+} from './edit-troupe-member-dialog'
 import { ImportResultsDialog, type ImportResultsDialogData } from './import-results-dialog'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
@@ -68,8 +72,6 @@ export class MembresTab implements OnInit, OnDestroy {
   protected readonly debouncedSearch = signal('')
   protected readonly showInactive = signal(false)
   protected readonly roleFilter = signal<'ALL' | TroupeBaselineRole>('ALL')
-  protected readonly editingMemberId = signal<string | null>(null)
-  protected readonly editingName = signal('')
   protected readonly roleMenuMember = signal<TroupeMemberAdmin | null>(null)
 
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -152,35 +154,25 @@ export class MembresTab implements OnInit, OnDestroy {
     }
   }
 
-  protected startNameEdit(member: TroupeMemberAdmin): void {
-    this.editingMemberId.set(member.id)
-    this.editingName.set(member.displayName)
-  }
-
-  protected cancelNameEdit(): void {
-    this.editingMemberId.set(null)
-    this.editingName.set('')
-  }
-
-  protected onNameKeydown(event: KeyboardEvent, member: TroupeMemberAdmin): void {
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      void this.saveDisplayName(member)
-    } else if (event.key === 'Escape') {
-      this.cancelNameEdit()
-    }
-  }
-
-  protected async saveDisplayName(member: TroupeMemberAdmin): Promise<void> {
-    if (this.editingMemberId() !== member.id) {
-      return
-    }
-    const next = this.editingName().trim()
-    this.editingMemberId.set(null)
-    if (!next || next === member.displayName) {
-      return
-    }
-    await this.patchMember(member, { displayName: next })
+  protected openEditMember(member: TroupeMemberAdmin): void {
+    const ref = this.dialog.open<EditTroupeMemberDialog, EditTroupeMemberDialogData, boolean>(
+      EditTroupeMemberDialog,
+      {
+        data: { troupeId: this.troupeId(), member },
+        width: 'min(100vw - 2rem, 28rem)',
+      },
+    )
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        this.snack.open(
+          this.isExterne(member) ? 'Externe mis à jour.' : 'Membre mis à jour.',
+          'OK',
+          { duration: 4000 },
+        )
+        void this.reload()
+        this.membersChanged.emit()
+      }
+    })
   }
 
   protected openRoleMenu(member: TroupeMemberAdmin): void {
