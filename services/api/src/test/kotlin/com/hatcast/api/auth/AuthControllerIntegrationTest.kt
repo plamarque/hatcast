@@ -14,6 +14,7 @@ import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import com.hatcast.api.user.UserEntity
@@ -67,19 +68,9 @@ class AuthControllerIntegrationTest {
         mockMvc
             .perform(get("/v1/auth/me").cookie(cookie))
             .andExpect(status().isOk)
-
-        val me =
-            mockMvc
-                .perform(
-                    get("/v1/auth/me").cookie(cookie),
-                ).andExpect(status().isOk)
-                .andExpect(jsonPath("$.user.email").value("user@example.com"))
-                .andReturn()
-
-        val xsrf = me.response.getCookie("XSRF-TOKEN")
-        requireNotNull(xsrf) { "XSRF-TOKEN cookie expected on authenticated GET" }
-        check(!xsrf.isHttpOnly) { "XSRF-TOKEN must be readable by the SPA" }
-        check(xsrf.value.isNotBlank())
+            .andExpect(jsonPath("$.user.email").value("user@example.com"))
+            .andExpect(cookie().exists("XSRF-TOKEN"))
+            .andExpect(cookie().httpOnly("XSRF-TOKEN", false))
     }
 
     @Test

@@ -10,8 +10,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfFilter
+import org.springframework.security.web.csrf.CsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 import org.springframework.beans.factory.ObjectProvider
@@ -31,6 +31,7 @@ class SecurityConfig(
     private val migrationApiKeyRequestMatcher: MigrationApiKeyRequestMatcher,
     private val e2eApiKeyAuthenticationFilter: ObjectProvider<E2eApiKeyAuthenticationFilter>,
     private val e2eApiKeyRequestMatcher: ObjectProvider<E2eApiKeyRequestMatcher>,
+    private val csrfTokenRepository: CsrfTokenRepository,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -45,7 +46,7 @@ class SecurityConfig(
             http.csrf { it.disable() }
         } else {
             http.csrf { csrf ->
-                csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                csrf.csrfTokenRepository(csrfTokenRepository)
                 csrf.csrfTokenRequestHandler(requestHandler)
                 csrf.ignoringRequestMatchers(
                     AntPathRequestMatcher("/v1/auth/google", HttpMethod.POST.name()),
