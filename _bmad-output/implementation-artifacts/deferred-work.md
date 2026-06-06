@@ -114,3 +114,12 @@
 ## Deferred from: code review of mig-7-backfill-users-gender-from-v1 (2026-06-06)
 
 - AC6 smoke SQL sans seuil numérique — comparaison manuelle `with_gender` vs export V1 suffisante pour l'iso-V1 gate ; pas de critère pass/fail chiffré imposé.
+
+## Deferred from: code review of spec-about-manual-pwa-update-check (2026-06-06)
+
+- Double `onUpdateReady` possible (constructeur + manual check) — idempotent mais redondant.
+- `isManualCheckAvailable` getter non-signal dans le template About — OK avec Default CD.
+- Couverture test manquante : `getServiceWorkerRegistration` undefined + snack `'error'` dans About tab.
+- `knownNgswTimestamp` non mis à jour par `checkForUpdatesManually` — baseline poll peut diverger en recette.
+- Message `'disabled'` developer-facing si jamais affiché en prod — bouton masqué quand SW off.
+- `updateListenerAttached` bool permanent — réattachement impossible si registration SW recréée.

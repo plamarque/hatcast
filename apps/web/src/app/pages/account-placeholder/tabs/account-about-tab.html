@@ -1,22 +1,51 @@
 <section class="account-page__section" aria-labelledby="account-about-heading">
   <h2 id="account-about-heading" class="account-page__section-title">À propos</h2>
-  <button
-    type="button"
-    mat-stroked-button
-    class="account-page__version"
-    data-testid="account-app-version"
-    [matTooltip]="versionTooltip()"
-    [attr.aria-label]="versionTooltip()"
-    (click)="openChangelog()"
-  >
-    <img
-      class="account-page__version-logo"
-      src="/icons/logo-hatcast-2.svg"
-      alt=""
-      width="32"
-      height="32"
-      aria-hidden="true"
-    />
-    v{{ version() }}
-  </button>
+  <div class="account-page__about-actions">
+    <button
+      type="button"
+      mat-stroked-button
+      class="account-page__version"
+      data-testid="account-app-version"
+      [matTooltip]="versionTooltip()"
+      [attr.aria-label]="versionTooltip()"
+      (click)="openChangelog()"
+    >
+      <img
+        class="account-page__version-logo"
+        src="/icons/logo-hatcast-2.svg"
+        alt=""
+        width="32"
+        height="32"
+        aria-hidden="true"
+      />
+      v{{ version() }}
+    </button>
+    @if (manualCheckAvailable()) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="account-page__check-updates"
+        data-testid="account-check-updates"
+        [attr.aria-label]="
+          checkingUpdates()
+            ? 'Vérification des mises à jour en cours'
+            : 'Vérifier les mises à jour de HatCast'
+        "
+        [disabled]="checkingUpdates()"
+        (click)="checkForUpdates()"
+      >
+        @if (checkingUpdates()) {
+          <mat-progress-spinner
+            class="account-page__check-updates-spinner"
+            diameter="20"
+            mode="indeterminate"
+            aria-hidden="true"
+          />
+        } @else {
+          <mat-icon aria-hidden="true">system_update</mat-icon>
+        }
+        Vérifier les mises à jour
+      </button>
+    }
+  </div>
 </section>
