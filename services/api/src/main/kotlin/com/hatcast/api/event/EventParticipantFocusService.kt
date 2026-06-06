@@ -3,6 +3,8 @@ package com.hatcast.api.event
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.composition.CompositionVisibilityRules
+import com.hatcast.api.composition.EventCompositionDeclineEntity
+import com.hatcast.api.composition.EventCompositionDeclineRepository
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotEntity
 import com.hatcast.api.composition.EventCompositionSlotRepository
@@ -24,6 +26,7 @@ import java.util.UUID
 class EventParticipantFocusService(
     private val slotRepository: EventCompositionSlotRepository,
     private val compositionRepository: EventCompositionRepository,
+    private val declineRepository: EventCompositionDeclineRepository,
     private val seasonParticipantRepository: SeasonParticipantRepository,
     private val organizerAccess: OrganizerAccessRules,
     private val eventOrganizerRepository: EventOrganizerRepository,
@@ -72,10 +75,24 @@ class EventParticipantFocusService(
         }
         val compositions = compositionRepository.findByEventIdIn(eventIds).associateBy { it.eventId }
         val slotsByEvent = slotRepository.findByEventIdIn(eventIds).groupBy { it.eventId }
+        val declinesByEvent = declineRepository.findByEventIdIn(eventIds).groupBy { it.eventId }
         val canManageByEvent = resolveCanManageComposition(eventIds, season, principal)
         return eventIds.associateWith { eventId ->
             val availability =
                 availabilityByEvent[eventId] ?: AvailabilityStatusMapper.UNKNOWN
+            val participantDeclines =
+                declinesByEvent[eventId].orEmpty().filter { decline ->
+                    decline.seasonParticipantId == focusParticipantId ||
+                        decline.eventParticipantId == focusParticipantId
+                }
+            pickPrimaryDecline(participantDeclines)?.let { decline ->
+                return@associateWith ParticipantFocusSummaryDto(
+                    availabilityStatus = availability,
+                    compositionRoleKey = decline.roleKey,
+                    inTeam = false,
+                    slotParticipationStatus = SlotParticipationStatus.DECLINED.name.lowercase(),
+                )
+            }
             val composition = compositions[eventId]
             val canViewSlots =
                 CompositionVisibilityRules.canViewSlotAssignments(
@@ -129,6 +146,21 @@ class EventParticipantFocusService(
             }
         }
         return matching.minByOrNull { it.slotIndex }
+    }
+
+    private fun pickPrimaryDecline(
+        declines: List<EventCompositionDeclineEntity>,
+    ): EventCompositionDeclineEntity? {
+        if (declines.isEmpty()) {
+            return null
+        }
+        for (roleKey in ROLE_DISPLAY_ORDER) {
+            val roleDeclines = declines.filter { it.roleKey == roleKey }.sortedBy { it.slotIndex }
+            if (roleDeclines.isNotEmpty()) {
+                return roleDeclines.first()
+            }
+        }
+        return declines.minByOrNull { it.declinedAt }
     }
 
     private fun resolveCanManageComposition(

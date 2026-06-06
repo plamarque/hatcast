@@ -181,6 +181,48 @@ describe('SeasonAgenda', () => {
     expect(eventSpy).not.toHaveBeenCalled()
   })
 
+  it('emits participationClick when the in-team cell is clicked', () => {
+    const eventSpy = vi.fn()
+    const participationSpy = vi.fn()
+    const withFocus = [
+      {
+        monthKey: '2026-01',
+        monthLabel: 'janvier 2026',
+        events: [
+          {
+            id: 'event-confirm',
+            slug: 'event-confirm',
+            title: 'Cabaret',
+            dayNumber: 12,
+            dayName: 'lun.',
+            startsAt: '2026-01-12T19:30:00Z',
+            templateType: 'cabaret',
+            myAvailabilityStatus: 'available' as const,
+            participantFocus: {
+              availabilityStatus: 'available' as const,
+              compositionRoleKey: 'player',
+              inTeam: true,
+              slotParticipationStatus: 'pending' as const,
+            },
+          },
+        ],
+      },
+    ]
+    fixture.componentRef.setInput('monthGroups', withFocus)
+    fixture.componentRef.setInput('variant', 'agenda')
+    fixture.detectChanges()
+    fixture.componentInstance.eventClick.subscribe(eventSpy)
+    fixture.componentInstance.participationClick.subscribe(participationSpy)
+
+    const trigger = fixture.nativeElement.querySelector(
+      '.agenda-participation-status__trigger',
+    ) as HTMLButtonElement
+    trigger.click()
+
+    expect(participationSpy).toHaveBeenCalledWith({ eventId: 'event-confirm' })
+    expect(eventSpy).not.toHaveBeenCalled()
+  })
+
   it('does not render agenda card overflow menu when user can manage events', () => {
     fixture.componentRef.setInput('canManageEvents', true)
     fixture.detectChanges()

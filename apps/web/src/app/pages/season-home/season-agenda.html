@@ -67,7 +67,9 @@
                 [myAvailabilityStatus]="ev.myAvailabilityStatus"
                 [participantFocus]="ev.participantFocus"
                 [canEditAvailability]="canEditAvailabilityOnCard(ev)"
+                [canConfirmParticipation]="canConfirmParticipationOnCard(ev)"
                 (availabilityClick)="onStatusAvailabilityClick(ev.id, $event.status)"
+                (participationClick)="onStatusParticipationClick(ev.id)"
               />
             </div>
           </article>

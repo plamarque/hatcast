@@ -73,6 +73,15 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
     },
+    {
+      name: 'chromium-agenda-participation',
+      testMatch: /recette-agenda-participation-cell\.spec\.ts/,
+      use: {
+        ...devices['Pixel 5'],
+        storageState: 'e2e/.auth/member.json',
+      },
+      dependencies: ['setup-member'],
+    },
   ],
   webServer: isStagingTarget
     ? undefined

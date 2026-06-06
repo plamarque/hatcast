@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   applyAvailabilityUpdateToAgendaEvent,
+  applyParticipationUpdateToAgendaEvent,
   formatParticipantFocusLabel,
 } from './season-participant-focus'
 
@@ -30,6 +31,16 @@ describe('formatParticipantFocusLabel', () => {
     })
     expect(label).toBe('Dispo · pas sélectionné')
   })
+
+  it('formats declined role after slot freed', () => {
+    const label = formatParticipantFocusLabel({
+      availabilityStatus: 'available',
+      compositionRoleKey: 'player',
+      inTeam: false,
+      slotParticipationStatus: 'declined',
+    })
+    expect(label).toBe('Comédien·ne · décliné')
+  })
 })
 
 describe('applyAvailabilityUpdateToAgendaEvent', () => {
@@ -55,5 +66,27 @@ describe('applyAvailabilityUpdateToAgendaEvent', () => {
     )
     expect(updated.myAvailabilityStatus).toBe('unavailable')
     expect(updated.participantFocus).toBeNull()
+  })
+})
+
+describe('applyParticipationUpdateToAgendaEvent', () => {
+  it('keeps declined role visible after freeing the slot', () => {
+    const updated = applyParticipationUpdateToAgendaEvent(
+      {
+        participantFocus: {
+          availabilityStatus: 'available',
+          compositionRoleKey: 'player',
+          inTeam: true,
+          slotParticipationStatus: 'pending',
+        },
+      },
+      'declined',
+    )
+    expect(updated.participantFocus).toEqual({
+      availabilityStatus: 'available',
+      compositionRoleKey: 'player',
+      inTeam: false,
+      slotParticipationStatus: 'declined',
+    })
   })
 })

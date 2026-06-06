@@ -254,9 +254,18 @@ Each alias = corresponding `-gradient-strong`. White label when checked.
 
 Agenda badges may stay **flat** (`-badge-bg`); chart and CTAs use **gradients**.
 
-### 5. Season agenda participant focus (`season-agenda.ts`)
+### 5. Agenda participation status cell (`agenda-participation-status`)
 
-When focus is in-team → `--selected` (violet). Do not fall back to `--available` green.
+Shared on **league Agenda** and **Mon agenda** (`/agenda`). Uses `app-participation-event-cell` modifiers:
+
+| `participantFocus` | Modifier | Interaction (upcoming only) |
+|--------------------|----------|---------------------------|
+| In team, confirmed | `--selected` (violet) | Tap → participation confirmation dialog |
+| In team, pending | `--pending` (amber/gold) | Tap → participation confirmation dialog |
+| Declined (role kept, `inTeam: false`) | `--declined` (orange) | **Read-only** — do **not** show `--available` green |
+| Not in team | `--available` / `--unavailable` / neutral | Tap → availability dialog |
+
+Normative: SPEC § Agenda participation status cell (2026-06-07).
 
 ---
 

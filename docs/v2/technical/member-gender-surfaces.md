@@ -141,10 +141,10 @@ flowchart TB
 
 | Surface | Type | Gender source | Avatar | API | Status | Tests / notes |
 |---------|------|---------------|--------|-----|--------|---------------|
-| Agenda participation status chip | `role_event` | Viewer gender (loaded prefs) | N/A | optional override input | ✅ | `agenda-participation-status.utils.ts` |
+| Agenda participation status chip | `role_event` | Viewer gender (loaded prefs) | N/A | optional override input | ✅ | `agenda-participation-status.utils.ts` — clickable on upcoming agenda: dispo → availability dialog; in-team pending/confirmed → confirmation dialog; **declined** read-only (role label retained after slot freed). SPEC § Agenda participation status cell. |
 | Season agenda cards | — | — | N/A | — | N/A | Event-level badges only |
-| Member home todo participation | `role_event` | Same as agenda chip | N/A | — | ✅ | Reuses `agenda-participation-status` |
-| User agenda | `role_event` | Same | N/A | — | ✅ | |
+| Member home todo participation | `role_event` | Same as agenda chip | N/A | — | ✅ | Reuses `agenda-participation-status` (read-only on hub next-event card) |
+| User agenda | `role_event` | Same | N/A | — | ✅ | Same interaction rules as season agenda |
 
 ---
 

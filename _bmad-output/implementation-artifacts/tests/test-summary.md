@@ -1,48 +1,40 @@
-# Test Automation Summary — Story 3.19 E2E
+# Test Automation Summary
 
-**Date:** 2026-05-31  
-**Workflow:** bmad-qa-generate-e2e-tests  
-**Scope:** Recette manuelle `scripts/v2/RECETTE-3.19-RETRAIT-ROSTER-SAISON.md`
+**Feature:** Agenda participation status cell  
+**Date:** 2026-06-07  
+**Design:** `_bmad-output/test-artifacts/test-design-agenda-participation-cell.md`
 
 ## Generated Tests
 
-### E2E (Playwright V2)
+### API / Fixture
 
-- [x] `apps/web/e2e/recette-3.19.spec.ts` — S1–S6, S7, S8, S9 (serial)
-- [x] `apps/web/e2e/helpers/story-3-19.ui.ts` — actions UI partagées
-- [x] `apps/web/e2e/helpers/e2e-api.ts` — reset fixture + assertions API (organizers, composition)
+- [x] `POST /v1/e2e/fixtures/agenda-participation-cell/reset` — seeds unknown dispo, pending confirm, historique past event
 
-### Fixtures API (profil `e2e`)
+### E2E Tests (Playwright)
 
-- [x] `E2eFixtureService.resetStory319()` — saisons A/B, Max actif, externe « Invité Recette E2E », sans exclusion événement pré-appliquée, IDs exposés au front
+- [x] `apps/web/e2e/recette-agenda-participation-cell.spec.ts` — APC-E2E-01 through APC-E2E-06
+- [x] `apps/web/e2e/helpers/agenda-participation-cell.ui.ts` — cell click, dialogs, assertions
+- [x] `apps/web/e2e/fixtures/agenda-participation-cell.constants.ts` — E2E API key re-export
 
-## Coverage vs recette manuelle
+## Coverage
 
-| Scénario | E2E | Notes |
-|----------|-----|-------|
-| S1 Exclusion événement | ✅ | UI exclude + présence roster saison |
-| S2 Retrait saison membre | ✅ | Dialogue + snackbar + adhésion troupe ACTIVE |
-| S3 Garde sync | ✅ | Reload + navigation |
-| S4 Portée saison-locale | ✅ | Saison B intacte |
-| S5 Ré-inclusion + exclusion E | ✅ | Ajouter + Max absent sur event E |
-| S6 Cascade troupe + réactivation | ✅ | Retrait troupe + re-ajout email |
-| S7 Rétrogradation orga saison | ✅ | API organizers avant/après |
-| S8 Externe name-only | ✅ | Retrait + ré-ajout même nom |
-| S9 Conservation historique | ✅ | Même `season_participant_id` en composition (API) |
-| M1 Migration V38 | 👁 | Manuel pré-prod |
-| M2 A11y 40dp | 👁 | Waiver documenté |
-
-**Automated:** 9/9 scénarios fonctionnels · **Manual residual:** M1, M2
+| ID | Scenario | Status |
+|----|----------|--------|
+| APC-E2E-01 | Unknown dispo → availability dialog, stay on `/agenda` | Implemented |
+| APC-E2E-02 | Pending → confirm → selected cell | Implemented |
+| APC-E2E-03 | Pending → decline → declined cell + API | Implemented |
+| APC-E2E-04 | Season workspace agenda confirm flow | Implemented |
+| APC-E2E-05 | Card body → event detail navigation | Implemented |
+| APC-E2E-06 | Historique static cell (no trigger) | Implemented |
 
 ## Run
 
 ```bash
-cd apps/web && npm run test:e2e
+cd apps/web
+npm run test:e2e -- --project=chromium-agenda-participation e2e/recette-agenda-participation-cell.spec.ts
 ```
-
-**Last run:** 4 passed (setup + 3 specs), ~37s local.
 
 ## Next Steps
 
-- CI : workflow `e2e-smoke.yml` (unchanged entrypoint `npm run test:e2e`)
-- Gate staging : `deploy-v2-cloud-run.yml` on `staging-v2`
+- Add to CI workflow when P1 gate is ready (local `e2e` profile only today)
+- Optional: staging discovery adapter if Malice data can mirror APC matrix

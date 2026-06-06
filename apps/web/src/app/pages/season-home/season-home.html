@@ -53,6 +53,7 @@
         (eventClick)="openEvent($event)"
         (loadMoreClick)="loadMoreEvents()"
         (availabilityClick)="openAvailability($event)"
+        (participationClick)="openParticipation($event)"
       />
     } @else if (seasonView() === 'history') {
       <app-season-agenda

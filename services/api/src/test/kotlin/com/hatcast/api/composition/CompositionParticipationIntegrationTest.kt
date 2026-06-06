@@ -283,6 +283,16 @@ class CompositionParticipationIntegrationTest {
         val declines = declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId)
         assert(declines.size == 1)
         assert(declines[0].seasonParticipantId == linkedId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events")
+                    .param("scope", "upcoming")
+                    .cookie(memberCookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[0].participantFocus.inTeam").value(false))
+            .andExpect(jsonPath("$.content[0].participantFocus.compositionRoleKey").value("player"))
+            .andExpect(jsonPath("$.content[0].participantFocus.slotParticipationStatus").value("declined"))
     }
 
     @Test

@@ -120,6 +120,35 @@ export async function resetStory38dFixture(request: APIRequestContext): Promise<
   return response.json() as Promise<Story38dFixture>
 }
 
+export type AgendaParticipationCellFixture = {
+  troupeSlug: string
+  seasonSlug: string
+  seasonId: string
+  memberSeasonParticipantId: string
+  eventUnknownDispoSlug: string
+  eventUnknownDispoTitle: string
+  eventPendingSlug: string
+  eventPendingTitle: string
+  eventHistorySlug: string
+  eventHistoryTitle: string
+}
+
+export async function resetAgendaParticipationCellFixture(
+  request: APIRequestContext,
+): Promise<AgendaParticipationCellFixture> {
+  const response = await request.post(`${apiBase}/v1/e2e/fixtures/agenda-participation-cell/reset`, {
+    headers: {
+      'X-Hatcast-E2E-Key': E2E_API_KEY,
+    },
+  })
+  if (!response.ok()) {
+    throw new Error(
+      `Agenda participation cell fixture reset failed (${response.status()}): ${await response.text()}`,
+    )
+  }
+  return response.json() as Promise<AgendaParticipationCellFixture>
+}
+
 export async function signInWithE2eToken(
   request: APIRequestContext,
   idToken: string,

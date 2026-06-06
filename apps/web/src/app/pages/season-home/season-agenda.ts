@@ -11,7 +11,11 @@ import {
   agendaParticipationStatusAriaLabel,
   agendaParticipationStatusFromEvent,
 } from '../../shared/participation/agenda-participation-status.utils'
-import { participantFocusFromEvent, type ParticipantFocusSummary } from './season-participant-focus'
+import {
+  isDeclinedParticipationFocus,
+  participantFocusFromEvent,
+  type ParticipantFocusSummary,
+} from './season-participant-focus'
 
 @Component({
   selector: 'app-season-agenda',
@@ -41,6 +45,7 @@ export class SeasonAgenda {
   readonly eventClick = output<string>()
   readonly loadMoreClick = output<void>()
   readonly availabilityClick = output<{ eventId: string; status: AvailabilityStatus }>()
+  readonly participationClick = output<{ eventId: string }>()
 
   protected openEvent(id: string): void {
     this.eventClick.emit(id)
@@ -48,6 +53,10 @@ export class SeasonAgenda {
 
   protected onStatusAvailabilityClick(eventId: string, status: AvailabilityStatus): void {
     this.availabilityClick.emit({ eventId, status })
+  }
+
+  protected onStatusParticipationClick(eventId: string): void {
+    this.participationClick.emit({ eventId })
   }
 
   protected dispoStatus(ev: { myAvailabilityStatus?: AvailabilityStatus }): AvailabilityStatus {
@@ -58,11 +67,20 @@ export class SeasonAgenda {
     myAvailabilityStatus?: AvailabilityStatus | null
     participantFocus?: ParticipantFocusSummary | null
   }): boolean {
+    const focus = participantFocusFromEvent(ev)
     return (
       this.variant() === 'agenda' &&
       this.canEditAvailability() &&
-      !participantFocusFromEvent(ev).inTeam
+      !focus.inTeam &&
+      !isDeclinedParticipationFocus(focus)
     )
+  }
+
+  protected canConfirmParticipationOnCard(ev: {
+    participantFocus?: ParticipantFocusSummary | null
+  }): boolean {
+    const focus = participantFocusFromEvent(ev)
+    return this.variant() === 'agenda' && focus.inTeam && !!focus.compositionRoleKey
   }
 
   protected historyCardAriaLabel(ev: {

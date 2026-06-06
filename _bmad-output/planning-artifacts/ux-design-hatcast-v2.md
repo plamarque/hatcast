@@ -143,15 +143,23 @@ Each row is a **single primary click** → **event detail** (full screen or rout
 2. **Event info** — **type icon** (spectacle type), **title** (e.g. *Apérock Mai*, *Match vs …*), **status pill** for the **composition**:
    - e.g. **orange** — *Équipe en préparation*
    - e.g. **green** — *Équipe confirmée*
-3. **User status / role** — prominent **pill or box** for the **connected user**:
-   - **Unavailable / not selected** — red-tinted (*Pas dispo*, subtext *tu n'es pas disponible* / *tu n'es pas sélectionné* as applicable).
-   - **In team** — purple gradient, role label (*Joueur*, *Assistant*, …) + positive subtext (*tu es dans l'équipe!*).
-   - **Available, not selected** — green (*Dispo*, *tu n'es pas sélectionné*).
+3. **User status / role** — square **participation cell** (`app-agenda-participation-status`) for the **connected user** (same component on **Mon agenda** `/agenda`):
+   - **Unavailable / not selected** — red-tinted (*Pas dispo*).
+   - **In team** — purple gradient (confirmed) or amber/gold (**pending** ⏳) with role label (*Comédien·ne*, *DJ*, …).
+   - **Available, not selected** — green (*Dispo*).
+   - **Declined role** — orange decline gradient with role label — **even after the slot is freed** (`inTeam: false`); must **not** fall back to dispo.
 
 **Interaction**
 
-- **Whole card** navigates to **spectacle detail** (primary).
+- **Card body** (date, title, composition badge) navigates to **spectacle detail** (primary).
+- **Status cell** (secondary control, **upcoming Agenda only**):
+  - **Dispo / Pas dispo / Non renseigné** → tap opens **availability dialog** (does not navigate).
+  - **Pending / confirmed in team** → tap opens **participation confirmation** dialog (same as Équipe self-service, FR25).
+  - **Declined** → read-only on agenda (no dispo edit from cell).
+- **Historique** rows: status cell **read-only**.
 - Filters and view switcher **do not** require leaving the season context.
+
+> **Normative detail (2026-06-07):** SPEC § Agenda participation status cell; companion [_spec-agenda-participation-status-cell.md_](../implementation-artifacts/spec-agenda-participation-status-cell.md).
 
 ### Visual style (V1 mood)
 
@@ -165,7 +173,9 @@ Each row is a **single primary click** → **event detail** (full screen or rout
 - [ ] Header shows **logo + season name + user avatar**; **settings** visible when user has permission.
 - [ ] Events are **grouped by month** with a clear month header.
 - [ ] Each card shows **date**, **title**, **composition status**, and **current user’s** dispo/role summary.
-- [ ] Card click opens **event detail**; filters and view switcher behave without losing season scope.
+- [ ] Card body opens **event detail**; **status cell** opens availability or confirmation modal without navigating (upcoming only).
+- [ ] After **decline**, status cell stays **declined** (not dispo).
+- [ ] Filters and view switcher behave without losing season scope.
 - [ ] **Historique** and **Statistiques** are reachable from the **view switcher** without ambiguity ([Historique](#screen-league--historique-chronology), [Statistiques](#screen-league--statistiques-participation)).
 - [ ] **Agenda** liste uniquement spectacles **non archivés** et **à partir d’aujourd’hui** (jour civil inclus), conformément à **Agenda content scope** ci-dessus.
 

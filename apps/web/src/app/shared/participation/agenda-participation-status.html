@@ -1,7 +1,7 @@
 @let view = statusView();
 
 <div class="agenda-participation-status">
-  @if (view.availabilityEditable) {
+  @if (isInteractive()) {
     <button
       type="button"
       class="agenda-participation-status__trigger"

@@ -129,7 +129,9 @@
                 [myAvailabilityStatus]="ev.myAvailabilityStatus"
                 [participantFocus]="ev.participantFocus"
                 [canEditAvailability]="canEditAvailabilityForItem(ev)"
+                [canConfirmParticipation]="canConfirmParticipationForItem(ev)"
                 (availabilityClick)="openAvailability(ev, $event.status)"
+                (participationClick)="openParticipation(ev)"
               />
             </div>
           </article>
