@@ -24,7 +24,7 @@ Integration tests exercise the full chain up to `NotificationDispatcher`; unit t
 |----|--------------|---------|-------------------|-------------------|------------------|
 | M-D1 | A1 | PUT slot assign | draft | — | `CONFIRMATION_REQUEST`, `RECONFIRMATION_REQUEST`, `REMOVED_FROM_COMPOSITION`, `TEAM_VALIDATED_FYI` |
 | M-D2 | A2 | POST draw full | draft | — | `CONFIRMATION_REQUEST` |
-| M-V1 | B | POST validate (1st) | draft → validated | `CONFIRMATION_REQUEST` (all assignees) | `TEAM_VALIDATED_FYI` |
+| M-V1 | B | POST validate (1st) | draft → validated | `CONFIRMATION_REQUEST` (non-`confirmed` assignees; list explicit in test) | `TEAM_VALIDATED_FYI` |
 | M-RB | B | POST validate + rollback | draft | — | any intent (after-commit) |
 | M-PUB | — | POST publish draft | draft | — | `CONFIRMATION_REQUEST`, `AVAILABILITY_OPENED` |
 | M-G1 | C | PUT slot gap-fill | validated, empty slot | `CONFIRMATION_REQUEST` (new assignee) | — |

@@ -210,7 +210,7 @@
 
 | Event | `validatedAt` | Slot statuses | Member sees slots | Notifications |
 |-------|---------------|---------------|-------------------|---------------|
-| Validate (first) | set | all assignees → `pending` then dispatch | yes | `CONFIRMATION_REQUEST` all assignees |
+| Validate (first) | set | non-`confirmed` → `pending` then dispatch; `confirmed` preserved | yes | `CONFIRMATION_REQUEST` non-`confirmed` assignees only |
 | Member confirms | set | that slot → `confirmed` | yes | — |
 | **Unlock** | cleared | **preserved** | **no** | — |
 | Org proxy confirm in draft | null | updated per action | no | — |
@@ -236,7 +236,7 @@
 2. Unlock → org proxy confirm slot → status updated; no notification
 3. Unlock → replace assignee → new assignee `pending`; untouched slots keep `confirmed`
 4. Unlock → edit → revalidate → `RECONFIRMATION_REQUEST` only to non-confirmed; confirmed silent
-5. Regression: first validate still sends `CONFIRMATION_REQUEST`; draft assign still silent
+5. Regression: first validate sends `CONFIRMATION_REQUEST` only to non-`confirmed` assignees; proxy-confirmed in draft stay `confirmed`; draft assign still silent
 
 ---
 

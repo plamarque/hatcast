@@ -13,11 +13,6 @@
   display: contents;
 }
 
-:host(.composition-equipe-status-header--event-inline) .composition-equipe-status__banner {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
-
 :host(.composition-equipe-status-header--event-inline) .composition-equipe-status__head {
   grid-column: 2;
   grid-row: 1;
@@ -30,29 +25,9 @@
   grid-row: 2;
 }
 
-:host-context(.event-detail__context-row:has(.composition-equipe-status__banner)).composition-equipe-status-header--event-inline {
-  .composition-equipe-status__head {
-    grid-row: 2;
-  }
-
-  .composition-equipe-status__help-panel {
-    grid-row: 3;
-  }
-}
-
 .composition-equipe-status--badge-only {
   gap: 0.5rem;
   padding-top: 0;
-}
-
-.composition-equipe-status__banner {
-  margin: 0;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  background: rgba(0, 188, 212, 0.12);
-  border: 1px solid rgba(0, 188, 212, 0.35);
-  font-size: 0.9rem;
-  line-height: 1.45;
 }
 
 .composition-equipe-status {

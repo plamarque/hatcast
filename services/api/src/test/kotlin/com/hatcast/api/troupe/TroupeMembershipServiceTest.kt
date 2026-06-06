@@ -133,14 +133,15 @@ class TroupeMembershipServiceTest {
     fun `listActiveTroupesForUser includes batched member and upcoming event counts`() {
         val userId = UUID.randomUUID()
         val membership = membership(userId, TroupeBaselineRole.MEMBER)
+        stubListActiveTroupesDefaults(userId)
         whenever(membershipRepository.findActiveByUserId(userId)).thenReturn(listOf(membership))
-        whenever(membershipRepository.countActiveMembersByTroupeIds(listOf(troupeId))).thenReturn(
+        whenever(membershipRepository.countActiveMembersByTroupeIds(any())).thenReturn(
             listOf(TestTroupeMemberCountRow(troupeId, 4L)),
         )
         whenever(
             troupeListStatsRepository.countUpcomingEventsByTroupeIdsForUser(
                 eq(userId),
-                eq(listOf(troupeId)),
+                any(),
                 any(),
             ),
         ).thenReturn(listOf(TestTroupeUpcomingEventCountRow(troupeId, 2L)))
@@ -157,6 +158,7 @@ class TroupeMembershipServiceTest {
     @Test
     fun `listActiveTroupesForUser returns empty when no memberships`() {
         val userId = UUID.randomUUID()
+        stubListActiveTroupesDefaults(userId)
         whenever(membershipRepository.findActiveByUserId(userId)).thenReturn(emptyList())
 
         assertTrue(service.listActiveTroupesForUser(userId).isEmpty())
@@ -191,6 +193,14 @@ class TroupeMembershipServiceTest {
             }
 
         assertEquals(HttpStatus.CONFLICT, ex.statusCode)
+    }
+
+    private fun stubListActiveTroupesDefaults(userId: UUID) {
+        whenever(membershipRepository.findActiveExterneByUserId(userId)).thenReturn(emptyList())
+        whenever(seasonRepository.findTroupeIdsWithGuestInvitationForUser(userId)).thenReturn(emptyList())
+        whenever(userRepository.getReferenceById(userId)).thenReturn(
+            UserEntity(id = userId, email = "$userId@example.com", displayName = "Member"),
+        )
     }
 
     private fun membership(

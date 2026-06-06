@@ -2,6 +2,7 @@
 title: UX — Aide contextuelle statut composition (détail événement)
 author: Sally (UX)
 date: '2026-06-05'
+amended: '2026-06-07'
 status: approved
 stakeholderSignOff: '2026-06-05 — Patrice (C1–C11 approved as specified)'
 relatedGrowthBacklog: G-002
@@ -48,7 +49,7 @@ amendsPartially:
 | **C6** | **Supprimer** de l’onglet Équipe : paragraphe `managerGuideline` (`event-equipe-tab__slots-guideline`) et hint manuel redondant (`event-equipe-tab__manual-hint` quand le guideline « À composer » couvre déjà le même message). |
 | **C7** | **Conserver** dans l’onglet Équipe : hints **toolbar** (`event-equipe-tab__action-hint`, `event-equipe-tab__actions-lead`) — ils décrivent les boutons sticky, pas le statut global. |
 | **C8** | **Membres** (`canManageComposition === false`) : badge seul, **pas** d’icône `(?)`, pas de panneau. |
-| **C9** | **Banner brouillon** (`composition-equipe-status__banner`) : reste **au-dessus** de la ligne badge+d’aide quand `showDraftBanner` ; contenu inchangé (coordination partage avant validation). |
+| **C9** | **Banner brouillon composition** — **amendé 2026-06-07** : **plus** dans le chrome global (`.event-detail__status`). Zone **violet `primary-container`** dans l’onglet **Équipe** uniquement (`event-equipe-tab__composition-body--draft`), englobant indicateurs mixité + grille + déclins ; chip *Brouillon* + copy : *« Cette composition est actuellement visible uniquement par les organisateur·ices et administrateur·ices. Vous pouvez la partager si nécessaire avant de la valider. »* — aligné visuellement sur `app-event-detail-draft-banner` (spectacle brouillon). |
 | **C10** | **Phase 2 (hors MVP) :** micro-accroche une ligne sous le badge pour les états `warning` (`À compléter`, `À vérifier`) — *« Action requise »* — sans ouvrir le panneau. |
 | **C11** | **Composant cible :** étendre `app-composition-equipe-status-header` (instance unique dans `event-detail.html` ; instance Équipe avec `showBadge="false"` ne duplique plus le guideline). |
 
@@ -61,8 +62,6 @@ amendsPartially:
 │ [logo] Troupe › Saison › Titre spectacle…              [ ⚙ ] [avatar] │
 ├──────────────────────────────────────────────────────────────────────┤
 │ (optionnel) Banner brouillon événement — app-event-detail-draft-banner │
-├──────────────────────────────────────────────────────────────────────┤
-│ (optionnel) Banner compo brouillon — composition-equipe-status__banner │
 ├──────────────────────────────────────────────────────────────────────┤
 │                    [ À composer ]  (?)     ← .event-detail__status    │
 │  ┌────────────────────────────────────────────────────────────────┐  │

@@ -49,7 +49,7 @@ describe('resolveEquipePrimaryAction', () => {
 })
 
 describe('shouldPutShareInOverflow', () => {
-  it('puts share in overflow during draft with validate', () => {
+  it('keeps share in grid during draft validate + draw', () => {
     expect(
       shouldPutShareInOverflow(
         flags({
@@ -59,7 +59,7 @@ describe('shouldPutShareInOverflow', () => {
           hasAssignedSlot: true,
         }),
       ),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('keeps share in grid when only share and draw are visible', () => {
@@ -68,13 +68,14 @@ describe('shouldPutShareInOverflow', () => {
     ).toBe(false)
   })
 
-  it('puts share in overflow when validate and draw are visible', () => {
+  it('puts share in overflow when three other toolbar actions are visible', () => {
     expect(
       shouldPutShareInOverflow(
         flags({
           canShareDraw: true,
           canValidate: true,
           canDraw: true,
+          canUnlock: true,
           hasAssignedSlot: true,
         }),
       ),
@@ -127,7 +128,7 @@ describe('EQUIPE_ACTION_LABELS', () => {
 })
 
 describe('resolveEquipeToolbarLayout', () => {
-  it('places share in overflow for draft validate toolbar', () => {
+  it('shows validate, draw and share in grid for draft toolbar', () => {
     const layout = resolveEquipeToolbarLayout(
       flags({
         canValidate: true,
@@ -137,8 +138,8 @@ describe('resolveEquipeToolbarLayout', () => {
       }),
     )
     expect(layout.primary).toBe('validate')
-    expect(layout.grid).toEqual(['validate', 'draw'])
-    expect(layout.overflow).toEqual(['share'])
+    expect(layout.grid).toEqual(['validate', 'draw', 'share'])
+    expect(layout.overflow).toEqual([])
   })
 
   it('keeps announce primary with unlock secondary', () => {

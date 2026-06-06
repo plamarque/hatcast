@@ -264,7 +264,7 @@ Sinon le client garde `notifiableCount` du GET (moins précis si échecs partiel
 
 | Surface | Action | Intent |
 |---------|--------|--------|
-| [`event-equipe-tab`](../../apps/web/src/app/pages/event-detail/event-equipe-tab.ts) | Partager (overflow) | `draw` |
+| [`event-equipe-tab`](../../apps/web/src/app/pages/event-detail/event-equipe-tab.ts) | Partager (grille outlined en brouillon compo ; overflow si ≥ 4 actions) | `draw` |
 | Équipe | Annoncer la compo | `composition` |
 | [`event-detail`](../../apps/web/src/app/pages/event-detail/event-detail.ts) · menu gear · **Relance dispos** | Publié, dispos `unknown`, `canManageComposition` | `availability_nudge` |
 | [`event-detail-draft-banner`](../../apps/web/src/app/pages/event-detail/event-detail-draft-banner.ts) | Post-publish (optionnel) | `event` |

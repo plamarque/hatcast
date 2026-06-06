@@ -23,10 +23,12 @@ export class AgendaParticipationStatus implements OnInit {
   readonly myAvailabilityStatus = input<AvailabilityStatus | null | undefined>(undefined)
   readonly participantFocus = input<ParticipantFocusSummary | null | undefined>(undefined)
   readonly canEditAvailability = input(false)
+  readonly canConfirmParticipation = input(false)
   /** Optional override when parent already has viewer gender. */
   readonly viewerGender = input<MemberGender | null | undefined>(undefined)
 
   readonly availabilityClick = output<{ status: AvailabilityStatus }>()
+  readonly participationClick = output<void>()
 
   private readonly loadedViewerGender = signal<MemberGender | undefined>(undefined)
 
@@ -53,6 +55,7 @@ export class AgendaParticipationStatus implements OnInit {
       },
       this.canEditAvailability(),
       gender,
+      this.canConfirmParticipation(),
     )
   }
 
@@ -60,9 +63,18 @@ export class AgendaParticipationStatus implements OnInit {
     return agendaParticipationStatusAriaLabel(this.statusView())
   }
 
+  protected isInteractive(): boolean {
+    const view = this.statusView()
+    return view.availabilityEditable || view.participationEditable
+  }
+
   protected onActivate(event: Event): void {
     event.stopPropagation()
     const view = this.statusView()
+    if (view.participationEditable) {
+      this.participationClick.emit()
+      return
+    }
     if (!view.availabilityEditable) {
       return
     }

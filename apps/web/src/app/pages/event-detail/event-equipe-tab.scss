@@ -18,6 +18,37 @@
   padding: 0.5rem 0 1rem;
 }
 
+.event-equipe-tab__composition-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-equipe-tab__composition-body--draft {
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--mat-sys-primary-container) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 60%, transparent);
+  border-left: 3px solid var(--mat-sys-primary);
+}
+
+.event-equipe-tab__draft-zone-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.event-equipe-tab__draft-zone-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--mat-sys-on-surface);
+}
+
+.event-equipe-tab__composition-body--draft .event-equipe-tab__guidances {
+  background: color-mix(in srgb, var(--mat-sys-surface) 28%, transparent);
+}
+
 .event-equipe-tab--busy .event-equipe-tab__grid,
 .event-equipe-tab--busy .event-equipe-tab__actions-toolbar,
 .event-equipe-tab--busy .event-equipe-tab__declines {

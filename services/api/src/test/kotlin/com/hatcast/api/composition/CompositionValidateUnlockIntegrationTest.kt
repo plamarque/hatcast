@@ -244,7 +244,7 @@ class CompositionValidateUnlockIntegrationTest {
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId, "Validate flow")
         val participantId = createSeasonParticipant(seasonId, "Alice")
-        seedDraftComposition(eventId, participantId)
+        seedDraftComposition(eventId, participantId, SlotParticipationStatus.PENDING)
 
         mockMvc
             .perform(
@@ -256,9 +256,10 @@ class CompositionValidateUnlockIntegrationTest {
             .andExpect(jsonPath("$.validatedAt").isNotEmpty)
             .andExpect(jsonPath("$.slots[0].participationStatus").value("pending"))
 
-        verify(notificationPort, times(1)).requestCompositionConfirmation(
+        verify(notificationPort, times(1)).requestConfirmationForAssignees(
             eq(eventId),
             eq(seasonId),
+            eq(listOf(participantId)),
             any(),
         )
 
@@ -297,7 +298,7 @@ class CompositionValidateUnlockIntegrationTest {
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId, "Validate awaiting", playerCount = 1)
         val p1 = createSeasonParticipant(seasonId, "Charlie")
-        seedDraftComposition(eventId, p1)
+        seedDraftComposition(eventId, p1, SlotParticipationStatus.PENDING)
 
         mockMvc
             .perform(
@@ -318,7 +319,7 @@ class CompositionValidateUnlockIntegrationTest {
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId, "Idempotent validate")
         val participantId = createSeasonParticipant(seasonId, "Dana")
-        seedDraftComposition(eventId, participantId)
+        seedDraftComposition(eventId, participantId, SlotParticipationStatus.PENDING)
 
         mockMvc
             .perform(
@@ -343,20 +344,126 @@ class CompositionValidateUnlockIntegrationTest {
             compositionRepository.findById(eventId).orElseThrow().validatedAt,
         )
 
-        verify(notificationPort, times(1)).requestCompositionConfirmation(
+        verify(notificationPort, times(1)).requestConfirmationForAssignees(
             eq(eventId),
             eq(seasonId),
+            eq(listOf(participantId)),
             any(),
         )
     }
 
     @Test
-    fun `POST unlock clears validatedAt and resets participation to pending`() {
+    @Tag("FR23")
+    fun `POST unlock clears validatedAt and preserves participation statuses`() {
         val adminCookie = memberCookie("sub-unlock-admin-1", admin = true)
+        val memberCookie = memberCookie("sub-unlock-member-1")
         val seasonId = createSeason(adminCookie)
-        val eventId = createEvent(adminCookie, seasonId, "Unlock flow")
-        val participantId = createSeasonParticipant(seasonId, "Eve")
-        seedDraftComposition(eventId, participantId, SlotParticipationStatus.CONFIRMED)
+        val eventId = createEvent(adminCookie, seasonId, "Unlock flow", playerCount = 3)
+        val confirmedId = createSeasonParticipant(seasonId, "Confirmed")
+        val pendingId = createSeasonParticipant(seasonId, "Pending")
+        val declinedId = createSeasonParticipant(seasonId, "Declined")
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = null,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                seasonParticipantId = confirmedId,
+                participationStatus = SlotParticipationStatus.CONFIRMED,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 1,
+                seasonParticipantId = pendingId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 2,
+                seasonParticipantId = declinedId,
+                participationStatus = SlotParticipationStatus.DECLINED,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0/participation")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val declinedSlot =
+            slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 2)
+                ?: error("Missing declined slot")
+        declinedSlot.participationStatus = SlotParticipationStatus.DECLINED
+        slotRepository.save(declinedSlot)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/unlock")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.validatedAt").isEmpty)
+            .andExpect(jsonPath("$.visibility").value("organizerDraft"))
+            .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Confirmed"))
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
+            .andExpect(jsonPath("$.slots[1].participantDisplayName").value("Pending"))
+            .andExpect(jsonPath("$.slots[1].participationStatus").value("pending"))
+            .andExpect(jsonPath("$.slots[2].participantDisplayName").value("Declined"))
+            .andExpect(jsonPath("$.slots[2].participationStatus").value("declined"))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("none"))
+            .andExpect(jsonPath("$.slots.length()").value(0))
+    }
+
+    @Test
+    @Tag("FR23")
+    fun `revalidate after draft proxy confirm preserves confirmed status`() {
+        val adminCookie = memberCookie("sub-reval-draft-proxy-admin", admin = true)
+        memberCookie("sub-reval-draft-proxy-alice")
+        memberCookie("sub-reval-draft-proxy-bob")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Reval draft proxy", playerCount = 2)
+        val aliceId = participantIdForUser(seasonId, "sub-reval-draft-proxy-alice")
+        val bobId = participantIdForUser(seasonId, "sub-reval-draft-proxy-bob")
+        seedDraftComposition(eventId, aliceId)
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 1,
+                seasonParticipantId = bobId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
 
         mockMvc
             .perform(
@@ -371,10 +478,54 @@ class CompositionValidateUnlockIntegrationTest {
                     .cookie(adminCookie)
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.validatedAt").isEmpty)
-            .andExpect(jsonPath("$.visibility").value("organizerDraft"))
-            .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Eve"))
-            .andExpect(jsonPath("$.slots[0].participationStatus").value("pending"))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0/participation")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
+            .andExpect(jsonPath("$.slots[1].participationStatus").value("pending"))
+    }
+
+    @Test
+    @Tag("FR23")
+    fun `first validate preserves draft proxy confirmed status`() {
+        val adminCookie = memberCookie("sub-first-val-draft-proxy-admin", admin = true)
+        memberCookie("sub-first-val-draft-proxy-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "First val draft proxy")
+        val memberId = participantIdForUser(seasonId, "sub-first-val-draft-proxy-member")
+        seedDraftComposition(eventId, memberId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0/participation")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
     }
 
     @Test

@@ -174,48 +174,41 @@ class CompositionService(
             compositionRepository.save(composition)
             val isRevalidation =
                 auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
-            if (isRevalidation) {
-                val assigneesNeedingReconfirm =
-                    slots
-                        .filter { it.hasAssignee() && it.participationStatus != SlotParticipationStatus.CONFIRMED }
-                        .mapNotNull { it.assignedParticipantId() }
-                        .distinct()
-                val slotsToReset =
-                    slots
-                        .filter { it.hasAssignee() && it.participationStatus != SlotParticipationStatus.CONFIRMED }
-                        .onEach {
-                            it.participationStatus = SlotParticipationStatus.PENDING
-                            it.updatedAt = Instant.now()
-                        }
-                if (slotsToReset.isNotEmpty()) {
-                    slotRepository.saveAll(slotsToReset)
-                }
-                if (assigneesNeedingReconfirm.isNotEmpty()) {
+            val assigneesNeedingConfirm =
+                slots
+                    .filter { it.hasAssignee() && it.participationStatus != SlotParticipationStatus.CONFIRMED }
+                    .mapNotNull { it.assignedParticipantId() }
+                    .distinct()
+            val slotsToReset =
+                slots
+                    .filter { it.hasAssignee() && it.participationStatus != SlotParticipationStatus.CONFIRMED }
+                    .onEach {
+                        it.participationStatus = SlotParticipationStatus.PENDING
+                        it.updatedAt = Instant.now()
+                    }
+            if (slotsToReset.isNotEmpty()) {
+                slotRepository.saveAll(slotsToReset)
+            }
+            if (assigneesNeedingConfirm.isNotEmpty()) {
+                if (isRevalidation) {
                     eventPublisher.publishEvent(
                         CompositionReconfirmationRequestedEvent(
                             eventId = eventId,
                             seasonId = seasonId,
                             actorUserId = principal.userId,
-                            assigneeParticipantIds = assigneesNeedingReconfirm,
+                            assigneeParticipantIds = assigneesNeedingConfirm,
+                        ),
+                    )
+                } else {
+                    eventPublisher.publishEvent(
+                        CompositionConfirmationRequestedEvent(
+                            eventId = eventId,
+                            seasonId = seasonId,
+                            actorUserId = principal.userId,
+                            assigneeParticipantIds = assigneesNeedingConfirm,
                         ),
                     )
                 }
-            } else {
-                val slotsToPending =
-                    slots.filter { it.hasAssignee() }.onEach {
-                        it.participationStatus = SlotParticipationStatus.PENDING
-                        it.updatedAt = Instant.now()
-                    }
-                if (slotsToPending.isNotEmpty()) {
-                    slotRepository.saveAll(slotsToPending)
-                }
-                eventPublisher.publishEvent(
-                    CompositionConfirmationRequestedEvent(
-                        eventId = eventId,
-                        seasonId = seasonId,
-                        actorUserId = principal.userId,
-                    ),
-                )
             }
             auditRecorder.record(
                 AuditRecordRequest(
@@ -260,20 +253,6 @@ class CompositionService(
         composition.validatedAt = null
         composition.updatedAt = now
         compositionRepository.save(composition)
-
-        val slots = slotRepository.findByEventId(eventId)
-        val slotsToUpdate =
-            slots.filter { slot ->
-                slot.hasAssignee() && slot.participationStatus != SlotParticipationStatus.PENDING
-            }
-        if (slotsToUpdate.isNotEmpty()) {
-            val now = Instant.now()
-            for (slot in slotsToUpdate) {
-                slot.participationStatus = SlotParticipationStatus.PENDING
-                slot.updatedAt = now
-            }
-            slotRepository.saveAll(slotsToUpdate)
-        }
 
         auditRecorder.record(
             AuditRecordRequest(

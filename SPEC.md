@@ -116,6 +116,56 @@ Gender is **never required**; workflows must not block when unset.
 
 ---
 
+## Agenda participation status cell (V2 target)
+
+Normative intent for the **right-hand participation cell** on **league workspace Agenda** and **user agenda** (`/agenda`) event cards (`app-agenda-participation-status`). UX reference: [_ux-design-hatcast-v2.md_ § Season calendar](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#screen-season-calendar), [_ux-design-journey-league-agenda.md_](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) Screen 2 & 4, [_ux-design-participation-semantic-colors.md_](_bmad-output/planning-artifacts/ux-design-participation-semantic-colors.md). Covers **FR25**, **FR48**, **UX-DR2**, **UX-DR14**. Implementation companion: [_spec-agenda-participation-status-cell.md_](_bmad-output/implementation-artifacts/spec-agenda-participation-status-cell.md).
+
+### Purpose
+
+Let a signed-in member **act on their participation** from the agenda without opening the event first — same modals as the event detail flows, with **card navigation unchanged** for the rest of the row.
+
+### Data source
+
+- API exposes per-event **`participantFocus`** (`availabilityStatus`, `compositionRoleKey`, `inTeam`, `slotParticipationStatus`) on league event lists and `GET /v1/me/agenda`. See DOMAIN.md § Participant focus summary.
+- UI derives the cell from `participantFocus` first; `myAvailabilityStatus` is a fallback when `participantFocus` is absent.
+
+### Cell display priority (normative)
+
+Evaluate in this order (first match wins):
+
+1. **Declined role** — `slotParticipationStatus === declined` and `compositionRoleKey` present → **declined** participation cell (role label + decline gradient), even when `inTeam === false` (slot freed; decline row retained).
+2. **In team** — `inTeam === true` and `compositionRoleKey` present → **pending** (⏳) or **selected** (confirmed role) cell per `slotParticipationStatus`.
+3. **Availability** — otherwise → **Dispo** / **Pas dispo** / **Non renseigné** from `availabilityStatus`.
+
+### Interactions (upcoming agenda only)
+
+- **Availability cell** (cases 3, editable): tap opens the **availability dialog** (same as quick dispo elsewhere); click **does not** navigate to event detail (`stopPropagation`).
+- **Participation cell** (cases 1–2 pending/confirmed, editable on upcoming agenda): tap opens the **participation confirmation dialog** (*Confirmer ma participation* — same modal and API as Équipe tab self-service, **FR25**); click does not navigate to event detail.
+- **Declined cell** (case 1): **read-only** on the agenda (no availability edit, no re-open confirmation from the cell — user may still use event Équipe tab or deep links).
+- **Historique** (past events): cells are **read-only** (no modals from the cell).
+- **Card body** (date, title, badges): tap still opens **event detail** as today.
+
+### After modal close
+
+- **Availability dialog:** optimistic update of `participantFocus.availabilityStatus` / `myAvailabilityStatus` on the row when saved.
+- **Participation dialog:** on successful confirm / decline / reset to pending, refresh row state from API (and optimistic `participantFocus` update); **after decline**, the cell must remain **declined** (not revert to availability).
+
+### Acceptance criteria
+
+- **Given** an upcoming agenda row and `participantFocus.availabilityStatus` is `unknown` | `available` | `unavailable` with `inTeam === false` and no declined focus, **when** the member taps the status cell, **then** the availability dialog opens and the event card does not navigate.
+- **Given** an upcoming row with `inTeam === true` and `slotParticipationStatus === pending` | `confirmed`, **when** the member taps the status cell, **then** the participation confirmation dialog opens (self mode) and the card does not navigate.
+- **Given** the member confirms or declines in that dialog, **when** the dialog closes successfully, **then** the agenda row reflects the new `slotParticipationStatus` (pending → selected, or declined).
+- **Given** the member declined participation, **when** the agenda reloads, **then** `participantFocus` shows `inTeam === false`, `slotParticipationStatus === declined`, and `compositionRoleKey` preserved; the cell shows **declined** (not Dispo / Pas dispo).
+- **Given** Historique variant, **when** a row shows any participation state, **then** the status cell is not interactive.
+
+### Non-goals
+
+- Proxy confirmation from the agenda (organizers use Équipe tab).
+- Opening confirmation while composition is organizer draft (`validatedAt` null) for ordinary members — **409** path unchanged (**FR25**).
+- Changing deep-link query params (`showConfirm=true`) — event detail entry points unchanged.
+
+---
+
 ## Actors / personas
 
 - **Anonymous visitor:** Can view public content (e.g. landing, help). Cannot access season data that requires auth.
@@ -209,6 +259,8 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - **Multi-role on same event (organizer UX):** When a participant holds **more than one role** on the **current** event (typically via manual assign per FR21), a **non-blocking inline hint** on each affected slot lists the **other** role(s) on that event (see DOMAIN.md). Members do not see this hint. Assign, draw, and validate remain allowed.
   - **Auto-draw cross-role rule:** A weighted draw must **never** assign the same participant to two roles on one event. Pre-existing assignees on the draft composition count toward cross-role exclusion before roles are processed in priority order (see DOMAIN.md and [draw-weight-engine-v1-spec.md](docs/v2/technical/draw-weight-engine-v1-spec.md)).
   - **Gender parity hint (organizer UX, Story 6.21):** A **non-blocking** summary of female/male counts among filled **`player`** slots with known gender (see SPEC § Member gender & team parity). Distinct from consecutive-show warning.
+  - **Composition validate & unlock participation (V2, FR23):** **Unlock** clears structural validation only — assignees and each slot's participation status are **preserved**. **Validate** (first or revalidate) sets **non-`confirmed`** assignees to `pending` before notification dispatch; **`confirmed`** slots stay confirmed and are excluded from `CONFIRMATION_REQUEST` / `RECONFIRMATION_REQUEST`. Organizer **proxy** in organizer draft may update status without notification until validate. See DOMAIN.md and [`spec-composition-unlock-preserve-confirmations.md`](_bmad-output/implementation-artifacts/spec-composition-unlock-preserve-confirmations.md).
+  - **Composition organizer draft zone (V2 UX):** While composition is organizer draft, orga/admin see a **violet draft zone** inside the **Équipe** tab (not global event chrome) with chip *Brouillon* and coordination copy; **Partager** is visible in the action grid alongside **Valider** and **Tirer au sort**. See [_ux-design-hatcast-v2.md_ § Pattern: Composition organizer draft zone](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#pattern-composition-organizer-draft-zone).
   - **Composition actions** (Tirage, Simuler, Valider, Déverrouiller, Annoncer, Effacer, Remplir, Envoyer, clear slot) are visible and usable only for users who can manage composition (Super Admin, Season Admin, Event Admin, or Caster). **Manual selection** (click on an empty slot to choose a player) is reserved for **administrators only** (Season Admin, Event Admin, Super Admin); casters cannot fill slots manually.
   - Slot click in the Composition tab continues to open the confirmation flow (confirm/decline) for the selected player as today; no change to that behaviour.
   - Entry points that previously opened a composition popup now open or focus **event details with the Composition tab selected**: on the full-screen event view there is no footer "Composition Équipe" button — users open the Composition tab via the **Équipe** tab; TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo`. No separate modal layer for composition.

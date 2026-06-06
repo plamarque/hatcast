@@ -27,7 +27,7 @@ recette: '2026-06-06 Troupe Démo — OK'
 | Trigger | State | Dispatch | Forbidden |
 |---------|-------|----------|-----------|
 | Manual assign / full draw | draft | — | `CONFIRMATION_REQUEST`, `RECONFIRMATION_REQUEST`, `REMOVED_FROM_COMPOSITION` |
-| First validate | draft → validated | `CONFIRMATION_REQUEST` (all assignees) | `TEAM_VALIDATED_FYI` |
+| First validate | draft → validated | `CONFIRMATION_REQUEST` (non-`confirmed` assignees only; `confirmed` preserved — SCP 2026-06-07) | `TEAM_VALIDATED_FYI` |
 | Gap-fill assign / fillEmpty draw | validated | `CONFIRMATION_REQUEST` (new assignee) | — |
 | Unlock | validated → organizer draft | — | Any composition workflow intent; **must not** mutate participation statuses |
 | Replace / clear slot | draft post-unlock | — | `REMOVED_FROM_COMPOSITION`, `RECONFIRMATION_REQUEST` |

@@ -58,7 +58,7 @@ export interface EquipeToolbarLayout {
   overflow: EquipeActionId[]
 }
 
-const GRID_ORDER: EquipeActionId[] = ['validate', 'draw', 'announce', 'fill', 'unlock']
+const GRID_ORDER: EquipeActionId[] = ['validate', 'draw', 'share', 'announce', 'fill', 'unlock']
 
 function isActionVisible(id: EquipeActionId, flags: EquipeActionFlags): boolean {
   switch (id) {
@@ -101,15 +101,12 @@ function visibleNonShareActions(flags: EquipeActionFlags): EquipeActionId[] {
   return GRID_ORDER.filter((id) => id !== 'share' && isActionVisible(id, flags))
 }
 
-/** Partager lives in overflow during draft validate, or when ≥2 other toolbar actions are visible. */
+/** Partager moves to overflow only when the grid already shows ≥3 other actions (space). */
 export function shouldPutShareInOverflow(flags: EquipeActionFlags): boolean {
   if (!flags.canShareDraw) {
     return false
   }
-  if (flags.canValidate) {
-    return true
-  }
-  return visibleNonShareActions(flags).length >= 2
+  return visibleNonShareActions(flags).length >= 3
 }
 
 /** Splits visible actions into 2-column grid cells and overflow menu items. */

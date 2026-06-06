@@ -61,7 +61,6 @@ import {
 } from '../../core/composition/composition-lifecycle'
 import { canValidateComposition as resolveCanValidateComposition } from '../../core/composition/composition-equipe-actions'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
-import { showCompositionDraftBanner as shouldShowCompositionDraftBanner } from '../../core/composition/composition-visibility'
 import { normalizeRoleSlots } from '../../core/events/event-types'
 import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { EventEquipeTab } from './event-equipe-tab'
@@ -263,9 +262,6 @@ export class EventDetail implements OnDestroy, OnInit {
       composition: this.composition(),
       compositionInteractionBlocked: this.compositionInteractionBlocked(),
     }),
-  )
-  protected readonly showCompositionDraftBanner = computed(() =>
-    shouldShowCompositionDraftBanner(this.composition(), this.canManageComposition()),
   )
   protected readonly equipeStatus = computed(() => {
     const ev = this.event()

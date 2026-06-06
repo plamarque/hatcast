@@ -94,9 +94,16 @@ import {
   SeasonFormDialog,
   type SeasonFormDialogData,
 } from '../seasons-list/season-form-dialog'
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import { CompositionApiService } from '../../core/composition/composition-api.service'
 import { openAgendaAvailabilityDialog } from '../../shared/availability/open-agenda-availability-dialog'
+import { openAgendaParticipationDialog } from '../../shared/composition/open-agenda-participation-dialog'
 import { normalizeRoleSlots } from '../../core/events/event-types'
-import { applyAvailabilityUpdateToAgendaEvent } from './season-participant-focus'
+import {
+  applyAvailabilityUpdateToAgendaEvent,
+  applyParticipationUpdateToAgendaEvent,
+  participantFocusFromEvent,
+} from './season-participant-focus'
 
 const FETCH_PAGE_SIZE = 50
 
@@ -117,6 +124,8 @@ const FETCH_PAGE_SIZE = 50
 export class SeasonHome implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly availabilityApi = inject(AvailabilityApiService)
+  private readonly compositionApi = inject(CompositionApiService)
+  private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly seasonsApi = inject(SeasonApiService)
   private readonly troupeContext = inject(TroupeContextService)
   private readonly troupeApi = inject(TroupeApiService)
@@ -991,6 +1000,43 @@ export class SeasonHome implements OnDestroy, OnInit {
         e.id === ev.id ? applyAvailabilityUpdateToAgendaEvent(e, result.status) : e,
       ),
     )
+  }
+
+  protected async openParticipation(payload: { eventId: string }): Promise<void> {
+    const s = this.season()
+    const ev = this.events().find((e) => e.id === payload.eventId)
+    if (!s || !ev) {
+      return
+    }
+    const focus = participantFocusFromEvent(ev)
+    if (!focus.inTeam || !focus.compositionRoleKey) {
+      return
+    }
+    const prefs = await this.mePreferencesApi.getPreferences()
+    const viewerGender = prefs.ok ? prefs.data?.gender : undefined
+    const result = await openAgendaParticipationDialog(
+      this.dialog,
+      this.compositionApi,
+      this.snack,
+      {
+        seasonId: s.id,
+        eventId: ev.id,
+        eventTitle: ev.title,
+        eventStartsAt: ev.startsAt,
+        roleKey: focus.compositionRoleKey,
+        currentStatus: focus.slotParticipationStatus ?? 'pending',
+        viewerGender,
+      },
+    )
+    if (!result) {
+      return
+    }
+    this.events.update((list) =>
+      list.map((e) =>
+        e.id === ev.id ? applyParticipationUpdateToAgendaEvent(e, result.status) : e,
+      ),
+    )
+    await this.loadUpcomingEvents({ force: true })
   }
 
   protected loadMoreEvents(): void {

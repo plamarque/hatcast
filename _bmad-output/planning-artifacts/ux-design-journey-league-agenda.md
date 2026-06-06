@@ -182,7 +182,24 @@ When hidden: troupe + saison remain on **each event row** (badges).
 ```
 
 - **Line 3:** **Troupe · Saison** (required badges); optional **equity tag** badge when set (e.g. `dépl.`, `apérock`) — Epic 17.8
-- **Tap row** → Event detail (Screen 6)
+- **Right column:** participation status cell — see **Status cell interactions** below
+- **Tap row body** → Event detail (Screen 6)
+
+### Status cell interactions (amended 2026-06-07)
+
+Applies to **Mon agenda** (`/agenda`) and **league workspace Agenda** (upcoming only). Component: `app-agenda-participation-status`.
+
+| `participantFocus` state | Cell | Tap on cell |
+|------------------------|------|-------------|
+| Not in team, dispo unknown/available/unavailable | Dispo / Pas dispo / Non renseigné | **Availability dialog** |
+| In team, pending or confirmed | Role + ⏳ or violet | **Participation confirmation** dialog |
+| Declined (`slotParticipationStatus: declined`, role kept) | Decline gradient + role | **Read-only** (no dispo, no modal) |
+
+- Cell tap uses `stopPropagation` — does not open event detail.
+- After successful participation update, row refreshes; **declined** must stay visible (not revert to dispo).
+- **Historique:** cells read-only.
+
+**Normative:** SPEC § Agenda participation status cell; DOMAIN § Participant focus summary.
 
 ### Empty states
 

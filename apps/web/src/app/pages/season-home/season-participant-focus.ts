@@ -9,8 +9,17 @@ export interface ParticipantFocusSummary {
   slotParticipationStatus?: 'pending' | 'confirmed' | 'declined' | null
 }
 
+/** Slot libéré après déclin : hors équipe mais le rôle décliné reste visible à l'agenda. */
+export function isDeclinedParticipationFocus(focus: ParticipantFocusSummary): boolean {
+  return focus.slotParticipationStatus === 'declined' && !!focus.compositionRoleKey
+}
+
 /** Pill Historique (UX-DR19 — ex. « Comédien·ne · dans l'équipe »). */
 export function formatParticipantFocusLabel(focus: ParticipantFocusSummary): string {
+  if (isDeclinedParticipationFocus(focus)) {
+    const role = roleLabelSingular(focus.compositionRoleKey as RoleKey)
+    return `${role} · décliné`
+  }
   if (focus.inTeam && focus.compositionRoleKey) {
     const role = roleLabelSingular(focus.compositionRoleKey as RoleKey)
     return `${role} · dans l'équipe`
@@ -49,5 +58,37 @@ export function applyAvailabilityUpdateToAgendaEvent<
     ...ev,
     myAvailabilityStatus: status,
     participantFocus: { ...ev.participantFocus, availabilityStatus: status },
+  }
+}
+
+/** Keeps list cards in sync after the participation confirmation dialog. */
+export function applyParticipationUpdateToAgendaEvent<
+  T extends {
+    participantFocus?: ParticipantFocusSummary | null
+  },
+>(ev: T, status: 'pending' | 'confirmed' | 'declined'): T {
+  if (!ev.participantFocus) {
+    return ev
+  }
+  const roleKey = ev.participantFocus.compositionRoleKey
+  if (status === 'declined') {
+    return {
+      ...ev,
+      participantFocus: {
+        ...ev.participantFocus,
+        compositionRoleKey: roleKey,
+        inTeam: false,
+        slotParticipationStatus: 'declined',
+      },
+    }
+  }
+  return {
+    ...ev,
+    participantFocus: {
+      ...ev.participantFocus,
+      compositionRoleKey: roleKey,
+      inTeam: true,
+      slotParticipationStatus: status,
+    },
   }
 }

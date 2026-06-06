@@ -89,37 +89,54 @@
       }
     </ng-template>
 
-    @if (showCompositionGuidances()) {
-      <section
-        class="event-equipe-tab__guidances"
-        aria-label="Indicateurs de composition"
-        data-testid="composition-guidances"
-      >
-        @if (visiblePlayerGenderParity(); as parity) {
-          <div
-            class="event-equipe-tab__guidance event-equipe-tab__parity"
-            [class.event-equipe-tab__parity--bon]="parity.score === 'bon'"
-            [class.event-equipe-tab__parity--acceptable]="parity.score === 'acceptable'"
-            [class.event-equipe-tab__parity--faible]="parity.score === 'faible'"
-            role="status"
-            data-testid="composition-gender-parity-indicator"
-            [matTooltip]="parity.detailLabel"
-            matTooltipPosition="below"
-            matTooltipTouchGestures="on"
-            [attr.aria-label]="parity.label + ' — ' + parity.detailLabel"
-          >
-            <mat-icon aria-hidden="true">groups</mat-icon>
-            <span class="event-equipe-tab__parity-label">{{ parity.label }}</span>
-          </div>
-        }
-      </section>
-    }
-
-    <ul
-      class="event-equipe-tab__grid"
-      aria-label="Composition de l'équipe"
-      [attr.inert]="compositionInteractionBlocked() ? '' : null"
+    <div
+      class="event-equipe-tab__composition-body"
+      [class.event-equipe-tab__composition-body--draft]="showCompositionDraftZone()"
+      [attr.aria-labelledby]="showCompositionDraftZone() ? 'composition-draft-zone-label' : null"
     >
+      @if (showCompositionDraftZone()) {
+        <div class="event-equipe-tab__draft-zone-head">
+          <mat-chip-set aria-label="Statut de la composition">
+            <mat-chip class="event-equipe-tab__draft-zone-chip">Brouillon</mat-chip>
+          </mat-chip-set>
+          <p id="composition-draft-zone-label" class="event-equipe-tab__draft-zone-text">
+            Cette composition est actuellement visible uniquement par les organisateur·ices et
+            administrateur·ices. Vous pouvez la partager si nécessaire avant de la valider.
+          </p>
+        </div>
+      }
+
+      @if (showCompositionGuidances()) {
+        <section
+          class="event-equipe-tab__guidances"
+          aria-label="Indicateurs de composition"
+          data-testid="composition-guidances"
+        >
+          @if (visiblePlayerGenderParity(); as parity) {
+            <div
+              class="event-equipe-tab__guidance event-equipe-tab__parity"
+              [class.event-equipe-tab__parity--bon]="parity.score === 'bon'"
+              [class.event-equipe-tab__parity--acceptable]="parity.score === 'acceptable'"
+              [class.event-equipe-tab__parity--faible]="parity.score === 'faible'"
+              role="status"
+              data-testid="composition-gender-parity-indicator"
+              [matTooltip]="parity.detailLabel"
+              matTooltipPosition="below"
+              matTooltipTouchGestures="on"
+              [attr.aria-label]="parity.label + ' — ' + parity.detailLabel"
+            >
+              <mat-icon aria-hidden="true">groups</mat-icon>
+              <span class="event-equipe-tab__parity-label">{{ parity.label }}</span>
+            </div>
+          }
+        </section>
+      }
+
+      <ul
+        class="event-equipe-tab__grid"
+        aria-label="Composition de l'équipe"
+        [attr.inert]="compositionInteractionBlocked() ? '' : null"
+      >
       @for (row of slotRows(); track row.roleKey + ':' + row.slotIndex) {
         <li
           class="event-equipe-tab__row"
@@ -176,10 +193,10 @@
           </div>
         </li>
       }
-    </ul>
+      </ul>
 
-    @if (declineBadgeLabel(); as badge) {
-      <div class="event-equipe-tab__declines">
+      @if (declineBadgeLabel(); as badge) {
+        <div class="event-equipe-tab__declines">
         <button
           type="button"
           class="event-equipe-tab__declines-badge"
@@ -229,8 +246,9 @@
             </ul>
           </section>
         }
-      </div>
-    }
+        </div>
+      }
+    </div>
 
     @if (showActionsToolbar()) {
       <div class="event-equipe-tab__actions-sticky">
@@ -394,6 +412,19 @@
                 }
               </button>
             }
+          }
+
+          @if (equipeActionInGrid('share')) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="event-equipe-tab__action event-equipe-tab__share"
+              data-testid="composition-action-share"
+              [disabled]="compositionInteractionBlocked()"
+              (click)="openShareDialog('draw')"
+            >
+              Partager
+            </button>
           }
 
           @if (equipeActionInGrid('unlock')) {

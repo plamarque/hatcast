@@ -1,5 +1,6 @@
 package com.hatcast.api.e2e
 
+import com.hatcast.api.e2e.dto.AgendaParticipationCellFixtureResponse
 import com.hatcast.api.e2e.dto.E1CutoverFixtureResponse
 import com.hatcast.api.e2e.dto.Story319FixtureResponse
 import com.hatcast.api.e2e.dto.Story38dFixtureResponse
@@ -17,6 +18,7 @@ class E2eFixtureController(
     private val fixtureService: E2eFixtureService,
     private val e1CutoverFixtureService: E1CutoverFixtureService,
     private val story325FixtureService: E2eStory325FixtureService,
+    private val agendaParticipationCellFixtureService: AgendaParticipationCellFixtureService,
 ) {
     /** Resets Story 3.19 recette data (seasons A/B, Max, externe, sans exclusion événement pré-appliquée). */
     @PostMapping("/story-3-19/reset")
@@ -33,4 +35,9 @@ class E2eFixtureController(
     /** Resets Story 3.25 guest scoped access recette (Laetitia, Ruben, Piotrix, multi-troupe). */
     @PostMapping("/story-3-25/reset")
     fun resetStory325(): Story325FixtureResponse = story325FixtureService.resetStory325()
+
+    /** Resets agenda participation status cell E2E (unknown dispo, pending confirm, historique). */
+    @PostMapping("/agenda-participation-cell/reset")
+    fun resetAgendaParticipationCell(): AgendaParticipationCellFixtureResponse =
+        agendaParticipationCellFixtureService.resetAgendaParticipationCell()
 }

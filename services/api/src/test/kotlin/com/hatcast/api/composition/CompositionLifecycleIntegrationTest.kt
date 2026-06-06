@@ -433,6 +433,6 @@ class CompositionLifecycleIntegrationTest {
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(outsider))
-            .andExpect(status().isForbidden)
+            .andExpect(status().isNotFound)
     }
 }

@@ -43,11 +43,16 @@ import { isEventDraft } from '../../core/events/event-draft'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import { CompositionApiService } from '../../core/composition/composition-api.service'
 import {
   applyAvailabilityUpdateToAgendaEvent,
+  applyParticipationUpdateToAgendaEvent,
+  isDeclinedParticipationFocus,
   participantFocusFromEvent,
 } from '../season-home/season-participant-focus'
 import { openAgendaAvailabilityDialog } from '../../shared/availability/open-agenda-availability-dialog'
+import { openAgendaParticipationDialog } from '../../shared/composition/open-agenda-participation-dialog'
 
 const PAGE_SIZE = 50
 
@@ -78,6 +83,8 @@ export class UserAgenda implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly api = inject(UserAgendaApiService)
   private readonly availabilityApi = inject(AvailabilityApiService)
+  private readonly compositionApi = inject(CompositionApiService)
+  private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly dialog = inject(MatDialog)
   private readonly eventApi = inject(EventApiService)
   private readonly router = inject(Router)
@@ -300,12 +307,19 @@ export class UserAgenda implements OnInit {
   }
 
   protected canEditAvailabilityForItem(item: UserAgendaItem): boolean {
+    const focus = participantFocusFromEvent(item)
     return (
       this.troupeContext
         .activeTroupes()
         .some((troupe) => troupe.id === item.troupeId && troupe.membership.status === 'ACTIVE') &&
-      !participantFocusFromEvent(item).inTeam
+      !focus.inTeam &&
+      !isDeclinedParticipationFocus(focus)
     )
+  }
+
+  protected canConfirmParticipationForItem(item: UserAgendaItem): boolean {
+    const focus = participantFocusFromEvent(item)
+    return focus.inTeam && !!focus.compositionRoleKey
   }
 
   protected async openAvailability(
@@ -342,6 +356,40 @@ export class UserAgenda implements OnInit {
           : row,
       ),
     )
+  }
+
+  protected async openParticipation(item: UserAgendaItem): Promise<void> {
+    const focus = participantFocusFromEvent(item)
+    if (!focus.inTeam || !focus.compositionRoleKey) {
+      return
+    }
+    const prefs = await this.mePreferencesApi.getPreferences()
+    const viewerGender = prefs.ok ? prefs.data?.gender : undefined
+    const result = await openAgendaParticipationDialog(
+      this.dialog,
+      this.compositionApi,
+      this.snack,
+      {
+        seasonId: item.seasonId,
+        eventId: item.eventId,
+        eventTitle: item.title,
+        eventStartsAt: item.startsAt,
+        roleKey: focus.compositionRoleKey,
+        currentStatus: focus.slotParticipationStatus ?? 'pending',
+        viewerGender,
+      },
+    )
+    if (!result) {
+      return
+    }
+    this.items.update((list) =>
+      list.map((row) =>
+        row.eventId === item.eventId
+          ? applyParticipationUpdateToAgendaEvent(row, result.status)
+          : row,
+      ),
+    )
+    await this.loadAgenda()
   }
 
   protected readonly isEventDraft = isEventDraft

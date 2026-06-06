@@ -165,6 +165,32 @@ class CompositionParticipationIntegrationTest {
             ?: error("Missing season participant")
     }
 
+    private fun seedDraftComposition(
+        eventId: UUID,
+        participantId: UUID,
+        participationStatus: SlotParticipationStatus = SlotParticipationStatus.PENDING,
+    ) {
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = null,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                seasonParticipantId = participantId,
+                participationStatus = participationStatus,
+            ),
+        )
+    }
+
     private fun seedValidatedComposition(
         eventId: UUID,
         participantId: UUID,
@@ -257,6 +283,16 @@ class CompositionParticipationIntegrationTest {
         val declines = declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId)
         assert(declines.size == 1)
         assert(declines[0].seasonParticipantId == linkedId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events")
+                    .param("scope", "upcoming")
+                    .cookie(memberCookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[0].participantFocus.inTeam").value(false))
+            .andExpect(jsonPath("$.content[0].participantFocus.compositionRoleKey").value("player"))
+            .andExpect(jsonPath("$.content[0].participantFocus.slotParticipationStatus").value("declined"))
     }
 
     @Test
@@ -462,6 +498,209 @@ class CompositionParticipationIntegrationTest {
                     .content("""{"status":"confirmed"}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    @Tag("FR26")
+    fun `draft organizer proxy confirm on foreign slot succeeds`() {
+        val adminCookie = memberCookie("sub-part-draft-proxy-confirm-admin", admin = true)
+        memberCookie("sub-part-draft-proxy-confirm-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Draft proxy confirm")
+        val memberId = participantIdForUser(seasonId, "sub-part-draft-proxy-confirm-member")
+        seedDraftComposition(eventId, memberId)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(memberId.toString()))
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
+    }
+
+    @Test
+    @Tag("FR26")
+    fun `draft organizer proxy decline on foreign slot succeeds and clears slot`() {
+        val adminCookie = memberCookie("sub-part-draft-proxy-decline-admin", admin = true)
+        memberCookie("sub-part-draft-proxy-decline-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Draft proxy decline", playerCount = 2)
+        val memberId = participantIdForUser(seasonId, "sub-part-draft-proxy-decline-member")
+        val keeperId = createSeasonParticipant(seasonId, "Keeper")
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = null,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                seasonParticipantId = memberId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 1,
+                seasonParticipantId = keeperId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"declined","note":"Draft proxy decline"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").doesNotExist())
+            .andExpect(jsonPath("$.declines.length()").value(1))
+
+        val declines = declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId)
+        assert(declines.size == 1)
+        assert(declines[0].seasonParticipantId == memberId)
+    }
+
+    @Test
+    @Tag("FR23")
+    fun `draft replace after unlock sets new assignee pending and preserves other slots`() {
+        val adminCookie = memberCookie("sub-part-replace-unlock-admin", admin = true)
+        val aliceCookie = memberCookie("sub-part-replace-unlock-alice")
+        val bobCookie = memberCookie("sub-part-replace-unlock-bob")
+        val carolCookie = memberCookie("sub-part-replace-unlock-carol")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Replace after unlock", playerCount = 2)
+        for (cookie in listOf(aliceCookie, bobCookie, carolCookie)) {
+            mockMvc
+                .perform(
+                    put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"status":"available","roleKeys":["player"]}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+        }
+        val aliceId = participantIdForUser(seasonId, "sub-part-replace-unlock-alice")
+        val bobId = participantIdForUser(seasonId, "sub-part-replace-unlock-bob")
+        val carolId = participantIdForUser(seasonId, "sub-part-replace-unlock-carol")
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = null,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                seasonParticipantId = aliceId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 1,
+                seasonParticipantId = carolId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0/participation")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/1/participation")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/unlock")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":"$bobId"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(bobId.toString()))
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("pending"))
+            .andExpect(jsonPath("$.slots[1].participantId").value(carolId.toString()))
+            .andExpect(jsonPath("$.slots[1].participationStatus").value("confirmed"))
+    }
+
+    @Test
+    @Tag("FR23")
+    fun `draft no-op assign preserves participation status`() {
+        val adminCookie = memberCookie("sub-part-noop-assign-admin", admin = true)
+        val memberCookie = memberCookie("sub-part-noop-assign-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "No-op assign")
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(memberCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+        val participantId = participantIdForUser(seasonId, "sub-part-noop-assign-member")
+        seedDraftComposition(eventId, participantId, SlotParticipationStatus.CONFIRMED)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":"$participantId"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(participantId.toString()))
+            .andExpect(jsonPath("$.slots[0].participationStatus").value("confirmed"))
     }
 
     @Test

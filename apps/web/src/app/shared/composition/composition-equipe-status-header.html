@@ -1,9 +1,3 @@
-@if (showDraftBanner()) {
-  <p class="composition-equipe-status__banner" role="status">
-    Composition en brouillon : visible uniquement par les organisateur·ices et administrateur·ices. Partagez-la (lien ou WhatsApp) si besoin avant validation.
-  </p>
-}
-
 @if (showBadge() && status(); as s) {
   <div class="composition-equipe-status composition-equipe-status--badge-only">
     <div class="composition-equipe-status__head">

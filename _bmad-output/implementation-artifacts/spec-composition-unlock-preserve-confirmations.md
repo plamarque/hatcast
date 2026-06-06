@@ -2,6 +2,7 @@
 title: 'Composition unlock — preserve participation status'
 type: 'spec-amendment'
 created: '2026-06-06'
+amended: '2026-06-07'
 status: 'approved'
 route: 'sprint-change-proposal'
 parent: '../planning-artifacts/sprint-change-proposal-2026-06-06-composition-unlock-preserve-confirmations.md'
@@ -26,6 +27,7 @@ related:
 - Member visibility after unlock: ordinary members do **not** see slot assignments until re-validation (existing `CompositionVisibilityRules`).
 - Member self-service confirm/decline: requires `validatedAt != null` (FR25 unchanged).
 - Draft slot assign/replace: new assignee → `pending` (existing `assignParticipant` behaviour).
+- **First validate** and **revalidate:** slots with status `confirmed` are **preserved** (no notification); other assigned slots → `pending` before dispatch (`CONFIRMATION_REQUEST` on first validate, `RECONFIRMATION_REQUEST` on revalidate) — amendment **2026-06-07**.
 - Revalidate after prior validate audit: `RECONFIRMATION_REQUEST` to assignees with status ≠ `confirmed` only.
 - Audit: slot assignment and participation proxy actions recorded (FR35).
 
@@ -45,8 +47,9 @@ related:
 | Mutation | Condition | `participationStatus` effect |
 |----------|-----------|------------------------------|
 | **Unlock** | slot has assignee | **No change** |
-| **Validate (first)** | slot has assignee | → `pending` (+ `CONFIRMATION_REQUEST`) |
-| **Revalidate** | status ≠ `confirmed` | → `pending` before dispatch (+ `RECONFIRMATION_REQUEST`) |
+| **Validate (first)** | status = `confirmed` | **No change**, no notification |
+| **Validate (first)** | status ≠ `confirmed` | → `pending` (+ `CONFIRMATION_REQUEST` for that assignee only) |
+| **Revalidate** | status ≠ `confirmed` | → `pending` before dispatch (+ `RECONFIRMATION_REQUEST` for that assignee only) |
 | **Revalidate** | status = `confirmed` | **No change**, no notification |
 | **Draft assign/replace** | assignee changes | that slot → `pending` |
 | **Draft assign/replace** | same assignee (no-op) | no change |
@@ -80,7 +83,7 @@ Unchanged except **precondition** for revalidate row: confirmed assignees must *
 2. **Given** unlock with a confirmed assignee on slot A and pending on slot B, **when** an organizer proxy-confirms slot B in draft, **then** slot B becomes `confirmed` and no notification is dispatched.
 3. **Given** unlock with Alice confirmed on slot 0, **when** organizer replaces slot 0 with Bob, **then** Bob is `pending`, other slots unchanged, no notification until revalidate.
 4. **Given** unlock preserving Alice `confirmed` and Bob `pending`, **when** revalidate runs, **then** only Bob receives `RECONFIRMATION_REQUEST`; Alice is not notified.
-5. **Given** first validate on a draft, **when** validate runs, **then** behaviour unchanged: all assignees `pending` + `CONFIRMATION_REQUEST`.
+5. **Given** first validate on a draft with mixed statuses (e.g. organizer proxy-confirmed in draft), **when** validate runs, **then** `confirmed` slots stay `confirmed`; other assignees → `pending` + `CONFIRMATION_REQUEST` **only** for non-`confirmed` assignees (same preservation rule as revalidate).
 6. **Given** a linked member (non-organizer), **when** they POST participation on a draft composition, **then** **409** « Les confirmations ne sont pas encore ouvertes ».
 
 ## Verification (preview)

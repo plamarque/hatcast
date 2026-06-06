@@ -37,6 +37,23 @@ describe('agendaParticipationStatusFromFocus', () => {
     })
     expect(view.cell.status).toBe('pending')
     expect(view.cell.tooltip).toContain('En attente')
+    expect(view.participationEditable).toBe(false)
+  })
+
+  it('enables participation click when confirmation is allowed', () => {
+    const view = agendaParticipationStatusFromFocus(
+      {
+        availabilityStatus: 'available',
+        compositionRoleKey: 'player',
+        inTeam: true,
+        slotParticipationStatus: 'pending',
+      },
+      false,
+      undefined,
+      true,
+    )
+    expect(view.participationEditable).toBe(true)
+    expect(view.availabilityEditable).toBe(false)
   })
 
   it('maps available not selected with editable dispo', () => {
@@ -55,5 +72,21 @@ describe('agendaParticipationStatusFromFocus', () => {
     })
     expect(view.cell.status).toBe('unavailable')
     expect(view.cell.label).toBe('Pas dispo')
+  })
+
+  it('maps declined after slot freed (not in team) to declined cell', () => {
+    const view = agendaParticipationStatusFromFocus(
+      {
+        availabilityStatus: 'available',
+        compositionRoleKey: 'player',
+        inTeam: false,
+        slotParticipationStatus: 'declined',
+      },
+      true,
+    )
+    expect(view.cell.status).toBe('declined')
+    expect(view.cell.tooltip).toContain('Décliné')
+    expect(view.availabilityEditable).toBe(false)
+    expect(view.participationEditable).toBe(false)
   })
 })
