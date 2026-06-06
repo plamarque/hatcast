@@ -73,8 +73,10 @@ paths:
       tags: [Composition]
       summary: Valider (verrouiller) la composition
       description: >
-        Fixe `validatedAt`, rend la composition visible aux membres même sans publication,
-        et réinitialise les statuts de participation à `pending` sur les slots assignés.
+        Fixe `validatedAt`, rend la composition visible aux membres même sans publication.
+        Les slots déjà `confirmed` (y compris via proxy orga en brouillon) conservent leur statut ;
+        les autres assignés passent à `pending` et reçoivent `CONFIRMATION_REQUEST` (première
+        validation) ou `RECONFIRMATION_REQUEST` (re-validation après déverrouillage).
         Idempotent si déjà validée (sans renvoyer la notification). Requiert `canManageComposition`.
       security:
         - cookieAuth: []
@@ -290,7 +292,9 @@ paths:
         '404':
           description: Saison, événement ou slot inconnu
         '409':
-          description: Composition non validée ou slot sans assignation
+          description: >
+            Membre ordinaire en brouillon (`validatedAt` null) — confirmations pas encore ouvertes ;
+            ou slot sans assignation
 
   /seasons/{seasonId}/events/{eventId}/composition/slots/{roleKey}/{slotIndex}:
     put:

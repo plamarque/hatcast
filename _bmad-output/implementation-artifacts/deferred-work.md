@@ -193,3 +193,7 @@
 - Pas d'état loading pendant `initializeSuggestions` — `event-organizers-dialog` n'en a pas non plus.
 - M3-5 checklist sans artefact attaché — validation manuelle dans Dev Notes uniquement.
 - `openAddDialog` retour silencieux si `troupeId` manquant — pattern défensif pré-existant.
+
+## Deferred from: code review of 6-22-composition-unlock-preserve-participation (2026-06-07)
+
+- Proxy sur slot propre si organisateur non lié (`viewerParticipantIds` vide) — cas admin sans identité membre ; copie proxy sur slot propre ; rare en prod ; pattern 6.8 étendu au brouillon.

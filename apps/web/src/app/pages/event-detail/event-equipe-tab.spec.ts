@@ -238,7 +238,7 @@ describe('EventEquipeTab', () => {
     expect(rolePills).toEqual(['🎧 DJ', '🎤 MC', '🎭 Comédien·ne', '🎭 Comédien·ne'])
   })
 
-  it('does not show composition draft banner inline on équipe tab (global chrome)', async () => {
+  it('wraps slots in draft zone banner on équipe tab for organizer draft', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -262,12 +262,17 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Alice')
     })
-    expect(fixture.nativeElement.textContent).not.toContain('Composition en brouillon')
+    const draftZone = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__composition-body--draft',
+    )
+    expect(draftZone).not.toBeNull()
+    expect(draftZone.textContent).toContain('visible uniquement par les organisateur')
+    expect(draftZone.querySelector('.event-equipe-tab__grid')).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Valider')
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
   })
 
-  it('does not show draft banner inline when publishedAt is set but not validated', async () => {
+  it('does not show draft zone when publishedAt is set but not validated', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -291,7 +296,9 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Bob')
     })
-    expect(fixture.nativeElement.textContent).not.toContain('Composition en brouillon')
+    expect(
+      fixture.nativeElement.querySelector('.event-equipe-tab__composition-body--draft'),
+    ).toBeNull()
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
   })
 
@@ -685,7 +692,7 @@ describe('EventEquipeTab', () => {
     ).not.toContain('Proposition automatique selon les dispos')
   })
 
-  it('puts Partager in overflow menu for organizer draft with validate', async () => {
+  it('shows Partager in toolbar grid for organizer draft with validate', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -708,10 +715,13 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+        fixture.nativeElement.querySelector('[data-testid="composition-action-share"]'),
       ).not.toBeNull()
     })
-    expect(fixture.nativeElement.textContent).not.toContain('Partager')
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+    ).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Partager')
     expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
 
     getComposition.mockResolvedValue({
@@ -799,21 +809,14 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+        fixture.nativeElement.querySelector('[data-testid="composition-action-share"]'),
       ).not.toBeNull()
     })
 
-    const overflowBtn = fixture.nativeElement.querySelector(
-      '[data-testid="composition-actions-overflow"]',
-    ) as HTMLButtonElement
-    overflowBtn.click()
-    fixture.detectChanges()
-
-    const shareItem = document.querySelector(
+    const shareBtn = fixture.nativeElement.querySelector(
       '[data-testid="composition-action-share"]',
     ) as HTMLButtonElement
-    expect(shareItem).not.toBeNull()
-    shareItem.click()
+    shareBtn.click()
 
     expect(dialogOpen).toHaveBeenCalled()
     const [, config] = dialogOpen.mock.calls.at(-1) ?? []
@@ -1025,6 +1028,111 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(dialogOpen).toHaveBeenCalled()
+    })
+  })
+
+  it('opens proxy participation modal when organizer taps foreign unlocked draft slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        viewerParticipantIds: ['p-organizer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-organizer',
+            participantDisplayName: 'Organisateur',
+            participationStatus: 'confirmed',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-other',
+            participantDisplayName: 'Autre membre',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Autre membre')
+    })
+
+    const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
+    const foreignRow = [...rows].find((row) => row.textContent?.includes('Autre membre'))
+    expect(foreignRow).toBeDefined()
+    const foreignBtn = foreignRow!.querySelector('.event-equipe-tab__row-hit') as HTMLButtonElement
+    foreignBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            mode: 'proxy',
+            assigneeDisplayName: 'Autre membre',
+          }),
+        }),
+      )
+    })
+  })
+
+  it('opens self participation modal when organizer taps own linked unlocked draft slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        viewerParticipantIds: ['p-organizer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-organizer',
+            participantDisplayName: 'Organisateur',
+            participationStatus: 'confirmed',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-other',
+            participantDisplayName: 'Autre membre',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Organisateur')
+    })
+
+    const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
+    const ownRow = [...rows].find((row) => row.textContent?.includes('Organisateur'))
+    expect(ownRow).toBeDefined()
+    const ownBtn = ownRow!.querySelector('.event-equipe-tab__row-hit') as HTMLButtonElement
+    ownBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            mode: 'self',
+          }),
+        }),
+      )
     })
   })
 

@@ -207,15 +207,4 @@ describe('CompositionEquipeStatusHeader', () => {
     ).not.toBeNull()
   })
 
-  it('shows draft banner above badge row when enabled', () => {
-    fixture.componentRef.setInput('status', status())
-    fixture.componentRef.setInput('showDraftBanner', true)
-    fixture.detectChanges()
-
-    const el = fixture.nativeElement as HTMLElement
-    const banner = el.querySelector('.composition-equipe-status__banner') as HTMLElement
-    expect(banner).not.toBeNull()
-    expect(banner.compareDocumentPosition(el.querySelector('[data-testid="composition-status-badge"]')!))
-      .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
-  })
 })

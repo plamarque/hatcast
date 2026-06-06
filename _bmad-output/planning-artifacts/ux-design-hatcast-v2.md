@@ -373,7 +373,7 @@ Implement once as a **shared modal (or wizard step)**; only **title**, **default
 | Surface | Typical title / intent |
 |---------|-------------------------|
 | **Spectacle / event** | Post-publish banner **ou** menu gear · **Annoncer** → *Annonce de spectacle* (`event`). |
-| **Tirage au sort** | Équipe overflow · **Partager** (`draw`). |
+| **Tirage au sort** | Équipe grille **Partager** en brouillon compo ; overflow si ≥ 4 actions (`draw`). |
 | **Composition (Équipe)** | **Annoncer la compo** (`composition`). |
 | **Relance dispos** | Menu gear événement · **Relance dispos** → *Rappel disponibilité* (`availability_nudge`) — story **6.10c** ; **plus** de bouton toolbar Dispos. |
 
@@ -813,11 +813,20 @@ When someone taps **Décliner** in [**Confirmer ma participation**](#pattern-con
 
 | State | Meaning | V1 cue |
 |-------|---------|--------|
-| **Draft / compo editable** | Composition editable; **only org/admin** may see the **current** draft (per capture: warning that **only admins** see the draft until **Valider**). | Orange/brown **filled** slots; status *« À composer »* or *« En préparation »* with explainer. |
+| **Draft / compo editable** | Composition editable; **only org/admin** may see the **current** draft until **Valider**. | Orange/brown **filled** slots; status *« À composer »* or *« En préparation »*; **draft zone** in Équipe tab (see below) — not a global header banner. |
 | **Validated (structural lock)** | Lineup **locked** for casual edits; **visible** to participants; **respond** via modal. | **No** clearing / reassignment **without Déverrouiller** (or equivalent); **« Annoncer la compo »** available. |
 | **Validated but incomplete** | **Valider** applied yet **one or more slots** still **empty** — org must **fill** (manual or **Compléter** random). | **Warning** *« À compléter : … »*; actions **Compléter**, **Annoncer**, **Déverrouiller** (see capture). |
 
-**Unlock** — **« Déverrouiller »** returns to an **editable** composition state (SPEC: who may unlock, audit).
+**Unlock** — **« Déverrouiller »** returns to an **editable** composition state (SPEC: who may unlock, audit). Participation statuses (`confirmed`, `pending`, `declined`) are **preserved** on unlock; first validate and revalidate only reset **non-`confirmed`** assignees to `pending` before notifications (DOMAIN.md, SCP 2026-06-07).
+
+### Pattern: Composition organizer draft zone {#pattern-composition-organizer-draft-zone}
+
+When the composition is in **organizer draft** (`validatedAt` null) and the viewer has `canManageComposition`:
+
+- **Placement** — **Équipe tab only** (`event-equipe-tab__composition-body--draft`), **not** the global event-detail status chrome. Toolbar actions (Valider, Tirer au sort, Partager, …) stay **outside** the colored zone.
+- **Visual language** — Same family as [`app-event-detail-draft-banner`](../../apps/web/src/app/pages/event-detail/event-detail-draft-banner.ts): `primary-container` background, chip *Brouillon*, body copy for orga-only visibility.
+- **Copy (normative FR)** — *« Cette composition est actuellement visible uniquement par les organisateur·ices et administrateur·ices. Vous pouvez la partager si nécessaire avant de la valider. »*
+- **Contents inside zone** — Gender parity hint (if shown), slot grid, declined collapsible. Status badge + `(?)` help remain in **global chrome** per [composition status help](ux-design-composition-status-help.md).
 
 ### Primary controls (organizer/admin toolbar)
 
@@ -826,11 +835,11 @@ When someone taps **Décliner** in [**Confirmer ma participation**](#pattern-con
 | Composition state | Primary (filled) | Grid secondaries (outlined) | Overflow (`⋯` → menu) |
 |-------------------|------------------|-----------------------------|------------------------|
 | À composer | **Tirer au sort** | — | — |
-| En préparation (draft) | **Valider** | Tirer au sort, Publier | **Partager** |
+| En préparation (draft) | **Valider** | Tirer au sort, **Partager** | — (overflow only if **≥ 4** visible actions) |
 | Confirmations en cours / complète / à vérifier | **Annoncer la compo** | Déverrouiller | — |
 | À compléter (validated, empty slots) | **Compléter** | Annoncer, Déverrouiller | — |
 
-- **Partager** / **Annoncer** — open the shared [**Share & announce**](#pattern-share-announce) modal. **Partager** is tucked in the **overflow** menu during draft (coordination action, rare) so the grid stays at ≤3 cells + `more_vert`.
+- **Partager** / **Annoncer** — open the shared [**Share & announce**](#pattern-share-announce) modal. **Partager** is **outlined in the grid** during composition draft (alongside **Valider** + **Tirer au sort**) so organizers can coordinate before validate without opening the overflow menu. Overflow (`⋯`) appears only when **four or more** secondary actions would be visible.
 - **Valider** — commits visibility and locks editing; when **Valider** is available, the status hint **does not** repeat the validate CTA (short admin-only copy + dedicated **actions lead** above the toolbar).
 - **Toolbar** — `role="toolbar"`, `aria-label="Actions de composition"`; stable `data-testid` hooks for E2E (`composition-action-*`). **Sticky** at the bottom of the tab scroll area on long grids (mobile).
 - **Effacer** / **Simuler** — not in V2 yet (separate stories if requested).

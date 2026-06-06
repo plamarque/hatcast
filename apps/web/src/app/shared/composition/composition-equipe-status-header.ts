@@ -16,7 +16,6 @@ import type { CompositionEquipeStatus } from '../../core/composition/composition
 })
 export class CompositionEquipeStatusHeader {
   readonly status = input<CompositionEquipeStatus | null>(null)
-  readonly showDraftBanner = input(false)
   readonly showBadge = input(true)
   /** Event detail mobile: badge on the title row; help panel spans full width below. */
   readonly inlineInEventContext = input(false)

@@ -173,7 +173,7 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
         verify(notificationDispatcher, times(1)).dispatch(
             argThat {
                 intent == NotificationIntent.CONFIRMATION_REQUEST &&
-                    assigneeParticipantIds.isEmpty()
+                    assigneeParticipantIds.toSet() == setOf(a, b)
             },
         )
         verify(notificationDispatcher, never()).dispatch(
@@ -462,6 +462,100 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
             argThat {
                 intent == NotificationIntent.PROXY_AVAILABILITY_RECORDED &&
                     subjectUserId == memberUserId
+            },
+        )
+    }
+
+    // --- M-P5 draft proxy participation (silent) ---
+
+    @Test
+    fun `M-P5 draft proxy confirm and decline do not dispatch composition intents`() {
+        val admin = adminCookie("sub-matrix-draft-proxy-admin")
+        memberCookie("sub-matrix-draft-proxy-member")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createEvent(admin, seasonId)
+        val memberId = participantIdForUser(seasonId, "sub-matrix-draft-proxy-member")
+        seedDraftSlots(eventId, listOf(memberId))
+        validate(admin, seasonId, eventId)
+        unlock(admin, seasonId, eventId)
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verifyNoCompositionNotificationIntents()
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED },
+        )
+
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"declined"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verifyNoCompositionNotificationIntents()
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED },
+        )
+    }
+
+    // --- M-R2 revalidate selective after unlock ---
+
+    @Test
+    fun `M-R2 revalidate after unlock notifies only non-confirmed assignees`() {
+        val admin = adminCookie("sub-matrix-r2-admin")
+        memberCookie("sub-matrix-r2-alice")
+        memberCookie("sub-matrix-r2-bob")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createEvent(admin, seasonId, playerCount = 2)
+        val aliceId = participantIdForUser(seasonId, "sub-matrix-r2-alice")
+        val bobId = participantIdForUser(seasonId, "sub-matrix-r2-bob")
+        seedDraftSlots(eventId, listOf(aliceId, bobId))
+        validate(admin, seasonId, eventId)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId))
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        unlock(admin, seasonId, eventId)
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat {
+                intent == NotificationIntent.RECONFIRMATION_REQUEST &&
+                    assigneeParticipantIds == listOf(bobId)
+            },
+        )
+        verify(notificationDispatcher, never()).dispatch(
+            argThat {
+                intent == NotificationIntent.CONFIRMATION_REQUEST ||
+                    intent == NotificationIntent.TEAM_VALIDATED_FYI
             },
         )
     }

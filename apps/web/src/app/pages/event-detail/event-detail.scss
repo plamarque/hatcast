@@ -38,9 +38,6 @@
     font-size: 1.35rem;
   }
 
-  .event-detail__context-row:has(.composition-equipe-status__banner) & {
-    grid-row: 2;
-  }
 }
 
 .event-detail__status {

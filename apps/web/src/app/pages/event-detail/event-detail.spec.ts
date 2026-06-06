@@ -976,7 +976,7 @@ describe('EventDetail', () => {
     })
   })
 
-  it('shows composition draft banner in global status chrome for organizer', async () => {
+  it('does not show composition draft banner in global status chrome (moved to équipe tab)', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1013,9 +1013,9 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       const statusChrome = fixture.nativeElement.querySelector('.event-detail__status') as HTMLElement
-      expect(statusChrome?.textContent).toContain('Composition en brouillon')
+      expect(statusChrome?.textContent ?? '').not.toContain('Composition en brouillon')
       expect(
-        statusChrome.querySelector('[data-testid="composition-status-help-trigger"]'),
+        statusChrome?.querySelector('[data-testid="composition-status-help-trigger"]'),
       ).not.toBeNull()
     })
   })

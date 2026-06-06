@@ -335,8 +335,11 @@ class CompositionSlotAssignmentService(
                         slotIndex = slotIndex,
                     ),
                 )
+        val previousAssigneeId = slotEntity.assignedParticipantId()
         slotEntity.setAssignee(eligibleRow)
-        slotEntity.participationStatus = SlotParticipationStatus.PENDING
+        if (previousAssigneeId != participantId) {
+            slotEntity.participationStatus = SlotParticipationStatus.PENDING
+        }
         slotEntity.updatedAt = now
         slotRepository.save(slotEntity)
     }

@@ -93,7 +93,8 @@ class CompositionParticipationService(
             compositionRepository.findByEventIdForUpdate(eventId).orElseThrow {
                 ResponseStatusException(HttpStatus.CONFLICT, "Aucune composition")
             }
-        if (composition.validatedAt == null) {
+        val canManageComposition = organizerAccess.canManageComposition(eventId, seasonId, principal)
+        if (composition.validatedAt == null && !canManageComposition) {
             throw ResponseStatusException(
                 HttpStatus.CONFLICT,
                 "Les confirmations ne sont pas encore ouvertes",
@@ -116,9 +117,7 @@ class CompositionParticipationService(
                 seasonParticipantRepository = seasonParticipantRepository,
                 eventParticipantRepository = eventParticipantRepository,
             )
-        if (assigneeId !in viewerIds &&
-            !organizerAccess.canManageComposition(eventId, seasonId, principal)
-        ) {
+        if (assigneeId !in viewerIds && !canManageComposition) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
         }
 
@@ -188,7 +187,8 @@ class CompositionParticipationService(
         )
         lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
 
-        if (assigneeUserId != null &&
+        if (composition.validatedAt != null &&
+            assigneeUserId != null &&
             assigneeUserId != principal.userId &&
             beforeStatus != participationStatus
         ) {

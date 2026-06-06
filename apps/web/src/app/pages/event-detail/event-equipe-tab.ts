@@ -2,6 +2,7 @@ import { NgTemplateOutlet } from '@angular/common'
 import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
+import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
@@ -36,6 +37,7 @@ import {
 } from '../../core/composition/composition-equipe-actions'
 import { computeCompositionPlayerGenderParity } from '../../core/composition/composition-player-gender-parity'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
+import { showCompositionDraftBanner } from '../../core/composition/composition-visibility'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
   normalizeRoleSlots,
@@ -86,6 +88,7 @@ interface SlotRow {
   imports: [
     NgTemplateOutlet,
     MatButtonModule,
+    MatChipsModule,
     MatDialogModule,
     MatIconModule,
     MatMenuModule,
@@ -186,6 +189,11 @@ export class EventEquipeTab {
 
   protected readonly hasAssignedSlot = computed(() =>
     (this.composition()?.slots ?? []).some((slot) => slot.participantId != null),
+  )
+
+  /** Organizer draft: wrap slots in the same visual language as event draft banner (story 3.21). */
+  protected readonly showCompositionDraftZone = computed(() =>
+    showCompositionDraftBanner(this.composition(), this.canManageComposition()),
   )
 
   protected readonly canValidate = computed(() =>
@@ -447,22 +455,28 @@ export class EventEquipeTab {
     if (this.compositionInteractionBlocked()) {
       return false
     }
-    if (!this.isCompositionLocked() || this.loading() || this.loadError()) {
+    if (this.loading() || this.loadError()) {
       return false
     }
     const participantId = row.slot?.participantId
     if (!participantId) {
       return false
     }
-    return this.viewerParticipantIds().has(participantId)
+    if (!this.viewerParticipantIds().has(participantId)) {
+      return false
+    }
+    if (this.isCompositionLocked()) {
+      return true
+    }
+    return this.canManageComposition()
   }
 
-  /** Organizer proxy on any filled locked slot (foreign slots; own slot uses self-service above). */
+  /** Organizer proxy on any filled slot (foreign slots; own slot uses self-service above). */
   protected canTapProxyParticipationSlot(row: SlotRow): boolean {
     if (this.compositionInteractionBlocked()) {
       return false
     }
-    if (!this.canManageComposition() || !this.isCompositionLocked() || this.loading() || this.loadError()) {
+    if (!this.canManageComposition() || this.loading() || this.loadError()) {
       return false
     }
     return row.slot?.participantId != null
@@ -512,11 +526,11 @@ export class EventEquipeTab {
       !!row.slot?.participantId,
     )
     const name = row.slot?.participantDisplayName
-    if (this.canEditSlots() || this.canTapGapSlot(row)) {
-      return name ? `Modifier ${name}, ${role}` : `Assigner ${role}`
-    }
     if (this.isParticipationSlotTappable(row)) {
       return name ? `Participation de ${name}, ${role}` : role
+    }
+    if (this.canEditSlots() || this.canTapGapSlot(row)) {
+      return name ? `Modifier ${name}, ${role}` : `Assigner ${role}`
     }
     return name ? `${name}, ${role}` : role
   }
@@ -554,16 +568,18 @@ export class EventEquipeTab {
   }
 
   protected onSlotRowClick(row: SlotRow): void {
+    if (this.isParticipationSlotTappable(row)) {
+      if (this.canTapParticipationSlot(row)) {
+        void this.openParticipationModal(row, { mode: 'self' })
+        return
+      }
+      if (this.canTapProxyParticipationSlot(row)) {
+        void this.openParticipationModal(row, { mode: 'proxy' })
+        return
+      }
+    }
     if (this.canEditSlots() || this.canTapGapSlot(row)) {
       void this.openSlotPicker(row)
-      return
-    }
-    if (this.canTapParticipationSlot(row)) {
-      void this.openParticipationModal(row, { mode: 'self' })
-      return
-    }
-    if (this.canTapProxyParticipationSlot(row)) {
-      void this.openParticipationModal(row, { mode: 'proxy' })
       return
     }
     if (this.isForeignParticipationSlot(row)) {
