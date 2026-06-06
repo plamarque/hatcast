@@ -25,6 +25,7 @@ export type EditParticipantDialogData =
       userId?: string | null
       genderManagedOnAccount?: boolean
       participantGender?: MemberGender | null
+      accountGender?: MemberGender | null
     }
   | {
       scope: 'event'
@@ -36,6 +37,7 @@ export type EditParticipantDialogData =
       userId?: string | null
       genderManagedOnAccount?: boolean
       participantGender?: MemberGender | null
+      accountGender?: MemberGender | null
     }
 
 @Component({
@@ -74,6 +76,7 @@ export type EditParticipantDialogData =
             [value]="gender()"
             (valueChange)="gender.set($event)"
             [readOnlyManagedOnAccount]="genderManagedOnAccount()"
+            [accountGender]="data.accountGender ?? null"
           />
         }
         <p class="participant-form-dialog__hint">

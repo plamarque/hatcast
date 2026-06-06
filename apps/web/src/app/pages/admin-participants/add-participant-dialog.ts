@@ -247,7 +247,10 @@ export class AddParticipantDialog implements OnInit {
         email: email || undefined,
       }
       if (!this.genderManagedOnAccount()) {
-        body.gender = this.gender()
+        const selectedGender = this.gender()
+        if (selectedGender !== 'non_specified') {
+          body.gender = selectedGender
+        }
       }
       const r = await this.api.createSeasonParticipant(this.data.seasonId, body)
       if (!r.ok) {
