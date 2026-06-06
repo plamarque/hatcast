@@ -91,6 +91,11 @@ export interface AddParticipantDialogData {
             [accountGender]="selectedMember()?.gender ?? null"
           />
         }
+        @if (showSeasonScopeHint()) {
+          <p class="participant-form-dialog__hint participant-form-dialog__scope-hint">
+            Externe saison — disponibilités sur toute la saison
+          </p>
+        }
         <p class="participant-form-dialog__hint">
           Suggestions : membres actifs de la troupe. Si l'email correspond à un compte HatCast, le
           participant sera lié automatiquement. L'email pourra aussi servir aux invitations et
@@ -148,6 +153,10 @@ export interface AddParticipantDialogData {
         color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
       }
 
+      .participant-form-dialog__scope-hint {
+        font-weight: 500;
+      }
+
       .participant-form-dialog__error {
         margin: 0;
         color: var(--mat-sys-error);
@@ -196,6 +205,14 @@ export class AddParticipantDialog implements OnInit {
       this.excludedDisplayNames(),
     ),
   )
+
+  protected readonly showSeasonScopeHint = computed(() => {
+    const member = this.selectedMember()
+    if (member) {
+      return member.baselineRole !== 'MEMBER' && member.baselineRole !== 'TROUPE_ADMIN'
+    }
+    return this.displayName().trim().length > 0
+  })
 
   ngOnInit(): void {
     void this.initializeSuggestions()

@@ -196,11 +196,58 @@ describe('AddEventParticipantDialog', () => {
     expect(close).toHaveBeenCalledWith(true)
   })
 
-  it('preserves event-only intro hint', async () => {
-    const { fixture } = await setup({})
-    expect(fixture.nativeElement.textContent).toContain(
-      'Personne présente uniquement pour ce spectacle',
-    )
+  it('shows event scope hint for free-text guest add', async () => {
+    const { fixture, harness } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+    })
+    harness().onDisplayNameInput('Ruben')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Externe spectacle — ce spectacle seulement')
+  })
+
+  it('hides event scope hint when troupe member is selected', async () => {
+    const { fixture, harness } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+    })
+    harness().onMemberOptionSelected('u-1')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Externe spectacle — ce spectacle seulement')
+  })
+
+  it('does not show event scope hint before name is entered', async () => {
+    const { fixture } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+    })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Externe spectacle — ce spectacle seulement')
+  })
+
+  it('renders addToSeasonRoster checkbox default off for guest add', async () => {
+    const { fixture, harness } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+    })
+    harness().onDisplayNameInput('DJ')
+    fixture.detectChanges()
+    const checkbox = fixture.nativeElement.querySelector('mat-checkbox')
+    expect(checkbox).toBeTruthy()
+    expect(checkbox.textContent).toContain('Ajouter aussi à la saison')
+    expect(checkbox.classList.contains('mat-mdc-checkbox-checked')).toBe(false)
+  })
+
+  it('submits addToSeasonRoster when checkbox is checked', async () => {
+    const createEventParticipant = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    const { harness, fixture } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      createEventParticipant,
+    })
+    harness().onDisplayNameInput('DJ Opt-in')
+    const cmp = fixture.componentInstance as unknown as { addToSeasonRoster: { set: (v: boolean) => void } }
+    cmp.addToSeasonRoster.set(true)
+    await harness().submit()
+    expect(createEventParticipant).toHaveBeenCalledWith('season-1', 'event-1', {
+      displayName: 'DJ Opt-in',
+      addToSeasonRoster: true,
+    })
   })
 
   it('loads event roster to build exclusion sets', async () => {

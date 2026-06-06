@@ -1,6 +1,7 @@
 package com.hatcast.api.participant
 
 import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserEntity
@@ -52,9 +53,13 @@ class SeasonParticipantEntity(
     @Enumerated(EnumType.STRING)
     @Column(length = 32)
     var gender: MemberGender? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "invitation_scope", length = 16)
+    var invitationScope: InvitationScope? = null,
 ) {
     fun kind(): ParticipantKind =
         when {
+            troupeMembership?.baselineRole == TroupeBaselineRole.EXTERNE -> ParticipantKind.EXTERNE
             troupeMembership != null -> ParticipantKind.MEMBER
             user != null -> ParticipantKind.LINKED
             normalizedEmail.isNullOrBlank() -> ParticipantKind.NAME_ONLY

@@ -6,6 +6,7 @@ import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.troupe.TroupeMembershipEntity
+import com.hatcast.api.troupe.TroupeExterneCarnetService
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserEntity
@@ -33,6 +34,7 @@ class SeasonParticipantServiceTest {
         SeasonParticipantMembershipSync(seasonParticipantRepository, seasonRepository, participantLink)
     private val auditRecorder = mock<AuditEventRecorder>()
     private val avatarService = mock<AvatarService>()
+    private val troupeExterneCarnetService = mock<TroupeExterneCarnetService>()
 
     private val service =
         SeasonParticipantService(
@@ -45,6 +47,7 @@ class SeasonParticipantServiceTest {
             membershipSync,
             auditRecorder,
             avatarService,
+            troupeExterneCarnetService,
         )
 
     @Test

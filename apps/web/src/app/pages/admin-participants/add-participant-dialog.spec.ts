@@ -353,6 +353,28 @@ describe('AddParticipantDialog', () => {
     expect(document.querySelector('.cdk-overlay-container app-user-avatar')).toBeTruthy()
   })
 
+  it('shows season scope hint for free-text guest add', async () => {
+    const { fixture, harness } = await setup({
+      listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+    })
+    harness().onDisplayNameInput('Laetitia')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain(
+      'Externe saison — disponibilités sur toute la saison',
+    )
+  })
+
+  it('hides season scope hint when troupe member is selected', async () => {
+    const { fixture, harness } = await setup({
+      listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+    })
+    harness().onMemberSelected(troupeMembers.content[1])
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain(
+      'Externe saison — disponibilités sur toute la saison',
+    )
+  })
+
   it('shows future notifications hint copy', async () => {
     const { fixture } = await setup({
       listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),

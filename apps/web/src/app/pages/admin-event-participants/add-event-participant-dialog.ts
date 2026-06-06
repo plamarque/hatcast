@@ -6,6 +6,7 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog'
+import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 
@@ -33,6 +34,7 @@ export interface AddEventParticipantDialogData {
   imports: [
     MatAutocompleteModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -43,9 +45,11 @@ export interface AddEventParticipantDialogData {
     <h2 mat-dialog-title>Ajouter un participant</h2>
     <mat-dialog-content>
       <div class="participant-form-dialog">
-        <p class="participant-form-dialog__hint">
-          Personne présente uniquement pour ce spectacle (sans effet sur le roster saison).
-        </p>
+        @if (showEventScopeHint()) {
+          <p class="participant-form-dialog__hint participant-form-dialog__scope-hint">
+            {{ eventScopeHint() }}
+          </p>
+        }
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="participant-form-dialog__field">
           <mat-label>Nom affiché</mat-label>
           <input
@@ -94,6 +98,15 @@ export interface AddEventParticipantDialogData {
             [readOnlyManagedOnAccount]="genderManagedOnAccount()"
             [accountGender]="selectedMember()?.gender ?? null"
           />
+        }
+        @if (showEventOptInCheckbox()) {
+          <mat-checkbox
+            class="participant-form-dialog__checkbox"
+            [checked]="addToSeasonRoster()"
+            (change)="addToSeasonRoster.set($event.checked)"
+          >
+            Ajouter aussi à la saison
+          </mat-checkbox>
         }
         <p class="participant-form-dialog__hint">
           Suggestions : membres actifs de la troupe. Si l'email correspond à un compte HatCast, le
@@ -152,6 +165,15 @@ export interface AddEventParticipantDialogData {
         color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
       }
 
+      .participant-form-dialog__scope-hint {
+        font-weight: 500;
+      }
+
+      .participant-form-dialog__checkbox {
+        min-height: 3rem;
+        align-self: start;
+      }
+
       .participant-form-dialog__error {
         margin: 0;
         color: var(--mat-sys-error);
@@ -175,6 +197,7 @@ export class AddEventParticipantDialog implements OnInit {
   protected readonly excludedDisplayNames = signal<Set<string>>(new Set())
   protected readonly selectedMember = signal<TroupeMemberAdmin | null>(null)
   protected readonly gender = signal<MemberGender>('non_specified')
+  protected readonly addToSeasonRoster = signal(false)
 
   protected readonly showGenderField = computed(() => true)
 
@@ -194,6 +217,29 @@ export class AddEventParticipantDialog implements OnInit {
       this.excludedDisplayNames(),
     ),
   )
+
+  protected readonly showEventOptInCheckbox = computed(() => {
+    const member = this.selectedMember()
+    if (member) {
+      return member.baselineRole !== 'MEMBER' && member.baselineRole !== 'TROUPE_ADMIN'
+    }
+    return this.displayName().trim().length > 0
+  })
+
+  protected readonly showEventScopeHint = computed(() => {
+    const member = this.selectedMember()
+    if (member) {
+      return member.baselineRole !== 'MEMBER' && member.baselineRole !== 'TROUPE_ADMIN'
+    }
+    return this.displayName().trim().length > 0
+  })
+
+  protected readonly eventScopeHint = computed(() => {
+    if (this.addToSeasonRoster()) {
+      return 'Externe spectacle — ajouté aussi au roster saison (scope spectacle)'
+    }
+    return 'Externe spectacle — ce spectacle seulement'
+  })
 
   ngOnInit(): void {
     void this.initializeSuggestions()
@@ -240,9 +286,17 @@ export class AddEventParticipantDialog implements OnInit {
     this.error.set('')
     try {
       const email = this.email().trim()
-      const body: { displayName: string; email?: string; gender?: MemberGender } = {
+      const body: {
+        displayName: string
+        email?: string
+        gender?: MemberGender
+        addToSeasonRoster?: boolean
+      } = {
         displayName: name,
         email: email || undefined,
+      }
+      if (this.showEventOptInCheckbox() && this.addToSeasonRoster()) {
+        body.addToSeasonRoster = true
       }
       if (!this.genderManagedOnAccount()) {
         const selectedGender = this.gender()

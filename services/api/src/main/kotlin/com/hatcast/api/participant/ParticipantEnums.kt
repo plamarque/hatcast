@@ -7,6 +7,7 @@ enum class ParticipantStatus {
 
 enum class ParticipantKind {
     MEMBER,
+    EXTERNE,
     LINKED,
     MANAGED,
     NAME_ONLY,

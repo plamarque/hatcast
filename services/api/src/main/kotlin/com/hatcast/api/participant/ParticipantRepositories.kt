@@ -99,6 +99,12 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
         userId: UUID,
     ): List<SeasonParticipantEntity>
 
+    fun findBySeason_IdAndStatusAndTroupeMembership_Id(
+        seasonId: UUID,
+        status: ParticipantStatus,
+        troupeMembershipId: UUID,
+    ): SeasonParticipantEntity?
+
     fun findBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndNormalizedEmailIgnoreCase(
         seasonId: UUID,
         status: ParticipantStatus,
@@ -118,6 +124,13 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
     ): Boolean
 
     fun existsBySeason_IdAndStatusAndTroupeMembershipIdIsNullAndDisplayNameIgnoreCaseAndIdNot(
+        seasonId: UUID,
+        status: ParticipantStatus,
+        displayName: String,
+        id: UUID,
+    ): Boolean
+
+    fun existsBySeason_IdAndStatusAndDisplayNameIgnoreCaseAndIdNot(
         seasonId: UUID,
         status: ParticipantStatus,
         displayName: String,
@@ -215,6 +228,30 @@ interface EventParticipantRepository : JpaRepository<EventParticipantEntity, UUI
         id: UUID,
         eventId: UUID,
     ): EventParticipantEntity?
+
+    fun findByEvent_IdAndStatusAndUser_Id(
+        eventId: UUID,
+        status: ParticipantStatus,
+        userId: UUID,
+    ): List<EventParticipantEntity>
+
+    fun findByEvent_IdAndStatusAndSeasonParticipantIsNullAndNormalizedEmailIgnoreCase(
+        eventId: UUID,
+        status: ParticipantStatus,
+        normalizedEmail: String,
+    ): List<EventParticipantEntity>
+
+    fun findByEvent_IdAndStatusAndSeasonParticipantIsNullAndNormalizedEmailIsNullAndDisplayNameIgnoreCase(
+        eventId: UUID,
+        status: ParticipantStatus,
+        displayName: String,
+    ): List<EventParticipantEntity>
+
+    fun findByEvent_IdAndStatusAndSeasonParticipant_TroupeMembership_Id(
+        eventId: UUID,
+        status: ParticipantStatus,
+        troupeMembershipId: UUID,
+    ): List<EventParticipantEntity>
 
     @Modifying(clearAutomatically = true)
     @Query(

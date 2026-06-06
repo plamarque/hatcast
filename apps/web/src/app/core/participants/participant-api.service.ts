@@ -3,7 +3,9 @@ import { Injectable } from '@angular/core'
 import { effectiveMemberGender, type MemberGender } from '../account/member-gender'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
-export type ParticipantKind = 'MEMBER' | 'LINKED' | 'MANAGED' | 'NAME_ONLY'
+export type InvitationScope = 'SEASON' | 'EVENT'
+
+export type ParticipantKind = 'MEMBER' | 'EXTERNE' | 'LINKED' | 'MANAGED' | 'NAME_ONLY'
 
 export interface SeasonParticipantAdmin {
   id: string
@@ -11,6 +13,7 @@ export interface SeasonParticipantAdmin {
   email: string | null
   userId: string | null
   troupeMembershipId: string | null
+  invitationScope?: InvitationScope | null
   kind: ParticipantKind
   status: 'ACTIVE' | 'REMOVED'
   removable: boolean
@@ -68,7 +71,13 @@ export class ParticipantApiService {
 
   async createSeasonParticipant(
     seasonId: string,
-    body: { displayName: string; email?: string; gender?: MemberGender },
+    body: {
+      displayName: string
+      email?: string
+      gender?: MemberGender
+      invitationScope?: InvitationScope
+      troupeMembershipId?: string
+    },
   ): ApiResult<SeasonParticipantAdmin> {
     return this.postJson(
       `/v1/seasons/${encodeURIComponent(seasonId)}/participants`,
@@ -153,7 +162,13 @@ export class ParticipantApiService {
   async createEventParticipant(
     seasonId: string,
     eventId: string,
-    body: { displayName: string; email?: string; gender?: MemberGender },
+    body: {
+      displayName: string
+      email?: string
+      gender?: MemberGender
+      addToSeasonRoster?: boolean
+      troupeMembershipId?: string
+    },
   ): ApiResult<EventParticipantAdmin> {
     return this.postJson(
       `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants`,

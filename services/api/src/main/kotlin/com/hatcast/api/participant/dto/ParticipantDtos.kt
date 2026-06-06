@@ -1,6 +1,7 @@
 package com.hatcast.api.participant.dto
 
 import com.hatcast.api.participant.EventParticipantEntity
+import com.hatcast.api.participant.InvitationScope
 import com.hatcast.api.participant.ParticipantKind
 import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.participant.ParticipantStatus
@@ -13,6 +14,9 @@ data class ParticipantCreateRequest(
     val displayName: String,
     val email: String? = null,
     val gender: String? = null,
+    val invitationScope: InvitationScope? = null,
+    val addToSeasonRoster: Boolean = false,
+    val troupeMembershipId: UUID? = null,
 )
 
 data class ParticipantUpdateRequest(
@@ -28,6 +32,7 @@ data class SeasonParticipantAdminDto(
     val email: String?,
     val userId: UUID?,
     val troupeMembershipId: UUID?,
+    val invitationScope: InvitationScope?,
     val kind: ParticipantKind,
     val status: ParticipantStatus,
     val removable: Boolean,
@@ -50,9 +55,12 @@ data class SeasonParticipantAdminDto(
                 email = if (includeEmail) entity.normalizedEmail else null,
                 userId = entity.user?.id ?: entity.troupeMembership?.user?.id,
                 troupeMembershipId = entity.troupeMembership?.id,
+                invitationScope = entity.invitationScope,
                 kind = entity.kind(),
                 status = entity.status,
-                removable = entity.troupeMembership == null,
+                removable =
+                    entity.troupeMembership == null ||
+                    entity.kind() == ParticipantKind.EXTERNE,
                 avatarUrl = avatarUrl,
                 gender = ParticipantRowPresentation.effectiveGenderWire(entity),
                 participantGender = ParticipantRowPresentation.storedParticipantGenderWire(entity),

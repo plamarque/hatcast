@@ -242,6 +242,8 @@ export class AdminParticipants implements OnDestroy, OnInit {
     switch (kind) {
       case 'MEMBER':
         return 'Membre troupe'
+      case 'EXTERNE':
+        return 'Externe'
       case 'LINKED':
         return 'Lié'
       case 'NAME_ONLY':
@@ -312,7 +314,11 @@ export class AdminParticipants implements OnDestroy, OnInit {
   }
 
   protected canShowRemove(participant: SeasonParticipantAdmin): boolean {
-    return participant.removable || this.isTroupeMemberRow(participant)
+    return (
+      participant.removable ||
+      this.isTroupeMemberRow(participant) ||
+      participant.kind === 'EXTERNE'
+    )
   }
 
   protected removeAriaLabel(participant: SeasonParticipantAdmin): string {
@@ -334,7 +340,7 @@ export class AdminParticipants implements OnDestroy, OnInit {
       this.confirmRemoveTroupeMember(participant)
       return
     }
-    if (!participant.removable) {
+    if (!participant.removable && participant.kind !== 'EXTERNE') {
       return
     }
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
