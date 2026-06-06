@@ -68,7 +68,9 @@ class MemberProfileService(
                 } else {
                     null
                 },
-            gender = MemberGender.effective(targetMembership.user.gender).wireValue,
+            gender =
+                targetMembership.user?.let { MemberGender.effective(it.gender).wireValue }
+                    ?: "non_specified",
         )
     }
 
@@ -77,7 +79,7 @@ class MemberProfileService(
         userId: UUID,
         troupeId: UUID,
     ): PreferredRolesResponseDto {
-        membershipService.requireActiveMembership(userId, troupeId)
+        membershipService.requireActiveMemberMembership(userId, troupeId)
         val prefs = userMemberPreferencesService.getPreferences(userId)
         return PreferredRolesResponseDto(preferredRoleKeys = prefs.preferredRoleKeys)
     }
@@ -88,7 +90,7 @@ class MemberProfileService(
         troupeId: UUID,
         body: UpdatePreferredRolesRequest,
     ): PreferredRolesResponseDto {
-        membershipService.requireActiveMembership(userId, troupeId)
+        membershipService.requireActiveMemberMembership(userId, troupeId)
         val prefs =
             userMemberPreferencesService.updatePreferredRoles(userId, body.preferredRoleKeys)
         return PreferredRolesResponseDto(preferredRoleKeys = prefs.preferredRoleKeys)

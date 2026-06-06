@@ -67,6 +67,7 @@ export class MembresTab implements OnInit, OnDestroy {
   protected readonly searchQuery = signal('')
   protected readonly debouncedSearch = signal('')
   protected readonly showInactive = signal(false)
+  protected readonly roleFilter = signal<'ALL' | TroupeBaselineRole>('ALL')
   protected readonly editingMemberId = signal<string | null>(null)
   protected readonly editingName = signal('')
   protected readonly roleMenuMember = signal<TroupeMemberAdmin | null>(null)
@@ -78,6 +79,10 @@ export class MembresTab implements OnInit, OnDestroy {
     let list = this.members()
     if (!this.showInactive()) {
       list = list.filter((m) => m.status === 'ACTIVE')
+    }
+    const roleFilter = this.roleFilter()
+    if (roleFilter !== 'ALL') {
+      list = list.filter((m) => m.baselineRole === roleFilter)
     }
     if (q) {
       list = list.filter(
@@ -115,7 +120,17 @@ export class MembresTab implements OnInit, OnDestroy {
   }
 
   protected roleLabel(role: TroupeBaselineRole): string {
-    return role === 'TROUPE_ADMIN' ? 'Administrateur·ice' : 'Membre'
+    if (role === 'TROUPE_ADMIN') return 'Administrateur·ice'
+    if (role === 'EXTERNE') return 'Externe'
+    return 'Membre'
+  }
+
+  protected setRoleFilter(filter: 'ALL' | TroupeBaselineRole): void {
+    this.roleFilter.set(filter)
+  }
+
+  protected isExterne(member: TroupeMemberAdmin): boolean {
+    return member.baselineRole === 'EXTERNE'
   }
 
   protected isLastAdmin(member: TroupeMemberAdmin): boolean {
@@ -183,7 +198,7 @@ export class MembresTab implements OnInit, OnDestroy {
     member: TroupeMemberAdmin,
     role: TroupeBaselineRole,
   ): Promise<void> {
-    if (role === member.baselineRole || this.isLastAdmin(member)) {
+    if (this.isExterne(member) || role === member.baselineRole || this.isLastAdmin(member)) {
       return
     }
     await this.patchMember(member, { baselineRole: role })
@@ -204,11 +219,13 @@ export class MembresTab implements OnInit, OnDestroy {
     if (member.status !== 'ACTIVE' || this.isLastAdmin(member) || this.saving()) {
       return
     }
+    const isExterne = this.isExterne(member)
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
       data: {
-        title: 'Retirer ce membre de la troupe ?',
-        message:
-          "Cette action retire le membre de la troupe et lui enlève l'accès associé. Son compte HatCast n'est pas supprimé.",
+        title: isExterne ? 'Retirer cet externe du carnet ?' : 'Retirer ce membre de la troupe ?',
+        message: isExterne
+          ? "Cette action retire l'externe du carnet de la troupe. L'historique des spectacles est conservé."
+          : "Cette action retire le membre de la troupe et lui enlève l'accès associé. Son compte HatCast n'est pas supprimé.",
         confirmLabel: 'Retirer',
       },
       width: 'min(100vw - 2rem, 28rem)',
@@ -340,7 +357,11 @@ export class MembresTab implements OnInit, OnDestroy {
         })
         return
       }
-      this.snack.open('Membre retiré de la troupe.', 'OK', { duration: 4000 })
+      this.snack.open(
+        this.isExterne(member) ? 'Externe retiré du carnet.' : 'Membre retiré de la troupe.',
+        'OK',
+        { duration: 4000 },
+      )
       this.membersChanged.emit()
       await this.reload()
     } catch {

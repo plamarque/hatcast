@@ -58,7 +58,7 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 | Mode | Fichier | Comment le remplir |
 |------|---------|-------------------|
 | Dev classique (`./scripts/start-dev.sh`, `ng serve`) | `apps/web/src/environments/environment.development.ts` | Éditer `googleOAuthWebClientId` + bloc `firebase` (`apiKey`, `authDomain`, `projectId`) |
-| Recette prod locale (`--with-push`) | `apps/web/src/environments/environment.ts` | `.env` : `HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID`, `HATCAST_FIREBASE_*` — `start-dev.sh` appelle [`inject-google-client-id.mjs`](apps/web/scripts/inject-google-client-id.mjs) **avant** le build prod (fichier régénéré localement : **ne pas committer**) |
+| Recette prod locale (`--with-push`) | `apps/web/src/environments/environment.production.local.ts` (**gitignored**) | `.env` : `HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID`, `HATCAST_FIREBASE_*`, etc. — `start-dev.sh` injecte ce fichier via [`inject-google-client-id.mjs`](apps/web/scripts/inject-google-client-id.mjs) puis build `production-local` ; **`environment.ts` versionné inchangé** |
 | Cloud Run / CI | `environment.ts` (build Docker) | Secrets GitHub `GOOGLE_OAUTH_WEB_CLIENT_ID`, `HATCAST_FIREBASE_*` — voir [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) |
 
 **Web Push (V2, story 8.1 + 8.3)** : renseigner `HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY` et `HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY` dans `.env` (même paire que V1 / Firebase Console). L’API expose la clé publique via `GET /v1/config/public`. Le mode dev standard (`ng serve` development) **désactive** le service worker → pas de push. Pour recetter push, PWA, **et** auth email comme en prod :

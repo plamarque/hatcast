@@ -406,6 +406,17 @@ Détail dashboard (phases A–B) : [_bmad-output/implementation-artifacts/ops-10
 
 Analytics produit **MVP** : opérateurs via le projet PostHog uniquement (pas d’UI dans l’app). Événements workflow anonymisés côté `apps/web` (`posthog-js`).
 
+#### Configuration SDK (SPA Angular)
+
+Init dans `apps/web/src/app/core/analytics/posthog-browser.client.ts` :
+
+- `api_host: https://e.hatcast.app`, `ui_host: https://eu.posthog.com`
+- `person_profiles: 'identified_only'` (pas de profil personne avant `identify`)
+- `capture_pageview: 'history_change'` — autocapture **`$pageview`** à chaque navigation Angular (History API) ; requis pour le health check **Web analytics → Installation Health**
+- Événements métier FR47 en plus (`availability_first_submission`, etc.) via `ProductAnalyticsService`
+
+Hors scope : session replay, feature flags, `defaults: '2026-01-30'` (on fixe les options explicitement).
+
 #### Projet PostHog Cloud EU
 
 1. Créer un projet sur **[eu.posthog.com](https://eu.posthog.com)** (région **EU**).
@@ -433,13 +444,16 @@ Analytics produit **MVP** : opérateurs via le projet PostHog uniquement (pas d�
 
 Workflow : `.github/workflows/deploy-v2-cloud-run.yml` passe `--build-arg HATCAST_POSTHOG_PROJECT_API_KEY=…` sur l’image unique.
 
-Local optionnel : `HATCAST_POSTHOG_PROJECT_API_KEY` dans `.env` + `./scripts/start-dev.sh --with-push` (régénère `environment.ts`).
+Local optionnel : `HATCAST_POSTHOG_PROJECT_API_KEY` dans `.env` + `./scripts/start-dev.sh --with-push` (injecte `environment.production.local.ts`, gitignored — `environment.ts` versionné inchangé).
 
 #### Recette post-déploiement (AC14)
 
 1. Ouvrir `https://hatcast.app`, se connecter.
-2. DevTools → **Network** : après une action (ex. première dispo sur un événement non-démo), les requêtes d’ingestion vont vers **`https://e.hatcast.app`** (pas `eu.i.posthog.com` directement).
-3. PostHog EU → **Live events** : vérifier `availability_first_submission` ou autre événement FR47.
+2. Naviguer entre 2–3 routes (ex. accueil → agenda → retour) pour émettre des **`$pageview`**.
+3. DevTools → **Network** : les requêtes d’ingestion vont vers **`https://e.hatcast.app`** (pas `eu.i.posthog.com` directement).
+4. PostHog EU → **Live events** : vérifier **`$pageview`** (et éventuellement `$pageleave`).
+5. PostHog EU → **Web analytics → Installation Health** : le check **`$pageview`** doit être vert.
+6. Déclencher un événement FR47 (ex. première dispo sur un événement non-démo) et vérifier `availability_first_submission` dans **Live events**.
 
 #### Staging vs prod
 

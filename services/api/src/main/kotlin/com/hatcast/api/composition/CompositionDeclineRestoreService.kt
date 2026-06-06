@@ -11,7 +11,7 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.availability.EventAvailabilityRepository
-import com.hatcast.api.availability.associateByLinkedUserId
+import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
@@ -168,12 +168,12 @@ class CompositionDeclineRestoreService(
         eligibleRow: CompositionEligibleParticipant,
         eligible: List<CompositionEligibleParticipant>,
     ) {
-        val availabilityByUserId =
-            availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
+        val availabilityIndex =
+            availabilityRepository.findByEvent_Id(eventId).toAvailabilityIndex()
         val pool =
             CompositionParticipantPool.buildRolePool(
                 eligible = eligible,
-                availabilityByUserId = availabilityByUserId,
+                availabilityIndex = availabilityIndex,
                 roleKey = roleKey,
                 excluded = emptySet(),
             )

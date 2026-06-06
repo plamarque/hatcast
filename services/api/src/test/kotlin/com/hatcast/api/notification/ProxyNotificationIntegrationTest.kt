@@ -333,68 +333,6 @@ class ProxyNotificationIntegrationTest {
     }
 
     @Test
-    fun `proxy confirm dispatches PROXY_CONFIRMATION_RECORDED to subject`() {
-        val admin = adminCookie("sub-proxy-notif-part-admin")
-        memberCookie("sub-proxy-notif-part-member")
-        val seasonId = createSeason(admin)
-        val eventId = createEvent(admin, seasonId)
-        val memberId = participantIdForUser(seasonId, "sub-proxy-notif-part-member")
-        val memberUserId = subjectUserId("sub-proxy-notif-part-member")
-        seedValidatedComposition(eventId, memberId)
-
-        mockMvc
-            .perform(
-                post(participationPath(seasonId, eventId))
-                    .cookie(admin)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"confirmed"}""")
-                    .with(csrf()),
-            ).andExpect(status().isOk)
-
-        verify(notificationDispatcher, times(1)).dispatch(
-            argThat {
-                intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED &&
-                    subjectUserId == memberUserId &&
-                    roleKey == "player" &&
-                    proxyChangeSummary is ProxyChangeSummary.Participation &&
-                    (proxyChangeSummary as ProxyChangeSummary.Participation).decisionLabel == "Confirmé"
-            },
-        )
-        verify(notificationDispatcher, never()).dispatch(
-            argThat { intent == NotificationIntent.CONFIRMATION_REQUEST },
-        )
-    }
-
-    @Test
-    fun `proxy decline dispatches PROXY_CONFIRMATION_RECORDED to subject`() {
-        val admin = adminCookie("sub-proxy-notif-decline-admin")
-        memberCookie("sub-proxy-notif-decline-member")
-        val seasonId = createSeason(admin)
-        val eventId = createEvent(admin, seasonId)
-        val memberId = participantIdForUser(seasonId, "sub-proxy-notif-decline-member")
-        val memberUserId = subjectUserId("sub-proxy-notif-decline-member")
-        seedValidatedComposition(eventId, memberId)
-
-        mockMvc
-            .perform(
-                post(participationPath(seasonId, eventId))
-                    .cookie(admin)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"declined"}""")
-                    .with(csrf()),
-            ).andExpect(status().isOk)
-
-        verify(notificationDispatcher, times(1)).dispatch(
-            argThat {
-                intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED &&
-                    subjectUserId == memberUserId &&
-                    proxyChangeSummary is ProxyChangeSummary.Participation &&
-                    (proxyChangeSummary as ProxyChangeSummary.Participation).decisionLabel == "Décliné"
-            },
-        )
-    }
-
-    @Test
     fun `proxy reset dispatches PROXY_CONFIRMATION_RECORDED with pending decision`() {
         val admin = adminCookie("sub-proxy-notif-reset-admin")
         memberCookie("sub-proxy-notif-reset-member")

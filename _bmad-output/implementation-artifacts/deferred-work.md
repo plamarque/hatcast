@@ -1,6 +1,6 @@
 # Deferred work (actif)
 
-**Hygiène DOC-1** — MAJ **2026-06-05** (DW-111 fermé). Items **P0–P2** encore actionnables. Historique revues : [`deferred-work-archive.md`](deferred-work-archive.md). Triage : [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) (DW-101+), [`deferred-triage-2026-05.md`](deferred-triage-2026-05.md) (DW-001–097).
+**Hygiène DOC-1** — MAJ **2026-06-06** (refactor SCSS équipe tab). Items **P0–P2** encore actionnables. Historique revues : [`deferred-work-archive.md`](deferred-work-archive.md). Triage : [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) (DW-101+), [`deferred-triage-2026-05.md`](deferred-triage-2026-05.md) (DW-001–097).
 
 **Règle :** nouvelle revue → puce ici si **P0–P2** ; sinon archive + ligne triage juin.
 
@@ -114,3 +114,41 @@
 ## Deferred from: code review of mig-7-backfill-users-gender-from-v1 (2026-06-06)
 
 - AC6 smoke SQL sans seuil numérique — comparaison manuelle `with_gender` vs export V1 suffisante pour l'iso-V1 gate ; pas de critère pass/fail chiffré imposé.
+
+## Deferred from: code review of spec-about-manual-pwa-update-check (2026-06-06)
+
+- Double `onUpdateReady` possible (constructeur + manual check) — idempotent mais redondant.
+- `isManualCheckAvailable` getter non-signal dans le template About — OK avec Default CD.
+- Couverture test manquante : `getServiceWorkerRegistration` undefined + snack `'error'` dans About tab.
+- `knownNgswTimestamp` non mis à jour par `checkForUpdatesManually` — baseline poll peut diverger en recette.
+- Message `'disabled'` developer-facing si jamais affiché en prod — bouton masqué quand SW off.
+- `updateListenerAttached` bool permanent — réattachement impossible si registration SW recréée.
+
+## Deferred from: refactor équipe tab SCSS budget (2026-06-06)
+
+**Fait** (`f418887e`) — styles grille / lignes / déclins / warnings extraits vers [`_hatcast-equipe-composition.scss`](../../apps/web/src/styles/_hatcast-equipe-composition.scss) ; `event-equipe-tab` repasse sous le budget `anyComponentStyle` (9 kB). Baseline [`apps/web/README.md`](../../apps/web/README.md) MAJ.
+
+**Reporté (chantier perf / hygiène ultérieur) :**
+
+- **DW-121** — Migrer les `@import` Sass dépréciés dans [`styles.scss`](../../apps/web/src/styles.scss) (agenda, equipe-composition, filter-picker, member-shell) vers `@use` / `@forward` avant Dart Sass 3.0. **Pas d'impact** sur les budgets CSS prod.
+- **DW-122** — Warning dev « Prebundling configured but caching disabled » (`ng serve` via Playwright e2e) — investiguer cache build Vite/Angular ; **perf dev uniquement**.
+- **DW-123** — Budget bundle **initial** prod (~2,33 MB raw, +75 kB vs warning 2,25 MB) — chantier séparé (lazy routes, dépendances, tree-shaking) ; le refactor équipe a déplacé du CSS composant → global sans réduction nette du initial.
+- **DW-124** — Alléger les SCSS composants restants si dérive (`member-home-todo.scss` ~6,4 kB, `member-nav.scss` ~5,5 kB, etc.) — candidats dans README baseline § bundle.
+- **DW-125** — Découpage optionnel de `event-equipe-tab` en sous-composants (`slot-row`, `declines`) si maintenance difficile — **non requis** tant que `anyComponentStyle` reste OK.
+
+## Deferred from: code review of 2-21-troupe-externes-carnet (2026-06-06)
+
+- Réactivation inactive par `displayName` ambiguë si homonymes — homonymes MVP acceptés ADR-0021.
+- Pas d'index sur `normalized_email` pour matching carnet — perf MVP.
+- `addExterne` côté front ne parse pas le corps d'erreur API — UX mineure.
+- Renommage externe ne propage pas vers `season_participants` liés — story 3.23.
+- Modifications genre participant dans le même diff hors périmètre 2.21 — lot participant-gender mélangé.
+
+## Deferred from: code review of 3-8c-participant-add-typeahead (2026-06-06)
+
+- Échecs API silencieux (`listMembers` / roster) — même pattern que `event-organizers-dialog` ; pas de régression vs référence story.
+- Double fetch réseau à l'ouverture du dialog (parent + dialog) — optimisation hors scope Lot A.
+- Duplication template/logique entre dialogs saison et événement — story autorise inline ; helper filtre déjà extrait.
+- Pas d'état loading pendant `initializeSuggestions` — `event-organizers-dialog` n'en a pas non plus.
+- M3-5 checklist sans artefact attaché — validation manuelle dans Dev Notes uniquement.
+- `openAddDialog` retour silencieux si `troupeId` manquant — pattern défensif pré-existant.

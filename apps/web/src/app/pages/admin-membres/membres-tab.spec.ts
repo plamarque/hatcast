@@ -6,56 +6,59 @@ import { of } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import type { PagedTroupeMembersResponse } from '../../core/troupes/troupe-api.service'
 import { MembresTab } from './membres-tab'
 
 describe('MembresTab', () => {
   async function setup(options: {
     confirmRemoval?: boolean
     deactivateResult?: { ok: boolean; status: number }
+    listMembers?: PagedTroupeMembersResponse
   } = {}) {
+    const defaultListMembers = {
+      content: [
+        {
+          id: 'm1',
+          userId: 'u1',
+          userSlug: 'admin',
+          email: 'admin@example.com',
+          displayName: 'Admin',
+          status: 'ACTIVE',
+          baselineRole: 'TROUPE_ADMIN',
+          createdAt: '',
+          updatedAt: '',
+        },
+        {
+          id: 'm3',
+          userId: 'u3',
+          email: 'inactive@example.com',
+          displayName: 'Inactif',
+          status: 'INACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+        {
+          id: 'm2',
+          userId: 'u2',
+          email: 'member@example.com',
+          displayName: 'Membre',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+      ],
+      page: 0,
+      size: 100,
+      totalElements: 3,
+      totalPages: 1,
+    }
     const api = {
       listMembers: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        data: {
-          content: [
-            {
-              id: 'm1',
-              userId: 'u1',
-              userSlug: 'admin',
-              email: 'admin@example.com',
-              displayName: 'Admin',
-              status: 'ACTIVE',
-              baselineRole: 'TROUPE_ADMIN',
-              createdAt: '',
-              updatedAt: '',
-            },
-            {
-              id: 'm3',
-              userId: 'u3',
-              email: 'inactive@example.com',
-              displayName: 'Inactif',
-              status: 'INACTIVE',
-              baselineRole: 'MEMBER',
-              createdAt: '',
-              updatedAt: '',
-            },
-            {
-              id: 'm2',
-              userId: 'u2',
-              email: 'member@example.com',
-              displayName: 'Membre',
-              status: 'ACTIVE',
-              baselineRole: 'MEMBER',
-              createdAt: '',
-              updatedAt: '',
-            },
-          ],
-          page: 0,
-          size: 100,
-          totalElements: 3,
-          totalPages: 1,
-        },
+        data: options.listMembers ?? defaultListMembers,
       }),
       updateMember: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { id: 'm1' } }),
       deactivateMember: vi.fn().mockResolvedValue(options.deactivateResult ?? { ok: true, status: 204 }),
@@ -77,6 +80,7 @@ describe('MembresTab', () => {
         },
       }),
       addMember: vi.fn(),
+      addExterne: vi.fn(),
     }
     const dialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of(options.confirmRemoval ?? false) }),
@@ -264,6 +268,86 @@ describe('MembresTab', () => {
       'La troupe doit conserver au moins un administrateur actif.',
       'OK',
       { duration: 5000 },
+    )
+  })
+
+  it('filters members by externe role chip', async () => {
+    const { fixture } = await setup({
+      listMembers: {
+        content: [
+          {
+            id: 'm1',
+            userId: 'u1',
+            userSlug: 'admin',
+            email: 'admin@example.com',
+            displayName: 'Admin',
+            status: 'ACTIVE',
+            baselineRole: 'TROUPE_ADMIN',
+            createdAt: '',
+            updatedAt: '',
+          },
+          {
+            id: 'mx',
+            userId: null,
+            email: null,
+            displayName: 'DJ local',
+            status: 'ACTIVE',
+            baselineRole: 'EXTERNE',
+            createdAt: '',
+            updatedAt: '',
+          },
+        ],
+        page: 0,
+        size: 100,
+        totalElements: 2,
+        totalPages: 1,
+      },
+    })
+    const cmp = fixture.componentInstance as MembresTab & {
+      setRoleFilter(filter: string): void
+      filteredMembers: () => Array<{ displayName: string }>
+    }
+
+    cmp.setRoleFilter('EXTERNE')
+    fixture.detectChanges()
+    expect(cmp.filteredMembers().map((m) => m.displayName)).toEqual(['DJ local'])
+  })
+
+  it('uses carnet copy when removing an externe', async () => {
+    const { fixture, dialog } = await setup({
+      listMembers: {
+        content: [
+          {
+            id: 'mx',
+            userId: null,
+            email: null,
+            displayName: 'DJ local',
+            status: 'ACTIVE',
+            baselineRole: 'EXTERNE',
+            createdAt: '',
+            updatedAt: '',
+          },
+        ],
+        page: 0,
+        size: 100,
+        totalElements: 1,
+        totalPages: 1,
+      },
+    })
+    const cmp = fixture.componentInstance as MembresTab & {
+      members: () => Array<{ id: string }>
+      retirerMembre(member: unknown): void
+    }
+
+    cmp.retirerMembre(cmp.members()[0])
+    expect(dialog.open).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: 'Retirer cet externe du carnet ?',
+          message: expect.stringContaining('historique des spectacles'),
+        }),
+      }),
     )
   })
 })

@@ -2,7 +2,9 @@
 title: UX — Event detail chrome alignment
 author: Patrice
 date: '2026-05-31'
-status: approved
+status: partially-superseded
+supersededBy:
+  - _bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-scope-admin-menu-epic17.md
   - _bmad-output/planning-artifacts/ux-design-unified-filter-panel.md
@@ -20,6 +22,8 @@ stakeholderSignOff: '2026-05-31 — Patrice (E1–E6 approved as specified)'
 **Purpose:** Align event detail navigation and administration chrome with the season workspace pattern (post UX-DR22.1 / D14), remove redundant mobile title/date header, consolidate **Modifier** / **Archiver** into a single discoverable admin entry point, and rebalance the composition status badge.
 
 **Trigger:** PO review 2026-05-31 — event screen feels inconsistent with season screen (gear buried on Infos tab; duplicate title on mobile; agenda card ⋮ menu hard to find).
+
+> **2026-06-06 — Partially superseded:** Decisions **E4–E6** and breadcrumb/title/Infos/badge placement are replaced by [ux-design-event-detail-title-row-2026-06-06.md](./ux-design-event-detail-title-row-2026-06-06.md) (E7–E11). **E1–E3** (gear placement, agenda ⋮ removal) remain authoritative.
 
 ---
 
@@ -261,3 +265,4 @@ Or modifier class `--centered` on the head when actions array is empty — prefe
 |------|--------|--------|
 | 2026-05-31 | Patrice (via UX) | Initial proposal — header gear, breadcrumb, agenda dedup, centered badge |
 | 2026-05-31 | Patrice | **Approved** — E1–E6 as specified |
+| 2026-06-06 | Sally / Patrice | E4–E6 superseded by title-row amendment (E7–E11) |

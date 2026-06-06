@@ -155,13 +155,18 @@ class CompositionIntegrationTest {
         return eventId
     }
 
-    private fun createSeasonParticipant(seasonId: UUID, label: String): UUID {
+    private fun createSeasonParticipant(
+        seasonId: UUID,
+        label: String,
+        gender: MemberGender? = null,
+    ): UUID {
         val season = seasonRepository.findById(seasonId).orElseThrow()
         val saved =
             seasonParticipantRepository.save(
                 SeasonParticipantEntity(
                     season = season,
                     displayName = label,
+                    gender = gender,
                 ),
             )
         return saved.id
@@ -449,17 +454,17 @@ class CompositionIntegrationTest {
     }
 
     @Test
-    fun `GET composition uses non_specified gender for unlinked participant`() {
+    fun `GET composition uses organizer gender for name-only participant`() {
         val adminCookie = memberCookie("sub-compo-admin-gender-unlinked", admin = true)
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId, "Unlinked gender slot")
-        val participantId = createSeasonParticipant(seasonId, "Name only")
+        val participantId = createSeasonParticipant(seasonId, "Name only", MemberGender.FEMALE)
         seedDraftComposition(eventId, participantId)
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(adminCookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.slots[0].participantGender").value("non_specified"))
+            .andExpect(jsonPath("$.slots[0].participantGender").value("female"))
     }
 
     @Test

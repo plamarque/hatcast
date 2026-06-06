@@ -7,9 +7,9 @@ import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
-import com.hatcast.api.availability.EventAvailabilityEntity
+import com.hatcast.api.availability.EventAvailabilityIndex
 import com.hatcast.api.availability.EventAvailabilityRepository
-import com.hatcast.api.availability.associateByLinkedUserId
+import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.composition.dto.CompositionDrawResponseDto
 import com.hatcast.api.composition.dto.CompositionDrawStepCandidateDto
 import com.hatcast.api.composition.dto.CompositionDrawStepDto
@@ -109,8 +109,8 @@ class CompositionDrawService(
                 eventParticipantRepository,
                 eventParticipantExclusionRepository,
             )
-        val availabilityByUserId =
-            availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
+        val availabilityIndex =
+            availabilityRepository.findByEvent_Id(eventId).toAvailabilityIndex()
         val historyCounts =
             selectionHistory.pastSelectionCountByParticipantAndRole(
                 event,
@@ -149,7 +149,7 @@ class CompositionDrawService(
             requiredRoles = requiredRoles,
             normalizedSlots = normalizedSlots,
             eligible = eligible,
-            availabilityByUserId = availabilityByUserId,
+            availabilityIndex = availabilityIndex,
             historyCounts = historyCounts,
             crossRoleExcluded = openingCrossRoleExcluded,
             snapshotAccumulator = snapshotAccumulator,
@@ -209,7 +209,7 @@ class CompositionDrawService(
                 val pool =
                     CompositionParticipantPool.buildRolePool(
                         eligible = eligible,
-                        availabilityByUserId = availabilityByUserId,
+                        availabilityIndex = availabilityIndex,
                         roleKey = roleKey,
                         excluded = crossRoleExcluded + withinRoleExcluded,
                     )
@@ -337,7 +337,7 @@ class CompositionDrawService(
         compositionRow.updatedAt = now
         compositionRepository.save(compositionRow)
 
-        if (newlyAssignedParticipantIds.isNotEmpty()) {
+        if (isLocked && newlyAssignedParticipantIds.isNotEmpty()) {
             eventPublisher.publishEvent(
                 CompositionConfirmationRequestedEvent(
                     eventId = eventId,
@@ -410,7 +410,7 @@ class CompositionDrawService(
         requiredRoles: List<String>,
         normalizedSlots: Map<String, Int>,
         eligible: List<CompositionEligibleParticipant>,
-        availabilityByUserId: Map<UUID, EventAvailabilityEntity>,
+        availabilityIndex: EventAvailabilityIndex,
         historyCounts: Map<Pair<UUID, String>, Int>,
         crossRoleExcluded: Set<UUID>,
         snapshotAccumulator: MutableMap<Pair<String, UUID>, DrawChanceSnapshotInput>,
@@ -423,7 +423,7 @@ class CompositionDrawService(
             val pool =
                 CompositionParticipantPool.buildRolePool(
                     eligible = eligible,
-                    availabilityByUserId = availabilityByUserId,
+                    availabilityIndex = availabilityIndex,
                     roleKey = roleKey,
                     excluded = crossRoleExcluded,
                 )

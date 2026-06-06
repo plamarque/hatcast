@@ -508,6 +508,10 @@ class AvailabilityService(
         if (recordedByUserId == null || actorUserId == user.id) {
             return
         }
+        val change = ProxyNotificationLabels.buildAvailabilityChangeFromAudit(beforeSnapshot, afterSnapshot)
+        if (ProxyNotificationLabels.shouldDeferProxyAvailabilityNotification(change)) {
+            return
+        }
         eventPublisher.publishEvent(
             ProxyAvailabilityRecordedEvent(
                 eventId = event.id,
@@ -515,7 +519,7 @@ class AvailabilityService(
                 troupeId = event.season.troupe.id,
                 actorUserId = actorUserId,
                 subjectUserId = user.id,
-                change = ProxyNotificationLabels.buildAvailabilityChangeFromAudit(beforeSnapshot, afterSnapshot),
+                change = change,
             ),
         )
     }
@@ -738,7 +742,7 @@ class AvailabilityService(
             if (row.id in excluded) {
                 continue
             }
-            byId[row.id] = toEligibleRow(row.id, row.user, row.displayName)
+            byId[row.id] = toEligibleRow(row)
             row.user?.id?.let { seenUserIds.add(it) }
         }
 
@@ -756,25 +760,34 @@ class AvailabilityService(
             if (userId != null && userId in seenUserIds) {
                 continue
             }
-            byId[row.id] = toEligibleRow(row.id, row.user, row.displayName)
+            byId[row.id] = toEligibleRow(row)
             userId?.let { seenUserIds.add(it) }
         }
 
         return byId.values.sortedByFrenchDisplayName { it.displayName }
     }
 
-    private fun toEligibleRow(
-        participantId: UUID,
-        user: UserEntity?,
-        displayName: String,
-    ): EligibleParticipantRow {
+    private fun toEligibleRow(row: SeasonParticipantEntity): EligibleParticipantRow {
+        val user = row.user ?: row.troupeMembership?.user
         val avatarUrl = ParticipantRowPresentation.avatarUrl(avatarService, user)
         return EligibleParticipantRow(
-            participantId = participantId,
+            participantId = row.id,
             userId = user?.id,
-            displayName = displayName,
+            displayName = row.displayName,
             avatarUrl = avatarUrl,
-            gender = com.hatcast.api.user.MemberGender.effective(user?.gender).wireValue,
+            gender = ParticipantRowPresentation.effectiveGenderWire(row),
+        )
+    }
+
+    private fun toEligibleRow(row: EventParticipantEntity): EligibleParticipantRow {
+        val user = row.user
+        val avatarUrl = ParticipantRowPresentation.avatarUrl(avatarService, user)
+        return EligibleParticipantRow(
+            participantId = row.id,
+            userId = user?.id,
+            displayName = row.displayName,
+            avatarUrl = avatarUrl,
+            gender = ParticipantRowPresentation.effectiveGenderWire(row),
         )
     }
 

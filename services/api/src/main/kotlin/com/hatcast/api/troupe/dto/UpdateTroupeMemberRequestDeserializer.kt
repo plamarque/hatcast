@@ -22,6 +22,7 @@ class UpdateTroupeMemberRequestDeserializer : JsonDeserializer<UpdateTroupeMembe
             displayName = stringField(p, node, "displayName"),
             status = enumField<TroupeMembershipStatus>(p, node, "status"),
             baselineRole = enumField<TroupeBaselineRole>(p, node, "baselineRole"),
+            email = stringField(p, node, "email"),
         )
     }
 

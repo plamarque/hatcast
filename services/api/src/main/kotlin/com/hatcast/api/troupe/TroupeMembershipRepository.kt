@@ -66,7 +66,7 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
     @Query(
         """
         SELECT m FROM TroupeMembershipEntity m
-        JOIN FETCH m.user
+        LEFT JOIN FETCH m.user
         WHERE m.id IN :ids
         """,
     )
@@ -77,7 +77,7 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
     @Query(
         """
         SELECT m FROM TroupeMembershipEntity m
-        JOIN FETCH m.user
+        LEFT JOIN FETCH m.user
         WHERE m.troupe.id = :troupeId
           AND m.status = :status
           AND m.id IN :ids
@@ -93,13 +93,35 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         """
         SELECT m FROM TroupeMembershipEntity m
         JOIN FETCH m.troupe t
-        WHERE m.user.id = :userId AND m.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+        WHERE m.user.id = :userId
+          AND m.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+          AND m.baselineRole <> com.hatcast.api.troupe.TroupeBaselineRole.EXTERNE
         ORDER BY t.name ASC
         """,
     )
     fun findActiveByUserId(
         @Param("userId") userId: UUID,
     ): List<TroupeMembershipEntity>
+
+    fun findByTroupe_IdAndUser_IdAndBaselineRole(
+        troupeId: UUID,
+        userId: UUID,
+        baselineRole: TroupeBaselineRole,
+    ): TroupeMembershipEntity?
+
+    fun findFirstByTroupe_IdAndBaselineRoleAndStatusAndNormalizedEmailIgnoreCase(
+        troupeId: UUID,
+        baselineRole: TroupeBaselineRole,
+        status: TroupeMembershipStatus,
+        normalizedEmail: String,
+    ): TroupeMembershipEntity?
+
+    fun findFirstByTroupe_IdAndBaselineRoleAndStatusAndDisplayNameIgnoreCase(
+        troupeId: UUID,
+        baselineRole: TroupeBaselineRole,
+        status: TroupeMembershipStatus,
+        displayName: String,
+    ): TroupeMembershipEntity?
 
     fun existsByTroupe_IdAndUser_IdAndStatus(
         troupeId: UUID,
@@ -119,6 +141,7 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         FROM TroupeMembershipEntity m
         WHERE m.troupe.id IN :troupeIds
           AND m.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+          AND m.baselineRole <> com.hatcast.api.troupe.TroupeBaselineRole.EXTERNE
         GROUP BY m.troupe.id
         """,
     )
@@ -135,7 +158,7 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
     @Query(
         """
         SELECT m FROM TroupeMembershipEntity m
-        JOIN FETCH m.user
+        LEFT JOIN FETCH m.user
         WHERE m.troupe.id = :troupeId
           AND m.status IN :statuses
         ORDER BY m.displayName ASC

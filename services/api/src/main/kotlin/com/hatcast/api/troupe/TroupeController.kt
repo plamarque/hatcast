@@ -1,6 +1,7 @@
 package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.troupe.dto.AddTroupeExterneRequest
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
 import com.hatcast.api.troupe.dto.CreateTroupeRequest
 import com.hatcast.api.troupe.dto.MemberImportResultDto
@@ -176,6 +177,13 @@ class TroupeController(
         @Valid @RequestBody body: AddTroupeMemberRequest,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): TroupeMemberAdminDto = membershipService.addMemberByEmail(troupeId, body, principal)
+
+    @PostMapping("/{troupeId}/externes")
+    fun addExterne(
+        @PathVariable troupeId: UUID,
+        @Valid @RequestBody body: AddTroupeExterneRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeMemberAdminDto = membershipService.addExterne(troupeId, body, principal)
 
     @PatchMapping("/{troupeId}/members/{membershipId}")
     fun updateMember(

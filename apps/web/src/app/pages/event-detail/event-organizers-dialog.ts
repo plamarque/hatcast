@@ -50,7 +50,7 @@ export class EventOrganizersDialog implements OnInit {
     const assigned = this.assignedUserIds()
     const q = this.pickerQuery().trim().toLowerCase()
     const active = this.members().filter(
-      (m) => m.status === 'ACTIVE' && !assigned.has(m.userId) && m.email,
+      (m) => m.status === 'ACTIVE' && m.userId != null && !assigned.has(m.userId) && m.email,
     )
     if (!q) {
       return active.slice(0, 8)

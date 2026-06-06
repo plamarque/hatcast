@@ -241,6 +241,11 @@ components:
           type: string
           format: email
           nullable: true
+        gender:
+          type: string
+          enum: [male, female, non_specified]
+          nullable: true
+          description: Organizer-set row gender when account has no M/F (ADR 0020)
 
     ParticipantUpdateRequest:
       type: object
@@ -252,6 +257,11 @@ components:
           type: string
           format: email
           nullable: true
+        gender:
+          type: string
+          enum: [male, female, non_specified]
+          nullable: true
+          description: Organizer-set row gender when account has no M/F (ADR 0020)
 
     ParticipantKind:
       type: string
@@ -284,6 +294,18 @@ components:
           enum: [ACTIVE, REMOVED]
         removable:
           type: boolean
+        gender:
+          type: string
+          enum: [male, female, non_specified]
+          description: Effective gender (account precedence, then row)
+        participantGender:
+          type: string
+          enum: [male, female, non_specified]
+          nullable: true
+          description: Stored organizer value on row; null when unset
+        genderManagedOnAccount:
+          type: boolean
+          description: True when linked account M/F blocks organizer override
 
     EventParticipantAdmin:
       type: object
@@ -305,6 +327,15 @@ components:
         status:
           type: string
           enum: [ACTIVE, REMOVED]
+        gender:
+          type: string
+          enum: [male, female, non_specified]
+        participantGender:
+          type: string
+          enum: [male, female, non_specified]
+          nullable: true
+        genderManagedOnAccount:
+          type: boolean
 
     ParticipantSelector:
       type: object

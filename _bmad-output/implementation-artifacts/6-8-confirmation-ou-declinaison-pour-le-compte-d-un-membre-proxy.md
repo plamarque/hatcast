@@ -21,8 +21,9 @@ so that **the lineup can progress when someone cannot act on their own account**
 7. **Given** a regular member taps **another** participant's slot, **when** they lack organizer rights, **then** modal does **not** open — keep existing snackbar (*« Vous ne pouvez confirmer que votre propre participation. »*) or equivalent.
 8. **Given** proxy **Décliner** from the modal, **when** the organizer confirms the destructive dialog, **then** copy references the **assignee name** (not “votre désistement”) — distinct from self-service **6.7**.
 9. **Given** participation changes via proxy, **when** event detail is open, **then** composition reload + **`compositionPublished`** emit refresh **Infos** lifecycle and **Équipe** six-state badge — same as **6.7**.
-10. **Given** composition **not validated** or **empty slot**, **when** proxy participation is attempted, **then** **409** — server authoritative (reuse existing checks).
-11. **Couverture:** **FR26** ; **UX-DR6** [Équipe slot interaction](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#screen-event-detail-equipe-tab) ; **SPEC** slot-click permissions ; **NFR-S2** — Kotlin integration tests for organizer proxy confirm/pending/decline on foreign slot, name-only assignee, **403** for non-organizer, **403**/**200** matrix vs own-slot; Angular tests for organizer tap any slot, proxy modal title, decline confirm copy; regression **6.7** self-service tests unchanged.
+10. **Given** composition **not validated** or **empty slot**, **when** a **linked member** (non-organizer) attempts self-service participation, **then** **409** — server authoritative (reuse existing checks).
+11. **Given** a composition in **organizer draft** (`validatedAt` null) with assigned slots, **when** an authorized organizer records confirm / decline / pending for an assignee via proxy, **then** the slot `participationStatus` updates, audit records actor + subject, and **no** composition workflow notification is dispatched until validate/revalidate — **FR26**, **FR31** (SCP 2026-06-06).
+12. **Couverture:** **FR26** ; **UX-DR6** [Équipe slot interaction](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#screen-event-detail-equipe-tab) ; **SPEC** slot-click permissions ; **NFR-S2** — Kotlin integration tests for organizer proxy confirm/pending/decline on foreign slot, name-only assignee, **403** for non-organizer, **403**/**200** matrix vs own-slot; Angular tests for organizer tap any slot, proxy modal title, decline confirm copy; regression **6.7** self-service tests unchanged.
 
 ### Explicit out of scope (later stories — do not implement in 6.8)
 
@@ -216,6 +217,7 @@ claude-4.6-sonnet-medium-thinking
 
 - 2026-05-25: Story 6.8 created — proxy participation confirm/decline for organizers/admins on any assigned slot, audit via decline actor/subject, Équipe proxy modal.
 - 2026-05-25: Code review — 3 patch findings fixed (event-organizer FR26 test, proxy decline confirm copy test, own-slot mode assertion); story done.
+- 2026-06-06: **Amendment SCP composition-unlock-preserve-confirmations** — AC11 proxy in organizer draft; AC10 scoped to linked member self-service only.
 
 ### Review Findings
 

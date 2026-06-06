@@ -37,6 +37,18 @@ object ProxyNotificationLabels {
     fun participationProxyUsesShowConfirmDeepLink(decisionLabel: String): Boolean =
         decisionLabel == participationStatusLabel(SlotParticipationStatus.PENDING)
 
+    fun participationProxyNotificationTitle(decisionLabel: String): String =
+        when (decisionLabel) {
+            participationStatusLabel(SlotParticipationStatus.CONFIRMED) -> "Participation confirmée"
+            participationStatusLabel(SlotParticipationStatus.DECLINED) -> "Participation déclinée"
+            else -> "Participation à reconfirmer"
+        }
+
+    fun shouldDeferProxyAvailabilityNotification(change: ProxyAvailabilityChange): Boolean =
+        change.afterLabel == availabilityStatusLabel(AvailabilityStatusMapper.AVAILABLE) &&
+            change.roleKeysSummary.isNullOrBlank() &&
+            change.commentSnippet.isNullOrBlank()
+
     fun roleKeysSummary(roleKeys: List<String>): String? {
         if (roleKeys.isEmpty()) {
             return null

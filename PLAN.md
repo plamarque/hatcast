@@ -618,6 +618,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **17.20** | `lastMemberEntryPath` post-login *(optionnel)* | P2 | 17.19 |
 | **17.21** | API `GET /me/inbox` (confirmations + actions) | P1 | 6.7, 17.19 |
 | **17.22** | Navigation bar M3 membre (3 onglets) | P2 | 17.19 ; 17.21 reco. |
+| **17.37** | Détail spectacle — rangée titre + statut hors breadcrumb ; Infos sans titre redondant | P2 | 17.1, chrome alignment | **done** 2026-06-06 |
 | **17.26** | Hub troupe — onglets **Saisons / Membres** ; édition/archive saison sur cartes ; embed admin membres ; retrait gear troupe | P2 | 17.4, 17.11, 2.2 ; idée [G-007](_bmad-output/planning-artifacts/growth-backlog.md) |
 
 **Wave hub membre (2026-05-27) :** livrer **17.18** seul en premier si besoin rapide ; puis **17.19** ; **17.21** avant ou en parallèle de **17.22** ; **17.20** si remember last visit doit inclure `/accueil`. Spec : [_ux-hub-a-faire.md_](_bmad-output/planning-artifacts/ux-hub-a-faire.md).
@@ -632,7 +633,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **DoD polish formulaire (17.12–17.15) :** modale spectacle = noyau planning ; gouvernance (type, rôles, orgas) sur Infos ; participants spectacle hors modale. SCP : [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
 
-**UX spec :** [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (amended 2026-05-25).  
+**UX spec :** [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (amended 2026-05-25 ; Screen 6 **2026-06-06** — [title row](_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md), story **17.37**).  
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 17.
 
 ---

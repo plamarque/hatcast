@@ -58,7 +58,7 @@ Fichier **court** pour les skills BMad (`bmad-dev-story`, `bmad-create-story`, `
 ./scripts/start-dev.sh --with-push
 # .env requis : HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY + PRIVATE_KEY
 # .env pour email/mot de passe sur /connexion : HATCAST_FIREBASE_* + HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID
-# → start-dev.sh régénère environment.ts (ne pas committer) puis build prod + watch + serve dist/ HTTPS
+# → start-dev.sh injecte environment.production.local.ts (gitignored) puis build prod-local + watch + serve dist/ HTTPS
 # Déclencheur push MEP : publier un spectacle (open-availability), pas simple brouillon
 
 # Tests front

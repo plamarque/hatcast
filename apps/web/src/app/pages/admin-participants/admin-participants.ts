@@ -223,6 +223,9 @@ export class AdminParticipants implements OnDestroy, OnInit {
         participantId: participant.id,
         displayName: participant.displayName,
         email: participant.email,
+        userId: participant.userId,
+        genderManagedOnAccount: participant.genderManagedOnAccount ?? false,
+        participantGender: participant.participantGender ?? null,
       },
       width: 'min(100vw - 2rem, 28rem)',
     })
@@ -295,9 +298,9 @@ export class AdminParticipants implements OnDestroy, OnInit {
 
   protected openAddDialog(): void {
     const s = this.season()
-    if (!s) return
+    if (!s?.troupeId) return
     const ref = this.dialog.open(AddParticipantDialog, {
-      data: { seasonId: s.id },
+      data: { seasonId: s.id, troupeId: s.troupeId },
       width: 'min(100vw - 2rem, 28rem)',
     })
     ref.afterClosed().subscribe((ok) => {

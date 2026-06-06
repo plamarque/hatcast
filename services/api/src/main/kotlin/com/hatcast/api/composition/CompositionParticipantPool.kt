@@ -2,7 +2,7 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.availability.AvailabilityRoleRules
 import com.hatcast.api.availability.AvailabilityStatusMapper
-import com.hatcast.api.availability.EventAvailabilityEntity
+import com.hatcast.api.availability.EventAvailabilityIndex
 import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
@@ -93,7 +93,7 @@ object CompositionParticipantPool {
 
     fun buildRolePool(
         eligible: List<CompositionEligibleParticipant>,
-        availabilityByUserId: Map<UUID, EventAvailabilityEntity>,
+        availabilityIndex: EventAvailabilityIndex,
         roleKey: String,
         excluded: Set<UUID>,
     ): List<CompositionEligibleParticipant> =
@@ -101,7 +101,9 @@ object CompositionParticipantPool {
             if (row.participantId in excluded) {
                 return@filter false
             }
-            val availability = row.userId?.let { availabilityByUserId[it] } ?: return@filter false
+            val availability =
+                availabilityIndex.forParticipant(row.participantId, row.userId)
+                    ?: return@filter false
             if (availability.status != StoredAvailabilityStatus.AVAILABLE) {
                 return@filter false
             }

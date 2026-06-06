@@ -82,7 +82,8 @@ class NotificationDispatcher(
                     customMessageBody = context.customMessageBody,
                     recipientGender = recipientGender,
                 )
-            val emailSubject = payloadBuilder.buildEmailSubject(context.intent, event)
+            val emailSubject =
+                payloadBuilder.buildEmailSubject(context.intent, event, context.proxyChangeSummary)
             deliverPush(recipient.userId, category, payload, context.intent, context.eventId)
             deliverEmail(recipient.userId, category, emailSubject, payload, context.intent, context.eventId)
         } catch (ex: Exception) {

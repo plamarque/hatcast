@@ -41,6 +41,16 @@
   margin-bottom: 0.25rem;
 }
 
+.membres-tab__role-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.membres-tab__role-chip--static {
+  cursor: default;
+}
+
 .membres-tab__spinner {
   display: flex;
   justify-content: center;

@@ -57,10 +57,10 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - FR20: An organizer can run a weighted random draw to fill roles according to troupe/event eligibility rules.
 - FR21: A **season organizer, event organizer, or troupe administrator** can manually assign or reassign participants to roles for events in their scope. A single participant **may hold multiple roles** on the same event; role-stacking is **allowed by default** per event type unless an administrator disables it in event-type configuration (FR14).
 - FR22: An organizer can save a **draft composition** that is **hidden from ordinary troupe members by default**. The organizer **publishes** the draft via an explicit action to make it visible to members; until published, only organizers and administrators see draft slot assignments.
-- FR23: An organizer can **validate (lock)** a composition **before confirmation requests are sent** to participants. A **season organizer, event organizer, or troupe administrator** can **unlock or invalidate** a validated composition to return it to an editable state, which re-opens confirmation requirements for affected slots.
+- FR23: An organizer can **validate (lock)** a composition **before confirmation requests are sent** to participants. A **season organizer, event organizer, or troupe administrator** can **unlock or invalidate** a validated composition to return it to an **organizer-visible editable draft** (`validatedAt` cleared). **Unlock preserves** each assigned slot's participation status (`confirmed`, `declined`, `pending`). **Draft edits** (manual assign, replace, clear, draw on a slot) set **`pending`** on slots whose **assignee changes**; unchanged slots keep their status. **Re-validation** after unlock sends confirmation intents only to assignees who are **not `confirmed`** at re-validation time (and to **newly assigned** participants). Ordinary troupe members **do not see** slot assignments after unlock until the composition is validated again, regardless of `publishedAt`.
 - FR24: For events using weighted draw, included participants can view **per-role selection odds** (or equivalent explainability summary) on the event composition view **after the organizer publishes the draft (FR22)** or **after validation (FR23)**. Odds are not shown for events or roles excluded from the draw model (e.g. direct-assignment slots).
 - FR25: A linked participant can confirm or decline participation for their assigned role **after the composition is validated (FR23)** and while the event is in **awaiting confirmations** or **gaps to fill** (FR28).
-- FR26: A **season organizer, event organizer, or troupe administrator** can confirm or decline on behalf of a participant in their authorized scope, including name-only or not-yet-linked participants, with auditability.
+- FR26: A **season organizer, event organizer, or troupe administrator** can confirm, decline, or reset to pending on behalf of a participant in their authorized scope, including name-only or not-yet-linked participants, with auditability — **including while the composition is in organizer draft** (`validatedAt` null). Proxy participation in draft is **not notified** to the subject until composition **validation or re-validation** (FR31). **Linked members** may still confirm or decline **only after validation** (FR25).
 - FR27: When a participant withdraws or declines during **awaiting confirmations** or **gaps to fill** (FR28), organizers see the resulting **open slot(s)** on the event composition view and can: **view gap details**, **manually assign a replacement**, **run a partial weighted draw** for the open role(s), and **trigger a targeted confirmation notification** to affected participants.
 - FR28: The product represents composition lifecycle states consistently for each event using at minimum: **preparing** (availability collection), **draft composition** (editable, not yet validated), **awaiting confirmations** (validated lineup), **gaps to fill** (open slots after decline/withdrawal), and **complete** (all required roles confirmed or explicitly waived by a **season organizer, event organizer, or troupe administrator**).
 - FR29: In MVP, a user can **opt in or out of browser push notifications globally** (same scope as FR30). Per-category push preferences are post-MVP.
@@ -255,7 +255,7 @@ Les utilisateurs peuvent **créer un compte** et se connecter (**Google** ou **e
 
 ### Epic 2 — Troupes, adhésion et profil membre
 
-Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des membres et rôles de base par les admins, **import/export CSV des membres** (migration V1→V2 et administration), navigation entre troupes, pseudo par troupe, **genre optionnel sur le profil compte** (libellés de rôles et avatars adaptés, V1 parity — stories **2.12–2.12c**), et avatar (y compris image Google).
+Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des membres et rôles de base par les admins, **import/export CSV des membres** (migration V1→V2 et administration), navigation entre troupes, pseudo par troupe, **genre optionnel sur le profil compte** (libellés de rôles et avatars adaptés, V1 parity — stories **2.12–2.12d**), et avatar (y compris image Google).
 
 **FRs couverts :** FR6, FR7, FR8, FR9, FR10, FR42
 
@@ -695,6 +695,39 @@ afin d’être identifiable visuellement (parité V1).
 
 ---
 
+#### Story 2.12d : Genre participant — saisie orga et cascade Mon compte *(P2 — SCP 2026-06-06)*
+
+En tant qu’**organisateur**,  
+je veux **renseigner le genre** sur une ligne participant (ajout ou édition) lorsque le compte lié n’a pas M/F,  
+afin que la **mixité** (**6.21**) et les libellés genrés fonctionnent pour les invités et les membres sans genre Mon compte.
+
+**Acceptance Criteria**
+
+1. **Given** ajout manuel **non reconnu** (name-only), **when** l’orga choisit **Féminin** et enregistre, **then** `participant.gender = female` et le genre effectif est `female` sur roster, composition et dispos.
+2. **Given** utilisateur **reconnu avec M/F** sur Mon compte, **when** ajout ou édition participant, **then** genre affiché depuis le compte (lecture seule) ; PATCH participant n’accepte pas d’override.
+3. **Given** utilisateur reconnu **sans M/F** (Non spéc. / unset), **when** ajout au roster, **then** l’orga peut renseigner le genre sur la ligne participant.
+4. **Given** participant name-only `female` sur un slot `player` rempli et tous les autres slots `player` ont un genre effectif connu, **when** onglet Équipe, **then** pill mixité visible (**6.21**).
+5. **Given** membre PATCH Mon compte **M ↔ F**, **when** sauvegardé, **then** toutes les lignes participant liées synchronisées au nouveau genre compte.
+6. **Given** membre PATCH Mon compte vers **Non spéc.**, **when** sauvegardé, **then** lignes participant liées effacées (`non_specified`) ; l’orga peut re-saisir sur le roster (Option B).
+7. **Couverture :** extension parité genre / mixité. **Priorité :** P2. **Depends :** **2.12** (done), **6.21** (done), **3.8** (done). **Blocks :** —. **UX :** toggle Mon compte réutilisé ([ux-design-member-gender-parity.md](ux-design-member-gender-parity.md) Screen 1). **SCP :** [sprint-change-proposal-2026-06-06-participant-gender-lot-b.md](sprint-change-proposal-2026-06-06-participant-gender-lot-b.md). **ADR :** [0020](../../docs/adr/0020-participant-gender-organizer-operational.md). **Plan :** Lot B phase 1 — [plan-participant-roster-ux-enhancements.md](plan-participant-roster-ux-enhancements.md).
+
+---
+
+#### Story 2.21 : Troupe externes — carnet `EXTERNE` *(P1 — ADR-0021, SCP 2026-06-06)*
+
+En tant qu’**administrateur de troupe**,  
+je veux gérer des **Externes** dans la même UI Membres (name-only autorisé, email optionnel),  
+afin de conserver un **carnet de contacts** réutilisable sans accorder l’accès membre complet.
+
+**Acceptance Criteria**
+
+1. **Given** le modèle troupe, **when** `TroupeBaselineRole` est étendu, **then** `EXTERNE` est persisté (Flyway + OpenAPI).
+2. **Given** Membres admin, **when** l’admin ajoute un externe, **then** nom affiché requis, email optionnel ; chip/filtre **Externe** visible.
+3. **Given** retrait du carnet, **when** confirmé, **then** `troupe_memberships.status = INACTIVE` ; historique saison/événement conservé.
+4. **Given** sync membership → saison, **when** `ensureMembershipParticipants` s’exécute, **then** les lignes `EXTERNE` ne sont **pas** auto-ajoutées comme les `MEMBER`.
+5. **Given** un compte lié `EXTERNE` seul, **when** accès membre, **then** pas de hub troupe / lecture membre équivalente `MEMBER`.
+6. **Couverture :** ADR-0021 P1. **Priorité :** P1. **Depends :** **2.2**, **2.8** (done). **Blocks :** **3.23**, **3.8d**. **SCP :** [sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md](sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md). **ADR :** [0021](../../docs/adr/0021-troupe-externes-carnet-invitations.md).
+
 ### Epic 3 — Saisons, spectacles et gouvernance organisateur
 
 #### Story 3.1 : Gestion des saisons (création, édition, archivage) et liste saisons
@@ -824,7 +857,7 @@ afin d’inclure membres troupe, contributeurs externes et participants ponctuel
 **Acceptance Criteria**
 
 - **Given** un administrateur de saison, **when** il ajoute un participant saison avec nom affiché et email optionnel, **then** le participant apparaît dans les sélecteurs saison et peut être utilisé par les flux dispos/composition selon permissions (FR43).
-- **Given** un administrateur d’événement, **when** il ajoute un participant événement-only, **then** le participant n’est disponible que pour cet événement et ne devient pas membre troupe ni participant saison entier (FR44).
+- **Given** un administrateur d’événement, **when** il ajoute un invité **scope spectacle**, **then** le système upsert un carnet **`EXTERNE`**, une ligne roster événement, et un scope **`EVENT`** par défaut — sans accès membre ni dispos saison entière sauf opt-in explicite (FR44, ADR-0021). *(Amendé SCP 2026-06-06.)*
 - **Given** un email correspondant à un utilisateur HatCast existant, **when** le participant est créé, **then** il est lié à cet utilisateur où permis (FR45).
 - **Given** un email sans compte activé, **when** le participant est créé, **then** il reste un participant géré et peut être lié automatiquement à la **première connexion** avec le même email (FR45).
 - **Given** aucun email, **when** le participant est créé, **then** il reste name-only et admin-géré (FR45).
@@ -835,6 +868,52 @@ afin d’inclure membres troupe, contributeurs externes et participants ponctuel
 **Dépendances :** Story 2.2 (permissions admin troupe) ; Story 3.5 (organisateurs saison/événement). **Doit être livrée avant Stories 5.1–5.5 et 6.4–6.9.**
 
 **Couverture :** FR43, FR44, FR45 ; UX-DR10 ; NFR-S5.
+
+---
+
+#### Story 3.23 : Scope d’invitation et cascade à l’ajout *(P2 — ADR-0021, SCP 2026-06-06)*
+
+En tant qu’**organisateur** ajoutant un invité au niveau saison ou spectacle,  
+je veux que le système upsert carnet + roster avec le **scope d’invitation** correct,  
+afin que les parcours Laetitia (saison) et Ruben (spectacle) fonctionnent sans étape Membres séparée.
+
+**Acceptance Criteria**
+
+1. **Given** le schéma participant, **when** migré, **then** `season_participants.invitation_scope` (`SEASON` | `EVENT`) est exposé (Flyway + OpenAPI).
+2. **Given** ajout saison, **when** externe créé, **then** carnet `EXTERNE` + ligne saison scope **`SEASON`**.
+3. **Given** ajout spectacle, **when** invité one-shot, **then** carnet + ligne événement scope **`EVENT`** par défaut ; pas de dispos saison entière sans opt-in.
+4. **Given** ré-inclusion, **when** même personne, **then** réutilisation des IDs stables (membership, season_participant, event_participant).
+5. **Couverture :** FR43, FR44, FR45 ; ADR-0021 P2. **Priorité :** P1. **Depends :** **2.21**, **3.8** (done). **Blocks :** **3.8d**, **3.25**. **SCP :** [sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md](sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md).
+
+---
+
+#### Story 3.8d : Typeahead ajout participant — pool carnet *(P3 — ADR-0021, Lot A-ext)*
+
+En tant qu’**organisateur** sur « Ajouter un participant »,  
+je veux des suggestions incluant les **Externes** et lignes roster pertinentes,  
+afin de ré-inviter Ruben ou Laetitia sans ressaisie.
+
+**Acceptance Criteria**
+
+1. **Given** le dialog ajout, **when** l’orga tape un nom, **then** suggestions = `MEMBER` + `TROUPE_ADMIN` + `EXTERNE` actifs + roster saison selon contexte.
+2. **Given** sélection carnet, **when** soumis, **then** nom/email préremplis ; scope défini via UI **3.23**.
+3. **Given** aucune suggestion, **when** nom libre soumis, **then** création name-only inchangée (FR45).
+4. **Couverture :** FR43–FR45 ; plan Lot A-ext. **Priorité :** P2. **Depends :** **2.21**, **3.23**. **Extends :** **3.8c** (done, pas de réouverture CR).
+
+---
+
+#### Story 3.25 : Accès invité scopé pour externes liés *(P4 — ADR-0021)*
+
+En tant qu’**invité externe** avec compte HatCast lié,  
+je veux dispos et agenda **uniquement** sur les événements de mon scope d’invitation,  
+afin de participer sans accès hub membre troupe.
+
+**Acceptance Criteria**
+
+1. **Given** `EXTERNE` + scope **`SEASON`**, **when** compte lié, **then** agenda utilisateur inclut les événements saison publiés ; dispos sur ces événements ; pas d’espace saison membre complet.
+2. **Given** `EXTERNE` + scope **`EVENT`**, **when** compte lié, **then** agenda + dispos uniquement sur le(s) spectacle(s) invité(s).
+3. **Given** carnet seul, **when** pas d’invitation active, **then** pas d’accès app membre.
+4. **Couverture :** FR48 ; ADR-0021 P4, ADR-0011. **Priorité :** P2. **Depends :** **3.23**, Epic **12** (`/agenda`). **Blocks :** Epic **7** self-service (soft).
 
 ---
 
@@ -1040,7 +1119,8 @@ afin de figer ou rouvrir la proposition officielle (FR23).
 **Acceptance Criteria**
 
 - **Given** une composition prête, **when** l’organisateur **valide**, **then** l’état passe en « validé » / awaiting confirmations et l’intent notification confirmation request est émis si configuré (FR23, FR28, FR31).
-- **Given** une composition validée, **when** un organisateur autorisé **déverrouille/invalide**, **then** la composition redevient éditable et les exigences de confirmation sont réouvertes pour les créneaux affectés (FR23).
+- **Given** une composition validée, **when** un organisateur autorisé **déverrouille**, **then** `validatedAt` est effacé, les assignations restent, les statuts de participation **sont préservés**, la composition redevient éditable pour les orgas/admins, et les membres ordinaires ne voient plus les slots (FR23).
+- **Given** une composition en brouillon orga post-déverrouillage, **when** l'organisateur **remplace l'assigné** d'un slot, **then** le nouveau assigné passe à `pending` ; les slots non modifiés conservent leur statut (FR23).
 - **Couverture :** FR23, FR28.
 
 ---
@@ -1067,6 +1147,7 @@ afin de débloquer la situation lorsque le participant n’a pas de compte ou ne
 **Acceptance Criteria**
 
 - **Given** les permissions proxy, **when** l’orga enregistre une décision pour un participant, **then** l’audit enregistre acteur et sujet (FR26, lien FR35).
+- **Given** une composition en brouillon orga (`validatedAt` null), **when** l’orga proxy confirme/décline/remet en attente, **then** le statut est mis à jour sans notification membre jusqu’à validation/re-validation (FR26, FR31 ; SCP 2026-06-06).
 - **Couverture :** FR26.
 
 ---
@@ -1167,12 +1248,12 @@ afin de **voir l’équilibre** sans que mes choix soient bloqués.
 
 En tant qu’organisateur,  
 je veux envoyer une **invitation self-service** pour un rôle et un périmètre d’événements lorsque la troupe a activé cette capacité,  
-afin de faire onboarder un contributeur externe **sans** adhésion troupe préalable (s’appuie sur FR43–FR45 pour les participants gérés en MVP).
+afin de faire onboarder un contributeur externe **sans** adhésion `MEMBER` préalable (s’appuie sur carnet **EXTERNE** + FR43–FR45 — ADR-0021).
 
 **Acceptance Criteria**
 
 - **Given** la capacité self-service activée pour la troupe, **when** l’organisateur crée une invitation avec rôle et périmètre, **then** l’invité reçoit le flux prévu (lien, email, etc.) et l’invitation est traçable.
-- **Couverture :** FR38 *(post-MVP)* ; NFR-S2.
+- **Couverture :** FR38 *(post-MVP)* ; NFR-S2. **Depends :** **2.21**, **3.23** (carnet + scope avant self-service).
 
 ---
 
@@ -2006,6 +2087,22 @@ afin d’obtenir le CSV sans bouton dans la toolbar membre.
 - **Couverture :** **FR54** ; [sprint-change-proposal-2026-06-01-season-stats-export-admin-menu.md](./sprint-change-proposal-2026-06-01-season-stats-export-admin-menu.md).
 
 **Story file:** [_17-32-season-stats-export-admin-menu.md_](../implementation-artifacts/17-32-season-stats-export-admin-menu.md)
+
+---
+
+#### Story 17.37 : Détail spectacle — rangée titre + statut *(UX polish 2026-06-06)*
+
+En tant que **membre ou organisateur**,  
+je veux **le titre du spectacle lisible à côté du statut de composition**, hors fil d'Ariane,  
+afin de **ne pas perdre le contexte** sur mobile et desktop.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** détail spectacle, **then** breadcrumb = troupe + saison seulement ; titre + badge au-dessus des onglets (`event-detail__context-row`).
+- **Given** onglet Infos, **then** pas de champ Titre ; description sans label si renseignée.
+- **Couverture :** [ux-design-event-detail-title-row-2026-06-06.md](./ux-design-event-detail-title-row-2026-06-06.md) E7–E11 ; amendement partiel chrome alignment E4–E6.
+
+**Story file:** [_17-37-event-detail-title-row.md_](../implementation-artifacts/17-37-event-detail-title-row.md)
 
 ---
 

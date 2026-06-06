@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core'
+import { Component, computed, inject, OnInit, signal } from '@angular/core'
+import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatButtonModule } from '@angular/material/button'
 import {
   MAT_DIALOG_DATA,
@@ -8,44 +9,101 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 
+import {
+  effectiveMemberGender,
+  type MemberGender,
+} from '../../core/account/member-gender'
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
+import {
+  type TroupeMemberAdmin,
+  TroupeApiService,
+} from '../../core/troupes/troupe-api.service'
+import { ParticipantGenderToggleField } from '../../shared/participant-add/participant-gender-toggle-field'
+import { filterTroupeMemberSuggestions } from '../../shared/participant-add/participant-member-suggestions'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 export interface AddEventParticipantDialogData {
   seasonId: string
   eventId: string
+  troupeId: string
 }
 
 @Component({
   selector: 'app-add-event-participant-dialog',
-  imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  imports: [
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    ParticipantGenderToggleField,
+    UserAvatarComponent,
+  ],
   template: `
     <h2 mat-dialog-title>Ajouter un participant</h2>
-    <mat-dialog-content class="add-event-participant">
-      <p class="add-event-participant__hint">
-        Personne présente uniquement pour ce spectacle (sans effet sur le roster saison).
-      </p>
-      <mat-form-field appearance="outline">
-        <mat-label>Nom affiché</mat-label>
-        <input
-          matInput
-          autofocus
-          [value]="displayName()"
-          (input)="displayName.set($any($event.target).value)"
-        />
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Email (optionnel)</mat-label>
-        <input
-          matInput
-          [value]="email()"
-          (input)="email.set($any($event.target).value)"
-          placeholder="participant@example.com"
-        />
-        <mat-hint>Si l'email correspond à un compte HatCast, le participant sera lié automatiquement.</mat-hint>
-      </mat-form-field>
-      @if (error()) {
-        <p class="add-event-participant__error" role="alert">{{ error() }}</p>
-      }
+    <mat-dialog-content>
+      <div class="participant-form-dialog">
+        <p class="participant-form-dialog__hint">
+          Personne présente uniquement pour ce spectacle (sans effet sur le roster saison).
+        </p>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="participant-form-dialog__field">
+          <mat-label>Nom affiché</mat-label>
+          <input
+            matInput
+            autofocus
+            [value]="displayName()"
+            (input)="onDisplayNameInput($any($event.target).value)"
+            [matAutocomplete]="nameAuto"
+          />
+          <mat-autocomplete
+            #nameAuto="matAutocomplete"
+            (optionSelected)="onMemberOptionSelected($event.option.value)"
+          >
+            @for (member of filteredSuggestions(); track member.id) {
+              <mat-option [value]="member.userId">
+                <span class="participant-form-dialog__option">
+                  <app-user-avatar
+                    class="participant-form-dialog__option-avatar"
+                    [displayName]="member.displayName"
+                    [avatarUrl]="member.avatarUrl ?? null"
+                    [gender]="member.gender ?? null"
+                    [size]="24"
+                  />
+                  <span>{{ member.displayName }}</span>
+                  @if (member.email) {
+                    <span class="participant-form-dialog__option-email">{{ member.email }}</span>
+                  }
+                </span>
+              </mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="participant-form-dialog__field">
+          <mat-label>Email (optionnel)</mat-label>
+          <input
+            matInput
+            [value]="email()"
+            (input)="onEmailInput($any($event.target).value)"
+            placeholder="participant@example.com"
+          />
+        </mat-form-field>
+        @if (showGenderField()) {
+          <app-participant-gender-toggle-field
+            [value]="gender()"
+            (valueChange)="gender.set($event)"
+            [readOnlyManagedOnAccount]="genderManagedOnAccount()"
+            [accountGender]="selectedMember()?.gender ?? null"
+          />
+        }
+        <p class="participant-form-dialog__hint">
+          Suggestions : membres actifs de la troupe. Si l'email correspond à un compte HatCast, le
+          participant sera lié automatiquement. L'email pourra aussi servir aux invitations et
+          notifications à venir.
+        </p>
+        @if (error()) {
+          <p class="participant-form-dialog__error" role="alert">{{ error() }}</p>
+        }
+      </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button type="button" mat-button mat-dialog-close>Annuler</button>
@@ -56,18 +114,45 @@ export interface AddEventParticipantDialogData {
   `,
   styles: [
     `
-      .add-event-participant {
+      :host mat-dialog-content {
+        overflow: visible;
+        max-height: none;
+      }
+
+      .participant-form-dialog {
         display: grid;
-        gap: 0.5rem;
+        gap: 0.75rem;
         min-width: min(24rem, calc(100vw - 3rem));
+        padding-top: 0.5rem;
       }
-      .add-event-participant__hint {
-        color: var(--mat-sys-on-surface-variant);
+
+      .participant-form-dialog__field {
+        width: 100%;
+      }
+
+      .participant-form-dialog__option {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .participant-form-dialog__option-avatar {
+        flex-shrink: 0;
+      }
+
+      .participant-form-dialog__option-email {
+        color: color-mix(in srgb, var(--mat-sys-on-surface) 60%, transparent);
         font-size: 0.875rem;
-        line-height: 1.4;
-        margin: 0;
       }
-      .add-event-participant__error {
+
+      .participant-form-dialog__hint {
+        margin: 0;
+        font-size: 0.875rem;
+        line-height: 1.45;
+        color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+      }
+
+      .participant-form-dialog__error {
         margin: 0;
         color: var(--mat-sys-error);
         font-size: 0.875rem;
@@ -75,8 +160,9 @@ export interface AddEventParticipantDialogData {
     `,
   ],
 })
-export class AddEventParticipantDialog {
+export class AddEventParticipantDialog implements OnInit {
   private readonly api = inject(ParticipantApiService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly ref = inject(MatDialogRef<AddEventParticipantDialog, boolean>)
   protected readonly data = inject<AddEventParticipantDialogData>(MAT_DIALOG_DATA)
 
@@ -84,6 +170,65 @@ export class AddEventParticipantDialog {
   protected readonly email = signal('')
   protected readonly saving = signal(false)
   protected readonly error = signal('')
+  protected readonly members = signal<TroupeMemberAdmin[]>([])
+  protected readonly excludedUserIds = signal<Set<string>>(new Set())
+  protected readonly excludedDisplayNames = signal<Set<string>>(new Set())
+  protected readonly selectedMember = signal<TroupeMemberAdmin | null>(null)
+  protected readonly gender = signal<MemberGender>('non_specified')
+
+  protected readonly showGenderField = computed(() => true)
+
+  protected readonly genderManagedOnAccount = computed(() => {
+    const member = this.selectedMember()
+    if (!member) {
+      return false
+    }
+    return effectiveMemberGender(member.gender) !== 'non_specified'
+  })
+
+  protected readonly filteredSuggestions = computed(() =>
+    filterTroupeMemberSuggestions(
+      this.members(),
+      this.displayName(),
+      this.excludedUserIds(),
+      this.excludedDisplayNames(),
+    ),
+  )
+
+  ngOnInit(): void {
+    void this.initializeSuggestions()
+  }
+
+  protected onDisplayNameInput(value: string): void {
+    const hadSelection = this.selectedMember() !== null
+    this.displayName.set(value)
+    this.selectedMember.set(null)
+    if (hadSelection) {
+      this.email.set('')
+      this.gender.set('non_specified')
+    }
+    this.error.set('')
+  }
+
+  protected onEmailInput(value: string): void {
+    this.email.set(value)
+    this.error.set('')
+  }
+
+  protected onMemberOptionSelected(userId: string): void {
+    const member = this.members().find((m) => m.userId === userId)
+    if (member) {
+      this.onMemberSelected(member)
+    }
+  }
+
+  protected onMemberSelected(member: TroupeMemberAdmin): void {
+    this.selectedMember.set(member)
+    this.displayName.set(member.displayName)
+    this.email.set(member.email ?? '')
+    this.gender.set('non_specified')
+    this.error.set('')
+  }
 
   async submit(): Promise<void> {
     const name = this.displayName().trim()
@@ -95,10 +240,14 @@ export class AddEventParticipantDialog {
     this.error.set('')
     try {
       const email = this.email().trim()
-      const r = await this.api.createEventParticipant(this.data.seasonId, this.data.eventId, {
+      const body: { displayName: string; email?: string; gender?: MemberGender } = {
         displayName: name,
         email: email || undefined,
-      })
+      }
+      if (!this.genderManagedOnAccount()) {
+        body.gender = this.gender()
+      }
+      const r = await this.api.createEventParticipant(this.data.seasonId, this.data.eventId, body)
       if (!r.ok) {
         this.error.set(this.errorMessage(r.status))
         return
@@ -106,6 +255,30 @@ export class AddEventParticipantDialog {
       this.ref.close(true)
     } finally {
       this.saving.set(false)
+    }
+  }
+
+  private async initializeSuggestions(): Promise<void> {
+    const [membersResult, rosterResult] = await Promise.all([
+      this.troupeApi.listMembers(this.data.troupeId, 0, 100),
+      this.api.listEventParticipantRoster(this.data.seasonId, this.data.eventId),
+    ])
+
+    if (membersResult.ok && membersResult.data) {
+      this.members.set(membersResult.data.content)
+    }
+
+    if (rosterResult.ok && rosterResult.data) {
+      const userIds = new Set<string>()
+      const displayNames = new Set<string>()
+      for (const p of rosterResult.data) {
+        if (p.userId) {
+          userIds.add(p.userId)
+        }
+        displayNames.add(p.displayName.trim().toLowerCase())
+      }
+      this.excludedUserIds.set(userIds)
+      this.excludedDisplayNames.set(displayNames)
     }
   }
 

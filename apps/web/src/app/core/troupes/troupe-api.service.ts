@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core'
 
+import type { MemberGender } from '../account/member-gender'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export type TroupeMembershipStatus = 'ACTIVE' | 'INACTIVE'
-export type TroupeBaselineRole = 'MEMBER' | 'TROUPE_ADMIN'
+export type TroupeBaselineRole = 'MEMBER' | 'TROUPE_ADMIN' | 'EXTERNE'
 
 export interface MembershipSummary {
   id: string
@@ -54,11 +55,12 @@ export interface TroupeAdminSummary {
 
 export interface TroupeMemberAdmin {
   id: string
-  userId: string
-  userSlug: string
+  userId: string | null
+  userSlug?: string | null
   email: string | null
   displayName: string
   avatarUrl?: string | null
+  gender?: MemberGender | null
   status: TroupeMembershipStatus
   baselineRole: TroupeBaselineRole
   createdAt: string
@@ -77,6 +79,11 @@ export interface AddTroupeMemberRequest {
   email: string
   displayName?: string
   baselineRole?: TroupeBaselineRole
+}
+
+export interface AddTroupeExterneRequest {
+  displayName: string
+  email?: string
 }
 
 export interface CreateTroupeRequest {
@@ -382,6 +389,30 @@ export class TroupeApiService {
           ...body,
           email: body.email.trim(),
           displayName: body.displayName?.trim() || undefined,
+        }),
+      })
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as TroupeMemberAdmin }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async addExterne(
+    troupeId: string,
+    body: AddTroupeExterneRequest,
+  ): ApiResult<TroupeMemberAdmin> {
+    try {
+      const res = await fetch(`/v1/troupes/${encodeURIComponent(troupeId)}/externes`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders(),
+        },
+        body: JSON.stringify({
+          displayName: body.displayName.trim(),
+          email: body.email?.trim() || undefined,
         }),
       })
       if (!res.ok) return { ok: false, status: res.status }

@@ -11,12 +11,15 @@ import type { CompositionEquipeStatus } from '../../core/composition/composition
   styleUrl: './composition-equipe-status-header.scss',
   host: {
     class: 'composition-equipe-status-header',
+    '[class.composition-equipe-status-header--event-inline]': 'inlineInEventContext()',
   },
 })
 export class CompositionEquipeStatusHeader {
   readonly status = input<CompositionEquipeStatus | null>(null)
   readonly showDraftBanner = input(false)
   readonly showBadge = input(true)
+  /** Event detail mobile: badge on the title row; help panel spans full width below. */
+  readonly inlineInEventContext = input(false)
 
   protected readonly helpPanelOpen = signal(false)
   private lastStatusKey: string | null = null

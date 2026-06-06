@@ -30,7 +30,7 @@ import {
 
 describe('AdminEventParticipants', () => {
   const paramMap$ = new BehaviorSubject(
-    convertToParamMap({ slug: 'season-a', eventSlug: 'show-1' }),
+    convertToParamMap({ troupeSlug: 'troupe-a', seasonSlug: 'season-a', eventSlug: 'show-1' }),
   )
 
   const season: SeasonResponse = {
@@ -152,7 +152,7 @@ describe('AdminEventParticipants', () => {
         {
           provide: TroupeSeasonResolverService,
           useValue: {
-            resolveSeasonSlug: vi.fn().mockResolvedValue({
+            resolveSeasonInTroupe: vi.fn().mockResolvedValue({
               kind: 'resolved',
               troupe: { id: 'troupe-1', name: 'Troupe', slug: 'troupe-a' },
               season,
@@ -262,7 +262,7 @@ describe('AdminEventParticipants', () => {
     const cmp = fixture.componentInstance as AdminEventParticipants
     cmp['openAddDialog']()
     expect(dialog.open).toHaveBeenCalledWith(AddEventParticipantDialog, {
-      data: { seasonId: 'season-1', eventId: 'event-1' },
+      data: { seasonId: 'season-1', eventId: 'event-1', troupeId: 'troupe-1' },
       width: 'min(100vw - 2rem, 28rem)',
     })
     await vi.waitFor(() => {
@@ -359,7 +359,7 @@ describe('AdminEventParticipants', () => {
         {
           provide: TroupeSeasonResolverService,
           useValue: {
-            resolveSeasonSlug: vi.fn().mockResolvedValue({
+            resolveSeasonInTroupe: vi.fn().mockResolvedValue({
               kind: 'resolved',
               troupe: { id: 'troupe-1', name: 'Troupe', slug: 'troupe-a' },
               season,
@@ -447,7 +447,7 @@ describe('AdminEventParticipants', () => {
         {
           provide: TroupeSeasonResolverService,
           useValue: {
-            resolveSeasonSlug: vi.fn().mockResolvedValue({
+            resolveSeasonInTroupe: vi.fn().mockResolvedValue({
               kind: 'resolved',
               troupe: { id: 'troupe-1', name: 'Troupe', slug: 'troupe-a' },
               season,

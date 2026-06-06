@@ -174,4 +174,57 @@ class SeasonParticipantServiceTest {
         verify(seasonParticipantRepository, never()).save(any())
         verify(seasonParticipantRepository, never()).saveAll(any<List<SeasonParticipantEntity>>())
     }
+
+    @Test
+    fun `ensureMembershipParticipants skips EXTERNE troupe memberships`() {
+        val troupe = TroupeEntity(id = UUID.randomUUID(), name = "Troupe", slug = "troupe")
+        val season = SeasonEntity(id = UUID.randomUUID(), troupe = troupe, slug = "saison", title = "Saison")
+        val memberUser = UserEntity(id = UUID.randomUUID(), email = "member@example.com", displayName = "Member")
+        val memberMembership =
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = memberUser,
+                status = TroupeMembershipStatus.ACTIVE,
+                displayName = "Member",
+            )
+        val externeMembership =
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = null,
+                normalizedEmail = "dj@example.com",
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = com.hatcast.api.troupe.TroupeBaselineRole.EXTERNE,
+                displayName = "DJ local",
+            )
+
+        whenever(
+            troupeMembershipRepository.findByTroupe_IdAndStatusIn(
+                troupe.id,
+                listOf(TroupeMembershipStatus.ACTIVE),
+            ),
+        ).thenReturn(listOf(memberMembership, externeMembership))
+        whenever(
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(
+                season.id,
+                listOf(memberMembership.id, externeMembership.id),
+            ),
+        ).thenReturn(emptyList())
+        whenever(seasonParticipantRepository.findActiveLinkedToInactiveMembershipsForSeason(season.id))
+            .thenReturn(emptyList())
+        whenever(seasonParticipantRepository.saveAll(any<List<SeasonParticipantEntity>>()))
+            .thenAnswer { it.getArgument<List<SeasonParticipantEntity>>(0) }
+        whenever(seasonParticipantRepository.countBySeason_IdAndStatus(season.id, ParticipantStatus.ACTIVE))
+            .thenReturn(1)
+        whenever(seasonRepository.save(any())).thenAnswer { it.getArgument(0) }
+
+        MembershipSyncScope.clear()
+        MembershipParticipantSyncCache.invalidate(season.id)
+        service.ensureMembershipParticipants(season)
+
+        verify(seasonParticipantRepository, times(1)).saveAll(
+            org.mockito.kotlin.argThat { saved: List<SeasonParticipantEntity> ->
+                saved.size == 1 && saved[0].troupeMembership?.id == memberMembership.id
+            },
+        )
+    }
 }

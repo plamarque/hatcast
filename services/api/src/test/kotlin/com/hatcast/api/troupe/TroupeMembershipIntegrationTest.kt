@@ -1329,6 +1329,325 @@ class TroupeMembershipIntegrationTest {
         assertEquals("female", member.get("gender").asText())
     }
 
+    @Test
+    fun `troupe admin can add name-only externe and linked externe`() {
+        val adminCookie = signInAndJoin("sub-externe-admin-1", "externe-admin-1@example.com", "Externe Admin")
+        promoteSeedMemberToAdmin("sub-externe-admin-1")
+        signIn("sub-externe-linked-1", "externe-linked-1@example.com", "Linked Externe")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/externes")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"DJ local"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.displayName").value("DJ local"))
+            .andExpect(jsonPath("$.baselineRole").value("EXTERNE"))
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.userId").isEmpty)
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/externes")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "displayName": "Invité récurrent",
+                          "email": " EXTERNE-LINKED-1@example.com "
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.email").value("externe-linked-1@example.com"))
+            .andExpect(jsonPath("$.userId").isNotEmpty)
+    }
+
+    @Test
+    fun `externe-only linked user is excluded from troupe list and member read`() {
+        val adminCookie = signInAndJoin("sub-externe-only-admin", "externe-only-admin@example.com", "Externe Only Admin")
+        promoteSeedMemberToAdmin("sub-externe-only-admin")
+        val externeCookie = signIn("sub-externe-only-user", "externe-only-user@example.com", "Externe Only User")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/externes")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {"displayName":"Carnet seul","email":"externe-only-user@example.com"}
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/troupes").cookie(externeCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(0))
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/seasons").cookie(externeCookie))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `deactivating externe does not cascade season participant removal but member does`() {
+        val adminCookie = signInAndJoin("sub-externe-cascade-admin", "externe-cascade-admin@example.com", "Cascade Admin")
+        promoteSeedMemberToAdmin("sub-externe-cascade-admin")
+        signIn("sub-externe-cascade-member", "externe-cascade-member@example.com", "Cascade Member")
+
+        val externeResult =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/externes")
+                        .cookie(adminCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Cascade Externe"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val externeMembershipId =
+            UUID.fromString(mapper.readTree(externeResult.response.contentAsString).path("id").asText())
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"externe-cascade-member@example.com","displayName":"Cascade Member"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+        val memberMembership =
+            membershipRepository.findByTroupe_IdAndUser_Id(
+                seedTroupeId,
+                userRepository.findByGoogleSub("sub-externe-cascade-member")!!.id,
+            )!!
+
+        val season = seasonRepository.findById(seedSeasonId).orElseThrow()
+        val now = Instant.now()
+        val externeParticipant =
+            seasonParticipantRepository.save(
+                SeasonParticipantEntity(
+                    season = season,
+                    displayName = "Cascade Externe",
+                    troupeMembership = membershipRepository.findById(externeMembershipId).orElseThrow(),
+                    status = ParticipantStatus.ACTIVE,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+        val memberParticipant =
+            seasonParticipantRepository.save(
+                SeasonParticipantEntity(
+                    season = season,
+                    displayName = "Cascade Member",
+                    user = memberMembership.user,
+                    troupeMembership = memberMembership,
+                    status = ParticipantStatus.ACTIVE,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+
+        mockMvc
+            .perform(
+                delete("/v1/troupes/$seedTroupeId/members/$externeMembershipId")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        assertEquals(
+            ParticipantStatus.ACTIVE,
+            seasonParticipantRepository.findById(externeParticipant.id).orElseThrow().status,
+        )
+
+        mockMvc
+            .perform(
+                delete("/v1/troupes/$seedTroupeId/members/${memberMembership.id}")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        assertEquals(
+            ParticipantStatus.REMOVED,
+            seasonParticipantRepository.findById(memberParticipant.id).orElseThrow().status,
+        )
+    }
+
+    @Test
+    fun `patch externe to troupe admin is rejected`() {
+        val adminCookie = signInAndJoin("sub-externe-role-admin", "externe-role-admin@example.com", "Externe Role Admin")
+        promoteSeedMemberToAdmin("sub-externe-role-admin")
+
+        val created =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/externes")
+                        .cookie(adminCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Role Guard Externe"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId =
+            UUID.fromString(mapper.readTree(created.response.contentAsString).path("id").asText())
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/members/$membershipId")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"baselineRole":"TROUPE_ADMIN"}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `patch externe email links user when account exists`() {
+        val adminCookie = signInAndJoin("sub-externe-email-admin", "externe-email-admin@example.com", "Externe Email Admin")
+        promoteSeedMemberToAdmin("sub-externe-email-admin")
+        signIn("sub-externe-email-target", "externe-email-target@example.com", "Externe Email Target")
+
+        val created =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/externes")
+                        .cookie(adminCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Email Patch Externe"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId =
+            UUID.fromString(mapper.readTree(created.response.contentAsString).path("id").asText())
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/members/$membershipId")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"externe-email-target@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.email").value("externe-email-target@example.com"))
+            .andExpect(jsonPath("$.userId").isNotEmpty)
+    }
+
+    @Test
+    fun `members csv import rejects externe row without display name`() {
+        val adminCookie = signInAndJoin("sub-externe-csv-reject", "externe-csv-reject@example.com", "Externe CSV Reject")
+        promoteSeedMemberToAdmin("sub-externe-csv-reject")
+        val csv =
+            """
+            email,displayName,baselineRole,status
+            externe-no-name@example.com,,EXTERNE,active
+            """.trimIndent()
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            csv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.error").value(1))
+            .andExpect(jsonPath("$.rows[0].message").value("Un externe doit avoir un nom affiché."))
+    }
+
+    @Test
+    fun `members csv export includes inactive externe`() {
+        val adminCookie = signInAndJoin("sub-externe-export-admin", "externe-export-admin@example.com", "Externe Export Admin")
+        promoteSeedMemberToAdmin("sub-externe-export-admin")
+
+        val created =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/externes")
+                        .cookie(adminCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"displayName":"Export Inactive Externe"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val membershipId =
+            UUID.fromString(mapper.readTree(created.response.contentAsString).path("id").asText())
+
+        mockMvc
+            .perform(
+                delete("/v1/troupes/$seedTroupeId/members/$membershipId")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val exported =
+            mockMvc
+                .perform(get("/v1/troupes/$seedTroupeId/members/export").cookie(adminCookie))
+                .andExpect(status().isOk)
+                .andReturn()
+                .response
+                .contentAsString
+        assertTrue(exported.contains("Export Inactive Externe"))
+        assertTrue(exported.contains("EXTERNE"))
+        assertTrue(exported.contains("inactive"))
+    }
+
+    @Test
+    fun `members csv import can create name-only externe`() {
+        val adminCookie = signInAndJoin("sub-externe-csv-admin", "externe-csv-admin@example.com", "Externe CSV Admin")
+        promoteSeedMemberToAdmin("sub-externe-csv-admin")
+        val csv =
+            """
+            email,displayName,baselineRole,status
+            ,Carnet CSV,EXTERNE,active
+            """.trimIndent()
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            csv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.success").value(1))
+
+        val listed =
+            findMemberInAdminListByDisplayName(adminCookie, "Carnet CSV")
+        assertEquals("EXTERNE", listed.get("baselineRole").asText())
+        assertTrue(listed.get("userId").isNull)
+    }
+
+    private fun findMemberInAdminListByDisplayName(
+        adminCookie: Cookie,
+        displayName: String,
+    ): JsonNode {
+        val res =
+            mockMvc
+                .perform(
+                    get("/v1/troupes/$seedTroupeId/members?page=0&size=100")
+                        .cookie(adminCookie),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val body = mapper.readTree(res.response.contentAsString)
+        return (0 until body.get("content").size())
+            .map { body.get("content").get(it) }
+            .firstOrNull { it.get("displayName").asText() == displayName }
+            ?: error("Member $displayName not found in troupe member list")
+    }
+
     private fun findMemberInAdminList(
         adminCookie: Cookie,
         email: String,

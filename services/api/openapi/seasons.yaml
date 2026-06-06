@@ -568,6 +568,52 @@ paths:
         '404':
           description: Utilisateur ou troupe introuvable
 
+  /troupes/{troupeId}/externes:
+    post:
+      tags: [Membres]
+      summary: Ajouter ou réactiver un externe (carnet)
+      description: >
+        Crée une entrée carnet `EXTERNE` avec nom affiché obligatoire et email optionnel.
+        Peut exister sans compte HatCast (`userId` null). Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTroupeExterneRequest'
+            examples:
+              nameOnly:
+                value:
+                  displayName: DJ local
+              withEmail:
+                value:
+                  displayName: Invité récurrent
+                  email: invite@example.com
+      responses:
+        '200':
+          description: Externe créé ou réactivé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeMemberAdmin'
+        '400':
+          description: Validation invalide
+        '403':
+          description: Utilisateur non administrateur de troupe ou CSRF/session invalide
+        '404':
+          description: Troupe introuvable
+        '409':
+          description: Conflit (utilisateur déjà membre actif)
+
   /troupes/{troupeId}/members/{membershipId}:
     patch:
       tags: [Membres]
@@ -1300,14 +1346,15 @@ components:
 
     TroupeBaselineRole:
       type: string
-      enum: [MEMBER, TROUPE_ADMIN]
+      enum: [MEMBER, TROUPE_ADMIN, EXTERNE]
       description: >
         `MEMBER` donne l'accès membre actif. `TROUPE_ADMIN` autorise l'administration
-        des membres, saisons, événements et délégations d'organisateurs.
+        des membres, saisons, événements et délégations d'organisateurs. `EXTERNE` est une
+        entrée carnet (contact récurrent ou ponctuel) sans accès membre à l'application.
 
     TroupeMemberAdmin:
       type: object
-      required: [id, userId, displayName, status, baselineRole, createdAt, updatedAt]
+      required: [id, displayName, status, baselineRole, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -1315,6 +1362,10 @@ components:
         userId:
           type: string
           format: uuid
+          nullable: true
+        userSlug:
+          type: string
+          nullable: true
         email:
           type: string
           nullable: true
@@ -1485,6 +1536,20 @@ components:
         baselineRole:
           $ref: '#/components/schemas/TroupeBaselineRole'
 
+    AddTroupeExterneRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+          maxLength: 255
+          description: Nom affiché obligatoire pour l'entrée carnet.
+        email:
+          type: string
+          maxLength: 320
+          nullable: true
+          description: Email optionnel ; trim + lowercase côté serveur ; pré-lien compte si existant.
+
     UpdateMyMembershipRequest:
       type: object
       required: [displayName]
@@ -1621,6 +1686,11 @@ components:
           $ref: '#/components/schemas/TroupeMembershipStatus'
         baselineRole:
           $ref: '#/components/schemas/TroupeBaselineRole'
+        email:
+          type: string
+          maxLength: 320
+          nullable: true
+          description: Carnet externe uniquement — email optionnel (trim + lowercase) pour pré-lier un compte.
 
     Season:
       type: object

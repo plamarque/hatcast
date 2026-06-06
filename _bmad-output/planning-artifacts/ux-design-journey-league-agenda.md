@@ -341,14 +341,15 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 ### Chrome
 
-> **2026-05-31 (approved):** [ux-design-event-detail-chrome-alignment.md](./ux-design-event-detail-chrome-alignment.md) — breadcrumb-only header, gear top-right, no mobile title/date duplicate, agenda ⋮ removed.
+> **2026-06-06 (approved):** [ux-design-event-detail-title-row-2026-06-06.md](./ux-design-event-detail-title-row-2026-06-06.md) — title row above tabs; breadcrumb troupe + saison only; status badge on title row; Infos without titre/redundant description. Gear/agenda rules: [ux-design-event-detail-chrome-alignment.md](./ux-design-event-detail-chrome-alignment.md) E1–E3.
 
 | Zone | Content |
 |------|---------|
-| **Breadcrumb** | `[logo] Troupe › Saison › Event title` — **mobile:** event title in breadcrumb row (no second title block) |
+| **Breadcrumb** | `[logo] Troupe › Saison` — **no event title** (desktop + mobile) |
+| **Title row** | `h1` event title (left) + composition status badge + help (right), above tabs — **all breakpoints** |
 | **Header right** | `app-scope-admin-menu` (when permitted) + avatar |
-| **Removed** | Mobile `event-detail__mobile-context` (title + date); agenda card `more_vert` (Modifier/Archiver) |
-| **Infos tab** | Centered composition status badge; date in Date field only |
+| **Removed** | Event title in breadcrumb; mobile `event-detail__mobile-context`; agenda card `more_vert`; Infos « Titre » field; empty description block |
+| **Infos tab** | Description card only if non-empty (no label); date in Date field only; **no** status badge in tab |
 
 **Removed vs 2026-05-24:** chevron back; **context strip** (`La Malice · Ligue…`) — redundant with breadcrumb.
 

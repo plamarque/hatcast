@@ -15,7 +15,7 @@
   <div class="event-dispos__toolbar">
     @if (canSwitchSubject() && viewMode() === 'moi') {
       <app-availability-subject-selector
-        [participants]="selectors()"
+        [participants]="subjectSelectorOptions()"
         [selectedParticipantId]="subjectParticipantId()"
         (selectedParticipantIdChange)="onSubjectChange($event)"
       />

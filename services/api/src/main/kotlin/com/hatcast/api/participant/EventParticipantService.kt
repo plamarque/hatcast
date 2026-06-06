@@ -72,7 +72,9 @@ class EventParticipantService(
                     status = ParticipantStatus.ACTIVE,
                     createdAt = now,
                     updatedAt = now,
-                ),
+                ).also {
+                    ParticipantGenderWriteSupport.applyGenderFromRequest(it, linkedUser, body.gender)
+                },
             )
         auditRecorder.record(
             AuditRecordRequest(
@@ -115,6 +117,7 @@ class EventParticipantService(
         existing.normalizedEmail = normalizedEmail
         existing.user =
             participantLink.resolveUserId(normalizedEmail)?.let { userRepository.findById(it).orElse(null) }
+        ParticipantGenderWriteSupport.applyGenderFromRequest(existing, existing.user, body.gender)
         existing.updatedAt = Instant.now()
         val saved = eventParticipantRepository.save(existing)
         auditRecorder.record(

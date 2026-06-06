@@ -39,9 +39,10 @@ This document is the **where** and **how** companion to the spec’s **what**. I
 
 | Source | When |
 |--------|------|
-| `users.gender` via API field | Linked account on participant/member row |
+| `users.gender` (account M/F) | Linked account with `male` or `female` — always wins |
+| `season_participants.gender` / `event_participants.gender` | Organizer-set when account has no M/F; or after user → Non spéc. until org re-sets (2.12d) |
 | Viewer `/v1/me/preferences` | Self row when DTO omits `participantGender` (e.g. own participation dialog) |
-| `non_specified` | NULL, unknown wire value, unlinked participant, empty slot |
+| `non_specified` | No account M/F and no participant M/F; empty slot |
 | Live preview | Unsaved Mon profil toggle → `MemberDisplayNameService` |
 
 ---
@@ -52,6 +53,7 @@ This document is the **where** and **how** companion to the spec’s **what**. I
 flowchart TB
   subgraph persist [Persistence]
     U["users.gender"]
+    PG["season/event_participants.gender"]
   end
   subgraph api [API propagation]
     PGR[ParticipantGenderResolver]
@@ -64,6 +66,7 @@ flowchart TB
     UA[UserAvatarComponent]
   end
   U --> PGR
+  PG --> PGR
   PGR --> RL
   PGR --> PRP
   RL --> web
@@ -174,8 +177,9 @@ flowchart TB
 
 | Surface | Type | Gender source | Avatar | API | Status | Tests / notes |
 |---------|------|---------------|--------|-----|--------|---------------|
-| Admin participants (saison) | `role_participation` + `avatar` | `p.gender` | ✅ | `SeasonParticipantService` | ✅ | `organizer-row.helper` |
-| Admin event participants (spectacle) | `role_participation` + `avatar` | `p.gender` | ✅ | `EventRosterService` | ✅ | |
+| Admin participants (saison) | `role_participation` + `avatar` | effective gender | ✅ | `SeasonParticipantService` | ✅ | Story **2.12d** |
+| Admin event participants (spectacle) | `role_participation` + `avatar` | effective gender | ✅ | `EventRosterService` | ✅ | Story **2.12d** |
+| Add / edit participant dialog | — (editor) | org when allowed | toggle (no avatar) | participant CRUD + `participantGender` DTO | ✅ | `ParticipantGenderToggleField` ; story **2.12d** |
 | Participation role chips & menus | `role_participation` | row gender | N/A | DTO `gender` | ✅ | Participant / Organisateur genré |
 | Membres tab — admin chip | `role_troupe` | N/A | N/A | — | N/A | Inclusive `Administrateur·ice` / `Membre` only (2.12b non-goal) |
 | Membres tab — promote menu | `role_troupe` | N/A | N/A | — | N/A | Inclusive menu label |
@@ -226,7 +230,7 @@ flowchart TB
 | `GET composition` slots / declines | `participantGender` | via composition services |
 | `GET availability` summary participants | `gender` | ✅ `ParticipantRowPresentation` |
 | `GET season statistics` rows | `gender` | N/A (grid avatars from row) |
-| `GET season/event participants` admin | `gender` | ✅ `ParticipantRowPresentation` |
+| `GET season/event participants` admin | `gender` (effective) + `participantGender` | ✅ `ParticipantRowPresentation` |
 | `GET troupe members` admin | — | N/A (no gender on admin list — 2.12b) |
 | `GET member profile` / glance | `gender` | profile role pills + avatar tone |
 | `GET audit` identities | `gender` | avatar from identity |
@@ -263,4 +267,4 @@ Use one account with gender **Féminin** and one with **Masculin** (and optional
 | Add row for new UI showing person + role | PR author |
 | Sync with story **2.12b** acceptance criteria | Reviewer |
 
-**Related implementation stories:** `2-12-genre-optionnel-profil-membre-api-mon-compte.md`, `2-12b-libelles-roles-adaptes-genre.md`, `2-12c-avatars-repli-selon-genre.md`, `mig-7-backfill-users-gender-from-v1.md`
+**Related implementation stories:** `2-12-genre-optionnel-profil-membre-api-mon-compte.md`, `2-12b-libelles-roles-adaptes-genre.md`, `2-12c-avatars-repli-selon-genre.md`, `2-12d-genre-participant-admin-roster.md`, `mig-7-backfill-users-gender-from-v1.md`

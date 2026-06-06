@@ -180,4 +180,74 @@ describe('PwaUpdateService', () => {
 
     expect(service.refreshing()).toBe(false);
   });
+
+  it('checkForUpdatesManually returns disabled when service worker is disabled', async () => {
+    isEnabled = false;
+    const service = createService();
+
+    await expect(service.checkForUpdatesManually()).resolves.toBe('disabled');
+  });
+
+  it('checkForUpdatesManually returns up-to-date when no pending update', async () => {
+    vi.useFakeTimers();
+    getRegistration.mockResolvedValue({
+      waiting: null,
+      addEventListener: vi.fn(),
+      update: vi.fn().mockResolvedValue(undefined),
+    });
+    const service = createService();
+    await Promise.resolve();
+
+    const resultPromise = service.checkForUpdatesManually();
+    await vi.runAllTimersAsync();
+    await expect(resultPromise).resolves.toBe('up-to-date');
+    expect(service.showBanner()).toBe(false);
+    expect(service.checking()).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('checkForUpdatesManually shows banner when VERSION_READY during check', async () => {
+    getRegistration.mockResolvedValue({
+      waiting: null,
+      addEventListener: vi.fn(),
+      update: vi.fn().mockImplementation(async () => {
+        versionUpdates.next({
+          type: 'VERSION_READY',
+          currentVersion: { hash: 'a' },
+          latestVersion: { hash: 'b' },
+        } as VersionReadyEvent);
+      }),
+    });
+    const service = createService();
+    await Promise.resolve();
+
+    await expect(service.checkForUpdatesManually()).resolves.toBe('available');
+    expect(service.showBanner()).toBe(true);
+  });
+
+  it('checkForUpdatesManually shows banner when waiting worker exists', async () => {
+    getRegistration.mockResolvedValue({
+      waiting: { state: 'installed' },
+      addEventListener: vi.fn(),
+      update: vi.fn().mockResolvedValue(undefined),
+    });
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        getRegistration,
+        controller: {},
+      },
+    });
+    const service = createService();
+    await Promise.resolve();
+
+    await expect(service.checkForUpdatesManually()).resolves.toBe('available');
+    expect(service.showBanner()).toBe(true);
+  });
+
+  it('checkForUpdatesManually returns error when ngsw.json fetch fails', async () => {
+    fetchMock.mockResolvedValue({ ok: false });
+    const service = createService();
+
+    await expect(service.checkForUpdatesManually()).resolves.toBe('error');
+  });
 });

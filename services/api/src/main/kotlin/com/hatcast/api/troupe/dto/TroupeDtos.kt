@@ -96,8 +96,8 @@ data class TroupeListItemDto(
 
 data class TroupeMemberAdminDto(
     val id: UUID,
-    val userId: UUID,
-    val userSlug: String,
+    val userId: UUID?,
+    val userSlug: String?,
     val email: String?,
     val displayName: String,
     val avatarUrl: String?,
@@ -112,17 +112,17 @@ data class TroupeMemberAdminDto(
             entity: TroupeMembershipEntity,
             avatarService: AvatarService,
         ): TroupeMemberAdminDto {
-            val slug =
-                entity.user.slug?.trim()?.takeIf { it.isNotEmpty() }
-                    ?: throw IllegalStateException("User ${entity.user.id} has no slug")
+            val user = entity.user
+            val email = user?.email ?: entity.normalizedEmail
+            val slug = user?.slug?.trim()?.takeIf { it.isNotEmpty() }
             return TroupeMemberAdminDto(
                 id = entity.id,
-                userId = entity.user.id,
+                userId = user?.id,
                 userSlug = slug,
-                email = entity.user.email,
+                email = email,
                 displayName = entity.displayName,
-                avatarUrl = ParticipantRowPresentation.avatarUrl(avatarService, entity.user),
-                gender = ParticipantRowPresentation.genderWire(entity.user),
+                avatarUrl = user?.let { ParticipantRowPresentation.avatarUrl(avatarService, it) },
+                gender = user?.let { ParticipantRowPresentation.genderWire(it) } ?: "non_specified",
                 status = entity.status,
                 baselineRole = entity.baselineRole,
                 createdAt = entity.createdAt,
@@ -191,6 +191,15 @@ data class AddTroupeMemberRequest(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+data class AddTroupeExterneRequest(
+    @field:NotBlank(message = "Le nom affiché ne peut pas être vide.")
+    @field:Size(max = 255)
+    val displayName: String,
+    @field:Size(max = 320)
+    val email: String? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class UpdateMyMembershipRequest(
     @field:NotBlank(message = "Le nom affiché ne peut pas être vide.")
     @field:Size(max = 255)
@@ -203,4 +212,6 @@ data class UpdateTroupeMemberRequest(
     val displayName: JsonNullable<String> = JsonNullable.undefined(),
     val status: JsonNullable<TroupeMembershipStatus> = JsonNullable.undefined(),
     val baselineRole: JsonNullable<TroupeBaselineRole> = JsonNullable.undefined(),
+    /** Carnet externe only — optional email pre-link (trim + lowercase). */
+    val email: JsonNullable<String> = JsonNullable.undefined(),
 )

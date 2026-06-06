@@ -2,13 +2,13 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.audit.AuditActionType
 import com.hatcast.api.audit.AuditEventRecorder
-import com.hatcast.api.audit.AuditEventRepository
 import com.hatcast.api.audit.AuditRecordRequest
 import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.EventAvailabilityRepository
-import com.hatcast.api.availability.associateByLinkedUserId
+import com.hatcast.api.availability.EventAvailabilityIndex
+import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.composition.dto.AssignSlotRequestDto
 import com.hatcast.api.composition.dto.CompositionCandidateDto
 import com.hatcast.api.composition.dto.CompositionCandidateListResponseDto
@@ -51,7 +51,6 @@ class CompositionSlotAssignmentService(
     private val compositionService: CompositionService,
     private val eventPublisher: ApplicationEventPublisher,
     private val auditRecorder: AuditEventRecorder,
-    private val auditEventRepository: AuditEventRepository,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
     private val participantGenderResolver: ParticipantGenderResolver,
     private val participantAvatarResolver: ParticipantAvatarResolver,
@@ -95,8 +94,8 @@ class CompositionSlotAssignmentService(
                 eventParticipantRepository,
                 eventParticipantExclusionRepository,
             )
-        val availabilityByUserId =
-            availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
+        val availabilityIndex =
+            availabilityRepository.findByEvent_Id(eventId).toAvailabilityIndex()
         val historyCounts =
             selectionHistory.pastSelectionCountByParticipantAndRole(
                 event,
@@ -109,7 +108,7 @@ class CompositionSlotAssignmentService(
         val pool =
             CompositionParticipantPool.buildRolePool(
                 eligible = eligible,
-                availabilityByUserId = availabilityByUserId,
+                availabilityIndex = availabilityIndex,
                 roleKey = roleKey,
                 excluded = sameRoleExcluded,
             )
@@ -213,9 +212,6 @@ class CompositionSlotAssignmentService(
             }
             if (cleared) {
                 recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, null, beforeSnapshot, AuditActionType.SLOT_CLEARED)
-                if (formerAssigneeId != null) {
-                    publishAssigneeRemoved(eventId, seasonId, principal.userId, formerAssigneeId, roleKey, slotIndex)
-                }
             }
         } else {
             val compositionRow =
@@ -233,19 +229,6 @@ class CompositionSlotAssignmentService(
             compositionRow.updatedAt = now
             compositionRepository.save(compositionRow)
             recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
-            if (formerAssigneeId != null && formerAssigneeId != participantId &&
-                auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
-            ) {
-                publishAssigneeRemoved(eventId, seasonId, principal.userId, formerAssigneeId, roleKey, slotIndex)
-                eventPublisher.publishEvent(
-                    CompositionReconfirmationRequestedEvent(
-                        eventId = eventId,
-                        seasonId = seasonId,
-                        actorUserId = principal.userId,
-                        assigneeParticipantIds = listOf(participantId),
-                    ),
-                )
-            }
         }
 
         lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
@@ -315,12 +298,12 @@ class CompositionSlotAssignmentService(
             )
         val eligibleRow = resolveAssignee(seasonId, eventId, participantId, eligible)
 
-        val availabilityByUserId =
-            availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
+        val availabilityIndex =
+            availabilityRepository.findByEvent_Id(eventId).toAvailabilityIndex()
         val pool =
             CompositionParticipantPool.buildRolePool(
                 eligible = eligible,
-                availabilityByUserId = availabilityByUserId,
+                availabilityIndex = availabilityIndex,
                 roleKey = roleKey,
                 excluded = emptySet(),
             )

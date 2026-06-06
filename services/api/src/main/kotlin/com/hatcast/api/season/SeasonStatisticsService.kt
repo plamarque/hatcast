@@ -15,6 +15,7 @@ import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.composition.assignedParticipantId
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
@@ -176,9 +177,7 @@ class SeasonStatisticsService(
         val participantId = participant.id
         val displayName = participant.displayName
         val (userSlug, avatarUrl) = participantProfileIdentity(participant)
-        val memberGender =
-            linkedUser(participant)?.let { MemberGender.effective(it.gender) }
-                ?: MemberGender.NON_SPECIFIED
+        val memberGender = ParticipantRowPresentation.effectiveGender(participant)
         val gender = memberGender.wireValue
         val annual = emptyCountsMap()
         val monthSummary = mutableMapOf<String, StatCountBucket>()

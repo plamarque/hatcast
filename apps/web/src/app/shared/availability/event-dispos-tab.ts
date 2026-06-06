@@ -12,7 +12,8 @@ import {
 import type { EventResponse } from '../../core/events/event-api.service'
 import { isEventDraft } from '../../core/events/event-draft'
 import type { AvailabilityFormSavedPayload } from './availability-form'
-import { ParticipantApiService, type ParticipantSelector } from '../../core/participants/participant-api.service'
+import type { ParticipantSelector } from '../../core/participants/participant-api.service'
+import { summaryParticipantsToSelectors } from './availability-subject-options'
 import { AvailabilityMoiPanel } from './availability-moi-panel'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
 import { AvailabilityTousPanel } from './availability-tous-panel'
@@ -34,7 +35,6 @@ export type DisposViewMode = 'moi' | 'tous'
 })
 export class EventDisposTab implements OnDestroy {
   private readonly availabilityApi = inject(AvailabilityApiService)
-  private readonly participantApi = inject(ParticipantApiService)
   private readonly snack = inject(MatSnackBar)
 
   readonly seasonId = input.required<string>()
@@ -52,7 +52,6 @@ export class EventDisposTab implements OnDestroy {
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
   protected readonly summary = signal<EventAvailabilitySummary | null>(null)
-  protected readonly selectors = signal<ParticipantSelector[]>([])
   protected readonly viewMode = signal<DisposViewMode>('moi')
   protected readonly loadingChances = signal(false)
   protected readonly subjectParticipantId = signal<string>('')
@@ -84,6 +83,11 @@ export class EventDisposTab implements OnDestroy {
     if (!subject || !this.canSwitchSubject()) return false
     return subject.userId !== this.currentUserId()
   })
+
+  /** Event-scoped roster (season + event-only, minus exclusions) — same pool as summary / Tous. */
+  protected readonly subjectSelectorOptions = computed((): ParticipantSelector[] =>
+    summaryParticipantsToSelectors(this.summary()?.participants ?? []),
+  )
 
   constructor() {
     let previousEventId: string | null = null
@@ -178,10 +182,11 @@ export class EventDisposTab implements OnDestroy {
     }
     this.loading.set(true)
     const requestId = ++this.loadRequestId
-    const [summaryResult, selectorsResult] = await Promise.all([
-      this.availabilityApi.getEventAvailabilitySummary(this.seasonId(), this.event().id, false),
-      this.participantApi.listSeasonParticipantSelectors(this.seasonId()),
-    ])
+    const summaryResult = await this.availabilityApi.getEventAvailabilitySummary(
+      this.seasonId(),
+      this.event().id,
+      false,
+    )
 
     if (requestId !== this.loadRequestId) return
 
@@ -196,9 +201,6 @@ export class EventDisposTab implements OnDestroy {
     this.summary.set(summaryResult.data)
     this.summaryChanged.emit(summaryResult.data)
     this.summaryIncludesChances = false
-    if (selectorsResult.ok && selectorsResult.data) {
-      this.selectors.set(selectorsResult.data)
-    }
 
     const selfParticipant = summaryResult.data.participants.find(
       (p) => p.userId === this.currentUserId(),

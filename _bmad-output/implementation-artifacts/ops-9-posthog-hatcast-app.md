@@ -204,7 +204,7 @@ posthog.init(apiKey, {
   api_host: 'https://e.hatcast.app',
   ui_host: 'https://eu.posthog.com',
   person_profiles: 'identified_only',
-  capture_pageview: false, // FR47 is workflow events, not generic pageviews (optional: enable later)
+  capture_pageview: 'history_change', // SPA Angular — $pageview for Web analytics health + FR47 workflow events
   persistence: 'localStorage+cookie',
 })
 ```
@@ -293,6 +293,7 @@ Composer (bmad-dev-story)
 - 2026-06-04 : Story created (ready-for-dev) from stub + PLAN/SCP/Epic 11.1/ops patterns.
 - 2026-06-04 : Implementation complete — PostHog FR47 baseline (web SDK, hooks, CI/docs) ; status → review.
 - 2026-06-04 : Code review — AC9 MVP documenté ; AC6 agenda (availabilityOpenedAt) ; status → done.
+- 2026-06-06 : `capture_pageview: 'history_change'` (était `false`) — fix Installation Health `$pageview` ; runbook §7.5 mis à jour.
 
 ---
 
