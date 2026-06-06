@@ -94,6 +94,7 @@ so that **I do not lose confirmation progress, can fix the lineup without re-ask
 - [x] [Review][Patch] `slotRowAriaLabel` incohérent avec le nouveau routage clic brouillon [`event-equipe-tab.ts:514-527`] — pour un slot rempli déverrouillé, `canEditSlots()` est vrai donc l’aria annonce « Modifier … » alors que `onSlotRowClick` ouvre la modale participation ; inverser la priorité (participation tappable avant édition slot rempli) ou restreindre la branche `canEditSlots` aux slots vides.
 - [x] [Review][Patch] AC3 sans test d’intégration dédié — pas de scénario « unlock → replace slot 0 Alice→Bob → Bob `pending`, slot 1 inchangé » ; `M-E1` couvre le silence notification seulement ; ajouter un test ciblé dans `CompositionParticipationIntegrationTest` ou étendre `M-E1`.
 - [x] [Review][Defer] Proxy sur slot propre si organisateur non lié (`viewerParticipantIds` vide) [`event-equipe-tab.ts:467-474`] — cas admin sans identité membre ; copie proxy sur slot propre ; rare en prod ; deferred, pre-existing pattern étendu.
+- [x] [Review][Patch] File List story incomplet — ajouter `event-equipe-tab.html`, `event-equipe-tab.scss`, `composition-equipe-actions.ts` (zone brouillon inline + Partager en grille).
 
 ---
 
@@ -281,7 +282,10 @@ Composer (Cursor)
 - services/api/src/test/kotlin/com/hatcast/api/composition/CompositionParticipationIntegrationTest.kt
 - services/api/src/test/kotlin/com/hatcast/api/notification/CompositionNotificationTriggerMatrixIntegrationTest.kt
 - apps/web/src/app/pages/event-detail/event-equipe-tab.ts
+- apps/web/src/app/pages/event-detail/event-equipe-tab.html
+- apps/web/src/app/pages/event-detail/event-equipe-tab.scss
 - apps/web/src/app/pages/event-detail/event-equipe-tab.spec.ts
+- apps/web/src/app/core/composition/composition-equipe-actions.ts
 
 ### Change Log
 
@@ -290,6 +294,7 @@ Composer (Cursor)
 - 2026-06-07: Implementation complete — backend unlock/participation/assign fixes, Équipe draft proxy tap, integration + component tests; status → review.
 - 2026-06-07: Code review — aria label fix + AC3 integration test ; status → done.
 - 2026-06-07: Docs normatifs — first validate preserves `confirmed` (SPEC, DOMAIN, companion specs, UX draft zone + toolbar Partager).
+- 2026-06-07: Code review — File List complété (HTML/SCSS Équipe + `composition-equipe-actions`).
 
 ### Validation create-story
 

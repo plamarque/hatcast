@@ -197,3 +197,5 @@
 ## Deferred from: code review of 6-22-composition-unlock-preserve-participation (2026-06-07)
 
 - Proxy sur slot propre si organisateur non lié (`viewerParticipantIds` vide) — cas admin sans identité membre ; copie proxy sur slot propre ; rare en prod ; pattern 6.8 étendu au brouillon.
+- Zone brouillon inline + Partager en grille toolbar — extension UX documentée (changelog / UX normatif) hors AC originaux 6.22 ; livré volontairement dans le même lot.
+- Assertions `participantFocus` ajoutées dans `decline frees slot and records decline row` — couplage test feature agenda ; déplacer vers test dédié si souhaité.
