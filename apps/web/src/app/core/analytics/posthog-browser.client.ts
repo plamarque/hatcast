@@ -38,7 +38,8 @@ export async function initPostHogBrowser(config: PostHogBrowserConfig): Promise<
     api_host: apiHost,
     ui_host: config.uiHost.trim() || 'https://eu.posthog.com',
     person_profiles: 'identified_only',
-    capture_pageview: false,
+    // SPA (Angular router) — required for PostHog web analytics $pageview health check.
+    capture_pageview: 'history_change',
     persistence: 'localStorage+cookie',
   })
   posthogInstance = posthog
