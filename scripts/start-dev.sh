@@ -16,8 +16,8 @@
 #   HATCAST_NOTIFICATION_EMAIL_ENABLED=true — démarre Mailpit (Docker), force SMTP local pour l’API,
 #   désactive CLOUDFLARE_* du .env (Mailpit prioritaire), arrête Mailpit à la fin du script ; voir `.env.example`.
 #   --with-push + EMAIL_ENABLED : push (VAPID dans .env) et emails (Mailpit) en parallèle pour story 8.3.
-#   --with-push : avant le build prod, injecte environment.ts depuis .env (HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID
-#   → GOOGLE_OAUTH_WEB_CLIENT_ID, HATCAST_FIREBASE_*, HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY) via inject-google-client-id.mjs.
+#   --with-push : injecte environment.production.local.ts (gitignored) depuis .env via inject-google-client-id.mjs
+#   — environment.ts versionné n’est pas modifié ; build Angular en configuration production-local.
 #
 # URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host`).
 #   Accès mobile (tailnet) : `tailscale up` si déconnecté, puis Serve → https://<machine>.<tailnet>.ts.net
@@ -151,7 +151,7 @@ warn_push_vapid_config() {
   fi
 }
 
-# Régénère apps/web/src/environments/environment.ts depuis .env (build prod local --with-push).
+# Régénère environment.production.local.ts (gitignored) depuis .env — build prod local --with-push.
 inject_web_prod_environment() {
   [[ "$WITH_PUSH" == "1" ]] || return 0
 
@@ -173,11 +173,11 @@ inject_web_prod_environment() {
   if [[ "$fb_missing" -eq 1 ]]; then
     echo "  ⚠ HATCAST_FIREBASE_* incomplet — formulaire email/mot de passe masqué (Google seul)."
   else
-    echo "✓ Config Firebase Identity Platform (.env) → injection dans environment.ts"
+    echo "✓ Config Firebase Identity Platform (.env) → injection dans environment.production.local.ts"
   fi
 
-  echo "→ Injection environment.ts pour build production (inject-google-client-id.mjs)…"
-  node "$ROOT/apps/web/scripts/inject-google-client-id.mjs"
+  echo "→ Injection environment.production.local.ts pour build production-local (inject-google-client-id.mjs)…"
+  HATCAST_ENV_OUTPUT=environment.production.local.ts node "$ROOT/apps/web/scripts/inject-google-client-id.mjs"
 }
 
 # start-dev pilote Mailpit : SMTP local pour bootRun (ignore SPRING_MAIL_* Gmail et CLOUDFLARE_* du .env).

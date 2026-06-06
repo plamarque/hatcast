@@ -10,12 +10,16 @@
  *   HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY
  * Optionnel (PostHog FR47 / OPS-9 — vide = pas d’analytics) :
  *   HATCAST_POSTHOG_PROJECT_API_KEY
+ *
+ * Cible de sortie (défaut : environment.ts pour Docker/CI) :
+ *   HATCAST_ENV_OUTPUT=environment.production.local.ts  # recette locale --with-push (gitignored)
  */
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+const LOCAL_RECETTE_FILENAME = 'environment.production.local.ts'
 const id = process.env.GOOGLE_OAUTH_WEB_CLIENT_ID?.trim()
 if (!id) {
   console.error('GOOGLE_OAUTH_WEB_CLIENT_ID est requis pour ce build.')
@@ -28,8 +32,14 @@ const projectId = process.env.HATCAST_FIREBASE_PROJECT_ID?.trim() ?? ''
 const vapidPublicKey = process.env.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY?.trim() ?? ''
 const posthogApiKey = process.env.HATCAST_POSTHOG_PROJECT_API_KEY?.trim() ?? ''
 
+const outputFilename = process.env.HATCAST_ENV_OUTPUT?.trim() || 'environment.ts'
+const isLocalRecette = outputFilename === LOCAL_RECETTE_FILENAME
+const fileBanner = isLocalRecette
+  ? '/** Généré par scripts/inject-google-client-id.mjs (recette --with-push) — gitignored, ne pas committer. */'
+  : '/** Généré par scripts/inject-google-client-id.mjs au build Docker/CI — ne pas y mettre de secret serveur. */'
+
 const content = `import type { FirebaseOptions } from 'firebase/app'
-/** Généré par scripts/inject-google-client-id.mjs au build Docker/CI — ne pas y mettre de secret serveur. */
+${fileBanner}
 export const environment = {
   production: true,
   googleOAuthWebClientId: ${JSON.stringify(id)},
@@ -48,10 +58,10 @@ export const environment = {
 }
 `
 
-const target = join(__dirname, '../src/environments/environment.ts')
+const target = join(__dirname, '../src/environments', outputFilename)
 writeFileSync(target, content, 'utf8')
 console.log(
-  'environment.ts mis à jour pour la production (Client ID Web' +
+  `${outputFilename} mis à jour pour la production (Client ID Web` +
     (apiKey && authDomain && projectId ? ' + Firebase / Identity Platform' : '') +
     ').',
 )

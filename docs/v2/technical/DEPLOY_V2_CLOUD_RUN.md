@@ -444,7 +444,7 @@ Hors scope : session replay, feature flags, `defaults: '2026-01-30'` (on fixe le
 
 Workflow : `.github/workflows/deploy-v2-cloud-run.yml` passe `--build-arg HATCAST_POSTHOG_PROJECT_API_KEY=…` sur l’image unique.
 
-Local optionnel : `HATCAST_POSTHOG_PROJECT_API_KEY` dans `.env` + `./scripts/start-dev.sh --with-push` (régénère `environment.ts`).
+Local optionnel : `HATCAST_POSTHOG_PROJECT_API_KEY` dans `.env` + `./scripts/start-dev.sh --with-push` (injecte `environment.production.local.ts`, gitignored — `environment.ts` versionné inchangé).
 
 #### Recette post-déploiement (AC14)
 
