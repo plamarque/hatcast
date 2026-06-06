@@ -64,6 +64,10 @@ class AuthControllerIntegrationTest {
         val cookie = result.response.getCookie("HATCAST_SESSION")
         requireNotNull(cookie) { "session cookie expected" }
 
+        mockMvc
+            .perform(get("/v1/auth/me").cookie(cookie))
+            .andExpect(status().isOk)
+
         val me =
             mockMvc
                 .perform(

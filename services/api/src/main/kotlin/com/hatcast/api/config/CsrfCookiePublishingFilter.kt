@@ -19,9 +19,7 @@ class CsrfCookiePublishingFilter : OncePerRequestFilter() {
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        // CsrfFilter may expose the token under _csrf or CsrfToken::class.java.name (SS6 handler).
         (request.getAttribute("_csrf") as? CsrfToken)?.token
-            ?: (request.getAttribute(CsrfToken::class.java.name) as? CsrfToken)?.token
         filterChain.doFilter(request, response)
     }
 }
