@@ -19,8 +19,8 @@
 
 **Related fixes (same sprint, done):**
 
-- Dispos subject selector aligned with event roster (`spec-dispos-subject-selector-event-roster.md`)
-- Add/edit participant dialog layout (label clipping, scroll)
+- Dispos subject selector aligned with event roster (`spec-dispos-subject-selector-event-roster.md`, commit `0af82cb3`)
+- Add/edit participant dialog M3 layout (`ux-design-participant-roster-admin.md` §2, commit `570ce4b0`)
 
 ---
 

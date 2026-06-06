@@ -575,7 +575,7 @@ Same **event header** and **three tab pills** as [Event detail — Infos](#scree
 
 | Control | Role |
 |---------|------|
-| **Member dropdown** (left) | **Avatar + name** (e.g. *Patrice*). Lets **organizer/admin** switch **subject** to view or edit **that person’s** dispo for **this event**. For a normal member, expect **self only** or no switching—align with permissions. |
+| **Member dropdown** (left) | **Avatar + name** (e.g. *Patrice*). Lets **organizer/admin** switch **subject** to view or edit **that person’s** dispo for **this event**. Options = **eligible event roster** (same pool as **Tous**: season participants minus exclusions, plus event-only guests). For a normal member, expect **self only** or no switching—align with permissions. *As-built 2026-06-06:* sourced from availability **summary**, not season-wide `/participants/selectors`. See [ux-design-participant-roster-admin.md](./ux-design-participant-roster-admin.md). |
 | **Tous** / **Moi** | **Segmented control** or toggle pair: **Tous** (people icon) = aggregate view by role; **Moi** (person icon) = personal editing surface. **Purple** highlight on the active mode in V1. |
 
 ### “Moi” panel (personal availability)
