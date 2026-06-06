@@ -55,6 +55,7 @@ class NotificationPayloadBuilderProxyTest {
             )
 
         assertTrue(payload.body.contains("a confirmé ta participation"))
+        assertEquals("Participation confirmée", payload.title)
         assertTrue(payload.body.contains("Joueur"))
         assertTrue(payload.body.contains("janvier 2032"))
         assertEquals("/saison/saison-test/event/spectacle-test?tab=equipe", payload.url)
@@ -78,6 +79,7 @@ class NotificationPayloadBuilderProxyTest {
             )
 
         assertTrue(payload.body.contains("a décliné ta participation"))
+        assertEquals("Participation déclinée", payload.title)
         assertTrue(payload.body.contains("janvier 2032"))
         assertEquals("/saison/saison-test/event/spectacle-test?tab=equipe", payload.url)
     }
@@ -100,6 +102,7 @@ class NotificationPayloadBuilderProxyTest {
             )
 
         assertTrue(payload.body.contains("a remis ta participation à confirmer"))
+        assertEquals("Participation à reconfirmer", payload.title)
         assertEquals("/saison/saison-test/event/spectacle-test?showConfirm=true", payload.url)
     }
 

@@ -79,7 +79,7 @@ class ReconfirmationNotificationIntegrationTest {
     }
 
     @Test
-    fun `unlock notifies only assignees whose response was reset`() {
+    fun `unlock does not dispatch reconfirmation while composition is draft`() {
         val admin = adminCookie("sub-reconf-admin")
         val confirmedMember = memberCookie("sub-reconf-confirmed")
         memberCookie("sub-reconf-pending")
@@ -112,22 +112,13 @@ class ReconfirmationNotificationIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
 
-        verify(notificationDispatcher, times(1)).dispatch(
-            argThat {
-                intent == NotificationIntent.RECONFIRMATION_REQUEST &&
-                    assigneeParticipantIds == listOf(confirmedId)
-            },
-        )
         verify(notificationDispatcher, never()).dispatch(
-            argThat {
-                intent == NotificationIntent.RECONFIRMATION_REQUEST &&
-                    assigneeParticipantIds.contains(pendingId)
-            },
+            argThat { intent == NotificationIntent.RECONFIRMATION_REQUEST },
         )
     }
 
     @Test
-    fun `revalidate after unlock does not resend confirmation or FYI`() {
+    fun `revalidate after unlock sends reconfirmation to pending assignees only`() {
         val admin = adminCookie("sub-revalidate-admin")
         memberCookie("sub-revalidate-assignee")
         val seasonId = createSeason(admin)
@@ -156,6 +147,12 @@ class ReconfirmationNotificationIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
 
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat {
+                intent == NotificationIntent.RECONFIRMATION_REQUEST &&
+                    assigneeParticipantIds == listOf(assigneeId)
+            },
+        )
         verify(notificationDispatcher, never()).dispatch(
             argThat {
                 intent == NotificationIntent.CONFIRMATION_REQUEST ||

@@ -18,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.never
-import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -80,7 +79,7 @@ class CompositionRemovalNotificationIntegrationTest {
     }
 
     @Test
-    fun `unlock clear slot notifies former assignee only`() {
+    fun `unlock clear slot does not notify former assignee until revalidation`() {
         val admin = adminCookie("sub-removal-admin")
         memberCookie("sub-removal-former")
         memberCookie("sub-removal-kept")
@@ -108,22 +107,13 @@ class CompositionRemovalNotificationIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
 
-        verify(notificationDispatcher, times(1)).dispatch(
-            argThat {
-                intent == NotificationIntent.REMOVED_FROM_COMPOSITION &&
-                    assigneeParticipantIds == listOf(formerId)
-            },
-        )
         verify(notificationDispatcher, never()).dispatch(
-            argThat {
-                intent == NotificationIntent.REMOVED_FROM_COMPOSITION &&
-                    assigneeParticipantIds == listOf(keptId)
-            },
+            argThat { intent == NotificationIntent.REMOVED_FROM_COMPOSITION },
         )
     }
 
     @Test
-    fun `unlock replace slot notifies former assignee and reconfirms replacement`() {
+    fun `unlock replace slot does not notify until composition is validated again`() {
         val admin = adminCookie("sub-replace-admin")
         memberCookie("sub-replace-former")
         val newMember = memberCookie("sub-replace-new")
@@ -153,16 +143,10 @@ class CompositionRemovalNotificationIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
 
-        verify(notificationDispatcher, times(1)).dispatch(
+        verify(notificationDispatcher, never()).dispatch(
             argThat {
-                intent == NotificationIntent.REMOVED_FROM_COMPOSITION &&
-                    assigneeParticipantIds == listOf(formerId)
-            },
-        )
-        verify(notificationDispatcher, times(1)).dispatch(
-            argThat {
-                intent == NotificationIntent.RECONFIRMATION_REQUEST &&
-                    assigneeParticipantIds == listOf(newId)
+                intent == NotificationIntent.REMOVED_FROM_COMPOSITION ||
+                    intent == NotificationIntent.RECONFIRMATION_REQUEST
             },
         )
         verify(notificationDispatcher, never()).dispatch(

@@ -247,6 +247,49 @@ class ProxyNotificationIntegrationTest {
     }
 
     @Test
+    fun `proxy availability defers notification until roles are recorded`() {
+        val admin = adminCookie("sub-proxy-notif-avail-defer-admin")
+        memberCookie("sub-proxy-notif-avail-defer-member")
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId)
+        val memberParticipantId = participantIdForUser(seasonId, "sub-proxy-notif-avail-defer-member")
+        val memberUserId = subjectUserId("sub-proxy-notif-avail-defer-member")
+        val proxyPath =
+            "/v1/seasons/$seasonId/events/$eventId/availability/participants/$memberParticipantId"
+
+        mockMvc
+            .perform(
+                put(proxyPath)
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":[]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.PROXY_AVAILABILITY_RECORDED },
+        )
+
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                put(proxyPath)
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat {
+                intent == NotificationIntent.PROXY_AVAILABILITY_RECORDED &&
+                    subjectUserId == memberUserId
+            },
+        )
+    }
+
+    @Test
     fun `self availability does not dispatch proxy intent`() {
         val admin = adminCookie("sub-proxy-notif-self-admin")
         val member = memberCookie("sub-proxy-notif-self-member")

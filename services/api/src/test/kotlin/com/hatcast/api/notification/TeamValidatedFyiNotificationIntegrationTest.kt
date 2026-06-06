@@ -82,10 +82,10 @@ class TeamValidatedFyiNotificationIntegrationTest {
     }
 
     @Test
-    fun `validate sends FYI to linked non-assigned roster only`() {
+    fun `validate does not send FYI to linked non-assigned roster`() {
         val admin = adminCookie("sub-fyi-admin")
         memberCookie("sub-fyi-assignee")
-        val rosterMember = memberCookie("sub-fyi-roster-only")
+        memberCookie("sub-fyi-roster-only")
         val seasonId = createSeason(admin)
         seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
         addRosterWithoutUser(seasonId, "Name Only")
@@ -104,17 +104,8 @@ class TeamValidatedFyiNotificationIntegrationTest {
         verify(notificationDispatcher, times(1)).dispatch(
             argThat { intent == NotificationIntent.CONFIRMATION_REQUEST },
         )
-        verify(notificationDispatcher, times(1)).dispatch(
-            argThat {
-                intent == NotificationIntent.TEAM_VALIDATED_FYI &&
-                    eventId == this.eventId
-            },
-        )
         verify(notificationDispatcher, never()).dispatch(
-            argThat {
-                intent == NotificationIntent.TEAM_VALIDATED_FYI &&
-                    assigneeParticipantIds.isNotEmpty()
-            },
+            argThat { intent == NotificationIntent.TEAM_VALIDATED_FYI },
         )
     }
 

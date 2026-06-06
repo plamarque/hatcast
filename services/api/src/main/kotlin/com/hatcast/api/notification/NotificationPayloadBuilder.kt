@@ -112,6 +112,7 @@ class NotificationPayloadBuilder {
                 val rolePart = summary?.roleLabel ?: roleLabel.orEmpty()
                 val decision = summary?.decisionLabel ?: "mise à jour"
                 val verb = ProxyNotificationLabels.participationProxyVerb(decision)
+                val title = ProxyNotificationLabels.participationProxyNotificationTitle(decision)
                 val url =
                     if (ProxyNotificationLabels.participationProxyUsesShowConfirmDeepLink(decision)) {
                         "/saison/$seasonSlug/event/$eventSlug?showConfirm=true"
@@ -119,7 +120,7 @@ class NotificationPayloadBuilder {
                         "/saison/$seasonSlug/event/$eventSlug?tab=equipe"
                     }
                 NotificationPayload(
-                    title = "Participation enregistrée",
+                    title = title,
                     body =
                         if (rolePart.isNotBlank()) {
                             "$actor $verb pour $eventTitle ($rolePart) le $eventDate"
@@ -135,6 +136,7 @@ class NotificationPayloadBuilder {
     fun buildEmailSubject(
         intent: NotificationIntent,
         event: EventEntity,
+        proxyChangeSummary: ProxyChangeSummary? = null,
     ): String {
         val eventTitle = event.title
         val eventDate = formatEventDate(event)
@@ -157,8 +159,12 @@ class NotificationPayloadBuilder {
                 "Reconfirmation · $eventTitle ($eventDate)"
             NotificationIntent.PROXY_AVAILABILITY_RECORDED ->
                 "Disponibilité enregistrée · $eventTitle ($eventDate)"
-            NotificationIntent.PROXY_CONFIRMATION_RECORDED ->
-                "Participation enregistrée · $eventTitle ($eventDate)"
+            NotificationIntent.PROXY_CONFIRMATION_RECORDED -> {
+                val decision =
+                    (proxyChangeSummary as? ProxyChangeSummary.Participation)?.decisionLabel
+                        ?: "mise à jour"
+                "${ProxyNotificationLabels.participationProxyNotificationTitle(decision)} · $eventTitle ($eventDate)"
+            }
         }
     }
 

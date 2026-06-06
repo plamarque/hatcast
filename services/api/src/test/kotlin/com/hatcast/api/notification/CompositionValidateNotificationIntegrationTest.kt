@@ -39,6 +39,7 @@ import org.springframework.stereotype.Service
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -268,11 +269,8 @@ class CompositionValidateNotificationIntegrationTest {
                     assigneeParticipantIds.isEmpty()
             },
         )
-        verify(notificationDispatcher, times(1)).dispatch(
-            argThat {
-                intent == NotificationIntent.TEAM_VALIDATED_FYI &&
-                    eventId == this.eventId
-            },
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.TEAM_VALIDATED_FYI },
         )
     }
 
@@ -320,6 +318,84 @@ class CompositionValidateNotificationIntegrationTest {
                     intent == NotificationIntent.AVAILABILITY_OPENED
             },
         )
+    }
+
+    @Test
+    fun `draft manual slot assign does not dispatch confirmation`() {
+        val admin = adminCookie("sub-validate-notif-admin-draft-assign")
+        val member = memberCookie("sub-validate-notif-draft-assign")
+        val seasonId = createSeason(admin)
+        seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
+        val eventId = createEvent(admin, seasonId)
+        setAvailability(member, seasonId, eventId, "available")
+        val assigneeId = participantIdForUser(seasonId, "sub-validate-notif-draft-assign")
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":"$assigneeId"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, never()).dispatch(
+            argThat {
+                intent == NotificationIntent.CONFIRMATION_REQUEST ||
+                    intent == NotificationIntent.RECONFIRMATION_REQUEST ||
+                    intent == NotificationIntent.REMOVED_FROM_COMPOSITION
+            },
+        )
+    }
+
+    @Test
+    fun `draft full draw does not dispatch confirmation`() {
+        val admin = adminCookie("sub-validate-notif-admin-draft-draw")
+        val member1 = memberCookie("sub-validate-notif-draft-draw-1")
+        val member2 = memberCookie("sub-validate-notif-draft-draw-2")
+        val seasonId = createSeason(admin)
+        seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
+        val eventId = createEvent(admin, seasonId)
+        setAvailability(member1, seasonId, eventId, "available")
+        setAvailability(member2, seasonId, eventId, "available")
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/draw")
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"mode":"full"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.CONFIRMATION_REQUEST },
+        )
+    }
+
+    private fun setAvailability(
+        cookie: jakarta.servlet.http.Cookie,
+        seasonId: UUID,
+        eventId: UUID,
+        status: String,
+        roleKeys: List<String> = listOf("player"),
+    ) {
+        val roleKeysJson =
+            if (roleKeys.isEmpty()) {
+                "[]"
+            } else {
+                roleKeys.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
+            }
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"$status","roleKeys":$roleKeysJson}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
     }
 
     @TestConfiguration

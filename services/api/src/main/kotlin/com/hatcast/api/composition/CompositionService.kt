@@ -10,7 +10,7 @@ import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.AvailabilityRoleRules
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.availability.EventAvailabilityRepository
-import com.hatcast.api.availability.associateByLinkedUserId
+import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.dto.CompositionDeclineDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
@@ -170,26 +170,45 @@ class CompositionService(
             composition.validatedAt = now
             composition.updatedAt = now
             compositionRepository.save(composition)
-            val slotsToPending =
-                slots.filter { it.hasAssignee() }.onEach {
-                    it.participationStatus = SlotParticipationStatus.PENDING
-                    it.updatedAt = Instant.now()
-                }
-            if (slotsToPending.isNotEmpty()) {
-                slotRepository.saveAll(slotsToPending)
-            }
             val isRevalidation =
                 auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
-            if (!isRevalidation) {
+            if (isRevalidation) {
+                val assigneesNeedingReconfirm =
+                    slots
+                        .filter { it.hasAssignee() && it.participationStatus != SlotParticipationStatus.CONFIRMED }
+                        .mapNotNull { it.assignedParticipantId() }
+                        .distinct()
+                val slotsToReset =
+                    slots
+                        .filter { it.hasAssignee() && it.participationStatus != SlotParticipationStatus.CONFIRMED }
+                        .onEach {
+                            it.participationStatus = SlotParticipationStatus.PENDING
+                            it.updatedAt = Instant.now()
+                        }
+                if (slotsToReset.isNotEmpty()) {
+                    slotRepository.saveAll(slotsToReset)
+                }
+                if (assigneesNeedingReconfirm.isNotEmpty()) {
+                    eventPublisher.publishEvent(
+                        CompositionReconfirmationRequestedEvent(
+                            eventId = eventId,
+                            seasonId = seasonId,
+                            actorUserId = principal.userId,
+                            assigneeParticipantIds = assigneesNeedingReconfirm,
+                        ),
+                    )
+                }
+            } else {
+                val slotsToPending =
+                    slots.filter { it.hasAssignee() }.onEach {
+                        it.participationStatus = SlotParticipationStatus.PENDING
+                        it.updatedAt = Instant.now()
+                    }
+                if (slotsToPending.isNotEmpty()) {
+                    slotRepository.saveAll(slotsToPending)
+                }
                 eventPublisher.publishEvent(
                     CompositionConfirmationRequestedEvent(
-                        eventId = eventId,
-                        seasonId = seasonId,
-                        actorUserId = principal.userId,
-                    ),
-                )
-                eventPublisher.publishEvent(
-                    TeamValidatedFyiRequestedEvent(
                         eventId = eventId,
                         seasonId = seasonId,
                         actorUserId = principal.userId,
@@ -252,17 +271,6 @@ class CompositionService(
                 slot.updatedAt = now
             }
             slotRepository.saveAll(slotsToUpdate)
-            val affectedParticipantIds = slotsToUpdate.mapNotNull { it.assignedParticipantId() }
-            if (affectedParticipantIds.isNotEmpty()) {
-                eventPublisher.publishEvent(
-                    CompositionReconfirmationRequestedEvent(
-                        eventId = eventId,
-                        seasonId = seasonId,
-                        actorUserId = principal.userId,
-                        assigneeParticipantIds = affectedParticipantIds,
-                    ),
-                )
-            }
         }
 
         auditRecorder.record(
@@ -463,8 +471,8 @@ class CompositionService(
         val historyCounts =
             selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
         val eligible = loadEligibleForExplainability(seasonId, eventId)
-        val availabilityByUserId =
-            availabilityRepository.findByEvent_Id(eventId).associateByLinkedUserId()
+        val availabilityIndex =
+            availabilityRepository.findByEvent_Id(eventId).toAvailabilityIndex()
 
         val result = mutableMapOf<Pair<UUID, String>, Pair<Int, Int>>()
         for (roleKey in roleKeysForOdds) {
@@ -483,7 +491,8 @@ class CompositionService(
                     val pool =
                         eligible.filter { row ->
                             val availability =
-                                row.userId?.let { availabilityByUserId[it] } ?: return@filter false
+                                availabilityIndex.forParticipant(row.participantId, row.userId)
+                                    ?: return@filter false
                             if (availability.status != StoredAvailabilityStatus.AVAILABLE) {
                                 return@filter false
                             }

@@ -28,28 +28,33 @@ so that **I stay informed about changes that affect me without being spammed** (
 
 ## Acceptance Criteria
 
-1. **Given** a composition is **validated** for the first time, **when** 8.5 FYI roster notifications are enabled, **then** linked roster members who are **not assigned** receive **`TEAM_VALIDATED_FYI`** with a concise team listing / event summary, while assignees continue to receive only **`CONFIRMATION_REQUEST`** from Story **8.3**. Name-only participants are skipped. [Source: epics 8.5 ; PRD FR31 P1 ; SCP Appendix A]
+> **Amendment 2026-06-06** ([spec-composition-notify-on-validate-only.md](spec-composition-notify-on-validate-only.md), recette Troupe Démo OK)  
+> **AC1 auto `TEAM_VALIDATED_FYI` on first validate is withdrawn.** Assignees still receive `CONFIRMATION_REQUEST` from 8.3 only. Roster FYI moves to **G-012** (équipe confirmée) or orga announce modal — intent wiring remains for future opt-in use.
 
-2. **Given** a linked assignee has **confirmed** participation, **when** the event reaches **J-7** or **J-1** in the product civil-day timezone (`Europe/Paris` / `EventService.AGENDA_ZONE`), **then** the member receives exactly one **`ASSIGNEE_PRESENCE_REMINDER`** per reminder window with event info, role/composition context, and a decline CTA deep link to the Équipe flow. Pending, declined, removed, waived, archived, draft/unopened, and past events are not reminded. [Source: epics 8.5 ; PRD FR31 P1]
+1. ~~**Given** a composition is **validated** for the first time, **when** 8.5 FYI roster notifications are enabled, **then** linked roster members who are **not assigned** receive **`TEAM_VALIDATED_FYI`**~~ **Given** first validate, **then** only **`CONFIRMATION_REQUEST`** to assignees; **no** auto **`TEAM_VALIDATED_FYI`**. *(Original AC1 superseded 2026-06-06.)* Assignees continue to receive only **`CONFIRMATION_REQUEST`** from Story **8.3**. [Source: epics 8.5 ; PRD FR31 P1 ; SCP Appendix A ; G-012]
 
-3. **Given** a linked assignee is **removed from a validated composition** by an organizer/admin without the member explicitly declining, **when** the transaction commits, **then** the former assignee receives **`REMOVED_FROM_COMPOSITION`** with role + event context. Replacing a member in the same mutation must send removal to the former assignee and confirmation request / re-confirmation only to the new or affected assignee, never to the whole roster. [Source: PRD FR31 P1 ; FR27]
+2. **Given** draft composition edits (assign, draw, clear, replace) or **unlock**, **when** the mutation commits, **then** no composition workflow notification is dispatched until **validate** or **validated gap-fill**. [Source: spec-composition-notify-on-validate-only 2026-06-06]
 
-4. **Given** an already validated composition is **unlocked/remodeled/revalidated** and a linked assignee’s required response is reset or the member is newly re-added after a previous decision, **when** the remodel commits, **then** the affected assignee receives **`RECONFIRMATION_REQUEST`** instead of the generic first-time **`CONFIRMATION_REQUEST`**. Unaffected assignees are not notified again. [Source: PRD FR23, FR31 P1]
+3. **Given** a linked assignee has **confirmed** participation, **when** the event reaches **J-7** or **J-1** in the product civil-day timezone (`Europe/Paris` / `EventService.AGENDA_ZONE`), **then** the member receives exactly one **`ASSIGNEE_PRESENCE_REMINDER`** per reminder window with event info, role/composition context, and a decline CTA deep link to the Équipe flow. Pending, declined, removed, waived, archived, draft/unopened, and past events are not reminded. [Source: epics 8.5 ; PRD FR31 P1]
 
-5. **Given** channel eligibility, **when** any 8.5 intent dispatches, **then** it uses Story **8.2** categories:
+4. **Given** a linked assignee is **removed from a validated composition** by an organizer/admin without the member explicitly declining, **when** the transaction commits on a **still-validated** composition, **then** the former assignee receives **`REMOVED_FROM_COMPOSITION`**. Draft post-unlock edits do **not** notify until revalidation. Replacing on validated composition sends removal + confirmation to affected assignees only. [Source: PRD FR31 P1 ; FR27 ; amendment 2026-06-06]
+
+5. **Given** revalidation after unlock, **when** validate commits, **then** pending assignees receive **`RECONFIRMATION_REQUEST`** only (unlock itself is silent). Unaffected confirmed assignees are not notified. [Source: PRD FR23, FR31 P1 ; amendment 2026-06-06]
+
+6. **Given** channel eligibility, **when** any 8.5 intent dispatches, **then** it uses Story **8.2** categories:
    - **`TEAM_VALIDATED_FYI`** → `TEAM_CONFIRMED`
    - **`ASSIGNEE_PRESENCE_REMINDER`** → `REMINDER_7_DAYS` or `REMINDER_1_DAY`
    - **`REMOVED_FROM_COMPOSITION`** → `CONFIRMATION_REQUEST`
    - **`RECONFIRMATION_REQUEST`** → `CONFIRMATION_REQUEST`
    Push also requires Story **8.1** global/device eligibility ; email requires a non-blank user email. Missing 8.2 preference rows default to allowed, but the 8.2 port should be present on this branch. [Source: Story 8.2 AC6 ; FR30/FR31]
 
-6. **Given** delivery is attempted, **when** push/email fails or a channel is skipped, **then** the domain write / scheduler loop is not rolled back ; the result is observable via structured logs and `notification_delivery_log` (**NFR-R2**). Delivery failures are isolated per recipient/channel so one broken subscription does not stop remaining recipients. [Source: architecture NFR-R2 ; Story 8.3 review findings]
+7. **Given** delivery is attempted, **when** push/email fails or a channel is skipped, **then** the domain write / scheduler loop is not rolled back ; the result is observable via structured logs and `notification_delivery_log` (**NFR-R2**). Delivery failures are isolated per recipient/channel so one broken subscription does not stop remaining recipients. [Source: architecture NFR-R2 ; Story 8.3 review findings]
 
-7. **Given** member inbox (`GET /v1/me/inbox`, Epic **17.21**), **when** 8.5 notifications are sent, **then** no inbox rows are created or updated as a side effect — inbox remains derived from domain state only. [Source: SCP §4.8 ; Story 8.3 AC7]
+8. **Given** member inbox (`GET /v1/me/inbox`, Epic **17.21**), **when** 8.5 notifications are sent, **then** no inbox rows are created or updated as a side effect — inbox remains derived from domain state only. [Source: SCP §4.8 ; Story 8.3 AC7]
 
-8. **Given** scheduled reminders run more than once, the API restarts, or Cloud Run has more than one instance, **when** the same event/user/window is encountered again, **then** 8.5 sends are idempotent: no duplicate J-7/J-1 reminders and no duplicate removal/re-confirmation notifications for the same logical change. [Source: NFR-R2 ; scheduling guardrail]
+9. **Given** scheduled reminders run more than once, the API restarts, or Cloud Run has more than one instance, **when** the same event/user/window is encountered again, **then** 8.5 sends are idempotent: no duplicate J-7/J-1 reminders and no duplicate removal/re-confirmation notifications for the same logical change. [Source: NFR-R2 ; scheduling guardrail]
 
-9. **Given** implementation complete, **when** tests run, **then** integration/unit tests prove: validate → FYI to non-assigned linked roster only ; validate still sends `CONFIRMATION_REQUEST` to assignees only ; J-7/J-1 job sends once to confirmed assignees and never to pending/declined/past/archived events ; slot removal notifies only former assignee ; remodel/revalidate notifies only affected assignees ; channel failure does not abort other recipients ; `./gradlew test` green. [Source: project-context.md]
+10. **Given** implementation complete, **when** tests run, **then** integration/unit tests prove dispatch intent at `NotificationDispatcher` boundary: see [composition-notification-trigger-test-design.md](investigations/composition-notification-trigger-test-design.md) and `CompositionNotificationTriggerMatrixIntegrationTest` ; J-7/J-1 job ; channel failure isolation ; `./gradlew test` green. [Source: project-context.md]
 
 **Product coverage:** FR31 P1 member intents ; FR30 category gating ; NFR-R2. **Out of scope:** organizer ops intents (**8.4** / FR31b), proxy acknowledgement (**8.6**), manual availability nudge (**6.10b**), new `/compte` UI, rich service-worker action buttons.
 
@@ -219,9 +224,9 @@ Composer (Cursor)
 ### Completion Notes List
 
 - Four P1 member intents wired through existing dispatcher (no second pipeline).
-- First validate → `CONFIRMATION_REQUEST` + `TEAM_VALIDATED_FYI`; re-validate after unlock skips duplicate notifications (audit-gated).
-- Unlock/remodel → `RECONFIRMATION_REQUEST` only for assignees whose status was reset.
-- Slot clear/replace after unlock → `REMOVED_FROM_COMPOSITION` + targeted re-confirmation for replacement.
+- First validate → `CONFIRMATION_REQUEST` only (**no** auto `TEAM_VALIDATED_FYI` since 2026-06-06; → G-012).
+- Unlock → silent; revalidate → `RECONFIRMATION_REQUEST` for pending assignees only.
+- Draft post-unlock slot edits → silent until revalidation (no `REMOVED_FROM_COMPOSITION`).
 - Daily reminder job (`Europe/Paris` civil days) with DB unique constraint dedupe.
 - UI : N/A — no `apps/web/` changes.
 
