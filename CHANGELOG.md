@@ -1,5 +1,53 @@
 # Changelog
 
+## [2.2.0] - 2026-06-07
+
+### ✨ New Features
+- feat(agenda): Open confirmation from status cell
+- feat(composition): Preserve participation on unlock (6.22)
+- feat(guest): Add scoped access for linked externes
+- feat(participants): Add carnet typeahead pool (3.8d)
+- feat(admin-membres): Add edit member dialog
+- feat(participants): Cascade externe add with scope
+- feat(participants): Add organizer gender on roster rows (2.12d)
+- feat(troupe): Add EXTERNE carnet role (2.21)
+- feat(participants): Add name typeahead on add
+- feat(web): Add event detail title row above tabs
+- feat(web): Refine About tab and document UX
+- feat(pwa): Add manual update check in About tab
+
+### 🐛 Bug Fixes
+- fix(e2e): Match roster rows by display name
+- fix(test): Warm up CSRF cookie before Auth assertion
+- fix(api): Harden CSRF filter and member test lookup
+- fix(availability): Allow organizer writes on draft events
+- fix(participants): Apply 2.12d code review patches
+- fix(notifications): Gate composition alerts on validate only
+- fix(participants): Fix add/edit dialog layout
+- fix(dispos): Align subject selector with event roster
+- fix(analytics): Enable PostHog SPA pageviews
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- docs(6.22): Complete code review file list
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Assert add-participant success in 3.19 helpers
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- test(notifications): Consolidate trigger matrix suite
+- docs(composition): Approve unlock preserve-status SCP
+- docs(planning): Approve externes carnet SCP ADR-0021
+- docs: Defer remaining web perf optimizations
+- docs(ux): Capture participant roster admin as-built
+- docs(plan): Add participant roster UX backlog plan
+- chore(dev): Isolate --with-push env injection
+- chore(v2): sync release v2.1.1-rc.1 artifacts to v2
+- chore(v2): sync release v2.1.0-rc.4 artifacts to v2
+
+---
+
 ## [2.1.1] - 2026-06-06
 
 ### 📦 Release
