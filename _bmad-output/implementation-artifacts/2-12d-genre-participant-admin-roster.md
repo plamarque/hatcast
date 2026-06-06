@@ -4,7 +4,7 @@
 baseline_commit: 115776cd33d69152e2b700ad95504b1353df5346
 ---
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -349,6 +349,20 @@ Composer (dev-story 2026-06-06)
 
 - 2026-06-06 : Story created (`bmad-create-story` for 2-12d).
 - 2026-06-06 : Implementation complete — dual-layer participant gender (API + admin dialogs + cascade).
+- 2026-06-06 : Code review patches applied (accountGender edit dialog, tests event/create).
+
+### Review Findings
+
+- [x] [Review][Patch] Edit dialog read-only toggle shows « Non spéc. » instead of account M/F — `edit-participant-dialog.ts` omits `[accountGender]` on `ParticipantGenderToggleField`; `initialGender()` seeds from `participantGender` only (AC2, M3-1).
+- [x] [Review][Patch] Pass effective account gender into edit dialog — `admin-participants.ts` / `admin-event-participants.ts` should pass `accountGender: participant.gender` when `genderManagedOnAccount` is true.
+- [x] [Review][Patch] Missing `add-event-participant-dialog.spec.ts` gender payload tests — parity with season add dialog (AC9, task web tests).
+- [x] [Review][Patch] Edit dialog spec does not assert read-only toggle displays account M/F value — only checks Mon compte hint (AC2).
+- [x] [Review][Patch] API integration tests omit event participant gender paths — no create/update/reject coverage on `event_participants` (AC9).
+- [x] [Review][Patch] API integration test missing POST create reject when body sends gender for linked M/F account — PATCH covered only (AC5).
+- [x] [Review][Defer] Manual email (no typeahead) + pre-set gender can 400 if email resolves to M/F account — front cannot know link state pre-submit; document or add email lookup later.
+- [x] [Review][Defer] OpenAPI `EventRosterParticipantDto` fields (`participantGender`, `genderManagedOnAccount`) not in `participants.yaml` roster schema — Kotlin DTO ahead of OpenAPI.
+- [x] [Review][Defer] Audit snapshots omit participant `gender` field — story guardrail marked optional; follow existing audit pattern if extended later.
+- [x] [Review][Defer] AC1/AC6 test gaps — no integration tests for availability summary / season statistics with organizer gender; cascade M→F and `event_participants` rows untested.
 
 ---
 

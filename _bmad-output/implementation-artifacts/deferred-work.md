@@ -20,6 +20,15 @@
 
 ---
 
+## Deferred from: code review of 2-12d-genre-participant-admin-roster (2026-06-06)
+
+- Manual email (no typeahead) + pre-set gender can 400 if email resolves to M/F account — front cannot know link state pre-submit.
+- OpenAPI `EventRosterParticipantDto` fields not in `participants.yaml` roster schema.
+- Audit snapshots omit participant `gender` field (optional story guardrail).
+- AC1/AC6 test gaps — availability summary, season statistics, cascade M→F, `event_participants` rows.
+
+---
+
 ## Meta — qualité / CI
 
 - **DW-120** — Suite `npm run test -w @hatcast/web` : échecs pré-existants (`event-detail.spec.ts`, `event-dispos-tab.spec.ts` « 100 % », mocks Firebase). Traiter via gate CI ou **ISSUES.md** — pas une section par story.

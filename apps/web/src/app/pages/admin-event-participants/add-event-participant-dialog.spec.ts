@@ -35,6 +35,7 @@ const troupeMembers = {
       userSlug: 'bob',
       email: 'bob@example.com',
       displayName: 'Bob',
+      gender: 'male',
       status: 'ACTIVE',
       baselineRole: 'MEMBER',
       createdAt: '',
@@ -53,6 +54,7 @@ type Harness = {
   onMemberOptionSelected: (userId: string) => void
   displayName: () => string
   email: () => string
+  gender: { set: (value: 'male' | 'female' | 'non_specified') => void }
   selectedMember: () => unknown
   submit: () => Promise<void>
   error: () => string
@@ -225,6 +227,36 @@ describe('AddEventParticipantDialog', () => {
     fixture.detectChanges()
     await fixture.whenStable()
     expect(document.querySelector('.cdk-overlay-container app-user-avatar')).toBeTruthy()
+  })
+
+  it('includes gender in create payload for name-only add', async () => {
+    const createEventParticipant = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    const { harness } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      createEventParticipant,
+    })
+    harness().onDisplayNameInput('Marie')
+    harness().gender.set('female')
+    await harness().submit()
+    expect(createEventParticipant).toHaveBeenCalledWith('season-1', 'event-1', {
+      displayName: 'Marie',
+      gender: 'female',
+    })
+  })
+
+  it('omits gender when typeahead selects member with account M/F', async () => {
+    const createEventParticipant = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    const { harness } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      createEventParticipant,
+    })
+    harness().onDisplayNameInput('bob')
+    harness().onMemberOptionSelected('u-2')
+    await harness().submit()
+    expect(createEventParticipant).toHaveBeenCalledWith('season-1', 'event-1', {
+      displayName: 'Bob',
+      email: 'bob@example.com',
+    })
   })
 
   it('shows validation error when name is empty', async () => {

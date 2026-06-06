@@ -125,6 +125,29 @@ class ParticipantGenderIntegrationTest {
         return UUID.fromString(mapper.readTree(result.response.contentAsString).path("id").asText())
     }
 
+    private fun createEvent(
+        cookie: Cookie,
+        seasonId: UUID,
+    ): UUID {
+        val result =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Participant gender event",
+                              "startsAt": "2030-06-15T18:00:00Z"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        return UUID.fromString(mapper.readTree(result.response.contentAsString).path("id").asText())
+    }
+
     @Test
     fun `name-only create with female persists effective gender on list`() {
         val admin = signInAdmin("pg-admin-1", "pg-admin-1@example.com", "PG Admin")
@@ -174,6 +197,33 @@ class ParticipantGenderIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"displayName":"Male Member","email":"pg-member-male@example.com","gender":"female"}""")
                     .with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `linked user with account male rejects organizer gender override on create`() {
+        val admin = signInAdmin("pg-admin-2b", "pg-admin-2b@example.com", "PG Admin Two B")
+        signIn("pg-member-male-create", "pg-member-male-create@example.com", "Male Member Create")
+        userRepository.findByGoogleSub("pg-member-male-create")!!.apply {
+            gender = MemberGender.MALE
+            userRepository.save(this)
+        }
+        val seasonId = createSeason(admin.cookie)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/participants")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "displayName":"Male Member Create",
+                          "email":"pg-member-male-create@example.com",
+                          "gender":"female"
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
             ).andExpect(status().isBadRequest)
     }
 
@@ -271,5 +321,72 @@ class ParticipantGenderIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[?(@.id == '$participantId')].gender").value("non_specified"))
             .andExpect(jsonPath("$[?(@.id == '$participantId')].participantGender").value(hasItem(nullValue())))
+    }
+
+    @Test
+    fun `event-only create with female persists effective gender on list`() {
+        val admin = signInAdmin("pg-admin-event-1", "pg-admin-event-1@example.com", "PG Event Admin")
+        val seasonId = createSeason(admin.cookie)
+        val eventId = createEvent(admin.cookie, seasonId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/participants")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Event Guest","gender":"female"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.gender").value("female"))
+            .andExpect(jsonPath("$.participantGender").value("female"))
+            .andExpect(jsonPath("$.genderManagedOnAccount").value(false))
+    }
+
+    @Test
+    fun `linked user with account male rejects organizer gender override on event patch`() {
+        val admin = signInAdmin("pg-admin-event-2", "pg-admin-event-2@example.com", "PG Event Admin Two")
+        signIn("pg-event-member-male", "pg-event-member-male@example.com", "Event Male Member")
+        userRepository.findByGoogleSub("pg-event-member-male")!!.apply {
+            gender = MemberGender.MALE
+            userRepository.save(this)
+        }
+        val seasonId = createSeason(admin.cookie)
+        val eventId = createEvent(admin.cookie, seasonId)
+
+        val createResult =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events/$eventId/participants")
+                        .cookie(admin.cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "displayName":"Event Male Member",
+                              "email":"pg-event-member-male@example.com"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.gender").value("male"))
+                .andExpect(jsonPath("$.genderManagedOnAccount").value(true))
+                .andReturn()
+        val participantId = mapper.readTree(createResult.response.contentAsString).path("id").asText()
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId/events/$eventId/participants/$participantId")
+                    .cookie(admin.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "displayName":"Event Male Member",
+                          "email":"pg-event-member-male@example.com",
+                          "gender":"female"
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isBadRequest)
     }
 }

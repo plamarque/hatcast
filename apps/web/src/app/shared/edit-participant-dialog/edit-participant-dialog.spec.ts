@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { By } from '@angular/platform-browser'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
+import { ParticipantGenderToggleField } from '../participant-add/participant-gender-toggle-field'
 import {
   EditParticipantDialog,
   type EditParticipantDialogData,
@@ -59,7 +61,11 @@ describe('EditParticipantDialog', () => {
       providers: [
         {
           provide: MAT_DIALOG_DATA,
-          useValue: seasonDialogData({ genderManagedOnAccount: true, participantGender: null }),
+          useValue: seasonDialogData({
+            genderManagedOnAccount: true,
+            participantGender: null,
+            accountGender: 'male',
+          }),
         },
         { provide: MatDialogRef, useValue: { close: vi.fn() } },
         {
@@ -75,6 +81,10 @@ describe('EditParticipantDialog', () => {
     expect(document.querySelector('.participant-gender-field__managed-hint')?.textContent).toContain(
       'Mon compte',
     )
+    const genderField = fixture.debugElement.query(By.directive(ParticipantGenderToggleField))
+      .componentInstance as ParticipantGenderToggleField
+    expect(genderField.accountGender()).toBe('male')
+    expect(genderField.readOnlyManagedOnAccount()).toBe(true)
 
     await fixture.componentInstance.submit()
 
