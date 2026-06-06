@@ -15,7 +15,7 @@ so that **I can freeze or reopen the official lineup proposal** (**FR23**, **FR2
 1. **Given** an editable composition (`validatedAt` is null) with **at least one assigned slot** and a user with **`canManageComposition`**, **when** they click **« Valider »** on **Équipe**, **then** the server sets **`validatedAt`**, returns updated composition with **`visibility: validated`**, and the UI refreshes — **FR23**, **FR28**.
 2. **Given** a successful validate, **when** any **active troupe member** reloads composition or event detail, **then** slot assignees are **visible** even if **`publishedAt` was never set** (validation implies member visibility per **6.3** AC 8) and **`compositionLifecycle`** becomes **`awaitingConfirmations`** or **`gapsToFill`** when empty required slots exist — **FR23**, **FR28**.
 3. **Given** validate succeeds, **when** the server completes the mutation, **then** it invokes a **notification intent hook** for **`confirmation request`** (**FR31**) — stub/no-op delivery acceptable (Epic **8**); must be a named port method the future notifier can replace; **do not** fire on idempotent re-validate.
-4. **Given** a validated composition, **when** an organizer with **`canManageComposition`** clicks **« Déverrouiller »**, **then** **`validatedAt` is cleared**, assigned slots **remain**, all assigned slots' **`participationStatus` reset to `pending`** (re-open confirmations per **FR23**), draw/manual assign/clear become available again, and members lose validated-only visibility rules until re-validated — **FR23**.
+4. **Given** a validated composition, **when** an organizer with **`canManageComposition`** clicks **« Déverrouiller »**, **then** **`validatedAt` is cleared**, assigned slots **remain**, **`participationStatus` is preserved** on unlock (confirmed / declined / pending unchanged), draw/manual assign/clear become available again, and members lose validated visibility until re-validated — **FR23**. Draft slot mutations reset **`pending` only when the assignee changes**.
 5. **Given** **`validatedAt` is set**, **when** an organizer tries draw, assign, clear, candidates, or publish, **then** **409** (already enforced in **6.4**/**6.5**/**6.3** — **6.6** adds unlock path only) — regression guard.
 6. **Given** **`validatedAt` is null**, **when** validate is attempted with **zero assigned slots**, **then** **409** with clear message — nothing to validate.
 7. **Given** validate or unlock, **when** a user **without** **`canManageComposition`** calls the endpoints, **then** **403** — **NFR-S2**.
@@ -65,7 +65,7 @@ so that **I can freeze or reopen the official lineup proposal** (**FR23**, **FR2
   - Auth: **`canManageComposition`**.
   - Block when **`validatedAt == null`** → **409**.
   - Set **`validatedAt = null`**, **`updatedAt = now`**.
-  - For every slot with **`participantId != null`**: set **`participationStatus = PENDING`** (re-open confirmations — **FR23**).
+  - **Do not** mutate `participationStatus` on unlock — preserve confirmed / declined / pending (SCP 2026-06-06).
   - **Do not** delete slot rows or clear assignees.
   - Return **`CompositionResponseDto`**.
 - [x] **Extend [`CompositionNotificationPort`](../../services/api/src/main/kotlin/com/hatcast/api/composition/CompositionNotificationPort.kt):**
@@ -113,10 +113,11 @@ Align **FR23** + V1 [`unconfirmCast`](../../legacy/src/services/storage.js):
 
 - **Keep** all slot assignees.
 - **Clear** `validatedAt`.
-- **Reset** `participationStatus` → **`PENDING`** on assigned slots (re-open confirmation requirements).
-- **Do not** auto-clear `publishedAt` — after unlock, visibility falls back to publish rules (**6.3**): members still see slots if `publishedAt` set, organizers-only if unpublished draft.
+- **Preserve** `participationStatus` on unlock (align V1 `unconfirmCast`).
+- **Targeted reset:** draft assign/replace/clear/draw on a slot sets **`pending`** when the assignee changes.
+- **Do not** auto-clear `publishedAt` — after unlock, ordinary members **do not see** slots until re-validation (even if `publishedAt` remains set).
 
-V1 **preserved** `playerStatuses` on unlock for visual history; V2 **resets to pending** per FR23 wording (*« re-opens confirmation requirements »*). Document in tests.
+**Amendment 2026-06-06 (SCP composition-unlock-preserve-confirmations):** supersedes 2026-05 V2 global reset to `pending` on unlock. Implementation: story TBD — see [`spec-composition-unlock-preserve-confirmations.md`](spec-composition-unlock-preserve-confirmations.md).
 
 ### Six-state badge evaluation order
 
@@ -284,6 +285,7 @@ Composer (dev-story workflow)
 - 2026-05-24: Story 6.6 created — validate/unlock API, Valider/Déverrouiller UI, six-state Équipe badge, confirmation-request notification hook.
 - 2026-05-24: Story 6.6 implemented — API validate/unlock, notification port, Équipe UI and tests.
 - 2026-05-24: Code review patches — unlock visibility integration tests (unpublished + published), unlock component test.
+- 2026-06-06: **Amendment SCP composition-unlock-preserve-confirmations** — unlock preserves participation status; targeted reset on draft assignee change; see companion spec.
 
 ### Review Findings
 

@@ -41,6 +41,8 @@ so that **I stay informed about changes that affect me without being spammed** (
 
 5. **Given** revalidation after unlock, **when** validate commits, **then** pending assignees receive **`RECONFIRMATION_REQUEST`** only (unlock itself is silent). Unaffected confirmed assignees are not notified. [Source: PRD FR23, FR31 P1 ; amendment 2026-06-06]
 
+   **Amendment 2026-06-06 (SCP composition-unlock-preserve-confirmations):** « Unaffected confirmed assignees » requires unlock **not** to reset `confirmed`. Former assignees removed during draft post-unlock may receive `REMOVED_FROM_COMPOSITION` on **revalidate** (implementation story).
+
 6. **Given** channel eligibility, **when** any 8.5 intent dispatches, **then** it uses Story **8.2** categories:
    - **`TEAM_VALIDATED_FYI`** → `TEAM_CONFIRMED`
    - **`ASSIGNEE_PRESENCE_REMINDER`** → `REMINDER_7_DAYS` or `REMINDER_1_DAY`
@@ -103,10 +105,9 @@ so that **I stay informed about changes that affect me without being spammed** (
   - [x] Add repository queries to [`NotificationDeliveryLogRepository`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationDeliveryLogRepository.kt) only for observability; keep dedupe in a logical mark table if reminders need once-only guarantees. _(Dedupe via `notification_reminder_marks`; no extra delivery-log queries needed for this story.)_
 
 - [x] **Tests** (AC: 9)
-  - [x] `TeamValidatedFyiNotificationIntegrationTest` — assignees get `CONFIRMATION_REQUEST`; linked non-assigned roster gets `TEAM_VALIDATED_FYI`; name-only roster skipped.
+  - [x] `CompositionNotificationTriggerMatrixIntegrationTest` — canonical dispatch-intent matrix (2026-06-06 housekeeping).
+  - [x] `ProxyNotificationIntegrationTest` — proxy edge cases (self, name-only, idempotence, reset).
   - [x] `AssigneePresenceReminderJobTest` — J-7/J-1 sends once, respects confirmed-only and event filters, and dedupes repeated runs.
-  - [x] `CompositionRemovalNotificationIntegrationTest` — former assignee receives `REMOVED_FROM_COMPOSITION`; replacement receives the appropriate request; roster not notified.
-  - [x] `ReconfirmationNotificationIntegrationTest` — remodel/revalidate targets only affected assignees.
   - [x] Extend `NotificationDispatcherTest` / `NotificationRecipientResolverTest` for new intents and category mapping.
 
 ---
@@ -252,11 +253,9 @@ Composer (Cursor)
 - `services/api/src/main/kotlin/com/hatcast/api/composition/CompositionDeclineRestoreService.kt`
 - `services/api/src/main/kotlin/com/hatcast/api/audit/AuditEventRepository.kt`
 - `services/api/src/main/kotlin/com/hatcast/api/event/EventRepository.kt`
-- `services/api/src/test/kotlin/com/hatcast/api/notification/TeamValidatedFyiNotificationIntegrationTest.kt`
+- `services/api/src/test/kotlin/com/hatcast/api/notification/CompositionNotificationTriggerMatrixIntegrationTest.kt`
+- `services/api/src/test/kotlin/com/hatcast/api/notification/ProxyNotificationIntegrationTest.kt`
 - `services/api/src/test/kotlin/com/hatcast/api/notification/AssigneePresenceReminderJobTest.kt`
-- `services/api/src/test/kotlin/com/hatcast/api/notification/CompositionRemovalNotificationIntegrationTest.kt`
-- `services/api/src/test/kotlin/com/hatcast/api/notification/ReconfirmationNotificationIntegrationTest.kt`
-- `services/api/src/test/kotlin/com/hatcast/api/notification/CompositionValidateNotificationIntegrationTest.kt`
 - `services/api/src/test/kotlin/com/hatcast/api/notification/NotificationDispatcherTest.kt`
 - `services/api/src/test/kotlin/com/hatcast/api/notification/NotificationRecipientResolverTest.kt`
 - `services/api/src/test/kotlin/com/hatcast/api/composition/CompositionGapFillIntegrationTest.kt`

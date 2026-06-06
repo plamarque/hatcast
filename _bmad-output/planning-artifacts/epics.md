@@ -57,10 +57,10 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - FR20: An organizer can run a weighted random draw to fill roles according to troupe/event eligibility rules.
 - FR21: A **season organizer, event organizer, or troupe administrator** can manually assign or reassign participants to roles for events in their scope. A single participant **may hold multiple roles** on the same event; role-stacking is **allowed by default** per event type unless an administrator disables it in event-type configuration (FR14).
 - FR22: An organizer can save a **draft composition** that is **hidden from ordinary troupe members by default**. The organizer **publishes** the draft via an explicit action to make it visible to members; until published, only organizers and administrators see draft slot assignments.
-- FR23: An organizer can **validate (lock)** a composition **before confirmation requests are sent** to participants. A **season organizer, event organizer, or troupe administrator** can **unlock or invalidate** a validated composition to return it to an editable state, which re-opens confirmation requirements for affected slots.
+- FR23: An organizer can **validate (lock)** a composition **before confirmation requests are sent** to participants. A **season organizer, event organizer, or troupe administrator** can **unlock or invalidate** a validated composition to return it to an **organizer-visible editable draft** (`validatedAt` cleared). **Unlock preserves** each assigned slot's participation status (`confirmed`, `declined`, `pending`). **Draft edits** (manual assign, replace, clear, draw on a slot) set **`pending`** on slots whose **assignee changes**; unchanged slots keep their status. **Re-validation** after unlock sends confirmation intents only to assignees who are **not `confirmed`** at re-validation time (and to **newly assigned** participants). Ordinary troupe members **do not see** slot assignments after unlock until the composition is validated again, regardless of `publishedAt`.
 - FR24: For events using weighted draw, included participants can view **per-role selection odds** (or equivalent explainability summary) on the event composition view **after the organizer publishes the draft (FR22)** or **after validation (FR23)**. Odds are not shown for events or roles excluded from the draw model (e.g. direct-assignment slots).
 - FR25: A linked participant can confirm or decline participation for their assigned role **after the composition is validated (FR23)** and while the event is in **awaiting confirmations** or **gaps to fill** (FR28).
-- FR26: A **season organizer, event organizer, or troupe administrator** can confirm or decline on behalf of a participant in their authorized scope, including name-only or not-yet-linked participants, with auditability.
+- FR26: A **season organizer, event organizer, or troupe administrator** can confirm, decline, or reset to pending on behalf of a participant in their authorized scope, including name-only or not-yet-linked participants, with auditability — **including while the composition is in organizer draft** (`validatedAt` null). Proxy participation in draft is **not notified** to the subject until composition **validation or re-validation** (FR31). **Linked members** may still confirm or decline **only after validation** (FR25).
 - FR27: When a participant withdraws or declines during **awaiting confirmations** or **gaps to fill** (FR28), organizers see the resulting **open slot(s)** on the event composition view and can: **view gap details**, **manually assign a replacement**, **run a partial weighted draw** for the open role(s), and **trigger a targeted confirmation notification** to affected participants.
 - FR28: The product represents composition lifecycle states consistently for each event using at minimum: **preparing** (availability collection), **draft composition** (editable, not yet validated), **awaiting confirmations** (validated lineup), **gaps to fill** (open slots after decline/withdrawal), and **complete** (all required roles confirmed or explicitly waived by a **season organizer, event organizer, or troupe administrator**).
 - FR29: In MVP, a user can **opt in or out of browser push notifications globally** (same scope as FR30). Per-category push preferences are post-MVP.
@@ -1119,7 +1119,8 @@ afin de figer ou rouvrir la proposition officielle (FR23).
 **Acceptance Criteria**
 
 - **Given** une composition prête, **when** l’organisateur **valide**, **then** l’état passe en « validé » / awaiting confirmations et l’intent notification confirmation request est émis si configuré (FR23, FR28, FR31).
-- **Given** une composition validée, **when** un organisateur autorisé **déverrouille/invalide**, **then** la composition redevient éditable et les exigences de confirmation sont réouvertes pour les créneaux affectés (FR23).
+- **Given** une composition validée, **when** un organisateur autorisé **déverrouille**, **then** `validatedAt` est effacé, les assignations restent, les statuts de participation **sont préservés**, la composition redevient éditable pour les orgas/admins, et les membres ordinaires ne voient plus les slots (FR23).
+- **Given** une composition en brouillon orga post-déverrouillage, **when** l'organisateur **remplace l'assigné** d'un slot, **then** le nouveau assigné passe à `pending` ; les slots non modifiés conservent leur statut (FR23).
 - **Couverture :** FR23, FR28.
 
 ---
@@ -1146,6 +1147,7 @@ afin de débloquer la situation lorsque le participant n’a pas de compte ou ne
 **Acceptance Criteria**
 
 - **Given** les permissions proxy, **when** l’orga enregistre une décision pour un participant, **then** l’audit enregistre acteur et sujet (FR26, lien FR35).
+- **Given** une composition en brouillon orga (`validatedAt` null), **when** l’orga proxy confirme/décline/remet en attente, **then** le statut est mis à jour sans notification membre jusqu’à validation/re-validation (FR26, FR31 ; SCP 2026-06-06).
 - **Couverture :** FR26.
 
 ---

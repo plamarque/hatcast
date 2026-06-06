@@ -29,12 +29,17 @@ recette: '2026-06-06 Troupe Démo — OK'
 | Manual assign / full draw | draft | — | `CONFIRMATION_REQUEST`, `RECONFIRMATION_REQUEST`, `REMOVED_FROM_COMPOSITION` |
 | First validate | draft → validated | `CONFIRMATION_REQUEST` (all assignees) | `TEAM_VALIDATED_FYI` |
 | Gap-fill assign / fillEmpty draw | validated | `CONFIRMATION_REQUEST` (new assignee) | — |
-| Unlock | validated → draft | — | `RECONFIRMATION_REQUEST`, `TEAM_VALIDATED_FYI` |
+| Unlock | validated → organizer draft | — | Any composition workflow intent; **must not** mutate participation statuses |
 | Replace / clear slot | draft post-unlock | — | `REMOVED_FROM_COMPOSITION`, `RECONFIRMATION_REQUEST` |
-| Revalidate | after unlock | `RECONFIRMATION_REQUEST` (pending assignees) | `CONFIRMATION_REQUEST`, `TEAM_VALIDATED_FYI` |
+| Revalidate | organizer draft → validated (2nd+ validate) | `RECONFIRMATION_REQUEST` (assignees with status ≠ `confirmed` at validate time) | `CONFIRMATION_REQUEST` (if prior validate audit exists), `TEAM_VALIDATED_FYI` |
+| Org proxy confirm/decline | organizer draft | — | `CONFIRMATION_REQUEST`, `RECONFIRMATION_REQUEST`, `PROXY_CONFIRMATION_RECORDED`¹ |
 | Proxy dispo available, no roles | — | — (defer) | `PROXY_AVAILABILITY_RECORDED` |
 | Proxy dispo + roles | — | `PROXY_AVAILABILITY_RECORDED` | — |
 | Proxy confirm / decline | validated slot | `PROXY_CONFIRMATION_RECORDED` | — |
+
+¹ Org proxy in **organizer draft** is silent until validate/revalidate — SCP 2026-06-06 composition-unlock-preserve-confirmations.
+
+Participation status preservation on unlock: [`spec-composition-unlock-preserve-confirmations.md`](spec-composition-unlock-preserve-confirmations.md)
 
 Full traceability: [composition-notification-trigger-test-design.md](investigations/composition-notification-trigger-test-design.md)
 
@@ -76,7 +81,10 @@ cd services/api && ./gradlew test --tests "com.hatcast.api.notification.Composit
 ## Deferred product
 
 - **G-012** — collective « équipe confirmée » when all assignees confirmed
-- **G-014** — proxy confirm in draft (no dispatch until validate)
+
+## Resolved (SCP 2026-06-06)
+
+- ~~**G-014** — proxy confirm in draft~~ → in scope via [`spec-composition-unlock-preserve-confirmations.md`](spec-composition-unlock-preserve-confirmations.md)
 
 ## Suggested Review Order
 

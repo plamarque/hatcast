@@ -102,8 +102,9 @@ paths:
       tags: [Composition]
       summary: Déverrouiller la composition validée
       description: >
-        Efface `validatedAt`, conserve les assignations et remet `participationStatus` à `pending`
-        sur les slots assignés. Requiert `canManageComposition`.
+        Efface `validatedAt`, conserve les assignations et les statuts de participation
+        (`confirmed`, `declined`, `pending`) inchangés. Les membres ordinaires ne voient
+        plus les slots jusqu'à re-validation. Requiert `canManageComposition`.
       security:
         - cookieAuth: []
       parameters:
@@ -245,11 +246,12 @@ paths:
       tags: [Composition]
       summary: Confirmer, remettre en attente ou décliner une participation (self-service ou proxy organisateur)
       description: >
-        Mutation pour le participant assigné au slot lorsque la composition est validée (`validatedAt`).
-        Self-service : le participant lié (`viewerParticipantIds`) peut agir sur son propre slot.
-        Proxy organisateur : un utilisateur avec `canManageComposition` (admin troupe, organisateur de
-        saison ou d'événement) peut confirmer, remettre en attente ou décliner pour le compte de tout
-        slot assigné. Décliner libère le slot et enregistre une trace dans `declines` (acteur =
+        Self-service : le participant lié (`viewerParticipantIds`) peut confirmer ou décliner
+        sur son propre slot lorsque la composition est validée (`validatedAt`).
+        Proxy organisateur : un utilisateur avec `canManageComposition` peut confirmer,
+        remettre en attente ou décliner pour le compte de tout slot assigné — y compris en
+        brouillon orga (`validatedAt` null), sans notification membre jusqu'à validation ou
+        re-validation. Décliner libère le slot et enregistre une trace dans `declines` (acteur =
         utilisateur authentifié, sujet = participant assigné).
       security:
         - cookieAuth: []
