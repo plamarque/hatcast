@@ -3,6 +3,7 @@ package com.hatcast.api.season.dto
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.participant.GuestSeasonWorkspaceMode
 import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
@@ -25,9 +26,14 @@ data class SeasonResponseDto(
     val participantCount: Int,
     val createdAt: Instant,
     val updatedAt: Instant,
+    /** Viewer-specific workspace access (story 3.25). Omitted on admin write responses. */
+    val guestSeasonWorkspaceMode: GuestSeasonWorkspaceMode? = null,
 ) {
     companion object {
-        fun from(e: SeasonEntity): SeasonResponseDto =
+        fun from(
+            e: SeasonEntity,
+            guestSeasonWorkspaceMode: GuestSeasonWorkspaceMode? = null,
+        ): SeasonResponseDto =
             SeasonResponseDto(
                 id = e.id,
                 troupeId = e.troupe.id,
@@ -42,6 +48,7 @@ data class SeasonResponseDto(
                 participantCount = e.participantCount,
                 createdAt = e.createdAt,
                 updatedAt = e.updatedAt,
+                guestSeasonWorkspaceMode = guestSeasonWorkspaceMode,
             )
     }
 }

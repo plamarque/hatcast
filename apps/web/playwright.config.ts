@@ -66,6 +66,13 @@ export default defineConfig({
       },
       dependencies: ['setup-admin'],
     },
+    {
+      name: 'chromium-3-25',
+      testMatch: /recette-3-25\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
   ],
   webServer: isStagingTarget
     ? undefined

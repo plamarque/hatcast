@@ -67,6 +67,26 @@ describe('SeasonViewToolbar', () => {
     expect(el.textContent).toContain('Statistiques')
   })
 
+  it('hides Historique for AGENDA_ONLY guest workspace', () => {
+    fixture.componentRef.setInput('agendaOnlyGuest', true)
+    fixture.componentRef.setInput('partialGuestWorkspace', true)
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.textContent).toContain('Agenda')
+    expect(el.textContent).not.toContain('Historique')
+    expect(el.textContent).not.toContain('Statistiques')
+  })
+
+  it('shows Agenda and Historique but hides Stats for EVENTS_ONLY guest workspace', () => {
+    fixture.componentRef.setInput('agendaOnlyGuest', false)
+    fixture.componentRef.setInput('partialGuestWorkspace', true)
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.textContent).toContain('Agenda')
+    expect(el.textContent).toContain('Historique')
+    expect(el.textContent).not.toContain('Statistiques')
+  })
+
   it('shows details on stats view without export button', () => {
     fixture.componentRef.setInput('seasonView', 'stats')
     fixture.componentRef.setInput('filterTriggerVisible', true)

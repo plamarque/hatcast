@@ -3,6 +3,7 @@ package com.hatcast.api.season
 import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.season.dto.UpdateSeasonRequest
 import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.troupe.TroupeRepository
@@ -31,6 +32,7 @@ class SeasonServiceUpdateTest {
     private val troupeAccess = mock<TroupeAccessService>()
     private val seasonAccess = mock<SeasonAccessService>()
     private val platformAdminService = mock<PlatformAdminService>()
+    private val guestInvitationAccess = mock<GuestInvitationAccessService>()
     private val service =
         SeasonService(
             seasonRepository,
@@ -38,6 +40,7 @@ class SeasonServiceUpdateTest {
             troupeAccess,
             seasonAccess,
             platformAdminService,
+            guestInvitationAccess,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

@@ -14,6 +14,8 @@ import com.hatcast.api.event.dto.UpdateEventRequest
 import com.hatcast.api.season.SeasonEventCountSync
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.organizer.OrganizerAccessService
+import com.hatcast.api.participant.GuestInvitationAccessService
+import com.hatcast.api.participant.GuestSeasonWorkspaceMode
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeCategoryService
 import org.springframework.context.ApplicationEventPublisher
@@ -42,6 +44,7 @@ class EventService(
     private val draftVisibility: EventDraftVisibility,
     private val organizerAccess: OrganizerAccessService,
     private val eventPublisher: ApplicationEventPublisher,
+    private val guestInvitationAccess: GuestInvitationAccessService,
 ) {
     companion object {
         /** Fuseau pour la borne « début du jour civil » (liste à venir / agenda). */
@@ -61,7 +64,10 @@ class EventService(
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireActiveMember(principal, season.troupe.id)
+        val workspaceMode = guestInvitationAccess.requireSeasonWorkspaceAccess(seasonId, principal)
+        if (workspaceMode == GuestSeasonWorkspaceMode.AGENDA_ONLY && scope == EventListScope.PAST) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé pour l'historique.")
+        }
         if (size < 1 || size > 100) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "size doit être entre 1 et 100")
         }
@@ -76,34 +82,69 @@ class EventService(
             }
         val applyDraftVisibility = draftVisibility.applyDraftVisibilityFilter(principal)
         val viewerUserId = principal.userId
+        val guestFiltered =
+            workspaceMode == GuestSeasonWorkspaceMode.AGENDA_ONLY ||
+                workspaceMode == GuestSeasonWorkspaceMode.EVENTS_ONLY
         val p =
             when (scope) {
                 EventListScope.ALL ->
-                    eventRepository.findBySeason_IdOrderByStartsAtAsc(
-                        seasonId,
-                        viewerUserId,
-                        applyDraftVisibility,
-                        pr,
-                    )
+                    if (guestFiltered) {
+                        eventRepository.findBySeason_IdForGuestOrderByStartsAtAsc(
+                            seasonId,
+                            viewerUserId,
+                            viewerUserId,
+                            applyDraftVisibility,
+                            pr,
+                        )
+                    } else {
+                        eventRepository.findBySeason_IdOrderByStartsAtAsc(
+                            seasonId,
+                            viewerUserId,
+                            applyDraftVisibility,
+                            pr,
+                        )
+                    }
                 EventListScope.UPCOMING -> {
                     val from = startOfTodayInclusive(AGENDA_ZONE)
-                    eventRepository.findUpcomingNonArchived(
-                        seasonId,
-                        from,
-                        viewerUserId,
-                        applyDraftVisibility,
-                        pr,
-                    )
+                    if (guestFiltered) {
+                        eventRepository.findUpcomingNonArchivedForGuest(
+                            seasonId,
+                            from,
+                            viewerUserId,
+                            viewerUserId,
+                            applyDraftVisibility,
+                            pr,
+                        )
+                    } else {
+                        eventRepository.findUpcomingNonArchived(
+                            seasonId,
+                            from,
+                            viewerUserId,
+                            applyDraftVisibility,
+                            pr,
+                        )
+                    }
                 }
                 EventListScope.PAST -> {
                     val before = startOfTodayInclusive(AGENDA_ZONE)
-                    eventRepository.findPastNonArchived(
-                        seasonId,
-                        before,
-                        viewerUserId,
-                        applyDraftVisibility,
-                        pr,
-                    )
+                    if (guestFiltered) {
+                        eventRepository.findPastNonArchivedForGuest(
+                            seasonId,
+                            before,
+                            viewerUserId,
+                            viewerUserId,
+                            applyDraftVisibility,
+                            pr,
+                        )
+                    } else {
+                        eventRepository.findPastNonArchived(
+                            seasonId,
+                            before,
+                            viewerUserId,
+                            applyDraftVisibility,
+                            pr,
+                        )
+                    }
                 }
             }
         val eventIds = p.content.map { it.id }
@@ -350,10 +391,10 @@ class EventService(
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireActiveMember(principal, season.troupe.id)
         val e =
             eventRepository.findBySeason_IdAndSlug(seasonId, slug.trim())
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
+        guestInvitationAccess.requireMemberOrInvitedGuestForEventOrNotFound(seasonId, e.id, principal)
         val availability = availabilityService.myStatusByEventIds(listOf(e.id), principal.userId)
         val lifecycle =
             compositionLifecycleEnrichment
@@ -372,11 +413,11 @@ class EventService(
         principal: SessionUserPrincipal,
     ): EventResponseDto {
         val e = loadEventInSeason(seasonId, eventId)
+        guestInvitationAccess.requireMemberOrInvitedGuestForEventOrNotFound(seasonId, eventId, principal)
         val season =
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireActiveMember(principal, season.troupe.id)
         val availability = availabilityService.myStatusByEventIds(listOf(eventId), principal.userId)
         val lifecycle =
             compositionLifecycleEnrichment

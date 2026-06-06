@@ -46,6 +46,13 @@ class SeasonController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): SeasonResponseDto = seasonService.getByTroupeIdAndSlug(troupeId, slug, principal)
 
+    @GetMapping("/troupes/by-slug/{troupeSlug}/seasons/by-slug/{seasonSlug}")
+    fun resolveByTroupeAndSeasonSlugs(
+        @PathVariable troupeSlug: String,
+        @PathVariable seasonSlug: String,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ) = seasonService.resolveByTroupeSlugAndSeasonSlug(troupeSlug, seasonSlug, principal)
+
     @GetMapping("/seasons/{seasonId}")
     fun get(
         @PathVariable seasonId: UUID,

@@ -27,6 +27,7 @@ import com.hatcast.api.season.dto.StatisticsEventCellDto
 import com.hatcast.api.season.dto.StatisticsEventDto
 import com.hatcast.api.season.dto.StatisticsParticipantDto
 import com.hatcast.api.text.sortedByFrenchDisplayName
+import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserEntity
@@ -49,6 +50,7 @@ class SeasonStatisticsService(
     private val declineRepository: EventCompositionDeclineRepository,
     private val availabilityRepository: EventAvailabilityRepository,
     private val troupeAccess: TroupeAccessService,
+    private val guestInvitationAccess: GuestInvitationAccessService,
     private val userRepository: UserRepository,
 ) {
     companion object {
@@ -94,7 +96,7 @@ class SeasonStatisticsService(
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireActiveMember(principal, season.troupe.id)
+        guestInvitationAccess.requireMemberOnlyPastAccess(seasonId, principal)
 
         val allParticipants =
             seasonParticipantRepository

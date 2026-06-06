@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional
 class PublicTroupeService(
     private val troupeRepository: TroupeRepository,
     private val membershipRepository: TroupeMembershipRepository,
+    private val membershipService: TroupeMembershipService,
     private val troupeListStatsRepository: TroupeListStatsRepository,
     private val platformAdminService: PlatformAdminService,
 ) {
@@ -26,22 +27,22 @@ class PublicTroupeService(
      */
     @Transactional(readOnly = true)
     fun listDiscoverForViewer(principal: SessionUserPrincipal): List<PublicTroupeDirectoryItemDto> {
-        val public = listPublicDirectory()
-        val publicIds = public.map { it.id }.toSet()
-        val memberTroupeIds =
-            membershipRepository
-                .findActiveByUserId(principal.userId)
-                .map { it.troupe.id }
+        val myTroupeIds =
+            membershipService
+                .listActiveTroupesForUser(principal.userId)
+                .map { it.id }
                 .toSet()
+        val public = listPublicDirectory().filter { it.id !in myTroupeIds }
+        val publicIds = public.map { it.id }.toSet()
         val supplementalTroupes =
             if (platformAdminService.isPlatformAdmin(principal)) {
                 troupeRepository
                     .findAllByOrderByNameAsc()
-                    .filter { it.id !in memberTroupeIds && it.id !in publicIds }
+                    .filter { it.id !in myTroupeIds && it.id !in publicIds }
             } else {
                 troupeRepository
                     .findByIsDemoTrueOrderByNameAsc()
-                    .filter { it.id !in memberTroupeIds && it.id !in publicIds }
+                    .filter { it.id !in myTroupeIds && it.id !in publicIds }
             }
         if (supplementalTroupes.isEmpty()) {
             return public

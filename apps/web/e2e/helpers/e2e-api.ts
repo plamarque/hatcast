@@ -62,6 +62,40 @@ export type Story38dFixture = {
   laetitiaMembershipId: string
 }
 
+export type Story325Fixture = {
+  troupeSlug: string
+  memberSeasonSlug: string
+  laetitiaSeasonSlug: string
+  laetitiaSeasonId: string
+  laetitiaPublishedEventTitles: string[]
+  laetitiaDraftEventTitle: string
+  rubenSeasonSlug: string
+  rubenSeasonId: string
+  rubenInvitedFutureSlug: string
+  rubenInvitedFutureTitle: string
+  rubenSiblingFutureTitle: string
+  rubenInvitedPastTitle: string
+  rubenSiblingPastTitle: string
+  rubenUnpublishedInvitedTitle: string
+  piotrixSeasonASlug: string
+  piotrixSeasonBSlug: string
+  piotrixInvitedEventSlug: string
+  piotrixInvitedEventTitle: string
+  multiAgendaEventTitles: string[]
+}
+
+export async function resetStory325Fixture(request: APIRequestContext): Promise<Story325Fixture> {
+  const response = await request.post(`${apiBase}/v1/e2e/fixtures/story-3-25/reset`, {
+    headers: {
+      'X-Hatcast-E2E-Key': E2E_API_KEY,
+    },
+  })
+  if (!response.ok()) {
+    throw new Error(`Story 3.25 fixture reset failed (${response.status()}): ${await response.text()}`)
+  }
+  return response.json() as Promise<Story325Fixture>
+}
+
 export async function resetStory319Fixture(request: APIRequestContext): Promise<Story319Fixture> {
   const response = await request.post(`${apiBase}/v1/e2e/fixtures/story-3-19/reset`, {
     headers: {

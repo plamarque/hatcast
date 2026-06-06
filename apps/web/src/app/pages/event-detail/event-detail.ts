@@ -695,6 +695,11 @@ export class EventDetail implements OnDestroy, OnInit {
     this.loading.set(false)
     if (!eventResult.ok || !eventResult.data) {
       this.resetResolvedContext()
+      if (eventResult.status === 403) {
+        this.snack.open('Accès refusé à ce spectacle.', 'Mon agenda', { duration: 6000 })
+        await this.router.navigate(['/agenda'])
+        return
+      }
       this.snack.open('Spectacle introuvable.', 'OK', { duration: 6000 })
       if (eventResult.status === 404 && resolved.season.slug) {
         await this.router.navigate(

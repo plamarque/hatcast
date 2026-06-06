@@ -67,12 +67,18 @@ export class TroupeContextService {
   }
 
   /**
-   * Résout une troupe par slug : adhésions actives d'abord, puis endpoint admin plateforme.
+   * Résout une troupe par slug : adhésions actives, invité lié, puis admin plateforme.
    */
   async resolveTroupeBySlug(slug: string): Promise<TroupeListItem | null> {
     const existing = this.findTroupeBySlug(slug)
     if (existing) {
       return existing
+    }
+
+    const guestResult = await this.api.resolveTroupeContextBySlug(slug)
+    if (guestResult.ok && guestResult.data) {
+      this.registerSupplementalTroupe(guestResult.data)
+      return guestResult.data
     }
 
     const session = await this.auth.ensureHatcastSession()

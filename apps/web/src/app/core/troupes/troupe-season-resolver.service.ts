@@ -3,7 +3,10 @@ import { Injectable, inject } from '@angular/core'
 import { AuthApiService } from '../auth/auth-api.service'
 import { getLastVisitedSeasonSlugForTroupe } from '../navigation/last-visited-season-storage'
 import { SeasonApiService, type SeasonResponse } from '../seasons/season-api.service'
-import { troupeListItemFromAdminSummary } from './platform-admin-troupe-context'
+import {
+  troupeListItemFromAdminSummary,
+  troupeListItemFromGuestInvitation,
+} from './platform-admin-troupe-context'
 import type { TroupeListItem } from './troupe-api.service'
 import { TroupeContextService } from './troupe-context.service'
 
@@ -36,17 +39,20 @@ export class TroupeSeasonResolverService {
     }
 
     const troupe = await this.context.resolveTroupeBySlug(normalizedTroupe)
-    if (!troupe) {
-      return { kind: 'not-found' }
+    if (troupe) {
+      const result = await this.tryResolve(troupe, normalizedSeason)
+      if (result.kind === 'resolved') {
+        this.context.selectTroupe(troupe.id)
+        return result
+      }
+      if (result.kind === 'error') {
+        return { kind: 'error' }
+      }
     }
 
-    const result = await this.tryResolve(troupe, normalizedSeason)
-    if (result.kind === 'resolved') {
-      this.context.selectTroupe(troupe.id)
-      return result
-    }
-    if (result.kind === 'error') {
-      return { kind: 'error' }
+    const guestScoped = await this.resolveGuestScopedSeason(normalizedTroupe, normalizedSeason)
+    if (guestScoped) {
+      return guestScoped
     }
     return { kind: 'not-found' }
   }
@@ -175,6 +181,20 @@ export class TroupeSeasonResolverService {
       return null
     }
     return { kind: 'resolved', troupe: candidates[0].troupe, season: candidates[0].season }
+  }
+
+  private async resolveGuestScopedSeason(
+    troupeSlug: string,
+    seasonSlug: string,
+  ): Promise<{ kind: 'resolved'; troupe: TroupeListItem; season: SeasonResponse } | null> {
+    const result = await this.seasonsApi.resolveSeasonByTroupeAndSeasonSlug(troupeSlug, seasonSlug)
+    if (!result.ok || !result.data) {
+      return null
+    }
+    const item = troupeListItemFromGuestInvitation(result.data.troupe)
+    this.context.registerSupplementalTroupe(item)
+    this.context.selectTroupe(item.id)
+    return { kind: 'resolved', troupe: item, season: result.data.season }
   }
 
   private async tryResolve(

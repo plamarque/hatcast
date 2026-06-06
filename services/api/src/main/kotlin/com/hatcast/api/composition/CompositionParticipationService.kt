@@ -11,6 +11,7 @@ import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.SeasonParticipantService
@@ -43,6 +44,7 @@ class CompositionParticipationService(
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
     private val eventPublisher: ApplicationEventPublisher,
+    private val guestInvitationAccess: GuestInvitationAccessService,
 ) {
     @Transactional
     fun updateParticipation(
@@ -240,7 +242,7 @@ class CompositionParticipationService(
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireActiveMember(principal, season.troupe.id)
+        guestInvitationAccess.requireMemberOrInvitedGuest(seasonId, eventId, principal)
         val event =
             eventRepository
                 .findById(eventId)

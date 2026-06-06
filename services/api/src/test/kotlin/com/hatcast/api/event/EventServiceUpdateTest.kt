@@ -11,6 +11,7 @@ import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.organizer.OrganizerAccessService
+import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.troupe.TroupeCategoryService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.springframework.context.ApplicationEventPublisher
@@ -42,6 +43,7 @@ class EventServiceUpdateTest {
     private val draftVisibility = mock<EventDraftVisibility>()
     private val organizerAccess = mock<OrganizerAccessService>()
     private val eventPublisher = mock<ApplicationEventPublisher>()
+    private val guestInvitationAccess = mock<GuestInvitationAccessService>()
     private val service =
         EventService(
             eventRepository,
@@ -56,6 +58,7 @@ class EventServiceUpdateTest {
             draftVisibility,
             organizerAccess,
             eventPublisher,
+            guestInvitationAccess,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

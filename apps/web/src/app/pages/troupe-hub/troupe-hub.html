@@ -31,10 +31,12 @@
         Nous n’avons pas pu vérifier si cette troupe est listée dans l’annuaire public.
         Réessaie dans un instant.
       </p>
-      <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
-        Retour à Découvrir
-      </a>
-      <a mat-button routerLink="/agenda">Voir mon agenda</a>
+      <div class="troupe-hub__empty-actions">
+        <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
+          Découvrir d'autres troupes
+        </a>
+        <a mat-stroked-button routerLink="/agenda">Voir mon agenda</a>
+      </div>
     </section>
   } @else if (accessDenied()) {
     <section class="troupe-hub__empty" aria-labelledby="troupe-access-denied-heading">
@@ -44,10 +46,12 @@
       <p class="troupe-hub__empty-text">
         Cette troupe est listée dans l’annuaire public, mais tu n’y as pas accès.
       </p>
-      <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
-        Retour à Découvrir
-      </a>
-      <a mat-button routerLink="/agenda">Voir mon agenda</a>
+      <div class="troupe-hub__empty-actions">
+        <a mat-flat-button color="primary" routerLink="/troupes" fragment="decouvrir">
+          Découvrir d'autres troupes
+        </a>
+        <a mat-stroked-button routerLink="/agenda">Voir mon agenda</a>
+      </div>
     </section>
   } @else if (notFound()) {
     <section class="troupe-hub__empty" aria-labelledby="troupe-not-found-heading">
@@ -55,8 +59,10 @@
       <p class="troupe-hub__empty-text">
         Cette troupe n’existe pas ou vous n’y avez pas accès.
       </p>
-      <a mat-flat-button color="primary" routerLink="/troupes">Voir mes troupes</a>
-      <a mat-button routerLink="/agenda">Voir mon agenda</a>
+      <div class="troupe-hub__empty-actions">
+        <a mat-flat-button color="primary" routerLink="/troupes">Voir mes troupes</a>
+        <a mat-stroked-button routerLink="/agenda">Voir mon agenda</a>
+      </div>
     </section>
   } @else if (troupe(); as t) {
     <div class="troupe-hub__hero">
@@ -88,6 +94,9 @@
 
     <section class="troupe-hub__seasons" aria-labelledby="saisons-heading">
       <h2 id="saisons-heading" class="troupe-hub__section-title">Saisons</h2>
+      @if (isGuestViewer()) {
+        <p class="troupe-hub__guest-hint" role="note">Saisons où tu es invité·e.</p>
+      }
 
       @if (loadingSeasons()) {
         <div class="troupe-hub__spinner" role="status">

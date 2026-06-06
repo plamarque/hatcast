@@ -185,6 +185,13 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly loadingPastEvents = signal(false)
 
   protected readonly seasonView = model<SeasonView>('agenda')
+  protected readonly partialGuestWorkspace = computed(() => {
+    const mode = this.season()?.guestSeasonWorkspaceMode
+    return mode === 'AGENDA_ONLY' || mode === 'EVENTS_ONLY'
+  })
+  protected readonly agendaOnlyGuest = computed(
+    () => this.season()?.guestSeasonWorkspaceMode === 'AGENDA_ONLY',
+  )
   protected readonly selectedParticipantIds = model<string[]>([])
   protected readonly selectedEventIds = model<string[]>([])
   protected readonly selectedHistoryEventIds = model<string[]>([])
@@ -592,6 +599,22 @@ export class SeasonHome implements OnDestroy, OnInit {
       return
     }
     this.loadingSeason.set(false)
+    if ((resolved.season.guestSeasonWorkspaceMode ?? 'FULL') === 'NONE') {
+      await this.router.navigate(['/agenda'])
+      return
+    }
+    if (
+      resolved.season.guestSeasonWorkspaceMode === 'AGENDA_ONLY' &&
+      (this.seasonView() === 'history' || this.seasonView() === 'stats')
+    ) {
+      this.seasonView.set('agenda')
+    }
+    if (
+      resolved.season.guestSeasonWorkspaceMode === 'EVENTS_ONLY' &&
+      this.seasonView() === 'stats'
+    ) {
+      this.seasonView.set('agenda')
+    }
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
     this.troupeSlug.set(resolved.troupe.slug)

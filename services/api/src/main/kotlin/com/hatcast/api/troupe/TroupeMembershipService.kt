@@ -57,29 +57,53 @@ class TroupeMembershipService(
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
-        val memberships = membershipRepository.findActiveByUserId(userId)
-        if (memberships.isEmpty()) {
+        val memberMemberships = membershipRepository.findActiveByUserId(userId)
+        val externeMemberships =
+            membershipRepository
+                .findActiveExterneByUserId(userId)
+                .filter { hasGuestInvitationInTroupe(userId, it.troupe.id) }
+        val memberships =
+            (memberMemberships + externeMemberships)
+                .associateBy { it.troupe.id }
+                .values
+                .sortedBy { it.troupe.name }
+        val guestTroupeIds = seasonRepository.findTroupeIdsWithGuestInvitationForUser(userId).toSet()
+        val coveredTroupeIds = memberships.map { it.troupe.id }.toSet()
+        val guestOnlyTroupeIds = guestTroupeIds - coveredTroupeIds
+        if (memberships.isEmpty() && guestOnlyTroupeIds.isEmpty()) {
             return emptyList()
         }
-        val troupeIds = memberships.map { it.troupe.id }
+        val allTroupeIds = coveredTroupeIds + guestOnlyTroupeIds
         val memberCounts =
             membershipRepository
-                .countActiveMembersByTroupeIds(troupeIds)
+                .countActiveMembersByTroupeIds(allTroupeIds)
                 .associate { it.troupeId to it.memberCount }
         val fromInclusive = AgendaTimeBoundary.startOfTodayInclusive()
         val upcomingCounts =
             troupeListStatsRepository
-                .countUpcomingEventsByTroupeIdsForUser(userId, troupeIds, fromInclusive)
+                .countUpcomingEventsByTroupeIdsForUser(userId, allTroupeIds, fromInclusive)
                 .associate { it.troupeId to it.eventCount }
-        return memberships.map { membership ->
-            val troupeId = membership.troupe.id
-            TroupeListItemDto.from(
-                troupe = membership.troupe,
-                membership = membership,
-                activeMemberCount = memberCounts[troupeId] ?: 0L,
-                upcomingEventCount = upcomingCounts[troupeId] ?: 0L,
-            )
-        }
+        val userRef = userRepository.getReferenceById(userId)
+        val fromMemberships =
+            memberships.map { membership ->
+                val troupeId = membership.troupe.id
+                TroupeListItemDto.from(
+                    troupe = membership.troupe,
+                    membership = membership,
+                    activeMemberCount = memberCounts[troupeId] ?: 0L,
+                    upcomingEventCount = upcomingCounts[troupeId] ?: 0L,
+                )
+            }
+        val fromGuestOnly =
+            guestOnlyTroupeIds.mapNotNull { troupeId ->
+                val troupe = troupeRepository.findById(troupeId).orElse(null) ?: return@mapNotNull null
+                buildTroupeListItemForMembership(
+                    userId,
+                    troupe,
+                    guestInvitationPlaceholderMembership(troupe, userRef),
+                )
+            }
+        return (fromMemberships + fromGuestOnly).sortedBy { it.name }
     }
 
     /** Résumé troupe pour l'utilisateur courant après mutation (adhésion active ou admin plateforme). */
@@ -111,6 +135,68 @@ class TroupeMembershipService(
             upcomingEventCount = 0L,
         )
     }
+
+    /**
+     * Contexte hub troupe par slug pour membres actifs et invités liés (carnet EXTERNE ou participation
+     * saison/événement) — hors liste [listMyTroupes] pour les externes (ADR-0021).
+     */
+    @Transactional(readOnly = true)
+    fun resolveContextBySlug(
+        slug: String,
+        principal: SessionUserPrincipal,
+    ): TroupeListItemDto {
+        val normalized = slug.trim()
+        if (normalized.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Slug de troupe invalide.")
+        }
+        val troupe =
+            troupeRepository.findBySlug(normalized)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        val membership = getActiveMembershipForUser(principal.userId, troupe.id)
+        if (membership != null) {
+            if (
+                membership.baselineRole == TroupeBaselineRole.EXTERNE &&
+                !hasGuestInvitationInTroupe(principal.userId, troupe.id)
+            ) {
+                throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé pour cette troupe.")
+            }
+            return buildTroupeListItemForMembership(principal.userId, troupe, membership)
+        }
+        if (platformAdminService.isPlatformAdmin(principal)) {
+            return buildTroupeListItemForViewer(principal, troupe)
+        }
+        if (hasGuestInvitationInTroupe(principal.userId, troupe.id)) {
+            return buildTroupeListItemForMembership(
+                principal.userId,
+                troupe,
+                guestInvitationPlaceholderMembership(
+                    troupe,
+                    userRepository.getReferenceById(principal.userId),
+                ),
+            )
+        }
+        throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé pour cette troupe.")
+    }
+
+    private fun hasGuestInvitationInTroupe(
+        userId: UUID,
+        troupeId: UUID,
+    ): Boolean = seasonRepository.findInvitedForUserInTroupe(troupeId, userId).isNotEmpty()
+
+    private fun guestInvitationPlaceholderMembership(
+        troupe: TroupeEntity,
+        user: UserEntity,
+    ): TroupeMembershipEntity =
+        TroupeMembershipEntity(
+            id = GUEST_INVITATION_PLACEHOLDER_MEMBERSHIP_ID,
+            troupe = troupe,
+            user = user,
+            status = TroupeMembershipStatus.ACTIVE,
+            baselineRole = TroupeBaselineRole.EXTERNE,
+            displayName = "Invitation",
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
 
     private fun platformAdminPlaceholderMembership(
         troupe: TroupeEntity,
@@ -826,6 +912,8 @@ class TroupeMembershipService(
         private const val EXPORT_BATCH_SIZE = 100
         private val PLATFORM_ADMIN_PLACEHOLDER_MEMBERSHIP_ID =
             UUID.fromString("00000000-0000-4000-8000-000000000001")
+        private val GUEST_INVITATION_PLACEHOLDER_MEMBERSHIP_ID =
+            UUID.fromString("00000000-0000-4000-8000-000000000002")
     }
 
     private fun fetchMembershipPageWithUsers(

@@ -47,6 +47,8 @@ export class SeasonViewToolbar {
   readonly seasonView = model.required<SeasonView>()
   readonly seasonId = input<string | null>(null)
   readonly filterTriggerVisible = input(false)
+  readonly agendaOnlyGuest = input(false)
+  readonly partialGuestWorkspace = input(false)
   readonly detailsExpanded = model(false)
 
   readonly participantOptions = input<ParticipantFilterOption[]>([

@@ -1,5 +1,6 @@
 package com.hatcast.api.event
 
+import com.hatcast.api.participant.GuestEventAccessJpql
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.Query
@@ -103,14 +104,96 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         SELECT e FROM EventEntity e
         WHERE e.season.id = :seasonId
           AND e.archived = false
+          AND e.startsAt >= :fromInclusive
+          AND ${GuestEventAccessJpql.GUEST_ACCESSIBLE_EVENT}
+          AND $EVENT_LIST_VISIBILITY_JPQL
+        ORDER BY e.startsAt ASC
+        """,
+        countQuery =
+        """
+        SELECT COUNT(e) FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND e.startsAt >= :fromInclusive
+          AND ${GuestEventAccessJpql.GUEST_ACCESSIBLE_EVENT}
+          AND $EVENT_LIST_VISIBILITY_JPQL
+        """,
+    )
+    fun findUpcomingNonArchivedForGuest(
+        @Param("seasonId") seasonId: UUID,
+        @Param("fromInclusive") fromInclusive: Instant,
+        @Param("guestUserId") guestUserId: UUID,
+        @Param("viewerUserId") viewerUserId: UUID,
+        @Param("applyDraftVisibility") applyDraftVisibility: Boolean,
+        pageable: Pageable,
+    ): Page<EventEntity>
+
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND ${GuestEventAccessJpql.GUEST_ACCESSIBLE_EVENT}
+          AND $EVENT_LIST_VISIBILITY_JPQL
+        ORDER BY e.startsAt ASC
+        """,
+        countQuery =
+        """
+        SELECT COUNT(e) FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND ${GuestEventAccessJpql.GUEST_ACCESSIBLE_EVENT}
+          AND $EVENT_LIST_VISIBILITY_JPQL
+        """,
+    )
+    fun findBySeason_IdForGuestOrderByStartsAtAsc(
+        @Param("seasonId") seasonId: UUID,
+        @Param("guestUserId") guestUserId: UUID,
+        @Param("viewerUserId") viewerUserId: UUID,
+        @Param("applyDraftVisibility") applyDraftVisibility: Boolean,
+        pageable: Pageable,
+    ): Page<EventEntity>
+
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND e.startsAt < :beforeExclusive
+          AND ${GuestEventAccessJpql.GUEST_ACCESSIBLE_EVENT}
+          AND $EVENT_LIST_VISIBILITY_JPQL
+        ORDER BY e.startsAt DESC
+        """,
+        countQuery =
+        """
+        SELECT COUNT(e) FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND e.startsAt < :beforeExclusive
+          AND ${GuestEventAccessJpql.GUEST_ACCESSIBLE_EVENT}
+          AND $EVENT_LIST_VISIBILITY_JPQL
+        """,
+    )
+    fun findPastNonArchivedForGuest(
+        @Param("seasonId") seasonId: UUID,
+        @Param("beforeExclusive") beforeExclusive: Instant,
+        @Param("guestUserId") guestUserId: UUID,
+        @Param("viewerUserId") viewerUserId: UUID,
+        @Param("applyDraftVisibility") applyDraftVisibility: Boolean,
+        pageable: Pageable,
+    ): Page<EventEntity>
+
+    fun countBySeason_IdAndArchivedFalse(seasonId: UUID): Long
+
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
         ORDER BY e.startsAt ASC
         """,
     )
     fun findNonArchivedBySeasonId(
         @Param("seasonId") seasonId: UUID,
     ): List<EventEntity>
-
-    fun countBySeason_IdAndArchivedFalse(seasonId: UUID): Long
 
     @Query(
         """

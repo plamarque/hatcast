@@ -25,8 +25,12 @@
         aria-label="Changer de vue saison"
       >
         <mat-button-toggle value="agenda">Agenda</mat-button-toggle>
-        <mat-button-toggle value="history">Historique</mat-button-toggle>
-        <mat-button-toggle value="stats">Statistiques</mat-button-toggle>
+        @if (!agendaOnlyGuest()) {
+          <mat-button-toggle value="history">Historique</mat-button-toggle>
+        }
+        @if (!partialGuestWorkspace()) {
+          <mat-button-toggle value="stats">Statistiques</mat-button-toggle>
+        }
       </mat-button-toggle-group>
 
       @if (filterTriggerVisible()) {

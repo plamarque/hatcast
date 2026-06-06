@@ -167,6 +167,26 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
     fun findAllByUser_Id(
         @Param("userId") userId: UUID,
     ): List<SeasonParticipantEntity>
+
+    @Query(
+        """
+        SELECT CASE WHEN COUNT(sp) > 0 THEN true ELSE false END FROM SeasonParticipantEntity sp
+        LEFT JOIN sp.troupeMembership tm
+        WHERE sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+          AND sp.invitationScope IS NOT NULL
+          AND (
+            sp.user.id = :userId
+            OR (
+              tm IS NOT NULL
+              AND tm.user.id = :userId
+              AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+            )
+          )
+        """,
+    )
+    fun existsActiveGuestInvitationForUser(
+        @Param("userId") userId: UUID,
+    ): Boolean
 }
 
 interface EventParticipantExclusionRepository : JpaRepository<EventParticipantExclusionEntity, EventParticipantExclusionId> {
@@ -215,6 +235,12 @@ interface EventParticipantRepository : JpaRepository<EventParticipantEntity, UUI
           AND (
             p.user.id = :userId
             OR sp.user.id = :userId
+            OR (
+              sp IS NOT NULL
+              AND sp.troupeMembership IS NOT NULL
+              AND sp.troupeMembership.user.id = :userId
+              AND sp.troupeMembership.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+            )
           )
         """,
     )
@@ -278,4 +304,53 @@ interface EventParticipantRepository : JpaRepository<EventParticipantEntity, UUI
     fun findAllByUser_Id(
         @Param("userId") userId: UUID,
     ): List<EventParticipantEntity>
+
+    @Query(
+        """
+        SELECT CASE WHEN COUNT(ep) > 0 THEN true ELSE false END
+        FROM EventParticipantEntity ep
+        LEFT JOIN ep.seasonParticipant sp
+        LEFT JOIN sp.troupeMembership tm
+        WHERE ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+          AND ep.event.archived = false
+          AND ep.event.season.archived = false
+          AND (
+            ep.user.id = :userId
+            OR sp.user.id = :userId
+            OR (
+              tm IS NOT NULL
+              AND tm.user.id = :userId
+              AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+            )
+          )
+        """,
+    )
+    fun existsActiveGuestEventInvitationForUser(
+        @Param("userId") userId: UUID,
+    ): Boolean
+
+    @Query(
+        """
+        SELECT CASE WHEN COUNT(ep) > 0 THEN true ELSE false END
+        FROM EventParticipantEntity ep
+        LEFT JOIN ep.seasonParticipant sp
+        LEFT JOIN sp.troupeMembership tm
+        WHERE ep.event.season.id = :seasonId
+          AND ep.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
+          AND ep.event.archived = false
+          AND (
+            ep.user.id = :userId
+            OR sp.user.id = :userId
+            OR (
+              tm IS NOT NULL
+              AND tm.user.id = :userId
+              AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+            )
+          )
+        """,
+    )
+    fun existsActiveForSeasonLinkedToUser(
+        @Param("seasonId") seasonId: UUID,
+        @Param("userId") userId: UUID,
+    ): Boolean
 }

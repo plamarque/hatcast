@@ -14,6 +14,7 @@ describe('TroupeSeasonResolverService', () => {
   let seasonsApi: {
     getSeasonBySlug: ReturnType<typeof vi.fn>
     resolveAdminSeasonBySlug: ReturnType<typeof vi.fn>
+    resolveSeasonByTroupeAndSeasonSlug: ReturnType<typeof vi.fn>
   }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
 
@@ -23,6 +24,7 @@ describe('TroupeSeasonResolverService', () => {
     seasonsApi = {
       getSeasonBySlug: vi.fn(),
       resolveAdminSeasonBySlug: vi.fn(),
+      resolveSeasonByTroupeAndSeasonSlug: vi.fn(),
     }
     auth = {
       ensureHatcastSession: vi.fn().mockResolvedValue({
@@ -170,6 +172,38 @@ describe('TroupeSeasonResolverService', () => {
 
     expect(result.kind).toBe('error')
     expect(seasonsApi.getSeasonBySlug).toHaveBeenCalledTimes(1)
+  })
+
+  it('résout une saison invité via slugs troupe + saison sans adhésion troupe', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [],
+    })
+    seasonsApi.resolveSeasonByTroupeAndSeasonSlug.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        troupe: {
+          id: 'troupe-improbots',
+          name: 'Les Improbots',
+          slug: 'les-improbots',
+          isDemo: false,
+          joinPolicy: 'OPEN',
+        },
+        season: season('s-improbots', 'troupe-improbots'),
+      },
+    })
+
+    const result = await resolver().resolveSeasonInTroupe('les-improbots', 'saison-a')
+
+    expect(result.kind).toBe('resolved')
+    expect(result.kind === 'resolved' ? result.troupe.slug : null).toBe('les-improbots')
+    expect(seasonsApi.resolveSeasonByTroupeAndSeasonSlug).toHaveBeenCalledWith(
+      'les-improbots',
+      'saison-a',
+    )
+    expect(context().selectedTroupe()?.membership.baselineRole).toBe('EXTERNE')
   })
 
   it('résout une saison via admin plateforme sans adhésion troupe', async () => {
