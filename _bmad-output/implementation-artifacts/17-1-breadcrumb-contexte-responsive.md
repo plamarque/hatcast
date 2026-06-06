@@ -209,3 +209,4 @@ Composer (Auto)
 
 - 2026-05-25: Story 17.1 — responsive context breadcrumb on season/event screens; troupe hub stub route; header admin/back removal.
 - 2026-05-25: Code review — 1 decision-needed, 5 patch, 1 defer.
+- 2026-06-06: **UX amendment (post-ship)** — canonical event detail omits spectacle title from breadcrumb (desktop + mobile); title + status on `event-detail__context-row` above tabs. AC2 desktop « spectacle title as breadcrumb leaf » **no longer applies to event detail**; see [ux-design-event-detail-title-row-2026-06-06.md](../planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md). Admin event sub-pages unchanged.

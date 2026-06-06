@@ -108,17 +108,17 @@ amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); e
 
 ### Chrome layout
 
-> **2026-05-31 (approved):** [ux-design-event-detail-chrome-alignment.md](./ux-design-event-detail-chrome-alignment.md) — gear in breadcrumb row; mobile duplicate title/date removed; agenda card ⋮ removed.
+> **2026-06-06 (approved):** [ux-design-event-detail-title-row-2026-06-06.md](./ux-design-event-detail-title-row-2026-06-06.md). Gear/agenda: [ux-design-event-detail-chrome-alignment.md](./ux-design-event-detail-chrome-alignment.md) E1–E3.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ [logo] Troupe › Saison › Event title              [ ⚙ ] [avatar ▾] │  ← gear here
+│ [logo] Troupe › Saison                            [ ⚙ ] [avatar ▾] │
+├─────────────────────────────────────────────────────────────────┤
+│ Event title (h1)                    [ badge statut … ] [ ? ]       │
 ├─────────────────────────────────────────────────────────────────┤
 │ [ Infos | Dispos | Équipe ]                                      │
 ├─────────────────────────────────────────────────────────────────┤
-│ Infos tab panel:                                                 │
-│              [ badge statut … ]          ← centered               │
-│  Titre / Description / Date / Lieu…                              │
+│ Infos: (description si renseignée) / Date / Lieu…              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -146,7 +146,7 @@ amendmentNote: 'Patrice — season gear in breadcrumb row (UX-DR22.1 / 17.28); e
 - [ ] Gear in `app-event-detail-header` row when admin items exist (E1).
 - [ ] Gear visible on Infos, Dispos, and Équipe tabs (E2).
 - [ ] No `more_vert` on Infos tab or agenda cards (E3).
-- [ ] No duplicate mobile title/date block under header (E4/E5).
+- [ ] Title row above tabs (`event-detail__context-row`); event title not in breadcrumb (E7/E8 — [title-row amendment](./ux-design-event-detail-title-row-2026-06-06.md)).
 
 ---
 

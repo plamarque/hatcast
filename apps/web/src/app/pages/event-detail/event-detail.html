@@ -25,14 +25,18 @@
       (eventUpdated)="onEventInfosUpdated($event)"
     />
 
-    @if (equipeStatus(); as status) {
-      <div class="event-detail__status">
-        <app-composition-equipe-status-header
-          [status]="status"
-          [showDraftBanner]="showCompositionDraftBanner()"
-        />
-      </div>
-    }
+    <div class="event-detail__context-row">
+      <h1 class="event-detail__event-title" aria-current="page">{{ ev.title }}</h1>
+      @if (equipeStatus(); as status) {
+        <div class="event-detail__status">
+          <app-composition-equipe-status-header
+            [status]="status"
+            [showDraftBanner]="showCompositionDraftBanner()"
+            [inlineInEventContext]="true"
+          />
+        </div>
+      }
+    </div>
 
     <div class="event-detail__tabs-shell">
       <mat-tab-group
@@ -47,18 +51,20 @@
           Infos
         </ng-template>
         @if (activeTab() === 'infos') {
-          <app-event-infos-tab
-            [event]="ev"
-            [seasonId]="seasonId()"
-            [troupeId]="troupeId()"
-            [troupeSlug]="routeTroupeSlug()"
-            [seasonSlug]="slug()"
-            [canManageEvents]="canManageEvents()"
-            [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
-            [canManageComposition]="canManageComposition()"
-            [organizersReloadTrigger]="organizersReloadTrigger()"
-            (eventUpdated)="onEventInfosUpdated($event)"
-          />
+          <section class="event-detail__tab-panel">
+            <app-event-infos-tab
+              [event]="ev"
+              [seasonId]="seasonId()"
+              [troupeId]="troupeId()"
+              [troupeSlug]="routeTroupeSlug()"
+              [seasonSlug]="slug()"
+              [canManageEvents]="canManageEvents()"
+              [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
+              [canManageComposition]="canManageComposition()"
+              [organizersReloadTrigger]="organizersReloadTrigger()"
+              (eventUpdated)="onEventInfosUpdated($event)"
+            />
+          </section>
         }
       </mat-tab>
 

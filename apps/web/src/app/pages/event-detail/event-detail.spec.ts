@@ -248,7 +248,7 @@ describe('EventDetail', () => {
       const labels = [...fixture.nativeElement.querySelectorAll('.event-infos__label')].map(
         (el: Element) => el.textContent?.trim(),
       )
-      expect(labels).toEqual(['Titre', 'Description', 'Date', 'Lieu', 'Format et besoins'])
+      expect(labels).toEqual(['Date', 'Lieu', 'Format et besoins'])
     })
     expect(fixture.nativeElement.textContent).toContain('Description test')
     expect(fixture.nativeElement.textContent).toContain('Paris')
@@ -1416,41 +1416,48 @@ describe('EventDetail', () => {
     })
   })
 
-  it('shows event title in mobile breadcrumb after successful load', async () => {
+  it('shows event title in context row and omits it from breadcrumb after successful load', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(
-        fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')?.textContent?.trim(),
+        fixture.nativeElement.querySelector('.event-detail__event-title')?.textContent?.trim(),
       ).toBe('Spectacle event-2')
     })
-    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
+    const desktopTrail = fixture.nativeElement.querySelector(
+      '.context-breadcrumb__trail--desktop',
+    ) as HTMLElement
+    expect(desktopTrail?.textContent).not.toContain('Spectacle event-2')
+    expect(
+      fixture.nativeElement.querySelector('.event-detail__event-title')?.getAttribute('aria-current'),
+    ).toBe('page')
   })
 
-  it('does not render duplicate mobile title block while loading', () => {
+  it('does not render mobile context row while loading', () => {
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('.event-detail__mobile-context')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail__context-row')).toBeNull()
     expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
   })
 
-  it('does not render mobile event breadcrumb after season resolver failure', async () => {
+  it('does not render mobile context row after season resolver failure', async () => {
     getSeasonBySlug.mockResolvedValue({ ok: false, status: 404 })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(getSeasonBySlug).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail__context-row')).toBeNull()
   })
 
-  it('does not render mobile event breadcrumb when event is not found', async () => {
+  it('does not render mobile context row when event is not found', async () => {
     loadEventMock.mockResolvedValue({ ok: false, status: 404 })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(loadEventMock).toHaveBeenCalled()
     })
-    expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail__context-row')).toBeNull()
   })
 
   it('syncCompositionFromEquipe patches lifecycle without reloading event', async () => {

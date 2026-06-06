@@ -109,6 +109,20 @@ describe('EventInfosTab', () => {
     )
   }
 
+  it('hides description block when empty', () => {
+    expect(fixture.nativeElement.querySelector('.event-infos__field--description')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Non renseignée')
+  })
+
+  it('renders description text without label when provided', () => {
+    fixture.componentRef.setInput('event', ev({ description: '  Soirée spéciale  ' }))
+    fixture.detectChanges()
+
+    const block = fixture.nativeElement.querySelector('.event-infos__field--description')
+    expect(block?.textContent?.trim()).toBe('Soirée spéciale')
+    expect(block?.querySelector('.event-infos__label')).toBeNull()
+  })
+
   it('renders interactive date row with chevron when export enabled', () => {
     expect(dateButton()).not.toBeNull()
     expect(dateButton()?.querySelector('.event-infos__chevron')).not.toBeNull()
@@ -137,7 +151,7 @@ describe('EventInfosTab', () => {
 
     expect(locationButton()).toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Non renseigné')
-    const locationField = fixture.nativeElement.querySelectorAll('.event-infos__field')[3]
+    const locationField = fixture.nativeElement.querySelectorAll('.event-infos__field')[1]
     expect(locationField.querySelector('.event-infos__chevron')).toBeNull()
   })
 

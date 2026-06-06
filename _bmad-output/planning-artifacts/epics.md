@@ -2009,6 +2009,22 @@ afin d’obtenir le CSV sans bouton dans la toolbar membre.
 
 ---
 
+#### Story 17.37 : Détail spectacle — rangée titre + statut *(UX polish 2026-06-06)*
+
+En tant que **membre ou organisateur**,  
+je veux **le titre du spectacle lisible à côté du statut de composition**, hors fil d'Ariane,  
+afin de **ne pas perdre le contexte** sur mobile et desktop.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** détail spectacle, **then** breadcrumb = troupe + saison seulement ; titre + badge au-dessus des onglets (`event-detail__context-row`).
+- **Given** onglet Infos, **then** pas de champ Titre ; description sans label si renseignée.
+- **Couverture :** [ux-design-event-detail-title-row-2026-06-06.md](./ux-design-event-detail-title-row-2026-06-06.md) E7–E11 ; amendement partiel chrome alignment E4–E6.
+
+**Story file:** [_17-37-event-detail-title-row.md_](../implementation-artifacts/17-37-event-detail-title-row.md)
+
+---
+
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 **Décisions produit (2026-05-28) :** sandbox **partagée** ; admin contenu par **super-admin** ; participants fictifs obligatoires ; `join_policy` sans paywall premium ; **Démo prod** via **`db/migration` idempotent (Option A)** ; seed dev renommé **Les Improbots** (slug `les-improbots`, emails `@seed.improbots.test`) — **La Malice** réservée à la migration V1 prod réelle.

@@ -255,6 +255,20 @@ describe('ContextBreadcrumb', () => {
     ).toContain('Participants')
   })
 
+  it('omits event title from breadcrumb when omitEventFromBreadcrumb is set on event layout', async () => {
+    const fixture = await setup('event')
+    fixture.componentRef.setInput('omitEventFromBreadcrumb', true)
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    const mobileRow = el.querySelector('.context-breadcrumb__mobile-row') as HTMLElement
+    const desktopTrail = el.querySelector('.context-breadcrumb__trail--desktop') as HTMLElement
+
+    expect(mobileRow.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
+    expect(mobileRow.textContent).toContain('Saison 2025-26')
+    expect(desktopTrail.textContent).not.toContain('Match BIM')
+    expect(desktopTrail.querySelector('[aria-current="page"]')).toBeNull()
+  })
+
   it('omits admin leaf from mobile row when mobileOmitLeaf is set on event layout', async () => {
     const fixture = await setup('event')
     fixture.componentRef.setInput('leafTitle', 'Participants')

@@ -51,7 +51,7 @@
         }
       </li>
     }
-    @if (layout() === 'event' && eventTitle()) {
+    @if (layout() === 'event' && eventTitle() && !omitEventFromBreadcrumb()) {
       <li class="context-breadcrumb__sep" aria-hidden="true">›</li>
       <li class="context-breadcrumb__segment">
         @if (eventIsLink()) {
@@ -121,7 +121,7 @@
         </span>
       }
     }
-    @if (layout() === 'event' && eventTitle()?.trim()) {
+    @if (layout() === 'event' && eventTitle()?.trim() && !omitEventFromBreadcrumb()) {
       <span class="context-breadcrumb__sep context-breadcrumb__sep--mobile" aria-hidden="true">›</span>
       @if (leafTitle()?.trim() && !mobileOmitLeaf()) {
         <span class="context-breadcrumb__mobile-event-title">{{ eventTitle() }}</span>

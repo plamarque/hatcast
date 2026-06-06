@@ -1,19 +1,9 @@
 <main class="event-infos">
-  <div class="event-infos__field">
-    <span class="event-infos__label">Titre</span>
-    <div class="event-infos__value">{{ event().title }}</div>
-  </div>
-
-  <div class="event-infos__field">
-    <span class="event-infos__label">Description</span>
-    <div class="event-infos__value">
-      @if (event().description) {
-        {{ event().description }}
-      } @else {
-        <span class="event-infos__empty">Non renseignée</span>
-      }
+  @if (event().description?.trim(); as description) {
+    <div class="event-infos__field event-infos__field--description">
+      <div class="event-infos__value">{{ description }}</div>
     </div>
-  </div>
+  }
 
   <div class="event-infos__field">
     <span class="event-infos__label">Date</span>

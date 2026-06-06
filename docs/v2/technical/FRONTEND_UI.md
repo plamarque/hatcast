@@ -44,6 +44,7 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md`](../../../_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md) | Accueil — cartes Actions requises + moment « Tout est à jour » |
 | [`_bmad-output/planning-artifacts/ux-design-specification.md`](../../../_bmad-output/planning-artifacts/ux-design-specification.md) | Surfaces admin (Material defaults + tokens) |
 | [`_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md`](../../../_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md) | Brouillon spectacle, publication, bandeau, agendas (story **3.21**) |
+| [`_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md`](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md) | Détail spectacle — rangée titre + statut, breadcrumb sans titre, onglet Infos (2026-06-06) |
 
 Avant toute story UI, lire la section **checklist** ci-dessous et les **Dev Notes** / AC de la story (souvent sous `_bmad-output/implementation-artifacts/`).
 
@@ -105,6 +106,7 @@ Utiliser cette liste **à la fin** de chaque changement sous `apps/web/` (dével
 - Helpers : [`availability-status.ts`](../../../apps/web/src/app/core/availability/availability-status.ts) (dispo pure), [`participation-status.ts`](../../../apps/web/src/app/core/participation/participation-status.ts) (chart, équipe, badges étendus).
 - Spec UX : [`ux-design-participation-semantic-colors.md`](../../../_bmad-output/planning-artifacts/ux-design-participation-semantic-colors.md).
 - Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*`, `--hatcast-participation-*` ou alias `--hatcast-availability-*`).
+- Détail spectacle — rangée titre / statut : [`event-detail.html`](../../../apps/web/src/app/pages/event-detail/event-detail.html) (`event-detail__context-row`), [`context-breadcrumb`](../../../apps/web/src/app/shared/context-breadcrumb/) (`omitEventFromBreadcrumb` sur le header événement), spec [ux-design-event-detail-title-row-2026-06-06.md](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md).
 
 ### Couleurs sémantiques — participation
 

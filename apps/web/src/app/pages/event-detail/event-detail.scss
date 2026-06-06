@@ -12,11 +12,40 @@
   padding: 2rem;
 }
 
-.event-detail__status {
-  display: flex;
-  justify-content: center;
-  margin-top: 0.5rem;
+.event-detail__context-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+  margin-top: 0.25rem;
   margin-bottom: 0.75rem;
+  min-width: 0;
+}
+
+.event-detail__event-title {
+  margin: 0;
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+
+  @media (min-width: 840px) {
+    font-size: 1.35rem;
+  }
+
+  .event-detail__context-row:has(.composition-equipe-status__banner) & {
+    grid-row: 2;
+  }
+}
+
+.event-detail__status {
+  display: contents;
+  min-width: 0;
 }
 
 .event-detail__tabs-shell {
@@ -27,6 +56,7 @@
 
   ::ng-deep .mat-mdc-tab-body-content {
     overflow: visible;
+    padding-top: 1.5rem;
   }
 
   ::ng-deep .mat-mdc-tab-header {
@@ -63,5 +93,5 @@
 }
 
 .event-detail__tab-panel {
-  padding: 0.5rem 0 2rem;
+  padding: 0 0 2rem;
 }
