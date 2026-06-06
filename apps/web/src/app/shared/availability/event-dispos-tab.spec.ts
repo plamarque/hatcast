@@ -4,7 +4,6 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
-import { ParticipantApiService } from '../../core/participants/participant-api.service'
 import { ROLE_TEMPLATES } from '../../core/events/event-types'
 import { AvailabilityForm } from './availability-form'
 import { EventDisposTab } from './event-dispos-tab'
@@ -26,6 +25,15 @@ const mockSummary = {
       participantId: 'p2',
       userId: 'user-2',
       displayName: 'Alex',
+      avatarUrl: null,
+      status: 'unknown' as const,
+      roleKeys: [],
+      comment: null,
+    },
+    {
+      participantId: 'p3',
+      userId: null,
+      displayName: 'Guest Artist',
       avatarUrl: null,
       status: 'unknown' as const,
       roleKeys: [],
@@ -55,11 +63,6 @@ async function setup(canSwitchSubject = false) {
     status: 200,
     data: { status: 'available' as const, roleKeys: ['player'], comment: null },
   })
-  const listSeasonParticipantSelectors = vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    data: [{ id: 'p1', displayName: 'Patrice', avatarUrl: null, kind: 'MEMBER' }],
-  })
 
   await TestBed.configureTestingModule({
     imports: [EventDisposTab, NoopAnimationsModule],
@@ -71,10 +74,6 @@ async function setup(canSwitchSubject = false) {
           setMyAvailability,
           setParticipantAvailability,
         },
-      },
-      {
-        provide: ParticipantApiService,
-        useValue: { listSeasonParticipantSelectors },
       },
       { provide: MatSnackBar, useValue: { open: vi.fn() } },
     ],
@@ -120,6 +119,17 @@ describe('EventDisposTab', () => {
   it('shows subject selector for organizers in Moi view', async () => {
     const { fixture } = await setup(true)
     expect(fixture.nativeElement.querySelector('app-availability-subject-selector')).not.toBeNull()
+  })
+
+  it('lists every summary participant in subject selector including name-only event roster', async () => {
+    const { fixture } = await setup(true)
+    const comp = fixture.componentInstance as unknown as {
+      subjectSelectorOptions: () => { id: string; displayName: string }[]
+    }
+    const names = comp.subjectSelectorOptions().map((p) => p.displayName)
+    expect(names).toContain('Patrice')
+    expect(names).toContain('Alex')
+    expect(names).toContain('Guest Artist')
   })
 
   it('allows organizer to edit another subject (not read-only)', async () => {
