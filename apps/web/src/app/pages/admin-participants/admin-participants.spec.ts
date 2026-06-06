@@ -27,9 +27,12 @@ import {
   PARTICIPATION_ROLE_UPDATE_FAILED,
 } from '../../shared/admin-organizer-row/organizer-row.helper'
 import { AdminParticipants } from './admin-participants'
+import { AddParticipantDialog } from './add-participant-dialog'
 
 describe('AdminParticipants', () => {
-  const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
+  const paramMap$ = new BehaviorSubject(
+    convertToParamMap({ troupeSlug: 't1', seasonSlug: 'season-a' }),
+  )
 
   const guest: SeasonParticipantAdmin = {
     id: 'p-guest',
@@ -94,7 +97,7 @@ describe('AdminParticipants', () => {
         {
           provide: TroupeSeasonResolverService,
           useValue: {
-            resolveSeasonSlug: vi.fn().mockResolvedValue({
+            resolveSeasonInTroupe: vi.fn().mockResolvedValue({
               kind: 'resolved',
               troupe: {
                 id: 't1',
@@ -170,7 +173,7 @@ describe('AdminParticipants', () => {
     const { router } = await setup(noPermissions())
 
     await vi.waitFor(() => {
-      expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a'])
+      expect(router.navigate).toHaveBeenCalledWith(['/saison', 't1', 'season-a'])
     })
   })
 
@@ -209,7 +212,7 @@ describe('AdminParticipants', () => {
         {
           provide: TroupeSeasonResolverService,
           useValue: {
-            resolveSeasonSlug: vi.fn().mockResolvedValue({
+            resolveSeasonInTroupe: vi.fn().mockResolvedValue({
               kind: 'resolved',
               troupe: { id: 't1', name: 'Ma Troupe', slug: 't1' },
               season: season('s1'),
@@ -288,7 +291,7 @@ describe('AdminParticipants', () => {
         {
           provide: TroupeSeasonResolverService,
           useValue: {
-            resolveSeasonSlug: vi.fn().mockImplementation(
+            resolveSeasonInTroupe: vi.fn().mockImplementation(
               () => new Promise(() => undefined),
             ),
           },
@@ -324,7 +327,10 @@ describe('AdminParticipants', () => {
     expect(dialog.open).not.toHaveBeenCalled()
     const cmp = fixture.componentInstance as AdminParticipants
     cmp['openAddDialog']()
-    expect(dialog.open).toHaveBeenCalled()
+    expect(dialog.open).toHaveBeenCalledWith(AddParticipantDialog, {
+      data: { seasonId: 's1', troupeId: 't1' },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
     await vi.waitFor(() => {
       expect(listSeasonParticipants.mock.calls.length).toBeGreaterThanOrEqual(2)
     })
@@ -612,7 +618,7 @@ describe('AdminParticipants', () => {
         {
           provide: TroupeSeasonResolverService,
           useValue: {
-            resolveSeasonSlug: vi.fn().mockResolvedValue({
+            resolveSeasonInTroupe: vi.fn().mockResolvedValue({
               kind: 'resolved',
               troupe: {
                 id: 't1',

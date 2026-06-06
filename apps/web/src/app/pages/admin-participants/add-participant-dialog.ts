@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core'
+import { Component, computed, inject, OnInit, signal } from '@angular/core'
+import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatButtonModule } from '@angular/material/button'
 import {
   MAT_DIALOG_DATA,
@@ -9,14 +10,28 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
+import {
+  type TroupeMemberAdmin,
+  TroupeApiService,
+} from '../../core/troupes/troupe-api.service'
+import { filterTroupeMemberSuggestions } from '../../shared/participant-add/participant-member-suggestions'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 export interface AddParticipantDialogData {
   seasonId: string
+  troupeId: string
 }
 
 @Component({
   selector: 'app-add-participant-dialog',
-  imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  imports: [
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    UserAvatarComponent,
+  ],
   template: `
     <h2 mat-dialog-title>Ajouter un participant</h2>
     <mat-dialog-content>
@@ -27,20 +42,45 @@ export interface AddParticipantDialogData {
             matInput
             autofocus
             [value]="displayName()"
-            (input)="displayName.set($any($event.target).value)"
+            (input)="onDisplayNameInput($any($event.target).value)"
+            [matAutocomplete]="nameAuto"
           />
+          <mat-autocomplete
+            #nameAuto="matAutocomplete"
+            (optionSelected)="onMemberOptionSelected($event.option.value)"
+          >
+            @for (member of filteredSuggestions(); track member.id) {
+              <mat-option [value]="member.userId">
+                <span class="participant-form-dialog__option">
+                  <app-user-avatar
+                    class="participant-form-dialog__option-avatar"
+                    [displayName]="member.displayName"
+                    [avatarUrl]="member.avatarUrl ?? null"
+                    [gender]="member.gender ?? null"
+                    [size]="24"
+                  />
+                  <span>{{ member.displayName }}</span>
+                  @if (member.email) {
+                    <span class="participant-form-dialog__option-email">{{ member.email }}</span>
+                  }
+                </span>
+              </mat-option>
+            }
+          </mat-autocomplete>
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="participant-form-dialog__field">
           <mat-label>Email (optionnel)</mat-label>
           <input
             matInput
             [value]="email()"
-            (input)="email.set($any($event.target).value)"
+            (input)="onEmailInput($any($event.target).value)"
             placeholder="participant@example.com"
           />
         </mat-form-field>
         <p class="participant-form-dialog__hint">
-          Si l'email correspond à un compte HatCast, le participant sera lié automatiquement.
+          Suggestions : membres actifs de la troupe. Si l'email correspond à un compte HatCast, le
+          participant sera lié automatiquement. L'email pourra aussi servir aux invitations et
+          notifications à venir.
         </p>
         @if (error()) {
           <p class="participant-form-dialog__error" role="alert">{{ error() }}</p>
@@ -72,6 +112,21 @@ export interface AddParticipantDialogData {
         width: 100%;
       }
 
+      .participant-form-dialog__option {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .participant-form-dialog__option-avatar {
+        flex-shrink: 0;
+      }
+
+      .participant-form-dialog__option-email {
+        color: color-mix(in srgb, var(--mat-sys-on-surface) 60%, transparent);
+        font-size: 0.875rem;
+      }
+
       .participant-form-dialog__hint {
         margin: 0;
         font-size: 0.875rem;
@@ -87,8 +142,9 @@ export interface AddParticipantDialogData {
     `,
   ],
 })
-export class AddParticipantDialog {
+export class AddParticipantDialog implements OnInit {
   private readonly api = inject(ParticipantApiService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly ref = inject(MatDialogRef<AddParticipantDialog, boolean>)
   protected readonly data = inject<AddParticipantDialogData>(MAT_DIALOG_DATA)
 
@@ -96,6 +152,52 @@ export class AddParticipantDialog {
   protected readonly email = signal('')
   protected readonly saving = signal(false)
   protected readonly error = signal('')
+  protected readonly members = signal<TroupeMemberAdmin[]>([])
+  protected readonly excludedUserIds = signal<Set<string>>(new Set())
+  protected readonly excludedDisplayNames = signal<Set<string>>(new Set())
+  protected readonly selectedMember = signal<TroupeMemberAdmin | null>(null)
+
+  protected readonly filteredSuggestions = computed(() =>
+    filterTroupeMemberSuggestions(
+      this.members(),
+      this.displayName(),
+      this.excludedUserIds(),
+      this.excludedDisplayNames(),
+    ),
+  )
+
+  ngOnInit(): void {
+    void this.initializeSuggestions()
+  }
+
+  protected onDisplayNameInput(value: string): void {
+    const hadSelection = this.selectedMember() !== null
+    this.displayName.set(value)
+    this.selectedMember.set(null)
+    if (hadSelection) {
+      this.email.set('')
+    }
+    this.error.set('')
+  }
+
+  protected onEmailInput(value: string): void {
+    this.email.set(value)
+    this.error.set('')
+  }
+
+  protected onMemberOptionSelected(userId: string): void {
+    const member = this.members().find((m) => m.userId === userId)
+    if (member) {
+      this.onMemberSelected(member)
+    }
+  }
+
+  protected onMemberSelected(member: TroupeMemberAdmin): void {
+    this.selectedMember.set(member)
+    this.displayName.set(member.displayName)
+    this.email.set(member.email ?? '')
+    this.error.set('')
+  }
 
   async submit(): Promise<void> {
     const name = this.displayName().trim()
@@ -118,6 +220,33 @@ export class AddParticipantDialog {
       this.ref.close(true)
     } finally {
       this.saving.set(false)
+    }
+  }
+
+  private async initializeSuggestions(): Promise<void> {
+    const [membersResult, participantsResult] = await Promise.all([
+      this.troupeApi.listMembers(this.data.troupeId, 0, 100),
+      this.api.listSeasonParticipants(this.data.seasonId),
+    ])
+
+    if (membersResult.ok && membersResult.data) {
+      this.members.set(membersResult.data.content)
+    }
+
+    if (participantsResult.ok && participantsResult.data) {
+      const userIds = new Set<string>()
+      const displayNames = new Set<string>()
+      for (const p of participantsResult.data) {
+        if (p.status !== 'ACTIVE') {
+          continue
+        }
+        if (p.userId) {
+          userIds.add(p.userId)
+        }
+        displayNames.add(p.displayName.trim().toLowerCase())
+      }
+      this.excludedUserIds.set(userIds)
+      this.excludedDisplayNames.set(displayNames)
     }
   }
 

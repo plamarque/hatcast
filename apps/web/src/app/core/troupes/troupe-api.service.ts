@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 
+import type { MemberGender } from '../account/member-gender'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export type TroupeMembershipStatus = 'ACTIVE' | 'INACTIVE'
@@ -59,6 +60,7 @@ export interface TroupeMemberAdmin {
   email: string | null
   displayName: string
   avatarUrl?: string | null
+  gender?: MemberGender | null
   status: TroupeMembershipStatus
   baselineRole: TroupeBaselineRole
   createdAt: string

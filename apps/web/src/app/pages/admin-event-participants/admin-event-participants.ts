@@ -330,11 +330,12 @@ export class AdminEventParticipants implements OnDestroy, OnInit {
   protected openAddDialog(): void {
     const seasonId = this.seasonId()
     const eventId = this.event()?.id
-    if (!seasonId || !eventId) {
+    const troupeId = this.season()?.troupeId
+    if (!seasonId || !eventId || !troupeId) {
       return
     }
     const ref = this.dialog.open(AddEventParticipantDialog, {
-      data: { seasonId, eventId },
+      data: { seasonId, eventId, troupeId },
       width: 'min(100vw - 2rem, 28rem)',
     })
     ref.afterClosed().subscribe((ok) => {
