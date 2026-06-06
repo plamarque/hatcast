@@ -165,8 +165,9 @@ class ParticipantControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.displayName").value("Guest Artist"))
-            .andExpect(jsonPath("$.kind").value("NAME_ONLY"))
-            .andExpect(jsonPath("$.removable").value(true))
+            .andExpect(jsonPath("$.kind").value("EXTERNE"))
+            .andExpect(jsonPath("$.invitationScope").value("SEASON"))
+            .andExpect(jsonPath("$.troupeMembershipId").isNotEmpty)
 
         val listResult =
             mockMvc
@@ -194,9 +195,9 @@ class ParticipantControllerIntegrationTest {
     }
 
     @Test
-    fun `admin can update name-only season participant with email link`() {
+    fun `externe-linked season participant rejects name email patch`() {
         val admin = signInAdmin("part-admin-edit", "part-admin-edit@example.com", "Part Admin Edit")
-        val linked = signIn("part-linked-edit", "linked-edit@example.com", "Linked Edit")
+        signIn("part-linked-edit", "linked-edit@example.com", "Linked Edit")
         val seasonId = createSeason(admin.cookie)
 
         val createResult =
@@ -208,6 +209,7 @@ class ParticipantControllerIntegrationTest {
                         .content("""{"displayName":"Solo Guest"}""")
                         .with(csrf()),
                 ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.kind").value("EXTERNE"))
                 .andReturn()
         val participantId = mapper.readTree(createResult.response.contentAsString).path("id").asText()
 
@@ -218,10 +220,7 @@ class ParticipantControllerIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"displayName":"Solo Guest Renamed","email":"linked-edit@example.com"}""")
                     .with(csrf()),
-            ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.displayName").value("Solo Guest Renamed"))
-            .andExpect(jsonPath("$.userId").value(linked.userId))
-            .andExpect(jsonPath("$.kind").value("LINKED"))
+            ).andExpect(status().isBadRequest)
     }
 
     @Test
@@ -338,7 +337,7 @@ class ParticipantControllerIntegrationTest {
                         .content("""{"displayName":"Pending Guest","email":"pending-link@example.com"}""")
                         .with(csrf()),
                 ).andExpect(status().isOk)
-                .andExpect(jsonPath("$.kind").value("MANAGED"))
+                .andExpect(jsonPath("$.kind").value("EXTERNE"))
                 .andReturn()
         val participantId = mapper.readTree(createResult.response.contentAsString).path("id").asText()
         org.junit.jupiter.api.Assertions.assertTrue(
@@ -380,7 +379,7 @@ class ParticipantControllerIntegrationTest {
                     .content("""{"displayName":"Stub Participant","email":"stub-prelink@example.com"}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.kind").value("LINKED"))
+            .andExpect(jsonPath("$.kind").value("EXTERNE"))
             .andExpect(jsonPath("$.userId").exists())
     }
 
@@ -458,10 +457,10 @@ class ParticipantControllerIntegrationTest {
                 patch("/v1/seasons/$seasonId/participants/$participantId")
                     .cookie(admin.cookie)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"displayName":"Patched Name","email":"patch@example.com"}""")
+                    .content("""{"displayName":"Patch Me","email":"patch@example.com","gender":"female"}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.displayName").value("Patched Name"))
+            .andExpect(jsonPath("$.gender").value("female"))
     }
 
     @Test
@@ -961,6 +960,8 @@ class ParticipantControllerIntegrationTest {
                 ).andExpect(status().isOk)
                 .andReturn()
         val secondId = mapper.readTree(secondResult.response.contentAsString).path("id").asText()
+        val secondMembershipId =
+            mapper.readTree(secondResult.response.contentAsString).path("troupeMembershipId").asText()
 
         mockMvc
             .perform(
@@ -969,10 +970,9 @@ class ParticipantControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isNoContent)
 
-        // Rename the second row onto the removed row's name (allowed: the removed row is not ACTIVE).
         mockMvc
             .perform(
-                patch("/v1/seasons/$seasonId/participants/$secondId")
+                patch("/v1/troupes/$seedTroupeId/members/$secondMembershipId")
                     .cookie(admin.cookie)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"displayName":"Alpha Solo"}""")

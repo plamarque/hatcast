@@ -101,6 +101,7 @@ export interface UpdateMyMembershipRequest {
 
 export interface UpdateTroupeMemberRequest {
   displayName?: string
+  email?: string | null
   status?: TroupeMembershipStatus
   baselineRole?: TroupeBaselineRole
 }

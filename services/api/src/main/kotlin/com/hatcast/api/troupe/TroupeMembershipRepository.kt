@@ -123,6 +123,18 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         displayName: String,
     ): TroupeMembershipEntity?
 
+    fun findFirstByTroupe_IdAndBaselineRoleAndNormalizedEmailIgnoreCase(
+        troupeId: UUID,
+        baselineRole: TroupeBaselineRole,
+        normalizedEmail: String,
+    ): TroupeMembershipEntity?
+
+    fun findFirstByTroupe_IdAndBaselineRoleAndDisplayNameIgnoreCase(
+        troupeId: UUID,
+        baselineRole: TroupeBaselineRole,
+        displayName: String,
+    ): TroupeMembershipEntity?
+
     fun existsByTroupe_IdAndUser_IdAndStatus(
         troupeId: UUID,
         userId: UUID,

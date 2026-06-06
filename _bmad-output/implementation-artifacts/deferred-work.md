@@ -17,6 +17,31 @@
 | **ops-10** | 2026-06-05 | Email `@hatcast.app` staging recette OK |
 | **19.1** | 2026-06-04 | SPEC/ADR moteur tirage V1 — doc only |
 | **DW-111** | 2026-06-05 | Replay migration × **≥3** — `migrate-from-v1.sh` + gate `validate-replay --min=3` (PO ; log hors git : `export/malice/replay-log.jsonl`) |
+| **3.23** | 2026-06-06 | Invitation scope + cascade add — TEA PASS ; manual recette A–G ; defers ci-dessous |
+| **3.24** | 2026-06-06 | Modale édition Admin Membres — discoverability scénario F **3.23** ; 22/22 tests ; 1 defer optionnel (test `email: null`) ci-dessous |
+
+---
+
+## Deferred from: code review of 3-8d-participant-add-typeahead-carnet (2026-06-06)
+
+- M3-5 viewport 480px non automatisé — waived explicitement dans Dev Notes (revue manuelle).
+
+---
+
+## Deferred from: code review of 3-24-admin-membres-edit-dialog (2026-06-06)
+
+- Test PATCH email externe vidé (`email: null`) absent — logique submit présente, couverture optionnelle post-3.23.
+
+---
+
+## Deferred from: code review of 3-23-invitation-scope-cascade-add (2026-06-06)
+
+- M3-3 dialog width 24rem vs 28rem — waiver documented in story Dev Notes (3.8c shell).
+- Typeahead submit omits `troupeMembershipId` — pre-existing 3.8c; members without email fall through to externe carnet path.
+- Member event POST duplicate ACTIVE rows — pre-existing before 3.23 refactor.
+- Carnet homonym collision on name-only match — inherited 2.21 carnet match order.
+- No e2e helpers for Laetitia/Ruben/opt-in — manual recette deemed sufficient for story closure.
+- No audit when upsert updates already-ACTIVE externe — minor observability gap.
 
 ---
 

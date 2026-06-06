@@ -37,10 +37,11 @@ describe('AdminParticipants', () => {
   const guest: SeasonParticipantAdmin = {
     id: 'p-guest',
     displayName: 'Guest Artist',
-    email: null,
+    email: 'laetitia@example.com',
     userId: null,
-    troupeMembershipId: null,
-    kind: 'NAME_ONLY',
+    troupeMembershipId: 'tm-guest',
+    invitationScope: 'SEASON',
+    kind: 'EXTERNE',
     status: 'ACTIVE',
     removable: true,
   }
@@ -353,6 +354,28 @@ describe('AdminParticipants', () => {
     })
   })
 
+  it('removes externe participant when API removable is false', async () => {
+    const externe: SeasonParticipantAdmin = {
+      ...guest,
+      id: 'p-externe',
+      displayName: 'Laetitia',
+      troupeMembershipId: 'tm-externe',
+      removable: false,
+    }
+    const dialogRef = { afterClosed: () => of(true) }
+    const dialog = { open: vi.fn().mockReturnValue(dialogRef) }
+    const { fixture, removeSeasonParticipant } = await setup(participantsAdmin(), {
+      participants: [externe],
+      dialog,
+    })
+
+    const cmp = fixture.componentInstance as AdminParticipants
+    cmp['confirmRemove'](externe)
+    await vi.waitFor(() => {
+      expect(removeSeasonParticipant).toHaveBeenCalledWith('s1', 'p-externe')
+    })
+  })
+
   it('splits roster into Externes and Membres sections', async () => {
     const member: SeasonParticipantAdmin = {
       ...guest,
@@ -366,7 +389,7 @@ describe('AdminParticipants', () => {
       ...guest,
       id: 'p-guest',
       displayName: 'Guest Artist',
-      kind: 'NAME_ONLY',
+      kind: 'EXTERNE',
     }
     const { fixture } = await setup(participantsAdmin(), {
       participants: [member, external],
@@ -506,14 +529,16 @@ describe('AdminParticipants', () => {
     })
   })
 
-  it('shows edit for external season participant and opens edit dialog', async () => {
+  it('hides edit for carnet-linked externe and shows edit for legacy linked row', async () => {
     const linked: SeasonParticipantAdmin = {
-      ...guest,
       id: 'p-linked',
       displayName: 'Linked Guest',
       email: 'linked@example.com',
       userId: 'u-1',
+      troupeMembershipId: null,
       kind: 'LINKED',
+      status: 'ACTIVE',
+      removable: true,
     }
     const { fixture, dialog } = await setup(participantsAdmin(), {
       participants: [guest, linked],
@@ -523,7 +548,7 @@ describe('AdminParticipants', () => {
     const editButtons = fixture.nativeElement.querySelectorAll(
       'button[aria-label="Modifier le participant"]',
     )
-    expect(editButtons.length).toBe(2)
+    expect(editButtons.length).toBe(1)
 
     editButtons[0].dispatchEvent(new Event('click'))
     expect(dialog.open).toHaveBeenCalledWith(
@@ -532,7 +557,7 @@ describe('AdminParticipants', () => {
         data: expect.objectContaining({
           scope: 'season',
           seasonId: 's1',
-          participantId: 'p-guest',
+          participantId: 'p-linked',
         }),
       }),
     )

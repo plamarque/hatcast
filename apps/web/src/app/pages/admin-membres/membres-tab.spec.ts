@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import type { PagedTroupeMembersResponse } from '../../core/troupes/troupe-api.service'
+import { EditTroupeMemberDialog } from './edit-troupe-member-dialog'
 import { MembresTab } from './membres-tab'
 
 describe('MembresTab', () => {
@@ -311,6 +312,132 @@ describe('MembresTab', () => {
     cmp.setRoleFilter('EXTERNE')
     fixture.detectChanges()
     expect(cmp.filteredMembers().map((m) => m.displayName)).toEqual(['DJ local'])
+  })
+
+  it('shows static display name without inline edit button', async () => {
+    const { fixture } = await setup()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.membres-tab__name-btn')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.membres-tab__name-input')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.membres-tab__name')?.textContent).toContain('Admin')
+  })
+
+  it('opens edit dialog with correct aria-label for member and externe', async () => {
+    const { fixture, dialog } = await setup({
+      listMembers: {
+        content: [
+          {
+            id: 'm2',
+            userId: 'u2',
+            email: 'member@example.com',
+            displayName: 'Membre',
+            status: 'ACTIVE',
+            baselineRole: 'MEMBER',
+            createdAt: '',
+            updatedAt: '',
+          },
+          {
+            id: 'mx',
+            userId: null,
+            email: null,
+            displayName: 'DJ local',
+            status: 'ACTIVE',
+            baselineRole: 'EXTERNE',
+            createdAt: '',
+            updatedAt: '',
+          },
+        ],
+        page: 0,
+        size: 100,
+        totalElements: 2,
+        totalPages: 1,
+      },
+    })
+    fixture.detectChanges()
+
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="Modifier le membre"]'),
+    ).not.toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="Modifier cet externe"]'),
+    ).not.toBeNull()
+
+    const cmp = fixture.componentInstance as MembresTab & {
+      members: () => Array<{ id: string }>
+      openEditMember(member: unknown): void
+    }
+
+    const member = cmp.members().find((m) => m.id === 'm2')!
+    cmp.openEditMember(member)
+    expect(dialog.open).toHaveBeenCalledWith(
+      EditTroupeMemberDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({ troupeId: 't1', member }),
+        width: 'min(100vw - 2rem, 28rem)',
+      }),
+    )
+
+    const externe = cmp.members().find((m) => m.id === 'mx')!
+    cmp.openEditMember(externe)
+    expect(dialog.open).toHaveBeenLastCalledWith(
+      EditTroupeMemberDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({ member: externe }),
+      }),
+    )
+  })
+
+  it('reloads list and shows snack after successful edit dialog close', async () => {
+    const { fixture, api, dialog, snack } = await setup()
+    dialog.open.mockReturnValue({ afterClosed: () => of(true) })
+    const cmp = fixture.componentInstance as MembresTab & {
+      members: () => Array<{ id: string }>
+      openEditMember(member: unknown): void
+    }
+    const member = cmp.members().find((m) => m.id === 'm2')!
+
+    cmp.openEditMember(member)
+    await fixture.whenStable()
+
+    expect(dialog.open).toHaveBeenCalledWith(EditTroupeMemberDialog, expect.any(Object))
+    expect(snack.open).toHaveBeenCalledWith('Membre mis à jour.', 'OK', { duration: 4000 })
+    expect(api.listMembers).toHaveBeenCalledTimes(2)
+    expect(api.updateMember).not.toHaveBeenCalled()
+  })
+
+  it('shows externe snack after successful edit dialog close', async () => {
+    const { fixture, dialog, snack } = await setup({
+      listMembers: {
+        content: [
+          {
+            id: 'mx',
+            userId: null,
+            email: null,
+            displayName: 'DJ local',
+            status: 'ACTIVE',
+            baselineRole: 'EXTERNE',
+            createdAt: '',
+            updatedAt: '',
+          },
+        ],
+        page: 0,
+        size: 100,
+        totalElements: 1,
+        totalPages: 1,
+      },
+    })
+    dialog.open.mockReturnValue({ afterClosed: () => of(true) })
+    const cmp = fixture.componentInstance as MembresTab & {
+      members: () => Array<{ id: string }>
+      openEditMember(member: unknown): void
+    }
+    const externe = cmp.members().find((m) => m.id === 'mx')!
+
+    cmp.openEditMember(externe)
+    await fixture.whenStable()
+
+    expect(snack.open).toHaveBeenCalledWith('Externe mis à jour.', 'OK', { duration: 4000 })
   })
 
   it('uses carnet copy when removing an externe', async () => {

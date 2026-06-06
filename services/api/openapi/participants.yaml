@@ -246,6 +246,19 @@ components:
           enum: [male, female, non_specified]
           nullable: true
           description: Organizer-set row gender when account has no M/F (ADR 0020)
+        invitationScope:
+          $ref: '#/components/schemas/InvitationScope'
+          nullable: true
+          description: Server default by endpoint; ignored for troupe member adds
+        addToSeasonRoster:
+          type: boolean
+          default: false
+          description: Event create only — opt-in season row with EVENT scope
+        troupeMembershipId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional explicit carnet pick (prep 3.8d)
 
     ParticipantUpdateRequest:
       type: object
@@ -263,9 +276,13 @@ components:
           nullable: true
           description: Organizer-set row gender when account has no M/F (ADR 0020)
 
+    InvitationScope:
+      type: string
+      enum: [SEASON, EVENT]
+
     ParticipantKind:
       type: string
-      enum: [MEMBER, LINKED, MANAGED, NAME_ONLY]
+      enum: [MEMBER, EXTERNE, LINKED, MANAGED, NAME_ONLY]
 
     SeasonParticipantAdmin:
       type: object
@@ -286,6 +303,9 @@ components:
         troupeMembershipId:
           type: string
           format: uuid
+          nullable: true
+        invitationScope:
+          $ref: '#/components/schemas/InvitationScope'
           nullable: true
         kind:
           $ref: '#/components/schemas/ParticipantKind'

@@ -94,22 +94,11 @@
   min-width: 0;
 }
 
-.membres-tab__name-btn,
-.membres-tab__name-input {
-  background: none;
-  border: none;
-  font: inherit;
+.membres-tab__name {
   font-weight: 600;
-  padding: 0;
-  text-align: left;
-  cursor: pointer;
-}
-
-.membres-tab__name-input {
-  border-bottom: 1px solid var(--mat-sys-outline);
-  color: var(--mat-sys-on-surface);
-  cursor: text;
-  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .membres-tab__email {

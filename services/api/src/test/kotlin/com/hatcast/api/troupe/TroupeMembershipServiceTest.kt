@@ -38,6 +38,7 @@ class TroupeMembershipServiceTest {
     private val seasonParticipantRepository = mock<SeasonParticipantRepository>()
     private val auditRecorder = mock<AuditEventRecorder>()
     private val avatarService = mock<AvatarService>()
+    private val troupeExterneCarnetService = mock<TroupeExterneCarnetService>()
     private val userMemberPreferencesService =
         mock<UserMemberPreferencesService>().also { prefs ->
             whenever(prefs.resolvedMemberDisplayName(any())).thenAnswer { invocation ->
@@ -59,6 +60,7 @@ class TroupeMembershipServiceTest {
             seasonParticipantRepository,
             auditRecorder,
             avatarService,
+            troupeExterneCarnetService,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

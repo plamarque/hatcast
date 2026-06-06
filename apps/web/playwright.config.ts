@@ -57,6 +57,15 @@ export default defineConfig({
       },
       dependencies: ['setup-admin'],
     },
+    {
+      name: 'chromium-3-8d',
+      testMatch: /recette-3\.8d\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup-admin'],
+    },
   ],
   webServer: isStagingTarget
     ? undefined
