@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.2.0",
+    "date": "2026-06-07",
+    "changes": [
+      "🐛 Les alertes de composition ne s'affichent plus si la validation n'est pas effectuée."
+    ]
+  },
+  {
     "version": "2.1.1",
     "date": "2026-06-06",
     "changes": []
