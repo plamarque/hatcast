@@ -118,6 +118,23 @@
   opacity: 0.9;
 }
 
+.troupe-hub__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+
+  .mat-mdc-button-base {
+    min-height: 3rem;
+  }
+}
+
+.troupe-hub__guest-hint {
+  margin: -0.25rem 0 0.75rem;
+  opacity: 0.85;
+  font-size: var(--mat-sys-body-medium-size, 0.875rem);
+}
+
 .troupe-hub__hero {
   display: flex;
   align-items: flex-start;

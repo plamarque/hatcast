@@ -94,6 +94,10 @@ export class TroupeHub implements OnInit, OnDestroy {
     () => this.isTroupeAdmin() || this.platformAdmin(),
   )
 
+  protected readonly isGuestViewer = computed(
+    () => this.troupe()?.membership.baselineRole === 'EXTERNE',
+  )
+
   protected readonly activeSeasons = computed(() =>
     this.allSeasons().filter((s) => !s.archived),
   )

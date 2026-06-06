@@ -147,7 +147,10 @@ data class EventRosterParticipantDto(
                 eventParticipantId = entity.id,
                 displayName = entity.displayName,
                 email = if (includeEmail) entity.normalizedEmail else null,
-                userId = entity.user?.id,
+                userId =
+                    entity.user?.id
+                        ?: entity.seasonParticipant?.user?.id
+                        ?: entity.seasonParticipant?.troupeMembership?.user?.id,
                 kind = entity.kind(),
                 source = EventRosterSource.EVENT,
                 avatarUrl = avatarUrl,

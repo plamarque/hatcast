@@ -3,6 +3,8 @@ import { Injectable } from '@angular/core'
 import { csrfHeaders } from '../http/hatcast-csrf'
 import type { TroupeAdminSummary } from '../troupes/troupe-api.service'
 
+export type GuestSeasonWorkspaceMode = 'NONE' | 'EVENTS_ONLY' | 'AGENDA_ONLY' | 'FULL'
+
 export interface SeasonResponse {
   id: string
   troupeId: string
@@ -17,6 +19,7 @@ export interface SeasonResponse {
   participantCount: number
   createdAt: string
   updatedAt: string
+  guestSeasonWorkspaceMode?: GuestSeasonWorkspaceMode | null
 }
 
 export interface PagedSeasonsResponse {
@@ -76,6 +79,26 @@ export class SeasonApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as SeasonResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  /** Résout une saison par slugs troupe + saison (invités sans adhésion dans la liste troupes). */
+  async resolveSeasonByTroupeAndSeasonSlug(
+    troupeSlug: string,
+    seasonSlug: string,
+  ): Promise<{ ok: boolean; status: number; data?: PlatformAdminSeasonResolution }> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/by-slug/${encodeURIComponent(troupeSlug)}/seasons/by-slug/${encodeURIComponent(seasonSlug)}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as PlatformAdminSeasonResolution
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

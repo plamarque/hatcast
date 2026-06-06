@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-06T21:30:00+02:00"
+last_updated: "2026-06-06T23:37:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -109,7 +109,7 @@ development_status:
   3-23-invitation-scope-cascade-add: done  # P2 — SCP 2026-06-06 ADR-0021 ; depends 2.21 ; code review + TEA PASS 2026-06-06
   3-24-admin-membres-edit-dialog: done  # P2 — UX dette 3.23 scénario F ; web-only ; code review 2026-06-06
   3-8d-participant-add-typeahead-carnet: done  # P3 — Lot A-ext ; depends 2.21, 3.23 ; code review 2026-06-06
-  3-25-externe-guest-scoped-access: backlog  # P4 — SCP 2026-06-06 ADR-0021 ; depends 3.23, Epic 12
+  3-25-externe-guest-scoped-access: done  # P4 — SCP 2026-06-06 ADR-0021 ; depends 3.23, Epic 12
   epic-3-retrospective: optional
 
   epic-4: in-progress

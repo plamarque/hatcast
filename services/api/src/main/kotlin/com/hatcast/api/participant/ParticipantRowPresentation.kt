@@ -8,7 +8,10 @@ object ParticipantRowPresentation {
     fun linkedUser(entity: SeasonParticipantEntity): UserEntity? =
         entity.user ?: entity.troupeMembership?.user
 
-    fun linkedUser(entity: EventParticipantEntity): UserEntity? = entity.user
+    fun linkedUser(entity: EventParticipantEntity): UserEntity? =
+        entity.user
+            ?: entity.seasonParticipant?.user
+            ?: entity.seasonParticipant?.troupeMembership?.user
 
     fun canOrganizerSetGender(linkedUser: UserEntity?): Boolean {
         val accountGender = linkedUser?.gender

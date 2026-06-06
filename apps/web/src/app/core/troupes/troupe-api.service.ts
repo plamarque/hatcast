@@ -268,6 +268,23 @@ export class TroupeApiService {
     }
   }
 
+  /** Membre ou invité lié : contexte hub par slug (externe hors liste troupes). */
+  async resolveTroupeContextBySlug(slug: string): ApiResult<TroupeListItem> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/by-slug/${encodeURIComponent(slug)}/context`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as TroupeListItem
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   /** Annuaire Découvrir élargi pour utilisateur connecté (Démo + troupes admin plateforme). */
   async listDiscoverTroupes(): ApiResult<PublicTroupeDirectoryItem[]> {
     try {

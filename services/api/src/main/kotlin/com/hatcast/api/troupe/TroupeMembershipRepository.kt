@@ -103,6 +103,20 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         @Param("userId") userId: UUID,
     ): List<TroupeMembershipEntity>
 
+    @Query(
+        """
+        SELECT m FROM TroupeMembershipEntity m
+        JOIN FETCH m.troupe t
+        WHERE m.user.id = :userId
+          AND m.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+          AND m.baselineRole = com.hatcast.api.troupe.TroupeBaselineRole.EXTERNE
+        ORDER BY t.name ASC
+        """,
+    )
+    fun findActiveExterneByUserId(
+        @Param("userId") userId: UUID,
+    ): List<TroupeMembershipEntity>
+
     fun findByTroupe_IdAndUser_IdAndBaselineRole(
         troupeId: UUID,
         userId: UUID,

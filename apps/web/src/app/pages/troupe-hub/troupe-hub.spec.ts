@@ -624,10 +624,16 @@ describe('TroupeHub', () => {
       expect(fixture.nativeElement.querySelector('#troupe-access-denied-heading')).not.toBeNull()
     })
     expect(fixture.nativeElement.textContent).toContain('Tu n’es pas membre de cette troupe.')
+    expect(fixture.nativeElement.textContent).toContain('Découvrir d'autres troupes')
     const decouvrirLink = fixture.nativeElement.querySelector(
       'a[href="/troupes#decouvrir"]',
     ) as HTMLAnchorElement | null
     expect(decouvrirLink).not.toBeNull()
+    const agendaLink = fixture.nativeElement.querySelector(
+      'a[href="/agenda"]',
+    ) as HTMLAnchorElement | null
+    expect(agendaLink).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('.troupe-hub__empty-actions')).not.toBeNull()
   })
 
   it('shows access check error when public directory lookup fails', async () => {

@@ -22,6 +22,13 @@
 
 ---
 
+## Deferred from: code review of 3-25-externe-guest-scoped-access (2026-06-06)
+
+- Pagination liste saisons invité ignore page/size (`SeasonService.listForTroupe`) — impact faible P4.
+- Extensions tests citées en story non livrées dans fichiers existants (`UserAgendaIntegrationTest`, etc.) — couverture partielle via `GuestInvitationAccessIntegrationTest`.
+
+---
+
 ## Deferred from: code review of 3-8d-participant-add-typeahead-carnet (2026-06-06)
 
 - M3-5 viewport 480px non automatisé — waived explicitement dans Dev Notes (revue manuelle).

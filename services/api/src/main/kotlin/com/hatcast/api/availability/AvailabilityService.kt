@@ -26,6 +26,7 @@ import com.hatcast.api.organizer.OrganizerAccessService
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
@@ -62,6 +63,7 @@ class AvailabilityService(
     private val draftVisibility: EventDraftVisibility,
     private val eventPublisher: ApplicationEventPublisher,
     private val avatarService: AvatarService,
+    private val guestInvitationAccess: GuestInvitationAccessService,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -800,7 +802,7 @@ class AvailabilityService(
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireActiveMember(principal, season.troupe.id)
+        guestInvitationAccess.requireMemberOrInvitedGuest(seasonId, eventId, principal)
         val event =
             eventRepository
                 .findById(eventId)

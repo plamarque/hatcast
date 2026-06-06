@@ -55,6 +55,13 @@ class TroupeController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): List<TroupeListItemDto> = membershipService.listActiveTroupesForUser(principal.userId)
 
+    /** Contexte hub par slug pour membre ou invité lié (externe / participation). */
+    @GetMapping("/by-slug/{slug}/context")
+    fun resolveContextBySlug(
+        @PathVariable slug: String,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeListItemDto = membershipService.resolveContextBySlug(slug, principal)
+
     /** Annuaire élargi pour Découvrir (session requise) : public + troupe Démo + autres troupes pour admin plateforme. */
     @GetMapping("/discover")
     fun listDiscoverTroupes(

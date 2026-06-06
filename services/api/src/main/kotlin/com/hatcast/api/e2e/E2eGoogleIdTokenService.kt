@@ -41,6 +41,36 @@ class E2eGoogleIdTokenService(
                     email = "angie@seed.improbots.test",
                     name = "Angie",
                 ),
+            "e2e-guest-carnet-only" to
+                Persona(
+                    googleSub = "e2e-guest-carnet-only",
+                    email = "guest-carnet-only@e2e.hatcast.test",
+                    name = "Carnet Only",
+                ),
+            "e2e-guest-laetitia" to
+                Persona(
+                    googleSub = "e2e-guest-laetitia",
+                    email = "guest-laetitia@e2e.hatcast.test",
+                    name = "Laetitia Guest",
+                ),
+            "e2e-guest-ruben" to
+                Persona(
+                    googleSub = "e2e-guest-ruben",
+                    email = "guest-ruben@e2e.hatcast.test",
+                    name = "Ruben Guest",
+                ),
+            "e2e-guest-piotrix" to
+                Persona(
+                    googleSub = "e2e-guest-piotrix",
+                    email = "guest-piotrix@e2e.hatcast.test",
+                    name = "Piotrix Guest",
+                ),
+            "e2e-guest-multi" to
+                Persona(
+                    googleSub = "e2e-guest-multi",
+                    email = "guest-multi@e2e.hatcast.test",
+                    name = "Multi Guest",
+                ),
         )
 
     override fun validateAndParse(idToken: String): Jwt {

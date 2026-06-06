@@ -35,6 +35,7 @@ Par défaut, les serveurs sont **toujours démarrés par Playwright** (profil `e
 | `e1-desktop-orga` | Desktop Chrome | admin | `e1/*.desktop.spec.ts` |
 | `chromium-3-19` | Desktop Chrome | admin | `recette-3.19.spec.ts` |
 | `chromium-3-8d` | Desktop Chrome | admin | `recette-3.8d.spec.ts` |
+| `chromium-3-25` | Desktop Chrome | guest personas (per spec) | `recette-3.25.spec.ts` |
 
 Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md`) : mobile membre + desktop orga en parallèle après les setups.
 
@@ -44,6 +45,7 @@ Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutove
 - **Fixtures** :
   - `POST /v1/e2e/fixtures/story-3-19/reset`
   - `POST /v1/e2e/fixtures/story-3-8d/reset` (Ruben / Laetitia carnet, Angie, Match vs Bruxelles)
+  - `POST /v1/e2e/fixtures/story-3-25/reset` (guest scoped access — Laetitia, Ruben, Piotrix, multi)
   - `POST /v1/e2e/fixtures/e1-cutover/reset` (MVP pilot Les Improbots, Angie, audit seed)
 - En-tête : `X-Hatcast-E2E-Key: e2e-fixtures-secret`
 - États auth : `e2e/.auth/admin.json`, `e2e/.auth/member.json` (gitignored)
@@ -58,6 +60,14 @@ Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutove
 
 ```bash
 cd apps/web && npm run test:e2e -- --project=chromium-3-8d
+```
+
+## Smoke / recette 3.25
+
+`recette-3-25.spec.ts` — matrice complète accès invité (18 scénarios). Fixture : `POST /v1/e2e/fixtures/story-3-25/reset`. Design : `_bmad-output/test-artifacts/test-design-story-3-25.md`.
+
+```bash
+cd apps/web && npm run test:e2e -- --project=chromium-3-25
 ```
 
 ### Staging (T2) — non couvert

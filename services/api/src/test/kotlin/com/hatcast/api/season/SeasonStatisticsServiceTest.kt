@@ -12,6 +12,7 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.troupe.TroupeMembershipEntity
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.time.Instant
@@ -42,6 +44,7 @@ class SeasonStatisticsServiceTest {
     private val declineRepository = mock<EventCompositionDeclineRepository>()
     private val availabilityRepository = mock<EventAvailabilityRepository>()
     private val troupeAccess = mock<TroupeAccessService>()
+    private val guestInvitationAccess = mock<GuestInvitationAccessService>()
     private val userRepository = mock<UserRepository>()
 
     private val service =
@@ -54,8 +57,14 @@ class SeasonStatisticsServiceTest {
             declineRepository,
             availabilityRepository,
             troupeAccess,
+            guestInvitationAccess,
             userRepository,
         )
+
+    @org.junit.jupiter.api.BeforeEach
+    fun setupAccess() {
+        doNothing().whenever(guestInvitationAccess).requireMemberOnlyPastAccess(any(), any())
+    }
 
     @Test
     fun `loadStatistics resolves availability stored by user_id`() {

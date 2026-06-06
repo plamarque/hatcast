@@ -114,11 +114,12 @@ Permitted access is **invitation-derived**:
 | Condition | Access |
 |-----------|--------|
 | Carnet only | None in member app (org admin only) |
-| `SEASON` invitation + linked account | User agenda includes season events; dispos on season events; **no** full season workspace as a member |
-| `EVENT` invitation + linked account | User agenda + dispos **only** on invited event(s) |
+| `SEASON` invitation + linked account | User agenda includes season events; dispos on season events; **partial** season workspace (**Agenda tab only** — no Historique/Statistiques/admin) |
+| `EVENT` invitation + linked account | User agenda + dispos **only** on invited event(s); **partial** season workspace (**Agenda + Historique in-scope** — no Statistiques/admin) |
+| Invited linked externe (any scope) | **`/troupes/:slug` read-only hub** — invited seasons navigation only; **not** `MEMBER`-equivalent (no all-seasons browse, stats, member lists, admin) |
 | Multi-troupe | Each troupe’s invitations aggregate in **user agenda** (`/agenda`) — aligns with ADR-0011 |
 
-Read-only season glance for season-scoped externals: **optional later**; not required for carnet MVP.
+**Amended 2026-06-06 (story 3.25, review 1B/2B):** Partial read-only season workspace and read-only troupe hub for linked invited externes ship in **P4**. Authoritative UI/API matrix: story **3.25** Dev Notes. This remains **not** `MEMBER`-equivalent access.
 
 API guards: authorization must check **`EXTERNE` + invitation scope**, not `requireActiveMembership` alone.
 
@@ -140,7 +141,7 @@ Removing from carnet = « we no longer want this contact suggested » — not «
 - Added via **Participants saison** as externe, scope **`SEASON`**.
 - **Carnet:** `EXTERNE` row (email if known).
 - **Season roster:** active; dispos on all season events unless excluded per event.
-- **Not** a `MEMBER`; does not see troupe hub as a full member.
+- **Not** a `MEMBER`; may use **read-only** troupe hub and **partial** season workspace (Agenda tab only) for invited seasons — not full member hub or stats.
 - Next season: org re-invites from carnet or re-adds to new season roster.
 
 ### Ruben — event-scope external (DJ Cambo)
@@ -149,6 +150,7 @@ Removing from carnet = « we no longer want this contact suggested » — not «
 - **Carnet:** `EXTERNE` row upserted (email/account if known).
 - **Season roster:** not season-scoped (no dispos on unrelated galas).
 - **Event roster:** present; org sees « who DJ’d » in history; stats/audit retain identity.
+- **Linked account:** user agenda + **partial** season workspace (Agenda + Historique for invited event only); read-only troupe hub for navigation.
 - Next event: org finds Ruben via typeahead (carnet + past participants).
 
 ### « DJ local » — name-only carnet contact
@@ -186,7 +188,7 @@ Removing from carnet = « we no longer want this contact suggested » — not «
 - Self-service « join troupe as externe ».
 - Automatic promotion `EXTERNE` → `MEMBER`.
 - Mandatory email on carnet.
-- Full read-only season workspace for externals.
+- Full **member** season workspace for externes (Historique/Statistiques/admin/export for all seasons without invitation scope).
 
 ## Alternatives considered
 

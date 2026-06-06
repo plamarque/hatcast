@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core'
 import { Router } from '@angular/router'
 
 import { AuthApiService } from '../auth/auth-api.service'
+import { TroupeContextService } from '../troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
 import {
   clearLastMemberEntryPath,
@@ -36,6 +37,7 @@ export type PostLoginNavigationTarget = string | string[]
 export class PostLoginNavigationService {
   private readonly resolver = inject(TroupeSeasonResolverService)
   private readonly auth = inject(AuthApiService)
+  private readonly troupeContext = inject(TroupeContextService)
   private readonly router = inject(Router)
 
   private navigateAfterSignInInFlight: Promise<boolean> | null = null
@@ -94,15 +96,40 @@ export class PostLoginNavigationService {
       return ['/agenda']
     }
 
+    if (path.startsWith('/troupes/')) {
+      const hasMemberTroupe = await this.hasActiveMemberTroupe()
+      if (!hasMemberTroupe) {
+        clearLastMemberEntryPath()
+        return null
+      }
+    }
+
     const seasonSlug = seasonSlugFromMemberEntryPath(path)
     if (seasonSlug) {
       const canonical = parseSaisonMemberEntryPath(path)
       if (canonical) {
-        return saisonWorkspacePath(canonical.troupeSlug, canonical.seasonSlug)
+        const resolved = await this.resolver.resolveSeasonInTroupe(
+          canonical.troupeSlug,
+          canonical.seasonSlug,
+        )
+        if (resolved.kind === 'resolved') {
+          if ((resolved.season.guestSeasonWorkspaceMode ?? 'FULL') === 'NONE') {
+            clearLastMemberEntryPath()
+            return null
+          }
+          return saisonWorkspacePath(canonical.troupeSlug, canonical.seasonSlug)
+        }
+        if (resolved.kind === 'error') {
+          return null
+        }
       }
       try {
         const resolved = await this.resolver.resolveSeasonSlug(seasonSlug)
         if (resolved.kind === 'resolved') {
+          if ((resolved.season.guestSeasonWorkspaceMode ?? 'FULL') === 'NONE') {
+            clearLastMemberEntryPath()
+            return null
+          }
           return saisonWorkspacePath(resolved.troupe.slug, resolved.season.slug)
         }
       } catch {
@@ -132,6 +159,18 @@ export class PostLoginNavigationService {
     return null
   }
 
+  private async hasActiveMemberTroupe(): Promise<boolean> {
+    const loaded = await this.troupeContext.load()
+    if (!loaded) {
+      return false
+    }
+    return this.troupeContext.activeTroupes().some(
+      (troupe) =>
+        troupe.membership.baselineRole === 'MEMBER' ||
+        troupe.membership.baselineRole === 'TROUPE_ADMIN',
+    )
+  }
+
   private clearMemberEntryPathForSeasonSlug(slug: string): void {
     const entryPath = getLastMemberEntryPath()
     if (entryPath && seasonSlugFromMemberEntryPath(entryPath) === slug.trim()) {
@@ -141,8 +180,24 @@ export class PostLoginNavigationService {
 
   private async validatePendingRedirect(pending: string): Promise<string | null> {
     const pathname = pending.split(/[?#]/)[0] ?? pending
-    if (parseCanonicalSaisonScopedPath(pathname)) {
-      return pending
+    const canonical = parseCanonicalSaisonScopedPath(pathname)
+    if (canonical) {
+      const resolved = await this.resolver.resolveSeasonInTroupe(
+        canonical.troupeSlug,
+        canonical.seasonSlug,
+      )
+      if (resolved.kind === 'resolved') {
+        if ((resolved.season.guestSeasonWorkspaceMode ?? 'FULL') === 'NONE') {
+          return null
+        }
+        return pending
+      }
+      if (resolved.kind === 'no-membership' || resolved.kind === 'not-found') {
+        return null
+      }
+      if (resolved.kind === 'error') {
+        return null
+      }
     }
     const seasonSlug = seasonSlugFromPathname(pathname)
     if (!seasonSlug) {

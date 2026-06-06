@@ -10,6 +10,7 @@ describe('TroupeContextService', () => {
   let api: {
     listMyTroupes: ReturnType<typeof vi.fn>
     getAdminTroupeBySlug: ReturnType<typeof vi.fn>
+    resolveTroupeContextBySlug: ReturnType<typeof vi.fn>
   }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
 
@@ -18,6 +19,7 @@ describe('TroupeContextService', () => {
     api = {
       listMyTroupes: vi.fn(),
       getAdminTroupeBySlug: vi.fn(),
+      resolveTroupeContextBySlug: vi.fn().mockResolvedValue({ ok: false, status: 403 }),
     }
     auth = {
       ensureHatcastSession: vi.fn().mockResolvedValue({
@@ -126,8 +128,29 @@ describe('TroupeContextService', () => {
     expect(service().activeTroupes()[0].membership.displayName).toBe('Après')
   })
 
+  it('résout une troupe invitée par slug via contexte guest', async () => {
+    auth.ensureHatcastSession.mockResolvedValue({
+      ok: true,
+      data: { platformAdmin: false },
+    })
+    api.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
+    api.resolveTroupeContextBySlug.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: troupe('troupe-improbots', 'Les Improbots', 'ACTIVE', 'Invitation', 'EXTERNE'),
+    })
+
+    const resolved = await service().resolveTroupeBySlug('les-improbots')
+
+    expect(resolved?.slug).toBe('troupe-improbots')
+    expect(resolved?.membership.baselineRole).toBe('EXTERNE')
+    expect(api.resolveTroupeContextBySlug).toHaveBeenCalledWith('les-improbots')
+    expect(api.getAdminTroupeBySlug).not.toHaveBeenCalled()
+  })
+
   it('résout une troupe par slug via admin plateforme sans adhésion', async () => {
     api.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
+    api.resolveTroupeContextBySlug.mockResolvedValue({ ok: false, status: 403 })
     api.getAdminTroupeBySlug.mockResolvedValue({
       ok: true,
       status: 200,
@@ -153,6 +176,7 @@ describe('TroupeContextService', () => {
       data: { platformAdmin: false },
     })
     api.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
+    api.resolveTroupeContextBySlug.mockResolvedValue({ ok: false, status: 403 })
 
     const resolved = await service().resolveTroupeBySlug('les-improbots')
 
@@ -170,11 +194,12 @@ function troupe(
   name: string,
   status: 'ACTIVE' | 'INACTIVE' = 'ACTIVE',
   displayName = name,
+  baselineRole: TroupeListItem['membership']['baselineRole'] = 'MEMBER',
 ): TroupeListItem {
   return {
     id,
     name,
-    slug: id,
+    slug: id === 'troupe-improbots' ? 'les-improbots' : id,
     isDemo: false,
     joinPolicy: 'OPEN',
     activeMemberCount: 1,
@@ -183,7 +208,7 @@ function troupe(
       id: `membership-${id}`,
       displayName,
       status,
-      baselineRole: 'MEMBER',
+      baselineRole,
       createdAt: '',
       updatedAt: '',
     },

@@ -7,6 +7,7 @@ import com.hatcast.api.season.dto.PagedSeasonsResponse
 import com.hatcast.api.season.dto.PlatformAdminSeasonResolutionDto
 import com.hatcast.api.season.dto.SeasonResponseDto
 import com.hatcast.api.season.dto.UpdateSeasonRequest
+import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeRepository
 import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
@@ -29,6 +30,7 @@ class SeasonService(
     private val troupeAccess: TroupeAccessService,
     private val seasonAccess: SeasonAccessService,
     private val platformAdminService: PlatformAdminService,
+    private val guestInvitationAccess: GuestInvitationAccessService,
 ) {
     private val log = LoggerFactory.getLogger(SeasonService::class.java)
     @Transactional(readOnly = true)
@@ -38,21 +40,44 @@ class SeasonService(
         size: Int,
         principal: SessionUserPrincipal,
     ): PagedSeasonsResponse {
-        troupeAccess.requireActiveMember(principal, troupeId)
         if (size < 1 || size > 100) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "size doit être entre 1 et 100")
         }
         if (page < 0) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "page invalide")
         }
-        val pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
-        val p = seasonRepository.findAllByTroupeId(troupeId, pr)
+        val isMember =
+            platformAdminService.isPlatformAdmin(principal) ||
+                guestInvitationAccess.isActiveTroupeMember(principal.userId, troupeId)
+        if (isMember) {
+            if (!platformAdminService.isPlatformAdmin(principal)) {
+                troupeAccess.requireActiveMember(principal, troupeId)
+            }
+            val pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
+            val p = seasonRepository.findAllByTroupeId(troupeId, pr)
+            return PagedSeasonsResponse(
+                content = p.content.map { SeasonResponseDto.from(it) },
+                page = p.number,
+                size = p.size,
+                totalElements = p.totalElements,
+                totalPages = p.totalPages,
+            )
+        }
+        val invited = seasonRepository.findInvitedForUserInTroupe(troupeId, principal.userId)
+        if (invited.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé pour cette troupe.")
+        }
+        val content =
+            invited.map { season ->
+                val workspaceMode = guestInvitationAccess.resolveSeasonReadAccess(season.id, principal)
+                SeasonResponseDto.from(season, guestSeasonWorkspaceMode = workspaceMode)
+            }
         return PagedSeasonsResponse(
-            content = p.content.map { SeasonResponseDto.from(it) },
-            page = p.number,
-            size = p.size,
-            totalElements = p.totalElements,
-            totalPages = p.totalPages,
+            content = content,
+            page = 0,
+            size = content.size,
+            totalElements = content.size.toLong(),
+            totalPages = if (content.isEmpty()) 0 else 1,
         )
     }
 
@@ -106,8 +131,8 @@ class SeasonService(
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireActiveMember(principal, s.troupe.id)
-        return SeasonResponseDto.from(s)
+        val workspaceMode = guestInvitationAccess.resolveSeasonReadAccess(seasonId, principal)
+        return SeasonResponseDto.from(s, guestSeasonWorkspaceMode = workspaceMode)
     }
 
     @Transactional(readOnly = true)
@@ -116,11 +141,39 @@ class SeasonService(
         slug: String,
         principal: SessionUserPrincipal,
     ): SeasonResponseDto {
-        troupeAccess.requireActiveMember(principal, troupeId)
         val s =
             seasonRepository.findByTroupe_IdAndSlug(troupeId, slug)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue")
-        return SeasonResponseDto.from(s)
+        val workspaceMode = guestInvitationAccess.resolveSeasonReadAccess(s.id, principal)
+        return SeasonResponseDto.from(s, guestSeasonWorkspaceMode = workspaceMode)
+    }
+
+    /**
+     * Résolution directe par slugs pour les invités sans adhésion troupe dans [listMyTroupes]
+     * (carnet EXTERNE exclu de la liste — ADR-0021).
+     */
+    @Transactional(readOnly = true)
+    fun resolveByTroupeSlugAndSeasonSlug(
+        troupeSlug: String,
+        seasonSlug: String,
+        principal: SessionUserPrincipal,
+    ): PlatformAdminSeasonResolutionDto {
+        val normalizedTroupeSlug = troupeSlug.trim()
+        val normalizedSeasonSlug = seasonSlug.trim()
+        if (normalizedTroupeSlug.isEmpty() || normalizedSeasonSlug.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Slug troupe ou saison invalide.")
+        }
+        val troupe =
+            troupeRepository.findBySlug(normalizedTroupeSlug)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        val season =
+            seasonRepository.findByTroupe_IdAndSlug(troupe.id, normalizedSeasonSlug)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue")
+        val workspaceMode = guestInvitationAccess.resolveSeasonReadAccess(season.id, principal)
+        return PlatformAdminSeasonResolutionDto(
+            troupe = TroupeAdminSummaryDto.from(troupe),
+            season = SeasonResponseDto.from(season, guestSeasonWorkspaceMode = workspaceMode),
+        )
     }
 
     @Transactional(readOnly = true)
