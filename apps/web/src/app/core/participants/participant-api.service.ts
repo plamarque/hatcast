@@ -150,6 +150,16 @@ export class ParticipantApiService {
     )
   }
 
+  async includeSeasonParticipantOnEvent(
+    seasonId: string,
+    eventId: string,
+    seasonParticipantId: string,
+  ): ApiResult<void> {
+    return this.postNoContent(
+      `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/participants/roster/season/${encodeURIComponent(seasonParticipantId)}`,
+    )
+  }
+
   async listEventParticipants(
     seasonId: string,
     eventId: string,

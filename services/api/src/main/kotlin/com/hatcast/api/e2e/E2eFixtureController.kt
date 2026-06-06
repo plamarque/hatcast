@@ -2,6 +2,7 @@ package com.hatcast.api.e2e
 
 import com.hatcast.api.e2e.dto.E1CutoverFixtureResponse
 import com.hatcast.api.e2e.dto.Story319FixtureResponse
+import com.hatcast.api.e2e.dto.Story38dFixtureResponse
 import org.springframework.context.annotation.Profile
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -18,6 +19,10 @@ class E2eFixtureController(
     /** Resets Story 3.19 recette data (seasons A/B, Max, externe, sans exclusion événement pré-appliquée). */
     @PostMapping("/story-3-19/reset")
     fun resetStory319(): Story319FixtureResponse = fixtureService.resetStory319()
+
+    /** Resets Story 3.8d recette data (carnet externes, Angie roster, match-vs-bruxelles). */
+    @PostMapping("/story-3-8d/reset")
+    fun resetStory38d(): Story38dFixtureResponse = fixtureService.resetStory38d()
 
     /** Resets E1 cutover gate data (MVP pilot, Angie member, draw event cleared, audit seed). */
     @PostMapping("/e1-cutover/reset")

@@ -47,6 +47,21 @@ export type Story319Fixture = {
   historyEventSlug: string
 }
 
+export type Story38dFixture = {
+  troupeSlug: string
+  seasonSlug: string
+  seasonId: string
+  eventSlug: string
+  eventId: string
+  angieDisplayName: string
+  angieSeasonParticipantId: string
+  rubenDisplayName: string
+  rubenMembershipId: string
+  laetitiaDisplayName: string
+  laetitiaEmail: string
+  laetitiaMembershipId: string
+}
+
 export async function resetStory319Fixture(request: APIRequestContext): Promise<Story319Fixture> {
   const response = await request.post(`${apiBase}/v1/e2e/fixtures/story-3-19/reset`, {
     headers: {
@@ -57,6 +72,18 @@ export async function resetStory319Fixture(request: APIRequestContext): Promise<
     throw new Error(`Fixture reset failed (${response.status()}): ${await response.text()}`)
   }
   return response.json() as Promise<Story319Fixture>
+}
+
+export async function resetStory38dFixture(request: APIRequestContext): Promise<Story38dFixture> {
+  const response = await request.post(`${apiBase}/v1/e2e/fixtures/story-3-8d/reset`, {
+    headers: {
+      'X-Hatcast-E2E-Key': E2E_API_KEY,
+    },
+  })
+  if (!response.ok()) {
+    throw new Error(`Story 3.8d fixture reset failed (${response.status()}): ${await response.text()}`)
+  }
+  return response.json() as Promise<Story38dFixture>
 }
 
 export async function signInWithE2eToken(

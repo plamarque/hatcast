@@ -52,6 +52,7 @@ type Harness = {
   filteredSuggestions: () => Array<{ userId: string; displayName: string; email: string | null }>
   onDisplayNameInput: (value: string) => void
   onMemberOptionSelected: (userId: string) => void
+  onSuggestionOptionSelected?: (key: string) => void
   displayName: () => string
   email: () => string
   gender: { set: (value: 'male' | 'female' | 'non_specified') => void }
@@ -63,7 +64,9 @@ type Harness = {
 async function setup(api: {
   listMembers?: ReturnType<typeof vi.fn>
   listEventParticipantRoster?: ReturnType<typeof vi.fn>
+  listSeasonParticipants?: ReturnType<typeof vi.fn>
   createEventParticipant?: ReturnType<typeof vi.fn>
+  includeSeasonParticipantOnEvent?: ReturnType<typeof vi.fn>
 }) {
   const listMembers =
     api.listMembers ?? vi.fn().mockResolvedValue({ ok: true, status: 200, data: troupeMembers })
@@ -84,8 +87,28 @@ async function setup(api: {
         },
       ],
     })
+  const listSeasonParticipants =
+    api.listSeasonParticipants ??
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [
+        {
+          id: 'sp-2',
+          displayName: 'Laetitia MC',
+          email: 'laetitia@example.com',
+          userId: 'u-10',
+          troupeMembershipId: 'm-10',
+          kind: 'EXTERNE',
+          status: 'ACTIVE',
+          removable: true,
+        },
+      ],
+    })
   const createEventParticipant =
     api.createEventParticipant ?? vi.fn().mockResolvedValue({ ok: true, status: 201 })
+  const includeSeasonParticipantOnEvent =
+    api.includeSeasonParticipantOnEvent ?? vi.fn().mockResolvedValue({ ok: true, status: 204 })
   const close = vi.fn()
 
   await TestBed.configureTestingModule({
@@ -95,7 +118,12 @@ async function setup(api: {
       { provide: MAT_DIALOG_DATA, useValue: dialogData() },
       {
         provide: ParticipantApiService,
-        useValue: { listEventParticipantRoster, createEventParticipant },
+        useValue: {
+          listEventParticipantRoster,
+          listSeasonParticipants,
+          createEventParticipant,
+          includeSeasonParticipantOnEvent,
+        },
       },
       { provide: TroupeApiService, useValue: { listMembers } },
     ],
@@ -121,12 +149,14 @@ async function setup(api: {
 }
 
 describe('AddEventParticipantDialog', () => {
-  it('loads troupe members and excludes roster user ids', async () => {
+  it('loads troupe members, season roster, and excludes event roster rows', async () => {
     const { listMembers, harness } = await setup({})
     expect(listMembers).toHaveBeenCalledWith('troupe-1', 0, 100)
     await vi.waitFor(() => expect(harness().filteredSuggestions()).toEqual([]))
     harness().onDisplayNameInput('bob')
     expect(harness().filteredSuggestions().map((m) => m.displayName)).toEqual(['Bob'])
+    harness().onDisplayNameInput('Laet')
+    expect(harness().filteredSuggestions().map((m) => m.displayName)).toEqual(['Laetitia MC'])
   })
 
   it('excludes roster rows by display name when userId is null', async () => {
@@ -163,6 +193,57 @@ describe('AddEventParticipantDialog', () => {
     expect(harness().filteredSuggestions()[0]?.displayName).toBe('Alice')
   })
 
+  it('submits season roster selection without troupeMembershipId', async () => {
+    const createEventParticipant = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    const { close, harness } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      createEventParticipant,
+    })
+    await vi.waitFor(() => expect(harness().filteredSuggestions()).toEqual([]))
+    harness().onDisplayNameInput('Laet')
+    harness().onSuggestionOptionSelected!('s:sp-2')
+    expect(harness().email()).toBe('laetitia@example.com')
+    await harness().submit()
+    expect(createEventParticipant).toHaveBeenCalledWith('season-1', 'event-1', {
+      displayName: 'Laetitia MC',
+      email: 'laetitia@example.com',
+    })
+    expect(close).toHaveBeenCalledWith(true)
+  })
+
+  it('re-includes excluded troupe member via roster include API', async () => {
+    const includeSeasonParticipantOnEvent = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    const createEventParticipant = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    const { close, harness } = await setup({
+      listEventParticipantRoster: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      listSeasonParticipants: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: [
+          {
+            id: 'sp-bob',
+            displayName: 'Bob',
+            email: 'bob@example.com',
+            userId: 'u-2',
+            troupeMembershipId: 'm-2',
+            kind: 'MEMBER',
+            status: 'ACTIVE',
+            removable: true,
+          },
+        ],
+      }),
+      includeSeasonParticipantOnEvent,
+      createEventParticipant,
+    })
+    await vi.waitFor(() => expect(harness().filteredSuggestions()).toEqual([]))
+    harness().onDisplayNameInput('bob')
+    harness().onSuggestionOptionSelected!('m:m-2')
+    await harness().submit()
+    expect(includeSeasonParticipantOnEvent).toHaveBeenCalledWith('season-1', 'event-1', 'sp-bob')
+    expect(createEventParticipant).not.toHaveBeenCalled()
+    expect(close).toHaveBeenCalledWith(true)
+  })
+
   it('prefills email on member selection and submits', async () => {
     const createEventParticipant = vi.fn().mockResolvedValue({ ok: true, status: 201 })
     const { close, harness } = await setup({
@@ -177,6 +258,7 @@ describe('AddEventParticipantDialog', () => {
     expect(createEventParticipant).toHaveBeenCalledWith('season-1', 'event-1', {
       displayName: 'Alice',
       email: 'alice@example.com',
+      troupeMembershipId: 'm-1',
     })
     expect(close).toHaveBeenCalledWith(true)
   })
@@ -303,6 +385,7 @@ describe('AddEventParticipantDialog', () => {
     expect(createEventParticipant).toHaveBeenCalledWith('season-1', 'event-1', {
       displayName: 'Bob',
       email: 'bob@example.com',
+      troupeMembershipId: 'm-2',
     })
   })
 
@@ -339,6 +422,7 @@ describe('AddEventParticipantDialog', () => {
 
   it('shows future notifications hint copy', async () => {
     const { fixture } = await setup({})
+    expect(fixture.nativeElement.textContent).toContain('externes du carnet')
     expect(fixture.nativeElement.textContent).toContain('invitations et notifications à venir')
   })
 })

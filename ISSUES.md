@@ -10,6 +10,36 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-010 — Participant add typeahead shows internal option key in name field
+- **ID**: BUG-010
+- **Status**: Fixed (2026-06-06)
+- **Severity**: Medium (UX — confusing display; submit could still work via `selectedSuggestion`)
+- **Affected area**: V2 `apps/web` — `add-participant-dialog`, `add-event-participant-dialog` (story **3.8d**)
+- **Observed behavior**: After selecting a typeahead suggestion, the **Nom affiché** input displayed the internal mat-option value (e.g. `m:e0000001-0000-4000-8000-000000000018`) instead of the participant display name.
+- **Expected behavior**: Input shows the human-readable name (e.g. `Max`) after selection.
+- **Cause**: `mat-autocomplete` option `[value]` is the stable suggestion key; input used one-way `[value]` binding without `[displayWith]`.
+- **Fix**: `[displayWith]="displaySuggestionLabel"` + `findParticipantAddSuggestionByKey()` lookup.
+- **Repro**: Manual recette 3.8d scénario C (2026-06-06, Patrice).
+
+### BUG-011 — Re-adding excluded season member via event typeahead lands in Externes section
+- **ID**: BUG-011
+- **Status**: Fixed (2026-06-06)
+- **Severity**: High (functional — wrong roster section / duplicate event-only row)
+- **Affected area**: V2 `apps/web` — `add-event-participant-dialog` ; API `EventParticipantService.createMemberEventParticipant` (unchanged — front now routes correctly)
+- **Observed behavior**: After excluding a **troupe member** (e.g. Angie) from a spectacle roster, re-adding via typeahead created an **event-only** participant row (`source: EVENT`) shown under **Externes** instead of re-including the season row under **Membres**.
+- **Expected behavior**: Re-add should call `POST …/participants/roster/season/{id}` (`includeSeasonParticipantOnEvent`) — same as reversing an exclusion.
+- **Fix**: Event add dialog detects troupe-member selection with an ACTIVE season row and calls `includeSeasonParticipantOnEvent` instead of `createEventParticipant`.
+- **Repro**: Manual recette 3.8d scénario H alternative Angie (2026-06-06, Patrice).
+
+### LIMIT-004 — Apérock 2026 seed roster empty until first admin list (auto-sync)
+- **ID**: LIMIT-004
+- **Status**: Open (by design — `ensureMembershipParticipants`)
+- **Severity**: Low (dev recette / test data only)
+- **Affected area**: API `SeasonParticipantService.ensureMembershipParticipants` ; seed `V30` (`aperock-2026`, `participant_count: 0`)
+- **Observed behavior**: First visit to admin participants (or any code path listing season participants) on **Apérock 2026** auto-creates ACTIVE rows for **all** troupe members. Recette 3.8d scénario C assumed an empty roster — requires removing members first or using **retirer + ré-ajouter** on the main season (story 3.23 option A).
+- **Expected behavior**: Documented in recette ; E2E should use fixture reset or explicit single-member removal, not assume persistent empty roster.
+- **Notes/context**: Manual recette 3.8d (2026-06-06). Not a product bug for organizers — new seasons intentionally sync membership.
+
 ### BUG-008 — Push opt-in does not refresh notification preference toggles until tab revisit
 - **ID**: BUG-008
 - **Status**: Open

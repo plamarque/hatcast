@@ -34,6 +34,7 @@ Par défaut, les serveurs sont **toujours démarrés par Playwright** (profil `e
 | `e1-mobile-member` | Pixel 5 | membre | `e1/*.mobile.spec.ts` |
 | `e1-desktop-orga` | Desktop Chrome | admin | `e1/*.desktop.spec.ts` |
 | `chromium-3-19` | Desktop Chrome | admin | `recette-3.19.spec.ts` |
+| `chromium-3-8d` | Desktop Chrome | admin | `recette-3.8d.spec.ts` |
 
 Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md`) : mobile membre + desktop orga en parallèle après les setups.
 
@@ -42,6 +43,7 @@ Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutove
 - **Auth mock** : `POST /v1/auth/google` avec `{ "idToken": "e2e-admin" }` ou `"e2e-member"` (voir `E2eGoogleIdTokenService`).
 - **Fixtures** :
   - `POST /v1/e2e/fixtures/story-3-19/reset`
+  - `POST /v1/e2e/fixtures/story-3-8d/reset` (Ruben / Laetitia carnet, Angie, Match vs Bruxelles)
   - `POST /v1/e2e/fixtures/e1-cutover/reset` (MVP pilot Les Improbots, Angie, audit seed)
 - En-tête : `X-Hatcast-E2E-Key: e2e-fixtures-secret`
 - États auth : `e2e/.auth/admin.json`, `e2e/.auth/member.json` (gitignored)
@@ -49,6 +51,20 @@ Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutove
 ## Smoke / recette 3.19
 
 `recette-3.19.spec.ts` — cahier manuel `scripts/v2/RECETTE-3.19-RETRAIT-ROSTER-SAISON.md` (S1–S9).
+
+## Smoke / recette 3.8d
+
+`recette-3.8d.spec.ts` — cahier manuel `_bmad-output/test-artifacts/recette-manuelle-story-3-8d.md` (scénarios A, C, D, F, H). Fixture : `POST /v1/e2e/fixtures/story-3-8d/reset`.
+
+```bash
+cd apps/web && npm run test:e2e -- --project=chromium-3-8d
+```
+
+### Staging (T2) — non couvert
+
+Les recettes **3.19** et **3.8d** supposent le seed **Les Improbots** et les fixtures `POST /v1/e2e/fixtures/*` (profil API **`e2e`** uniquement). Sur **staging** (Neon), seules **La Malice** (migrée) et la troupe **Démo** existent — pas de Ruben/Angie/`match-vs-bruxelles` seedés.
+
+Le gate staging (`e1-preprod-gate.yml`, `PLAYWRIGHT_STAGING_E2E=1`) n’exécute **que** les specs `e1/*.spec.ts` (découverte dynamique via `staging-event-discovery.ts`). Pour porter 3.8d en staging : voir §10 du cahier `_bmad-output/test-artifacts/recette-manuelle-story-3-8d.md`.
 
 ## E1 cutover nominal
 

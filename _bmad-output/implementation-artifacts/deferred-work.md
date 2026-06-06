@@ -22,6 +22,12 @@
 
 ---
 
+## Deferred from: code review of 3-8d-participant-add-typeahead-carnet (2026-06-06)
+
+- M3-5 viewport 480px non automatisé — waived explicitement dans Dev Notes (revue manuelle).
+
+---
+
 ## Deferred from: code review of 3-24-admin-membres-edit-dialog (2026-06-06)
 
 - Test PATCH email externe vidé (`email: null`) absent — logique submit présente, couverture optionnelle post-3.23.

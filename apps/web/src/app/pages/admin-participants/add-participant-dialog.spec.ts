@@ -54,6 +54,17 @@ const troupeMembers = {
     },
     {
       id: 'm-4',
+      userId: null,
+      userSlug: null,
+      email: 'ruben@cambo.fr',
+      displayName: 'Ruben DJ',
+      status: 'ACTIVE',
+      baselineRole: 'EXTERNE',
+      createdAt: '',
+      updatedAt: '',
+    },
+    {
+      id: 'm-5',
       userId: 'u-4',
       userSlug: 'carol',
       email: 'carol@example.com',
@@ -79,11 +90,13 @@ type Harness = {
   }>
   onDisplayNameInput: (value: string) => void
   onMemberOptionSelected: (userId: string) => void
-  onMemberSelected: (member: { userId: string; displayName: string; email: string | null }) => void
+  onSuggestionOptionSelected?: (key: string) => void
+  onMemberSelected: (member: (typeof troupeMembers.content)[number]) => void
   displayName: () => string
   email: () => string
   gender: { set: (value: 'male' | 'female' | 'non_specified') => void }
   selectedMember: () => unknown
+  selectedSuggestion: () => unknown
   submit: () => Promise<void>
   error: () => string
 }
@@ -211,7 +224,7 @@ describe('AddParticipantDialog', () => {
     harness().onDisplayNameInput('bob')
     harness().onMemberOptionSelected('u-2')
     harness().onDisplayNameInput('Bob Custom')
-    expect(harness().selectedMember()).toBeNull()
+    expect(harness().selectedSuggestion()).toBeNull()
     expect(harness().displayName()).toBe('Bob Custom')
     expect(harness().email()).toBe('')
   })
@@ -244,6 +257,7 @@ describe('AddParticipantDialog', () => {
     expect(createSeasonParticipant).toHaveBeenCalledWith('season-1', {
       displayName: 'Bob',
       email: 'bob@example.com',
+      troupeMembershipId: 'm-2',
     })
     expect(close).toHaveBeenCalledWith(true)
   })
@@ -304,6 +318,7 @@ describe('AddParticipantDialog', () => {
     expect(createSeasonParticipant).toHaveBeenCalledWith('season-1', {
       displayName: 'Bob',
       email: 'bob@example.com',
+      troupeMembershipId: 'm-2',
     })
   })
 
@@ -379,6 +394,33 @@ describe('AddParticipantDialog', () => {
     const { fixture } = await setup({
       listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
     })
+    expect(fixture.nativeElement.textContent).toContain('externes du carnet')
+    expect(fixture.nativeElement.textContent).not.toContain('participants de la saison')
     expect(fixture.nativeElement.textContent).toContain('invitations et notifications à venir')
+  })
+
+  it('suggests EXTERNE carnet rows without linked userId', async () => {
+    const { harness } = await setup({
+      listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+    })
+    harness().onDisplayNameInput('Ruben')
+    expect(harness().filteredSuggestions().map((s) => s.displayName)).toEqual(['Ruben DJ'])
+  })
+
+  it('submits carnet selection with troupeMembershipId', async () => {
+    const createSeasonParticipant = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    const { harness, close } = await setup({
+      listSeasonParticipants: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      createSeasonParticipant,
+    })
+    harness().onDisplayNameInput('Ruben')
+    harness().onSuggestionOptionSelected!('m:m-4')
+    await harness().submit()
+    expect(createSeasonParticipant).toHaveBeenCalledWith('season-1', {
+      displayName: 'Ruben DJ',
+      email: 'ruben@cambo.fr',
+      troupeMembershipId: 'm-4',
+    })
+    expect(close).toHaveBeenCalledWith(true)
   })
 })
