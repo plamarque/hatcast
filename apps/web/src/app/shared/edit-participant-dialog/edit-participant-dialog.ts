@@ -32,32 +32,34 @@ export type EditParticipantDialogData =
   imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
   template: `
     <h2 mat-dialog-title>Modifier le participant</h2>
-    <mat-dialog-content class="edit-participant">
-      <mat-form-field appearance="outline">
-        <mat-label>Nom affiché</mat-label>
-        <input
-          matInput
-          autofocus
-          [value]="displayName()"
-          (input)="displayName.set($any($event.target).value)"
-        />
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Email (optionnel)</mat-label>
-        <input
-          matInput
-          [value]="email()"
-          (input)="email.set($any($event.target).value)"
-          placeholder="participant@example.com"
-        />
-        <mat-hint>
+    <mat-dialog-content>
+      <div class="participant-form-dialog">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="participant-form-dialog__field">
+          <mat-label>Nom affiché</mat-label>
+          <input
+            matInput
+            autofocus
+            [value]="displayName()"
+            (input)="displayName.set($any($event.target).value)"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="participant-form-dialog__field">
+          <mat-label>Email (optionnel)</mat-label>
+          <input
+            matInput
+            [value]="email()"
+            (input)="email.set($any($event.target).value)"
+            placeholder="participant@example.com"
+          />
+        </mat-form-field>
+        <p class="participant-form-dialog__hint">
           Si l'email correspond à un compte HatCast, le participant sera lié et pourra devenir
           organisateur·ice.
-        </mat-hint>
-      </mat-form-field>
-      @if (error()) {
-        <p class="edit-participant__error" role="alert">{{ error() }}</p>
-      }
+        </p>
+        @if (error()) {
+          <p class="participant-form-dialog__error" role="alert">{{ error() }}</p>
+        }
+      </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button type="button" mat-button mat-dialog-close>Annuler</button>
@@ -68,14 +70,32 @@ export type EditParticipantDialogData =
   `,
   styles: [
     `
-      .edit-participant {
-        display: grid;
-        gap: 0.5rem;
-        min-width: min(24rem, calc(100vw - 3rem));
+      :host mat-dialog-content {
+        overflow: visible;
+        max-height: none;
       }
-      .edit-participant__error {
+
+      .participant-form-dialog {
+        display: grid;
+        gap: 0.75rem;
+        min-width: min(24rem, calc(100vw - 3rem));
+        padding-top: 0.5rem;
+      }
+
+      .participant-form-dialog__field {
+        width: 100%;
+      }
+
+      .participant-form-dialog__hint {
         margin: 0;
-        color: #b71c1c;
+        font-size: 0.875rem;
+        line-height: 1.45;
+        color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+      }
+
+      .participant-form-dialog__error {
+        margin: 0;
+        color: var(--mat-sys-error);
         font-size: 0.875rem;
       }
     `,
