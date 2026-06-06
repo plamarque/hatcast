@@ -1002,6 +1002,27 @@ class AvailabilityControllerIntegrationTest {
             ).andExpect(status().isOk)
     }
 
+    @Test
+    fun `draft event allows organizer availability write before opened`() {
+        val admin = memberCookie("sub-avail-draft-admin-write")
+        val (seasonId, eventId) = createSeasonAndDraftEvent(admin)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("available"))
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(admin))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilityOpenedAt").doesNotExist())
+    }
+
     private fun setAvailabilityForMember(
         seasonId: UUID,
         eventId: UUID,

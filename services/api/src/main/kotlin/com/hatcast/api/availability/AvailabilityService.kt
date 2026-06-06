@@ -825,12 +825,17 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ) {
         requireEditableEvent(event)
-        if (!event.isAvailabilityOpen()) {
-            throw ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                draftAvailabilityClosedMessage(event, seasonId, principal),
-            )
+        if (event.isAvailabilityOpen()) {
+            return
         }
+        if (draftVisibility.canViewDraftEvent(event.id, seasonId, principal)) {
+            // Story 3.21 AC7: only non-organizer members are blocked on draft writes.
+            return
+        }
+        throw ResponseStatusException(
+            HttpStatus.FORBIDDEN,
+            DRAFT_AVAILABILITY_CLOSED_MESSAGE,
+        )
     }
 
     private fun requireAvailabilitySummaryReadable(
@@ -847,17 +852,6 @@ class AvailabilityService(
             )
         }
     }
-
-    private fun draftAvailabilityClosedMessage(
-        event: EventEntity,
-        seasonId: UUID,
-        principal: SessionUserPrincipal,
-    ): String =
-        if (draftVisibility.canViewDraftEvent(event.id, seasonId, principal)) {
-            "Les disponibilités ne sont pas encore ouvertes pour ce spectacle."
-        } else {
-            DRAFT_AVAILABILITY_CLOSED_MESSAGE
-        }
 
     private fun findRowForUser(
         eventId: UUID,
