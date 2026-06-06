@@ -37,7 +37,7 @@ data class MemberCsvRowDto(
     companion object {
         fun valid(
             rowNumber: Int,
-            email: String,
+            email: String?,
             displayName: String?,
             baselineRole: TroupeBaselineRole?,
             status: TroupeMembershipStatus?,

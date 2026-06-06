@@ -31,7 +31,14 @@ class TroupeMemberCsvImportService(
                 message = row.errorMessage ?: "Ligne invalide.",
             )
         }
-        val email = row.email ?: return rowError(row.rowNumber, null, MemberImportErrorCode.INVALID_EMAIL, "Email manquant.")
+        val email = row.email
+        val targetRole = row.baselineRole ?: TroupeBaselineRole.MEMBER
+        if (targetRole == TroupeBaselineRole.EXTERNE) {
+            return importExterneRow(troupeId, row)
+        }
+        if (email == null) {
+            return rowError(row.rowNumber, null, MemberImportErrorCode.INVALID_EMAIL, "Email manquant.")
+        }
         val user =
             try {
                 userAccountService.findUserForMemberImport(email)
@@ -50,11 +57,26 @@ class TroupeMemberCsvImportService(
             troupeRepository.findByIdForMembershipJoin(troupeId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
         val targetStatus = row.status ?: TroupeMembershipStatus.ACTIVE
-        val targetRole = row.baselineRole ?: TroupeBaselineRole.MEMBER
         val targetDisplayName = normalizeDisplayName(row.displayName)
         val now = Instant.now()
         val existing = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id)
         if (existing != null) {
+            if (existing.baselineRole == TroupeBaselineRole.EXTERNE && targetRole != TroupeBaselineRole.EXTERNE) {
+                return rowError(
+                    row.rowNumber,
+                    email,
+                    MemberImportErrorCode.PARSE_ERROR,
+                    "Un externe ne peut pas être promu membre via import.",
+                )
+            }
+            if (existing.baselineRole != TroupeBaselineRole.EXTERNE && targetRole == TroupeBaselineRole.EXTERNE) {
+                return rowError(
+                    row.rowNumber,
+                    email,
+                    MemberImportErrorCode.PARSE_ERROR,
+                    "Utilisez une ligne Externe pour les entrées carnet.",
+                )
+            }
             val resolvedDisplayName = targetDisplayName ?: existing.displayName
             val accountDisplayName = userMemberPreferencesService.resolvedMemberDisplayName(user)
             if (
@@ -120,6 +142,88 @@ class TroupeMemberCsvImportService(
         }
     }
 
+    private fun importExterneRow(
+        troupeId: UUID,
+        row: MemberCsvRowDto,
+    ): MemberImportRowResultDto {
+        val displayName =
+            normalizeDisplayName(row.displayName)
+                ?: return rowError(
+                    row.rowNumber,
+                    row.email,
+                    MemberImportErrorCode.PARSE_ERROR,
+                    "Un externe doit avoir un nom affiché.",
+                )
+        val troupe =
+            troupeRepository.findByIdForMembershipJoin(troupeId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        val normalizedEmail =
+            try {
+                TroupeExterneEmailSupport.validateOptional(row.email)
+            } catch (ex: ResponseStatusException) {
+                if (ex.statusCode == HttpStatus.BAD_REQUEST) {
+                    return rowError(row.rowNumber, row.email, MemberImportErrorCode.INVALID_EMAIL, ex.reason ?: "Email invalide.")
+                }
+                throw ex
+            }
+        val linkedUser = normalizedEmail?.let { userAccountService.findUserForMemberImport(it) }
+        val targetStatus = row.status ?: TroupeMembershipStatus.ACTIVE
+        val now = Instant.now()
+        if (linkedUser != null) {
+            val membershipForUser = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, linkedUser.id)
+            if (membershipForUser != null && membershipForUser.baselineRole != TroupeBaselineRole.EXTERNE) {
+                return rowError(
+                    row.rowNumber,
+                    normalizedEmail,
+                    MemberImportErrorCode.PARSE_ERROR,
+                    "Cet utilisateur a déjà une adhésion membre dans cette troupe.",
+                )
+            }
+        }
+        val existing =
+            when {
+                linkedUser != null ->
+                    membershipRepository.findByTroupe_IdAndUser_Id(troupeId, linkedUser.id)
+                        ?.takeIf { it.baselineRole == TroupeBaselineRole.EXTERNE }
+                normalizedEmail != null ->
+                    membershipRepository.findFirstByTroupe_IdAndBaselineRoleAndStatusAndNormalizedEmailIgnoreCase(
+                        troupeId,
+                        TroupeBaselineRole.EXTERNE,
+                        TroupeMembershipStatus.INACTIVE,
+                        normalizedEmail,
+                    )
+                else ->
+                    membershipRepository.findFirstByTroupe_IdAndBaselineRoleAndStatusAndDisplayNameIgnoreCase(
+                        troupeId,
+                        TroupeBaselineRole.EXTERNE,
+                        TroupeMembershipStatus.INACTIVE,
+                        displayName,
+                    )
+            }
+        if (existing != null) {
+            existing.status = targetStatus
+            existing.displayName = displayName
+            existing.normalizedEmail = normalizedEmail
+            existing.user = linkedUser
+            existing.updatedAt = now
+            membershipRepository.save(existing)
+            return rowSuccess(row.rowNumber, normalizedEmail ?: displayName)
+        }
+        val membership =
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = linkedUser,
+                normalizedEmail = normalizedEmail,
+                status = targetStatus,
+                baselineRole = TroupeBaselineRole.EXTERNE,
+                displayName = displayName,
+                createdAt = now,
+                updatedAt = now,
+            )
+        membershipRepository.saveAndFlush(membership)
+        return rowSuccess(row.rowNumber, normalizedEmail ?: displayName)
+    }
+
     private fun normalizeDisplayName(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }
 
     private fun ensureLastAdminRemains(
@@ -151,7 +255,7 @@ class TroupeMemberCsvImportService(
 
     private fun rowSuccess(
         rowNumber: Int,
-        email: String,
+        email: String?,
     ) = MemberImportRowResultDto(
         rowNumber = rowNumber,
         outcome = MemberImportRowOutcome.SUCCESS,

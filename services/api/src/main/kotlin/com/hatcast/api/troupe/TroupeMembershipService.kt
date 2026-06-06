@@ -6,6 +6,7 @@ import com.hatcast.api.audit.AuditRecordRequest
 import com.hatcast.api.audit.AuditSnapshots
 import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.troupe.dto.AddTroupeExterneRequest
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
 import com.hatcast.api.troupe.dto.MemberImportResultDto
 import com.hatcast.api.troupe.dto.MemberImportSummaryDto
@@ -163,12 +164,10 @@ class TroupeMembershipService(
     fun isActiveMember(
         userId: UUID,
         troupeId: UUID,
-    ): Boolean =
-        membershipRepository.existsByTroupe_IdAndUser_IdAndStatus(
-            troupeId,
-            userId,
-            TroupeMembershipStatus.ACTIVE,
-        )
+    ): Boolean {
+        val membership = getActiveMembershipForUser(userId, troupeId) ?: return false
+        return membership.baselineRole != TroupeBaselineRole.EXTERNE
+    }
 
     @Transactional(readOnly = true)
     fun isTroupeAdmin(
@@ -305,6 +304,12 @@ class TroupeMembershipService(
         principal: SessionUserPrincipal,
     ): TroupeMemberAdminDto {
         requireCanManageTroupeMembers(principal, troupeId)
+        if (body.baselineRole == TroupeBaselineRole.EXTERNE) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Utilisez l'ajout Externe pour les entrées carnet.",
+            )
+        }
         val troupe =
             troupeRepository
                 .findByIdForMembershipJoin(troupeId)
@@ -313,6 +318,12 @@ class TroupeMembershipService(
         val now = Instant.now()
         val existing = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id)
         if (existing != null) {
+            if (existing.baselineRole == TroupeBaselineRole.EXTERNE) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Utilisez l'ajout Externe pour les entrées carnet.",
+                )
+            }
             val previousStatus = existing.status
             val beforeSnapshot = AuditSnapshots.membership(existing)
             val targetStatus =
@@ -355,7 +366,7 @@ class TroupeMembershipService(
                                 AuditActionType.TROUPE_MEMBER_UPDATED
                             },
                         actorUserId = principal.userId,
-                        subjectUserId = saved.user.id,
+                        subjectUserId = saved.user?.id,
                         troupeId = troupeId,
                         before = beforeDiff,
                         after = afterDiff,
@@ -385,7 +396,7 @@ class TroupeMembershipService(
                 AuditRecordRequest(
                     actionType = AuditActionType.TROUPE_MEMBER_ADDED,
                     actorUserId = principal.userId,
-                    subjectUserId = saved.user.id,
+                    subjectUserId = saved.user?.id,
                     troupeId = troupeId,
                     after = AuditSnapshots.membership(saved),
                 ),
@@ -403,12 +414,92 @@ class TroupeMembershipService(
         troupeId: UUID,
         body: UpdateMyMembershipRequest,
     ): MembershipSummaryDto {
-        requireActiveMembership(userId, troupeId)
+        requireActiveMemberMembership(userId, troupeId)
         val displayName =
             normalizeDisplayName(body.displayName)
                 ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
         userMemberPreferencesService.updateMemberDisplayName(userId, displayName)
-        return MembershipSummaryDto.from(requireActiveMembership(userId, troupeId))
+        return MembershipSummaryDto.from(requireActiveMemberMembership(userId, troupeId))
+    }
+
+    @Transactional
+    fun addExterne(
+        troupeId: UUID,
+        body: AddTroupeExterneRequest,
+        principal: SessionUserPrincipal,
+    ): TroupeMemberAdminDto {
+        requireCanManageTroupeMembers(principal, troupeId)
+        val troupe =
+            troupeRepository
+                .findByIdForMembershipJoin(troupeId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        val displayName =
+            normalizeDisplayName(body.displayName)
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
+        val normalizedEmail = TroupeExterneEmailSupport.validateOptional(body.email)
+        val linkedUser = normalizedEmail?.let { userRepository.findFirstByEmailIgnoreCase(it) }
+        val now = Instant.now()
+        val existingInactive =
+            findInactiveExterneForReactivation(
+                troupeId = troupeId,
+                linkedUserId = linkedUser?.id,
+                normalizedEmail = normalizedEmail,
+                displayName = displayName,
+            )
+        if (existingInactive != null) {
+            if (linkedUser != null) {
+                ensureNoActiveNonExterneMembershipForUser(
+                    troupeId = troupeId,
+                    userId = linkedUser.id,
+                    excludeMembershipId = existingInactive.id,
+                )
+            }
+            val beforeSnapshot = AuditSnapshots.membership(existingInactive)
+            existingInactive.status = TroupeMembershipStatus.ACTIVE
+            existingInactive.displayName = displayName
+            existingInactive.normalizedEmail = normalizedEmail
+            existingInactive.user = linkedUser
+            existingInactive.updatedAt = now
+            val saved = membershipRepository.save(existingInactive)
+            auditRecorder.record(
+                AuditRecordRequest(
+                    actionType = AuditActionType.TROUPE_MEMBER_ADDED,
+                    actorUserId = principal.userId,
+                    subjectUserId = saved.user?.id,
+                    troupeId = troupeId,
+                    before = beforeSnapshot,
+                    after = AuditSnapshots.membership(saved),
+                    metadata = mapOf("baselineRole" to TroupeBaselineRole.EXTERNE.name),
+                ),
+            )
+            return TroupeMemberAdminDto.from(saved, avatarService)
+        }
+        if (linkedUser != null) {
+            ensureNoActiveNonExterneMembershipForUser(troupeId, linkedUser.id)
+        }
+        val membership =
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = linkedUser,
+                normalizedEmail = normalizedEmail,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.EXTERNE,
+                displayName = displayName,
+                createdAt = now,
+                updatedAt = now,
+            )
+        val saved = membershipRepository.saveAndFlush(membership)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.TROUPE_MEMBER_ADDED,
+                actorUserId = principal.userId,
+                subjectUserId = saved.user?.id,
+                troupeId = troupeId,
+                after = AuditSnapshots.membership(saved),
+                metadata = mapOf("baselineRole" to TroupeBaselineRole.EXTERNE.name),
+            ),
+        )
+        return TroupeMemberAdminDto.from(saved, avatarService)
     }
 
     @Transactional
@@ -430,25 +521,55 @@ class TroupeMembershipService(
         if (targetRole == null) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le rôle ne peut pas être effacé.")
         }
+        if (membership.baselineRole == TroupeBaselineRole.EXTERNE &&
+            targetRole != TroupeBaselineRole.EXTERNE
+        ) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Un externe ne peut pas être promu membre ou administrateur via cette API.",
+            )
+        }
+        if (targetRole == TroupeBaselineRole.EXTERNE &&
+            membership.baselineRole != TroupeBaselineRole.EXTERNE
+        ) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Utilisez l'ajout Externe pour les entrées carnet.",
+            )
+        }
         ensureLastAdminRemains(membership, targetStatus, targetRole)
         if (body.displayName.isPresent) {
             val raw = body.displayName.get()
             normalizeDisplayName(raw)
                 ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
         }
+        if (body.email.isPresent) {
+            if (membership.baselineRole != TroupeBaselineRole.EXTERNE) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "L'email carnet ne peut être modifié que pour un externe.",
+                )
+            }
+            applyExterneEmailUpdate(membership, troupeId, body.email.get())
+        }
         val previousStatus = membership.status
         val beforeSnapshot = AuditSnapshots.membership(membership)
         membership.status = targetStatus
         membership.baselineRole = targetRole
         if (targetStatus == TroupeMembershipStatus.ACTIVE && !body.displayName.isPresent) {
-            applyAccountPreferences(membership, membership.user, Instant.now())
+            membership.user?.let { applyAccountPreferences(membership, it, Instant.now()) }
         }
         membership.updatedAt = Instant.now()
         var saved = membershipRepository.save(membership)
         if (body.displayName.isPresent) {
             val displayName = normalizeDisplayName(body.displayName.get())!!
-            userMemberPreferencesService.updateMemberDisplayName(membership.user.id, displayName)
-            saved = membershipRepository.findByIdAndTroupe_Id(membershipId, troupeId) ?: saved
+            if (membership.baselineRole == TroupeBaselineRole.EXTERNE || membership.user == null) {
+                membership.displayName = displayName
+                saved = membershipRepository.save(membership)
+            } else {
+                userMemberPreferencesService.updateMemberDisplayName(membership.user!!.id, displayName)
+                saved = membershipRepository.findByIdAndTroupe_Id(membershipId, troupeId) ?: saved
+            }
         }
         syncSeasonParticipantsAfterStatusChange(saved, previousStatus, targetStatus)
         val (beforeDiff, afterDiff) = AuditSnapshots.mapDiff(beforeSnapshot, AuditSnapshots.membership(saved))
@@ -457,7 +578,7 @@ class TroupeMembershipService(
                 AuditRecordRequest(
                     actionType = AuditActionType.TROUPE_MEMBER_UPDATED,
                     actorUserId = principal.userId,
-                    subjectUserId = saved.user.id,
+                    subjectUserId = saved.user?.id,
                     troupeId = troupeId,
                     before = beforeDiff,
                     after = afterDiff,
@@ -479,16 +600,13 @@ class TroupeMembershipService(
                 var page = 0
                 while (true) {
                     val idBatch =
-                        membershipRepository.findIdsByTroupe_IdAndStatus(
+                        membershipRepository.findIdsByTroupe_Id(
                             troupeId,
-                            TroupeMembershipStatus.ACTIVE,
                             PageRequest.of(page, EXPORT_BATCH_SIZE, sort),
                         )
                     if (idBatch.isEmpty) break
                     val fetched =
-                        membershipRepository.findByTroupe_IdAndStatusAndIdInWithUser(
-                            troupeId,
-                            TroupeMembershipStatus.ACTIVE,
+                        membershipRepository.findByIdInWithUser(
                             idBatch.content,
                         )
                     val byId = fetched.associateBy { it.id }
@@ -553,17 +671,21 @@ class TroupeMembershipService(
             membership.status = TroupeMembershipStatus.INACTIVE
             membership.updatedAt = Instant.now()
             val saved = membershipRepository.save(membership)
-            membershipSync.removeForMembershipAcrossTroupe(saved)
+            if (membership.baselineRole != TroupeBaselineRole.EXTERNE) {
+                membershipSync.removeForMembershipAcrossTroupe(saved)
+            }
             auditRecorder.record(
                 AuditRecordRequest(
                     actionType = AuditActionType.TROUPE_MEMBER_DEACTIVATED,
                     actorUserId = principal.userId,
-                    subjectUserId = saved.user.id,
+                    subjectUserId = saved.user?.id,
                     troupeId = troupeId,
                     before = beforeSnapshot,
                     after = AuditSnapshots.membership(saved),
                     metadata =
-                        if (impactedSeasonParticipantIds.isNotEmpty()) {
+                        if (membership.baselineRole != TroupeBaselineRole.EXTERNE &&
+                            impactedSeasonParticipantIds.isNotEmpty()
+                        ) {
                             mapOf("seasonParticipantIds" to impactedSeasonParticipantIds)
                         } else {
                             null
@@ -578,6 +700,9 @@ class TroupeMembershipService(
         previousStatus: TroupeMembershipStatus,
         targetStatus: TroupeMembershipStatus,
     ) {
+        if (membership.baselineRole == TroupeBaselineRole.EXTERNE) {
+            return
+        }
         if (previousStatus == targetStatus) {
             return
         }
@@ -596,6 +721,22 @@ class TroupeMembershipService(
         val membership = getActiveMembershipForUser(userId, troupeId)
         if (membership == null) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé pour cette troupe.")
+        }
+        return membership
+    }
+
+    /** Member read guard — rejects carnet-only [TroupeBaselineRole.EXTERNE] (ADR-0021). */
+    @Transactional(readOnly = true)
+    fun requireActiveMemberMembership(
+        userId: UUID,
+        troupeId: UUID,
+    ): TroupeMembershipEntity {
+        val membership = requireActiveMembership(userId, troupeId)
+        if (membership.baselineRole == TroupeBaselineRole.EXTERNE) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Accès membre refusé pour cette troupe.",
+            )
         }
         return membership
     }
@@ -622,6 +763,76 @@ class TroupeMembershipService(
     }
 
     private fun normalizeDisplayName(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }
+
+    private fun applyExterneEmailUpdate(
+        membership: TroupeMembershipEntity,
+        troupeId: UUID,
+        rawEmail: String?,
+    ) {
+        val normalizedEmail = TroupeExterneEmailSupport.validateOptional(rawEmail)
+        val linkedUser = normalizedEmail?.let { userRepository.findFirstByEmailIgnoreCase(it) }
+        if (linkedUser != null) {
+            ensureNoActiveNonExterneMembershipForUser(
+                troupeId = troupeId,
+                userId = linkedUser.id,
+                excludeMembershipId = membership.id,
+            )
+        }
+        membership.normalizedEmail = normalizedEmail
+        membership.user = linkedUser
+    }
+
+    private fun ensureNoActiveNonExterneMembershipForUser(
+        troupeId: UUID,
+        userId: UUID,
+        excludeMembershipId: UUID? = null,
+    ) {
+        val existing = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, userId) ?: return
+        if (excludeMembershipId != null && existing.id == excludeMembershipId) {
+            return
+        }
+        if (existing.status == TroupeMembershipStatus.ACTIVE &&
+            existing.baselineRole != TroupeBaselineRole.EXTERNE
+        ) {
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Cet utilisateur a déjà une adhésion active dans cette troupe.",
+            )
+        }
+    }
+
+    private fun findInactiveExterneForReactivation(
+        troupeId: UUID,
+        linkedUserId: UUID?,
+        normalizedEmail: String?,
+        displayName: String,
+    ): TroupeMembershipEntity? {
+        if (linkedUserId != null) {
+            membershipRepository
+                .findByTroupe_IdAndUser_Id(troupeId, linkedUserId)
+                ?.takeIf {
+                    it.baselineRole == TroupeBaselineRole.EXTERNE &&
+                        it.status == TroupeMembershipStatus.INACTIVE
+                }
+                ?.let { return it }
+        }
+        if (normalizedEmail != null) {
+            membershipRepository
+                .findFirstByTroupe_IdAndBaselineRoleAndStatusAndNormalizedEmailIgnoreCase(
+                    troupeId,
+                    TroupeBaselineRole.EXTERNE,
+                    TroupeMembershipStatus.INACTIVE,
+                    normalizedEmail,
+                )
+                ?.let { return it }
+        }
+        return membershipRepository.findFirstByTroupe_IdAndBaselineRoleAndStatusAndDisplayNameIgnoreCase(
+            troupeId,
+            TroupeBaselineRole.EXTERNE,
+            TroupeMembershipStatus.INACTIVE,
+            displayName,
+        )
+    }
 
     private fun requireOpenJoinPolicy(troupeId: UUID): TroupeEntity {
         val troupe =

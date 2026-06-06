@@ -18,6 +18,7 @@ export function filterTroupeMemberSuggestions(
     .filter(
       (m) =>
         m.status === 'ACTIVE' &&
+        m.userId != null &&
         !excludedUserIds.has(m.userId) &&
         !excludedDisplayNames.has(m.displayName.trim().toLowerCase()) &&
         (m.displayName.toLowerCase().includes(q) ||

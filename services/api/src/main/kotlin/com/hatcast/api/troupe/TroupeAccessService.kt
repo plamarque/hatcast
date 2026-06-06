@@ -8,7 +8,7 @@ import java.util.UUID
 /**
  * Contrôle d'accès troupe.
  *
- * - **Lecture membre** : adhésion active dans la troupe.
+ * - **Lecture membre** : adhésion active dans la troupe, hors carnet `EXTERNE` (ADR-0021).
  * - **Gestion troupe** : adhésion active avec rôle de base `TROUPE_ADMIN`, ou admin plateforme.
  */
 @Component
@@ -24,7 +24,7 @@ class TroupeAccessService(
         if (platformAdminService.isPlatformAdmin(principal)) {
             return
         }
-        membershipService.requireActiveMembership(principal.userId, troupeId)
+        membershipService.requireActiveMemberMembership(principal.userId, troupeId)
     }
 
     /**

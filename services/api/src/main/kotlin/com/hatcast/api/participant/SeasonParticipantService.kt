@@ -15,6 +15,7 @@ import com.hatcast.api.participant.dto.SeasonParticipantAdminDto
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.text.sortedByFrenchDisplayName
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
@@ -196,7 +197,9 @@ class SeasonParticipantService(
             // Synced members keep the troupe membership as the source of truth for name/email.
             existing.displayName = membership.displayName
             existing.user = membership.user
-            existing.normalizedEmail = participantLink.normalizeEmail(membership.user.email)
+            existing.normalizedEmail =
+                membership.user?.email?.let { participantLink.normalizeEmail(it) }
+                    ?: membership.normalizedEmail
         } else {
             if (
                 seasonParticipantRepository
@@ -374,7 +377,9 @@ class SeasonParticipantService(
         if (membership != null) {
             existing.displayName = membership.displayName
             existing.user = membership.user
-            existing.normalizedEmail = participantLink.normalizeEmail(membership.user.email)
+            existing.normalizedEmail =
+                membership.user?.email?.let { participantLink.normalizeEmail(it) }
+                    ?: membership.normalizedEmail
         }
         existing.status = ParticipantStatus.ACTIVE
         existing.removedAt = null
@@ -432,7 +437,12 @@ class SeasonParticipantService(
         val now = Instant.now()
         val toSave = mutableListOf<SeasonParticipantEntity>()
         for (membership in activeMemberships) {
-            val normalizedEmail = participantLink.normalizeEmail(membership.user.email)
+            if (membership.baselineRole == TroupeBaselineRole.EXTERNE) {
+                continue
+            }
+            val normalizedEmail =
+                membership.user?.email?.let { participantLink.normalizeEmail(it) }
+                    ?: membership.normalizedEmail
             val existing = existingByMembershipId[membership.id]
             if (existing != null) {
                 if (existing.removalSource == SeasonParticipantRemovalSource.SEASON_ADMIN) {
@@ -440,7 +450,7 @@ class SeasonParticipantService(
                 }
                 if (
                     existing.displayName == membership.displayName &&
-                        existing.user?.id == membership.user.id &&
+                        existing.user?.id == membership.user?.id &&
                         existing.normalizedEmail == normalizedEmail &&
                         existing.status == ParticipantStatus.ACTIVE &&
                         existing.removedAt == null

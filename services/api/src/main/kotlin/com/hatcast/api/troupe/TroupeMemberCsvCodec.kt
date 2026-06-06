@@ -14,7 +14,7 @@ object TroupeMemberCsvCodec {
                 appendLine(
                     formatCsvLine(
                         listOf(
-                            membership.user.email.orEmpty(),
+                            membership.user?.email ?: membership.normalizedEmail.orEmpty(),
                             membership.displayName,
                             membership.baselineRole.name,
                             membership.status.name.lowercase(),
@@ -69,22 +69,6 @@ object TroupeMemberCsvCodec {
             header[index] to values.getOrElse(index) { "" }.trim()
         }
         val email = fields["email"].orEmpty().trim().lowercase()
-        if (email.isEmpty()) {
-            return MemberCsvRowDto.invalid(
-                rowNumber = rowNumber,
-                email = null,
-                code = MemberImportErrorCode.INVALID_EMAIL,
-                message = "La colonne email est obligatoire.",
-            )
-        }
-        if (!email.contains("@")) {
-            return MemberCsvRowDto.invalid(
-                rowNumber = rowNumber,
-                email = email,
-                code = MemberImportErrorCode.INVALID_EMAIL,
-                message = "Email invalide.",
-            )
-        }
         val displayName = fields["displayname"]?.takeIf { it.isNotEmpty() }
         val baselineRole =
             fields["baselinerole"]?.takeIf { it.isNotEmpty() }?.let { raw ->
@@ -92,12 +76,39 @@ object TroupeMemberCsvCodec {
                     .getOrElse {
                         return MemberCsvRowDto.invalid(
                             rowNumber = rowNumber,
-                            email = email,
+                            email = email.takeIf { it.isNotEmpty() },
                             code = MemberImportErrorCode.INVALID_BASELINE_ROLE,
                             message = "Rôle de base invalide : $raw",
                         )
                     }
             }
+        if (email.isEmpty()) {
+            if (baselineRole == TroupeBaselineRole.EXTERNE && displayName != null) {
+                // name-only externe import — email optional
+            } else {
+                return MemberCsvRowDto.invalid(
+                    rowNumber = rowNumber,
+                    email = null,
+                    code = MemberImportErrorCode.INVALID_EMAIL,
+                    message = "La colonne email est obligatoire.",
+                )
+            }
+        } else if (!email.contains("@")) {
+            return MemberCsvRowDto.invalid(
+                rowNumber = rowNumber,
+                email = email,
+                code = MemberImportErrorCode.INVALID_EMAIL,
+                message = "Email invalide.",
+            )
+        }
+        if (baselineRole == TroupeBaselineRole.EXTERNE && displayName == null) {
+            return MemberCsvRowDto.invalid(
+                rowNumber = rowNumber,
+                email = email.takeIf { it.isNotEmpty() },
+                code = MemberImportErrorCode.PARSE_ERROR,
+                message = "Un externe doit avoir un nom affiché.",
+            )
+        }
         val status =
             fields["status"]?.takeIf { it.isNotEmpty() }?.let { raw ->
                 when (raw.trim().lowercase()) {
@@ -114,7 +125,7 @@ object TroupeMemberCsvCodec {
             }
         return MemberCsvRowDto.valid(
             rowNumber = rowNumber,
-            email = email,
+            email = email.takeIf { it.isNotEmpty() },
             displayName = displayName,
             baselineRole = baselineRole,
             status = status,

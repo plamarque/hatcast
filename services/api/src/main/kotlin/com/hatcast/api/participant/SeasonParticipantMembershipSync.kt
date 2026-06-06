@@ -23,11 +23,16 @@ class SeasonParticipantMembershipSync(
         season: SeasonEntity,
         membership: TroupeMembershipEntity,
     ) {
+        if (membership.baselineRole == com.hatcast.api.troupe.TroupeBaselineRole.EXTERNE) {
+            return
+        }
         if (membership.status != TroupeMembershipStatus.ACTIVE) {
             removeForMembership(season, membership)
             return
         }
-        val normalizedEmail = participantLink.normalizeEmail(membership.user.email)
+        val normalizedEmail =
+            membership.user?.email?.let { participantLink.normalizeEmail(it) }
+                ?: membership.normalizedEmail
         val existing =
             seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
                 season.id,
@@ -40,7 +45,7 @@ class SeasonParticipantMembershipSync(
                     null
                 } else if (
                     existing.displayName == membership.displayName &&
-                        existing.user?.id == membership.user.id &&
+                        existing.user?.id == membership.user?.id &&
                         existing.normalizedEmail == normalizedEmail &&
                         existing.status == ParticipantStatus.ACTIVE &&
                         existing.removedAt == null
@@ -87,6 +92,9 @@ class SeasonParticipantMembershipSync(
     /** Réactive ou crée les participants de saison pour une adhésion troupe active. */
     @Transactional
     fun ensureForMembershipAcrossTroupe(membership: TroupeMembershipEntity) {
+        if (membership.baselineRole == com.hatcast.api.troupe.TroupeBaselineRole.EXTERNE) {
+            return
+        }
         if (membership.status != TroupeMembershipStatus.ACTIVE) {
             return
         }

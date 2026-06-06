@@ -65,6 +65,33 @@
     Afficher les inactifs
   </mat-slide-toggle>
 
+  <mat-chip-set class="membres-tab__role-filters" aria-label="Filtrer par rôle">
+    <mat-chip
+      [highlighted]="roleFilter() === 'ALL'"
+      (click)="setRoleFilter('ALL')"
+    >
+      Tous
+    </mat-chip>
+    <mat-chip
+      [highlighted]="roleFilter() === 'MEMBER'"
+      (click)="setRoleFilter('MEMBER')"
+    >
+      Membre
+    </mat-chip>
+    <mat-chip
+      [highlighted]="roleFilter() === 'TROUPE_ADMIN'"
+      (click)="setRoleFilter('TROUPE_ADMIN')"
+    >
+      Admin
+    </mat-chip>
+    <mat-chip
+      [highlighted]="roleFilter() === 'EXTERNE'"
+      (click)="setRoleFilter('EXTERNE')"
+    >
+      Externe
+    </mat-chip>
+  </mat-chip-set>
+
   @if (loading()) {
     <div class="membres-tab__spinner" role="status">
       <mat-spinner diameter="32" />
@@ -85,7 +112,7 @@
             [displayName]="member.displayName"
             [avatarUrl]="member.avatarUrl ?? null"
             [size]="32"
-            [clickable]="!!profileSeasonId()"
+            [clickable]="!!profileSeasonId() && !!member.userSlug"
             (avatarClick)="openMemberProfile(member)"
           />
           <div class="membres-tab__identity">
@@ -106,19 +133,27 @@
                 {{ member.displayName }}
               </button>
             }
-            <span class="membres-tab__email">{{ member.email || 'Email indisponible' }}</span>
+            <span class="membres-tab__email">{{
+              member.email || (isExterne(member) ? 'Sans email' : 'Email indisponible')
+            }}</span>
           </div>
           <div class="membres-tab__controls">
             <div class="membres-tab__chips">
-              <mat-chip
-                class="membres-tab__role-chip"
-                [matMenuTriggerFor]="roleMenu"
-                [disabled]="isLastAdmin(member) || saving()"
-                [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : ''"
-                (click)="openRoleMenu(member)"
-              >
-                {{ roleLabel(member.baselineRole) }} ▾
-              </mat-chip>
+              @if (isExterne(member)) {
+                <mat-chip class="membres-tab__role-chip membres-tab__role-chip--static">
+                  {{ roleLabel(member.baselineRole) }}
+                </mat-chip>
+              } @else {
+                <mat-chip
+                  class="membres-tab__role-chip"
+                  [matMenuTriggerFor]="roleMenu"
+                  [disabled]="isLastAdmin(member) || saving()"
+                  [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : ''"
+                  (click)="openRoleMenu(member)"
+                >
+                  {{ roleLabel(member.baselineRole) }} ▾
+                </mat-chip>
+              }
             </div>
             <mat-slide-toggle
               [checked]="member.status === 'ACTIVE'"
@@ -134,8 +169,14 @@
                 mat-icon-button
                 class="admin-row-delete-btn"
                 [disabled]="isLastAdmin(member) || saving()"
-                aria-label="Retirer ce membre de la troupe"
-                [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : 'Retire ce membre de la troupe sans supprimer son compte HatCast.'"
+                aria-label="{{ isExterne(member) ? 'Retirer cet externe du carnet' : 'Retirer ce membre de la troupe' }}"
+                [matTooltip]="
+                  isLastAdmin(member)
+                    ? 'La troupe doit conserver au moins un administrateur actif.'
+                    : isExterne(member)
+                      ? 'Retire cet externe du carnet sans supprimer son historique de spectacles.'
+                      : 'Retire ce membre de la troupe sans supprimer son compte HatCast.'
+                "
                 (click)="retirerMembre(member)"
               >
                 <mat-icon>delete</mat-icon>

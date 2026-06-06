@@ -22,9 +22,11 @@ class TroupeMembershipEntity(
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "troupe_id", nullable = false)
     val troupe: TroupeEntity,
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    val user: UserEntity,
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "user_id", nullable = true)
+    var user: UserEntity? = null,
+    @Column(name = "normalized_email", length = 320)
+    var normalizedEmail: String? = null,
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     var status: TroupeMembershipStatus,
