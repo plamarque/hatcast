@@ -3,6 +3,8 @@ package com.hatcast.api.notification
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.composition.CompositionService
 import com.hatcast.api.composition.EventCompositionEntity
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotEntity
@@ -14,9 +16,11 @@ import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.never
 import org.mockito.kotlin.times
@@ -24,7 +28,12 @@ import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
@@ -43,6 +52,7 @@ import java.util.UUID
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Tag("notification-trigger-matrix")
+@Import(CompositionNotificationTriggerMatrixIntegrationTest.RollbackTestConfig::class)
 class CompositionNotificationTriggerMatrixIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -76,6 +86,9 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
 
     @Autowired
     private lateinit var seasonParticipantRepository: com.hatcast.api.participant.SeasonParticipantRepository
+
+    @Autowired
+    private lateinit var rollbackProbe: ValidateCompositionRollbackProbe
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -165,6 +178,56 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
         )
         verify(notificationDispatcher, never()).dispatch(
             argThat { intent == NotificationIntent.TEAM_VALIDATED_FYI },
+        )
+    }
+
+    // --- M-RB validate rollback ---
+
+    @Test
+    fun `M-RB validate rollback does not dispatch any intent`() {
+        val googleSub = "sub-matrix-rollback-admin"
+        val admin = adminCookie(googleSub)
+        memberCookie("sub-matrix-rollback-assignee")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createEvent(admin, seasonId)
+        val assigneeId = participantIdForUser(seasonId, "sub-matrix-rollback-assignee")
+        seedDraftSlots(eventId, listOf(assigneeId))
+        org.mockito.kotlin.reset(notificationDispatcher)
+        val principal = adminPrincipal(googleSub)
+
+        assertThrows(IllegalStateException::class.java) {
+            rollbackProbe.validateThenFail(seasonId, eventId, principal)
+        }
+
+        verify(notificationDispatcher, never()).dispatch(any())
+    }
+
+    // --- M-PUB publish draft ---
+
+    @Test
+    fun `M-PUB publish draft composition does not dispatch member notifications`() {
+        val admin = adminCookie("sub-matrix-publish-admin")
+        memberCookie("sub-matrix-publish-member")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createEvent(admin, seasonId, openAvailability = false)
+        val participantId = participantIdForUser(seasonId, "sub-matrix-publish-member")
+        seedDraftSlots(eventId, listOf(participantId))
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, never()).dispatch(
+            argThat {
+                intent == NotificationIntent.CONFIRMATION_REQUEST ||
+                    intent == NotificationIntent.AVAILABILITY_OPENED
+            },
         )
     }
 
@@ -368,6 +431,7 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
         ensureParticipants(seasonId)
         val eventId = createEvent(admin, seasonId)
         val participantId = participantIdForUser(seasonId, "sub-matrix-proxy-avail-member")
+        val memberUserId = subjectUserId("sub-matrix-proxy-avail-member")
         val path = proxyAvailabilityPath(seasonId, eventId, participantId)
 
         mockMvc
@@ -395,7 +459,10 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
             ).andExpect(status().isOk)
 
         verify(notificationDispatcher, times(1)).dispatch(
-            argThat { intent == NotificationIntent.PROXY_AVAILABILITY_RECORDED },
+            argThat {
+                intent == NotificationIntent.PROXY_AVAILABILITY_RECORDED &&
+                    subjectUserId == memberUserId
+            },
         )
     }
 
@@ -409,6 +476,7 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
         ensureParticipants(seasonId)
         val eventId = createEvent(admin, seasonId)
         val memberId = participantIdForUser(seasonId, "sub-matrix-proxy-conf-member")
+        val memberUserId = subjectUserId("sub-matrix-proxy-conf-member")
         seedValidatedOneFilledSlot(eventId, memberId)
 
         mockMvc
@@ -421,7 +489,16 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
             ).andExpect(status().isOk)
 
         verify(notificationDispatcher, times(1)).dispatch(
-            argThat { intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED },
+            argThat {
+                intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED &&
+                    subjectUserId == memberUserId &&
+                    roleKey == "player" &&
+                    proxyChangeSummary is ProxyChangeSummary.Participation &&
+                    (proxyChangeSummary as ProxyChangeSummary.Participation).decisionLabel == "Confirmé"
+            },
+        )
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.CONFIRMATION_REQUEST },
         )
     }
 
@@ -433,6 +510,7 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
         ensureParticipants(seasonId)
         val eventId = createEvent(admin, seasonId)
         val memberId = participantIdForUser(seasonId, "sub-matrix-proxy-decline-member")
+        val memberUserId = subjectUserId("sub-matrix-proxy-decline-member")
         seedValidatedOneFilledSlot(eventId, memberId)
 
         mockMvc
@@ -445,7 +523,12 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
             ).andExpect(status().isOk)
 
         verify(notificationDispatcher, times(1)).dispatch(
-            argThat { intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED },
+            argThat {
+                intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED &&
+                    subjectUserId == memberUserId &&
+                    proxyChangeSummary is ProxyChangeSummary.Participation &&
+                    (proxyChangeSummary as ProxyChangeSummary.Participation).decisionLabel == "Décliné"
+            },
         )
     }
 
@@ -507,6 +590,7 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
         cookie: jakarta.servlet.http.Cookie,
         seasonId: UUID,
         playerCount: Int = 1,
+        openAvailability: Boolean = true,
     ): UUID {
         val future = Instant.parse("2032-08-01T19:00:00Z")
         val res =
@@ -527,14 +611,29 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
                 ).andExpect(status().isOk)
                 .andReturn()
         val eventId = UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
-        mockMvc
-            .perform(
-                post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
-                    .cookie(cookie)
-                    .with(csrf()),
-            ).andExpect(status().isOk)
+        if (openAvailability) {
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events/$eventId/actions/open-availability")
+                        .cookie(cookie)
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+        }
         return eventId
     }
+
+    private fun adminPrincipal(googleSub: String): SessionUserPrincipal {
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing user")
+        return SessionUserPrincipal(
+            userId = user.id,
+            googleSub = googleSub,
+            idpUid = user.idpUid,
+            email = user.email,
+        )
+    }
+
+    private fun subjectUserId(googleSub: String): UUID =
+        userRepository.findByGoogleSub(googleSub)?.id ?: error("Missing user")
 
     private fun ensureParticipants(seasonId: UUID) {
         seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
@@ -637,5 +736,27 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
                     .cookie(admin)
                     .with(csrf()),
             ).andExpect(status().isOk)
+    }
+
+    @TestConfiguration
+    class RollbackTestConfig {
+        @Bean
+        fun validateCompositionRollbackProbe(compositionService: CompositionService): ValidateCompositionRollbackProbe =
+            ValidateCompositionRollbackProbe(compositionService)
+    }
+}
+
+@Service
+class ValidateCompositionRollbackProbe(
+    private val compositionService: CompositionService,
+) {
+    @Transactional
+    fun validateThenFail(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        compositionService.validateComposition(seasonId, eventId, principal)
+        throw IllegalStateException("forced rollback for test")
     }
 }
