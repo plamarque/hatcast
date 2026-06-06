@@ -1634,18 +1634,28 @@ class TroupeMembershipIntegrationTest {
         adminCookie: Cookie,
         displayName: String,
     ): JsonNode {
-        val res =
-            mockMvc
-                .perform(
-                    get("/v1/troupes/$seedTroupeId/members?page=0&size=100")
-                        .cookie(adminCookie),
-                ).andExpect(status().isOk)
-                .andReturn()
-        val body = mapper.readTree(res.response.contentAsString)
-        return (0 until body.get("content").size())
-            .map { body.get("content").get(it) }
-            .firstOrNull { it.get("displayName").asText() == displayName }
-            ?: error("Member $displayName not found in troupe member list")
+        var page = 0
+        while (true) {
+            val res =
+                mockMvc
+                    .perform(
+                        get("/v1/troupes/$seedTroupeId/members?page=$page&size=100")
+                            .cookie(adminCookie),
+                    ).andExpect(status().isOk)
+                    .andReturn()
+            val body = mapper.readTree(res.response.contentAsString)
+            val match =
+                (0 until body.get("content").size())
+                    .map { body.get("content").get(it) }
+                    .firstOrNull { it.get("displayName").asText() == displayName }
+            if (match != null) {
+                return match
+            }
+            if (page + 1 >= body.get("totalPages").asInt()) {
+                error("Member $displayName not found in troupe member list")
+            }
+            page++
+        }
     }
 
     private fun findMemberInAdminList(
