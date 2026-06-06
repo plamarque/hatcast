@@ -80,17 +80,23 @@ export async function removeExternalFromSeason(page: Page, participantName: stri
 
 export async function readdSeasonMemberByEmail(page: Page, email: string) {
   await page.getByRole('button', { name: 'Ajouter' }).first().click()
-  await expect(page.getByRole('heading', { name: 'Ajouter un participant' })).toBeVisible()
-  await page.getByLabel('Nom affiché').fill('Nom ignoré pour membre')
-  await page.getByLabel('Email (optionnel)').fill(email)
-  await page.getByRole('dialog').getByRole('button', { name: 'Ajouter' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Ajouter un participant' })).toBeVisible()
+  await dialog.getByLabel('Nom affiché').fill('Nom ignoré pour membre')
+  await dialog.getByLabel('Email (optionnel)').fill(email)
+  await dialog.getByRole('button', { name: 'Ajouter' }).click()
+  await expect(dialog).toHaveCount(0, { timeout: 30_000 })
+  await expect(page.getByText('Participant ajouté.')).toBeVisible({ timeout: 30_000 })
 }
 
 export async function readdExternalByName(page: Page, name: string) {
   await page.getByRole('button', { name: 'Ajouter' }).first().click()
-  await expect(page.getByRole('heading', { name: 'Ajouter un participant' })).toBeVisible()
-  await page.getByLabel('Nom affiché').fill(name)
-  await page.getByRole('dialog').getByRole('button', { name: 'Ajouter' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Ajouter un participant' })).toBeVisible()
+  await dialog.getByLabel('Nom affiché').fill(name)
+  await dialog.getByRole('button', { name: 'Ajouter' }).click()
+  await expect(dialog).toHaveCount(0, { timeout: 30_000 })
+  await expect(page.getByText('Participant ajouté.')).toBeVisible({ timeout: 30_000 })
 }
 
 const SEASON_ORGANIZER_MENU_LABEL = /Organisat(eur|rice)(·ice)? de saison/
