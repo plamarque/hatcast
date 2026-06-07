@@ -192,7 +192,7 @@ historiques** de M restent intactes (aucune ligne supprimée).
 
 | ID | Contrôle | Attendu |
 |---|---|---|
-| **M1** — `3.19-MIG-001` / R-003 | Smoke migration **V38** en pré-prod | La migration s'applique proprement ; **aucune** ligne membre `REMOVED` préexistante avec `removal_source = NULL` qui ressusciterait. Auditer avant déploiement, backfill si besoin. |
+| **M1** — `3.19-MIG-001` / R-003 | Smoke migration **V38** en pré-prod | Migration OK ; audit SQL staging + prod (2026-06-07, **DW-118**) : **0** membre `REMOVED` + `removal_source` NULL — pas de backfill requis. |
 | **M2** — `3.19-A11Y-001` / R-010 | Cible tactile du bouton **Retirer** (Participants) | Pattern préexistant **40dp** < 48dp recommandé M3-3 → **waiver documenté** (non bloquant, non introduit par cette story). |
 
 ---
@@ -213,7 +213,7 @@ historiques** de M restent intactes (aucune ligne supprimée).
 | 7 | Rétrogradation organisateur·ice | R-007 | PASS | |
 | 8 | Externe name-only | — | PASS | |
 | 9 | Conservation historique | DATA | PASS | |
-| M1 | Smoke migration V38 | R-003 | PASS | |
+| M1 | Smoke migration V38 | R-003 | PASS | audit SQL DW-118 2026-06-07 : 0 row staging+prod |
 | M2 | Cible tactile 40dp | R-010 | PASS (waiver) | pattern préexistant, < 48dp accepté |
 
 **Verdict de recette :** PASS exige Scénarios **2, 3, 4, 6** au vert (risques hauts

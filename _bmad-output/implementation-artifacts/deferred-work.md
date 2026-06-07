@@ -22,6 +22,7 @@
 | **DW-112** | 2026-06-07 | Deploy `--env-vars-file` YAML |
 | **DW-113** | 2026-06-08 | **Obsolète** — hub sans prefs troupe (**17.29**) |
 | **DW-114** | 2026-06-07 | Post-save re-check `reinclude` → 409 ; fenêtre commit-edge acceptée |
+| **DW-118** | 2026-06-07 | Audit SQL staging + prod : 0 membre `REMOVED` + `removal_source` NULL — pas de migration V61 ; voir [`dw-118-investigation.md`](../investigations/dw-118-investigation.md) |
 | **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` ; **DW-108** partiel |
 | **ops-8**, **ops-10** | 2026-06-04/05 | Prod domaine + email |
 | **19.1**, **mig-7** | 2026-06-04/06 | ADR tirage + backfill genre V1 |
@@ -40,7 +41,7 @@
 |------|------------|---------------------------|
 | **T0** | — | *(vide)* |
 | **T1** | — | *(vide)* |
-| **T2** | Avant **M4** (~août) | **DW-118** → **DW-119** → **DW-109** → **DW-110** |
+| **T2** | Avant **M4** (~août) | **DW-119** → **DW-109** → **DW-110** |
 | **T3** | Backlog 2.1.0+ | **DW-117** → **DW-116** → **DW-115** → **DW-122** → **DW-123** → **DW-124** → **DW-125** → **DW-121** → **DW-120** ; **DW-108** accepté |
 
 ---
@@ -49,15 +50,9 @@
 
 | # | ID | Coût | Bénéfice | Notes |
 |---|-----|------|----------|-------|
-| 1 | **DW-118** | **S** | Modéré | SQL backfill `removal_source` (V38) — livrable court, audit retrait saison |
-| 2 | **DW-119** | **S** | Modéré | Vérif titres exotiques MIG-2 (`translate` vs `slugify` NFD) — script/doc |
-| 3 | **DW-109** | **M** | Élevé si trigger | Rejects ciblés MIG-3 (`comment`, `role_key`) — évite transaction entière KO |
-| 4 | **DW-110** | **M** | Modéré | Orphelines re-run MIG-3 sans reset — confiance staging ; prod = apply unique |
-
-### DW-118 — V38 backfill `removal_source`
-
-- **Fichier :** migration Flyway V38 (à confirmer en base).
-- **Risque :** faible si aucune row `REMOVED` pré-MIG.
+| 1 | **DW-119** | **S** | Modéré | Vérif titres exotiques MIG-2 (`translate` vs `slugify` NFD) — script/doc |
+| 2 | **DW-109** | **M** | Élevé si trigger | Rejects ciblés MIG-3 (`comment`, `role_key`) — évite transaction entière KO |
+| 3 | **DW-110** | **M** | Modéré | Orphelines re-run MIG-3 sans reset — confiance staging ; prod = apply unique |
 
 ### DW-119 — Slugs exotiques
 
@@ -69,7 +64,7 @@
 
 ### DW-110 — Orphelines re-run MIG-3
 
-- Replay gate déjà passé ; priorité **après** DW-109/118/119.
+- Replay gate déjà passé ; priorité **après** DW-109/119.
 
 ---
 
