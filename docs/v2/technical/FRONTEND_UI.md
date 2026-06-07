@@ -45,6 +45,7 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-design-specification.md`](../../../_bmad-output/planning-artifacts/ux-design-specification.md) | Surfaces admin (Material defaults + tokens) |
 | [`_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md`](../../../_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md) | Brouillon spectacle, publication, bandeau, agendas (story **3.21**) |
 | [`_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md`](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md) | Détail spectacle — rangée titre + statut, breadcrumb sans titre, onglet Infos (2026-06-06) |
+| [`_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) | Détail cote par personne — waterfall deltas, barre pool, pairs (story **19.7**) |
 
 Avant toute story UI, lire la section **checklist** ci-dessous et les **Dev Notes** / AC de la story (souvent sous `_bmad-output/implementation-artifacts/`).
 
@@ -53,6 +54,16 @@ Avant toute story UI, lire la section **checklist** ci-dessous et les **Dev Note
 ## Checklist M3 HatCast (implémentation & revue)
 
 Utiliser cette liste **à la fin** de chaque changement sous `apps/web/` (développement, PR, `bmad-code-review`, checkpoint UX). Un point non coché sans justification documentée dans la story = dette UX à traiter ou reporter explicitement.
+
+### Waivers documentés (par story)
+
+Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
+
+| Story | Point checklist | Waiver (as-shipped) | Suivi |
+|-------|-----------------|---------------------|-------|
+| **19.7** explainability | Cibles tactiles ≥ 48 dp | Segments du pool (`composition-pool-preview`, `composition-draw-animation`) ~36–44 dp ; chevrons carrousel aide = 48 dp | [`19-7-breakdown-explicabilite-par-facteur.md`](../../../_bmad-output/implementation-artifacts/19-7-breakdown-explicabilite-par-facteur.md) § Review Findings |
+| **19.7** | Contrôles imbriqués | Trigger `%` dans listes Dispos / picker (HTML imbriqué) — dette a11y connue | idem |
+| **19.7** | Barre pool dans fiche | Pas de barre décorative dans `chance-breakdown-sheet` ; résumé rang texte à la place (spec UX W3′) | [`ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) § Amendement as-shipped |
 
 ### Composants et structure
 

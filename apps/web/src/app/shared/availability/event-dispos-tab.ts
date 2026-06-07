@@ -45,6 +45,7 @@ export class EventDisposTab implements OnDestroy {
   readonly currentUserId = input.required<string>()
   readonly canSwitchSubject = input(false)
   readonly canManageComposition = input(false)
+  readonly explainabilityEnabled = input(false)
 
   readonly viewModeChange = output<DisposViewMode>()
   readonly summaryChanged = output<EventAvailabilitySummary>()
@@ -57,7 +58,9 @@ export class EventDisposTab implements OnDestroy {
   protected readonly subjectParticipantId = signal<string>('')
 
   private readonly moiPanel = viewChild(AvailabilityMoiPanel)
-  private loadRequestId = 0
+  private summaryGeneration = 0
+  private chancesLoadGeneration = 0
+  private destroyed = false
   private summaryIncludesChances = false
 
   protected readonly subjectParticipant = computed(() => {
@@ -105,14 +108,19 @@ export class EventDisposTab implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.loadRequestId++
+    this.destroyed = true
+    this.summaryGeneration++
+    this.chancesLoadGeneration++
   }
 
   protected async setViewMode(mode: DisposViewMode): Promise<void> {
+    if (mode !== 'moi' && mode !== 'tous') {
+      return
+    }
     const enteringTous = mode === 'tous' && this.viewMode() !== 'tous'
     this.viewMode.set(mode)
     this.viewModeChange.emit(mode)
-    if (enteringTous && !this.summaryIncludesChances) {
+    if (mode === 'tous' && (enteringTous || !this.summaryHasChancePercents(this.summary()))) {
       await this.reloadSummaryWithChances()
     }
   }
@@ -181,14 +189,15 @@ export class EventDisposTab implements OnDestroy {
       return
     }
     this.loading.set(true)
-    const requestId = ++this.loadRequestId
+    const generation = ++this.summaryGeneration
+    const includeChances = this.viewMode() === 'tous' && this.explainabilityEnabled()
     const summaryResult = await this.availabilityApi.getEventAvailabilitySummary(
       this.seasonId(),
       this.event().id,
-      false,
+      includeChances,
     )
 
-    if (requestId !== this.loadRequestId) return
+    if (this.destroyed || generation !== this.summaryGeneration) return
 
     this.loading.set(false)
 
@@ -200,7 +209,7 @@ export class EventDisposTab implements OnDestroy {
 
     this.summary.set(summaryResult.data)
     this.summaryChanged.emit(summaryResult.data)
-    this.summaryIncludesChances = false
+    this.summaryIncludesChances = includeChances
 
     const selfParticipant = summaryResult.data.participants.find(
       (p) => p.userId === this.currentUserId(),
@@ -212,19 +221,59 @@ export class EventDisposTab implements OnDestroy {
 
   private async reloadSummaryWithChances(): Promise<void> {
     this.loadingChances.set(true)
-    await this.reloadSummary(true)
-    this.loadingChances.set(false)
+    const generation = ++this.chancesLoadGeneration
+    try {
+      const result = await this.availabilityApi.getEventAvailabilitySummary(
+        this.seasonId(),
+        this.event().id,
+        true,
+      )
+      if (this.destroyed || generation !== this.chancesLoadGeneration) {
+        return
+      }
+      if (!result.ok || !result.data) {
+        this.snack.open('Impossible de charger les pourcentages.', 'OK', { duration: 6000 })
+        return
+      }
+      this.summary.set(result.data)
+      this.summaryChanged.emit(result.data)
+      this.summaryIncludesChances = true
+
+      const currentId = this.subjectParticipantId()
+      const subject = result.data.participants.find((p) => p.participantId === currentId)
+      if (subject) {
+        queueMicrotask(() => this.moiPanel()?.syncSubject(subject))
+      }
+    } finally {
+      if (generation === this.chancesLoadGeneration) {
+        this.loadingChances.set(false)
+      }
+    }
+  }
+
+  private summaryHasChancePercents(summary: EventAvailabilitySummary | null): boolean {
+    if (!summary?.roles.length) {
+      return false
+    }
+    return summary.roles.some((role) =>
+      role.candidates.some((candidate) => candidate.chancePercent != null),
+    )
   }
 
   private async reloadSummary(includeChances: boolean): Promise<void> {
-    const requestId = ++this.loadRequestId
+    const generation = ++this.summaryGeneration
     const result = await this.availabilityApi.getEventAvailabilitySummary(
       this.seasonId(),
       this.event().id,
       includeChances,
     )
-    if (requestId !== this.loadRequestId) return
-    if (!result.ok || !result.data) return
+    if (this.destroyed || generation !== this.summaryGeneration) return
+    if (!result.ok || !result.data) {
+      if (includeChances) {
+        this.snack.open('Impossible de charger les pourcentages.', 'OK', { duration: 6000 })
+      }
+      return
+    }
     this.summary.set(result.data)
     this.summaryChanged.emit(result.data)
     this.summaryIncludesChances = includeChances

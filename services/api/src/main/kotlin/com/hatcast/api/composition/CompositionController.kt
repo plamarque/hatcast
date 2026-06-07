@@ -1,8 +1,10 @@
 package com.hatcast.api.composition
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.composition.dto.ChanceBreakdownDto
 import com.hatcast.api.composition.dto.CompositionCandidateListResponseDto
 import com.hatcast.api.composition.dto.CompositionDrawResponseDto
+import com.hatcast.api.composition.dto.CompositionPoolPreviewResponseDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.AssignSlotRequestDto
 import com.hatcast.api.composition.dto.DrawCompositionRequestDto
@@ -26,6 +28,7 @@ class CompositionController(
     private val compositionSlotAssignmentService: CompositionSlotAssignmentService,
     private val compositionParticipationService: CompositionParticipationService,
     private val compositionDeclineRestoreService: CompositionDeclineRestoreService,
+    private val compositionExplainabilityService: CompositionExplainabilityService,
 ) {
     @GetMapping
     fun getComposition(
@@ -63,6 +66,31 @@ class CompositionController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): CompositionDrawResponseDto =
         compositionDrawService.drawComposition(seasonId, eventId, body, principal)
+
+    @GetMapping("/chance-breakdown")
+    fun getChanceBreakdown(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @RequestParam roleKey: String,
+        @RequestParam participantId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): ChanceBreakdownDto =
+        compositionExplainabilityService.getChanceBreakdown(
+            seasonId,
+            eventId,
+            roleKey,
+            participantId,
+            principal,
+        )
+
+    @GetMapping("/pool-preview")
+    fun getPoolPreview(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @RequestParam roleKey: String,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionPoolPreviewResponseDto =
+        compositionExplainabilityService.getPoolPreview(seasonId, eventId, roleKey, principal)
 
     @GetMapping("/candidates")
     fun getCompositionCandidates(

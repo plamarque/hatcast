@@ -53,9 +53,13 @@
   } @else {
     <app-availability-tous-panel
       [summary]="s"
+      [seasonId]="seasonId()"
+      [eventId]="event().id"
+      [explainabilityEnabled]="explainabilityEnabled()"
       [loadingChances]="loadingChances()"
       [chanceSource]="s.chanceSource ?? null"
       [canSelectSubject]="canSwitchSubject()"
+      [currentUserId]="currentUserId()"
       (participantSelected)="onParticipantFromTous($event)"
     />
   }

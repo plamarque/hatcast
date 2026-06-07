@@ -1,37 +1,250 @@
 <div
   class="composition-draw-animation"
   [class.composition-draw-animation--preparing]="preparing()"
+  [class.composition-draw-animation--embedded]="embedded()"
   role="status"
   aria-live="polite"
 >
-  <p class="composition-draw-animation__banner">
-    Sélection en cours — proposition de composition, pas encore validée.
-  </p>
-
   @if (preparing()) {
     <div class="composition-draw-animation__preparing-body">
       <mat-spinner diameter="36" />
       <p class="composition-draw-animation__preparing-message">{{ preparingMessage() }}</p>
+    </div>
+  } @else if (mode() === 'preview') {
+    @if (showPreviewTitle()) {
+      <p class="composition-draw-animation__progress">{{ previewCandidateCountLabel() }}</p>
+    }
+    <div
+      class="composition-draw-animation__bar"
+      [class.composition-draw-animation__bar--flow]="wrapSegments()"
+      [class.composition-draw-animation__bar--preview]="!wrapSegments()"
+      role="group"
+      [attr.aria-label]="showPreviewTitle() ? previewCandidateCountLabel() : 'Pool des candidats'"
+    >
+      @if (wrapSegments()) {
+        @for (segment of segments(); track segment.participantId) {
+          @if (previewInteractive()) {
+            <button
+              type="button"
+              class="composition-draw-animation__segment composition-draw-animation__segment--tap composition-draw-animation__segment--flow"
+              [class.composition-draw-animation__segment--chance-green]="
+                segmentChanceTier(segment.chancePercent) === 'green'
+              "
+              [class.composition-draw-animation__segment--chance-yellow]="
+                segmentChanceTier(segment.chancePercent) === 'yellow'
+              "
+              [class.composition-draw-animation__segment--chance-orange]="
+                segmentChanceTier(segment.chancePercent) === 'orange'
+              "
+              [class.composition-draw-animation__segment--chance-red]="
+                segmentChanceTier(segment.chancePercent) === 'red'
+              "
+              [class.composition-draw-animation__segment--highlight]="
+                highlightParticipantId() === segment.participantId
+              "
+              [style.flex]="segmentFlowFlex(segment.widthPercent)"
+              [style.background]="segmentBackground(segment.chancePercent)"
+              [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+              [attr.data-testid]="segmentTestId(segment.participantId)"
+              (click)="onSegmentTap(segment.participantId, segment.chancePercent)"
+            >
+              <span class="composition-draw-animation__segment-content">
+                @if (embedded()) {
+                  <app-user-avatar
+                    class="composition-draw-animation__segment-avatar"
+                    [displayName]="segment.displayName"
+                    [avatarUrl]="segment.avatarUrl ?? null"
+                    [gender]="segment.gender ?? null"
+                    [size]="20"
+                  />
+                }
+                <span class="composition-draw-animation__segment-label">{{
+                  segment.displayName
+                }}</span>
+              </span>
+            </button>
+          } @else {
+            <div
+              class="composition-draw-animation__segment composition-draw-animation__segment--flow"
+              [class.composition-draw-animation__segment--chance-green]="
+                segmentChanceTier(segment.chancePercent) === 'green'
+              "
+              [class.composition-draw-animation__segment--chance-yellow]="
+                segmentChanceTier(segment.chancePercent) === 'yellow'
+              "
+              [class.composition-draw-animation__segment--chance-orange]="
+                segmentChanceTier(segment.chancePercent) === 'orange'
+              "
+              [class.composition-draw-animation__segment--chance-red]="
+                segmentChanceTier(segment.chancePercent) === 'red'
+              "
+              [style.flex]="segmentFlowFlex(segment.widthPercent)"
+              [style.background]="segmentBackground(segment.chancePercent)"
+              [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+              [attr.data-testid]="segmentTestId(segment.participantId)"
+            >
+              <span class="composition-draw-animation__segment-content">
+                @if (embedded()) {
+                  <app-user-avatar
+                    class="composition-draw-animation__segment-avatar"
+                    [displayName]="segment.displayName"
+                    [avatarUrl]="segment.avatarUrl ?? null"
+                    [gender]="segment.gender ?? null"
+                    [size]="20"
+                  />
+                }
+                <span class="composition-draw-animation__segment-label">{{
+                  segment.displayName
+                }}</span>
+              </span>
+            </div>
+          }
+        }
+      } @else {
+        <div class="composition-draw-animation__bar-row composition-draw-animation__bar-row--solo">
+          @for (segment of segments(); track segment.participantId) {
+            @if (previewInteractive()) {
+              <button
+                type="button"
+                class="composition-draw-animation__segment composition-draw-animation__segment--tap"
+                [class.composition-draw-animation__segment--chance-green]="
+                  segmentChanceTier(segment.chancePercent) === 'green'
+                "
+                [class.composition-draw-animation__segment--chance-yellow]="
+                  segmentChanceTier(segment.chancePercent) === 'yellow'
+                "
+                [class.composition-draw-animation__segment--chance-orange]="
+                  segmentChanceTier(segment.chancePercent) === 'orange'
+                "
+                [class.composition-draw-animation__segment--chance-red]="
+                  segmentChanceTier(segment.chancePercent) === 'red'
+                "
+                [class.composition-draw-animation__segment--highlight]="
+                  highlightParticipantId() === segment.participantId
+                "
+                [style.width.%]="segment.widthPercent"
+                [style.background]="segmentBackground(segment.chancePercent)"
+                [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+                [attr.data-testid]="segmentTestId(segment.participantId)"
+                (click)="onSegmentTap(segment.participantId, segment.chancePercent)"
+              >
+                <span class="composition-draw-animation__segment-content">
+                  @if (embedded()) {
+                    <app-user-avatar
+                      class="composition-draw-animation__segment-avatar"
+                      [displayName]="segment.displayName"
+                      [avatarUrl]="segment.avatarUrl ?? null"
+                      [gender]="segment.gender ?? null"
+                      [size]="20"
+                    />
+                  }
+                  <span class="composition-draw-animation__segment-label">{{
+                    segment.displayName
+                  }}</span>
+                </span>
+              </button>
+            } @else {
+              <div
+                class="composition-draw-animation__segment"
+                [class.composition-draw-animation__segment--chance-green]="
+                  segmentChanceTier(segment.chancePercent) === 'green'
+                "
+                [class.composition-draw-animation__segment--chance-yellow]="
+                  segmentChanceTier(segment.chancePercent) === 'yellow'
+                "
+                [class.composition-draw-animation__segment--chance-orange]="
+                  segmentChanceTier(segment.chancePercent) === 'orange'
+                "
+                [class.composition-draw-animation__segment--chance-red]="
+                  segmentChanceTier(segment.chancePercent) === 'red'
+                "
+                [style.width.%]="segment.widthPercent"
+                [style.background]="segmentBackground(segment.chancePercent)"
+                [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+                [attr.data-testid]="segmentTestId(segment.participantId)"
+              >
+                <span class="composition-draw-animation__segment-content">
+                  @if (embedded()) {
+                    <app-user-avatar
+                      class="composition-draw-animation__segment-avatar"
+                      [displayName]="segment.displayName"
+                      [avatarUrl]="segment.avatarUrl ?? null"
+                      [gender]="segment.gender ?? null"
+                      [size]="20"
+                    />
+                  }
+                  <span class="composition-draw-animation__segment-label">{{
+                    segment.displayName
+                  }}</span>
+                </span>
+              </div>
+            }
+          }
+        </div>
+      }
     </div>
   } @else {
     <p class="composition-draw-animation__progress">
       Étape {{ stepIndex() + 1 }} / {{ totalSteps() }}
     </p>
 
-    <div class="composition-draw-animation__bar" aria-hidden="true">
+    <div
+      class="composition-draw-animation__bar"
+      role="group"
+      aria-label="Pool du tirage en cours — touchez un candidat pour le détail"
+    >
       @for (segment of segments(); track segment.participantId) {
-        <div
-          class="composition-draw-animation__segment"
-          [style.flex-grow]="segment.widthPercent"
-          [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
-        >
-          <span class="composition-draw-animation__segment-label">{{ segment.displayName }}</span>
-        </div>
+        @if (step()) {
+          <button
+            type="button"
+            class="composition-draw-animation__segment composition-draw-animation__segment--tap"
+            [class.composition-draw-animation__segment--chance-green]="
+              segmentChanceTier(segment.chancePercent) === 'green'
+            "
+            [class.composition-draw-animation__segment--chance-yellow]="
+              segmentChanceTier(segment.chancePercent) === 'yellow'
+            "
+            [class.composition-draw-animation__segment--chance-orange]="
+              segmentChanceTier(segment.chancePercent) === 'orange'
+            "
+            [class.composition-draw-animation__segment--chance-red]="
+              segmentChanceTier(segment.chancePercent) === 'red'
+            "
+            [class.composition-draw-animation__segment--highlight]="
+              highlightParticipantId() === segment.participantId
+            "
+            [style.flex-grow]="segment.widthPercent"
+            [style.background]="segmentBackground(segment.chancePercent)"
+            [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+            [attr.data-testid]="segmentTestId(segment.participantId)"
+            (click)="onSegmentTap(segment.participantId, segment.chancePercent)"
+          >
+            <span class="composition-draw-animation__segment-label">{{ segment.displayName }}</span>
+          </button>
+        } @else {
+          <div
+            class="composition-draw-animation__segment"
+            [class.composition-draw-animation__segment--chance-green]="
+              segmentChanceTier(segment.chancePercent) === 'green'
+            "
+            [class.composition-draw-animation__segment--chance-yellow]="
+              segmentChanceTier(segment.chancePercent) === 'yellow'
+            "
+            [class.composition-draw-animation__segment--chance-orange]="
+              segmentChanceTier(segment.chancePercent) === 'orange'
+            "
+            [class.composition-draw-animation__segment--chance-red]="
+              segmentChanceTier(segment.chancePercent) === 'red'
+            "
+            [style.flex-grow]="segment.widthPercent"
+            [style.background]="segmentBackground(segment.chancePercent)"
+            [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+          >
+            <span class="composition-draw-animation__segment-label">{{ segment.displayName }}</span>
+          </div>
+        }
       }
-      <span
-        class="composition-draw-animation__cursor"
-        [style.left.%]="cursorPercent()"
-      ></span>
+      <span class="composition-draw-animation__cursor" [style.left.%]="cursorPercent()"></span>
     </div>
 
     @if (selectedWinner(); as winner) {

@@ -11,7 +11,7 @@
   } @else {
     <ul class="composition-slot-picker__list" role="listbox" aria-label="Candidats">
       @for (candidate of candidates(); track candidate.participantId) {
-        <li>
+        <li class="composition-slot-picker__item" role="presentation">
           <button
             type="button"
             class="composition-slot-picker__row"
@@ -31,8 +31,21 @@
                 <span class="composition-slot-picker__subtitle">{{ subtitle }}</span>
               }
             </span>
-            <span class="composition-slot-picker__odds">{{ candidate.chancePercent }}&nbsp;%</span>
           </button>
+          @if (data.explainabilityEnabled && candidate.chancePercent != null) {
+            <button
+              type="button"
+              class="composition-slot-picker__odds composition-slot-picker__odds--trigger"
+              data-testid="chance-breakdown-trigger"
+              aria-haspopup="dialog"
+              [attr.aria-label]="breakdownAriaLabel(candidate)"
+              (click)="openBreakdown($event, candidate)"
+            >
+              {{ candidate.chancePercent }}&nbsp;% ›
+            </button>
+          } @else if (candidate.chancePercent != null) {
+            <span class="composition-slot-picker__odds">{{ candidate.chancePercent }}&nbsp;%</span>
+          }
         </li>
       }
     </ul>

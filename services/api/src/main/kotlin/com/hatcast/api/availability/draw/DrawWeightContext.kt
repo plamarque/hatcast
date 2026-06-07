@@ -1,5 +1,6 @@
 package com.hatcast.api.availability.draw
 
+import com.hatcast.api.user.MemberGender
 import java.util.UUID
 
 /**
@@ -11,4 +12,5 @@ data class DrawWeightContext(
     val roleKey: String,
     val pastSelectionCount: Int,
     val requiredCount: Int,
+    val participantGender: MemberGender = MemberGender.NON_SPECIFIED,
 )

@@ -458,6 +458,59 @@ Runner: `DrawOrchestrationGoldenTest` — `./gradlew test --tests 'com.hatcast.a
 
 ---
 
+## Explainability API (story 19.7)
+
+Per-candidate waterfall breakdown: how `chancePercent` differs from a **pure draw** baseline (`referencePercent`) via sequential factor deltas.
+
+### Endpoints
+
+| Method | Path | Audience |
+|--------|------|----------|
+| `GET` | `/v1/seasons/{seasonId}/events/{eventId}/composition/chance-breakdown?roleKey=&participantId=` | Orga (draft or validated) ; member after composition **validated** |
+| `GET` | `/v1/seasons/{seasonId}/events/{eventId}/composition/pool-preview?roleKey=` | Orga (`canManageComposition`) only |
+
+**403** when explainability is not allowed (same gates as Dispos `includeChances` / Équipe slot odds — stories **6.3**, **6.4**).
+
+### `ChanceBreakdownDto`
+
+| Field | Meaning |
+|-------|---------|
+| `referencePercent` | **Option C (W18):** `exactSelectionProbability` with `DrawWeightPipeline.EMPTY` (base weight = `requiredCount` only, all factor multipliers = 1.0). |
+| `candidateCount` | Eligible pool size for the role (UI reference line: « Chance de base pour les {n} candidats »). |
+| `poolRank` | **1-based** rank in the pool by `chancePercent` (desc); `aheadCount + 1`. |
+| `aheadCount` | Count of candidates with **strictly higher** `chancePercent` than the subject (= `pool.peers.length` when peers are returned). |
+| `tiedAtChanceCount` | Candidates sharing the subject’s `chancePercent` (including the subject); used for ex-aequo copy in UI. |
+| `chancePercent` | Effective % with `DrawWeightPipelines.DEFAULT` (or draw snapshot on retrospective events when present). |
+| `adjustments[]` | `{ factorId, label, deltaPoints }` — one row per pipeline factor; **omit** `deltaPoints === 0`. Sorted by \|delta\| desc. |
+| `requiredCount` | Places to fill for the role (multi-place hint in UI header). |
+| `pool.peers` | Candidates with **strictly higher** `chancePercent` than the subject, desc. **Not** rendered as a peer list in as-shipped UI (rank summary only); still returned for API completeness / client fallback when rank fields are absent. |
+| `factorBreakdown` | Optional engine detail (`multiplier`, `label`) — tests / diagnostics, not MVP UI. |
+
+### UI surfaces (as-shipped 19.7)
+
+| Surface | API | Entry |
+|---------|-----|-------|
+| Fiche waterfall | `chance-breakdown` | Segment pool, % picker/grid/animation |
+| Pool coloré (Équipe, Dispos) | `pool-preview` (orga) ; Dispos chances summary (membre) | Tap segment → `chance-breakdown` |
+| Aide générale | — | `DrawChancesHelpDialog` (5 slides) ; not `chance-breakdown` |
+
+**Client fallback:** if `poolRank` / `aheadCount` are missing but `pool.peers` is present, the web app derives rank from `peers.length` (`chance-breakdown-sheet.ts`).
+
+### Delta algorithm
+
+1. Build the same eligible pool as `scoreCandidates` for the role (availability + role rules).
+2. `referencePercent` = rounded probability with `DrawWeightPipeline.EMPTY`.
+3. For each factor `f` in pipeline order: apply factors `1..i`, recompute target %, `deltaPoints = percentAfter − percentBefore` (integer points); skip zero deltas.
+4. **Tolerance:** `referencePercent + Σ deltaPoints ≈ chancePercent` (±1 pt rounding).
+
+### Labels
+
+`PastParticipationFactor` (`past_participation`): « Déjà {rôle} {n} fois » ou « Jamais {rôle} » si `n = 0` (`RoleLabels`).
+
+Implementation: `ChanceBreakdownCalculator`, `CompositionExplainabilityService`.
+
+---
+
 ## Invariant
 
 **Displayed % = draw weights:** The same `AvailabilityChanceCalculator` pipeline must produce weights used for `performWeightedDraw`, Dispos **Tous %**, and Équipe explainability (FR19, FR20, FR24). Refactors (**19.5+**) must preserve this unless ADR + golden suite are updated.

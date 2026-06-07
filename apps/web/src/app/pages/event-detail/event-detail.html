@@ -83,6 +83,7 @@
               [currentUserId]="user()?.id ?? ''"
               [canSwitchSubject]="canSwitchSubject()"
               [canManageComposition]="canManageComposition()"
+              [explainabilityEnabled]="disposExplainabilityEnabled()"
               (summaryChanged)="onDisposSummaryChanged($event)"
             />
           </section>

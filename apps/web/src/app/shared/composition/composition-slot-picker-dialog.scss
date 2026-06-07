@@ -30,11 +30,18 @@
   gap: 0.35rem;
 }
 
+.composition-slot-picker__item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
 .composition-slot-picker__row {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 0.55rem 0.65rem;
   border: none;
   border-radius: 0.55rem;
@@ -80,4 +87,18 @@
   font-size: 0.8rem;
   font-weight: 600;
   background: rgba(156, 39, 176, 0.35);
+
+  &--trigger {
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    min-width: 3rem;
+    min-height: 3rem;
+    font: inherit;
+
+    &:focus-visible {
+      outline: 2px solid var(--mat-sys-primary);
+      outline-offset: 2px;
+    }
+  }
 }

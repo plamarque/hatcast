@@ -4,7 +4,7 @@ package com.hatcast.api.availability.draw
  * Ordered factor registry: `finalWeight = baseWeight × Π factorMultiplier` (ADR 0019).
  */
 class DrawWeightPipeline private constructor(
-    private val factors: List<DrawWeightFactor>,
+    val factors: List<DrawWeightFactor>,
 ) {
     fun apply(
         baseWeight: Double,

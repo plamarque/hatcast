@@ -35,6 +35,7 @@ describe('EventEquipeTab', () => {
   let publishComposition: ReturnType<typeof vi.fn>
   let drawComposition: ReturnType<typeof vi.fn>
   let getCompositionCandidates: ReturnType<typeof vi.fn>
+  let getPoolPreview: ReturnType<typeof vi.fn>
   let assignCompositionSlot: ReturnType<typeof vi.fn>
   let validateComposition: ReturnType<typeof vi.fn>
   let unlockComposition: ReturnType<typeof vi.fn>
@@ -75,6 +76,14 @@ describe('EventEquipeTab', () => {
             pastSelectionCount: 0,
           },
         ],
+      },
+    })
+    getPoolPreview = vi.fn().mockResolvedValue({
+      ok: true,
+      data: {
+        roleKey: 'player',
+        requiredCount: 2,
+        segments: [],
       },
     })
     assignCompositionSlot = vi.fn().mockResolvedValue({
@@ -132,6 +141,7 @@ describe('EventEquipeTab', () => {
             publishComposition,
             drawComposition,
             getCompositionCandidates,
+            getPoolPreview,
             assignCompositionSlot,
             validateComposition,
             unlockComposition,
@@ -272,7 +282,7 @@ describe('EventEquipeTab', () => {
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
   })
 
-  it('does not show draft zone when publishedAt is set but not validated', async () => {
+  it('shows draft zone for organizer published draft until validated', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -298,7 +308,7 @@ describe('EventEquipeTab', () => {
     })
     expect(
       fixture.nativeElement.querySelector('.event-equipe-tab__composition-body--draft'),
-    ).toBeNull()
+    ).not.toBeNull()
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
   })
 
@@ -2375,15 +2385,12 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      const guidances = fixture.nativeElement.querySelector(
-        '[data-testid="composition-guidances"]',
-      ) as HTMLElement
-      expect(guidances).toBeTruthy()
-      expect(guidances.getAttribute('aria-label')).toBe('Indicateurs de composition')
-      const indicator = guidances.querySelector(
+      const indicator = fixture.nativeElement.querySelector(
         '[data-testid="composition-gender-parity-indicator"]',
       ) as HTMLElement
       expect(indicator).toBeTruthy()
+      expect(indicator.closest('.event-equipe-tab__parity-row')).toBeTruthy()
+      expect(indicator.closest('.event-equipe-tab__grid')).toBeNull()
       expect(indicator.textContent).toContain('Mixité acceptable')
       expect(indicator.classList.contains('event-equipe-tab__parity--acceptable')).toBe(true)
       expect(indicator.getAttribute('aria-label')).toBe('Mixité acceptable — 2 F · 3 H')
@@ -2549,7 +2556,6 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Alice')
     })
-    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
     expect(
       fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
     ).toBeNull()
@@ -2600,7 +2606,6 @@ describe('EventEquipeTab', () => {
     )
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
     expect(
       fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
     ).toBeNull()
@@ -2639,7 +2644,6 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Alice')
     })
-    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
     expect(
       fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
     ).toBeNull()
@@ -2678,10 +2682,59 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Alice')
     })
-    expect(fixture.nativeElement.querySelector('[data-testid="composition-guidances"]')).toBeNull()
     expect(
       fixture.nativeElement.querySelector('[data-testid="composition-gender-parity-indicator"]'),
     ).toBeNull()
+  })
+
+  it('opens pool preview on role pill click without opening slot picker', async () => {
+    getPoolPreview.mockResolvedValue({
+      ok: true,
+      data: {
+        roleKey: 'player',
+        requiredCount: 2,
+        segments: [
+          {
+            participantId: 'p-2',
+            displayName: 'Bob',
+            chancePercent: 50,
+            weight: 1,
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-role-pool-trigger"]'),
+      ).toBeTruthy()
+    })
+
+    const roleBtn = fixture.nativeElement.querySelector(
+      '[data-testid="composition-role-pool-trigger"]',
+    ) as HTMLButtonElement
+    roleBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(getPoolPreview).toHaveBeenCalledWith('season-1', 'event-1', 'player')
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-pool-preview"]'),
+      ).toBeTruthy()
+    })
+    expect(dialogOpen).not.toHaveBeenCalled()
+
+    const rowHit = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__row-hit',
+    ) as HTMLButtonElement
+    rowHit.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalled()
+    })
   })
 
   it('hides Compléter and gap slot picker for member without canManageComposition', async () => {

@@ -69,12 +69,12 @@ class CompositionService(
         principal: SessionUserPrincipal,
     ): CompositionResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        return buildResponse(event, principal, includeSlotExplainability = false)
+        return buildResponse(event, principal, includeSlotExplainability = true)
     }
 
     /**
      * Composition state after a mutation (assign, validate, draw, etc.).
-     * Same lightweight response as GET (odds shown only in candidates picker, not on the grid).
+     * Slot odds included when explainability is visible (story 19.7).
      */
     fun getCompositionStateAfterMutation(
         seasonId: UUID,
@@ -82,7 +82,7 @@ class CompositionService(
         principal: SessionUserPrincipal,
     ): CompositionResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        return buildResponse(event, principal, includeSlotExplainability = false)
+        return buildResponse(event, principal, includeSlotExplainability = true)
     }
 
     @Transactional
@@ -299,8 +299,11 @@ class CompositionService(
                 visibilityContent
 
         val showExplainability =
-            canViewSlots &&
-                (composition?.validatedAt != null || resolvedCanManage)
+            CompositionExplainabilityAccess.canShowExplainability(
+                composition,
+                slots,
+                resolvedCanManage,
+            )
         val explainabilityByRoleAndParticipant =
             if (showExplainability && includeSlotExplainability) {
                 buildExplainabilityLookup(event, seasonId, eventId, slots)

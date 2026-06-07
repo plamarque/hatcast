@@ -35,6 +35,36 @@
 
 ---
 
+## Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)
+
+- Cibles tactiles &lt; 48 dp sur segments pool et trigger % grille — waiver PO documenté `FRONTEND_UI.md` ; follow-up post-release 19.7.
+- Boutons imbriqués dans `composition-slot-picker-dialog` — waiver PO documenté ; dette a11y connue, pattern Dispos corrigé.
+- `indexOf` O(n²) dans boucle facteurs `ChanceBreakdownCalculator` — un seul facteur en prod aujourd’hui.
+- Fallback `javaClass.simpleName` pour facteurs non `LabeledDrawWeightFactor` — registry à prévoir avec futurs facteurs.
+- Seuil vert pool `chancePoolTier` à 75 % vs spec UX « ≥ ~70 % » — écart visuel mineur, recette PO OK.
+
+---
+
+## Deferred from: code review of 19-6-facteur-past-participation-v1 (2026-06-07)
+
+- `requiredCount <= 0` sans garde dans `baseWeight` — pré-existant (`legacyBaseWeight` identique).
+- `FACTOR_ID` non asserté en test — couverture prévue story **19.7** (breakdown).
+- Pas de log WARNING sur multiplicateur invalide dans `sanitizeMultiplier` — hors scope V1.
+- Clamp `pastSelectionCount` négatif silencieux dans `PastParticipationFactor` — option défensive acceptée par spec 19.6.
+- Test V1 via base manuelle dans `PastParticipationFactorTest` — chemin intégré couvert par `AvailabilityChanceCalculatorDrawTest`.
+
+---
+
+## Deferred from: code review of 19-5-pipeline-draw-weight-factor (2026-06-07)
+
+- Garde-fous multiplicateurs pipeline (NaN, négatif, infini) — traiter avec premier facteur réel (**19.6**).
+- `pastSelectionCount` négatif non validé — contrat appelant V1 inchangé.
+- `DrawWeightContext` sans `eventId` — extension Wave B/C (**19.6+**).
+- Spec normative sans section pipeline — comportement identique ; doc story + ADR suffisent pour 19.5.
+- Double calcul poids (`toWeightedCandidates` + `scoreCandidates`) dans `CompositionDrawService` — pré-existant, hors 19.5.
+
+---
+
 ## Matrice rapide
 
 | Tier | Quand agir | IDs (ordre coût/bénéfice) |
@@ -98,6 +128,13 @@
 - Gate `./gradlew test` non prouvé dans le diff doc-only — infra Gradle locale signalée en Dev Agent Record.
 - Titres de sections vs checklist story — cosmetique (« Pourquoi l’historique compte » vs « Participations passées »).
 - Cas limites doc utilisateur MVP : historiques inégaux multi-places, snapshots partiels, assignation manuelle sans tirage.
+
+---
+
+## Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07)
+
+- `indexOf` dans boucle facteurs O(n²) — un seul facteur en prod ; refactor quand le pipeline grossit.
+- Fallback `javaClass.simpleName` pour facteurs non `LabeledDrawWeightFactor` — registry à prévoir avec futurs facteurs Wave B+.
 
 ---
 
