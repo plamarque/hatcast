@@ -1,8 +1,9 @@
 # HatCast V2 — Catalogue des notifications
 
 **Statut :** Référence as-is (runtime V2)  
-**Dernière mise à jour :** 2026-06-07  
-**Prochaine revue :** après stories **8.7** (rappels dispos auto) et **8.4** (ops orga)  
+**Dernière mise à jour :** 2026-06-08  
+**Prochaine revue :** après stories **8.4** (ops orga) et **8.8** (détails événement / archivage)  
+**Brainstorm post-catalog :** [`brainstorming-session-2026-06-07-notifications-post-catalog.md`](../../_bmad-output/brainstorming/brainstorming-session-2026-06-07-notifications-post-catalog.md) (décisions PO 2026-06-08)  
 **Investigation :** [`notifications-catalog-investigation.md`](../../_bmad-output/implementation-artifacts/investigations/notifications-catalog-investigation.md)  
 **Lié à :** [ARCH.md](../../ARCH.md) § Notifications V2 · stories Epic 8 · [SCP notifications 2026-06-01](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md)
 
@@ -28,9 +29,9 @@ Parité V1 (files Firestore, HTML riche) : [`legacy/src/services/notificationTem
 | `PROXY_AVAILABILITY_RECORDED` | **Actif** | Auto — proxy dispo | Sujet lié | `AVAILABILITY_REQUEST` | 8.6, 5.5 |
 | `PROXY_CONFIRMATION_RECORDED` | **Actif** | Auto — proxy participation | Sujet lié | `CONFIRMATION_REQUEST` | 8.6, 6.8 |
 | `COMPOSITION_SHARED` | Câblé, **non émis** | — | — | `COMPOSITION_SHARED` † | 8.4 |
-| `TEAM_VALIDATED_FYI` | Câblé, **non émis** | — | — | `TEAM_CONFIRMED` † | G-012 |
-| `AVAILABILITY_PENDING_REMINDER` | **Backlog** | Programmé — cadence 5 j | Dispos `unknown` | `AVAILABILITY_WEEKLY_REMINDER` | 8.7 |
+| `TEAM_VALIDATED_FYI` | Câblé, **non émis** | — | — | `TEAM_CONFIRMED` † | *(legacy — voir G-012)* |
 | Intents FR31b (ops orga) | **Backlog** | Auto / cron | Cascade orga | Catégories orga TBD | 8.4 |
+| Intents **proposés** (brainstorm 2026-06-07) | **Backlog proposé** | Voir § [Backlog proposé](#backlog-proposé--brainstorm-2026-06-07) | — | — | 8.8, G-012, 6.10c, Epic 7 |
 | Share `draw` / `composition` | Manuel hors dispatcher | Copie / WhatsApp | — | — | 6.10 |
 
 \* Voir [Tensions produit](#tensions-produit-documentées) — retrait mappé sur une catégorie opt-out.  
@@ -135,14 +136,14 @@ Modèle **opt-out** : clé JSON absente → **autorisé**. Toggles **push** et *
 | `TEAM_CONFIRMED` | Notifications | M'envoyer une notification lorsque l'équipe est confirmée |
 | `REMINDER_7_DAYS` | Rappels automatiques | Rappel automatique 7 jours avant un spectacle |
 | `REMINDER_1_DAY` | Rappels automatiques | Rappel automatique 1 jour avant un spectacle |
-| `AVAILABILITY_WEEKLY_REMINDER` | Rappels automatiques | Rappels hebdomadaires si je n'ai pas indiqué mes disponibilités *(libellé « tous les 5 jours » prévu story 8.7)* |
+| `AVAILABILITY_WEEKLY_REMINDER` | Rappels automatiques | Rappels hebdomadaires si je n'ai pas indiqué mes disponibilités *(libellé « tous les 5 jours » — story 8.7)* |
 
-**Préférences sans dispatch auto aujourd’hui :**
+**Préférences masquées en UI jusqu’au dispatch (décision PO 2026-06-08, D6:B) :**
 
-- `COMPOSITION_SHARED` — intent non émis (story **8.4**).
-- `TEAM_CONFIRMED` — intent `TEAM_VALIDATED_FYI` non publié ; le besoin produit « équipe confirmée » est tracé **[G-012](../../_bmad-output/planning-artifacts/growth-backlog.md)** (annonce collective quand tous les assignés ont confirmé).
+- `COMPOSITION_SHARED` — intent non émis (story **8.4**) ; toggle **retiré de l’UI** jusqu’au ship.
+- `TEAM_CONFIRMED` — intent cible **`TEAM_COMPLETE_MEMBER`** (G-012) ; toggle **retiré de l’UI** jusqu’au ship. Ne pas réutiliser `TEAM_VALIDATED_FYI` tel quel (D3:B).
 
-Les membres peuvent déjà couper ces toggles ; cela n’a **aucun effet** tant que le dispatcher n’envoie pas ces intents.
+**Préférence sans dispatch auto auparavant documentée :** les deux clés ci-dessus restent dans l’API/OpenAPI pour compatibilité ; l’UI ne les expose plus tant que le dispatcher n’émet pas ces intents.
 
 ### Niveau 3 — Hors préférences HatCast
 
@@ -165,11 +166,11 @@ Les membres peuvent déjà couper ces toggles ; cela n’a **aucun effet** tant 
 
 ### Tensions produit documentées
 
-| Sujet | Intention spec | Runtime aujourd’hui |
-|-------|----------------|---------------------|
-| Retrait de composition | SCP : alerte membre **obligatoire** | Catégorie `CONFIRMATION_REQUEST` → **opt-out possible** |
-| Accusé proxy participation | Distinct d’une *demande* de confirmation | Même catégorie → opt-out bloque aussi l’accusé (story 8.6, volontaire) |
-| FYI roster au validate | P1 auto retiré 2026-06-06 | `TEAM_VALIDATED_FYI` câblé mais **jamais publié** → [G-012](../../_bmad-output/planning-artifacts/growth-backlog.md) |
+| Sujet | Intention spec | Runtime / décision PO |
+|-------|----------------|----------------------|
+| Retrait de composition | SCP : alerte membre **obligatoire** | Catégorie `CONFIRMATION_REQUEST` → **opt-out possible** ; **PO 2026-06-08 (D1:A)** : conserver opt-out, écart SCP accepté |
+| Accusé proxy participation | Distinct d’une *demande* de confirmation | Même catégorie → opt-out bloque aussi l’accusé ; **PO 2026-06-08 (D2:A)** : statu quo 8.6 |
+| FYI roster au validate | P1 auto retiré 2026-06-06 | `TEAM_VALIDATED_FYI` câblé mais **jamais publié** → **[G-012](../../_bmad-output/planning-artifacts/growth-backlog.md)** avec nouvel intent **`TEAM_COMPLETE_MEMBER`** (D3:B) |
 
 ---
 
@@ -345,17 +346,9 @@ Report si dispo « available » sans delta rôles/commentaire (`ProxyNotificatio
 
 ## Backlog — messages prévus
 
-### Story 8.7 (ready-for-dev) — `AVAILABILITY_PENDING_REMINDER`
+### Story 8.7 — `AVAILABILITY_PENDING_REMINDER` *(livré)*
 
-| Champ | Valeur |
-|-------|--------|
-| **Déclenchement** | Programmé — **09:00** Paris ; cadence **5 jours civils** par (user, event) |
-| **Horizon** | Demain → +21 j ; publié, non validé, dispos unknown |
-| **Préférence** | `AVAILABILITY_WEEKLY_REMINDER` |
-| **Push title** | `⏰ Rappel disponibilité` |
-| **Push body** | `N'oublie pas de répondre pour {eventTitle} le {eventDate} !` |
-| **Email body** | [Format commun](#corps-email-format-commun-v2) |
-| **Distinct de** | `MANUAL_AVAILABILITY_NUDGE` (catégorie `AVAILABILITY_REQUEST`) |
+Voir § [Disponibilités](#disponibilités) — intent **actif** depuis story 8.7.
 
 ### Story 8.4 (backlog P2) — FR31b ops organisateurs
 
@@ -367,8 +360,25 @@ Report si dispo « available » sans delta rôles/commentaire (`ProxyNotificatio
 | `COMPOSITION_INCOMPLETE_WEEKLY` | Date approche | Cascade orga | Opt-in orga |
 | `COMPOSITION_INCOMPLETE_DAILY_J7` | J-7 compo incomplète | Cascade orga | Opt-in orga |
 | `TEAM_COMPLETE` | Toutes confirmations (FR28) | Cascade orga | Opt-in orga |
+| `ASSIGNEE_DECLINED` | Assigné décline (compo validée) | Cascade orga | Opt-in orga *(brainstorm 2026-06-07, D5:B — signal immédiat ; pas de notif « régression équipe complète » séparée)* |
 
 Copy **non implémentée** — à définir dans les AC story 8.4.
+
+### Backlog proposé — brainstorm 2026-06-07
+
+Décisions PO **2026-06-08** : [`brainstorming-session-2026-06-07-notifications-post-catalog.md`](../../_bmad-output/brainstorming/brainstorming-session-2026-06-07-notifications-post-catalog.md).
+
+| Intent proposé | Déclenchement | Audience | Préférence | P | Story |
+|----------------|---------------|----------|------------|---|-------|
+| `EVENT_DETAILS_CHANGED` | Auto — delta **`startsAt`**, **`location`** ou **`templateType`** sur événement publié | Assignés + roster (dispos ouvertes) | Opt-out `EVENT_DETAILS_CHANGED` *(nouvelle clé)* | P1 | **8.8** |
+| `EVENT_ARCHIVED` | Auto — archivage | Assignés + roster actif | Opt-out membre (D1:A — pas obligatoire) | P1 | **8.8** / 8.9 |
+| `TEAM_COMPLETE_MEMBER` | Auto — lifecycle `complete` (tous assignés confirmés) | Orgas + assignés confirmés | Opt-out `TEAM_CONFIRMED` *(UI masquée jusqu’au ship — D6:B)* | P1 | **[G-012](../../_bmad-output/planning-artifacts/growth-backlog.md)** |
+| `MANUAL_GAP_RECRUITMENT` | Manuel — orga post-déclin | Roster `available` pour rôle vacant | `AVAILABILITY_REQUEST` + garde 6.10b | P2 | **6.10c** |
+| `TROUPE_MEMBERSHIP_INVITE` | Transactionnel — invitation | Invité (email) | Hors prefs app | P2 | Epic **7** |
+
+**Champs exclus du déclencheur N1 (D4:B) :** `description`, titre, catégorie, rôles, etc. — seuls date, lieu et format.
+
+**Non retenu (D5:B) :** `TEAM_REGRESSED_INCOMPLETE` — `ASSIGNEE_DECLINED` (8.4) suffit pour les orgas.
 
 ### Autres pistes produit
 
@@ -376,8 +386,7 @@ Copy **non implémentée** — à définir dans les AC story 8.4.
 |------|-------|
 | Badge inbox PWA | Affordance pull, pas push (Epic 10, P2) |
 | Email groupé multi-événements | V1 batch ; defer 8.7 |
-| Alerte changement date/lieu | Intent + catégorie candidates |
-| Email invitation membre | Transactionnel ; hors FR30 |
+| Email invitation membre | Couvert par `TROUPE_MEMBERSHIP_INVITE` (Epic 7) |
 
 ---
 
