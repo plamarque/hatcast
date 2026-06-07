@@ -57,14 +57,17 @@ class DrawGoldenTest {
         val scored = AvailabilityChanceCalculator.scoreCandidates(candidates, requiredCount, past)
         val expected = fixture.expected
         val tolerance = fixture.tolerancePercent
+        var asserted = false
 
         expected.get("chancePercentsSorted")?.let { node ->
+            asserted = true
             val expectedSorted = node.map { it.asInt() }.sortedDescending()
             val actualSorted = scored.map { it.chancePercent }.sortedDescending()
             assertPercentList(fixture.id, expectedSorted, actualSorted, tolerance)
         }
 
         expected.get("chancePercentsByKey")?.let { node ->
+            asserted = true
             node.fields().forEach { (key, value) ->
                 val participantId = DrawGoldenFixtureLoader.participantId(key)
                 val actualPercent =
@@ -75,6 +78,7 @@ class DrawGoldenTest {
         }
 
         expected.get("allChancePercent")?.let { node ->
+            asserted = true
             val expectedPercent = node.asInt()
             val expectedCount = expected.path("candidateCount").asInt(scored.size)
             assertEquals(expectedCount, scored.size, "[${fixture.id}] candidate count")
@@ -84,6 +88,7 @@ class DrawGoldenTest {
         }
 
         expected.get("higherChanceKey")?.let { node ->
+            asserted = true
             val higherKey = node.asText()
             val higherId = DrawGoldenFixtureLoader.participantId(higherKey)
             val higher = scored.first { it.participantId == higherId }
@@ -95,12 +100,14 @@ class DrawGoldenTest {
         }
 
         expected.get("chancePercentsOrdered")?.let { node ->
+            asserted = true
             val expectedOrdered = node.map { it.asInt() }
             val actualOrdered = scored.map { it.chancePercent }
             assertEquals(expectedOrdered, actualOrdered, "[${fixture.id}] ordered chancePercents")
         }
 
         if (expected.path("strictlyDescending").asBoolean(false)) {
+            asserted = true
             for (index in 0 until scored.size - 1) {
                 assertTrue(
                     scored[index].chancePercent > scored[index + 1].chancePercent,
@@ -108,6 +115,11 @@ class DrawGoldenTest {
                 )
             }
         }
+
+        assertTrue(
+            asserted,
+            "[${fixture.id}] expected block has no recognized keys for scoreCandidates",
+        )
     }
 
     private fun assertPerformWeightedDraw(fixture: DrawGoldenFixture) {

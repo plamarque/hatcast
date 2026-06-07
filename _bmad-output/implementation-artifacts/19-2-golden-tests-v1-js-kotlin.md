@@ -4,7 +4,7 @@ baseline_commit: a6ca73d0e0e3632a7ba305482749d66f60e19c37
 
 # Story 19.2 : Suite golden V1 JS ↔ Kotlin
 
-Status: review
+Status: done
 
 ## Story
 
@@ -122,3 +122,9 @@ Composer
 ### Change Log
 
 - 2026-06-04 — Story 19.2 golden fixture suite for draw calculator (Epic 19 Wave A).
+
+### Review Findings
+
+- [x] [Review][Patch] `assertScoreCandidates` peut passer sans assertion si `expected` ne contient aucune clé reconnue [`DrawGoldenTest.kt:52-110`]
+- [x] [Review][Patch] Champ `input.cases` de T-W4 ignoré par `assertEdgeCombined` — fixture trompeuse [`DrawGoldenTest.kt:188-216`, `weights.json:46-48`]
+- [x] [Review][Patch] Pas de validation d'unicité des IDs fixture à la charge — doublons silencieux [`DrawGoldenFixture.kt:29-36`]

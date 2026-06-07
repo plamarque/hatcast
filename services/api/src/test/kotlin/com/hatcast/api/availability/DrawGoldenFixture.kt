@@ -26,14 +26,25 @@ object DrawGoldenFixtureLoader {
             "draw/golden/edges.json",
         )
 
-    fun loadAll(): List<DrawGoldenFixture> =
-        fixtureFiles.flatMap { path ->
-            val stream =
-                requireNotNull(javaClass.classLoader.getResourceAsStream(path)) {
-                    "Missing golden fixture resource: $path"
-                }
-            mapper.readValue<List<DrawGoldenFixture>>(stream)
+    fun loadAll(): List<DrawGoldenFixture> {
+        val fixtures =
+            fixtureFiles.flatMap { path ->
+                val stream =
+                    requireNotNull(javaClass.classLoader.getResourceAsStream(path)) {
+                        "Missing golden fixture resource: $path"
+                    }
+                mapper.readValue<List<DrawGoldenFixture>>(stream)
+            }
+        val duplicateIds =
+            fixtures
+                .groupBy { it.id }
+                .filter { (_, entries) -> entries.size > 1 }
+                .keys
+        require(duplicateIds.isEmpty()) {
+            "Duplicate golden fixture IDs: ${duplicateIds.sorted().joinToString()}"
         }
+        return fixtures
+    }
 
     fun participantId(key: String): UUID = UUID.fromString("00000000-0000-4000-8000-${key.hashCode().toUInt().toString(16).padStart(12, '0')}")
 
