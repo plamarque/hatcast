@@ -29,18 +29,21 @@ Ce dossier contient les scripts utiles pour les migrations, le déploiement, la 
 
 Implémentation bas niveau : `scripts/v2/promote-to-staging.sh`, `release-staging.sh`, `promote-tag-to-prod.sh`.
 
+**Notes « Nouveautés » (PWA)** : cutover **obligatoire** — `scripts/v2/changelog-entries/vX.Y.Z-cutover.json`. Rédaction recommandée via la skill **`.agents/skills/hatcast-v2-release/`** (preview dry-run, validation avant apply). Contexte read-only : **`v2/release-context.sh`** (`--json`).
+
 #### V1 Firebase (legacy)
 
 - **`release-version-v1.sh`** : Release V1 depuis la branche `staging` → `main`
 - **`release-version.sh`** : Compat — délègue vers `release-version-v1.sh`
 
-- **`generate-changelog.js`** : Notes utilisateur pour `apps/web/public/changelog.json` (OpenAI, principes Argil — Story 10.3 / OPS-6)
+- **`generate-changelog.js`** : *(legacy / manuel)* transformation OpenAI des commits — **non utilisé** par `release-staging.sh` depuis cutover obligatoire ; voir skill `hatcast-v2-release`
 
 ### ☁️ Déploiement V2 (Cloud Run — scripts bas niveau)
 - **`v2/branches.env`** : Noms de branches Git V2 (`v2`, `staging-v2`) — voir `v2/branches.env.example`
 - **`v2/lib/git-branches.sh`** : Helpers Git partagés (fetch, arbre propre, branche courante)
 - **`v2/promote-to-staging.sh`** : Merge `origin/v2` → `staging-v2` + push (CI staging)
-- **`v2/release-staging.sh`** : Release staging V2 depuis `staging-v2` (version, `CHANGELOG.md`, **`apps/web/public/changelog.json`**, tag RC `vX.Y.Z-rc.N`, push branche + tag, **sync `staging-v2` → `v2`**). Options : `--no-user-changelog` (ne pas modifier le JSON utilisateur), `--dry-run`. Plage changelog `rc.1` = dernier tag prod antérieur à la version cible (pas `HEAD` seul). OpenAI ignoré si aucun commit `feat`/`fix` dans la plage. Cutover `2.0.0` : entrée curated dans `v2/changelog-entries/v2.0.0-cutover.json`. Prérequis : **`jq`** ; `OPENAI_API_KEY` optionnel (sinon `changes: []` pour la version)
+- **`v2/release-staging.sh`** : Release staging V2 depuis `staging-v2` (version, `CHANGELOG.md`, **`apps/web/public/changelog.json`**, tag RC `vX.Y.Z-rc.N`, push branche + tag, **sync `staging-v2` → `v2`**). Options : `--no-user-changelog` (ne pas modifier le JSON utilisateur), `--dry-run`. Plage changelog `rc.1` = dernier tag prod antérieur à la version cible (pas `HEAD` seul). **Cutover obligatoire** : `v2/changelog-entries/vX.Y.Z-cutover.json` (skill `hatcast-v2-release`). Prérequis : **`jq`**
+- **`v2/release-context.sh`** : Contexte read-only (version/tag/plage/commits/cutover) pour la skill release — `--json`
 - **`v2/promote-tag-to-prod.sh`** : Promotion RC -> prod par tag (`vX.Y.Z-rc.N` -> `vX.Y.Z`), sans merge branch prod
 - **`v2/release-production.sh`** : Wrapper de compatibilité (deprecated) qui redirige vers `v2/promote-tag-to-prod.sh` (flux OPS-5 tag-first)
 - **`lib/version-changelog.sh`** : Fonctions semver, CHANGELOG Markdown et **`changelog.json`** V2 (usage opt-in depuis `release-staging.sh`)

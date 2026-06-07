@@ -87,6 +87,16 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 
 ---
 
+## V2 staging releases (Cursor)
+
+For semver staging releases (`./scripts/release_version.sh`), use the project skill **[`.agents/skills/hatcast-v2-release/SKILL.md`](.agents/skills/hatcast-v2-release/SKILL.md)** :
+
+- Preview mode (default): draft user-facing « Nouveautés » in chat with Argil editorial rules — **no file writes** until explicit approval
+- Requires **`scripts/v2/changelog-entries/vX.Y.Z-cutover.json`** before the mechanical release runs (OpenAI path removed from release pipeline)
+- Helper: `./scripts/v2/release-context.sh [--patch|--minor|--major] [--json]`
+
+---
+
 ## Quality and safety rules (repo-relevant)
 
 - **Data safety:** Firestore is the main persistence. No destructive bulk deletes or schema changes without (1) backup/migration plan and (2) explicit approval. See `firestore.rules` and `functions/` for security boundaries.

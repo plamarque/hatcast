@@ -308,8 +308,7 @@ hatcast_staging_changelog_range() {
 }
 
 # User-facing changelog.json always spans the full release (rc.1 anchor), not rc.N−1..HEAD.
-# rc.2+ only adds technical commits to CHANGELOG.md; OpenAI on the delta often returns [] and
-# must not replace rc.1 notes (OPS-6 / Story 10.3).
+# rc.2+ reuses the cutover from rc.1; notes are curated via hatcast-v2-release skill (OPS-6 / Story 10.3).
 hatcast_staging_changelog_user_json_range() {
   local base="$1"
   local rc="$2"
@@ -432,6 +431,29 @@ else
   _HATCAST_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 fi
 HATCAST_CHANGELOG_JSON_REL="apps/web/public/changelog.json"
+HATCAST_CHANGELOG_ENTRIES_REL="scripts/v2/changelog-entries"
+
+# Re-sync repo root from current git toplevel (dry-run sandbox cd).
+hatcast_changelog_sync_repo_root_from_git() {
+  local root=""
+  root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  if [[ -n "${root}" ]]; then
+    _HATCAST_REPO_ROOT="${root}"
+  fi
+}
+
+hatcast_cutover_entry_path() {
+  local version="$1"
+  local primary="${_HATCAST_REPO_ROOT}/${HATCAST_CHANGELOG_ENTRIES_REL}/v${version}-cutover.json"
+  local alternate="${_HATCAST_REPO_ROOT}/${HATCAST_CHANGELOG_ENTRIES_REL}/${version}-cutover.json"
+  if [[ -f "${primary}" ]]; then
+    echo "${primary}"
+  elif [[ -f "${alternate}" ]]; then
+    echo "${alternate}"
+  else
+    echo "${primary}"
+  fi
+}
 
 hatcast_changelog_json_path() {
   echo "${_HATCAST_REPO_ROOT}/${HATCAST_CHANGELOG_JSON_REL}"
@@ -448,11 +470,9 @@ hatcast_load_openai_env() {
 hatcast_load_cutover_changelog_entry() {
   local version="$1"
   local build_date="$2"
-  local entry_file="${_HATCAST_REPO_ROOT}/scripts/v2/changelog-entries/v${version}-cutover.json"
+  local entry_file
+  entry_file="$(hatcast_cutover_entry_path "${version}")"
 
-  if [[ ! -f "${entry_file}" ]]; then
-    entry_file="${_HATCAST_REPO_ROOT}/scripts/v2/changelog-entries/${version}-cutover.json"
-  fi
   if [[ ! -f "${entry_file}" ]]; then
     return 1
   fi
@@ -615,32 +635,13 @@ hatcast_generate_changelog_json_for_release() {
   fi
 
   if entry_json="$(hatcast_load_cutover_changelog_entry "${version}" "${date}")"; then
-    echo "ℹ️  Changelog ${version} : entrée cutover curated (pas de git/OpenAI)"
+    echo "ℹ️  Changelog ${version} : entrée cutover curated"
     hatcast_update_changelog_json_file "${entry_json}" "${version}"
     return $?
   fi
 
-  echo "📝 Génération ${HATCAST_CHANGELOG_JSON_REL} (${commit_range})…"
-  if ! technical_json="$(hatcast_build_technical_changelog_json "${version}" "${date}" "${commit_range}")"; then
-    echo "❌ Impossible de construire le JSON technique changelog." >&2
-    return 1
-  fi
-
-  if ! hatcast_changelog_range_has_user_facing_commits "${commit_range}"; then
-    echo "ℹ️  Aucun commit feat/fix dans ${commit_range} — entrée ${version} avec changes: [] (OpenAI ignoré)."
-    user_json="$(hatcast_changelog_json_empty_entry "${version}" "${date}")"
-  elif user_json="$(hatcast_transform_changelog_json_with_openai "${technical_json}" "${version}")"; then
-    echo "ℹ️  Notes utilisateur générées (OpenAI / Argil)"
-    local feat_count change_count
-    feat_count="$(echo "${technical_json}" | jq '[.changes[] | select(startswith("✨"))] | length')"
-    change_count="$(echo "${user_json}" | jq '.changes | length')"
-    if [[ "${feat_count}" -ge 5 && "${change_count}" -le 2 ]]; then
-      echo "⚠️  OpenAI n'a retenu que ${change_count} puce(s) pour ${feat_count} feat — ajoutez scripts/v2/changelog-entries/v${version}-cutover.json (cf. v2.1.0 / v2.2.0)." >&2
-    fi
-  else
-    echo "⚠️  OpenAI indisponible ou échec — entrée ${version} avec changes: [] (pas de fallback technique)." >&2
-    user_json="$(hatcast_changelog_json_empty_entry "${version}" "${date}")"
-  fi
-
-  hatcast_update_changelog_json_file "${user_json}" "${version}"
+  echo "❌ Cutover manquant pour ${version}." >&2
+  echo "   Attendu : ${HATCAST_CHANGELOG_ENTRIES_REL}/v${version}-cutover.json" >&2
+  echo "   Créez-le via la skill hatcast-v2-release ou manuellement (cf. v2.2.0-cutover.json)." >&2
+  return 1
 }

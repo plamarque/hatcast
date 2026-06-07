@@ -52,6 +52,10 @@ Options:
   --no-user-changelog Ne pas modifier apps/web/public/changelog.json
   --help, -h          Aide
 
+Notes utilisateur : fichier cutover requis —
+  scripts/v2/changelog-entries/vX.Y.Z-cutover.json
+  (skill Cursor hatcast-v2-release ou rédaction manuelle ; plus de OpenAI en release)
+
 Configuration : scripts/v2/branches.env
 EOF
 }
@@ -118,6 +122,7 @@ create_dry_run_sandbox() {
   git fetch --tags origin 2>/dev/null || true
   git branch "${DRY_STAGING}" "${HATCAST_V2_BRANCH_STAGING}" 2>/dev/null || git branch "${DRY_STAGING}" "origin/${HATCAST_V2_BRANCH_STAGING}"
   git checkout "${DRY_STAGING}"
+  hatcast_changelog_sync_repo_root_from_git
   echo "✅ Sandbox : ${DRY_STAGING}"
 }
 
@@ -305,6 +310,11 @@ if [[ -f CHANGELOG_FR.md ]]; then
 fi
 if [[ "${NO_USER_CHANGELOG}" != true ]]; then
   RELEASE_GIT_ADD+=" ${CHANGELOG_JSON}"
+  CUTOVER_FILE="$(hatcast_cutover_entry_path "${NEW_VERSION}")"
+  if [[ -f "${CUTOVER_FILE}" ]]; then
+    CUTOVER_REL="${CUTOVER_FILE#${_HATCAST_REPO_ROOT}/}"
+    RELEASE_GIT_ADD+=" ${CUTOVER_REL}"
+  fi
 fi
 
 if [[ "${DRY_RUN}" == true ]]; then

@@ -120,6 +120,17 @@ Comportement :
 
 **Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) (flux V1 Firebase). V2 : [`scripts/release_version.sh`](../../../scripts/release_version.sh).
 
+## Release assistée Cursor (recommandé)
+
+Pour les releases depuis Cursor, utiliser la skill **[`.agents/skills/hatcast-v2-release/`](../../../.agents/skills/hatcast-v2-release/SKILL.md)** :
+
+1. **Preview** (défaut) : `./scripts/v2/release-context.sh [--patch|--minor|--major]` — collecte commits, **aucune écriture disque**
+2. **Gate A** : rédaction Argil des notes « Nouveautés » dans le chat ; retouches jusqu’à « OK pour les notes »
+3. **Gate B** (optionnel) : `./scripts/release_version.sh … --dry-run` après écriture du cutover — preview CHANGELOG technique (sandbox, arbre de travail intact)
+4. **Apply** : écriture `scripts/v2/changelog-entries/vX.Y.Z-cutover.json` puis `./scripts/release_version.sh` (sans `--dry-run`)
+
+Principes éditoriaux : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). Exemples : `v2/changelog-entries/v2.1.0-cutover.json`, `v2.2.0-cutover.json`.
+
 ## Release staging RC (V2)
 
 Script façade : [`scripts/release_version.sh`](../../../scripts/release_version.sh) — implémentation [`scripts/v2/release-staging.sh`](../../../scripts/v2/release-staging.sh). Peut être lancé depuis `v2` (bascule automatique sur `staging-v2`).
@@ -153,7 +164,7 @@ Options avancées (script bas niveau uniquement) : `--version=X.Y.Z` (première 
 3. Alignement `package.json` racine ↔ `apps/web/package.json` (racine legacy `0.x` → alignée sur web V2)
 4. Écrit `apps/web/public/version.txt` (ligne 1 = semver produit **sans** `-rc.N` ; ligne 2 = `Staging RC build - DATE`)
 5. Met à jour `CHANGELOG.md` (et `CHANGELOG_FR.md` si présent) depuis le tag RC précédent ou le dernier tag release
-6. Met à jour **`apps/web/public/changelog.json`** (notes « Nouveautés » PWA, Story 10.3) : même plage git que le CHANGELOG technique, transformation OpenAI optionnelle (`scripts/generate-changelog.js`, principes Argil), ou entrée **curated** pour la version **`2.0.0`** (`scripts/v2/changelog-entries/v2.0.0-cutover.json`). Sans clé OpenAI ou en cas d’échec : entrée avec `"changes": []` (pas de sujets de commit). Flag **`--no-user-changelog`** pour ne pas toucher ce fichier.
+6. Met à jour **`apps/web/public/changelog.json`** (notes « Nouveautés » PWA, Story 10.3) depuis **`scripts/v2/changelog-entries/vX.Y.Z-cutover.json`** (cutover **obligatoire** ; skill `hatcast-v2-release` recommandée). Flag **`--no-user-changelog`** pour ne pas toucher ce fichier (RC technique, cutover déjà en place).
 7. Commit `chore(v2): release staging vX.Y.Z-rc.N`, tag annoté `vX.Y.Z-rc.N`, push **branche + tag**
 8. **Sync dev** : merge `origin/staging-v2` → `v2` + push (version.txt, changelog.json, package.json) pour que le dev local et les prochains `deploy_staging.sh` restent alignés
 
@@ -291,7 +302,7 @@ Par défaut, sans override explicite :
 - Tags Git staging RC : `vX.Y.Z-rc.N` (suffixe RC **uniquement** sur le tag, pas dans `package.json` / `version.txt`)
 - Promotion prod (`promote-tag-to-prod.sh`) : **aucun** bump fichier — le tag prod pointe le commit RC qui contient déjà `version.txt` et `changelog.json`
 
-**`changelog.json` (OPS-6)** : prérequis `jq` ; plage git = tag RC précédent ou **dernier tag prod strictement antérieur** à la version cible pour `rc.1` (jamais `HEAD` seul). OpenAI ignoré si le diff ne contient aucun `feat`/`fix`/`improve`/`perf`/`refactor`/`style`. `OPENAI_API_KEY` dans `.env` / `.env.local` pour des puces utilisateur (sinon liste vide). Référence éditoriale : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). Cutover `2.0.0` : fichier curated, pas git/OpenAI. `--no-user-changelog` : laisser le JSON existant. Smoke : `jq empty apps/web/public/changelog.json` et `check-pwa.sh` §5.
+**`changelog.json` (OPS-6)** : prérequis `jq` + **cutover** `scripts/v2/changelog-entries/vX.Y.Z-cutover.json`. Plage git CHANGELOG technique = tag RC précédent ou **dernier tag prod strictement antérieur** à la version cible pour `rc.1`. Référence éditoriale : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). `--no-user-changelog` : laisser le JSON existant. Smoke : `jq empty apps/web/public/changelog.json` et `check-pwa.sh` §5.
 
 Les entrées `CHANGELOG.md` racine sont partagées avec le monorepo (V1 + V2) ; privilégier des messages de commit Conventional Commits explicites (`feat:`, `fix:`, …) et mentionner « V2 » dans le corps si utile pour le lecteur.
 
