@@ -92,6 +92,15 @@
 
 ---
 
+## Deferred from: code review of 19-4-doc-orga-membre-comprendre-les-cotes (2026-06-07)
+
+- Onglet Équipe : pas de libellé `chanceSource` côté API composition — snapshot appliqué silencieusement sur `chancePercent` ; gap 6.14 vs doc UX.
+- Gate `./gradlew test` non prouvé dans le diff doc-only — infra Gradle locale signalée en Dev Agent Record.
+- Titres de sections vs checklist story — cosmetique (« Pourquoi l’historique compte » vs « Participations passées »).
+- Cas limites doc utilisateur MVP : historiques inégaux multi-places, snapshots partiels, assignation manuelle sans tirage.
+
+---
+
 ## Liens normatifs
 
 | Sujet | Où tracer |

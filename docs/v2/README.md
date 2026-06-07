@@ -4,6 +4,10 @@
 
 **Important pour les agents :** c’est ici que se trouvent les guides **opérationnels** pour la V2 (déploiement, OAuth Google pour le slice historique, etc.). La cible d’identité est **Identity Platform** ([ADR-0010](../adr/0010-v2-auth-identity-platform.md)). Ne pas confondre avec [`docs/v1/`](../v1/), qui documente uniquement le legacy Firebase.
 
+## Documentation produit V2
+
+- [`product/draw-chances-explained.md`](product/draw-chances-explained.md) — comprendre les pourcentages de tirage (organisateur / membre)
+
 ## Guides techniques V2
 
 - [`technical/V2_GOOGLE_OAUTH_SETUP.md`](technical/V2_GOOGLE_OAUTH_SETUP.md) — configuration Google OAuth (opérateurs)

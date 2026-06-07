@@ -16,9 +16,12 @@ This document defines the **observed V1 production behaviour** (`chancesService.
 | Weight formula (`malus`, `weight`) | Factor pipeline implementation (**19.5–19.7**) |
 | `pastSelectionCount` rules | History SQL / compartment factor (**19.8**) |
 | `performWeightedDraw` | Full draw orchestration fixtures (**19.3**) |
-| `exactSelectionProbability` + display `%` | User-facing orga/member doc (**19.4**) |
+| `exactSelectionProbability` + display `%` | — |
 | Intra-role / cross-role exclusion semantics | Draw-time snapshot persistence (**6.14** — reference only) |
 | Full vs partial redraw semantics | Wave D formulas & policies (**19.15+**) |
+| User-facing orga/member doc | — (see [Comprendre les pourcentages](../product/draw-chances-explained.md)) |
+
+**Documentation utilisateur (organisateur / membre) :** [`docs/v2/product/draw-chances-explained.md`](../product/draw-chances-explained.md) — plain-language French guide to displayed %; does not duplicate this spec.
 
 ---
 

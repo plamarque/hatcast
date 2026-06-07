@@ -12,6 +12,7 @@
 - **Consequences:**
   - **Positive:** Auditable evolution of fairness rules; clear V1↔V2 delta for category compartment (**19.8**); developers can implement **19.2** without reading `legacy/`.
   - **Negative:** Normative doc maintenance burden; golden CI cost; intentional V2 category evolution remains a documented drift until **19.8** locks behaviour.
+- **Documentation utilisateur:** [`docs/v2/product/draw-chances-explained.md`](../v2/product/draw-chances-explained.md) — French plain-language guide for organizers and members (what % mean, visibility, snapshots, out-of-scope Wave C/D). Technical contract remains this ADR + normative spec; the product doc does not duplicate the formula.
 - **Alternatives considered:**
   - **Re-open story 6.4 code** — Rejected (SCP); hardening is Epic 19, not a rewrite of shipped MVP.
   - **Change formula without ADR + golden** — Rejected; business-critical path requires regression suite.
