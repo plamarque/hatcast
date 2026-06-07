@@ -1,6 +1,6 @@
 # Deferred work (actif)
 
-**Hygiène DOC-1** — MAJ **2026-06-08**. Backlog trié **risque × bénéfice × impact** ; **T1** ordonné **coût vs bénéfice** — voir [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) §3–4. Historique : [`deferred-work-archive.md`](deferred-work-archive.md).
+**Hygiène DOC-1** — MAJ **2026-06-09**. **T0** et **T1** clôturés ; restant ordonné **coût vs bénéfice** — voir [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) §3–4. Historique : [`deferred-work-archive.md`](deferred-work-archive.md).
 
 **Contexte PLAN :** release train **V2.0.x** OK ; **M4** audience reportée (~août 2026) ; vague **2.1.0** (démo commission) en cours.
 
@@ -14,12 +14,14 @@
 |------------|---------|------|
 | **DW-101/102** | 2026-06-04 | Story **3.22** — coach match API + seeds |
 | **DW-103** | accepté | Pas de backfill matchs historiques |
+| **DW-104** | 2026-06-08 | Story **1.8** — retry signup + login recovery |
+| **DW-105** | 2026-06-07 | Spec **dw-105** — IdP `deleteUser` post-commit (`AFTER_COMMIT`) |
+| **DW-106** | 2026-06-07 | Spec **dw-106** — intent `COMPOSITION_SHARED` + `toCategory()` ; dispatch **8.4** reste à câbler |
+| **DW-107** | 2026-06-08 | Story **8.5b** — garde `AssigneePresenceReminderJob` |
 | **DW-111** | 2026-06-05 | Replay migration × ≥3 (PO) |
-| **DW-112** | 2026-06-07 | Deploy : `--env-vars-file` YAML (`deploy-v2-cloud-run.yml`) — plus de CSV `--set-env-vars` |
-| **DW-104** | 2026-06-08 | Story **1.8** — retry signup + login recovery (compte Firebase orphelin) |
-| **DW-107** | 2026-06-08 | Story **8.5b** — garde éligibilité `AssigneePresenceReminderJob` (membre inactif / participant retiré) |
-| **DW-105** | 2026-06-07 | IdP `deleteUser` post-commit — `@TransactionalEventListener` + `IdentityPlatformUserDeletionEventListener` |
-| **DW-113** | 2026-06-08 | **Obsolète** — hub sans « Préférences dans cette troupe » (story **17.29**) |
+| **DW-112** | 2026-06-07 | Deploy `--env-vars-file` YAML |
+| **DW-113** | 2026-06-08 | **Obsolète** — hub sans prefs troupe (**17.29**) |
+| **DW-114** | 2026-06-07 | Post-save re-check `reinclude` → 409 ; fenêtre commit-edge acceptée |
 | **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` ; **DW-108** partiel |
 | **ops-8**, **ops-10** | 2026-06-04/05 | Prod domaine + email |
 | **19.1**, **mig-7** | 2026-06-04/06 | ADR tirage + backfill genre V1 |
@@ -28,102 +30,63 @@
 | **6.18**, **6.19**, **6.21**, **6.22** | 2026-06-05/07 | Aide statut, calendrier, mixité, unlock |
 | **Équipe SCSS** | 2026-06-06 | Budget `anyComponentStyle` OK (`f418887e`) |
 
-*Détail revues D → archive § hygiène 2026-06-07 ; clôtures T0 + defers 1.8/8.5b → § 2026-06-08.*
+*Clôtures T0/T1 + defers specs → archive § hygiène 2026-06-09.*
 
 ---
 
-## Matrice rapide (risque × bénéfice × impact)
+## Matrice rapide
 
-| Tier | Quand agir | IDs |
-|------|------------|-----|
-| **T0** | — | *(vide — DW-104, DW-107 clôturés)* |
-| **T1** | Coût **faible** → bénéfice **net** (ordre § ci-dessous) | *(vide — DW-114 clôturé)* |
-| **T2** | Avant **M4** / prochain load prod (défense) | **DW-109**, **DW-110**, **DW-118**, **DW-119** |
-| **T3** | Faible risque ou niche — backlog 2.1.0+ | **DW-108**, **DW-115–117**, **DW-120**, **DW-121–125** |
+| Tier | Quand agir | IDs (ordre coût/bénéfice) |
+|------|------------|---------------------------|
+| **T0** | — | *(vide)* |
+| **T1** | — | *(vide)* |
+| **T2** | Avant **M4** (~août) | **DW-118** → **DW-119** → **DW-109** → **DW-110** |
+| **T3** | Backlog 2.1.0+ | **DW-117** → **DW-116** → **DW-115** → **DW-122** → **DW-123** → **DW-124** → **DW-125** → **DW-121** → **DW-120** ; **DW-108** accepté |
 
 ---
 
-## T1 — Coût vs bénéfice (ordre d’exécution)
+## T2 — Avant M4 (coût vs bénéfice)
 
 | # | ID | Coût | Bénéfice | Notes |
 |---|-----|------|----------|-------|
-| 1 | **DW-106** | **XS** | Modéré (latent) | ~~`toCategory()` + test~~ **Done** (2026-06-07) — dispatch 8.4 reste à câbler |
-| 2 | **DW-114** | **S** | Modéré | ~~Post-save re-check `reinclude`~~ **Done** (2026-06-07) — 409 si adhésion INACTIVE entre-temps ; fenêtre commit-edge acceptée |
-
-### DW-105 — `deleteUser` IdP post-commit ✅ (2026-06-07)
-
-- **Risque :** transaction DB longue, échec Firebase = rollback ambigu.
-- **Fix :** `IdentityPlatformUserDeletionRequestedEvent` + `IdentityPlatformUserDeletionEventListener` (`AFTER_COMMIT`).
-- **Fichiers :** [`AccountDeletionService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/AccountDeletionService.kt), [`IdentityPlatformUserDeletionEventListener.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/IdentityPlatformUserDeletionEventListener.kt).
-
-### DW-106 — `COMPOSITION_SHARED` → `toCategory()` ✅ (2026-06-07)
-
-- **Risque :** prefs push/email **fausses** si intent activé (latent aujourd’hui).
-- **Fichier :** [`NotificationIntent.kt`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationIntent.kt).
-- **Reste :** câbler `publishDraftCompositionShared` → dispatch 8.4 (payload + recipients).
-
-### DW-114 — `reinclude` vs adhésion INACTIVE ✅ (2026-06-07)
-
-- **Risque :** modéré — état roster incohérent transitoire si désactivation concurrente.
-- **Fix :** re-vérification post-save dans [`SeasonParticipantService.reinclude`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantService.kt) — revert + **409 CONFLICT** si adhésion devenue INACTIVE ; rollback transactionnel empêche zombie persisté.
-- **Reste accepté :** fenêtre commit-edge (Option B) ; gap [`SeasonStatisticsService`](../../services/api/src/main/kotlin/com/hatcast/api/season/SeasonStatisticsService.kt) (Option E investigation) — backlog séparé si besoin.
-
----
-
-## T2 — Avant prochaine migration prod (M4 ~août)
-
-### DW-109 — Validation MIG-3 (`comment`, `role_key`)
-
-- **Risque :** élevé **si** données V1 aberrantes ; **bénéfice :** rejets ciblés vs transaction entière KO.
-- **Impact :** pipeline migration uniquement.
-- **Fichier :** [`maliceAvailabilityCompositions.js`](../../scripts/v1/maliceAvailabilityCompositions.js)
-
-### DW-110 — Orphelines re-run MIG-3 sans reset
-
-- **Risque :** modéré (replay gate déjà passé ; prod = apply unique).
-- **Bénéfice :** confiance re-import staging.
-- **Impact :** ops migration.
+| 1 | **DW-118** | **S** | Modéré | SQL backfill `removal_source` (V38) — livrable court, audit retrait saison |
+| 2 | **DW-119** | **S** | Modéré | Vérif titres exotiques MIG-2 (`translate` vs `slugify` NFD) — script/doc |
+| 3 | **DW-109** | **M** | Élevé si trigger | Rejects ciblés MIG-3 (`comment`, `role_key`) — évite transaction entière KO |
+| 4 | **DW-110** | **M** | Modéré | Orphelines re-run MIG-3 sans reset — confiance staging ; prod = apply unique |
 
 ### DW-118 — V38 backfill `removal_source`
 
-- **Risque :** faible si aucune row REMOVED pré-MIG ; **bénéfice :** audit retrait saison.
-- **Impact :** données importées.
+- **Fichier :** migration Flyway V38 (à confirmer en base).
+- **Risque :** faible si aucune row `REMOVED` pré-MIG.
 
-### DW-119 — Slugs exotiques (`translate` vs `slugify` NFD)
+### DW-119 — Slugs exotiques
 
-- **Risque :** faible (titres atypiques) ; **bénéfice :** URLs cohérentes post-import.
-- **Impact :** MIG-2 edge.
+- **Risque :** faible (titres atypiques) ; **impact :** URLs post-import MIG-2.
 
----
+### DW-109 — Validation MIG-3
 
-## T3 — Backlog confort (2.1.0+)
+- **Fichier :** [`maliceAvailabilityCompositions.js`](../../scripts/v1/maliceAvailabilityCompositions.js).
 
-### Annonces & transparence
+### DW-110 — Orphelines re-run MIG-3
 
-- **DW-108** — `notifiedCount` ≠ livraisons SENT réelles (**NFR-R2**). **6.17** a livré `lastNotifiedAt` + dispatch ; écart comptage **accepté** sauf demande PO. Bénéfice marginal vs effort.
-
-### Concurrence & UX
-
-- **DW-115** — Race grant organisateur (500 vs 200).
-- **DW-116** — Event picker 250 sans signal.
-- **DW-117** — `loadGlance()` sans token génération.
-
-### Qualité & perf dev
-
-- **DW-120** — Suite web globale rouge → **ISSUES.md** / gate CI (ne pas dupliquer par story).
-- **DW-121** — Sass `@import` → `@use` (Dart Sass 3.0).
-- **DW-122** — Prebundling cache dev (`ng serve` e2e).
-- **DW-123** — Budget bundle **initial** prod (~2,33 MB).
-- **DW-124** — SCSS composants lourds (`member-home-todo`, `member-nav`, …).
-- **DW-125** — Découpage optionnel `event-equipe-tab` (maintenance).
+- Replay gate déjà passé ; priorité **après** DW-109/118/119.
 
 ---
 
-## Deferred from: code review of spec-dw-105-idp-delete-post-commit (2026-06-07)
+## T3 — Backlog confort (coût vs bénéfice)
 
-- No integration test asserting IdP `deleteUser` is not invoked on 409 rollback (spec AC 4) — test gap only
-- AFTER_COMMIT listener runs synchronously — HTTP still waits for Firebase latency; DB lock fixed only (same as composition pattern) — out of scope
-- `IdentityPlatformUserDeletionSupport` does not assert `true` return when `deleteUser` throws — listener failure test mocks `true` identically to success — minor coverage gap
+| # | ID | Coût | Bénéfice | Notes |
+|---|-----|------|----------|-------|
+| 1 | **DW-117** | **XS** | Faible | Token `loadGlance()` sans génération — quick fix |
+| 2 | **DW-116** | **S** | Modéré | Signal UX event picker à 250 résultats |
+| 3 | **DW-115** | **S** | Faible | Race grant organisateur (500 vs 200) — UPSERT |
+| 4 | **DW-122** | **S** | Faible | Prebundling cache dev (`ng serve` e2e) — perf dev only |
+| 5 | **DW-123** | **M** | Modéré | Budget bundle initial prod (~2,33 MB) — impact **large** |
+| 6 | **DW-124** | **M** | Faible | SCSS composants lourds (`member-home-todo`, `member-nav`, …) |
+| 7 | **DW-125** | **M** | Faible | Découpage optionnel `event-equipe-tab` |
+| 8 | **DW-121** | **L** | Faible | Sass `@import` → `@use` (échéance Dart Sass 3.0 lointaine) |
+| 9 | **DW-120** | **L** | Modéré | Suite web globale rouge → **ISSUES.md** / gate CI |
+| — | **DW-108** | — | ↓ | **Accepté** post-6.17 — `notifiedCount` ≠ SENT ; rouvrir seulement si PO exige **NFR-R2** strict |
 
 ---
 
@@ -134,3 +97,4 @@
 | Bugs confirmés | [`ISSUES.md`](../../ISSUES.md) (ex. BUG-008 push prefs) |
 | Réserve produit historique | PLAN § iso-V1, DW-020–021 (triage mai) |
 | Epic 19 formules tirage | `sprint-status.yaml` — **reporté** post-2.1.0 |
+| Dispatch brouillon partagé | Story **8.4** (hors DW-106 — mapping prefs déjà fait) |
