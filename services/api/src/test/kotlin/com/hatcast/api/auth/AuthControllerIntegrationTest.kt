@@ -1,5 +1,6 @@
 package com.hatcast.api.auth
 
+import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -24,6 +25,7 @@ import java.time.Instant
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Order(1)
 class AuthControllerIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc

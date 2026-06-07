@@ -22,9 +22,8 @@ class CsrfCookiePublishingFilter(
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        (request.getAttribute("_csrf") as? CsrfToken)?.token
-        filterChain.doFilter(request, response)
         publishCsrfCookieIfNeeded(request, response)
+        filterChain.doFilter(request, response)
     }
 
     private fun publishCsrfCookieIfNeeded(
