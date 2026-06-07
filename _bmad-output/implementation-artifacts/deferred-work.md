@@ -48,7 +48,7 @@
 | **Risque** | Élevé — comptes fantômes Firebase si API HatCast échoue après signup |
 | **Bénéfice** | Élevé — intégrité auth, moins de support |
 | **Impact** | Tous les inscrits email (Epic 1) |
-| **Action** | Story Epic 1 : rollback / cleanup Firebase ou retry idempotent |
+| **Action** | **Done** — story [1-8-recuperation-inscription-apres-echec-api-idp.md](./1-8-recuperation-inscription-apres-echec-api-idp.md) (retry + login recovery ; no client `deleteUser`) |
 
 ### DW-107 — Rappels aux membres désactivés *(notifications)*
 
@@ -135,6 +135,13 @@
 - **DW-123** — Budget bundle **initial** prod (~2,33 MB).
 - **DW-124** — SCSS composants lourds (`member-home-todo`, `member-nav`, …).
 - **DW-125** — Découpage optionnel `event-equipe-tab` (maintenance).
+
+---
+
+## Deferred from: code review of 1-8-recuperation-inscription-apres-echec-api-idp (2026-06-07)
+
+- **Unrelated `troupe-hub.spec.ts` apostrophe fix** — pre-existing broken assertion bundled in story 1.8 diff; split to dedicated commit when convenient.
+- **No submit guard during IdP retry backoff on signup** — pre-existing double-click pattern; retry window slightly increases duplicate Firebase signup risk; future UX hardening if needed.
 
 ---
 

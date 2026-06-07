@@ -8,6 +8,12 @@ import {
   clearHatcastRememberMePreference,
   getHatcastRememberMePreference,
 } from './hatcast-remember-me-storage'
+import {
+  delayMs,
+  IDP_SIGNUP_RETRY_BACKOFF_MS,
+  IDP_SIGNUP_RETRY_MAX_ATTEMPTS,
+  isTransientIdpFailure,
+} from './idp-transient-retry'
 
 export interface UserSummary {
   id: string
@@ -153,6 +159,32 @@ export class AuthApiService {
     } catch {
       return { ok: false, status: 0 }
     }
+  }
+
+  /**
+   * Signup path only: retry transient failures (0 / 500 / 503) with exponential backoff.
+   * Reuses the same idToken for all attempts within one signup flow.
+   */
+  async signInWithIdentityPlatformIdTokenWithRetry(
+    idToken: string,
+    rememberMe = true,
+    options?: {
+      maxAttempts?: number
+      backoffMs?: readonly number[]
+    },
+  ): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
+    const maxAttempts = options?.maxAttempts ?? IDP_SIGNUP_RETRY_MAX_ATTEMPTS
+    const backoffMs = options?.backoffMs ?? IDP_SIGNUP_RETRY_BACKOFF_MS
+
+    let last = await this.signInWithIdentityPlatformIdToken(idToken, rememberMe)
+    for (let attempt = 1; attempt < maxAttempts && !last.ok && isTransientIdpFailure(last.status); attempt++) {
+      const delay = backoffMs[attempt - 1] ?? backoffMs[backoffMs.length - 1] ?? 0
+      if (delay > 0) {
+        await delayMs(delay)
+      }
+      last = await this.signInWithIdentityPlatformIdToken(idToken, rememberMe)
+    }
+    return last
   }
 
   /**

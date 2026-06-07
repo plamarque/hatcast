@@ -52,6 +52,11 @@ export function userMessageForIdpApiFailure(status: number): string {
   return userMessageForGoogleSignInFailure(status)
 }
 
+/** Signup recovery after transient IdP link failure (DW-104 / story 1.8). */
+export function userMessageForSignupIdpRecovery(): string {
+  return 'Votre compte a été créé ; connectez-vous pour finaliser l’accès à HatCast.'
+}
+
 /** Réinitialisation mot de passe (lien email / Identity Platform) — messages sûrs (NFR-S1, NFR-I1). */
 export function userMessageForPasswordResetRequestFailure(code = ''): string {
   switch (code) {

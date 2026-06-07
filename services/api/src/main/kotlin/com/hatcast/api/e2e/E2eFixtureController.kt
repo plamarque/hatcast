@@ -4,6 +4,8 @@ import com.hatcast.api.e2e.dto.AgendaParticipationCellFixtureResponse
 import com.hatcast.api.e2e.dto.E1CutoverFixtureResponse
 import com.hatcast.api.e2e.dto.Story319FixtureResponse
 import com.hatcast.api.e2e.dto.Story38dFixtureResponse
+import com.hatcast.api.e2e.dto.Story18CleanupRequest
+import com.hatcast.api.e2e.dto.Story18CleanupResponse
 import com.hatcast.api.e2e.dto.Story325FixtureResponse
 import org.springframework.context.annotation.Profile
 import org.springframework.web.bind.annotation.PostMapping
@@ -19,6 +21,7 @@ class E2eFixtureController(
     private val e1CutoverFixtureService: E1CutoverFixtureService,
     private val story325FixtureService: E2eStory325FixtureService,
     private val agendaParticipationCellFixtureService: AgendaParticipationCellFixtureService,
+    private val story18FixtureService: E2eStory18FixtureService,
 ) {
     /** Resets Story 3.19 recette data (seasons A/B, Max, externe, sans exclusion événement pré-appliquée). */
     @PostMapping("/story-3-19/reset")
@@ -40,4 +43,9 @@ class E2eFixtureController(
     @PostMapping("/agenda-participation-cell/reset")
     fun resetAgendaParticipationCell(): AgendaParticipationCellFixtureResponse =
         agendaParticipationCellFixtureService.resetAgendaParticipationCell()
+
+    /** Removes a Story 1.8 signup test user from H2 (email/password E2E cleanup). */
+    @PostMapping("/story-1-8/cleanup")
+    fun cleanupStory18(@org.springframework.web.bind.annotation.RequestBody body: Story18CleanupRequest): Story18CleanupResponse =
+        story18FixtureService.cleanupUserByEmail(body.email)
 }

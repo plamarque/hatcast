@@ -82,6 +82,13 @@ export default defineConfig({
       },
       dependencies: ['setup-member'],
     },
+    {
+      name: 'chromium-1-8',
+      testMatch: /recette-1-8\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
   ],
   webServer: isStagingTarget
     ? undefined

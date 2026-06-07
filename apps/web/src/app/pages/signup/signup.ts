@@ -20,9 +20,9 @@ import { createUserWithEmailAndPassword } from 'firebase/auth'
 import { firstValueFrom } from 'rxjs'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { finishIdpSignInAfterEmailAuth } from '../../core/auth/finish-idp-email-auth'
 import {
   userMessageForGoogleSignInFailure,
-  userMessageForIdpApiFailure,
   userMessageForIdentityPlatformAuth,
 } from '../../core/auth/auth-user-message'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
@@ -238,29 +238,29 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password)
       const idToken = await cred.user.getIdToken()
-      await this.finishIdpSignIn(idToken)
+      await finishIdpSignInAfterEmailAuth(
+        {
+          auth: this.auth,
+          snack: this.snack,
+          router: this.router,
+          postLoginNav: this.postLoginNav,
+          isDev: this.isDev,
+          devLog: this.devLog,
+        },
+        {
+          idToken,
+          rememberMe: SIGNUP_REMEMBER_ME,
+          enableIdpRetry: true,
+          recoveryRedirectOnPersistentFailure: true,
+          loginQueryParams: this.loginQueryParams,
+        },
+      )
     } catch (e: unknown) {
       const code = typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
       this.snack.open(userMessageForIdentityPlatformAuth(code), 'OK', { duration: 8000 })
       if (this.isDev) {
         this.devLog.set(code || String(e))
       }
-    }
-  }
-
-  private async finishIdpSignIn(idToken: string): Promise<void> {
-    this.devLog.set(null)
-    const r = await this.auth.signInWithIdentityPlatformIdToken(idToken, SIGNUP_REMEMBER_ME)
-    if (r.ok) {
-      setHatcastRememberMePreference(SIGNUP_REMEMBER_ME)
-      this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
-      await this.postLoginNav.navigateAfterSignIn(this.router)
-      return
-    }
-    const msg = userMessageForIdpApiFailure(r.status)
-    this.snack.open(msg, 'OK', { duration: 8000 })
-    if (this.isDev) {
-      this.devLog.set(JSON.stringify({ status: r.status }, null, 2))
     }
   }
 

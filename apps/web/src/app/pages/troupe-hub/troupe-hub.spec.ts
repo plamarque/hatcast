@@ -624,7 +624,7 @@ describe('TroupeHub', () => {
       expect(fixture.nativeElement.querySelector('#troupe-access-denied-heading')).not.toBeNull()
     })
     expect(fixture.nativeElement.textContent).toContain('Tu n’es pas membre de cette troupe.')
-    expect(fixture.nativeElement.textContent).toContain('Découvrir d'autres troupes')
+    expect(fixture.nativeElement.textContent).toContain("Découvrir d'autres troupes")
     const decouvrirLink = fixture.nativeElement.querySelector(
       'a[href="/troupes#decouvrir"]',
     ) as HTMLAnchorElement | null

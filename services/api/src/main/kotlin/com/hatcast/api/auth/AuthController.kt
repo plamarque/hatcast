@@ -108,7 +108,11 @@ class AuthController(
             idpIdTokenVerifier.ifAvailable
                 ?: throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
 
-        if (!environment.activeProfiles.contains("test") && FirebaseApp.getApps().isEmpty()) {
+        if (
+            !environment.activeProfiles.contains("test") &&
+            !environment.activeProfiles.contains("e2e") &&
+            FirebaseApp.getApps().isEmpty()
+        ) {
             throw ResponseStatusException(
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "Identity Platform: configurez GOOGLE_APPLICATION_CREDENTIALS (JSON compte de service, même projet GCP que les tokens).",
