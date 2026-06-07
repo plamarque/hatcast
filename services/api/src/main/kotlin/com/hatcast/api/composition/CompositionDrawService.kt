@@ -224,6 +224,7 @@ class CompositionDrawService(
                         },
                         requiredCount,
                         pastByParticipant,
+                        roleKey = roleKey,
                     )
                 val scored =
                     AvailabilityChanceCalculator.scoreCandidates(
@@ -236,6 +237,7 @@ class CompositionDrawService(
                         },
                         requiredCount,
                         pastByParticipant,
+                        roleKey = roleKey,
                     )
                 val drawResult = AvailabilityChanceCalculator.performWeightedDraw(weighted, random)
 
@@ -443,6 +445,7 @@ class CompositionDrawService(
                     },
                     requiredCount,
                     pastByParticipant,
+                    roleKey = roleKey,
                 )
             for (candidate in scored) {
                 snapshotAccumulator[roleKey to candidate.participantId] =

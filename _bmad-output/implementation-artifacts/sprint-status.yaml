@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-07T23:25:00+02:00"
+last_updated: "2026-06-07T15:51:06+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -279,7 +279,7 @@ development_status:
   19-2-golden-tests-v1-js-kotlin: done  # paused — epic deferred
   19-3-fixtures-orchestration-draw-complet: done
   19-4-doc-orga-membre-comprendre-les-cotes: backlog
-  19-5-pipeline-draw-weight-factor: backlog
+  19-5-pipeline-draw-weight-factor: done
   19-6-facteur-past-participation-v1: backlog
   19-7-breakdown-explicabilite-par-facteur: backlog
   19-8-facteur-equity-tag-history-ex-17-9: backlog  # harden 17.9 (category compartment) into factor pipeline + golden

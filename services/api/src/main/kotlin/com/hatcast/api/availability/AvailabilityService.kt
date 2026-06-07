@@ -281,6 +281,7 @@ class AvailabilityService(
                                         },
                                         requiredCount,
                                         pastByParticipant,
+                                        roleKey = roleKey,
                                     ).associateBy { it.participantId }
                             } else {
                                 emptyMap()
