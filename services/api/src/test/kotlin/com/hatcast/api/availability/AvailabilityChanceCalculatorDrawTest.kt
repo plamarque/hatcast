@@ -19,17 +19,24 @@ class AvailabilityChanceCalculatorDrawTest {
     }
 
     @Test
-    fun `weightForParticipant uses configured pipeline`() {
+    fun `weightForParticipant uses configured pipeline without double malus`() {
         val pipeline =
             DrawWeightPipeline.of(
                 DrawWeightFactor { 2.0 },
             )
         val weight =
             AvailabilityChanceCalculator.weightForParticipant(
-                pastSelectionCount = 0,
+                pastSelectionCount = 3,
                 requiredCount = 5,
                 pipeline = pipeline,
             )
         assertEquals(10.0, weight)
+    }
+
+    @Test
+    fun `default pipeline preserves V1 golden weights`() {
+        assertEquals(2.0, AvailabilityChanceCalculator.weightForParticipant(0, 2))
+        assertEquals(2.0 / 3.0, AvailabilityChanceCalculator.weightForParticipant(2, 2), 1e-9)
+        assertEquals(0.25, AvailabilityChanceCalculator.weightForParticipant(3, 1), 1e-9)
     }
 }

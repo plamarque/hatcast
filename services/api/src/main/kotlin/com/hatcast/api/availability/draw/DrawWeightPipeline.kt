@@ -11,8 +11,15 @@ class DrawWeightPipeline private constructor(
         context: DrawWeightContext,
     ): Double =
         factors.fold(baseWeight) { weight, factor ->
-            weight * factor.multiplier(context)
+            weight * sanitizeMultiplier(factor.multiplier(context))
         }
+
+    /**
+     * Invalid factor multipliers (NaN, infinite, negative) are treated as `0.0` so the
+     * candidate is effectively excluded rather than corrupting the draw pool.
+     */
+    internal fun sanitizeMultiplier(value: Double): Double =
+        if (value.isFinite() && value >= 0.0) value else 0.0
 
     companion object {
         val EMPTY: DrawWeightPipeline = DrawWeightPipeline(emptyList())
@@ -23,7 +30,7 @@ class DrawWeightPipeline private constructor(
     }
 }
 
-/** Default troupe/event configuration until Wave B factor registration (19.6+). */
+/** Default troupe/event configuration: V1 past-participation malus only (story 19.6). */
 object DrawWeightPipelines {
-    val DEFAULT: DrawWeightPipeline = DrawWeightPipeline.EMPTY
+    val DEFAULT: DrawWeightPipeline = DrawWeightPipeline.of(PastParticipationFactor)
 }

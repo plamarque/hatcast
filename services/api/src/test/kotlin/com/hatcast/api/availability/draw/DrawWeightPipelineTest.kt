@@ -22,8 +22,8 @@ class DrawWeightPipelineTest {
     }
 
     @Test
-    fun `default registry pipeline is no-op`() {
-        assertEquals(1.25, DrawWeightPipelines.DEFAULT.apply(1.25, context(past = 3, required = 5)))
+    fun `default registry pipeline applies V1 past participation malus`() {
+        assertEquals(1.25, DrawWeightPipelines.DEFAULT.apply(5.0, context(past = 3, required = 5)))
     }
 
     @Test
@@ -55,12 +55,37 @@ class DrawWeightPipelineTest {
 
     @Test
     fun `factor receives draw context`() {
+        val pipeline = DrawWeightPipeline.of(PastParticipationFactor)
+        assertEquals(0.25, pipeline.apply(1.0, context(past = 3, required = 1)))
+    }
+
+    @Test
+    fun `invalid factor multiplier is treated as zero`() {
         val pipeline =
             DrawWeightPipeline.of(
-                DrawWeightFactor { ctx ->
-                    1.0 / (1.0 + ctx.pastSelectionCount)
-                },
+                DrawWeightFactor { Double.NaN },
+                DrawWeightFactor { -1.0 },
+                DrawWeightFactor { Double.POSITIVE_INFINITY },
             )
-        assertEquals(0.25, pipeline.apply(1.0, context(past = 3, required = 1)))
+        assertEquals(0.0, pipeline.apply(5.0, context()))
+    }
+
+    @Test
+    fun `zero multiplier is accepted as valid exclusion`() {
+        val pipeline =
+            DrawWeightPipeline.of(
+                DrawWeightFactor { 0.0 },
+            )
+        assertEquals(0.0, pipeline.apply(5.0, context()))
+    }
+
+    @Test
+    fun `invalid intermediate factor zeroes weight even when later factor is valid`() {
+        val pipeline =
+            DrawWeightPipeline.of(
+                DrawWeightFactor { Double.NaN },
+                DrawWeightFactor { 2.0 },
+            )
+        assertEquals(0.0, pipeline.apply(5.0, context()))
     }
 }

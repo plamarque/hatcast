@@ -57,17 +57,11 @@ object AvailabilityChanceCalculator {
                 pastSelectionCount = pastSelectionCount,
                 requiredCount = requiredCount,
             )
-        return pipeline.apply(legacyBaseWeight(context), context)
+        return pipeline.apply(baseWeight(context), context)
     }
 
-    /**
-     * V1 base weight before optional factors (malus × requiredCount).
-     * Split into `base × PastParticipationFactor` in story **19.6**.
-     */
-    internal fun legacyBaseWeight(context: DrawWeightContext): Double {
-        val malus = 1.0 / (1.0 + context.pastSelectionCount)
-        return malus * context.requiredCount
-    }
+    /** Base weight before factor pipeline: `requiredCount` only (malus in [PastParticipationFactor]). */
+    internal fun baseWeight(context: DrawWeightContext): Double = context.requiredCount.toDouble()
 
     fun toWeightedCandidates(
         candidates: List<Candidate>,
