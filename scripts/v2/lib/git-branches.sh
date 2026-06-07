@@ -80,14 +80,39 @@ hatcast_v2_origin_ref() {
   echo "origin/${branch}"
 }
 
-hatcast_v2_github_actions_url() {
+hatcast_v2_github_repo_slug() {
   local remote slug
   remote="$(git config --get remote.origin.url 2>/dev/null || true)"
-  slug="$(echo "${remote}" | sed -E 's#.*github\.com[:/]([^/]+/[^/.]+).*#\1#')"
+  slug="$(echo "${remote}" | sed -E 's#.*github\.com[:/]([^/]+/[^/.]+)(\.git)?$#\1#')"
   if [[ -n "${slug}" && "${slug}" != "${remote}" ]]; then
+    echo "${slug}"
+  fi
+}
+
+hatcast_v2_github_actions_url() {
+  local slug
+  slug="$(hatcast_v2_github_repo_slug)"
+  if [[ -n "${slug}" ]]; then
     echo "https://github.com/${slug}/actions"
   else
     echo "(voir l’onglet Actions du dépôt GitHub)"
+  fi
+}
+
+hatcast_v2_github_repo_url() {
+  local slug
+  slug="$(hatcast_v2_github_repo_slug)"
+  if [[ -n "${slug}" ]]; then
+    echo "https://github.com/${slug}"
+  fi
+}
+
+hatcast_v2_github_release_url() {
+  local tag="$1"
+  local repo_url
+  repo_url="$(hatcast_v2_github_repo_url)"
+  if [[ -n "${repo_url}" ]]; then
+    echo "${repo_url}/releases/tag/${tag}"
   fi
 }
 

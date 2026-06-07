@@ -31,8 +31,10 @@ Workflow développeur :
 
 Options :
   --redeploy      Re-déclencher le deploy Cloud Run prod pour le tag prod courant (sans nouveau tag)
+  --no-github-release
+                  Ne pas créer la GitHub Release (tag prod uniquement)
   --force         Remplacer un tag prod local divergent (transmis à promote-tag-to-prod.sh ; jamais de réécriture distante)
-  --dry-run, -n   Simulation
+  --dry-run, -n   Simulation (inclut preview des notes GitHub Release)
   --help, -h      Aide
 
 Implémentation : scripts/v2/promote-tag-to-prod.sh
@@ -51,7 +53,7 @@ for arg in "$@"; do
       echo "❌ ${arg%%=*} n’est plus nécessaire — le script détecte le dernier RC distant." >&2
       exit 1
       ;;
-    --force)
+    --force|--no-github-release)
       FORWARD_ARGS+=("${arg}")
       ;;
     *)

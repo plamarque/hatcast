@@ -125,11 +125,14 @@ Comportement :
 Pour les releases depuis Cursor, utiliser la skill **[`.agents/skills/hatcast-v2-release/`](../../../.agents/skills/hatcast-v2-release/SKILL.md)** :
 
 1. **Preview** (défaut) : `./scripts/v2/release-context.sh [--patch|--minor|--major]` — collecte commits, **aucune écriture disque**
-2. **Gate A** : rédaction Argil des notes « Nouveautés » dans le chat ; retouches jusqu’à « OK pour les notes »
+2. **Gate A** : rédaction Argil bilingue dans le chat — `changes` (FR, PWA) + `changes_en` (EN, GitHub Release prod) ; retouches jusqu’à « OK pour les notes »
 3. **Gate B** (optionnel) : `./scripts/release_version.sh … --dry-run` après écriture du cutover — preview CHANGELOG technique (sandbox, arbre de travail intact)
-4. **Apply** : écriture `scripts/v2/changelog-entries/vX.Y.Z-cutover.json` puis `./scripts/release_version.sh` (sans `--dry-run`)
+4. **Apply** : écriture `scripts/v2/changelog-entries/vX.Y.Z-cutover.json` (avec `changes_en`) puis `./scripts/release_version.sh` (sans `--dry-run`)
+5. **Prod** (après recette) : `./scripts/deploy_prod.sh` crée le tag `vX.Y.Z` **et** la GitHub Release (notes EN + section technique `CHANGELOG.md`)
 
-Principes éditoriaux : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). Exemples : `v2/changelog-entries/v2.1.0-cutover.json`, `v2.2.0-cutover.json`.
+Principes éditoriaux : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). FR : `argil-editorial.md` ; EN : `argil-editorial-en.md`. Exemples : `v2/changelog-entries/v2.1.0-cutover.json`, `v2.2.0-cutover.json`.
+
+**Pas de GitHub Release sur les tags RC** — uniquement sur `vX.Y.Z` lors de `deploy_prod.sh`. Prérequis : `gh` installé et authentifié (`gh auth login`).
 
 ## Release staging RC (V2)
 
@@ -258,11 +261,14 @@ npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
 Script façade : [`scripts/deploy_prod.sh`](../../../scripts/deploy_prod.sh) — implémentation [`scripts/v2/promote-tag-to-prod.sh`](../../../scripts/v2/promote-tag-to-prod.sh). Détecte automatiquement le dernier RC distant.
 
 ```bash
-# Simulation
+# Simulation (inclut preview des notes GitHub Release)
 ./scripts/deploy_prod.sh --dry-run
 
-# Réel (dernier vX.Y.Z-rc.N → vX.Y.Z)
+# Réel (dernier vX.Y.Z-rc.N → vX.Y.Z + GitHub Release)
 ./scripts/deploy_prod.sh
+
+# Tag prod sans GitHub Release (gh indisponible)
+./scripts/deploy_prod.sh --no-github-release
 
 # Re-déployer la prod sans nouveau tag
 ./scripts/deploy_prod.sh --redeploy
@@ -277,7 +283,10 @@ Si prod est déjà taguée sur un commit plus ancien que le dernier RC (ex. prod
 3. Vérifie qu’un éventuel tag prod `vX.Y.Z` déjà présent pointe le même commit (sinon fail-fast).
 4. Crée le tag annoté `vX.Y.Z` sur le commit RC source (si absent).
 5. Push du tag prod vers `origin`.
-6. Le workflow CI déploie la prod depuis le tag `vX.Y.Z` (pas besoin de branche de production dédiée).
+6. Crée la **GitHub Release** `vX.Y.Z` : section « What's new » depuis `changes_en` du cutover (commit RC) + « Technical changes » depuis `CHANGELOG.md`. Idempotent si la release existe déjà.
+7. Le workflow CI déploie la prod depuis le tag `vX.Y.Z` (pas besoin de branche de production dédiée).
+
+Si le cutover n’a pas de `changes_en`, la release est créée avec la section technique uniquement (avertissement console). Compléter via la skill avant promote.
 
 `release-production.sh` reste disponible en **flux legacy/transitoire**, mais le flux recommandé est désormais **tag-first**.
 

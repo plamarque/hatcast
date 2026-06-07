@@ -25,11 +25,11 @@ Ce dossier contient les scripts utiles pour les migrations, le déploiement, la 
 |--------|------|
 | **`deploy_staging.sh`** | Merge `v2` → `staging-v2` + push (E2E + deploy staging) |
 | **`release_version.sh`** | Release semver staging (auto-detect RC) ; `--patch` / `--minor` / `--major` |
-| **`deploy_prod.sh`** | Dernier RC → tag prod `vX.Y.Z` ; `--redeploy` pour relancer la CI |
+| **`deploy_prod.sh`** | Dernier RC → tag prod `vX.Y.Z` + GitHub Release (notes EN) ; `--redeploy` ; `--no-github-release` |
 
 Implémentation bas niveau : `scripts/v2/promote-to-staging.sh`, `release-staging.sh`, `promote-tag-to-prod.sh`.
 
-**Notes « Nouveautés » (PWA)** : cutover **obligatoire** — `scripts/v2/changelog-entries/vX.Y.Z-cutover.json`. Rédaction recommandée via la skill **`.agents/skills/hatcast-v2-release/`** (preview dry-run, validation avant apply). Contexte read-only : **`v2/release-context.sh`** (`--json`).
+**Notes « Nouveautés » (PWA)** : cutover **obligatoire** — `scripts/v2/changelog-entries/vX.Y.Z-cutover.json` (`changes` FR + `changes_en` EN pour GitHub Release prod). Rédaction recommandée via la skill **`.agents/skills/hatcast-v2-release/`** (preview dry-run, validation avant apply). Contexte read-only : **`v2/release-context.sh`** (`--json`). La GitHub Release est créée par **`deploy_prod.sh`** (pas sur les tags RC).
 
 #### V1 Firebase (legacy)
 

@@ -482,7 +482,195 @@ hatcast_load_cutover_changelog_entry() {
     return 1
   fi
 
-  jq -c --arg date "${build_date}" 'del(.source, .notes) | .date = $date' "${entry_file}"
+  jq -c --arg date "${build_date}" 'del(.source, .notes, .changes_en) | .date = $date' "${entry_file}"
+}
+
+# User-facing EN bullets for GitHub Release (prod tag only) — one line per bullet on stdout.
+# $1=version $2=optional git ref (commit/tag) to read cutover via git show
+hatcast_load_cutover_changes_en() {
+  local version="$1"
+  local git_ref="${2:-}"
+  local entry_file cutover_rel
+  entry_file="$(hatcast_cutover_entry_path "${version}")"
+  cutover_rel="${entry_file#${_HATCAST_REPO_ROOT}/}"
+
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ jq requis pour changelog cutover (installer jq)." >&2
+    return 1
+  fi
+
+  if [[ -n "${git_ref}" ]]; then
+    if ! git show "${git_ref}:${cutover_rel}" 2>/dev/null | jq -e '.changes_en | type == "array" and length > 0' >/dev/null 2>&1; then
+      return 1
+    fi
+    git show "${git_ref}:${cutover_rel}" | jq -r '.changes_en[]'
+    return 0
+  fi
+
+  if [[ ! -f "${entry_file}" ]]; then
+    return 1
+  fi
+
+  if ! jq -e '.changes_en | type == "array" and length > 0' "${entry_file}" >/dev/null 2>&1; then
+    return 1
+  fi
+
+  jq -r '.changes_en[]' "${entry_file}"
+}
+
+# Extract ## [version] section from CHANGELOG.md (stops at --- or next ##).
+# $1=version $2=optional git ref (commit/tag) to read via git show
+hatcast_extract_changelog_md_section() {
+  local version="$1"
+  local git_ref="${2:-}"
+  local changelog_file="${_HATCAST_REPO_ROOT}/CHANGELOG.md"
+  local awk_script='
+    BEGIN { found=0 }
+    /^## \[/ {
+      if (found) exit
+      if ($0 ~ "^## \\[" ver "\\]") found=1
+      next
+    }
+    found && /^---$/ { exit }
+    found { print }
+  '
+
+  if [[ -n "${git_ref}" ]]; then
+    if ! git show "${git_ref}:CHANGELOG.md" >/dev/null 2>&1; then
+      return 1
+    fi
+    git show "${git_ref}:CHANGELOG.md" | awk -v ver="${version}" "${awk_script}"
+    return 0
+  fi
+
+  if [[ ! -f "${changelog_file}" ]]; then
+    return 1
+  fi
+
+  awk -v ver="${version}" "${awk_script}" "${changelog_file}"
+}
+
+# Assemble GitHub Release markdown (EN user bullets + technical CHANGELOG section).
+# $1=version $2=optional git ref — stdout full body; return 1 if CHANGELOG section missing.
+hatcast_build_github_release_body() {
+  local version="$1"
+  local git_ref="${2:-}"
+  local technical_section has_user_en=false
+  local -a user_lines=()
+  local line
+
+  while IFS= read -r line; do
+    [[ -z "${line}" ]] && continue
+    user_lines+=("${line}")
+  done < <(hatcast_load_cutover_changes_en "${version}" "${git_ref}" 2>/dev/null || true)
+
+  if [[ ${#user_lines[@]} -gt 0 ]]; then
+    has_user_en=true
+  else
+    echo "⚠️  Cutover sans changes_en pour ${version} — release GitHub : section technique uniquement." >&2
+    echo "   Ajoutez changes_en via la skill hatcast-v2-release avant deploy_prod." >&2
+  fi
+
+  technical_section="$(hatcast_extract_changelog_md_section "${version}" "${git_ref}" || true)"
+  if [[ -z "${technical_section}" ]]; then
+    echo "❌ Section CHANGELOG.md introuvable pour ${version}." >&2
+    return 1
+  fi
+
+  if [[ "${has_user_en}" == true ]]; then
+    echo "## What's new"
+    echo ""
+    for line in "${user_lines[@]}"; do
+      echo "- ${line}"
+    done
+    echo ""
+    echo "## Technical changes"
+    echo ""
+  else
+    echo "## Technical changes"
+    echo ""
+  fi
+  echo "${technical_section}"
+}
+
+# Create GitHub Release for an existing tag (prod vX.Y.Z only).
+# $1=tag $2=notes_file $3=dry_run (true|false)
+hatcast_create_github_release() {
+  local tag="$1"
+  local notes_file="$2"
+  local dry_run="${3:-false}"
+  local title version
+
+  version="${tag#v}"
+  title="HatCast v${version}"
+
+  if [[ "${dry_run}" == true ]]; then
+    echo ""
+    echo "📄 GitHub Release preview (${tag}) :"
+    echo "────────────────────────────────────────"
+    cat "${notes_file}"
+    echo "────────────────────────────────────────"
+    echo "📝 WOULD RUN: gh release create \"${tag}\" --title \"${title}\" --notes-file \"${notes_file}\""
+    return 0
+  fi
+
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "❌ gh CLI requis pour la GitHub Release (brew install gh)." >&2
+    return 1
+  fi
+
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "❌ gh non authentifié — exécutez : gh auth login" >&2
+    return 1
+  fi
+
+  if gh release view "${tag}" >/dev/null 2>&1; then
+    echo "ℹ️  GitHub Release ${tag} existe déjà — pas de recréation."
+    local release_url
+    release_url="$(hatcast_v2_github_release_url "${tag}" 2>/dev/null || true)"
+    if [[ -n "${release_url}" ]]; then
+      echo "🌐 ${release_url}"
+    fi
+    return 0
+  fi
+
+  echo "📦 Création GitHub Release ${tag}…"
+  gh release create "${tag}" --title "${title}" --notes-file "${notes_file}"
+  local release_url
+  release_url="$(hatcast_v2_github_release_url "${tag}" 2>/dev/null || true)"
+  echo "✅ GitHub Release créée : ${tag}"
+  if [[ -n "${release_url}" ]]; then
+    echo "🌐 ${release_url}"
+  fi
+}
+
+# Orchestrator for promote-tag-to-prod.sh — build notes from RC commit and create GH Release.
+# $1=base_version $2=prod_tag $3=rc_commit $4=dry_run $5=skip_github_release (true|false)
+hatcast_publish_github_release_for_prod() {
+  local base_version="$1"
+  local prod_tag="$2"
+  local rc_commit="$3"
+  local dry_run="$4"
+  local skip_github_release="${5:-false}"
+  local notes_file
+
+  if [[ "${skip_github_release}" == true ]]; then
+    echo "⏭️  GitHub Release ignorée (--no-github-release)"
+    return 0
+  fi
+
+  hatcast_changelog_sync_repo_root_from_git
+
+  notes_file="$(mktemp)"
+
+  if ! hatcast_build_github_release_body "${base_version}" "${rc_commit}" >"${notes_file}"; then
+    rm -f "${notes_file}"
+    echo "❌ Impossible de générer les notes GitHub Release pour ${base_version}." >&2
+    return 1
+  fi
+
+  hatcast_create_github_release "${prod_tag}" "${notes_file}" "${dry_run}"
+  rm -f "${notes_file}"
 }
 
 # Technical JSON from git log (same range/filters as hatcast_generate_changelog_md).

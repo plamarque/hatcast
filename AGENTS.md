@@ -91,8 +91,9 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 
 For semver staging releases (`./scripts/release_version.sh`), use the project skill **[`.agents/skills/hatcast-v2-release/SKILL.md`](.agents/skills/hatcast-v2-release/SKILL.md)** :
 
-- Preview mode (default): draft user-facing « Nouveautés » in chat with Argil editorial rules — **no file writes** until explicit approval
-- Requires **`scripts/v2/changelog-entries/vX.Y.Z-cutover.json`** before the mechanical release runs (OpenAI path removed from release pipeline)
+- Preview mode (default): draft bilingual notes in chat — `changes` (FR, PWA) + `changes_en` (EN, GitHub Release prod) with Argil editorial rules — **no file writes** until explicit approval
+- Requires **`scripts/v2/changelog-entries/vX.Y.Z-cutover.json`** (with `changes_en`) before the mechanical release runs (OpenAI path removed from release pipeline)
+- GitHub Release is **not** created on RC tags; **`./scripts/deploy_prod.sh`** finalizes the release on prod tag `vX.Y.Z` (requires `gh auth login`)
 - Helper: `./scripts/v2/release-context.sh [--patch|--minor|--major] [--json]`
 
 ---
