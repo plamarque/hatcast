@@ -1,5 +1,6 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.event.EventRepository
@@ -214,22 +215,28 @@ class CompositionDrawIntegrationTest {
             .asInt()
     }
 
-    /** Opening draw snapshot — first slot iteration per role (full pool at role start). */
-    private fun expectedSnapshotFromDraw(
-        drawBody: JsonNode,
-        roleKey: String,
-        participantId: String,
-    ): Pair<Int, Int>? {
-        val firstStep =
-            drawBody.get("steps").firstOrNull { it.get("roleKey").asText() == roleKey } ?: return null
-        val candidates = firstStep.get("candidates")
-        for (index in 0 until candidates.size()) {
-            val candidate = candidates.get(index)
-            if (candidate.get("participantId").asText() == participantId) {
-                return candidate.get("chancePercent").asInt() to candidates.size()
+    /**
+     * Opening draw snapshot (E-04): score full role pool at draw opening — not per-slot steps after
+     * intra-role or cross-role exclusions accumulate during the same request.
+     */
+    private fun expectedOpeningSnapshotPercent(
+        requiredCount: Int,
+        poolParticipantIds: List<UUID>,
+        targetParticipantId: UUID,
+        pastByParticipant: Map<UUID, Int> = emptyMap(),
+    ): Pair<Int, Int> {
+        val candidates =
+            poolParticipantIds.map { pid ->
+                AvailabilityChanceCalculator.Candidate(pid, "test", null)
             }
-        }
-        return null
+        val past =
+            poolParticipantIds.associateWith { pastByParticipant[it] ?: 0 }
+        val scored =
+            AvailabilityChanceCalculator.scoreCandidates(candidates, requiredCount, past)
+        val row =
+            scored.firstOrNull { it.participantId == targetParticipantId }
+                ?: error("No opening score for $targetParticipantId")
+        return row.chancePercent to poolParticipantIds.size
     }
 
     private fun participantIdForUser(
@@ -450,6 +457,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR20")
+    @Tag("REF-O1")
     fun `full redraw clears slots when candidate pool cannot refill`() {
         val adminCookie = memberCookie("sub-draw-admin-redraw", admin = true)
         val member1 = memberCookie("sub-draw-member-redraw-a")
@@ -485,6 +493,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR20")
+    @Tag("REF-O2")
     fun `partial role keeps existing assignee and fills empty slot`() {
         val adminCookie = memberCookie("sub-draw-admin-partial", admin = true)
         val member1 = memberCookie("sub-draw-member-partial-a")
@@ -532,6 +541,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR20")
+    @Tag("REF-O4")
     fun `cross role draw excludes participant pre assigned on later role in draw order`() {
         val adminCookie = memberCookie("sub-draw-admin-preassign-player", admin = true)
         val solo = memberCookie("sub-draw-member-preassign-player")
@@ -566,6 +576,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR20")
+    @Tag("REF-O5")
     fun `full draw does not auto assign two roles when manual multi role stack exists`() {
         val adminCookie = memberCookie("sub-draw-admin-manual-multi", admin = true)
         val solo = memberCookie("sub-draw-member-manual-multi")
@@ -601,6 +612,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR20")
+    @Tag("REF-O3")
     fun `cross role draw excludes participant already assigned in same request`() {
         val adminCookie = memberCookie("sub-draw-admin-cross", admin = true)
         val solo = memberCookie("sub-draw-member-cross")
@@ -621,6 +633,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR19")
+    @Tag("REF-O7")
     fun `availability summary reflects non zero past selection history`() {
         val adminCookie = memberCookie("sub-draw-admin-history", admin = true)
         val veteran = memberCookie("sub-draw-member-history-vet")
@@ -890,6 +903,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR20")
+    @Tag("REF-O8")
     fun `draw persists chance snapshots for scored candidates`() {
         val adminCookie = memberCookie("sub-draw-snapshot-admin", admin = true)
         val member1 = memberCookie("sub-draw-snapshot-m1")
@@ -899,11 +913,12 @@ class CompositionDrawIntegrationTest {
         setAvailability(member1, seasonId, eventId, "available")
         setAvailability(member2, seasonId, eventId, "available")
 
-        val drawBody = draw(adminCookie, seasonId, eventId)
+        draw(adminCookie, seasonId, eventId)
         val veteranId = participantIdForUser(seasonId, "sub-draw-snapshot-m1")
         val rookieId = participantIdForUser(seasonId, "sub-draw-snapshot-m2")
-        val expectedVeteran = expectedSnapshotFromDraw(drawBody, "player", veteranId.toString())!!
-        val expectedRookie = expectedSnapshotFromDraw(drawBody, "player", rookieId.toString())!!
+        val pool = listOf(veteranId, rookieId)
+        val expectedVeteran = expectedOpeningSnapshotPercent(requiredCount = 2, poolParticipantIds = pool, targetParticipantId = veteranId)
+        val expectedRookie = expectedOpeningSnapshotPercent(requiredCount = 2, poolParticipantIds = pool, targetParticipantId = rookieId)
 
         val snapshots = drawChanceSnapshotRepository.findByIdEventId(eventId)
         assertEquals(2, snapshots.size)
@@ -994,6 +1009,7 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR20")
+    @Tag("T-O2")
     fun `full redraw replaces previous snapshots for event`() {
         val adminCookie = memberCookie("sub-draw-snapshot-redraw-admin", admin = true)
         val member1 = memberCookie("sub-draw-snapshot-redraw-m1")

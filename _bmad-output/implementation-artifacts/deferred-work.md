@@ -85,6 +85,13 @@
 
 ---
 
+## Deferred from: code review of 19-3-fixtures-orchestration-draw-complet (2026-06-07)
+
+- `computeOpeningChancePercent` réimplémente le filtrage du pool au lieu d'appeler `CompositionParticipantPool.buildRolePool` — acceptable tant que les fixtures restent simples ; réévaluer si le pool runtime gagne des filtres (genre, exclusions).
+- `CompositionDrawIntegrationTest` conserve ses propres helpers au lieu de `DrawTestSupport` — story 19.3 marquait l'extraction optionnelle ; consolidation possible en follow-up.
+
+---
+
 ## Liens normatifs
 
 | Sujet | Où tracer |

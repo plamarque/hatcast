@@ -391,6 +391,70 @@ Story **19.1** author computed **REF-D2**, **REF-D3**, **REF-P4** by executing `
 
 ---
 
+## Orchestration golden test contract (19.3 handoff)
+
+Story **19.3** locks **multi-role draw orchestration** in `CompositionDrawService` — beyond calculator-only golden tests (**19.2**).
+
+### Scope IN / OUT
+
+| IN (19.3) | OUT |
+|-----------|-----|
+| Full / partial redraw semantics | `AvailabilityChanceCalculator` unit golden → **19.2** |
+| Cross-role + intra-role exclusion in one request | Category compartment SQL → **19.8** |
+| `%` draw = summary at orchestration level | Factor pipeline → **19.5** |
+| Opening snapshot `chancePercent` persistence (**6.14**, **E-04**) | Formula id on snapshot → **19.22** |
+| G-03 indexed slot gap fill | UI explainability → **19.4** |
+| `DrawMode.FILL_EMPTY` on locked composition (**E-03**) | API `randomSeed` param (test seam only) |
+
+### E-04 vs story 6.14 AC1
+
+Story **6.14** AC1 wording references `steps[]` candidate `%`. **Runtime** uses `captureOpeningDrawSnapshots` at draw opening with `openingCrossRoleExcluded` (pre-existing assignees only). Persisted `event_draw_chance_snapshots.chancePercent` is the **opening** score, not the first per-slot step after cross-role exclusions accumulate in the same request. Orchestration golden **REF-O8** asserts this invariant.
+
+### JSON fixture schema (`draw/golden/orchestration.json`)
+
+```json
+{
+  "id": "REF-O3",
+  "description": "string",
+  "tags": ["cross-role", "FR20"],
+  "setup": {
+    "roleSlots": { "player": 1, "mc": 1 },
+    "participants": [{ "key": "solo" }],
+    "availabilities": [{ "participantKey": "solo", "status": "available", "roleKeys": ["player", "mc"] }],
+    "preAssignedSlots": [],
+    "validatedPastEvents": [{ "roleSlots": { "player": 1 }, "assigneeKey": "veteran" }],
+    "lockComposition": false
+  },
+  "drawSteps": [{ "mode": "full", "randomSeed": 99, "before": [{ "setAvailability": { "participantKey": "p2", "status": "unavailable", "roleKeys": [] } }] }],
+  "expected": { "totalAssignedSlots": 1, "maxRolesPerParticipant": 1 }
+}
+```
+
+Deterministic draws: call `CompositionDrawService.drawComposition(..., random = Random(seed))` in tests — **not** via HTTP (`DrawCompositionRequestDto` has no seed).
+
+Participant keys map to stable UUIDs via `DrawGoldenFixtureLoader.participantId(key)` (same as **19.2**).
+
+### Minimum frozen reference catalog (orchestration)
+
+| ID | Scenario | Key assertion |
+|----|----------|---------------|
+| **REF-O1** | Full redraw, pool cannot refill | Exactly 1 assignee after second draw |
+| **REF-O2** | Partial: slot 0 pre-assigned | Slot 0 unchanged; slot 1 filled |
+| **REF-O3** | Cross-role same request | ≤1 role per multi-role candidate |
+| **REF-O4** | Pre-assign player → excluded from dj | Solo stays player only |
+| **REF-O5** | Manual multi-role stack | Auto-draw does not double-assign |
+| **REF-O6** | 2 slots / 3 candidates, `Random(99)` | 2 distinct assignees (frozen keys) |
+| **REF-O7** | Validated past history | Veteran `%` < rookie `%`; step `%` = summary |
+| **REF-O8** | Multi-role opening snapshot | DB `chancePercent` = opening score (E-04) |
+| **REF-O9** | G-03 gap: slot 1 occupied | Fills slot 0 only |
+| **REF-O10** | `fillEmpty` on locked composition | Fills creux; occupant kept |
+| **T-O1** | Empty player pool | Draw continues; dj filled |
+| **T-O2** | Two full redraws | Snapshot row count stable |
+
+Runner: `DrawOrchestrationGoldenTest` — `./gradlew test --tests 'com.hatcast.api.composition.DrawOrchestrationGoldenTest'`.
+
+---
+
 ## Invariant
 
 **Displayed % = draw weights:** The same `AvailabilityChanceCalculator` pipeline must produce weights used for `performWeightedDraw`, Dispos **Tous %**, and Équipe explainability (FR19, FR20, FR24). Refactors (**19.5+**) must preserve this unless ADR + golden suite are updated.
