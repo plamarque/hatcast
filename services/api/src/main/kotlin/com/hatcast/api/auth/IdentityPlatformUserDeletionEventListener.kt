@@ -20,7 +20,7 @@ class IdentityPlatformUserDeletionEventListener(
         if (!attempted) {
             return
         }
-        userRepository.findByIdpUid(event.idpUid)?.let { user ->
+        userRepository.findById(event.userId).orElse(null)?.takeIf { it.idpUid == event.idpUid }?.let { user ->
             user.idpUid = null
             user.updatedAt = Instant.now()
             userRepository.save(user)

@@ -118,6 +118,14 @@
 
 ---
 
+## Deferred from: code review of spec-dw-105-idp-delete-post-commit (2026-06-07)
+
+- No integration test asserting IdP `deleteUser` is not invoked on 409 rollback (spec AC 4) — test gap only
+- AFTER_COMMIT listener runs synchronously — HTTP still waits for Firebase latency; DB lock fixed only (same as composition pattern) — out of scope
+- `IdentityPlatformUserDeletionSupport` does not assert `true` return when `deleteUser` throws — listener failure test mocks `true` identically to success — minor coverage gap
+
+---
+
 ## Liens normatifs
 
 | Sujet | Où tracer |

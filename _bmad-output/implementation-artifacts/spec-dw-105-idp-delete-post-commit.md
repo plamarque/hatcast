@@ -121,3 +121,10 @@ Listener runs existing `deleteIdentityPlatformUserBestEffort` body unchanged in 
 
 - DW-105 closure in deferred backlog.
   [`deferred-work.md:21`](deferred-work.md#L21)
+
+### Review Findings
+
+- [x] [Review][Patch] Listener should clear `idp_uid` via `event.userId` (PK lookup) instead of `findByIdpUid` [`IdentityPlatformUserDeletionEventListener.kt:23`]
+- [x] [Review][Defer] No integration test asserting IdP `deleteUser` is not invoked on 409 rollback (spec AC 4) — deferred, test gap only
+- [x] [Review][Defer] AFTER_COMMIT listener runs synchronously — HTTP still waits for Firebase latency; DB lock fixed only (same as composition pattern) — deferred, out of scope
+- [x] [Review][Defer] `IdentityPlatformUserDeletionSupport` does not assert `true` return when `deleteUser` throws — failure test in listener mocks `true` identically to success — deferred, minor coverage gap

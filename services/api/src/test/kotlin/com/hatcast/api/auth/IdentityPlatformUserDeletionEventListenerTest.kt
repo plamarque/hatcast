@@ -9,6 +9,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.util.Optional
 import java.util.UUID
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension::class)
@@ -32,7 +33,7 @@ class IdentityPlatformUserDeletionEventListenerTest {
         )
 
         verify(deletionSupport, never()).deleteUserIfAvailable(org.mockito.kotlin.any())
-        verify(userRepository, never()).findByIdpUid(org.mockito.kotlin.any())
+        verify(userRepository, never()).findById(org.mockito.kotlin.any())
     }
 
     @Test
@@ -47,7 +48,7 @@ class IdentityPlatformUserDeletionEventListenerTest {
             ),
         )
 
-        verify(userRepository, never()).findByIdpUid(org.mockito.kotlin.any())
+        verify(userRepository, never()).findById(org.mockito.kotlin.any())
     }
 
     @Test
@@ -55,7 +56,7 @@ class IdentityPlatformUserDeletionEventListenerTest {
         val idpUid = "firebase-uid-success"
         val user = UserEntity(idpUid = idpUid)
         whenever(deletionSupport.deleteUserIfAvailable(idpUid)).thenReturn(true)
-        whenever(userRepository.findByIdpUid(idpUid)).thenReturn(user)
+        whenever(userRepository.findById(user.id)).thenReturn(Optional.of(user))
 
         listener.onDeletionRequested(
             IdentityPlatformUserDeletionRequestedEvent(
@@ -73,7 +74,7 @@ class IdentityPlatformUserDeletionEventListenerTest {
         val idpUid = "firebase-uid-failure"
         val user = UserEntity(idpUid = idpUid)
         whenever(deletionSupport.deleteUserIfAvailable(idpUid)).thenReturn(true)
-        whenever(userRepository.findByIdpUid(idpUid)).thenReturn(user)
+        whenever(userRepository.findById(user.id)).thenReturn(Optional.of(user))
 
         listener.onDeletionRequested(
             IdentityPlatformUserDeletionRequestedEvent(
