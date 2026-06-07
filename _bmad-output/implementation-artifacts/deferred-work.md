@@ -1,6 +1,6 @@
 # Deferred work (actif)
 
-**Hygiène DOC-1** — MAJ **2026-06-07**. Backlog trié **risque × bénéfice × impact** — voir [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) §3. Historique : [`deferred-work-archive.md`](deferred-work-archive.md).
+**Hygiène DOC-1** — MAJ **2026-06-08**. Backlog trié **risque × bénéfice × impact** ; **T1** ordonné **coût vs bénéfice** — voir [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) §3–4. Historique : [`deferred-work-archive.md`](deferred-work-archive.md).
 
 **Contexte PLAN :** release train **V2.0.x** OK ; **M4** audience reportée (~août 2026) ; vague **2.1.0** (démo commission) en cours.
 
@@ -16,7 +16,9 @@
 | **DW-103** | accepté | Pas de backfill matchs historiques |
 | **DW-111** | 2026-06-05 | Replay migration × ≥3 (PO) |
 | **DW-112** | 2026-06-07 | Deploy : `--env-vars-file` YAML (`deploy-v2-cloud-run.yml`) — plus de CSV `--set-env-vars` |
-| **DW-107** | 2026-06-07 | Story **8.5b** — garde éligibilité `AssigneePresenceReminderJob` (membre inactif / participant retiré) |
+| **DW-104** | 2026-06-08 | Story **1.8** — retry signup + login recovery (compte Firebase orphelin) |
+| **DW-107** | 2026-06-08 | Story **8.5b** — garde éligibilité `AssigneePresenceReminderJob` (membre inactif / participant retiré) |
+| **DW-113** | 2026-06-08 | **Obsolète** — hub sans « Préférences dans cette troupe » (story **17.29**) |
 | **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` ; **DW-108** partiel |
 | **ops-8**, **ops-10** | 2026-06-04/05 | Prod domaine + email |
 | **19.1**, **mig-7** | 2026-06-04/06 | ADR tirage + backfill genre V1 |
@@ -25,7 +27,7 @@
 | **6.18**, **6.19**, **6.21**, **6.22** | 2026-06-05/07 | Aide statut, calendrier, mixité, unlock |
 | **Équipe SCSS** | 2026-06-06 | Budget `anyComponentStyle` OK (`f418887e`) |
 
-*Détail revues D → archive § hygiène 2026-06-07.*
+*Détail revues D → archive § hygiène 2026-06-07 ; clôtures T0 + defers 1.8/8.5b → § 2026-06-08.*
 
 ---
 
@@ -33,60 +35,35 @@
 
 | Tier | Quand agir | IDs |
 |------|------------|-----|
-| **T0** | Risque prod/ données **élevé**, impact **large** | **DW-104** |
-| **T1** | Risque **modéré**, bénéfice **net** pour orgas / ops | **DW-106**, **DW-105**, **DW-113**, **DW-114** |
+| **T0** | — | *(vide — DW-104, DW-107 clôturés)* |
+| **T1** | Coût **faible** → bénéfice **net** (ordre § ci-dessous) | **DW-106** → **DW-105** → **DW-114** |
 | **T2** | Avant **M4** / prochain load prod (défense) | **DW-109**, **DW-110**, **DW-118**, **DW-119** |
 | **T3** | Faible risque ou niche — backlog 2.1.0+ | **DW-108**, **DW-115–117**, **DW-120**, **DW-121–125** |
 
 ---
 
-## T0 — Agir tôt
+## T1 — Coût vs bénéfice (ordre d’exécution)
 
-### DW-104 — Compte Firebase orphelin *(auth)*
-
-| | |
-|--|--|
-| **Risque** | Élevé — comptes fantômes Firebase si API HatCast échoue après signup |
-| **Bénéfice** | Élevé — intégrité auth, moins de support |
-| **Impact** | Tous les inscrits email (Epic 1) |
-| **Action** | **Done** — story [1-8-recuperation-inscription-apres-echec-api-idp.md](./1-8-recuperation-inscription-apres-echec-api-idp.md) (retry + login recovery ; no client `deleteUser`) |
-
-### DW-107 — Rappels aux membres désactivés *(notifications)*
-
-| | |
-|--|--|
-| **Risque** | Modéré–élevé — spam, perte de confiance notifications |
-| **Bénéfice** | Élevé — respect lifecycle adhésion |
-| **Impact** | Membres désactivés avec slot `CONFIRMED` |
-| **Action** | **Done** — story [8-5b-garde-rappels-membres-desactives-dw-107.md](./8-5b-garde-rappels-membres-desactives-dw-107.md) (eligibility guard : membership `INACTIVE`, participant `REMOVED` ; skip before mark claim) |
-
----
-
-## T1 — Valeur nette haute
+| # | ID | Coût | Bénéfice | Notes |
+|---|-----|------|----------|-------|
+| 1 | **DW-106** | **XS** | Modéré (latent) | ~1 branche `NotificationIntent.toCategory()` + test — à câbler avec intent brouillon partagé Epic 8 |
+| 2 | **DW-105** | **M** | Modéré | `@TransactionalEventListener` post-commit pour `deleteIdentityPlatformUser` — [`AccountDeletionService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/AccountDeletionService.kt) |
+| 3 | **DW-114** | **M–L** | Modéré | Verrou / concurrence `reinclude` vs adhésion `INACTIVE` — [`SeasonParticipantService.reinclude`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantService.kt) ; auto-réparé au list |
 
 ### DW-106 — `COMPOSITION_SHARED` → `toCategory()`
 
 - **Risque :** prefs push/email **fausses** si intent activé (latent aujourd’hui).
-- **Bénéfice :** correction **triviale** (~1 branche Kotlin).
-- **Impact :** futur dispatch brouillon partagé (Epic 8).
+- **Fichier :** [`NotificationIntent.kt`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationIntent.kt).
 
-### DW-105 — `deleteUser` dans `@Transactional`
+### DW-105 — `deleteUser` IdP dans `@Transactional`
 
 - **Risque :** transaction DB longue, échec Firebase = rollback ambigu.
-- **Bénéfice :** robustesse suppression compte (1.7).
-- **Impact :** rare ; sensible RGPD.
-
-### DW-113 — Super-admin sans adhésion → prefs troupe
-
-- **Risque :** faible ; **bénéfice :** modéré pour ops plateforme.
-- **Impact :** super-admin uniquement.
-- **Action :** masquer sheet ou route admin dédiée.
+- **Impact :** rare ; sensible RGPD (story 1.7).
 
 ### DW-114 — `reinclude` vs adhésion INACTIVE
 
-- **Risque :** modéré — état roster incohérent transitoire.
-- **Bénéfice :** modéré — auto-réparé au list aujourd’hui.
-- **Impact :** edge concurrent admin.
+- **Risque :** modéré — état roster incohérent transitoire si désactivation concurrente.
+- **Alternative :** documenter accepté si aucun retour terrain.
 
 ---
 
@@ -136,20 +113,6 @@
 - **DW-123** — Budget bundle **initial** prod (~2,33 MB).
 - **DW-124** — SCSS composants lourds (`member-home-todo`, `member-nav`, …).
 - **DW-125** — Découpage optionnel `event-equipe-tab` (maintenance).
-
----
-
-## Deferred from: code review of 1-8-recuperation-inscription-apres-echec-api-idp (2026-06-07)
-
-- **Unrelated `troupe-hub.spec.ts` apostrophe fix** — pre-existing broken assertion bundled in story 1.8 diff; split to dedicated commit when convenient.
-- **No submit guard during IdP retry backoff on signup** — pre-existing double-click pattern; retry window slightly increases duplicate Firebase signup risk; future UX hardening if needed.
-
----
-
-## Deferred from: code review of 8-5b-garde-rappels-membres-desactives-dw-107 (2026-06-07)
-
-- **N+1 `findById` per confirmed slot in reminder job** — pre-existing query pattern from story 8.5; not introduced by eligibility guard.
-- **Eligibility check in transaction vs dispatch in `afterCommit`** — pre-existing story 8.5 architecture; guard does not widen the race window.
 
 ---
 

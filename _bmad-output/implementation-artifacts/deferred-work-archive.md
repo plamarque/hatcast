@@ -76,6 +76,36 @@ Revues **done** retirées de `deferred-work.md` actif. Seuil : dette **D** (test
 
 ---
 
+## Archive append (hygiène 2026-06-08)
+
+Clôture **T0** vide ; retrait entrées actives ; defers revues stories **done**.
+
+### DW-104 — fermé (story 1.8)
+
+- Retry signup API HatCast après succès IdP ; login recovery si compte orphelin Firebase.
+- Preuve : `sprint-status.yaml` — `1-8-recuperation-inscription-apres-echec-api-idp: done`.
+
+### DW-107 — fermé (story 8.5b)
+
+- Garde éligibilité `AssigneePresenceReminderJob` : skip si membership `INACTIVE` ou participant `REMOVED`.
+- Preuve : `sprint-status.yaml` — `8-5b-garde-rappels-membres-desactives-dw-107: done`.
+
+### DW-113 — obsolète (story 17.29)
+
+- Sheet « Préférences dans cette troupe » retirée du hub ; prefs dans Mon compte. Plus de `PATCH …/memberships/me` depuis le hub pour super-admin sans adhésion.
+
+### Deferred from: code review of 1-8-recuperation-inscription-apres-echec-api-idp (2026-06-07)
+
+- **Unrelated `troupe-hub.spec.ts` apostrophe fix** — assertion préexistante dans le diff 1.8 ; commit dédié si besoin.
+- **No submit guard during IdP retry backoff on signup** — double-clic ; fenêtre retry augmente légèrement le risque signup Firebase dupliqué ; hardening UX futur.
+
+### Deferred from: code review of 8-5b-garde-rappels-membres-desactives-dw-107 (2026-06-07)
+
+- **N+1 `findById` per confirmed slot in reminder job** — pattern préexistant story 8.5.
+- **Eligibility check in transaction vs dispatch in `afterCommit`** — architecture 8.5 préexistante ; garde n’élargit pas la fenêtre de course.
+
+---
+
 ## Deferred from: code review of 6-10c-deplacer-rappel-dispos-menu-gear-evenement.md (2026-06-04)
 
 - Échecs `event-detail.spec.ts` hors périmètre 6.10c (routes canoniques `/saison/:troupeSlug/…`, breadcrumb) — les tests Relance dispos ajoutés passent ; suite globale web déjà rouge ailleurs.
