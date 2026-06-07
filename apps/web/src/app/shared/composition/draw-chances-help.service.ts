@@ -19,7 +19,7 @@ export class DrawChancesHelpService {
   private readonly overlayGate = inject(CompositionOverlayGateService)
 
   async open(): Promise<void> {
-    if (!this.overlayGate.tryAcquire()) {
+    if (!this.overlayGate.tryAcquireHelp()) {
       return
     }
     const isDesktop = this.breakpointObserver.isMatched(CHANCE_BREAKDOWN_DESKTOP_MEDIA_QUERY)

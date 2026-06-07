@@ -46,7 +46,7 @@ export class ChanceBreakdownService {
   }
 
   async open(context: ChanceBreakdownOpenContext): Promise<void> {
-    if (!this.overlayGate.tryAcquire()) {
+    if (!this.overlayGate.tryAcquireBreakdown()) {
       this.snack.open('Une fiche est déjà ouverte.', 'OK', { duration: 3000 })
       return
     }

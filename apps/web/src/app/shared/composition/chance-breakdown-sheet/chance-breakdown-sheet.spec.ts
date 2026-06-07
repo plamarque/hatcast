@@ -85,6 +85,15 @@ describe('ChanceBreakdownSheet', () => {
     ).toBeTruthy()
   })
 
+  it('opens draw chances help from doc link', () => {
+    const help = TestBed.inject(DrawChancesHelpService) as { open: ReturnType<typeof vi.fn> }
+    const link = fixture.nativeElement.querySelector(
+      '.chance-breakdown-sheet__doc-link',
+    ) as HTMLButtonElement
+    link.click()
+    expect(help.open).toHaveBeenCalled()
+  })
+
   it('shows ex aequo summary when top candidates share the same chance', async () => {
     await TestBed.resetTestingModule()
       .configureTestingModule({
