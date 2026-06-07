@@ -1,5 +1,43 @@
 # Changelog
 
+## [2.3.0] - 2026-06-07
+
+### ✨ New Features
+- feat(composition): Ship chance breakdown explainability (19.7)
+- feat(draw): Migrate past participation malus to factor pipeline
+- feat(notifications): Map COMPOSITION_SHARED intent
+
+### 🔧 Improvements
+- refactor(draw): Introduce DrawWeightFactor pipeline shell
+- refactor(auth): Move IdP deleteUser to post-commit
+
+### 🐛 Bug Fixes
+- fix(composition): Allow help dialog over breakdown sheet
+- fix(participants): Re-check membership on reinclude
+- fix(auth): Clear idp_uid via user PK post-commit
+- fix(test): Stabilize Auth XSRF assertion in full suite
+- fix(notifications): Skip reminders for inactive members
+- fix(auth): Recover signup after IdP API failure
+- fix(migration): Use gcloud staging restart
+- fix(ops): Restore curated 2.2.0 user release notes
+- fix(api): Publish XSRF cookie after CSRF filter chain
+
+### 📝 Other Changes
+- docs(release): Add v2.3.0 user changelog cutover
+- chore(v2): promote v2 to staging-v2
+- docs(draw): Add draw chances user guide
+- test(draw): Add orchestration golden suite
+- test(draw): Harden golden runner and close 19.2
+- docs(deferred): Close DW-118 after SQL audit
+- docs(deferred): Close T1 and rank T2/T3 by ROI
+- chore(v2): promote v2 to staging-v2
+- docs(deferred): Close T0 and rank T1 by ROI
+- docs(deferred): Triage backlog by risk and impact
+- chore(v2): promote v2 to staging-v2
+- chore(v2): sync release v2.2.0-rc.1 artifacts to v2
+
+---
+
 ## [2.2.0] - 2026-06-07
 
 ### ✨ New Features
