@@ -46,14 +46,15 @@
 
 | # | ID | Coût | Bénéfice | Notes |
 |---|-----|------|----------|-------|
-| 1 | **DW-106** | **XS** | Modéré (latent) | ~1 branche `NotificationIntent.toCategory()` + test — à câbler avec intent brouillon partagé Epic 8 |
+| 1 | **DW-106** | **XS** | Modéré (latent) | ~~`toCategory()` + test~~ **Done** (2026-06-07) — dispatch 8.4 reste à câbler |
 | 2 | **DW-105** | **M** | Modéré | `@TransactionalEventListener` post-commit pour `deleteIdentityPlatformUser` — [`AccountDeletionService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/AccountDeletionService.kt) |
 | 3 | **DW-114** | **M–L** | Modéré | Verrou / concurrence `reinclude` vs adhésion `INACTIVE` — [`SeasonParticipantService.reinclude`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantService.kt) ; auto-réparé au list |
 
-### DW-106 — `COMPOSITION_SHARED` → `toCategory()`
+### DW-106 — `COMPOSITION_SHARED` → `toCategory()` ✅ (2026-06-07)
 
 - **Risque :** prefs push/email **fausses** si intent activé (latent aujourd’hui).
 - **Fichier :** [`NotificationIntent.kt`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationIntent.kt).
+- **Reste :** câbler `publishDraftCompositionShared` → dispatch 8.4 (payload + recipients).
 
 ### DW-105 — `deleteUser` IdP dans `@Transactional`
 
