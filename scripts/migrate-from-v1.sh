@@ -17,8 +17,6 @@ cd "${ROOT}"
 
 # shellcheck source=load-dotenv.sh
 source "${SCRIPT_DIR}/load-dotenv.sh"
-# shellcheck source=v2/lib/git-branches.sh
-source "${SCRIPT_DIR}/v2/lib/git-branches.sh"
 
 load_dotenv "${ROOT}/.env.local"
 load_dotenv "${ROOT}/.env"
@@ -32,11 +30,13 @@ HEALTH_POLL_SECONDS="${HATCAST_MIGRATE_HEALTH_POLL_SECONDS:-10}"
 TARGET="staging"
 DRY_RUN=false
 NO_PROMPT_RESET=false
+I_RESET_NEON=false
 SKIP_REDEPLOY=false
 SKIP_ENABLE_MIGRATION_API=false
 RESTART_MODE=""
 MIGRATION_API_CLOUD_RUN_CONFIGURED=false
 EXTRA_ARGS=()
+RESET_FLAG=()
 
 usage() {
   cat <<EOF
@@ -47,7 +47,7 @@ Migrates V1 Firestore production data into V2 (orchestrator MIG-5).
 Targets (--target=, default: staging):
   local         Neon branche « local » (NEON_LOCAL_URL ou HATCAST_DATASOURCE_URL) + API http://127.0.0.1:8080
   development   Neon « development » + Cloud Run hatcast-v2-dev (redémarrage gcloud)
-  staging       Neon « staging » + Cloud Run hatcast-v2-staging (redeploy GitHub staging-v2)
+  staging       Neon « staging » + Cloud Run hatcast-v2-staging (redémarrage gcloud)
   production    Neon production + Cloud Run hatcast-v2 (pas de redeploy auto ; --confirm-prod requis)
 
 Full cycle after Neon reset (sauf --no-prompt-reset):
@@ -60,9 +60,10 @@ Options:
   --target=NAME             local | development | staging | production (default: staging)
   --dry-run                 Export + transform only (no Neon writes)
   --no-prompt-reset         Skip Neon reset prompt and API restart
+  --i-reset-neon            Neon déjà reset + API déjà redémarrée (reprise après échec)
   --skip-redeploy           After Neon reset, skip API restart (you did it yourself)
   --skip-staging-redeploy   Alias of --skip-redeploy (backward compatible)
-  --restart=MODE            Override: prompt-local | gcloud | github | none
+  --restart=MODE            Override: prompt-local | gcloud | github | none (staging défaut: gcloud)
   --skip-enable-migration-api
                             Ne pas pousser HATCAST_MIGRATION_API_* sur Cloud Run (défaut: auto pour development)
   --help, -h                This help
@@ -73,7 +74,7 @@ Environment (.env.local) — voir .env.example § migration V1:
   HATCAST_MIGRATE_API_BASE_* (optionnel si défaut local suffit)
   FIREBASE_PROJECT_ID (ou VITE_FIREBASE_PROJECT_ID) + Admin credentials
 
-Requires: gh auth login (cible staging, si redeploy GitHub)
+Requires: gcloud auth (cibles development/staging) ; gh auth login seulement si --restart=github
 EOF
 }
 
@@ -82,6 +83,17 @@ hatcast_github_repo_slug() {
   remote="$(git config --get remote.origin.url 2>/dev/null || true)"
   if [[ "${remote}" =~ github\.com[:/]([^/]+)/([^/.]+)(\.git)?$ ]]; then
     echo "${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+  fi
+}
+
+hatcast_v2_github_actions_url() {
+  local remote slug
+  remote="$(git config --get remote.origin.url 2>/dev/null || true)"
+  slug="$(echo "${remote}" | sed -E 's#.*github\.com[:/]([^/]+/[^/.]+).*#\1#')"
+  if [[ -n "${slug}" && "${slug}" != "${remote}" ]]; then
+    echo "https://github.com/${slug}/actions"
+  else
+    echo "(voir l'onglet Actions du dépôt GitHub)"
   fi
 }
 
@@ -217,7 +229,7 @@ restart_cloud_run_gcloud() {
 }
 
 restart_api_for_target() {
-  local mode="${RESTART_MODE:-${MIGRATE_RESTART_MODE}}"
+  local mode="${RESTART_MODE:-${MIGRATE_RESTART_MODE:-gcloud}}"
   case "${mode}" in
     none)
       echo "   → no automatic API restart (target ${TARGET})"
@@ -242,6 +254,45 @@ restart_api_for_target() {
   esac
 }
 
+handle_neon_reset_prompt() {
+  if [[ "${DRY_RUN}" == true || "${NO_PROMPT_RESET}" == true ]]; then
+    return 0
+  fi
+
+  if [[ "${I_RESET_NEON}" == true ]]; then
+    RESET_FLAG=(--i-reset-neon)
+    echo "   → --i-reset-neon (reprise — Neon reset et API déjà traités)"
+    if [[ "${SKIP_REDEPLOY}" == false ]]; then
+      echo ""
+      restart_api_for_target
+    fi
+    echo "   ✅ Prêt pour migrate:v2:run"
+    return 0
+  fi
+
+  echo ""
+  echo "📋 Neon reset (manual in console):"
+  echo "   Neon → branch « ${MIGRATE_NEON_BRANCH_LABEL} » → Reset from parent"
+  read -r -p "Reset effectué ? [y/N] " ans
+  if [[ ! "${ans}" =~ ^[yY] ]]; then
+    echo "   → continuing without --i-reset-neon"
+    return 0
+  fi
+
+  RESET_FLAG=(--i-reset-neon)
+  echo "   → --i-reset-neon"
+
+  if [[ "${SKIP_REDEPLOY}" == false ]]; then
+    echo ""
+    restart_api_for_target
+  else
+    echo "   → --skip-redeploy"
+    echo ""
+    read -r -p "API (${MIGRATE_TARGET}) redémarrée / déployée ? [Enter pour continuer]"
+  fi
+  echo "   ✅ Prêt pour migrate:v2:run"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --target=*)
@@ -258,6 +309,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-prompt-reset)
       NO_PROMPT_RESET=true
+      shift
+      ;;
+    --i-reset-neon)
+      I_RESET_NEON=true
       shift
       ;;
     --skip-redeploy | --skip-staging-redeploy)
@@ -288,7 +343,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if ! RESOLVE_SHELL="$(node "${RESOLVE_TARGET_NODE}" --target="${TARGET}" --format=shell 2>&1)"; then
+if ! RESOLVE_SHELL="$(node "${RESOLVE_TARGET_NODE}" --target="${TARGET}" --format=shell 2>&1 | tr -d '\r')"; then
   echo "${RESOLVE_SHELL}" >&2
   node "${RESOLVE_TARGET_NODE}" --help >&2
   exit 1
@@ -367,28 +422,7 @@ if [[ "${MIGRATE_REQUIRES_PROD_CONFIRM}" == "1" && "${DRY_RUN}" == false ]]; the
   fi
 fi
 
-RESET_FLAG=()
-if [[ "${DRY_RUN}" == false && "${NO_PROMPT_RESET}" == false ]]; then
-  echo ""
-  echo "📋 Neon reset (manual in console):"
-  echo "   Neon → branch « ${MIGRATE_NEON_BRANCH_LABEL} » → Reset from parent"
-  read -r -p "Reset effectué ? [y/N] " ans
-  if [[ "${ans}" =~ ^[yY] ]]; then
-    RESET_FLAG=(--i-reset-neon)
-    echo "   → --i-reset-neon"
-
-    if [[ "${SKIP_REDEPLOY}" == false ]]; then
-      echo ""
-      restart_api_for_target
-    else
-      echo "   → --skip-redeploy"
-      echo ""
-      read -r -p "API (${MIGRATE_TARGET}) redémarrée / déployée ? [Enter pour continuer]"
-    fi
-  else
-    echo "   → continuing without --i-reset-neon"
-  fi
-fi
+handle_neon_reset_prompt
 
 if [[ "${MIGRATE_AUTO_ENABLE_MIGRATION_API:-0}" == "1" ]]; then
   echo ""

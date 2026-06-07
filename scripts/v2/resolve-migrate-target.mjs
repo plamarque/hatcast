@@ -111,9 +111,7 @@ export function resolveMigrateTarget(target, env = process.env) {
         ? 'prompt-local'
         : t === 'production'
           ? 'none'
-          : t === 'development'
-            ? 'gcloud'
-            : 'github',
+          : 'gcloud',
     requiresProdConfirm: t === 'production',
     prodConfirmSlug: 'production',
     /** Active HATCAST_MIGRATION_API_* sur Cloud Run via gcloud (migrate-from-v1.sh). */
