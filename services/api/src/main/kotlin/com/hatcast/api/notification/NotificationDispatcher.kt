@@ -106,6 +106,14 @@ class NotificationDispatcher(
                 recipientResolver.resolveConcernedRosterRecipients(context.seasonId, context.eventId)
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE ->
                 recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
+            NotificationIntent.AVAILABILITY_PENDING_REMINDER ->
+                if (context.recipientUserIds.isNotEmpty()) {
+                    context.recipientUserIds.map { userId ->
+                        NotificationRecipient(userId = userId, displayName = "")
+                    }
+                } else {
+                    recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
+                }
             NotificationIntent.COMPOSITION_SHARED ->
                 emptyList() // story 8.4 — publishDraftCompositionShared dispatch
             NotificationIntent.CONFIRMATION_REQUEST ->

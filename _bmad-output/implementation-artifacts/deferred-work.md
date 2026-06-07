@@ -138,6 +138,16 @@
 
 ---
 
+## Deferred from: code review of 8-7-rappels-automatiques-disponibilite-cadence-5-jours (2026-06-07)
+
+- Cadence avancée malgré opt-out total push+email — **accepté (PO : B)** : marque = run traité, aligné 8.5 ; pas de pré-filtre prefs avant claim.
+- Marque consommée si dispatch échoue après claim — même pattern que `AssigneePresenceReminderJob` (story 8.5).
+- Course recipient répond entre claim et `afterCommit` dispatch — fenêtre étroite, pas de re-resolve au dispatch.
+- Suite Gradle non entièrement verte (793/796) — échecs hors périmètre 8.7.
+- `@Scheduled` Cloud Run scale-to-zero — documenté dans Dev Notes story 8.7, même limitation que 8.5.
+
+---
+
 ## Liens normatifs
 
 | Sujet | Où tracer |

@@ -178,6 +178,88 @@ class NotificationDispatcherTest {
     }
 
     @Test
+    fun `AVAILABILITY_PENDING_REMINDER skips push when weekly reminder preference disabled`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val event = notificationEvent(eventId, troupeId)
+        val preferencePort: NotificationPreferenceEligibilityPort = mock()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(pushEligibilityPort.isPushAllowedForCategory(userId, NotificationCategory.AVAILABILITY_WEEKLY_REMINDER))
+            .thenReturn(false)
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(preferencePort)
+        whenever(
+            preferencePort.isAllowed(userId, NotificationCategory.AVAILABILITY_WEEKLY_REMINDER, NotificationChannel.EMAIL),
+        ).thenReturn(true)
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(UserEntity(email = "alice@example.com")))
+        whenever(emailSender.sendEmail(any(), any(), any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.EMAIL, status = NotificationDeliveryStatus.SENT),
+        )
+
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.AVAILABILITY_PENDING_REMINDER,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = userId,
+                recipientUserIds = listOf(userId),
+            ),
+        )
+
+        verify(pushSender, org.mockito.kotlin.never()).sendPush(any(), any(), any(), any())
+        verify(deliveryLogRepository).save(
+            argThat {
+                channel == NotificationChannel.PUSH &&
+                    status == NotificationDeliveryStatus.SKIPPED &&
+                    errorMessage == "push_not_allowed"
+            },
+        )
+    }
+
+    @Test
+    fun `AVAILABILITY_PENDING_REMINDER skips email when weekly reminder preference disabled`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val event = notificationEvent(eventId, troupeId)
+        val preferencePort: NotificationPreferenceEligibilityPort = mock()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(pushEligibilityPort.isPushAllowedForCategory(userId, NotificationCategory.AVAILABILITY_WEEKLY_REMINDER))
+            .thenReturn(true)
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(preferencePort)
+        whenever(
+            preferencePort.isAllowed(userId, NotificationCategory.AVAILABILITY_WEEKLY_REMINDER, NotificationChannel.EMAIL),
+        ).thenReturn(false)
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(UserEntity(email = "alice@example.com")))
+        whenever(pushSender.sendPush(any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SENT),
+        )
+
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.AVAILABILITY_PENDING_REMINDER,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = userId,
+                recipientUserIds = listOf(userId),
+            ),
+        )
+
+        verify(emailSender, org.mockito.kotlin.never()).sendEmail(any(), any(), any(), any(), any(), any())
+        verify(deliveryLogRepository).save(
+            argThat {
+                channel == NotificationChannel.EMAIL &&
+                    status == NotificationDeliveryStatus.SKIPPED &&
+                    errorMessage == "email_preference_disabled"
+            },
+        )
+    }
+
+    @Test
     fun `category mapping covers all intents`() {
         assertEquals(
             NotificationCategory.TEAM_CONFIRMED,
@@ -206,6 +288,10 @@ class NotificationDispatcherTest {
         assertEquals(
             NotificationCategory.AVAILABILITY_REQUEST,
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.AVAILABILITY_WEEKLY_REMINDER,
+            NotificationIntent.AVAILABILITY_PENDING_REMINDER.toCategory(),
         )
         assertEquals(
             NotificationCategory.COMPOSITION_SHARED,

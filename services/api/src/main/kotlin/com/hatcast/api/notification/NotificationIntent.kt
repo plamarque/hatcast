@@ -4,6 +4,8 @@ enum class NotificationIntent {
     AVAILABILITY_OPENED,
     MANUAL_AVAILABILITY_ANNOUNCE,
     MANUAL_AVAILABILITY_NUDGE,
+    /** Automatic availability pending reminder (5-day cadence) — story 8.7. */
+    AVAILABILITY_PENDING_REMINDER,
     /** Draft composition shared with roster — dispatch wired in story 8.4. */
     COMPOSITION_SHARED,
     CONFIRMATION_REQUEST,
@@ -51,7 +53,7 @@ enum class NotificationCategory(
         NotificationCategoryGroup.AUTOMATIC_REMINDERS,
     ),
     AVAILABILITY_WEEKLY_REMINDER(
-        "Rappels hebdomadaires si je n'ai pas indiqué mes disponibilités",
+        "Rappels tous les 5 jours si je n'ai pas indiqué mes disponibilités",
         NotificationCategoryGroup.AUTOMATIC_REMINDERS,
     ),
 }
@@ -71,6 +73,7 @@ fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = 
         NotificationIntent.AVAILABILITY_OPENED -> NotificationCategory.AVAILABILITY_REQUEST
         NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE -> NotificationCategory.AVAILABILITY_REQUEST
         NotificationIntent.MANUAL_AVAILABILITY_NUDGE -> NotificationCategory.AVAILABILITY_REQUEST
+        NotificationIntent.AVAILABILITY_PENDING_REMINDER -> NotificationCategory.AVAILABILITY_WEEKLY_REMINDER
         NotificationIntent.COMPOSITION_SHARED -> NotificationCategory.COMPOSITION_SHARED
         NotificationIntent.CONFIRMATION_REQUEST -> NotificationCategory.CONFIRMATION_REQUEST
         NotificationIntent.TEAM_VALIDATED_FYI -> NotificationCategory.TEAM_CONFIRMED

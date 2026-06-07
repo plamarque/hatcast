@@ -64,6 +64,10 @@ hatcast:
     vapid-private-key: ${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY:}
     subject: ${HATCAST_WEB_PUSH_VAPID_SUBJECT:mailto:contact@hatcast.app}
   notification:
+    reminder-cron: ${HATCAST_NOTIFICATION_REMINDER_CRON:0 0 8 * * *}
+    availability-pending-reminder-cron: ${HATCAST_NOTIFICATION_AVAILABILITY_PENDING_REMINDER_CRON:0 0 9 * * *}
+    availability-pending-horizon-days: ${HATCAST_NOTIFICATION_AVAILABILITY_PENDING_HORIZON_DAYS:21}
+    availability-pending-cadence-days: ${HATCAST_NOTIFICATION_AVAILABILITY_PENDING_CADENCE_DAYS:5}
     email:
       enabled: ${HATCAST_NOTIFICATION_EMAIL_ENABLED:false}
       from: ${HATCAST_NOTIFICATION_EMAIL_FROM:HatCast <noreply@hatcast.app>}

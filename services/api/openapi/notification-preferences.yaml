@@ -69,6 +69,7 @@ components:
             - AVAILABILITY_WEEKLY_REMINDER
         label:
           type: string
+          example: Rappels tous les 5 jours si je n'ai pas indiqué mes disponibilités
         group:
           type: string
           enum: [NOTIFICATIONS, AUTOMATIC_REMINDERS]

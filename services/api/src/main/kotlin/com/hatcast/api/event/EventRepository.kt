@@ -212,6 +212,25 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         @Param("fromInclusive") fromInclusive: Instant,
     ): List<EventEntity>
 
+    @Query(
+        """
+        SELECT DISTINCT e FROM EventEntity e
+        JOIN FETCH e.season s
+        JOIN FETCH s.troupe
+        LEFT JOIN EventCompositionEntity c ON c.eventId = e.id
+        WHERE e.archived = false
+          AND e.availabilityOpenedAt IS NOT NULL
+          AND (c IS NULL OR c.validatedAt IS NULL)
+          AND e.startsAt >= :fromInclusive
+          AND e.startsAt < :toExclusive
+        ORDER BY e.startsAt ASC
+        """,
+    )
+    fun findPublishedEventsCollectingAvailability(
+        @Param("fromInclusive") fromInclusive: Instant,
+        @Param("toExclusive") toExclusive: Instant,
+    ): List<EventEntity>
+
     /**
      * Last validated event strictly before [beforeEventId] in the same category compartment.
      * Category filter aligned with [com.hatcast.api.composition.EventCompositionSlotRepository].

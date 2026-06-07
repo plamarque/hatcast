@@ -4,6 +4,8 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 @Service
@@ -40,4 +42,43 @@ class NotificationReminderMarkService(
             false
         }
     }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    fun tryClaimPeriodicReminderMark(
+        intent: NotificationIntent,
+        eventId: UUID,
+        userId: UUID,
+        civilDate: LocalDate,
+    ): Boolean {
+        if (repository.existsByIntentAndEventIdAndUserIdAndReminderCivilDate(intent, eventId, userId, civilDate)) {
+            return false
+        }
+        return try {
+            repository.save(
+                NotificationReminderMarkEntity(
+                    intent = intent,
+                    eventId = eventId,
+                    userId = userId,
+                    reminderWindow = NotificationReminderWindow.ONCE,
+                    reminderCivilDate = civilDate,
+                ),
+            )
+            true
+        } catch (_: DataIntegrityViolationException) {
+            false
+        }
+    }
+
+    fun findLatestSentAt(
+        intent: NotificationIntent,
+        eventId: UUID,
+        userId: UUID,
+    ): Instant? =
+        repository
+            .findTopByIntentAndEventIdAndUserIdAndReminderCivilDateNotOrderBySentAtDesc(
+                intent,
+                eventId,
+                userId,
+                NotificationReminderMarkEntity.LEGACY_CIVIL_DATE,
+            )?.sentAt
 }

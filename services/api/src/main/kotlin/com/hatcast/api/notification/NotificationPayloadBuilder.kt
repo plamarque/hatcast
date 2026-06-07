@@ -57,6 +57,12 @@ class NotificationPayloadBuilder {
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=dispos",
                 )
             }
+            NotificationIntent.AVAILABILITY_PENDING_REMINDER ->
+                NotificationPayload(
+                    title = "⏰ Rappel disponibilité",
+                    body = "N'oublie pas de répondre pour $eventTitle le $eventDate !",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=dispos",
+                )
             NotificationIntent.COMPOSITION_SHARED ->
                 error("COMPOSITION_SHARED payload is story 8.4")
             NotificationIntent.CONFIRMATION_REQUEST ->
@@ -148,6 +154,8 @@ class NotificationPayloadBuilder {
             NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE ->
                 "Annonce spectacle · $eventTitle ($eventDate)"
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE ->
+                "Rappel disponibilité · $eventTitle ($eventDate)"
+            NotificationIntent.AVAILABILITY_PENDING_REMINDER ->
                 "Rappel disponibilité · $eventTitle ($eventDate)"
             NotificationIntent.COMPOSITION_SHARED ->
                 error("COMPOSITION_SHARED email subject is story 8.4")
