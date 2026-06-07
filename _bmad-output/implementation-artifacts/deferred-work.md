@@ -16,6 +16,7 @@
 | **DW-103** | accepté | Pas de backfill matchs historiques |
 | **DW-111** | 2026-06-05 | Replay migration × ≥3 (PO) |
 | **DW-112** | 2026-06-07 | Deploy : `--env-vars-file` YAML (`deploy-v2-cloud-run.yml`) — plus de CSV `--set-env-vars` |
+| **DW-107** | 2026-06-07 | Story **8.5b** — garde éligibilité `AssigneePresenceReminderJob` (membre inactif / participant retiré) |
 | **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` ; **DW-108** partiel |
 | **ops-8**, **ops-10** | 2026-06-04/05 | Prod domaine + email |
 | **19.1**, **mig-7** | 2026-06-04/06 | ADR tirage + backfill genre V1 |
@@ -32,7 +33,7 @@
 
 | Tier | Quand agir | IDs |
 |------|------------|-----|
-| **T0** | Risque prod/ données **élevé**, impact **large** | **DW-104**, **DW-107** |
+| **T0** | Risque prod/ données **élevé**, impact **large** | **DW-104** |
 | **T1** | Risque **modéré**, bénéfice **net** pour orgas / ops | **DW-106**, **DW-105**, **DW-113**, **DW-114** |
 | **T2** | Avant **M4** / prochain load prod (défense) | **DW-109**, **DW-110**, **DW-118**, **DW-119** |
 | **T3** | Faible risque ou niche — backlog 2.1.0+ | **DW-108**, **DW-115–117**, **DW-120**, **DW-121–125** |
@@ -57,7 +58,7 @@
 | **Risque** | Modéré–élevé — spam, perte de confiance notifications |
 | **Bénéfice** | Élevé — respect lifecycle adhésion |
 | **Impact** | Membres désactivés avec slot `CONFIRMED` |
-| **Action** | Garde statut dans `AssigneePresenceReminderJob` (8.5 W3) |
+| **Action** | **Done** — story [8-5b-garde-rappels-membres-desactives-dw-107.md](./8-5b-garde-rappels-membres-desactives-dw-107.md) (eligibility guard : membership `INACTIVE`, participant `REMOVED` ; skip before mark claim) |
 
 ---
 
@@ -142,6 +143,13 @@
 
 - **Unrelated `troupe-hub.spec.ts` apostrophe fix** — pre-existing broken assertion bundled in story 1.8 diff; split to dedicated commit when convenient.
 - **No submit guard during IdP retry backoff on signup** — pre-existing double-click pattern; retry window slightly increases duplicate Firebase signup risk; future UX hardening if needed.
+
+---
+
+## Deferred from: code review of 8-5b-garde-rappels-membres-desactives-dw-107 (2026-06-07)
+
+- **N+1 `findById` per confirmed slot in reminder job** — pre-existing query pattern from story 8.5; not introduced by eligibility guard.
+- **Eligibility check in transaction vs dispatch in `afterCommit`** — pre-existing story 8.5 architecture; guard does not widen the race window.
 
 ---
 
