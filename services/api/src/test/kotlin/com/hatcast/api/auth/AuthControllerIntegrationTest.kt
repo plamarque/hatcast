@@ -1,5 +1,6 @@
 package com.hatcast.api.auth
 
+import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -24,6 +25,7 @@ import java.time.Instant
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Order(1)
 class AuthControllerIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -251,5 +253,46 @@ class AuthControllerIntegrationTest {
                     .content("""{"idToken":"bad"}"""),
             ).andExpect(status().isUnauthorized)
             .andExpect(jsonPath("$.code").value("AUTH_INVALID_ID_TOKEN"))
+    }
+
+    @Test
+    fun `POST idp twice with same uid is idempotent`() {
+        val uid = "firebase-uid-idempotent-test"
+        whenever(idpIdTokenVerifier.verify(any())).thenReturn(
+            IdpTokenPayload(
+                uid = uid,
+                email = "idempotent@example.com",
+                displayName = "Idempotent User",
+            ),
+        )
+
+        val first =
+            mockMvc
+                .perform(
+                    post("/v1/auth/idp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"idToken":"fake-idp-token"}"""),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.user.email").value("idempotent@example.com"))
+                .andReturn()
+
+        val firstUserId =
+            com.jayway.jsonpath.JsonPath.read<String>(
+                first.response.contentAsString,
+                "$.user.id",
+            )
+
+        mockMvc
+            .perform(
+                post("/v1/auth/idp")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"idToken":"fake-idp-token"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.user.id").value(firstUserId))
+            .andExpect(jsonPath("$.user.email").value("idempotent@example.com"))
+
+        val linked = userRepository.findByIdpUid(uid)
+        requireNotNull(linked) { "user row expected for idp_uid" }
+        org.junit.jupiter.api.Assertions.assertEquals(firstUserId, linked.id.toString())
     }
 }

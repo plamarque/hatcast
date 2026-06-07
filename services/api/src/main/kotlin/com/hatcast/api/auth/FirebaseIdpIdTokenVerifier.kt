@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
  * Vérification via Firebase Admin SDK (artefact `firebase-admin`) — même protocole de tokens qu’Identity Platform.
  */
 @Component
-@Profile("!test")
+@Profile("!test & !e2e")
 class FirebaseIdpIdTokenVerifier : IdpIdTokenVerifier {
     override fun verify(idToken: String): IdpTokenPayload {
         val decoded = FirebaseAuth.getInstance().verifyIdToken(idToken)

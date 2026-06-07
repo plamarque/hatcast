@@ -121,6 +121,8 @@ paths:
           description: Réintégré
         '400':
           description: Adhésion troupe inactive
+        '409':
+          description: Adhésion troupe désactivée entre-temps (concurrence)
         '403':
           description: Accès refusé
         '404':

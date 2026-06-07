@@ -14,6 +14,7 @@ import org.mockito.kotlin.argThat
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.ObjectProvider
 import java.time.Instant
@@ -177,7 +178,7 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    fun `category mapping for 8_5 intents`() {
+    fun `category mapping covers all intents`() {
         assertEquals(
             NotificationCategory.TEAM_CONFIRMED,
             NotificationIntent.TEAM_VALIDATED_FYI.toCategory(),
@@ -207,6 +208,10 @@ class NotificationDispatcherTest {
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE.toCategory(),
         )
         assertEquals(
+            NotificationCategory.COMPOSITION_SHARED,
+            NotificationIntent.COMPOSITION_SHARED.toCategory(),
+        )
+        assertEquals(
             NotificationCategory.AVAILABILITY_REQUEST,
             NotificationIntent.PROXY_AVAILABILITY_RECORDED.toCategory(),
         )
@@ -214,6 +219,27 @@ class NotificationDispatcherTest {
             NotificationCategory.CONFIRMATION_REQUEST,
             NotificationIntent.PROXY_CONFIRMATION_RECORDED.toCategory(),
         )
+    }
+
+    @Test
+    fun `COMPOSITION_SHARED dispatch is a no-op until story 8_4`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val event = notificationEvent(eventId, troupeId)
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.COMPOSITION_SHARED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = UUID.randomUUID(),
+            ),
+        )
+
+        verifyNoInteractions(recipientResolver, pushSender, emailSender)
     }
 
     @Test

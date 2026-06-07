@@ -7,8 +7,12 @@ import com.hatcast.api.composition.assignedParticipantId
 import com.hatcast.api.composition.hasAssignee
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.EventService
+import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.ParticipantStatus
+import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.troupe.TroupeMembershipStatus
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -86,7 +90,7 @@ class AssigneePresenceReminderJob(
                 }
         return confirmedSlots.mapNotNull { slot ->
             val participantId = slot.assignedParticipantId() ?: return@mapNotNull null
-            val userId = resolveUserId(participantId) ?: return@mapNotNull null
+            val userId = resolveEligibleReminderUserId(participantId) ?: return@mapNotNull null
             val claimed =
                 reminderMarkService.tryClaimReminderMark(
                     intent = NotificationIntent.ASSIGNEE_PRESENCE_REMINDER,
@@ -109,9 +113,29 @@ class AssigneePresenceReminderJob(
         }
     }
 
-    private fun resolveUserId(participantId: UUID): UUID? {
-        seasonParticipantRepository.findById(participantId).orElse(null)?.user?.id?.let { return it }
-        eventParticipantRepository.findById(participantId).orElse(null)?.user?.id?.let { return it }
+    private fun resolveEligibleReminderUserId(participantId: UUID): UUID? {
+        seasonParticipantRepository.findById(participantId).orElse(null)?.let { seasonParticipant ->
+            return resolveEligibleSeasonParticipantUserId(seasonParticipant)
+        }
+        eventParticipantRepository.findById(participantId).orElse(null)?.let { eventParticipant ->
+            return resolveEligibleEventParticipantUserId(eventParticipant)
+        }
         return null
+    }
+
+    private fun resolveEligibleSeasonParticipantUserId(seasonParticipant: SeasonParticipantEntity): UUID? {
+        if (seasonParticipant.status != ParticipantStatus.ACTIVE) return null
+        seasonParticipant.troupeMembership?.let { membership ->
+            if (membership.status != TroupeMembershipStatus.ACTIVE) return null
+        }
+        return seasonParticipant.user?.id
+    }
+
+    private fun resolveEligibleEventParticipantUserId(eventParticipant: EventParticipantEntity): UUID? {
+        if (eventParticipant.status != ParticipantStatus.ACTIVE) return null
+        eventParticipant.seasonParticipant?.let { seasonParticipant ->
+            return resolveEligibleSeasonParticipantUserId(seasonParticipant)
+        }
+        return eventParticipant.user?.id
     }
 }

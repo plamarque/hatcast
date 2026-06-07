@@ -1,6 +1,7 @@
 package com.hatcast.api.participant
 
 import com.hatcast.api.audit.AuditEventRecorder
+import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
@@ -13,6 +14,9 @@ import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -229,5 +233,77 @@ class SeasonParticipantServiceTest {
                 saved.size == 1 && saved[0].troupeMembership?.id == memberMembership.id
             },
         )
+    }
+
+    @Test
+    fun `reinclude reverts and rejects when membership became inactive after pre-check`() {
+        val troupe = TroupeEntity(id = UUID.randomUUID(), name = "Troupe", slug = "troupe")
+        val season = SeasonEntity(id = UUID.randomUUID(), troupe = troupe, slug = "saison", title = "Saison")
+        val user = UserEntity(id = UUID.randomUUID(), email = "member@example.com", displayName = "Member")
+        val membership =
+            TroupeMembershipEntity(
+                id = UUID.randomUUID(),
+                troupe = troupe,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                displayName = "Member",
+            )
+        val participantId = UUID.randomUUID()
+        val removed =
+            SeasonParticipantEntity(
+                id = participantId,
+                season = season,
+                displayName = "Member",
+                normalizedEmail = "member@example.com",
+                user = user,
+                troupeMembership = membership,
+                status = ParticipantStatus.REMOVED,
+                removalSource = SeasonParticipantRemovalSource.SEASON_ADMIN,
+            )
+        val principal =
+            SessionUserPrincipal(
+                userId = UUID.randomUUID(),
+                googleSub = null,
+                idpUid = "idp-admin",
+                email = "admin@example.com",
+            )
+
+        whenever(participantAccess.loadSeasonForMember(season.id, principal)).thenReturn(season)
+        whenever(
+            seasonParticipantRepository.findByIdAndSeason_Id(participantId, season.id),
+        ).thenReturn(removed)
+        whenever(
+            seasonParticipantRepository.existsBySeason_IdAndStatusAndDisplayNameIgnoreCaseAndIdNot(
+                season.id,
+                ParticipantStatus.ACTIVE,
+                removed.displayName,
+                participantId,
+            ),
+        ).thenReturn(false)
+        whenever(seasonParticipantRepository.save(any())).thenAnswer { it.getArgument(0) }
+        whenever(troupeMembershipRepository.findByIdAndTroupe_Id(membership.id, troupe.id))
+            .thenReturn(
+                TroupeMembershipEntity(
+                    id = membership.id,
+                    troupe = troupe,
+                    user = user,
+                    status = TroupeMembershipStatus.INACTIVE,
+                    displayName = "Member",
+                ),
+            )
+        whenever(seasonParticipantRepository.countBySeason_IdAndStatus(season.id, ParticipantStatus.ACTIVE))
+            .thenReturn(0)
+        whenever(seasonRepository.save(any())).thenAnswer { it.getArgument(0) }
+
+        val ex =
+            assertThrows<ResponseStatusException> {
+                service.reinclude(season.id, participantId, principal)
+            }
+        assertEquals(HttpStatus.CONFLICT, ex.statusCode)
+        assertEquals("L'adhésion à la troupe a été désactivée entre-temps.", ex.reason)
+        assertEquals(ParticipantStatus.REMOVED, removed.status)
+        assertEquals(SeasonParticipantRemovalSource.MEMBERSHIP_INACTIVE, removed.removalSource)
+        verify(seasonParticipantRepository, times(2)).save(removed)
+        verify(auditRecorder, never()).record(any())
     }
 }

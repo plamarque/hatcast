@@ -35,7 +35,7 @@ describe('resolve-migrate-target', () => {
     assert.equal(r.loadTarget, 'staging')
     assert.match(r.databaseUrl, /ep-staging-123/)
     assert.equal(r.apiBaseUrl, env.HATCAST_MIGRATE_API_BASE_STAGING)
-    assert.equal(r.restartMode, 'github')
+    assert.equal(r.restartMode, 'gcloud')
   })
 
   it('resolves local defaults', () => {

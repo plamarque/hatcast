@@ -1,201 +1,136 @@
 # Deferred work (actif)
 
-**Hygiène DOC-1** — MAJ **2026-06-06** (refactor SCSS équipe tab). Items **P0–P2** encore actionnables. Historique revues : [`deferred-work-archive.md`](deferred-work-archive.md). Triage : [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) (DW-101+), [`deferred-triage-2026-05.md`](deferred-triage-2026-05.md) (DW-001–097).
+**Hygiène DOC-1** — MAJ **2026-06-08**. Backlog trié **risque × bénéfice × impact** ; **T1** ordonné **coût vs bénéfice** — voir [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) §3–4. Historique : [`deferred-work-archive.md`](deferred-work-archive.md).
 
-**Règle :** nouvelle revue → puce ici si **P0–P2** ; sinon archive + ligne triage juin.
+**Contexte PLAN :** release train **V2.0.x** OK ; **M4** audience reportée (~août 2026) ; vague **2.1.0** (démo commission) en cours.
+
+**Règle :** nouvelle revue → entrée ici si **T0–T2** ; sinon archive + ligne triage.
 
 ---
 
-## Fermé récemment (ne pas rouvrir sans régression)
+## Fermé / accepté (ne pas rouvrir)
 
 | ID / story | Clôture | Note |
 |------------|---------|------|
-| **3.22** | 2026-06-04 | **DW-101**, **DW-102** — coach match API + seeds |
-| **DW-103** | accepté | Pas de backfill matchs historiques `coach: 0` |
-| **6.17** | 2026-06-04 | `lastNotifiedAt`, dispatch Annoncer `event`, anti-spam ; **DW-108** partiel (voir P1) |
-| **ops-8** | 2026-06-04 | Prod `https://hatcast.app` — gate M4 prérequis |
-| **ops-10** | 2026-06-05 | Email `@hatcast.app` staging recette OK |
-| **19.1** | 2026-06-04 | SPEC/ADR moteur tirage V1 — doc only |
-| **DW-111** | 2026-06-05 | Replay migration × **≥3** — `migrate-from-v1.sh` + gate `validate-replay --min=3` (PO ; log hors git : `export/malice/replay-log.jsonl`) |
-| **3.23** | 2026-06-06 | Invitation scope + cascade add — TEA PASS ; manual recette A–G ; defers ci-dessous |
-| **3.24** | 2026-06-06 | Modale édition Admin Membres — discoverability scénario F **3.23** ; 22/22 tests ; 1 defer optionnel (test `email: null`) ci-dessous |
+| **DW-101/102** | 2026-06-04 | Story **3.22** — coach match API + seeds |
+| **DW-103** | accepté | Pas de backfill matchs historiques |
+| **DW-111** | 2026-06-05 | Replay migration × ≥3 (PO) |
+| **DW-112** | 2026-06-07 | Deploy : `--env-vars-file` YAML (`deploy-v2-cloud-run.yml`) — plus de CSV `--set-env-vars` |
+| **DW-104** | 2026-06-08 | Story **1.8** — retry signup + login recovery (compte Firebase orphelin) |
+| **DW-107** | 2026-06-08 | Story **8.5b** — garde éligibilité `AssigneePresenceReminderJob` (membre inactif / participant retiré) |
+| **DW-105** | 2026-06-07 | IdP `deleteUser` post-commit — `@TransactionalEventListener` + `IdentityPlatformUserDeletionEventListener` |
+| **DW-113** | 2026-06-08 | **Obsolète** — hub sans « Préférences dans cette troupe » (story **17.29**) |
+| **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` ; **DW-108** partiel |
+| **ops-8**, **ops-10** | 2026-06-04/05 | Prod domaine + email |
+| **19.1**, **mig-7** | 2026-06-04/06 | ADR tirage + backfill genre V1 |
+| **2.12***, **2.21** | 2026-06-05/06 | Genre + carnet externes |
+| **3.8c/d**, **3.23–3.25** | 2026-06-06 | Roster UX + invitations scope |
+| **6.18**, **6.19**, **6.21**, **6.22** | 2026-06-05/07 | Aide statut, calendrier, mixité, unlock |
+| **Équipe SCSS** | 2026-06-06 | Budget `anyComponentStyle` OK (`f418887e`) |
+
+*Détail revues D → archive § hygiène 2026-06-07 ; clôtures T0 + defers 1.8/8.5b → § 2026-06-08.*
 
 ---
 
-## Deferred from: code review of 3-25-externe-guest-scoped-access (2026-06-06)
+## Matrice rapide (risque × bénéfice × impact)
 
-- Pagination liste saisons invité ignore page/size (`SeasonService.listForTroupe`) — impact faible P4.
-- Extensions tests citées en story non livrées dans fichiers existants (`UserAgendaIntegrationTest`, etc.) — couverture partielle via `GuestInvitationAccessIntegrationTest`.
-
----
-
-## Deferred from: code review of 3-8d-participant-add-typeahead-carnet (2026-06-06)
-
-- M3-5 viewport 480px non automatisé — waived explicitement dans Dev Notes (revue manuelle).
+| Tier | Quand agir | IDs |
+|------|------------|-----|
+| **T0** | — | *(vide — DW-104, DW-107 clôturés)* |
+| **T1** | Coût **faible** → bénéfice **net** (ordre § ci-dessous) | *(vide — DW-114 clôturé)* |
+| **T2** | Avant **M4** / prochain load prod (défense) | **DW-109**, **DW-110**, **DW-118**, **DW-119** |
+| **T3** | Faible risque ou niche — backlog 2.1.0+ | **DW-108**, **DW-115–117**, **DW-120**, **DW-121–125** |
 
 ---
 
-## Deferred from: code review of 3-24-admin-membres-edit-dialog (2026-06-06)
+## T1 — Coût vs bénéfice (ordre d’exécution)
 
-- Test PATCH email externe vidé (`email: null`) absent — logique submit présente, couverture optionnelle post-3.23.
+| # | ID | Coût | Bénéfice | Notes |
+|---|-----|------|----------|-------|
+| 1 | **DW-106** | **XS** | Modéré (latent) | ~~`toCategory()` + test~~ **Done** (2026-06-07) — dispatch 8.4 reste à câbler |
+| 2 | **DW-114** | **S** | Modéré | ~~Post-save re-check `reinclude`~~ **Done** (2026-06-07) — 409 si adhésion INACTIVE entre-temps ; fenêtre commit-edge acceptée |
 
----
+### DW-105 — `deleteUser` IdP post-commit ✅ (2026-06-07)
 
-## Deferred from: code review of 3-23-invitation-scope-cascade-add (2026-06-06)
+- **Risque :** transaction DB longue, échec Firebase = rollback ambigu.
+- **Fix :** `IdentityPlatformUserDeletionRequestedEvent` + `IdentityPlatformUserDeletionEventListener` (`AFTER_COMMIT`).
+- **Fichiers :** [`AccountDeletionService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/AccountDeletionService.kt), [`IdentityPlatformUserDeletionEventListener.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/IdentityPlatformUserDeletionEventListener.kt).
 
-- M3-3 dialog width 24rem vs 28rem — waiver documented in story Dev Notes (3.8c shell).
-- Typeahead submit omits `troupeMembershipId` — pre-existing 3.8c; members without email fall through to externe carnet path.
-- Member event POST duplicate ACTIVE rows — pre-existing before 3.23 refactor.
-- Carnet homonym collision on name-only match — inherited 2.21 carnet match order.
-- No e2e helpers for Laetitia/Ruben/opt-in — manual recette deemed sufficient for story closure.
-- No audit when upsert updates already-ACTIVE externe — minor observability gap.
+### DW-106 — `COMPOSITION_SHARED` → `toCategory()` ✅ (2026-06-07)
 
----
+- **Risque :** prefs push/email **fausses** si intent activé (latent aujourd’hui).
+- **Fichier :** [`NotificationIntent.kt`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationIntent.kt).
+- **Reste :** câbler `publishDraftCompositionShared` → dispatch 8.4 (payload + recipients).
 
-## Deferred from: code review of 2-12d-genre-participant-admin-roster (2026-06-06)
+### DW-114 — `reinclude` vs adhésion INACTIVE ✅ (2026-06-07)
 
-- Manual email (no typeahead) + pre-set gender can 400 if email resolves to M/F account — front cannot know link state pre-submit.
-- OpenAPI `EventRosterParticipantDto` fields not in `participants.yaml` roster schema.
-- Audit snapshots omit participant `gender` field (optional story guardrail).
-- AC1/AC6 test gaps — availability summary, season statistics, cascade M→F, `event_participants` rows.
-
----
-
-## Meta — qualité / CI
-
-- **DW-120** — Suite `npm run test -w @hatcast/web` : échecs pré-existants (`event-detail.spec.ts`, `event-dispos-tab.spec.ts` « 100 % », mocks Firebase). Traiter via gate CI ou **ISSUES.md** — pas une section par story.
+- **Risque :** modéré — état roster incohérent transitoire si désactivation concurrente.
+- **Fix :** re-vérification post-save dans [`SeasonParticipantService.reinclude`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantService.kt) — revert + **409 CONFLICT** si adhésion devenue INACTIVE ; rollback transactionnel empêche zombie persisté.
+- **Reste accepté :** fenêtre commit-edge (Option B) ; gap [`SeasonStatisticsService`](../../services/api/src/main/kotlin/com/hatcast/api/season/SeasonStatisticsService.kt) (Option E investigation) — backlog séparé si besoin.
 
 ---
 
-## P0 — Migration prod & déploiement
+## T2 — Avant prochaine migration prod (M4 ~août)
 
-- **DW-109** — MIG-3 transform : `comment` > 500 / `role_key` > 64 non rejetés avant load → échec transaction entière. [`maliceAvailabilityCompositions.js`](../../scripts/v1/maliceAvailabilityCompositions.js)
-- **DW-110** — Rejeu MIG-3 sans reset : orphelines `ON CONFLICT DO UPDATE` si données V1 changent entre runs.
-- **DW-112** — Deploy Cloud Run : `--set-env-vars` CSV fragile (`,` / `=` dans secrets). *(ops-5 review)*
+### DW-109 — Validation MIG-3 (`comment`, `role_key`)
 
----
+- **Risque :** élevé **si** données V1 aberrantes ; **bénéfice :** rejets ciblés vs transaction entière KO.
+- **Impact :** pipeline migration uniquement.
+- **Fichier :** [`maliceAvailabilityCompositions.js`](../../scripts/v1/maliceAvailabilityCompositions.js)
 
-## P0 — Auth
+### DW-110 — Orphelines re-run MIG-3 sans reset
 
-- **DW-104** — Compte Firebase orphelin si `signInWithIdentityPlatformIdToken` échoue après `createUserWithEmailAndPassword`. *(1.2b)*
+- **Risque :** modéré (replay gate déjà passé ; prod = apply unique).
+- **Bénéfice :** confiance re-import staging.
+- **Impact :** ops migration.
 
----
+### DW-118 — V38 backfill `removal_source`
 
-## P1 — Notifications & annonces
+- **Risque :** faible si aucune row REMOVED pré-MIG ; **bénéfice :** audit retrait saison.
+- **Impact :** données importées.
 
-- **DW-106** — `COMPOSITION_SHARED` sans branche dans `NotificationIntent.toCategory()`. *(8-2)*
-- **DW-107** — Rappels présence : membres troupe désactivés avec slot `CONFIRMED` encore notifiés. *(8-5 W3)*
-- **DW-108** — `notifiedCount` POST = preview `notifiableCount`, **pas** le nombre réel de livraisons SENT/PARTIAL du dispatcher (**NFR-R2**). **6.17** a livré transparence `lastNotifiedAt` + dispatch Annoncer ; écart comptage dispatch **reporté** (review 6.17, pattern 6.10b). Suite possible : **6.18** ou story dédiée.
+### DW-119 — Slugs exotiques (`translate` vs `slugify` NFD)
 
----
-
-## P1 — Compte, admin plateforme, roster
-
-- **DW-105** — Suppression compte : `FirebaseAuth.deleteUser` dans `@Transactional` — post-commit listener. [`AccountDeletionService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/account/AccountDeletionService.kt)
-- **DW-113** — Super-admin : prefs troupe sans adhésion → `PATCH memberships/me` échoue. [`troupe-hub-preferences-sheet.ts`](../../apps/web/src/app/pages/troupe-hub/troupe-hub-preferences-sheet.ts)
-- **DW-114** — `reinclude` vs adhésion INACTIVE concurrente. *(3-19)*
-- **DW-118** — V38 : backfill `removal_source` sur REMOVED préexistants avant prod. *(3-19)*
+- **Risque :** faible (titres atypiques) ; **bénéfice :** URLs cohérentes post-import.
+- **Impact :** MIG-2 edge.
 
 ---
 
-## P1 — Import / slugs
+## T3 — Backlog confort (2.1.0+)
 
-- **DW-119** — Slug import : `translate` SQL vs `slugify` Kotlin/NFD sur titres exotiques. *(17-6 / DW-031)*
+### Annonces & transparence
 
----
+- **DW-108** — `notifiedCount` ≠ livraisons SENT réelles (**NFR-R2**). **6.17** a livré `lastNotifiedAt` + dispatch ; écart comptage **accepté** sauf demande PO. Bénéfice marginal vs effort.
 
-## P2 — Concurrence & UX
+### Concurrence & UX
 
-- **DW-115** — Grant organisateur : race check-then-insert. [`OrganizerAccessService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/organizer/OrganizerAccessService.kt)
-- **DW-116** — Event picker max 250 sans signal. *(17-28)*
-- **DW-117** — `member-season-glance` : `loadGlance()` sans token génération. *(17-27)*
+- **DW-115** — Race grant organisateur (500 vs 200).
+- **DW-116** — Event picker 250 sans signal.
+- **DW-117** — `loadGlance()` sans token génération.
 
----
+### Qualité & perf dev
 
-## Deferred from: code review (6-18-aide-contextuelle-statut-composition.md — 2026-06-05)
-
-- Pas de gestion du focus à l’ouverture du panneau reveal — hors AC story 6.18 ; amélioration a11y disclosure (pattern ARIA).
-
----
-
-## Deferred from: code review of 6-19-export-calendrier-et-navigation-lieu-onglet-infos (2026-06-05)
-
-- `::ng-deep` sur `.event-infos__menu-panel` pour `max-height` safe-area — waiver M3-5 documenté ; alternative `overlayPanelClass` globale reportée (pattern overlay existant dans le repo).
+- **DW-120** — Suite web globale rouge → **ISSUES.md** / gate CI (ne pas dupliquer par story).
+- **DW-121** — Sass `@import` → `@use` (Dart Sass 3.0).
+- **DW-122** — Prebundling cache dev (`ng serve` e2e).
+- **DW-123** — Budget bundle **initial** prod (~2,33 MB).
+- **DW-124** — SCSS composants lourds (`member-home-todo`, `member-nav`, …).
+- **DW-125** — Découpage optionnel `event-equipe-tab` (maintenance).
 
 ---
 
-## Deferred from: code review of 2-12-genre-optionnel-profil-membre-api-mon-compte (2026-06-05)
+## Deferred from: code review of spec-dw-105-idp-delete-post-commit (2026-06-07)
 
-- OpenAPI preferences schema not updated — story marks OpenAPI optional (17.33 precedent).
-- Concurrent PATCH last-write-wins — no `@Version` on `UserEntity`; pre-existing pattern.
-- NULL vs persisted `non_specified` in DB — both read as `non_specified` via `MemberGender.effective`; acceptable Wave A.
-- V1 export gender dedupe tie-break order-dependent on equal `updatedAt` — low migration risk.
+- No integration test asserting IdP `deleteUser` is not invoked on 409 rollback (spec AC 4) — test gap only
+- AFTER_COMMIT listener runs synchronously — HTTP still waits for Firebase latency; DB lock fixed only (same as composition pattern) — out of scope
+- `IdentityPlatformUserDeletionSupport` does not assert `true` return when `deleteUser` throws — listener failure test mocks `true` identically to success — minor coverage gap
 
-## Deferred from: code review of 2-12b-libelles-roles-adaptes-genre (2026-06-05)
+---
 
-- Couplage `rolePillLabel` → `auditRoleDisplay` pour pills de slots vides — pattern pré-existant ; refactor séparé si souhaité.
+## Liens normatifs
 
-## Deferred from: code review of 6-21-hint-parite-genre-composition-player (2026-06-06)
-
-- Harmoniser délais `matTooltip` sur la pill mixité avec les warnings slot voisins — cohérence UX mineure.
-- Formuler le détail mixité en langage naturel dans `aria-label` (éviter abréviations F/H) — amélioration a11y optionnelle.
-- Genre de slot potentiellement périmé si le membre met à jour son profil après assignation — modèle slot existant (2.12b).
-- Resynchroniser `epics.md` §6.21 avec UX amendée — drift documentaire.
-
-## Deferred from: code review of 2-12b + 2-12c combined (2026-06-05)
-
-- Tables de libellés dupliquées web (`event-roles.ts`) / API (`RoleLabels.kt`) — pas de divergence constatée ; synchronisation manuelle à prévoir si tables évoluent.
-- `context-breadcrumb` modifié dans le working tree — hors périmètre 2.12b/2.12c ; committer séparément.
-- Couleurs hex de repli dans `user-avatar.scss` — fallbacks M3 préexistants sous les tokens genre (2.12c).
-
-## Deferred from: code review of spec-changelog-skip-empty-versions (2026-06-06)
-
-- Duplicate `/changelog.json` fetch on auto-open success path — `currentVersionHasUserFacingNotes` then `loadChangelog` when dialog opens; optimize later if needed.
-
-## Deferred from: code review of mig-7-backfill-users-gender-from-v1 (2026-06-06)
-
-- AC6 smoke SQL sans seuil numérique — comparaison manuelle `with_gender` vs export V1 suffisante pour l'iso-V1 gate ; pas de critère pass/fail chiffré imposé.
-
-## Deferred from: code review of spec-about-manual-pwa-update-check (2026-06-06)
-
-- Double `onUpdateReady` possible (constructeur + manual check) — idempotent mais redondant.
-- `isManualCheckAvailable` getter non-signal dans le template About — OK avec Default CD.
-- Couverture test manquante : `getServiceWorkerRegistration` undefined + snack `'error'` dans About tab.
-- `knownNgswTimestamp` non mis à jour par `checkForUpdatesManually` — baseline poll peut diverger en recette.
-- Message `'disabled'` developer-facing si jamais affiché en prod — bouton masqué quand SW off.
-- `updateListenerAttached` bool permanent — réattachement impossible si registration SW recréée.
-
-## Deferred from: refactor équipe tab SCSS budget (2026-06-06)
-
-**Fait** (`f418887e`) — styles grille / lignes / déclins / warnings extraits vers [`_hatcast-equipe-composition.scss`](../../apps/web/src/styles/_hatcast-equipe-composition.scss) ; `event-equipe-tab` repasse sous le budget `anyComponentStyle` (9 kB). Baseline [`apps/web/README.md`](../../apps/web/README.md) MAJ.
-
-**Reporté (chantier perf / hygiène ultérieur) :**
-
-- **DW-121** — Migrer les `@import` Sass dépréciés dans [`styles.scss`](../../apps/web/src/styles.scss) (agenda, equipe-composition, filter-picker, member-shell) vers `@use` / `@forward` avant Dart Sass 3.0. **Pas d'impact** sur les budgets CSS prod.
-- **DW-122** — Warning dev « Prebundling configured but caching disabled » (`ng serve` via Playwright e2e) — investiguer cache build Vite/Angular ; **perf dev uniquement**.
-- **DW-123** — Budget bundle **initial** prod (~2,33 MB raw, +75 kB vs warning 2,25 MB) — chantier séparé (lazy routes, dépendances, tree-shaking) ; le refactor équipe a déplacé du CSS composant → global sans réduction nette du initial.
-- **DW-124** — Alléger les SCSS composants restants si dérive (`member-home-todo.scss` ~6,4 kB, `member-nav.scss` ~5,5 kB, etc.) — candidats dans README baseline § bundle.
-- **DW-125** — Découpage optionnel de `event-equipe-tab` en sous-composants (`slot-row`, `declines`) si maintenance difficile — **non requis** tant que `anyComponentStyle` reste OK.
-
-## Deferred from: code review of 2-21-troupe-externes-carnet (2026-06-06)
-
-- Réactivation inactive par `displayName` ambiguë si homonymes — homonymes MVP acceptés ADR-0021.
-- Pas d'index sur `normalized_email` pour matching carnet — perf MVP.
-- `addExterne` côté front ne parse pas le corps d'erreur API — UX mineure.
-- Renommage externe ne propage pas vers `season_participants` liés — story 3.23.
-- Modifications genre participant dans le même diff hors périmètre 2.21 — lot participant-gender mélangé.
-
-## Deferred from: code review of 3-8c-participant-add-typeahead (2026-06-06)
-
-- Échecs API silencieux (`listMembers` / roster) — même pattern que `event-organizers-dialog` ; pas de régression vs référence story.
-- Double fetch réseau à l'ouverture du dialog (parent + dialog) — optimisation hors scope Lot A.
-- Duplication template/logique entre dialogs saison et événement — story autorise inline ; helper filtre déjà extrait.
-- Pas d'état loading pendant `initializeSuggestions` — `event-organizers-dialog` n'en a pas non plus.
-- M3-5 checklist sans artefact attaché — validation manuelle dans Dev Notes uniquement.
-- `openAddDialog` retour silencieux si `troupeId` manquant — pattern défensif pré-existant.
-
-## Deferred from: code review of 6-22-composition-unlock-preserve-participation (2026-06-07)
-
-- Proxy sur slot propre si organisateur non lié (`viewerParticipantIds` vide) — cas admin sans identité membre ; copie proxy sur slot propre ; rare en prod ; pattern 6.8 étendu au brouillon.
-- Zone brouillon inline + Partager en grille toolbar — extension UX documentée (changelog / UX normatif) hors AC originaux 6.22 ; livré volontairement dans le même lot.
-- Assertions `participantFocus` ajoutées dans `decline frees slot and records decline row` — couplage test feature agenda ; déplacer vers test dédié si souhaité.
+| Sujet | Où tracer |
+|-------|-----------|
+| Bugs confirmés | [`ISSUES.md`](../../ISSUES.md) (ex. BUG-008 push prefs) |
+| Réserve produit historique | PLAN § iso-V1, DW-020–021 (triage mai) |
+| Epic 19 formules tirage | `sprint-status.yaml` — **reporté** post-2.1.0 |

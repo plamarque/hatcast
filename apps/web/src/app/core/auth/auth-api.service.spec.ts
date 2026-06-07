@@ -62,6 +62,62 @@ describe('AuthApiService', () => {
     )
   })
 
+  it('signInWithIdentityPlatformIdTokenWithRetry retente sur 503 puis réussit', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ user: { id: 'u1', email: 'a@b.c', displayName: null } }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service().signInWithIdentityPlatformIdTokenWithRetry('token-idp', true, {
+      maxAttempts: 3,
+      backoffMs: [0, 0],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    for (const call of fetchMock.mock.calls) {
+      expect(call[1]).toEqual(
+        expect.objectContaining({
+          body: JSON.stringify({ idToken: 'token-idp', rememberMe: true }),
+        }),
+      )
+    }
+  })
+
+  it('signInWithIdentityPlatformIdTokenWithRetry n’applique pas de retry sur 403', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 403 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service().signInWithIdentityPlatformIdTokenWithRetry('token-idp', true, {
+      maxAttempts: 3,
+      backoffMs: [0, 0],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe(403)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('signInWithIdentityPlatformIdTokenWithRetry épuise les tentatives sur 500', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service().signInWithIdentityPlatformIdTokenWithRetry('token-idp', true, {
+      maxAttempts: 3,
+      backoffMs: [0, 0],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe(500)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
   it('signInWithGoogleIdToken envoie rememberMe', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

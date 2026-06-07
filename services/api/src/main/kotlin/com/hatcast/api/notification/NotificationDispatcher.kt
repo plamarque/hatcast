@@ -106,6 +106,8 @@ class NotificationDispatcher(
                 recipientResolver.resolveConcernedRosterRecipients(context.seasonId, context.eventId)
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE ->
                 recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
+            NotificationIntent.COMPOSITION_SHARED ->
+                emptyList() // story 8.4 — publishDraftCompositionShared dispatch
             NotificationIntent.CONFIRMATION_REQUEST ->
                 if (context.assigneeParticipantIds.isNotEmpty()) {
                     recipientResolver.resolveAssigneeRecipients(context.assigneeParticipantIds)

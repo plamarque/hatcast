@@ -36,6 +36,7 @@ Par défaut, les serveurs sont **toujours démarrés par Playwright** (profil `e
 | `chromium-3-19` | Desktop Chrome | admin | `recette-3.19.spec.ts` |
 | `chromium-3-8d` | Desktop Chrome | admin | `recette-3.8d.spec.ts` |
 | `chromium-3-25` | Desktop Chrome | guest personas (per spec) | `recette-3.25.spec.ts` |
+| `chromium-1-8` | Desktop Chrome | guest (no storageState) | `recette-1-8.spec.ts` |
 
 Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md`) : mobile membre + desktop orga en parallèle après les setups.
 
@@ -60,6 +61,14 @@ Gate **E1 cutover** (design : `_bmad-output/test-artifacts/test-design-e1-cutove
 
 ```bash
 cd apps/web && npm run test:e2e -- --project=chromium-3-8d
+```
+
+## Smoke / recette 1.8 (auth signup recovery)
+
+`recette-1-8.spec.ts` — story **1.8** / DW-104 : échec transient `POST /v1/auth/idp` après inscription Firebase, redirect `/connexion`, login finalise le lien. Mock Identity Toolkit côté navigateur + tokens `e2e-idp|…` (profil API `e2e`).
+
+```bash
+cd apps/web && npm run test:e2e -- --project=chromium-1-8
 ```
 
 ## Smoke / recette 3.25

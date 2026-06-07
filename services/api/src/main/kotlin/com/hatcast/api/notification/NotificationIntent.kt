@@ -4,6 +4,8 @@ enum class NotificationIntent {
     AVAILABILITY_OPENED,
     MANUAL_AVAILABILITY_ANNOUNCE,
     MANUAL_AVAILABILITY_NUDGE,
+    /** Draft composition shared with roster — dispatch wired in story 8.4. */
+    COMPOSITION_SHARED,
     CONFIRMATION_REQUEST,
     TEAM_VALIDATED_FYI,
     ASSIGNEE_PRESENCE_REMINDER,
@@ -69,6 +71,7 @@ fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = 
         NotificationIntent.AVAILABILITY_OPENED -> NotificationCategory.AVAILABILITY_REQUEST
         NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE -> NotificationCategory.AVAILABILITY_REQUEST
         NotificationIntent.MANUAL_AVAILABILITY_NUDGE -> NotificationCategory.AVAILABILITY_REQUEST
+        NotificationIntent.COMPOSITION_SHARED -> NotificationCategory.COMPOSITION_SHARED
         NotificationIntent.CONFIRMATION_REQUEST -> NotificationCategory.CONFIRMATION_REQUEST
         NotificationIntent.TEAM_VALIDATED_FYI -> NotificationCategory.TEAM_CONFIRMED
         NotificationIntent.ASSIGNEE_PRESENCE_REMINDER ->

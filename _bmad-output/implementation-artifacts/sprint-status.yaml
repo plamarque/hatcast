@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-07T12:19:00+02:00
+# last_updated: 2026-06-07T18:30:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-07T00:19:00+02:00"
+last_updated: "2026-06-07T20:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -70,6 +70,7 @@ development_status:
   1-5-deconnexion: done
   1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes: done
   1-7-suppression-de-compte: done
+  1-8-recuperation-inscription-apres-echec-api-idp: done  # DW-104 T0 — investigation dw-104-investigation.md
   epic-1-retrospective: optional
 
   epic-2: in-progress
@@ -165,6 +166,7 @@ development_status:
   8-3-notifications-mep-dispos-et-confirmation-assignes: done  # P0 MEP — depends 3.21, 8.1
   8-4-notifications-ops-organisateurs: backlog  # P2 post-MEP — FR31b
   8-5-extensions-notifications-membre: done  # P1 post-MEP initial — code review patches applied
+  8-5b-garde-rappels-membres-desactives-dw-107: done  # DW-107 T0 — 8.5 review W3 ; guard AssigneePresenceReminderJob
   8-6-notifications-proxy-confirmation-membre-concerne: done  # P1 — proxy 5.5/6.8 → subject ack
   epic-8-retrospective: optional
 

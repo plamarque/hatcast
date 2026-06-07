@@ -99,6 +99,7 @@ Options:
 ./scripts/migrate-from-v1.sh --dry-run              # export + SQL only (smoke skipped)
 ./scripts/migrate-from-v1.sh --no-prompt-reset      # skip Neon prompt + redeploy
 ./scripts/migrate-from-v1.sh --skip-redeploy        # Neon reset only; you restarted API yourself
+./scripts/migrate-from-v1.sh --i-reset-neon --skip-redeploy   # reprise après reset + restart déjà faits
 ./scripts/migrate-from-v1.sh --skip-staging-redeploy  # alias of --skip-redeploy
 ./scripts/migrate-from-v1.sh --help
 ```
@@ -310,7 +311,7 @@ Use when migration rules change, imports failed, or you need a clean rehearsal b
 
 ### C2 — Reapply schema (restart staging API)
 
-After a Neon reset the running Cloud Run revision may still point at an empty DB without `spring_session` / Flyway. **`./scripts/migrate-from-v1.sh`** triggers `workflow_dispatch` on **Deploy V2 (Cloud Run)** (`staging-v2`) and waits for health before migrating. Manual alternative: GitHub Actions → Run workflow on `staging-v2`, or redeploy via `promote-to-staging.sh` when `services/api/` changed.
+After a Neon reset the running Cloud Run revision may still point at an empty DB without `spring_session` / Flyway. **`./scripts/migrate-from-v1.sh`** restarts Cloud Run via **`gcloud run services update`** (nouvelle révision, Flyway sur la branche Neon reset) — sans rebuild ni gate E2E T1. Override : `--restart=github` pour déclencher le workflow **Deploy V2 (Cloud Run)** sur `staging-v2` (rebuild + smoke avant deploy). Manual alternative: GitHub Actions → Run workflow on `staging-v2`, or redeploy via `promote-to-staging.sh` when `services/api/` changed.
 
 ### C3 — Replay migration
 

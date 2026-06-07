@@ -33,7 +33,7 @@ test.describe('Recette 3.8d — typeahead carnet (E2E)', () => {
     await expectSeasonMemberVisible(page, fx.angieDisplayName)
 
     const dialog = await openAddParticipantDialog(page)
-    await dialog.getByLabel('Nom affiché').fill('Ang')
+    await dialog.getByRole('combobox', { name: 'Nom affiché' }).fill('Ang')
     await expectNoTypeaheadOptions(dialog)
     await dialog.getByRole('button', { name: 'Annuler' }).click()
   })

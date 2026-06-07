@@ -23,7 +23,7 @@ export async function selectTypeaheadByName(
   query: string,
   displayName: string,
 ): Promise<void> {
-  const nameField = dialog.getByLabel('Nom affiché')
+  const nameField = dialog.getByRole('combobox', { name: 'Nom affiché' })
   await nameField.fill(query)
   const option = dialog.getByRole('option', { name: new RegExp(displayName) })
   await expect(option).toBeVisible({ timeout: 15_000 })

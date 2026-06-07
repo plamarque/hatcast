@@ -35,6 +35,77 @@ Sections retirées de `deferred-work.md` actif — stories **done** ou dette **D
 
 ---
 
+## Archive append (hygiène 2026-06-07)
+
+Revues **done** retirées de `deferred-work.md` actif. Seuil : dette **D** (tests, M3 waiver, polish, doc drift) — **risque faible**, **bénéfice faible**, **impact niche**. Stories : **2.12***, **2.21**, **3.8c/d**, **3.23–3.25**, **6.18**, **6.19**, **6.21**, **6.22**, **mig-7**, one-shots PWA/changelog, refactor SCSS équipe (**fait**).
+
+### DW-112 — fermé 2026-06-07
+
+- Deploy Cloud Run : passage à `--env-vars-file` YAML + échappement `append_env` — remplace fragilité CSV `--set-env-vars` (ops-5 defer).
+
+### Consolidé — revues Epic 2 genre / externes (2026-06-05/06)
+
+- **2.12** / **2.12b** / **2.12c** / **2.12d** — OpenAPI optionnel, PATCH last-write-wins, tables libellés dupliquées web/API, tests AC gaps, audit sans `gender`, email+genre 400 edge.
+- **2.21** — homonymes carnet, index email, erreur API non parsée, rename sans propagation (couvert **3.23**).
+
+### Consolidé — revues roster / invitations (2026-06-06)
+
+- **3.8c** — double fetch, duplication dialogs, loading, M3-5 manuel.
+- **3.8d** — M3-5 480px waived.
+- **3.23** — dialog width, typeahead `troupeMembershipId`, duplicate ACTIVE, homonymes, e2e, audit externe.
+- **3.24** — test `email: null` optionnel.
+- **3.25** — pagination invité, extensions tests partielles.
+
+### Consolidé — revues Epic 6 (2026-06-05/07)
+
+- **6.18** — focus panneau reveal a11y.
+- **6.19** — `::ng-deep` menu panel safe-area (waiver M3).
+- **6.21** — tooltip delay, aria-label mixité, genre slot stale, drift epics.md.
+- **6.22** — proxy admin non lié, UX toolbar brouillon hors AC, couplage test agenda.
+
+### Consolidé — one-shots & migration (2026-06-06)
+
+- **spec-changelog-skip-empty-versions** — double fetch changelog.
+- **spec-about-manual-pwa-update-check** — edge SW, tests About, `knownNgswTimestamp`.
+- **mig-7** — AC6 smoke sans seuil numérique (recette manuelle OK).
+
+### Refactor SCSS équipe (2026-06-06) — **fait**
+
+- Extraction `_hatcast-equipe-composition.scss` ; budget composant OK.
+- **DW-121–125** restent actifs T3 (Sass @use, bundle initial, perf dev).
+
+---
+
+## Archive append (hygiène 2026-06-08)
+
+Clôture **T0** vide ; retrait entrées actives ; defers revues stories **done**.
+
+### DW-104 — fermé (story 1.8)
+
+- Retry signup API HatCast après succès IdP ; login recovery si compte orphelin Firebase.
+- Preuve : `sprint-status.yaml` — `1-8-recuperation-inscription-apres-echec-api-idp: done`.
+
+### DW-107 — fermé (story 8.5b)
+
+- Garde éligibilité `AssigneePresenceReminderJob` : skip si membership `INACTIVE` ou participant `REMOVED`.
+- Preuve : `sprint-status.yaml` — `8-5b-garde-rappels-membres-desactives-dw-107: done`.
+
+### DW-113 — obsolète (story 17.29)
+
+- Sheet « Préférences dans cette troupe » retirée du hub ; prefs dans Mon compte. Plus de `PATCH …/memberships/me` depuis le hub pour super-admin sans adhésion.
+
+### Deferred from: code review of 1-8-recuperation-inscription-apres-echec-api-idp (2026-06-07)
+
+- **Unrelated `troupe-hub.spec.ts` apostrophe fix** — assertion préexistante dans le diff 1.8 ; commit dédié si besoin.
+- **No submit guard during IdP retry backoff on signup** — double-clic ; fenêtre retry augmente légèrement le risque signup Firebase dupliqué ; hardening UX futur.
+
+### Deferred from: code review of 8-5b-garde-rappels-membres-desactives-dw-107 (2026-06-07)
+
+- **N+1 `findById` per confirmed slot in reminder job** — pattern préexistant story 8.5.
+- **Eligibility check in transaction vs dispatch in `afterCommit`** — architecture 8.5 préexistante ; garde n’élargit pas la fenêtre de course.
+
+---
+
 ## Deferred from: code review of 6-10c-deplacer-rappel-dispos-menu-gear-evenement.md (2026-06-04)
 
 - Échecs `event-detail.spec.ts` hors périmètre 6.10c (routes canoniques `/saison/:troupeSlug/…`, breadcrumb) — les tests Relance dispos ajoutés passent ; suite globale web déjà rouge ailleurs.

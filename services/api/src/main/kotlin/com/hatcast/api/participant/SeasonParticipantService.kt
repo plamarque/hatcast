@@ -685,6 +685,26 @@ class SeasonParticipantService(
         existing.removalSource = null
         existing.updatedAt = now
         val saved = seasonParticipantRepository.save(existing)
+        if (membership != null) {
+            val currentMembership =
+                troupeMembershipRepository.findByIdAndTroupe_Id(membership.id, season.troupe.id)
+            if (
+                currentMembership != null &&
+                    currentMembership.status != TroupeMembershipStatus.ACTIVE
+            ) {
+                saved.status = ParticipantStatus.REMOVED
+                saved.removedAt = now
+                saved.removalSource = SeasonParticipantRemovalSource.MEMBERSHIP_INACTIVE
+                saved.updatedAt = now
+                seasonParticipantRepository.save(saved)
+                refreshParticipantCount(season)
+                MembershipParticipantSyncCache.invalidate(season.id)
+                throw ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "L'adhésion à la troupe a été désactivée entre-temps.",
+                )
+            }
+        }
         refreshParticipantCount(season)
         MembershipParticipantSyncCache.invalidate(season.id)
         auditRecorder.record(
