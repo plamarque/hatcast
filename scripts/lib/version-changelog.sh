@@ -631,6 +631,12 @@ hatcast_generate_changelog_json_for_release() {
     user_json="$(hatcast_changelog_json_empty_entry "${version}" "${date}")"
   elif user_json="$(hatcast_transform_changelog_json_with_openai "${technical_json}" "${version}")"; then
     echo "ℹ️  Notes utilisateur générées (OpenAI / Argil)"
+    local feat_count change_count
+    feat_count="$(echo "${technical_json}" | jq '[.changes[] | select(startswith("✨"))] | length')"
+    change_count="$(echo "${user_json}" | jq '.changes | length')"
+    if [[ "${feat_count}" -ge 5 && "${change_count}" -le 2 ]]; then
+      echo "⚠️  OpenAI n'a retenu que ${change_count} puce(s) pour ${feat_count} feat — ajoutez scripts/v2/changelog-entries/v${version}-cutover.json (cf. v2.1.0 / v2.2.0)." >&2
+    fi
   else
     echo "⚠️  OpenAI indisponible ou échec — entrée ${version} avec changes: [] (pas de fallback technique)." >&2
     user_json="$(hatcast_changelog_json_empty_entry "${version}" "${date}")"

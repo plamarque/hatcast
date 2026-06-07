@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.web.csrf.CsrfToken
+import org.springframework.security.web.csrf.CsrfTokenRepository
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
@@ -13,7 +14,9 @@ import org.springframework.web.filter.OncePerRequestFilter
  * for SPA clients (`document.cookie` + `X-XSRF-TOKEN`).
  */
 @Component
-class CsrfCookiePublishingFilter : OncePerRequestFilter() {
+class CsrfCookiePublishingFilter(
+    private val csrfTokenRepository: CsrfTokenRepository,
+) : OncePerRequestFilter() {
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -21,5 +24,21 @@ class CsrfCookiePublishingFilter : OncePerRequestFilter() {
     ) {
         (request.getAttribute("_csrf") as? CsrfToken)?.token
         filterChain.doFilter(request, response)
+        publishCsrfCookieIfNeeded(request, response)
+    }
+
+    private fun publishCsrfCookieIfNeeded(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ) {
+        if (response.isCommitted) {
+            return
+        }
+        val token =
+            (request.getAttribute("_csrf") as? CsrfToken)
+                ?: csrfTokenRepository.loadToken(request)
+                ?: return
+        token.token
+        csrfTokenRepository.saveToken(token, request, response)
     }
 }

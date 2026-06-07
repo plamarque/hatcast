@@ -3,7 +3,15 @@
     "version": "2.2.0",
     "date": "2026-06-07",
     "changes": [
-      "🐛 Les alertes de composition ne s'affichent plus si la validation n'est pas effectuée."
+      "✨ Équipe — ajoute un participant en le cherchant dans le carnet (membres, externes, saison)",
+      "✨ Membres — carnet des externes de la troupe et édition d'un membre par les admins",
+      "✨ Externes invités — dispos et agenda limités à ta portée d'invitation (sans accès membre complet)",
+      "✨ Équipe — les orgas peuvent renseigner le genre sur une ligne participant pour la mixité",
+      "✨ Composition — déverrouiller conserve les confirmations déjà obtenues",
+      "✨ Agenda — confirme ou décline ta participation depuis la grille des dispos",
+      "✨ Spectacle — titre plus visible et onglet À propos (vérif manuelle des mises à jour)",
+      "🐛 Dispos — le bon spectacle est présélectionné quand tu renseignes tes disponibilités",
+      "🐛 Composition — les alertes ne s'affichent qu'après validation de la compo"
     ]
   },
   {
