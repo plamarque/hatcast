@@ -18,6 +18,7 @@
 | **DW-112** | 2026-06-07 | Deploy : `--env-vars-file` YAML (`deploy-v2-cloud-run.yml`) — plus de CSV `--set-env-vars` |
 | **DW-104** | 2026-06-08 | Story **1.8** — retry signup + login recovery (compte Firebase orphelin) |
 | **DW-107** | 2026-06-08 | Story **8.5b** — garde éligibilité `AssigneePresenceReminderJob` (membre inactif / participant retiré) |
+| **DW-105** | 2026-06-07 | IdP `deleteUser` post-commit — `@TransactionalEventListener` + `IdentityPlatformUserDeletionEventListener` |
 | **DW-113** | 2026-06-08 | **Obsolète** — hub sans « Préférences dans cette troupe » (story **17.29**) |
 | **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` ; **DW-108** partiel |
 | **ops-8**, **ops-10** | 2026-06-04/05 | Prod domaine + email |
@@ -36,7 +37,7 @@
 | Tier | Quand agir | IDs |
 |------|------------|-----|
 | **T0** | — | *(vide — DW-104, DW-107 clôturés)* |
-| **T1** | Coût **faible** → bénéfice **net** (ordre § ci-dessous) | **DW-106** → **DW-105** → **DW-114** |
+| **T1** | Coût **faible** → bénéfice **net** (ordre § ci-dessous) | **DW-114** |
 | **T2** | Avant **M4** / prochain load prod (défense) | **DW-109**, **DW-110**, **DW-118**, **DW-119** |
 | **T3** | Faible risque ou niche — backlog 2.1.0+ | **DW-108**, **DW-115–117**, **DW-120**, **DW-121–125** |
 
@@ -47,19 +48,19 @@
 | # | ID | Coût | Bénéfice | Notes |
 |---|-----|------|----------|-------|
 | 1 | **DW-106** | **XS** | Modéré (latent) | ~~`toCategory()` + test~~ **Done** (2026-06-07) — dispatch 8.4 reste à câbler |
-| 2 | **DW-105** | **M** | Modéré | `@TransactionalEventListener` post-commit pour `deleteIdentityPlatformUser` — [`AccountDeletionService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/AccountDeletionService.kt) |
-| 3 | **DW-114** | **M–L** | Modéré | Verrou / concurrence `reinclude` vs adhésion `INACTIVE` — [`SeasonParticipantService.reinclude`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantService.kt) ; auto-réparé au list |
+| 2 | **DW-114** | **M–L** | Modéré | Verrou / concurrence `reinclude` vs adhésion `INACTIVE` — [`SeasonParticipantService.reinclude`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantService.kt) ; auto-réparé au list |
+
+### DW-105 — `deleteUser` IdP post-commit ✅ (2026-06-07)
+
+- **Risque :** transaction DB longue, échec Firebase = rollback ambigu.
+- **Fix :** `IdentityPlatformUserDeletionRequestedEvent` + `IdentityPlatformUserDeletionEventListener` (`AFTER_COMMIT`).
+- **Fichiers :** [`AccountDeletionService.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/AccountDeletionService.kt), [`IdentityPlatformUserDeletionEventListener.kt`](../../services/api/src/main/kotlin/com/hatcast/api/auth/IdentityPlatformUserDeletionEventListener.kt).
 
 ### DW-106 — `COMPOSITION_SHARED` → `toCategory()` ✅ (2026-06-07)
 
 - **Risque :** prefs push/email **fausses** si intent activé (latent aujourd’hui).
 - **Fichier :** [`NotificationIntent.kt`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationIntent.kt).
 - **Reste :** câbler `publishDraftCompositionShared` → dispatch 8.4 (payload + recipients).
-
-### DW-105 — `deleteUser` IdP dans `@Transactional`
-
-- **Risque :** transaction DB longue, échec Firebase = rollback ambigu.
-- **Impact :** rare ; sensible RGPD (story 1.7).
 
 ### DW-114 — `reinclude` vs adhésion INACTIVE
 

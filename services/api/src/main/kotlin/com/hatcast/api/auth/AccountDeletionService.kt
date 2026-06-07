@@ -1,7 +1,5 @@
 package com.hatcast.api.auth
 
-import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
 import com.hatcast.api.audit.AuditActionType
 import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.audit.AuditRecordRequest
@@ -16,6 +14,7 @@ import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -34,6 +33,7 @@ class AccountDeletionService(
     private val googleIdTokenService: GoogleIdTokenService,
     private val idpIdTokenVerifier: ObjectProvider<IdpIdTokenVerifier>,
     private val auditRecorder: AuditEventRecorder,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -76,7 +76,14 @@ class AccountDeletionService(
             ),
         )
 
-        deleteIdentityPlatformUserBestEffort(idpUidForCleanup)
+        if (!idpUidForCleanup.isNullOrBlank()) {
+            eventPublisher.publishEvent(
+                IdentityPlatformUserDeletionRequestedEvent(
+                    userId = user.id,
+                    idpUid = idpUidForCleanup,
+                ),
+            )
+        }
     }
 
     private fun ensureNotSoleActiveAdmin(user: UserEntity) {
@@ -192,26 +199,6 @@ class AccountDeletionService(
         user.deletedAt = now
         user.updatedAt = now
         // google_sub / idp_uid retained for sign-in block (AC 6) until IdP user deleted.
-        // idp_uid cleared after Firebase deleteUser in deleteIdentityPlatformUserBestEffort.
-    }
-
-    private fun deleteIdentityPlatformUserBestEffort(idpUid: String?) {
-        if (idpUid.isNullOrBlank()) {
-            return
-        }
-        if (FirebaseApp.getApps().isEmpty()) {
-            log.warn("Firebase Admin not initialized; skipping deleteUser for idpUid {}", idpUid)
-            return
-        }
-        runCatching {
-            FirebaseAuth.getInstance().deleteUser(idpUid)
-        }.onFailure {
-            log.warn("Firebase deleteUser failed for idpUid {}", idpUid, it)
-        }
-        userRepository.findByIdpUid(idpUid)?.let { user ->
-            user.idpUid = null
-            user.updatedAt = Instant.now()
-            userRepository.save(user)
-        }
+        // idp_uid cleared post-commit in IdentityPlatformUserDeletionEventListener.
     }
 }
