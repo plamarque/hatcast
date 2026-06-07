@@ -37,7 +37,7 @@
 | Tier | Quand agir | IDs |
 |------|------------|-----|
 | **T0** | — | *(vide — DW-104, DW-107 clôturés)* |
-| **T1** | Coût **faible** → bénéfice **net** (ordre § ci-dessous) | **DW-114** |
+| **T1** | Coût **faible** → bénéfice **net** (ordre § ci-dessous) | *(vide — DW-114 clôturé)* |
 | **T2** | Avant **M4** / prochain load prod (défense) | **DW-109**, **DW-110**, **DW-118**, **DW-119** |
 | **T3** | Faible risque ou niche — backlog 2.1.0+ | **DW-108**, **DW-115–117**, **DW-120**, **DW-121–125** |
 
@@ -48,7 +48,7 @@
 | # | ID | Coût | Bénéfice | Notes |
 |---|-----|------|----------|-------|
 | 1 | **DW-106** | **XS** | Modéré (latent) | ~~`toCategory()` + test~~ **Done** (2026-06-07) — dispatch 8.4 reste à câbler |
-| 2 | **DW-114** | **M–L** | Modéré | Verrou / concurrence `reinclude` vs adhésion `INACTIVE` — [`SeasonParticipantService.reinclude`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantService.kt) ; auto-réparé au list |
+| 2 | **DW-114** | **S** | Modéré | ~~Post-save re-check `reinclude`~~ **Done** (2026-06-07) — 409 si adhésion INACTIVE entre-temps ; fenêtre commit-edge acceptée |
 
 ### DW-105 — `deleteUser` IdP post-commit ✅ (2026-06-07)
 
@@ -62,10 +62,11 @@
 - **Fichier :** [`NotificationIntent.kt`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationIntent.kt).
 - **Reste :** câbler `publishDraftCompositionShared` → dispatch 8.4 (payload + recipients).
 
-### DW-114 — `reinclude` vs adhésion INACTIVE
+### DW-114 — `reinclude` vs adhésion INACTIVE ✅ (2026-06-07)
 
 - **Risque :** modéré — état roster incohérent transitoire si désactivation concurrente.
-- **Alternative :** documenter accepté si aucun retour terrain.
+- **Fix :** re-vérification post-save dans [`SeasonParticipantService.reinclude`](../../services/api/src/main/kotlin/com/hatcast/api/participant/SeasonParticipantService.kt) — revert + **409 CONFLICT** si adhésion devenue INACTIVE ; rollback transactionnel empêche zombie persisté.
+- **Reste accepté :** fenêtre commit-edge (Option B) ; gap [`SeasonStatisticsService`](../../services/api/src/main/kotlin/com/hatcast/api/season/SeasonStatisticsService.kt) (Option E investigation) — backlog séparé si besoin.
 
 ---
 
