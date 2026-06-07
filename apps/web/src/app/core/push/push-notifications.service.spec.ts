@@ -119,6 +119,7 @@ describe('PushNotificationsService', () => {
 
     const result = await service().loadStatus()
     expect(result.state).toBe('enabled')
+    expect(service().uiState()).toBe('enabled')
   })
 
   it('loadStatus returns disabled when the server is enabled but this device has no subscription', async () => {

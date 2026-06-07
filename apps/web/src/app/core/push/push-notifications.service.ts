@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core'
+import { Injectable, inject, signal } from '@angular/core'
 
 import { environment } from '../../../environments/environment'
 import { MePushApiService, type MePushStatus } from './me-push-api.service'
@@ -14,6 +14,10 @@ export type PushUiState =
 @Injectable({ providedIn: 'root' })
 export class PushNotificationsService {
   private readonly api = inject(MePushApiService)
+  private readonly uiStateSignal = signal<PushUiState>('loading')
+
+  /** Shared push gate state — siblings (prefs grid) react without page reload. */
+  readonly uiState = this.uiStateSignal.asReadonly()
 
   canUsePush(): boolean {
     return typeof window !== 'undefined' && 'PushManager' in window && 'serviceWorker' in navigator
@@ -28,37 +32,38 @@ export class PushNotificationsService {
 
   async loadStatus(): Promise<{ state: PushUiState; status?: MePushStatus }> {
     if (!this.canUsePush()) {
-      return { state: 'unsupported' }
+      return this.publishState('unsupported')
     }
 
     const permission = this.getPermission()
     const result = await this.api.getStatus(permission)
     if (!result.ok || !result.data) {
-      return { state: 'error' }
+      return this.publishState('error')
     }
 
     const status = result.data
     if (permission === 'denied') {
       await this.syncCurrentDeviceDisabled()
-      return { state: 'denied', status }
+      return this.publishState('denied', status)
     }
 
     const localSub = await this.getLocalSubscription()
     const enabled = status.enabled && permission === 'granted' && localSub != null
-    return { state: enabled ? 'enabled' : 'disabled', status }
+    return this.publishState(enabled ? 'enabled' : 'disabled', status)
   }
 
   async enable(): Promise<{ ok: boolean; state: PushUiState; message?: string }> {
     if (!this.canUsePush()) {
-      return { ok: false, state: 'unsupported' }
+      return { ok: false, ...this.publishState('unsupported') }
     }
 
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
       await this.syncDeniedState()
+      const state = permission === 'denied' ? 'denied' : 'disabled'
       return {
         ok: false,
-        state: permission === 'denied' ? 'denied' : 'disabled',
+        ...this.publishState(state),
         message:
           permission === 'denied'
             ? 'Autorisation refusée. Réactivez les notifications dans les paramètres du navigateur.'
@@ -71,7 +76,7 @@ export class PushNotificationsService {
       if (!vapidKey) {
         return {
           ok: false,
-          state: 'error',
+          ...this.publishState('error'),
           message: 'Configuration push indisponible (clé VAPID manquante).',
         }
       }
@@ -80,7 +85,7 @@ export class PushNotificationsService {
       if (!registration) {
         return {
           ok: false,
-          state: 'error',
+          ...this.publishState('error'),
           message:
             'Service worker indisponible. En local, lancez le front en build production (ng serve --configuration=production) ; l’installation PWA n’est pas requise.',
         }
@@ -96,17 +101,17 @@ export class PushNotificationsService {
 
       const json = subscription.toJSON()
       if (!json.endpoint || !json.keys?.['p256dh'] || !json.keys?.['auth']) {
-        return { ok: false, state: 'error', message: 'Abonnement push invalide.' }
+        return { ok: false, ...this.publishState('error'), message: 'Abonnement push invalide.' }
       }
 
       const result = await this.api.registerSubscription(json)
       if (!result.ok || !result.data) {
-        return { ok: false, state: 'error', message: 'Enregistrement serveur impossible.' }
+        return { ok: false, ...this.publishState('error'), message: 'Enregistrement serveur impossible.' }
       }
 
-      return { ok: true, state: 'enabled' }
+      return { ok: true, ...this.publishState('enabled') }
     } catch {
-      return { ok: false, state: 'error', message: 'Activation des notifications impossible.' }
+      return { ok: false, ...this.publishState('error'), message: 'Activation des notifications impossible.' }
     }
   }
 
@@ -118,14 +123,19 @@ export class PushNotificationsService {
     const result = endpoint ? await this.api.deleteSubscription(endpoint) : { ok: true, status: 200 }
 
     if (!result.ok) {
-      return { ok: false, state: 'error' }
+      return { ok: false, ...this.publishState('error') }
     }
 
     if (subscription) {
       await subscription.unsubscribe().catch(() => undefined)
     }
 
-    return { ok: true, state: 'disabled' }
+    return { ok: true, ...this.publishState('disabled') }
+  }
+
+  private publishState(state: PushUiState, status?: MePushStatus): { state: PushUiState; status?: MePushStatus } {
+    this.uiStateSignal.set(state)
+    return status === undefined ? { state } : { state, status }
   }
 
   private async syncDeniedState(): Promise<void> {

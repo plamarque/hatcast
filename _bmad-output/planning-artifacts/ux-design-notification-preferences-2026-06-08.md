@@ -2,7 +2,8 @@
 title: UX — Préférences de notification (membre + orga)
 author: Design Thinking (bmad-cis-design-thinking) + Patrice
 date: '2026-06-08'
-status: draft-for-review
+status: superseded-phase1-wireframe
+as_shipped: ux-notification-prefs-phase1-as-shipped-2026-06-08.md
 relatedStories:
   - '8.2'
   - '8.4'
@@ -25,6 +26,7 @@ party_mode_amendements:
   - '2026-06-08 — Priorité livraison : prefs membre avant prefs orga (8.4 après membre + 8.8)'
   - '2026-06-08 — Bloc orga : silence UI total jusqu’au ship 8.4 (pas de teaser)'
   - '2026-06-08 — Matrice défauts ajoutée (Sally / John FR31)'
+  - '2026-06-08 — Rétro as-shipped phase 1 membre : voir ux-notification-prefs-phase1-as-shipped-2026-06-08.md (copy Me prévenir, Cet appareil, cartes, hints supprimés)'
 ---
 
 # UX Design — Préférences de notification
@@ -32,6 +34,8 @@ party_mode_amendements:
 **Objectif :** un membre ou un orga répond en **< 30 s** à « Si je coupe X, qu’est-ce que je ne recevrai plus ? » — sans lire le catalogue technique.
 
 **Périmètre :** IA `/compte/notifications` (membre), proposition surface prefs orga (wireframe texte), mapping catégorie → intents en langage utilisateur, règles normatives anti-pref fantôme (A1).
+
+> **Phase 1 membre — UI livrée (2026-06-08) :** la spec **normative as-shipped** est [`ux-notification-prefs-phase1-as-shipped-2026-06-08.md`](./ux-notification-prefs-phase1-as-shipped-2026-06-08.md). Le wireframe § ci-dessous et les règles R3/R4 « Push » / « Si désactivé » sont **historiques** pour la phase 1.
 
 ### Priorisation livraison (décision PO 2026-06-08)
 
@@ -357,15 +361,17 @@ Source runtime actuelle : `NotificationPreference(push = true, email = true)` �
 ### R3 — Libellés & copy
 
 - **Titre UI** : nom du *sujet* (Disponibilités, Participation), pas « M'envoyer une notification… ».
-- **Aide** : verbe au présent, exemple concret, ≤ 2 lignes mobile.
-- **Si désactivé / si non activé** : phrase obligatoire sous l’aide — critère < 30 s.
-- **API** : conserver `label` long pour OpenAPI / compat ; UI Angular **mappe** clé → copy locale (fichier i18n ou constante front), pas de dépendance au label API seul.
+- **Phase 1 as-shipped** : **une** phrase `description` par ligne, amorce **« Me prévenir quand »** (voir doc as-shipped). Pas de bloc « Si désactivé » en phase 1.
+- **Orga (8.4+)** : « si non activé » pour opt-in — à définir à l’implémentation 8.4.
+- **API** : conserver `label` long pour OpenAPI / compat ; UI Angular **mappe** clé → `notification-preference-ui-copy.ts`.
 
-### R4 — Canaux push / e-mail
+### R4 — Canaux appareil / e-mail
 
-- En-têtes colonnes **Push** | **E-mail** dès le 1er bloc catégories.
-- Push catégories **désactivé** si push appareil off (comportement actuel).
+- Libellé canal membre : **Cet appareil** | **E-mail** (jamais Push/Mobile en UI).
+- Toggle global : **Notifications sur cet appareil** (autorisation OS/navigateur).
+- Toggles **Cet appareil** **désactivés** si notifications appareil off — sans hint sous la grille.
 - E-mail reste éditable indépendamment (fallback Tension B).
+- Mobile : libellés canal visibles sur chaque switcher ; desktop : en-têtes de colonne.
 
 ### R5 — Regroupement intents (pas de split pref sans décision PO)
 
@@ -384,11 +390,11 @@ Source runtime actuelle : `NotificationPreference(push = true, email = true)` �
 
 | # | Persona | Tâche | Pass | Fail |
 |---|---------|-------|------|------|
-| S1 | Léa | « Coupe les rappels toutes les 5 jours pour dispos oubliées » | Trouve **Dispos oubliées** en < 15 s ; cite « plus de rappel tant que dispo vide » | Cherche sous « Disponibilités » ou ne sait pas ce qui s’arrête |
+| S1 | Léa | « Coupe les rappels toutes les 5 jours pour dispos attendues » | Trouve **Dispos attendues** en < 15 s ; cite *tous les 5 jours* | Cherche sous « Disponibilités » ou ne sait pas ce qui s’arrête |
 | S2 | Léa | « Je ne veux plus les rappels veille / semaine, mais garder les demandes de dispo » | Désactive **Veille** + **Semaine avant** sans toucher **Disponibilités** | Désactive le mauvais bloc ou pense tout couper |
 | S3 | Marc | « Active l’alerte quand quelqu’un décline » *(phase 3 — 8.4)* | Section **Alertes organisateur** → **Déclin immédiat** ; comprend opt-in | Cherche dans Rappels membre ou ne trouve pas la section |
-| S4 | Nouveau membre | Push appareil **non** activé — ouvre prefs | Comprend hint push ; peut régler e-mail ; ne croit pas que tout est mort | Confusion totale ou toggles push sans explication |
-| S5 | Léa | « Si je coupe Participation, est-ce que je saurai si on me retire de la compo ? » | Lit « Si désactivé : … retrait » **avant** de toggler ; décision éclairée | Réponse « je ne sais pas » > 30 s |
+| S4 | Nouveau membre | Notifications appareil **non** activées — ouvre prefs | Voit **Cet appareil** grisé ; peut régler e-mail ; pas de mur de hints | Confusion totale |
+| S5 | Léa | « Si je coupe Participation, retrait compo ? » | Lit *Me prévenir quand… orga modifie ma participation* ; décision éclairée | Réponse « je ne sais pas » > 30 s |
 
 **Critère phase 1 (membre) :** S1, S2, S4, S5 en **pass** (4/4) sans catalogue. **Phase 3 :** ajouter S3 après ship 8.4.
 
@@ -414,15 +420,15 @@ Source runtime actuelle : `NotificationPreference(push = true, email = true)` �
 
 ---
 
-## Annexe — Écart UI actuel vs cible
+## Annexe — Écart UI (historique pré-8.2b)
 
-| Aujourd’hui (`NotificationPreferencesSection`) | Cible DT |
-|------------------------------------------------|----------|
-| Libellé = `category.label` API (long) | Libellé court + aide + « Si désactivé » |
-| 7 toggles dont 2 fantômes (`COMPOSITION_SHARED`, `TEAM_CONFIRMED`) | 5 toggles membre visibles post-D6 |
-| 2 groupes API (`NOTIFICATIONS`, `AUTOMATIC_REMINDERS`) | + intros rhétoriques opt-out |
-| Pas de section orga | Section conditionnelle opt-in (8.4) |
-| Pas d’en-têtes colonnes Push/E-mail | En-têtes explicites |
+| Avant 8.2b | Phase 1 as-shipped (2026-06-08) |
+|------------|----------------------------------|
+| Libellé = `category.label` API (long) | Titre court + *Me prévenir quand…* |
+| 7 toggles dont 2 fantômes | 5 lignes ; D6 masqué client |
+| Colonnes sans en-tête | **Cet appareil** \| E-mail |
+| — | Cartes section + hiérarchie typo |
+| — | Voir [`ux-notification-prefs-phase1-as-shipped-2026-06-08.md`](./ux-notification-prefs-phase1-as-shipped-2026-06-08.md) |
 
 ---
 

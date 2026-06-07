@@ -148,6 +148,17 @@
 
 ---
 
+## Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)
+
+- PATCH push debouncé après désactivation globale appareil — fenêtre debounce 300 ms ; guard optionnel MVP.
+- `uiState` enabled pendant `disable()` async — pas de signal busy partagé ; pattern 8.1.
+- Test count 5 lignes explicite absent — filtrage D6 couvert indirectement.
+- Libellés canal mobile `0.7rem` vs token `body-medium` — polish M3.
+- `display: contents` sur wrappers channel desktop — trade-off grille accepté.
+- Fallback copy clé API inconnue — story 8.8.
+
+---
+
 ## Liens normatifs
 
 | Sujet | Où tracer |
