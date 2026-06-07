@@ -144,3 +144,57 @@ export function chanceColorClass(chancePercent: number): 'high' | 'medium' | 'lo
   if (chancePercent >= 10) return 'medium'
   return 'low'
 }
+
+/** Pool segment tier — 4 intuitive bands for at-a-glance reading. */
+export type ChancePoolTier = 'green' | 'yellow' | 'orange' | 'red'
+
+export function chancePoolTier(chancePercent: number): ChancePoolTier {
+  if (chancePercent >= 75) return 'green'
+  if (chancePercent >= 50) return 'yellow'
+  if (chancePercent >= 25) return 'orange'
+  return 'red'
+}
+
+/** 5 % buckets across 0–100 for distinct muted tints within a tier. */
+export function chancePoolColorStep(chancePercent: number): number {
+  const clamped = Math.min(100, Math.max(0, chancePercent))
+  return Math.min(20, Math.floor(clamped / 5))
+}
+
+const CHANCE_POOL_TIER_STEPS: Record<ChancePoolTier, { min: number; max: number }> = {
+  green: { min: 15, max: 20 },
+  yellow: { min: 10, max: 14 },
+  orange: { min: 5, max: 9 },
+  red: { min: 0, max: 4 },
+}
+
+/** Per-tier anchor: separated hues, yellow clearly golden vs warm orange. */
+const CHANCE_POOL_TIER_BASE: Record<
+  ChancePoolTier,
+  { hue: number; sat: number; light: number; lightStep: number }
+> = {
+  green: { hue: 156, sat: 38, light: 37, lightStep: 4 },
+  yellow: { hue: 54, sat: 46, light: 42, lightStep: 3 },
+  orange: { hue: 22, sat: 44, light: 38, lightStep: 3 },
+  red: { hue: 5, sat: 42, light: 35, lightStep: 3 },
+}
+
+/** Pool bar fill — tier hue + subtle 5 % step (lighter when higher in band). */
+export function chancePoolSegmentBackground(chancePercent: number): string {
+  const tier = chancePoolTier(chancePercent)
+  const step = chancePoolColorStep(chancePercent)
+  const { min, max } = CHANCE_POOL_TIER_STEPS[tier]
+  const t = max > min ? (step - min) / (max - min) : 0
+  const base = CHANCE_POOL_TIER_BASE[tier]
+  const hue = base.hue
+  const sat = base.sat + t * 3
+  const light = base.light + t * base.lightStep
+  const sat2 = sat - 3
+  const light2 = light - 4
+  return `linear-gradient(160deg, hsl(${hue} ${sat}% ${light}%), hsl(${hue} ${sat2}% ${light2}%))`
+}
+
+/** Pool bar fill — delegates to {@link chancePoolSegmentBackground}. */
+export function chanceSpectrumSegmentBackground(chancePercent: number): string {
+  return chancePoolSegmentBackground(chancePercent)
+}

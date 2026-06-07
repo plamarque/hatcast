@@ -16,9 +16,12 @@ This document defines the **observed V1 production behaviour** (`chancesService.
 | Weight formula (`malus`, `weight`) | Factor pipeline implementation (**19.5–19.7**) |
 | `pastSelectionCount` rules | History SQL / compartment factor (**19.8**) |
 | `performWeightedDraw` | Full draw orchestration fixtures (**19.3**) |
-| `exactSelectionProbability` + display `%` | User-facing orga/member doc (**19.4**) |
+| `exactSelectionProbability` + display `%` | — |
 | Intra-role / cross-role exclusion semantics | Draw-time snapshot persistence (**6.14** — reference only) |
 | Full vs partial redraw semantics | Wave D formulas & policies (**19.15+**) |
+| User-facing orga/member doc | — (see [Comprendre les pourcentages](../product/draw-chances-explained.md)) |
+
+**Documentation utilisateur (organisateur / membre) :** [`docs/v2/product/draw-chances-explained.md`](../product/draw-chances-explained.md) — plain-language French guide to displayed %; does not duplicate this spec.
 
 ---
 
@@ -388,6 +391,123 @@ Values frozen during story **19.1** from `AvailabilityChanceCalculator` (Kotlin)
 ### Fixture generation note
 
 Story **19.1** author computed **REF-D2**, **REF-D3**, **REF-P4** by executing `AvailabilityChanceCalculator` in Kotlin (Gradle test harness). Optional helper: [`scripts/draw/freeze-golden-vectors.kts`](../../../scripts/draw/freeze-golden-vectors.kts) — re-run only when the normative algorithm changes (requires Kotlin CLI or equivalent Gradle task).
+
+---
+
+## Orchestration golden test contract (19.3 handoff)
+
+Story **19.3** locks **multi-role draw orchestration** in `CompositionDrawService` — beyond calculator-only golden tests (**19.2**).
+
+### Scope IN / OUT
+
+| IN (19.3) | OUT |
+|-----------|-----|
+| Full / partial redraw semantics | `AvailabilityChanceCalculator` unit golden → **19.2** |
+| Cross-role + intra-role exclusion in one request | Category compartment SQL → **19.8** |
+| `%` draw = summary at orchestration level | Factor pipeline → **19.5** |
+| Opening snapshot `chancePercent` persistence (**6.14**, **E-04**) | Formula id on snapshot → **19.22** |
+| G-03 indexed slot gap fill | UI explainability → **19.4** |
+| `DrawMode.FILL_EMPTY` on locked composition (**E-03**) | API `randomSeed` param (test seam only) |
+
+### E-04 vs story 6.14 AC1
+
+Story **6.14** AC1 wording references `steps[]` candidate `%`. **Runtime** uses `captureOpeningDrawSnapshots` at draw opening with `openingCrossRoleExcluded` (pre-existing assignees only). Persisted `event_draw_chance_snapshots.chancePercent` is the **opening** score, not the first per-slot step after cross-role exclusions accumulate in the same request. Orchestration golden **REF-O8** asserts this invariant.
+
+### JSON fixture schema (`draw/golden/orchestration.json`)
+
+```json
+{
+  "id": "REF-O3",
+  "description": "string",
+  "tags": ["cross-role", "FR20"],
+  "setup": {
+    "roleSlots": { "player": 1, "mc": 1 },
+    "participants": [{ "key": "solo" }],
+    "availabilities": [{ "participantKey": "solo", "status": "available", "roleKeys": ["player", "mc"] }],
+    "preAssignedSlots": [],
+    "validatedPastEvents": [{ "roleSlots": { "player": 1 }, "assigneeKey": "veteran" }],
+    "lockComposition": false
+  },
+  "drawSteps": [{ "mode": "full", "randomSeed": 99, "before": [{ "setAvailability": { "participantKey": "p2", "status": "unavailable", "roleKeys": [] } }] }],
+  "expected": { "totalAssignedSlots": 1, "maxRolesPerParticipant": 1 }
+}
+```
+
+Deterministic draws: call `CompositionDrawService.drawComposition(..., random = Random(seed))` in tests — **not** via HTTP (`DrawCompositionRequestDto` has no seed).
+
+Participant keys map to stable UUIDs via `DrawGoldenFixtureLoader.participantId(key)` (same as **19.2**).
+
+### Minimum frozen reference catalog (orchestration)
+
+| ID | Scenario | Key assertion |
+|----|----------|---------------|
+| **REF-O1** | Full redraw, pool cannot refill | Exactly 1 assignee after second draw |
+| **REF-O2** | Partial: slot 0 pre-assigned | Slot 0 unchanged; slot 1 filled |
+| **REF-O3** | Cross-role same request | ≤1 role per multi-role candidate |
+| **REF-O4** | Pre-assign player → excluded from dj | Solo stays player only |
+| **REF-O5** | Manual multi-role stack | Auto-draw does not double-assign |
+| **REF-O6** | 2 slots / 3 candidates, `Random(99)` | 2 distinct assignees (frozen keys) |
+| **REF-O7** | Validated past history | Veteran `%` < rookie `%`; step `%` = summary |
+| **REF-O8** | Multi-role opening snapshot | DB `chancePercent` = opening score (E-04) |
+| **REF-O9** | G-03 gap: slot 1 occupied | Fills slot 0 only |
+| **REF-O10** | `fillEmpty` on locked composition | Fills creux; occupant kept |
+| **T-O1** | Empty player pool | Draw continues; dj filled |
+| **T-O2** | Two full redraws | Snapshot row count stable |
+
+Runner: `DrawOrchestrationGoldenTest` — `./gradlew test --tests 'com.hatcast.api.composition.DrawOrchestrationGoldenTest'`.
+
+---
+
+## Explainability API (story 19.7)
+
+Per-candidate waterfall breakdown: how `chancePercent` differs from a **pure draw** baseline (`referencePercent`) via sequential factor deltas.
+
+### Endpoints
+
+| Method | Path | Audience |
+|--------|------|----------|
+| `GET` | `/v1/seasons/{seasonId}/events/{eventId}/composition/chance-breakdown?roleKey=&participantId=` | Orga (draft or validated) ; member after composition **validated** |
+| `GET` | `/v1/seasons/{seasonId}/events/{eventId}/composition/pool-preview?roleKey=` | Orga (`canManageComposition`) only |
+
+**403** when explainability is not allowed (same gates as Dispos `includeChances` / Équipe slot odds — stories **6.3**, **6.4**).
+
+### `ChanceBreakdownDto`
+
+| Field | Meaning |
+|-------|---------|
+| `referencePercent` | **Option C (W18):** `exactSelectionProbability` with `DrawWeightPipeline.EMPTY` (base weight = `requiredCount` only, all factor multipliers = 1.0). |
+| `candidateCount` | Eligible pool size for the role (UI reference line: « Chance de base pour les {n} candidats »). |
+| `poolRank` | **1-based** rank in the pool by `chancePercent` (desc); `aheadCount + 1`. |
+| `aheadCount` | Count of candidates with **strictly higher** `chancePercent` than the subject (= `pool.peers.length` when peers are returned). |
+| `tiedAtChanceCount` | Candidates sharing the subject’s `chancePercent` (including the subject); used for ex-aequo copy in UI. |
+| `chancePercent` | Effective % with `DrawWeightPipelines.DEFAULT` (or draw snapshot on retrospective events when present). |
+| `adjustments[]` | `{ factorId, label, deltaPoints }` — one row per pipeline factor; **omit** `deltaPoints === 0`. Sorted by \|delta\| desc. |
+| `requiredCount` | Places to fill for the role (multi-place hint in UI header). |
+| `pool.peers` | Candidates with **strictly higher** `chancePercent` than the subject, desc. **Not** rendered as a peer list in as-shipped UI (rank summary only); still returned for API completeness / client fallback when rank fields are absent. |
+| `factorBreakdown` | Optional engine detail (`multiplier`, `label`) — tests / diagnostics, not MVP UI. |
+
+### UI surfaces (as-shipped 19.7)
+
+| Surface | API | Entry |
+|---------|-----|-------|
+| Fiche waterfall | `chance-breakdown` | Segment pool, % picker/grid/animation |
+| Pool coloré (Équipe, Dispos) | `pool-preview` (orga) ; Dispos chances summary (membre) | Tap segment → `chance-breakdown` |
+| Aide générale | — | `DrawChancesHelpDialog` (5 slides) ; not `chance-breakdown` |
+
+**Client fallback:** if `poolRank` / `aheadCount` are missing but `pool.peers` is present, the web app derives rank from `peers.length` (`chance-breakdown-sheet.ts`).
+
+### Delta algorithm
+
+1. Build the same eligible pool as `scoreCandidates` for the role (availability + role rules).
+2. `referencePercent` = rounded probability with `DrawWeightPipeline.EMPTY`.
+3. For each factor `f` in pipeline order: apply factors `1..i`, recompute target %, `deltaPoints = percentAfter − percentBefore` (integer points); skip zero deltas.
+4. **Tolerance:** `referencePercent + Σ deltaPoints ≈ chancePercent` (±1 pt rounding).
+
+### Labels
+
+`PastParticipationFactor` (`past_participation`): « Déjà {rôle} {n} fois » ou « Jamais {rôle} » si `n = 0` (`RoleLabels`).
+
+Implementation: `ChanceBreakdownCalculator`, `CompositionExplainabilityService`.
 
 ---
 

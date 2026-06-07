@@ -14,13 +14,17 @@ import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
+import com.hatcast.api.composition.CompositionExplainabilityAccess
 import com.hatcast.api.composition.CompositionSelectionHistoryService
+import com.hatcast.api.composition.EventCompositionRepository
+import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.SelectionHistoryMode
 import com.hatcast.api.composition.SelectionHistoryModeResolver
 import com.hatcast.api.event.EventDraftVisibility
 import com.hatcast.api.event.EventDraftVisibility.Companion.DRAFT_AVAILABILITY_CLOSED_MESSAGE
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.event.isAvailabilityOpen
 import com.hatcast.api.organizer.OrganizerAccessService
 import com.hatcast.api.participant.EventParticipantExclusionRepository
@@ -59,6 +63,8 @@ class AvailabilityService(
     private val userRepository: UserRepository,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
+    private val compositionRepository: EventCompositionRepository,
+    private val compositionSlotRepository: EventCompositionSlotRepository,
     private val auditRecorder: AuditEventRecorder,
     private val draftVisibility: EventDraftVisibility,
     private val eventPublisher: ApplicationEventPublisher,
@@ -195,6 +201,9 @@ class AvailabilityService(
     ): EventAvailabilitySummaryResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireAvailabilitySummaryReadable(event, seasonId, principal)
+        val effectiveIncludeChances =
+            includeChances &&
+                resolveExplainabilityForSummary(event, seasonId, eventId, principal)
         val eligible = loadEligibleParticipants(seasonId, event.id)
         val availabilityIndex = buildAvailabilityIndex(event.id)
 
@@ -225,7 +234,7 @@ class AvailabilityService(
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots)
         val historyMode = SelectionHistoryModeResolver.forEvent(event)
         val snapshotByRoleAndParticipant =
-            if (includeChances && historyMode == SelectionHistoryMode.RETROSPECTIVE) {
+            if (effectiveIncludeChances && historyMode == SelectionHistoryMode.RETROSPECTIVE) {
                 drawChanceSnapshots
                     .findByEventId(event.id)
                     .associateBy { it.id.roleKey to it.id.participantId }
@@ -235,7 +244,7 @@ class AvailabilityService(
         val hasSnapshots = snapshotByRoleAndParticipant.isNotEmpty()
         // Retrospective fallback: candidates without a snapshot row are recalculated live.
         val historyCounts =
-            if (includeChances) {
+            if (effectiveIncludeChances) {
                 selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
             } else {
                 emptyMap()
@@ -253,7 +262,7 @@ class AvailabilityService(
                     }
                 var roleUsedEstimatedFallback = false
                 val candidates =
-                    if (includeChances) {
+                    if (effectiveIncludeChances) {
                         // Per (roleKey, participant): prefer the draw snapshot, fall back to a
                         // retrospective recalc for candidates that have no snapshot row.
                         val roleHasMissingSnapshot =
@@ -281,6 +290,7 @@ class AvailabilityService(
                                         },
                                         requiredCount,
                                         pastByParticipant,
+                                        roleKey = roleKey,
                                     ).associateBy { it.participantId }
                             } else {
                                 emptyMap()
@@ -300,6 +310,7 @@ class AvailabilityService(
                                 participantId = row.participantId,
                                 displayName = row.displayName,
                                 avatarUrl = row.avatarUrl,
+                                gender = row.gender,
                                 chancePercent = chancePercent,
                             )
                         }
@@ -309,6 +320,7 @@ class AvailabilityService(
                                 participantId = row.participantId,
                                 displayName = row.displayName,
                                 avatarUrl = row.avatarUrl,
+                                gender = row.gender,
                                 chancePercent = null,
                             )
                         }
@@ -321,7 +333,7 @@ class AvailabilityService(
                 )
             }
         val chanceSource =
-            if (!includeChances) {
+            if (!effectiveIncludeChances) {
                 null
             } else if (historyMode == SelectionHistoryMode.OPERATIONAL) {
                 "live"
@@ -836,6 +848,23 @@ class AvailabilityService(
             HttpStatus.FORBIDDEN,
             DRAFT_AVAILABILITY_CLOSED_MESSAGE,
         )
+    }
+
+    private fun resolveExplainabilityForSummary(
+        event: EventEntity,
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): Boolean {
+        val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
+        val composition = compositionRepository.findById(eventId).orElse(null)
+        val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
+        val slots =
+            compositionSlotRepository.findByEventId(eventId).filter { slot ->
+                val count = normalizedSlots[slot.roleKey] ?: 0
+                slot.slotIndex in 0 until count
+            }
+        return CompositionExplainabilityAccess.canShowExplainability(composition, slots, canManage)
     }
 
     private fun requireAvailabilitySummaryReadable(

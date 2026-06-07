@@ -109,6 +109,19 @@ Regression gate for [`AvailabilityChanceCalculator`](src/main/kotlin/com/hatcast
 
 Optional vector regeneration (normative algorithm change only) : [`scripts/draw/freeze-golden-vectors.kts`](../../scripts/draw/freeze-golden-vectors.kts).
 
+### Golden draw orchestration suite (Epic 19.3)
+
+Regression gate for [`CompositionDrawService`](src/main/kotlin/com/hatcast/api/composition/CompositionDrawService.kt) — multi-role redraw, cross-role exclusion, opening snapshots (**E-04**). Spec: [`draw-weight-engine-v1-spec.md`](../../docs/v2/technical/draw-weight-engine-v1-spec.md) § Orchestration golden test contract (19.3 handoff).
+
+```bash
+./gradlew test --tests 'com.hatcast.api.composition.DrawOrchestrationGoldenTest'
+```
+
+- Fixtures : `src/test/resources/draw/golden/orchestration.json` (IDs `REF-O1`…`REF-O10`, `T-O1`…`T-O2`).
+- Runner : `DrawOrchestrationGoldenTest.kt` (parameterized; deterministic draws via `Random(seed)` on service seam).
+- Helpers : `DrawOrchestrationFixture.kt`, `DrawTestSupport.kt`.
+- Design doc : [`_bmad-output/test-artifacts/19-3-orchestration-test-design.md`](../../_bmad-output/test-artifacts/19-3-orchestration-test-design.md).
+
 ### H2 (CI et local) vs PostgreSQL (Neon)
 
 | Environnement | Moteur | Config |

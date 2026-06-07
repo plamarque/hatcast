@@ -106,6 +106,40 @@ Clôture **T0** vide ; retrait entrées actives ; defers revues stories **done**
 
 ---
 
+## Archive append (hygiène 2026-06-09)
+
+Clôture **T1** vide ; repriorisation **T2/T3** par coût vs bénéfice dans l’actif.
+
+### DW-105 — fermé (spec dw-105)
+
+- `IdentityPlatformUserDeletionRequestedEvent` + listener `AFTER_COMMIT` ; DB anonymization hors appel réseau IdP.
+- Preuve : [`spec-dw-105-idp-delete-post-commit.md`](./spec-dw-105-idp-delete-post-commit.md) `status: done`.
+
+### DW-106 — fermé (spec dw-106)
+
+- `NotificationIntent.COMPOSITION_SHARED` + branche `toCategory()` + tests.
+- Dispatch réel → story **8.4** (stubs payload fail-fast jusqu’au câblage).
+
+### DW-114 — fermé (fix minimal)
+
+- Post-save re-check dans `SeasonParticipantService.reinclude` → **409** si adhésion `INACTIVE` entre-temps.
+- Fenêtre commit-edge et gap `SeasonStatisticsService` **acceptés** — voir [`investigations/dw-114-investigation.md`](./investigations/dw-114-investigation.md).
+
+### DW-118 — fermé (audit SQL, pas de migration)
+
+- Item différé review **3.19** / risque **R-003** : backfill `removal_source` (V38) envisagé pour les lignes membre `REMOVED` préexistantes.
+- Audit SQL **staging + prod** (2026-06-07) : **0** membre `REMOVED` + `removal_source IS NULL` ; sous-ensemble adhésion `ACTIVE` vide.
+- **Décision :** pas de migration Flyway V61 ; garde sync 3.19 suffisante en données réelles.
+- Preuve : [`investigations/dw-118-investigation.md`](./investigations/dw-118-investigation.md).
+
+### Deferred from: code review of spec-dw-105-idp-delete-post-commit (2026-06-07)
+
+- Pas de test intégration « IdP `deleteUser` non appelé sur rollback 409 » — gap test only.
+- Listener `AFTER_COMMIT` synchrone — latence Firebase toujours sur le thread HTTP ; lock DB corrigé seulement.
+- `IdentityPlatformUserDeletionSupport` ne distingue pas throw vs `true` dans le test listener — couverture mineure.
+
+---
+
 ## Deferred from: code review of 6-10c-deplacer-rappel-dispos-menu-gear-evenement.md (2026-06-04)
 
 - Échecs `event-detail.spec.ts` hors périmètre 6.10c (routes canoniques `/saison/:troupeSlug/…`, breadcrumb) — les tests Relance dispos ajoutés passent ; suite globale web déjà rouge ailleurs.

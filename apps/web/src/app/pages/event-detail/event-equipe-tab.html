@@ -30,6 +30,7 @@
         [stepIndex]="drawStepIndex()"
         [totalSteps]="drawSteps().length"
         (finished)="onDrawStepFinished()"
+        (segmentTap)="onDrawSegmentTap($event)"
       />
     }
 
@@ -48,6 +49,74 @@
         <span class="event-equipe-tab__slot-vacant" aria-hidden="true"></span>
         <span class="event-equipe-tab__placeholder">{{ emptySlotPlaceholder }}</span>
       }
+    </ng-template>
+
+    <ng-template #rolePill let-row="row">
+      @if (canOpenRolePoolPreview()) {
+        <button
+          type="button"
+          class="event-equipe-tab__role-pill event-equipe-tab__role-pill--trigger"
+          [class.event-equipe-tab__role-pill--active]="isRolePoolPreviewOpen(row)"
+          [attr.aria-expanded]="isRolePoolPreviewOpen(row)"
+          [attr.aria-label]="rolePoolPreviewAriaLabel(row)"
+          data-testid="composition-role-pool-trigger"
+          (click)="toggleRolePoolPreview($event, row)"
+        >
+          {{
+            rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
+          }}
+        </button>
+      } @else {
+        <span class="event-equipe-tab__role-pill">{{
+          rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
+        }}</span>
+      }
+    </ng-template>
+
+    <ng-template #poolPreviewInline let-row="row">
+      @if (isRolePoolPreviewOpen(row)) {
+        <div
+          class="event-equipe-tab__pool-preview-inline"
+          data-testid="composition-pool-preview"
+          role="region"
+          [attr.aria-label]="
+            'Pool du tirage pour ' +
+            rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
+          "
+        >
+          @if (poolPreviewLoading()) {
+            <mat-spinner diameter="28" />
+          } @else if (poolPreviewError()) {
+            <p class="event-equipe-tab__pool-preview-empty" role="alert">{{ poolPreviewError() }}</p>
+          } @else if (poolPreviewSegments().length > 0) {
+            <app-composition-pool-preview
+              [pool]="poolPreviewSegments()"
+              [interactive]="canShowChanceBreakdown()"
+              (segmentTap)="onPoolPreviewSegmentTap($event)"
+            />
+          } @else {
+            <p class="event-equipe-tab__pool-preview-empty">Aucun candidat pour ce rôle.</p>
+          }
+        </div>
+      }
+    </ng-template>
+
+    <ng-template #genderParityBadge let-parity="parity">
+      <div
+        class="event-equipe-tab__guidance event-equipe-tab__parity"
+        [class.event-equipe-tab__parity--bon]="parity.score === 'bon'"
+        [class.event-equipe-tab__parity--acceptable]="parity.score === 'acceptable'"
+        [class.event-equipe-tab__parity--faible]="parity.score === 'faible'"
+        role="status"
+        data-testid="composition-gender-parity-indicator"
+        [matTooltip]="parity.detailLabel"
+        matTooltipPosition="below"
+        matTooltipTouchGestures="on"
+        [attr.aria-label]="parity.label + ' — ' + parity.detailLabel"
+      >
+        <mat-icon aria-hidden="true">groups</mat-icon>
+        <span class="event-equipe-tab__parity-label">{{ parity.label }}</span>
+      </div>
     </ng-template>
 
     <ng-template #slotWarningsBelow let-row="row">
@@ -106,30 +175,10 @@
         </div>
       }
 
-      @if (showCompositionGuidances()) {
-        <section
-          class="event-equipe-tab__guidances"
-          aria-label="Indicateurs de composition"
-          data-testid="composition-guidances"
-        >
-          @if (visiblePlayerGenderParity(); as parity) {
-            <div
-              class="event-equipe-tab__guidance event-equipe-tab__parity"
-              [class.event-equipe-tab__parity--bon]="parity.score === 'bon'"
-              [class.event-equipe-tab__parity--acceptable]="parity.score === 'acceptable'"
-              [class.event-equipe-tab__parity--faible]="parity.score === 'faible'"
-              role="status"
-              data-testid="composition-gender-parity-indicator"
-              [matTooltip]="parity.detailLabel"
-              matTooltipPosition="below"
-              matTooltipTouchGestures="on"
-              [attr.aria-label]="parity.label + ' — ' + parity.detailLabel"
-            >
-              <mat-icon aria-hidden="true">groups</mat-icon>
-              <span class="event-equipe-tab__parity-label">{{ parity.label }}</span>
-            </div>
-          }
-        </section>
+      @if (visiblePlayerGenderParity(); as parity) {
+        <div class="event-equipe-tab__parity-row">
+          <ng-container *ngTemplateOutlet="genderParityBadge; context: { parity }" />
+        </div>
       }
 
       <ul
@@ -154,22 +203,39 @@
           [class.event-equipe-tab__row--tappable]="isSlotRowTappable(row)"
         >
           @if (isSlotRowTappable(row)) {
+            <ng-container *ngTemplateOutlet="rolePill; context: { row }" />
             <button
               type="button"
               class="event-equipe-tab__row-hit"
-              [class.event-equipe-tab__row-hit--has-clear]="canEditSlots() && !!row.slot?.participantId"
               [class.event-equipe-tab__row-hit--readonly]="isForeignParticipationSlot(row)"
               [disabled]="isSlotRowHitDisabled(row)"
               [attr.aria-label]="slotRowAriaLabel(row)"
               (click)="onSlotRowClick(row)"
             >
-              <span class="event-equipe-tab__role-pill">{{
-                rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
-              }}</span>
               <span class="event-equipe-tab__slot">
                 <ng-container *ngTemplateOutlet="slotBody; context: { row: row }" />
               </span>
             </button>
+            @if (showSlotTrailing(row)) {
+              <span class="event-equipe-tab__trailing">
+                @if (
+                  canShowChanceBreakdown() &&
+                  row.slot?.chancePercent != null &&
+                  row.slot?.participantId
+                ) {
+                  <button
+                    type="button"
+                    class="event-equipe-tab__chance-trigger"
+                    data-testid="chance-breakdown-trigger"
+                    aria-haspopup="dialog"
+                    [attr.aria-label]="slotBreakdownAriaLabel(row)"
+                    (click)="openSlotChanceBreakdown($event, row)"
+                  >
+                    {{ row.slot?.chancePercent }}&nbsp;% ›
+                  </button>
+                }
+              </span>
+            }
             @if (canEditSlots() && row.slot?.participantId) {
               <button
                 type="button"
@@ -181,13 +247,12 @@
               </button>
             }
           } @else {
-            <span class="event-equipe-tab__role-pill">{{
-              rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
-            }}</span>
+            <ng-container *ngTemplateOutlet="rolePill; context: { row }" />
             <span class="event-equipe-tab__slot event-equipe-tab__slot--readonly">
               <ng-container *ngTemplateOutlet="slotBody; context: { row: row }" />
             </span>
           }
+          <ng-container *ngTemplateOutlet="poolPreviewInline; context: { row }" />
           <div class="event-equipe-tab__warnings">
             <ng-container *ngTemplateOutlet="slotWarningsBelow; context: { row: row }" />
           </div>
@@ -473,6 +538,7 @@
             </mat-menu>
           }
         </div>
+        <!-- Reserved for Epic 19.21+ formula / what-if preview (W16) — do not implement in 19.7 -->
       </div>
     }
   </div>

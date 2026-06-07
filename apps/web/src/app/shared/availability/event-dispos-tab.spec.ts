@@ -175,20 +175,22 @@ describe('EventDisposTab', () => {
 
   it('uses French aria-label on Tous panel rows when organizer', async () => {
     const { fixture } = await setup(true)
+    fixture.componentRef.setInput('explainabilityEnabled', true)
     const comp = fixture.componentInstance as unknown as { setViewMode: (mode: 'moi' | 'tous') => void }
     await comp.setViewMode('tous')
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const btn = fixture.nativeElement.querySelector(
-      '.availability-tous__person--clickable',
+    const segment = fixture.nativeElement.querySelector(
+      '[data-testid="composition-draw-segment-p1"]',
     ) as HTMLElement
-    expect(btn?.getAttribute('aria-label')).toBe('Modifier la disponibilité de Patrice')
+    expect(segment?.getAttribute('title')).toContain('Patrice')
   })
 
-  it('loads summary with includeChances when switching to Tous', async () => {
+  it('loads summary with includeChances when switching to Tous with explainability', async () => {
     const { fixture, getEventAvailabilitySummary } = await setup()
+    fixture.componentRef.setInput('explainabilityEnabled', true)
     const comp = fixture.componentInstance as unknown as { setViewMode: (mode: 'moi' | 'tous') => void }
     await comp.setViewMode('tous')
     fixture.detectChanges()
@@ -197,10 +199,13 @@ describe('EventDisposTab', () => {
 
     expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', true)
     expect(fixture.nativeElement.querySelector('mat-expansion-panel')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('100 %')
-    const chanceEl = fixture.nativeElement.querySelector('.availability-tous__chance') as HTMLElement
-    expect(chanceEl?.classList.contains('availability-tous__chance--high')).toBe(true)
-    expect(chanceEl?.style.color).toBe('var(--hatcast-chance-high)')
+    expect(fixture.nativeElement.textContent).toContain('Patrice')
+    const segment = fixture.nativeElement.querySelector(
+      '[data-testid="composition-draw-segment-p1"]',
+    ) as HTMLElement
+    expect(segment).toBeTruthy()
+    expect(segment.getAttribute('title')).toContain('100 %')
+    expect(segment?.classList.contains('composition-draw-animation__segment--chance-green')).toBe(true)
   })
 
   it('does not show Afficher les chances toggle', async () => {

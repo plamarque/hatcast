@@ -119,6 +119,7 @@ class CompositionSlotAssignmentService(
                 },
                 requiredCount,
                 pastByParticipant,
+                roleKey = roleKey,
             )
         val assignedRoleKeysByParticipant = assignedRoleKeysByParticipant(eventId)
 

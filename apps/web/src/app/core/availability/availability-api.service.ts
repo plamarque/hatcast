@@ -34,6 +34,7 @@ export interface SummaryRoleCandidate {
   participantId: string
   displayName: string
   avatarUrl?: string | null
+  gender?: MemberGender
   chancePercent?: number | null
 }
 
@@ -61,6 +62,13 @@ function normalizeSummary(data: EventAvailabilitySummary): EventAvailabilitySumm
     participants: data.participants.map((participant) => ({
       ...participant,
       gender: effectiveMemberGender(participant.gender),
+    })),
+    roles: data.roles.map((role) => ({
+      ...role,
+      candidates: role.candidates.map((candidate) => ({
+        ...candidate,
+        gender: effectiveMemberGender(candidate.gender),
+      })),
     })),
   }
 }

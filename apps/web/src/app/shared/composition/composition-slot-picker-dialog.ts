@@ -8,10 +8,16 @@ import {
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 
 import type { CompositionCandidate } from '../../core/composition/composition-api.service'
+import { ChanceBreakdownService } from './chance-breakdown.service'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
 
 export interface CompositionSlotPickerDialogData {
   roleLabel: string
+  roleKey: string
+  seasonId: string
+  eventId: string
+  explainabilityEnabled: boolean
+  viewerParticipantIds: string[]
   candidates: CompositionCandidate[]
   loading: boolean
   error: string | null
@@ -30,6 +36,7 @@ export interface CompositionSlotPickerDialogResult {
 export class CompositionSlotPickerDialog {
   private readonly ref =
     inject(MatDialogRef<CompositionSlotPickerDialog, CompositionSlotPickerDialogResult | undefined>)
+  private readonly chanceBreakdown = inject(ChanceBreakdownService)
   protected readonly data = inject<CompositionSlotPickerDialogData>(MAT_DIALOG_DATA)
 
   protected readonly candidates = signal(this.data.candidates)
@@ -55,5 +62,23 @@ export class CompositionSlotPickerDialog {
       return null
     }
     return `Déjà : ${roleKeys.join(', ')}`
+  }
+
+  protected async openBreakdown(event: Event, candidate: CompositionCandidate): Promise<void> {
+    event.stopPropagation()
+    if (!this.data.explainabilityEnabled || candidate.chancePercent == null) {
+      return
+    }
+    await this.chanceBreakdown.open({
+      seasonId: this.data.seasonId,
+      eventId: this.data.eventId,
+      roleKey: this.data.roleKey,
+      participantId: candidate.participantId,
+      viewerParticipantIds: this.data.viewerParticipantIds,
+    })
+  }
+
+  protected breakdownAriaLabel(candidate: CompositionCandidate): string {
+    return `Voir le détail de la cote : ${candidate.displayName}, ${candidate.chancePercent} pourcent`
   }
 }

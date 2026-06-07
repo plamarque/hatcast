@@ -271,6 +271,10 @@ components:
         avatarUrl:
           type: string
           nullable: true
+        gender:
+          type: string
+          enum: [male, female, non_specified]
+          default: non_specified
         chancePercent:
           type: integer
           minimum: 0

@@ -1,0 +1,115 @@
+<div class="draw-chances-help" role="document" aria-labelledby="draw-chances-help-title">
+  <header class="draw-chances-help__header">
+    <h2 id="draw-chances-help-title" class="draw-chances-help__title">
+      Comprendre les pourcentages de tirage
+    </h2>
+    <p class="draw-chances-help__lead">
+      Le tirage reste aléatoire — les % indiquent seulement qui part avec plus ou moins de chances.
+    </p>
+  </header>
+
+  <div class="draw-chances-help__body">
+    <figure class="draw-chances-help__figure">
+      <img
+        class="draw-chances-help__image"
+        [src]="current().imageSrc"
+        [alt]="current().imageAlt"
+        width="320"
+        height="240"
+        decoding="async"
+      />
+    </figure>
+
+    <div
+      class="draw-chances-help__copy"
+      role="status"
+      aria-live="polite"
+      [attr.aria-label]="'Étape ' + progressLabel()"
+    >
+      @switch (currentSlide()) {
+        @case (0) {
+          <p>
+            Pour choisir qui joue, HatCast fait un peu comme si on mettait tous les noms des
+            <strong>personnes disponibles</strong> sur des bouts de papier… dans un sac.
+          </p>
+        }
+        @case (1) {
+          <p>
+            Si tout le monde partait à égalité, chacun aurait à peu près
+            <strong>places ÷ candidats</strong> de chances — par ex.
+            <strong>5 places</strong> pour <strong>8 candidats</strong> ≈
+            <strong>63&nbsp;%</strong> chacun (pas 12&nbsp;% : il y a plusieurs tirages).
+          </p>
+        }
+        @case (2) {
+          <p>
+            Pour répartir les rôles sur la saison, HatCast
+            <strong>agrandit ou rétrécit les papiers</strong> selon le nombre de fois où chacun a
+            déjà joué ce rôle.
+          </p>
+        }
+        @case (3) {
+          <p>
+            Au moment du tirage, un <strong>gros papier</strong> a plus de chances d’être sorti qu’un
+            <strong>petit</strong> — c’est ce que reflètent les % affichés.
+          </p>
+        }
+        @case (4) {
+          <p>
+            On tire <strong>autant de fois qu’il y a de places</strong> pour le rôle, sans remettre
+            le papier sorti. Puis on recommence pour chaque rôle du spectacle.
+          </p>
+        }
+      }
+    </div>
+  </div>
+
+  <footer class="draw-chances-help__footer">
+    <nav class="draw-chances-help__nav" aria-label="Navigation dans l’explication">
+      <button
+        type="button"
+        mat-icon-button
+        class="draw-chances-help__step-btn"
+        [disabled]="currentSlide() === 0"
+        aria-label="Étape précédente"
+        (click)="prevSlide()"
+      >
+        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+      </button>
+
+      <div class="draw-chances-help__nav-center">
+        <div class="draw-chances-help__dots" role="tablist" aria-label="Étapes">
+          @for (slide of slides; track slide.imageSrc; let index = $index) {
+            <button
+              type="button"
+              class="draw-chances-help__dot"
+              role="tab"
+              [class.draw-chances-help__dot--active]="currentSlide() === index"
+              [attr.aria-selected]="currentSlide() === index"
+              [attr.aria-label]="'Étape ' + (index + 1)"
+              (click)="goToSlide(index)"
+            >
+              <span class="draw-chances-help__dot-mark" aria-hidden="true"></span>
+            </button>
+          }
+        </div>
+        <span class="draw-chances-help__progress">{{ progressLabel() }}</span>
+      </div>
+
+      <button
+        type="button"
+        mat-icon-button
+        class="draw-chances-help__step-btn"
+        [disabled]="currentSlide() === slideCount - 1"
+        aria-label="Étape suivante"
+        (click)="nextSlide()"
+      >
+        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      </button>
+    </nav>
+
+    <button type="button" mat-flat-button class="draw-chances-help__close" (click)="close()">
+      Fermer
+    </button>
+  </footer>
+</div>

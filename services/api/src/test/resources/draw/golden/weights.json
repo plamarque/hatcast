@@ -43,9 +43,7 @@
     "id": "T-W4",
     "description": "Empty and zero-weight edge cases without crash",
     "function": "edgeCombined",
-    "input": {
-      "cases": ["emptyScore", "emptyDraw", "zeroWeightScore", "zeroWeightDraw"]
-    },
+    "input": {},
     "expected": {
       "emptyScoreSize": 0,
       "emptyDrawNull": true,

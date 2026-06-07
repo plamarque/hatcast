@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   calculatePracticalChance,
+  chancePoolSegmentBackground,
+  chancePoolTier,
+  chanceSpectrumSegmentBackground,
   isCandidateForRole,
   scoreCandidates,
 } from './availability-chances'
@@ -35,5 +38,39 @@ describe('availability-chances', () => {
 
   it('calculatePracticalChance returns zero for empty total', () => {
     expect(calculatePracticalChance(1, 0)).toBe(0)
+  })
+
+  it('chancePoolTier maps four intuitive bands', () => {
+    expect(chancePoolTier(93)).toBe('green')
+    expect(chancePoolTier(62)).toBe('yellow')
+    expect(chancePoolTier(36)).toBe('orange')
+    expect(chancePoolTier(6)).toBe('red')
+  })
+
+  it('chancePoolSegmentBackground uses distinct muted HSL per tier and 5 % step', () => {
+    const high = chancePoolSegmentBackground(93)
+    const low = chancePoolSegmentBackground(36)
+    expect(high).toContain('hsl(')
+    expect(low).toContain('hsl(')
+    expect(high).not.toBe(low)
+    expect(chanceSpectrumSegmentBackground(93)).toBe(high)
+  })
+
+  it('chancePoolSegmentBackground separates yellow and orange hues', () => {
+    const yellow = chancePoolSegmentBackground(62)
+    const orange = chancePoolSegmentBackground(36)
+    expect(yellow).toMatch(/hsl\(5[0-9] /)
+    expect(orange).toMatch(/hsl\(2[0-9] /)
+    expect(yellow).not.toBe(orange)
+  })
+
+  it('chancePoolSegmentBackground does not darken low yellow vs high orange', () => {
+    const lowYellow = chancePoolSegmentBackground(50)
+    const highOrange = chancePoolSegmentBackground(49)
+    const parseLight = (bg: string): number => {
+      const match = bg.match(/hsl\(\d+ [\d.]+% ([\d.]+)%\)/)
+      return match ? Number.parseFloat(match[1]) : 0
+    }
+    expect(parseLight(lowYellow)).toBeGreaterThanOrEqual(parseLight(highOrange))
   })
 })

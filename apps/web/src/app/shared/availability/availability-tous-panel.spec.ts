@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { ROLE_TEMPLATES } from '../../core/events/event-types'
+import { ChanceBreakdownService } from '../composition/chance-breakdown.service'
 import { AvailabilityTousPanel } from './availability-tous-panel'
 
 const mockSummary = {
@@ -99,19 +100,40 @@ describe('AvailabilityTousPanel', () => {
     expect(fixture.nativeElement.textContent).not.toContain('au moment du tirage')
   })
 
-  it('applies gender tone on letter avatars in role candidate list', async () => {
+  it('shows chance breakdown trigger when explainability enabled', async () => {
+    const open = vi.fn()
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityTousPanel, NoopAnimationsModule],
+      providers: [{ provide: ChanceBreakdownService, useValue: { open } }],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', mockSummary)
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('eventId', 'event-1')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+
+    const trigger = fixture.nativeElement.querySelector(
+      '[data-testid="composition-draw-segment-p1"]',
+    ) as HTMLButtonElement
+    expect(trigger).toBeTruthy()
+    trigger.click()
+    expect(open).toHaveBeenCalled()
+  })
+
+  it('renders pool bar for role candidates when explainability enabled', async () => {
     await TestBed.configureTestingModule({
       imports: [AvailabilityTousPanel, NoopAnimationsModule],
     }).compileComponents()
 
     const fixture = TestBed.createComponent(AvailabilityTousPanel)
     fixture.componentRef.setInput('summary', mockSummary)
+    fixture.componentRef.setInput('explainabilityEnabled', true)
     fixture.detectChanges()
 
-    const avatar = fixture.nativeElement.querySelector(
-      'app-user-avatar.user-avatar--tone-female',
-    ) as HTMLElement
-    expect(avatar).toBeTruthy()
-    expect(avatar.textContent).toContain('P')
+    expect(fixture.nativeElement.querySelector('[data-testid="availability-tous-pool"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('app-composition-pool-preview')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('Patrice')
   })
 })

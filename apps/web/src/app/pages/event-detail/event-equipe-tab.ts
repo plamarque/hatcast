@@ -36,6 +36,7 @@ import {
   type EquipeActionId,
 } from '../../core/composition/composition-equipe-actions'
 import { computeCompositionPlayerGenderParity } from '../../core/composition/composition-player-gender-parity'
+import { canShowCompositionExplainability } from '../../core/composition/composition-explainability'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { showCompositionDraftBanner } from '../../core/composition/composition-visibility'
 import type { EventResponse } from '../../core/events/event-api.service'
@@ -48,7 +49,9 @@ import {
 } from '../../core/events/event-types'
 import { auditRoleDisplay } from '../../core/audit/audit-display-labels'
 import { getRoleLabel } from '../../shared/event-roles/event-roles'
+import { ChanceBreakdownService } from '../../shared/composition/chance-breakdown.service'
 import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
+import { CompositionPoolPreview } from '../../shared/composition/composition-pool-preview'
 import {
   CompositionParticipationDialog,
   type CompositionParticipationDialogData,
@@ -56,6 +59,7 @@ import {
 } from '../../shared/composition/composition-participation-dialog'
 import {
   CompositionSlotPickerDialog,
+  type CompositionSlotPickerDialogData,
   type CompositionSlotPickerDialogResult,
 } from '../../shared/composition/composition-slot-picker-dialog'
 import type {
@@ -97,6 +101,7 @@ interface SlotRow {
     MatTooltipModule,
     EventEquipeEmpty,
     CompositionDrawAnimation,
+    CompositionPoolPreview,
     UserAvatarComponent,
   ],
   templateUrl: './event-equipe-tab.html',
@@ -108,6 +113,7 @@ export class EventEquipeTab {
   private readonly analytics = inject(ProductAnalyticsService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
+  private readonly chanceBreakdown = inject(ChanceBreakdownService)
 
   private readonly drawAnimation = viewChild(CompositionDrawAnimation)
 
@@ -140,6 +146,14 @@ export class EventEquipeTab {
   private drawPrepareSnapshot: CompositionResponse | null = null
 
   protected readonly prefersReducedMotion = signal(false)
+  protected readonly poolPreviewAnchorKey = signal<string | null>(null)
+  protected readonly poolPreviewRoleKey = signal<string | null>(null)
+  protected readonly poolPreviewSegments = signal<
+    import('../../core/composition/composition-api.service').CompositionPoolPreviewSegment[]
+  >([])
+  protected readonly poolPreviewLoading = signal(false)
+  protected readonly poolPreviewError = signal<string | null>(null)
+  private poolPreviewGeneration = 0
 
   /** HTTP draw in flight — show preparing panel before step animation. */
   protected readonly showDrawPreparing = computed(() => this.drawing() && !this.animatingDraw())
@@ -349,11 +363,6 @@ export class EventEquipeTab {
     }
     return this.playerGenderParity()
   })
-
-  /** Team-level organizer hints above the slot grid (mixité, future signals). */
-  protected readonly showCompositionGuidances = computed(
-    () => this.visiblePlayerGenderParity() != null,
-  )
 
   protected readonly slotRows = computed((): SlotRow[] => {
     const ev = this.event()
@@ -1048,6 +1057,147 @@ export class EventEquipeTab {
     this.composition.set({ ...comp, slots })
   }
 
+  protected canShowChanceBreakdown(): boolean {
+    return canShowCompositionExplainability(this.canManageComposition(), this.composition())
+  }
+
+  protected canOpenRolePoolPreview(): boolean {
+    return this.canManageComposition() && this.rolesWithCandidates().length > 0
+  }
+
+  protected rolesWithCandidates(): string[] {
+    const slots = normalizeRoleSlots(this.event().roleSlots)
+    return rolesWithSlots(slots)
+  }
+
+  protected rolePoolPreviewAnchorKey(row: SlotRow): string {
+    return row.roleKey
+  }
+
+  protected isRolePoolPreviewOpen(row: SlotRow): boolean {
+    return this.poolPreviewAnchorKey() === this.rolePoolPreviewAnchorKey(row)
+  }
+
+  protected rolePoolPreviewAriaLabel(row: SlotRow): string {
+    const role = this.rolePillLabel(
+      row.roleKey,
+      row.slot?.participantGender,
+      !!row.slot?.participantId,
+    )
+    return this.isRolePoolPreviewOpen(row)
+      ? `Masquer le pool du tirage pour ${role}`
+      : `Voir le pool du tirage pour ${role}`
+  }
+
+  protected async toggleRolePoolPreview(event: Event, row: SlotRow): Promise<void> {
+    event.stopPropagation()
+    if (!this.canOpenRolePoolPreview()) {
+      return
+    }
+    const anchorKey = this.rolePoolPreviewAnchorKey(row)
+    if (this.poolPreviewAnchorKey() === anchorKey) {
+      this.poolPreviewAnchorKey.set(null)
+      return
+    }
+    this.poolPreviewAnchorKey.set(anchorKey)
+    this.poolPreviewRoleKey.set(row.roleKey)
+    await this.loadPoolPreview(row.roleKey)
+  }
+
+  private async loadPoolPreview(roleKey: string): Promise<void> {
+    const generation = ++this.poolPreviewGeneration
+    this.poolPreviewLoading.set(true)
+    this.poolPreviewError.set(null)
+    try {
+      const result = await this.compositionApi.getPoolPreview(
+        this.seasonId(),
+        this.event().id,
+        roleKey,
+      )
+      if (generation !== this.poolPreviewGeneration) {
+        return
+      }
+      if (result.ok && result.data) {
+        this.poolPreviewSegments.set(result.data.segments)
+      } else {
+        this.poolPreviewSegments.set([])
+        this.poolPreviewError.set(
+          result.errorMessage ?? 'Impossible de charger le pool pour ce rôle.',
+        )
+      }
+    } finally {
+      if (generation === this.poolPreviewGeneration) {
+        this.poolPreviewLoading.set(false)
+      }
+    }
+  }
+
+  protected async onPoolPreviewSegmentTap(event: {
+    participantId: string
+    chancePercent: number
+  }): Promise<void> {
+    const roleKey = this.poolPreviewRoleKey()
+    if (!roleKey || !this.canShowChanceBreakdown()) {
+      return
+    }
+    await this.chanceBreakdown.open({
+      seasonId: this.seasonId(),
+      eventId: this.event().id,
+      roleKey,
+      participantId: event.participantId,
+      viewerParticipantIds: [...this.viewerParticipantIds()],
+    })
+  }
+
+  protected async onDrawSegmentTap(event: {
+    participantId: string
+    chancePercent: number
+  }): Promise<void> {
+    const step = this.currentDrawStep()
+    if (!step || !this.canShowChanceBreakdown()) {
+      return
+    }
+    await this.chanceBreakdown.open({
+      seasonId: this.seasonId(),
+      eventId: this.event().id,
+      roleKey: step.roleKey,
+      participantId: event.participantId,
+      viewerParticipantIds: [...this.viewerParticipantIds()],
+      stepBanner: `Étape ${this.drawStepIndex() + 1}/${this.drawSteps().length} — ${getRoleLabel(step.roleKey as RoleKey)}`,
+    })
+  }
+
+  protected async openSlotChanceBreakdown(event: Event, row: SlotRow): Promise<void> {
+    event.stopPropagation()
+    const slot = row.slot
+    if (!slot?.participantId || slot.chancePercent == null || !this.canShowChanceBreakdown()) {
+      return
+    }
+    await this.chanceBreakdown.open({
+      seasonId: this.seasonId(),
+      eventId: this.event().id,
+      roleKey: row.roleKey,
+      participantId: slot.participantId,
+      viewerParticipantIds: [...this.viewerParticipantIds()],
+    })
+  }
+
+  protected showSlotTrailing(row: SlotRow): boolean {
+    return (
+      this.canShowChanceBreakdown() &&
+      row.slot?.chancePercent != null &&
+      !!row.slot?.participantId
+    )
+  }
+
+  protected slotBreakdownAriaLabel(row: SlotRow): string | null {
+    const slot = row.slot
+    if (!slot?.participantDisplayName || slot.chancePercent == null) {
+      return null
+    }
+    return `Voir le détail de la cote : ${slot.participantDisplayName}, ${slot.chancePercent} pourcent`
+  }
+
   protected async openSlotPicker(row: SlotRow): Promise<void> {
     if (!this.canEditSlots() && !this.canTapGapSlot(row)) {
       return
@@ -1056,12 +1206,7 @@ export class EventEquipeTab {
     const eventId = this.event().id
     const dialogRef = this.dialog.open<
       CompositionSlotPickerDialog,
-      {
-        roleLabel: string
-        candidates: []
-        loading: boolean
-        error: string | null
-      },
+      CompositionSlotPickerDialogData,
       CompositionSlotPickerDialogResult | undefined
     >(CompositionSlotPickerDialog, {
       data: {
@@ -1069,6 +1214,11 @@ export class EventEquipeTab {
           row.roleKey as RoleKey,
           row.slot?.participantGender,
         ),
+        roleKey: row.roleKey,
+        seasonId,
+        eventId,
+        explainabilityEnabled: this.canShowChanceBreakdown(),
+        viewerParticipantIds: [...this.viewerParticipantIds()],
         candidates: [],
         loading: true,
         error: null,
@@ -1290,5 +1440,9 @@ export class EventEquipeTab {
       return
     }
     this.composition.set(result.data)
+    this.poolPreviewAnchorKey.set(null)
+    this.poolPreviewRoleKey.set(null)
+    this.poolPreviewSegments.set([])
+    this.poolPreviewError.set(null)
   }
 }

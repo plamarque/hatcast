@@ -243,6 +243,73 @@ paths:
         '409':
           description: Composition validée (verrouillée)
 
+  /seasons/{seasonId}/events/{eventId}/composition/chance-breakdown:
+    get:
+      tags: [Composition]
+      summary: Détail explainability d’un candidat pour un rôle
+      description: >
+        Waterfall `referencePercent` + `adjustments[]` + métadonnées pool (story 19.7).
+        Requiert les mêmes droits explainability que les cotes affichées (6.3 / 6.4).
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: roleKey
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: participantId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChanceBreakdown'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Explainability non autorisée
+        '404':
+          description: Candidat ou rôle inconnu
+
+  /seasons/{seasonId}/events/{eventId}/composition/pool-preview:
+    get:
+      tags: [Composition]
+      summary: Aperçu pool pondéré pour un rôle (orga)
+      description: >
+        Segments pour barre pool statique (mode preview). Requiert `canManageComposition`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: roleKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionPoolPreviewResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Saison ou événement inconnu
+
   /seasons/{seasonId}/events/{eventId}/composition/slots/{roleKey}/{slotIndex}/participation:
     post:
       tags: [Composition]
@@ -716,6 +783,128 @@ components:
           type: integer
         intent:
           type: string
+
+    ChanceAdjustment:
+      type: object
+      required: [factorId, label, deltaPoints]
+      properties:
+        factorId:
+          type: string
+        label:
+          type: string
+        deltaPoints:
+          type: integer
+
+    ChanceBreakdownPeer:
+      type: object
+      required: [participantId, displayName, chancePercent]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        chancePercent:
+          type: integer
+
+    ChanceBreakdown:
+      type: object
+      required:
+        - participantId
+        - roleKey
+        - displayName
+        - chancePercent
+        - referencePercent
+        - candidateCount
+        - poolRank
+        - aheadCount
+        - tiedAtChanceCount
+        - adjustments
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        roleKey:
+          type: string
+        displayName:
+          type: string
+        chancePercent:
+          type: integer
+        referencePercent:
+          type: integer
+        candidateCount:
+          type: integer
+        poolRank:
+          type: integer
+        aheadCount:
+          type: integer
+        tiedAtChanceCount:
+          type: integer
+        adjustments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChanceAdjustment'
+        requiredCount:
+          type: integer
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        gender:
+          type: string
+        pool:
+          type: object
+          properties:
+            peers:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChanceBreakdownPeer'
+        factorBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              factorId:
+                type: string
+              multiplier:
+                type: number
+              label:
+                type: string
+
+    CompositionPoolPreviewSegment:
+      type: object
+      required: [participantId, displayName, chancePercent, weight]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        chancePercent:
+          type: integer
+        weight:
+          type: number
+        avatarUrl:
+          type: string
+          nullable: true
+        gender:
+          type: string
+
+    CompositionPoolPreviewResponse:
+      type: object
+      required: [roleKey, requiredCount, segments]
+      properties:
+        roleKey:
+          type: string
+        requiredCount:
+          type: integer
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompositionPoolPreviewSegment'
 
     CompositionResponse:
       type: object

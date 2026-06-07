@@ -72,7 +72,7 @@ inputDocuments:
 
 | Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
 | ------- | -------- | ----------- | ----------- | ------ | ----- | ---------- | ----- |
-| R-003 | DATA | V38 migration leaves pre-existing REMOVED member rows with `removal_source = NULL`; next sync may resurrect them as ACTIVE | 2 | 2 | 4 | Pre-prod data audit; backfill if member rows found NULL | Dev |
+| R-003 | DATA | V38 migration leaves pre-existing REMOVED member rows with `removal_source = NULL`; next sync may resurrect them as ACTIVE | 2 | 2 | 4 | Pre-prod data audit; backfill if member rows found NULL | Dev/QA | **closed** — DW-118 audit staging+prod 2026-06-07: 0 rows |
 | R-004 | TECH | `SEASON_ADMIN` reconciliation logic duplicated across `SeasonParticipantMembershipSync` and `SeasonParticipantService` → behavioral drift over time | 2 | 2 | 4 | Shared assertions in both code paths; future refactor | Dev |
 | R-005 | DATA | Event-scoped row linked to a season `REMOVED` participant still surfaces in event roster / composition pool (data leak via EVENT-fallback) | 2 | 2 | 4 | Guards in `EventRosterService.buildRoster` + `CompositionParticipantPool` (status + `findRemovedUserIdsForSeason`) | Dev/QA |
 

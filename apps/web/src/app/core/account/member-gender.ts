@@ -19,6 +19,32 @@ export function drawSelectionStatusLabel(gender?: MemberGender | unknown): strin
   }
 }
 
+/** « pris » / « prise » — null when genre non spécifié (reformulation sans participe). */
+export function drawPickPastParticipleLabel(gender?: MemberGender | unknown): string | null {
+  switch (effectiveMemberGender(gender)) {
+    case 'male':
+      return 'pris'
+    case 'female':
+      return 'prise'
+    default:
+      return null
+  }
+}
+
+export function multiPlaceChanceTooltipCopy(options: {
+  viewingSelf: boolean
+  gender?: MemberGender | unknown
+  placesCount: number
+}): string {
+  const placesLabel = `${options.placesCount} place${options.placesCount > 1 ? 's' : ''}`
+  const chanceLabel = options.viewingSelf ? 'ta chance' : 'sa chance'
+  const participle = drawPickPastParticipleLabel(options.gender)
+  if (participle) {
+    return `Ce % reflète ${chanceLabel} d’être ${participle} une fois parmi les ${placesLabel}`
+  }
+  return `Ce % reflète ${chanceLabel} d’obtenir une place au tirage parmi les ${placesLabel}`
+}
+
 export function effectiveMemberGender(raw: unknown): MemberGender {
   if (typeof raw !== 'string' || !raw.trim()) {
     return 'non_specified'

@@ -1,0 +1,109 @@
+<div
+  class="chance-breakdown-sheet"
+  role="dialog"
+  aria-labelledby="chance-breakdown-title"
+  data-testid="chance-breakdown-sheet"
+>
+  @if (data.stepBanner) {
+    <p class="chance-breakdown-sheet__step-banner" role="status">{{ data.stepBanner }}</p>
+  }
+
+  <header class="chance-breakdown-sheet__header">
+    <div class="chance-breakdown-sheet__role-context">
+      <p class="chance-breakdown-sheet__role" id="chance-breakdown-title">{{ data.roleHeaderLabel }}</p>
+      @if (showMultiPlaceHint()) {
+        <p class="chance-breakdown-sheet__role-places">{{ multiPlacePlacesLabel() }}</p>
+      }
+    </div>
+    <div class="chance-breakdown-sheet__person-chance">
+      <div class="chance-breakdown-sheet__hero-person">
+        <app-user-avatar
+          class="chance-breakdown-sheet__hero-avatar"
+          [displayName]="breakdown().displayName"
+          [avatarUrl]="breakdown().avatarUrl ?? null"
+          [gender]="breakdown().gender ?? null"
+          [size]="44"
+        />
+        <span class="chance-breakdown-sheet__name">{{ breakdown().displayName }}</span>
+      </div>
+      <div class="chance-breakdown-sheet__chance-group">
+        <p
+          class="chance-breakdown-sheet__hero-chance"
+          [class]="chanceColorClass(breakdown().chancePercent)"
+          data-testid="chance-breakdown-final"
+        >
+          {{ breakdown().chancePercent }}&nbsp;%
+        </p>
+        @if (showMultiPlaceHint()) {
+          <button
+            type="button"
+            class="chance-breakdown-sheet__hero-hint"
+            #multiPlaceHintTooltip="matTooltip"
+            [matTooltip]="multiPlaceChanceExplanation()"
+            matTooltipPosition="below"
+            matTooltipTouchGestures="on"
+            matTooltipShowDelay="0"
+            matTooltipHideDelay="1500"
+            (click)="onHintClick($event, multiPlaceHintTooltip)"
+            [attr.aria-label]="multiPlaceChanceExplanation()"
+          >
+            <mat-icon aria-hidden="true">info_outline</mat-icon>
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  <p class="chance-breakdown-sheet__pool-summary" data-testid="chance-breakdown-rank-summary">
+    {{ poolRankSummary() }}
+  </p>
+
+  <section class="chance-breakdown-sheet__waterfall" [attr.aria-label]="chanceScaleTitle()">
+    <h3 class="chance-breakdown-sheet__section-title">{{ chanceScaleTitle() }}</h3>
+    <ol
+      class="chance-breakdown-sheet__waterfall-list"
+      data-testid="chance-breakdown-waterfall"
+    >
+      <li
+        class="chance-breakdown-sheet__waterfall-row chance-breakdown-sheet__waterfall-row--reference"
+        data-testid="chance-breakdown-reference"
+      >
+        <mat-icon aria-hidden="true">balance</mat-icon>
+        <span class="chance-breakdown-sheet__waterfall-label">{{ referenceLineLabel() }}</span>
+        <span class="chance-breakdown-sheet__waterfall-value">{{ breakdown().referencePercent }} %</span>
+      </li>
+      @for (adjustment of breakdown().adjustments; track adjustment.factorId) {
+        <li
+          class="chance-breakdown-sheet__waterfall-row"
+          [class]="deltaClass(adjustment.deltaPoints)"
+          [attr.data-testid]="'chance-breakdown-adjustment-' + adjustment.factorId"
+        >
+          <mat-icon aria-hidden="true">{{ deltaIcon(adjustment.deltaPoints) }}</mat-icon>
+          <span class="chance-breakdown-sheet__waterfall-label">{{ adjustment.label }}</span>
+          <span class="chance-breakdown-sheet__waterfall-delta">
+            {{ adjustment.deltaPoints > 0 ? '+' : '' }}{{ adjustment.deltaPoints }} pt
+          </span>
+        </li>
+      }
+      <li class="chance-breakdown-sheet__waterfall-row chance-breakdown-sheet__waterfall-row--final">
+        <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+        <span class="chance-breakdown-sheet__waterfall-label">{{ chanceTodayLabel() }}</span>
+        <span class="chance-breakdown-sheet__waterfall-value">{{ breakdown().chancePercent }} %</span>
+      </li>
+    </ol>
+  </section>
+
+  <p class="chance-breakdown-sheet__doc-row">
+    <button
+      type="button"
+      class="chance-breakdown-sheet__doc-link"
+      (click)="openDrawChancesHelp()"
+    >
+      Comprendre le tirage en général
+    </button>
+  </p>
+
+  <div class="chance-breakdown-sheet__actions">
+    <button type="button" mat-stroked-button (click)="close()">Fermer</button>
+  </div>
+</div>

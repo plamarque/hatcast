@@ -28,6 +28,7 @@ import {
   type MySeasonPermissions,
 } from '../../core/permissions/organizer-api.service'
 import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
+import { canShowCompositionExplainability } from '../../core/composition/composition-explainability'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import {
   ParticipantApiService,
@@ -235,6 +236,9 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!ev || !perms) return false
     return canManageCompositionForEvent(perms, ev.id)
   })
+  protected readonly disposExplainabilityEnabled = computed(() =>
+    canShowCompositionExplainability(this.canManageComposition(), this.composition()),
+  )
   protected readonly canAnnouncePublishedEvent = computed(() => {
     const ev = this.event()
     if (!ev || ev.archived || isEventDraft(ev)) {

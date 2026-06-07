@@ -30,46 +30,20 @@
 
         @if (role.candidates.length === 0) {
           <p class="availability-tous__empty">Aucun candidat pour ce rôle</p>
+        } @else if (loadingChances()) {
+          <div class="availability-tous__pool-loading" role="status">
+            <mat-spinner diameter="28" />
+          </div>
+        } @else if (explainabilityEnabled() && roleHasChancePool(role)) {
+          <div class="availability-tous__pool" data-testid="availability-tous-pool">
+            <app-composition-pool-preview
+              [pool]="poolSegments(role.candidates)"
+              [interactive]="poolInteractive()"
+              (segmentTap)="onPoolSegmentTap($event, role.roleKey)"
+            />
+          </div>
         } @else {
-          <mat-nav-list class="availability-tous__list" disableRipple>
-            @for (candidate of role.candidates; track candidate.participantId) {
-              <button
-                type="button"
-                mat-list-item
-                class="availability-tous__person"
-                [class.availability-tous__person--clickable]="canSelectSubject()"
-                [disabled]="!canSelectSubject()"
-                [attr.aria-label]="participantAriaLabel(candidate)"
-                (click)="onParticipantClick(candidate.participantId)"
-              >
-                <app-user-avatar
-                  matListItemAvatar
-                  class="availability-tous__avatar"
-                  [displayName]="candidate.displayName"
-                  [avatarUrl]="candidate.avatarUrl ?? null"
-                  [gender]="participantGender(candidate.participantId)"
-                  [size]="28"
-                />
-                <span matListItemTitle>{{ candidate.displayName }}</span>
-                @if (loadingChances()) {
-                  <span matListItemMeta class="availability-tous__chance-skeleton" aria-hidden="true">
-                    <span class="availability-tous__chance-skeleton-bar"></span>
-                  </span>
-                } @else if (candidate.chancePercent != null) {
-                  <span
-                    matListItemMeta
-                    class="availability-tous__chance"
-                    [class.availability-tous__chance--high]="candidate.chancePercent >= 20"
-                    [class.availability-tous__chance--medium]="candidate.chancePercent >= 10 && candidate.chancePercent < 20"
-                    [class.availability-tous__chance--low]="candidate.chancePercent < 10"
-                    [style.color]="chanceColorVar(candidate.chancePercent)"
-                  >
-                    {{ candidate.chancePercent }} %
-                  </span>
-                }
-              </button>
-            }
-          </mat-nav-list>
+          <p class="availability-tous__empty">Pourcentages indisponibles pour ce rôle.</p>
         }
       </mat-expansion-panel>
     }
@@ -84,30 +58,30 @@
         Aucun participant sur ce spectacle. Un administrateur doit ajouter des participants.
       </p>
     } @else {
-      <mat-nav-list class="availability-tous__list" disableRipple>
+      <div class="availability-tous__list" role="list">
         @for (p of flatParticipants(); track p.participantId) {
-          <button
-            type="button"
-            mat-list-item
-            class="availability-tous__person"
-            [class.availability-tous__person--clickable]="canSelectSubject()"
-            [disabled]="!canSelectSubject()"
-            [attr.aria-label]="participantAriaLabel(p)"
-            (click)="onParticipantClick(p.participantId)"
-          >
-            <app-user-avatar
-              matListItemAvatar
-              class="availability-tous__avatar"
-              [displayName]="p.displayName"
-              [avatarUrl]="p.avatarUrl ?? null"
-              [gender]="p.gender ?? null"
-              [size]="28"
-            />
-            <span matListItemTitle>{{ p.displayName }}</span>
-            <span matListItemMeta class="availability-tous__status">{{ statusLabel(p.status) }}</span>
-          </button>
+          <div class="availability-tous__row" role="listitem">
+            <button
+              type="button"
+              class="availability-tous__person-hit"
+              [class.availability-tous__person-hit--clickable]="canSelectSubject()"
+              [disabled]="!canSelectSubject()"
+              [attr.aria-label]="participantAriaLabel(p)"
+              (click)="onParticipantClick(p.participantId)"
+            >
+              <app-user-avatar
+                class="availability-tous__avatar"
+                [displayName]="p.displayName"
+                [avatarUrl]="p.avatarUrl ?? null"
+                [gender]="p.gender ?? null"
+                [size]="28"
+              />
+              <span class="availability-tous__person-name">{{ p.displayName }}</span>
+            </button>
+            <span class="availability-tous__status">{{ statusLabel(p.status) }}</span>
+          </div>
         }
-      </mat-nav-list>
+      </div>
     }
   </section>
 }

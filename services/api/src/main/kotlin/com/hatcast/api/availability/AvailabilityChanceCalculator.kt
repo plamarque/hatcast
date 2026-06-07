@@ -1,5 +1,8 @@
 package com.hatcast.api.availability
 
+import com.hatcast.api.availability.draw.DrawWeightContext
+import com.hatcast.api.availability.draw.DrawWeightPipeline
+import com.hatcast.api.availability.draw.DrawWeightPipelines
 import java.util.UUID
 import java.lang.Math.round as halfUpRound
 import kotlin.math.abs
@@ -43,22 +46,43 @@ object AvailabilityChanceCalculator {
     fun weightForParticipant(
         pastSelectionCount: Int,
         requiredCount: Int,
+        participantId: UUID = ZERO_PARTICIPANT_ID,
+        roleKey: String = DEFAULT_ROLE_KEY,
+        pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
     ): Double {
-        val malus = 1.0 / (1.0 + pastSelectionCount)
-        return malus * requiredCount
+        val context =
+            DrawWeightContext(
+                participantId = participantId,
+                roleKey = roleKey,
+                pastSelectionCount = pastSelectionCount,
+                requiredCount = requiredCount,
+            )
+        return pipeline.apply(baseWeight(context), context)
     }
+
+    /** Base weight before factor pipeline: `requiredCount` only (malus in [PastParticipationFactor]). */
+    internal fun baseWeight(context: DrawWeightContext): Double = context.requiredCount.toDouble()
 
     fun toWeightedCandidates(
         candidates: List<Candidate>,
         requiredCount: Int,
         pastSelectionCountByParticipant: Map<UUID, Int> = emptyMap(),
+        roleKey: String = DEFAULT_ROLE_KEY,
+        pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
     ): List<WeightedCandidate> =
         candidates.map { candidate ->
             val pastCount = pastSelectionCountByParticipant[candidate.participantId] ?: 0
             WeightedCandidate(
                 participantId = candidate.participantId,
                 displayName = candidate.displayName,
-                weight = weightForParticipant(pastCount, requiredCount),
+                weight =
+                    weightForParticipant(
+                        pastSelectionCount = pastCount,
+                        requiredCount = requiredCount,
+                        participantId = candidate.participantId,
+                        roleKey = roleKey,
+                        pipeline = pipeline,
+                    ),
                 pastSelectionCount = pastCount,
             )
         }
@@ -159,12 +183,20 @@ object AvailabilityChanceCalculator {
         candidates: List<Candidate>,
         requiredCount: Int,
         pastSelectionCountByParticipant: Map<UUID, Int> = emptyMap(),
+        roleKey: String = DEFAULT_ROLE_KEY,
+        pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
     ): List<ScoredCandidate> {
         if (candidates.isEmpty()) {
             return emptyList()
         }
         val weighted =
-            toWeightedCandidates(candidates, requiredCount, pastSelectionCountByParticipant)
+            toWeightedCandidates(
+                candidates,
+                requiredCount,
+                pastSelectionCountByParticipant,
+                roleKey,
+                pipeline,
+            )
         val totalWeight = weighted.sumOf { it.weight }
         if (totalWeight <= 0.0) {
             return candidates.map {
@@ -186,4 +218,8 @@ object AvailabilityChanceCalculator {
                 )
             }.sortedByDescending { it.chancePercent }
     }
+
+    private val ZERO_PARTICIPANT_ID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000000")
+
+    private const val DEFAULT_ROLE_KEY = "player"
 }

@@ -6,13 +6,14 @@
   border-radius: 0.75rem;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-}
 
-.composition-draw-animation__banner {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.45;
-  opacity: 0.92;
+  &--embedded {
+    gap: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
 }
 
 .composition-draw-animation--preparing .composition-draw-animation__preparing-body {
@@ -47,20 +48,123 @@
   border-radius: 0.5rem;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.25);
+
+  &--flow {
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    min-height: 0;
+    overflow: visible;
+    background: transparent;
+    align-content: flex-start;
+  }
+
+  &--preview {
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible;
+    background: transparent;
+
+    .composition-draw-animation__bar-row--solo {
+      width: 100%;
+    }
+  }
+}
+
+.composition-draw-animation__bar-row {
+  display: flex;
+  width: 100%;
+  min-height: 2.85rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+
+  &--solo {
+    min-height: 2.75rem;
+  }
 }
 
 .composition-draw-animation__segment {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
   min-width: 0;
+  box-sizing: border-box;
   padding: 0.25rem 0.35rem;
-  background: linear-gradient(135deg, rgba(233, 30, 99, 0.55) 0%, rgba(156, 39, 176, 0.55) 100%);
-  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  border-right: 1px solid color-mix(in srgb, #000 28%, transparent);
 
   &:last-of-type {
     border-right: none;
   }
+
+  &--tap {
+    position: relative;
+    z-index: 0;
+    border: none;
+    border-right: 1px solid color-mix(in srgb, #000 28%, transparent);
+    cursor: pointer;
+    min-height: 2.75rem;
+    color: #fff;
+    font: inherit;
+    transition:
+      filter 0.16s ease,
+      box-shadow 0.16s ease;
+
+    &:last-of-type {
+      border-right: none;
+    }
+
+    @media (hover: hover) {
+      &:hover {
+        z-index: 1;
+        filter: brightness(1.14);
+        box-shadow:
+          inset 0 0 0 1px color-mix(in srgb, #fff 45%, transparent),
+          inset 0 1.25rem 2.5rem color-mix(in srgb, #fff 12%, transparent);
+      }
+    }
+
+    &:active {
+      filter: brightness(0.94);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: -2px;
+      z-index: 1;
+    }
+  }
+
+  &--highlight {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 85%, transparent);
+  }
+}
+
+.composition-draw-animation__segment--flow {
+  justify-content: flex-start;
+  border-right: none;
+  border-radius: 0.4rem;
+  max-width: 100%;
+  min-width: min(100%, calc(1.25rem + 0.3rem + 5ch + 0.6rem));
+
+  &.composition-draw-animation__segment--tap {
+    border-right: none;
+  }
+}
+
+.composition-draw-animation__segment-content {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.composition-draw-animation__segment-avatar,
+app-user-avatar.composition-draw-animation__segment-avatar {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .composition-draw-animation__segment-label {
@@ -71,6 +175,25 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+  color: inherit;
+  text-shadow: 0 1px 2px color-mix(in srgb, #000 55%, transparent);
+}
+
+.composition-draw-animation--embedded .composition-draw-animation__segment {
+  padding-inline: 0.3rem;
+}
+
+.composition-draw-animation--embedded .composition-draw-animation__segment-label {
+  flex: 1 1 auto;
+  min-width: 5ch;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-align: start;
+}
+
+.composition-draw-animation--embedded .composition-draw-animation__bar-row {
+  min-height: 2.35rem;
+  border-radius: 0.4rem;
 }
 
 .composition-draw-animation__cursor {

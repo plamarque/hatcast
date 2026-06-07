@@ -1,0 +1,254 @@
+[
+  {
+    "id": "REF-O1",
+    "description": "Full redraw replaces all slots when pool cannot refill",
+    "tags": ["FR20", "redraw-full"],
+    "setup": {
+      "roleSlots": { "player": 2 },
+      "participants": [{ "key": "p1" }, { "key": "p2" }],
+      "availabilities": [
+        { "participantKey": "p1", "status": "available", "roleKeys": ["player"] },
+        { "participantKey": "p2", "status": "available", "roleKeys": ["player"] }
+      ],
+      "preAssignedSlots": []
+    },
+    "drawSteps": [
+      { "mode": "full" },
+      {
+        "mode": "full",
+        "before": [
+          { "setAvailability": { "participantKey": "p2", "status": "unavailable", "roleKeys": [] } }
+        ]
+      }
+    ],
+    "expected": {
+      "finalAssignedCount": 1,
+      "assignedParticipantKeys": ["p1"]
+    }
+  },
+  {
+    "id": "REF-O2",
+    "description": "Partial draw keeps slotIndex 0 and fills slotIndex 1",
+    "tags": ["FR20", "redraw-partial"],
+    "setup": {
+      "roleSlots": { "player": 2 },
+      "participants": [{ "key": "keeper" }, { "key": "filler" }, { "key": "extra" }],
+      "availabilities": [
+        { "participantKey": "filler", "status": "available", "roleKeys": ["player"] },
+        { "participantKey": "extra", "status": "available", "roleKeys": ["player"] }
+      ],
+      "preAssignedSlots": [{ "roleKey": "player", "slotIndex": 0, "participantKey": "keeper" }]
+    },
+    "drawSteps": [{ "mode": "full" }],
+    "expected": {
+      "slotAssignments": [
+        { "roleKey": "player", "slotIndex": 0, "participantKey": "keeper" },
+        { "roleKey": "player", "slotIndex": 1, "participantKeyNot": "keeper" }
+      ],
+      "finalAssignedCount": 2
+    }
+  },
+  {
+    "id": "REF-O3",
+    "description": "Cross-role: same participant cannot hold player and mc in one draw",
+    "tags": ["FR20", "cross-role"],
+    "setup": {
+      "roleSlots": { "player": 1, "mc": 1 },
+      "participants": [{ "key": "solo" }],
+      "availabilities": [
+        { "participantKey": "solo", "status": "available", "roleKeys": ["player", "mc"] }
+      ],
+      "preAssignedSlots": []
+    },
+    "drawSteps": [{ "mode": "full" }],
+    "expected": {
+      "maxRolesPerParticipant": 1,
+      "totalAssignedSlots": 1
+    }
+  },
+  {
+    "id": "REF-O4",
+    "description": "Pre-assigned player excluded from dj draw in same request",
+    "tags": ["FR20", "cross-role"],
+    "setup": {
+      "roleSlots": { "player": 1, "dj": 1 },
+      "participants": [{ "key": "solo" }, { "key": "backup" }],
+      "availabilities": [
+        { "participantKey": "solo", "status": "available", "roleKeys": ["player", "dj"] },
+        { "participantKey": "backup", "status": "available", "roleKeys": ["dj"] }
+      ],
+      "preAssignedSlots": [{ "roleKey": "player", "slotIndex": 0, "participantKey": "solo" }]
+    },
+    "drawSteps": [{ "mode": "full" }],
+    "expected": {
+      "rolesByParticipant": { "solo": ["player"], "backup": ["dj"] }
+    }
+  },
+  {
+    "id": "REF-O5",
+    "description": "Manual multi-role stack: auto-draw does not double-assign",
+    "tags": ["FR20", "cross-role"],
+    "setup": {
+      "roleSlots": { "player": 1, "dj": 1 },
+      "participants": [{ "key": "solo" }, { "key": "backup" }],
+      "availabilities": [
+        { "participantKey": "solo", "status": "available", "roleKeys": ["player", "dj"] },
+        { "participantKey": "backup", "status": "available", "roleKeys": ["dj"] }
+      ],
+      "preAssignedSlots": [
+        { "roleKey": "player", "slotIndex": 0, "participantKey": "solo" },
+        { "roleKey": "dj", "slotIndex": 0, "participantKey": "solo" }
+      ]
+    },
+    "drawSteps": [{ "mode": "full" }],
+    "expected": {
+      "maxRolesPerParticipant": 1,
+      "totalAssignedSlots": 2,
+      "rolesByParticipant": { "solo": ["player"], "backup": ["dj"] }
+    }
+  },
+  {
+    "id": "REF-O6",
+    "description": "Intra-role without replacement: 2 slots / 3 candidates, seed 99",
+    "tags": ["FR20", "deterministic"],
+    "setup": {
+      "roleSlots": { "player": 2 },
+      "participants": [{ "key": "a" }, { "key": "b" }, { "key": "c" }],
+      "availabilities": [
+        { "participantKey": "a", "status": "available", "roleKeys": ["player"] },
+        { "participantKey": "b", "status": "available", "roleKeys": ["player"] },
+        { "participantKey": "c", "status": "available", "roleKeys": ["player"] }
+      ],
+      "preAssignedSlots": []
+    },
+    "drawSteps": [{ "mode": "full", "randomSeed": 99 }],
+    "expected": {
+      "finalAssignedCount": 2,
+      "assignedParticipantKeys": ["b", "a"],
+      "distinctAssignees": true
+    }
+  },
+  {
+    "id": "REF-O7",
+    "description": "Draw step weight matches summary % with same pastSelectionCount",
+    "tags": ["FR19", "FR20"],
+    "setup": {
+      "roleSlots": { "player": 1 },
+      "participants": [{ "key": "veteran" }, { "key": "rookie" }],
+      "availabilities": [
+        { "participantKey": "veteran", "status": "available", "roleKeys": ["player"] },
+        { "participantKey": "rookie", "status": "available", "roleKeys": ["player"] }
+      ],
+      "validatedPastEvents": [
+        { "roleSlots": { "player": 1 }, "assigneeKey": "veteran" }
+      ],
+      "preAssignedSlots": []
+    },
+    "drawSteps": [{ "mode": "full" }],
+    "expected": {
+      "veteranChanceLowerThanRookie": true,
+      "drawWeightMatchesSummaryPercent": true
+    }
+  },
+  {
+    "id": "REF-O8",
+    "description": "DB snapshot chancePercent equals opening score (E-04), not post-cross-role step",
+    "tags": ["FR24", "E-04"],
+    "setup": {
+      "roleSlots": { "player": 1, "mc": 1 },
+      "participants": [{ "key": "dual" }, { "key": "playerOnly" }],
+      "availabilities": [
+        { "participantKey": "dual", "status": "available", "roleKeys": ["player", "mc"] },
+        { "participantKey": "playerOnly", "status": "available", "roleKeys": ["player"] }
+      ],
+      "preAssignedSlots": []
+    },
+    "drawSteps": [{ "mode": "full" }],
+    "expected": {
+      "openingSnapshotMatchesDb": {
+        "roleKey": "player",
+        "participantKey": "dual"
+      }
+    }
+  },
+  {
+    "id": "REF-O9",
+    "description": "G-03: middle slot occupied, draw fills empty slotIndex 0 only",
+    "tags": ["FR20", "G-03"],
+    "setup": {
+      "roleSlots": { "player": 2 },
+      "participants": [{ "key": "occupant" }, { "key": "filler" }],
+      "availabilities": [
+        { "participantKey": "filler", "status": "available", "roleKeys": ["player"] }
+      ],
+      "preAssignedSlots": [{ "roleKey": "player", "slotIndex": 1, "participantKey": "occupant" }]
+    },
+    "drawSteps": [{ "mode": "full" }],
+    "expected": {
+      "slotAssignments": [
+        { "roleKey": "player", "slotIndex": 1, "participantKey": "occupant" },
+        { "roleKey": "player", "slotIndex": 0, "participantKey": "filler" }
+      ],
+      "finalAssignedCount": 2
+    }
+  },
+  {
+    "id": "REF-O10",
+    "description": "fillEmpty on locked composition fills gap without clearing occupant",
+    "tags": ["FR20", "E-03"],
+    "setup": {
+      "roleSlots": { "player": 2 },
+      "participants": [{ "key": "occupant" }, { "key": "filler" }],
+      "availabilities": [
+        { "participantKey": "filler", "status": "available", "roleKeys": ["player"] }
+      ],
+      "preAssignedSlots": [{ "roleKey": "player", "slotIndex": 0, "participantKey": "occupant" }],
+      "lockComposition": true
+    },
+    "drawSteps": [{ "mode": "fillEmpty" }],
+    "expected": {
+      "slotAssignments": [
+        { "roleKey": "player", "slotIndex": 0, "participantKey": "occupant" },
+        { "roleKey": "player", "slotIndex": 1, "participantKey": "filler" }
+      ],
+      "finalAssignedCount": 2
+    }
+  },
+  {
+    "id": "T-O1",
+    "description": "Empty pool for role continues without error",
+    "tags": ["edge"],
+    "setup": {
+      "roleSlots": { "player": 1, "dj": 1 },
+      "participants": [{ "key": "djOnly" }],
+      "availabilities": [
+        { "participantKey": "djOnly", "status": "available", "roleKeys": ["dj"] }
+      ],
+      "preAssignedSlots": []
+    },
+    "drawSteps": [{ "mode": "full" }],
+    "expected": {
+      "totalAssignedSlots": 1,
+      "rolesByParticipant": { "djOnly": ["dj"] }
+    }
+  },
+  {
+    "id": "T-O2",
+    "description": "Full redraw replaces snapshot row count for event",
+    "tags": ["FR24", "edge"],
+    "setup": {
+      "roleSlots": { "player": 2 },
+      "participants": [{ "key": "p1" }, { "key": "p2" }],
+      "availabilities": [
+        { "participantKey": "p1", "status": "available", "roleKeys": ["player"] },
+        { "participantKey": "p2", "status": "available", "roleKeys": ["player"] }
+      ],
+      "preAssignedSlots": []
+    },
+    "drawSteps": [{ "mode": "full" }, { "mode": "full" }],
+    "expected": {
+      "snapshotCount": 2,
+      "distinctSnapshotParticipants": 2
+    }
+  }
+]

@@ -72,6 +72,58 @@ export interface CompositionCandidateListResponse {
   candidates: CompositionCandidate[]
 }
 
+export interface ChanceAdjustment {
+  factorId: string
+  label: string
+  deltaPoints: number
+}
+
+export interface ChanceFactorBreakdown {
+  factorId: string
+  multiplier: number
+  label: string
+}
+
+export interface ChanceBreakdownPeer {
+  participantId: string
+  displayName: string
+  avatarUrl?: string | null
+  chancePercent: number
+}
+
+export interface ChanceBreakdown {
+  participantId: string
+  roleKey: string
+  displayName: string
+  chancePercent: number
+  referencePercent: number
+  candidateCount?: number | null
+  poolRank?: number | null
+  aheadCount?: number | null
+  tiedAtChanceCount?: number | null
+  adjustments: ChanceAdjustment[]
+  requiredCount?: number | null
+  avatarUrl?: string | null
+  gender?: MemberGender | null
+  pool?: { peers: ChanceBreakdownPeer[] } | null
+  factorBreakdown?: ChanceFactorBreakdown[] | null
+}
+
+export interface CompositionPoolPreviewSegment {
+  participantId: string
+  displayName: string
+  chancePercent: number
+  weight: number
+  avatarUrl?: string | null
+  gender?: MemberGender | null
+}
+
+export interface CompositionPoolPreviewResponse {
+  roleKey: string
+  requiredCount: number
+  segments: CompositionPoolPreviewSegment[]
+}
+
 export interface CompositionDecline {
   id: string
   participantId: string
@@ -338,6 +390,60 @@ export class CompositionApiService {
         return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
       }
       const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async getChanceBreakdown(
+    seasonId: string,
+    eventId: string,
+    roleKey: string,
+    participantId: string,
+  ): Promise<CompositionApiResult<ChanceBreakdown>> {
+    try {
+      const params = new URLSearchParams({ roleKey, participantId })
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/chance-breakdown?${params}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      const raw = (await res.json()) as ChanceBreakdown
+      const data: ChanceBreakdown = {
+        ...raw,
+        gender: effectiveMemberGender(raw.gender),
+      }
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async getPoolPreview(
+    seasonId: string,
+    eventId: string,
+    roleKey: string,
+  ): Promise<CompositionApiResult<CompositionPoolPreviewResponse>> {
+    try {
+      const params = new URLSearchParams({ roleKey })
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/pool-preview?${params}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      const raw = (await res.json()) as CompositionPoolPreviewResponse
+      const data: CompositionPoolPreviewResponse = {
+        ...raw,
+        segments: raw.segments.map((segment) => ({
+          ...segment,
+          gender: effectiveMemberGender(segment.gender),
+        })),
+      }
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
