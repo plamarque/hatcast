@@ -51,7 +51,12 @@ class MeNotificationPreferencesIntegrationTest {
         mockMvc
             .perform(get("/v1/me/notification-preferences").cookie(cookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.categories.length()").value(NotificationCategory.entries.size))
+            .andExpect(
+                jsonPath("$.categories.length()").value(
+                    NotificationCategory.entries.size - HIDDEN_NOTIFICATION_PREFERENCE_CATEGORIES.size,
+                ),
+            )
+            .andExpect(jsonPath("$.categories[?(@.key == 'COMPOSITION_SHARED')]").isEmpty)
             .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].label").exists())
             .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].pushEnabled").value(true))
             .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].emailEnabled").value(true))

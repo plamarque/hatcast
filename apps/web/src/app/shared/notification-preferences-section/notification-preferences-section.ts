@@ -106,6 +106,13 @@ function sortCategoriesByKeyOrder(
             </div>
           </section>
         }
+
+        @if (showMemberOrgaFootnote()) {
+          <p class="notification-preferences__footnote">
+            Les messages membre concernent ta participation. Les alertes orga concernent la coordination — tu choisis
+            de les activer.
+          </p>
+        }
       }
     </div>
 
@@ -288,6 +295,12 @@ function sortCategoriesByKeyOrder(
       font-weight: 600;
       color: color-mix(in srgb, var(--mat-sys-on-surface) 62%, transparent);
     }
+    .notification-preferences__footnote {
+      margin: 0;
+      font: var(--mat-sys-body-small);
+      line-height: 1.45;
+      color: color-mix(in srgb, var(--mat-sys-on-surface) 68%, transparent);
+    }
     @media (min-width: 560px) {
       .notification-preferences__column-headers {
         grid-template-columns: minmax(0, 1fr) 5.5rem 4.5rem;
@@ -333,6 +346,13 @@ export class NotificationPreferencesSection implements OnInit, OnDestroy {
   )
   protected readonly showOrganizerSection = computed(
     () => this.hasOrganizerScope() && this.organizerCategories().length > 0,
+  )
+  protected readonly showMemberOrgaFootnote = computed(
+    () =>
+      !this.loading() &&
+      !this.loadFailed() &&
+      this.showOrganizerSection() &&
+      (this.notificationCategories().length > 0 || this.reminderCategories().length > 0),
   )
   protected readonly organizerCategories = computed(() => {
     const byKey = new Map(this.categories().map((category) => [category.key, category]))

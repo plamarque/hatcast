@@ -1,5 +1,3 @@
-import { environment } from '../../../environments/environment'
-
 const SEED_EMAIL_DOMAIN = '@seed.improbots.test'
 export const DEV_SEED_IDP_PREFIX = 'dev-seed-idp|'
 
@@ -13,10 +11,12 @@ export function isLocalDevRuntime(): boolean {
 }
 
 export function isDevSeedImprobotsEmail(email: string): boolean {
-  return (
-    (isLocalDevRuntime() || !environment.production) &&
-    email.trim().toLowerCase().endsWith(SEED_EMAIL_DOMAIN)
-  )
+  return isLocalDevRuntime() && email.trim().toLowerCase().endsWith(SEED_EMAIL_DOMAIN)
+}
+
+/** Seed Improbots login — localhost / 127.0.0.1 / Tailscale dev only (API profile `dev`). */
+export function isDevSeedLoginRuntime(): boolean {
+  return isLocalDevRuntime()
 }
 
 export function buildDevSeedIdpToken(email: string, password: string): string {

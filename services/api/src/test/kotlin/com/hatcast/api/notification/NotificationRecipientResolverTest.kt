@@ -613,4 +613,54 @@ class NotificationRecipientResolverTest {
         assertTrue(recipients.any { it.userId == sharedUserId })
         assertTrue(recipients.any { it.userId == adminOnlyUserId })
     }
+
+    @Test
+    fun `resolveOrganizerCascadeRecipients excludes actor when provided`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val actorUserId = UUID.randomUUID()
+        val otherOrgaUserId = UUID.randomUUID()
+
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(
+            listOf(
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = actorUserId, email = "actor@test.com"),
+                ),
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = otherOrgaUserId, email = "other@test.com"),
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveOrganizerCascadeRecipients(eventId, seasonId, troupeId, actorUserId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(otherOrgaUserId, recipients.first().userId)
+    }
+
+    @Test
+    fun `resolveOrganizerCircleRecipients excludes actor when provided`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val actorUserId = UUID.randomUUID()
+
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(
+            listOf(
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = actorUserId, email = "actor@test.com"),
+                ),
+            ),
+        )
+        whenever(seasonOrganizerRepository.findBySeason_IdOrderByGrantedAtAsc(seasonId)).thenReturn(emptyList())
+        whenever(troupeMembershipRepository.findActiveTroupeAdminsByTroupeId(troupeId)).thenReturn(emptyList())
+
+        val recipients = resolver.resolveOrganizerCircleRecipients(eventId, seasonId, troupeId, actorUserId)
+
+        assertTrue(recipients.isEmpty())
+    }
 }

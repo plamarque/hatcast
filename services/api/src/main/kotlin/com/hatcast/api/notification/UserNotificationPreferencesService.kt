@@ -82,10 +82,10 @@ class UserNotificationPreferencesService(
         ) {
             return true
         }
-        if (seasonOrganizerRepository.existsByUser_Id(userId)) {
+        if (seasonOrganizerRepository.existsByUser_IdOnActiveTroupeMembership(userId)) {
             return true
         }
-        return eventOrganizerRepository.existsByUser_Id(userId)
+        return eventOrganizerRepository.existsByUser_IdOnActiveTroupeMembership(userId)
     }
 
     private fun requireUser(userId: UUID): UserEntity =
@@ -104,16 +104,18 @@ class UserNotificationPreferencesService(
         NotificationPreferencesResponseDto(
             hasOrganizerScope = hasOrganizerScope(user.id),
             categories =
-                NotificationCategory.entries.map { category ->
-                    val preference = user.notificationPreferences[category] ?: category.defaultPreference()
-                    NotificationPreferenceCategoryDto(
-                        key = category.name,
-                        label = category.label,
-                        group = category.group.name,
-                        pushEnabled = preference.push,
-                        emailEnabled = preference.email,
-                    )
-                },
+                NotificationCategory.entries
+                    .filter { category -> category !in HIDDEN_NOTIFICATION_PREFERENCE_CATEGORIES }
+                    .map { category ->
+                        val preference = user.notificationPreferences[category] ?: category.defaultPreference()
+                        NotificationPreferenceCategoryDto(
+                            key = category.name,
+                            label = category.label,
+                            group = category.group.name,
+                            pushEnabled = preference.push,
+                            emailEnabled = preference.email,
+                        )
+                    },
         )
 }
 

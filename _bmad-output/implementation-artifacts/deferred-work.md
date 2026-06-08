@@ -184,3 +184,13 @@
 - **AC4 re-dispatch test** — pas de test pour le second edge `→ COMPLETE` après régression lifecycle ; chemin produit optionnel (AC4 « may »).
 - **Push opt-out unit test** — pas de test dédié `TEAM_COMPLETE_MEMBER` push bloqué ; même chemin dispatcher que les autres intents (email testé).
 - **`./gradlew test` 3 échecs non liés** — `AvailabilityControllerIntegrationTest` ×2, `CompositionDrawIntegrationTest` ×1 (`chancePercent` null) ; pré-existants au périmètre draw/dispos.
+
+---
+
+## Deferred from: code review of 8-4-notifications-ops-organisateurs (2026-06-09)
+
+- **`./gradlew test` non vert sur suite complète (838/841)** — 3 échecs `AvailabilityController` / `CompositionDraw` préexistants branche `v2`.
+- **Claim reminder mark avant dispatch empêche retry si envoi échoue** — pattern hérité story 8.7 ; `CompositionIncompleteReminderJob.kt`.
+- **`TEAM_COMPLETE` peut re-fire si lifecycle repasse COMPLETE après déclin** — edge rare, pas de dedupe sur `CompositionLifecycleAuditRecorder`.
+- **Scan hebdo `CompositionIncompleteReminderJob` sans pagination** — perf acceptable court terme.
+- **`minLength(3)` mot de passe global sur login** — scope creep recette dev-seed, hors AC 8.4.

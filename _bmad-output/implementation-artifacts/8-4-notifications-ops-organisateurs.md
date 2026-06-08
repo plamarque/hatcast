@@ -4,7 +4,7 @@ baseline_commit: b121066b
 
 # Story 8.4: Organizer ops notifications (FR31b, P2)
 
-**Status:** review
+**Status:** done
 
 **Story ID:** 8.4  
 **Story key:** `8-4-notifications-ops-organisateurs`  
@@ -52,7 +52,7 @@ Same lifecycle edge `→ COMPLETE` may dispatch **both** intents independently, 
 
 2. **Given** an organizer **first publishes** a draft composition (`publishDraftComposition` → `DraftCompositionSharedEvent`, story **6.3**), **when** the listener runs after commit, **then** intent **`COMPOSITION_SHARED`** (existing enum — catalogue alias `DRAFT_COMPOSITION_SHARED`) dispatches to the **organizer circle** only — **not** roster, **not** assignees, **not** members. [Source: epics 8.4 « brouillon compo partagé orga only » ; `CompositionWorkflowNotificationAdapter.publishDraftCompositionShared` today DEBUG-only]
 
-3. **Given** a **published** event still collecting availability (`availabilityOpenedAt != null`) whose **`startsAt` is within ~30 days** (configurable SLA horizon) and availability collection is **not** considered open for members (same gate as member dispos — event published), **when** the daily SLA job runs, **then** eligible **organizer cascade** recipients receive **`SLA_OPEN_AVAILABILITY`** at most once per event per civil day (dedupe via `NotificationReminderMarkService` pattern from **8.7**). [Source: catalogue § 8.4 ; SCP FR31b]
+3. **Given** a **draft** event (`availabilityOpenedAt == null`, non archivé) whose **`startsAt` is within ~30 days** (configurable SLA horizon, défaut `hatcast.notification.organizer-sla-horizon-days`), **when** the daily SLA job runs, **then** eligible **organizer cascade** recipients receive **`SLA_OPEN_AVAILABILITY`** at most once per event per civil day (dedupe via `NotificationReminderMarkService` pattern from **8.7**). *Spectacles publiés sans dispos ouvertes : hors scope 8.4 (décision revue 2026-06-09).* [Source: catalogue § 8.4 ; SCP FR31b ; `OrganizerSlaOpenAvailabilityJob`]
 
 4. **Given** a **validated** composition that is **not** lifecycle-`COMPLETE`, **when** the weekly incomplete job runs and the show date is approaching (same candidate pool as presence reminders — published, non-archived, validated), **then** **`COMPOSITION_INCOMPLETE_WEEKLY`** notifies organizer cascade with cadence dedupe (≥ 7 civil days between sends per event). [Source: catalogue § 8.4]
 
@@ -406,6 +406,7 @@ Composer (Cursor)
 
 - 2026-06-08 : Story created (bmad-create-story).
 - 2026-06-08 : Story 8.4 implemented — orga ops notifications, prefs opt-in, UI section, catalogue.
+- 2026-06-09 : Code review `84291bda` — 9 patches appliqués, 2 décisions (SLA brouillons-only doc, dev-seed conservé) ; story **done**.
 
 ---
 
@@ -418,3 +419,32 @@ Composer (Cursor)
 - [x] `./gradlew test` / Vitest mentionnés
 - [x] Distinction **`TEAM_COMPLETE` orga vs `TEAM_COMPLETE_MEMBER`** explicite
 - [x] Règle **A1** — pas de teaser UI orga avant dispatch
+
+### Review Findings
+
+*Code review `84291bda` — 2026-06-09*
+
+#### decision-needed
+
+- [x] [Review][Decision] **Prédicat SLA : brouillons seulement ou spectacles publiés ?** — **Résolu : B** — documenter l’écart (impl = brouillons `availabilityOpenedAt IS NULL` dans fenêtre ~30j) et mettre à jour AC 3 + catalogue pour refléter le comportement livré. Spectacles publiés sans dispos → hors scope 8.4.
+- [x] [Review][Decision] **Auth dev-seed dans le commit 8.4** — **Résolu : A** — conservé dans 8.4 comme facilité recette orga.
+
+#### patch
+
+- [x] [Review][Patch] **Documenter prédicat SLA brouillons-only et aligner AC 3 (décision B)** [`8-4-notifications-ops-organisateurs.md` / `NOTIFICATIONS_CATALOG.md`]
+- [x] [Review][Patch] **Footnote membre/orga absente (AC 18)** [`notification-preferences-section.ts`]
+- [x] [Review][Patch] **Catalogue `NOTIFICATIONS_CATALOG.md` absent du commit (AC 20)** [`docs/v2/technical/NOTIFICATIONS_CATALOG.md`]
+- [x] [Review][Patch] **`hasOrganizerScope` sans filtre troupe active pour orgas event/saison (AC 13)** [`UserNotificationPreferencesService.kt:75`]
+- [x] [Review][Patch] **Catégorie `COMPOSITION_SHARED` fantôme encore exposée par GET prefs** [`NotificationIntent.kt` / `UserNotificationPreferencesService.kt`]
+- [x] [Review][Patch] **UI seed login active sans garde API `@Profile("dev")`** [`login.ts:103`]
+- [x] [Review][Patch] **Pas de test intégration `COMPOSITION_SHARED` / `publishDraftComposition` (AC 2, 19)** [`OrganizerOpsNotificationIntegrationTest.kt`]
+- [x] [Review][Patch] **Tests dédup hebdo/J-7 incomplets pour `CompositionIncompleteReminderJob` (AC 4–5, 19)** [`CompositionIncompleteReminderJobTest.kt`]
+- [x] [Review][Patch] **Exclusion acteur (`excludeActor`) non testée (AC 8)** [`NotificationRecipientResolverTest.kt`]
+
+#### defer
+
+- [x] [Review][Defer] **`./gradlew test` non vert sur suite complète (838/841)** — 3 échecs `AvailabilityController` / `CompositionDraw` préexistants branche `v2`
+- [x] [Review][Defer] **Claim reminder mark avant dispatch empêche retry si envoi échoue** [`CompositionIncompleteReminderJob.kt:106`] — pattern hérité story 8.7
+- [x] [Review][Defer] **`TEAM_COMPLETE` peut re-fire si lifecycle repasse COMPLETE après déclin** [`CompositionLifecycleAuditRecorder.kt:67`] — edge rare, pas de dedupe
+- [x] [Review][Defer] **Scan hebdo `CompositionIncompleteReminderJob` sans pagination** — perf acceptable court terme
+- [x] [Review][Defer] **`minLength(3)` mot de passe global sur login** [`login.ts:109`] — scope creep recette, hors AC 8.4

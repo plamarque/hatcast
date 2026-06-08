@@ -31,6 +31,7 @@ import {
 import {
   buildDevSeedIdpToken,
   isDevSeedImprobotsEmail,
+  isDevSeedLoginRuntime,
   isLocalDevRuntime,
 } from '../../core/auth/dev-seed-auth'
 import { finishIdpSignInAfterEmailAuth } from '../../core/auth/finish-idp-email-auth'
@@ -101,6 +102,7 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
   private readonly dialog = inject(MatDialog)
 
   protected readonly isDev = !environment.production || isLocalDevRuntime()
+  protected readonly showDevSeedHint = isDevSeedLoginRuntime()
   /** Journal technique réservé au dev local (pas affiché en production). */
   protected readonly devLog = signal<string | null>(null)
 

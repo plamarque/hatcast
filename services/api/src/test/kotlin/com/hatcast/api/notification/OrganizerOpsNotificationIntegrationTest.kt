@@ -172,6 +172,31 @@ class OrganizerOpsNotificationIntegrationTest {
     }
 
     @Test
+    fun `first publish draft composition dispatches COMPOSITION_SHARED`() {
+        val admin = adminCookie("sub-orga-ops-publish-admin")
+        memberCookie("sub-orga-ops-publish-member")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createPublishedEvent(admin, seasonId)
+        val memberId = participantIdForUser(seasonId, "sub-orga-ops-publish-member")
+        seedDraftSlots(eventId, listOf(memberId))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/publish")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat { intent == NotificationIntent.COMPOSITION_SHARED },
+        )
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.AVAILABILITY_OPENED },
+        )
+    }
+
+    @Test
     fun `draft composition decline does not dispatch ASSIGNEE_DECLINED`() {
         val admin = adminCookie("sub-orga-ops-draft-decline-admin")
         val assignee = memberCookie("sub-orga-ops-draft-decline-member")

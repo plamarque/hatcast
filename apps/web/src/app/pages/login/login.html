@@ -78,7 +78,7 @@
             <button mat-flat-button color="primary" type="submit" class="auth__submit">Se connecter</button>
           </form>
 
-          @if (isDev) {
+          @if (showDevSeedHint) {
             <p class="auth__hint auth__hint--email">
               Comptes seed Les Improbots : email <code>&#64;seed.improbots.test</code>, mot de passe =
               slug membre (<code>charlene</code>, <code>pierrick</code>…). Slug &lt; 8 car. : répété

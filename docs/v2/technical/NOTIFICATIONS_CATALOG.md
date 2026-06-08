@@ -1,8 +1,8 @@
 # HatCast V2 — Catalogue des notifications
 
 **Statut :** Référence as-is (runtime V2)  
-**Dernière mise à jour :** 2026-06-08 (cible ops orga **v2** — spec [`spec-notifications-orga-v2`](../../_bmad-output/specs/spec-notifications-orga-v2/SPEC.md))  
-**Prochaine revue :** après implémentation v2 ops orga ou story **6.10c** (`MANUAL_GAP_RECRUITMENT`)  
+**Dernière mise à jour :** 2026-06-09 (story **8.4** livrée — runtime cascade + opt-in orga)  
+**Prochaine revue :** après implémentation v2 ops orga (spec [`spec-notifications-orga-v2`](../../_bmad-output/specs/spec-notifications-orga-v2/SPEC.md)) ou story **6.10c** (`MANUAL_GAP_RECRUITMENT`)  
 **Brainstorm post-catalog :** [`brainstorming-session-2026-06-07-notifications-post-catalog.md`](../../_bmad-output/brainstorming/brainstorming-session-2026-06-07-notifications-post-catalog.md) (décisions PO 2026-06-08)  
 **Investigation :** [`notifications-catalog-investigation.md`](../../_bmad-output/implementation-artifacts/investigations/notifications-catalog-investigation.md)  
 **Lié à :** [ARCH.md](../../ARCH.md) § Notifications V2 · stories Epic 8 · [SCP notifications 2026-06-01](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md)
@@ -33,7 +33,7 @@ Parité V1 (files Firestore, HTML riche) : [`legacy/src/services/notificationTem
 | `TEAM_COMPLETE_MEMBER` | **Actif** | Auto — lifecycle `→ COMPLETE` | Orgas événement + assignés au complet | `TEAM_CONFIRMED` | 8.9 |
 | `COMPOSITION_SHARED` | **Actif** † | Auto — publish brouillon compo | Orgas **événement** (cible v2) | `ORG_DRAFT_COMPOSITION` | 8.4 → v2 |
 | `EVENT_DRAFT_CREATED` | **Actif** † | Auto — création brouillon | Orgas **saison** (cible v2) | `ORG_EVENT_DRAFT_CREATED` | 8.4 → v2 |
-| `SLA_OPEN_AVAILABILITY` | **Actif** † | Programmé — quotidien (~30j, dispos fermées) | Orgas événement + saison (escalade, cible v2) | `ORG_SLA_OPEN_AVAILABILITY` | 8.4 → v2 |
+| `SLA_OPEN_AVAILABILITY` | **Actif** † | Programmé — quotidien (~30j, **brouillons** `availabilityOpenedAt IS NULL`) | Cascade orga (runtime 8.4) | `ORG_SLA_OPEN_AVAILABILITY` | 8.4 |
 | `COMPOSITION_INCOMPLETE_WEEKLY` | **Actif** † | Programmé — hebdo (compo validée, non `COMPLETE`) | Orgas événement + saison (escalade, cible v2) | `ORG_COMPOSITION_INCOMPLETE` | 8.4 → v2 |
 | `COMPOSITION_INCOMPLETE_DAILY_J7` | **Actif** † | Programmé — J-7 civil (`Europe/Paris`) | Orgas événement + saison (escalade, cible v2) | `ORG_COMPOSITION_INCOMPLETE` | 8.4 → v2 |
 | `TEAM_COMPLETE` | **Actif** † | Auto — lifecycle `→ COMPLETE` | Orgas **événement** (cible v2) | `ORG_TEAM_COMPLETE` | 8.4 → v2 |
@@ -444,7 +444,13 @@ Après création : ajout/retrait/co-orga **manuel** — pas de resync auto saiso
 
 Dédoublonnage `userId` ; pas de guest-email ; exclusion de l’**acteur** quand `actorUserId` est fourni.
 
-**Runtime 8.4 (obsolète après v2) :** cascade event → saison → admin ; cercle orga pour `COMPOSITION_SHARED`.
+**Runtime 8.4 (livré 2026-06-08, obsolète après v2) :**
+
+- **Cascade** event → saison → admin troupe (fallback exclusif, pas d’union) pour intents cascade.
+- **Cercle orga** (union event + saison + admin) pour `COMPOSITION_SHARED` uniquement.
+- **`SLA_OPEN_AVAILABILITY`** : brouillons non archivés dont `startsAt` ∈ [aujourd’hui ; +30j] (`OrganizerSlaOpenAvailabilityJob`) — *pas* les spectacles publiés sans dispos (hors scope 8.4).
+- **Prefs** : groupe `ORGANIZER_ALERTS` opt-in (défaut OFF) ; catégorie membre `COMPOSITION_SHARED` masquée API/UI — intent mappe `ORG_DRAFT_COMPOSITION`.
+- **`hasOrganizerScope`** : admin troupe actif **ou** orga saison/événement avec adhésion troupe `ACTIVE`.
 
 ### Préférences orga (opt-in)
 

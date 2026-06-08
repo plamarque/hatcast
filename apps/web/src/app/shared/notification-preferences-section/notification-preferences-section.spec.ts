@@ -254,6 +254,15 @@ describe('NotificationPreferencesSection', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-org-assignee-declined-push"]')).toBeTruthy()
   })
 
+  it('renders member/orga footnote when organizer section is visible', async () => {
+    const { fixture } = await setup({ pushState: 'enabled', hasOrganizerScope: true })
+    const text = fixture.nativeElement.textContent ?? ''
+
+    expect(text).toContain('Les messages membre concernent ta participation.')
+    expect(text).toContain('Les alertes orga concernent la coordination')
+    expect(fixture.nativeElement.querySelector('.notification-preferences__footnote')).toBeTruthy()
+  })
+
   it('renders section intros and channel legend once per card', async () => {
     const { fixture } = await setup({ pushState: 'enabled' })
     const text = fixture.nativeElement.textContent ?? ''

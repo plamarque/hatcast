@@ -155,3 +155,7 @@ fun NotificationCategory.defaultPreference(): NotificationPreference =
     } else {
         NotificationPreference()
     }
+
+/** Legacy member category — intent maps to [ORG_DRAFT_COMPOSITION]; hidden from prefs API/UI. */
+val HIDDEN_NOTIFICATION_PREFERENCE_CATEGORIES: Set<NotificationCategory> =
+    setOf(NotificationCategory.COMPOSITION_SHARED)
