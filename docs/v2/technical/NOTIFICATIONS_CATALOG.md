@@ -2,7 +2,7 @@
 
 **Statut :** Référence as-is (runtime V2)  
 **Dernière mise à jour :** 2026-06-08  
-**Prochaine revue :** après stories **8.4** (ops orga) et **8.8** (détails événement / archivage)  
+**Prochaine revue :** après story **8.4** (ops orga)  
 **Brainstorm post-catalog :** [`brainstorming-session-2026-06-07-notifications-post-catalog.md`](../../_bmad-output/brainstorming/brainstorming-session-2026-06-07-notifications-post-catalog.md) (décisions PO 2026-06-08)  
 **Investigation :** [`notifications-catalog-investigation.md`](../../_bmad-output/implementation-artifacts/investigations/notifications-catalog-investigation.md)  
 **Lié à :** [ARCH.md](../../ARCH.md) § Notifications V2 · stories Epic 8 · [SCP notifications 2026-06-01](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md)
@@ -28,10 +28,12 @@ Parité V1 (files Firestore, HTML riche) : [`legacy/src/services/notificationTem
 | `ASSIGNEE_PRESENCE_REMINDER` | **Actif** | Programmé — J-7 / J-1 | Assignés `confirmed` | `REMINDER_7_DAYS` / `REMINDER_1_DAY` | 8.5, 8.5b |
 | `PROXY_AVAILABILITY_RECORDED` | **Actif** | Auto — proxy dispo | Sujet lié | `AVAILABILITY_REQUEST` | 8.6, 5.5 |
 | `PROXY_CONFIRMATION_RECORDED` | **Actif** | Auto — proxy participation | Sujet lié | `CONFIRMATION_REQUEST` | 8.6, 6.8 |
+| `EVENT_DETAILS_CHANGED` | **Actif** | Auto — delta date/lieu/format sur événement publié | Roster engagé (dispo ∪ participation) | `EVENT_DETAILS_CHANGED` | 8.8 |
+| `EVENT_ARCHIVED` | **Actif** | Auto — archivage | Roster engagé actif | `EVENT_ARCHIVED` | 8.8 |
 | `COMPOSITION_SHARED` | Câblé, **non émis** | — | — | `COMPOSITION_SHARED` † | 8.4 |
 | `TEAM_VALIDATED_FYI` | Câblé, **non émis** | — | — | `TEAM_CONFIRMED` † | *(legacy — voir G-012)* |
 | Intents FR31b (ops orga) | **Backlog** | Auto / cron | Cascade orga | Catégories orga TBD | 8.4 |
-| Intents **proposés** (brainstorm 2026-06-07) | **Backlog proposé** | Voir § [Backlog proposé](#backlog-proposé--brainstorm-2026-06-07) | — | — | 8.8, G-012, 6.10c, Epic 7 |
+| Intents **proposés** (brainstorm 2026-06-07) | **Backlog proposé** | Voir § [Backlog proposé](#backlog-proposé--brainstorm-2026-06-07) | — | — | G-012, 6.10c, Epic 7 |
 | Share `draw` / `composition` | Manuel hors dispatcher | Copie / WhatsApp | — | — | 6.10 |
 
 \* Voir [Tensions produit](#tensions-produit-documentées) — retrait mappé sur une catégorie opt-out.  
@@ -162,7 +164,9 @@ Modèle **opt-out** : clé JSON absente → **autorisé**. Toggles **push** et *
 | `TEAM_VALIDATED_FYI` | `TEAM_CONFIRMED` |
 | `ASSIGNEE_PRESENCE_REMINDER` (J-7) | `REMINDER_7_DAYS` |
 | `ASSIGNEE_PRESENCE_REMINDER` (J-1) | `REMINDER_1_DAY` |
-| `AVAILABILITY_PENDING_REMINDER` *(prévu 8.7)* | `AVAILABILITY_WEEKLY_REMINDER` |
+| `AVAILABILITY_PENDING_REMINDER` | `AVAILABILITY_WEEKLY_REMINDER` |
+| `EVENT_DETAILS_CHANGED` | `EVENT_DETAILS_CHANGED` |
+| `EVENT_ARCHIVED` | `EVENT_ARCHIVED` |
 
 ### Tensions produit documentées
 
@@ -317,6 +321,42 @@ Uniquement si **acteur ≠ sujet** et `user_id` lié. Pas d’envoi pour actions
 
 Report si dispo « available » sans delta rôles/commentaire (`ProxyNotificationLabels.shouldDeferProxyAvailabilityNotification`).
 
+---
+
+### Événement — détails & archivage (story 8.8)
+
+Audience **engagée** = dispo `available`/`unavailable` **ou** participation compo (`pending`/`confirmed`) **ou** déclin enregistré (`event_composition_declines`). Roster `unknown` sans engagement compo : **exclu**.
+
+#### `EVENT_DETAILS_CHANGED`
+
+| Champ | Valeur |
+|-------|--------|
+| **Déclenchement** | Automatique — PATCH `startsAt`, `location` et/ou `templateType` sur événement **publié** (non archivé) |
+| **Audience** | Roster engagé (voir ci-dessus) |
+| **Préférence** | `EVENT_DETAILS_CHANGED` (opt-out, défaut ON) |
+| **Push title** | `📅 Spectacle modifié` |
+| **Push body** | `{eventTitle} le {eventDate} — {deltaPhrase}` (date/lieu/format old→new) |
+| **Email subject** | `Spectacle modifié · {eventTitle} ({eventDate})` |
+| **Email body** | [Format commun](#corps-email-format-commun-v2) |
+| **Deep link** | `?tab=infos` |
+| **Exclusions** | Brouillon ; description/titre/slug/rôles/catégorie seuls ; roster non engagé |
+
+#### `EVENT_ARCHIVED`
+
+| Champ | Valeur |
+|-------|--------|
+| **Déclenchement** | Automatique — transition `archived: false → true` |
+| **Audience** | Roster engagé + participant/membership **actifs** (8.5b) |
+| **Préférence** | `EVENT_ARCHIVED` (opt-out D1:A, défaut ON) |
+| **Push title** | `🚫 Spectacle archivé` |
+| **Push body** | `{eventTitle} le {eventDate} n'a plus lieu (archivé).` |
+| **Email subject** | `Spectacle archivé · {eventTitle} ({eventDate})` |
+| **Email body** | [Format commun](#corps-email-format-commun-v2) |
+| **Deep link** | `?tab=infos` |
+| **Exclusions** | Désarchivage ; roster non engagé ; REMOVED / membership inactive |
+
+---
+
 #### `PROXY_CONFIRMATION_RECORDED`
 
 | Champ | Valeur |
@@ -370,8 +410,6 @@ Décisions PO **2026-06-08** : [`brainstorming-session-2026-06-07-notifications-
 
 | Intent proposé | Déclenchement | Audience | Préférence | P | Story |
 |----------------|---------------|----------|------------|---|-------|
-| `EVENT_DETAILS_CHANGED` | Auto — delta **`startsAt`**, **`location`** ou **`templateType`** sur événement publié | Assignés + roster (dispos ouvertes) | Opt-out `EVENT_DETAILS_CHANGED` *(nouvelle clé)* | P1 | **8.8** |
-| `EVENT_ARCHIVED` | Auto — archivage | Assignés + roster actif | Opt-out membre (D1:A — pas obligatoire) | P1 | **8.8** / 8.9 |
 | `TEAM_COMPLETE_MEMBER` | Auto — lifecycle `complete` (tous assignés confirmés) | Orgas + assignés confirmés | Opt-out `TEAM_CONFIRMED` *(UI masquée jusqu’au ship — D6:B)* | P1 | **[G-012](../../_bmad-output/planning-artifacts/growth-backlog.md)** |
 | `MANUAL_GAP_RECRUITMENT` | Manuel — orga post-déclin | Roster `available` pour rôle vacant | `AVAILABILITY_REQUEST` + garde 6.10b | P2 | **6.10c** |
 | `TROUPE_MEMBERSHIP_INVITE` | Transactionnel — invitation | Invité (email) | Hors prefs app | P2 | Epic **7** |

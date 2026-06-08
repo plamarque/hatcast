@@ -10,6 +10,21 @@ interface EventNotificationPort {
         troupeId: UUID,
         actorUserId: UUID,
     )
+
+    fun publishEventDetailsChanged(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+        changeSummary: com.hatcast.api.notification.EventDetailsChangeSummary,
+    )
+
+    fun publishEventArchived(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+    )
 }
 
 class NoOpEventNotificationAdapter : EventNotificationPort {
@@ -23,6 +38,37 @@ class NoOpEventNotificationAdapter : EventNotificationPort {
     ) {
         log.debug(
             "availability_opened eventId={} seasonId={} troupeId={} actorUserId={}",
+            eventId,
+            seasonId,
+            troupeId,
+            actorUserId,
+        )
+    }
+
+    override fun publishEventDetailsChanged(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+        changeSummary: com.hatcast.api.notification.EventDetailsChangeSummary,
+    ) {
+        log.debug(
+            "event_details_changed eventId={} seasonId={} troupeId={} actorUserId={}",
+            eventId,
+            seasonId,
+            troupeId,
+            actorUserId,
+        )
+    }
+
+    override fun publishEventArchived(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+    ) {
+        log.debug(
+            "event_archived eventId={} seasonId={} troupeId={} actorUserId={}",
             eventId,
             seasonId,
             troupeId,

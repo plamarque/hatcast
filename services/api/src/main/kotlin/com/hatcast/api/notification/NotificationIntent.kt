@@ -15,6 +15,10 @@ enum class NotificationIntent {
     RECONFIRMATION_REQUEST,
     PROXY_AVAILABILITY_RECORDED,
     PROXY_CONFIRMATION_RECORDED,
+    /** Significant event detail change (date, location, format) — story 8.8. */
+    EVENT_DETAILS_CHANGED,
+    /** Event archived — story 8.8. */
+    EVENT_ARCHIVED,
 }
 
 enum class NotificationReminderWindow {
@@ -56,6 +60,14 @@ enum class NotificationCategory(
         "Rappels tous les 5 jours si je n'ai pas indiqué mes disponibilités",
         NotificationCategoryGroup.AUTOMATIC_REMINDERS,
     ),
+    EVENT_DETAILS_CHANGED(
+        "Me prévenir quand la date, le lieu ou le format change sur un spectacle où j'ai déjà interagi (dispo ou participation)",
+        NotificationCategoryGroup.NOTIFICATIONS,
+    ),
+    EVENT_ARCHIVED(
+        "Me prévenir quand un spectacle où j'ai déjà interagi (dispo ou participation) est annulé ou archivé",
+        NotificationCategoryGroup.NOTIFICATIONS,
+    ),
 }
 
 enum class NotificationCategoryGroup {
@@ -87,4 +99,6 @@ fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = 
         NotificationIntent.RECONFIRMATION_REQUEST -> NotificationCategory.CONFIRMATION_REQUEST
         NotificationIntent.PROXY_AVAILABILITY_RECORDED -> NotificationCategory.AVAILABILITY_REQUEST
         NotificationIntent.PROXY_CONFIRMATION_RECORDED -> NotificationCategory.CONFIRMATION_REQUEST
+        NotificationIntent.EVENT_DETAILS_CHANGED -> NotificationCategory.EVENT_DETAILS_CHANGED
+        NotificationIntent.EVENT_ARCHIVED -> NotificationCategory.EVENT_ARCHIVED
     }

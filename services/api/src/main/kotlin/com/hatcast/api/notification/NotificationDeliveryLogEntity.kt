@@ -29,8 +29,10 @@ class NotificationDeliveryLogEntity(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 64)
     val intent: NotificationIntent,
-    @Column(name = "user_id", nullable = false)
-    val userId: UUID,
+    @Column(name = "user_id")
+    val userId: UUID?,
+    @Column(name = "recipient_email", columnDefinition = "TEXT")
+    val recipientEmail: String? = null,
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     val channel: NotificationChannel,

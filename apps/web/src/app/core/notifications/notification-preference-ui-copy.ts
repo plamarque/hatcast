@@ -26,6 +26,16 @@ export const NOTIFICATION_PREFERENCE_UI_COPY: Record<
     title: 'Participation',
     description: 'Me prévenir quand je dois confirmer ou qu’un·e orga modifie ma participation.',
   },
+  EVENT_DETAILS_CHANGED: {
+    title: 'Changements importants',
+    description:
+      'Me prévenir quand la date, le lieu ou le format change sur un spectacle où j’ai déjà interagi (dispo ou participation).',
+  },
+  EVENT_ARCHIVED: {
+    title: 'Spectacle annulé',
+    description:
+      'Me prévenir quand un spectacle où j’ai déjà interagi (dispo ou participation) est annulé ou archivé.',
+  },
   AVAILABILITY_WEEKLY_REMINDER: {
     title: 'Dispos attendues',
     description: 'Me prévenir tous les 5 jours quand ma dispo manque encore sur un spectacle.',

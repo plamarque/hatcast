@@ -44,10 +44,15 @@ class NotificationDispatcher(
             }
 
             val category = context.intent.toCategory(context.reminderWindow)
+            val linkedUserIds = recipients.mapNotNull { it.userId }.toSet()
             val genderByUserId =
-                userRepository
-                    .findAllById(recipients.map { it.userId }.toSet())
-                    .associate { it.id to it.gender }
+                if (linkedUserIds.isEmpty()) {
+                    emptyMap()
+                } else {
+                    userRepository
+                        .findAllById(linkedUserIds)
+                        .associate { it.id to it.gender }
+                }
             for (recipient in recipients) {
                 deliverToRecipient(context, recipient, event, category, genderByUserId)
             }
@@ -70,6 +75,10 @@ class NotificationDispatcher(
         genderByUserId: Map<UUID, MemberGender?>,
     ) {
         try {
+            if (recipient.userId == null) {
+                deliverGuestEmailOnly(context, recipient, event, category)
+                return
+            }
             val recipientGender = genderByUserId[recipient.userId]
             val payload =
                 payloadBuilder.build(
@@ -81,6 +90,7 @@ class NotificationDispatcher(
                     proxyChangeSummary = context.proxyChangeSummary,
                     customMessageBody = context.customMessageBody,
                     recipientGender = recipientGender,
+                    eventDetailsChangeSummary = context.eventDetailsChangeSummary,
                 )
             val emailSubject =
                 payloadBuilder.buildEmailSubject(context.intent, event, context.proxyChangeSummary)
@@ -94,6 +104,77 @@ class NotificationDispatcher(
                 context.eventId,
                 ex.message,
                 ex,
+            )
+        }
+    }
+
+    private fun deliverGuestEmailOnly(
+        context: NotificationDispatchContext,
+        recipient: NotificationRecipient,
+        event: EventEntity,
+        category: NotificationCategory,
+    ) {
+        val email = recipient.email?.trim().orEmpty()
+        if (email.isBlank()) {
+            return
+        }
+        try {
+            val payload =
+                payloadBuilder.build(
+                    intent = context.intent,
+                    event = event,
+                    recipientName = recipient.displayName,
+                    roleKey = context.roleKey,
+                    actorDisplayName = context.actorDisplayName,
+                    proxyChangeSummary = context.proxyChangeSummary,
+                    customMessageBody = context.customMessageBody,
+                    recipientGender = null,
+                    eventDetailsChangeSummary = context.eventDetailsChangeSummary,
+                )
+            val emailSubject =
+                payloadBuilder.buildEmailSubject(context.intent, event, context.proxyChangeSummary)
+            deliverGuestEmail(email, emailSubject, payload, context.intent, context.eventId)
+        } catch (ex: Exception) {
+            log.error(
+                "notification_guest_email_unexpected_error intent={} email={} eventId={} error={}",
+                context.intent,
+                email,
+                context.eventId,
+                ex.message,
+                ex,
+            )
+        }
+    }
+
+    private fun deliverGuestEmail(
+        email: String,
+        subject: String,
+        payload: NotificationPayload,
+        intent: NotificationIntent,
+        eventId: UUID,
+    ) {
+        try {
+            val result = emailSender.sendEmail(null, email, subject, payload, intent, eventId)
+            persistDeliveryLogSafely(intent, null, result, eventId, email)
+        } catch (ex: Exception) {
+            log.warn(
+                "notification_guest_email_unexpected_error intent={} email={} eventId={} channel=EMAIL error={}",
+                intent,
+                email,
+                eventId,
+                ex.message,
+                ex,
+            )
+            persistDeliveryLogSafely(
+                intent,
+                null,
+                NotificationDeliveryResult(
+                    channel = NotificationChannel.EMAIL,
+                    status = NotificationDeliveryStatus.FAILED,
+                    errorMessage = ex.javaClass.simpleName + ": " + (ex.message ?: "unknown"),
+                ),
+                eventId,
+                email,
             )
         }
     }
@@ -143,6 +224,10 @@ class NotificationDispatcher(
             NotificationIntent.PROXY_AVAILABILITY_RECORDED,
             NotificationIntent.PROXY_CONFIRMATION_RECORDED,
             -> resolveProxySubjectRecipients(context)
+            NotificationIntent.EVENT_DETAILS_CHANGED ->
+                recipientResolver.resolveEngagedEventRosterRecipients(context.seasonId, context.eventId)
+            NotificationIntent.EVENT_ARCHIVED ->
+                recipientResolver.resolveEventArchivedRecipients(context.seasonId, context.eventId)
         }
 
     private fun resolveProxySubjectRecipients(context: NotificationDispatchContext): List<NotificationRecipient> {
@@ -273,12 +358,13 @@ class NotificationDispatcher(
 
     private fun persistDeliveryLogSafely(
         intent: NotificationIntent,
-        userId: UUID,
+        userId: UUID?,
         result: NotificationDeliveryResult,
         eventId: UUID,
+        recipientEmail: String? = null,
     ) {
         try {
-            persistDeliveryLog(intent, userId, result, eventId)
+            persistDeliveryLog(intent, userId, result, eventId, recipientEmail)
         } catch (ex: Exception) {
             log.error(
                 "notification_delivery_log_failed intent={} userId={} eventId={} channel={} status={} error={}",
@@ -295,14 +381,16 @@ class NotificationDispatcher(
 
     private fun persistDeliveryLog(
         intent: NotificationIntent,
-        userId: UUID,
+        userId: UUID?,
         result: NotificationDeliveryResult,
         eventId: UUID,
+        recipientEmail: String? = null,
     ) {
         deliveryLogRepository.save(
             NotificationDeliveryLogEntity(
                 intent = intent,
                 userId = userId,
+                recipientEmail = recipientEmail,
                 channel = result.channel,
                 status = result.status,
                 errorMessage = result.errorMessage,

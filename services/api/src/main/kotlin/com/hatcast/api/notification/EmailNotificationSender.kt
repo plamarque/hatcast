@@ -16,7 +16,7 @@ class EmailNotificationSender(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun sendEmail(
-        userId: UUID,
+        userId: UUID?,
         email: String,
         subject: String,
         payload: NotificationPayload,
@@ -62,7 +62,7 @@ class EmailNotificationSender(
     }
 
     private fun sendViaCloudflare(
-        userId: UUID,
+        userId: UUID?,
         email: String,
         subject: String,
         htmlBody: String,
@@ -95,7 +95,7 @@ class EmailNotificationSender(
     }
 
     private fun sendViaSmtp(
-        userId: UUID,
+        userId: UUID?,
         email: String,
         subject: String,
         htmlBody: String,

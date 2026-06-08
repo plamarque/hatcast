@@ -167,3 +167,12 @@
 | Réserve produit historique | PLAN § iso-V1, DW-020–021 (triage mai) |
 | Epic 19 formules tirage | `sprint-status.yaml` — **reporté** post-2.1.0 |
 | Dispatch brouillon partagé | Story **8.4** (hors DW-106 — mapping prefs déjà fait) |
+
+---
+
+## Deferred from: code review of 8-8-notifications-membre-event-details-et-archivage (2026-06-08)
+
+- **`isActiveEngagedMember` N+1** — `NotificationRecipientResolver.kt` reconstruit le roster complet pour chaque destinataire archive ; correct, optimisation non requise MVP.
+- **URLs 2 segments** — `NotificationPayloadBuilder.kt` ; dette connue, listée dans Non-goals story 8.8.
+- **`ShareRecipientsService` ignore logs guest** — entrées `user_id = null` exclues de l’agrégat « déjà notifié » ; acceptable hors scope.
+- **`AvailabilityPendingReminderJob` `userId ?: continue`** — fix défensif pour `NotificationRecipient` nullable ; support 8.8, non documenté dans story.

@@ -305,6 +305,14 @@ class NotificationDispatcherTest {
             NotificationCategory.CONFIRMATION_REQUEST,
             NotificationIntent.PROXY_CONFIRMATION_RECORDED.toCategory(),
         )
+        assertEquals(
+            NotificationCategory.EVENT_DETAILS_CHANGED,
+            NotificationIntent.EVENT_DETAILS_CHANGED.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.EVENT_ARCHIVED,
+            NotificationIntent.EVENT_ARCHIVED.toCategory(),
+        )
     }
 
     @Test
@@ -391,6 +399,56 @@ class NotificationDispatcherTest {
 
         verify(recipientResolver, org.mockito.kotlin.never()).resolveSubjectRecipient(any())
         verify(pushSender, org.mockito.kotlin.never()).sendPush(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `EVENT_DETAILS_CHANGED guest email sends email only without push or prefs`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val event = notificationEvent(eventId, troupeId)
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(recipientResolver.resolveEngagedEventRosterRecipients(seasonId, eventId)).thenReturn(
+            listOf(
+                NotificationRecipient(
+                    userId = null,
+                    displayName = "Guest Externe",
+                    email = "guest@example.com",
+                ),
+            ),
+        )
+        whenever(emailSender.sendEmail(any(), any(), any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(
+                channel = NotificationChannel.EMAIL,
+                status = NotificationDeliveryStatus.SENT,
+            ),
+        )
+
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.EVENT_DETAILS_CHANGED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = UUID.randomUUID(),
+                eventDetailsChangeSummary =
+                    EventDetailsChangeSummary(
+                        locationChange =
+                            EventDetailsChangeSummary.LocationChange("A", "B"),
+                    ),
+            ),
+        )
+
+        verify(emailSender, times(1)).sendEmail(
+            org.mockito.kotlin.eq(null),
+            org.mockito.kotlin.eq("guest@example.com"),
+            any(),
+            any(),
+            org.mockito.kotlin.eq(NotificationIntent.EVENT_DETAILS_CHANGED),
+            org.mockito.kotlin.eq(eventId),
+        )
+        verify(pushSender, org.mockito.kotlin.never()).sendPush(any(), any(), any(), any())
+        verifyNoInteractions(userRepository)
     }
 
     private fun notificationEvent(

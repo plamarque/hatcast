@@ -3,13 +3,19 @@ package com.hatcast.api.notification
 import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
+import com.hatcast.api.composition.EventCompositionDeclineRepository
 import com.hatcast.api.composition.EventCompositionSlotRepository
+import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.composition.assignedParticipantId
 import com.hatcast.api.composition.hasAssignee
+import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.EventRosterService
+import com.hatcast.api.participant.ParticipantStatus
+import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.dto.EventRosterParticipantDto
+import com.hatcast.api.troupe.TroupeMembershipStatus
 import org.springframework.stereotype.Component
 import java.util.UUID
 
@@ -20,6 +26,7 @@ class NotificationRecipientResolver(
     private val eventParticipantRepository: EventParticipantRepository,
     private val slotRepository: EventCompositionSlotRepository,
     private val availabilityRepository: EventAvailabilityRepository,
+    private val declineRepository: EventCompositionDeclineRepository,
 ) {
     fun resolveConcernedRosterRecipients(
         seasonId: UUID,
@@ -27,11 +34,8 @@ class NotificationRecipientResolver(
     ): List<NotificationRecipient> {
         val roster = eventRosterService.buildRoster(seasonId, eventId, includeEmail = false)
         return roster
-            .mapNotNull { row ->
-                row.userId?.let { userId ->
-                    NotificationRecipient(userId = userId, displayName = row.displayName)
-                }
-            }.distinctBy { it.userId }
+            .mapNotNull { row -> row.toLinkedRecipient() }
+            .distinctBy { it.dedupeKey() }
     }
 
     fun resolveNonAssignedRosterRecipients(
@@ -53,7 +57,7 @@ class NotificationRecipientResolver(
                 } else {
                     null
                 }
-            }.distinctBy { it.userId }
+            }.distinctBy { it.dedupeKey() }
     }
 
     fun resolveConfirmedAssigneeRecipients(eventId: UUID): List<NotificationRecipient> {
@@ -93,16 +97,12 @@ class NotificationRecipientResolver(
 
         val recipients = mutableListOf<NotificationRecipient>()
         for (participant in seasonParticipants) {
-            participant.user?.id?.let { userId ->
-                recipients.add(NotificationRecipient(userId = userId, displayName = participant.displayName))
-            }
+            participant.toRecipient()?.let { recipients.add(it) }
         }
         for (participant in eventParticipants) {
-            participant.user?.id?.let { userId ->
-                recipients.add(NotificationRecipient(userId = userId, displayName = participant.displayName))
-            }
+            participant.toRecipient()?.let { recipients.add(it) }
         }
-        return recipients.distinctBy { it.userId }
+        return recipients.distinctBy { it.dedupeKey() }
     }
 
     fun resolveSubjectRecipient(subjectUserId: UUID): List<NotificationRecipient> =
@@ -121,11 +121,98 @@ class NotificationRecipientResolver(
         eventId: UUID,
     ): List<NotificationRecipient> =
         unknownRosterRows(seasonId, eventId)
-            .mapNotNull { row ->
-                row.userId?.let { userId ->
-                    NotificationRecipient(userId = userId, displayName = row.displayName)
-                }
-            }.distinctBy { it.userId }
+            .mapNotNull { row -> row.toLinkedRecipient() }
+            .distinctBy { it.dedupeKey() }
+
+    fun resolveAnsweredAvailabilityRecipients(
+        seasonId: UUID,
+        eventId: UUID,
+    ): List<NotificationRecipient> =
+        answeredRosterRows(seasonId, eventId)
+            .mapNotNull { row -> row.toReachableRecipient() }
+            .distinctBy { it.dedupeKey() }
+
+    fun resolveCompositionEngagedRecipients(eventId: UUID): List<NotificationRecipient> {
+        val slotParticipantIds =
+            slotRepository
+                .findByEventId(eventId)
+                .filter {
+                    it.hasAssignee() &&
+                        (
+                            it.participationStatus == SlotParticipationStatus.PENDING ||
+                                it.participationStatus == SlotParticipationStatus.CONFIRMED
+                        )
+                }.mapNotNull { it.assignedParticipantId() }
+        val declineParticipantIds =
+            declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId).mapNotNull { decline ->
+                decline.seasonParticipantId ?: decline.eventParticipantId
+            }
+        return resolveAssigneeRecipients((slotParticipantIds + declineParticipantIds).distinct())
+    }
+
+    fun resolveEngagedEventRosterRecipients(
+        seasonId: UUID,
+        eventId: UUID,
+    ): List<NotificationRecipient> {
+        val answered = resolveAnsweredAvailabilityRecipients(seasonId, eventId)
+        val compositionEngaged = resolveCompositionEngagedRecipients(eventId)
+        return (answered + compositionEngaged).distinctBy { it.dedupeKey() }
+    }
+
+    fun resolveEventArchivedRecipients(
+        seasonId: UUID,
+        eventId: UUID,
+    ): List<NotificationRecipient> =
+        resolveEngagedEventRosterRecipients(seasonId, eventId)
+            .filter { recipient -> isActiveEngagedMember(seasonId, eventId, recipient) }
+
+    private fun isActiveEngagedMember(
+        seasonId: UUID,
+        eventId: UUID,
+        recipient: NotificationRecipient,
+    ): Boolean {
+        val roster = eventRosterService.buildRoster(seasonId, eventId, includeEmail = true)
+        val rosterRow =
+            roster.firstOrNull { row ->
+                (recipient.userId != null && row.userId == recipient.userId) ||
+                    (
+                        recipient.userId == null &&
+                            recipient.email != null &&
+                            row.email.equals(recipient.email, ignoreCase = true)
+                    )
+            } ?: return false
+        val participantId = rosterRow.seasonParticipantId ?: rosterRow.eventParticipantId ?: return false
+        seasonParticipantRepository.findById(participantId).orElse(null)?.let { seasonParticipant ->
+            if (seasonParticipant.status != ParticipantStatus.ACTIVE) return false
+            seasonParticipant.troupeMembership?.let { membership ->
+                if (membership.status != TroupeMembershipStatus.ACTIVE) return false
+            }
+            return recipient.userId?.let { resolveEligibleSeasonParticipantUserId(seasonParticipant) == it }
+                ?: seasonParticipant.normalizedEmail?.equals(recipient.email, ignoreCase = true) == true
+        }
+        eventParticipantRepository.findById(participantId).orElse(null)?.let { eventParticipant ->
+            if (eventParticipant.status != ParticipantStatus.ACTIVE) return false
+            return recipient.userId?.let { resolveEligibleEventParticipantUserId(eventParticipant) == it }
+                ?: eventParticipant.normalizedEmail?.equals(recipient.email, ignoreCase = true) == true
+        }
+        return false
+    }
+
+    private fun resolveEligibleSeasonParticipantUserId(seasonParticipant: SeasonParticipantEntity): UUID? {
+        if (seasonParticipant.status != ParticipantStatus.ACTIVE) return null
+        seasonParticipant.troupeMembership?.let { membership ->
+            if (membership.status != TroupeMembershipStatus.ACTIVE) return null
+        }
+        return seasonParticipant.user?.id
+    }
+
+    private fun resolveEligibleEventParticipantUserId(eventParticipant: EventParticipantEntity): UUID? {
+        if (eventParticipant.status != ParticipantStatus.ACTIVE) return null
+        eventParticipant.seasonParticipant?.let { seasonParticipant ->
+            return resolveEligibleSeasonParticipantUserId(seasonParticipant)
+        }
+        return eventParticipant.user?.id
+    }
 
     private fun unknownRosterRows(
         seasonId: UUID,
@@ -135,6 +222,47 @@ class NotificationRecipientResolver(
         val index = buildAvailabilityIndex(eventId)
         return roster.filter { row -> availabilityStatus(row, index) == AvailabilityStatusMapper.UNKNOWN }
     }
+
+    private fun answeredRosterRows(
+        seasonId: UUID,
+        eventId: UUID,
+    ): List<EventRosterParticipantDto> {
+        val roster = eventRosterService.buildRoster(seasonId, eventId, includeEmail = true)
+        val index = buildAvailabilityIndex(eventId)
+        return roster.filter { row ->
+            availabilityStatus(row, index) in
+                setOf(AvailabilityStatusMapper.AVAILABLE, AvailabilityStatusMapper.UNAVAILABLE)
+        }
+    }
+
+    private fun NotificationRecipient.dedupeKey(): String =
+        userId?.toString() ?: email?.trim()?.lowercase().orEmpty()
+
+    private fun EventRosterParticipantDto.toLinkedRecipient(): NotificationRecipient? =
+        userId?.let { NotificationRecipient(userId = it, displayName = displayName) }
+
+    private fun EventRosterParticipantDto.toReachableRecipient(): NotificationRecipient? =
+        when {
+            userId != null -> NotificationRecipient(userId = userId, displayName = displayName)
+            !email.isNullOrBlank() -> NotificationRecipient(userId = null, displayName = displayName, email = email)
+            else -> null
+        }
+
+    private fun SeasonParticipantEntity.toRecipient(): NotificationRecipient? =
+        user?.id?.let { NotificationRecipient(userId = it, displayName = displayName) }
+            ?: normalizedEmail?.takeIf { it.isNotBlank() }?.let {
+                NotificationRecipient(userId = null, displayName = displayName, email = it)
+            }
+
+    private fun EventParticipantEntity.toRecipient(): NotificationRecipient? =
+        when {
+            user?.id != null -> NotificationRecipient(userId = user!!.id, displayName = displayName)
+            seasonParticipant?.user?.id != null ->
+                NotificationRecipient(userId = seasonParticipant!!.user!!.id, displayName = displayName)
+            !normalizedEmail.isNullOrBlank() ->
+                NotificationRecipient(userId = null, displayName = displayName, email = normalizedEmail)
+            else -> null
+        }
 
     private data class AvailabilityIndex(
         private val byUserId: Map<UUID, EventAvailabilityEntity>,

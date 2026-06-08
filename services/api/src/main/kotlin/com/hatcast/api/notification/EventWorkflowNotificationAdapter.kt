@@ -24,4 +24,40 @@ class EventWorkflowNotificationAdapter(
             ),
         )
     }
+
+    override fun publishEventDetailsChanged(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+        changeSummary: EventDetailsChangeSummary,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.EVENT_DETAILS_CHANGED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+                eventDetailsChangeSummary = changeSummary,
+            ),
+        )
+    }
+
+    override fun publishEventArchived(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.EVENT_ARCHIVED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+            ),
+        )
+    }
 }

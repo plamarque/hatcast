@@ -18,6 +18,7 @@ import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.participant.GuestSeasonWorkspaceMode
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeCategoryService
+import com.hatcast.api.notification.EventDetailsChangeSummary
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -267,6 +268,9 @@ class EventService(
         val e = loadEventInSeason(seasonId, eventId)
         troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
         val beforeSnapshot = AuditSnapshots.event(e)
+        val beforeStartsAt = e.startsAt
+        val beforeLocation = e.location
+        val beforeTemplateType = e.templateType
         if (body.title.isPresent) {
             val rawTitle = body.title.get()
             if (rawTitle == null) {
@@ -378,7 +382,63 @@ class EventService(
                 ),
             )
         }
+        maybePublishEventDetailsChanged(
+            saved = saved,
+            seasonId = seasonId,
+            actorUserId = principal.userId,
+            beforeStartsAt = beforeStartsAt,
+            beforeLocation = beforeLocation,
+            beforeTemplateType = beforeTemplateType,
+        )
         return EventResponseDto.from(saved)
+    }
+
+    private fun maybePublishEventDetailsChanged(
+        saved: EventEntity,
+        seasonId: UUID,
+        actorUserId: UUID,
+        beforeStartsAt: Instant,
+        beforeLocation: String?,
+        beforeTemplateType: String,
+    ) {
+        if (!saved.isAvailabilityOpen() || saved.archived) {
+            return
+        }
+        val startsAtChange =
+            if (saved.startsAt != beforeStartsAt) {
+                EventDetailsChangeSummary.StartsAtChange(beforeStartsAt, saved.startsAt)
+            } else {
+                null
+            }
+        val locationChange =
+            if (saved.location != beforeLocation) {
+                EventDetailsChangeSummary.LocationChange(beforeLocation, saved.location)
+            } else {
+                null
+            }
+        val templateTypeChange =
+            if (saved.templateType != beforeTemplateType) {
+                EventDetailsChangeSummary.TemplateTypeChange(beforeTemplateType, saved.templateType)
+            } else {
+                null
+            }
+        if (startsAtChange == null && locationChange == null && templateTypeChange == null) {
+            return
+        }
+        eventPublisher.publishEvent(
+            EventDetailsChangedEvent(
+                eventId = saved.id,
+                seasonId = seasonId,
+                troupeId = saved.season.troupe.id,
+                actorUserId = actorUserId,
+                changeSummary =
+                    EventDetailsChangeSummary(
+                        startsAtChange = startsAtChange,
+                        locationChange = locationChange,
+                        templateTypeChange = templateTypeChange,
+                    ),
+            ),
+        )
     }
 
     @Transactional(readOnly = true)
@@ -452,6 +512,14 @@ class EventService(
                     eventId = e.id,
                     before = mapOf("archived" to beforeArchived, "title" to e.title),
                     after = mapOf("archived" to true, "title" to e.title),
+                ),
+            )
+            eventPublisher.publishEvent(
+                EventArchivedEvent(
+                    eventId = e.id,
+                    seasonId = seasonId,
+                    troupeId = e.season.troupe.id,
+                    actorUserId = principal.userId,
                 ),
             )
         }

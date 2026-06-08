@@ -65,7 +65,7 @@ class AvailabilityPendingReminderJob(
             val recipients =
                 recipientResolver.resolveUnknownAvailabilityRecipients(event.season.id, event.id)
             for (recipient in recipients) {
-                val userId = recipient.userId
+                val userId = recipient.userId ?: continue
                 val lastSent =
                     reminderMarkService.findLatestSentAt(
                         NotificationIntent.AVAILABILITY_PENDING_REMINDER,

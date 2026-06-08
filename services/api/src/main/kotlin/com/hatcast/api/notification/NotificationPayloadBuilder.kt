@@ -20,6 +20,7 @@ class NotificationPayloadBuilder {
         proxyChangeSummary: ProxyChangeSummary? = null,
         customMessageBody: String? = null,
         recipientGender: MemberGender? = null,
+        eventDetailsChangeSummary: EventDetailsChangeSummary? = null,
     ): NotificationPayload {
         val seasonSlug = event.season.slug
         val eventSlug = event.slug
@@ -138,6 +139,25 @@ class NotificationPayloadBuilder {
                     url = url,
                 )
             }
+            NotificationIntent.EVENT_DETAILS_CHANGED -> {
+                val deltaPhrase = formatEventDetailsDelta(eventDetailsChangeSummary)
+                NotificationPayload(
+                    title = "📅 Spectacle modifié",
+                    body =
+                        if (deltaPhrase.isNotBlank()) {
+                            "$eventTitle le $eventDate — $deltaPhrase"
+                        } else {
+                            "$eventTitle le $eventDate — des informations importantes ont changé."
+                        },
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=infos",
+                )
+            }
+            NotificationIntent.EVENT_ARCHIVED ->
+                NotificationPayload(
+                    title = "🚫 Spectacle archivé",
+                    body = "$eventTitle le $eventDate n'a plus lieu (archivé).",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=infos",
+                )
         }
     }
 
@@ -177,7 +197,40 @@ class NotificationPayloadBuilder {
                         ?: "mise à jour"
                 "${ProxyNotificationLabels.participationProxyNotificationTitle(decision)} · $eventTitle ($eventDate)"
             }
+            NotificationIntent.EVENT_DETAILS_CHANGED ->
+                "Spectacle modifié · $eventTitle ($eventDate)"
+            NotificationIntent.EVENT_ARCHIVED ->
+                "Spectacle archivé · $eventTitle ($eventDate)"
         }
+    }
+
+    private fun formatEventDetailsDelta(summary: EventDetailsChangeSummary?): String {
+        if (summary == null) return ""
+        val parts = mutableListOf<String>()
+        summary.startsAtChange?.let { change ->
+            parts.add(
+                "Date : ${formatInstant(change.oldValue)} → ${formatInstant(change.newValue)}",
+            )
+        }
+        summary.locationChange?.let { change ->
+            val oldLabel = change.oldValue?.takeIf { it.isNotBlank() } ?: "non renseigné"
+            val newLabel = change.newValue?.takeIf { it.isNotBlank() } ?: "non renseigné"
+            parts.add("Lieu : $oldLabel → $newLabel")
+        }
+        summary.templateTypeChange?.let { change ->
+            parts.add(
+                "Format : ${templateTypeLabel(change.oldValue)} → ${templateTypeLabel(change.newValue)}",
+            )
+        }
+        return parts.joinToString(" · ")
+    }
+
+    private fun templateTypeLabel(templateType: String): String =
+        TEMPLATE_TYPE_LABELS[templateType] ?: templateType
+
+    private fun formatInstant(instant: java.time.Instant): String {
+        val zoned = instant.atZone(ZONE)
+        return EVENT_DATE_FORMAT.format(zoned)
     }
 
     private fun formatEventDate(event: EventEntity): String {
@@ -189,5 +242,16 @@ class NotificationPayloadBuilder {
         private val ZONE: ZoneId = EventService.AGENDA_ZONE
         private val EVENT_DATE_FORMAT: DateTimeFormatter =
             DateTimeFormatter.ofPattern("EEEE d MMMM yyyy 'à' HH'h'mm", Locale.FRENCH)
+        private val TEMPLATE_TYPE_LABELS: Map<String, String> =
+            mapOf(
+                "cabaret" to "Cabaret",
+                "longform" to "Longform",
+                "freeform" to "Freeform",
+                "match" to "Match",
+                "catch" to "Catch",
+                "deplacement" to "Déplacement",
+                "survey" to "Sondage",
+                "custom" to "Custom",
+            )
     }
 }
