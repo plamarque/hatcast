@@ -4,6 +4,11 @@ import com.hatcast.api.notification.dto.NotificationPreferenceCategoryDto
 import com.hatcast.api.notification.dto.NotificationPreferencesResponseDto
 import com.hatcast.api.notification.dto.PatchNotificationPreferenceDto
 import com.hatcast.api.notification.dto.PatchNotificationPreferencesRequest
+import com.hatcast.api.organizer.EventOrganizerRepository
+import com.hatcast.api.organizer.SeasonOrganizerRepository
+import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.springframework.http.HttpStatus
@@ -17,6 +22,9 @@ import java.util.UUID
 @Service
 class UserNotificationPreferencesService(
     private val userRepository: UserRepository,
+    private val eventOrganizerRepository: EventOrganizerRepository,
+    private val seasonOrganizerRepository: SeasonOrganizerRepository,
+    private val troupeMembershipRepository: TroupeMembershipRepository,
 ) {
     @Transactional(readOnly = true)
     fun getPreferences(userId: UUID): NotificationPreferencesResponseDto =
@@ -35,7 +43,7 @@ class UserNotificationPreferencesService(
         val next = user.notificationPreferences.toMutableMap()
         body.preferences.forEach { (rawKey, patch) ->
             val category = parseCategory(rawKey)
-            val current = next[category] ?: NotificationPreference()
+            val current = next[category] ?: category.defaultPreference()
             next[category] =
                 NotificationPreference(
                     push = patch.push ?: current.push,
@@ -56,11 +64,28 @@ class UserNotificationPreferencesService(
         channel: NotificationChannel,
     ): Boolean {
         val user = userRepository.findById(userId).orElse(null) ?: return false
-        val preference = user.notificationPreferences[category] ?: NotificationPreference()
+        val preference = user.notificationPreferences[category] ?: category.defaultPreference()
         return when (channel) {
             NotificationChannel.PUSH -> preference.push
             NotificationChannel.EMAIL -> preference.email
         }
+    }
+
+    @Transactional(readOnly = true)
+    fun hasOrganizerScope(userId: UUID): Boolean {
+        if (
+            troupeMembershipRepository.existsByUser_IdAndStatusAndBaselineRole(
+                userId,
+                TroupeMembershipStatus.ACTIVE,
+                TroupeBaselineRole.TROUPE_ADMIN,
+            )
+        ) {
+            return true
+        }
+        if (seasonOrganizerRepository.existsByUser_Id(userId)) {
+            return true
+        }
+        return eventOrganizerRepository.existsByUser_Id(userId)
     }
 
     private fun requireUser(userId: UUID): UserEntity =
@@ -77,9 +102,10 @@ class UserNotificationPreferencesService(
 
     private fun toResponse(user: UserEntity): NotificationPreferencesResponseDto =
         NotificationPreferencesResponseDto(
+            hasOrganizerScope = hasOrganizerScope(user.id),
             categories =
                 NotificationCategory.entries.map { category ->
-                    val preference = user.notificationPreferences[category] ?: NotificationPreference()
+                    val preference = user.notificationPreferences[category] ?: category.defaultPreference()
                     NotificationPreferenceCategoryDto(
                         key = category.name,
                         label = category.label,

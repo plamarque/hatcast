@@ -91,6 +91,7 @@ class NotificationDispatcher(
                     customMessageBody = context.customMessageBody,
                     recipientGender = recipientGender,
                     eventDetailsChangeSummary = context.eventDetailsChangeSummary,
+                    assigneeDisplayName = context.assigneeDisplayName,
                 )
             val emailSubject =
                 payloadBuilder.buildEmailSubject(context.intent, event, context.proxyChangeSummary)
@@ -196,7 +197,31 @@ class NotificationDispatcher(
                     recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
                 }
             NotificationIntent.COMPOSITION_SHARED ->
-                emptyList() // story 8.4 — publishDraftCompositionShared dispatch
+                recipientResolver.resolveOrganizerCircleRecipients(
+                    context.eventId,
+                    context.seasonId,
+                    requireTroupeId(context),
+                    context.actorUserId,
+                )
+            NotificationIntent.EVENT_DRAFT_CREATED,
+            NotificationIntent.SLA_OPEN_AVAILABILITY,
+            NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY,
+            NotificationIntent.COMPOSITION_INCOMPLETE_DAILY_J7,
+            NotificationIntent.TEAM_COMPLETE,
+            NotificationIntent.ASSIGNEE_DECLINED,
+            ->
+                if (context.recipientUserIds.isNotEmpty()) {
+                    context.recipientUserIds.map { userId ->
+                        NotificationRecipient(userId = userId, displayName = "")
+                    }
+                } else {
+                    recipientResolver.resolveOrganizerCascadeRecipients(
+                        context.eventId,
+                        context.seasonId,
+                        requireTroupeId(context),
+                        context.actorUserId,
+                    )
+                }
             NotificationIntent.CONFIRMATION_REQUEST ->
                 if (context.assigneeParticipantIds.isNotEmpty()) {
                     recipientResolver.resolveAssigneeRecipients(context.assigneeParticipantIds)
@@ -231,6 +256,16 @@ class NotificationDispatcher(
             NotificationIntent.TEAM_COMPLETE_MEMBER ->
                 recipientResolver.resolveTeamCompleteMemberRecipients(context.eventId)
         }
+
+    private fun requireTroupeId(context: NotificationDispatchContext): UUID {
+        val troupeId = context.troupeId
+        if (troupeId == null) {
+            val event = eventRepository.findById(context.eventId).orElse(null)
+            return event?.season?.troupe?.id
+                ?: throw IllegalStateException("troupeId required for organizer notification intent=${context.intent}")
+        }
+        return troupeId
+    }
 
     private fun resolveProxySubjectRecipients(context: NotificationDispatchContext): List<NotificationRecipient> {
         val subjectUserId = context.subjectUserId ?: return emptyList()

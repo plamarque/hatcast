@@ -231,6 +231,23 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         @Param("toExclusive") toExclusive: Instant,
     ): List<EventEntity>
 
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        JOIN FETCH e.season s
+        JOIN FETCH s.troupe
+        WHERE e.archived = false
+          AND e.availabilityOpenedAt IS NULL
+          AND e.startsAt >= :fromInclusive
+          AND e.startsAt < :toExclusive
+        ORDER BY e.startsAt ASC
+        """,
+    )
+    fun findDraftEventsStartingBetween(
+        @Param("fromInclusive") fromInclusive: Instant,
+        @Param("toExclusive") toExclusive: Instant,
+    ): List<EventEntity>
+
     /**
      * Last validated event strictly before [beforeEventId] in the same category compartment.
      * Category filter aligned with [com.hatcast.api.composition.EventCompositionSlotRepository].

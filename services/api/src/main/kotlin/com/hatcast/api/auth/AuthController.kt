@@ -111,6 +111,7 @@ class AuthController(
         if (
             !environment.activeProfiles.contains("test") &&
             !environment.activeProfiles.contains("e2e") &&
+            !body.idToken.trim().startsWith(DevSeedAuthSupport.DEV_SEED_IDP_PREFIX) &&
             FirebaseApp.getApps().isEmpty()
         ) {
             throw ResponseStatusException(

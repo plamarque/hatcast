@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
 interface SeasonOrganizerRepository : JpaRepository<SeasonOrganizerEntity, SeasonOrganizerId> {
+    fun existsByUser_Id(userId: UUID): Boolean
+
     fun findBySeason_IdOrderByGrantedAtAsc(seasonId: UUID): List<SeasonOrganizerEntity>
 
     fun findBySeason_IdAndUser_Id(
@@ -18,6 +20,8 @@ interface SeasonOrganizerRepository : JpaRepository<SeasonOrganizerEntity, Seaso
 }
 
 interface EventOrganizerRepository : JpaRepository<EventOrganizerEntity, EventOrganizerId> {
+    fun existsByUser_Id(userId: UUID): Boolean
+
     fun findByEvent_IdOrderByGrantedAtAsc(eventId: UUID): List<EventOrganizerEntity>
 
     fun findByEvent_Season_IdAndUser_Id(

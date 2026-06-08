@@ -54,6 +54,29 @@ class CompositionNotificationEventListener(
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onTeamCompleteOrganizerRequested(event: TeamCompleteOrganizerRequestedEvent) {
+        notificationPort.notifyTeamCompleteOrganizer(
+            event.eventId,
+            event.seasonId,
+            event.troupeId,
+            event.actorUserId,
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onAssigneeDeclined(event: AssigneeDeclinedEvent) {
+        notificationPort.notifyAssigneeDeclined(
+            event.eventId,
+            event.seasonId,
+            event.troupeId,
+            event.actorUserId,
+            event.assigneeDisplayName,
+            event.roleKey,
+            event.slotIndex,
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onAssigneeRemoved(event: CompositionAssigneeRemovedEvent) {
         notificationPort.notifyAssigneeRemoved(
             event.eventId,

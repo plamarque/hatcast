@@ -28,6 +28,11 @@ import {
   isValidInternalRedirectPath,
   rememberPendingPostLoginRedirect,
 } from '../../core/navigation/post-login-redirect-storage'
+import {
+  buildDevSeedIdpToken,
+  isDevSeedImprobotsEmail,
+  isLocalDevRuntime,
+} from '../../core/auth/dev-seed-auth'
 import { finishIdpSignInAfterEmailAuth } from '../../core/auth/finish-idp-email-auth'
 import {
   userMessageForGoogleSignInFailure,
@@ -95,13 +100,13 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
   private readonly fb = inject(FormBuilder)
   private readonly dialog = inject(MatDialog)
 
-  protected readonly isDev = !environment.production
+  protected readonly isDev = !environment.production || isLocalDevRuntime()
   /** Journal technique réservé au dev local (pas affiché en production). */
   protected readonly devLog = signal<string | null>(null)
 
   protected readonly emailForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    password: ['', [Validators.required, Validators.minLength(3)]],
   })
 
   /** Identity Platform : config Web présente (apiKey + authDomain + projectId). */
@@ -231,9 +236,38 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
   protected async signInWithEmail(): Promise<void> {
     this.emailForm.markAllAsTouched()
     if (this.emailForm.invalid) return
-    const auth = this.firebaseAuth.getAuthOrNull()
-    if (!auth) return
     const { email, password } = this.emailForm.getRawValue()
+    if (isDevSeedImprobotsEmail(email)) {
+      const idToken = buildDevSeedIdpToken(email, password)
+      await finishIdpSignInAfterEmailAuth(
+        {
+          auth: this.auth,
+          snack: this.snack,
+          router: this.router,
+          postLoginNav: this.postLoginNav,
+          isDev: this.isDev,
+          devLog: this.devLog,
+        },
+        {
+          idToken,
+          rememberMe: this.rememberMe(),
+        },
+      )
+      return
+    }
+    const auth = this.firebaseAuth.getAuthOrNull()
+    if (!auth) {
+      this.snack.open(
+        'Connexion email indisponible (Firebase non configuré). Utilisez Google ou un compte seed @seed.improbots.test en dev.',
+        'OK',
+        { duration: 10_000 },
+      )
+      return
+    }
+    if (password.length < 8) {
+      this.snack.open('Le mot de passe doit contenir au moins 8 caractères.', 'OK', { duration: 6000 })
+      return
+    }
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password)
       const idToken = await cred.user.getIdToken()

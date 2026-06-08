@@ -11,6 +11,12 @@ import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.organizer.EventOrganizerEntity
 import com.hatcast.api.organizer.EventOrganizerRepository
+import com.hatcast.api.organizer.SeasonOrganizerEntity
+import com.hatcast.api.organizer.SeasonOrganizerRepository
+import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeMembershipEntity
+import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.EventRosterService
 import com.hatcast.api.participant.SeasonParticipantEntity
@@ -34,6 +40,8 @@ class NotificationRecipientResolverTest {
     private val availabilityRepository: com.hatcast.api.availability.EventAvailabilityRepository = mock()
     private val declineRepository: com.hatcast.api.composition.EventCompositionDeclineRepository = mock()
     private val eventOrganizerRepository: EventOrganizerRepository = mock()
+    private val seasonOrganizerRepository: SeasonOrganizerRepository = mock()
+    private val troupeMembershipRepository: TroupeMembershipRepository = mock()
     private val eventRepository: EventRepository = mock()
 
     private val resolver =
@@ -45,6 +53,8 @@ class NotificationRecipientResolverTest {
             availabilityRepository = availabilityRepository,
             declineRepository = declineRepository,
             eventOrganizerRepository = eventOrganizerRepository,
+            seasonOrganizerRepository = seasonOrganizerRepository,
+            troupeMembershipRepository = troupeMembershipRepository,
             eventRepository = eventRepository,
         )
 
@@ -484,5 +494,123 @@ class NotificationRecipientResolverTest {
 
         assertEquals(1, recipients.size)
         assertEquals(assigneeUserId, recipients.first().userId)
+    }
+
+    @Test
+    fun `resolveOrganizerCascadeRecipients prefers event organizers over season and troupe admin`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val eventOrgaUserId = UUID.randomUUID()
+        val seasonOrgaUserId = UUID.randomUUID()
+        val adminUserId = UUID.randomUUID()
+
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(
+            listOf(
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = eventOrgaUserId, email = "event@test.com"),
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveOrganizerCascadeRecipients(eventId, seasonId, troupeId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(eventOrgaUserId, recipients.first().userId)
+        org.mockito.kotlin.verify(seasonOrganizerRepository, org.mockito.kotlin.never())
+            .findBySeason_IdOrderByGrantedAtAsc(org.mockito.kotlin.any())
+        org.mockito.kotlin.verify(troupeMembershipRepository, org.mockito.kotlin.never())
+            .findActiveTroupeAdminsByTroupeId(org.mockito.kotlin.any())
+    }
+
+    @Test
+    fun `resolveOrganizerCascadeRecipients falls back to season organizers then troupe admins`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val seasonOrgaUserId = UUID.randomUUID()
+        val adminUserId = UUID.randomUUID()
+
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(emptyList())
+        whenever(seasonOrganizerRepository.findBySeason_IdOrderByGrantedAtAsc(seasonId)).thenReturn(
+            listOf(
+                SeasonOrganizerEntity(
+                    season = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = seasonOrgaUserId, email = "season@test.com"),
+                ),
+            ),
+        )
+
+        val seasonRecipients = resolver.resolveOrganizerCascadeRecipients(eventId, seasonId, troupeId)
+        assertEquals(1, seasonRecipients.size)
+        assertEquals(seasonOrgaUserId, seasonRecipients.first().userId)
+
+        whenever(seasonOrganizerRepository.findBySeason_IdOrderByGrantedAtAsc(seasonId)).thenReturn(emptyList())
+        whenever(troupeMembershipRepository.findActiveTroupeAdminsByTroupeId(troupeId)).thenReturn(
+            listOf(
+                TroupeMembershipEntity(
+                    troupe = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = adminUserId, email = "admin@test.com"),
+                    displayName = "Admin",
+                    baselineRole = TroupeBaselineRole.TROUPE_ADMIN,
+                    status = TroupeMembershipStatus.ACTIVE,
+                ),
+            ),
+        )
+
+        val adminRecipients = resolver.resolveOrganizerCascadeRecipients(eventId, seasonId, troupeId)
+        assertEquals(1, adminRecipients.size)
+        assertEquals(adminUserId, adminRecipients.first().userId)
+    }
+
+    @Test
+    fun `resolveOrganizerCircleRecipients unions event season and troupe admin with dedupe`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val sharedUserId = UUID.randomUUID()
+        val adminOnlyUserId = UUID.randomUUID()
+
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(
+            listOf(
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = sharedUserId, email = "shared@test.com"),
+                ),
+            ),
+        )
+        whenever(seasonOrganizerRepository.findBySeason_IdOrderByGrantedAtAsc(seasonId)).thenReturn(
+            listOf(
+                SeasonOrganizerEntity(
+                    season = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = sharedUserId, email = "shared@test.com"),
+                ),
+            ),
+        )
+        whenever(troupeMembershipRepository.findActiveTroupeAdminsByTroupeId(troupeId)).thenReturn(
+            listOf(
+                TroupeMembershipEntity(
+                    troupe = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = sharedUserId, email = "shared@test.com"),
+                    displayName = "Shared",
+                    baselineRole = TroupeBaselineRole.TROUPE_ADMIN,
+                    status = TroupeMembershipStatus.ACTIVE,
+                ),
+                TroupeMembershipEntity(
+                    troupe = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = adminOnlyUserId, email = "admin@test.com"),
+                    displayName = "Admin",
+                    baselineRole = TroupeBaselineRole.TROUPE_ADMIN,
+                    status = TroupeMembershipStatus.ACTIVE,
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveOrganizerCircleRecipients(eventId, seasonId, troupeId)
+
+        assertEquals(2, recipients.size)
+        assertTrue(recipients.any { it.userId == sharedUserId })
+        assertTrue(recipients.any { it.userId == adminOnlyUserId })
     }
 }

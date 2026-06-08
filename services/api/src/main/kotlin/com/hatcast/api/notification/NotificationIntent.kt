@@ -6,7 +6,7 @@ enum class NotificationIntent {
     MANUAL_AVAILABILITY_NUDGE,
     /** Automatic availability pending reminder (5-day cadence) — story 8.7. */
     AVAILABILITY_PENDING_REMINDER,
-    /** Draft composition shared with roster — dispatch wired in story 8.4. */
+    /** Draft composition shared with organizer circle — story 8.4. */
     COMPOSITION_SHARED,
     CONFIRMATION_REQUEST,
     TEAM_VALIDATED_FYI,
@@ -21,6 +21,18 @@ enum class NotificationIntent {
     EVENT_ARCHIVED,
     /** Team lifecycle reached complete — story 8.9 (G-012). */
     TEAM_COMPLETE_MEMBER,
+    /** Draft event created — story 8.4 (organizer cascade). */
+    EVENT_DRAFT_CREATED,
+    /** SLA reminder to open availability (~30d horizon) — story 8.4. */
+    SLA_OPEN_AVAILABILITY,
+    /** Weekly incomplete composition reminder — story 8.4. */
+    COMPOSITION_INCOMPLETE_WEEKLY,
+    /** J-7 incomplete composition reminder — story 8.4. */
+    COMPOSITION_INCOMPLETE_DAILY_J7,
+    /** Team lifecycle reached complete — story 8.4 (organizer cascade only). */
+    TEAM_COMPLETE,
+    /** Immediate assignee decline on validated composition — story 8.4. */
+    ASSIGNEE_DECLINED,
 }
 
 enum class NotificationReminderWindow {
@@ -70,11 +82,36 @@ enum class NotificationCategory(
         "Me prévenir quand un spectacle où j'ai déjà interagi (dispo ou participation) est annulé ou archivé",
         NotificationCategoryGroup.NOTIFICATIONS,
     ),
+    ORG_ASSIGNEE_DECLINED(
+        "Me prévenir quand quelqu'un décline après validation de la compo",
+        NotificationCategoryGroup.ORGANIZER_ALERTS,
+    ),
+    ORG_TEAM_COMPLETE(
+        "Me prévenir quand toutes les confirmations sont reçues",
+        NotificationCategoryGroup.ORGANIZER_ALERTS,
+    ),
+    ORG_COMPOSITION_INCOMPLETE(
+        "Me prévenir si des places manquent (rappels hebdo et à J-7)",
+        NotificationCategoryGroup.ORGANIZER_ALERTS,
+    ),
+    ORG_SLA_OPEN_AVAILABILITY(
+        "Me prévenir quand un spectacle approche (~1 mois) sans dispos ouvertes",
+        NotificationCategoryGroup.ORGANIZER_ALERTS,
+    ),
+    ORG_DRAFT_COMPOSITION(
+        "Me prévenir quand un brouillon de compo est partagé dans le cercle orga",
+        NotificationCategoryGroup.ORGANIZER_ALERTS,
+    ),
+    ORG_EVENT_DRAFT_CREATED(
+        "Me prévenir quand un spectacle brouillon est créé",
+        NotificationCategoryGroup.ORGANIZER_ALERTS,
+    ),
 }
 
 enum class NotificationCategoryGroup {
     NOTIFICATIONS,
     AUTOMATIC_REMINDERS,
+    ORGANIZER_ALERTS,
 }
 
 data class NotificationPreference(
@@ -88,7 +125,7 @@ fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = 
         NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE -> NotificationCategory.AVAILABILITY_REQUEST
         NotificationIntent.MANUAL_AVAILABILITY_NUDGE -> NotificationCategory.AVAILABILITY_REQUEST
         NotificationIntent.AVAILABILITY_PENDING_REMINDER -> NotificationCategory.AVAILABILITY_WEEKLY_REMINDER
-        NotificationIntent.COMPOSITION_SHARED -> NotificationCategory.COMPOSITION_SHARED
+        NotificationIntent.COMPOSITION_SHARED -> NotificationCategory.ORG_DRAFT_COMPOSITION
         NotificationIntent.CONFIRMATION_REQUEST -> NotificationCategory.CONFIRMATION_REQUEST
         NotificationIntent.TEAM_VALIDATED_FYI -> NotificationCategory.TEAM_CONFIRMED
         NotificationIntent.ASSIGNEE_PRESENCE_REMINDER ->
@@ -104,4 +141,17 @@ fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = 
         NotificationIntent.EVENT_DETAILS_CHANGED -> NotificationCategory.EVENT_DETAILS_CHANGED
         NotificationIntent.EVENT_ARCHIVED -> NotificationCategory.EVENT_ARCHIVED
         NotificationIntent.TEAM_COMPLETE_MEMBER -> NotificationCategory.TEAM_CONFIRMED
+        NotificationIntent.EVENT_DRAFT_CREATED -> NotificationCategory.ORG_EVENT_DRAFT_CREATED
+        NotificationIntent.SLA_OPEN_AVAILABILITY -> NotificationCategory.ORG_SLA_OPEN_AVAILABILITY
+        NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY -> NotificationCategory.ORG_COMPOSITION_INCOMPLETE
+        NotificationIntent.COMPOSITION_INCOMPLETE_DAILY_J7 -> NotificationCategory.ORG_COMPOSITION_INCOMPLETE
+        NotificationIntent.TEAM_COMPLETE -> NotificationCategory.ORG_TEAM_COMPLETE
+        NotificationIntent.ASSIGNEE_DECLINED -> NotificationCategory.ORG_ASSIGNEE_DECLINED
+    }
+
+fun NotificationCategory.defaultPreference(): NotificationPreference =
+    if (group == NotificationCategoryGroup.ORGANIZER_ALERTS) {
+        NotificationPreference(push = false, email = false)
+    } else {
+        NotificationPreference()
     }

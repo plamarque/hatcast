@@ -18,11 +18,20 @@ class CompositionWorkflowNotificationAdapter(
         seasonId: UUID,
         actorUserId: UUID,
     ) {
-        log.debug(
-            "draft_composition_shared eventId={} seasonId={} actorUserId={} member_dispatch=skipped",
-            eventId,
-            seasonId,
-            actorUserId,
+        val troupeId =
+            reminderMarkService.findEventTroupeId(eventId)
+                ?: run {
+                    log.warn("draft_composition_shared_missing_troupe eventId={}", eventId)
+                    return
+                }
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.COMPOSITION_SHARED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+            ),
         )
     }
 
@@ -134,6 +143,46 @@ class CompositionWorkflowNotificationAdapter(
                 seasonId = seasonId,
                 troupeId = null,
                 actorUserId = actorUserId,
+            ),
+        )
+    }
+
+    override fun notifyTeamCompleteOrganizer(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID?,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.TEAM_COMPLETE,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+            ),
+        )
+    }
+
+    override fun notifyAssigneeDeclined(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+        assigneeDisplayName: String,
+        roleKey: String,
+        slotIndex: Int,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.ASSIGNEE_DECLINED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+                assigneeDisplayName = assigneeDisplayName,
+                roleKey = roleKey,
+                slotIndex = slotIndex,
             ),
         )
     }

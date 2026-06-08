@@ -187,6 +187,21 @@ class CompositionParticipationService(
         )
         lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
 
+        if (composition.validatedAt != null && participationStatus == SlotParticipationStatus.DECLINED) {
+            val assigneeDisplayName = resolveAssigneeDisplayName(subjectSeasonParticipantId, subjectEventParticipantId)
+            eventPublisher.publishEvent(
+                AssigneeDeclinedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    troupeId = event.season.troupe.id,
+                    actorUserId = principal.userId,
+                    assigneeDisplayName = assigneeDisplayName,
+                    roleKey = roleKey,
+                    slotIndex = slotIndex,
+                ),
+            )
+        }
+
         if (composition.validatedAt != null &&
             assigneeUserId != null &&
             assigneeUserId != principal.userId &&
@@ -206,6 +221,23 @@ class CompositionParticipationService(
         }
 
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
+    }
+
+    private fun resolveAssigneeDisplayName(
+        seasonParticipantId: UUID?,
+        eventParticipantId: UUID?,
+    ): String {
+        seasonParticipantId?.let { id ->
+            seasonParticipantRepository.findById(id).orElse(null)?.let { participant ->
+                return participant.displayName
+            }
+        }
+        eventParticipantId?.let { id ->
+            eventParticipantRepository.findById(id).orElse(null)?.let { participant ->
+                return participant.displayName
+            }
+        }
+        return "Un·e participant·e"
     }
 
     private fun resolveLinkedUserId(

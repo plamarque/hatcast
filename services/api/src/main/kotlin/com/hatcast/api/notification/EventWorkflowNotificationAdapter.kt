@@ -8,6 +8,23 @@ import java.util.UUID
 class EventWorkflowNotificationAdapter(
     private val dispatcher: NotificationDispatcher,
 ) : EventNotificationPort {
+    override fun publishEventDraftCreated(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.EVENT_DRAFT_CREATED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+            ),
+        )
+    }
+
     override fun publishAvailabilityOpened(
         eventId: UUID,
         seasonId: UUID,

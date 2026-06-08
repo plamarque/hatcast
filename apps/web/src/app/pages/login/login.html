@@ -51,7 +51,7 @@
           </div>
         </div>
 
-        @if (hasEmailAuth()) {
+        @if (hasEmailAuth() || isDev) {
           <div class="auth__between" role="separator" aria-label="ou">
             <span class="auth__between-line" aria-hidden="true"></span>
             <span class="auth__between-label">ou</span>
@@ -77,6 +77,14 @@
             </div>
             <button mat-flat-button color="primary" type="submit" class="auth__submit">Se connecter</button>
           </form>
+
+          @if (isDev) {
+            <p class="auth__hint auth__hint--email">
+              Comptes seed Les Improbots : email <code>&#64;seed.improbots.test</code>, mot de passe =
+              slug membre (<code>charlene</code>, <code>pierrick</code>…). Slug &lt; 8 car. : répété
+              (<code>angie</code> → <code>angieang</code>).
+            </p>
+          }
 
           <p class="auth__footer">
             Pas de compte ?

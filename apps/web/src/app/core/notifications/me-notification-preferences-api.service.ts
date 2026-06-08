@@ -2,6 +2,14 @@ import { Injectable } from '@angular/core'
 
 import { csrfHeaders } from '../http/hatcast-csrf'
 
+export type OrgaNotificationPreferenceKey =
+  | 'ORG_ASSIGNEE_DECLINED'
+  | 'ORG_TEAM_COMPLETE'
+  | 'ORG_COMPOSITION_INCOMPLETE'
+  | 'ORG_SLA_OPEN_AVAILABILITY'
+  | 'ORG_DRAFT_COMPOSITION'
+  | 'ORG_EVENT_DRAFT_CREATED'
+
 export type NotificationPreferenceKey =
   | 'AVAILABILITY_REQUEST'
   | 'COMPOSITION_SHARED'
@@ -12,8 +20,12 @@ export type NotificationPreferenceKey =
   | 'REMINDER_7_DAYS'
   | 'REMINDER_1_DAY'
   | 'AVAILABILITY_WEEKLY_REMINDER'
+  | OrgaNotificationPreferenceKey
 
-export type NotificationPreferenceGroup = 'NOTIFICATIONS' | 'AUTOMATIC_REMINDERS'
+export type NotificationPreferenceGroup =
+  | 'NOTIFICATIONS'
+  | 'AUTOMATIC_REMINDERS'
+  | 'ORGANIZER_ALERTS'
 
 export interface NotificationPreferenceCategory {
   key: NotificationPreferenceKey
@@ -24,6 +36,7 @@ export interface NotificationPreferenceCategory {
 }
 
 export interface NotificationPreferencesResponse {
+  hasOrganizerScope: boolean
   categories: NotificationPreferenceCategory[]
 }
 

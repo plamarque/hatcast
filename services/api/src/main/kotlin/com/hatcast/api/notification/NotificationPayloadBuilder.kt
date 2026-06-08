@@ -21,6 +21,7 @@ class NotificationPayloadBuilder {
         customMessageBody: String? = null,
         recipientGender: MemberGender? = null,
         eventDetailsChangeSummary: EventDetailsChangeSummary? = null,
+        assigneeDisplayName: String? = null,
     ): NotificationPayload {
         val seasonSlug = event.season.slug
         val eventSlug = event.slug
@@ -65,7 +66,50 @@ class NotificationPayloadBuilder {
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=dispos",
                 )
             NotificationIntent.COMPOSITION_SHARED ->
-                error("COMPOSITION_SHARED payload is story 8.4")
+                NotificationPayload(
+                    title = "👥 Brouillon partagé",
+                    body = "La composition brouillon pour $eventTitle le $eventDate est visible dans le cercle orga.",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
+                )
+            NotificationIntent.EVENT_DRAFT_CREATED ->
+                NotificationPayload(
+                    title = "📝 Nouveau brouillon",
+                    body = "Un spectacle brouillon « $eventTitle » vient d'être créé.",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=infos",
+                )
+            NotificationIntent.SLA_OPEN_AVAILABILITY ->
+                NotificationPayload(
+                    title = "⏰ Ouvrir les dispos",
+                    body = "$eventTitle le $eventDate approche — les disponibilités ne sont pas encore ouvertes.",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=infos",
+                )
+            NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY ->
+                NotificationPayload(
+                    title = "⚠️ Compo incomplète",
+                    body = "Des places manquent encore pour $eventTitle le $eventDate.",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
+                )
+            NotificationIntent.COMPOSITION_INCOMPLETE_DAILY_J7 ->
+                NotificationPayload(
+                    title = "⚠️ Compo incomplète (J-7)",
+                    body = "J-7 pour $eventTitle — la composition n'est pas complète.",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
+                )
+            NotificationIntent.TEAM_COMPLETE ->
+                NotificationPayload(
+                    title = "✅ Équipe bouclée",
+                    body = "Toutes les confirmations sont reçues pour $eventTitle le $eventDate.",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
+                )
+            NotificationIntent.ASSIGNEE_DECLINED -> {
+                val assigneeName = assigneeDisplayName?.trim()?.takeIf { it.isNotEmpty() } ?: "Un·e participant·e"
+                val rolePart = roleLabel?.let { " ($it)" }.orEmpty()
+                NotificationPayload(
+                    title = "🚨 Déclin",
+                    body = "$assigneeName a décliné$rolePart pour $eventTitle le $eventDate.",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
+                )
+            }
             NotificationIntent.CONFIRMATION_REQUEST ->
                 NotificationPayload(
                     title = "🎭 Confirme ta participation !",
@@ -184,7 +228,19 @@ class NotificationPayloadBuilder {
             NotificationIntent.AVAILABILITY_PENDING_REMINDER ->
                 "Rappel disponibilité · $eventTitle ($eventDate)"
             NotificationIntent.COMPOSITION_SHARED ->
-                error("COMPOSITION_SHARED email subject is story 8.4")
+                "Brouillon partagé · $eventTitle ($eventDate)"
+            NotificationIntent.EVENT_DRAFT_CREATED ->
+                "Nouveau brouillon · $eventTitle"
+            NotificationIntent.SLA_OPEN_AVAILABILITY ->
+                "Ouvrir les dispos · $eventTitle ($eventDate)"
+            NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY ->
+                "Compo incomplète · $eventTitle ($eventDate)"
+            NotificationIntent.COMPOSITION_INCOMPLETE_DAILY_J7 ->
+                "Compo incomplète J-7 · $eventTitle ($eventDate)"
+            NotificationIntent.TEAM_COMPLETE ->
+                "Équipe bouclée · $eventTitle ($eventDate)"
+            NotificationIntent.ASSIGNEE_DECLINED ->
+                "Déclin · $eventTitle ($eventDate)"
             NotificationIntent.CONFIRMATION_REQUEST ->
                 "🎭 Equipe pour $eventTitle"
             NotificationIntent.TEAM_VALIDATED_FYI ->

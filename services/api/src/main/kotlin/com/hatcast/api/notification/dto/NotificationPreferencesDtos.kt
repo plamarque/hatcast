@@ -9,6 +9,7 @@ data class NotificationPreferenceCategoryDto(
 )
 
 data class NotificationPreferencesResponseDto(
+    val hasOrganizerScope: Boolean = false,
     val categories: List<NotificationPreferenceCategoryDto>,
 )
 

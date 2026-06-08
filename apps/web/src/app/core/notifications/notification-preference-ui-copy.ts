@@ -1,4 +1,7 @@
-import type { NotificationPreferenceKey } from './me-notification-preferences-api.service'
+import type {
+  NotificationPreferenceKey,
+  OrgaNotificationPreferenceKey,
+} from './me-notification-preferences-api.service'
 
 export const MEMBER_HIDDEN_NOTIFICATION_PREFERENCE_KEYS: ReadonlySet<NotificationPreferenceKey> =
   new Set(['COMPOSITION_SHARED'])
@@ -20,7 +23,7 @@ export const MEMBER_REMINDER_CATEGORY_ORDER: readonly NotificationPreferenceKey[
 
 export type VisibleNotificationPreferenceKey = Exclude<
   NotificationPreferenceKey,
-  'COMPOSITION_SHARED'
+  'COMPOSITION_SHARED' | OrgaNotificationPreferenceKey
 >
 
 export interface NotificationPreferenceUiCopy {

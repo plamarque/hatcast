@@ -73,15 +73,63 @@ const categories = [
     pushEnabled: true,
     emailEnabled: false,
   },
+  {
+    key: 'ORG_ASSIGNEE_DECLINED',
+    label: "Me prévenir quand quelqu'un décline après validation de la compo.",
+    group: 'ORGANIZER_ALERTS',
+    pushEnabled: false,
+    emailEnabled: false,
+  },
+  {
+    key: 'ORG_TEAM_COMPLETE',
+    label: 'Me prévenir quand toutes les confirmations sont reçues.',
+    group: 'ORGANIZER_ALERTS',
+    pushEnabled: false,
+    emailEnabled: false,
+  },
+  {
+    key: 'ORG_DRAFT_COMPOSITION',
+    label: 'Me prévenir quand un brouillon de compo est partagé dans le cercle orga.',
+    group: 'ORGANIZER_ALERTS',
+    pushEnabled: false,
+    emailEnabled: false,
+  },
+  {
+    key: 'ORG_EVENT_DRAFT_CREATED',
+    label: 'Me prévenir quand un spectacle brouillon est créé.',
+    group: 'ORGANIZER_ALERTS',
+    pushEnabled: false,
+    emailEnabled: false,
+  },
+  {
+    key: 'ORG_COMPOSITION_INCOMPLETE',
+    label: 'Me prévenir si des places manquent (rappels hebdo et à J-7).',
+    group: 'ORGANIZER_ALERTS',
+    pushEnabled: false,
+    emailEnabled: false,
+  },
+  {
+    key: 'ORG_SLA_OPEN_AVAILABILITY',
+    label: 'Me prévenir quand un spectacle approche (~1 mois) sans dispos ouvertes.',
+    group: 'ORGANIZER_ALERTS',
+    pushEnabled: false,
+    emailEnabled: false,
+  },
 ] as const
 
-async function setup(options: { pushState?: PushUiState; patchOk?: boolean } = {}) {
-  const getPreferences = vi.fn().mockResolvedValue({ ok: true, status: 200, data: { categories } })
+async function setup(
+  options: { pushState?: PushUiState; patchOk?: boolean; hasOrganizerScope?: boolean } = {},
+) {
+  const getPreferences = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: { categories, hasOrganizerScope: options.hasOrganizerScope ?? false },
+  })
   const patchPreferences = vi.fn().mockImplementation(async () => {
     if (options.patchOk === false) {
       return { ok: false, status: 500 }
     }
-    return { ok: true, status: 200, data: { categories } }
+    return { ok: true, status: 200, data: { categories, hasOrganizerScope: options.hasOrganizerScope ?? false } }
   })
   const uiState = signal<PushUiState>(options.pushState ?? 'disabled')
   const loadStatus = vi.fn().mockImplementation(async () => {
@@ -182,6 +230,28 @@ describe('NotificationPreferencesSection', () => {
 
     expect(pushButton.getAttribute('aria-label')).toBe('Disponibilités — cet appareil')
     expect(emailButton.getAttribute('aria-label')).toBe('Disponibilités — e-mail')
+  })
+
+  it('hides organizer section when hasOrganizerScope is false', async () => {
+    const { fixture } = await setup({ pushState: 'enabled', hasOrganizerScope: false })
+    const text = fixture.nativeElement.textContent ?? ''
+
+    expect(text).not.toContain('Alertes organisateur')
+    expect(text).not.toContain('Déclin immédiat')
+    expect(fixture.nativeElement.querySelectorAll('.notification-preferences__section-title').length).toBe(2)
+    expect(fixture.nativeElement.querySelectorAll('.notification-preferences__card').length).toBe(2)
+  })
+
+  it('renders organizer section with Déclin immédiat when hasOrganizerScope is true', async () => {
+    const { fixture } = await setup({ pushState: 'enabled', hasOrganizerScope: true })
+    const text = fixture.nativeElement.textContent ?? ''
+
+    expect(text).toContain('Alertes organisateur')
+    expect(text).toContain('Pour les spectacles où tu organises. Active seulement ce dont tu as besoin.')
+    expect(text).toContain('Déclin immédiat')
+    expect(text).toContain("Me prévenir quand quelqu'un décline après validation de la compo.")
+    expect(fixture.nativeElement.querySelectorAll('.notification-preferences__section-title').length).toBe(3)
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-org-assignee-declined-push"]')).toBeTruthy()
   })
 
   it('renders section intros and channel legend once per card', async () => {

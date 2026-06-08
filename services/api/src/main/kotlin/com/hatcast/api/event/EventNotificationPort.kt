@@ -4,6 +4,13 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 
 interface EventNotificationPort {
+    fun publishEventDraftCreated(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+    )
+
     fun publishAvailabilityOpened(
         eventId: UUID,
         seasonId: UUID,
@@ -29,6 +36,21 @@ interface EventNotificationPort {
 
 class NoOpEventNotificationAdapter : EventNotificationPort {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    override fun publishEventDraftCreated(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID,
+    ) {
+        log.debug(
+            "event_draft_created eventId={} seasonId={} troupeId={} actorUserId={}",
+            eventId,
+            seasonId,
+            troupeId,
+            actorUserId,
+        )
+    }
 
     override fun publishAvailabilityOpened(
         eventId: UUID,

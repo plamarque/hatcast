@@ -11,6 +11,7 @@ import com.hatcast.api.composition.hasAssignee
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.organizer.EventOrganizerRepository
+import com.hatcast.api.organizer.SeasonOrganizerRepository
 import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.EventRosterService
@@ -18,6 +19,7 @@ import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.dto.EventRosterParticipantDto
+import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -31,8 +33,72 @@ class NotificationRecipientResolver(
     private val availabilityRepository: EventAvailabilityRepository,
     private val declineRepository: EventCompositionDeclineRepository,
     private val eventOrganizerRepository: EventOrganizerRepository,
+    private val seasonOrganizerRepository: SeasonOrganizerRepository,
+    private val troupeMembershipRepository: TroupeMembershipRepository,
     private val eventRepository: EventRepository,
 ) {
+    fun resolveOrganizerCascadeRecipients(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID? = null,
+    ): List<NotificationRecipient> {
+        val eventOrganizers =
+            eventOrganizerRepository
+                .findByEvent_IdOrderByGrantedAtAsc(eventId)
+                .mapNotNull { organizer -> organizer.toLinkedRecipient() }
+        if (eventOrganizers.isNotEmpty()) {
+            return excludeActor(eventOrganizers, actorUserId)
+        }
+        val seasonOrganizers =
+            seasonOrganizerRepository
+                .findBySeason_IdOrderByGrantedAtAsc(seasonId)
+                .mapNotNull { organizer -> organizer.toLinkedRecipient() }
+        if (seasonOrganizers.isNotEmpty()) {
+            return excludeActor(seasonOrganizers, actorUserId)
+        }
+        val troupeAdmins =
+            troupeMembershipRepository
+                .findActiveTroupeAdminsByTroupeId(troupeId)
+                .mapNotNull { membership ->
+                    membership.user?.id?.let { userId ->
+                        NotificationRecipient(
+                            userId = userId,
+                            displayName = membership.displayName.ifBlank { membership.user?.displayName.orEmpty() },
+                        )
+                    }
+                }
+        return excludeActor(troupeAdmins, actorUserId)
+    }
+
+    fun resolveOrganizerCircleRecipients(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID? = null,
+    ): List<NotificationRecipient> {
+        val eventOrganizers =
+            eventOrganizerRepository
+                .findByEvent_IdOrderByGrantedAtAsc(eventId)
+                .mapNotNull { organizer -> organizer.toLinkedRecipient() }
+        val seasonOrganizers =
+            seasonOrganizerRepository
+                .findBySeason_IdOrderByGrantedAtAsc(seasonId)
+                .mapNotNull { organizer -> organizer.toLinkedRecipient() }
+        val troupeAdmins =
+            troupeMembershipRepository
+                .findActiveTroupeAdminsByTroupeId(troupeId)
+                .mapNotNull { membership ->
+                    membership.user?.id?.let { userId ->
+                        NotificationRecipient(
+                            userId = userId,
+                            displayName = membership.displayName.ifBlank { membership.user?.displayName.orEmpty() },
+                        )
+                    }
+                }
+        return excludeActor((eventOrganizers + seasonOrganizers + troupeAdmins).distinctBy { it.userId }, actorUserId)
+    }
+
     fun resolveConcernedRosterRecipients(
         seasonId: UUID,
         eventId: UUID,
@@ -267,6 +333,24 @@ class NotificationRecipientResolver(
                 setOf(AvailabilityStatusMapper.AVAILABLE, AvailabilityStatusMapper.UNAVAILABLE)
         }
     }
+
+    private fun excludeActor(
+        recipients: List<NotificationRecipient>,
+        actorUserId: UUID?,
+    ): List<NotificationRecipient> =
+        recipients
+            .distinctBy { it.userId }
+            .filter { recipient -> actorUserId == null || recipient.userId != actorUserId }
+
+    private fun com.hatcast.api.organizer.EventOrganizerEntity.toLinkedRecipient(): NotificationRecipient? =
+        user.id.let { userId ->
+            NotificationRecipient(userId = userId, displayName = user.displayName.orEmpty())
+        }
+
+    private fun com.hatcast.api.organizer.SeasonOrganizerEntity.toLinkedRecipient(): NotificationRecipient? =
+        user.id.let { userId ->
+            NotificationRecipient(userId = userId, displayName = user.displayName.orEmpty())
+        }
 
     private fun NotificationRecipient.dedupeKey(): String =
         userId?.toString() ?: email?.trim()?.lowercase().orEmpty()

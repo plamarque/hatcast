@@ -11,9 +11,16 @@ import {
   notificationPreferenceUiCopy,
 } from '../../core/notifications/notification-preference-ui-copy'
 import {
+  DISPATCHED_ORGA_NOTIFICATION_PREFERENCE_KEYS,
+  ORGA_IMMEDIATE_SIGNAL_KEYS,
+  ORGA_SCHEDULED_REMINDER_KEYS,
+  organizerNotificationPreferenceUiCopy,
+} from '../../core/notifications/notification-preference-orga-ui-copy'
+import {
   MeNotificationPreferencesApiService,
   type NotificationPreferenceCategory,
   type NotificationPreferenceKey,
+  type OrgaNotificationPreferenceKey,
 } from '../../core/notifications/me-notification-preferences-api.service'
 import { PushNotificationsService } from '../../core/push/push-notifications.service'
 
@@ -80,6 +87,25 @@ function sortCategoriesByKeyOrder(
             />
           </div>
         </section>
+
+        @if (showOrganizerSection()) {
+          <section class="notification-preferences__section" aria-labelledby="notification-preferences-orga-heading">
+            <header class="notification-preferences__section-header">
+              <h2 id="notification-preferences-orga-heading" class="notification-preferences__section-title">
+                Alertes organisateur
+              </h2>
+              <p class="notification-preferences__intro">
+                Pour les spectacles où tu organises. Active seulement ce dont tu as besoin.
+              </p>
+            </header>
+            <div class="notification-preferences__card">
+              <ng-container
+                [ngTemplateOutlet]="orgaSectionGrid"
+                [ngTemplateOutletContext]="{ categories: organizerCategories() }"
+              />
+            </div>
+          </section>
+        }
       }
     </div>
 
@@ -99,12 +125,31 @@ function sortCategoriesByKeyOrder(
       </div>
     </ng-template>
 
-    <ng-template #categoryRow let-category="category">
+    <ng-template #orgaSectionGrid let-categories="categories">
+      <div class="notification-preferences__grid">
+        <div class="notification-preferences__column-headers" aria-hidden="true">
+          <span class="notification-preferences__column-headers-spacer"></span>
+          <span class="notification-preferences__column-header">Cet appareil</span>
+          <span class="notification-preferences__column-header">E-mail</span>
+        </div>
+        @for (category of categories; track category.key) {
+          @if (category.groupSubtitle) {
+            <p class="notification-preferences__group-subtitle">{{ category.groupSubtitle }}</p>
+          }
+          <ng-container
+            [ngTemplateOutlet]="categoryRow"
+            [ngTemplateOutletContext]="{ category: category, orga: true }"
+          />
+        }
+      </div>
+    </ng-template>
+
+    <ng-template #categoryRow let-category="category" let-orga="orga">
       <div class="notification-preferences__row">
         <div class="notification-preferences__content">
-          <p class="notification-preferences__title">{{ copyFor(category).title }}</p>
-          @if (copyFor(category).description) {
-            <p class="notification-preferences__description">{{ copyFor(category).description }}</p>
+          <p class="notification-preferences__title">{{ rowCopy(category, orga).title }}</p>
+          @if (rowCopy(category, orga).description) {
+            <p class="notification-preferences__description">{{ rowCopy(category, orga).description }}</p>
           }
         </div>
         <mat-slide-toggle
@@ -112,7 +157,7 @@ function sortCategoriesByKeyOrder(
           [attr.data-testid]="testId(category.key, 'push')"
           [checked]="category.pushEnabled"
           [disabled]="pushDisabled() || isSaving(category.key, 'push')"
-          [aria-label]="ariaLabel(category, 'push')"
+          [aria-label]="ariaLabel(category, 'push', orga)"
           (change)="onToggle(category, 'push', $event)"
         />
         <mat-slide-toggle
@@ -120,7 +165,7 @@ function sortCategoriesByKeyOrder(
           [attr.data-testid]="testId(category.key, 'email')"
           [checked]="category.emailEnabled"
           [disabled]="isSaving(category.key, 'email')"
-          [aria-label]="ariaLabel(category, 'email')"
+          [aria-label]="ariaLabel(category, 'email', orga)"
           (change)="onToggle(category, 'email', $event)"
         />
       </div>
@@ -236,6 +281,13 @@ function sortCategoriesByKeyOrder(
     .notification-preferences__hint--warn {
       color: var(--mat-sys-error);
     }
+    .notification-preferences__group-subtitle {
+      margin: 0;
+      padding: 0.5rem 1rem 0.125rem;
+      font: var(--mat-sys-label-medium);
+      font-weight: 600;
+      color: color-mix(in srgb, var(--mat-sys-on-surface) 62%, transparent);
+    }
     @media (min-width: 560px) {
       .notification-preferences__column-headers {
         grid-template-columns: minmax(0, 1fr) 5.5rem 4.5rem;
@@ -258,6 +310,7 @@ export class NotificationPreferencesSection implements OnInit, OnDestroy {
   protected readonly loading = signal(true)
   protected readonly loadFailed = signal(false)
   protected readonly categories = signal<NotificationPreferenceCategory[]>([])
+  protected readonly hasOrganizerScope = signal(false)
   private readonly saving = signal<Set<string>>(new Set())
   private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private readonly revertSnapshots = new Map<string, NotificationPreferenceCategory[]>()
@@ -278,6 +331,21 @@ export class NotificationPreferencesSection implements OnInit, OnDestroy {
       MEMBER_REMINDER_CATEGORY_ORDER,
     ),
   )
+  protected readonly showOrganizerSection = computed(
+    () => this.hasOrganizerScope() && this.organizerCategories().length > 0,
+  )
+  protected readonly organizerCategories = computed(() => {
+    const byKey = new Map(this.categories().map((category) => [category.key, category]))
+    return DISPATCHED_ORGA_NOTIFICATION_PREFERENCE_KEYS.flatMap((key) => {
+      const category = byKey.get(key)
+      if (!category) {
+        return []
+      }
+      const copy = organizerNotificationPreferenceUiCopy(key)
+      const groupSubtitle = this.orgaGroupSubtitle(key)
+      return [{ ...category, groupSubtitle }]
+    })
+  })
 
   async ngOnInit(): Promise<void> {
     await this.load()
@@ -314,6 +382,29 @@ export class NotificationPreferencesSection implements OnInit, OnDestroy {
 
   protected copyFor(category: NotificationPreferenceCategory) {
     return notificationPreferenceUiCopy(category.key, category.label)
+  }
+
+  protected rowCopy(category: NotificationPreferenceCategory, orga?: boolean) {
+    if (orga && this.isOrgaKey(category.key)) {
+      return organizerNotificationPreferenceUiCopy(category.key)
+    }
+    return this.copyFor(category)
+  }
+
+  private isOrgaKey(key: NotificationPreferenceKey): key is OrgaNotificationPreferenceKey {
+    return (DISPATCHED_ORGA_NOTIFICATION_PREFERENCE_KEYS as readonly string[]).includes(key)
+  }
+
+  private orgaGroupSubtitle(key: OrgaNotificationPreferenceKey): string | undefined {
+    const immediateIndex = ORGA_IMMEDIATE_SIGNAL_KEYS.indexOf(key)
+    const scheduledIndex = ORGA_SCHEDULED_REMINDER_KEYS.indexOf(key)
+    if (immediateIndex === 0) {
+      return 'Signaux immédiats'
+    }
+    if (scheduledIndex === 0) {
+      return 'Rappels planifiés'
+    }
+    return undefined
   }
 
   protected onToggle(
@@ -365,9 +456,10 @@ export class NotificationPreferencesSection implements OnInit, OnDestroy {
   protected ariaLabel(
     category: NotificationPreferenceCategory,
     channel: NotificationChannel,
+    orga?: boolean,
   ): string {
     const channelLabel = channel === 'push' ? 'cet appareil' : 'e-mail'
-    return `${this.copyFor(category).title} — ${channelLabel}`
+    return `${this.rowCopy(category, orga).title} — ${channelLabel}`
   }
 
   private async commitPreference(
@@ -405,6 +497,7 @@ export class NotificationPreferencesSection implements OnInit, OnDestroy {
         return
       }
       this.categories.set(preferencesResult.data.categories)
+      this.hasOrganizerScope.set(preferencesResult.data.hasOrganizerScope)
     } finally {
       this.loading.set(false)
     }

@@ -71,6 +71,13 @@ class CompositionLifecycleAuditRecorder(
                     seasonId = seasonId,
                 ),
             )
+            eventPublisher.publishEvent(
+                TeamCompleteOrganizerRequestedEvent(
+                    eventId = event.id,
+                    seasonId = seasonId,
+                    troupeId = event.season.troupe.id,
+                ),
+            )
         }
     }
 }

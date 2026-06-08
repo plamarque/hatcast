@@ -294,8 +294,16 @@ class NotificationDispatcherTest {
             NotificationIntent.AVAILABILITY_PENDING_REMINDER.toCategory(),
         )
         assertEquals(
-            NotificationCategory.COMPOSITION_SHARED,
+            NotificationCategory.ORG_DRAFT_COMPOSITION,
             NotificationIntent.COMPOSITION_SHARED.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.ORG_TEAM_COMPLETE,
+            NotificationIntent.TEAM_COMPLETE.toCategory(),
+        )
+        assertEquals(
+            NotificationCategory.ORG_ASSIGNEE_DECLINED,
+            NotificationIntent.ASSIGNEE_DECLINED.toCategory(),
         )
         assertEquals(
             NotificationCategory.AVAILABILITY_REQUEST,
@@ -320,12 +328,16 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    fun `COMPOSITION_SHARED dispatch is a no-op until story 8_4`() {
+    fun `COMPOSITION_SHARED dispatch resolves organizer circle recipients`() {
         val eventId = UUID.randomUUID()
         val seasonId = UUID.randomUUID()
         val troupeId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
         val event = notificationEvent(eventId, troupeId)
         whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(
+            recipientResolver.resolveOrganizerCircleRecipients(eventId, seasonId, troupeId, null),
+        ).thenReturn(listOf(NotificationRecipient(userId = userId, displayName = "Orga")))
 
         dispatcher.dispatch(
             NotificationDispatchContext(
@@ -333,11 +345,10 @@ class NotificationDispatcherTest {
                 eventId = eventId,
                 seasonId = seasonId,
                 troupeId = troupeId,
-                actorUserId = UUID.randomUUID(),
             ),
         )
 
-        verifyNoInteractions(recipientResolver, pushSender, emailSender)
+        verify(recipientResolver).resolveOrganizerCircleRecipients(eventId, seasonId, troupeId, null)
     }
 
     @Test

@@ -161,6 +161,26 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         baselineRole: TroupeBaselineRole,
     ): Long
 
+    fun existsByUser_IdAndStatusAndBaselineRole(
+        userId: UUID,
+        status: TroupeMembershipStatus,
+        baselineRole: TroupeBaselineRole,
+    ): Boolean
+
+    @Query(
+        """
+        SELECT m FROM TroupeMembershipEntity m
+        JOIN FETCH m.user u
+        WHERE m.troupe.id = :troupeId
+          AND m.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+          AND m.baselineRole = com.hatcast.api.troupe.TroupeBaselineRole.TROUPE_ADMIN
+        ORDER BY m.displayName ASC
+        """,
+    )
+    fun findActiveTroupeAdminsByTroupeId(
+        @Param("troupeId") troupeId: UUID,
+    ): List<TroupeMembershipEntity>
+
     @Query(
         """
         SELECT m.troupe.id AS troupeId, COUNT(m) AS memberCount

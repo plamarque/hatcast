@@ -75,6 +75,75 @@ class NotificationPreferenceEligibilityAdapterTest {
     }
 
     @Test
+    fun `missing organizer preference json defaults to blocked`() {
+        val user =
+            userRepository.save(
+                UserEntity(
+                    googleSub = "sub-pref-elig-orga-default",
+                    email = "pref-elig-orga-default@example.com",
+                    displayName = "Pref Elig Orga Default",
+                ),
+            )
+
+        assertFalse(
+            preferenceEligibilityPort.isAllowed(
+                user.id,
+                NotificationCategory.ORG_ASSIGNEE_DECLINED,
+                NotificationChannel.PUSH,
+            ),
+        )
+        assertFalse(
+            preferenceEligibilityPort.isAllowed(
+                user.id,
+                NotificationCategory.ORG_ASSIGNEE_DECLINED,
+                NotificationChannel.EMAIL,
+            ),
+        )
+    }
+
+    @Test
+    fun `explicit organizer opt in allows channel`() {
+        val user =
+            userRepository.save(
+                UserEntity(
+                    googleSub = "sub-pref-elig-orga-on",
+                    email = "pref-elig-orga-on@example.com",
+                    displayName = "Pref Elig Orga On",
+                    notificationPreferences =
+                        mapOf(
+                            NotificationCategory.ORG_TEAM_COMPLETE to
+                                NotificationPreference(push = true, email = true),
+                        ),
+                ),
+            )
+        subscriptionRepository.save(
+            UserPushSubscriptionEntity(
+                user = user,
+                endpoint = "https://fcm.googleapis.com/fcm/send/pref-elig-orga-on-${user.id}",
+                p256dhKey = "p256dh",
+                authKey = "auth",
+            ),
+        )
+        user.pushNotificationsEnabled = true
+        userRepository.save(user)
+
+        assertTrue(
+            preferenceEligibilityPort.isAllowed(
+                user.id,
+                NotificationCategory.ORG_TEAM_COMPLETE,
+                NotificationChannel.PUSH,
+            ),
+        )
+        assertTrue(
+            preferenceEligibilityPort.isAllowed(
+                user.id,
+                NotificationCategory.ORG_TEAM_COMPLETE,
+                NotificationChannel.EMAIL,
+            ),
+        )
+    }
+
+    @Test
     fun `missing preference json defaults to allowed`() {
         val user =
             userRepository.save(

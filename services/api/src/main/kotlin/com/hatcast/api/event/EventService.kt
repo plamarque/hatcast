@@ -255,6 +255,14 @@ class EventService(
                 after = AuditSnapshots.event(saved),
             ),
         )
+        eventPublisher.publishEvent(
+            EventDraftCreatedEvent(
+                eventId = saved.id,
+                seasonId = seasonId,
+                troupeId = season.troupe.id,
+                actorUserId = principal.userId,
+            ),
+        )
         return EventResponseDto.from(saved)
     }
 

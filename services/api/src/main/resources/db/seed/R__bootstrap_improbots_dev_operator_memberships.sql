@@ -103,6 +103,22 @@ WHERE sp.season_id = 'b0000001-0000-4000-8000-000000000001'
       AND lower(u.email) IN ('patrice.lamarque@gmail.com', 'impropick@gmail.com')
   );
 
+-- Organisateur·ices de saison : requis pour la cascade FR31b (story 8.4).
+-- Sans cette ligne, les alertes orga partent vers season_organizers du seed (patrice@seed.improbots.test),
+-- pas vers patrice.lamarque@gmail.com / impropick@gmail.com malgré TROUPE_ADMIN.
+INSERT INTO season_organizers (season_id, user_id, granted_by_user_id, granted_at)
+SELECT
+    'b0000001-0000-4000-8000-000000000001',
+    u.id,
+    u.id,
+    CURRENT_TIMESTAMP
+FROM users u
+WHERE lower(u.email) IN ('patrice.lamarque@gmail.com', 'impropick@gmail.com')
+  AND NOT EXISTS (
+    SELECT 1 FROM season_organizers so
+    WHERE so.season_id = 'b0000001-0000-4000-8000-000000000001' AND so.user_id = u.id
+  );
+
 UPDATE seasons
 SET
     participant_count = (
