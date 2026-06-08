@@ -28,15 +28,19 @@ stakeholderDecisions:
   - placeholders-for-planned-account-features
   - logout-in-page-header
   - about-tab-identity-card-and-compact-action-rows
+  - account-tab-icons-inline-with-label
+  - account-preferences-tab-icon-tune
 supersedes:
   - '2026-05-28 scroll layout (story 17.24) — structure remplacée par onglets 17.34'
   - '2026-06-06 onglet À propos — carte identité + lignes d’action (plus boutons pill version / MAJ)'
+  - '2026-06-08 barre onglets texte seul — icônes M3 obligatoires icône + libellé sur une ligne (amendement Sally)'
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-hub-a-faire.md
   - _bmad-output/planning-artifacts/ux-design-troupe-hub.md
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/implementation-artifacts/spec-about-manual-pwa-update-check.md
   - apps/web/src/app/pages/account-placeholder/account-placeholder.html
+  - _bmad-output/previews/account-tab-icons-compare.html
   - apps/web/src/app/pages/account-placeholder/tabs/account-about-tab.html
   - apps/web/src/app/shared/member-preferences-form/member-preferences-form.ts
   - docs/v2/technical/FRONTEND_UI.md
@@ -48,7 +52,7 @@ relatedArtifacts:
 
 **Principle:** Mon compte = **paramètres du compte HatCast** : profil et connexion, préférences de jeu (rôles), notifications, à propos. Pseudo et rôles préférés sont **uniques par utilisateur** (pas par troupe) — voir amendement [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) § Mon compte — section Préférences membre.
 
-**Historique :** La spec scroll unique (2026-05-28, story **17.24**) est **obsolète** pour la structure de navigation. **Amendement 2026-06-03 (révisé) :** **Se déconnecter** dans le **header de page** (C8b). **Amendement 2026-06-04 (a) :** pseudo sur **Identité** + rail pseudo (C2, C11) — story **17.35** `done`. **Amendement 2026-06-04 (b) — Sally :** fusion **Identité** + **Sécurité** → onglet **Mon profil** ; **4 onglets** ; e-mail modifiable via **icône crayon** (dialog **1.6**) ; section **Modes de connexion** (Google + mot de passe HatCast) ; **Supprimer mon compte** en bas du même onglet (C10) — story **17.36**.
+**Historique :** La spec scroll unique (2026-05-28, story **17.24**) est **obsolète** pour la structure de navigation. **Amendement 2026-06-03 (révisé) :** **Se déconnecter** dans le **header de page** (C8b). **Amendement 2026-06-04 (a) :** pseudo sur **Identité** + rail pseudo (C2, C11) — story **17.35** `done`. **Amendement 2026-06-04 (b) — Sally :** fusion **Identité** + **Sécurité** → onglet **Mon profil** ; **4 onglets** ; e-mail modifiable via **icône crayon** (dialog **1.6**) ; section **Modes de connexion** (Google + mot de passe HatCast) ; **Supprimer mon compte** en bas du même onglet (C10) — story **17.36**. **Amendement 2026-06-08 — Sally + Patrice :** chaque onglet affiche une **icône Material distincte + libellé sur une ligne** (C13) ; icône **Préférences** = **`tune`** (curseurs verticaux — retenu après comparaison avec `equalizer`).
 
 ---
 
@@ -85,6 +89,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | C2b | **Rôles préférés** | **Un jeu de rôles préférés** pour toutes les troupes — formulaire sur l’onglet **Préférences** (grille `mat-checkbox` ; composant dérivé de `MemberPreferencesForm` **sans** le champ pseudo). |
 | C3 | **Chrome page** | Même squelette que **Mon agenda** / **Mes Stats** : conteneur `max-width: 56rem`, header `h1` + `p` sous-titre. Typo L1/L2 : [`ux-design-hub-section-headers.md`](ux-design-hub-section-headers.md). |
 | C4 | **Navigation interne** | **4 onglets** Material (`mat-tab-nav-bar` + `mat-tab-link` + routes enfants) — **Mon profil** · Préférences · Notifications · À propos. **Pas** d’onglet Sécurité séparé (fusion **17.36**). |
+| C13 | **Icônes onglets** | Chaque `mat-tab-link` affiche **`mat-icon` + libellé français sur une ligne** (pas de pile icône au-dessus du texte, pas d’onglet icône seule). Mapping : `person` · **`tune`** · `notifications` · `info`. Icône décorative : `aria-hidden="true"` ; le texte visible porte le sens. **Livré** dans `account-placeholder` (one-shot 2026-06-08). |
 | C5 | **Avatar** | Gestion **photo de profil** (story **2.6**) en tête de l’onglet **Mon profil** — zone compacte inchangée. |
 | C6 | **E-mail — édition** | E-mail affiché à côté de l’avatar ; action **modifier** = `mat-icon-button` icône `edit` (`aria-label` *Modifier l’adresse e-mail*, `data-testid="account-email-edit"`) ouvrant le dialog **1.6** — **pas** de ligne liste « Changer l’adresse e-mail ». |
 | C12 | **Modes de connexion** | Section dédiée sous le pseudo : état **Google** (connecté si `hasGoogleAccount`) ; **mot de passe HatCast** (défini / non défini) avec bouton **Changer** ou **Définir** un mot de passe → dialog **1.6** ; conserver hint Google + secours si applicable (`data-testid="account-google-password-hint"`). |
@@ -102,7 +107,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | # | Onglet | Contenu | Icône M3 | Route |
 |---|--------|---------|----------|-------|
 | 1 | **Mon profil** | Avatar ; e-mail + **icône modifier** ; `displayName` auth si distinct ; **pseudo** ; **Modes de connexion** (Google, MDP) ; **Zone sensible** (suppression) | `person` | `/compte` (défaut) |
-| 2 | **Préférences** | Rôles préférés globaux uniquement (sans pseudo) | `tune` | `/compte/preferences` |
+| 2 | **Préférences** | Rôles préférés globaux uniquement (sans pseudo) | **`tune`** (curseurs — **pas** `settings` ni `equalizer` ; choix validé 2026-06-08) | `/compte/preferences` |
 | 3 | **Notifications** | Push (`PushNotificationsSection`) + catégories (`NotificationPreferencesSection`) | `notifications` | `/compte/notifications` |
 | 4 | **À propos** | Carte identité app + actions (changelog, check MAJ PWA si SW actif) + copyright | `info` | `/compte/a-propos` |
 
@@ -139,7 +144,7 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 │  Mon compte                          [ Se déconnecter ]    │
 │  Paramètres de votre compte HatCast.                        │
 ├────────────────────────────────────────────────────────────┤
-│  Mon profil │ Préférences │ Notifications │ À propos │
+│  👤 Mon profil │ 🎚 Préférences │ 🔔 Notifications │ ℹ À propos │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -147,10 +152,34 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 |---------|--------|
 | **Titre (`h1`)** | `Mon compte` |
 | **Sous-titre** | `Paramètres de votre compte HatCast.` (une ligne) — voir [ux-voice-and-tone.md](./ux-voice-and-tone.md) |
-| **Barre d’onglets** | Sous le sous-titre ; **scrollable horizontalement** sur mobile (`mat-tab-nav-bar`) |
+| **Barre d’onglets** | Sous le sous-titre ; **scrollable horizontalement** sur mobile (`mat-tab-nav-bar`) ; chaque lien = **icône + libellé sur une ligne** (C13) |
 | **Actions header** | **Se déconnecter** à droite du titre (C8b) ; **aucun** menu avatar sur cette route (C8a) |
 | **Typo** | `font-size: 1.75rem` titre ; sous-titre `opacity: 0.85`, `0.95rem` |
 | **Layout header** | Ligne 1 : `flex` `space-between` — `h1` à gauche, action à droite ; ligne 2 : sous-titre pleine largeur |
+
+### Barre d’onglets — icônes (C13)
+
+Alignement visuel avec la nav membre ([`member-nav.html`](../../apps/web/src/app/shared/member-nav/member-nav.html)) : icônes Material Symbols, mais **layout horizontal** (pas de colonne icône/label comme la bottom bar).
+
+| Onglet | `mat-icon` | Notes |
+|--------|------------|-------|
+| Mon profil | `person` | Silhouette = « moi » |
+| Préférences | `tune` | Curseurs verticaux = réglages ; **retenu** vs `equalizer` (comparaison 2026-06-08, preview `_bmad-output/previews/account-tab-icons-compare.html`) |
+| Notifications | `notifications` | Cloche — convention forte |
+| À propos | `info` | Métadonnées app |
+
+**Markup cible** (dans chaque `mat-tab-link`) :
+
+```html
+<span class="account-page__tab-item">
+  <mat-icon aria-hidden="true">person</mat-icon>
+  <span>Mon profil</span>
+</span>
+```
+
+**SCSS :** `.account-page__tab-item` — `display: inline-flex` ; `align-items: center` ; `gap: 0.35rem` ; icône **20 px** (24 px si place suffisante sur desktop). **Mobile ≤ 480 px :** conserver le **libellé complet** visible ; scroll horizontal si débordement — **pas** de mode icône seule.
+
+**Accessibilité :** libellé texte visible = nom accessible de l’onglet ; pas de `aria-label` redondant sur le lien si le texte est affiché.
 
 ---
 
@@ -254,7 +283,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 │ Mon compte  [ Déco… ]   │  ← icône seule ≤ 480 px
 │ Paramètres de votre…    │
 ├─────────────────────────┤
-│ Profil│Préf│Notif│À propos│  ← 4 tabs scrollables
+│ 👤 Mon profil │ 🎚 Préf. │ 🔔 Notif. │ ℹ À propos │  ← 4 tabs scrollables, icône+texte
 ├─────────────────────────┤
 │ [Avatar] email@… [✎]    │
 │ Pseudo [___________]    │
@@ -293,10 +322,10 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 
 | ID | Critère | Application `/compte` |
 |----|---------|------------------------|
-| M3-1 | Composants Material | `mat-tab-nav-bar`, `mat-tab-link`, `mat-list`, `mat-stroked-button`, `mat-spinner`, dialogs **1.6**/**1.7**/**10.3** |
+| M3-1 | Composants Material | `mat-tab-nav-bar`, `mat-tab-link`, **`mat-icon`** dans chaque onglet (C13), `mat-list`, `mat-stroked-button`, `mat-spinner`, dialogs **1.6**/**1.7**/**10.3** |
 | M3-2 | Tokens | `var(--mat-sys-on-surface)`, `outline-variant`, `error` zone sensible |
-| M3-3 | Mobile-first | Tabs scrollables ; padding `1rem` ; cibles ≥ 48dp |
-| M3-4 | a11y | `aria-label` actions avatar ; panel onglet avec `role="tabpanel"` ; libellés tabs en français |
+| M3-3 | Mobile-first | Tabs scrollables ; padding `1rem` ; cibles ≥ 48dp ; **icône + libellé** visible (pas icon-only) |
+| M3-4 | a11y | `aria-label` actions avatar ; panel onglet avec `role="tabpanel"` ; libellés tabs en français ; `aria-hidden="true"` sur icônes décoratives des onglets |
 | M3-5 | Pas bottom app bar M2 | Nav membre existante inchangée |
 
 **Anti-patterns :** empiler 4+ `mat-card` avec sous-titres longs ; 6+ onglets dont un quasi vide ; formulaires pseudo **par troupe** ; couleurs hex en dur ; contenu dupliqué entre onglets via `@if` sans router-outlet.
@@ -314,7 +343,8 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | Rail pseudo (C11) | Inchangé **17.35** — rafraîchir après save pseudo sur Mon profil |
 | Fragment legacy | Redirect `/compte#notifications` → `/compte/notifications` |
 | Déconnexion | Dans le **shell** `account-placeholder` (header, C8b) — **pas** dans un onglet ni sous le `router-outlet` |
-| Tests | `account-placeholder.spec.ts` : navigation onglets, deep links, présence sections ; `account-about-tab.spec.ts` : carte, changelog, check MAJ |
+| Icônes onglets (C13) | `account-placeholder.html` : wrapper `.account-page__tab-item` + `mat-icon` par onglet ; styles dans `account-placeholder.scss` |
+| Tests | `account-placeholder.spec.ts` : navigation onglets, deep links, présence sections, **présence icônes** (`mat-icon` + libellés) ; `account-about-tab.spec.ts` : carte, changelog, check MAJ |
 | À propos UI | `tabs/account-about-tab.html` + `account-placeholder.scss` (`.account-page__about-*`) |
 | Story file | [17-34-mon-compte-onglets-securite-preferences.md](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) |
 
@@ -352,5 +382,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | Zone sensible en bas de Mon profil ? | **Oui** (C10) |
 | Déconnexion dans le header page (tous onglets) ? | **Oui** (C8b) |
 | Header sans menu avatar ? | **Oui** (C8a) |
+| Icône + libellé sur chaque onglet ? | **Oui** (C13) |
+| Icône Préférences = `tune` (pas `equalizer`) ? | **Oui** — validé 2026-06-08 |
 
-**Statut :** `approved` (2026-06-03, amendé 2026-06-04a pseudo/rail, **2026-06-04b** fusion Mon profil — Sally) — stories : [17-34](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) `done` ; [17-35](../implementation-artifacts/17-35-mon-compte-pseudo-identite-rail-label.md) `done` ; [17-36](../implementation-artifacts/17-36-mon-compte-onglet-mon-profil.md) `done`.
+**Statut :** `approved` (2026-06-03, amendé 2026-06-04a pseudo/rail, **2026-06-04b** fusion Mon profil, **2026-06-08** icônes onglets — Sally + Patrice) — stories : [17-34](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) `done` ; [17-35](../implementation-artifacts/17-35-mon-compte-pseudo-identite-rail-label.md) `done` ; [17-36](../implementation-artifacts/17-36-mon-compte-onglet-mon-profil.md) `done`. **C13 icônes onglets :** livré — [spec-account-tab-icons-c13.md](../implementation-artifacts/spec-account-tab-icons-c13.md).

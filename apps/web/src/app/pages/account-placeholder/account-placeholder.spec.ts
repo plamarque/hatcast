@@ -262,6 +262,29 @@ describe('AccountPlaceholder', () => {
     expect(text).not.toContain('Sécurité')
   })
 
+  it('affiche une icône Material distincte sur chaque onglet', async () => {
+    const { fixture } = await setup()
+    const tabs = fixture.nativeElement.querySelectorAll('.account-page__tab-item')
+    expect(tabs.length).toBe(4)
+
+    const expected = [
+      { icon: 'person', label: 'Mon profil' },
+      { icon: 'tune', label: 'Préférences' },
+      { icon: 'notifications', label: 'Notifications' },
+      { icon: 'info', label: 'À propos' },
+    ]
+
+    expected.forEach(({ icon, label }, index) => {
+      const tab = tabs[index] as Element
+      const children = [...tab.children]
+      expect(children[0]?.tagName.toLowerCase()).toBe('mat-icon')
+      expect(children[1]?.tagName.toLowerCase()).toBe('span')
+      expect(children[0]?.getAttribute('aria-hidden')).toBe('true')
+      expect(children[0]?.textContent?.trim()).toBe(icon)
+      expect(children[1]?.textContent?.trim()).toBe(label)
+    })
+  })
+
   it('propose un menu sur l’avatar pour la photo', async () => {
     const { fixture } = await setup()
     const trigger = fixture.nativeElement.querySelector(
