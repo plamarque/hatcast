@@ -378,27 +378,30 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 ---
 
-## Screen 6b — Groupe de spectacles (onglet Infos) **[ADR-0013] [Epic 17.7–17.8]**
+## Screen 6b — Catégorie (onglet Infos) **[ADR-0013] [Epic 17.7–17.8]**
 
 > **2026-05-25 (SCP) :** Saisie sur l’onglet **Infos** du détail spectacle (`event-infos-tab`), **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).  
-> **Libellé UI (2026-05-25) :** section **Groupe de spectacles** (champ API `equityTag` / tag d’équité en domaine).
+> **Libellé UI (DOMAIN / ADR 0013) :** section **Catégorie** (champ API `category` ; ex-`equityTag` / « Groupe de spectacles » en UX 2026-05-25).  
+> **2026-06-08 :** phrase d’aide **inline** sur l’onglet Infos (même copy que la modale) — le libellé seul était trop cryptique en bas de fiche.
 
 **Context:** Event detail → tab **Infos** — not a separate route; not in create/edit dialog.
 
 | Field | Behaviour |
 |-------|-----------|
-| **Section label** | **Groupe de spectacles** (small caps, same pattern as other Infos fields) |
-| **Empty state (manage)** | CTA **« Mettre dans un groupe »** + icon `sell` — **primary** link style (same as **« Ajouter un·e organisateur·ice »**); opens `EventEquityTagDialog` |
-| **Set state** | Chip with glossary label; `×` removes tag → **principal** equity (default, **not shown** as option); chip click reopens dialog |
-| **Dialog** | Title **Groupe de spectacles**; field **Groupe (optionnel)**; autocomplete against troupe glossary; type unknown → create tag |
-| **Help** | `mat-hint` in dialog: participations count toward separate chance/draw/stat pool when tagged |
-| **Rule** | **At most one** tag per event — CTA wording reflects assign/switch, not “add another group” |
+| **Section label** | **Catégorie** (small caps, same pattern as other Infos fields) |
+| **Inline help** | Visible whenever the section is shown (`canManageEvents` or category already set). Secondary text under the label, `on-surface-variant`, ~0.8125rem ; `aria-describedby` on the section. **Same French copy** as dialog hint (single constant `CATEGORY_HELP`). |
+| **Help copy (FR)** | *« Les participations à ce spectacle comptent dans une catégorie séparée pour calculer les chances au tirage et les statistiques. »* |
+| **Empty state (manage)** | CTA **« Choisir une catégorie »** + icon `sell` — **primary** link style (same as **« Ajouter un·e organisateur·ice »**); opens `EventCategoryDialog` |
+| **Set state** | Chip with glossary label; `×` removes category → **principal** pool (default, **not shown** as option); chip click reopens dialog |
+| **Dialog** | Title **Catégorie**; field **Catégorie (optionnelle)**; autocomplete against troupe glossary; type unknown → create category |
+| **Help (dialog)** | `mat-hint` — **identical** copy to inline help on tab |
+| **Rule** | **At most one** category per event — CTA wording reflects assign/switch, not “add another category” |
 
-**Not in UI:** “Principal” radio; tag field in `EventFormDialog`. `templateType` (match, cabaret…) — on Infos via modales (**17.14**).
+**Not in UI:** “Principal” radio; category field in `EventFormDialog`. **Format** (`templateType`: match, cabaret…) — on Infos via modales (**17.14**).
 
-**List surfaces:** optional small badge on agenda rows when tag set.
+**List surfaces:** optional small badge on agenda rows when category set.
 
-**Stats/draw:** Epic 17.9–17.10 — DEPLACEMENT column driven by tag `deplacements`, not travel season.
+**Stats/draw:** Epic 17.9–17.10 — DEPLACEMENT column driven by category `deplacements`, not travel season.
 
 ---
 
@@ -471,7 +474,7 @@ No layout redesign in MVP; optional polish Story 2.11.
 | **UX-DR18** | Multi-active seasons — several active cards on troupe hub | Active |
 | **UX-DR19** | Breadcrumb — desktop full path; mobile troupe logo only; links to hub | **New** ADR 0013 |
 | **UX-DR20** | Scope admin bar below header (troupe / saison / spectacle) | **New** ADR 0013 |
-| **UX-DR21** | **Groupe de spectacles** on Infos tab (`equityTag`) — CTA **Mettre dans un groupe** → dialog autocomplete; principal implicit; one tag max | **New** ADR 0013 |
+| **UX-DR21** | **Catégorie** on Infos tab (`category`) — inline help + CTA **Choisir une catégorie** → dialog autocomplete; principal implicit; one category max | **Amended** ADR 0013 (2026-06-08 inline help) |
 
 ---
 

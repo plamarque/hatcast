@@ -90,7 +90,7 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 | Date | Labeled « Date », calendar export when valid |
 | Lieu | Labeled « Lieu », maps menu when set |
 | Format et besoins | Section unchanged |
-| Organisateur·ices / Catégorie | Gating unchanged |
+| Organisateur·ices / Catégorie | Gating unchanged. **Catégorie** : inline help under label when section visible (same copy as category dialog). |
 
 ---
 

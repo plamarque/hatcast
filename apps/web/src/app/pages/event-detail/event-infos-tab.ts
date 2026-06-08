@@ -39,6 +39,7 @@ import {
 } from '../../core/troupes/troupe-api.service'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import {
+  CATEGORY_HELP,
   EventCategoryDialog,
   type EventCategoryDialogData,
   type EventCategoryDialogResult,
@@ -96,6 +97,8 @@ export class EventInfosTab {
   protected readonly saving = signal(false)
   protected readonly calendarMenuOpen = signal(false)
   protected readonly mapsMenuOpen = signal(false)
+
+  protected readonly categoryHelp = CATEGORY_HELP
 
   protected readonly showCategorySection = computed(
     () => this.canManageEvents() || this.event().category != null,

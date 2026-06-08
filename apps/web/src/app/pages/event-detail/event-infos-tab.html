@@ -177,8 +177,13 @@
   }
 
   @if (showCategorySection()) {
-    <section class="event-infos__category" aria-labelledby="event-infos-category-label">
+    <section
+      class="event-infos__category"
+      aria-labelledby="event-infos-category-label"
+      aria-describedby="event-infos-category-help"
+    >
       <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
+      <p id="event-infos-category-help" class="event-infos__category-help">{{ categoryHelp }}</p>
       <div class="event-infos__category-body">
         @if (categoryLabel(); as label) {
           <mat-chip-set class="event-infos__chip-set">

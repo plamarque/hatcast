@@ -9,6 +9,7 @@ import type { EventResponse } from '../../core/events/event-api.service'
 import { CALENDAR_SNACKBAR_MESSAGES } from '../../core/events/event-calendar-export'
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { CATEGORY_HELP } from './event-category-dialog'
 import { EventInfosTab } from './event-infos-tab'
 
 function ev(overrides: Partial<EventResponse> = {}): EventResponse {
@@ -310,5 +311,13 @@ describe('EventInfosTab', () => {
     fixture.detectChanges()
 
     expect(locationButton()?.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('shows category help when organizer can manage events', () => {
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    const help = fixture.nativeElement.querySelector('#event-infos-category-help')
+    expect(help?.textContent?.trim()).toBe(CATEGORY_HELP)
   })
 })
