@@ -5,6 +5,7 @@ import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import type { EventResponse } from '../../core/events/event-api.service'
@@ -28,10 +29,13 @@ import {
   getEventTypeLabel,
   normalizeRoleSlots,
   type RoleKey,
-  ROLE_EMOJIS,
-  ROLE_LABELS,
   rolesWithSlots,
 } from '../../core/events/event-types'
+import {
+  roleDisplayChipItems,
+  roleSlotCountSuffix,
+} from '../../shared/event-roles/role-display-chip-set/role-display-chip-item'
+import { RoleDisplayChipSet } from '../../shared/event-roles/role-display-chip-set/role-display-chip-set'
 import { getPwaBrowserInfo } from '../../core/pwa/pwa-browser-info'
 import {
   type TroupeCategory,
@@ -66,7 +70,9 @@ import {
     MatDialogModule,
     MatIconModule,
     MatMenuModule,
+    MatProgressSpinnerModule,
     MatSnackBarModule,
+    RoleDisplayChipSet,
   ],
   templateUrl: './event-infos-tab.html',
   styleUrl: './event-infos-tab.scss',
@@ -95,6 +101,8 @@ export class EventInfosTab {
   protected readonly glossary = signal<TroupeCategory[]>([])
   protected readonly organizers = signal<OrganizerResponse[]>([])
   protected readonly saving = signal(false)
+  /** Format et besoins — spinner from dialog close until PATCH + parent refresh. */
+  protected readonly savingTypeRoles = signal(false)
   protected readonly calendarMenuOpen = signal(false)
   protected readonly mapsMenuOpen = signal(false)
 
@@ -113,8 +121,11 @@ export class EventInfosTab {
   protected readonly summaryRoleKeys = computed((): RoleKey[] =>
     rolesWithSlots(normalizeRoleSlots(this.event().roleSlots)),
   )
-  protected readonly roleLabels = ROLE_LABELS
-  protected readonly roleEmojis = ROLE_EMOJIS
+  protected readonly summaryRoleChipItems = computed(() =>
+    roleDisplayChipItems(this.summaryRoleKeys(), (key) =>
+      roleSlotCountSuffix(this.roleCount(key)),
+    ),
+  )
 
   protected readonly categoryLabel = computed(() => {
     const slug = this.event().category
@@ -313,6 +324,7 @@ export class EventInfosTab {
       if (result === undefined) {
         return
       }
+      this.savingTypeRoles.set(true)
       void this.persistTypeRoles(result)
     })
   }
@@ -421,6 +433,7 @@ export class EventInfosTab {
       this.snack.open('Format et besoins enregistrés.', 'OK', { duration: 4000 })
     } finally {
       this.saving.set(false)
+      this.savingTypeRoles.set(false)
     }
   }
 

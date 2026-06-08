@@ -184,7 +184,7 @@ describe('AvailabilityForm', () => {
     fixture.detectChanges()
 
     expect(form.selected()).toBe('available')
-    expect(fixture.nativeElement.textContent).toContain('Comédien·nes')
+    expect(fixture.nativeElement.textContent).toContain('Comédien·ne')
   })
 
   it('hides role block immediately when becoming unavailable', async () => {
@@ -208,6 +208,13 @@ describe('AvailabilityForm', () => {
     expect(fixture.nativeElement.textContent).not.toContain(
       'Choisis les rôles pour lesquels tu es disponible',
     )
+  })
+
+  it('renders role toggle chips instead of checkboxes', async () => {
+    const { fixture } = await setupForm({ initialStatus: 'available' })
+    expect(fixture.nativeElement.querySelector('app-role-toggle-chip-set')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull()
+    expect(fixture.nativeElement.querySelectorAll('mat-chip').length).toBeGreaterThan(0)
   })
 
   it('persists roles and comment only via save button', async () => {

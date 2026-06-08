@@ -72,7 +72,7 @@ describe('MemberPreferencesForm', () => {
   it('saves preferred roles via PATCH with preferredRoleKeys only', async () => {
     const { fixture, patchPreferences, snack } = await setup()
     const component = fixture.componentInstance as MemberPreferencesForm
-    component['togglePreferredRole']('mc', true)
+    component['onRolesChange'](['volunteer', 'player', 'mc'])
 
     await component['save']()
     await fixture.whenStable()
@@ -87,7 +87,7 @@ describe('MemberPreferencesForm', () => {
   it('shows error snack when preferences patch fails', async () => {
     const { fixture, snack } = await setup({ patchOk: false })
     const component = fixture.componentInstance as MemberPreferencesForm
-    component['togglePreferredRole']('mc', true)
+    component['onRolesChange'](['volunteer', 'player', 'mc'])
 
     await component['save']()
     await fixture.whenStable()

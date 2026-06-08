@@ -1,0 +1,20 @@
+@if (items().length === 0) {
+  @if (emptyMessage(); as message) {
+    <span class="role-display-chip-set__empty">{{ message }}</span>
+  }
+} @else {
+  <mat-chip-set
+    class="role-display-chip-set"
+    [attr.aria-label]="ariaLabel()"
+  >
+    @for (item of items(); track item.key) {
+      <mat-chip class="role-display-chip-set__chip">
+        <span class="role-display-chip-set__emoji" aria-hidden="true">{{ emojiFor(item.key) }}</span>
+        <span class="role-display-chip-set__label">{{ labelFor(item.key) }}</span>
+        @if (item.suffix) {
+          <span class="role-display-chip-set__suffix">{{ item.suffix }}</span>
+        }
+      </mat-chip>
+    }
+  </mat-chip-set>
+}

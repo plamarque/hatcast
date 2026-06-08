@@ -1,7 +1,5 @@
 import { Component, computed, input, output } from '@angular/core'
-import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -16,21 +14,22 @@ import {
   type ParticipationChartStatus,
 } from '../../core/participation/participation-status'
 import {
-  canDisablePreferredRole,
-  getRoleLabel,
-  orderedRoleKeys,
-  roleEmoji,
-  type RoleKey,
-} from '../event-roles/event-roles'
+  roleDisplayChipItems,
+  roleFavoriteCountSuffix,
+} from '../event-roles/role-display-chip-set/role-display-chip-item'
+import { RoleDisplayChipSet } from '../event-roles/role-display-chip-set/role-display-chip-set'
+import { getRoleLabel, roleEmoji, type RoleKey } from '../event-roles/event-roles'
+import { RoleToggleChipSet } from '../event-roles/role-toggle-chip-set/role-toggle-chip-set'
+
 @Component({
   selector: 'app-member-profile-panel',
   imports: [
-    FormsModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    RoleDisplayChipSet,
+    RoleToggleChipSet,
   ],
   templateUrl: './member-profile-panel.html',
   styleUrl: './member-profile-dialog.scss',
@@ -39,21 +38,28 @@ export class MemberProfilePanel {
   readonly profile = input.required<MemberProfileSummary>()
   readonly loading = input(false)
   readonly saving = input(false)
-  readonly selectedRoleKeys = input<Set<string>>(new Set())
+  readonly selectedRoleKeys = input<readonly string[]>([])
   readonly showPreferredRoles = input(true)
   readonly showCloseButton = input(false)
   /** L2 on hub pages (`h2`), L3 under dialog title (`h3`). */
   readonly sectionHeadingLevel = input<2 | 3>(3)
 
-  readonly roleToggled = output<{ key: RoleKey; checked: boolean }>()
+  readonly preferredRolesChange = output<readonly string[]>()
   readonly savePreferredRoles = output<void>()
   readonly closeRequested = output<void>()
-
-  protected readonly roleKeys = orderedRoleKeys()
 
   protected readonly hasStats = computed(() => !!this.profile().stats)
   protected readonly hasFavoriteCounts = computed(
     () => (this.profile().favoriteRoleCounts?.length ?? 0) > 0,
+  )
+  protected readonly favoriteRoleChipItems = computed(() =>
+    roleDisplayChipItems(
+      (this.profile().favoriteRoleCounts ?? []).map((item) => item.roleKey as RoleKey),
+      (key) => {
+        const match = (this.profile().favoriteRoleCounts ?? []).find((item) => item.roleKey === key)
+        return match ? roleFavoriteCountSuffix(match.count) : undefined
+      },
+    ),
   )
   protected readonly chartHeading = computed(() =>
     "En un clin d'œil",
@@ -147,19 +153,8 @@ export class MemberProfilePanel {
     }
   }
 
-  protected canToggleRole(key: RoleKey): boolean {
-    return canDisablePreferredRole(key)
-  }
-
-  protected isRoleSelected(key: RoleKey): boolean {
-    return this.selectedRoleKeys().has(key)
-  }
-
-  protected onToggleRole(key: RoleKey, checked: boolean): void {
-    if (!canDisablePreferredRole(key)) {
-      return
-    }
-    this.roleToggled.emit({ key, checked })
+  protected onPreferredRolesChange(keys: readonly string[]): void {
+    this.preferredRolesChange.emit(keys)
   }
 
   protected onSavePreferredRoles(): void {

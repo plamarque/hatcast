@@ -11,10 +11,12 @@
 
   <div class="composition-participation__role-block">
     <div class="composition-participation__role-label">Rôle assigné</div>
-    <div class="composition-participation__role-card">
-      <span class="composition-participation__role-emoji" aria-hidden="true">{{ data.roleEmoji }}</span>
-      <span class="composition-participation__role-name">{{ data.roleLabel }}</span>
-    </div>
+    <app-role-display-chip-set
+      class="composition-participation__role-chip-set"
+      ariaLabel="Rôle assigné"
+      [items]="[{ key: data.roleKey }]"
+      [gender]="data.roleGender ?? 'non_specified'"
+    />
   </div>
 
   <div class="composition-participation__actions" role="group" aria-label="Réponse de participation">

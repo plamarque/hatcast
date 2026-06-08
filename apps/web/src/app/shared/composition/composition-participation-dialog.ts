@@ -7,13 +7,16 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog'
 
+import type { MemberGender } from '../../core/account/member-gender'
 import type { SlotParticipationUpdateStatus } from '../../core/composition/composition-api.service'
+import type { RoleKey } from '../../core/events/event-types'
+import { RoleDisplayChipSet } from '../event-roles/role-display-chip-set/role-display-chip-set'
 
 export interface CompositionParticipationDialogData {
   eventTitle: string
   eventDate: string
-  roleLabel: string
-  roleEmoji: string
+  roleKey: RoleKey
+  roleGender?: MemberGender
   currentStatus: 'pending' | 'confirmed' | 'declined'
   mode?: 'self' | 'proxy'
   assigneeDisplayName?: string
@@ -26,7 +29,7 @@ export interface CompositionParticipationDialogResult {
 
 @Component({
   selector: 'app-composition-participation-dialog',
-  imports: [FormsModule, MatButtonModule, MatDialogModule],
+  imports: [FormsModule, MatButtonModule, MatDialogModule, RoleDisplayChipSet],
   templateUrl: './composition-participation-dialog.html',
   styleUrl: './composition-participation-dialog.scss',
 })

@@ -47,8 +47,9 @@ import {
   rolesWithSlots,
   type RoleKey,
 } from '../../core/events/event-types'
-import { auditRoleDisplay } from '../../core/audit/audit-display-labels'
 import { getRoleLabel } from '../../shared/event-roles/event-roles'
+import { roleActionChipDisplayText } from '../../shared/event-roles/role-action-chip/role-action-chip-label'
+import { RoleActionChip } from '../../shared/event-roles/role-action-chip/role-action-chip'
 import { ChanceBreakdownService } from '../../shared/composition/chance-breakdown.service'
 import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
 import { CompositionPoolPreview } from '../../shared/composition/composition-pool-preview'
@@ -103,11 +104,14 @@ interface SlotRow {
     CompositionDrawAnimation,
     CompositionPoolPreview,
     UserAvatarComponent,
+    RoleActionChip,
   ],
   templateUrl: './event-equipe-tab.html',
   styleUrl: './event-equipe-tab.scss',
 })
 export class EventEquipeTab {
+  protected readonly roleChipDisplayText = roleActionChipDisplayText
+
   private readonly compositionApi = inject(CompositionApiService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly analytics = inject(ProductAnalyticsService)
@@ -529,11 +533,10 @@ export class EventEquipeTab {
   }
 
   protected slotRowAriaLabel(row: SlotRow): string {
-    const role = this.rolePillLabel(
-      row.roleKey,
-      row.slot?.participantGender,
-      !!row.slot?.participantId,
-    )
+    const role = roleActionChipDisplayText(row.roleKey, {
+      gender: row.slot?.participantGender,
+      hasAssignee: !!row.slot?.participantId,
+    })
     const name = row.slot?.participantDisplayName
     if (this.isParticipationSlotTappable(row)) {
       return name ? `Participation de ${name}, ${role}` : role
@@ -681,20 +684,6 @@ export class EventEquipeTab {
 
   protected readonly emptySlotPlaceholder = 'À pourvoir'
 
-  /** Inclusive label for empty slots; gender-aware when a participant is assigned. */
-  protected rolePillLabel(
-    roleKey: string,
-    participantGender?: MemberGender | null,
-    hasAssignee = false,
-  ): string {
-    const key = roleKey as RoleKey
-    if (hasAssignee) {
-      const emoji = ROLE_EMOJIS[key] ?? '•'
-      return `${emoji} ${getRoleLabel(key, participantGender)}`
-    }
-    return auditRoleDisplay(roleKey)
-  }
-
   private findOwnAssignedParticipationRow(): SlotRow | null {
     const viewerIds = this.viewerParticipantIds()
     for (const row of this.slotRows()) {
@@ -763,8 +752,8 @@ export class EventEquipeTab {
       data: {
         eventTitle: ev.title,
         eventDate: ev.startsAt,
-        roleLabel: getRoleLabel(row.roleKey as RoleKey, roleGender),
-        roleEmoji: row.roleEmoji,
+        roleKey: row.roleKey as RoleKey,
+        roleGender,
         currentStatus: slot.participationStatus,
         mode: options.mode,
         assigneeDisplayName: options.mode === 'proxy' ? assigneeName : undefined,
@@ -1079,11 +1068,10 @@ export class EventEquipeTab {
   }
 
   protected rolePoolPreviewAriaLabel(row: SlotRow): string {
-    const role = this.rolePillLabel(
-      row.roleKey,
-      row.slot?.participantGender,
-      !!row.slot?.participantId,
-    )
+    const role = roleActionChipDisplayText(row.roleKey, {
+      gender: row.slot?.participantGender,
+      hasAssignee: !!row.slot?.participantId,
+    })
     return this.isRolePoolPreviewOpen(row)
       ? `Masquer le pool du tirage pour ${role}`
       : `Voir le pool du tirage pour ${role}`

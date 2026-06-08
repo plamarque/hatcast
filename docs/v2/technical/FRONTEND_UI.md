@@ -46,6 +46,7 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md`](../../../_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md) | Brouillon spectacle, publication, bandeau, agendas (story **3.21**) |
 | [`_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md`](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md) | Détail spectacle — rangée titre + statut, breadcrumb sans titre, onglet Infos (2026-06-06) |
 | [`_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) | Détail cote par personne — waterfall deltas, barre pool, pairs (story **19.7**) |
+| [`_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md`](../../../_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md) | Sélection multi-rôles — `RoleToggleChipSet` (`mat-chip` + `[highlighted]`), Préférences compte |
 
 Avant toute story UI, lire la section **checklist** ci-dessous et les **Dev Notes** / AC de la story (souvent sous `_bmad-output/implementation-artifacts/`).
 
@@ -118,6 +119,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 - Spec UX : [`ux-design-participation-semantic-colors.md`](../../../_bmad-output/planning-artifacts/ux-design-participation-semantic-colors.md).
 - Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*`, `--hatcast-participation-*` ou alias `--hatcast-availability-*`).
 - Détail spectacle — rangée titre / statut : [`event-detail.html`](../../../apps/web/src/app/pages/event-detail/event-detail.html) (`event-detail__context-row`), [`context-breadcrumb`](../../../apps/web/src/app/shared/context-breadcrumb/) (`omitEventFromBreadcrumb` sur le header événement), spec [ux-design-event-detail-title-row-2026-06-06.md](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md).
+- Chips rôles événement : [`role-toggle-chip-set`](../../../apps/web/src/app/shared/event-roles/role-toggle-chip-set/) (sélection) + [`role-display-chip-set`](../../../apps/web/src/app/shared/event-roles/role-display-chip-set/) (lecture seule) + [`role-action-chip`](../../../apps/web/src/app/shared/event-roles/role-action-chip/) (action unitaire, ex. équipe) ; spec [ux-design-role-toggle-chips.md](../../../_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md) ; référence filtre admin [`membres-tab.html`](../../../apps/web/src/app/pages/admin-membres/membres-tab.html).
 
 ### Couleurs sémantiques — participation
 

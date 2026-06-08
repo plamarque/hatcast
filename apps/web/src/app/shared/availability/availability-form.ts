@@ -10,7 +10,6 @@ import {
 import { A11yModule } from '@angular/cdk/a11y'
 import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -25,13 +24,12 @@ import {
   preferredRoleIntersection,
 } from '../../core/availability/availability-role-rules'
 import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
-import type { MemberGender } from '../../core/account/member-gender'
 import {
-  ROLE_EMOJIS,
-  type RoleKey,
-  type RoleSlots,
-} from '../../core/events/event-types'
-import { getRoleLabel } from '../event-roles/event-roles'
+  effectiveMemberGender,
+  type MemberGender,
+} from '../../core/account/member-gender'
+import { type RoleKey, type RoleSlots } from '../../core/events/event-types'
+import { RoleToggleChipSet } from '../event-roles/role-toggle-chip-set/role-toggle-chip-set'
 
 export const AVAILABILITY_COMMENT_MAX_LENGTH = 500
 
@@ -48,9 +46,9 @@ export type AvailabilityFormSavedPayload = {
     A11yModule,
     MatButtonModule,
     MatButtonToggleModule,
-    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
+    RoleToggleChipSet,
   ],
   templateUrl: './availability-form.html',
   styleUrl: './availability-form.scss',
@@ -95,13 +93,7 @@ export class AvailabilityForm {
     return this.commentText().trim() !== this.savedComment().trim()
   })
 
-  protected readonly roleChoices = computed(() =>
-    candidateRolesForEvent(this.roleSlots()).map((key) => ({
-      key,
-      emoji: ROLE_EMOJIS[key],
-      label: getRoleLabel(key, this.subjectGender()),
-    })),
-  )
+  protected readonly roleChoiceKeys = computed(() => candidateRolesForEvent(this.roleSlots()))
   private preferredRoleKeysPromise: Promise<string[]> | null = null
   private volunteerExplicitlyUnchecked = false
   protected volunteerMandatoryHint = false
@@ -166,15 +158,15 @@ export class AvailabilityForm {
   }
 
   protected shouldShowRoleBlock(): boolean {
-    return this.selected() === 'available' && this.roleChoices().length > 0
+    return this.selected() === 'available' && this.roleChoiceKeys().length > 0
+  }
+
+  protected roleSelectionGender(): MemberGender {
+    return effectiveMemberGender(this.subjectGender())
   }
 
   protected shouldShowCommentBlock(): boolean {
     return this.selected() !== 'unknown' || !!this.commentText().trim()
-  }
-
-  protected isRoleSelected(roleKey: RoleKey): boolean {
-    return this.selectedRoleKeys().includes(roleKey)
   }
 
   protected shouldShowVolunteerMandatoryHint(): boolean {
@@ -255,7 +247,7 @@ export class AvailabilityForm {
   }
 
   private async applyPreferredPrecheck(): Promise<void> {
-    if (this.roleChoices().length === 0 || this.readOnly() || this.proxyMode()) return
+    if (this.roleChoiceKeys().length === 0 || this.readOnly() || this.proxyMode()) return
     const preferred = await this.loadPreferredRoleKeys()
     this.selectedRoleKeys.set(preferredRoleIntersection(this.roleSlots(), preferred))
     this.volunteerExplicitlyUnchecked = false

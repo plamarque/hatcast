@@ -14,7 +14,6 @@ import {
   MemberProfileApiService,
   type MemberProfileSummary,
 } from '../../core/member-profile/member-profile-api.service'
-import { type RoleKey } from '../event-roles/event-roles'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
 import { MemberProfilePanel } from './member-profile-panel'
 
@@ -49,7 +48,7 @@ export class MemberProfileDialog implements OnInit {
   protected readonly loading = signal(true)
   protected readonly saving = signal(false)
   protected readonly profile = signal<MemberProfileSummary | null>(null)
-  protected readonly selectedRoleKeys = signal<Set<string>>(new Set())
+  protected readonly selectedRoleKeys = signal<string[]>([])
 
   async ngOnInit(): Promise<void> {
     const r = await this.api.getProfileSummary(this.data.seasonId, this.data.userId)
@@ -61,20 +60,13 @@ export class MemberProfileDialog implements OnInit {
     }
     this.profile.set(r.data)
     if (r.data.isSelf && r.data.preferredRoleKeys) {
-      this.selectedRoleKeys.set(new Set(r.data.preferredRoleKeys))
+      this.selectedRoleKeys.set([...r.data.preferredRoleKeys])
     }
     this.loading.set(false)
   }
 
-  protected onRoleToggled(event: { key: RoleKey; checked: boolean }): void {
-    const next = new Set(this.selectedRoleKeys())
-    if (event.checked) {
-      next.add(event.key)
-    } else {
-      next.delete(event.key)
-    }
-    next.add('volunteer')
-    this.selectedRoleKeys.set(next)
+  protected onPreferredRolesChange(keys: readonly string[]): void {
+    this.selectedRoleKeys.set([...keys])
   }
 
   protected async savePreferredRoles(): Promise<void> {
@@ -86,7 +78,7 @@ export class MemberProfileDialog implements OnInit {
     const r = await this.api.updatePreferredRoles(this.data.troupeId, keys)
     this.saving.set(false)
     if (r.ok && r.data) {
-      this.selectedRoleKeys.set(new Set(r.data.preferredRoleKeys))
+      this.selectedRoleKeys.set([...r.data.preferredRoleKeys])
       this.snack.open('Préférences enregistrées', 'OK', { duration: 3000 })
     } else {
       this.snack.open('Enregistrement impossible.', 'OK', { duration: 5000 })

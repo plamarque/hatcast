@@ -106,12 +106,13 @@ describe('AvailabilityDialog', () => {
     )
   })
 
-  it('shows role checklist only when available and roles exist', async () => {
+  it('shows role chips only when available and roles exist', async () => {
     const { fixture } = await setup({ initialStatus: 'available', initialRoleKeys: ['player'] })
     const el = fixture.nativeElement as HTMLElement
 
     expect(el.textContent).toContain('Choisis les rôles pour lesquels tu es disponible')
-    expect(el.textContent).toContain('Comédien·nes')
+    expect(el.querySelector('app-role-toggle-chip-set')).toBeTruthy()
+    expect(el.textContent).toContain('Comédien·ne')
     expect(el.textContent).toContain('MC')
   })
 
@@ -130,7 +131,7 @@ describe('AvailabilityDialog', () => {
       comment: null,
     })
     const formEl = fixture.nativeElement as HTMLElement
-    expect(formEl.textContent).toContain('Comédien·nes')
+    expect(formEl.textContent).toContain('Comédien·ne')
     expect(formEl.textContent).toContain('MC')
   })
 
@@ -239,20 +240,16 @@ describe('AvailabilityDialog', () => {
     expect(el.textContent).not.toContain('Choisis les rôles pour lesquels tu es disponible')
   })
 
-  it('persists role toggle via keyboard after explicit save', async () => {
+  it('persists role chip toggle after explicit save', async () => {
     const { fixture, setMyAvailability } = await setup({
       initialStatus: 'available',
       initialRoleKeys: ['player'],
     })
 
-    const mcCheckbox = [...fixture.nativeElement.querySelectorAll('.availability-form__role')].find(
-      (el: Element) => el.textContent?.includes('MC'),
+    const mcChip = [...fixture.nativeElement.querySelectorAll('mat-chip')].find((el: Element) =>
+      el.textContent?.includes('MC'),
     ) as HTMLElement
-    const mcInput = mcCheckbox.querySelector('input[type="checkbox"]') as HTMLInputElement
-
-    mcInput.focus()
-    mcInput.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
-    mcInput.click()
+    mcChip.click()
     fixture.detectChanges()
     expect(setMyAvailability).not.toHaveBeenCalled()
 

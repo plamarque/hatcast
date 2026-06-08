@@ -106,7 +106,7 @@
           mat-icon-button
           class="event-infos__format-edit"
           aria-label="Modifier format et besoins"
-          [disabled]="saving()"
+          [disabled]="savingTypeRoles()"
           (click)="openTypeRolesDialog()"
         >
           <mat-icon aria-hidden="true">edit</mat-icon>
@@ -114,22 +114,28 @@
       }
     </div>
     <div class="event-infos__format-body">
-      <div class="event-infos__type-row">
-        <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
-        <span>{{ typeLabel() }}</span>
-      </div>
-      <div class="event-infos__roles-summary">
-        @if (summaryRoleKeys().length === 0) {
-          <span class="event-infos__roles-empty">Aucun besoin renseigné</span>
-        } @else {
-          @for (role of summaryRoleKeys(); track role) {
-            <span class="event-infos__roles-item">
-              <span aria-hidden="true">{{ roleEmojis[role] }}</span>
-              {{ roleLabels[role] }}: <strong>{{ roleCount(role) }}</strong>
-            </span>
-          }
-        }
-      </div>
+      @if (savingTypeRoles()) {
+        <div
+          class="event-infos__format-loading"
+          role="status"
+          aria-live="polite"
+          aria-label="Mise à jour du format et des besoins"
+        >
+          <mat-spinner diameter="28" />
+          <span class="event-infos__format-loading-text">Mise à jour…</span>
+        </div>
+      } @else {
+        <div class="event-infos__type-row">
+          <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
+          <span>{{ typeLabel() }}</span>
+        </div>
+        <app-role-display-chip-set
+          class="event-infos__roles-summary"
+          ariaLabel="Besoins en rôles"
+          [items]="summaryRoleChipItems()"
+          emptyMessage="Aucun besoin renseigné"
+        />
+      }
     </div>
   </section>
 

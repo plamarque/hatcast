@@ -33,7 +33,7 @@
         [loading]="false"
         [saving]="saving()"
         [selectedRoleKeys]="selectedRoleKeys()"
-        (roleToggled)="onRoleToggled($event)"
+        (preferredRolesChange)="onPreferredRolesChange($event)"
         (savePreferredRoles)="savePreferredRoles()"
       />
     </mat-dialog-content>

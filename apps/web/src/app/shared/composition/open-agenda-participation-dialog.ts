@@ -11,7 +11,7 @@ import {
   ConfirmDialog,
   type ConfirmDialogData,
 } from '../../pages/seasons-list/confirm-dialog'
-import { getRoleLabel, roleEmoji, type RoleKey } from '../event-roles/event-roles'
+import type { RoleKey } from '../event-roles/event-roles'
 import { findViewerParticipationSlot } from './agenda-participation-slot'
 import {
   CompositionParticipationDialog,
@@ -78,8 +78,8 @@ export async function openAgendaParticipationDialog(
     data: {
       eventTitle: params.eventTitle,
       eventDate: params.eventStartsAt,
-      roleLabel: getRoleLabel(roleKey, roleGender),
-      roleEmoji: roleEmoji(roleKey),
+      roleKey,
+      roleGender,
       currentStatus: slot.participationStatus,
       mode: 'self',
     },

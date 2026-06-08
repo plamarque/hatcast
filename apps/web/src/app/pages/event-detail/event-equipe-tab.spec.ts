@@ -211,7 +211,7 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       const pills = [
-        ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role-pill'),
+        ...fixture.nativeElement.querySelectorAll('app-role-action-chip'),
       ].map((el: Element) => el.textContent?.trim())
       expect(pills[0]).toBe('🎭 Comédienne')
       expect(pills[1]).toBe('🎭 Comédien·ne')
@@ -243,7 +243,7 @@ describe('EventEquipeTab', () => {
     })
 
     const rolePills = [
-      ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role-pill'),
+      ...fixture.nativeElement.querySelectorAll('app-role-action-chip'),
     ].map((el: Element) => el.textContent?.trim())
     expect(rolePills).toEqual(['🎧 DJ', '🎤 MC', '🎭 Comédien·ne', '🎭 Comédien·ne'])
   })
@@ -572,7 +572,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('passes gender-aware roleLabel into participation dialog when slot has participantGender', async () => {
+  it('passes gender-aware roleKey into participation dialog when slot has participantGender', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -610,7 +610,8 @@ describe('EventEquipeTab', () => {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            roleLabel: 'Comédienne',
+            roleKey: 'player',
+            roleGender: 'female',
           }),
         }),
       )
@@ -664,7 +665,8 @@ describe('EventEquipeTab', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             mode: 'self',
-            roleLabel: 'Comédienne',
+            roleKey: 'player',
+            roleGender: 'female',
           }),
         }),
       )

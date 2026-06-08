@@ -86,32 +86,15 @@
   font-weight: 700;
 }
 
-.availability-form__roles-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem 0.75rem;
+.availability-form__roles-chips {
+  display: block;
 }
 
-.availability-form__role-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.availability-form__role {
-  min-width: 0;
-}
-
-.availability-form__role-hint {
-  padding-left: 2.5rem;
+.availability-form__volunteer-hint {
+  margin: 0;
   font-size: 0.72rem;
+  line-height: 1.35;
   color: color-mix(in srgb, var(--mat-sys-on-surface) 65%, transparent);
-}
-
-.availability-form__role-emoji {
-  display: inline-block;
-  width: 1.4rem;
 }
 
 .availability-form__comment {

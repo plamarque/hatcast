@@ -1,0 +1,22 @@
+.role-toggle-chip-set {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.role-toggle-chip-set__chip {
+  min-height: 2.75rem;
+  cursor: pointer;
+
+  &--locked {
+    cursor: default;
+  }
+}
+
+.role-toggle-chip-set__emoji {
+  margin-inline-end: 0.25rem;
+}
+
+.role-toggle-chip-set__label {
+  white-space: nowrap;
+}

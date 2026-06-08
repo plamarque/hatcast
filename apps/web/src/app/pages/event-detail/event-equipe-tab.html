@@ -52,25 +52,18 @@
     </ng-template>
 
     <ng-template #rolePill let-row="row">
-      @if (canOpenRolePoolPreview()) {
-        <button
-          type="button"
-          class="event-equipe-tab__role-pill event-equipe-tab__role-pill--trigger"
-          [class.event-equipe-tab__role-pill--active]="isRolePoolPreviewOpen(row)"
-          [attr.aria-expanded]="isRolePoolPreviewOpen(row)"
-          [attr.aria-label]="rolePoolPreviewAriaLabel(row)"
-          data-testid="composition-role-pool-trigger"
-          (click)="toggleRolePoolPreview($event, row)"
-        >
-          {{
-            rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
-          }}
-        </button>
-      } @else {
-        <span class="event-equipe-tab__role-pill">{{
-          rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
-        }}</span>
-      }
+      <app-role-action-chip
+        density="equipe"
+        [roleKey]="row.roleKey"
+        [gender]="row.slot?.participantGender"
+        [hasAssignee]="!!row.slot?.participantId"
+        [interactive]="canOpenRolePoolPreview()"
+        [active]="isRolePoolPreviewOpen(row)"
+        [ariaExpanded]="canOpenRolePoolPreview() ? isRolePoolPreviewOpen(row) : null"
+        [ariaLabel]="canOpenRolePoolPreview() ? rolePoolPreviewAriaLabel(row) : null"
+        [testId]="canOpenRolePoolPreview() ? 'composition-role-pool-trigger' : null"
+        (actionClick)="toggleRolePoolPreview($event, row)"
+      />
     </ng-template>
 
     <ng-template #poolPreviewInline let-row="row">
@@ -81,7 +74,10 @@
           role="region"
           [attr.aria-label]="
             'Pool du tirage pour ' +
-            rolePillLabel(row.roleKey, row.slot?.participantGender, !!row.slot?.participantId)
+            roleChipDisplayText(row.roleKey, {
+              gender: row.slot?.participantGender,
+              hasAssignee: !!row.slot?.participantId,
+            })
           "
         >
           @if (poolPreviewLoading()) {
@@ -277,9 +273,12 @@
             <ul class="event-equipe-tab__declines-list">
               @for (decline of declines(); track decline.id) {
                 <li class="event-equipe-tab__row event-equipe-tab__row--declined">
-                  <span class="event-equipe-tab__role-pill">{{
-                    rolePillLabel(decline.roleKey, decline.participantGender, true)
-                  }}</span>
+                  <app-role-action-chip
+                    density="equipe"
+                    [roleKey]="decline.roleKey"
+                    [gender]="decline.participantGender"
+                    [hasAssignee]="true"
+                  />
                   <span class="event-equipe-tab__slot">
                     <app-user-avatar
                       class="event-equipe-tab__avatar"

@@ -86,7 +86,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 |---|--------|----------|
 | C1 | **Périmètre écran** | Compte **global** : **profil** (**avatar**, **e-mail**, **pseudo**, modes de connexion, suppression), **rôles préférés globaux**, notifications push/catégories, version app. |
 | C2 | **Pseudo membre** | **Un seul pseudo** (`memberDisplayName`) pour toutes les troupes — champ éditable sur l’onglet **Mon profil** (bloc profil avec genre, voir [ux-design-member-gender-parity.md](./ux-design-member-gender-parity.md) Screen 1). Max 255 ; non vide à l’enregistrement. **Pas** de hint sous le champ pseudo (2026-06-05). **Pas** de pseudo par troupe sur `/compte` ni dans le hub troupe. |
-| C2b | **Rôles préférés** | **Un jeu de rôles préférés** pour toutes les troupes — formulaire sur l’onglet **Préférences** (grille `mat-checkbox` ; composant dérivé de `MemberPreferencesForm` **sans** le champ pseudo). |
+| C2b | **Rôles préférés** | **Un jeu de rôles préférés** pour toutes les troupes — formulaire sur l’onglet **Préférences** (`RoleToggleChipSet` / chips M3 wrap ; composant `MemberPreferencesForm` **sans** le champ pseudo). Voir [ux-design-role-toggle-chips.md](./ux-design-role-toggle-chips.md). |
 | C3 | **Chrome page** | Même squelette que **Mon agenda** / **Mes Stats** : conteneur `max-width: 56rem`, header `h1` + `p` sous-titre. Typo L1/L2 : [`ux-design-hub-section-headers.md`](ux-design-hub-section-headers.md). |
 | C4 | **Navigation interne** | **4 onglets** Material (`mat-tab-nav-bar` + `mat-tab-link` + routes enfants) — **Mon profil** · Préférences · Notifications · À propos. **Pas** d’onglet Sécurité séparé (fusion **17.36**). |
 | C13 | **Icônes onglets** | Chaque `mat-tab-link` affiche **`mat-icon` + libellé français sur une ligne** (pas de pile icône au-dessus du texte, pas d’onglet icône seule). Mapping : `person` · **`tune`** · `notifications` · `info`. Icône décorative : `aria-hidden="true"` ; le texte visible porte le sens. **Livré** dans `account-placeholder` (one-shot 2026-06-08). |
@@ -225,7 +225,7 @@ Contenu : grille rôles préférés (extrait de [`MemberPreferencesForm`](../../
 
 | Élément | Détail |
 |---------|--------|
-| **Rôles préférés** | Grille `mat-checkbox` (clés, labels, emoji, règle `volunteer` non désactivable). |
+| **Rôles préférés** | `RoleToggleChipSet` — chips `mat-chip` wrap (emoji, labels inclusifs, `volunteer` verrouillé). Spec : [ux-design-role-toggle-chips.md](./ux-design-role-toggle-chips.md). |
 | **Enregistrement** | Bouton **Enregistrer** pour la section ; snack succès / erreur ; API `PATCH /v1/me/preferences` (`preferredRoleKeys` seul). |
 | **Retiré de cet onglet** | Champ **Pseudo** (déplacé Identité, amendement 2026-06-04). |
 | **Retiré (historique)** | Lien « Préférences par troupe », bottom sheet hub, pseudo par troupe. |

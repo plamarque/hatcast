@@ -51,24 +51,21 @@
           Choisis les rôles pour lesquels tu es disponible
         }
       </p>
-      <div class="availability-form__roles-grid">
-        @for (role of roleChoices(); track role.key) {
-          <div class="availability-form__role-wrap">
-            <mat-checkbox
-              class="availability-form__role"
-              [checked]="isRoleSelected(role.key)"
-              [disabled]="savingDetails() || readOnly() || archived()"
-              (change)="toggleRole(role.key, $event.checked)"
-            >
-              <span class="availability-form__role-emoji" aria-hidden="true">{{ role.emoji }}</span>
-              <span>{{ role.label }}</span>
-            </mat-checkbox>
-            @if (role.key === 'volunteer' && shouldShowVolunteerMandatoryHint()) {
-              <span class="availability-form__role-hint">(obligatoire)</span>
-            }
-          </div>
-        }
-      </div>
+      <app-role-toggle-chip-set
+        class="availability-form__roles-chips"
+        ariaLabel="Rôles disponibles pour cet événement"
+        [selectedKeys]="selectedRoleKeys()"
+        [roleKeys]="roleChoiceKeys()"
+        [gender]="roleSelectionGender()"
+        [lockVolunteer]="false"
+        [disabled]="savingDetails() || readOnly() || archived()"
+        (chipToggled)="toggleRole($event.key, $event.checked)"
+      />
+      @if (shouldShowVolunteerMandatoryHint()) {
+        <p class="availability-form__volunteer-hint" aria-live="polite">
+          Bénévole (obligatoire) — requis avec le rôle comédien·ne sur ce format.
+        </p>
+      }
     </section>
   }
 

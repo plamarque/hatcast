@@ -25,18 +25,8 @@
   margin-bottom: 0.35rem;
 }
 
-.composition-participation__role-card {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.65rem 0.85rem;
-  border-radius: 0.55rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.composition-participation__role-emoji {
-  font-size: 1.5rem;
+.composition-participation__role-chip-set {
+  display: block;
 }
 
 .composition-participation__actions {
