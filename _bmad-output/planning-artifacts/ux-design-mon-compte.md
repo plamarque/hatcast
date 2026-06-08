@@ -212,6 +212,8 @@ Source amendement troupe hub : [ux-design-troupe-hub.md](./ux-design-troupe-hub.
 
 Ordre : push d’abord, puis préférences par catégorie. Pas de titre de section redondant si l’onglet porte déjà le libellé **Notifications**.
 
+**Grammaire visuelle (amendement 2026-06-08) :** cartes groupe type Réglages iOS — fond page `surface`, cartes `surface-container-high` radius 16 px ; titres **Messages pour moi** / **Rappels automatiques** **hors carte** ; deux switchers **Cet appareil** / **E-mail** par ligne, layout horizontal même sur mobile. Spec normative : [`ux-notification-prefs-phase1-as-shipped-2026-06-08.md`](./ux-notification-prefs-phase1-as-shipped-2026-06-08.md) § Refresh visuel.
+
 ### Onglet 4 — À propos
 
 **Amendement 2026-06-06** — carte identité + lignes d’action compactes (aligné Préférences / Notifications) ; check MAJ manuel (**10.2** + [spec-about-manual-pwa-update-check.md](../implementation-artifacts/spec-about-manual-pwa-update-check.md)).

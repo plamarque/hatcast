@@ -45,10 +45,11 @@ async function setup(options: { initialState?: PushUiState } = {}) {
 }
 
 describe('PushNotificationsSection', () => {
-  it('renders toggle with data-testid', async () => {
+  it('renders toggle with data-testid inside group card', async () => {
     const { fixture } = await setup({ initialState: 'disabled' })
     const toggle = fixture.nativeElement.querySelector('[data-testid="push-notifications-toggle"]')
     expect(toggle).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('.push-notifications-section__card')).toBeTruthy()
   })
 
   it('shows denied permission message', async () => {

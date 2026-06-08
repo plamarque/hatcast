@@ -25,6 +25,20 @@ const categories = [
     emailEnabled: true,
   },
   {
+    key: 'EVENT_DETAILS_CHANGED',
+    label: 'Me prévenir quand la date, le lieu ou le format change sur un spectacle où j’ai déjà interagi (dispo ou participation)',
+    group: 'NOTIFICATIONS',
+    pushEnabled: true,
+    emailEnabled: true,
+  },
+  {
+    key: 'EVENT_ARCHIVED',
+    label: 'Me prévenir quand un spectacle où j’ai déjà interagi (dispo ou participation) est annulé ou archivé',
+    group: 'NOTIFICATIONS',
+    pushEnabled: true,
+    emailEnabled: true,
+  },
+  {
     key: 'COMPOSITION_SHARED',
     label: 'Composition partagée avec l’équipe',
     group: 'NOTIFICATIONS',
@@ -116,10 +130,25 @@ describe('NotificationPreferencesSection', () => {
 
     expect(text).toContain('Disponibilités')
     expect(text).toContain('Participation')
+    expect(text).toContain('Changements importants')
+    expect(text).toContain('Spectacle annulé')
     expect(text).toContain('Me prévenir quand on attend ma dispo')
     expect(text).toContain('Me prévenir quand je dois confirmer')
+    expect(text).toContain('Me prévenir quand la date, le lieu ou le format change')
+    expect(text).toContain('Me prévenir quand un spectacle où j’ai déjà interagi')
     expect(text).not.toContain("M'envoyer une notification lorsqu'un spectacle a besoin de personnes")
     expect(text).not.toContain('Si désactivé')
+  })
+
+  it('renders seven visible member preference rows when API includes 8.8 categories', async () => {
+    const { fixture } = await setup({ pushState: 'enabled' })
+    const visibleToggles = fixture.nativeElement.querySelectorAll(
+      '[data-testid^="notification-pref-"][data-testid$="-push"]',
+    )
+
+    expect(visibleToggles.length).toBe(7)
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-event-details-changed-push"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-event-archived-push"]')).toBeTruthy()
   })
 
   it('uses as-shipped aria-label format on category toggles', async () => {
@@ -132,7 +161,7 @@ describe('NotificationPreferencesSection', () => {
     expect(emailButton.getAttribute('aria-label')).toBe('Disponibilités — e-mail')
   })
 
-  it('renders section intros, channel labels and column headers', async () => {
+  it('renders section intros and channel legend once per card', async () => {
     const { fixture } = await setup({ pushState: 'enabled' })
     const text = fixture.nativeElement.textContent ?? ''
 
@@ -141,7 +170,8 @@ describe('NotificationPreferencesSection', () => {
     expect(text).toContain('Rappels automatiques')
     expect(text).toContain('Rappels liés au calendrier, pas aux actions des orgas.')
     expect(fixture.nativeElement.querySelectorAll('.notification-preferences__column-header').length).toBe(4)
-    expect(fixture.nativeElement.querySelectorAll('.notification-preferences__channel-label').length).toBeGreaterThan(0)
+    expect(fixture.nativeElement.querySelectorAll('.notification-preferences__channel-label').length).toBe(0)
+    expect(fixture.nativeElement.querySelectorAll('.notification-preferences__card').length).toBe(2)
     expect(text).toMatch(/Cet appareil/)
     expect(text).toMatch(/E-mail/)
   })

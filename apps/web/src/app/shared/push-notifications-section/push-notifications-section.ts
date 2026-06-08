@@ -23,45 +23,48 @@ import {
           <mat-spinner diameter="24" />
         </div>
       } @else {
-        <div class="push-notifications-section__row" data-testid="push-notifications-toggle">
-          <mat-slide-toggle
-            [checked]="uiState() === 'enabled'"
-            [disabled]="busy() || uiState() === 'denied'"
-            aria-label="Notifications sur cet appareil"
-            (change)="onToggle($event)"
-          >
-            Notifications sur cet appareil
-          </mat-slide-toggle>
-          @if (busy()) {
-            <mat-spinner class="push-notifications-section__inline-spinner" diameter="20" aria-hidden="true" />
+        <div class="push-notifications-section__card">
+          <div class="push-notifications-section__row" data-testid="push-notifications-toggle">
+            <mat-slide-toggle
+              class="push-notifications-section__toggle"
+              [checked]="uiState() === 'enabled'"
+              [disabled]="busy() || uiState() === 'denied'"
+              aria-label="Notifications sur cet appareil"
+              (change)="onToggle($event)"
+            >
+              Notifications sur cet appareil
+            </mat-slide-toggle>
+            @if (busy()) {
+              <mat-spinner class="push-notifications-section__inline-spinner" diameter="20" aria-hidden="true" />
+            }
+          </div>
+
+          @if (uiState() === 'enabled') {
+            <p class="push-notifications-section__hint">
+              Notifications actives — les réglages « Cet appareil » ci-dessous s’appliquent ici.
+            </p>
+          } @else if (uiState() === 'denied') {
+            <p class="push-notifications-section__hint push-notifications-section__hint--warn">
+              Autorisation refusée sur cet appareil. Réactivez les notifications dans les paramètres du système ou
+              du navigateur.
+            </p>
+            <button
+              type="button"
+              mat-stroked-button
+              class="push-notifications-section__help-btn"
+              data-testid="push-notifications-reactivate-help"
+              (click)="showReactivateHelp()"
+            >
+              Réactiver dans le navigateur
+            </button>
+          }
+
+          @if (errorMessage()) {
+            <p class="push-notifications-section__hint push-notifications-section__hint--warn" role="alert">
+              {{ errorMessage() }}
+            </p>
           }
         </div>
-
-        @if (uiState() === 'enabled') {
-          <p class="push-notifications-section__hint">
-            Notifications actives — les réglages « Cet appareil » ci-dessous s’appliquent ici.
-          </p>
-        } @else if (uiState() === 'denied') {
-          <p class="push-notifications-section__hint push-notifications-section__hint--warn">
-            Autorisation refusée sur cet appareil. Réactivez les notifications dans les paramètres du système ou
-            du navigateur.
-          </p>
-          <button
-            type="button"
-            mat-stroked-button
-            class="push-notifications-section__help-btn"
-            data-testid="push-notifications-reactivate-help"
-            (click)="showReactivateHelp()"
-          >
-            Réactiver dans le navigateur
-          </button>
-        }
-
-        @if (errorMessage()) {
-          <p class="push-notifications-section__hint push-notifications-section__hint--warn" role="alert">
-            {{ errorMessage() }}
-          </p>
-        }
       }
     </div>
   `,
@@ -71,11 +74,25 @@ import {
       flex-direction: column;
       gap: 0.75rem;
     }
+    .push-notifications-section__card {
+      border-radius: 1rem;
+      background: var(--mat-sys-surface-container-high);
+      overflow: hidden;
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
     .push-notifications-section__row {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 0.75rem;
       min-height: 3rem;
+    }
+    .push-notifications-section__toggle {
+      flex: 1;
+      min-width: 0;
     }
     .push-notifications-section__loading {
       min-height: 3rem;
@@ -84,16 +101,16 @@ import {
     }
     .push-notifications-section__hint {
       margin: 0;
-      font-size: 0.85rem;
+      font: var(--mat-sys-body-small);
       line-height: 1.45;
-      color: color-mix(in srgb, var(--mat-sys-on-surface) 75%, transparent);
+      color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
     }
     .push-notifications-section__hint--warn {
       color: var(--mat-sys-error);
     }
     .push-notifications-section__message {
       margin: 0;
-      font-size: 0.9rem;
+      font: var(--mat-sys-body-medium);
       line-height: 1.45;
       color: color-mix(in srgb, var(--mat-sys-on-surface) 80%, transparent);
     }

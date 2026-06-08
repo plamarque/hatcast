@@ -27,6 +27,7 @@ party_mode_amendements:
   - '2026-06-08 — Bloc orga : silence UI total jusqu’au ship 8.4 (pas de teaser)'
   - '2026-06-08 — Matrice défauts ajoutée (Sally / John FR31)'
   - '2026-06-08 — Rétro as-shipped phase 1 membre : voir ux-notification-prefs-phase1-as-shipped-2026-06-08.md (copy Me prévenir, Cet appareil, cartes, hints supprimés)'
+  - '2026-06-08 — Refresh visuel prefs membre : titres hors carte, cartes groupe iOS-style, layout horizontal mobile — voir as-shipped § Refresh visuel 2026-06-08'
 ---
 
 # UX Design — Préférences de notification
@@ -36,6 +37,8 @@ party_mode_amendements:
 **Périmètre :** IA `/compte/notifications` (membre), proposition surface prefs orga (wireframe texte), mapping catégorie → intents en langage utilisateur, règles normatives anti-pref fantôme (A1).
 
 > **Phase 1 membre — UI livrée (2026-06-08) :** la spec **normative as-shipped** est [`ux-notification-prefs-phase1-as-shipped-2026-06-08.md`](./ux-notification-prefs-phase1-as-shipped-2026-06-08.md). Le wireframe § ci-dessous et les règles R3/R4 « Push » / « Si désactivé » sont **historiques** pour la phase 1.
+>
+> **Amendement visuel 2026-06-08 :** présentation cartes groupe (titres section hors carte, lignes horizontales mobile, deux switchers conservés) — **normatif** dans le doc as-shipped § Refresh visuel ; le wireframe DT § ci-dessous reste **obsolète** pour le layout.
 
 ### Priorisation livraison (décision PO 2026-06-08)
 
@@ -368,10 +371,11 @@ Source runtime actuelle : `NotificationPreference(push = true, email = true)` �
 ### R4 — Canaux appareil / e-mail
 
 - Libellé canal membre : **Cet appareil** | **E-mail** (jamais Push/Mobile en UI).
-- Toggle global : **Notifications sur cet appareil** (autorisation OS/navigateur).
+- Toggle global : **Notifications sur cet appareil** (autorisation OS/navigateur) ; contenu dans **carte groupe** (as-shipped amendement 2026-06-08).
 - Toggles **Cet appareil** **désactivés** si notifications appareil off — sans hint sous la grille.
 - E-mail reste éditable indépendamment (fallback Tension B).
-- Mobile : libellés canal visibles sur chaque switcher ; desktop : en-têtes de colonne.
+- **Deux switchers par notif** sur un seul écran — pas de routes séparées Push / E-mail.
+- Légende canaux **une fois** en tête de chaque carte groupe ; **layout horizontal** texte + toggles sur **tous** viewports (as-shipped § Grille canaux).
 
 ### R5 — Regroupement intents (pas de split pref sans décision PO)
 
@@ -422,13 +426,13 @@ Source runtime actuelle : `NotificationPreference(push = true, email = true)` �
 
 ## Annexe — Écart UI (historique pré-8.2b)
 
-| Avant 8.2b | Phase 1 as-shipped (2026-06-08) |
-|------------|----------------------------------|
-| Libellé = `category.label` API (long) | Titre court + *Me prévenir quand…* |
-| 7 toggles dont 2 fantômes | 5 lignes ; D6 masqué client |
-| Colonnes sans en-tête | **Cet appareil** \| E-mail |
-| — | Cartes section + hiérarchie typo |
-| — | Voir [`ux-notification-prefs-phase1-as-shipped-2026-06-08.md`](./ux-notification-prefs-phase1-as-shipped-2026-06-08.md) |
+| Avant 8.2b | Phase 1 as-shipped (2026-06-08) | Refresh visuel (2026-06-08) |
+|------------|----------------------------------|----------------------------|
+| Libellé = `category.label` API (long) | Titre court + *Me prévenir quand…* | Inchangé |
+| 7 toggles dont 2 fantômes | 5 lignes ; D6 masqué client | 7 lignes après 8.8 |
+| Colonnes sans en-tête | **Cet appareil** \| E-mail | Légende 1× en tête de carte |
+| — | Cartes section + hiérarchie typo | Titres **hors** carte ; `body-small` descriptions ; layout horizontal mobile |
+| — | Voir [`ux-notification-prefs-phase1-as-shipped-2026-06-08.md`](./ux-notification-prefs-phase1-as-shipped-2026-06-08.md) | § Refresh visuel 2026-06-08 |
 
 ---
 

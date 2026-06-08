@@ -33,16 +33,16 @@ const PATCH_DEBOUNCE_MS = 300
           Impossible de charger tes préférences de notification.
         </p>
       } @else {
-        <section class="notification-preferences__group" aria-labelledby="notification-preferences-main-heading">
-          <header class="notification-preferences__group-header">
-            <h3 id="notification-preferences-main-heading" class="notification-preferences__group-title">
+        <section class="notification-preferences__section" aria-labelledby="notification-preferences-main-heading">
+          <header class="notification-preferences__section-header">
+            <h2 id="notification-preferences-main-heading" class="notification-preferences__section-title">
               Messages pour moi
-            </h3>
+            </h2>
             <p class="notification-preferences__intro">
               Tu reçois ces messages par défaut. Désactive ce que tu ne veux plus.
             </p>
           </header>
-          <div class="notification-preferences__group-body">
+          <div class="notification-preferences__card">
             <ng-container
               [ngTemplateOutlet]="sectionGrid"
               [ngTemplateOutletContext]="{ categories: notificationCategories() }"
@@ -50,16 +50,16 @@ const PATCH_DEBOUNCE_MS = 300
           </div>
         </section>
 
-        <section class="notification-preferences__group" aria-labelledby="notification-preferences-reminders-heading">
-          <header class="notification-preferences__group-header">
-            <h3 id="notification-preferences-reminders-heading" class="notification-preferences__group-title">
+        <section class="notification-preferences__section" aria-labelledby="notification-preferences-reminders-heading">
+          <header class="notification-preferences__section-header">
+            <h2 id="notification-preferences-reminders-heading" class="notification-preferences__section-title">
               Rappels automatiques
-            </h3>
+            </h2>
             <p class="notification-preferences__intro">
               Rappels liés au calendrier, pas aux actions des orgas.
             </p>
           </header>
-          <div class="notification-preferences__group-body">
+          <div class="notification-preferences__card">
             <ng-container
               [ngTemplateOutlet]="sectionGrid"
               [ngTemplateOutletContext]="{ categories: reminderCategories() }"
@@ -93,28 +93,22 @@ const PATCH_DEBOUNCE_MS = 300
             <p class="notification-preferences__description">{{ copyFor(category).description }}</p>
           }
         </div>
-        <div class="notification-preferences__toggles">
-          <div class="notification-preferences__channel">
-            <span class="notification-preferences__channel-label">Cet appareil</span>
-            <mat-slide-toggle
-              [attr.data-testid]="testId(category.key, 'push')"
-              [checked]="category.pushEnabled"
-              [disabled]="pushDisabled() || isSaving(category.key, 'push')"
-              [aria-label]="ariaLabel(category, 'push')"
-              (change)="onToggle(category, 'push', $event)"
-            />
-          </div>
-          <div class="notification-preferences__channel">
-            <span class="notification-preferences__channel-label">E-mail</span>
-            <mat-slide-toggle
-              [attr.data-testid]="testId(category.key, 'email')"
-              [checked]="category.emailEnabled"
-              [disabled]="isSaving(category.key, 'email')"
-              [aria-label]="ariaLabel(category, 'email')"
-              (change)="onToggle(category, 'email', $event)"
-            />
-          </div>
-        </div>
+        <mat-slide-toggle
+          class="notification-preferences__toggle"
+          [attr.data-testid]="testId(category.key, 'push')"
+          [checked]="category.pushEnabled"
+          [disabled]="pushDisabled() || isSaving(category.key, 'push')"
+          [aria-label]="ariaLabel(category, 'push')"
+          (change)="onToggle(category, 'push', $event)"
+        />
+        <mat-slide-toggle
+          class="notification-preferences__toggle"
+          [attr.data-testid]="testId(category.key, 'email')"
+          [checked]="category.emailEnabled"
+          [disabled]="isSaving(category.key, 'email')"
+          [aria-label]="ariaLabel(category, 'email')"
+          (change)="onToggle(category, 'email', $event)"
+        />
       </div>
     </ng-template>
   `,
@@ -122,33 +116,29 @@ const PATCH_DEBOUNCE_MS = 300
     .notification-preferences {
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 1.5rem;
     }
     .notification-preferences__loading {
       min-height: 3rem;
       display: flex;
       align-items: center;
     }
-    .notification-preferences__group {
+    .notification-preferences__section {
       display: flex;
       flex-direction: column;
-      border-radius: 0.75rem;
-      overflow: hidden;
-      border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 45%, transparent);
-      background: color-mix(in srgb, var(--mat-sys-surface-container) 40%, transparent);
+      gap: 0.625rem;
     }
-    .notification-preferences__group-header {
+    .notification-preferences__section-header {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
-      padding: 0.875rem 1rem 0.75rem;
-      background: color-mix(in srgb, var(--mat-sys-surface-container-high) 55%, transparent);
-      border-bottom: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 50%, transparent);
     }
-    .notification-preferences__group-title {
+    .notification-preferences__section-title {
       margin: 0;
-      font: var(--mat-sys-headline-small);
-      letter-spacing: 0.01em;
+      font-size: 1.125rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
       color: var(--mat-sys-on-surface);
     }
     .notification-preferences__intro {
@@ -157,65 +147,66 @@ const PATCH_DEBOUNCE_MS = 300
       line-height: 1.4;
       color: color-mix(in srgb, var(--mat-sys-on-surface) 68%, transparent);
     }
-    .notification-preferences__group-body {
-      padding: 0 1rem;
+    .notification-preferences__card {
+      border-radius: 1rem;
+      background: var(--mat-sys-surface-container-high);
+      overflow: hidden;
     }
     .notification-preferences__grid {
       display: flex;
       flex-direction: column;
     }
     .notification-preferences__column-headers {
-      display: none;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 4.75rem 4.75rem;
+      gap: 0.5rem;
+      align-items: end;
+      padding: 0.625rem 1rem 0.25rem;
     }
-    .notification-preferences__row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.625rem;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
-    }
-    .notification-preferences__row:last-child {
-      border-bottom: none;
-    }
-    .notification-preferences__content {
-      display: flex;
-      flex-direction: column;
-      gap: 0.125rem;
-    }
-    .notification-preferences__title {
-      margin: 0;
-      font: var(--mat-sys-body-large);
-      font-weight: 600;
-      line-height: 1.35;
-      color: color-mix(in srgb, var(--mat-sys-on-surface) 92%, transparent);
-    }
-    .notification-preferences__description {
-      margin: 0;
-      font: var(--mat-sys-body-medium);
-      line-height: 1.4;
-      color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
-    }
-    .notification-preferences__toggles {
-      display: flex;
-      gap: 1.25rem;
-      align-items: flex-end;
-    }
-    .notification-preferences__channel {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.25rem;
-      min-width: 4.75rem;
-      max-width: 5.5rem;
-    }
-    .notification-preferences__channel-label {
-      font-size: 0.7rem;
+    .notification-preferences__column-header {
+      font: var(--mat-sys-label-small);
       font-weight: 500;
       line-height: 1.2;
       text-align: center;
       color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
     }
-    .notification-preferences__channel mat-slide-toggle {
+    .notification-preferences__row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 4.75rem 4.75rem;
+      gap: 0.5rem;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      position: relative;
+    }
+    .notification-preferences__row:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 1rem;
+      right: 1rem;
+      bottom: 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 40%, transparent);
+    }
+    .notification-preferences__content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+      min-width: 0;
+    }
+    .notification-preferences__title {
+      margin: 0;
+      font: var(--mat-sys-title-small);
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--mat-sys-on-surface);
+    }
+    .notification-preferences__description {
+      margin: 0;
+      font: var(--mat-sys-body-small);
+      line-height: 1.4;
+      color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+    }
+    .notification-preferences__toggle {
+      justify-self: center;
       min-height: 3rem;
       min-width: 3rem;
       display: inline-flex;
@@ -232,43 +223,15 @@ const PATCH_DEBOUNCE_MS = 300
       color: var(--mat-sys-error);
     }
     @media (min-width: 560px) {
-      .notification-preferences__group-header {
-        padding: 1rem 1.25rem 0.875rem;
-      }
-      .notification-preferences__group-body {
-        padding: 0 1.25rem 0.25rem;
-      }
       .notification-preferences__column-headers {
-        display: grid;
         grid-template-columns: minmax(0, 1fr) 5.5rem 4.5rem;
         gap: 0.75rem;
-        align-items: end;
-        padding: 0.25rem 0 0;
-      }
-      .notification-preferences__column-header {
-        font-size: 0.7rem;
-        font-weight: 500;
-        line-height: 1.2;
-        text-align: center;
-        color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
-      }
-      .notification-preferences__channel-label {
-        display: none;
+        padding: 0.75rem 1rem 0.375rem;
       }
       .notification-preferences__row {
-        display: grid;
         grid-template-columns: minmax(0, 1fr) 5.5rem 4.5rem;
         gap: 0.75rem;
-        align-items: center;
-      }
-      .notification-preferences__toggles {
-        display: contents;
-      }
-      .notification-preferences__channel {
-        display: contents;
-      }
-      .notification-preferences__channel mat-slide-toggle {
-        justify-self: center;
+        padding: 0.875rem 1rem;
       }
     }
   `,
