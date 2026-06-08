@@ -1,8 +1,8 @@
 # HatCast V2 — Catalogue des notifications
 
 **Statut :** Référence as-is (runtime V2)  
-**Dernière mise à jour :** 2026-06-08  
-**Prochaine revue :** après story **8.4** (ops orga)  
+**Dernière mise à jour :** 2026-06-08 (cible ops orga **v2** — spec [`spec-notifications-orga-v2`](../../_bmad-output/specs/spec-notifications-orga-v2/SPEC.md))  
+**Prochaine revue :** après implémentation v2 ops orga ou story **6.10c** (`MANUAL_GAP_RECRUITMENT`)  
 **Brainstorm post-catalog :** [`brainstorming-session-2026-06-07-notifications-post-catalog.md`](../../_bmad-output/brainstorming/brainstorming-session-2026-06-07-notifications-post-catalog.md) (décisions PO 2026-06-08)  
 **Investigation :** [`notifications-catalog-investigation.md`](../../_bmad-output/implementation-artifacts/investigations/notifications-catalog-investigation.md)  
 **Lié à :** [ARCH.md](../../ARCH.md) § Notifications V2 · stories Epic 8 · [SCP notifications 2026-06-01](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md)
@@ -31,14 +31,23 @@ Parité V1 (files Firestore, HTML riche) : [`legacy/src/services/notificationTem
 | `EVENT_DETAILS_CHANGED` | **Actif** | Auto — delta date/lieu/format sur événement publié | Roster engagé (dispo ∪ participation) | `EVENT_DETAILS_CHANGED` | 8.8 |
 | `EVENT_ARCHIVED` | **Actif** | Auto — archivage | Roster engagé actif | `EVENT_ARCHIVED` | 8.8 |
 | `TEAM_COMPLETE_MEMBER` | **Actif** | Auto — lifecycle `→ COMPLETE` | Orgas événement + assignés au complet | `TEAM_CONFIRMED` | 8.9 |
-| `COMPOSITION_SHARED` | Câblé, **non émis** | — | — | `COMPOSITION_SHARED` † | 8.4 |
+| `COMPOSITION_SHARED` | **Actif** † | Auto — publish brouillon compo | Orgas **événement** (cible v2) | `ORG_DRAFT_COMPOSITION` | 8.4 → v2 |
+| `EVENT_DRAFT_CREATED` | **Actif** † | Auto — création brouillon | Orgas **saison** (cible v2) | `ORG_EVENT_DRAFT_CREATED` | 8.4 → v2 |
+| `SLA_OPEN_AVAILABILITY` | **Actif** † | Programmé — quotidien (~30j, dispos fermées) | Orgas événement + saison (escalade, cible v2) | `ORG_SLA_OPEN_AVAILABILITY` | 8.4 → v2 |
+| `COMPOSITION_INCOMPLETE_WEEKLY` | **Actif** † | Programmé — hebdo (compo validée, non `COMPLETE`) | Orgas événement + saison (escalade, cible v2) | `ORG_COMPOSITION_INCOMPLETE` | 8.4 → v2 |
+| `COMPOSITION_INCOMPLETE_DAILY_J7` | **Actif** † | Programmé — J-7 civil (`Europe/Paris`) | Orgas événement + saison (escalade, cible v2) | `ORG_COMPOSITION_INCOMPLETE` | 8.4 → v2 |
+| `TEAM_COMPLETE` | **Actif** † | Auto — lifecycle `→ COMPLETE` | Orgas **événement** (cible v2) | `ORG_TEAM_COMPLETE` | 8.4 → v2 |
+| `TEAM_REGRESSED` | **Prévu v2** | Auto — lifecycle `COMPLETE → ¬COMPLETE` (compo validée) | Orgas **événement** | `ORG_TEAM_REGRESSED` | v2 |
+| `ASSIGNEE_DECLINED` | **Déprécié** | Remplacé par `TEAM_REGRESSED` (v2) | — | `ORG_ASSIGNEE_DECLINED` | 8.4 |
+| `ORGANIZER_SCOPE_GRANTED` | **Prévu v2** | Auto — grant orga spectacle / saison / admin troupe | Utilisateur promu (email transactionnel) | `ORG_SCOPE_GRANTED` | v2 |
 | `TEAM_VALIDATED_FYI` | Câblé, **non émis** | — | — | `TEAM_CONFIRMED` † | *(legacy — voir G-012)* |
-| Intents FR31b (ops orga) | **Backlog** | Auto / cron | Cascade orga | Catégories orga TBD | 8.4 |
 | Intents **proposés** (brainstorm 2026-06-07) | **Backlog proposé** | Voir § [Backlog proposé](#backlog-proposé--brainstorm-2026-06-07) | — | — | G-012, 6.10c, Epic 7 |
 | Share `draw` / `composition` | Manuel hors dispatcher | Copie / WhatsApp | — | — | 6.10 |
 
 \* Voir [Tensions produit](#tensions-produit-documentées) — retrait mappé sur une catégorie opt-out.  
-† **Préférence masquée en UI** — intent non émis (story **8.4** pour `COMPOSITION_SHARED`).
+† **Préférence masquée en UI** — intent non émis (`TEAM_VALIDATED_FYI` dead path).  
+‡ **`COMPOSITION_SHARED` (catégorie membre)** reste masquée en UI ; l’intent mappe sur **`ORG_DRAFT_COMPOSITION`** (opt-in orga).  
+† **Runtime 8.4** : audiences encore **cascade** (et cercle pour `COMPOSITION_SHARED`) jusqu’à impl v2 — voir § [Ops organisateur](#messages-actifs--ops-organisateur-fr31b).
 
 ---
 
@@ -143,7 +152,7 @@ Modèle **opt-out** : clé JSON absente → **autorisé**. Toggles **push** et *
 
 **Préférences masquées en UI jusqu’au dispatch (décision PO 2026-06-08, D6:B) :**
 
-- `COMPOSITION_SHARED` — intent non émis (story **8.4**) ; toggle **retiré de l’UI** jusqu’au ship.
+- `COMPOSITION_SHARED` (catégorie membre) — toggle **masqué** ; dispatch orga via **`ORG_DRAFT_COMPOSITION`** (story **8.4**).
 
 **Préférence visible depuis story 8.9 (G-012) :**
 
@@ -379,7 +388,6 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 
 | Intent | État runtime | Copy déjà définie (payload builder) | Piste livraison |
 |--------|--------------|-------------------------------------|-----------------|
-| `COMPOSITION_SHARED` | Destinataires vides ; hook publish log skip | *Throws* si build appelé — story 8.4 | Story **8.4** — cercle orga uniquement |
 | `TEAM_VALIDATED_FYI` | Listener sans publisher (`TeamValidatedFyiRequestedEvent` jamais émis) | Push title `✅ Équipe validée` · body `L'équipe pour {eventTitle} le {eventDate} a été validée.` · subject `Équipe validée · {eventTitle} ({eventDate})` · link `?tab=equipe` | Dead path — **ne pas réactiver** ; G-012 livré via **`TEAM_COMPLETE_MEMBER`** |
 | Share `draw` / `composition` | Log debug ; pas de dispatcher | Textes WhatsApp : `share-announce-messages.ts` | Epic 6 — pas de push/email auto |
 
@@ -399,7 +407,77 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 | **Email subject** | `Équipe au complet · {eventTitle} ({eventDate})` |
 | **Email body** | [Format commun](#corps-email-format-commun-v2) |
 | **Deep link** | `?tab=equipe` |
-| **Hors scope** | Pas de notif « équipe incomplète » au recul lifecycle (D5:B) ; pas de guest-email |
+| **Hors scope** | Pas de guest-email ; régression lifecycle orga = intent **`TEAM_REGRESSED`** (v2, voir § Ops organisateur) |
+
+---
+
+## Messages actifs — ops organisateur (FR31b)
+
+**Spec cible :** [`spec-notifications-orga-v2`](../../_bmad-output/specs/spec-notifications-orga-v2/SPEC.md) · companions : [`orga-notification-catalog.md`](../../_bmad-output/specs/spec-notifications-orga-v2/orga-notification-catalog.md), [`orga-recipient-rules.md`](../../_bmad-output/specs/spec-notifications-orga-v2/orga-recipient-rules.md).
+
+> **Écart runtime (8.4 livré, 2026-06-08)** : le code utilise encore la **cascade** (event → saison → admin troupe) et l’intent **`ASSIGNEE_DECLINED`**. La section ci-dessous décrit la **cible v2** ; l’implémentation remplacera cascade/cercle par délégation explicite et audiences par intent.
+
+**Distinction critique :** sur l’edge lifecycle `→ COMPLETE`, **`TEAM_COMPLETE`** (orga, opt-in `ORG_*`) et **`TEAM_COMPLETE_MEMBER`** (membre, opt-out `TEAM_CONFIRMED`) restent dispatchés **indépendamment**.
+
+### Délégation explicite (v2 — domaine événement)
+
+À la **création** d’un événement :
+
+1. Copier les **organisateurs saison** → **organisateurs événement** ;
+2. S’il n’y a pas d’orga saison : les **admins troupe** actifs deviennent orgas saison, puis sont copiés ;
+3. **Invariant** : ≥1 orga événement à tout moment ; le **dernier** orga ne peut pas se retirer sans nommer un remplaçant ;
+4. Liste visible pour les **membres** (contact orga).
+
+Après création : ajout/retrait/co-orga **manuel** — pas de resync auto saison ↔ événement.
+
+### Audiences par intent (v2 — remplace cascade et cercle)
+
+| Intent | Audience | Notes |
+|--------|----------|-------|
+| `EVENT_DRAFT_CREATED` | Orgas **saison** | Spectacle = fait de saison |
+| `COMPOSITION_SHARED` | Orgas **événement** | Fin du « cercle » 8.4 |
+| `TEAM_COMPLETE` | Orgas **événement** | |
+| `TEAM_REGRESSED` | Orgas **événement** | Edge `COMPLETE → ¬COMPLETE` ; cause dans le corps |
+| `SLA_OPEN_AVAILABILITY` | Orgas événement **+** saison | Escalade ; dédupe 1 envoi/user/tick |
+| `COMPOSITION_INCOMPLETE_*` | Orgas événement **+** saison | Idem |
+| `ORGANIZER_SCOPE_GRANTED` | Utilisateur promu | Email **transactionnel** (hors opt-in ops) |
+
+Dédoublonnage `userId` ; pas de guest-email ; exclusion de l’**acteur** quand `actorUserId` est fourni.
+
+**Runtime 8.4 (obsolète après v2) :** cascade event → saison → admin ; cercle orga pour `COMPOSITION_SHARED`.
+
+### Préférences orga (opt-in)
+
+| Catégorie API | Libellé UI (v2) | Intents | Défaut absent JSON |
+|---------------|-----------------|---------|-------------------|
+| `ORG_EVENT_DRAFT_CREATED` | Nouveau spectacle | `EVENT_DRAFT_CREATED` | push OFF, email OFF |
+| `ORG_DRAFT_COMPOSITION` | Compo proposée | `COMPOSITION_SHARED` | push OFF, email OFF |
+| `ORG_SLA_OPEN_AVAILABILITY` | Ouvrir les dispos | `SLA_OPEN_AVAILABILITY` | push OFF, email OFF |
+| `ORG_COMPOSITION_INCOMPLETE` | Compo incomplète | `COMPOSITION_INCOMPLETE_WEEKLY`, `COMPOSITION_INCOMPLETE_DAILY_J7` | push OFF, email OFF |
+| `ORG_TEAM_COMPLETE` | Équipe bouclée | `TEAM_COMPLETE` | push OFF, email OFF |
+| `ORG_TEAM_REGRESSED` | Équipe plus complète | `TEAM_REGRESSED` | push OFF, email OFF |
+| `ORG_SCOPE_GRANTED` | Nouveau rôle orga | `ORGANIZER_SCOPE_GRANTED` (push optionnel) | push OFF, email OFF |
+
+`ORG_ASSIGNEE_DECLINED` / intent `ASSIGNEE_DECLINED` : **retirés** au profit de `ORG_TEAM_REGRESSED` / `TEAM_REGRESSED`.
+
+`GET /v1/me/notification-preferences` expose **`hasOrganizerScope`** ; section **Alertes organisateur** sur `/compte/notifications` (règle **A1**). Brief : [`ux-notification-prefs-orga-section-brief.md`](../../_bmad-output/planning-artifacts/ux-notification-prefs-orga-section-brief.md).
+
+### Copy normative (v2)
+
+| Intent | Push title | Push body (motif) |
+|--------|------------|-------------------|
+| `EVENT_DRAFT_CREATED` | `📝 Nouveau spectacle` | `« {eventTitle} » a été créé en brouillon ({eventDate}).` |
+| `COMPOSITION_SHARED` | `👥 Compo proposée` | `Composition proposée pour {eventTitle} le {eventDate}.` |
+| `SLA_OPEN_AVAILABILITY` | `⏰ Ouvrir les dispos` | `{eventTitle} le {eventDate} approche — les disponibilités ne sont pas encore ouvertes.` |
+| `COMPOSITION_INCOMPLETE_WEEKLY` | `⚠️ Compo incomplète` | `Des places manquent encore pour {eventTitle} le {eventDate}.` |
+| `COMPOSITION_INCOMPLETE_DAILY_J7` | `⚠️ Compo incomplète (J-7)` | `J-7 pour {eventTitle} — la composition n'est pas complète.` |
+| `TEAM_COMPLETE` | `✅ Équipe bouclée` | `Toutes les confirmations sont reçues pour {eventTitle} le {eventDate}.` |
+| `TEAM_REGRESSED` | `⚠️ Équipe plus complète` | `{eventTitle} le {eventDate} : l'équipe confirmée n'est plus complète ({reasonSummary}).` |
+| `ORGANIZER_SCOPE_GRANTED` | *(email transactionnel)* | `Tu viens d'être nommé·e {roleLabel} pour {scopeName}. Active les alertes dans Mon compte → Notifications.` |
+
+`reasonSummary` (ex.) : `déclin de {name}`, `confirmation à renouveler`, `composition déverrouillée`, `place à pourvoir`. **Une alerte par edge** lifecycle (pas de dédupe journalière).
+
+Deep links : `?tab=equipe` (compo, régression, équipe bouclée) ; `?tab=infos` (brouillon / SLA).
 
 ---
 
@@ -408,22 +486,6 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 ### Story 8.7 — `AVAILABILITY_PENDING_REMINDER` *(livré)*
 
 Voir § [Disponibilités](#disponibilités) — intent **actif** depuis story 8.7.
-
-**UX prefs orga (pré-story 8.4) :** section **Alertes organisateur** sur `/compte/notifications` (opt-in, visible si scope orga) — pas d’onglet séparé. Brief : [`ux-notification-prefs-orga-section-brief.md`](../../_bmad-output/planning-artifacts/ux-notification-prefs-orga-section-brief.md).
-
-### Story 8.4 (backlog P2) — FR31b ops organisateurs
-
-| Intent proposé | Déclenchement | Audience | Préférence |
-|----------------|---------------|----------|------------|
-| `EVENT_DRAFT_CREATED` | Création brouillon | Cascade orga | Nouvelle catégorie opt-in orga |
-| `DRAFT_COMPOSITION_SHARED` | Publish brouillon compo | Cercle orga | Opt-in orga |
-| `SLA_OPEN_AVAILABILITY` | T-1 mois, dispos fermées | Cascade orga | Opt-in orga |
-| `COMPOSITION_INCOMPLETE_WEEKLY` | Date approche | Cascade orga | Opt-in orga |
-| `COMPOSITION_INCOMPLETE_DAILY_J7` | J-7 compo incomplète | Cascade orga | Opt-in orga |
-| `TEAM_COMPLETE` | Toutes confirmations (FR28) | Cascade orga | Opt-in orga |
-| `ASSIGNEE_DECLINED` | Assigné décline (compo validée) | Cascade orga | Opt-in orga *(brainstorm 2026-06-07, D5:B — signal immédiat ; pas de notif « régression équipe complète » séparée)* |
-
-Copy **non implémentée** — à définir dans les AC story 8.4.
 
 ### Backlog proposé — brainstorm 2026-06-07
 
@@ -436,7 +498,7 @@ Décisions PO **2026-06-08** : [`brainstorming-session-2026-06-07-notifications-
 
 **Champs exclus du déclencheur N1 (D4:B) :** `description`, titre, catégorie, rôles, etc. — seuls date, lieu et format.
 
-**Non retenu (D5:B) :** `TEAM_REGRESSED_INCOMPLETE` — `ASSIGNEE_DECLINED` (8.4) suffit pour les orgas.
+**D5:B révisé (2026-06-08, spec v2) :** `TEAM_REGRESSED` remplace `ASSIGNEE_DECLINED` pour les orgas — alerte sur tout recul `COMPLETE → ¬COMPLETE` avec cause dans le message. Voir [`spec-notifications-orga-v2`](../../_bmad-output/specs/spec-notifications-orga-v2/SPEC.md).
 
 ### Autres pistes produit
 
@@ -483,6 +545,7 @@ Détail : [brainstorm 2026-06-01](../../_bmad-output/brainstorming/brainstorming
 |-----------|--------|
 | Nouveau `NotificationIntent` | Mettre à jour ce fichier + index maître + `NotificationPayloadBuilder.kt` |
 | Stories 8.4 / 8.7 livrées | Déplacer lignes Backlog → Actif ; date **Prochaine revue** |
+| Spec **notifications-orga-v2** validée | Aligner § Ops organisateur + index ; marquer écart runtime jusqu’au ship v2 |
 | Changement prefs (ex. retrait obligatoire) | § Tensions + DOMAIN/SPEC via `bmad-spec` |
 | Alignement URL canonique API | § Contrat d’URL + dette |
 | Upgrade HTML email | Documenter emplacement templates |

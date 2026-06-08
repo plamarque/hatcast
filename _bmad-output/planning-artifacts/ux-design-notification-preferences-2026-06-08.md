@@ -4,6 +4,7 @@ author: Design Thinking (bmad-cis-design-thinking) + Patrice
 date: '2026-06-08'
 status: superseded-phase1-wireframe
 as_shipped: ux-notification-prefs-phase1-as-shipped-2026-06-08.md
+orga_brief: ux-notification-prefs-orga-section-brief.md
 relatedStories:
   - '8.2'
   - '8.4'
@@ -28,6 +29,7 @@ party_mode_amendements:
   - '2026-06-08 — Matrice défauts ajoutée (Sally / John FR31)'
   - '2026-06-08 — Rétro as-shipped phase 1 membre : voir ux-notification-prefs-phase1-as-shipped-2026-06-08.md (copy Me prévenir, Cet appareil, cartes, hints supprimés)'
   - '2026-06-08 — Refresh visuel prefs membre : titres hors carte, cartes groupe iOS-style, layout horizontal mobile — voir as-shipped § Refresh visuel 2026-06-08'
+  - '2026-06-08 — Brief prefs orga (section, pas onglet) : ux-notification-prefs-orga-section-brief.md — pré-story 8.4'
 ---
 
 # UX Design — Préférences de notification
