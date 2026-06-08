@@ -8,6 +8,12 @@ data class TeamValidatedFyiRequestedEvent(
     val actorUserId: UUID,
 )
 
+data class TeamCompleteMemberRequestedEvent(
+    val eventId: UUID,
+    val seasonId: UUID,
+    val actorUserId: UUID? = null,
+)
+
 data class CompositionAssigneeRemovedEvent(
     val eventId: UUID,
     val seasonId: UUID,

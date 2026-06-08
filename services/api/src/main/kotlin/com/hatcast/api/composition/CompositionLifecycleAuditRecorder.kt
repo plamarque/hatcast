@@ -5,6 +5,7 @@ import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.audit.AuditRecordRequest
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.RoleTemplates
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -14,6 +15,7 @@ class CompositionLifecycleAuditRecorder(
     private val slotRepository: EventCompositionSlotRepository,
     private val lifecycleService: CompositionLifecycleService,
     private val auditRecorder: AuditEventRecorder,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     fun captureRawLifecycle(
         eventId: UUID,
@@ -62,6 +64,14 @@ class CompositionLifecycleAuditRecorder(
                     ),
             ),
         )
+        if (before != CompositionLifecycle.COMPLETE && after == CompositionLifecycle.COMPLETE) {
+            eventPublisher.publishEvent(
+                TeamCompleteMemberRequestedEvent(
+                    eventId = event.id,
+                    seasonId = seasonId,
+                ),
+            )
+        }
     }
 }
 

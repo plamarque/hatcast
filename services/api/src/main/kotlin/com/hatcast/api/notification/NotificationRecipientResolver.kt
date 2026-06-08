@@ -8,6 +8,9 @@ import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.composition.assignedParticipantId
 import com.hatcast.api.composition.hasAssignee
+import com.hatcast.api.event.EventRepository
+import com.hatcast.api.event.RoleTemplates
+import com.hatcast.api.organizer.EventOrganizerRepository
 import com.hatcast.api.participant.EventParticipantEntity
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.EventRosterService
@@ -27,6 +30,8 @@ class NotificationRecipientResolver(
     private val slotRepository: EventCompositionSlotRepository,
     private val availabilityRepository: EventAvailabilityRepository,
     private val declineRepository: EventCompositionDeclineRepository,
+    private val eventOrganizerRepository: EventOrganizerRepository,
+    private val eventRepository: EventRepository,
 ) {
     fun resolveConcernedRosterRecipients(
         seasonId: UUID,
@@ -67,6 +72,34 @@ class NotificationRecipientResolver(
                 .filter { it.hasAssignee() && it.participationStatus == com.hatcast.api.composition.SlotParticipationStatus.CONFIRMED }
                 .mapNotNull { it.assignedParticipantId() }
         return resolveAssigneeRecipients(participantIds)
+    }
+
+    fun resolveTeamCompleteMemberRecipients(eventId: UUID): List<NotificationRecipient> {
+        val event = eventRepository.findById(eventId).orElse(null) ?: return emptyList()
+        val roleSlots = RoleTemplates.normalize(event.roleSlots)
+        val slots = slotRepository.findByEventId(eventId)
+        val byPosition = slots.associateBy { it.roleKey to it.slotIndex }
+        val completeAssigneeParticipantIds =
+            requiredPositions(roleSlots).mapNotNull { (roleKey, slotIndex) ->
+                val slot = byPosition[roleKey to slotIndex] ?: return@mapNotNull null
+                if (!slot.hasAssignee()) return@mapNotNull null
+                if (slot.participationStatus == SlotParticipationStatus.DECLINED) return@mapNotNull null
+                if (slot.participationStatus == SlotParticipationStatus.CONFIRMED || slot.waived) {
+                    slot.assignedParticipantId()
+                } else {
+                    null
+                }
+            }
+        val assigneeRecipients =
+            resolveAssigneeRecipients(completeAssigneeParticipantIds)
+                .mapNotNull { recipient -> recipient.userId?.let { NotificationRecipient(userId = it, displayName = recipient.displayName) } }
+        val organizerRecipients =
+            eventOrganizerRepository
+                .findByEvent_IdOrderByGrantedAtAsc(eventId)
+                .map { organizer ->
+                    NotificationRecipient(userId = organizer.user.id, displayName = organizer.user.displayName.orEmpty())
+                }
+        return (organizerRecipients + assigneeRecipients).distinctBy { it.userId }
     }
 
     fun resolveSingleAssigneeRecipient(participantId: UUID): List<NotificationRecipient> =
@@ -305,4 +338,9 @@ class NotificationRecipientResolver(
         return availability?.let { AvailabilityStatusMapper.toApi(it.status) }
             ?: AvailabilityStatusMapper.UNKNOWN
     }
+
+    private fun requiredPositions(roleSlots: Map<String, Int>): List<Pair<String, Int>> =
+        roleSlots.flatMap { (roleKey, count) ->
+            (0 until count).map { roleKey to it }
+        }
 }

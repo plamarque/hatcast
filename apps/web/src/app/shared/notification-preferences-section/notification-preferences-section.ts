@@ -6,6 +6,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import {
   MEMBER_HIDDEN_NOTIFICATION_PREFERENCE_KEYS,
+  MEMBER_NOTIFICATION_CATEGORY_ORDER,
+  MEMBER_REMINDER_CATEGORY_ORDER,
   notificationPreferenceUiCopy,
 } from '../../core/notifications/notification-preference-ui-copy'
 import {
@@ -18,6 +20,18 @@ import { PushNotificationsService } from '../../core/push/push-notifications.ser
 type NotificationChannel = 'push' | 'email'
 
 const PATCH_DEBOUNCE_MS = 300
+
+function sortCategoriesByKeyOrder(
+  categories: NotificationPreferenceCategory[],
+  order: readonly NotificationPreferenceKey[],
+): NotificationPreferenceCategory[] {
+  const rank = new Map(order.map((key, index) => [key, index]))
+  return [...categories].sort((left, right) => {
+    const leftRank = rank.get(left.key) ?? Number.MAX_SAFE_INTEGER
+    const rightRank = rank.get(right.key) ?? Number.MAX_SAFE_INTEGER
+    return leftRank - rightRank
+  })
+}
 
 @Component({
   selector: 'app-notification-preferences-section',
@@ -253,10 +267,16 @@ export class NotificationPreferencesSection implements OnInit, OnDestroy {
     this.categories().filter((category) => !MEMBER_HIDDEN_NOTIFICATION_PREFERENCE_KEYS.has(category.key)),
   )
   protected readonly notificationCategories = computed(() =>
-    this.visibleCategories().filter((category) => category.group === 'NOTIFICATIONS'),
+    sortCategoriesByKeyOrder(
+      this.visibleCategories().filter((category) => category.group === 'NOTIFICATIONS'),
+      MEMBER_NOTIFICATION_CATEGORY_ORDER,
+    ),
   )
   protected readonly reminderCategories = computed(() =>
-    this.visibleCategories().filter((category) => category.group === 'AUTOMATIC_REMINDERS'),
+    sortCategoriesByKeyOrder(
+      this.visibleCategories().filter((category) => category.group === 'AUTOMATIC_REMINDERS'),
+      MEMBER_REMINDER_CATEGORY_ORDER,
+    ),
   )
 
   async ngOnInit(): Promise<void> {

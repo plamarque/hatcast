@@ -30,6 +30,7 @@ Parité V1 (files Firestore, HTML riche) : [`legacy/src/services/notificationTem
 | `PROXY_CONFIRMATION_RECORDED` | **Actif** | Auto — proxy participation | Sujet lié | `CONFIRMATION_REQUEST` | 8.6, 6.8 |
 | `EVENT_DETAILS_CHANGED` | **Actif** | Auto — delta date/lieu/format sur événement publié | Roster engagé (dispo ∪ participation) | `EVENT_DETAILS_CHANGED` | 8.8 |
 | `EVENT_ARCHIVED` | **Actif** | Auto — archivage | Roster engagé actif | `EVENT_ARCHIVED` | 8.8 |
+| `TEAM_COMPLETE_MEMBER` | **Actif** | Auto — lifecycle `→ COMPLETE` | Orgas événement + assignés au complet | `TEAM_CONFIRMED` | 8.9 |
 | `COMPOSITION_SHARED` | Câblé, **non émis** | — | — | `COMPOSITION_SHARED` † | 8.4 |
 | `TEAM_VALIDATED_FYI` | Câblé, **non émis** | — | — | `TEAM_CONFIRMED` † | *(legacy — voir G-012)* |
 | Intents FR31b (ops orga) | **Backlog** | Auto / cron | Cascade orga | Catégories orga TBD | 8.4 |
@@ -37,7 +38,7 @@ Parité V1 (files Firestore, HTML riche) : [`legacy/src/services/notificationTem
 | Share `draw` / `composition` | Manuel hors dispatcher | Copie / WhatsApp | — | — | 6.10 |
 
 \* Voir [Tensions produit](#tensions-produit-documentées) — retrait mappé sur une catégorie opt-out.  
-† **Préférence visible en UI** (`/compte/notifications`) mais **aucun dispatch membre automatique** tant que l’intent n’est pas câblé (8.4 / [G-012](../../_bmad-output/planning-artifacts/growth-backlog.md)).
+† **Préférence masquée en UI** — intent non émis (story **8.4** pour `COMPOSITION_SHARED`).
 
 ---
 
@@ -143,9 +144,10 @@ Modèle **opt-out** : clé JSON absente → **autorisé**. Toggles **push** et *
 **Préférences masquées en UI jusqu’au dispatch (décision PO 2026-06-08, D6:B) :**
 
 - `COMPOSITION_SHARED` — intent non émis (story **8.4**) ; toggle **retiré de l’UI** jusqu’au ship.
-- `TEAM_CONFIRMED` — intent cible **`TEAM_COMPLETE_MEMBER`** (G-012) ; toggle **retiré de l’UI** jusqu’au ship. Ne pas réutiliser `TEAM_VALIDATED_FYI` tel quel (D3:B).
 
-**Préférence sans dispatch auto auparavant documentée :** les deux clés ci-dessus restent dans l’API/OpenAPI pour compatibilité ; l’UI ne les expose plus tant que le dispatcher n’émet pas ces intents.
+**Préférence visible depuis story 8.9 (G-012) :**
+
+- `TEAM_CONFIRMED` — intent **`TEAM_COMPLETE_MEMBER`** ; toggle **visible** dans `/compte/notifications` (as-shipped copy « Équipe au complet »). Ne pas réutiliser `TEAM_VALIDATED_FYI` tel quel (D3:B).
 
 ### Niveau 3 — Hors préférences HatCast
 
@@ -162,6 +164,7 @@ Modèle **opt-out** : clé JSON absente → **autorisé**. Toggles **push** et *
 | `CONFIRMATION_REQUEST`, `RECONFIRMATION_REQUEST`, `REMOVED_FROM_COMPOSITION`, `PROXY_CONFIRMATION_RECORDED` | `CONFIRMATION_REQUEST` |
 | `COMPOSITION_SHARED` | `COMPOSITION_SHARED` |
 | `TEAM_VALIDATED_FYI` | `TEAM_CONFIRMED` |
+| `TEAM_COMPLETE_MEMBER` | `TEAM_CONFIRMED` |
 | `ASSIGNEE_PRESENCE_REMINDER` (J-7) | `REMINDER_7_DAYS` |
 | `ASSIGNEE_PRESENCE_REMINDER` (J-1) | `REMINDER_1_DAY` |
 | `AVAILABILITY_PENDING_REMINDER` | `AVAILABILITY_WEEKLY_REMINDER` |
@@ -377,10 +380,26 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 | Intent | État runtime | Copy déjà définie (payload builder) | Piste livraison |
 |--------|--------------|-------------------------------------|-----------------|
 | `COMPOSITION_SHARED` | Destinataires vides ; hook publish log skip | *Throws* si build appelé — story 8.4 | Story **8.4** — cercle orga uniquement |
-| `TEAM_VALIDATED_FYI` | Listener sans publisher (`TeamValidatedFyiRequestedEvent` jamais émis) | Push title `✅ Équipe validée` · body `L'équipe pour {eventTitle} le {eventDate} a été validée.` · subject `Équipe validée · {eventTitle} ({eventDate})` · link `?tab=equipe` | **[G-012](../../_bmad-output/planning-artifacts/growth-backlog.md)** ou modale Annoncer orga |
+| `TEAM_VALIDATED_FYI` | Listener sans publisher (`TeamValidatedFyiRequestedEvent` jamais émis) | Push title `✅ Équipe validée` · body `L'équipe pour {eventTitle} le {eventDate} a été validée.` · subject `Équipe validée · {eventTitle} ({eventDate})` · link `?tab=equipe` | Dead path — **ne pas réactiver** ; G-012 livré via **`TEAM_COMPLETE_MEMBER`** |
 | Share `draw` / `composition` | Log debug ; pas de dispatcher | Textes WhatsApp : `share-announce-messages.ts` | Epic 6 — pas de push/email auto |
 
-**G-012 (growth backlog) :** notification **« équipe confirmée »** lorsque **tous** les assignés ont confirmé (lifecycle complete) — annonce collective orgas + sélectionnés ; distinct de `CONFIRMATION_REQUEST` (demande individuelle) et de l’ancien FYI roster auto au validate (retiré 2026-06-06). Voir [`growth-backlog.md` § G-012](../../_bmad-output/planning-artifacts/growth-backlog.md).
+**G-012 (growth backlog) :** notification **« équipe au complet »** lorsque le lifecycle composition passe à **`COMPLETE`** — annonce collective orgas événement + assignés confirmés ou waived ; distinct de `CONFIRMATION_REQUEST` (demande individuelle) et de l’ancien FYI roster auto au validate (retiré 2026-06-06). **Livré** story **8.9** via intent **`TEAM_COMPLETE_MEMBER`**.
+
+---
+
+## Messages actifs — `TEAM_COMPLETE_MEMBER` (story 8.9)
+
+| Champ | Valeur |
+|-------|--------|
+| **Déclenchement** | Automatique — edge lifecycle `before != COMPLETE && after == COMPLETE` (`CompositionLifecycleAuditRecorder`) |
+| **Audience** | Union orgas **événement** (`event_organizers`) + assignés sur slots requis au complet (`CONFIRMED` ou `waived`) ; dédoublonnage `userId` |
+| **Préférence** | `TEAM_CONFIRMED` (opt-out, défaut ON push + email) |
+| **Push title** | `🎉 Équipe au complet` |
+| **Push body** | `Tous les participant·es ont confirmé pour {eventTitle} le {eventDate}.` |
+| **Email subject** | `Équipe au complet · {eventTitle} ({eventDate})` |
+| **Email body** | [Format commun](#corps-email-format-commun-v2) |
+| **Deep link** | `?tab=equipe` |
+| **Hors scope** | Pas de notif « équipe incomplète » au recul lifecycle (D5:B) ; pas de guest-email |
 
 ---
 
@@ -389,6 +408,8 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 ### Story 8.7 — `AVAILABILITY_PENDING_REMINDER` *(livré)*
 
 Voir § [Disponibilités](#disponibilités) — intent **actif** depuis story 8.7.
+
+**UX prefs orga (pré-story 8.4) :** section **Alertes organisateur** sur `/compte/notifications` (opt-in, visible si scope orga) — pas d’onglet séparé. Brief : [`ux-notification-prefs-orga-section-brief.md`](../../_bmad-output/planning-artifacts/ux-notification-prefs-orga-section-brief.md).
 
 ### Story 8.4 (backlog P2) — FR31b ops organisateurs
 
@@ -410,7 +431,6 @@ Décisions PO **2026-06-08** : [`brainstorming-session-2026-06-07-notifications-
 
 | Intent proposé | Déclenchement | Audience | Préférence | P | Story |
 |----------------|---------------|----------|------------|---|-------|
-| `TEAM_COMPLETE_MEMBER` | Auto — lifecycle `complete` (tous assignés confirmés) | Orgas + assignés confirmés | Opt-out `TEAM_CONFIRMED` *(UI masquée jusqu’au ship — D6:B)* | P1 | **[G-012](../../_bmad-output/planning-artifacts/growth-backlog.md)** |
 | `MANUAL_GAP_RECRUITMENT` | Manuel — orga post-déclin | Roster `available` pour rôle vacant | `AVAILABILITY_REQUEST` + garde 6.10b | P2 | **6.10c** |
 | `TROUPE_MEMBERSHIP_INVITE` | Transactionnel — invitation | Invité (email) | Hors prefs app | P2 | Epic **7** |
 

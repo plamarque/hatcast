@@ -8,7 +8,7 @@ data class NotificationDispatchContext(
     val eventId: UUID,
     val seasonId: UUID,
     val troupeId: UUID?,
-    val actorUserId: UUID,
+    val actorUserId: UUID? = null,
     val assigneeParticipantIds: List<UUID> = emptyList(),
     val recipientUserIds: List<UUID> = emptyList(),
     val roleKey: String? = null,

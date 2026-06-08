@@ -37,6 +37,12 @@ interface CompositionNotificationPort {
         actorUserId: UUID,
     )
 
+    fun notifyTeamCompleteMember(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID?,
+    )
+
     fun notifyAssigneeRemoved(
         eventId: UUID,
         seasonId: UUID,
@@ -122,6 +128,19 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
     ) {
         log.debug(
             "team_validated_fyi eventId={} seasonId={} actorUserId={}",
+            eventId,
+            seasonId,
+            actorUserId,
+        )
+    }
+
+    override fun notifyTeamCompleteMember(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID?,
+    ) {
+        log.debug(
+            "team_complete_member eventId={} seasonId={} actorUserId={}",
             eventId,
             seasonId,
             actorUserId,

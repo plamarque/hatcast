@@ -122,6 +122,22 @@ class CompositionWorkflowNotificationAdapter(
         )
     }
 
+    override fun notifyTeamCompleteMember(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID?,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.TEAM_COMPLETE_MEMBER,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = null,
+                actorUserId = actorUserId,
+            ),
+        )
+    }
+
     override fun notifyAssigneeRemoved(
         eventId: UUID,
         seasonId: UUID,

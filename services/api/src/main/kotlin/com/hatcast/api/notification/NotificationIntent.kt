@@ -19,6 +19,8 @@ enum class NotificationIntent {
     EVENT_DETAILS_CHANGED,
     /** Event archived — story 8.8. */
     EVENT_ARCHIVED,
+    /** Team lifecycle reached complete — story 8.9 (G-012). */
+    TEAM_COMPLETE_MEMBER,
 }
 
 enum class NotificationReminderWindow {
@@ -101,4 +103,5 @@ fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = 
         NotificationIntent.PROXY_CONFIRMATION_RECORDED -> NotificationCategory.CONFIRMATION_REQUEST
         NotificationIntent.EVENT_DETAILS_CHANGED -> NotificationCategory.EVENT_DETAILS_CHANGED
         NotificationIntent.EVENT_ARCHIVED -> NotificationCategory.EVENT_ARCHIVED
+        NotificationIntent.TEAM_COMPLETE_MEMBER -> NotificationCategory.TEAM_CONFIRMED
     }

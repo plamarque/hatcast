@@ -25,6 +25,13 @@ const categories = [
     emailEnabled: true,
   },
   {
+    key: 'TEAM_CONFIRMED',
+    label: 'Équipe confirmée pour un spectacle',
+    group: 'NOTIFICATIONS',
+    pushEnabled: true,
+    emailEnabled: true,
+  },
+  {
     key: 'EVENT_DETAILS_CHANGED',
     label: 'Me prévenir quand la date, le lieu ou le format change sur un spectacle où j’ai déjà interagi (dispo ou participation)',
     group: 'NOTIFICATIONS',
@@ -41,13 +48,6 @@ const categories = [
   {
     key: 'COMPOSITION_SHARED',
     label: 'Composition partagée avec l’équipe',
-    group: 'NOTIFICATIONS',
-    pushEnabled: true,
-    emailEnabled: true,
-  },
-  {
-    key: 'TEAM_CONFIRMED',
-    label: 'Équipe confirmée pour un spectacle',
     group: 'NOTIFICATIONS',
     pushEnabled: true,
     emailEnabled: true,
@@ -114,14 +114,37 @@ function slideToggleInput(fixture: ComponentFixture<NotificationPreferencesSecti
 }
 
 describe('NotificationPreferencesSection', () => {
-  it('hides ghost categories COMPOSITION_SHARED and TEAM_CONFIRMED from the DOM', async () => {
+  it('hides ghost category COMPOSITION_SHARED from the DOM', async () => {
     const { fixture } = await setup({ pushState: 'enabled' })
     const text = fixture.nativeElement.textContent ?? ''
 
     expect(text).not.toContain('Composition partagée')
-    expect(text).not.toContain('Équipe confirmée')
     expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-composition-shared-push"]')).toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-team-confirmed-push"]')).toBeNull()
+  })
+
+  it('renders Équipe au complet after Spectacle annulé regardless of API category order', async () => {
+    const { fixture } = await setup({ pushState: 'enabled' })
+    const titles = Array.from(
+      fixture.nativeElement.querySelectorAll('.notification-preferences__title') as NodeListOf<HTMLElement>,
+      (element) => element.textContent?.trim() ?? '',
+    )
+
+    const archivedIndex = titles.indexOf('Spectacle annulé')
+    const teamCompleteIndex = titles.indexOf('Équipe au complet')
+
+    expect(archivedIndex).toBeGreaterThanOrEqual(0)
+    expect(teamCompleteIndex).toBeGreaterThan(archivedIndex)
+  })
+
+  it('renders Équipe au complet preference row with as-shipped copy', async () => {
+    const { fixture } = await setup({ pushState: 'enabled' })
+    const text = fixture.nativeElement.textContent ?? ''
+
+    expect(text).toContain('Équipe au complet')
+    expect(text).toContain('Me prévenir quand tous les participant·es ont confirmé')
+    expect(text).not.toContain('Équipe confirmée pour un spectacle')
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-team-confirmed-push"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-team-confirmed-email"]')).toBeTruthy()
   })
 
   it('renders member-facing copy for Disponibilités and Participation', async () => {
@@ -140,13 +163,13 @@ describe('NotificationPreferencesSection', () => {
     expect(text).not.toContain('Si désactivé')
   })
 
-  it('renders seven visible member preference rows when API includes 8.8 categories', async () => {
+  it('renders eight visible member preference rows when API includes 8.8 and 8.9 categories', async () => {
     const { fixture } = await setup({ pushState: 'enabled' })
     const visibleToggles = fixture.nativeElement.querySelectorAll(
       '[data-testid^="notification-pref-"][data-testid$="-push"]',
     )
 
-    expect(visibleToggles.length).toBe(7)
+    expect(visibleToggles.length).toBe(8)
     expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-event-details-changed-push"]')).toBeTruthy()
     expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-event-archived-push"]')).toBeTruthy()
   })

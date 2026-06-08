@@ -176,3 +176,11 @@
 - **URLs 2 segments** — `NotificationPayloadBuilder.kt` ; dette connue, listée dans Non-goals story 8.8.
 - **`ShareRecipientsService` ignore logs guest** — entrées `user_id = null` exclues de l’agrégat « déjà notifié » ; acceptable hors scope.
 - **`AvailabilityPendingReminderJob` `userId ?: continue`** — fix défensif pour `NotificationRecipient` nullable ; support 8.8, non documenté dans story.
+
+---
+
+## Deferred from: code review of 8-9-notification-equipe-confirmee-member (2026-06-08)
+
+- **AC4 re-dispatch test** — pas de test pour le second edge `→ COMPLETE` après régression lifecycle ; chemin produit optionnel (AC4 « may »).
+- **Push opt-out unit test** — pas de test dédié `TEAM_COMPLETE_MEMBER` push bloqué ; même chemin dispatcher que les autres intents (email testé).
+- **`./gradlew test` 3 échecs non liés** — `AvailabilityControllerIntegrationTest` ×2, `CompositionDrawIntegrationTest` ×1 (`chancePercent` null) ; pré-existants au périmètre draw/dispos.

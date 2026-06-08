@@ -313,6 +313,10 @@ class NotificationDispatcherTest {
             NotificationCategory.EVENT_ARCHIVED,
             NotificationIntent.EVENT_ARCHIVED.toCategory(),
         )
+        assertEquals(
+            NotificationCategory.TEAM_CONFIRMED,
+            NotificationIntent.TEAM_COMPLETE_MEMBER.toCategory(),
+        )
     }
 
     @Test
@@ -334,6 +338,49 @@ class NotificationDispatcherTest {
         )
 
         verifyNoInteractions(recipientResolver, pushSender, emailSender)
+    }
+
+    @Test
+    fun `TEAM_COMPLETE_MEMBER skips email when TEAM_CONFIRMED preference disabled`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val event = notificationEvent(eventId, troupeId)
+        val preferencePort: NotificationPreferenceEligibilityPort = mock()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(recipientResolver.resolveTeamCompleteMemberRecipients(eventId)).thenReturn(
+            listOf(NotificationRecipient(userId = userId, displayName = "Alice")),
+        )
+        whenever(pushEligibilityPort.isPushAllowedForCategory(userId, NotificationCategory.TEAM_CONFIRMED))
+            .thenReturn(true)
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(preferencePort)
+        whenever(
+            preferencePort.isAllowed(userId, NotificationCategory.TEAM_CONFIRMED, NotificationChannel.EMAIL),
+        ).thenReturn(false)
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(UserEntity(email = "alice@example.com")))
+        whenever(pushSender.sendPush(any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SENT),
+        )
+
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.TEAM_COMPLETE_MEMBER,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = userId,
+            ),
+        )
+
+        verify(emailSender, org.mockito.kotlin.never()).sendEmail(any(), any(), any(), any(), any(), any())
+        verify(deliveryLogRepository).save(
+            argThat {
+                channel == NotificationChannel.EMAIL &&
+                    status == NotificationDeliveryStatus.SKIPPED &&
+                    errorMessage == "email_preference_disabled"
+            },
+        )
     }
 
     @Test

@@ -6,6 +6,11 @@ import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.EventCompositionDeclineEntity
 import com.hatcast.api.composition.EventCompositionSlotEntity
 import com.hatcast.api.composition.EventCompositionSlotRepository
+import com.hatcast.api.composition.SlotParticipationStatus
+import com.hatcast.api.event.EventEntity
+import com.hatcast.api.event.EventRepository
+import com.hatcast.api.organizer.EventOrganizerEntity
+import com.hatcast.api.organizer.EventOrganizerRepository
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.EventRosterService
 import com.hatcast.api.participant.SeasonParticipantEntity
@@ -18,6 +23,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import java.util.Optional
 import java.util.UUID
 
 class NotificationRecipientResolverTest {
@@ -27,6 +33,8 @@ class NotificationRecipientResolverTest {
     private val slotRepository: EventCompositionSlotRepository = mock()
     private val availabilityRepository: com.hatcast.api.availability.EventAvailabilityRepository = mock()
     private val declineRepository: com.hatcast.api.composition.EventCompositionDeclineRepository = mock()
+    private val eventOrganizerRepository: EventOrganizerRepository = mock()
+    private val eventRepository: EventRepository = mock()
 
     private val resolver =
         NotificationRecipientResolver(
@@ -36,6 +44,8 @@ class NotificationRecipientResolverTest {
             slotRepository = slotRepository,
             availabilityRepository = availabilityRepository,
             declineRepository = declineRepository,
+            eventOrganizerRepository = eventOrganizerRepository,
+            eventRepository = eventRepository,
         )
 
     @Test
@@ -366,5 +376,113 @@ class NotificationRecipientResolverTest {
 
         assertEquals(1, recipients.size)
         assertEquals(declineUserId, recipients.first().userId)
+    }
+
+    @Test
+    fun `resolveTeamCompleteMemberRecipients unions organizers and complete assignees with dedupe`() {
+        val eventId = UUID.randomUUID()
+        val assigneeParticipantId = UUID.randomUUID()
+        val sharedUserId = UUID.randomUUID()
+        val organizerOnlyUserId = UUID.randomUUID()
+        val event =
+            EventEntity(
+                id = eventId,
+                season = mock(),
+                title = "Team complete",
+                slug = "team-complete",
+                startsAt = java.time.Instant.now(),
+                roleSlots = mapOf("player" to 1),
+            )
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(slotRepository.findByEventId(eventId)).thenReturn(
+            listOf(
+                EventCompositionSlotEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 0,
+                    seasonParticipantId = assigneeParticipantId,
+                    participationStatus = SlotParticipationStatus.CONFIRMED,
+                ),
+            ),
+        )
+        whenever(seasonParticipantRepository.findAllById(listOf(assigneeParticipantId))).thenReturn(
+            listOf(
+                SeasonParticipantEntity(
+                    id = assigneeParticipantId,
+                    season = mock(),
+                    displayName = "Player",
+                    user = com.hatcast.api.user.UserEntity(id = sharedUserId, email = "shared@test.com"),
+                ),
+            ),
+        )
+        whenever(eventParticipantRepository.findAllById(emptyList())).thenReturn(emptyList())
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(
+            listOf(
+                EventOrganizerEntity(
+                    event = event,
+                    user = com.hatcast.api.user.UserEntity(id = sharedUserId, email = "shared@test.com", displayName = "Shared"),
+                    grantedAt = java.time.Instant.now(),
+                    grantedBy = null,
+                ),
+                EventOrganizerEntity(
+                    event = event,
+                    user = com.hatcast.api.user.UserEntity(id = organizerOnlyUserId, email = "orga@test.com", displayName = "Orga"),
+                    grantedAt = java.time.Instant.now(),
+                    grantedBy = null,
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveTeamCompleteMemberRecipients(eventId)
+
+        assertEquals(2, recipients.size)
+        assertTrue(recipients.any { it.userId == sharedUserId })
+        assertTrue(recipients.any { it.userId == organizerOnlyUserId })
+    }
+
+    @Test
+    fun `resolveTeamCompleteMemberRecipients includes waived assignee without confirmed status`() {
+        val eventId = UUID.randomUUID()
+        val assigneeParticipantId = UUID.randomUUID()
+        val assigneeUserId = UUID.randomUUID()
+        val event =
+            EventEntity(
+                id = eventId,
+                season = mock(),
+                title = "Waived complete",
+                slug = "waived-complete",
+                startsAt = java.time.Instant.now(),
+                roleSlots = mapOf("player" to 1),
+            )
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(slotRepository.findByEventId(eventId)).thenReturn(
+            listOf(
+                EventCompositionSlotEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 0,
+                    seasonParticipantId = assigneeParticipantId,
+                    participationStatus = SlotParticipationStatus.PENDING,
+                    waived = true,
+                ),
+            ),
+        )
+        whenever(seasonParticipantRepository.findAllById(listOf(assigneeParticipantId))).thenReturn(
+            listOf(
+                SeasonParticipantEntity(
+                    id = assigneeParticipantId,
+                    season = mock(),
+                    displayName = "Waived",
+                    user = com.hatcast.api.user.UserEntity(id = assigneeUserId, email = "waived@test.com"),
+                ),
+            ),
+        )
+        whenever(eventParticipantRepository.findAllById(emptyList())).thenReturn(emptyList())
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(emptyList())
+
+        val recipients = resolver.resolveTeamCompleteMemberRecipients(eventId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(assigneeUserId, recipients.first().userId)
     }
 }

@@ -228,11 +228,13 @@ class NotificationDispatcher(
                 recipientResolver.resolveEngagedEventRosterRecipients(context.seasonId, context.eventId)
             NotificationIntent.EVENT_ARCHIVED ->
                 recipientResolver.resolveEventArchivedRecipients(context.seasonId, context.eventId)
+            NotificationIntent.TEAM_COMPLETE_MEMBER ->
+                recipientResolver.resolveTeamCompleteMemberRecipients(context.eventId)
         }
 
     private fun resolveProxySubjectRecipients(context: NotificationDispatchContext): List<NotificationRecipient> {
         val subjectUserId = context.subjectUserId ?: return emptyList()
-        if (subjectUserId == context.actorUserId) {
+        if (context.actorUserId != null && subjectUserId == context.actorUserId) {
             return emptyList()
         }
         return recipientResolver.resolveSubjectRecipient(subjectUserId)

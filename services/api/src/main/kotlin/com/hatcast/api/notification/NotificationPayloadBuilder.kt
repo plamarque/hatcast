@@ -78,6 +78,12 @@ class NotificationPayloadBuilder {
                     body = "L'équipe pour $eventTitle le $eventDate a été validée.",
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
                 )
+            NotificationIntent.TEAM_COMPLETE_MEMBER ->
+                NotificationPayload(
+                    title = "🎉 Équipe au complet",
+                    body = "Tous les participant·es ont confirmé pour $eventTitle le $eventDate.",
+                    url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
+                )
             NotificationIntent.ASSIGNEE_PRESENCE_REMINDER -> {
                 val rolePart = roleLabel?.let { " en tant que $it" }.orEmpty()
                 NotificationPayload(
@@ -183,6 +189,8 @@ class NotificationPayloadBuilder {
                 "🎭 Equipe pour $eventTitle"
             NotificationIntent.TEAM_VALIDATED_FYI ->
                 "Équipe validée · $eventTitle ($eventDate)"
+            NotificationIntent.TEAM_COMPLETE_MEMBER ->
+                "Équipe au complet · $eventTitle ($eventDate)"
             NotificationIntent.ASSIGNEE_PRESENCE_REMINDER ->
                 "Rappel · $eventTitle ($eventDate)"
             NotificationIntent.REMOVED_FROM_COMPOSITION ->
