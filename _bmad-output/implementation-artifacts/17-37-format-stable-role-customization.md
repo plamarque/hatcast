@@ -24,18 +24,24 @@ afin qu'**un Match à 4 joueurs ou sans coach reste un Match** (icône, stats, s
 
 ## Acceptance Criteria — Material 3 (UI)
 
-**UI : N/A** — pas de changement visuel ; correction comportementale du dialog existant (déjà M3).
+**M3-1** — `mat-dialog`, `mat-form-field`, `mat-select`, `mat-spinner` (Infos tab), chips custom avec boutons natifs ± (pas de div cliquable custom).  
+**M3-2** — tokens `--mat-sys-*` / `color-mix` dans `role-slot-chip-set` et dialog SCSS.  
+**M3-3** — stepper 40×40 px ; libellés français ; 1 colonne mobile pour lisibilité.  
+**M3-5** — revue faite ; scroll parasite dialog corrigé (`overflow: visible`, wrapper interne).
 
 ---
 
 ## Tasks / Subtasks
 
-- [x] **Périmètre :** `apps/web/` uniquement — pas de changement API
+- [x] **Périmètre :** `apps/web/` + artefacts BMad (SCP, DOMAIN, DW-103) — pas de changement API
 - [x] Retirer `detectTemplateFromRoles` de `onRoleCountChange` dans `event-type-roles-dialog.ts`
 - [x] Test `event-type-roles-dialog.spec.ts` : personnalisation match → `templateType` reste `match`
-- [x] Vérifier `event-infos-tab.spec.ts` — pas de changement requis (dialog result déjà testé)
+- [x] Vérifier `event-infos-tab.spec.ts` — spinner `savingTypeRoles` (commit `e703888b`, prérequis UX)
+- [x] Ajouter `RoleSlotChipSet` — chips + stepper compact ; remplacer grille `mat-form-field`
+- [x] Corriger overflow dialog (scroll horizontal/vertical parasite, libellé Format masqué)
 - [x] Clôturer DW-103 dans `deferred-work-archive.md`
-- [x] Mettre à jour `sprint-status.yaml`
+- [x] Amendement AC3 story 17.14
+- [x] Mettre à jour `sprint-status.yaml` → **done**
 
 ## Dev Notes
 
@@ -66,11 +72,22 @@ Composer (Correct Course handoff)
 
 ### Completion Notes List
 
-- SCP 2026-06-08 approuvé par Patrice.
-- Retrait de `detectTemplateFromRoles` dans `onRoleCountChange` ; format stable lors de la personnalisation.
-- Tests dialog : 6/6 verts (`ng test --include='**/event-type-roles-dialog.spec.ts'`).
+- SCP 2026-06-08 approuvé par Patrice ; story **done** 2026-06-08.
+- Retrait de `detectTemplateFromRoles` sur édition des slots ; `templateType` stable.
+- `RoleSlotChipSet` : édition compacte mobile-first (1 col. sous 36rem).
+- Spinner Infos tab pendant PATCH : livré en prérequis (`e703888b`).
+- Tests : `event-type-roles-dialog.spec.ts` 6/6 ; `role-slot-chip-set.spec.ts` 3/3.
+- Commit : `e1b82dff` — `feat(web): Stabilize format role slot dialog UX`.
 
 ### File List
 
+- `DOMAIN.md`
+- `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-08-format-stable-role-customization.md`
+- `_bmad-output/implementation-artifacts/17-14-onglet-infos-type-roles-modales.md` (AC3 amendé)
+- `_bmad-output/implementation-artifacts/deferred-work-archive.md` (DW-103 résolu)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `apps/web/src/app/pages/event-detail/event-type-roles-dialog.ts`
+- `apps/web/src/app/pages/event-detail/event-type-roles-dialog.html`
+- `apps/web/src/app/pages/event-detail/event-type-roles-dialog.scss`
 - `apps/web/src/app/pages/event-detail/event-type-roles-dialog.spec.ts`
+- `apps/web/src/app/shared/event-roles/role-slot-chip-set/*`
