@@ -1,0 +1,34 @@
+<div class="role-slot-chip-set" role="group" [attr.aria-label]="ariaLabel()">
+  @for (key of roleKeys(); track key) {
+    <div
+      class="role-slot-chip"
+      [class.role-slot-chip--active]="countFor(key) > 0"
+    >
+      <span class="role-slot-chip__label" [attr.title]="labelFor(key)">
+        <span class="role-slot-chip__emoji" aria-hidden="true">{{ emojiFor(key) }}</span>
+        <span class="role-slot-chip__text">{{ labelFor(key) }}</span>
+      </span>
+      <div class="role-slot-chip__stepper">
+        <button
+          type="button"
+          class="role-slot-chip__step"
+          [disabled]="disabled() || countFor(key) <= 0"
+          [attr.aria-label]="'Diminuer ' + labelFor(key)"
+          (click)="decrement(key)"
+        >
+          −
+        </button>
+        <span class="role-slot-chip__count" aria-hidden="true">{{ countFor(key) }}</span>
+        <button
+          type="button"
+          class="role-slot-chip__step"
+          [disabled]="disabled() || countFor(key) >= maxCount()"
+          [attr.aria-label]="'Augmenter ' + labelFor(key)"
+          (click)="increment(key)"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  }
+</div>

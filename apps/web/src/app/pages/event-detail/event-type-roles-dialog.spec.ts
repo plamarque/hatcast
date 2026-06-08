@@ -43,7 +43,7 @@ type Harness = {
   onTemplateSelected: (id: EventTypeId) => void
   confirmTemplateChange: () => void
   cancelTemplateChange: () => void
-  onRoleCountChange: (role: 'player', raw: string) => void
+  onSlotCountChange: (change: { key: 'player'; count: number }) => void
   submit: () => void
   showTemplateChangeConfirmation: boolean
   selectedTemplateType: EventTypeId
@@ -105,7 +105,7 @@ describe('EventTypeRolesDialog', () => {
     const { fixture, close } = await setup(dialogData())
     const h = harness(fixture)
 
-    h.onRoleCountChange('player', '25')
+    h.onSlotCountChange({ key: 'player', count: 25 })
     h.submit()
 
     expect(close).toHaveBeenCalledWith(
@@ -114,6 +114,22 @@ describe('EventTypeRolesDialog', () => {
         roleSlots: expect.objectContaining({ player: 25 }),
       }),
     )
+  })
+
+  it('keeps templateType when customizing role counts', async () => {
+    const { fixture, close } = await setup(
+      dialogData({ templateType: 'match', roleSlots: applyTemplate('match') }),
+    )
+    const h = harness(fixture)
+
+    h.onSlotCountChange({ key: 'player', count: 4 })
+    expect(h.selectedTemplateType).toBe('match')
+
+    h.submit()
+    expect(close).toHaveBeenCalledWith({
+      templateType: 'match',
+      roleSlots: expect.objectContaining({ player: 4 }),
+    })
   })
 
   it('initializes templateType from API value', async () => {

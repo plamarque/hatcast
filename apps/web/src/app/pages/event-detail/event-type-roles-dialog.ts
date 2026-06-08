@@ -6,12 +6,10 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
 import { MatSelect, MatSelectModule } from '@angular/material/select'
 
 import {
   applyTemplate,
-  clampRoleCount,
   detectTemplateFromRoles,
   type EventTypeId,
   EVENT_TYPE_IDS,
@@ -19,15 +17,14 @@ import {
   getEventTypeLabel,
   normalizeRoleSlots,
   ROLE_COUNT_MAX,
-  type RoleKey,
-  ROLE_DISPLAY_ORDER,
-  ROLE_EMOJIS,
-  ROLE_LABELS,
   roleSlotsEqual,
-  rolesWithSlots,
   type RoleSlots,
   TEMPLATE_DISPLAY_ORDER,
 } from '../../core/events/event-types'
+import {
+  RoleSlotChipSet,
+  type RoleSlotCountChange,
+} from '../../shared/event-roles/role-slot-chip-set/role-slot-chip-set'
 
 export interface EventTypeRolesDialogData {
   seasonId: string
@@ -46,8 +43,8 @@ export type EventTypeRolesDialogResult =
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
-    MatInputModule,
     MatSelectModule,
+    RoleSlotChipSet,
   ],
   templateUrl: './event-type-roles-dialog.html',
   styleUrl: './event-type-roles-dialog.scss',
@@ -59,14 +56,10 @@ export class EventTypeRolesDialog implements OnInit {
 
   @ViewChild('formatSelect') private formatSelect?: MatSelect
 
-  protected showRoleInputs = false
   protected showTemplateChangeConfirmation = false
   protected pendingTemplateId: EventTypeId | null = null
 
   protected readonly templateOrder = TEMPLATE_DISPLAY_ORDER
-  protected readonly roleDisplayOrder = ROLE_DISPLAY_ORDER
-  protected readonly roleLabels = ROLE_LABELS
-  protected readonly roleEmojis = ROLE_EMOJIS
   protected readonly getEventTypeIcon = getEventTypeIcon
   protected readonly getEventTypeLabel = getEventTypeLabel
 
@@ -80,10 +73,6 @@ export class EventTypeRolesDialog implements OnInit {
       ? fromApi
       : detectTemplateFromRoles(normalized)
     this.roleSlots = normalized
-  }
-
-  protected summaryRoles(): RoleKey[] {
-    return rolesWithSlots(this.roleSlots)
   }
 
   protected onTemplateSelected(typeId: EventTypeId): void {
@@ -104,7 +93,6 @@ export class EventTypeRolesDialog implements OnInit {
     this.roleSlots = applyTemplate(this.pendingTemplateId)
     this.showTemplateChangeConfirmation = false
     this.pendingTemplateId = null
-    this.showRoleInputs = false
   }
 
   protected cancelTemplateChange(): void {
@@ -115,22 +103,8 @@ export class EventTypeRolesDialog implements OnInit {
     })
   }
 
-  protected enableCustomization(): void {
-    this.showRoleInputs = true
-  }
-
-  protected hideCustomization(): void {
-    this.showRoleInputs = false
-  }
-
-  protected onRoleCountChange(role: RoleKey, raw: string): void {
-    const n = clampRoleCount(Number(raw))
-    this.roleSlots = { ...this.roleSlots, [role]: n }
-    this.selectedTemplateType = detectTemplateFromRoles(this.roleSlots)
-  }
-
-  protected roleCount(role: RoleKey): number {
-    return this.roleSlots[role] ?? 0
+  protected onSlotCountChange(change: RoleSlotCountChange): void {
+    this.roleSlots = { ...this.roleSlots, [change.key]: change.count }
   }
 
   protected submit(): void {
