@@ -40,7 +40,10 @@
         [active]="profileRla.isActive"
         [routerLinkActiveOptions]="{ exact: true }"
       >
-        Mon profil
+        <span class="account-page__tab-item">
+          <mat-icon aria-hidden="true">person</mat-icon>
+          <span>Mon profil</span>
+        </span>
       </a>
       <a
         mat-tab-link
@@ -49,7 +52,10 @@
         #preferencesRla="routerLinkActive"
         [active]="preferencesRla.isActive"
       >
-        Préférences
+        <span class="account-page__tab-item">
+          <mat-icon aria-hidden="true">tune</mat-icon>
+          <span>Préférences</span>
+        </span>
       </a>
       <a
         mat-tab-link
@@ -58,7 +64,10 @@
         #notificationsRla="routerLinkActive"
         [active]="notificationsRla.isActive"
       >
-        Notifications
+        <span class="account-page__tab-item">
+          <mat-icon aria-hidden="true">notifications</mat-icon>
+          <span>Notifications</span>
+        </span>
       </a>
       <a
         mat-tab-link
@@ -67,7 +76,10 @@
         #aboutRla="routerLinkActive"
         [active]="aboutRla.isActive"
       >
-        À propos
+        <span class="account-page__tab-item">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          <span>À propos</span>
+        </span>
       </a>
     </nav>
     <mat-tab-nav-panel #accountTabPanel class="account-page__tab-panel" />
