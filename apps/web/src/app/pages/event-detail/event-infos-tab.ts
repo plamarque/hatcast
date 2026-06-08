@@ -44,6 +44,7 @@ import {
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import {
   CATEGORY_HELP,
+  DEFAULT_CATEGORY_DISPLAY_LABEL,
   EventCategoryDialog,
   type EventCategoryDialogData,
   type EventCategoryDialogResult,
@@ -58,9 +59,11 @@ import {
 } from './event-organizers-dialog'
 import {
   EventTypeRolesDialog,
+  FORMAT_AND_ROLES_HELP,
   type EventTypeRolesDialogData,
   type EventTypeRolesDialogResult,
 } from './event-type-roles-dialog'
+import { ORGANIZERS_HELP } from './event-organizers-dialog'
 
 @Component({
   selector: 'app-event-infos-tab',
@@ -107,10 +110,8 @@ export class EventInfosTab {
   protected readonly mapsMenuOpen = signal(false)
 
   protected readonly categoryHelp = CATEGORY_HELP
-
-  protected readonly showCategorySection = computed(
-    () => this.canManageEvents() || this.event().category != null,
-  )
+  protected readonly formatAndRolesHelp = FORMAT_AND_ROLES_HELP
+  protected readonly organizersHelp = ORGANIZERS_HELP
 
   protected readonly showOrganizersSection = computed(
     () => this.canManageEventOrganizers() || this.organizers().length > 0,
@@ -134,6 +135,12 @@ export class EventInfosTab {
     }
     return this.glossary().find((t) => t.slug === slug)?.label ?? slug
   })
+
+  protected readonly hasCustomCategory = computed(() => this.event().category != null)
+
+  protected readonly categoryDisplayLabel = computed(
+    () => this.categoryLabel() ?? DEFAULT_CATEGORY_DISPLAY_LABEL,
+  )
 
   protected readonly dateExportEnabled = computed(() => {
     const ev = this.event()

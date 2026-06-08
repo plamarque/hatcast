@@ -26,6 +26,9 @@ import {
   type RoleSlotCountChange,
 } from '../../shared/event-roles/role-slot-chip-set/role-slot-chip-set'
 
+export const FORMAT_AND_ROLES_HELP =
+  'Format du spectacle et effectifs par rôle nécessaires pour composer l’équipe.'
+
 export interface EventTypeRolesDialogData {
   seasonId: string
   eventId: string
@@ -51,6 +54,7 @@ export type EventTypeRolesDialogResult =
 })
 export class EventTypeRolesDialog implements OnInit {
   protected readonly roleCountMax = ROLE_COUNT_MAX
+  protected readonly helpText = FORMAT_AND_ROLES_HELP
   private readonly ref = inject(MatDialogRef<EventTypeRolesDialog, EventTypeRolesDialogResult>)
   protected readonly data = inject<EventTypeRolesDialogData>(MAT_DIALOG_DATA)
 

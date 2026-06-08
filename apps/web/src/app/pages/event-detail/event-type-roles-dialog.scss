@@ -23,6 +23,13 @@
   width: 100%;
 }
 
+.type-roles-dialog__help {
+  margin: 0 0 0.25rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
 .type-roles-dialog__full {
   max-width: 100%;
   min-width: 0;

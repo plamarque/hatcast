@@ -128,7 +128,7 @@
 .event-infos__organizers {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .event-infos__organizers-body {
@@ -188,7 +188,7 @@
 .event-infos__format {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .event-infos__format-header {
@@ -255,14 +255,14 @@
 .event-infos__category {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
-.event-infos__category-help {
+.event-infos__section-help {
   margin: 0;
   color: var(--mat-sys-on-surface-variant);
   font-size: 0.8125rem;
-  line-height: 1.35;
+  line-height: 1.25;
 }
 
 .event-infos__category-body {
@@ -281,8 +281,14 @@
   font-weight: 500;
   cursor: default;
 
-  &:not([disabled]) {
+  &--editable:not([disabled]) {
     cursor: pointer;
+  }
+
+  &--default:not([disabled]) {
+    --mdc-chip-elevated-container-color: rgba(255, 255, 255, 0.04);
+    font-weight: 400;
+    opacity: 0.92;
   }
 }
 

@@ -15,7 +15,10 @@ import {
 } from '../../core/troupes/troupe-api.service'
 
 export const CATEGORY_HELP =
-  'Les participations à ce spectacle comptent dans une catégorie séparée pour calculer les chances au tirage et les statistiques.'
+  'Choisis la catégorie dans laquelle ce spectacle comptera pour les statistiques et les tirages.'
+
+/** Libellé affiché quand `category` est absent (= pool principal, ADR 0013). */
+export const DEFAULT_CATEGORY_DISPLAY_LABEL = 'Spectacle ordinaire'
 
 export interface EventCategoryDialogData {
   troupeId: string

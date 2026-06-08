@@ -382,26 +382,53 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 > **2026-05-25 (SCP) :** Saisie sur l’onglet **Infos** du détail spectacle (`event-infos-tab`), **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).  
 > **Libellé UI (DOMAIN / ADR 0013) :** section **Catégorie** (champ API `category` ; ex-`equityTag` / « Groupe de spectacles » en UX 2026-05-25).  
-> **2026-06-08 :** phrase d’aide **inline** sur l’onglet Infos (même copy que la modale) — le libellé seul était trop cryptique en bas de fiche.
+> **2026-06-08 :** phrase d’aide **inline** sur l’onglet Infos (même copy que la modale) — le libellé seul était trop cryptique en bas de fiche.  
+> **2026-06-08 (rev. 2) :** section **toujours visible** ; défaut affiché **Spectacle ordinaire** (plus de CTA « Choisir une catégorie ») ; copy d’aide révisée (voir § 6c–6d pour Format et Organisateur·ices).
 
 **Context:** Event detail → tab **Infos** — not a separate route; not in create/edit dialog.
 
 | Field | Behaviour |
 |-------|-----------|
 | **Section label** | **Catégorie** (small caps, same pattern as other Infos fields) |
-| **Inline help** | Visible whenever the section is shown (`canManageEvents` or category already set). Secondary text under the label, `on-surface-variant`, ~0.8125rem ; `aria-describedby` on the section. **Same French copy** as dialog hint (single constant `CATEGORY_HELP`). |
-| **Help copy (FR)** | *« Les participations à ce spectacle comptent dans une catégorie séparée pour calculer les chances au tirage et les statistiques. »* |
-| **Empty state (manage)** | CTA **« Choisir une catégorie »** + icon `sell` — **primary** link style (same as **« Ajouter un·e organisateur·ice »**); opens `EventCategoryDialog` |
-| **Set state** | Chip with glossary label; `×` removes category → **principal** pool (default, **not shown** as option); chip click reopens dialog |
+| **Inline help** | Toujours visible. Texte secondaire sous le libellé, `on-surface-variant`, ~0.8125rem ; `aria-describedby` sur la section. **Même copy** que dialog hint (single constant `CATEGORY_HELP`). |
+| **Help copy (FR)** | *« Choisis la catégorie dans laquelle ce spectacle comptera pour les statistiques et les tirages. »* |
+| **Empty / default state** | Chip **Spectacle ordinaire** (`DEFAULT_CATEGORY_DISPLAY_LABEL`) — pool principal implicite ; pas de CTA « Choisir » ; chip cliquable si `canManageEvents` pour ouvrir la modale |
+| **Set state** | Chip avec libellé glossaire ; `×` retire la catégorie → retour **Spectacle ordinaire** ; chip click rouvre dialog |
 | **Dialog** | Title **Catégorie**; field **Catégorie (optionnelle)**; autocomplete against troupe glossary; type unknown → create category |
 | **Help (dialog)** | `mat-hint` — **identical** copy to inline help on tab |
-| **Rule** | **At most one** category per event — CTA wording reflects assign/switch, not “add another category” |
+| **Rule** | **At most one** category per event — chip click (orga) opens dialog to assign/switch ; **×** clears custom category → **Spectacle ordinaire** |
 
-**Not in UI:** “Principal” radio; category field in `EventFormDialog`. **Format** (`templateType`: match, cabaret…) — on Infos via modales (**17.14**).
+**Not in UI:** « Principal » as selectable option in dialog ; category field in `EventFormDialog`. **Format** (`templateType`: match, cabaret…) — on Infos via modales (**17.14**).
 
 **List surfaces:** optional small badge on agenda rows when category set.
 
 **Stats/draw:** Epic 17.9–17.10 — DEPLACEMENT column driven by category `deplacements`, not travel season.
+
+---
+
+## Screen 6c — Format et besoins (onglet Infos) **[Epic 17.14]**
+
+> **2026-06-08 :** phrase d’aide **inline** sur l’onglet Infos — même pattern que Catégorie (§ 6b).
+
+| Field | Behaviour |
+|-------|-----------|
+| **Section label** | **Format et besoins** |
+| **Inline help** | Toujours visible (section affichée pour tous). Texte secondaire sous le libellé, `on-surface-variant`, ~0.8125rem ; `aria-describedby` sur la section. **Même copy** que la modale (`FORMAT_AND_ROLES_HELP`). |
+| **Help copy (FR)** | *« Format du spectacle et effectifs par rôle nécessaires pour composer l’équipe. »* |
+| **Dialog** | Titre **Format et besoins** ; intro identique au help inline |
+
+---
+
+## Screen 6d — Organisateur·ices (onglet Infos) **[Epic 17.15]**
+
+> **2026-06-08 :** phrase d’aide **inline** — complète la modale d’ajout (intro actionnelle distincte).
+
+| Field | Behaviour |
+|-------|-----------|
+| **Section label** | **Organisateur·ices** |
+| **Inline help** | Visible quand la section est affichée (`canManageEventOrganizers` ou au moins un organisateur). Texte secondaire, `aria-describedby`. Constante `ORGANIZERS_HELP`. |
+| **Help copy (FR)** | *« Personnes spécifiquement désignées pour gérer l’organisation et la composition du spectacle. »* |
+| **Dialog ajout** | Intro actionnelle inchangée (*« Cette personne pourra gérer… »*) — complémentaire, pas identique |
 
 ---
 
@@ -474,7 +501,9 @@ No layout redesign in MVP; optional polish Story 2.11.
 | **UX-DR18** | Multi-active seasons — several active cards on troupe hub | Active |
 | **UX-DR19** | Breadcrumb — desktop full path; mobile troupe logo only; links to hub | **New** ADR 0013 |
 | **UX-DR20** | Scope admin bar below header (troupe / saison / spectacle) | **New** ADR 0013 |
-| **UX-DR21** | **Catégorie** on Infos tab (`category`) — inline help + CTA **Choisir une catégorie** → dialog autocomplete; principal implicit; one category max | **Amended** ADR 0013 (2026-06-08 inline help) |
+| **UX-DR21** | **Catégorie** on Infos tab — **always visible** ; chip **Spectacle ordinaire** when `category` null ; inline help ; chip click (orga) → category dialog ; **×** → ordinaire ; one category max | **Amended** 2026-06-08 |
+| **UX-DR22** | **Format et besoins** on Infos — inline help under label ; same copy in type/roles dialog (**17.14**) | **New** 2026-06-08 |
+| **UX-DR23** | **Organisateur·ices** on Infos — inline help when section visible (`canManageEventOrganizers` or ≥1 organizer) ; distinct from add-dialog intro (**17.15**) | **New** 2026-06-08 |
 
 ---
 

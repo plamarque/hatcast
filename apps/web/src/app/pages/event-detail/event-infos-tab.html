@@ -97,7 +97,11 @@
     }
   </div>
 
-  <section class="event-infos__format" aria-labelledby="event-infos-format-label">
+  <section
+    class="event-infos__format"
+    aria-labelledby="event-infos-format-label"
+    aria-describedby="event-infos-format-help"
+  >
     <div class="event-infos__format-header">
       <span id="event-infos-format-label" class="event-infos__label">Format et besoins</span>
       @if (canManageEvents()) {
@@ -113,6 +117,7 @@
         </button>
       }
     </div>
+    <p id="event-infos-format-help" class="event-infos__section-help">{{ formatAndRolesHelp }}</p>
     <div class="event-infos__format-body">
       @if (savingTypeRoles()) {
         <div
@@ -140,8 +145,13 @@
   </section>
 
   @if (showOrganizersSection()) {
-    <section class="event-infos__organizers" aria-labelledby="event-infos-organizers-label">
+    <section
+      class="event-infos__organizers"
+      aria-labelledby="event-infos-organizers-label"
+      aria-describedby="event-infos-organizers-help"
+    >
       <span id="event-infos-organizers-label" class="event-infos__label">Organisateur·ices</span>
+      <p id="event-infos-organizers-help" class="event-infos__section-help">{{ organizersHelp }}</p>
       <div class="event-infos__organizers-body">
         @if (organizers().length > 0) {
           <mat-chip-set class="event-infos__chip-set">
@@ -182,42 +192,35 @@
     </section>
   }
 
-  @if (showCategorySection()) {
-    <section
-      class="event-infos__category"
-      aria-labelledby="event-infos-category-label"
-      aria-describedby="event-infos-category-help"
-    >
-      <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
-      <p id="event-infos-category-help" class="event-infos__category-help">{{ categoryHelp }}</p>
-      <div class="event-infos__category-body">
-        @if (categoryLabel(); as label) {
-          <mat-chip-set class="event-infos__chip-set">
-            <mat-chip
-              class="event-infos__category-chip"
-              [disabled]="saving()"
-              [removable]="canManageEvents()"
-              (removed)="removeCategory()"
-              (click)="onCategoryChipClick()"
+  <section
+    class="event-infos__category"
+    aria-labelledby="event-infos-category-label"
+    aria-describedby="event-infos-category-help"
+  >
+    <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
+    <p id="event-infos-category-help" class="event-infos__section-help">{{ categoryHelp }}</p>
+    <div class="event-infos__category-body">
+      <mat-chip-set class="event-infos__chip-set">
+        <mat-chip
+          class="event-infos__category-chip"
+          [class.event-infos__category-chip--default]="!hasCustomCategory()"
+          [class.event-infos__category-chip--editable]="canManageEvents()"
+          [disabled]="saving()"
+          [removable]="canManageEvents() && hasCustomCategory()"
+          (removed)="removeCategory()"
+          (click)="onCategoryChipClick()"
+        >
+          {{ categoryDisplayLabel() }}
+          @if (canManageEvents() && hasCustomCategory()) {
+            <mat-icon
+              matChipRemove
+              [attr.aria-label]="'Retirer ' + categoryDisplayLabel()"
             >
-              {{ label }}
-              @if (canManageEvents()) {
-                <mat-icon matChipRemove [attr.aria-label]="'Retirer ' + label">cancel</mat-icon>
-              }
-            </mat-chip>
-          </mat-chip-set>
-        } @else if (canManageEvents()) {
-          <button
-            type="button"
-            class="event-infos__add-category"
-            [disabled]="saving()"
-            (click)="openCategoryDialog()"
-          >
-            <mat-icon aria-hidden="true">sell</mat-icon>
-            Choisir une catégorie
-          </button>
-        }
-      </div>
-    </section>
-  }
+              cancel
+            </mat-icon>
+          }
+        </mat-chip>
+      </mat-chip-set>
+    </div>
+  </section>
 </main>

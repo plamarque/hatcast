@@ -1779,7 +1779,8 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 
 #### Story 17.8 : UI onglet Infos — tag d’équité optionnel
 
-> **2026-05-25 (SCP event-form UX) :** Tag saisi sur l’**onglet Infos** du détail spectacle, **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
+> **2026-05-25 (SCP event-form UX) :** Tag saisi sur l’**onglet Infos** du détail spectacle, **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).  
+> **2026-06-08 (UX amend.) :** libellé **Catégorie** ; help inline ; chip **Spectacle ordinaire** par défaut — spec normative à jour : [ux-design-journey-league-agenda.md](ux-design-journey-league-agenda.md) § Screen 6b (remplace CTA « Mettre dans un groupe » / « Choisir une catégorie » ci-dessous).
 
 **Acceptance Criteria**
 

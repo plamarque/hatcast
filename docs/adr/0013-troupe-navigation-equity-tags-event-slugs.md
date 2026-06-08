@@ -74,10 +74,10 @@ Usability testing on wireframes was **not run** (no participants available); dec
 | Field | Rules |
 |-------|--------|
 | `category` | Nullable string; **at most one** per event |
-| Empty / null | **Principal** category — system default; **not shown** in create/edit UI |
+| Empty / null | **Principal** category — system default; Infos tab shows **Spectacle ordinaire** (not a stored value; not selectable in dialog) |
 | Set | Participation counts only in that category’s pool within the **season** date bounds and roster |
-| UI | Optional autocomplete on event Infos tab; creatable per troupe glossary; **×** clears category |
-| Help | Inline copy explains impact on chances and auto-draw |
+| UI | Section **Catégorie** always on Infos tab; optional autocomplete via dialog; creatable per troupe glossary; **×** clears custom category → principal display |
+| Help | Inline copy under section label (same as dialog `mat-hint`) explains impact on stats and draw |
 
 **Troupe category glossary (Phase 2+):** troupe-configurable list (e.g. `deplacements`, `aperock`); unknown typed value may create a new troupe category.
 
@@ -131,6 +131,7 @@ Usability testing on wireframes was **not run** (no participants available); dec
 | Travel league per compartment (ADR 0012) | Duplicate roster and navigation; poor fit for Apérock-style axes on same roster |
 | Multi-select tags per event | User rule: one tag only; avoids overlapping pools |
 | Show « Principal » in UI | Clutters form; principal is implicit when empty |
+| Show « Principal » as dialog option | Would imply a stored value; rejected — display-only **Spectacle ordinaire** on Infos when null (amended 2026-06-08) |
 | Full breadcrumb on mobile | Horizontal overflow; logo-only compromise |
 | ⚙ in breadcrumb header row | Competes with breadcrumb; admin scoped per screen via toolbar gear menu |
 | Full-width admin strip below header | Rejected 2026-05-25 (post-17.2 review); wastes vertical space; PO prefers inline gear + dropdown |

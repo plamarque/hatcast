@@ -6,6 +6,8 @@ Status: done
 
 **Sprint Change Proposal:** [_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](../planning-artifacts/sprint-change-proposal-2026-05-25-epic17-event-form-ux.md) (2026-05-25 — tag moved off `EventFormDialog`)
 
+> **UX superseded 2026-06-08 :** section renommée **Catégorie** ; help inline ; chip **Spectacle ordinaire** par défaut (section toujours visible). Les AC ci-dessous restent l’historique du ship initial — **spec normative actuelle** : [ux-design-journey-league-agenda.md](../planning-artifacts/ux-design-journey-league-agenda.md) § Screen 6b.
+
 ## Story
 
 As a **troupe admin or organizer** with rights to manage the spectacle,

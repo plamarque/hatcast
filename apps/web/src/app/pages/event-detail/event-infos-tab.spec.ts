@@ -9,7 +9,9 @@ import type { EventResponse } from '../../core/events/event-api.service'
 import { CALENDAR_SNACKBAR_MESSAGES } from '../../core/events/event-calendar-export'
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
-import { CATEGORY_HELP } from './event-category-dialog'
+import { CATEGORY_HELP, DEFAULT_CATEGORY_DISPLAY_LABEL } from './event-category-dialog'
+import { FORMAT_AND_ROLES_HELP } from './event-type-roles-dialog'
+import { ORGANIZERS_HELP } from './event-organizers-dialog'
 import { EventInfosTab } from './event-infos-tab'
 
 function ev(overrides: Partial<EventResponse> = {}): EventResponse {
@@ -319,5 +321,38 @@ describe('EventInfosTab', () => {
 
     const help = fixture.nativeElement.querySelector('#event-infos-category-help')
     expect(help?.textContent?.trim()).toBe(CATEGORY_HELP)
+  })
+
+  it('shows Spectacle ordinaire when no custom category', () => {
+    fixture.detectChanges()
+
+    const chip = fixture.nativeElement.querySelector('.event-infos__category-chip')
+    expect(chip?.textContent?.trim()).toContain(DEFAULT_CATEGORY_DISPLAY_LABEL)
+    expect(chip?.classList.contains('event-infos__category-chip--default')).toBe(true)
+  })
+
+  it('shows custom category label and allows remove when set', () => {
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.componentRef.setInput('event', ev({ category: 'deplacements' }))
+    fixture.detectChanges()
+
+    const chip = fixture.nativeElement.querySelector('.event-infos__category-chip')
+    expect(chip?.textContent?.trim()).toContain('deplacements')
+    expect(chip?.querySelector('[matChipRemove]')).not.toBeNull()
+  })
+
+  it('shows format and roles help on every Infos load', () => {
+    fixture.detectChanges()
+
+    const help = fixture.nativeElement.querySelector('#event-infos-format-help')
+    expect(help?.textContent?.trim()).toBe(FORMAT_AND_ROLES_HELP)
+  })
+
+  it('shows organizers help when section is visible', () => {
+    fixture.componentRef.setInput('canManageEventOrganizers', true)
+    fixture.detectChanges()
+
+    const help = fixture.nativeElement.querySelector('#event-infos-organizers-help')
+    expect(help?.textContent?.trim()).toBe(ORGANIZERS_HELP)
   })
 })

@@ -21,7 +21,7 @@ La modale **Modifier / Nouveau spectacle** ne devrait porter que le **noyau plan
 | 3 | **Type + rôles** dans la modale | Infos + modales dédiées | **→ Story 17.14** | — |
 | 4 | **Organisateur·ices** dans la modale | Infos + modale | **→ Story 17.15** (partie orgas) | — |
 | 5 | **Participants** dans la modale | Retrait ; menu admin | **→ Story 17.15** (partie participants) | 3.8 AC11 révisée |
-| — | **Groupe de spectacles** / tag d’équité (initialement modale) | **Onglet Infos** — CTA **Mettre dans un groupe** | **→ Story 17.8** (amendée) | SCP 2026-05-25 |
+| — | **Groupe de spectacles** / tag d’équité (initialement modale) | **Onglet Infos** — section **Catégorie** + chip **Spectacle ordinaire** | **→ Story 17.8** (amendée) | SCP 2026-05-25 ; UX 2026-06-08 → Screen 6b |
 
 ---
 
