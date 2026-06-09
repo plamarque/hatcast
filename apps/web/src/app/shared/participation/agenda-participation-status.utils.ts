@@ -30,7 +30,7 @@ export function agendaParticipationStatusFromFocus(
         status: 'declined',
         label: roleLabel,
         roleKey,
-        tooltip: `${roleLabel} — Décliné`,
+        tooltip: `${roleLabel} — Retrait`,
       },
       availabilityEditable: false,
       participationEditable: false,

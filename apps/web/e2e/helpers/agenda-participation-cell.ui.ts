@@ -89,7 +89,7 @@ export async function confirmParticipationInDialog(page: Page): Promise<void> {
 export async function declineParticipationInDialog(page: Page): Promise<void> {
   await expectParticipationDialog(page)
   await page.locator('.composition-participation__action--decline').click()
-  await expect(page.getByRole('heading', { name: 'Décliner la participation' })).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'Confirmer la déclinaison' })).toBeVisible({
     timeout: 15_000,
   })
   await page.getByRole('button', { name: 'Décliner' }).click()

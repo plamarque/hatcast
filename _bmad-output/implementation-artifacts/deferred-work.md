@@ -35,6 +35,14 @@
 
 ---
 
+## Deferred from: code review of 6-24-participation-copy-declinaison-desistement-retrait (2026-06-09)
+
+- Dispatch proxy par égalité de `decisionLabel` (fragile si labels changent) — pattern préexistant étendu, pas introduit par 6.24.
+- Clé enum `DECLINE_RESTORED` non renommée — explicit non-goal story (identifiants techniques inchangés).
+- Paramètre optionnel `statusBeforeDecline` sans garde — risque latent faible, call sites actuels corrects.
+
+---
+
 ## Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)
 
 - Cibles tactiles &lt; 48 dp sur segments pool et trigger % grille — waiver PO documenté `FRONTEND_UI.md` ; follow-up post-release 19.7.
@@ -235,3 +243,12 @@
 - **Verrou H2 si second `bootRun` concurrent** — `.local/hatcast-offline/*.lock.db` peut bloquer le démarrage ; reset manuel documenté.
 - **Chemin H2 `${user.dir}/../../` hors `services/api`** — fonctionne via `start-dev.sh` (cwd garanti) ; `bootRun` manuel depuis un autre répertoire non supporté.
 - **ARCH.md sans mention du mode offline** — couvert par `DEVELOPMENT.md` + `services/api/README.md` ; ARCH normatif V2 runtime inchangé (outil dev local).
+
+---
+
+## Deferred from: code review of 6-23-modales-partager-annoncer-manuel-compact (2026-06-09)
+
+- **Tooltip WhatsApp via `title` natif** — préexistant story 6.15 ; `matTooltip` non importé ; M3-1 partiellement satisfait.
+- **AC10 suite web complète non verte** — 80 échecs préexistants / 29 fichiers ; tests share-announce 18/18 OK.
+- **`::ng-deep` panel menu** — dette technique Angular ; pattern acceptable court terme pour `panelClass`.
+- **Menu noms sans max-height** — débordement si audience très large ; **résolu en review 6.23** (`max-height` + `overflow-y` sur panel menu).

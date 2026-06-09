@@ -36,9 +36,9 @@ object AuditActionLabels {
             AuditActionType.SLOT_ASSIGNED -> "Créneau assigné"
             AuditActionType.SLOT_CLEARED -> "Créneau libéré"
             AuditActionType.PARTICIPATION_CONFIRMED -> "Participation confirmée"
-            AuditActionType.PARTICIPATION_DECLINED -> "Participation déclinée"
+            AuditActionType.PARTICIPATION_DECLINED -> "Retrait de la compo"
             AuditActionType.PARTICIPATION_RESET -> "Participation réinitialisée"
-            AuditActionType.DECLINE_RESTORED -> "Déclin restauré"
+            AuditActionType.DECLINE_RESTORED -> "Réintégration après retrait"
             AuditActionType.ACCOUNT_DELETED -> "Compte supprimé"
         }
 }

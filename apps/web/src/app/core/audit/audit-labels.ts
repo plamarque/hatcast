@@ -35,9 +35,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditActionType, string> = {
   SLOT_ASSIGNED: 'Créneau assigné',
   SLOT_CLEARED: 'Créneau libéré',
   PARTICIPATION_CONFIRMED: 'Participation confirmée',
-  PARTICIPATION_DECLINED: 'Participation déclinée',
+  PARTICIPATION_DECLINED: 'Retrait de la compo',
   PARTICIPATION_RESET: 'Participation réinitialisée',
-  DECLINE_RESTORED: 'Déclin restauré',
+  DECLINE_RESTORED: 'Réintégration après retrait',
 }
 
 export const AUDIT_ACTION_FILTER_OPTIONS: Array<{ value: AuditActionType; label: string }> =

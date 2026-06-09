@@ -8,6 +8,7 @@ import {
 } from './audit-display-labels'
 import { formatAuditLine } from './audit-line-formatter'
 import { buildAuditLineViewModel } from './audit-line-view-model'
+import { AUDIT_ACTION_LABELS } from './audit-labels'
 import type { AuditEventRow } from './audit-api.service'
 import { expandDrawAuditLines } from './audit-draw-expander'
 
@@ -34,7 +35,12 @@ describe('audit-display-labels', () => {
   it('maps participation statuses to French UX labels', () => {
     expect(auditParticipationStatusLabel('confirmed')).toBe('Confirmé 👍')
     expect(auditParticipationStatusLabel('pending')).toBe('À confirmer ⏳')
-    expect(auditParticipationStatusLabel('declined')).toBe('Décliné 👎')
+    expect(auditParticipationStatusLabel('declined')).toBe('Retrait 👎')
+  })
+
+  it('maps withdrawal audit action labels per story 6.24', () => {
+    expect(AUDIT_ACTION_LABELS.PARTICIPATION_DECLINED).toBe('Retrait de la compo')
+    expect(AUDIT_ACTION_LABELS.DECLINE_RESTORED).toBe('Réintégration après retrait')
   })
 
   it('maps role keys to emoji + French label', () => {

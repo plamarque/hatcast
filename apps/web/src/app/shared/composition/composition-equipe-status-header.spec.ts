@@ -169,7 +169,7 @@ describe('CompositionEquipeStatusHeader', () => {
         type: 'has_declined',
         label: 'À vérifier',
         tone: 'warning',
-        managerGuideline: 'À vérifier : Des participants ont décliné…',
+        managerGuideline: 'À vérifier : Des retraits sont enregistrés…',
       }),
     )
     fixture.detectChanges()

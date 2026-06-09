@@ -43,10 +43,19 @@ class NotificationPayloadBuilderOrganizerOpsTest {
                 NotificationIntent.TEAM_REGRESSED,
                 event,
                 "",
-                reasonSummary = "déclin de Alice",
+                reasonSummary = "déclinaison de Alice",
             )
         assertEquals("⚠️ L'équipe n'est plus complète !", regressed.title)
-        assertEquals(true, regressed.body.contains("déclin de Alice"))
+        assertEquals(true, regressed.body.contains("déclinaison de Alice"))
+
+        val regressedWithdrawal =
+            builder.build(
+                NotificationIntent.TEAM_REGRESSED,
+                event,
+                "",
+                reasonSummary = "désistement de Bob",
+            )
+        assertEquals(true, regressedWithdrawal.body.contains("désistement de Bob"))
     }
 
     @Test

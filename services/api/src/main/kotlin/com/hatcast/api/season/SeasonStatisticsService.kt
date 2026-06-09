@@ -379,12 +379,12 @@ class SeasonStatisticsService(
                     .filter { declinedRoles.contains(it) }
                     .map { ROLE_EXPORT_ABBREVIATIONS[it] ?: it }
             val primaryRole = ROLE_DISPLAY_ORDER.firstOrNull { declinedRoles.contains(it) }
-            val label = "Décliné (${abbrevs.joinToString(", ")})"
+            val label = "Retrait (${abbrevs.joinToString(", ")})"
             return StatisticsEventCellDto(
                 status = "declined",
                 label = label,
                 roleKey = primaryRole,
-                tooltip = primaryRole?.let { "${RoleLabels.label(it, gender)} — Décliné" } ?: label,
+                tooltip = primaryRole?.let { "${RoleLabels.label(it, gender)} — Retrait" } ?: label,
             )
         }
         if (selectionSlot != null && validated) {
@@ -409,7 +409,7 @@ class SeasonStatisticsService(
                         status = "declined",
                         label = roleLabel,
                         roleKey = selectionSlot.roleKey,
-                        tooltip = "$roleLabel — Décliné",
+                        tooltip = "$roleLabel — Retrait",
                     )
             }
         }

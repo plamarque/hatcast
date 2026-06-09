@@ -1,7 +1,7 @@
 # HatCast V2 — Catalogue des notifications
 
 **Statut :** Référence as-is (runtime V2)  
-**Dernière mise à jour :** 2026-06-09 (story **8.4b** — ops orga v2 : audiences par intent, `TEAM_REGRESSED`, promotion transactionnelle)  
+**Dernière mise à jour :** 2026-06-09 (story **6.23** — share UI Copier/WhatsApp ; **8.4b** — ops orga v2 : audiences par intent, `TEAM_REGRESSED`, promotion transactionnelle)  
 **Prochaine revue :** story **6.10c** (`MANUAL_GAP_RECRUITMENT`) ou inbox `/accueil`  
 **Brainstorm post-catalog :** `[brainstorming-session-2026-06-07-notifications-post-catalog.md](../../_bmad-output/brainstorming/brainstorming-session-2026-06-07-notifications-post-catalog.md)` (décisions PO 2026-06-08)  
 **Investigation :** `[notifications-catalog-investigation.md](../../_bmad-output/implementation-artifacts/investigations/notifications-catalog-investigation.md)`  
@@ -57,12 +57,15 @@ Parité V1 (files Firestore, HTML riche) : `[legacy/src/services/notificationTem
 
 ```mermaid
 flowchart LR
-  subgraph triggers [Déclencheurs]
+  subgraph triggers [Déclencheurs API]
     EWA[EventWorkflowNotificationAdapter]
     CWA[CompositionWorkflowNotificationAdapter]
     PWA[ProxyWorkflowNotificationAdapter]
-    M[ShareAnnounce manuel]
+    MAPI[POST share-recipients/notify]
     J[AssigneePresenceReminderJob]
+  end
+  subgraph ui [UI web story 6.23]
+    MUI[ShareAnnounce Copier WhatsApp]
   end
   subgraph api [services/api/notification]
     D[NotificationDispatcher]
@@ -76,13 +79,16 @@ flowchart LR
   EWA --> D
   CWA --> D
   PWA --> D
-  M --> D
+  MAPI --> D
   J --> D
   D --> P
   D --> WP
   D --> EM
   D --> L
+  MUI -.->|hors dispatcher| MC[Contact manuel orga]
 ```
+
+**Note (6.23) :** la modale web **`ShareAnnounceDialog`** n’appelle plus `MAPI` ; elle lit GET `share-recipients` pour la ligne compacte *déjà notifiés / reste à prévenir*, puis **Copier / WhatsApp** uniquement.
 
 
 
@@ -260,7 +266,9 @@ Vocabulaire orga : **« Les orgas »** (pas « les organisateur·rices »).
 **`PROXY_CONFIRMATION_RECORDED`** · préf. *demandes de confirmation* · 3 variantes :
 
 - **Confirmé :** **{actor}** a **confirmé** ta participation comme **{roleLabel}** pour **{eventTitle}** le **{eventDate}**. → **[Voir la composition]**
-- **Décliné :** **{actor}** a **décliné** ta participation… → **[Voir la composition]**
+- **Refusé (déclinaison depuis pending) :** **{actor}** a **refusé** ta participation… → **[Voir la composition]**
+- **Désisté (depuis confirmed) :** **{actor}** a **enregistré ton désistement**… → **[Voir la composition]**
+- **Retrait (cause inconnue) :** **{actor}** a **enregistré ton retrait**… → **[Voir la composition]**
 - **Pending :** **{actor}** a remis ta participation **à confirmer**… → **[Confirmer ma participation]**
 
 ##### Événement (membres engagés)
@@ -622,7 +630,7 @@ Report si dispo « available » sans delta rôles/commentaire (`ProxyNotificatio
 
 ### Événement — détails & archivage (story 8.8)
 
-Audience **engagée** = dispo `available`/`unavailable` **ou** participation compo (`pending`/`confirmed`) **ou** déclin enregistré (`event_composition_declines`). Roster `unknown` sans engagement compo : **exclu**.
+Audience **engagée** = dispo `available`/`unavailable` **ou** participation compo (`pending`/`confirmed`) **ou** retrait enregistré (`event_composition_declines`). Roster `unknown` sans engagement compo : **exclu**.
 
 #### `EVENT_DETAILS_CHANGED`
 
@@ -666,8 +674,8 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 | **Déclenchement** | Automatique — proxy confirm / decline / pending (6.8)                                                          |
 | **Audience**      | Membre sujet                                                                                                   |
 | **Préférence**    | `CONFIRMATION_REQUEST`                                                                                         |
-| **Push title**    | `👍 Participation confirmée` / `👎 Participation déclinée` / `⏳ Participation à confirmer`                     |
-| **Push body**     | `{actor} a confirmé/décliné/remis à confirmer ta participation pour {eventTitle} ({roleLabel}) le {eventDate}` |
+| **Push title**    | `👍 Participation confirmée` / `👎 Déclinaison enregistrée` / `👎 Désistement enregistré` / `👎 Retrait enregistré` / `⏳ Participation à confirmer` |
+| **Push body**     | `{actor} a confirmé/refusé/enregistré ton désistement/enregistré ton retrait/remis à confirmer ta participation pour {eventTitle} ({roleLabel}) le {eventDate}` |
 | **Email subject** | `{titre push} · {eventTitle} · ({eventDate})`                                                                  |
 | **Email body**    | As-shipped (= push body) · [Copy cible email](#corps-email)                                                                 |
 | **Deep link**     | `?showConfirm=true` si pending ; sinon `?tab=equipe`                                                           |
@@ -681,7 +689,8 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 | Intent                       | État runtime                                                           | Copy déjà définie (payload builder)                                                                                                                                          | Piste livraison                                                               |
 | ---------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `TEAM_VALIDATED_FYI`         | Listener sans publisher (`TeamValidatedFyiRequestedEvent` jamais émis) | Push title `✅ Équipe validée` · body `L'équipe pour {eventTitle} le {eventDate} a été validée.` · subject `✅ Équipe validée · {eventTitle} ({eventDate})` · link `?tab=equipe` | Dead path — **ne pas réactiver** ; G-012 livré via `**TEAM_COMPLETE_MEMBER`** |
-| Share `draw` / `composition` | Log debug ; pas de dispatcher                                          | Textes WhatsApp : `share-announce-messages.ts`                                                                                                                               | Epic 6 — pas de push/email auto                                               |
+| Share `draw` / `composition` / `event` / `availability_nudge` (UI web) | Pas d’appel dispatcher depuis la modale (**6.23**) — Copier / WhatsApp seulement | Textes : `share-announce-messages.ts` | GET `share-recipients` pour transparence ; POST notify **deprecated UI** |
+| Share `event` / `availability_nudge` (API POST) | Dispatch actif si appel direct | Idem `MANUAL_AVAILABILITY_*` | Hors UI web ; conservé pour callers API |
 
 
 **G-012 (growth backlog) :** notification **« équipe au complet »** lorsque le lifecycle composition passe à `**COMPLETE`** — annonce collective orgas événement + assignés confirmés ou waived ; distinct de `CONFIRMATION_REQUEST` (demande individuelle) et de l’ancien FYI roster auto au validate (retiré 2026-06-06). **Livré** story **8.9** via intent `**TEAM_COMPLETE_MEMBER`**.
@@ -782,7 +791,7 @@ Règle : le **même emoji** préfixe le titre push et le sujet email (sauf `ORGA
 | `ORGANIZER_SCOPE_GRANTED`         | `🤴 Nouveau rôle orga` (push optionnel) | `Tu es désormais {roleLabel} sur HatCast` *(sans emoji — transactionnel)* · body : `Tu viens d'être nommé·e {roleLabel} pour {scopeName}. Active les alertes organisateur qui t'intéressent dans Mon compte → Notifications.` · lien `/compte/notifications` |
 
 
-`reasonSummary` (ex.) : `déclin de {name}`, `confirmation à renouveler`, `composition déverrouillée`, `place à pourvoir`. **Une alerte par edge** lifecycle (pas de dédupe journalière).
+`reasonSummary` (ex.) : `déclinaison de {name}`, `désistement de {name}`, `confirmation à renouveler`, `composition déverrouillée`, `place à pourvoir`. **Une alerte par edge** lifecycle (pas de dédupe journalière).
 
 Deep links : `?tab=equipe` (compo, régression, équipe bouclée) ; `?tab=infos` (brouillon / SLA).
 

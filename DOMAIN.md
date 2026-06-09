@@ -26,6 +26,9 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Player:** A participant in a season. Has identity (name, optional email link). Stored under the season (e.g. `seasons/{id}/players`). Can be "claimed" by an authenticated user (e.g. `playerAssociations`, `playerProtection`).
 - **Availability:** A player's status for an event (e.g. available / unavailable). Stored per player per event in V1 (e.g. `availability` subcollection or nested; see `playerAvailabilityService.js`, `storage.js`). **V2 (PostgreSQL):** table `event_availability`, keyed by `(event_id, user_id)`; API status `available` | `unavailable` | `unknown` (no row). When `available`, column `role_keys` holds a JSON array of event-required role keys the member offers; an **empty array** means general availability (eligible for any required role on the event, V1 parity).
 - **Cast:** The set of players selected to perform at an event after the draw. One cast per event. Includes roles and per-player status (pending, confirmed, declined). Stored e.g. in `seasons/{id}/casts`; structure observed in `castService.js`, `selectionService.js`.
+- **Déclinaison (participation):** Refus par le participant d’une **offre** de rôle sur une composition **validée**, alors que son statut de slot était **`pending`** (à confirmer). Verbe UI : **décliner**. Ne pas confondre avec le désistement ni avec un retrait orga.
+- **Désistement (participation):** Retrait volontaire du participant **après avoir accepté** la place : statut de slot **`confirmed`** immédiatement avant l’action. Verbe UI : **se désister** (ou « décliner » dans les rappels J-7/J-1 : désistement implicite). Enregistré comme les déclinaisons dans `event_composition_declines` — la distinction n’est **pas** persistée aujourd’hui (voir § Participation — déclinaison, désistement et retrait).
+- **Retrait (de la composition):** Terme **générique** : la personne n’est plus dans la compo pour ce spectacle, quelle qu’en soit la cause — **déclinaison**, **désistement**, ou **sortie par un orga** (slot vidé, `REMOVED_FROM_COMPOSITION`). À utiliser dans les agrégats, listes historiques et copy quand la cause précise est inconnue ou mêlée.
 - **Draw / selection:** The process that picks players for an event (weighted random, considering past participation). **V2 normative behaviour:** [ADR 0019](docs/adr/0019-draw-weight-engine.md) + [draw-weight-engine-v1-spec.md](docs/v2/technical/draw-weight-engine-v1-spec.md) (formula, history rules, display %). V1 runtime reference (read-only): `legacy/src/services/chancesService.js`, `GridBoard.vue` draw paths.
 - **Chances / weight:** Influence of past participations on draw fairness. **V2:** same calculator pipeline for draw, Dispos **Tous %**, and Équipe explainability — see ADR 0019; do not duplicate formula here. V1 legacy: `chancesService.js`.
 - **Admin (season):** User allowed to manage a specific season (events, players, draw, invitations). Stored in Firestore (e.g. `seasons/{id}/admins`). Checked by `permissionService.js`.
@@ -41,7 +44,7 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Event roster exclusion (V2):** Local filter (`event_participant_exclusions`) — hides a season participant from one event’s roster only. Does not change troupe membership or season participant status.
 - **Season roster removal (V2):** Soft removal from one season’s active roster (`season_participants.status = REMOVED`, or equivalent). Does not deactivate troupe membership. Other seasons of the same troupe are unaffected.
 - **Account deletion (V2, FR37):** Self-service removal of a HatCast **user account** from Mon compte. Anonymizes personal data on the `users` row (`deleted_at`, cleared email/names/avatar/IdP ids); revokes sign-in permanently. Distinct from troupe admin **Retirer** (FR7) and from season/event roster removal. See business rules below.
-- **Organizer share / announce (V2):** Manual organizer workflow to share an editable message about an event (Notifier, Copier, WhatsApp) and, when enabled, dispatch HatCast notifications (email / push) to recipients. Implemented as one dialog shell with intent-specific title, default message, audience, and guard rules. French UI examples: *Annonce de spectacle*, *Rappel disponibilité*, *Partager le tirage*, *Annoncer la compo*.
+- **Organizer share / announce (V2):** Manual organizer workflow to compose an editable message about an event and **share it via Copier or WhatsApp** (web UI, story **6.23**). One dialog shell with intent-specific title, default message, and audience. GET `share-recipients` exposes who was **already notified** by HatCast vs who **remains to reach** manually. French UI examples: *Annonce de spectacle*, *Rappel disponibilité*, *Partager le tirage*, *Annoncer la compo*. API POST `share-recipients/notify` may still dispatch `MANUAL_AVAILABILITY_*` for non-UI callers; the web app does not invoke it.
 - **Availability announcement (*annonce de disponibilités*):** First organizer-initiated send (manual or automatic at publication) that invites season participants to indicate availability for a **published** event. Same **business family** as a availability reminder — not a separate product capability.
 - **Availability reminder (*relance de disponibilités*):** Any **subsequent** organizer send of the same availability-request family on the same event, after at least one prior send of that family. Uses the **same orchestration path** as the first announcement; only presentation (title, default message tone) differs so members and organizers can tell a reminder from the initial announcement.
 - **Channel eligibility (share recipients):** Per recipient and channel (email, push), whether HatCast **can** attempt delivery for the current send (e.g. normalized email present; push allowed for category and user preferences).
@@ -129,7 +132,7 @@ La vue **Statistiques** (ex-Compositions / Historique stats V1) affiche des stat
 
 Dans un **compartiment** (`SpectacleCategory.slug` — `principal`, `deplacements`, ou catégorie personnalisée), le **prédécesseur immédiat** d’un événement courant est le dernier événement **strictement antérieur** (tie-break : `startsAt`, `createdAt`, `id`) de la même saison, **même compartiment**, composition **validée** (`event_compositions.validated_at IS NOT NULL`), non archivé.
 
-Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur décliné. Visible **organisateur uniquement** (API + onglet Équipe). Le resolver est réutilisable pour le facteur tirage Epic **19.9** (hors scope 6.20).
+Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur sans assigné actif (retrait / déclinaison / désistement). Visible **organisateur uniquement** (API + onglet Équipe). Le resolver est réutilisable pour le facteur tirage Epic **19.9** (hors scope 6.20).
 
 ### Exclusion cross-rôle au tirage (composition)
 
@@ -182,7 +185,7 @@ La zone spectacles affiche les participations par mois. Chaque mois est une colo
 
 | Élément   | Contenu                                                                 | Règle de calcul                                                                 |
 | --------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Colonne mois (collapsed) | Nb participations (tous rôles) + % | Participations = événements du mois où le joueur a un rôle dans un cast confirmé (sans désistement). % = `getStatPercent(participations, dispos, declines)` avec dispos = événements où `isAvailableForRole` true pour au moins un rôle, declines = événements où le joueur a décliné. |
+| Colonne mois (collapsed) | Nb participations (tous rôles) + % | Participations = événements du mois où le joueur a un rôle dans un cast confirmé (sans retrait). % = `getStatPercent(participations, dispos, declines)` avec dispos = événements où `isAvailableForRole` true pour au moins un rôle, declines = événements où le joueur a un **retrait** enregistré (`event_composition_declines` — déclinaison ou désistement). |
 | Colonne mois (expanded) | Colonne de résumé (nb + %) + une colonne par événement | Même calcul pour le résumé ; chaque événement affiche la cellule de sélection habituelle. |
 | Mois affichés | Mois ayant au moins un événement                                        | Triés chronologiquement (année, mois).                                          |
 
@@ -196,7 +199,58 @@ La zone spectacles affiche les participations par mois. Chaque mois est une colo
 - **Draw workflow:** Admin triggers draw → selection algorithm runs → casts written/updated → optional announce. No intermediate "draft" cast state clearly modelled; cast is the result of the last draw for that event.
 - **Event draft vs open (V2, Story 3.21):** A **spectacle** (event) may be in **draft** (`events.availability_opened_at` NULL) before organizers publish it for availability collection. While draft: ordinary members do not see it in season or user agendas; they may still open the event detail URL if they have a link and see a draft banner without depositing availability. **Publishing** sets `availability_opened_at` and enables member availability writes. **Closing availability** (revert to draft) clears that timestamp without deleting existing availability rows. Distinct from **composition draft** (`event_compositions.published_at`, Story 6.3).
 - **Composition validate & participation status (V2, FR23 / SCP 2026-06-06, amended 2026-06-07):** **Unlock** clears `validatedAt` only — assignees and each slot's `participationStatus` (`confirmed`, `pending`, `declined`) are **preserved**. **Validate** (first or revalidate): slots already `confirmed` stay `confirmed` and receive **no** confirmation notification; other assigned slots are set to `pending` before dispatch. **First validate** sends `CONFIRMATION_REQUEST` only to non-`confirmed` assignees; **revalidate** sends `RECONFIRMATION_REQUEST` only to non-`confirmed` assignees. **Draft assign/replace** sets `pending` only when the assignee changes (no-op assign preserves status). **Organizer proxy** in organizer draft (`validatedAt` null) may set status per request without notification until validate/revalidate.
-- **Participation decline on validated composition (V2, FR25):** When a linked assignee **declines**, the slot assignee is cleared, the slot returns to `pending` for refill, a row is stored in **`event_composition_declines`**, and `participantFocus` for that viewer becomes `inTeam: false`, `slotParticipationStatus: declined`, `compositionRoleKey` retained. Agenda and list UIs must show the **declined participation cell** (not availability) until the decline record exists — see SPEC § Agenda participation status cell.
+- **Participation withdrawal on validated composition (V2, FR25):** When a linked assignee **declines** (API `status: declined`), the slot assignee is cleared, the slot returns to `pending` for refill, a row is stored in **`event_composition_declines`**, and `participantFocus` for that viewer becomes `inTeam: false`, `slotParticipationStatus: declined`, `compositionRoleKey` retained. Product copy distinguishes **déclinaison** vs **désistement** at action time (see § below); the persistence table is shared. Agenda and list UIs must show the **withdrawal participation cell** (not availability) until the decline record exists — see SPEC § Agenda participation status cell.
+
+### Participation — déclinaison, désistement et retrait (V2, normative)
+
+**Statut :** Glossaire produit + règles de copy. Les identifiants techniques (`declined`, `event_composition_declines`, `SlotParticipationStatus.DECLINED`) **ne changent pas**.
+
+#### Définitions (French UI)
+
+| Terme | Définition | Moment produit |
+|-------|------------|----------------|
+| **Déclinaison** | Refus de l’**offre** de rôle alors que le slot était **à confirmer** (`pending`). | Première réponse à `CONFIRMATION_REQUEST` / `RECONFIRMATION_REQUEST` ; bouton **Décliner** quand le statut affiché est « À confirmer ». |
+| **Désistement** | Retrait **après acceptation** : le slot était **`confirmed`** immédiatement avant l’action. | Bouton **Se désister** (ou équivalent) quand le statut est confirmé ; rappels J-7/J-1 (« décliner » = désistement implicite). |
+| **Retrait** | Sortie de la compo **sans préciser** déclinaison vs désistement, **ou** sortie **imposée par un orga**. | Listes historiques, stats agrégées, prefs orga génériques, cellules agenda dérivées d’une ligne `declines` sans métadonnée de cause. |
+
+**Verbe *décliner* :** correct pour l’**offre** (invitation à confirmer). Pour un assigné déjà **confirmé**, préférer **se désister** / **désistement**.
+
+#### Mapping runtime (observé)
+
+| Événement métier | Signal V2 | Copy recommandée |
+|------------------|-----------|------------------|
+| Déclinaison | `validatedAt != null`, action `declined`, `beforeStatus == pending` | déclinaison de {nom} ; toasts / confirm « déclinaison » |
+| Désistement | idem, `beforeStatus == confirmed` | désistement de {nom} ; toasts / confirm « désistement » |
+| Retrait orga (slot vidé) | assignation retirée par orga, `reasonSummary` ≈ `place à pourvoir` | retrait / place à pourvoir — pas déclinaison ni désistement |
+| Retrait orga (notif membre) | intent `REMOVED_FROM_COMPOSITION` | « tu n’y figures plus » — retrait par la compo |
+| Reconf sans retrait | `confirmed → pending` | « confirmation à renouveler » — hors périmètre déclinaison/désistement |
+
+**`beforeStatus`** est connu dans `CompositionParticipationService` **au moment de l’action** mais **n’est pas stocké** sur `event_composition_declines`. Conséquence : copy **précise** possible dans le flux live (dialogue, notif orga instantanée) ; copy **historique** (liste Équipe, agenda, stats) → **retrait** sauf évolution du modèle.
+
+#### Règles de copy UI (V2 cible)
+
+1. **Dialogue participation** (`composition-participation-dialog`, équipe-tab, agenda) : libellé du bouton négatif selon `currentStatus` — `pending` → **Décliner** ; `confirmed` → **Se désister**.
+2. **Confirmation destructive** : message aligné (déclinaison vs désistement) ; ne pas afficher « désistement » quand le statut est encore `pending`.
+3. **Toast après succès** : « Déclinaison enregistrée » vs « Désistement enregistré » selon le statut avant action.
+4. **Alerte orga `TEAM_REGRESSED`** : `reasonSummary` = `déclinaison de {nom}` ou `désistement de {nom}` selon `beforeStatus` (pas de terme générique si la cause est connue).
+5. **Liste / badge retraits** (onglet Équipe) : titre générique **Retraits de la compo** ; badge **N retrait(s)** — pas « ont décliné ».
+6. **Cellule agenda** (focus `declined` sans historique de statut) : libellé neutre **Retrait** ou **Plus dans la compo** — pas « Décliné ».
+7. **Emails `CONFIRMATION_REQUEST`** : conserver **décliner** (offre).
+8. **Proxy** : si l’orga enregistre un `declined` pour un assigné, appliquer les mêmes règles selon le `beforeStatus` du slot du sujet.
+9. **Audit** (`PARTICIPATION_DECLINED`) : libellé affiché générique **Retrait de la compo** tant que l’audit ne expose pas `beforeStatus` dans le snapshot.
+
+#### Identifiants techniques (inchangés)
+
+- API body : `status: "declined"`.
+- Table : `event_composition_declines`.
+- Enum : `SlotParticipationStatus.DECLINED` ; focus `slotParticipationStatus: declined`.
+- Ne pas renommer en « désistement » dans JSON/SQL — uniquement la **copy française**.
+
+#### OPEN QUESTION (évolution modèle)
+
+- **ASSUMPTION / backlog :** ajouter `previous_participation_status` (ou équivalent) sur `event_composition_declines` pour libellés historiques précis et stats ventilées déclinaison vs désistement. Jusqu’à livraison : **retrait** dans les vues rétrospectives.
+
+**Références code :** `CompositionParticipationService.kt` (action + `beforeStatus`), `EventCompositionDeclineEntity`, `EventParticipantFocusService`, `CompositionSlotAssignmentService` (retrait orga), intents `TEAM_REGRESSED`, `REMOVED_FROM_COMPOSITION`. Copy notifications : `NOTIFICATIONS_CATALOG.md`.
 - **Agenda status cell interaction (V2):** On **upcoming** league agenda and user agenda only, the participation status cell is a **secondary control**: availability states open the availability dialog; in-team pending/confirmed open the participation confirmation dialog; declined is read-only. Primary card tap still navigates to event detail. Historique: read-only cells.
 
 ### Organizer share / announce — availability lifecycle (V2, normative intent)
@@ -204,15 +258,15 @@ La zone spectacles affiche les participations par mois. Chaque mois est une colo
 Product owner definition (2026-06-04):
 
 1. **Publication** may trigger an **automatic** availability notification (`AVAILABILITY_OPENED`) when availability opens — members are informed without opening the share dialog.
-2. The organizer may then use the **same manual send path** (share dialog: message + Notifier / Copier / WhatsApp) for availability-related communication.
-3. The **first** such manual send on an event (after publication) is an **availability announcement** (*annonce*).
-4. Any **later** manual send on the **same event** for the same business purpose is a **availability reminder** (*relance*) — **not** a different product action: same dialog workflow, same dispatch path; **title and default message template** may differ to signal “reminder”.
-5. **Recipient transparency:** For every send family (availability, draw share, composition announce, …), organizers must see per recipient: which channels are eligible, which channels already received a successful HatCast delivery, and (when exposed in UI) **when** the last successful send occurred — so multiple organizers avoid accidental spam and can target people added to the roster after an earlier send.
-6. **Manual contact:** Recipients with **no** eligible channel remain organizer responsibility (Copier / WhatsApp); the UI must make that visible.
+2. The organizer may then open the **same share dialog** (message + **Copier / WhatsApp**) for availability-related communication — **no bulk Notifier** from the web app (story **6.23**).
+3. The **first** such manual outreach on an event (after publication) is an **availability announcement** (*annonce*) from the organizer’s perspective (custom message shared manually).
+4. Any **later** manual outreach on the **same event** for the same business purpose is a **availability reminder** (*relance*) — **not** a different product action: same dialog workflow; **title and default message template** may differ to signal “reminder”.
+5. **Recipient transparency:** For every dialog intent (availability, draw share, composition announce, …), organizers see a **compact line**: count/link for people **already notified** automatically + chips for people **still to reach** manually. Per-channel eligibility and `lastNotifiedAt` remain in GET API; **dates are not shown** in the dialog UI (**6.23**).
+6. **Manual contact:** Recipients who still need outreach appear as chips under *Reste à prévenir*; the organizer shares via Copier / WhatsApp.
 
-**Audience (decided 2026-06-04):** Two UI entry points remain intentional (UX **D12**). **Annoncer** (`event`) targets the **full** active season roster. **Relance dispos** (`availability_nudge`) targets only participants with **`unknown`** availability. Same modal shell and dispatch stack; different audience, title, and default template.
+**Audience (decided 2026-06-04):** Two UI entry points remain intentional (UX **D12**). **Annoncer** (`event`) targets the **full** active season roster. **Relance dispos** (`availability_nudge`) targets only participants with **`unknown`** availability. Same modal shell; different audience, title, and default template.
 
-**Runtime (story 6.17):** POST `event` dispatches `MANUAL_AVAILABILITY_ANNOUNCE`; GET maps `notified` / `lastNotifiedAt` per intent family (see [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md)). `draw` / `composition` dispatch remains stub (**6.18**).
+**Runtime:** GET `share-recipients` maps delivery logs per intent (extended **6.23** — see [_ux-design-share-announce-manual-only.md_](_bmad-output/planning-artifacts/ux-design-share-announce-manual-only.md)). API POST `share-recipients/notify` may dispatch `MANUAL_AVAILABILITY_ANNOUNCE` / `MANUAL_AVAILABILITY_NUDGE` (**6.17**) but is **not called by the web UI** (**6.23**). Historical API/UI detail: [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md).
 
 ---
 

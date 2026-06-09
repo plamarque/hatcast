@@ -350,16 +350,32 @@ class NotificationEmailBodyBuilder(
     ): List<String> {
         val rolePart = summary?.roleLabel ?: roleLabel.orEmpty()
         val decision = summary?.decisionLabel
-        val confirmed = ProxyNotificationLabels.participationStatusLabel(SlotParticipationStatus.CONFIRMED)
-        val declined = ProxyNotificationLabels.participationStatusLabel(SlotParticipationStatus.DECLINED)
+        val confirmed =
+            ProxyNotificationLabels.participationDecisionLabel(
+                SlotParticipationStatus.CONFIRMED,
+                beforeStatus = null,
+            )
         val body =
             when (decision) {
                 confirmed ->
                     "${NotificationEmailHtml.bold(actor)} a confirmé ta participation comme " +
                         "${NotificationEmailHtml.bold(rolePart)} pour ${NotificationEmailHtml.bold(eventTitle)} " +
                         "le ${NotificationEmailHtml.bold(eventDate)}."
-                declined ->
-                    "${NotificationEmailHtml.bold(actor)} a décliné ta participation comme " +
+                ProxyNotificationLabels.participationDecisionLabel(
+                    SlotParticipationStatus.DECLINED,
+                    SlotParticipationStatus.PENDING,
+                ),
+                ProxyNotificationLabels.participationDecisionLabel(
+                    SlotParticipationStatus.DECLINED,
+                    SlotParticipationStatus.CONFIRMED,
+                ),
+                ProxyNotificationLabels.participationDecisionLabel(
+                    SlotParticipationStatus.DECLINED,
+                    beforeStatus = null,
+                ),
+                ->
+                    "${NotificationEmailHtml.bold(actor)} " +
+                        "${ProxyNotificationLabels.participationProxyVerb(decision)} comme " +
                         "${NotificationEmailHtml.bold(rolePart)} pour ${NotificationEmailHtml.bold(eventTitle)} " +
                         "le ${NotificationEmailHtml.bold(eventDate)}."
                 else ->

@@ -21,26 +21,45 @@ object ProxyNotificationLabels {
         )
 
     fun participationStatusLabel(status: SlotParticipationStatus): String =
+        participationDecisionLabel(status, beforeStatus = null)
+
+    fun participationDecisionLabel(
+        status: SlotParticipationStatus,
+        beforeStatus: SlotParticipationStatus?,
+    ): String =
         when (status) {
             SlotParticipationStatus.CONFIRMED -> "Confirmé"
-            SlotParticipationStatus.DECLINED -> "Décliné"
             SlotParticipationStatus.PENDING -> "À confirmer"
+            SlotParticipationStatus.DECLINED ->
+                when (beforeStatus) {
+                    SlotParticipationStatus.PENDING -> "Refusé"
+                    SlotParticipationStatus.CONFIRMED -> "Désisté"
+                    else -> "Retrait"
+                }
         }
 
     fun participationProxyVerb(decisionLabel: String): String =
         when (decisionLabel) {
-            participationStatusLabel(SlotParticipationStatus.CONFIRMED) -> "a confirmé ta participation"
-            participationStatusLabel(SlotParticipationStatus.DECLINED) -> "a décliné ta participation"
+            participationDecisionLabel(SlotParticipationStatus.CONFIRMED, null) -> "a confirmé ta participation"
+            participationDecisionLabel(SlotParticipationStatus.DECLINED, SlotParticipationStatus.PENDING) ->
+                "a refusé ta participation"
+            participationDecisionLabel(SlotParticipationStatus.DECLINED, SlotParticipationStatus.CONFIRMED) ->
+                "a enregistré ton désistement"
+            participationDecisionLabel(SlotParticipationStatus.DECLINED, null) -> "a enregistré ton retrait"
             else -> "a remis à confirmer ta participation"
         }
 
     fun participationProxyUsesShowConfirmDeepLink(decisionLabel: String): Boolean =
-        decisionLabel == participationStatusLabel(SlotParticipationStatus.PENDING)
+        decisionLabel == participationDecisionLabel(SlotParticipationStatus.PENDING, null)
 
     fun participationProxyNotificationTitle(decisionLabel: String): String =
         when (decisionLabel) {
-            participationStatusLabel(SlotParticipationStatus.CONFIRMED) -> "👍 Participation confirmée"
-            participationStatusLabel(SlotParticipationStatus.DECLINED) -> "👎 Participation déclinée"
+            participationDecisionLabel(SlotParticipationStatus.CONFIRMED, null) -> "👍 Participation confirmée"
+            participationDecisionLabel(SlotParticipationStatus.DECLINED, SlotParticipationStatus.PENDING) ->
+                "👎 Déclinaison enregistrée"
+            participationDecisionLabel(SlotParticipationStatus.DECLINED, SlotParticipationStatus.CONFIRMED) ->
+                "👎 Désistement enregistré"
+            participationDecisionLabel(SlotParticipationStatus.DECLINED, null) -> "👎 Retrait enregistré"
             else -> "⏳ Participation à confirmer"
         }
 

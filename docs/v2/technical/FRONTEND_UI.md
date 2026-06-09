@@ -132,7 +132,7 @@ Spec UX normative : [`ux-design-participation-semantic-colors.md`](../../../_bma
 | Disponible | Dispo saisie (sans sélection) | `--hatcast-participation-available-gradient-strong` |
 | Sélection / dans l'équipe | Slot confirmé ou assigné | `--hatcast-participation-selected-gradient-strong` |
 | En attente de confirmation | Sélectionné, participation non confirmée | `--hatcast-participation-pending-gradient-strong` |
-| Désistement / décliné | Retrait après engagement | `--hatcast-participation-declined-gradient-strong` |
+| Retrait (déclinaison ou désistement) | Participation plus dans la compo — voir [DOMAIN.md § Participation](../../DOMAIN.md#participation--déclinaison-désistement-et-retrait-v2-normative) | `--hatcast-participation-declined-gradient-strong` |
 | Pas dispo | Refus de disponibilité | `--hatcast-participation-unavailable-gradient-strong` |
 | Non renseigné / neutre | Pas de réponse ou N/A | `--hatcast-participation-neutral-gradient-strong` |
 

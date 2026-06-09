@@ -8,6 +8,9 @@ import {
 } from '@angular/material/dialog'
 
 import type { MemberGender } from '../../core/account/member-gender'
+import {
+  participationDeclineButtonLabel,
+} from '../../core/participation/participation-withdrawal-copy'
 import type { SlotParticipationUpdateStatus } from '../../core/composition/composition-api.service'
 import type { RoleKey } from '../../core/events/event-types'
 import { RoleDisplayChipSet } from '../event-roles/role-display-chip-set/role-display-chip-set'
@@ -52,6 +55,10 @@ export class CompositionParticipationDialog {
   protected readonly proxyHint = this.isProxy
     ? `Vous agissez pour le compte de ${this.data.assigneeDisplayName ?? 'ce participant'}.`
     : null
+
+  protected readonly declineButtonLabel = participationDeclineButtonLabel(
+    this.data.currentStatus === 'confirmed' ? 'confirmed' : 'pending',
+  )
 
   protected note = ''
 

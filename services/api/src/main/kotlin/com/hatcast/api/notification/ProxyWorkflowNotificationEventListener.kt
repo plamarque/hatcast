@@ -30,6 +30,7 @@ class ProxyWorkflowNotificationEventListener(
             subjectUserId = event.subjectUserId,
             roleKey = event.roleKey,
             participationStatus = event.participationStatus,
+            beforeParticipationStatus = event.beforeParticipationStatus,
         )
     }
 }

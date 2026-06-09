@@ -4,6 +4,13 @@ import { firstValueFrom } from 'rxjs'
 
 import type { MemberGender } from '../../core/account/member-gender'
 import {
+  participationDeclineConfirmLabel,
+  participationDeclineConfirmMessage,
+  participationDeclineConfirmTitle,
+  participationDeclineSuccessToast,
+  type ParticipationLiveStatus,
+} from '../../core/participation/participation-withdrawal-copy'
+import {
   CompositionApiService,
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
@@ -92,13 +99,15 @@ export async function openAgendaParticipationDialog(
   }
 
   if (result.status === 'declined') {
+    const liveStatus: ParticipationLiveStatus =
+      slot.participationStatus === 'confirmed' ? 'confirmed' : 'pending'
     const confirmed = await firstValueFrom(
       dialog
         .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
           data: {
-            title: 'Décliner la participation',
-            message: 'Confirmer votre désistement pour ce rôle ?',
-            confirmLabel: 'Décliner',
+            title: participationDeclineConfirmTitle(liveStatus),
+            message: participationDeclineConfirmMessage(liveStatus, 'self'),
+            confirmLabel: participationDeclineConfirmLabel(liveStatus),
             destructive: true,
           },
         })
@@ -126,11 +135,13 @@ export async function openAgendaParticipationDialog(
     return undefined
   }
 
+  const liveStatus: ParticipationLiveStatus =
+    slot.participationStatus === 'confirmed' ? 'confirmed' : 'pending'
   const message =
     result.status === 'confirmed'
       ? 'Participation confirmée.'
       : result.status === 'declined'
-        ? 'Participation déclinée.'
+        ? participationDeclineSuccessToast(liveStatus)
         : 'Participation remise en attente.'
   snack.open(message, 'OK', { duration: 4000 })
   return { status: result.status }

@@ -39,7 +39,7 @@ describe('formatParticipantFocusLabel', () => {
       inTeam: false,
       slotParticipationStatus: 'declined',
     })
-    expect(label).toBe('Comédien·ne · décliné')
+    expect(label).toBe('Comédien·ne · Retrait')
   })
 })
 

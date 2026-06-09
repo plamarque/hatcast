@@ -267,8 +267,8 @@
           {{ badge }}
         </button>
         @if (declinesExpanded()) {
-          <section class="event-equipe-tab__declines-panel" aria-label="Personnes ayant décliné">
-            <h3 class="event-equipe-tab__declines-title">Personnes ayant décliné</h3>
+          <section class="event-equipe-tab__declines-panel" aria-label="Retraits de la compo">
+            <h3 class="event-equipe-tab__declines-title">Retraits de la compo</h3>
             <p class="event-equipe-tab__declines-subtitle">(ne comptent pas dans la composition)</p>
             <ul class="event-equipe-tab__declines-list">
               @for (decline of declines(); track decline.id) {

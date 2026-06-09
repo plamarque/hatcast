@@ -118,7 +118,7 @@ class NotificationEmailBodyBuilderTest {
             proxyChangeSummary = null,
             customMessageBody = null,
             eventDetailsChangeSummary = null,
-            reasonSummary = if (intent == NotificationIntent.TEAM_REGRESSED) "déclin de Bob" else null,
+            reasonSummary = if (intent == NotificationIntent.TEAM_REGRESSED) "déclinaison de Bob" else null,
             reminderWindow = null,
             relativeUrl = "/saison/saison-test/event/gala?tab=dispos",
         )

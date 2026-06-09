@@ -38,7 +38,7 @@ export const ORGANIZER_NOTIFICATION_PREFERENCE_UI_COPY: Record<
   ORG_TEAM_REGRESSED: {
     title: 'Équipe plus complète',
     description:
-      "Me prévenir quand une équipe confirmée n'est plus complète (déclin, statut à confirmer, déverrouillage, etc.).",
+      "Me prévenir quand une équipe confirmée n'est plus complète (retrait, statut à confirmer, déverrouillage, etc.).",
     groupSubtitle: 'Signaux immédiats',
   },
   ORG_TEAM_COMPLETE: {

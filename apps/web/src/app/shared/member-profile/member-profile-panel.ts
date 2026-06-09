@@ -132,7 +132,7 @@ export class MemberProfilePanel {
     if (block.roleKey && status !== 'unavailable' && status !== 'available') {
       const role = this.roleLabel(block.roleKey as RoleKey)
       if (status === 'declined') {
-        return `${role} — Décliné`
+        return `${role} — Retrait`
       }
       if (status === 'pending') {
         return `${role} — En attente`
@@ -145,7 +145,7 @@ export class MemberProfilePanel {
       case 'unavailable':
         return 'Indisponible'
       case 'declined':
-        return 'Décliné'
+        return 'Retrait'
       case 'pending':
         return 'En attente de confirmation'
       default:

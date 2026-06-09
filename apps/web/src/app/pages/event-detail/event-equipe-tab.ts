@@ -12,6 +12,14 @@ import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { effectiveMemberGender, type MemberGender } from '../../core/account/member-gender'
+import {
+  declineBadgeLabel,
+  participationDeclineConfirmLabel,
+  participationDeclineConfirmMessage,
+  participationDeclineConfirmTitle,
+  participationDeclineSuccessToast,
+  type ParticipationLiveStatus,
+} from '../../core/participation/participation-withdrawal-copy'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { computeRawCompositionLifecycle } from '../../core/composition/composition-lifecycle'
 import {
@@ -336,7 +344,7 @@ export class EventEquipeTab {
     if (count === 0) {
       return null
     }
-    return count === 1 ? '1 personne a décliné' : `${count} personnes ont décliné`
+    return declineBadgeLabel(count)
   })
 
   protected readonly currentDrawStep = computed(() => {
@@ -754,17 +762,19 @@ export class EventEquipeTab {
       return
     }
     if (result.status === 'declined') {
-      const declineMessage =
-        options.mode === 'proxy'
-          ? `Confirmer le désistement de ${assigneeName} pour ce rôle ?`
-          : 'Confirmer votre désistement pour ce rôle ?'
+      const liveStatus: ParticipationLiveStatus =
+        slot.participationStatus === 'confirmed' ? 'confirmed' : 'pending'
       const confirmed = await firstValueFrom(
         this.dialog
           .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
             data: {
-              title: 'Décliner la participation',
-              message: declineMessage,
-              confirmLabel: 'Décliner',
+              title: participationDeclineConfirmTitle(liveStatus),
+              message: participationDeclineConfirmMessage(
+                liveStatus,
+                options.mode,
+                options.mode === 'proxy' ? assigneeName : undefined,
+              ),
+              confirmLabel: participationDeclineConfirmLabel(liveStatus),
               destructive: true,
             },
           })
@@ -774,13 +784,14 @@ export class EventEquipeTab {
         return
       }
     }
-    await this.submitParticipation(row, result.status, result.note)
+    await this.submitParticipation(row, result.status, result.note, slot.participationStatus)
   }
 
   private async submitParticipation(
     row: SlotRow,
     status: SlotParticipationUpdateStatus,
     note?: string | null,
+    statusBeforeDecline?: CompositionSlot['participationStatus'],
   ): Promise<void> {
     if (this.updatingParticipation()) {
       return
@@ -813,7 +824,9 @@ export class EventEquipeTab {
       status === 'confirmed'
         ? 'Participation confirmée.'
         : status === 'declined'
-          ? 'Participation déclinée.'
+          ? participationDeclineSuccessToast(
+              statusBeforeDecline === 'confirmed' ? 'confirmed' : 'pending',
+            )
           : 'Participation remise en attente.'
     this.snack.open(message, 'OK', { duration: 4000 })
   }
@@ -1292,7 +1305,7 @@ export class EventEquipeTab {
       case 403:
         return 'Vous ne pouvez pas remettre ce participant en composition.'
       case 404:
-        return 'Déclin introuvable.'
+        return 'Retrait introuvable.'
       case 409:
         return 'Aucun créneau vide pour ce rôle ou composition non verrouillée.'
       default:

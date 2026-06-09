@@ -144,7 +144,7 @@ class SeasonGlanceStatsProvider(
                     count = participations,
                     percent = selectionPercent,
                     tooltip =
-                        "Sélections non déclinées\n" +
+                        "Sélections actives\n" +
                         "Taux = ($totalInitialSelections ÷ $timesAvailable) × 100",
                 ),
             declines =

@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-09T16:00:00+02:00
+# last_updated: 2026-06-09T16:20:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-09T19:00:00+02:00"
+last_updated: "2026-06-09T16:10:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -154,6 +154,7 @@ development_status:
   6-21-hint-parite-genre-composition-player: done  # P2 — SCP 2026-06-05 G-011 ; depends 2.12* (done) ; UI strip only
   6-22-composition-unlock-preserve-participation: done  # SCP 2026-06-06 — unlock preserve statuses + draft org proxy (G-014)
   6-23-modales-partager-annoncer-manuel-compact: done  # UX ux-design-share-announce-manual-only.md — approved 2026-06-09 ; Copier/WhatsApp only ; ligne compacte ; code review 2026-06-09
+  6-24-participation-copy-declinaison-desistement-retrait: done  # Copy V2 — DOMAIN § déclinaison/désistement/retrait ; API + web + notifs + audit
   epic-6-retrospective: optional
 
   epic-7: backlog

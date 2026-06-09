@@ -199,7 +199,7 @@ paths:
         '403':
           description: Accès refusé
         '404':
-          description: Désistement inconnu
+          description: Retrait inconnu
         '409':
           description: Composition non validée ou aucun slot vide pour le rôle
 
