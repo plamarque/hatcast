@@ -9,10 +9,13 @@ import com.hatcast.api.agenda.dto.UserAgendaParticipationFiltersDto
 import com.hatcast.api.agenda.dto.UserAgendaResponse
 import com.hatcast.api.agenda.dto.UserAgendaTroupeFilterDto
 import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
+import com.hatcast.api.composition.CompositionLifecycleView
 import com.hatcast.api.event.EventDraftVisibility
+import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventParticipantFocusService
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.dto.ParticipantFocusSummaryDto
+import com.hatcast.api.season.SeasonRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -31,6 +34,7 @@ class UserAgendaService(
   private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
   private val participantFocusService: EventParticipantFocusService,
   private val eventRepository: EventRepository,
+  private val seasonRepository: SeasonRepository,
   private val draftVisibility: EventDraftVisibility,
 ) {
   @Transactional(readOnly = true)
@@ -66,8 +70,13 @@ class UserAgendaService(
     val visibleRows = eventsPage.content
     val eventIds = visibleRows.map { it.eventId }
     val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, principal.userId)
-    val lifecycleByEvent =
-      compositionLifecycleEnrichment.loadViewsByEventIdsAcrossSeasons(eventIds, principal)
+    val eventsById =
+      if (eventIds.isEmpty()) {
+        emptyMap()
+      } else {
+        eventRepository.findAllById(eventIds.toSet()).associateBy { it.id }
+      }
+    val lifecycleByEvent = lifecycleViewsForEvents(eventsById.values, principal)
     val focusByEvent =
       participantFocusByEventIds(
         rows = visibleRows,
@@ -139,6 +148,18 @@ class UserAgendaService(
   }
 
   private fun participationContext(userId: UUID): ParticipationContext {
+    val hasParticipation =
+      userAgendaRepository.existsParticipatingSeasonFromSeason(userId) ||
+        userAgendaRepository.existsParticipatingSeasonFromEventOnly(userId)
+    if (!hasParticipation) {
+      return ParticipationContext(
+        troupeIds = emptySet(),
+        seasonIds = emptySet(),
+        filterBarVisible = false,
+        noParticipation = true,
+      )
+    }
+
     val troupeIds =
       (
         userAgendaRepository.findParticipatingTroupeIdsFromSeason(userId) +
@@ -149,12 +170,30 @@ class UserAgendaService(
         userAgendaRepository.findParticipatingSeasonIdsFromSeason(userId) +
           userAgendaRepository.findParticipatingSeasonIdsFromEventOnly(userId)
       ).toSet()
+    val filterBarVisible = troupeIds.size > 1 || seasonIds.size > 1
     return ParticipationContext(
-      troupeIds = troupeIds,
-      seasonIds = seasonIds,
-      filterBarVisible = troupeIds.size > 1 || seasonIds.size > 1,
-      noParticipation = seasonIds.isEmpty(),
+      troupeIds = if (filterBarVisible) troupeIds else emptySet(),
+      seasonIds = if (filterBarVisible) seasonIds else emptySet(),
+      filterBarVisible = filterBarVisible,
+      noParticipation = false,
     )
+  }
+
+  private fun lifecycleViewsForEvents(
+    events: Collection<EventEntity>,
+    principal: SessionUserPrincipal,
+  ): Map<UUID, CompositionLifecycleView> {
+    if (events.isEmpty()) {
+      return emptyMap()
+    }
+    return events
+      .groupBy { it.season.id }
+      .flatMap { (_, seasonEvents) ->
+        val season = seasonEvents.first().season
+        compositionLifecycleEnrichment
+          .loadViewsByEventIds(seasonEvents, season, principal)
+          .entries
+      }.associate { it.key to it.value }
   }
 
   private fun validatePagination(
@@ -177,16 +216,11 @@ class UserAgendaService(
     if (rows.isEmpty()) {
       return emptyMap()
     }
-    val eventIds = rows.map { it.eventId }.toSet()
-    val events = eventRepository.findAllById(eventIds)
-    if (events.isEmpty()) {
-      return emptyMap()
-    }
-    return events
-      .groupBy { it.season.id }
-      .flatMap { (seasonId, seasonEvents) ->
-        val season = seasonEvents.first().season
-        val seasonEventIds = seasonEvents.map { it.id }
+    return rows
+      .groupBy { it.seasonId }
+      .flatMap { (seasonId, seasonRows) ->
+        val season = seasonRepository.findById(seasonId).orElse(null) ?: return@flatMap emptyList()
+        val seasonEventIds = seasonRows.map { it.eventId }
         val focusParticipantId =
           participantFocusService.resolveFocusParticipantId(seasonId, null, principal)
             ?: return@flatMap emptyList()

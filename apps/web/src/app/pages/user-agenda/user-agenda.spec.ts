@@ -14,7 +14,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
-import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import { USER_AGENDA_FILTERS_STORAGE_KEY } from '../../core/agenda/user-agenda-filters-storage'
 import {
   UserAgendaApiService,
@@ -22,6 +21,7 @@ import {
   type UserAgendaParticipationFilters,
   type UserAgendaResponse,
 } from '../../core/agenda/user-agenda-api.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import type { UserSummary } from '../../core/auth/auth-api.service'
@@ -57,7 +57,7 @@ describe('UserAgenda', () => {
     ensureHatcastSession: ReturnType<typeof vi.fn>
     logout: ReturnType<typeof vi.fn>
   }
-  let memberBootstrap: { ensureReady: ReturnType<typeof vi.fn> }
+  let troupeContext: { load: ReturnType<typeof vi.fn>; activeTroupes: ReturnType<typeof vi.fn>; currentUserDisplayLabel: ReturnType<typeof vi.fn> }
   let getPreferences: ReturnType<typeof vi.fn>
   let router: Router
   let navigateSpy: ReturnType<typeof vi.fn>
@@ -94,8 +94,10 @@ describe('UserAgenda', () => {
       }),
       logout: vi.fn().mockResolvedValue(true),
     }
-    memberBootstrap = {
-      ensureReady: vi.fn().mockResolvedValue({ ok: true }),
+    troupeContext = {
+      load: vi.fn().mockResolvedValue(true),
+      activeTroupes: vi.fn().mockReturnValue([]),
+      currentUserDisplayLabel: vi.fn().mockReturnValue('Patrice'),
     }
     snack = { open: vi.fn() }
     getPreferences = vi.fn().mockResolvedValue({
@@ -109,7 +111,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
-        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
+        { provide: TroupeContextService, useValue: troupeContext },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MePreferencesApiService, useValue: { getPreferences, cacheRevision: () => 0 } },
         { provide: MatSnackBar, useValue: snack },
@@ -266,7 +268,7 @@ describe('UserAgenda', () => {
   })
 
   it('redirige vers connexion avec snackbar si la session est invalide', async () => {
-    memberBootstrap.ensureReady.mockResolvedValue({ ok: false, status: 401 })
+    auth.ensureHatcastSession.mockResolvedValue({ ok: false, status: 401 })
     auth.sessionUser.set(null)
     Object.defineProperty(router, 'url', { value: '/agenda', configurable: true })
 
@@ -462,7 +464,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
-        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
+        { provide: TroupeContextService, useValue: troupeContext },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {
@@ -506,7 +508,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
-        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
+        { provide: TroupeContextService, useValue: troupeContext },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {
@@ -696,7 +698,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
-        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
+        { provide: TroupeContextService, useValue: troupeContext },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {
