@@ -49,9 +49,7 @@ export interface ImportResultsDialogData {
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button type="button" mat-flat-button color="primary" [mat-dialog-close]="data.refreshOnClose">
-        Fermer
-      </button>
+      <button type="button" mat-button [mat-dialog-close]="data.refreshOnClose">Fermer</button>
     </mat-dialog-actions>
   `,
   styles: [

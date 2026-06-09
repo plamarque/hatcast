@@ -34,7 +34,7 @@
     <button type="button" mat-button mat-dialog-close>Fermer</button>
     <button type="button" mat-flat-button color="primary" (click)="goToLogin()">Se reconnecter</button>
   } @else if (sent()) {
-    <button type="button" mat-flat-button color="primary" mat-dialog-close>Fermer</button>
+    <button type="button" mat-button mat-dialog-close>Fermer</button>
   } @else {
     <button type="button" mat-button mat-dialog-close [disabled]="submitting()">Annuler</button>
     <button

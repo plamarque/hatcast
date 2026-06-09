@@ -139,11 +139,47 @@ Exception documentée : pas un dialog standard — la croix abandonne le brouill
 
 ---
 
-## Suivi (hors Phase 0+1)
+## Phase 2 — harmonisation libellés & styles dismiss (2026-06-09)
+
+Audit mécanique de tous les `mat-dialog-actions` / footers sheet. Règle : **dismiss = `mat-button`** ; libellé selon taxonomie § Règles de libellé.
+
+### Corrections livrées
+
+| Fichier | Avant | Après |
+|---------|-------|-------|
+| `member-profile-dialog` | `mat-flat-button` **Fermer** | `mat-button` **Fermer** |
+| `account-change-email-dialog` (état envoyé) | `mat-flat-button` **Fermer** | `mat-button` **Fermer** |
+| `account-change-password-dialog` (état envoyé) | `mat-flat-button` **Fermer** | `mat-button` **Fermer** |
+| `import-results-dialog` | `mat-flat-button` **Fermer** | `mat-button` **Fermer** |
+| `draw-chances-help-dialog` | `mat-flat-button` **Fermer** | `mat-button` **Fermer** |
+| `chance-breakdown-sheet` | `mat-stroked-button` **Fermer** | `mat-button` **Fermer** |
+
+### Inventaire conforme (aucun changement Phase 2)
+
+| Dialog | Type | Dismiss |
+|--------|------|---------|
+| `event-form-dialog`, `season-form-dialog`, `create-troupe-dialog`, `troupe-edit-dialog` | Formulaire | Annuler |
+| `event-type-roles-dialog`, `event-organizers-dialog`, `composition-slot-picker-dialog` | Formulaire | Annuler |
+| `add-member-dialog`, `edit-troupe-member-dialog`, `add-participant-dialog`, `add-event-participant-dialog`, `edit-participant-dialog` | Formulaire | Annuler |
+| `troupe-category-form-dialog`, `troupe-category-delete-dialog`, `confirm-dialog` | Formulaire / confirmation | Annuler |
+| `account-delete-dialog` (étape 1) | Confirmation | Annuler |
+| `composition-participation-dialog` | Actions in-content | Annuler |
+| `changelog-dialog`, `availability-dialog`, `share-announce-dialog`, `pwa-install-instructions-dialog` | Consultation / instruction | Fermer |
+| `import-results-dialog` | Rapport lecture seule | Fermer |
+| `draw-chances-help-dialog`, `chance-breakdown-sheet` | Aide / explication | Fermer |
+| `member-profile-dialog` | Consultation + action secondaire | Fermer |
+| `push-opt-in-dialog` | Opt-in | Plus tard |
+| `google-avatar-prompt-dialog` | Choix binaire | Non / Oui |
+| `account-change-email-dialog` (reconnexion) | Blocage session | Fermer + Se reconnecter |
+| `account-change-*` (formulaire actif) | Formulaire | Annuler |
+| `filter-*-picker` | Picker (exception) | ✕ header + Appliquer |
+
+---
+
+## Suivi (hors Phase 0–2)
 
 | Phase | Contenu | Story cible |
 |-------|---------|-------------|
-| **2** | Audit libellés Annuler/Fermer sur tous les `mat-dialog-actions` | À planifier |
 | **3** | Picker filtre : poignée drag sheet mobile ; desktop dialog sans ✕ + Annuler texte ? | 17.28+ |
 | **4** | Composant / directive garde-fou (optionnel) | Dette préventive |
 
