@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { WritableSignal } from '@angular/core'
+import { signal, WritableSignal } from '@angular/core'
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
@@ -7,6 +7,7 @@ import { BehaviorSubject } from 'rxjs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { EventAvailabilitySummary } from '../../core/availability/availability-api.service'
 import {
@@ -217,11 +218,22 @@ describe('EventDetail', () => {
         {
           provide: AuthApiService,
           useValue: {
+            sessionUser: signal({
+              id: 'user-1',
+              slug: 'test',
+              email: 'a@b.c',
+              displayName: 'Test',
+              avatarUrl: null,
+            }),
             ensureHatcastSession: vi.fn().mockResolvedValue({
               ok: true,
               data: { user: { id: 'user-1', email: 'a@b.c', displayName: 'Test' } },
             }),
           },
+        },
+        {
+          provide: MemberShellBootstrapService,
+          useValue: { ensureReady: vi.fn().mockResolvedValue({ ok: true }) },
         },
         {
           provide: TroupeApiService,

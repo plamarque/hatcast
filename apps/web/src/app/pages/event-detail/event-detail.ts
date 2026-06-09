@@ -16,6 +16,7 @@ import {
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { resolveNotificationLinkTab } from '../../core/analytics/notification-link-tab'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import {
   type EventDetailTab,
   eventDetailTabToQuery,
@@ -111,6 +112,7 @@ function findLinkedSeasonParticipant(
 export class EventDetail implements OnDestroy, OnInit {
   private readonly analytics = inject(ProductAnalyticsService)
   private readonly auth = inject(AuthApiService)
+  private readonly memberBootstrap = inject(MemberShellBootstrapService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly eventsApi = inject(EventApiService)
   private readonly compositionApi = inject(CompositionApiService)
@@ -318,13 +320,19 @@ export class EventDetail implements OnDestroy, OnInit {
     return tabs
   })
   async ngOnInit(): Promise<void> {
-    const session = await this.auth.ensureHatcastSession()
-    if (!session.ok) {
+    const boot = await this.memberBootstrap.ensureReady()
+    if (!boot.ok) {
       rememberCurrentUrlForPostLogin(this.router)
       await this.router.navigate(['/connexion'], { replaceUrl: true })
       return
     }
-    this.user.set(session.data?.user ?? null)
+    const user = this.auth.sessionUser()
+    if (!user) {
+      rememberCurrentUrlForPostLogin(this.router)
+      await this.router.navigate(['/connexion'], { replaceUrl: true })
+      return
+    }
+    this.user.set(user)
 
     this.applyQueryParams(this.route.snapshot.queryParamMap)
 

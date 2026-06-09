@@ -125,8 +125,12 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
     return {}
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.ingestReturnUrlFromQuery()
+    const session = await this.auth.ensureHatcastSession()
+    if (session.ok) {
+      await this.postLoginNav.navigateAfterSignIn(this.router)
+    }
   }
 
   ngAfterViewInit(): void {

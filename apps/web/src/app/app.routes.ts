@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { memberShellBootstrapGuard } from './core/member-shell/member-shell-bootstrap.guard';
 import { MemberShell } from './layout/member-shell/member-shell';
 import { AccountEmailVerification } from './pages/account-email-verification/account-email-verification';
 import { AuthRedirect } from './pages/auth-redirect/auth-redirect';
@@ -36,6 +37,7 @@ export const routes: Routes = [
   {
     path: '',
     component: MemberShell,
+    canActivate: [memberShellBootstrapGuard],
     children: [
       { path: 'accueil', component: MemberHomeTodo },
       {

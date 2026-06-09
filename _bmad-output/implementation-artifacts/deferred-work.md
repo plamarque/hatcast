@@ -342,3 +342,19 @@
 - **Pas de delta chiffré avant/après** — plan DoD §5.1 ; baseline RC-8 ~912 ms non reprise dans Completion Notes story.
 - **Fixture perf minimale sans scénario inbox « riche »** — membre seed sans pending confirmations ni horizon rempli ; garde-fou AC1 ne stress pas les chemins RC-8 optimisés.
 - **Risque drift requêtes DISTINCT vs COUNT miroir** — `findParticipatingSeasonIds*` conservées à côté de `existsParticipatingSeason*` ; correction future doit toucher les deux chemins.
+
+---
+
+## Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09)
+
+- **Guard and logout integration test gaps** — no spec for guard 401/UrlTree or logout → effect → refetch chain.
+- **Navigation spec uses stubs not real EventDetail/UserAgenda** — AC2 proven at router level only; e2e or real-component spec deferred.
+- **Testing helper underused** — `member-shell-bootstrap.testing.ts` exists but page specs duplicate inline mocks.
+- **Remaining shell pages still call ensureHatcastSession** — progressive migration explicit non-goal; season-home, troupe-hub, admin routes still refetch.
+- **Bootstrap memo stale after auth cache invalidation without sessionUser clear** — pre-existing `AuthApiService` 401 path; **partially addressed** in PERF-09 review (clear `sessionUser` on 401).
+
+---
+
+## Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09) — 3-lite follow-up
+
+- **Boot network/5xx retry UI** — On bootstrap `status 0` or 5xx, show retry screen instead of redirect to `/connexion` (decision 2+3-lite; auth 401 still redirects with post-login URL restore).

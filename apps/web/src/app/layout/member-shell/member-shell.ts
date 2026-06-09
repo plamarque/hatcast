@@ -73,8 +73,7 @@ export class MemberShell implements OnInit {
 
     const membreSlug = memberStatsSlugFromMemberEntryPath(path)
     if (membreSlug) {
-      const session = await this.auth.ensureHatcastSession()
-      const ownSlug = session.data?.user.slug?.trim()
+      const ownSlug = this.auth.sessionUser()?.slug?.trim()
       if (!ownSlug || membreSlug !== ownSlug) {
         return
       }

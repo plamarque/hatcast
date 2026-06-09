@@ -8,6 +8,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 
 import { AppVersionService } from '../../core/app/app-version.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { AccountPageContext } from './account-page-context'
 
@@ -31,6 +32,7 @@ import { AccountPageContext } from './account-page-context'
 })
 export class AccountPlaceholder implements OnInit {
   private readonly auth = inject(AuthApiService)
+  private readonly memberBootstrap = inject(MemberShellBootstrapService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly appVersion = inject(AppVersionService)
@@ -42,12 +44,17 @@ export class AccountPlaceholder implements OnInit {
     void this.appVersion.ensureLoaded()
     await this.redirectLegacyNotificationsFragment()
 
-    const session = await this.auth.ensureHatcastSession()
-    if (!session.ok || !session.data) {
+    const boot = await this.memberBootstrap.ensureReady()
+    if (!boot.ok) {
       await this.redirectToLogin()
       return
     }
-    this.ctx.setUser(session.data.user)
+    const user = this.auth.sessionUser()
+    if (!user) {
+      await this.redirectToLogin()
+      return
+    }
+    this.ctx.setUser(user)
     this.loading.set(false)
   }
 

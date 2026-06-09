@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core'
 import { Router } from '@angular/router'
 
 import { AuthApiService } from '../auth/auth-api.service'
+import { MemberShellBootstrapService } from '../member-shell/member-shell-bootstrap.service'
 import { TroupeContextService } from '../troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
 import {
@@ -37,6 +38,7 @@ export type PostLoginNavigationTarget = string | string[]
 export class PostLoginNavigationService {
   private readonly resolver = inject(TroupeSeasonResolverService)
   private readonly auth = inject(AuthApiService)
+  private readonly memberBootstrap = inject(MemberShellBootstrapService)
   private readonly troupeContext = inject(TroupeContextService)
   private readonly router = inject(Router)
 
@@ -231,6 +233,7 @@ export class PostLoginNavigationService {
   }
 
   private async executeNavigateAfterSignIn(router: Router): Promise<boolean> {
+    this.memberBootstrap.invalidate()
     const target = await this.resolveAuthenticatedEntryUrl()
     if (typeof target === 'string') {
       const navigated = await router.navigateByUrl(target, { replaceUrl: true })

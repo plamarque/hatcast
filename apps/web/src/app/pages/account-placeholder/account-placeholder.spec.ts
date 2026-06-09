@@ -10,6 +10,7 @@ import { AppVersionService } from '../../core/app/app-version.service'
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { MemberDisplayNameService } from '../../core/account/member-display-name.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
 import { PwaUpdateService } from '../../core/pwa/pwa-update.service'
@@ -193,6 +194,7 @@ describe('AccountPlaceholder', () => {
     }).compileComponents()
 
     const authApi = {
+      sessionUser: signal(options.session?.ok === false ? null : user),
       ensureHatcastSession: vi.fn().mockResolvedValue(
         options.session ?? {
           ok: true,
@@ -206,6 +208,15 @@ describe('AccountPlaceholder', () => {
       deleteAvatar: vi.fn(),
     }
     TestBed.overrideProvider(AuthApiService, { useValue: authApi })
+    TestBed.overrideProvider(MemberShellBootstrapService, {
+      useValue: {
+        ensureReady: vi.fn().mockImplementation(async () =>
+          options.session?.ok === false
+            ? { ok: false, status: options.session.status }
+            : { ok: true },
+        ),
+      },
+    })
     TestBed.overrideProvider(MatSnackBar, { useValue: snack })
 
     const router = TestBed.inject(Router)

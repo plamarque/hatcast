@@ -1,3 +1,4 @@
+import { signal } from '@angular/core'
 import { By } from '@angular/platform-browser'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -13,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import { USER_AGENDA_FILTERS_STORAGE_KEY } from '../../core/agenda/user-agenda-filters-storage'
 import {
   UserAgendaApiService,
@@ -22,6 +24,7 @@ import {
 } from '../../core/agenda/user-agenda-api.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
+import type { UserSummary } from '../../core/auth/auth-api.service'
 import { UserAgenda } from './user-agenda'
 
 const TROUPE_A = 'a0000001-0000-4000-8000-000000000001'
@@ -49,7 +52,12 @@ async function settle(fixture: ComponentFixture<UserAgenda>): Promise<void> {
 describe('UserAgenda', () => {
   let fixture: ComponentFixture<UserAgenda>
   let agendaApi: { listAgenda: ReturnType<typeof vi.fn> }
-  let auth: { ensureHatcastSession: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> }
+  let auth: {
+    sessionUser: ReturnType<typeof signal<UserSummary | null>>
+    ensureHatcastSession: ReturnType<typeof vi.fn>
+    logout: ReturnType<typeof vi.fn>
+  }
+  let memberBootstrap: { ensureReady: ReturnType<typeof vi.fn> }
   let getPreferences: ReturnType<typeof vi.fn>
   let router: Router
   let navigateSpy: ReturnType<typeof vi.fn>
@@ -67,21 +75,27 @@ describe('UserAgenda', () => {
         ]),
       }),
     }
+    const sessionUser = signal<UserSummary | null>({
+      id: 'user-1',
+      slug: 'patrice',
+      email: 'patrice@example.com',
+      displayName: 'Patrice',
+      avatarUrl: null,
+    })
     auth = {
+      sessionUser,
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         data: {
-          user: {
-            id: 'user-1',
-            email: 'patrice@example.com',
-            displayName: 'Patrice',
-            avatarUrl: null,
-          },
+          user: sessionUser(),
           platformAdmin: false,
         },
       }),
       logout: vi.fn().mockResolvedValue(true),
+    }
+    memberBootstrap = {
+      ensureReady: vi.fn().mockResolvedValue({ ok: true }),
     }
     snack = { open: vi.fn() }
     getPreferences = vi.fn().mockResolvedValue({
@@ -95,6 +109,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
+        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MePreferencesApiService, useValue: { getPreferences, cacheRevision: () => 0 } },
         { provide: MatSnackBar, useValue: snack },
@@ -251,7 +266,8 @@ describe('UserAgenda', () => {
   })
 
   it('redirige vers connexion avec snackbar si la session est invalide', async () => {
-    auth.ensureHatcastSession.mockResolvedValue({ ok: false, status: 401 })
+    memberBootstrap.ensureReady.mockResolvedValue({ ok: false, status: 401 })
+    auth.sessionUser.set(null)
     Object.defineProperty(router, 'url', { value: '/agenda', configurable: true })
 
     await settle(fixture)
@@ -316,6 +332,7 @@ describe('UserAgenda', () => {
 
     expect(navigateSpy).toHaveBeenCalledWith([
       '/saison',
+      'la-bim',
       'ligue-clavier',
       'event',
       'event-keyboard',
@@ -338,7 +355,7 @@ describe('UserAgenda', () => {
     const card = fixture.nativeElement.querySelector('.agenda-card__clickable') as HTMLElement
     card.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-espace', 'event', 'event-space'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'la-bim', 'ligue-espace', 'event', 'event-space'])
   })
 
   it('masque la barre de filtres quand filterBarVisible est false', async () => {
@@ -445,6 +462,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
+        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {
@@ -488,6 +506,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
+        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {
@@ -677,6 +696,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
+        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {

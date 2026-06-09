@@ -11,6 +11,7 @@ import {
   type AvailabilityStatus,
 } from '../../core/availability/availability-status'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import { EventApiService } from '../../core/events/event-api.service'
 import { normalizeRoleSlots } from '../../core/events/event-types'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
@@ -93,6 +94,7 @@ export class UserAgenda implements OnInit {
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
   private readonly filterPanel = inject(FilterPanelService)
+  private readonly memberBootstrap = inject(MemberShellBootstrapService)
   private readonly troupeContext = inject(TroupeContextService)
 
   private loadGeneration = 0
@@ -172,13 +174,17 @@ export class UserAgenda implements OnInit {
   protected readonly viewerGender = signal<MemberGender | undefined>(undefined)
 
   async ngOnInit(): Promise<void> {
-    const r = await this.auth.ensureHatcastSession()
-    if (!r.ok || !r.data) {
+    const boot = await this.memberBootstrap.ensureReady()
+    if (!boot.ok) {
       await this.redirectToLogin()
       return
     }
-    this.user.set(r.data.user)
-    await this.troupeContext.load()
+    const user = this.auth.sessionUser()
+    if (!user) {
+      await this.redirectToLogin()
+      return
+    }
+    this.user.set(user)
     await this.loadViewerGender()
     this.loadingSession.set(false)
     this.bootstrapFiltersFromRoute()

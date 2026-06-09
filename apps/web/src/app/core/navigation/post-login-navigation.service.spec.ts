@@ -3,7 +3,9 @@ import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../auth/auth-api.service'
+import { MemberShellBootstrapService } from '../member-shell/member-shell-bootstrap.service'
 import type { SeasonResponse } from '../seasons/season-api.service'
+import { TroupeContextService } from '../troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../troupes/troupe-season-resolver.service'
 import { rememberLastMemberEntryPath } from './last-member-entry-path-storage'
 import { rememberLastVisitedSeasonSlug } from './last-visited-season-storage'
@@ -11,7 +13,11 @@ import { PostLoginNavigationService } from './post-login-navigation.service'
 import { rememberPendingPostLoginRedirect } from './post-login-redirect-storage'
 
 describe('PostLoginNavigationService', () => {
-  let resolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
+  let resolver: {
+    resolveSeasonSlug: ReturnType<typeof vi.fn>
+    resolveSeasonInTroupe: ReturnType<typeof vi.fn>
+  }
+  let memberBootstrap: { invalidate: ReturnType<typeof vi.fn> }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
 
   const resolvedTroupe = { id: 't1', name: 'Troupe', slug: 'la-malice' }
@@ -19,7 +25,15 @@ describe('PostLoginNavigationService', () => {
 
   beforeEach(() => {
     localStorage.clear()
-    resolver = { resolveSeasonSlug: vi.fn() }
+    resolver = {
+      resolveSeasonSlug: vi.fn(),
+      resolveSeasonInTroupe: vi.fn().mockResolvedValue({
+        kind: 'resolved',
+        troupe: resolvedTroupe,
+        season: resolvedSeason,
+      }),
+    }
+    memberBootstrap = { invalidate: vi.fn() }
     auth = {
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
@@ -33,6 +47,14 @@ describe('PostLoginNavigationService', () => {
         PostLoginNavigationService,
         { provide: TroupeSeasonResolverService, useValue: resolver },
         { provide: AuthApiService, useValue: auth },
+        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
+        {
+          provide: TroupeContextService,
+          useValue: {
+            load: vi.fn().mockResolvedValue(true),
+            activeTroupes: () => [],
+          },
+        },
       ],
     })
   })

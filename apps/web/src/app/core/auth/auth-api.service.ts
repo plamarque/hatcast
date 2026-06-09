@@ -100,6 +100,7 @@ export class AuthApiService {
       return
     }
     if (result.status === 401) {
+      this.sessionUserSignal.set(null)
       this.invalidateSessionCache()
       this.troupeApi.invalidateCache()
     }

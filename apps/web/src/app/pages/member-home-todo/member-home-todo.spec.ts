@@ -1,3 +1,4 @@
+import { signal } from '@angular/core'
 import { By } from '@angular/platform-browser'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -8,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
+import type { UserSummary } from '../../core/auth/auth-api.service'
 import {
   MeInboxApiService,
   type InboxAction,
@@ -34,7 +37,11 @@ async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> 
 describe('MemberHomeTodo', () => {
   let fixture: ComponentFixture<MemberHomeTodo>
   let inboxApi: { getInbox: ReturnType<typeof vi.fn> }
-  let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
+  let auth: {
+    sessionUser: ReturnType<typeof signal<UserSummary | null>>
+    ensureHatcastSession: ReturnType<typeof vi.fn>
+  }
+  let memberBootstrap: { ensureReady: ReturnType<typeof vi.fn> }
   let getPreferences: ReturnType<typeof vi.fn>
   let router: Router
   let navigateByUrlSpy: ReturnType<typeof vi.fn>
@@ -54,21 +61,26 @@ describe('MemberHomeTodo', () => {
         data: inboxResponse([]),
       }),
     }
+    const sessionUser = signal<UserSummary | null>({
+      id: 'user-1',
+      slug: 'patrice',
+      email: 'patrice@example.com',
+      displayName: 'Patrice',
+      avatarUrl: null,
+    })
     auth = {
+      sessionUser,
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         data: {
-          user: {
-            id: 'user-1',
-            slug: 'patrice',
-            email: 'patrice@example.com',
-            displayName: 'Patrice',
-            avatarUrl: null,
-          },
+          user: sessionUser(),
           platformAdmin: false,
         },
       }),
+    }
+    memberBootstrap = {
+      ensureReady: vi.fn().mockResolvedValue({ ok: true }),
     }
     snack = { open: vi.fn() }
     getPreferences = vi.fn().mockResolvedValue({
@@ -82,6 +94,7 @@ describe('MemberHomeTodo', () => {
       providers: [
         provideRouter([]),
         { provide: AuthApiService, useValue: auth },
+        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
         { provide: MeInboxApiService, useValue: inboxApi },
         {
           provide: MePreferencesApiService,
@@ -333,13 +346,13 @@ describe('MemberHomeTodo', () => {
     ) as HTMLAnchorElement
     expect(seasonLink.textContent).toContain('Ma saison')
     expect(seasonLink.textContent).toContain('Malice 2025-2026')
-    expect(seasonLink.getAttribute('href')).toContain('/saison/ligue-2026')
+    expect(seasonLink.getAttribute('href')).toContain('/saison/la-malice/ligue-2026')
 
     const statsLink = fixture.nativeElement.querySelector(
       '[data-testid="todo-shortcut-season-stats"]',
     ) as HTMLAnchorElement
     expect(statsLink.textContent).toContain('Stats · Malice 2025-2026')
-    expect(statsLink.getAttribute('href')).toContain('/saison/ligue-2026')
+    expect(statsLink.getAttribute('href')).toContain('/saison/la-malice/ligue-2026')
     expect(statsLink.getAttribute('href')).toContain('view=stats')
 
     const troupeLink = fixture.nativeElement.querySelector(
@@ -350,7 +363,8 @@ describe('MemberHomeTodo', () => {
   })
 
   it('redirige vers connexion quand la session est absente', async () => {
-    auth.ensureHatcastSession.mockResolvedValue({ ok: false, status: 401 })
+    memberBootstrap.ensureReady.mockResolvedValue({ ok: false, status: 401 })
+    auth.sessionUser.set(null)
 
     await settle(fixture)
 
@@ -463,7 +477,7 @@ describe('MemberHomeTodo', () => {
     clickable.click()
     await fixture.whenStable()
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-click'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'la-bim', 'ligue-2026', 'event', 'next-click'])
   })
 
   it('affiche le rôle et la confirmation en attente via participantFocus', async () => {
@@ -505,11 +519,11 @@ describe('MemberHomeTodo', () => {
     ) as HTMLElement
 
     clickable.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-key'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'la-bim', 'ligue-2026', 'event', 'next-key'])
 
     navigateSpy.mockClear()
     clickable.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-key'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'la-bim', 'ligue-2026', 'event', 'next-key'])
   })
 
   it('affiche confirm avant dispo quand le tri serveur le fournit', async () => {

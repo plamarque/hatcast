@@ -6,6 +6,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
 import type { InboxAction } from '../../core/inbox/me-inbox-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
@@ -40,6 +41,7 @@ import { AgendaParticipationStatus } from '../../shared/participation/agenda-par
 })
 export class MemberHomeTodo implements OnInit, OnDestroy {
   private readonly auth = inject(AuthApiService)
+  private readonly memberBootstrap = inject(MemberShellBootstrapService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
   protected readonly seasonShortcut = inject(LastVisitedSeasonShortcutService)
@@ -117,8 +119,12 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   )
 
   async ngOnInit(): Promise<void> {
-    const r = await this.auth.ensureHatcastSession()
-    if (!r.ok || !r.data) {
+    const boot = await this.memberBootstrap.ensureReady()
+    if (!boot.ok) {
+      await this.redirectToLogin()
+      return
+    }
+    if (!this.auth.sessionUser()) {
       await this.redirectToLogin()
       return
     }
