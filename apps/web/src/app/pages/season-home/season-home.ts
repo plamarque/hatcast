@@ -38,6 +38,7 @@ import type { AvailabilityStatus } from '../../core/availability/availability-st
 import {
   type EventResponse,
   EventApiService,
+  type PagedEventsResponse,
 } from '../../core/events/event-api.service'
 import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
@@ -662,13 +663,55 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (this.seasonView() === 'history') {
       viewLoads.push(this.loadPastEvents())
     }
-    await Promise.all([
-      this.loadSeasonPermissions(resolved.season.id, requestId),
-      this.loadParticipantSelectors(resolved.season.id, requestId),
-      this.loadCategories(resolved.troupe.id, requestId),
-      this.loadUpcomingEvents(),
-      ...viewLoads,
-    ])
+    if (this.seasonView() === 'agenda') {
+      await Promise.all([this.loadSeasonWorkspaceBootstrap(resolved.season.id, requestId), ...viewLoads])
+    } else {
+      await Promise.all([
+        this.loadSeasonPermissions(resolved.season.id, requestId),
+        this.loadParticipantSelectors(resolved.season.id, requestId),
+        this.loadCategories(resolved.troupe.id, requestId),
+        ...viewLoads,
+      ])
+    }
+  }
+
+  private async loadSeasonWorkspaceBootstrap(seasonId: string, requestId: number): Promise<void> {
+    this.loadingEvents.set(true)
+    try {
+      const r = await this.seasonsApi.getSeasonWorkspace(seasonId, {
+        view: 'agenda',
+        eventPage: 0,
+        eventSize: Math.min(100, this.eventLoadLimit()),
+      })
+      if (requestId !== this.seasonLoadRequestId) {
+        return
+      }
+      if (!r.ok || !r.data) {
+        this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
+        return
+      }
+      this.seasonPermissions.set(r.data.permissions)
+      this.participantSelectors.set(r.data.participantSelectors)
+      this.categories.set(r.data.categories)
+      this.applyWorkspaceUpcomingEvents(r.data.upcomingEvents, requestId)
+    } finally {
+      if (requestId === this.seasonLoadRequestId) {
+        this.loadingEvents.set(false)
+      }
+    }
+  }
+
+  private applyWorkspaceUpcomingEvents(page: PagedEventsResponse, requestId: number): void {
+    if (requestId !== this.seasonLoadRequestId) {
+      return
+    }
+    const limit = this.eventLoadLimit()
+    const visibleEvents = page.content.slice(0, limit)
+    const truncated = page.totalElements > visibleEvents.length
+    this.eventsTruncated.set(truncated)
+    this.events.set(visibleEvents)
+    this.totalElements.set(page.totalElements)
+    this.resetStaleEventFilter(visibleEvents)
   }
 
   private async loadParticipantSelectors(seasonId: string, requestId: number): Promise<void> {

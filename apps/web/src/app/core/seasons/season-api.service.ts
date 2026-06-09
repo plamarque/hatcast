@@ -1,7 +1,11 @@
 import { Injectable } from '@angular/core'
 
 import { csrfHeaders } from '../http/hatcast-csrf'
+import type { PagedEventsResponse } from '../events/event-api.service'
+import type { MySeasonPermissions } from '../permissions/organizer-api.service'
+import type { ParticipantSelector } from '../participants/participant-api.service'
 import type { TroupeAdminSummary } from '../troupes/troupe-api.service'
+import type { TroupeCategory } from '../troupes/troupe-api.service'
 
 export type GuestSeasonWorkspaceMode = 'NONE' | 'EVENTS_ONLY' | 'AGENDA_ONLY' | 'FULL'
 
@@ -49,6 +53,15 @@ export interface PlatformAdminSeasonResolution {
   season: SeasonResponse
 }
 
+export interface SeasonWorkspaceResponse {
+  permissions: MySeasonPermissions
+  participantSelectors: ParticipantSelector[]
+  categories: TroupeCategory[]
+  upcomingEvents: PagedEventsResponse
+}
+
+export type SeasonWorkspaceView = 'agenda'
+
 @Injectable({ providedIn: 'root' })
 export class SeasonApiService {
   async getSeason(seasonId: string): Promise<{ ok: boolean; status: number; data?: SeasonResponse }> {
@@ -79,6 +92,34 @@ export class SeasonApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as SeasonResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async getSeasonWorkspace(
+    seasonId: string,
+    options: {
+      view?: SeasonWorkspaceView
+      eventPage?: number
+      eventSize?: number
+    } = {},
+  ): Promise<{ ok: boolean; status: number; data?: SeasonWorkspaceResponse }> {
+    const q = new URLSearchParams({
+      view: options.view ?? 'agenda',
+      eventPage: String(options.eventPage ?? 0),
+      eventSize: String(options.eventSize ?? 50),
+    })
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/workspace?${q}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as SeasonWorkspaceResponse
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
