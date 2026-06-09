@@ -152,6 +152,13 @@
   }
 }
 
+// Preview flow-wrap (Dispos poll, Tous embed) — colored chips, white labels
+.composition-draw-animation__bar--flow .composition-draw-animation__segment--flow {
+  color: #fff;
+  min-height: 1.85rem;
+  padding-block: 0.28rem;
+}
+
 .composition-draw-animation__segment-content {
   display: flex;
   align-items: center;

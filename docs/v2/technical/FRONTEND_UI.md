@@ -178,7 +178,8 @@ Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
 |---------|---------|
 | Mes Stats (compteurs + chart) | `member-profile-dialog.scss` |
 | Modale participation | `composition-participation-dialog.scss` |
-| Onglet Dispos | `availability-form.scss` |
+| Onglet Dispos (sondage — story 5.8) | `availability-poll-row.scss`, `availability-poll.scss`, `event-dispos-tab.scss` |
+| Onglet Dispos (dialog agenda — formulaire) | `availability-form.scss` |
 | Onglet Équipe (lignes + badge désistements + header statut) | `event-equipe-tab.scss`, `composition-equipe-status-header.scss` |
 | Grille Statistiques — cellules événement (mois déplié) | `participation-event-cell.scss` |
 
@@ -192,6 +193,31 @@ Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
 **Chances de tirage (grille Dispos « Tous »)** — sémantique **distincte** : `--hatcast-chance-high` / `-medium` / `-low` (probabilité, pas état de participation).
 
 **Helpers BEM :** `participationChartModifier()`, `participationSlotRowModifier()`, `participationBadgeModifier()`, `availabilityBadgeModifier()` (dispo pure).
+
+### Onglet Dispos — vue sondage (baseline figée 2026-06-09)
+
+**Spec UX normative :** [_bmad-output/planning-artifacts/ux-design-dispos-poll-as-built-2026-06-09.md](../../../_bmad-output/planning-artifacts/ux-design-dispos-poll-as-built-2026-06-09.md) — **lire avant tout changement** sur `app-availability-poll`, `app-availability-poll-row`, toolbar proxy de `app-event-dispos-tab`.
+
+| Composant | Fichiers |
+|-----------|----------|
+| Liste sondage | `availability-poll.ts`, `availability-poll.html`, `availability-poll.scss` |
+| Ligne vote | `availability-poll-row.ts`, `availability-poll-row.html`, `availability-poll-row.scss` |
+| Toolbar orga | `event-dispos-tab.scss` (`.event-dispos__toolbar`, `.event-dispos__proxy-hint`) |
+| Tokens proxy | `styles.scss` (`--hatcast-proxy-banner-*`) |
+
+**Layout obligatoire :**
+
+- **Mobile ≤ 480 px** — 2 lignes par vote : L1 = case + libellé + compteur + avatars ; L2 = jauge pleine largeur. Grille CSS **uniquement** dans `@media (max-width: 480px)` ; `.poll-row__gauge-row { display: contents }`.
+- **Desktop > 480 px** — 2 lignes : L1 = case + libellé ; L2 = jauge indentée (`--poll-gauge-indent`) + compteur + avatars en flex. **Défaut** : `.poll-row__main { display: flex; flex-direction: column }` — ne pas appliquer la grille mobile par défaut.
+
+**Régressions connues à éviter :**
+
+- Double indent mobile (`padding-inline-start` + `margin-inline-start` sur le pool-trigger).
+- Pré-cochage multi-rôles au premier clic (un toggle = un rôle).
+- Bandeau proxy gris (`on-surface`) ou empilé verticalement en mobile.
+- Désactivation des rôles quand « Pas disponible » est coché (as-built : rôles restent éditables sauf read-only / archivé).
+
+**Tests :** `availability-poll.spec.ts`, `event-dispos-tab.spec.ts` + checklist § anti-régression du doc as-built.
 
 ### Stories et agents
 

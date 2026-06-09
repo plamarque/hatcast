@@ -1,0 +1,86 @@
+<div
+  class="poll-row"
+  [class.poll-row--disabled]="disabled()"
+  [class.poll-row--expanded]="expanded()"
+  [class.poll-row--unavailable]="rowKind() === 'unavailable'"
+  [class.poll-row--available]="rowKind() === 'available'"
+>
+  <div class="poll-row__main">
+    <div class="poll-row__vote-line">
+      <mat-checkbox
+        class="poll-row__checkbox"
+        disableRipple
+        color="primary"
+        [checked]="checked()"
+        [disabled]="disabled() || saving()"
+        (change)="onCheckboxChange($event.checked)"
+      >
+        <span class="poll-row__label" [class.poll-row__label--muted]="disabled()">
+          @if (emoji()) {
+            <span class="poll-row__emoji" aria-hidden="true">{{ emoji() }}</span>
+          }
+          {{ label() }}
+        </span>
+      </mat-checkbox>
+    </div>
+
+    <div class="poll-row__gauge-row">
+      <button
+        type="button"
+        class="poll-row__gauge-trigger"
+        [disabled]="!hasCandidates() && !poolLoading()"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-label]="poolAriaLabel()"
+        (click)="onPoolClick($event)"
+      >
+        <mat-progress-bar
+          class="poll-row__gauge"
+          mode="determinate"
+          [value]="fillPercent()"
+        />
+      </button>
+
+      <button
+        type="button"
+        class="poll-row__stats-trigger"
+        [disabled]="!hasCandidates() && !poolLoading()"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-label]="poolAriaLabel()"
+        (click)="onPoolClick($event)"
+      >
+        <span class="poll-row__counter">{{ counterText() }}</span>
+        <span class="poll-row__avatars" aria-hidden="true">
+          @for (avatar of visibleAvatars(); track avatar.participantId) {
+            <app-user-avatar
+              class="poll-row__avatar"
+              [displayName]="avatar.displayName"
+              [avatarUrl]="avatar.avatarUrl ?? null"
+              [gender]="avatar.gender ?? null"
+              [size]="26"
+            />
+          }
+        </span>
+        @if (saving()) {
+          <mat-spinner class="poll-row__spinner" diameter="18" />
+        }
+      </button>
+    </div>
+  </div>
+
+  @if (expanded()) {
+    <div class="poll-row__pool" [attr.aria-label]="'Candidats pour ' + label()">
+      @if (poolLoading()) {
+        <div class="poll-row__pool-loading" role="status">
+          <mat-spinner diameter="28" />
+        </div>
+      } @else if (poolSegments().length > 0) {
+        <app-composition-pool-preview
+          class="poll-row__pool-preview"
+          [pool]="poolSegments()"
+          [interactive]="poolInteractive()"
+          (segmentTap)="poolSegmentTap.emit($event)"
+        />
+      }
+    </div>
+  }
+</div>

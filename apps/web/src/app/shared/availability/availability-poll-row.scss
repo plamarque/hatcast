@@ -1,0 +1,351 @@
+.poll-row {
+  border-bottom: 1px solid var(--hatcast-availability-border);
+  padding-block: 0.55rem;
+  min-width: 0;
+  --poll-gauge-indent: calc(1.375rem + 0.65rem);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.poll-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.poll-row__vote-line {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 2.75rem;
+  margin-inline: -0.15rem;
+  padding: 0.15rem;
+  border-radius: 0.5rem;
+  transition: background-color 150ms ease;
+}
+
+.poll-row:not(.poll-row--disabled) .poll-row__vote-line {
+  cursor: pointer;
+}
+
+.poll-row:not(.poll-row--disabled) .poll-row__vote-line:hover {
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 5%, transparent);
+
+  .poll-row__checkbox ::ng-deep .mdc-checkbox:not(.mdc-checkbox--selected):not(.mdc-checkbox--disabled)
+    .mdc-checkbox__background {
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 72%, var(--mat-sys-outline));
+  }
+
+  .poll-row__checkbox ::ng-deep .mdc-checkbox--selected:not(.mdc-checkbox--disabled) .mdc-checkbox__background {
+    background-color: color-mix(in srgb, var(--mat-sys-primary) 88%, black);
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 88%, black);
+  }
+}
+
+// Round checkmarks — mat-checkbox (M3) ; label cliquable via projection MDC
+.poll-row__checkbox {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+  line-height: 0;
+
+  ::ng-deep .mdc-form-field {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  ::ng-deep .mdc-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  ::ng-deep .mdc-checkbox {
+    width: 1.375rem;
+    height: 1.375rem;
+    padding: 0;
+    margin: 0;
+    flex: 0 0 1.375rem;
+  }
+
+  ::ng-deep .mdc-checkbox__background {
+    width: 1.375rem;
+    height: 1.375rem;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+    border-width: 2px;
+    border-color: color-mix(in srgb, var(--mat-sys-outline) 88%, transparent);
+    background-color: transparent;
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease;
+  }
+
+  ::ng-deep .mdc-checkbox--selected .mdc-checkbox__background {
+    border-color: var(--mat-sys-primary);
+    background-color: var(--mat-sys-primary);
+  }
+
+  ::ng-deep .mdc-checkbox__checkmark {
+    width: 0.75rem;
+    height: 0.75rem;
+    top: calc(50% - 0.375rem);
+    left: calc(50% - 0.375rem);
+  }
+
+  ::ng-deep .mdc-checkbox__checkmark-path {
+    stroke-width: 2.5px;
+    stroke: var(--mat-sys-on-primary);
+  }
+
+  ::ng-deep .mat-mdc-checkbox-touch-target {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  ::ng-deep .mat-mdc-checkbox-ripple,
+  ::ng-deep .mdc-checkbox__ripple {
+    display: none;
+  }
+}
+
+.poll-row__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--mat-sys-on-surface);
+
+  &--muted {
+    color: var(--mat-sys-on-surface-variant);
+    font-weight: 400;
+  }
+}
+
+.poll-row__emoji {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.poll-row__gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding-inline-start: var(--poll-gauge-indent);
+  box-sizing: border-box;
+}
+
+.poll-row__gauge-trigger,
+.poll-row__stats-trigger {
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.15rem 0;
+  box-sizing: border-box;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 5%, transparent);
+  }
+}
+
+.poll-row__gauge-trigger {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 2.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.poll-row__stats-trigger {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding-inline: 0.15rem;
+}
+
+.poll-row__gauge {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 0.5rem;
+  border-radius: 999px;
+  overflow: hidden;
+
+  ::ng-deep .mdc-linear-progress {
+    height: 0.5rem;
+    border-radius: 999px;
+  }
+
+  ::ng-deep .mdc-linear-progress__buffer,
+  ::ng-deep .mdc-linear-progress__bar {
+    height: 0.5rem;
+  }
+
+  ::ng-deep .mdc-linear-progress__buffer-bar {
+    background-color: color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
+  }
+
+  ::ng-deep .mdc-linear-progress__bar-inner {
+    transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 999px;
+    border-top-width: 0.5rem;
+  }
+}
+
+.poll-row--unavailable .poll-row__gauge {
+  ::ng-deep .mdc-linear-progress__bar-inner {
+    border-color: var(--hatcast-participation-unavailable-badge-fg);
+  }
+}
+
+.poll-row--available .poll-row__gauge,
+.poll-row:not(.poll-row--unavailable):not(.poll-row--available) .poll-row__gauge {
+  ::ng-deep .mdc-linear-progress__bar-inner {
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+.poll-row__counter {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--mat-sys-on-surface-variant);
+  min-width: 2.25rem;
+  text-align: end;
+}
+
+.poll-row__avatars {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.poll-row__avatar {
+  position: relative;
+  margin-inline-start: -0.85rem;
+  box-shadow: 0 0 0 2px var(--mat-sys-surface);
+  border-radius: 50%;
+
+  &:first-child {
+    margin-inline-start: 0;
+  }
+}
+
+.poll-row__spinner {
+  flex-shrink: 0;
+}
+
+.poll-row--disabled {
+  .poll-row__checkbox ::ng-deep .mdc-label {
+    cursor: default;
+  }
+}
+
+.poll-row__pool {
+  margin-top: 0.25rem;
+  margin-inline-start: var(--poll-gauge-indent);
+  padding: 0.15rem 0 0.35rem;
+  min-width: 0;
+}
+
+.poll-row__pool-preview {
+  display: block;
+}
+
+.poll-row__pool-loading {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poll-row__vote-line {
+    transition: none;
+  }
+
+  .poll-row__gauge ::ng-deep .mdc-linear-progress__bar-inner {
+    transition: none;
+  }
+
+  .poll-row__checkbox ::ng-deep .mdc-checkbox__background {
+    transition: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .poll-row {
+    --poll-gauge-indent: 0;
+  }
+
+  .poll-row__main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'vote stats'
+      'gauge gauge';
+    gap: 0.15rem 0.25rem;
+    align-items: center;
+  }
+
+  .poll-row__vote-line {
+    grid-area: vote;
+    min-height: 2.5rem;
+  }
+
+  .poll-row__label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .poll-row__gauge-row {
+    display: contents;
+  }
+
+  .poll-row__gauge-trigger {
+    grid-area: gauge;
+    width: 100%;
+    min-height: 2rem;
+    padding: 0.1rem 0;
+  }
+
+  .poll-row__stats-trigger {
+    grid-area: stats;
+    min-height: 2.5rem;
+    gap: 0.25rem;
+    padding-inline: 0;
+  }
+
+  .poll-row__counter {
+    font-size: 0.75rem;
+    min-width: 0;
+  }
+
+  .poll-row__avatar {
+    margin-inline-start: -0.65rem;
+  }
+
+  .poll-row__pool {
+    margin-inline-start: 0;
+  }
+}

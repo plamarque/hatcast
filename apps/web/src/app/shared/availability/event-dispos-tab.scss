@@ -1,35 +1,60 @@
 .event-dispos__toolbar {
   display: flex;
   flex-wrap: nowrap;
-  align-items: center;
+  align-items: stretch;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+}
 
-  app-availability-subject-selector {
-    flex: 1 1 0;
-    min-width: 0;
+.event-dispos__subject-selector {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(14rem, 48%);
+  display: flex;
+  align-items: stretch;
 
-    .subject-selector {
-      width: 100%;
-      max-width: none;
-    }
+  .subject-selector {
+    width: 100%;
+    max-width: none;
+  }
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
   }
 }
 
-.event-dispos__toggle {
+.event-dispos__proxy-hint {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.55rem;
+  border-radius: 0.5rem;
+  background: var(--hatcast-proxy-banner-surface);
+  color: var(--hatcast-proxy-banner-on);
+  border: 1px solid var(--hatcast-proxy-banner-border);
+  box-sizing: border-box;
+}
+
+.event-dispos__proxy-icon {
   flex-shrink: 0;
-  margin-left: auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  color: var(--hatcast-proxy-banner-icon);
+}
 
-  mat-button-toggle {
-    min-height: 2.5rem;
-    padding-inline: 0.65rem;
-    font-size: 0.8125rem;
-  }
-
-  .mat-button-toggle-checked {
-    background: var(--mat-sys-primary-container);
-    color: var(--mat-sys-on-primary-container);
-  }
+.event-dispos__proxy-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--hatcast-proxy-banner-on);
 }
 
 .event-dispos__spinner {
@@ -47,5 +72,36 @@
 @media (max-width: 480px) {
   .event-dispos__toolbar {
     gap: 0.4rem;
+  }
+
+  .event-dispos__subject-selector {
+    flex: 0 1 42%;
+    max-width: 42%;
+
+    ::ng-deep {
+      .mat-mdc-select-value,
+      .subject-selector__option {
+        font-size: 0.8125rem;
+      }
+
+      .mat-mdc-floating-label {
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  .event-dispos__proxy-hint {
+    padding-inline: 0.45rem;
+    gap: 0.28rem;
+  }
+
+  .event-dispos__proxy-text {
+    font-size: 0.75rem;
+  }
+
+  .event-dispos__proxy-icon {
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
   }
 }
