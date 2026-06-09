@@ -337,10 +337,10 @@ development_status:
 
   # Perf V2 wave 2 — high-traffic pages (plan 2026-06-09)
   perf-10-event-detail-page-bff: ready-for-dev
-  perf-11-me-agenda-api-hot-path: in-progress
+  perf-11-me-agenda-api-hot-path: done
   perf-12-accueil-progressive-render: done
   perf-13-dispos-lazy-composition-explainability: done
   perf-09-member-shell-bootstrap-resolver: done
-  perf-14-profiling-script-in-app-nav: review
+  perf-14-profiling-script-in-app-nav: done
   perf-15-composition-summary-api-hot-path: backlog
   perf-16-db-latency-observability: done

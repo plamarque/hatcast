@@ -4,7 +4,7 @@ baseline_commit: b308a75830326d46828fa57d6864155c172cae30
 
 # Story PERF-11 — Hot path GET /me/agenda
 
-**Status:** in-progress
+**Status:** done
 
 **Plan:** [perf-improvement-plan-v2-wave2.md](../planning-artifacts/perf-improvement-plan-v2-wave2.md) § S4b  
 **Baseline:** `GET /me/agenda` **907 ms** max — goulot Agenda (1940 ms wall)
