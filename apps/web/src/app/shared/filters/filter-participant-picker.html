@@ -3,11 +3,16 @@
   [class.filter-picker-shell--sheet]="isBottomSheet"
   [class.filter-picker-shell--dialog]="!isBottomSheet"
 >
+  @if (isBottomSheet) {
+    <div class="filter-picker-shell__drag-handle" aria-hidden="true"></div>
+  }
   <div class="filter-picker-shell__header">
     <h2 class="filter-picker-shell__title" cdkFocusInitial>Filtrer les participants</h2>
-    <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
-      <mat-icon>close</mat-icon>
-    </button>
+    @if (isBottomSheet) {
+      <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
   </div>
 
   <mat-form-field class="filter-picker-shell__search" appearance="outline" subscriptSizing="dynamic">
@@ -71,6 +76,11 @@
     <button mat-button type="button" data-testid="participant-picker-reset" (click)="onReset()">
       Réinitialiser
     </button>
+    @if (!isBottomSheet) {
+      <button mat-button type="button" data-testid="participant-picker-cancel" (click)="close()">
+        Annuler
+      </button>
+    }
     <button
       mat-flat-button
       color="primary"

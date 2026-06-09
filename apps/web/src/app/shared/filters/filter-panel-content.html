@@ -1,9 +1,14 @@
 <div class="filter-panel-content">
+  @if (isBottomSheet) {
+    <div class="filter-panel-content__drag-handle" aria-hidden="true"></div>
+  }
   <div class="filter-panel-content__header">
     <h2 class="filter-panel-content__title" cdkFocusInitial>Filtres</h2>
-    <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
-      <mat-icon>close</mat-icon>
-    </button>
+    @if (isBottomSheet) {
+      <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
   </div>
 
   <div class="filter-panel-content__body">
@@ -30,15 +35,20 @@
       <button mat-button type="button" data-testid="filter-panel-reset" (click)="onReset()">
         Réinitialiser
       </button>
-      <button
-        mat-flat-button
-        color="primary"
-        type="button"
-        data-testid="filter-panel-apply"
-        (click)="onApply()"
-      >
-        Appliquer
-      </button>
+      @if (!isBottomSheet) {
+        <button mat-button type="button" data-testid="filter-panel-cancel" (click)="close()">Annuler</button>
+      }
+      @if (data.isMobile || hasMultiSelect()) {
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          data-testid="filter-panel-apply"
+          (click)="onApply()"
+        >
+          Appliquer
+        </button>
+      }
     </div>
   }
 </div>

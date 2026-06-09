@@ -172,7 +172,8 @@ Audit mécanique de tous les `mat-dialog-actions` / footers sheet. Règle : **di
 | `google-avatar-prompt-dialog` | Choix binaire | Non / Oui |
 | `account-change-email-dialog` (reconnexion) | Blocage session | Fermer + Se reconnecter |
 | `account-change-*` (formulaire actif) | Formulaire | Annuler |
-| `filter-*-picker` | Picker (exception) | ✕ header + Appliquer |
+| `filter-*-picker` (mobile) | Picker sheet | ✕ + drag + Appliquer |
+| `filter-*-picker` (desktop) | Picker dialog | Annuler + Appliquer |
 
 ---
 
@@ -196,11 +197,24 @@ Audit mécanique de tous les `mat-dialog-actions` / footers sheet. Règle : **di
 
 ---
 
-## Suivi (hors Phase 0–2b)
+## Phase 3 — pickers filtre (2026-06-09)
+
+Pattern **sheet-like** documenté (exception UX-DR22.1) :
+
+| Surface | Header | Footer |
+|---------|--------|--------|
+| **Mobile bottom sheet** | Poignée drag + titre + ✕ | Réinitialiser + Appliquer |
+| **Desktop dialog** | Titre seul (pas de ✕) | Réinitialiser + **Annuler** + Appliquer |
+| **Single-picker desktop** | Titre seul | **Annuler** seul (sélection = apply immédiat) |
+
+Fichiers : `filter-*-picker.html`, `filter-panel-content.*`, `filter-picker-shell.scss`.
+
+---
+
+## Suivi (hors Phase 0–3)
 
 | Phase | Contenu | Story cible |
 |-------|---------|-------------|
-| **3** | Picker filtre : poignée drag sheet mobile ; desktop dialog sans ✕ + Annuler texte ? | 17.28+ |
 | **4** | Composant / directive garde-fou (optionnel) | Dette préventive |
 
 ---

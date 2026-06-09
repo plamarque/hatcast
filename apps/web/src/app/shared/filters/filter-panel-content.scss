@@ -6,6 +6,16 @@
   max-width: 24rem;
 }
 
+.filter-panel-content__drag-handle {
+  flex-shrink: 0;
+  align-self: center;
+  width: 2rem;
+  height: 0.25rem;
+  margin: 0 auto 0.1rem;
+  border-radius: 999px;
+  background: var(--mat-sys-outline-variant);
+}
+
 .filter-panel-content__header {
   display: flex;
   align-items: center;

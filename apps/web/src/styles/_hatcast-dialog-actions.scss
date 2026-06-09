@@ -8,6 +8,8 @@ $hatcast-dialog-footer-selectors: (
   '.draw-chances-help__footer',
   '.chance-breakdown-sheet__actions',
   '.push-opt-in-dialog__actions',
+  '.filter-picker-shell__footer',
+  '.filter-panel-content__footer',
 );
 
 @each $selector in $hatcast-dialog-footer-selectors {

@@ -37,9 +37,10 @@ export class FilterPanelContent {
   })
 
   protected readonly data = this.sheetData ?? this.dialogData!
+  protected readonly isBottomSheet = this.sheetRef != null
   protected readonly draft = signal<FilterValues>({ ...this.data.values })
 
-  protected readonly showFooter = this.data.isMobile || this.hasMultiSelect()
+  protected readonly showFooter = this.data.isMobile || this.hasMultiSelect() || !this.isBottomSheet
 
   protected effectiveDimensions(): FilterDimensionConfig[] {
     if (this.data.participationFilters) {
@@ -101,7 +102,7 @@ export class FilterPanelContent {
     this.dialogRef?.close(result)
   }
 
-  private hasMultiSelect(): boolean {
+  protected hasMultiSelect(): boolean {
     return this.effectiveDimensions().some((d) => d.type === 'multi-select')
   }
 
