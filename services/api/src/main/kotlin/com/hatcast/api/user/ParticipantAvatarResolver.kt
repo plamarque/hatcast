@@ -1,7 +1,7 @@
 package com.hatcast.api.user
 
-import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.participant.SeasonParticipantRepository
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -11,7 +11,6 @@ class ParticipantAvatarResolver(
     private val seasonParticipantRepository: SeasonParticipantRepository,
     private val eventParticipantRepository: EventParticipantRepository,
     private val userRepository: UserRepository,
-    private val avatarService: AvatarService,
 ) {
     fun resolveByParticipantIds(
         eventId: UUID,
@@ -44,17 +43,7 @@ class ParticipantAvatarResolver(
         return participantIds.associateWith { participantId ->
             val userId = userIdByParticipantId[participantId] ?: return@associateWith null
             val user = userById[userId] ?: return@associateWith null
-            avatarUrlForUser(user)
+            ParticipantRowPresentation.publicAvatarUrlIfStored(user)
         }
-    }
-
-    private fun avatarUrlForUser(user: UserEntity): String? {
-        if (user.avatarUpdatedAt == null) {
-            return null
-        }
-        if (avatarService.readAvatarContent(user) == null) {
-            return null
-        }
-        return AvatarService.publicAvatarUrl(user.id, user.avatarUpdatedAt)
     }
 }

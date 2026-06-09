@@ -35,6 +35,14 @@
 
 ---
 
+## Deferred from: code review of perf-15-composition-summary-api-hot-path (2026-06-10)
+
+- Avatar URL without storage read (metadata-only hot path) — intentional PERF-15 trade-off per dev notes; hot path skips `readAvatarContent`.
+- Neon gate command not in DEVELOPMENT.md — KDoc on `NeonCompositionSummaryPerformanceIntegrationTest` sufficient for manual CI gate.
+- JOIN FETCH cartesian risk on large rosters — JDBC budget passes on Improbots seed; monitor via PERF-16 headers.
+
+---
+
 ## Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)
 
 - `loginEmail` and default seed credentials written in JSON report — pre-existing in perf script; local-only artifact.

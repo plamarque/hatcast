@@ -202,7 +202,7 @@ class AvailabilityService(
         requireAvailabilitySummaryReadable(event, seasonId, principal)
         val effectiveIncludeChances =
             includeChances &&
-                resolveExplainabilityForSummary(event, seasonId, eventId, principal)
+                resolveExplainabilityForSummary(event, principal)
         val eligible = loadEligibleParticipants(seasonId, event.id)
         val availabilityIndex = buildAvailabilityIndex(event.id)
 
@@ -377,7 +377,7 @@ class AvailabilityService(
     }
 
     private fun buildAvailabilityIndex(eventId: UUID): AvailabilityIndex {
-        val rows = availabilityRepository.findByEvent_Id(eventId)
+        val rows = availabilityRepository.findByEvent_IdWithAssociations(eventId)
         return AvailabilityIndex(
             byUserId = rows.mapNotNull { row -> row.user?.id?.let { it to row } }.toMap(),
             bySeasonParticipantId =
@@ -737,7 +737,7 @@ class AvailabilityService(
     ): List<EligibleParticipantRow> {
         val seasonRows =
             seasonParticipantRepository
-                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE)
+                .findActiveForSeasonWithAssociations(seasonId, ParticipantStatus.ACTIVE)
                 .filter { row ->
                     row.troupeMembership == null ||
                         row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
@@ -760,7 +760,7 @@ class AvailabilityService(
         }
 
         val eventRows =
-            eventParticipantRepository.findByEvent_IdAndStatusOrderByDisplayNameAsc(
+            eventParticipantRepository.findActiveForEventWithAssociations(
                 eventId,
                 ParticipantStatus.ACTIVE,
             )
@@ -810,18 +810,10 @@ class AvailabilityService(
         eventId: UUID,
         principal: SessionUserPrincipal,
     ): EventEntity {
-        val season =
-            seasonRepository
-                .findById(seasonId)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        guestInvitationAccess.requireMemberOrInvitedGuest(seasonId, eventId, principal)
         val event =
-            eventRepository
-                .findById(eventId)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
-        if (event.season.id != seasonId) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
-        }
+            eventRepository.findByIdAndSeason_IdWithSeason(eventId, seasonId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
+        guestInvitationAccess.requireMemberOrInvitedGuest(event.season, eventId, principal)
         return event
     }
 
@@ -852,11 +844,9 @@ class AvailabilityService(
 
     private fun resolveExplainabilityForSummary(
         event: EventEntity,
-        seasonId: UUID,
-        eventId: UUID,
         principal: SessionUserPrincipal,
     ): Boolean {
-        val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
+        val canManage = organizerAccess.canManageComposition(event.id, event.season, principal)
         return DisposExplainabilityAccess.canShowExplainability(event, canManage)
     }
 

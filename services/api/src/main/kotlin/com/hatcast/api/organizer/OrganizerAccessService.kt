@@ -52,6 +52,12 @@ interface OrganizerAccessRules {
         principal: SessionUserPrincipal,
     ): Boolean
 
+    fun canManageComposition(
+        eventId: UUID,
+        season: SeasonEntity,
+        principal: SessionUserPrincipal,
+    ): Boolean = canManageComposition(eventId, season.id, principal)
+
     fun canEditEvent(
         eventId: UUID,
         seasonId: UUID,
@@ -327,10 +333,22 @@ class OrganizerAccessService(
         eventId: UUID,
         seasonId: UUID,
         principal: SessionUserPrincipal,
+    ): Boolean {
+        val season = loadSeason(seasonId)
+        return canManageComposition(eventId, season, principal)
+    }
+
+    override fun canManageComposition(
+        eventId: UUID,
+        season: SeasonEntity,
+        principal: SessionUserPrincipal,
     ): Boolean =
-        isTroupeAdminForSeason(seasonId, principal) ||
-            isEventOrganizer(eventId, principal) ||
-            isSeasonOrganizer(seasonId, principal)
+        seasonOrganizerRepository.canManageCompositionForUser(
+            troupeId = season.troupe.id,
+            seasonId = season.id,
+            eventId = eventId,
+            userId = principal.userId,
+        )
 
     override fun canEditEvent(
         eventId: UUID,
@@ -528,6 +546,12 @@ private class InMemoryOrganizerAccessRules(
         canManageSeasonOrganizers(seasonId, principal) ||
             isEventOrganizer(eventId, principal) ||
             isSeasonOrganizer(seasonId, principal)
+
+    override fun canManageComposition(
+        eventId: UUID,
+        season: SeasonEntity,
+        principal: SessionUserPrincipal,
+    ): Boolean = canManageComposition(eventId, season.id, principal)
 
     override fun canEditEvent(
         eventId: UUID,
