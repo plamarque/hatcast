@@ -243,8 +243,83 @@ describe('AvailabilityPoll', () => {
     expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', true)
   })
 
+  it('shows pool skeleton while chances load on expand (PERF-13)', async () => {
+    let resolveSummary: (value: unknown) => void = () => {}
+    const summaryPromise = new Promise((resolve) => {
+      resolveSummary = resolve
+    })
+    const getEventAvailabilitySummary = vi.fn().mockReturnValue(summaryPromise)
+
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityPoll, NoopAnimationsModule],
+      providers: [
+        AvailabilityPersistService,
+        {
+          provide: AvailabilityApiService,
+          useValue: {
+            setMyAvailability: vi.fn(),
+            setParticipantAvailability: vi.fn(),
+            getEventAvailabilitySummary,
+          },
+        },
+        {
+          provide: ProductAnalyticsService,
+          useValue: {
+            captureAvailabilityFirstSubmission: vi.fn(),
+            eventContext: vi.fn().mockReturnValue({}),
+          },
+        },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(AvailabilityPoll)
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('eventId', 'event-1')
+    fixture.componentRef.setInput('troupeId', 'troupe-1')
+    fixture.componentRef.setInput('roleSlots', ROLE_TEMPLATES.cabaret)
+    fixture.componentRef.setInput('summary', mockSummary)
+    fixture.componentRef.setInput('subject', mockSummary.participants[0])
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.componentRef.setInput('currentUserId', 'user-1')
+    fixture.componentInstance.summaryPatch.subscribe((next) => {
+      fixture.componentRef.setInput('summary', next)
+    })
+    fixture.detectChanges()
+
+    const comp = fixture.componentInstance as unknown as {
+      onPoolTrigger: (rowKey: string) => Promise<void>
+      loadingChances: () => boolean
+    }
+    void comp.onPoolTrigger('role:player')
+    fixture.detectChanges()
+
+    expect(comp.loadingChances()).toBe(true)
+    expect(fixture.nativeElement.querySelector('.poll-row__pool-loading')).toBeTruthy()
+    expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', true)
+
+    resolveSummary({
+      ok: true,
+      status: 200,
+      data: {
+        ...mockSummary,
+        roles: mockSummary.roles.map((role) => ({
+          ...role,
+          candidates: role.candidates.map((c) => ({ ...c, chancePercent: 50 })),
+        })),
+        chanceSource: 'estimated' as const,
+      },
+    })
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(comp.loadingChances()).toBe(false)
+    expect(fixture.nativeElement.querySelector('.poll-row__pool-loading')).toBeFalsy()
+    expect(fixture.nativeElement.querySelector('app-composition-pool-preview')).toBeTruthy()
+  })
+
   it('shows neutral pool without fake zero percent when explainability is disabled', async () => {
-    const { fixture } = await setupPoll()
+    const { fixture, getEventAvailabilitySummary } = await setupPoll()
     fixture.componentRef.setInput('explainabilityEnabled', false)
     fixture.detectChanges()
 
@@ -259,8 +334,10 @@ describe('AvailabilityPoll', () => {
     expect(comp.poolSegments('player')).toEqual([])
 
     await comp.onPoolTrigger('role:player')
+    await fixture.whenStable()
     fixture.detectChanges()
 
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
     const el = fixture.nativeElement as HTMLElement
     expect(el.querySelector('.poll-row__pool-neutral')).toBeTruthy()
     expect(el.querySelector('app-composition-pool-preview')).toBeFalsy()

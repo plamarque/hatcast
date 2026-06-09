@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-10T00:10:00+02:00
+# last_updated: 2026-06-10T00:30:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-10T00:05:00+02:00"
+last_updated: "2026-06-10T00:30:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -339,7 +339,8 @@ development_status:
   perf-10-event-detail-page-bff: ready-for-dev
   perf-11-me-agenda-api-hot-path: in-progress
   perf-12-accueil-progressive-render: done
-  perf-13-dispos-lazy-composition-explainability: backlog
+  perf-13-dispos-lazy-composition-explainability: done
   perf-09-member-shell-bootstrap-resolver: done
-  perf-14-profiling-script-in-app-nav: backlog
+  perf-14-profiling-script-in-app-nav: review
   perf-15-composition-summary-api-hot-path: backlog
+  perf-16-db-latency-observability: ready-for-dev

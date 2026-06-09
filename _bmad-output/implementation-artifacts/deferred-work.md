@@ -35,6 +35,25 @@
 
 ---
 
+## Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)
+
+- `loginEmail` and default seed credentials written in JSON report — pre-existing in perf script; local-only artifact.
+- `attachApiListeners` pending-map leak / query-string endpoint merge — pre-existing before PERF-14 refactor.
+- `networkidle` timeout swallowed in `waitForReady` — pre-existing; acceptable for dev gate script.
+- `isMain` path compare fragile on Windows — pre-existing pattern; team dev on macOS.
+- No Playwright E2E for `--in-app` flux — manual validation documented in story; out of PERF-14 scope.
+- UI selector coupling (French tab labels, CSS classes) — acceptable for internal perf gate script.
+
+---
+
+## Deferred from: code review of perf-13-dispos-lazy-composition-explainability (2026-06-10)
+
+- AC3 FR19/FR24 orgas sans test PERF-13 dédié — couverture via `composition-explainability.spec.ts` et tests event-detail préexistants.
+- AC1 sans test PERF-13 composition Dispos — gate `ensureCompositionLoaded()` couvert par PERF-03 / story 5.9.
+- `ensureChancesLoaded` échec API / rejet promesse — pre-existing ; snack sur `!ok` mais pas de `catch` sur reject (`availability-poll.ts`).
+- Course bootstrap vs `load()` in-flight — pre-existing ; bootstrap peut être écrasé si fetch déjà lancé (`event-dispos-tab.ts`).
+- `bootstrapSummary` stale au changement d'événement — pre-existing ; pas de validation eventId (`event-dispos-tab.ts`).
+
 ## Deferred from: code review of perf-12-accueil-progressive-render (2026-06-10)
 
 - AC4 seuil ≤ 300 ms non mesuré — waiver PERF-14 documenté dans la story ; proxy test DOM seulement.

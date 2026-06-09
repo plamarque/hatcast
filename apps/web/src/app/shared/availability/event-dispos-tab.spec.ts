@@ -54,6 +54,20 @@ const mockSummary = {
   ],
 }
 
+/** BFF tab=dispos payload: candidates without chancePercent (PERF-10 / PERF-13). */
+const mockBootstrapSummaryWithoutChances = {
+  ...mockSummary,
+  roles: [
+    {
+      roleKey: 'player',
+      requiredCount: 5,
+      candidates: [
+        { participantId: 'p1', displayName: 'Patrice', avatarUrl: null, chancePercent: null },
+      ],
+    },
+  ],
+}
+
 async function setup(
   canSwitchSubject = false,
   currentUserId = 'user-1',
@@ -231,6 +245,115 @@ describe('EventDisposTab', () => {
   it('does not eager-load chances on initial summary fetch', async () => {
     const { getEventAvailabilitySummary } = await setup()
     expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', false)
+  })
+
+  it('reuses BFF bootstrap summary without redundant fetch (PERF-13)', async () => {
+    const getEventAvailabilitySummary = vi.fn()
+    await TestBed.configureTestingModule({
+      imports: [EventDisposTab, NoopAnimationsModule],
+      providers: [
+        AvailabilityPersistService,
+        {
+          provide: AvailabilityApiService,
+          useValue: {
+            getEventAvailabilitySummary,
+            setMyAvailability: vi.fn(),
+            setParticipantAvailability: vi.fn(),
+          },
+        },
+        {
+          provide: MemberProfileApiService,
+          useValue: { getPreferredRoles: vi.fn() },
+        },
+        {
+          provide: ProductAnalyticsService,
+          useValue: {
+            captureAvailabilityFirstSubmission: vi.fn(),
+            eventContext: vi.fn().mockReturnValue({}),
+          },
+        },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(EventDisposTab)
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('seasonSlug', 'saison-test')
+    fixture.componentRef.setInput('troupeId', 'troupe-1')
+    fixture.componentRef.setInput('troupeSlug', 'troupe-test')
+    fixture.componentRef.setInput('event', {
+      id: 'event-1',
+      title: 'Match',
+      startsAt: '2030-06-15T18:00:00Z',
+      templateType: 'cabaret',
+      roleSlots: ROLE_TEMPLATES.cabaret,
+      archived: false,
+      availabilityOpenedAt: '2030-01-01T00:00:00Z',
+    })
+    fixture.componentRef.setInput('currentUserId', 'user-1')
+    fixture.componentRef.setInput('bootstrapSummary', mockBootstrapSummaryWithoutChances)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('app-availability-poll')).not.toBeNull()
+  })
+
+  it('loads summary from API when bootstrapSummary is absent (PERF-13)', async () => {
+    const getEventAvailabilitySummary = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: mockBootstrapSummaryWithoutChances,
+    })
+    await TestBed.configureTestingModule({
+      imports: [EventDisposTab, NoopAnimationsModule],
+      providers: [
+        AvailabilityPersistService,
+        {
+          provide: AvailabilityApiService,
+          useValue: {
+            getEventAvailabilitySummary,
+            setMyAvailability: vi.fn(),
+            setParticipantAvailability: vi.fn(),
+          },
+        },
+        {
+          provide: MemberProfileApiService,
+          useValue: { getPreferredRoles: vi.fn() },
+        },
+        {
+          provide: ProductAnalyticsService,
+          useValue: {
+            captureAvailabilityFirstSubmission: vi.fn(),
+            eventContext: vi.fn().mockReturnValue({}),
+          },
+        },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+      ],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(EventDisposTab)
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('seasonSlug', 'saison-test')
+    fixture.componentRef.setInput('troupeId', 'troupe-1')
+    fixture.componentRef.setInput('troupeSlug', 'troupe-test')
+    fixture.componentRef.setInput('event', {
+      id: 'event-1',
+      title: 'Match',
+      startsAt: '2030-06-15T18:00:00Z',
+      templateType: 'cabaret',
+      roleSlots: ROLE_TEMPLATES.cabaret,
+      archived: false,
+      availabilityOpenedAt: '2030-01-01T00:00:00Z',
+    })
+    fixture.componentRef.setInput('currentUserId', 'user-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', false)
+    expect(fixture.nativeElement.querySelector('app-availability-poll')).not.toBeNull()
   })
 
   it('does not show Rappel dispos button for organizer when unknown participants exist', async () => {
