@@ -69,8 +69,9 @@ components:
             - AVAILABILITY_WEEKLY_REMINDER
             - EVENT_DETAILS_CHANGED
             - EVENT_ARCHIVED
-            - ORG_ASSIGNEE_DECLINED
+            - ORG_TEAM_REGRESSED
             - ORG_TEAM_COMPLETE
+            - ORG_SCOPE_GRANTED
             - ORG_COMPOSITION_INCOMPLETE
             - ORG_SLA_OPEN_AVAILABILITY
             - ORG_DRAFT_COMPOSITION

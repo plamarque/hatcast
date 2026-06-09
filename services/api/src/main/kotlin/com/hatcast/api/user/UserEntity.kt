@@ -1,7 +1,7 @@
 package com.hatcast.api.user
 
-import com.hatcast.api.notification.NotificationCategory
 import com.hatcast.api.notification.NotificationPreference
+import com.hatcast.api.notification.StoredNotificationPreferences
 import com.hatcast.api.troupe.PreferredRoleKeysJsonConverter
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
@@ -59,7 +59,7 @@ class UserEntity(
     /** Account-level opt-out category preferences (story 8.2). Missing categories default to enabled. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "notification_preferences", nullable = false, columnDefinition = "jsonb")
-    var notificationPreferences: Map<NotificationCategory, NotificationPreference> = emptyMap(),
+    var notificationPreferences: StoredNotificationPreferences = emptyMap(),
     /** Self-service account deletion (story 1.7). Null = active account. */
     @Column(name = "deleted_at", nullable = true)
     var deletedAt: Instant? = null,

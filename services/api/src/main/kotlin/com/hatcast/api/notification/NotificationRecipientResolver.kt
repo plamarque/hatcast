@@ -37,6 +37,44 @@ class NotificationRecipientResolver(
     private val troupeMembershipRepository: TroupeMembershipRepository,
     private val eventRepository: EventRepository,
 ) {
+    fun resolveSeasonOrganizerRecipients(
+        seasonId: UUID,
+        actorUserId: UUID? = null,
+    ): List<NotificationRecipient> {
+        val seasonOrganizers =
+            seasonOrganizerRepository
+                .findBySeason_IdOrderByGrantedAtAsc(seasonId)
+                .mapNotNull { organizer -> organizer.toLinkedRecipient() }
+        return excludeActor(seasonOrganizers, actorUserId)
+    }
+
+    fun resolveEventOrganizerRecipients(
+        eventId: UUID,
+        actorUserId: UUID? = null,
+    ): List<NotificationRecipient> {
+        val eventOrganizers =
+            eventOrganizerRepository
+                .findByEvent_IdOrderByGrantedAtAsc(eventId)
+                .mapNotNull { organizer -> organizer.toLinkedRecipient() }
+        return excludeActor(eventOrganizers, actorUserId)
+    }
+
+    fun resolveEventAndSeasonOrganizerRecipients(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID? = null,
+    ): List<NotificationRecipient> {
+        val eventOrganizers =
+            eventOrganizerRepository
+                .findByEvent_IdOrderByGrantedAtAsc(eventId)
+                .mapNotNull { organizer -> organizer.toLinkedRecipient() }
+        val seasonOrganizers =
+            seasonOrganizerRepository
+                .findBySeason_IdOrderByGrantedAtAsc(seasonId)
+                .mapNotNull { organizer -> organizer.toLinkedRecipient() }
+        return excludeActor((eventOrganizers + seasonOrganizers).distinctBy { it.userId }, actorUserId)
+    }
+
     fun resolveOrganizerCascadeRecipients(
         eventId: UUID,
         seasonId: UUID,

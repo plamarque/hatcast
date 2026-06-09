@@ -148,14 +148,14 @@ class OrganizerOpsNotificationIntegrationTest {
     }
 
     @Test
-    fun `validated decline dispatches ASSIGNEE_DECLINED`() {
+    fun `validated decline dispatches TEAM_REGRESSED`() {
         val admin = adminCookie("sub-orga-ops-decline-admin")
         val assignee = memberCookie("sub-orga-ops-decline-member")
         val seasonId = createSeason(admin)
         ensureParticipants(seasonId)
         val eventId = createPublishedEvent(admin, seasonId)
         val memberId = participantIdForUser(seasonId, "sub-orga-ops-decline-member")
-        seedValidatedSlots(eventId, listOf(memberId))
+        seedValidatedConfirmedSlots(eventId, listOf(memberId))
 
         mockMvc
             .perform(
@@ -167,7 +167,7 @@ class OrganizerOpsNotificationIntegrationTest {
             ).andExpect(status().isOk)
 
         verify(notificationDispatcher, times(1)).dispatch(
-            argThat { intent == NotificationIntent.ASSIGNEE_DECLINED },
+            argThat { intent == NotificationIntent.TEAM_REGRESSED },
         )
     }
 
@@ -197,7 +197,60 @@ class OrganizerOpsNotificationIntegrationTest {
     }
 
     @Test
-    fun `draft composition decline does not dispatch ASSIGNEE_DECLINED`() {
+    fun `unlock complete team dispatches TEAM_REGRESSED with unlock reason`() {
+        val admin = adminCookie("sub-orga-ops-unlock-admin")
+        val assignee = memberCookie("sub-orga-ops-unlock-member")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createPublishedEvent(admin, seasonId)
+        val memberId = participantIdForUser(seasonId, "sub-orga-ops-unlock-member")
+        seedValidatedConfirmedSlots(eventId, listOf(memberId))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/unlock")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat {
+                intent == NotificationIntent.TEAM_REGRESSED &&
+                    reasonSummary?.contains("composition déverrouillée") == true
+            },
+        )
+    }
+
+    @Test
+    fun `reset confirmed participation to pending dispatches TEAM_REGRESSED`() {
+        val admin = adminCookie("sub-orga-ops-reset-admin")
+        memberCookie("sub-orga-ops-reset-member")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createPublishedEvent(admin, seasonId)
+        val memberId = participantIdForUser(seasonId, "sub-orga-ops-reset-member")
+        seedValidatedConfirmedSlots(eventId, listOf(memberId))
+        reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId, 0))
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"pending"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat {
+                intent == NotificationIntent.TEAM_REGRESSED &&
+                    reasonSummary?.contains("confirmation à renouveler") == true
+            },
+        )
+    }
+
+    @Test
+    fun `draft composition decline does not dispatch TEAM_REGRESSED`() {
         val admin = adminCookie("sub-orga-ops-draft-decline-admin")
         val assignee = memberCookie("sub-orga-ops-draft-decline-member")
         val seasonId = createSeason(admin)
@@ -216,7 +269,7 @@ class OrganizerOpsNotificationIntegrationTest {
             ).andExpect(status().isConflict)
 
         verify(notificationDispatcher, never()).dispatch(
-            argThat { intent == NotificationIntent.ASSIGNEE_DECLINED },
+            argThat { intent == NotificationIntent.TEAM_REGRESSED },
         )
     }
 
@@ -330,6 +383,18 @@ class OrganizerOpsNotificationIntegrationTest {
     }
 
     private fun seedValidatedSlots(eventId: UUID, assigneeIds: List<UUID>) {
+        seedValidatedCompositionSlots(eventId, assigneeIds, SlotParticipationStatus.PENDING)
+    }
+
+    private fun seedValidatedConfirmedSlots(eventId: UUID, assigneeIds: List<UUID>) {
+        seedValidatedCompositionSlots(eventId, assigneeIds, SlotParticipationStatus.CONFIRMED)
+    }
+
+    private fun seedValidatedCompositionSlots(
+        eventId: UUID,
+        assigneeIds: List<UUID>,
+        participationStatus: SlotParticipationStatus,
+    ) {
         val now = Instant.now()
         compositionRepository.save(
             EventCompositionEntity(
@@ -347,7 +412,7 @@ class OrganizerOpsNotificationIntegrationTest {
                     roleKey = "player",
                     slotIndex = index,
                     seasonParticipantId = id,
-                    participationStatus = SlotParticipationStatus.PENDING,
+                    participationStatus = participationStatus,
                 ),
             )
         }

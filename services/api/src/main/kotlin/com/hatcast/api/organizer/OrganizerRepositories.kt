@@ -60,6 +60,8 @@ interface EventOrganizerRepository : JpaRepository<EventOrganizerEntity, EventOr
         userId: UUID,
     ): List<EventOrganizerEntity>
 
+    fun countByEvent_Id(eventId: UUID): Long
+
     fun findByEvent_IdAndUser_Id(
         eventId: UUID,
         userId: UUID,

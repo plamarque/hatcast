@@ -302,8 +302,8 @@ class NotificationDispatcherTest {
             NotificationIntent.TEAM_COMPLETE.toCategory(),
         )
         assertEquals(
-            NotificationCategory.ORG_ASSIGNEE_DECLINED,
-            NotificationIntent.ASSIGNEE_DECLINED.toCategory(),
+            NotificationCategory.ORG_TEAM_REGRESSED,
+            NotificationIntent.TEAM_REGRESSED.toCategory(),
         )
         assertEquals(
             NotificationCategory.AVAILABILITY_REQUEST,
@@ -328,7 +328,7 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    fun `COMPOSITION_SHARED dispatch resolves organizer circle recipients`() {
+    fun `COMPOSITION_SHARED dispatch resolves event organizer recipients`() {
         val eventId = UUID.randomUUID()
         val seasonId = UUID.randomUUID()
         val troupeId = UUID.randomUUID()
@@ -336,7 +336,7 @@ class NotificationDispatcherTest {
         val event = notificationEvent(eventId, troupeId)
         whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
         whenever(
-            recipientResolver.resolveOrganizerCircleRecipients(eventId, seasonId, troupeId, null),
+            recipientResolver.resolveEventOrganizerRecipients(eventId, null),
         ).thenReturn(listOf(NotificationRecipient(userId = userId, displayName = "Orga")))
 
         dispatcher.dispatch(
@@ -348,7 +348,39 @@ class NotificationDispatcherTest {
             ),
         )
 
-        verify(recipientResolver).resolveOrganizerCircleRecipients(eventId, seasonId, troupeId, null)
+        verify(recipientResolver).resolveEventOrganizerRecipients(eventId, null)
+    }
+
+    @Test
+    fun `scheduled intent with explicit recipientUserIds loads displayName from user repository`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val troupeId = UUID.randomUUID()
+        val event = notificationEvent(eventId, troupeId)
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(userRepository.findAllById(setOf(userId))).thenReturn(
+            listOf(UserEntity(id = userId, email = "pierrick@seed.improbots.test", displayName = "Pierrick")),
+        )
+        whenever(userRepository.findById(userId)).thenReturn(
+            Optional.of(UserEntity(id = userId, email = "pierrick@seed.improbots.test", displayName = "Pierrick")),
+        )
+        whenever(pushEligibilityPort.isPushAllowedForCategory(any(), any())).thenReturn(false)
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(null)
+
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.SLA_OPEN_AVAILABILITY,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                recipientUserIds = listOf(userId),
+            ),
+        )
+
+        org.mockito.kotlin.verify(userRepository, org.mockito.kotlin.atLeastOnce()).findAllById(setOf(userId))
+        org.mockito.kotlin.verify(recipientResolver, org.mockito.kotlin.never())
+            .resolveEventAndSeasonOrganizerRecipients(any(), any(), any())
     }
 
     @Test

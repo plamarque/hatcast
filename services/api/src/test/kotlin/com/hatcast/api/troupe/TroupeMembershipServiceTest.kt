@@ -17,6 +17,7 @@ import org.mockito.kotlin.eq
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.springframework.context.ApplicationEventPublisher
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.openapitools.jackson.nullable.JsonNullable
@@ -39,6 +40,7 @@ class TroupeMembershipServiceTest {
     private val auditRecorder = mock<AuditEventRecorder>()
     private val avatarService = mock<AvatarService>()
     private val troupeExterneCarnetService = mock<TroupeExterneCarnetService>()
+    private val eventPublisher = mock<ApplicationEventPublisher>()
     private val userMemberPreferencesService =
         mock<UserMemberPreferencesService>().also { prefs ->
             whenever(prefs.resolvedMemberDisplayName(any())).thenAnswer { invocation ->
@@ -61,6 +63,7 @@ class TroupeMembershipServiceTest {
             auditRecorder,
             avatarService,
             troupeExterneCarnetService,
+            eventPublisher,
         )
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")

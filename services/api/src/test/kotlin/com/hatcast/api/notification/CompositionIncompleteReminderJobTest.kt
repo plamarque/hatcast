@@ -106,7 +106,7 @@ class CompositionIncompleteReminderJobTest {
             lifecycleService.computeRawLifecycle(any(), any(), any()),
         ).thenReturn(com.hatcast.api.composition.CompositionLifecycle.GAPS_TO_FILL)
         whenever(
-            recipientResolver.resolveOrganizerCascadeRecipients(event.id, season.id, troupe.id),
+            recipientResolver.resolveEventAndSeasonOrganizerRecipients(event.id, season.id),
         ).thenReturn(listOf(NotificationRecipient(userId = orgaUserId, displayName = "Orga")))
         whenever(
             reminderMarkService.findLatestSentAt(
@@ -132,6 +132,113 @@ class CompositionIncompleteReminderJobTest {
                 ctx.intent == NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY &&
                     ctx.eventId == event.id &&
                     ctx.recipientUserIds == listOf(orgaUserId)
+            },
+        )
+    }
+
+    @Test
+    fun `processWeeklyRemindersAt skips when weekly cadence not elapsed`() {
+        val troupe = TroupeEntity(id = UUID.randomUUID(), name = "T", slug = "t")
+        val season = SeasonEntity(id = UUID.randomUUID(), troupe = troupe, title = "S", slug = "s")
+        val event =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Show",
+                slug = "show",
+                startsAt = Instant.parse("2034-08-01T19:00:00Z"),
+                templateType = "cabaret",
+                roleSlots = mapOf("player" to 4),
+                availabilityOpenedAt = Instant.parse("2034-06-01T10:00:00Z"),
+            )
+        val reference = Instant.parse("2034-07-02T08:00:00Z")
+        val orgaUserId = UUID.randomUUID()
+        val composition =
+            EventCompositionEntity(
+                eventId = event.id,
+                validatedAt = Instant.parse("2034-06-02T10:00:00Z"),
+                publishedAt = Instant.parse("2034-06-02T10:00:00Z"),
+            )
+
+        whenever(eventRepository.findValidatedOpenEventsStartingFrom(any())).thenReturn(listOf(event))
+        whenever(compositionRepository.findById(event.id)).thenReturn(Optional.of(composition))
+        whenever(slotRepository.findByEventId(event.id)).thenReturn(emptyList())
+        whenever(
+            lifecycleService.computeRawLifecycle(any(), any(), any()),
+        ).thenReturn(com.hatcast.api.composition.CompositionLifecycle.GAPS_TO_FILL)
+        whenever(
+            recipientResolver.resolveEventAndSeasonOrganizerRecipients(event.id, season.id),
+        ).thenReturn(listOf(NotificationRecipient(userId = orgaUserId, displayName = "Orga")))
+        whenever(
+            reminderMarkService.findLatestSentAt(
+                NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY,
+                event.id,
+                orgaUserId,
+            ),
+        ).thenReturn(Instant.parse("2034-07-01T08:00:00Z"))
+
+        val count = job.processWeeklyRemindersAt(reference)
+
+        assertEquals(0, count)
+        verify(dispatcher, never()).dispatch(any())
+    }
+
+    @Test
+    fun `processWeeklyRemindersAt dispatches once when user holds both event and season organizer roles`() {
+        val troupe = TroupeEntity(id = UUID.randomUUID(), name = "T", slug = "t")
+        val season = SeasonEntity(id = UUID.randomUUID(), troupe = troupe, title = "S", slug = "s")
+        val event =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Show",
+                slug = "show",
+                startsAt = Instant.parse("2034-08-01T19:00:00Z"),
+                templateType = "cabaret",
+                roleSlots = mapOf("player" to 4),
+                availabilityOpenedAt = Instant.parse("2034-06-01T10:00:00Z"),
+            )
+        val reference = Instant.parse("2034-07-08T08:00:00Z")
+        val sharedUserId = UUID.randomUUID()
+        val composition =
+            EventCompositionEntity(
+                eventId = event.id,
+                validatedAt = Instant.parse("2034-06-02T10:00:00Z"),
+                publishedAt = Instant.parse("2034-06-02T10:00:00Z"),
+            )
+
+        whenever(eventRepository.findValidatedOpenEventsStartingFrom(any())).thenReturn(listOf(event))
+        whenever(compositionRepository.findById(event.id)).thenReturn(Optional.of(composition))
+        whenever(slotRepository.findByEventId(event.id)).thenReturn(emptyList())
+        whenever(
+            lifecycleService.computeRawLifecycle(any(), any(), any()),
+        ).thenReturn(com.hatcast.api.composition.CompositionLifecycle.GAPS_TO_FILL)
+        whenever(
+            recipientResolver.resolveEventAndSeasonOrganizerRecipients(event.id, season.id),
+        ).thenReturn(listOf(NotificationRecipient(userId = sharedUserId, displayName = "Pierrick")))
+        whenever(
+            reminderMarkService.findLatestSentAt(
+                NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY,
+                event.id,
+                sharedUserId,
+            ),
+        ).thenReturn(Instant.parse("2034-06-30T08:00:00Z"))
+        whenever(
+            reminderMarkService.tryClaimPeriodicReminderMark(
+                intent = org.mockito.kotlin.eq(NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY),
+                eventId = org.mockito.kotlin.eq(event.id),
+                userId = org.mockito.kotlin.eq(sharedUserId),
+                civilDate = org.mockito.kotlin.any(),
+            ),
+        ).thenReturn(true)
+
+        val count = job.processWeeklyRemindersAt(reference)
+
+        assertEquals(1, count)
+        verify(dispatcher, org.mockito.kotlin.times(1)).dispatch(
+            org.mockito.kotlin.argThat { ctx ->
+                ctx.intent == NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY &&
+                    ctx.recipientUserIds == listOf(sharedUserId)
             },
         )
     }
@@ -167,7 +274,7 @@ class CompositionIncompleteReminderJobTest {
             lifecycleService.computeRawLifecycle(any(), any(), any()),
         ).thenReturn(com.hatcast.api.composition.CompositionLifecycle.GAPS_TO_FILL)
         whenever(
-            recipientResolver.resolveOrganizerCascadeRecipients(event.id, season.id, troupe.id),
+            recipientResolver.resolveEventAndSeasonOrganizerRecipients(event.id, season.id),
         ).thenReturn(listOf(NotificationRecipient(userId = orgaUserId, displayName = "Orga")))
         whenever(
             reminderMarkService.tryClaimReminderMark(

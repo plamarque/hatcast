@@ -50,14 +50,12 @@ interface CompositionNotificationPort {
         actorUserId: UUID?,
     )
 
-    fun notifyAssigneeDeclined(
+    fun notifyTeamRegressedOrganizer(
         eventId: UUID,
         seasonId: UUID,
         troupeId: UUID,
-        actorUserId: UUID,
-        assigneeDisplayName: String,
-        roleKey: String,
-        slotIndex: Int,
+        reasonSummary: String,
+        actorUserId: UUID?,
     )
 
     fun notifyAssigneeRemoved(
@@ -179,23 +177,20 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
         )
     }
 
-    override fun notifyAssigneeDeclined(
+    override fun notifyTeamRegressedOrganizer(
         eventId: UUID,
         seasonId: UUID,
         troupeId: UUID,
-        actorUserId: UUID,
-        assigneeDisplayName: String,
-        roleKey: String,
-        slotIndex: Int,
+        reasonSummary: String,
+        actorUserId: UUID?,
     ) {
         log.debug(
-            "assignee_declined eventId={} seasonId={} troupeId={} actorUserId={} roleKey={} slotIndex={}",
+            "team_regressed_organizer eventId={} seasonId={} troupeId={} actorUserId={} reasonSummary={}",
             eventId,
             seasonId,
             troupeId,
             actorUserId,
-            roleKey,
-            slotIndex,
+            reasonSummary,
         )
     }
 

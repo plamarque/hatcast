@@ -74,8 +74,15 @@ const categories = [
     emailEnabled: false,
   },
   {
-    key: 'ORG_ASSIGNEE_DECLINED',
-    label: "Me prévenir quand quelqu'un décline après validation de la compo.",
+    key: 'ORG_TEAM_REGRESSED',
+    label: "Me prévenir quand une équipe confirmée n'est plus complète.",
+    group: 'ORGANIZER_ALERTS',
+    pushEnabled: false,
+    emailEnabled: false,
+  },
+  {
+    key: 'ORG_SCOPE_GRANTED',
+    label: "Me prévenir par notification push quand on m'ajoute comme orga.",
     group: 'ORGANIZER_ALERTS',
     pushEnabled: false,
     emailEnabled: false,
@@ -237,21 +244,21 @@ describe('NotificationPreferencesSection', () => {
     const text = fixture.nativeElement.textContent ?? ''
 
     expect(text).not.toContain('Alertes organisateur')
-    expect(text).not.toContain('Déclin immédiat')
+    expect(text).not.toContain('Équipe plus complète')
     expect(fixture.nativeElement.querySelectorAll('.notification-preferences__section-title').length).toBe(2)
     expect(fixture.nativeElement.querySelectorAll('.notification-preferences__card').length).toBe(2)
   })
 
-  it('renders organizer section with Déclin immédiat when hasOrganizerScope is true', async () => {
+  it('renders organizer section with Équipe plus complète when hasOrganizerScope is true', async () => {
     const { fixture } = await setup({ pushState: 'enabled', hasOrganizerScope: true })
     const text = fixture.nativeElement.textContent ?? ''
 
     expect(text).toContain('Alertes organisateur')
     expect(text).toContain('Pour les spectacles où tu organises. Active seulement ce dont tu as besoin.')
-    expect(text).toContain('Déclin immédiat')
-    expect(text).toContain("Me prévenir quand quelqu'un décline après validation de la compo.")
+    expect(text).toContain('Équipe plus complète')
+    expect(text).toContain("Me prévenir quand une équipe confirmée n'est plus complète")
     expect(fixture.nativeElement.querySelectorAll('.notification-preferences__section-title').length).toBe(3)
-    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-org-assignee-declined-push"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-org-team-regressed-push"]')).toBeTruthy()
   })
 
   it('renders member/orga footnote when organizer section is visible', async () => {

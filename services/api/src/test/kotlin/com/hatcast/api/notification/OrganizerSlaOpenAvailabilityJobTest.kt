@@ -49,7 +49,7 @@ class OrganizerSlaOpenAvailabilityJobTest {
 
         whenever(eventRepository.findDraftEventsStartingBetween(any(), any())).thenReturn(listOf(event))
         whenever(
-            recipientResolver.resolveOrganizerCascadeRecipients(event.id, season.id, troupe.id),
+            recipientResolver.resolveEventAndSeasonOrganizerRecipients(event.id, season.id),
         ).thenReturn(listOf(NotificationRecipient(userId = adminUserId, displayName = "Admin")))
         whenever(
             reminderMarkService.tryClaimPeriodicReminderMark(
@@ -73,6 +73,47 @@ class OrganizerSlaOpenAvailabilityJobTest {
     }
 
     @Test
+    fun `processRemindersAt dispatches once when user holds both event and season organizer roles`() {
+        val troupe = TroupeEntity(id = UUID.randomUUID(), name = "T", slug = "t")
+        val season = SeasonEntity(id = UUID.randomUUID(), troupe = troupe, title = "S", slug = "s")
+        val event =
+            EventEntity(
+                id = UUID.randomUUID(),
+                season = season,
+                title = "Draft soon",
+                slug = "draft-soon",
+                startsAt = Instant.parse("2034-07-01T19:00:00Z"),
+                templateType = "cabaret",
+                roleSlots = mapOf("player" to 4),
+            )
+        val sharedUserId = UUID.randomUUID()
+        val reference = Instant.parse("2034-06-01T08:00:00Z")
+
+        whenever(eventRepository.findDraftEventsStartingBetween(any(), any())).thenReturn(listOf(event))
+        whenever(
+            recipientResolver.resolveEventAndSeasonOrganizerRecipients(event.id, season.id),
+        ).thenReturn(listOf(NotificationRecipient(userId = sharedUserId, displayName = "Pierrick")))
+        whenever(
+            reminderMarkService.tryClaimPeriodicReminderMark(
+                intent = NotificationIntent.SLA_OPEN_AVAILABILITY,
+                eventId = event.id,
+                userId = sharedUserId,
+                civilDate = reference.atZone(ZoneId.of("Europe/Paris")).toLocalDate(),
+            ),
+        ).thenReturn(true)
+
+        val count = job.processRemindersAt(reference)
+
+        assertEquals(1, count)
+        verify(dispatcher, org.mockito.kotlin.times(1)).dispatch(
+            org.mockito.kotlin.argThat { ctx ->
+                ctx.intent == NotificationIntent.SLA_OPEN_AVAILABILITY &&
+                    ctx.recipientUserIds == listOf(sharedUserId)
+            },
+        )
+    }
+
+    @Test
     fun `processRemindersAt skips when dedupe mark not claimed`() {
         val troupe = TroupeEntity(id = UUID.randomUUID(), name = "T", slug = "t")
         val season = SeasonEntity(id = UUID.randomUUID(), troupe = troupe, title = "S", slug = "s")
@@ -91,7 +132,7 @@ class OrganizerSlaOpenAvailabilityJobTest {
 
         whenever(eventRepository.findDraftEventsStartingBetween(any(), any())).thenReturn(listOf(event))
         whenever(
-            recipientResolver.resolveOrganizerCascadeRecipients(event.id, season.id, troupe.id),
+            recipientResolver.resolveEventAndSeasonOrganizerRecipients(event.id, season.id),
         ).thenReturn(listOf(NotificationRecipient(userId = adminUserId, displayName = "Admin")))
         whenever(
             reminderMarkService.tryClaimPeriodicReminderMark(

@@ -1,0 +1,49 @@
+{
+  "schema": "hatcast/mig-2/raw@2",
+  "extractedAt": "2026-01-01T00:00:00.000Z",
+  "v1SeasonId": "fixture-season",
+  "season": {
+    "name": "Fixture Saison",
+    "roles": {
+      "admins": ["orga@example.com"],
+      "users": []
+    }
+  },
+  "events": [
+    {
+      "id": "evt1",
+      "title": "Cabaret Janvier",
+      "date": "2026-01-31",
+      "archived": false,
+      "roles": { "player": 2, "mc": 1 }
+    },
+    {
+      "id": "evt2",
+      "title": "Match Février",
+      "date": "2026-02-14",
+      "archived": true,
+      "roles": { "player": 2 }
+    }
+  ],
+  "players": [
+    { "id": "p1", "email": "alice@example.com", "name": "Alice" },
+    { "id": "p2", "email": "bob@example.com", "name": "Bob" },
+    { "id": "p3", "email": "orga@example.com", "name": "Orga" }
+  ],
+  "availability": [
+    { "v1PlayerId": "p1", "v1EventId": "evt1", "available": true, "roles": ["player"] },
+    { "v1PlayerId": "p2", "v1EventId": "evt1", "available": false, "roles": [] },
+    { "v1PlayerId": "p1", "v1EventId": "evt2", "available": true, "roles": ["player"] }
+  ],
+  "casts": [
+    {
+      "v1EventId": "evt1",
+      "status": "confirmed",
+      "confirmed": true,
+      "confirmedAt": "2026-01-20T10:00:00.000Z",
+      "roles": { "player": ["p1", "p2"], "mc": ["p3"] },
+      "playerStatuses": { "p1": "confirmed", "p2": "pending", "p3": "confirmed" },
+      "declined": {}
+    }
+  ]
+}

@@ -64,15 +64,13 @@ class CompositionNotificationEventListener(
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    fun onAssigneeDeclined(event: AssigneeDeclinedEvent) {
-        notificationPort.notifyAssigneeDeclined(
+    fun onTeamRegressedOrganizerRequested(event: TeamRegressedOrganizerRequestedEvent) {
+        notificationPort.notifyTeamRegressedOrganizer(
             event.eventId,
             event.seasonId,
             event.troupeId,
+            event.reasonSummary,
             event.actorUserId,
-            event.assigneeDisplayName,
-            event.roleKey,
-            event.slotIndex,
         )
     }
 

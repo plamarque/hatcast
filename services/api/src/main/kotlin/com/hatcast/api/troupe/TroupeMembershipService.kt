@@ -23,8 +23,11 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
+import com.hatcast.api.organizer.OrganizerScopeGrantedEvent
+import com.hatcast.api.organizer.OrganizerScopeKind
 import com.hatcast.api.user.UserMemberPreferencesService
 import com.hatcast.api.user.UserRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -54,6 +57,7 @@ class TroupeMembershipService(
     private val auditRecorder: AuditEventRecorder,
     private val avatarService: AvatarService,
     private val troupeExterneCarnetService: TroupeExterneCarnetService,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> {
@@ -412,6 +416,7 @@ class TroupeMembershipService(
                 )
             }
             val previousStatus = existing.status
+            val previousRole = existing.baselineRole
             val beforeSnapshot = AuditSnapshots.membership(existing)
             val targetStatus =
                 if (existing.status != TroupeMembershipStatus.ACTIVE) {
@@ -460,6 +465,7 @@ class TroupeMembershipService(
                     ),
                 )
             }
+            publishTroupeAdminScopeGrantedIfPromoted(previousRole, saved)
             return TroupeMemberAdminDto.from(saved, avatarService)
         }
         val displayName = normalizeDisplayName(body.displayName)
@@ -488,6 +494,7 @@ class TroupeMembershipService(
                     after = AuditSnapshots.membership(saved),
                 ),
             )
+            publishTroupeAdminScopeGrantedIfPromoted(null, saved)
             TroupeMemberAdminDto.from(saved, avatarService)
         } catch (ex: DataIntegrityViolationException) {
             val concurrent = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id) ?: throw ex
@@ -580,6 +587,7 @@ class TroupeMembershipService(
             applyExterneEmailUpdate(membership, troupeId, body.email.get())
         }
         val previousStatus = membership.status
+        val previousRole = membership.baselineRole
         val beforeSnapshot = AuditSnapshots.membership(membership)
         membership.status = targetStatus
         membership.baselineRole = targetRole
@@ -615,7 +623,29 @@ class TroupeMembershipService(
                 ),
             )
         }
+        publishTroupeAdminScopeGrantedIfPromoted(previousRole, saved)
         return TroupeMemberAdminDto.from(saved, avatarService)
+    }
+
+    private fun publishTroupeAdminScopeGrantedIfPromoted(
+        previousRole: TroupeBaselineRole?,
+        membership: TroupeMembershipEntity,
+    ) {
+        if (membership.baselineRole != TroupeBaselineRole.TROUPE_ADMIN) {
+            return
+        }
+        if (previousRole == TroupeBaselineRole.TROUPE_ADMIN) {
+            return
+        }
+        val userId = membership.user?.id ?: return
+        eventPublisher.publishEvent(
+            OrganizerScopeGrantedEvent(
+                userId = userId,
+                scopeKind = OrganizerScopeKind.TROUPE_ADMIN,
+                scopeId = membership.troupe.id,
+                scopeName = membership.troupe.name,
+            ),
+        )
     }
 
     private fun propagateExterneCarnetToSeasonParticipants(membership: TroupeMembershipEntity) {

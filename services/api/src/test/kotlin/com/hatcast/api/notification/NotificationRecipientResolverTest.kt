@@ -497,6 +497,133 @@ class NotificationRecipientResolverTest {
     }
 
     @Test
+    fun `resolveEventOrganizerRecipients returns event organizers only`() {
+        val eventId = UUID.randomUUID()
+        val eventOrgaUserId = UUID.randomUUID()
+
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(
+            listOf(
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = eventOrgaUserId, email = "event@test.com"),
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveEventOrganizerRecipients(eventId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(eventOrgaUserId, recipients.first().userId)
+        org.mockito.kotlin.verify(seasonOrganizerRepository, org.mockito.kotlin.never())
+            .findBySeason_IdOrderByGrantedAtAsc(org.mockito.kotlin.any())
+    }
+
+    @Test
+    fun `resolveSeasonOrganizerRecipients returns season organizers only`() {
+        val seasonId = UUID.randomUUID()
+        val seasonOrgaUserId = UUID.randomUUID()
+
+        whenever(seasonOrganizerRepository.findBySeason_IdOrderByGrantedAtAsc(seasonId)).thenReturn(
+            listOf(
+                SeasonOrganizerEntity(
+                    season = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = seasonOrgaUserId, email = "season@test.com"),
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveSeasonOrganizerRecipients(seasonId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(seasonOrgaUserId, recipients.first().userId)
+    }
+
+    @Test
+    fun `resolveEventAndSeasonOrganizerRecipients unions and dedupes by userId`() {
+        val eventId = UUID.randomUUID()
+        val seasonId = UUID.randomUUID()
+        val sharedUserId = UUID.randomUUID()
+        val eventOnlyUserId = UUID.randomUUID()
+
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(
+            listOf(
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = sharedUserId, email = "shared@test.com"),
+                ),
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = eventOnlyUserId, email = "event@test.com"),
+                ),
+            ),
+        )
+        whenever(seasonOrganizerRepository.findBySeason_IdOrderByGrantedAtAsc(seasonId)).thenReturn(
+            listOf(
+                SeasonOrganizerEntity(
+                    season = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = sharedUserId, email = "shared@test.com"),
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveEventAndSeasonOrganizerRecipients(eventId, seasonId)
+
+        assertEquals(2, recipients.size)
+        assertTrue(recipients.any { it.userId == sharedUserId })
+        assertTrue(recipients.any { it.userId == eventOnlyUserId })
+    }
+
+    @Test
+    fun `resolveEventOrganizerRecipients excludes actor when provided`() {
+        val eventId = UUID.randomUUID()
+        val actorUserId = UUID.randomUUID()
+        val otherOrgaUserId = UUID.randomUUID()
+
+        whenever(eventOrganizerRepository.findByEvent_IdOrderByGrantedAtAsc(eventId)).thenReturn(
+            listOf(
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = actorUserId, email = "actor@test.com"),
+                ),
+                EventOrganizerEntity(
+                    event = EventEntity(id = eventId, season = mock(), title = "E", slug = "e", startsAt = mock(), templateType = "cabaret", roleSlots = emptyMap()),
+                    user = com.hatcast.api.user.UserEntity(id = otherOrgaUserId, email = "other@test.com"),
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveEventOrganizerRecipients(eventId, actorUserId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(otherOrgaUserId, recipients.first().userId)
+    }
+
+    @Test
+    fun `resolveSeasonOrganizerRecipients excludes actor when provided`() {
+        val seasonId = UUID.randomUUID()
+        val actorUserId = UUID.randomUUID()
+        val otherOrgaUserId = UUID.randomUUID()
+
+        whenever(seasonOrganizerRepository.findBySeason_IdOrderByGrantedAtAsc(seasonId)).thenReturn(
+            listOf(
+                SeasonOrganizerEntity(
+                    season = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = actorUserId, email = "actor@test.com"),
+                ),
+                SeasonOrganizerEntity(
+                    season = mock(),
+                    user = com.hatcast.api.user.UserEntity(id = otherOrgaUserId, email = "other@test.com"),
+                ),
+            ),
+        )
+
+        val recipients = resolver.resolveSeasonOrganizerRecipients(seasonId, actorUserId)
+
+        assertEquals(1, recipients.size)
+        assertEquals(otherOrgaUserId, recipients.first().userId)
+    }
+
+    @Test
     fun `resolveOrganizerCascadeRecipients prefers event organizers over season and troupe admin`() {
         val eventId = UUID.randomUUID()
         val seasonId = UUID.randomUUID()

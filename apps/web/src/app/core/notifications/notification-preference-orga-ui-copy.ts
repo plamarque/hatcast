@@ -10,16 +10,17 @@ export interface OrgaNotificationPreferenceUiCopy {
 
 /** Shipped organizer intents only (rule A1 — no teaser rows). */
 export const DISPATCHED_ORGA_NOTIFICATION_PREFERENCE_KEYS: readonly OrgaNotificationPreferenceKey[] = [
-  'ORG_ASSIGNEE_DECLINED',
+  'ORG_TEAM_REGRESSED',
   'ORG_TEAM_COMPLETE',
   'ORG_DRAFT_COMPOSITION',
   'ORG_EVENT_DRAFT_CREATED',
   'ORG_COMPOSITION_INCOMPLETE',
   'ORG_SLA_OPEN_AVAILABILITY',
+  'ORG_SCOPE_GRANTED',
 ]
 
 export const ORGA_IMMEDIATE_SIGNAL_KEYS: readonly OrgaNotificationPreferenceKey[] = [
-  'ORG_ASSIGNEE_DECLINED',
+  'ORG_TEAM_REGRESSED',
   'ORG_TEAM_COMPLETE',
   'ORG_DRAFT_COMPOSITION',
   'ORG_EVENT_DRAFT_CREATED',
@@ -34,9 +35,10 @@ export const ORGANIZER_NOTIFICATION_PREFERENCE_UI_COPY: Record<
   OrgaNotificationPreferenceKey,
   OrgaNotificationPreferenceUiCopy
 > = {
-  ORG_ASSIGNEE_DECLINED: {
-    title: 'Déclin immédiat',
-    description: "Me prévenir quand quelqu'un décline après validation de la compo.",
+  ORG_TEAM_REGRESSED: {
+    title: 'Équipe plus complète',
+    description:
+      "Me prévenir quand une équipe confirmée n'est plus complète (déclin, statut à confirmer, déverrouillage, etc.).",
     groupSubtitle: 'Signaux immédiats',
   },
   ORG_TEAM_COMPLETE: {
@@ -55,14 +57,20 @@ export const ORGANIZER_NOTIFICATION_PREFERENCE_UI_COPY: Record<
     groupSubtitle: 'Rappels planifiés',
   },
   ORG_DRAFT_COMPOSITION: {
-    title: 'Brouillon partagé',
-    description: 'Me prévenir quand un brouillon de compo est partagé dans le cercle orga.',
+    title: 'Compo proposée',
+    description: 'Me prévenir quand une composition est partagée avec le cercle orga.',
     groupSubtitle: 'Signaux immédiats',
   },
   ORG_EVENT_DRAFT_CREATED: {
-    title: 'Nouveau brouillon',
-    description: 'Me prévenir quand un spectacle brouillon est créé.',
+    title: 'Nouveau spectacle',
+    description:
+      "Me prévenir quand un spectacle en brouillon est créé (dispos pas encore ouvertes).",
     groupSubtitle: 'Signaux immédiats',
+  },
+  ORG_SCOPE_GRANTED: {
+    title: 'Nouveau rôle orga',
+    description:
+      "Me prévenir par notification push quand on m'ajoute comme orga de spectacle, orga de saison ou admin de troupe.",
   },
 }
 

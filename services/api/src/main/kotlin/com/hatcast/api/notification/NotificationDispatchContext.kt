@@ -19,8 +19,8 @@ data class NotificationDispatchContext(
     val proxyChangeSummary: ProxyChangeSummary? = null,
     val customMessageBody: String? = null,
     val eventDetailsChangeSummary: EventDetailsChangeSummary? = null,
-    /** Declining assignee display name — story 8.4 ASSIGNEE_DECLINED. */
-    val assigneeDisplayName: String? = null,
+    /** Lifecycle regression cause — story 8.4b TEAM_REGRESSED. */
+    val reasonSummary: String? = null,
 )
 
 data class EventDetailsChangeSummary(

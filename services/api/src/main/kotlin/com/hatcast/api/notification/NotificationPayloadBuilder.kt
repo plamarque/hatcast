@@ -21,7 +21,7 @@ class NotificationPayloadBuilder {
         customMessageBody: String? = null,
         recipientGender: MemberGender? = null,
         eventDetailsChangeSummary: EventDetailsChangeSummary? = null,
-        assigneeDisplayName: String? = null,
+        reasonSummary: String? = null,
     ): NotificationPayload {
         val seasonSlug = event.season.slug
         val eventSlug = event.slug
@@ -67,14 +67,14 @@ class NotificationPayloadBuilder {
                 )
             NotificationIntent.COMPOSITION_SHARED ->
                 NotificationPayload(
-                    title = "👥 Brouillon partagé",
-                    body = "La composition brouillon pour $eventTitle le $eventDate est visible dans le cercle orga.",
+                    title = "👥 Compo proposée",
+                    body = "Composition proposée pour $eventTitle le $eventDate.",
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
                 )
             NotificationIntent.EVENT_DRAFT_CREATED ->
                 NotificationPayload(
-                    title = "📝 Nouveau brouillon",
-                    body = "Un spectacle brouillon « $eventTitle » vient d'être créé.",
+                    title = "📝 Nouveau spectacle",
+                    body = "« $eventTitle » a été créé en brouillon ($eventDate).",
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=infos",
                 )
             NotificationIntent.SLA_OPEN_AVAILABILITY ->
@@ -101,12 +101,11 @@ class NotificationPayloadBuilder {
                     body = "Toutes les confirmations sont reçues pour $eventTitle le $eventDate.",
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
                 )
-            NotificationIntent.ASSIGNEE_DECLINED -> {
-                val assigneeName = assigneeDisplayName?.trim()?.takeIf { it.isNotEmpty() } ?: "Un·e participant·e"
-                val rolePart = roleLabel?.let { " ($it)" }.orEmpty()
+            NotificationIntent.TEAM_REGRESSED -> {
+                val reason = reasonSummary?.trim()?.takeIf { it.isNotEmpty() } ?: "équipe non complète"
                 NotificationPayload(
-                    title = "🚨 Déclin",
-                    body = "$assigneeName a décliné$rolePart pour $eventTitle le $eventDate.",
+                    title = "⚠️ Équipe plus complète",
+                    body = "$eventTitle le $eventDate : l'équipe confirmée n'est plus complète ($reason).",
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=equipe",
                 )
             }
@@ -208,6 +207,8 @@ class NotificationPayloadBuilder {
                     body = "$eventTitle le $eventDate n'a plus lieu (archivé).",
                     url = "/saison/$seasonSlug/event/$eventSlug?tab=infos",
                 )
+            NotificationIntent.ORGANIZER_SCOPE_GRANTED ->
+                error("ORGANIZER_SCOPE_GRANTED is built by OrganizerScopeGrantedNotificationService")
         }
     }
 
@@ -228,9 +229,9 @@ class NotificationPayloadBuilder {
             NotificationIntent.AVAILABILITY_PENDING_REMINDER ->
                 "Rappel disponibilité · $eventTitle ($eventDate)"
             NotificationIntent.COMPOSITION_SHARED ->
-                "Brouillon partagé · $eventTitle ($eventDate)"
+                "Compo proposée · $eventTitle ($eventDate)"
             NotificationIntent.EVENT_DRAFT_CREATED ->
-                "Nouveau brouillon · $eventTitle"
+                "Nouveau spectacle (brouillon) · $eventTitle ($eventDate)"
             NotificationIntent.SLA_OPEN_AVAILABILITY ->
                 "Ouvrir les dispos · $eventTitle ($eventDate)"
             NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY ->
@@ -239,8 +240,8 @@ class NotificationPayloadBuilder {
                 "Compo incomplète J-7 · $eventTitle ($eventDate)"
             NotificationIntent.TEAM_COMPLETE ->
                 "Équipe bouclée · $eventTitle ($eventDate)"
-            NotificationIntent.ASSIGNEE_DECLINED ->
-                "Déclin · $eventTitle ($eventDate)"
+            NotificationIntent.TEAM_REGRESSED ->
+                "Équipe plus complète · $eventTitle ($eventDate)"
             NotificationIntent.CONFIRMATION_REQUEST ->
                 "🎭 Equipe pour $eventTitle"
             NotificationIntent.TEAM_VALIDATED_FYI ->
@@ -265,6 +266,8 @@ class NotificationPayloadBuilder {
                 "Spectacle modifié · $eventTitle ($eventDate)"
             NotificationIntent.EVENT_ARCHIVED ->
                 "Spectacle archivé · $eventTitle ($eventDate)"
+            NotificationIntent.ORGANIZER_SCOPE_GRANTED ->
+                error("ORGANIZER_SCOPE_GRANTED is built by OrganizerScopeGrantedNotificationService")
         }
     }
 

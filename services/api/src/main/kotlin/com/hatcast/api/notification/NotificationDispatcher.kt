@@ -91,7 +91,7 @@ class NotificationDispatcher(
                     customMessageBody = context.customMessageBody,
                     recipientGender = recipientGender,
                     eventDetailsChangeSummary = context.eventDetailsChangeSummary,
-                    assigneeDisplayName = context.assigneeDisplayName,
+                    reasonSummary = context.reasonSummary,
                 )
             val emailSubject =
                 payloadBuilder.buildEmailSubject(context.intent, event, context.proxyChangeSummary)
@@ -190,35 +190,45 @@ class NotificationDispatcher(
                 recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
             NotificationIntent.AVAILABILITY_PENDING_REMINDER ->
                 if (context.recipientUserIds.isNotEmpty()) {
-                    context.recipientUserIds.map { userId ->
-                        NotificationRecipient(userId = userId, displayName = "")
-                    }
+                    recipientsFromExplicitUserIds(context.recipientUserIds)
                 } else {
                     recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
                 }
             NotificationIntent.COMPOSITION_SHARED ->
-                recipientResolver.resolveOrganizerCircleRecipients(
+                recipientResolver.resolveEventOrganizerRecipients(
                     context.eventId,
-                    context.seasonId,
-                    requireTroupeId(context),
                     context.actorUserId,
                 )
-            NotificationIntent.EVENT_DRAFT_CREATED,
+            NotificationIntent.EVENT_DRAFT_CREATED ->
+                if (context.recipientUserIds.isNotEmpty()) {
+                    recipientsFromExplicitUserIds(context.recipientUserIds)
+                } else {
+                    recipientResolver.resolveSeasonOrganizerRecipients(
+                        context.seasonId,
+                        context.actorUserId,
+                    )
+                }
             NotificationIntent.SLA_OPEN_AVAILABILITY,
             NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY,
             NotificationIntent.COMPOSITION_INCOMPLETE_DAILY_J7,
-            NotificationIntent.TEAM_COMPLETE,
-            NotificationIntent.ASSIGNEE_DECLINED,
             ->
                 if (context.recipientUserIds.isNotEmpty()) {
-                    context.recipientUserIds.map { userId ->
-                        NotificationRecipient(userId = userId, displayName = "")
-                    }
+                    recipientsFromExplicitUserIds(context.recipientUserIds)
                 } else {
-                    recipientResolver.resolveOrganizerCascadeRecipients(
+                    recipientResolver.resolveEventAndSeasonOrganizerRecipients(
                         context.eventId,
                         context.seasonId,
-                        requireTroupeId(context),
+                        context.actorUserId,
+                    )
+                }
+            NotificationIntent.TEAM_COMPLETE,
+            NotificationIntent.TEAM_REGRESSED,
+            ->
+                if (context.recipientUserIds.isNotEmpty()) {
+                    recipientsFromExplicitUserIds(context.recipientUserIds)
+                } else {
+                    recipientResolver.resolveEventOrganizerRecipients(
+                        context.eventId,
                         context.actorUserId,
                     )
                 }
@@ -232,9 +242,7 @@ class NotificationDispatcher(
                 recipientResolver.resolveNonAssignedRosterRecipients(context.seasonId, context.eventId)
             NotificationIntent.ASSIGNEE_PRESENCE_REMINDER ->
                 if (context.recipientUserIds.isNotEmpty()) {
-                    context.recipientUserIds.map { userId ->
-                        NotificationRecipient(userId = userId, displayName = "")
-                    }
+                    recipientsFromExplicitUserIds(context.recipientUserIds)
                 } else {
                     recipientResolver.resolveConfirmedAssigneeRecipients(context.eventId)
                 }
@@ -255,16 +263,26 @@ class NotificationDispatcher(
                 recipientResolver.resolveEventArchivedRecipients(context.seasonId, context.eventId)
             NotificationIntent.TEAM_COMPLETE_MEMBER ->
                 recipientResolver.resolveTeamCompleteMemberRecipients(context.eventId)
+            NotificationIntent.ORGANIZER_SCOPE_GRANTED -> emptyList()
         }
 
-    private fun requireTroupeId(context: NotificationDispatchContext): UUID {
-        val troupeId = context.troupeId
-        if (troupeId == null) {
-            val event = eventRepository.findById(context.eventId).orElse(null)
-            return event?.season?.troupe?.id
-                ?: throw IllegalStateException("troupeId required for organizer notification intent=${context.intent}")
+    private fun recipientsFromExplicitUserIds(userIds: List<UUID>): List<NotificationRecipient> {
+        if (userIds.isEmpty()) {
+            return emptyList()
         }
-        return troupeId
+        val usersById = userRepository.findAllById(userIds.toSet()).associateBy { it.id }
+        return userIds.map { userId ->
+            val user = usersById[userId]
+            NotificationRecipient(
+                userId = userId,
+                displayName =
+                    user
+                        ?.displayName
+                        ?.trim()
+                        .orEmpty()
+                        .ifEmpty { user?.email?.substringBefore('@').orEmpty() },
+            )
+        }
     }
 
     private fun resolveProxySubjectRecipients(context: NotificationDispatchContext): List<NotificationRecipient> {

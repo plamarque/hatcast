@@ -3,12 +3,13 @@ import { Injectable } from '@angular/core'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export type OrgaNotificationPreferenceKey =
-  | 'ORG_ASSIGNEE_DECLINED'
+  | 'ORG_TEAM_REGRESSED'
   | 'ORG_TEAM_COMPLETE'
   | 'ORG_COMPOSITION_INCOMPLETE'
   | 'ORG_SLA_OPEN_AVAILABILITY'
   | 'ORG_DRAFT_COMPOSITION'
   | 'ORG_EVENT_DRAFT_CREATED'
+  | 'ORG_SCOPE_GRANTED'
 
 export type NotificationPreferenceKey =
   | 'AVAILABILITY_REQUEST'

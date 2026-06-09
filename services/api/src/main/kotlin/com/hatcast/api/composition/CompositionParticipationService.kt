@@ -185,22 +185,20 @@ class CompositionParticipationService(
                 metadata = mapOf("assigneeParticipantId" to assigneeId.toString()),
             ),
         )
-        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
-
-        if (composition.validatedAt != null && participationStatus == SlotParticipationStatus.DECLINED) {
-            val assigneeDisplayName = resolveAssigneeDisplayName(subjectSeasonParticipantId, subjectEventParticipantId)
-            eventPublisher.publishEvent(
-                AssigneeDeclinedEvent(
-                    eventId = eventId,
-                    seasonId = seasonId,
-                    troupeId = event.season.troupe.id,
-                    actorUserId = principal.userId,
-                    assigneeDisplayName = assigneeDisplayName,
-                    roleKey = roleKey,
-                    slotIndex = slotIndex,
-                ),
-            )
-        }
+        val lifecycleTransitionContext =
+            when {
+                composition.validatedAt != null && participationStatus == SlotParticipationStatus.DECLINED -> {
+                    val assigneeDisplayName =
+                        resolveAssigneeDisplayName(subjectSeasonParticipantId, subjectEventParticipantId)
+                    CompositionLifecycleTransitionContext(reasonSummary = "déclin de $assigneeDisplayName")
+                }
+                composition.validatedAt != null &&
+                    participationStatus == SlotParticipationStatus.PENDING &&
+                    beforeStatus == SlotParticipationStatus.CONFIRMED ->
+                    CompositionLifecycleTransitionContext(reasonSummary = "confirmation à renouveler")
+                else -> null
+            }
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle, lifecycleTransitionContext)
 
         if (composition.validatedAt != null &&
             assigneeUserId != null &&

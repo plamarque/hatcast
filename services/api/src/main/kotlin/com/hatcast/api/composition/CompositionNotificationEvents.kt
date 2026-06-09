@@ -21,14 +21,12 @@ data class TeamCompleteOrganizerRequestedEvent(
     val actorUserId: UUID? = null,
 )
 
-data class AssigneeDeclinedEvent(
+data class TeamRegressedOrganizerRequestedEvent(
     val eventId: UUID,
     val seasonId: UUID,
     val troupeId: UUID,
-    val actorUserId: UUID,
-    val assigneeDisplayName: String,
-    val roleKey: String,
-    val slotIndex: Int,
+    val reasonSummary: String,
+    val actorUserId: UUID? = null,
 )
 
 data class CompositionAssigneeRemovedEvent(

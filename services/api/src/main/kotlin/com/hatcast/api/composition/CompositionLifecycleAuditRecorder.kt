@@ -38,6 +38,7 @@ class CompositionLifecycleAuditRecorder(
         event: EventEntity,
         seasonId: UUID,
         before: CompositionLifecycle,
+        transitionContext: CompositionLifecycleTransitionContext? = null,
     ) {
         val after = captureRawLifecycle(event.id, event.roleSlots)
         if (before == after) {
@@ -79,7 +80,27 @@ class CompositionLifecycleAuditRecorder(
                 ),
             )
         }
+        if (before == CompositionLifecycle.COMPLETE && after != CompositionLifecycle.COMPLETE) {
+            eventPublisher.publishEvent(
+                TeamRegressedOrganizerRequestedEvent(
+                    eventId = event.id,
+                    seasonId = seasonId,
+                    troupeId = event.season.troupe.id,
+                    reasonSummary =
+                        transitionContext?.reasonSummary?.trim()?.takeIf { it.isNotEmpty() }
+                            ?: inferReasonSummary(after),
+                ),
+            )
+        }
     }
+
+    private fun inferReasonSummary(after: CompositionLifecycle): String =
+        when (after) {
+            CompositionLifecycle.GAPS_TO_FILL -> "place à pourvoir"
+            CompositionLifecycle.AWAITING_CONFIRMATIONS -> "confirmation à renouveler"
+            CompositionLifecycle.DRAFT_COMPOSITION -> "composition déverrouillée"
+            else -> "équipe non complète"
+        }
 }
 
 private fun EventCompositionSlotEntity.toLifecycleSnapshot(): CompositionSlotSnapshot =

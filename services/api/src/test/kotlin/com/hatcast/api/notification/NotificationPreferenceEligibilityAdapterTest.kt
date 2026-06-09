@@ -54,7 +54,7 @@ class NotificationPreferenceEligibilityAdapterTest {
         assertTrue(pushEligibilityPort.isPushAllowedForCategory(user.id, NotificationCategory.AVAILABILITY_REQUEST))
 
         user.notificationPreferences =
-            mapOf(NotificationCategory.AVAILABILITY_REQUEST to NotificationPreference(push = false, email = true))
+            mapOf(NotificationCategory.AVAILABILITY_REQUEST.name to NotificationPreference(push = false, email = true))
         userRepository.save(user)
 
         assertFalse(
@@ -88,14 +88,14 @@ class NotificationPreferenceEligibilityAdapterTest {
         assertFalse(
             preferenceEligibilityPort.isAllowed(
                 user.id,
-                NotificationCategory.ORG_ASSIGNEE_DECLINED,
+                NotificationCategory.ORG_TEAM_REGRESSED,
                 NotificationChannel.PUSH,
             ),
         )
         assertFalse(
             preferenceEligibilityPort.isAllowed(
                 user.id,
-                NotificationCategory.ORG_ASSIGNEE_DECLINED,
+                NotificationCategory.ORG_TEAM_REGRESSED,
                 NotificationChannel.EMAIL,
             ),
         )
@@ -111,7 +111,7 @@ class NotificationPreferenceEligibilityAdapterTest {
                     displayName = "Pref Elig Orga On",
                     notificationPreferences =
                         mapOf(
-                            NotificationCategory.ORG_TEAM_COMPLETE to
+                            NotificationCategory.ORG_TEAM_COMPLETE.name to
                                 NotificationPreference(push = true, email = true),
                         ),
                 ),

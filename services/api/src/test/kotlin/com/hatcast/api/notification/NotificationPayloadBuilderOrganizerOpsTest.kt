@@ -28,38 +28,41 @@ class NotificationPayloadBuilderOrganizerOpsTest {
         val event = sampleEvent()
 
         val compositionShared = builder.build(NotificationIntent.COMPOSITION_SHARED, event, "")
-        assertEquals("👥 Brouillon partagé", compositionShared.title)
-        assertEquals(true, compositionShared.body.contains("cercle orga"))
+        assertEquals("👥 Compo proposée", compositionShared.title)
+        assertEquals(true, compositionShared.body.contains("Composition proposée"))
 
         val draftCreated = builder.build(NotificationIntent.EVENT_DRAFT_CREATED, event, "")
-        assertEquals("📝 Nouveau brouillon", draftCreated.title)
+        assertEquals("📝 Nouveau spectacle", draftCreated.title)
 
         val teamComplete = builder.build(NotificationIntent.TEAM_COMPLETE, event, "")
         assertEquals("✅ Équipe bouclée", teamComplete.title)
         assertEquals(true, teamComplete.body.contains("confirmations"))
 
-        val declined =
+        val regressed =
             builder.build(
-                NotificationIntent.ASSIGNEE_DECLINED,
+                NotificationIntent.TEAM_REGRESSED,
                 event,
                 "",
-                roleKey = "player",
-                assigneeDisplayName = "Alice",
+                reasonSummary = "déclin de Alice",
             )
-        assertEquals("🚨 Déclin", declined.title)
-        assertEquals(true, declined.body.contains("Alice a décliné"))
+        assertEquals("⚠️ Équipe plus complète", regressed.title)
+        assertEquals(true, regressed.body.contains("déclin de Alice"))
     }
 
     @Test
     fun `organizer ops email subjects match catalogue`() {
         val event = sampleEvent()
         assertEquals(
-            "Brouillon partagé · Gala test",
+            "Compo proposée · Gala test",
             builder.buildEmailSubject(NotificationIntent.COMPOSITION_SHARED, event).substringBefore(" ("),
         )
         assertEquals(
             "Équipe bouclée · Gala test",
             builder.buildEmailSubject(NotificationIntent.TEAM_COMPLETE, event).substringBefore(" ("),
+        )
+        assertEquals(
+            "Équipe plus complète · Gala test",
+            builder.buildEmailSubject(NotificationIntent.TEAM_REGRESSED, event).substringBefore(" ("),
         )
     }
 }

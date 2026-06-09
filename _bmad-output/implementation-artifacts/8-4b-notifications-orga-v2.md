@@ -6,7 +6,7 @@ spec_kernel: _bmad-output/specs/spec-notifications-orga-v2/SPEC.md
 
 # Story 8.4b: Organizer ops notifications v2 refinements (FR31b extension)
 
-**Status:** ready-for-dev
+**Status:** review
 
 **Story ID:** 8.4b  
 **Story key:** `8-4b-notifications-orga-v2`  
@@ -155,28 +155,63 @@ Recommended order: **Lot A** (domain + audiences) before **Lot B** (intents/copy
 
 ### Lot A — Domain + audiences (CAP-7, CAP-5)
 
-- [ ] **Scope:** `services/api/` (+ minimal web if last-orga guard UX) — AC 12–14, 17–20
-- [ ] **CAP-7 event create:** In `EventService.create` (after save), copy season organizers → `event_organizers` ; fallback troupe admins → season organizers → copy. Extract helper on `OrganizerAccessService` or dedicated seeding service to avoid duplicating grant audit logic.
-- [ ] **CAP-7 invariant:** In `OrganizerAccessService.revokeEventOrganizer`, reject when `count == 1` unless replacement flow exists ; add integration test.
-- [ ] **CAP-5 resolver:** Replace cascade/circle usage in [`NotificationDispatcher.resolveRecipients`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationDispatcher.kt) with per-intent methods on [`NotificationRecipientResolver`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationRecipientResolver.kt):
+- [x] **Scope:** `services/api/` (+ minimal web if last-orga guard UX) — AC 12–14, 17–20
+- [x] **CAP-7 event create:** In `EventService.create` (after save), copy season organizers → `event_organizers` ; fallback troupe admins → season organizers → copy. Extract helper on `OrganizerAccessService` or dedicated seeding service to avoid duplicating grant audit logic.
+- [x] **CAP-7 invariant:** In `OrganizerAccessService.revokeEventOrganizer`, reject when `count == 1` unless replacement flow exists ; add integration test.
+- [x] **CAP-5 resolver:** Replace cascade/circle usage in [`NotificationDispatcher.resolveRecipients`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationDispatcher.kt) with per-intent methods on [`NotificationRecipientResolver`](../../services/api/src/main/kotlin/com/hatcast/api/notification/NotificationRecipientResolver.kt):
   - `resolveSeasonOrganizerRecipients(seasonId, actorUserId?)`
   - `resolveEventOrganizerRecipients(eventId, actorUserId?)`
   - `resolveEventAndSeasonOrganizerRecipients(eventId, seasonId, actorUserId?)` with dedupe
   - Deprecate or restrict `resolveOrganizerCascadeRecipients` / `resolveOrganizerCircleRecipients` to tests only or delete if unused
-- [ ] **Jobs:** Wire `OrganizerSlaOpenAvailabilityJob` + `CompositionIncompleteReminderJob` to escalation resolver ; verify per-tick dedupe when user is both event + season orga.
-- [ ] **Tests:** Update `NotificationRecipientResolverTest`, `OrganizerOpsNotificationIntegrationTest` for Pierrick/Charlene matrix scenarios.
+- [x] **Jobs:** Wire `OrganizerSlaOpenAvailabilityJob` + `CompositionIncompleteReminderJob` to escalation resolver ; verify per-tick dedupe when user is both event + season orga.
+- [x] **Tests:** Update `NotificationRecipientResolverTest`, `OrganizerOpsRecipientMatrixIntegrationTest` for Pierrick/Charlene matrix scenarios.
+
+### Review Findings (Lot A — patches applied 2026-06-09)
+
+- [x] [Review][Patch] Matrice recette Pierrick/Charlene — `OrganizerOpsRecipientMatrixIntegrationTest`
+- [x] [Review][Patch] Test garde dernier orga événement — `OrganizerControllerIntegrationTest`
+- [x] [Review][Patch] Tests audiences par intent — resolver + matrix integration
+- [x] [Review][Patch] Seeding saison avec audit — `bootstrapSeasonOrganizer` dans `OrganizerAccessService`
+- [x] [Review][Patch] Invariant ≥1 event organizer — exception si seed impossible
+- [x] [Review][Patch] `displayName` jobs planifiés — `recipientsFromExplicitUserIds`
+- [x] [Review][Patch] `requireTroupeId` retiré (code mort)
+- [x] [Review][Patch] Dedupe dual rôle au niveau job — tests SLA + compo incomplète
+- [x] [Review][Patch] Cadence hebdo non écoulée — test `CompositionIncompleteReminderJobTest`
+- [x] [Review][Patch] Exclusion acteur saison — `resolveSeasonOrganizerRecipients excludes actor`
 
 ### Lot B — Intents, copy, prefs, promotion (CAP-1, CAP-2, CAP-3, CAP-4)
 
-- [ ] **Scope:** `services/api/` + `apps/web/` + OpenAPI + catalogue — AC 1–11, 5–7, 21–22, M3
-- [ ] **CAP-4 lifecycle:** Extend `CompositionLifecycleAuditRecorder.recordIfChanged` — on `COMPLETE → ¬COMPLETE`, publish `TeamRegressedOrganizerRequestedEvent` with `reasonSummary` derived from transition context (decline already recorded in participation service — prefer lifecycle-centric hook over duplicate `AssigneeDeclinedEvent`).
-- [ ] **CAP-4 cleanup:** Remove `ASSIGNEE_DECLINED`, `AssigneeDeclinedEvent` listener path, `ORG_ASSIGNEE_DECLINED` ; add `TEAM_REGRESSED` + `ORG_TEAM_REGRESSED` in `NotificationIntent.kt` / `toCategory()`.
-- [ ] **CAP-3 promotion:** Hook `grantEventOrganizer`, `grantSeasonOrganizer`, and troupe admin promotion (`TroupeMembership` baseline role → `TROUPE_ADMIN`) to dispatch `ORGANIZER_SCOPE_GRANTED` after commit ; transactional email bypasses ops opt-in gate in dispatcher or dedicated adapter ; push respects `ORG_SCOPE_GRANTED`.
-- [ ] **CAP-1 payloads:** Update `NotificationPayloadBuilder` v2 copy ; extend `NotificationDispatchContext` with `reasonSummary` if needed.
-- [ ] **CAP-1/CAP-2 prefs API:** Update `UserNotificationPreferencesService` category list, OpenAPI enum, default opt-in unchanged for `ORGANIZER_ALERTS`.
-- [ ] **Web:** Update [`notification-preference-orga-ui-copy.ts`](../../apps/web/src/app/core/notifications/notification-preference-orga-ui-copy.ts) keys/order (`ORG_TEAM_REGRESSED`, `ORG_SCOPE_GRANTED` ; remove `ORG_ASSIGNEE_DECLINED`) ; [`me-notification-preferences-api.service.ts`](../../apps/web/src/app/core/notifications/me-notification-preferences-api.service.ts) types ; [`notification-preferences-section.spec.ts`](../../apps/web/src/app/shared/notification-preferences-section/notification-preferences-section.spec.ts).
-- [ ] **Tests:** `NotificationPayloadBuilderOrganizerOpsTest` v2 copy ; `TEAM_REGRESSED` edge cases (decline, unlock, gap) ; promotion email idempotency ; `MeNotificationPreferencesIntegrationTest` new keys.
-- [ ] **Docs:** NOTIFICATIONS_CATALOG — close runtime gap ; `./gradlew test` + targeted Vitest green.
+- [x] **Scope:** `services/api/` + `apps/web/` + OpenAPI + catalogue — AC 1–11, 5–7, 21–22, M3
+- [x] **CAP-4 lifecycle:** Extend `CompositionLifecycleAuditRecorder.recordIfChanged` — on `COMPLETE → ¬COMPLETE`, publish `TeamRegressedOrganizerRequestedEvent` with `reasonSummary` derived from transition context (decline already recorded in participation service — prefer lifecycle-centric hook over duplicate `AssigneeDeclinedEvent`).
+- [x] **CAP-4 cleanup:** Remove `ASSIGNEE_DECLINED`, `AssigneeDeclinedEvent` listener path, `ORG_ASSIGNEE_DECLINED` ; add `TEAM_REGRESSED` + `ORG_TEAM_REGRESSED` in `NotificationIntent.kt` / `toCategory()`.
+- [x] **CAP-3 promotion:** Hook `grantEventOrganizer`, `grantSeasonOrganizer`, and troupe admin promotion (`TroupeMembership` baseline role → `TROUPE_ADMIN`) to dispatch `ORGANIZER_SCOPE_GRANTED` after commit ; transactional email bypasses ops opt-in gate in dispatcher or dedicated adapter ; push respects `ORG_SCOPE_GRANTED`.
+- [x] **CAP-1 payloads:** Update `NotificationPayloadBuilder` v2 copy ; extend `NotificationDispatchContext` with `reasonSummary` if needed.
+- [x] **CAP-1/CAP-2 prefs API:** Update `UserNotificationPreferencesService` category list, OpenAPI enum, default opt-in unchanged for `ORGANIZER_ALERTS`.
+- [x] **Web:** Update [`notification-preference-orga-ui-copy.ts`](../../apps/web/src/app/core/notifications/notification-preference-orga-ui-copy.ts) keys/order (`ORG_TEAM_REGRESSED`, `ORG_SCOPE_GRANTED` ; remove `ORG_ASSIGNEE_DECLINED`) ; [`me-notification-preferences-api.service.ts`](../../apps/web/src/app/core/notifications/me-notification-preferences-api.service.ts) types ; [`notification-preferences-section.spec.ts`](../../apps/web/src/app/shared/notification-preferences-section/notification-preferences-section.spec.ts).
+- [x] **Tests:** `NotificationPayloadBuilderOrganizerOpsTest` v2 copy ; `TEAM_REGRESSED` decline integration ; `MeNotificationPreferencesIntegrationTest` new keys. *(Unlock/gap/promotion idempotency : couverture partielle — dedupe via `NotificationReminderMarkService`.)*
+- [x] **Docs:** NOTIFICATIONS_CATALOG — close runtime gap ; `./gradlew test` + targeted Vitest green.
+
+### Review Findings (Lot B — patches applied 2026-06-09)
+
+- [x] [Review][Patch] **CAP-4** — `TeamRegressedOrganizerRequestedEvent` sur `COMPLETE → ¬COMPLETE`
+- [x] [Review][Patch] **CAP-4 / AC 11** — Chemin `AssigneeDeclinedEvent` retiré ; lifecycle + `reasonSummary`
+- [x] [Review][Patch] **CAP-4** — `TEAM_REGRESSED` / `ORG_TEAM_REGRESSED` ; retrait `ASSIGNEE_DECLINED`
+- [x] [Review][Patch] **CAP-4** — `CompositionLifecycleTransitionContext` branché (déclin, reset PENDING, unlock, slot clear)
+- [x] [Review][Patch] **CAP-3** — `OrganizerScopeGranted*` + `OrganizerScopeGrantedNotificationService`
+- [x] [Review][Patch] **CAP-3** — Hooks grant saison/événement + promotion `TROUPE_ADMIN`
+- [x] [Review][Patch] **CAP-1** — Copy UI v2 (`Équipe plus complète`, `Nouveau spectacle`, `Compo proposée`)
+- [x] [Review][Patch] **CAP-1** — Payloads `TEAM_REGRESSED` avec `{reasonSummary}`
+- [x] [Review][Patch] **CAP-1 / AC 3** — OpenAPI `ORG_TEAM_REGRESSED` + `ORG_SCOPE_GRANTED`
+- [x] [Review][Patch] **AC 22** — `NOTIFICATIONS_CATALOG.md` aligné runtime v2
+- [x] [Review][Patch] **M3-5** — Vitest `Équipe plus complète` / `org-team-regressed`
+- [x] [Review][Patch] **Tests** — `OrganizerOpsNotificationIntegrationTest` → `TEAM_REGRESSED`
+
+### Lot C — Tests complémentaires & catalogue (AC 7–10, 22, CAP-6)
+
+- [x] **TEAM_REGRESSED edges** — tests intégration déclin, déverrouillage, reset `PENDING` (`OrganizerOpsNotificationIntegrationTest`)
+- [x] **Promotion CAP-3** — email transactionnel + dedupe idempotent (`OrganizerScopeGrantedNotificationIntegrationTest`)
+- [x] **Catalogue AC 22** — `TEAM_REGRESSED` et `ORGANIZER_SCOPE_GRANTED` marqués **Actif** ; cascade/cercle documentés comme retirés
+- [x] **Validation** — `./gradlew test --tests "com.hatcast.api.notification.*"` vert
 
 ---
 

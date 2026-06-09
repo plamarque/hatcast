@@ -43,15 +43,15 @@ class UserNotificationPreferencesService(
         val next = user.notificationPreferences.toMutableMap()
         body.preferences.forEach { (rawKey, patch) ->
             val category = parseCategory(rawKey)
-            val current = next[category] ?: category.defaultPreference()
-            next[category] =
+            val current = storedNotificationPreference(next, category)
+            next[category.name] =
                 NotificationPreference(
                     push = patch.push ?: current.push,
                     email = patch.email ?: current.email,
                 )
         }
 
-        user.notificationPreferences = next
+        user.notificationPreferences = next.withoutLegacyKeys()
         user.updatedAt = Instant.now()
         userRepository.save(user)
         return toResponse(user)
@@ -64,7 +64,7 @@ class UserNotificationPreferencesService(
         channel: NotificationChannel,
     ): Boolean {
         val user = userRepository.findById(userId).orElse(null) ?: return false
-        val preference = user.notificationPreferences[category] ?: category.defaultPreference()
+        val preference = storedNotificationPreference(user.notificationPreferences, category)
         return when (channel) {
             NotificationChannel.PUSH -> preference.push
             NotificationChannel.EMAIL -> preference.email
@@ -107,7 +107,7 @@ class UserNotificationPreferencesService(
                 NotificationCategory.entries
                     .filter { category -> category !in HIDDEN_NOTIFICATION_PREFERENCE_CATEGORIES }
                     .map { category ->
-                        val preference = user.notificationPreferences[category] ?: category.defaultPreference()
+                        val preference = storedNotificationPreference(user.notificationPreferences, category)
                         NotificationPreferenceCategoryDto(
                             key = category.name,
                             label = category.label,

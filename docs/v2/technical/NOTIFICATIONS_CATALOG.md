@@ -1,8 +1,8 @@
 # HatCast V2 — Catalogue des notifications
 
 **Statut :** Référence as-is (runtime V2)  
-**Dernière mise à jour :** 2026-06-09 (story **8.4** livrée — runtime cascade + opt-in orga)  
-**Prochaine revue :** après implémentation v2 ops orga (spec [`spec-notifications-orga-v2`](../../_bmad-output/specs/spec-notifications-orga-v2/SPEC.md)) ou story **6.10c** (`MANUAL_GAP_RECRUITMENT`)  
+**Dernière mise à jour :** 2026-06-09 (story **8.4b** — ops orga v2 : audiences par intent, `TEAM_REGRESSED`, promotion transactionnelle)  
+**Prochaine revue :** story **6.10c** (`MANUAL_GAP_RECRUITMENT`) ou inbox `/accueil`  
 **Brainstorm post-catalog :** [`brainstorming-session-2026-06-07-notifications-post-catalog.md`](../../_bmad-output/brainstorming/brainstorming-session-2026-06-07-notifications-post-catalog.md) (décisions PO 2026-06-08)  
 **Investigation :** [`notifications-catalog-investigation.md`](../../_bmad-output/implementation-artifacts/investigations/notifications-catalog-investigation.md)  
 **Lié à :** [ARCH.md](../../ARCH.md) § Notifications V2 · stories Epic 8 · [SCP notifications 2026-06-01](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-01-notifications-epic8-scope.md)
@@ -31,15 +31,15 @@ Parité V1 (files Firestore, HTML riche) : [`legacy/src/services/notificationTem
 | `EVENT_DETAILS_CHANGED` | **Actif** | Auto — delta date/lieu/format sur événement publié | Roster engagé (dispo ∪ participation) | `EVENT_DETAILS_CHANGED` | 8.8 |
 | `EVENT_ARCHIVED` | **Actif** | Auto — archivage | Roster engagé actif | `EVENT_ARCHIVED` | 8.8 |
 | `TEAM_COMPLETE_MEMBER` | **Actif** | Auto — lifecycle `→ COMPLETE` | Orgas événement + assignés au complet | `TEAM_CONFIRMED` | 8.9 |
-| `COMPOSITION_SHARED` | **Actif** † | Auto — publish brouillon compo | Orgas **événement** (cible v2) | `ORG_DRAFT_COMPOSITION` | 8.4 → v2 |
-| `EVENT_DRAFT_CREATED` | **Actif** † | Auto — création brouillon | Orgas **saison** (cible v2) | `ORG_EVENT_DRAFT_CREATED` | 8.4 → v2 |
-| `SLA_OPEN_AVAILABILITY` | **Actif** † | Programmé — quotidien (~30j, **brouillons** `availabilityOpenedAt IS NULL`) | Cascade orga (runtime 8.4) | `ORG_SLA_OPEN_AVAILABILITY` | 8.4 |
-| `COMPOSITION_INCOMPLETE_WEEKLY` | **Actif** † | Programmé — hebdo (compo validée, non `COMPLETE`) | Orgas événement + saison (escalade, cible v2) | `ORG_COMPOSITION_INCOMPLETE` | 8.4 → v2 |
-| `COMPOSITION_INCOMPLETE_DAILY_J7` | **Actif** † | Programmé — J-7 civil (`Europe/Paris`) | Orgas événement + saison (escalade, cible v2) | `ORG_COMPOSITION_INCOMPLETE` | 8.4 → v2 |
-| `TEAM_COMPLETE` | **Actif** † | Auto — lifecycle `→ COMPLETE` | Orgas **événement** (cible v2) | `ORG_TEAM_COMPLETE` | 8.4 → v2 |
-| `TEAM_REGRESSED` | **Prévu v2** | Auto — lifecycle `COMPLETE → ¬COMPLETE` (compo validée) | Orgas **événement** | `ORG_TEAM_REGRESSED` | v2 |
-| `ASSIGNEE_DECLINED` | **Déprécié** | Remplacé par `TEAM_REGRESSED` (v2) | — | `ORG_ASSIGNEE_DECLINED` | 8.4 |
-| `ORGANIZER_SCOPE_GRANTED` | **Prévu v2** | Auto — grant orga spectacle / saison / admin troupe | Utilisateur promu (email transactionnel) | `ORG_SCOPE_GRANTED` | v2 |
+| `COMPOSITION_SHARED` | **Actif** | Auto — publish brouillon compo | Orgas **événement** | `ORG_DRAFT_COMPOSITION` | 8.4b |
+| `EVENT_DRAFT_CREATED` | **Actif** | Auto — création brouillon | Orgas **saison** | `ORG_EVENT_DRAFT_CREATED` | 8.4b |
+| `SLA_OPEN_AVAILABILITY` | **Actif** | Programmé — quotidien (~30j, **brouillons** `availabilityOpenedAt IS NULL`) | Orgas événement + saison (dédupe/tick) | `ORG_SLA_OPEN_AVAILABILITY` | 8.4b |
+| `COMPOSITION_INCOMPLETE_WEEKLY` | **Actif** | Programmé — hebdo (compo validée, non `COMPLETE`) | Orgas événement + saison (escalade) | `ORG_COMPOSITION_INCOMPLETE` | 8.4b |
+| `COMPOSITION_INCOMPLETE_DAILY_J7` | **Actif** | Programmé — J-7 civil (`Europe/Paris`) | Orgas événement + saison (escalade) | `ORG_COMPOSITION_INCOMPLETE` | 8.4b |
+| `TEAM_COMPLETE` | **Actif** | Auto — lifecycle `→ COMPLETE` | Orgas **événement** | `ORG_TEAM_COMPLETE` | 8.4b |
+| `TEAM_REGRESSED` | **Actif** | Auto — lifecycle `COMPLETE → ¬COMPLETE` (compo validée) | Orgas **événement** | `ORG_TEAM_REGRESSED` | 8.4b |
+| `ASSIGNEE_DECLINED` | **Retiré** | Remplacé par `TEAM_REGRESSED` (8.4b) | — | `ORG_ASSIGNEE_DECLINED` (retiré) | 8.4 |
+| `ORGANIZER_SCOPE_GRANTED` | **Actif** | Auto — grant orga spectacle / saison / admin troupe | Utilisateur promu (email transactionnel) | `ORG_SCOPE_GRANTED` | 8.4b |
 | `TEAM_VALIDATED_FYI` | Câblé, **non émis** | — | — | `TEAM_CONFIRMED` † | *(legacy — voir G-012)* |
 | Intents **proposés** (brainstorm 2026-06-07) | **Backlog proposé** | Voir § [Backlog proposé](#backlog-proposé--brainstorm-2026-06-07) | — | — | G-012, 6.10c, Epic 7 |
 | Share `draw` / `composition` | Manuel hors dispatcher | Copie / WhatsApp | — | — | 6.10 |
@@ -47,7 +47,7 @@ Parité V1 (files Firestore, HTML riche) : [`legacy/src/services/notificationTem
 \* Voir [Tensions produit](#tensions-produit-documentées) — retrait mappé sur une catégorie opt-out.  
 † **Préférence masquée en UI** — intent non émis (`TEAM_VALIDATED_FYI` dead path).  
 ‡ **`COMPOSITION_SHARED` (catégorie membre)** reste masquée en UI ; l’intent mappe sur **`ORG_DRAFT_COMPOSITION`** (opt-in orga).  
-† **Runtime 8.4** : audiences encore **cascade** (et cercle pour `COMPOSITION_SHARED`) jusqu’à impl v2 — voir § [Ops organisateur](#messages-actifs--ops-organisateur-fr31b).
+† **Runtime 8.4b** : audiences **par intent** (délégation explicite) — voir § [Ops organisateur](#messages-actifs--ops-organisateur-fr31b). Cascade/cercle 8.4 **retirés**.
 
 ---
 
@@ -415,7 +415,7 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 
 **Spec cible :** [`spec-notifications-orga-v2`](../../_bmad-output/specs/spec-notifications-orga-v2/SPEC.md) · companions : [`orga-notification-catalog.md`](../../_bmad-output/specs/spec-notifications-orga-v2/orga-notification-catalog.md), [`orga-recipient-rules.md`](../../_bmad-output/specs/spec-notifications-orga-v2/orga-recipient-rules.md).
 
-> **Écart runtime (8.4 livré, 2026-06-08)** : le code utilise encore la **cascade** (event → saison → admin troupe) et l’intent **`ASSIGNEE_DECLINED`**. La section ci-dessous décrit la **cible v2** ; l’implémentation remplacera cascade/cercle par délégation explicite et audiences par intent.
+> **Runtime v2 (story 8.4b)** : audiences par intent (délégation explicite, pas de cascade ni cercle orga) ; `TEAM_REGRESSED` remplace `ASSIGNEE_DECLINED` ; email transactionnel sur promotion orga (`ORGANIZER_SCOPE_GRANTED`).
 
 **Distinction critique :** sur l’edge lifecycle `→ COMPLETE`, **`TEAM_COMPLETE`** (orga, opt-in `ORG_*`) et **`TEAM_COMPLETE_MEMBER`** (membre, opt-out `TEAM_CONFIRMED`) restent dispatchés **indépendamment**.
 
@@ -444,11 +444,9 @@ Après création : ajout/retrait/co-orga **manuel** — pas de resync auto saiso
 
 Dédoublonnage `userId` ; pas de guest-email ; exclusion de l’**acteur** quand `actorUserId` est fourni.
 
-**Runtime 8.4 (livré 2026-06-08, obsolète après v2) :**
+**Jobs planifiés (inchangé) :**
 
-- **Cascade** event → saison → admin troupe (fallback exclusif, pas d’union) pour intents cascade.
-- **Cercle orga** (union event + saison + admin) pour `COMPOSITION_SHARED` uniquement.
-- **`SLA_OPEN_AVAILABILITY`** : brouillons non archivés dont `startsAt` ∈ [aujourd’hui ; +30j] (`OrganizerSlaOpenAvailabilityJob`) — *pas* les spectacles publiés sans dispos (hors scope 8.4).
+- **`SLA_OPEN_AVAILABILITY`** : brouillons non archivés dont `startsAt` ∈ [aujourd’hui ; +30j] (`OrganizerSlaOpenAvailabilityJob`).
 - **Prefs** : groupe `ORGANIZER_ALERTS` opt-in (défaut OFF) ; catégorie membre `COMPOSITION_SHARED` masquée API/UI — intent mappe `ORG_DRAFT_COMPOSITION`.
 - **`hasOrganizerScope`** : admin troupe actif **ou** orga saison/événement avec adhésion troupe `ACTIVE`.
 

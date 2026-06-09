@@ -62,8 +62,8 @@ class MeNotificationPreferencesIntegrationTest {
             .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].emailEnabled").value(true))
             .andExpect(jsonPath("$.categories[?(@.key == 'REMINDER_1_DAY')].pushEnabled").value(true))
             .andExpect(jsonPath("$.categories[?(@.key == 'REMINDER_1_DAY')].emailEnabled").value(true))
-            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_ASSIGNEE_DECLINED')].pushEnabled").value(false))
-            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_ASSIGNEE_DECLINED')].emailEnabled").value(false))
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_TEAM_REGRESSED')].pushEnabled").value(false))
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_TEAM_REGRESSED')].emailEnabled").value(false))
             .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].pushEnabled").value(true))
     }
 
@@ -100,8 +100,8 @@ class MeNotificationPreferencesIntegrationTest {
             .andExpect(jsonPath("$.categories[?(@.key == 'CONFIRMATION_REQUEST')].pushEnabled").value(true))
 
         val refreshed = userRepository.findById(user.id).orElseThrow()
-        assertFalse(refreshed.notificationPreferences[NotificationCategory.AVAILABILITY_REQUEST]?.push ?: true)
-        assertTrue(refreshed.notificationPreferences[NotificationCategory.AVAILABILITY_REQUEST]?.email ?: true)
+        assertFalse(refreshed.notificationPreferences[NotificationCategory.AVAILABILITY_REQUEST.name]?.push ?: true)
+        assertTrue(refreshed.notificationPreferences[NotificationCategory.AVAILABILITY_REQUEST.name]?.email ?: true)
     }
 
     @Test

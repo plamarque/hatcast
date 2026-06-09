@@ -29,10 +29,12 @@ enum class NotificationIntent {
     COMPOSITION_INCOMPLETE_WEEKLY,
     /** J-7 incomplete composition reminder — story 8.4. */
     COMPOSITION_INCOMPLETE_DAILY_J7,
-    /** Team lifecycle reached complete — story 8.4 (organizer cascade only). */
+    /** Team lifecycle reached complete — story 8.4b (event organizers). */
     TEAM_COMPLETE,
-    /** Immediate assignee decline on validated composition — story 8.4. */
-    ASSIGNEE_DECLINED,
+    /** Validated team no longer complete — story 8.4b (replaces ASSIGNEE_DECLINED). */
+    TEAM_REGRESSED,
+    /** Organizer scope newly granted — story 8.4b (transactional email + optional push). */
+    ORGANIZER_SCOPE_GRANTED,
 }
 
 enum class NotificationReminderWindow {
@@ -82,8 +84,8 @@ enum class NotificationCategory(
         "Me prévenir quand un spectacle où j'ai déjà interagi (dispo ou participation) est annulé ou archivé",
         NotificationCategoryGroup.NOTIFICATIONS,
     ),
-    ORG_ASSIGNEE_DECLINED(
-        "Me prévenir quand quelqu'un décline après validation de la compo",
+    ORG_TEAM_REGRESSED(
+        "Me prévenir quand une équipe confirmée n'est plus complète",
         NotificationCategoryGroup.ORGANIZER_ALERTS,
     ),
     ORG_TEAM_COMPLETE(
@@ -99,11 +101,15 @@ enum class NotificationCategory(
         NotificationCategoryGroup.ORGANIZER_ALERTS,
     ),
     ORG_DRAFT_COMPOSITION(
-        "Me prévenir quand un brouillon de compo est partagé dans le cercle orga",
+        "Me prévenir quand une composition est partagée avec le cercle orga",
         NotificationCategoryGroup.ORGANIZER_ALERTS,
     ),
     ORG_EVENT_DRAFT_CREATED(
-        "Me prévenir quand un spectacle brouillon est créé",
+        "Me prévenir quand un spectacle en brouillon est créé (dispos pas encore ouvertes)",
+        NotificationCategoryGroup.ORGANIZER_ALERTS,
+    ),
+    ORG_SCOPE_GRANTED(
+        "Me prévenir par notification push quand on m'ajoute comme orga de spectacle, orga de saison ou admin de troupe",
         NotificationCategoryGroup.ORGANIZER_ALERTS,
     ),
 }
@@ -118,6 +124,25 @@ data class NotificationPreference(
     val push: Boolean = true,
     val email: Boolean = true,
 )
+
+/** JSON storage uses string keys so legacy categories (e.g. ORG_ASSIGNEE_DECLINED) do not break deserialization. */
+typealias StoredNotificationPreferences = Map<String, NotificationPreference>
+
+fun storedNotificationPreference(
+    preferences: StoredNotificationPreferences,
+    category: NotificationCategory,
+): NotificationPreference = preferences[category.name] ?: category.defaultPreference()
+
+fun legacyNotificationPreferenceKeys(preferences: StoredNotificationPreferences): List<String> =
+    preferences.keys.filter { key ->
+        runCatching { NotificationCategory.valueOf(key) }.isFailure
+    }
+
+fun StoredNotificationPreferences.withoutLegacyKeys(): StoredNotificationPreferences {
+    val legacy = legacyNotificationPreferenceKeys(this).toSet()
+    if (legacy.isEmpty()) return this
+    return filterKeys { it !in legacy }
+}
 
 fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = null): NotificationCategory =
     when (this) {
@@ -146,7 +171,8 @@ fun NotificationIntent.toCategory(reminderWindow: NotificationReminderWindow? = 
         NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY -> NotificationCategory.ORG_COMPOSITION_INCOMPLETE
         NotificationIntent.COMPOSITION_INCOMPLETE_DAILY_J7 -> NotificationCategory.ORG_COMPOSITION_INCOMPLETE
         NotificationIntent.TEAM_COMPLETE -> NotificationCategory.ORG_TEAM_COMPLETE
-        NotificationIntent.ASSIGNEE_DECLINED -> NotificationCategory.ORG_ASSIGNEE_DECLINED
+        NotificationIntent.TEAM_REGRESSED -> NotificationCategory.ORG_TEAM_REGRESSED
+        NotificationIntent.ORGANIZER_SCOPE_GRANTED -> NotificationCategory.ORG_SCOPE_GRANTED
     }
 
 fun NotificationCategory.defaultPreference(): NotificationPreference =

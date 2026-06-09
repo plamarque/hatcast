@@ -59,10 +59,9 @@ class OrganizerSlaOpenAvailabilityJob(
         val result = mutableListOf<NotificationDispatchContext>()
         for (event in candidates) {
             val recipients =
-                recipientResolver.resolveOrganizerCascadeRecipients(
+                recipientResolver.resolveEventAndSeasonOrganizerRecipients(
                     eventId = event.id,
                     seasonId = event.season.id,
-                    troupeId = event.season.troupe.id,
                 )
             for (recipient in recipients) {
                 val userId = recipient.userId ?: continue

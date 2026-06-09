@@ -177,6 +177,7 @@ class CompositionSlotAssignmentService(
             compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
         val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val isLocked = composition?.validatedAt != null
+        var slotCleared = false
         val now = Instant.now()
         val participantId = body.participantId
         val beforeSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
@@ -206,12 +207,12 @@ class CompositionSlotAssignmentService(
             )
             recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
         } else if (participantId == null) {
-            val cleared = clearSlot(eventId, roleKey, slotIndex, now)
-            if (composition != null && cleared) {
+            slotCleared = clearSlot(eventId, roleKey, slotIndex, now)
+            if (composition != null && slotCleared) {
                 composition.updatedAt = now
                 compositionRepository.save(composition)
             }
-            if (cleared) {
+            if (slotCleared) {
                 recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, null, beforeSnapshot, AuditActionType.SLOT_CLEARED)
             }
         } else {
@@ -232,7 +233,13 @@ class CompositionSlotAssignmentService(
             recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
         }
 
-        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
+        val lifecycleTransitionContext =
+            if (participantId == null && slotCleared && composition?.validatedAt != null) {
+                CompositionLifecycleTransitionContext(reasonSummary = "place à pourvoir")
+            } else {
+                null
+            }
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle, lifecycleTransitionContext)
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
 

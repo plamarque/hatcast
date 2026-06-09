@@ -164,25 +164,21 @@ class CompositionWorkflowNotificationAdapter(
         )
     }
 
-    override fun notifyAssigneeDeclined(
+    override fun notifyTeamRegressedOrganizer(
         eventId: UUID,
         seasonId: UUID,
         troupeId: UUID,
-        actorUserId: UUID,
-        assigneeDisplayName: String,
-        roleKey: String,
-        slotIndex: Int,
+        reasonSummary: String,
+        actorUserId: UUID?,
     ) {
         dispatcher.dispatch(
             NotificationDispatchContext(
-                intent = NotificationIntent.ASSIGNEE_DECLINED,
+                intent = NotificationIntent.TEAM_REGRESSED,
                 eventId = eventId,
                 seasonId = seasonId,
                 troupeId = troupeId,
                 actorUserId = actorUserId,
-                assigneeDisplayName = assigneeDisplayName,
-                roleKey = roleKey,
-                slotIndex = slotIndex,
+                reasonSummary = reasonSummary,
             ),
         )
     }
