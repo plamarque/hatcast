@@ -1200,8 +1200,8 @@ afin de relancer sans attendre les rappels automatiques, tout en évitant le spa
 
 **Acceptance Criteria**
 
-- **Given** un événement publié avec dispos insuffisantes, **when** l’organisateur déclenche « Rappel dispos », **then** message éditable + envoi push/email selon politique (complète 6.10, intent **MANUAL_AVAILABILITY_NUDGE**).
-- **Given** un rappel déjà envoyé récemment, **when** l’organisateur retente, **then** l’UI avertit (« rappel envoyé il y a X jours ») et demande confirmation explicite.
+- **Given** un événement publié avec dispos insuffisantes, **when** l’organisateur déclenche « Rappel dispos », **then** message éditable + **Copier / WhatsApp** ; transparence via GET `share-recipients` (story **6.23** — remplace envoi bulk UI et intent **MANUAL_AVAILABILITY_NUDGE** via Notifier).
+- **Given** un rappel déjà envoyé récemment, **when** l’organisateur retente, **then** ~~l’UI avertit (« rappel envoyé il y a X jours ») et demande confirmation explicite~~ **N/A UI 6.23** — garde anti-spam POST conservée API seulement ; orga voit qui est *déjà notifié* dans la ligne compacte.
 - **Couverture :** UX-DR7 ; P1 post-MEP ; complète intents auto (**8.4**).
 
 ---

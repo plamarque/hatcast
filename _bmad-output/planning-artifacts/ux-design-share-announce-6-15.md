@@ -40,6 +40,13 @@ supersedes:
   - 'ux-design-hatcast-v2.md § Visual style (V1 mood) — remplacé par shell M3 documenté ici pour 6.15'
 ---
 
+---
+
+> **⚠️ Superseded (UI) — story 6.23 (2026-06-09)**  
+> Les décisions **D4–D7, D10** (bouton **Notifier**, panneau expansible, pastilles canal, garde anti-spam au clic Notifier) sont **retirées de l’UI web**.  
+> **Spec normative actuelle :** [_ux-design-share-announce-manual-only.md_](./ux-design-share-announce-manual-only.md).  
+> Ce document reste une **archive** des stories **6.15–6.17** (shell M3 initial, transparence GET, dispatch API).
+
 # UX Design — Modales Partager / Annoncer (6.15)
 
 **Purpose:** Refondre **`ShareAnnounceDialog`** (stories **6.10** / **6.10b**) pour la **gate V2.0.0** : shell **Material 3** aligné sur le reste de l’app, zone message plus confortable, **copie** + **WhatsApp**, envoi manuel **simplifié** avec retour explicite, et **anti-spam** étendu (au-delà du seul rappel dispos).

@@ -1,7 +1,11 @@
 # Spec technique — transparence partage / annonce (6.17+)
 
+> **⚠️ Partiellement superseded — story 6.23 (2026-06-09)**  
+> **Toujours valide :** GET `share-recipients` (mapping intents → logs, `lastNotifiedAt`), audiences D12, POST notify API.  
+> **UI web obsolète ici :** GUARD-1 (`ConfirmDialog` au clic Notifier), pastilles canal D10, bouton Notifier — voir [_ux-design-share-announce-manual-only.md_](./ux-design-share-announce-manual-only.md).
+
 **Date :** 2026-06-04  
-**Statut :** normatif pour implémentation (complète SPEC § Organizer share and announce, DOMAIN glossaire, UX D10–D12)  
+**Statut :** archive API + contexte 6.17 ; UI web → **6.23**  
 **Prérequis livrés :** stories **6.15** (M3, garde anti-spam), **6.16** (pastilles canal `{ eligible, notified }`), **6.10c** (gear **Relance dispos**)
 
 ---
@@ -17,7 +21,7 @@
 | **NOT-2** | **Dernière notification** | Exposer `lastNotifiedAt` par canal dans GET share-recipients (ISO-8601 UTC) ; UX peut afficher *« Notifié le … »* (tooltip ou `aria-label`). |
 | **GUARD-1** | Anti-spam | Conserver garde **par intent dialog** (`event_manual_share_notify`) + `ConfirmDialog` au clic Notifier (UX D7) ; fenêtre `guardDays` (défaut **3**, `HATCAST_MANUAL_AVAILABILITY_NUDGE_GUARD_DAYS`). |
 
-Références UX : [_ux-design-share-announce-6-15.md_](ux-design-share-announce-6-15.md) (D9, D10, D11, D12).
+Références UX : [_ux-design-share-announce-manual-only.md_](ux-design-share-announce-manual-only.md) (UI **6.23**) ; archive [_ux-design-share-announce-6-15.md_](ux-design-share-announce-6-15.md) (D9–D12 historique).
 
 ---
 

@@ -335,17 +335,17 @@ Several surfaces in the app let organizers **communicate** about a **spectacle**
 
 1. **Message** — **pre-generated** by the app from context (event title, date, roles, link, etc.) but **fully editable** before sending.
 2. **WhatsApp** — one action to **open WhatsApp** with the message (or a prepared share intent), e.g. *« Envoyer par WhatsApp »* with tooltip *« Ouvrir WhatsApp pour partager le message »*.
-3. **Notifications** — **push** and **email** to a **recipient list** derived from the situation (e.g. everyone in the compo), with a clear summary of who can be reached automatically vs **manually**.
+3. **Share manually** — editable message + **Copier / WhatsApp** (story **6.23**). GET `share-recipients` shows who was **already notified** automatically vs who **still needs** manual outreach. The web app does **not** bulk-send from the dialog.
 
-Implement once as a **shared modal (or wizard step)**; only **title**, **default message template**, and **recipient resolution** change per entry point.
+Implement once as a **shared modal**; only **title**, **default message template**, and **recipient resolution** change per entry point.
 
 ### Reference capture
 
 - **File:** [`ux-references/pattern-share-announce-modal-v1.png`](ux-references/pattern-share-announce-modal-v1.png) — example **« Annoncer Compo »** for *Apérock Mai*.
 
-### Structure (cible M3 — story 6.15 ; D10 statut canal 2026-06-04)
+### Structure (cible M3 — story **6.23** ; remplace 6.15 D4/D10)
 
-**Spec détaillée :** [**ux-design-share-announce-6-15.md**](./ux-design-share-announce-6-15.md).
+**Spec normative :** [**ux-design-share-announce-manual-only.md**](./ux-design-share-announce-manual-only.md). Archive 6.15 : [**ux-design-share-announce-6-15.md**](./ux-design-share-announce-6-15.md).
 
 **Header**
 
@@ -354,19 +354,17 @@ Implement once as a **shared modal (or wizard step)**; only **title**, **default
 
 **Message block**
 
-- `mat-form-field appearance="outline"` + `textarea matInput` (autosize) ; default text editable (emojis, roles, deep link).
+- `mat-form-field appearance="outline"` + `textarea matInput` (autosize min ~8 rows) ; default text editable (emojis, roles, deep link).
 
 **Actions (une rangée, sous le message)**
 
-- **Notifier X personnes** — `mat-flat-button color="primary"` (premier).
-- **Copier** — `mat-stroked-button` ; label court *Copier* ; `aria-label="Copier le message"`.
+- **Copier** — `mat-stroked-button` ; label *Copier* ; `aria-label="Copier le message"`.
 - **WhatsApp** — `mat-stroked-button` ; ouvre WhatsApp avec le texte courant.
 
-**Notifications**
+**Destinataires (ligne compacte — M3)**
 
-- Résumé N/X/Y ; liste nominative **repliée** (`mat-expansion-panel`) **sous** la rangée d’actions.
-- **Détail (D10) :** pastilles **email / push** par destinataire — absent · gris · coloré ; **sans** email obfusqué ; légende sous la liste.
-- Garde anti-spam : **ConfirmDialog au clic Notifier** seulement — **pas** de bandeau dans le dialog.
+- Une **seule ligne** flex-wrap sous les actions : lien *N personne(s)* (menu noms) + *déjà notifiées automatiquement* + *Reste à prévenir :* + `mat-chip` par nom.
+- **Pas** de bouton Notifier, panneau expansible, pastilles canal, ni snack post-fermeture dispatch.
 
 **Footer**
 
@@ -391,7 +389,7 @@ Helper : [`share-announce-open.ts`](../../apps/web/src/app/shared/share-announce
 
 ### Visual style
 
-- Shell **Material 3** standard — voir [**ux-design-share-announce-6-15.md**](./ux-design-share-announce-6-15.md) (remplace le mood « carte sombre V1 » de 6.10).
+- Shell **Material 3** standard — voir [**ux-design-share-announce-manual-only.md**](./ux-design-share-announce-manual-only.md) (**6.23**) ; archive [**ux-design-share-announce-6-15.md**](./ux-design-share-announce-6-15.md) (remplace le mood « carte sombre V1 » de 6.10).
 - **Référence capture V1 :** ton et contenu message ; pas le chrome couleur.
 - Tokens `--mat-sys-*` uniquement ; pas de boutons HTML verts V1.
 

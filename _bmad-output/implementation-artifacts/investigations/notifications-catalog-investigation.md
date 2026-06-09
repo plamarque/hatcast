@@ -47,8 +47,8 @@ V2 uses a unified **`NotificationDispatcher`** invoked **after commit** (Spring 
 | Intent | Emits? |
 |--------|--------|
 | `AVAILABILITY_OPENED` | Yes — auto on publish |
-| `MANUAL_AVAILABILITY_ANNOUNCE` | Yes — manual |
-| `MANUAL_AVAILABILITY_NUDGE` | Yes — manual |
+| `MANUAL_AVAILABILITY_ANNOUNCE` | Yes — API POST `share-recipients/notify` (`event`) ; **UI web 6.23 : Copier/WhatsApp only** |
+| `MANUAL_AVAILABILITY_NUDGE` | Yes — API POST (`availability_nudge`) ; **UI web 6.23 : Copier/WhatsApp only** |
 | `CONFIRMATION_REQUEST` | Yes — auto on validate |
 | `RECONFIRMATION_REQUEST` | Yes — auto on revalidate |
 | `REMOVED_FROM_COMPOSITION` | Yes — auto on slot removal (validated) |
