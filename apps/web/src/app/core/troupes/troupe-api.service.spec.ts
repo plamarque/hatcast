@@ -258,6 +258,131 @@ describe('TroupeApiService', () => {
     expect(result.data?.[0].upcomingEventCount).toBe(1)
   })
 
+  it('listMyTroupes réutilise le cache session sans second fetch', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve([]),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const api = service()
+    await api.listMyTroupes()
+    await api.listMyTroupes()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('listMyTroupes({ force: true }) bypass le cache', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve([]),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const api = service()
+    await api.listMyTroupes()
+    await api.listMyTroupes({ force: true })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('listMyTroupes invalide le cache sur 401', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve([]),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const api = service()
+    await api.listMyTroupes()
+    await api.listMyTroupes()
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('ne met pas en cache si invalidateCache pendant un GET in-flight', async () => {
+    let resolveFetch!: (value: unknown) => void
+    const fetchMock = vi.fn().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const api = service()
+    const pending = api.listMyTroupes()
+    api.invalidateCache()
+    resolveFetch({
+      ok: true,
+      status: 200,
+      json: async () => [],
+    })
+    await pending
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => [{ id: 't-2', slug: 'nouvelle', name: 'Nouvelle' }],
+    })
+    const refetched = await api.listMyTroupes()
+
+    expect(refetched.data?.[0]?.id).toBe('t-2')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('createTroupe invalide le cache liste', async () => {
+    document.cookie = 'XSRF-TOKEN=token'
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({ id: 't-new', slug: 'ma-troupe', name: 'Ma Troupe' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [{ id: 't-new', slug: 'ma-troupe', name: 'Ma Troupe' }],
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const api = service()
+    await api.listMyTroupes()
+    await api.createTroupe({ name: 'Ma Troupe' })
+    const refreshed = await api.listMyTroupes()
+
+    expect(refreshed.data).toHaveLength(1)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('invalidateCache force le prochain listMyTroupes à refetch', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve([]),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const api = service()
+    await api.listMyTroupes()
+    api.invalidateCache()
+    await api.listMyTroupes()
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it('addMember envoie POST avec credentials, JSON et CSRF', async () => {
     document.cookie = 'XSRF-TOKEN=token'
     const fetchMock = vi.fn().mockResolvedValue({

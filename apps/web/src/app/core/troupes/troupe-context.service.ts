@@ -19,10 +19,10 @@ export class TroupeContextService {
   /** Troupes résolues par slug pour un admin plateforme sans adhésion. */
   private readonly supplementalTroupes = signal<Map<string, TroupeListItem>>(new Map())
 
-  async load(preferredTroupeId?: string): Promise<boolean> {
+  async load(preferredTroupeId?: string, options?: { force?: boolean }): Promise<boolean> {
     this.loading.set(true)
     this.loadError.set(false)
-    const result = await this.api.listMyTroupes()
+    const result = await this.api.listMyTroupes(options)
     this.loading.set(false)
 
     if (!result.ok) {
@@ -52,7 +52,7 @@ export class TroupeContextService {
   }
 
   async reloadAndSelect(troupeId: string): Promise<boolean> {
-    return this.load(troupeId)
+    return this.load(troupeId, { force: true })
   }
 
   findTroupeBySlug(slug: string): TroupeListItem | undefined {
