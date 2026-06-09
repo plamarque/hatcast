@@ -61,6 +61,25 @@ describe('ChangelogDialog', () => {
     expect(fixture.nativeElement.textContent).toContain('Aucune nouveauté récente');
   });
 
+  it('uses mat-button for Fermer dismiss (not flat primary)', async () => {
+    const { fixture } = await setup({
+      versions: [
+        {
+          version: '1.0.0',
+          date: '2026-06-02',
+          changes: [{ id: '1.0.0-0', emoji: '✨', description: 'Test' }],
+        },
+      ],
+    })
+
+    const closeBtn = fixture.nativeElement.querySelector(
+      '.changelog-dialog__close',
+    ) as HTMLButtonElement
+    expect(closeBtn?.textContent?.trim()).toBe('Fermer')
+    expect(closeBtn?.classList.contains('mat-mdc-button-base')).toBe(true)
+    expect(closeBtn?.classList.contains('mat-mdc-unelevated-button')).toBe(false)
+  })
+
   it('lists versions with emoji changes', async () => {
     const { fixture } = await setup({
       versions: [

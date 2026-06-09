@@ -92,6 +92,8 @@ describe('ShareAnnounceDialog', () => {
     expect(fixture.nativeElement.querySelector('button[mat-flat-button]')).toBeNull()
     expect(fixture.nativeElement.querySelector('h2[mat-dialog-title]')).toBeTruthy()
     expect(fixture.nativeElement.querySelector('.share-announce-dialog__actions-row')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('button[mat-icon-button]')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Fermer')
   })
 
   it('shows compact recipients line with Reste à prévenir chips', async () => {

@@ -103,6 +103,8 @@ describe('EventOrganizersDialog', () => {
     const html = fixture.nativeElement.innerHTML
     expect(html).not.toContain('Retirer')
     expect(fixture.nativeElement.textContent).toContain('Ajouter un·e organisateur·ice')
+    expect(fixture.nativeElement.textContent).toContain('Annuler')
+    expect(fixture.nativeElement.textContent).not.toContain('Fermer')
   })
 
   it('loads troupe members and excludes already assigned organizers from suggestions', async () => {

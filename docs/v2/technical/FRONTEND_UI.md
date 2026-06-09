@@ -47,6 +47,7 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md`](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md) | Détail spectacle — rangée titre + statut, breadcrumb sans titre, onglet Infos (2026-06-06) |
 | [`_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) | Détail cote par personne — waterfall deltas, barre pool, pairs (story **19.7**) |
 | [`_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md`](../../../_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md) | Sélection multi-rôles — `RoleToggleChipSet` (`mat-chip` + `[highlighted]`), Préférences compte |
+| [`_bmad-output/planning-artifacts/ux-design-dialog-patterns.md`](../../../_bmad-output/planning-artifacts/ux-design-dialog-patterns.md) | Fermeture modales — taxonomie M3, libellés Annuler/Fermer, anti double-affordance |
 
 Avant toute story UI, lire la section **checklist** ci-dessous et les **Dev Notes** / AC de la story (souvent sous `_bmad-output/implementation-artifacts/`).
 
@@ -71,6 +72,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 - [ ] **Composant Material d’abord** — boutons (`mat-button`, `mat-stroked-button`, `mat-flat-button`), champs (`mat-form-field`), listes (`mat-list`, `mat-table`), dialogs (`MatDialog`), menus (`mat-menu`), chips (`mat-chip`), onglets (`mat-tab-group`), toolbars (`mat-toolbar`) : pas de `<button class="…">` ou div cliquable custom si Material couvre le cas.
 - [ ] **Icônes** — `mat-icon` + noms [Material Symbols](https://fonts.google.com/icons) déjà utilisés dans l’app (`calendar_month`, `groups`, `settings`, etc.) ; `aria-hidden="true"` sur l’icône décorative si un libellé texte ou `aria-label` porte le sens.
 - [ ] **Dialogs / bottom sheets** — `MatDialog` (ou pattern documenté dans la story) ; pas de overlay maison pour des flux modaux standard.
+- [ ] **Fermeture dialog** — type identifié (formulaire / consultation / picker — cf. [`ux-design-dialog-patterns.md`](../../../_bmad-output/planning-artifacts/ux-design-dialog-patterns.md)) ; libellé dismiss conforme (**Annuler** / **Fermer** / **Plus tard**) ; dismiss en `mat-button` ; **pas** de croix header **et** bouton texte footer sur un dialog standard ; pickers filtre = exception documentée (✕ + Appliquer).
 - [ ] **CDK seulement si nécessaire** — overlay, drag-drop, focus trap : via CDK + tokens, pas de z-index / couleurs arbitraires.
 
 ### Thème, couleurs, typographie
@@ -107,6 +109,8 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 | Bouton HTML stylé en CSS | `mat-button` / `mat-stroked-button` + `routerLink` si lien |
 | Couleur hardcodée `#9333ea` sur un écran | Token ou `color-mix` sur `--mat-sys-primary` |
 | Modale div + `position: fixed` | `MatDialog` + composant standalone |
+| ✕ header + « Fermer » footer sur dialog standard | Une seule affordance (footer texte) — voir `ux-design-dialog-patterns.md` |
+| `mat-flat-button` pour le seul dismiss | `mat-button` pour Annuler / Fermer |
 | Nouvelle barre de navigation basse globale | Top app bar + rail desktop (spec hub) |
 | Dupliquer la logique « dernière saison » / agenda | `LastVisitedSeasonShortcutService`, `member-cross-nav` |
 
@@ -193,6 +197,7 @@ Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
 ```text
 M3 HatCast — revue UI
 [ ] Composants Material (pas de contrôles HTML custom équivalents)
+[ ] Fermeture dialog conforme (ux-design-dialog-patterns.md)
 [ ] Couleurs / typo : --mat-sys-* uniquement (ou color-mix documenté)
 [ ] Mobile ≤480px : lisible, pas de chevauchement chrome
 [ ] Touch + aria-label si label masqué
