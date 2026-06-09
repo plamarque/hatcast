@@ -102,6 +102,8 @@ export class EventInfosTab {
   readonly canManageComposition = input(false)
   /** Incremented by parent when organizers change via admin menu dialog. */
   readonly organizersReloadTrigger = input(0)
+  readonly bootstrapOrganizers = input<OrganizerResponse[] | null>(null)
+  readonly bootstrapCategories = input<TroupeCategory[] | null>(null)
 
   readonly eventUpdated = output<EventResponse>()
 
@@ -155,15 +157,26 @@ export class EventInfosTab {
 
   constructor() {
     effect(() => {
+      const bootstrap = this.bootstrapCategories()
       const troupeId = this.troupeId()
+      if (bootstrap != null) {
+        this.glossary.set(bootstrap)
+        this.glossaryLoading.set(false)
+        return
+      }
       if (troupeId) {
         void this.loadGlossary(troupeId)
       }
     })
     effect(() => {
+      const bootstrap = this.bootstrapOrganizers()
       const seasonId = this.seasonId()
       const eventId = this.event().id
       const _trigger = this.organizersReloadTrigger()
+      if (bootstrap != null) {
+        this.organizers.set(bootstrap)
+        return
+      }
       if (seasonId && eventId) {
         void this.loadOrganizers(seasonId, eventId)
       }

@@ -4,7 +4,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angul
 import { MatDialog } from '@angular/material/dialog'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { BehaviorSubject } from 'rxjs'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
@@ -93,6 +93,7 @@ describe('EventDetail', () => {
   let paramMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   let queryParamMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   let getEventPage: ReturnType<typeof vi.fn>
+  let pagePermissions: typeof defaultSeasonPermissions
   let archiveEvent: ReturnType<typeof vi.fn>
   let unarchiveEvent: ReturnType<typeof vi.fn>
   let mySeasonPermissions: ReturnType<typeof vi.fn>
@@ -113,7 +114,7 @@ describe('EventDetail', () => {
       data: buildEventPage(
         event,
         (options.tab as 'infos' | 'dispos' | 'equipe') ?? 'infos',
-        overrides,
+        { permissions: pagePermissions, ...overrides },
       ),
     }))
   }
@@ -123,10 +124,13 @@ describe('EventDetail', () => {
       convertToParamMap({ troupeSlug: 'troupe', seasonSlug: 'season-a', eventSlug: 'event-2' }),
     )
     queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
+    pagePermissions = { ...defaultSeasonPermissions }
     getEventPage = vi.fn().mockImplementation(async (_seasonId: string, _ref: string, options: { tab?: string } = {}) => ({
       ok: true,
       status: 200,
-      data: buildEventPage(ev('event-2'), (options.tab as 'infos' | 'dispos' | 'equipe') ?? 'infos'),
+      data: buildEventPage(ev('event-2'), (options.tab as 'infos' | 'dispos' | 'equipe') ?? 'infos', {
+        permissions: pagePermissions,
+      }),
     }))
     archiveEvent = vi.fn().mockResolvedValue({ ok: true })
     unarchiveEvent = vi.fn().mockResolvedValue({ ok: true, data: ev('event-2', { archived: false }) })
@@ -228,7 +232,10 @@ describe('EventDetail', () => {
         },
         {
           provide: SeasonApiService,
-          useValue: { getSeasonBySlug },
+          useValue: {
+            getSeasonBySlug,
+            resolveSeasonByTroupeAndSeasonSlug: vi.fn().mockResolvedValue({ ok: false, status: 404 }),
+          },
         },
         {
           provide: EventApiService,
@@ -287,13 +294,13 @@ describe('EventDetail', () => {
   it('replaces UUID route with canonical slug URL', async () => {
     const uuid = 'c0000002-0000-4000-8000-000000000002'
     mockEventPageResponse(ev(uuid, { slug: 'match-vs-bruxelles' }))
-    paramMap$.next(convertToParamMap({ slug: 'season-a', eventSlug: uuid }))
+    paramMap$.next(convertToParamMap({ troupeSlug: 'troupe', seasonSlug: 'season-a', eventSlug: uuid }))
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(getEventPage).toHaveBeenCalledWith('season-1', uuid, expect.objectContaining({ bySlug: false }))
       expect(router.navigate).toHaveBeenCalledWith(
-        ['/saison', 'season-a', 'event', 'match-vs-bruxelles'],
+        ['/saison', 'troupe', 'season-a', 'event', 'match-vs-bruxelles'],
         expect.objectContaining({ replaceUrl: true }),
       )
     })
@@ -306,7 +313,7 @@ describe('EventDetail', () => {
       const labels = [...fixture.nativeElement.querySelectorAll('.event-infos__label')].map(
         (el: Element) => el.textContent?.trim(),
       )
-      expect(labels).toEqual(['Date', 'Lieu', 'Format et besoins'])
+      expect(labels).toEqual(['Date', 'Lieu', 'Format et besoins', 'Catégorie'])
     })
     expect(fixture.nativeElement.textContent).toContain('Description test')
     expect(fixture.nativeElement.textContent).toContain('Paris')
@@ -322,9 +329,7 @@ describe('EventDetail', () => {
   })
 
   it('shows unified admin gear on Infos when canManageEvents', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: false,
         eventOrganizerFor: [],
@@ -336,8 +341,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -359,9 +363,7 @@ describe('EventDetail', () => {
 
   it('includes Annoncer in admin menu when published and canManageComposition', async () => {
     mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }))
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -373,8 +375,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -394,9 +395,7 @@ describe('EventDetail', () => {
 
   it('hides Annoncer in admin menu for draft events', async () => {
     mockEventPageResponse(ev('event-2', { availabilityOpenedAt: null }))
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -408,8 +407,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -443,9 +441,7 @@ describe('EventDetail', () => {
         ],
       },
     })
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -457,8 +453,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -493,9 +488,7 @@ describe('EventDetail', () => {
         ],
       },
     })
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -507,8 +500,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     const cmp = fixture.componentInstance as unknown as {
@@ -563,9 +555,7 @@ describe('EventDetail', () => {
         ],
       },
     })
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -577,8 +567,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     const cmp = fixture.componentInstance as unknown as {
@@ -664,9 +653,7 @@ describe('EventDetail', () => {
         ],
       },
     })
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -678,8 +665,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -714,9 +700,7 @@ describe('EventDetail', () => {
         ],
       },
     })
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -728,8 +712,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     const cmp = fixture.componentInstance as unknown as {
@@ -767,9 +750,7 @@ describe('EventDetail', () => {
 
   it('opens announce dialog from admin menu action', async () => {
     mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }))
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -781,8 +762,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -813,8 +793,9 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       expect((fixture.componentInstance as unknown as EventDetailHarness).activeTab()).toBe('equipe')
-      expect(getComposition).toHaveBeenCalledTimes(1)
+      expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'equipe' }))
     })
+    expect(getComposition).not.toHaveBeenCalled()
     expect(fixture.nativeElement.textContent).toContain('Aucun tirage pour le moment')
   })
 
@@ -841,9 +822,7 @@ describe('EventDetail', () => {
         ],
       },
     })
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: true,
         eventOrganizerFor: ['event-2'],
@@ -855,18 +834,13 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
-    getEventPage.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...ev('event-2', {
-          roleSlots: { ...emptyRoleSlots(), player: 2 },
-        }),
+      }
+    mockEventPageResponse(
+      ev('event-2', {
+        roleSlots: { ...emptyRoleSlots(), player: 2 },
         compositionLifecycle: 'awaitingConfirmations',
-      },
-    })
+      }),
+    )
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -883,18 +857,7 @@ describe('EventDetail', () => {
   })
 
   it('opens composition help panel from event detail status chrome', async () => {
-    getComposition.mockResolvedValue({
-      ok: true,
-      data: {
-        publishedAt: null,
-        validatedAt: null,
-        visibility: 'organizerDraft',
-        slots: [],
-      },
-    })
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: true,
         eventOrganizerFor: ['event-2'],
@@ -906,22 +869,26 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
+      }
+    mockEventPageResponse(
+      ev('event-2', {
+        roleSlots: { ...emptyRoleSlots(), player: 2 },
+      }),
+      {
+        composition: {
+          publishedAt: null,
+          validatedAt: null,
+          visibility: 'organizerDraft',
+          slots: [],
+        },
       },
-    })
-    getEventPage.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...ev('event-2', {
-          roleSlots: { ...emptyRoleSlots(), player: 2 },
-        }),
-      },
-    })
+    )
     queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(getComposition).toHaveBeenCalledTimes(1)
+      expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'equipe' }))
+      expect(getComposition).not.toHaveBeenCalled()
       expect(
         fixture.nativeElement.querySelector('[data-testid="composition-status-help-trigger"]'),
       ).not.toBeNull()
@@ -941,25 +908,7 @@ describe('EventDetail', () => {
   })
 
   it('omits validate sentence from help panel when validate CTA is available on équipe tab', async () => {
-    getComposition.mockResolvedValue({
-      ok: true,
-      data: {
-        publishedAt: null,
-        validatedAt: null,
-        visibility: 'organizerDraft',
-        slots: [
-          {
-            roleKey: 'player',
-            slotIndex: 0,
-            participantId: 'p-1',
-            participationStatus: 'pending',
-          },
-        ],
-      },
-    })
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: true,
         eventOrganizerFor: ['event-2'],
@@ -971,22 +920,33 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
+      }
+    mockEventPageResponse(
+      ev('event-2', {
+        roleSlots: { ...emptyRoleSlots(), player: 2 },
+      }),
+      {
+        composition: {
+          publishedAt: null,
+          validatedAt: null,
+          visibility: 'organizerDraft',
+          slots: [
+            {
+              roleKey: 'player',
+              slotIndex: 0,
+              participantId: 'p-1',
+              participationStatus: 'pending',
+            },
+          ],
+        },
       },
-    })
-    getEventPage.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...ev('event-2', {
-          roleSlots: { ...emptyRoleSlots(), player: 2 },
-        }),
-      },
-    })
+    )
     queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(getComposition).toHaveBeenCalledTimes(1)
+      expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'equipe' }))
+      expect(getComposition).not.toHaveBeenCalled()
       expect(
         fixture.nativeElement.querySelector('[data-testid="composition-status-help-trigger"]'),
       ).not.toBeNull()
@@ -1028,16 +988,12 @@ describe('EventDetail', () => {
         ],
       },
     })
-    getEventPage.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...ev('event-2', {
-          roleSlots: { ...emptyRoleSlots(), player: 2 },
-        }),
+    mockEventPageResponse(
+      ev('event-2', {
+        roleSlots: { ...emptyRoleSlots(), player: 2 },
         compositionLifecycle: 'awaitingConfirmations',
-      },
-    })
+      }),
+    )
     queryParamMap$.next(convertToParamMap({ tab: 'dispos' }))
     fixture.detectChanges()
 
@@ -1054,9 +1010,7 @@ describe('EventDetail', () => {
   })
 
   it('does not show composition draft banner in global status chrome (moved to équipe tab)', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: true,
         eventOrganizerFor: ['event-2'],
@@ -1068,18 +1022,13 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
-    getEventPage.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...ev('event-2', {
-          roleSlots: { ...emptyRoleSlots(), player: 2 },
-          compositionLifecycle: 'draftComposition',
-        }),
-      },
-    })
+      }
+    mockEventPageResponse(
+      ev('event-2', {
+        roleSlots: { ...emptyRoleSlots(), player: 2 },
+        compositionLifecycle: 'draftComposition',
+      }),
+    )
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -1099,7 +1048,7 @@ describe('EventDetail', () => {
       const seasonLink = fixture.nativeElement.querySelector(
         'app-context-breadcrumb a.context-breadcrumb__link',
       ) as HTMLAnchorElement
-      expect(seasonLink?.getAttribute('href')).toBe('/saison/season-a')
+      expect(seasonLink?.getAttribute('href')).toBe('/saison/troupe/season-a')
     })
   })
 
@@ -1149,9 +1098,7 @@ describe('EventDetail', () => {
   })
 
   it('hides Modifier and Désactiver when event is inactive', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: false,
         eventOrganizerFor: [],
@@ -1163,8 +1110,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     mockEventPageResponse(ev('event-2', { archived: true }))
     fixture.detectChanges()
 
@@ -1180,9 +1126,7 @@ describe('EventDetail', () => {
   })
 
   it('reactivates inactive event after confirm', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: false,
         eventOrganizerFor: [],
@@ -1194,8 +1138,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     mockEventPageResponse(ev('event-2', { archived: true }))
     fixture.detectChanges()
 
@@ -1213,27 +1156,28 @@ describe('EventDetail', () => {
   })
 
   it('selects Équipe and auto-opens participation modal when showConfirm=true', async () => {
-    mockEventPageResponse(ev('event-2', {
+    mockEventPageResponse(
+      ev('event-2', {
         roleSlots: { ...emptyRoleSlots(), player: 1 },
-      }))
-    getComposition.mockResolvedValue({
-      ok: true,
-      data: {
-        publishedAt: null,
-        validatedAt: '2026-01-01T00:00:00.000Z',
-        visibility: 'validated',
-        viewerParticipantIds: ['p-me'],
-        slots: [
-          {
-            roleKey: 'player',
-            slotIndex: 0,
-            participantId: 'p-me',
-            participantDisplayName: 'Moi',
-            participationStatus: 'confirmed',
-          },
-        ],
+      }),
+      {
+        composition: {
+          publishedAt: null,
+          validatedAt: '2026-01-01T00:00:00.000Z',
+          visibility: 'validated',
+          viewerParticipantIds: ['p-me'],
+          slots: [
+            {
+              roleKey: 'player',
+              slotIndex: 0,
+              participantId: 'p-me',
+              participantDisplayName: 'Moi',
+              participationStatus: 'confirmed',
+            },
+          ],
+        },
       },
-    })
+    )
 
     queryParamMap$.next(convertToParamMap({ showConfirm: 'true' }))
     fixture.detectChanges()
@@ -1248,9 +1192,7 @@ describe('EventDetail', () => {
   })
 
   it('navigates to event participants admin when season participant admin', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: true,
         eventOrganizerFor: [],
@@ -1262,8 +1204,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: false,
         canManageSeasons: false,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -1277,9 +1218,9 @@ describe('EventDetail', () => {
       eventAdminItems: () => Array<{ label: string }>
       openEventParticipantsAdmin: () => void
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants'])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Annoncer', 'Participants'])
     cmp.openEventParticipantsAdmin()
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-2', 'admin', 'participants'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'troupe', 'season-a', 'event', 'event-2', 'admin', 'participants'])
 
     const trigger = fixture.nativeElement.querySelector(
       '.event-detail-header__admin .scope-admin-menu__trigger',
@@ -1289,9 +1230,7 @@ describe('EventDetail', () => {
   })
 
   it('shows spectacle admin menu for event-only participant admin', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: [],
@@ -1303,8 +1242,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: false,
         canManageSeasons: false,
         eventParticipantAdminFor: ['event-2'],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -1320,13 +1258,11 @@ describe('EventDetail', () => {
     }
     expect(cmp.eventAdminItems()[0]?.label).toBe('Participants')
     cmp.openEventParticipantsAdmin()
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-2', 'admin', 'participants'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'troupe', 'season-a', 'event', 'event-2', 'admin', 'participants'])
   })
 
   it('shows admin gear in header on Dispos tab when permitted', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: false,
         eventOrganizerFor: [],
@@ -1338,8 +1274,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
     await vi.waitFor(() => expect(getEventPage).toHaveBeenCalled())
 
@@ -1352,9 +1287,7 @@ describe('EventDetail', () => {
   })
 
   it('links event organizers to participants admin via Participants menu item', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -1366,8 +1299,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: false,
         canManageSeasons: false,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -1381,15 +1313,13 @@ describe('EventDetail', () => {
       eventAdminItems: () => Array<{ label: string; action?: () => void }>
       openEventParticipantsAdmin: () => void
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants'])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Annoncer', 'Participants'])
     cmp.openEventParticipantsAdmin()
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-2', 'admin', 'participants'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'troupe', 'season-a', 'event', 'event-2', 'admin', 'participants'])
   })
 
   it('shows Participants for season organizer on event admin menu', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: true,
         eventOrganizerFor: ['event-2'],
@@ -1401,8 +1331,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: false,
         canManageSeasons: false,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -1414,7 +1343,7 @@ describe('EventDetail', () => {
     const cmp = fixture.componentInstance as unknown as {
       eventAdminItems: () => Array<{ label: string }>
     }
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Participants'])
+    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Annoncer', 'Participants'])
   })
 
   it('does not render header settings or back chevron after breadcrumb refactor', async () => {
@@ -1443,7 +1372,7 @@ describe('EventDetail', () => {
     const seasonLink = fixture.nativeElement.querySelector(
       'app-context-breadcrumb a.context-breadcrumb__link',
     ) as HTMLAnchorElement
-    expect(seasonLink.getAttribute('href')).toBe('/saison/season-a')
+    expect(seasonLink.getAttribute('href')).toBe('/saison/troupe/season-a')
   })
 
   it('navigates to season agenda after deactivate confirm', async () => {
@@ -1458,7 +1387,7 @@ describe('EventDetail', () => {
     await vi.waitFor(() => {
       expect(archiveEvent).toHaveBeenCalledWith('season-1', 'event-2')
     })
-    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a'])
+    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'troupe', 'season-a'])
   })
 
   it('normalizes unknown tab query param in URL', async () => {
@@ -1502,7 +1431,7 @@ describe('EventDetail', () => {
       const saisonLink = fixture.nativeElement.querySelector(
         'app-context-breadcrumb a.context-breadcrumb__link',
       )
-      expect(saisonLink?.getAttribute('href')).toBe('/saison/season-a')
+      expect(saisonLink?.getAttribute('href')).toBe('/saison/troupe/season-a')
     })
   })
 
@@ -1551,9 +1480,7 @@ describe('EventDetail', () => {
   })
 
   it('syncCompositionFromEquipe patches lifecycle without reloading event', async () => {
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: true,
         eventOrganizerFor: [],
@@ -1565,8 +1492,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: false,
         canManageSeasons: false,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     mockEventPageResponse(ev('event-2', {
         roleSlots: { ...emptyRoleSlots(), player: 2 },
         compositionLifecycle: 'draftComposition',
@@ -1611,9 +1537,7 @@ describe('EventDetail', () => {
         availabilityOpenedAt: '2026-01-01T00:00:00.000Z',
         compositionLifecycle: 'awaitingConfirmations',
       }))
-    mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      data: {
+    pagePermissions = {
         isTroupeAdmin: false,
         isSeasonOrganizer: false,
         eventOrganizerFor: ['event-2'],
@@ -1625,8 +1549,7 @@ describe('EventDetail', () => {
         canManageEventParticipants: true,
         canManageSeasons: true,
         eventParticipantAdminFor: [],
-      },
-    })
+      }
     queryParamMap$.next(convertToParamMap({ tab: 'infos' }))
     fixture.detectChanges()
 
@@ -1727,6 +1650,8 @@ describe('EventDetail', () => {
     queryParamMap$.next(convertToParamMap({ tab: 'dispos' }))
     fixture.detectChanges()
     await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'dispos' })))
-    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+    await vi.waitFor(() => {
+      expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+    })
   })
 })

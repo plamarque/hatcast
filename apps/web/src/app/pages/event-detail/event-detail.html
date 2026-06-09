@@ -62,6 +62,8 @@
               [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
               [canManageComposition]="canManageComposition()"
               [organizersReloadTrigger]="organizersReloadTrigger()"
+              [bootstrapOrganizers]="infosOrganizers()"
+              [bootstrapCategories]="infosCategories()"
               (eventUpdated)="onEventInfosUpdated($event)"
             />
           </section>
@@ -75,7 +77,8 @@
         </ng-template>
         @if (activeTab() === 'dispos') {
           <section class="event-detail__tab-panel">
-            <app-event-dispos-tab
+            @if (isDisposBootstrapReady()) {
+              <app-event-dispos-tab
               [seasonId]="seasonId()"
               [seasonSlug]="slug()"
               [troupeSlug]="routeTroupeSlug()"
@@ -86,8 +89,14 @@
               [canSwitchSubject]="canSwitchSubject()"
               [canManageComposition]="canManageComposition()"
               [explainabilityEnabled]="disposExplainabilityEnabled()"
+              [bootstrapSummary]="disposBootstrapSummary()"
               (summaryChanged)="onDisposSummaryChanged($event)"
             />
+            } @else {
+              <div class="event-detail__spinner" role="status">
+                <mat-spinner diameter="32" />
+              </div>
+            }
           </section>
         }
       </mat-tab>

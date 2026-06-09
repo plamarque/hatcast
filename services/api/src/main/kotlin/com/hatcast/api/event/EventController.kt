@@ -2,6 +2,7 @@ package com.hatcast.api.event
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.dto.CreateEventRequest
+import com.hatcast.api.event.dto.EventPageResponseDto
 import com.hatcast.api.event.dto.EventResponseDto
 import com.hatcast.api.event.dto.PagedEventsResponse
 import com.hatcast.api.event.dto.UpdateEventRequest
@@ -23,6 +24,7 @@ import java.util.UUID
 @RequestMapping("/v1/seasons/{seasonId}/events")
 class EventController(
     private val eventService: EventService,
+    private val eventPageService: EventPageService,
 ) {
     @GetMapping
     fun list(
@@ -54,12 +56,40 @@ class EventController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): EventResponseDto = eventService.getBySlug(seasonId, slug, principal)
 
+    @GetMapping("/by-slug/{slug}/page")
+    fun pageBySlug(
+        @PathVariable seasonId: UUID,
+        @PathVariable slug: String,
+        @RequestParam(defaultValue = "infos") tab: String,
+        @RequestParam(defaultValue = "false") includeChances: Boolean,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventPageResponseDto {
+        val parsedTab =
+            EventPageTab.parse(tab)
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "tab doit être infos, dispos ou equipe")
+        return eventPageService.loadPageBySlug(seasonId, slug, parsedTab, includeChances, principal)
+    }
+
     @GetMapping("/{eventId}")
     fun getById(
         @PathVariable seasonId: UUID,
         @PathVariable eventId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): EventResponseDto = eventService.getById(seasonId, eventId, principal)
+
+    @GetMapping("/{eventId}/page")
+    fun pageById(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @RequestParam(defaultValue = "infos") tab: String,
+        @RequestParam(defaultValue = "false") includeChances: Boolean,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventPageResponseDto {
+        val parsedTab =
+            EventPageTab.parse(tab)
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "tab doit être infos, dispos ou equipe")
+        return eventPageService.loadPageById(seasonId, eventId, parsedTab, includeChances, principal)
+    }
 
     @PostMapping
     fun create(

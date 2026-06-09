@@ -192,13 +192,14 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### PERF-002 — Lenteur globale pages membre V2 (sur-fetch API)
 - **ID**: PERF-002
-- **Status**: Open
+- **Status**: Open (Vague 1 done — Vague 2 in progress)
 - **Severity**: Medium
-- **Affected area**: V2 `apps/web` — agenda, season-home, event-detail, member-shell
-- **Observed behavior** (dev local `--with-push`, 2026-06-09): Pages membre ressenties lentes malgré peu de données ; profilage Playwright : agenda **5,9 s** / **37** appels `/v1/*` dont **32×** `GET /me/preferences` ; coût fixe `GET /me/inbox` ~**850 ms** par navigation.
-- **Expected behavior**: Pages membre courantes ≤ **2 s** ; agenda ≤ **1,5 s** ; NFR-P1/P2 respectés (voir plan).
-- **Fix**: Epic **perf-v2** — stories **PERF-01…08** ; plan [_bmad-output/planning-artifacts/perf-improvement-plan-v2.md](_bmad-output/planning-artifacts/perf-improvement-plan-v2.md) ; baseline `.local/perf-profile/web-perf-2026-06-09T15-32-52-596Z.json` ; mesure `node scripts/v2/profile-web-performance.mjs`.
-- **Notes/context**: Distinct de PERF-001 (mutations composition). V1 Firestore optimizations non applicables.
+- **Affected area**: V2 `apps/web` — agenda, season-home, event-detail, member-shell, accueil
+- **Observed behavior** (dev local `--with-push`, 2026-06-09): Pages membre ressenties lentes malgré peu de données ; baseline Playwright agenda **5,9 s** / **37** appels `/v1/*` (32× preferences).
+- **Post Vague 1** (`.local/perf-profile/web-perf-2026-06-09T19-46-21-738Z.json`, pages prioritaires) : Accueil **1501 ms**, Agenda **1940 ms**, Event Infos **1951 ms**, Dispos **2231 ms**, Équipe **2263 ms** — au-dessus des cibles ; goulots : `me/agenda` ~900 ms, bootstrap event ~10 appels, composition+summary ~1 s Dispos.
+- **Expected behavior**: Pages prioritaires ≤ **1,0–1,5 s** ; NFR-P1/P2 ([perf-improvement-plan-v2-wave2.md](_bmad-output/planning-artifacts/perf-improvement-plan-v2-wave2.md)).
+- **Fix**: Epic **perf-v2** — Vague 1 **PERF-01…08** done ; Vague 2 **PERF-09…15** (BFF event-detail, API agenda, accueil progressif, lazy dispos).
+- **Notes/context**: Script `page.goto` sur-estime vs navigation in-app — PERF-14 prévu.
 
 ### LIMIT-002 — Admin back-office pages still use legacy header (chevron back, no breadcrumb)
 - **ID**: LIMIT-002

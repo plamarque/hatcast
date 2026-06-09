@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-09  
 **Author:** Winston (System Architect) + profiling session Patrice  
-**Status:** Approved for execution (stories PERF-01…PERF-08)  
+**Status:** Vague 1 **done** (PERF-01…08) · Vague 2 **[perf-improvement-plan-v2-wave2.md](perf-improvement-plan-v2-wave2.md)** approved  
 **Trigger:** Lenteur globale ressentie en dev local (peu de données) — profiling Playwright 2026-06-09  
 **Normative refs:** NFR-P1, NFR-P2 ([epics.md](epics.md) § NonFunctional Requirements)
 
@@ -15,6 +15,7 @@
 | `scripts/v2/profile-web-performance.mjs` | Baseline / gate mesure |
 | `.local/perf-profile/web-perf-2026-06-09T15-32-52-596Z.json` | Snapshot baseline |
 | Stories | `_bmad-output/implementation-artifacts/perf-*.md` |
+| **Vague 2** | [perf-improvement-plan-v2-wave2.md](perf-improvement-plan-v2-wave2.md) — pages à fort trafic |
 
 ---
 

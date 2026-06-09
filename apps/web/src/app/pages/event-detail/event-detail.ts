@@ -22,18 +22,16 @@ import {
   isEventDetailTabParamKnown,
   resolveEventDetailTab,
 } from '../../core/events/event-detail-tabs'
-import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
+import { EventApiService, type EventPageTab, type EventPageResponse, type EventResponse } from '../../core/events/event-api.service'
 import {
-  OrganizerApiService,
   type MySeasonPermissions,
+  type OrganizerResponse,
 } from '../../core/permissions/organizer-api.service'
 import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
 import { canShowDisposExplainability } from '../../core/composition/composition-explainability'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
-import {
-  ParticipantApiService,
-  type ParticipantSelector,
-} from '../../core/participants/participant-api.service'
+import type { TroupeCategory } from '../../core/troupes/troupe-api.service'
+import { type ParticipantSelector } from '../../core/participants/participant-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
   saisonEventParticipantsAdminPath,
@@ -114,10 +112,8 @@ export class EventDetail implements OnDestroy, OnInit {
   private readonly analytics = inject(ProductAnalyticsService)
   private readonly auth = inject(AuthApiService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
-  private readonly participantApi = inject(ParticipantApiService)
   private readonly eventsApi = inject(EventApiService)
   private readonly compositionApi = inject(CompositionApiService)
-  private readonly organizerApi = inject(OrganizerApiService)
   private readonly availabilityApi = inject(AvailabilityApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
@@ -128,6 +124,12 @@ export class EventDetail implements OnDestroy, OnInit {
   private loadRequestId = 0
   private compositionLoadInFlight = false
   private lastNotificationLinkCaptureKey = ''
+  private tabBootstrapLoaded = signal<Record<EventPageTab, boolean>>({
+    infos: false,
+    dispos: false,
+    equipe: false,
+  })
+  protected readonly isDisposBootstrapReady = computed(() => this.tabBootstrapLoaded().dispos)
 
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('seasonSlug') ?? '')),
@@ -163,6 +165,9 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly compositionLoaded = signal(false)
   protected readonly compositionInteractionBlocked = signal(false)
   protected readonly disposSummary = signal<EventAvailabilitySummary | null>(null)
+  protected readonly infosOrganizers = signal<OrganizerResponse[] | null>(null)
+  protected readonly infosCategories = signal<TroupeCategory[] | null>(null)
+  protected readonly disposBootstrapSummary = signal<EventAvailabilitySummary | null>(null)
 
   protected readonly canManageEvents = computed(
     () => this.seasonPermissions()?.canManageEvents === true,
@@ -366,7 +371,7 @@ export class EventDetail implements OnDestroy, OnInit {
         replaceUrl: true,
       })
     }
-    this.ensureCompositionLoaded()
+    this.ensureTabBootstrapLoaded()
   }
 
   protected onCompositionInteractionBlockedChange(blocked: boolean): void {
@@ -385,7 +390,7 @@ export class EventDetail implements OnDestroy, OnInit {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     })
-    this.ensureCompositionLoaded()
+    this.ensureTabBootstrapLoaded()
   }
 
   protected tabIndex(): number {
@@ -664,6 +669,10 @@ export class EventDetail implements OnDestroy, OnInit {
       this.compositionLoaded.set(false)
       this.compositionLoadInFlight = false
       this.disposSummary.set(null)
+      this.disposBootstrapSummary.set(null)
+      this.infosOrganizers.set(null)
+      this.infosCategories.set(null)
+      this.tabBootstrapLoaded.set({ infos: false, dispos: false, equipe: false })
       this.resetResolvedContext()
       this.lastNotificationLinkCaptureKey = ''
     }
@@ -700,34 +709,33 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextLeagueTitle.set(resolved.season.title)
     this.contextSeasonSlug.set(resolved.season.slug)
     const isUuidSegment = UUID_IN_PATH_REGEX.test(routeSegment)
-    const [eventResult, permissionsResult, selectorsResult] = await Promise.all([
-      isUuidSegment
-        ? this.eventsApi.getEvent(resolved.season.id, routeSegment)
-        : this.eventsApi.getEventBySlug(resolved.season.id, routeSegment),
-      this.organizerApi.mySeasonPermissions(resolved.season.id),
-      this.participantApi.listSeasonParticipantSelectors(resolved.season.id),
-    ])
+    const pageTab = this.eventDetailTabToPageTab(this.activeTab())
+    const pageResult = await this.eventsApi.getEventPage(resolved.season.id, routeSegment, {
+      tab: pageTab,
+      bySlug: !isUuidSegment,
+    })
 
     if (requestId !== this.loadRequestId) {
       return
     }
     this.loading.set(false)
-    if (!eventResult.ok || !eventResult.data) {
+    if (!pageResult.ok || !pageResult.data) {
       this.resetResolvedContext()
-      if (eventResult.status === 403) {
+      if (pageResult.status === 403) {
         this.snack.open('Accès refusé à ce spectacle.', 'Mon agenda', { duration: 6000 })
         await this.router.navigate(['/agenda'])
         return
       }
       this.snack.open('Spectacle introuvable.', 'OK', { duration: 6000 })
-      if (eventResult.status === 404 && resolved.season.slug) {
+      if (pageResult.status === 404 && resolved.season.slug) {
         await this.router.navigate(
           saisonWorkspacePath(resolved.troupe.slug, resolved.season.slug),
         )
       }
       return
     }
-    const found = eventResult.data
+    this.applyEventPageResponse(pageResult.data, pageTab, { markTabLoaded: pageTab })
+    const found = pageResult.data.event
     if (isUuidSegment && found.slug && found.slug !== routeSegment) {
       await this.router.navigate(
         saisonEventPath(resolved.troupe.slug, resolved.season.slug, found.slug),
@@ -737,23 +745,107 @@ export class EventDetail implements OnDestroy, OnInit {
       })
       return
     }
-    this.event.set(found)
-    this.seasonPermissions.set(permissionsResult.ok && permissionsResult.data ? permissionsResult.data : null)
     this.maybeCaptureNotificationLinkOpened(this.route.snapshot.queryParamMap)
+    this.clampActiveTab()
+    this.ensureTabBootstrapLoaded()
+  }
 
-    this.canSwitchSubject.set(
-      permissionsResult.ok && permissionsResult.data
-        ? canManageCompositionForEvent(permissionsResult.data, found.id)
-        : false,
-    )
+  private eventDetailTabToPageTab(tab: EventDetailTab): EventPageTab {
+    if (tab === 'dispos') {
+      return 'dispos'
+    }
+    if (tab === 'equipe') {
+      return 'equipe'
+    }
+    return 'infos'
+  }
+
+  private applyEventPageResponse(
+    page: EventPageResponse,
+    tab: EventPageTab,
+    options: { markTabLoaded?: EventPageTab } = {},
+  ): void {
+    const found = page.event
+    this.event.set(found)
+    this.seasonPermissions.set(page.permissions)
+    this.canSwitchSubject.set(canManageCompositionForEvent(page.permissions, found.id))
     const user = this.user()
     const linked =
-      selectorsResult.ok && selectorsResult.data && user
-        ? findLinkedSeasonParticipant(selectorsResult.data, user)
+      page.participantSelectors && user
+        ? findLinkedSeasonParticipant(page.participantSelectors, user)
         : null
     this.linkedParticipantId.set(linked?.id ?? null)
     this.linkedParticipantName.set(linked?.displayName ?? null)
-    this.clampActiveTab()
+
+    if (tab === 'infos') {
+      if (page.organizers != null) {
+        this.infosOrganizers.set(page.organizers)
+      }
+      if (page.categories != null) {
+        this.infosCategories.set(page.categories)
+      }
+    }
+    if (tab === 'dispos' && page.availabilitySummary != null) {
+      this.disposSummary.set(page.availabilitySummary)
+      this.disposBootstrapSummary.set(page.availabilitySummary)
+    }
+    if (tab === 'equipe' && page.composition != null) {
+      this.composition.set(page.composition)
+      this.compositionLoaded.set(true)
+      this.compositionLoadInFlight = false
+    }
+
+    const markTab = options.markTabLoaded ?? tab
+    this.tabBootstrapLoaded.update((loaded) => ({ ...loaded, [markTab]: true }))
+  }
+
+  private ensureTabBootstrapLoaded(): void {
+    const tab = this.activeTab()
+    const pageTab = this.eventDetailTabToPageTab(tab)
+    if (this.tabBootstrapLoaded()[pageTab]) {
+      this.ensureCompositionLoaded()
+      return
+    }
+    const ev = this.event()
+    const seasonId = this.seasonId()
+    const routeSegment = this.event()?.slug ?? this.eventSlug()
+    const troupeSlug = this.routeTroupeSlug()
+    const seasonSlug = this.slug()
+    if (!ev || !seasonId || !routeSegment || !troupeSlug || !seasonSlug) {
+      this.ensureCompositionLoaded()
+      return
+    }
+    void this.loadTabBootstrap(troupeSlug, seasonSlug, routeSegment, pageTab)
+  }
+
+  private async loadTabBootstrap(
+    troupeSlug: string,
+    seasonSlug: string,
+    routeSegment: string,
+    tab: EventPageTab,
+  ): Promise<void> {
+    const requestId = this.loadRequestId
+    const seasonId = this.seasonId()
+    if (!seasonId) {
+      return
+    }
+    const isUuidSegment = UUID_IN_PATH_REGEX.test(routeSegment)
+    const pageResult = await this.eventsApi.getEventPage(seasonId, routeSegment, {
+      tab,
+      bySlug: !isUuidSegment,
+    })
+    if (requestId !== this.loadRequestId) {
+      return
+    }
+    if (!pageResult.ok || !pageResult.data) {
+      if (pageResult.status === 403) {
+        this.snack.open('Accès refusé à ce spectacle.', 'Mon agenda', { duration: 6000 })
+        await this.router.navigate(['/agenda'])
+      }
+      this.tabBootstrapLoaded.update((loaded) => ({ ...loaded, [tab]: true }))
+      return
+    }
+    this.applyEventPageResponse(pageResult.data, tab, { markTabLoaded: tab })
     this.ensureCompositionLoaded()
   }
 
