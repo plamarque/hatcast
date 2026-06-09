@@ -71,11 +71,6 @@ import {
   ShareAnnounceDialog,
   type ShareAnnounceDialogData,
 } from '../../shared/share-announce/share-announce-dialog'
-import {
-  SHARE_ANNOUNCE_SNACK_DURATION_MS,
-  shareAnnounceSnackMessage,
-  type ShareAnnounceNotifyResult,
-} from '../../shared/share-announce/share-announce-snack'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
@@ -627,7 +622,7 @@ export class EventEquipeTab {
     }
     const ev = this.event()
     const roleLines = this.buildShareRoleLines()
-    const ref = this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, ShareAnnounceNotifyResult | undefined>(
+    this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, void>(
       ShareAnnounceDialog,
       {
         data: {
@@ -649,13 +644,6 @@ export class EventEquipeTab {
         autoFocus: 'first-titled-element',
       },
     )
-    ref.afterClosed().subscribe((result) => {
-      if (result) {
-        this.snack.open(shareAnnounceSnackMessage(result), 'OK', {
-          duration: SHARE_ANNOUNCE_SNACK_DURATION_MS,
-        })
-      }
-    })
   }
 
   private buildShareRoleLines(): RoleAssignmentLine[] {

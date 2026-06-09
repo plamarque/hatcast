@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-09T18:00:00+02:00"
+last_updated: "2026-06-09T19:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -153,6 +153,7 @@ development_status:
   6-19-export-calendrier-et-navigation-lieu-onglet-infos: done  # UX ux-hatcast-2026-06-05 EXPERIENCE.md — parité V1 calendrier + maps Infos
   6-21-hint-parite-genre-composition-player: done  # P2 — SCP 2026-06-05 G-011 ; depends 2.12* (done) ; UI strip only
   6-22-composition-unlock-preserve-participation: done  # SCP 2026-06-06 — unlock preserve statuses + draft org proxy (G-014)
+  6-23-modales-partager-annoncer-manuel-compact: done  # UX ux-design-share-announce-manual-only.md — approved 2026-06-09 ; Copier/WhatsApp only ; ligne compacte ; code review 2026-06-09
   epic-6-retrospective: optional
 
   epic-7: backlog

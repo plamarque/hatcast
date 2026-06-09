@@ -170,9 +170,9 @@ paths:
   /seasons/{seasonId}/events/{eventId}/composition/declines/{declineId}/restore:
     post:
       tags: [Composition]
-      summary: Remettre en composition un participant ayant décliné
+      summary: Remettre en composition un participant ayant effectué un retrait
       description: >
-        Composition validée requise. Assigne le participant du déclin au premier slot vide
+        Composition validée requise. Assigne le participant du retrait au premier slot vide
         pour le même `roleKey`, supprime la ligne `declines`, met `participationStatus` à
         `pending`, et appelle `requestConfirmationForAssignees` pour ce participant.
         Requiert `canManageComposition`.
@@ -199,7 +199,7 @@ paths:
         '403':
           description: Accès refusé
         '404':
-          description: Déclin inconnu
+          description: Désistement inconnu
         '409':
           description: Composition non validée ou aucun slot vide pour le rôle
 
@@ -315,12 +315,13 @@ paths:
       tags: [Composition]
       summary: Confirmer, remettre en attente ou décliner une participation (self-service ou proxy organisateur)
       description: >
-        Self-service : le participant lié (`viewerParticipantIds`) peut confirmer ou décliner
-        sur son propre slot lorsque la composition est validée (`validatedAt`).
+        Self-service : le participant lié (`viewerParticipantIds`) peut confirmer, se désister
+        (depuis `confirmed`) ou décliner (depuis `pending`) sur son propre slot lorsque la
+        composition est validée (`validatedAt`).
         Proxy organisateur : un utilisateur avec `canManageComposition` peut confirmer,
-        remettre en attente ou décliner pour le compte de tout slot assigné — y compris en
+        remettre en attente ou enregistrer un retrait pour le compte de tout slot assigné — y compris en
         brouillon orga (`validatedAt` null), sans notification membre jusqu'à validation ou
-        re-validation. Décliner libère le slot et enregistre une trace dans `declines` (acteur =
+        re-validation. Un retrait libère le slot et enregistre une trace dans `declines` (acteur =
         utilisateur authentifié, sujet = participant assigné).
       security:
         - cookieAuth: []
@@ -417,10 +418,12 @@ paths:
       description: >
         Liste les destinataires selon l'intent (`draw`, `composition`, `event`, `availability_nudge`).
         Emails obfusqués côté serveur. Requiert `canManageComposition`.
-        Pour `event`, les pastilles `notified` / `lastNotifiedAt` agrègent les logs
-        `AVAILABILITY_OPENED` et `MANUAL_AVAILABILITY_ANNOUNCE` (SENT/PARTIAL).
-        Pour `availability_nudge`, agrégation `AVAILABILITY_OPENED`, `MANUAL_AVAILABILITY_NUDGE`
-        et `MANUAL_AVAILABILITY_ANNOUNCE`.
+        Mapping des logs de livraison (`notified` / `lastNotifiedAt`, statuts SENT/PARTIAL) par intent dialog :
+        `draw` → `COMPOSITION_SHARED` ;
+        `composition` → `CONFIRMATION_REQUEST`, `RECONFIRMATION_REQUEST` ;
+        `event` → `AVAILABILITY_OPENED`, `MANUAL_AVAILABILITY_ANNOUNCE` ;
+        `availability_nudge` → `AVAILABILITY_OPENED`, `MANUAL_AVAILABILITY_NUDGE`,
+        `MANUAL_AVAILABILITY_ANNOUNCE`, `AVAILABILITY_PENDING_REMINDER`.
       security:
         - cookieAuth: []
       parameters:
@@ -450,9 +453,13 @@ paths:
 
   /seasons/{seasonId}/events/{eventId}/share-recipients/notify:
     post:
+      deprecated: true
       tags: [Composition]
       summary: Envoyer les notifications manuelles
       description: >
+        **Deprecated for web UI (story 6.23)** — l'application web n'appelle plus cet endpoint ;
+        partage manuel via Copier / WhatsApp uniquement. Endpoint conservé pour appels API directs
+        ou callers futurs.
         Dispatch `MANUAL_AVAILABILITY_ANNOUNCE` pour `event`, `MANUAL_AVAILABILITY_NUDGE`
         pour `availability_nudge` ; `draw` / `composition` restent stub (notifiedCount=0).
         Requiert `canManageComposition`.

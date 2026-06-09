@@ -436,7 +436,7 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!this.canAnnouncePublishedEvent()) {
       return
     }
-    openEventAnnounceDialog(this.dialog, this.snack, {
+    openEventAnnounceDialog(this.dialog, {
       seasonId,
       seasonSlug,
       troupeSlug,
@@ -455,7 +455,7 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!this.canRelanceDispos()) {
       return
     }
-    openAvailabilityNudgeDialog(this.dialog, this.snack, {
+    openAvailabilityNudgeDialog(this.dialog, {
       seasonId,
       seasonSlug,
       troupeSlug,

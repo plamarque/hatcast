@@ -21,8 +21,8 @@ Parité V1 (files Firestore, HTML riche) : `[legacy/src/services/notificationTem
 | Intent                                       | Statut                 | Déclenchement                                                               | Audience                                 | Préférence (catégorie)               | Story                   |
 | -------------------------------------------- | ---------------------- | --------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------ | ----------------------- |
 | `AVAILABILITY_OPENED`                        | **Actif**              | Auto — publication dispos                                                   | Roster concerné                          | `AVAILABILITY_REQUEST`               | 8.3, 3.21               |
-| `MANUAL_AVAILABILITY_ANNOUNCE`               | **Actif**              | Manuel — Share `event`                                                      | Roster concerné                          | `AVAILABILITY_REQUEST`               | 6.10                    |
-| `MANUAL_AVAILABILITY_NUDGE`                  | **Actif**              | Manuel — Share `availability_nudge`                                         | Dispos `unknown`                         | `AVAILABILITY_REQUEST`               | 6.10b                   |
+| `MANUAL_AVAILABILITY_ANNOUNCE`               | **Actif** (API)        | Manuel — Share `event` *(dispatch API ; UI web 6.23 : Copier/WhatsApp seulement)* | Roster concerné                          | `AVAILABILITY_REQUEST`               | 6.10, 6.23              |
+| `MANUAL_AVAILABILITY_NUDGE`                  | **Actif** (API)        | Manuel — Share `availability_nudge` *(idem — UI web n'appelle plus POST notify)* | Dispos `unknown`                         | `AVAILABILITY_REQUEST`               | 6.10b, 6.23             |
 | `CONFIRMATION_REQUEST`                       | **Actif**              | Auto — validate compo                                                       | Assignés                                 | `CONFIRMATION_REQUEST`               | 8.3                     |
 | `RECONFIRMATION_REQUEST`                     | **Actif**              | Auto — revalidate                                                           | Assignés pending                         | `CONFIRMATION_REQUEST`               | 8.5                     |
 | `REMOVED_FROM_COMPOSITION`                   | **Actif**              | Auto — retrait slot (validée)                                               | Ancien assigné                           | `CONFIRMATION_REQUEST` *             | 8.5                     |
@@ -43,7 +43,7 @@ Parité V1 (files Firestore, HTML riche) : `[legacy/src/services/notificationTem
 | `ORGANIZER_SCOPE_GRANTED`                    | **Actif**              | Auto — grant orga spectacle / saison / admin troupe                         | Utilisateur promu (email transactionnel) | `ORG_SCOPE_GRANTED`                  | 8.4b                    |
 | `TEAM_VALIDATED_FYI`                         | Câblé, **non émis**    | —                                                                           | —                                        | `TEAM_CONFIRMED` †                   | *(legacy — voir G-012)* |
 | Intents **proposés** (brainstorm 2026-06-07) | **Backlog proposé**    | Voir § [Backlog proposé](#backlog-proposé--brainstorm-2026-06-07)           | —                                        | —                                    | G-012, 6.10c, Epic 7    |
-| Share `draw` / `composition`                 | Manuel hors dispatcher | Copie / WhatsApp                                                            | —                                        | —                                    | 6.10                    |
+| Share `draw` / `composition` / `event` / `availability_nudge` | Manuel hors dispatcher | Copie / WhatsApp (UI web)                                                   | —                                        | —                                    | 6.10, 6.23              |
 
 
  Voir [Tensions produit](#tensions-produit-documentées) — retrait mappé sur une catégorie opt-out.  
@@ -448,9 +448,9 @@ Modèle **opt-out** : clé JSON absente → **autorisé**. Toggles **push** et *
 | Type                         | Description                    | Exemples                                          |
 | ---------------------------- | ------------------------------ | ------------------------------------------------- |
 | **Automatique**              | Jalon domaine, après commit DB | Publication dispos, validate, proxy, retrait slot |
-| **Manuel**                   | Envoi explicite orga           | Share/Announce (`event`, `availability_nudge`)    |
+| **Manuel**                   | Envoi explicite orga (API POST notify) | Share/Announce `event`, `availability_nudge` — **conservé API, non appelé UI web 6.23** |
 | **Programmé**                | Cron Spring `@Scheduled`       | Rappels présence J-7 / J-1                        |
-| **Manuel (hors dispatcher)** | Copie / WhatsApp uniquement    | Share `draw`, `composition`                       |
+| **Manuel (hors dispatcher)** | Copie / WhatsApp uniquement    | Share `draw`, `composition`, `event`, `availability_nudge` (UI web) |
 
 
 ---
@@ -483,7 +483,7 @@ Deep links : **format API** (deux segments) — voir [Contrat d’URL](#contrat-
 
 | Champ             | Valeur                                               |
 | ----------------- | ---------------------------------------------------- |
-| **Déclenchement** | Manuel — Share/Announce, intent `event`              |
+| **Déclenchement** | Manuel — Share/Announce, intent `event` *(POST notify API ; UI web 6.23 : Copier/WhatsApp seulement)* |
 | **Audience**      | Roster concerné                                      |
 | **Préférence**    | `AVAILABILITY_REQUEST`                               |
 | **Push title**    | `📢 Annonce spectacle`                               |
@@ -500,7 +500,7 @@ Texte défaut front : `buildAvailabilityAnnouncementMessage` dans `share-announc
 
 | Champ             | Valeur                                                                                   |
 | ----------------- | ---------------------------------------------------------------------------------------- |
-| **Déclenchement** | Manuel — intent `availability_nudge` (story 6.10b)                                       |
+| **Déclenchement** | Manuel — intent `availability_nudge` (story 6.10b) *(POST notify API ; UI web 6.23 : Copier/WhatsApp seulement)* |
 | **Audience**      | Roster avec dispos **unknown** uniquement                                                |
 | **Préférence**    | `AVAILABILITY_REQUEST`                                                                   |
 | **Push title**    | `⏰ Rappel disponibilité`                                                                 |

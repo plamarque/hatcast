@@ -1,18 +1,12 @@
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { of } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
 import { buildWhatsAppSendUrl } from '../../core/messaging/share-announce-messages'
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
-import { ConfirmDialog } from '../../pages/seasons-list/confirm-dialog'
-import {
-  formatManualNotifyGuardAge,
-  ShareAnnounceDialog,
-  type ShareAnnounceDialogData,
-} from './share-announce-dialog'
+import { ShareAnnounceDialog, type ShareAnnounceDialogData } from './share-announce-dialog'
 
 const recipientsMock = {
   ok: true as const,
@@ -61,8 +55,6 @@ async function configureDialog(
   data: ShareAnnounceDialogData,
   options?: {
     getRecipients?: ReturnType<typeof vi.fn>
-    sendNotifications?: ReturnType<typeof vi.fn>
-    matDialogOpen?: ReturnType<typeof vi.fn>
   },
 ): Promise<ComponentFixture<ShareAnnounceDialog>> {
   await TestBed.configureTestingModule({
@@ -74,22 +66,12 @@ async function configureDialog(
         provide: ShareAnnounceApiService,
         useValue: {
           getRecipients: options?.getRecipients ?? vi.fn().mockResolvedValue(recipientsMock),
-          sendNotifications:
-            options?.sendNotifications ??
-            vi.fn().mockResolvedValue({
-              ok: true,
-              status: 200,
-              data: { accepted: true, notifiedCount: 0, manualCount: 0, intent: data.intent },
-            }),
         },
       },
       {
         provide: MatSnackBar,
         useValue: { open: vi.fn() },
       },
-      ...(options?.matDialogOpen
-        ? [{ provide: MatDialog, useValue: { open: options.matDialogOpen } }]
-        : []),
     ],
   }).compileComponents()
   const fixture = TestBed.createComponent(ShareAnnounceDialog)
@@ -97,16 +79,8 @@ async function configureDialog(
   return fixture
 }
 
-describe('formatManualNotifyGuardAge', () => {
-  it('uses natural French for same day, yesterday, and older', () => {
-    expect(formatManualNotifyGuardAge(0)).toBe("aujourd'hui")
-    expect(formatManualNotifyGuardAge(1)).toBe('hier')
-    expect(formatManualNotifyGuardAge(2)).toBe('il y a 2 jours')
-  })
-})
-
 describe('ShareAnnounceDialog', () => {
-  it('prefills draw template and shows M3 share actions', async () => {
+  it('prefills draw template and shows only Copier and WhatsApp actions', async () => {
     const fixture = await configureDialog(baseDialogData)
     await vi.waitFor(() => {
       const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement
@@ -114,17 +88,33 @@ describe('ShareAnnounceDialog', () => {
     })
     expect(fixture.nativeElement.textContent).toContain('Copier')
     expect(fixture.nativeElement.textContent).toContain('WhatsApp')
+    expect(fixture.nativeElement.textContent).not.toContain('Notifier')
+    expect(fixture.nativeElement.querySelector('button[mat-flat-button]')).toBeNull()
     expect(fixture.nativeElement.querySelector('h2[mat-dialog-title]')).toBeTruthy()
     expect(fixture.nativeElement.querySelector('.share-announce-dialog__actions-row')).toBeTruthy()
   })
 
-  it('loads recipients summary with compact copy', async () => {
+  it('shows compact recipients line with Reste à prévenir chips', async () => {
     const fixture = await configureDialog(baseDialogData)
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('notifiable')
+      expect(fixture.nativeElement.textContent).toContain('Reste à prévenir')
     })
-    expect(fixture.nativeElement.textContent).toContain('concernée')
-    expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('Bob')
+    expect(fixture.nativeElement.textContent).toContain('1 personne')
+    expect(fixture.nativeElement.textContent).toContain('déjà notifiée automatiquement')
+    expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeNull()
+    expect(fixture.nativeElement.querySelector('mat-chip')).toBeTruthy()
+  })
+
+  it('uses updated hint and textarea min rows', async () => {
+    const fixture = await configureDialog(baseDialogData)
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain(
+        'Copier et WhatsApp utilisent le texte ci-dessus.',
+      )
+    })
+    const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement
+    expect(textarea.getAttribute('cdkautosizeminrows')).toBe('8')
   })
 
   it('copies message to clipboard and shows snack', async () => {
@@ -205,7 +195,55 @@ describe('ShareAnnounceDialog', () => {
     expect(title?.textContent?.trim()).toBe('Annonce de spectacle')
   })
 
-  it('rowAriaLabel includes French date when lastNotifiedAt is set', async () => {
+  it('opens already-notified menu on link click', async () => {
+    const fixture = await configureDialog(baseDialogData)
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.share-announce-dialog__already-link')).toBeTruthy()
+    })
+
+    const linkBtn = fixture.nativeElement.querySelector(
+      '.share-announce-dialog__already-link',
+    ) as HTMLButtonElement
+    expect(linkBtn.getAttribute('aria-label')).toBe('1 personne déjà notifiée — afficher les noms')
+    linkBtn.click()
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      const menuItem = document.querySelector('.mat-mdc-menu-item')
+      expect(menuItem?.textContent?.trim()).toBe('Alice')
+    })
+  })
+
+  it('shows only Reste à prévenir when nobody was notified yet', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        total: 1,
+        notifiableCount: 1,
+        manualCount: 0,
+        recipients: [
+          {
+            participantId: 'p-3',
+            displayName: 'Carol',
+            emailObfuscated: 'car••@ex••.com',
+            channels: {
+              email: { eligible: true, notified: false },
+              push: { eligible: false, notified: false },
+            },
+          },
+        ],
+      },
+    })
+    const fixture = await configureDialog(baseDialogData, { getRecipients })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Reste à prévenir')
+    })
+    expect(fixture.nativeElement.textContent).toContain('Carol')
+    expect(fixture.nativeElement.textContent).not.toContain('déjà notifiées automatiquement')
+    expect(fixture.nativeElement.querySelector('.share-announce-dialog__already-link')).toBeNull()
+  })
+
+  it('shows only already-notified segment when everyone was notified', async () => {
     const getRecipients = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -219,272 +257,35 @@ describe('ShareAnnounceDialog', () => {
             displayName: 'Alice',
             emailObfuscated: 'ali••@ex••.com',
             channels: {
-              email: {
-                eligible: true,
-                notified: true,
-                lastNotifiedAt: '2026-06-02T14:30:00.000Z',
-              },
+              email: { eligible: true, notified: true },
               push: { eligible: false, notified: false },
             },
           },
         ],
       },
     })
-    const fixture = await configureDialog({ ...baseDialogData, intent: 'event' }, { getRecipients })
-    await vi.waitFor(() => {
-      expect(fixture.componentInstance['recipientCards']().length).toBe(1)
-    })
-    const label = fixture.componentInstance['rowAriaLabel'](fixture.componentInstance['recipientCards']()[0])
-    expect(label).toContain('email déjà envoyé le')
-    expect(label).toMatch(/juin.*2026/i)
-  })
-
-  it('places Notifier before Copier in the actions row', async () => {
-    const fixture = await configureDialog(baseDialogData)
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Notifier 1 personne')
-    })
-    const row = fixture.nativeElement.querySelector(
-      '.share-announce-dialog__actions-row',
-    ) as HTMLElement
-    const buttons = [...row.querySelectorAll('button')] as HTMLButtonElement[]
-    const notifyBtn = row.querySelector('button[mat-flat-button]') as HTMLButtonElement
-    const copyBtn = buttons.find((btn) => btn.textContent?.includes('Copier'))
-    expect(copyBtn).toBeTruthy()
-    expect(buttons.indexOf(notifyBtn)).toBeLessThan(buttons.indexOf(copyBtn!))
-    expect(buttons[0]).toBe(notifyBtn)
-  })
-
-  it('does not show auto-notif info bandeau on published event', async () => {
-    const fixture = await configureDialog({
-      ...baseDialogData,
-      intent: 'availability_nudge',
-      availabilityOpenedAt: '2026-01-01T00:00:00.000Z',
-    })
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('notifiable')
-    })
-    expect(fixture.nativeElement.textContent).not.toContain('ouverture des disponibilités')
-  })
-
-  it('does not show guard bandeau before notify click for draw', async () => {
-    const getRecipients = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...recipientsMock.data,
-        lastManualNotifyAt: new Date().toISOString(),
-      },
-    })
-
     const fixture = await configureDialog(baseDialogData, { getRecipients })
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('notifiable')
+      expect(fixture.nativeElement.textContent).toContain('déjà notifiée automatiquement.')
     })
-    expect(fixture.nativeElement.textContent).not.toContain('déjà été enregistré pour')
+    expect(fixture.nativeElement.textContent).not.toContain('Reste à prévenir')
+    expect(fixture.nativeElement.querySelector('mat-chip')).toBeNull()
   })
 
-  it('does not show guard bandeau before notify click for nudge', async () => {
+  it('shows empty recipients hint when roster is empty', async () => {
     const getRecipients = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       data: {
-        ...recipientsMock.data,
-        lastManualNotifyAt: new Date().toISOString(),
-      },
-    })
-
-    const fixture = await configureDialog(
-      { ...baseDialogData, intent: 'availability_nudge' },
-      { getRecipients },
-    )
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('notifiable')
-    })
-    expect(fixture.nativeElement.textContent).not.toContain('rappel de disponibilité a déjà été envoyé')
-  })
-
-  it('opens confirm dialog and blocks send when guard is active and user declines', async () => {
-    const getRecipients = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...recipientsMock.data,
-        lastManualNotifyAt: new Date().toISOString(),
-      },
-    })
-    const sendNotifications = vi.fn()
-    const matDialogOpen = vi.fn().mockReturnValue({ afterClosed: () => of(false) })
-
-    await TestBed.configureTestingModule({
-      imports: [ShareAnnounceDialog, NoopAnimationsModule],
-      providers: [
-        { provide: MatDialogRef, useValue: { close: vi.fn() } },
-        {
-          provide: MAT_DIALOG_DATA,
-          useValue: { ...baseDialogData, intent: 'availability_nudge' as const },
-        },
-        {
-          provide: ShareAnnounceApiService,
-          useValue: { getRecipients, sendNotifications },
-        },
-        { provide: MatSnackBar, useValue: { open: vi.fn() } },
-      ],
-    }).compileComponents()
-    TestBed.overrideProvider(MatDialog, { useValue: { open: matDialogOpen } })
-
-    const fixture = TestBed.createComponent(ShareAnnounceDialog)
-    fixture.detectChanges()
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Notifier 1 personne')
-    })
-
-    const notifyBtn = fixture.nativeElement.querySelector(
-      'button[mat-flat-button]',
-    ) as HTMLButtonElement
-    notifyBtn.click()
-    await vi.waitFor(() => {
-      expect(matDialogOpen).toHaveBeenCalledWith(
-        ConfirmDialog,
-        expect.objectContaining({
-          data: expect.objectContaining({
-            message: expect.stringMatching(
-              /Un rappel de disponibilité a déjà été envoyé pour .+ (aujourd'hui|hier|il y a \d+ jours)\./,
-            ),
-          }),
-        }),
-      )
-    })
-    expect(sendNotifications).not.toHaveBeenCalled()
-  })
-
-  it('sends after confirm when guard is active and user accepts', async () => {
-    const getRecipients = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...recipientsMock.data,
-        lastManualNotifyAt: new Date().toISOString(),
-      },
-    })
-    const sendNotifications = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        accepted: true,
-        notifiedCount: 1,
+        total: 0,
+        notifiableCount: 0,
         manualCount: 0,
-        intent: 'availability_nudge',
+        recipients: [],
       },
     })
-    const matDialogOpen = vi.fn().mockReturnValue({ afterClosed: () => of(true) })
-    const close = vi.fn()
-
-    await TestBed.configureTestingModule({
-      imports: [ShareAnnounceDialog, NoopAnimationsModule],
-      providers: [
-        { provide: MatDialogRef, useValue: { close } },
-        {
-          provide: MAT_DIALOG_DATA,
-          useValue: { ...baseDialogData, intent: 'availability_nudge' as const },
-        },
-        {
-          provide: ShareAnnounceApiService,
-          useValue: { getRecipients, sendNotifications },
-        },
-        { provide: MatSnackBar, useValue: { open: vi.fn() } },
-      ],
-    }).compileComponents()
-    TestBed.overrideProvider(MatDialog, { useValue: { open: matDialogOpen } })
-
-    const fixture = TestBed.createComponent(ShareAnnounceDialog)
-    fixture.detectChanges()
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Notifier 1 personne')
-    })
-
-    const notifyBtn = fixture.nativeElement.querySelector(
-      'button[mat-flat-button]',
-    ) as HTMLButtonElement
-    notifyBtn.click()
-    await vi.waitFor(() => {
-      expect(sendNotifications).toHaveBeenCalled()
-      expect(close).toHaveBeenCalledWith({
-        intent: 'availability_nudge',
-        notifiedCount: 1,
-        manualCount: 0,
-      })
-    })
-  })
-
-  it('uses dynamic notify button label from notifiableCount', async () => {
-    const fixture = await configureDialog(baseDialogData)
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Notifier 1 personne')
-    })
-  })
-
-  it('shows channel pills and legend without obfuscated email in expanded detail', async () => {
-    const fixture = await configureDialog(baseDialogData)
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeTruthy()
-    })
-
-    const header = fixture.nativeElement.querySelector(
-      'mat-expansion-panel-header',
-    ) as HTMLElement
-    header.click()
-    fixture.detectChanges()
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain(
-        'Icône colorée = déjà notifié · grise = prévu au prochain envoi · absente = canal indisponible',
-      )
-    })
-
-    expect(fixture.nativeElement.textContent).not.toContain('ali••@ex••.com')
-    expect(fixture.nativeElement.textContent).toContain('Contact manuel')
-    const mailIcon = fixture.nativeElement.querySelector(
-      '.share-announce-dialog__channels mat-icon',
-    ) as HTMLElement
-    expect(mailIcon?.classList.contains('mat-primary')).toBe(true)
-    expect(mailIcon?.classList.contains('share-announce-dialog__channel--pending')).toBe(false)
-  })
-
-  it('shows pending grey channel icon when eligible but not yet notified', async () => {
-    const getRecipients = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        ...recipientsMock.data,
-        recipients: [
-          {
-            participantId: 'p-3',
-            displayName: 'Carol',
-            emailObfuscated: 'car••@ex••.com',
-            channels: {
-              email: { eligible: true, notified: false },
-              push: { eligible: true, notified: false },
-            },
-          },
-        ],
-      },
-    })
-
     const fixture = await configureDialog(baseDialogData, { getRecipients })
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('mat-expansion-panel')).toBeTruthy()
+      expect(fixture.nativeElement.textContent).toContain('Aucun destinataire pour cette action.')
     })
-
-    const header = fixture.nativeElement.querySelector(
-      'mat-expansion-panel-header',
-    ) as HTMLElement
-    header.click()
-    fixture.detectChanges()
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelectorAll('.share-announce-dialog__channel--pending').length).toBe(2)
-    })
-    expect(
-      fixture.nativeElement.querySelector('.share-announce-dialog__channels .mat-primary'),
-    ).toBeNull()
   })
 })

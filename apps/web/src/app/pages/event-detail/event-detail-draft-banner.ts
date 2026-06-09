@@ -72,7 +72,7 @@ export class EventDetailDraftBanner {
       }
       this.eventUpdated.emit(result.data)
       this.snack.open('Spectacle publié.', 'OK', { duration: 4000 })
-      openEventAnnounceDialog(this.dialog, this.snack, {
+      openEventAnnounceDialog(this.dialog, {
         seasonId: this.seasonId(),
         seasonSlug: this.seasonSlug(),
         troupeSlug: this.troupeSlug(),
