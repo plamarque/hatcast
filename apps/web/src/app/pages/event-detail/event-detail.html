@@ -70,7 +70,7 @@
 
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="event-detail__tab-icon" aria-hidden="true">grid_on</mat-icon>
+          <mat-icon class="event-detail__tab-icon" aria-hidden="true">ballot</mat-icon>
           Dispos
         </ng-template>
         @if (activeTab() === 'dispos') {
@@ -105,6 +105,9 @@
             [event]="ev"
             [canManageComposition]="canManageComposition()"
             [showConfirmPending]="showConfirmPending()"
+            [compositionLoadManagedByParent]="true"
+            [parentComposition]="composition()"
+            [parentCompositionLoaded]="compositionLoaded()"
             (compositionPublished)="syncCompositionFromEquipe($event)"
             (compositionInteractionBlockedChange)="onCompositionInteractionBlockedChange($event)"
           />

@@ -1,6 +1,7 @@
+import type { CompositionLifecycle } from './composition-lifecycle'
 import type { CompositionResponse } from './composition-api.service'
 import { quotedEquipeActionLabel } from './composition-equipe-actions'
-import { ROLE_DISPLAY_ORDER } from '../events/event-types'
+import { normalizeRoleSlots, ROLE_DISPLAY_ORDER } from '../events/event-types'
 
 export type CompositionEquipeStatusType =
   | 'none'
@@ -67,6 +68,58 @@ function withGuideline(
   return {
     ...status,
     managerGuideline: canManageComposition ? guideline : null,
+  }
+}
+
+/**
+ * Event DTO fallback for status chrome on Infos (PERF-03) — no GET /composition.
+ * Uses server `compositionLifecycle` only; omits slot-level states (À composer, À vérifier).
+ */
+export function resolveCompositionEquipeStatusFromEvent(
+  event: { compositionLifecycle?: string; roleSlots?: Record<string, number> },
+  canManageComposition: boolean,
+  suppressValidateCtaInGuideline = false,
+): CompositionEquipeStatus | null {
+  const roleSlots = normalizeRoleSlots(event.roleSlots ?? {})
+  if (requiredSlotKeys(roleSlots).length === 0) {
+    return null
+  }
+  const lifecycle = event.compositionLifecycle as CompositionLifecycle | undefined
+  if (!lifecycle || lifecycle === 'preparing') {
+    return null
+  }
+
+  switch (lifecycle) {
+    case 'complete':
+      return withGuideline(
+        { type: 'complete', label: 'Équipe complète', tone: 'success' },
+        `Équipe complète : Utilisez ${quotedEquipeActionLabel('announce')} pour la diffusion, ou ${quotedEquipeActionLabel('unlock')} pour modifier la composition.`,
+        canManageComposition,
+      )
+    case 'gapsToFill':
+      return withGuideline(
+        { type: 'slots_to_complete', label: 'À compléter', tone: 'warning' },
+        `À compléter : La composition est validée mais certains emplacements sont vides. Cliquez dans un emplacement vide ou utilisez ${quotedEquipeActionLabel('fill')} pour un tirage sur les créneaux restants.`,
+        canManageComposition,
+      )
+    case 'awaitingConfirmations':
+      return withGuideline(
+        { type: 'pending_confirmation', label: 'Confirmations en cours', tone: 'info' },
+        `Confirmations en cours : Utilisez ${quotedEquipeActionLabel('announce')} pour informer les participants et recueillir leurs confirmations. La composition est visible par tous. ${quotedEquipeActionLabel('unlock')} permet de revenir en édition.`,
+        canManageComposition,
+      )
+    case 'draftComposition': {
+      const draftGuideline = suppressValidateCtaInGuideline
+        ? `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la aux responsables si vous le désirez.`
+        : `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la via ${quotedEquipeActionLabel('share')} si besoin, puis ${quotedEquipeActionLabel('validate')} pour la rendre visible à tous.`
+      return withGuideline(
+        { type: 'draft', label: 'En préparation', tone: 'info' },
+        draftGuideline,
+        canManageComposition,
+      )
+    }
+    default:
+      return null
   }
 }
 

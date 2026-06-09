@@ -61,7 +61,7 @@ import {
   computeRawCompositionLifecycle,
 } from '../../core/composition/composition-lifecycle'
 import { canValidateComposition as resolveCanValidateComposition } from '../../core/composition/composition-equipe-actions'
-import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
+import { resolveCompositionEquipeStatus, resolveCompositionEquipeStatusFromEvent } from '../../core/composition/composition-equipe-status'
 import { normalizeRoleSlots } from '../../core/events/event-types'
 import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { EventEquipeTab } from './event-equipe-tab'
@@ -126,6 +126,7 @@ export class EventDetail implements OnDestroy, OnInit {
   private routeSubscription = Subscription.EMPTY
   private querySubscription = Subscription.EMPTY
   private loadRequestId = 0
+  private compositionLoadInFlight = false
   private lastNotificationLinkCaptureKey = ''
 
   protected readonly slug = toSignal(
@@ -272,15 +273,23 @@ export class EventDetail implements OnDestroy, OnInit {
   )
   protected readonly equipeStatus = computed(() => {
     const ev = this.event()
-    if (!ev || !this.compositionLoaded()) {
+    if (!ev) {
       return null
     }
-    return resolveCompositionEquipeStatus({
-      composition: this.composition(),
-      canManageComposition: this.canManageComposition(),
-      roleSlots: normalizeRoleSlots(ev.roleSlots),
-      suppressValidateCtaInGuideline: this.canValidateComposition(),
-    })
+    const suppressValidateCta = this.canValidateComposition()
+    if (this.compositionLoaded() && this.composition()) {
+      return resolveCompositionEquipeStatus({
+        composition: this.composition(),
+        canManageComposition: this.canManageComposition(),
+        roleSlots: normalizeRoleSlots(ev.roleSlots),
+        suppressValidateCtaInGuideline: suppressValidateCta,
+      })
+    }
+    return resolveCompositionEquipeStatusFromEvent(
+      ev,
+      this.canManageComposition(),
+      suppressValidateCta,
+    )
   })
   protected readonly canViewAuditEvent = computed(() => {
     const ev = this.event()
@@ -353,6 +362,7 @@ export class EventDetail implements OnDestroy, OnInit {
         replaceUrl: true,
       })
     }
+    this.ensureCompositionLoaded()
   }
 
   protected onCompositionInteractionBlockedChange(blocked: boolean): void {
@@ -371,6 +381,7 @@ export class EventDetail implements OnDestroy, OnInit {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     })
+    this.ensureCompositionLoaded()
   }
 
   protected tabIndex(): number {
@@ -469,7 +480,7 @@ export class EventDetail implements OnDestroy, OnInit {
 
   private applyEventDetailUpdate(before: EventResponse, after: EventResponse): void {
     this.event.set(after)
-    void this.loadDisposSummary(after)
+    this.refreshDisposSummaryIfLoaded(after)
     const message = this.eventUpdateSnackMessage(before, after)
     this.snack.open(message, 'OK', { duration: 4000 })
   }
@@ -556,7 +567,7 @@ export class EventDetail implements OnDestroy, OnInit {
     const r = await this.eventsApi.unarchiveEvent(seasonId, ev.id)
     if (r.ok && r.data) {
       this.event.set(r.data)
-      void this.loadDisposSummary(r.data)
+      this.refreshDisposSummaryIfLoaded(r.data)
       this.snack.open('Spectacle réactivé.', 'OK', { duration: 4000 })
     } else {
       this.snack.open('Réactivation impossible.', 'OK', { duration: 6000 })
@@ -565,7 +576,7 @@ export class EventDetail implements OnDestroy, OnInit {
 
   protected onEventInfosUpdated(updated: EventResponse): void {
     this.event.set(updated)
-    void this.loadDisposSummary(updated)
+    this.refreshDisposSummaryIfLoaded(updated)
   }
 
   private maybeCaptureNotificationLinkOpened(params: ParamMap): void {
@@ -647,6 +658,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.event.set(null)
       this.composition.set(null)
       this.compositionLoaded.set(false)
+      this.compositionLoadInFlight = false
       this.disposSummary.set(null)
       this.resetResolvedContext()
       this.lastNotificationLinkCaptureKey = ''
@@ -725,9 +737,6 @@ export class EventDetail implements OnDestroy, OnInit {
     this.seasonPermissions.set(permissionsResult.ok && permissionsResult.data ? permissionsResult.data : null)
     this.maybeCaptureNotificationLinkOpened(this.route.snapshot.queryParamMap)
 
-    void this.loadDisposSummary(found)
-    void this.loadComposition(resolved.season.id, found.id)
-
     this.canSwitchSubject.set(
       permissionsResult.ok && permissionsResult.data
         ? canManageCompositionForEvent(permissionsResult.data, found.id)
@@ -741,6 +750,7 @@ export class EventDetail implements OnDestroy, OnInit {
     this.linkedParticipantId.set(linked?.id ?? null)
     this.linkedParticipantName.set(linked?.displayName ?? null)
     this.clampActiveTab()
+    this.ensureCompositionLoaded()
   }
 
   private clampActiveTab(): void {
@@ -763,6 +773,34 @@ export class EventDetail implements OnDestroy, OnInit {
     this.contextSeasonSlug.set('')
   }
 
+  private refreshDisposSummaryIfLoaded(event: EventResponse): void {
+    if (this.disposSummary() == null) {
+      return
+    }
+    void this.loadDisposSummary(event)
+  }
+
+  private ensureCompositionLoaded(): void {
+    if (this.activeTab() !== 'equipe') {
+      return
+    }
+    const ev = this.event()
+    const seasonId = this.seasonId()
+    if (!ev || !seasonId) {
+      return
+    }
+    if (this.compositionLoaded()) {
+      if (this.composition() != null) {
+        return
+      }
+      this.compositionLoaded.set(false)
+    }
+    if (this.compositionLoadInFlight) {
+      return
+    }
+    void this.loadComposition(seasonId, ev.id)
+  }
+
   private async loadDisposSummary(event: EventResponse): Promise<void> {
     const seasonId = this.seasonId()
     const perms = this.seasonPermissions()
@@ -783,16 +821,30 @@ export class EventDetail implements OnDestroy, OnInit {
   }
 
   private async loadComposition(seasonId: string, eventId: string): Promise<void> {
-    const result = await this.compositionApi.getComposition(seasonId, eventId)
-    if (seasonId !== this.seasonId() || eventId !== this.event()?.id) {
+    if (this.compositionLoadInFlight) {
       return
     }
-    if (result.ok && result.data) {
-      this.composition.set(result.data)
-    } else {
-      this.composition.set(null)
+    this.compositionLoadInFlight = true
+    const requestId = this.loadRequestId
+    try {
+      const result = await this.compositionApi.getComposition(seasonId, eventId)
+      if (requestId !== this.loadRequestId) {
+        return
+      }
+      if (seasonId !== this.seasonId() || eventId !== this.event()?.id) {
+        return
+      }
+      if (result.ok && result.data) {
+        this.composition.set(result.data)
+      } else {
+        this.composition.set(null)
+      }
+      this.compositionLoaded.set(true)
+    } finally {
+      if (requestId === this.loadRequestId) {
+        this.compositionLoadInFlight = false
+      }
     }
-    this.compositionLoaded.set(true)
   }
 
   protected canManageEventOrganizersFor(eventId: string): boolean {

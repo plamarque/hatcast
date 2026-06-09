@@ -131,6 +131,10 @@ export class EventEquipeTab {
   readonly event = input.required<EventResponse>()
   readonly canManageComposition = input(false)
   readonly showConfirmPending = input(false)
+  /** When true, parent owns GET /composition (PERF-03 — single fetch). */
+  readonly compositionLoadManagedByParent = input(false)
+  readonly parentComposition = input<CompositionResponse | null>(null)
+  readonly parentCompositionLoaded = input(false)
 
   readonly compositionPublished = output<CompositionResponse>()
   readonly compositionInteractionBlockedChange = output<boolean>()
@@ -422,6 +426,19 @@ export class EventEquipeTab {
 
     let previousEventId: string | null = null
     effect(() => {
+      if (this.compositionLoadManagedByParent()) {
+        const loaded = this.parentCompositionLoaded()
+        const comp = this.parentComposition()
+        if (loaded) {
+          this.composition.set(comp)
+          this.loading.set(false)
+          this.loadError.set(comp == null)
+        } else {
+          this.loading.set(true)
+          this.loadError.set(false)
+        }
+        return
+      }
       const eventId = this.event().id
       const seasonId = this.seasonId()
       if (eventId !== previousEventId) {
