@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-09T16:20:00+02:00
+# last_updated: 2026-06-09T17:45:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-09T16:10:00+02:00"
+last_updated: "2026-06-09T18:20:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -320,3 +320,15 @@ development_status:
   20-6-api-prestige-points-total-participant-saison: backlog
   20-7-ui-score-prestige-stats-saison: backlog
   epic-20-retrospective: optional
+
+  # Perf V2 — front + API read paths (plan 2026-06-09)
+  epic-perf-v2: in-progress
+  perf-01-deduplicate-me-preferences: done
+  perf-02-inbox-badge-cache: backlog
+  perf-03-event-detail-tab-gated-load: backlog
+  perf-04-session-context-cache: backlog
+  perf-05-viewer-gender-props: backlog
+  perf-06-inbox-api-profiling: backlog
+  perf-07-season-workspace-bootstrap-bff: backlog
+  perf-08-lazy-routes-angular: backlog
+  epic-perf-v2-retrospective: optional

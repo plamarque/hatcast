@@ -66,6 +66,7 @@
               <app-agenda-participation-status
                 [myAvailabilityStatus]="ev.myAvailabilityStatus"
                 [participantFocus]="ev.participantFocus"
+                [viewerGender]="viewerGender()"
                 [canEditAvailability]="canEditAvailabilityOnCard(ev)"
                 [canConfirmParticipation]="canConfirmParticipationOnCard(ev)"
                 (availabilityClick)="onStatusAvailabilityClick(ev.id, $event.status)"

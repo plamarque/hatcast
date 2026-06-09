@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing'
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest'
 
+import { MePreferencesApiService } from '../account/me-preferences-api.service'
 import { AuthApiService } from './auth-api.service'
 import { FirebaseAuthService } from './firebase-auth.service'
 
@@ -134,6 +135,25 @@ describe('AuthApiService', () => {
         body: JSON.stringify({ idToken: 'jwt-google', rememberMe: false }),
       }),
     )
+  })
+
+  it('logout invalide le cache des préférences membre', async () => {
+    const invalidateCache = vi.fn()
+    TestBed.resetTestingModule()
+    TestBed.configureTestingModule({
+      providers: [
+        AuthApiService,
+        { provide: FirebaseAuthService, useValue: { getAuthOrNull: () => null } },
+        { provide: MePreferencesApiService, useValue: { invalidateCache } },
+      ],
+    })
+
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await TestBed.inject(AuthApiService).logout()
+
+    expect(invalidateCache).toHaveBeenCalledTimes(1)
   })
 
   it('logout : POST /v1/auth/logout et efface la préférence « se souvenir de moi » si OK (sans client Firebase)', async () => {

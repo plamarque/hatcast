@@ -95,6 +95,7 @@ import {
   type SeasonFormDialogData,
 } from '../seasons-list/season-form-dialog'
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import type { MemberGender } from '../../core/account/member-gender'
 import { CompositionApiService } from '../../core/composition/composition-api.service'
 import { openAgendaAvailabilityDialog } from '../../shared/availability/open-agenda-availability-dialog'
 import { openAgendaParticipationDialog } from '../../shared/composition/open-agenda-participation-dialog'
@@ -147,6 +148,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   private pinnedFilterLoadRequestId = 0
 
   private readonly pinnedFilterEvents = signal<EventResponse[]>([])
+  private lastSeenPreferencesRevision = -1
 
   constructor() {
     effect(() => {
@@ -156,6 +158,17 @@ export class SeasonHome implements OnDestroy, OnInit {
         view === 'history' ? this.selectedHistoryEventIds() : this.selectedEventIds()
       const loaded = view === 'history' ? this.pastEvents() : this.events()
       void this.syncPinnedFilterEvents(seasonId, selectedIds, loaded)
+    })
+    effect(() => {
+      const revision = this.mePreferencesApi.cacheRevision()
+      if (revision === this.lastSeenPreferencesRevision) {
+        return
+      }
+      this.lastSeenPreferencesRevision = revision
+      if (revision === 0) {
+        return
+      }
+      void this.loadViewerGender()
     })
   }
 
@@ -182,6 +195,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly season = signal<SeasonResponse | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
+  protected readonly viewerGender = signal<MemberGender | undefined>(undefined)
   protected readonly events = signal<EventResponse[]>([])
   protected readonly totalElements = signal(0)
   protected readonly eventsTruncated = signal(false)
@@ -428,6 +442,7 @@ export class SeasonHome implements OnDestroy, OnInit {
         return
       }
       this.user.set(r.data.user)
+      await this.loadViewerGender()
       const snapshotParams = this.route.snapshot?.queryParamMap
       if (snapshotParams) {
         this.applyQueryParams(snapshotParams)
@@ -1012,8 +1027,6 @@ export class SeasonHome implements OnDestroy, OnInit {
     if (!focus.inTeam || !focus.compositionRoleKey) {
       return
     }
-    const prefs = await this.mePreferencesApi.getPreferences()
-    const viewerGender = prefs.ok ? prefs.data?.gender : undefined
     const result = await openAgendaParticipationDialog(
       this.dialog,
       this.compositionApi,
@@ -1025,7 +1038,7 @@ export class SeasonHome implements OnDestroy, OnInit {
         eventStartsAt: ev.startsAt,
         roleKey: focus.compositionRoleKey,
         currentStatus: focus.slotParticipationStatus ?? 'pending',
-        viewerGender,
+        viewerGender: this.viewerGender(),
       },
     )
     if (!result) {
@@ -1037,6 +1050,13 @@ export class SeasonHome implements OnDestroy, OnInit {
       ),
     )
     await this.loadUpcomingEvents({ force: true })
+  }
+
+  private async loadViewerGender(): Promise<void> {
+    const prefs = await this.mePreferencesApi.getPreferences()
+    if (prefs.ok && prefs.data) {
+      this.viewerGender.set(prefs.data.gender)
+    }
   }
 
   protected loadMoreEvents(): void {

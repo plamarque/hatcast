@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -21,6 +21,8 @@ import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redir
 import { LastVisitedSeasonShortcutService } from '../../core/navigation/last-visited-season-shortcut.service'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
 import { saisonEventPath, troupeHubPath } from '../../core/navigation/troupe-routes'
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import type { MemberGender } from '../../core/account/member-gender'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 
 @Component({
@@ -38,6 +40,7 @@ import { AgendaParticipationStatus } from '../../shared/participation/agenda-par
 })
 export class MemberHomeTodo implements OnInit, OnDestroy {
   private readonly auth = inject(AuthApiService)
+  private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly inboxApi = inject(MeInboxApiService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
   protected readonly seasonShortcut = inject(LastVisitedSeasonShortcutService)
@@ -55,8 +58,24 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   protected readonly nextEvent = signal<AgendaCardEnrichedItem | null>(null)
   protected readonly noParticipation = signal(false)
   protected readonly referenceNow = signal(new Date())
+  protected readonly viewerGender = signal<MemberGender | undefined>(undefined)
 
   private ghostTimer: ReturnType<typeof setTimeout> | null = null
+  private lastSeenPreferencesRevision = -1
+
+  constructor() {
+    effect(() => {
+      const revision = this.mePreferencesApi.cacheRevision()
+      if (revision === this.lastSeenPreferencesRevision) {
+        return
+      }
+      this.lastSeenPreferencesRevision = revision
+      if (revision === 0) {
+        return
+      }
+      void this.loadViewerGender()
+    })
+  }
   protected readonly seasonStatsLink = computed(() => {
     const slug = this.seasonShortcut.seasonSlug()?.trim()
     return slug ? this.seasonShortcut.link() : null
@@ -104,6 +123,7 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
       await this.redirectToLogin()
       return
     }
+    await this.loadViewerGender()
     this.loadingSession.set(false)
     void this.seasonShortcut.refresh()
     await this.loadInbox()
@@ -254,6 +274,13 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     return {
       ...(description ? { description } : {}),
       ...(location ? { location } : {}),
+    }
+  }
+
+  private async loadViewerGender(): Promise<void> {
+    const prefs = await this.mePreferencesApi.getPreferences()
+    if (prefs.ok && prefs.data) {
+      this.viewerGender.set(prefs.data.gender)
     }
   }
 

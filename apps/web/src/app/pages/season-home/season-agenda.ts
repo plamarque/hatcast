@@ -1,6 +1,7 @@
 import { Component, input, output } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 
+import type { MemberGender } from '../../core/account/member-gender'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import { isEventDraft } from '../../core/events/event-draft'
 import type { MonthEventGroup } from './season-events.utils'
@@ -41,6 +42,8 @@ export class SeasonAgenda {
   readonly filtersExcludeAll = input(false)
   /** Slug → display label for category badges (story 17.8). */
   readonly categoryLabels = input<Record<string, string>>({})
+  /** Preloaded viewer gender — avoids per-card preferences fetch (PERF-01). */
+  readonly viewerGender = input<MemberGender | undefined>(undefined)
 
   readonly eventClick = output<string>()
   readonly loadMoreClick = output<void>()

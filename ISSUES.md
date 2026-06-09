@@ -190,6 +190,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Fix**: Story **6.11** — suppression rechargements redondants (`loadEvent`, GET composition post-tirage) ; fast path API mutations (commit `a92d260`). Résiduel ~1 s sur `POST /composition/draw` en dev : **pas de profiling serveur supplémentaire** (décision produit 2026-05-27, tirage non fréquent).
 - **Notes/context**: Perçu acceptable après panneau préparation + animation.
 
+### PERF-002 — Lenteur globale pages membre V2 (sur-fetch API)
+- **ID**: PERF-002
+- **Status**: Open
+- **Severity**: Medium
+- **Affected area**: V2 `apps/web` — agenda, season-home, event-detail, member-shell
+- **Observed behavior** (dev local `--with-push`, 2026-06-09): Pages membre ressenties lentes malgré peu de données ; profilage Playwright : agenda **5,9 s** / **37** appels `/v1/*` dont **32×** `GET /me/preferences` ; coût fixe `GET /me/inbox` ~**850 ms** par navigation.
+- **Expected behavior**: Pages membre courantes ≤ **2 s** ; agenda ≤ **1,5 s** ; NFR-P1/P2 respectés (voir plan).
+- **Fix**: Epic **perf-v2** — stories **PERF-01…08** ; plan [_bmad-output/planning-artifacts/perf-improvement-plan-v2.md](_bmad-output/planning-artifacts/perf-improvement-plan-v2.md) ; baseline `.local/perf-profile/web-perf-2026-06-09T15-32-52-596Z.json` ; mesure `node scripts/v2/profile-web-performance.mjs`.
+- **Notes/context**: Distinct de PERF-001 (mutations composition). V1 Firestore optimizations non applicables.
+
 ### LIMIT-002 — Admin back-office pages still use legacy header (chevron back, no breadcrumb)
 - **ID**: LIMIT-002
 - **Status**: Fixed

@@ -35,6 +35,14 @@
 
 ---
 
+## Deferred from: code review of perf-01-deduplicate-me-preferences (2026-06-09)
+
+- GET en échec non mis en cache — retry à chaque appel ; pattern d’erreur préexistant, impact marginal avec dedup parent (`me-preferences-api.service.ts`).
+- Pas de sync multi-onglets — cache mémoire process ; limitation navigateur hors scope PERF-01.
+- Échec silencieux `loadViewerGender` — signal reste `undefined`, pas de retry ; pattern préexistant sur les trois pages parentes.
+
+---
+
 ## Deferred from: code review of 6-24-participation-copy-declinaison-desistement-retrait (2026-06-09)
 
 - Dispatch proxy par égalité de `decisionLabel` (fragile si labels changent) — pattern préexistant étendu, pas introduit par 6.24.
