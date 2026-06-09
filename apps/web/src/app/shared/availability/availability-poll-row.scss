@@ -278,6 +278,49 @@
   padding: 0.5rem;
 }
 
+.poll-row__pool-neutral {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.poll-row__pool-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.85rem;
+  max-width: 100%;
+  padding: 0.28rem 0.45rem 0.28rem 0.3rem;
+  border-radius: 0.4rem;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--mat-sys-tertiary) 78%, black),
+    color-mix(in srgb, var(--mat-sys-tertiary) 62%, black)
+  );
+  color: var(--mat-sys-on-tertiary);
+  min-width: min(100%, calc(1.25rem + 0.3rem + 5ch + 0.6rem));
+}
+
+.poll-row__pool-chip-avatar {
+  flex-shrink: 0;
+}
+
+.poll-row__pool-chip-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poll-row__pool-empty {
+  margin: 0;
+  padding: 0.15rem 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .poll-row__vote-line {
     transition: none;

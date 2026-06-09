@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-09T21:30:00+02:00"
+last_updated: "2026-06-09T22:18:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -128,6 +128,7 @@ development_status:
   5-6-dispos-onglet-material-3-et-commentaire: done
   5-7-summary-dispos-lecture-sans-ecriture: done
   5-8-dispos-onglet-sondage-unifie: done
+  5-9-dispos-explainability-gate-decouple: done  # SCP 2026-06-09 — split Dispos vs Équipe explainability gates
   epic-5-retrospective: optional
 
   epic-6: in-progress
@@ -327,9 +328,18 @@ development_status:
   perf-01-deduplicate-me-preferences: done
   perf-02-inbox-badge-cache: done
   perf-03-event-detail-tab-gated-load: review
-  perf-04-session-context-cache: backlog
-  perf-05-viewer-gender-props: backlog
+  perf-04-session-context-cache: done
+  perf-05-viewer-gender-props: done
   perf-06-inbox-api-profiling: done
   perf-07-season-workspace-bootstrap-bff: done
   perf-08-lazy-routes-angular: done
   epic-perf-v2-retrospective: optional
+
+  # Perf V2 wave 2 — high-traffic pages (plan 2026-06-09)
+  perf-10-event-detail-page-bff: ready-for-dev
+  perf-11-me-agenda-api-hot-path: backlog
+  perf-12-accueil-progressive-render: backlog
+  perf-13-dispos-lazy-composition-explainability: backlog
+  perf-09-member-shell-bootstrap-resolver: backlog
+  perf-14-profiling-script-in-app-nav: backlog
+  perf-15-composition-summary-api-hot-path: backlog

@@ -1,5 +1,19 @@
 import type { CompositionResponse } from './composition-api.service'
 
+/** Mirrors backend [DisposExplainabilityAccess.canShowExplainability]. */
+export function canShowDisposExplainability(
+  event: { availabilityOpenedAt?: string | null; archived: boolean },
+  canManageComposition: boolean,
+): boolean {
+  if (event.archived) {
+    return false
+  }
+  if (event.availabilityOpenedAt != null) {
+    return true
+  }
+  return canManageComposition
+}
+
 /** Mirrors backend [CompositionExplainabilityAccess.canShowExplainability]. */
 export function canShowCompositionExplainability(
   canManageComposition: boolean,

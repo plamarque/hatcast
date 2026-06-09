@@ -1040,6 +1040,23 @@ afin de corriger des cas réels tout en laissant une trace d’audit.
 
 ---
 
+#### Story 5.9 : Portes explainability Dispos vs Équipe *(SCP 2026-06-09)*
+
+En tant que **membre** sur un spectacle publié,  
+je veux **voir pool, % et breakdown sur Dispos** pendant la collecte des dispos,  
+afin de **comprendre mes chances sans voir le brouillon de composition sur Équipe**.
+
+**Acceptance Criteria**
+
+1. **Given** spectacle **publié** sans composition, **when** membre `includeChances=true`, **then** `chancePercent` renvoyé (FR24 Dispos).
+2. **Given** même membre, **when** GET composition, **then** slots masqués (FR22).
+3. **Given** orga brouillon compo, **when** Dispos ou Équipe explainability, **then** autorisé.
+4. **Given** membre post-déverrouillage (FR23), **when** Dispos, **then** pool/% visibles ; Équipe slots masqués.
+5. **Given** spectacle brouillon/archivé, **when** membre `includeChances`, **then** refusé (**3.21**).
+6. **Couverture :** FR24 ; ADR 0019 §2b ; stories **5.8**, **6.3**, **19.7**. **Depends :** **5.8**, **19.7** (done). **SCP :** [sprint-change-proposal-2026-06-09-explainability-gates-dispos-equipe.md](./sprint-change-proposal-2026-06-09-explainability-gates-dispos-equipe.md).
+
+---
+
 ### Epic 6 — Tirage, composition et cycle de vie des confirmations
 
 #### Story 6.1 : États de cycle de vie de composition et cohérence UI
@@ -1092,7 +1109,7 @@ afin d’alléger le travail manuel tout en restant transparent.
 **Acceptance Criteria**
 
 - **Given** des dispos et règles de tirage (DOMAIN), **when** l’organisateur lance le tirage, **then** les rôles sont pourvus selon les règles et le résultat est persisté pour des **identités participant** (FR20).
-- **Given** un participant autorisé, **when** il consulte l’info de cotes **après publication du brouillon ou validation**, **then** les données affichées correspondent aux règles d’explainability (FR24).
+- **Given** un participant autorisé, **when** il consulte les cotes sur **Dispos**, **then** elles sont visibles sur spectacle publié (FR24 Dispos). **When** il consulte les cotes sur **Équipe** (slots assignés), **then** elles suivent publication ou validation de la composition (FR24 Équipe).
 - **Couverture :** FR20, FR24 ; UX-DR6 (animation barre proportionnelle + curseur si applicable).
 
 ---
@@ -2476,8 +2493,9 @@ afin d’**expliquer** des écarts entre candidats.
 
 1. **Given** pipeline actif, **when** API composition/summary expose explainability, **then** champs optionnels `factorBreakdown[]` : `{ factorId, multiplier, label }` par candidat/rôle.
 2. **Given** seul `PastParticipationFactor` actif, **when** affichage, **then** breakdown cohérent avec `pastSelectionCount`.
-3. **Given** membre sans droit explainability, **when** GET, **then** pas de fuite de breakdown (**6.3** / **6.4**).
-4. **Couverture :** FR24. **Priorité :** P2. **Depends :** 19.6. **UI :** panneau détail cotes (Material 3) ou extension popup Dispos — waivable si API seule.
+3. **Given** les **deux portes** explainability (Dispos vs Équipe, story **5.9**), **when** un utilisateur **sans** droit sur la surface appelée, **then** pas de fuite de breakdown (**403** ou champs absents).
+4. **Given** orga avec `canManageComposition`, **when** GET breakdown depuis **Équipe** ou **Dispos**, **then** accès autorisé. **Given** membre et spectacle **publié**, **when** GET breakdown / `includeChances` depuis **Dispos**, **then** autorisé **sans** composition. **Given** membre, **when** composition non publiée (slots masqués FR22), **then** pas de breakdown **Équipe**. **Given** membre, **when** composition publiée ou validée, **then** breakdown **Équipe** autorisé sur slots visibles.
+5. **Couverture :** FR24. **Priorité :** P2. **Depends :** 19.6, **5.9** (gates). **UI :** panneau détail cotes (Material 3) ou extension popup Dispos — waivable si API seule.
 
 ---
 

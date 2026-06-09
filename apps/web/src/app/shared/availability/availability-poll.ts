@@ -141,6 +141,21 @@ export class AvailabilityPoll {
       this.initialStatus.set(subject.status)
       this.volunteerExplicitlyUnchecked = false
     })
+
+    effect(() => {
+      if (!this.explainabilityEnabled()) {
+        return
+      }
+      const expanded = this.expandedRowKey()
+      if (
+        !expanded?.startsWith('role:') ||
+        this.summaryIncludesChances() ||
+        this.loadingChances()
+      ) {
+        return
+      }
+      void this.ensureChancesLoaded()
+    })
   }
 
   protected unavailableCount(): number {
@@ -242,6 +257,36 @@ export class AvailabilityPoll {
     return this.candidatesToPoolSegments(this.roleAvatars(roleKey))
   }
 
+  protected roleHasChancePool(roleKey: string): boolean {
+    return this.roleAvatars(roleKey).some((candidate) => candidate.chancePercent != null)
+  }
+
+  protected rolePoolShowChancePreview(roleKey: string): boolean {
+    return this.explainabilityEnabled() && this.roleHasChancePool(roleKey)
+  }
+
+  protected rolePoolShowNeutral(roleKey: string): boolean {
+    return !this.explainabilityEnabled() && this.roleAvatars(roleKey).length > 0
+  }
+
+  protected rolePoolChancesUnavailable(roleKey: string): boolean {
+    return (
+      this.explainabilityEnabled() &&
+      this.summaryIncludesChances() &&
+      !this.loadingChances() &&
+      this.roleAvatars(roleKey).length > 0 &&
+      !this.roleHasChancePool(roleKey)
+    )
+  }
+
+  protected unavailablePoolShowNeutral(): boolean {
+    return !this.explainabilityEnabled() && this.unavailableAvatars().length > 0
+  }
+
+  protected flatAvailablePoolShowNeutral(): boolean {
+    return !this.explainabilityEnabled() && this.flatAvailableAvatars().length > 0
+  }
+
   protected unavailablePoolSegments(): CompositionPoolPreviewSegment[] {
     return this.candidatesToPoolSegments(this.unavailableAvatars())
   }
@@ -251,23 +296,22 @@ export class AvailabilityPoll {
   }
 
   protected poolInteractive(roleKey: string): boolean {
-    return this.explainabilityEnabled() && this.roleAvatars(roleKey).length > 0
+    return this.explainabilityEnabled() && this.roleHasChancePool(roleKey)
   }
 
   private candidatesToPoolSegments(
     candidates: SummaryRoleCandidate[],
   ): CompositionPoolPreviewSegment[] {
-    if (candidates.length === 0) {
-      return []
-    }
-    return candidates.map((candidate) => ({
-      participantId: candidate.participantId,
-      displayName: candidate.displayName,
-      chancePercent: candidate.chancePercent ?? 0,
-      weight: candidate.chancePercent ?? 1,
-      avatarUrl: candidate.avatarUrl ?? null,
-      gender: candidate.gender ?? this.participantGender(candidate.participantId),
-    }))
+    return candidates
+      .filter((candidate) => candidate.chancePercent != null)
+      .map((candidate) => ({
+        participantId: candidate.participantId,
+        displayName: candidate.displayName,
+        chancePercent: candidate.chancePercent!,
+        weight: candidate.chancePercent!,
+        avatarUrl: candidate.avatarUrl ?? null,
+        gender: candidate.gender ?? this.participantGender(candidate.participantId),
+      }))
   }
 
   protected async onUnavailableToggle(checked: boolean): Promise<void> {
@@ -335,12 +379,15 @@ export class AvailabilityPoll {
 
   protected async onPoolTrigger(rowKey: string): Promise<void> {
     const next = this.expandedRowKey() === rowKey ? null : rowKey
-    this.expandedRowKey.set(next)
-    if (
+    const willLoadChances =
       next?.startsWith('role:') &&
       this.explainabilityEnabled() &&
       !this.summaryIncludesChances()
-    ) {
+    if (willLoadChances) {
+      this.loadingChances.set(true)
+    }
+    this.expandedRowKey.set(next)
+    if (willLoadChances) {
       await this.ensureChancesLoaded()
     }
   }

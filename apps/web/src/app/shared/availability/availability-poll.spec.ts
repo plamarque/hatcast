@@ -243,6 +243,29 @@ describe('AvailabilityPoll', () => {
     expect(getEventAvailabilitySummary).toHaveBeenCalledWith('season-1', 'event-1', true)
   })
 
+  it('shows neutral pool without fake zero percent when explainability is disabled', async () => {
+    const { fixture } = await setupPoll()
+    fixture.componentRef.setInput('explainabilityEnabled', false)
+    fixture.detectChanges()
+
+    const comp = fixture.componentInstance as unknown as {
+      onPoolTrigger: (rowKey: string) => Promise<void>
+      rolePoolShowNeutral: (roleKey: string) => boolean
+      rolePoolShowChancePreview: (roleKey: string) => boolean
+      poolSegments: (roleKey: string) => unknown[]
+    }
+    expect(comp.rolePoolShowNeutral('player')).toBe(true)
+    expect(comp.rolePoolShowChancePreview('player')).toBe(false)
+    expect(comp.poolSegments('player')).toEqual([])
+
+    await comp.onPoolTrigger('role:player')
+    fixture.detectChanges()
+
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('.poll-row__pool-neutral')).toBeTruthy()
+    expect(el.querySelector('app-composition-pool-preview')).toBeFalsy()
+  })
+
   it('saves comment without changing vote scope', async () => {
     const { fixture, setMyAvailability } = await setupPoll({
       initialStatus: 'available',

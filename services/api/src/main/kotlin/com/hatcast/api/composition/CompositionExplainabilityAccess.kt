@@ -1,7 +1,9 @@
 package com.hatcast.api.composition
 
 /**
- * Shared explainability gate (stories 6.3 / 6.4 / 19.7) for composition and availability surfaces.
+ * Explainability gate for the Équipe / composition surface (stories 6.3 / 6.4 / 19.7).
+ *
+ * Dispos uses [com.hatcast.api.availability.DisposExplainabilityAccess] instead (story 5.9).
  */
 object CompositionExplainabilityAccess {
     fun canShowExplainability(

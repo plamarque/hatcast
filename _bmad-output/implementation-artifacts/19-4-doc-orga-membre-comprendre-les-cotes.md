@@ -65,11 +65,11 @@ afin de **faire confiance** au tirage sans lire le code.
 
 | Surface | Qui | Quand | Source % |
 |---------|-----|-------|----------|
-| Dispos → **Tous** | Membre / orga avec accès Dispos | Événement **futur** | Recalcul **live** (`chanceSource: live`) |
+| Dispos → **Tous** | Membre / orga avec accès Dispos | Spectacle **publié** (dispos ouvertes) — **indépendant** de la composition | Recalcul **live** / snapshot / estimé selon `chanceSource` |
 | Dispos → **Tous** | Idem | Événement **passé** avec tirage archivé | **Snapshot** au tirage (`snapshot`) |
 | Dispos → **Tous** | Idem | Passé sans archive (migré) | **Estimé** (`estimated`) + hint UI |
 | Équipe (slots assignés) | **Organisateur** | Brouillon (publié ou non) | Live + snapshot passé si applicable |
-| Équipe | **Membre** | Composition **validée** | Idem explainability |
+| Équipe | **Membre** | Composition **publiée ou validée** | Idem explainability |
 
 **Invariant (ADR 0019) :** les % affichés utilisent le **même calcul** que le tirage serveur — pas de formule parallèle côté client pour la décision.
 

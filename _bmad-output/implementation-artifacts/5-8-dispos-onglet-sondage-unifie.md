@@ -31,7 +31,7 @@ afin de **renseigner les dispos pour autrui tout en conservant la lecture collec
 
 6. **AC-06 — Pool dépliable** — **Given** une ligne avec candidats, **when** l’utilisateur tape jauge, compteur ou avatars, **then** `app-composition-pool-preview` s’affiche sous la ligne ; **un seul** pool ouvert à la fois. [Source: D9, D10 ; FR19]
 
-7. **AC-07 — Pas de % sur la jauge** — **Given** explainability activée (`explainabilityEnabled`), **when** la ligne s’affiche, **then** la jauge **ne** montre **pas** `chancePercent` ; les % restent dans le pool déplié / breakdown sheet. [Source: D12 ; FR24]
+7. **AC-07 — Pas de % sur la jauge** — **Given** explainability activée (`explainabilityEnabled`), **when** la ligne s’affiche, **then** la jauge **ne** montre **pas** `chancePercent` ; les % restent dans le pool déplié / breakdown sheet. [Source: D12 ; FR24 Dispos — gate = spectacle publié, story **5.9**]
 
 8. **AC-08 — Proxy orga** — **Given** `canSwitchSubject`, **when** l’orga change le sujet via `app-availability-subject-selector`, **then** les cases reflètent les votes du sujet ; bandeau **« Tu modifies les dispos de … »** sur une ligne avec le sélecteur. [Source: D11 ; FR17, story 5.5 ; as-built]
 
@@ -52,6 +52,8 @@ afin de **renseigner les dispos pour autrui tout en conservant la lecture collec
 16. **AC-16 — Animation jauge au vote** — **Given** un sujet éditable et une ligne rôle affichée à `3/12` (jauge ~25 %), **when** il coche ce rôle, **then** le compteur passe à `4/12` et la jauge **anime** le remplissage vers ~33 % en **≤ 300 ms** (optimistic UI dès le clic) ; **when** il décoche, **then** retour animé vers `3/12`. **Given** cocher/décocher **Indispo** ou **Dispo** (variante sans rôles), **then** la jauge de la ligne concernée suit la même règle. **Given** `prefers-reduced-motion: reduce`, **then** mise à jour **instantanée** sans transition. **Given** échec save API, **then** revert case + jauge/compteur vers l’état serveur. [Source: ux-design-dispos-poll D21]
 
 17. **AC-17 — Icône onglet Dispos** — **Given** le détail spectacle, **when** la barre d’onglets s’affiche, **then** l’onglet Dispos utilise `mat-icon` **`ballot`** à la place de `grid_on` ; libellé texte « Dispos » inchangé. [Source: ux-design-dispos-poll D22 ; `event-detail.html`]
+
+18. **AC-18 — Explainability sur spectacle publié** — **Given** un membre sur un spectacle **publié** (dispos ouvertes), **when** il déplie le pool d’un rôle, **then** segments `%` et breakdown disponibles **sans** composition validée ni publiée. **Given** spectacle brouillon (membre sans droit orga), **then** pas de chances (story **3.21**). [Source: D12 gate ; SCP 2026-06-09 ; implémentation story **5.9**]
 
 **Couverture produit :** FR15, FR16, FR17, FR18, FR19, FR24, FR46 ; UX-DR5, UX-DR11 ; [ux-design-dispos-poll-2026-06-09.md](../planning-artifacts/ux-design-dispos-poll-2026-06-09.md)
 

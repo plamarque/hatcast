@@ -14,7 +14,6 @@ import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
-import com.hatcast.api.composition.CompositionExplainabilityAccess
 import com.hatcast.api.composition.CompositionSelectionHistoryService
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotRepository
@@ -858,14 +857,7 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ): Boolean {
         val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
-        val composition = compositionRepository.findById(eventId).orElse(null)
-        val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
-        val slots =
-            compositionSlotRepository.findByEventId(eventId).filter { slot ->
-                val count = normalizedSlots[slot.roleKey] ?: 0
-                slot.slotIndex in 0 until count
-            }
-        return CompositionExplainabilityAccess.canShowExplainability(composition, slots, canManage)
+        return DisposExplainabilityAccess.canShowExplainability(event, canManage)
     }
 
     private fun requireAvailabilitySummaryReadable(

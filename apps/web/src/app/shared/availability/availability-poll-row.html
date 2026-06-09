@@ -73,13 +73,30 @@
         <div class="poll-row__pool-loading" role="status">
           <mat-spinner diameter="28" />
         </div>
-      } @else if (poolSegments().length > 0) {
+      } @else if (poolShowChancePreview() && poolSegments().length > 0) {
         <app-composition-pool-preview
           class="poll-row__pool-preview"
           [pool]="poolSegments()"
           [interactive]="poolInteractive()"
           (segmentTap)="poolSegmentTap.emit($event)"
         />
+      } @else if (poolShowNeutral()) {
+        <div class="poll-row__pool-neutral" role="list">
+          @for (avatar of avatars(); track avatar.participantId) {
+            <span class="poll-row__pool-chip" role="listitem" [title]="avatar.displayName">
+              <app-user-avatar
+                class="poll-row__pool-chip-avatar"
+                [displayName]="avatar.displayName"
+                [avatarUrl]="avatar.avatarUrl ?? null"
+                [gender]="avatar.gender ?? null"
+                [size]="20"
+              />
+              <span class="poll-row__pool-chip-label">{{ avatar.displayName }}</span>
+            </span>
+          }
+        </div>
+      } @else if (poolChancesUnavailable()) {
+        <p class="poll-row__pool-empty">Pourcentages indisponibles pour ce rôle.</p>
       }
     </div>
   }

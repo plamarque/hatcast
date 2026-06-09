@@ -35,6 +35,37 @@
 
 ---
 
+## Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)
+
+- Breakdown accessible sur événement archivé via fallback `CompositionExplainabilityAccess` (pas de garde `archived`) — trou pré-existant, rendu visible par l'union Dispos+Équipe sur `resolveShowExplainability`.
+- AC-4 : pas de test « composition publiée non validée → slots Équipe visibles membre » — incertitude runtime reconnue dans l'AC ; hors scope non-goals 5.9.
+- M3-3 : pas de test E2E/composant « tap % → breakdown sheet » sans composition préchargée — dette test UI.
+- OpenAPI `availability.yaml` : pas de doc du 403 explainability vs membership — amélioration doc.
+- Chemins `EVENT_ORGANIZER` / `SEASON_ORGANIZER` pour `canManageComposition` non couverts par tests — pré-existant.
+
+---
+
+## Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)
+
+- Pas de budget `angular.json` sur chunks lazy (hors scope initial bundle PERF-08).
+- Pas de handler erreur chargement chunk / PWA stale chunk — risque amplifié par lazy routes, story perf séparée.
+- Waterfall lazy parent+enfant sur `/compte` — tradeoff accepté pour réduire le bundle initial.
+- Délai spinner sur redirects legacy (`SaisonLegacyRedirect`, onglets compte) — tradeoff perf vs UX immédiate.
+- Pas de wildcard `**` sous `MemberShell` — pré-existant, outlet vide sur URL invalide.
+- Stratégie preload post-login absente — follow-up perf (PERF plan vague 3+).
+
+---
+
+## Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)
+
+- Tests intégration 403/404 non couverts — gap pattern similaire à d'autres endpoints BFF.
+- Schémas OpenAPI dupliqués (`SeasonWorkspaceParticipantSelector` vs DTO canonique) — qualité contrat, pas de régression runtime.
+- Aucun test automatisé du budget ≤3 appels AC2 — assertion manuelle dans dev notes.
+- Bascule history→agenda bypass le BFF — follow-up documenté dans dev notes.
+- Fix `enableExplainabilityForChances` hors scope PERF-07 — autre story (19.7).
+
+---
+
 ## Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)
 
 - AC1 non couvert par les tests ajoutés — bindings `[viewerGender]` vérifiés en revue code sur les 3 templates ; pas d'assertion DOM dans le diff PERF-05.

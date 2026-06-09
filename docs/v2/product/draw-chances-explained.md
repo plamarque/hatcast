@@ -25,11 +25,11 @@ Spec technique : [draw-weight-engine-v1-spec.md](../technical/draw-weight-engine
 
 ## Détail par personne (story 19.7)
 
-Quand l’**explicabilité** est active (stories **6.3** / **6.4**), tu peux ouvrir une **fiche** pour un candidat :
+Quand l’**explicabilité** est active (FR24 — **Dispos** dès spectacle publié ; **Équipe** après publication ou validation composition), tu peux ouvrir une **fiche** pour un candidat :
 
 | Entrée | Où |
 |--------|-----|
-| Tap sur un **segment** du pool coloré | Onglet **Équipe** (aperçu pool par rôle) ou **Dispos → Tous** (un pool par rôle) |
+| Tap sur un **segment** du pool coloré | Onglet **Dispos** (sondage) ou **Équipe** (aperçu pool par rôle) |
 | Tap sur le **%** | Picker manuel, grille Équipe, animation de tirage |
 
 La fiche affiche :
