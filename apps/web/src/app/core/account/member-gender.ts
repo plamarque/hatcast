@@ -56,16 +56,22 @@ export function effectiveMemberGender(raw: unknown): MemberGender {
   return 'non_specified'
 }
 
-/** V1 PlayerModal parity — account self-service wording. */
+/** Organizer participant forms — third-person wording unchanged. */
 export const MEMBER_GENDER_FIELD_LABEL = 'Quel genre utiliser pour me désigner ?'
 
-export const MEMBER_GENDER_OPTIONS: ReadonlyArray<{
+/** Mon compte → Mon profil — self-service designation wording. */
+export const MEMBER_GENDER_PROFILE_FIELD_LABEL = 'Je me désigne plutôt comme '
+
+type MemberGenderOption = {
   value: MemberGender
   /** Short label for segmented control (mat-button-toggle). */
   toggleLabel: string
-  /** Full label with V1 examples (aria-label, tooltips). */
+  /** Full label with examples (aria-label, tooltips). */
   label: string
-}> = [
+}
+
+/** Organizer roster / participant dialogs — gender-oriented toggle copy. */
+export const MEMBER_GENDER_OPTIONS: ReadonlyArray<MemberGenderOption> = [
   {
     value: 'female',
     toggleLabel: 'Féminin',
@@ -80,5 +86,24 @@ export const MEMBER_GENDER_OPTIONS: ReadonlyArray<{
     value: 'male',
     toggleLabel: 'Masculin',
     label: 'Masculin (ex: un improvisateur)',
+  },
+]
+
+/** Mon compte → Mon profil — role designation toggle copy. */
+export const MEMBER_GENDER_PROFILE_OPTIONS: ReadonlyArray<MemberGenderOption> = [
+  {
+    value: 'female',
+    toggleLabel: 'Comédienne',
+    label: 'Comédienne (ex: une improvisatrice)',
+  },
+  {
+    value: 'non_specified',
+    toggleLabel: 'Comédien·ne',
+    label: 'Comédien·ne (ex: un.e improvisateur.trice)',
+  },
+  {
+    value: 'male',
+    toggleLabel: 'Comédien',
+    label: 'Comédien (ex: un improvisateur)',
   },
 ]

@@ -14,7 +14,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import {
   effectiveMemberGender,
-  MEMBER_GENDER_FIELD_LABEL,
+  MEMBER_GENDER_PROFILE_FIELD_LABEL,
+  MEMBER_GENDER_PROFILE_OPTIONS,
   type MemberGender,
 } from '../../../core/account/member-gender'
 import { MemberDisplayNameService } from '../../../core/account/member-display-name.service'
@@ -68,7 +69,8 @@ export class AccountProfileTab implements OnInit, OnDestroy {
   protected readonly pseudo = signal('')
   protected readonly pseudoError = signal(false)
   protected readonly gender = signal<MemberGender>('non_specified')
-  protected readonly genderFieldLabel = MEMBER_GENDER_FIELD_LABEL
+  protected readonly genderFieldLabel = MEMBER_GENDER_PROFILE_FIELD_LABEL
+  protected readonly genderOptions = MEMBER_GENDER_PROFILE_OPTIONS
   protected readonly preferencesLoading = signal(true)
   protected readonly saving = signal(false)
   protected readonly loadFailed = signal(false)
@@ -121,6 +123,17 @@ export class AccountProfileTab implements OnInit, OnDestroy {
     const resolved = effectiveMemberGender(value)
     this.gender.set(resolved)
     this.memberDisplayName.setGenderPreview(resolved)
+  }
+
+  protected genderToggleToneClass(gender: MemberGender): string {
+    switch (gender) {
+      case 'female':
+        return 'account-page__gender-toggle-option--female'
+      case 'male':
+        return 'account-page__gender-toggle-option--male'
+      default:
+        return 'account-page__gender-toggle-option--neutral'
+    }
   }
 
   protected async saveProfile(): Promise<void> {

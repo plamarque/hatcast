@@ -247,8 +247,12 @@ describe('AccountProfileTab', () => {
   it('uses gender toggle group and saves gender with shared Enregistrer', async () => {
     const { fixture, snack, patchPreferences, setGenderPreview } = await setup({ gender: 'male' })
     expect(fixture.nativeElement.querySelector('[data-testid="account-gender-group"]')).toBeTruthy()
-    expect(fixture.nativeElement.textContent).toContain('Quel genre utiliser pour me désigner ?')
-    expect(fixture.nativeElement.textContent).toContain('Masculin')
+    expect(fixture.nativeElement.textContent).toContain('Je me désigne plutôt comme ')
+    expect(fixture.nativeElement.textContent).toContain('Comédienne')
+    expect(fixture.nativeElement.textContent).toContain('Comédien·ne')
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="account-gender-male"]')?.textContent,
+    ).toContain('Comédien')
 
     const component = fixture.componentInstance as AccountProfileTab
     const saveBtn = fixture.nativeElement.querySelector(
