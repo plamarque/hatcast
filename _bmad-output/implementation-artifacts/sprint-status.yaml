@@ -342,5 +342,5 @@ development_status:
   perf-13-dispos-lazy-composition-explainability: done
   perf-09-member-shell-bootstrap-resolver: done
   perf-14-profiling-script-in-app-nav: done
-  perf-15-composition-summary-api-hot-path: backlog
+  perf-15-composition-summary-api-hot-path: done
   perf-16-db-latency-observability: done

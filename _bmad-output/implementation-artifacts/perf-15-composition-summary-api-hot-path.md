@@ -4,7 +4,7 @@ baseline_commit: 8b29f2d04f16252d0a992e833850f7a6d1a27f62
 
 # Story PERF-15 — Hot path composition + availability summary API
 
-**Status:** review
+**Status:** done
 
 **Plan:** [perf-improvement-plan-v2-wave2.md](../planning-artifacts/perf-improvement-plan-v2-wave2.md) § S4e  
 **Baseline (PERF-16):** summary **79** JDBC RT / **1393 ms** JDBC ; composition **31** RT / **647 ms** JDBC  
