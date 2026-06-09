@@ -47,7 +47,6 @@ export class EventOrganizersDialog implements OnInit {
   protected readonly assignedUserIds = signal<Set<string>>(new Set())
   protected readonly saving = signal(false)
   protected readonly errorMessage = signal('')
-  private changed = false
 
   protected readonly filteredMembers = computed(() => {
     const assigned = this.assignedUserIds()
@@ -101,16 +100,14 @@ export class EventOrganizersDialog implements OnInit {
         )
         return
       }
-      this.changed = true
-      this.pickerQuery.set('')
-      await this.loadAssignedUserIds()
+      this.ref.close(true)
     } finally {
       this.saving.set(false)
     }
   }
 
   protected close(): void {
-    this.ref.close(this.changed ? true : undefined)
+    this.ref.close()
   }
 
   private async loadMembers(): Promise<void> {
