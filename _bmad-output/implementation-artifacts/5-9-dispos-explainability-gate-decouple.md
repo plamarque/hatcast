@@ -134,7 +134,7 @@ claude-4.6-sonnet-medium-thinking
 - [x] [Review][Patch] Type TS `archived` requis (pas optionnel) dans `canShowDisposExplainability` [`composition-explainability.ts:4-7`]
 - [x] [Review][Defer] Breakdown accessible sur événement archivé via fallback `CompositionExplainabilityAccess` (pas de garde `archived`) [`CompositionExplainabilityService.kt:241-259`] — deferred, pre-existing
 - [x] [Review][Defer] AC-4 : pas de test « composition publiée non validée → slots Équipe visibles membre » [`CompositionExplainabilityIntegrationTest.kt`] — deferred, pre-existing (note AC-4)
-- [x] [Review][Defer] M3-3 : pas de test E2E/composant « tap % → breakdown sheet » sans composition préchargée [`availability-poll.ts`, e2e] — deferred, test debt
+- [x] [Review][Defer] M3-3 : pas de test E2E/composant « tap % → breakdown sheet » sans composition préchargée [`availability-poll.ts`, e2e] — **done** E1-MEM-033 (`member-dispos-poll.mobile.spec.ts`)
 - [x] [Review][Defer] OpenAPI `availability.yaml` : pas de doc du 403 explainability vs membership [`availability.yaml`] — deferred, doc improvement
 - [x] [Review][Defer] Chemins `EVENT_ORGANIZER` / `SEASON_ORGANIZER` pour `canManageComposition` non couverts par tests [`DisposExplainabilityAccessTest.kt`] — deferred, pre-existing
 

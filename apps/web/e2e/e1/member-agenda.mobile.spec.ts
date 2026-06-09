@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { assertMobileViewport, assertNoHorizontalOverflow } from '../helpers/e1-layout'
+import { expectDisposPollReady } from '../helpers/dispos-poll.ui'
 import { openEventTab } from '../helpers/e1.ui'
 import { saisonWorkspacePath } from '../helpers/e1-routes'
 import { isStagingE2e, prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
@@ -37,8 +38,7 @@ test.describe('E1 — membre agenda & dispos (mobile)', () => {
     const fx = await resolveE1Context(request)
     await assertMobileViewport(page)
     await openEventTab(page, fx, fx.eventDrawSlug, 'dispos')
-    await expect(page.getByLabel('Choix de disponibilité')).toBeVisible({ timeout: 30_000 })
-    await page.locator('.availability-form__status--available').click()
+    await expectDisposPollReady(page)
 
     await openEventTab(page, fx, fx.eventDrawSlug, 'equipe')
     await expect(page.locator('app-event-equipe-tab')).toBeVisible()

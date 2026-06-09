@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test'
 
 import type { E1CutoverFixture } from './e2e-api'
+import { seedMemberDisposVote } from './dispos-poll.ui'
 import { saisonEventPath, saisonWorkspacePath } from './e1-routes'
 
 /** Dismiss PWA install banner so it does not block clicks (local E2E). */
@@ -68,9 +69,7 @@ export async function seedMemberDisposForActivite(
   eventSlug: string,
 ): Promise<void> {
   await openEventTab(page, fx, eventSlug, 'dispos')
-  const available = page.locator('.availability-form__status--available').first()
-  await expect(available).toBeVisible({ timeout: 30_000 })
-  await available.click()
+  await seedMemberDisposVote(page)
 }
 
 export async function validateComposition(page: Page) {
