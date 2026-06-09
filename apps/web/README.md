@@ -49,10 +49,10 @@ Le build production écrit les artefacts dans `dist/web/`. Configuration : `angu
 
 Point de référence pour un futur chantier perf — comparer un nouveau `ng build` à ces chiffres pour mesurer la dérive.
 
-| Mesure | Baseline (2026-06-06) | Budget warning | Budget error |
-|--------|----------------------:|----------------|--------------|
-| Bundle **initial** (raw) | **2,33 MB** | 2,25 MB | 3 MB |
-| Bundle **initial** (transfer estimé) | **~419 kB** | — | — |
+| Mesure | Baseline (2026-06-09, post-PERF-08) | Précédent (2026-06-06) | Budget warning | Budget error |
+|--------|--------------------------------------:|-----------------------:|----------------|--------------|
+| Bundle **initial** (raw) | **1,44 MB** | 2,33 MB | 2,0 MB | 3 MB |
+| Bundle **initial** (transfer estimé) | **~328 kB** | ~419 kB | — | — |
 | Feuille **styles** globale (`styles-*.css`) | **~43 kB** | — | — |
 | Styles composant (`anyComponentStyle`, max observé) | **aucun dépassement** (max ~6,4 kB) | 9 kB | 12 kB |
 

@@ -331,5 +331,5 @@ development_status:
   perf-05-viewer-gender-props: backlog
   perf-06-inbox-api-profiling: done
   perf-07-season-workspace-bootstrap-bff: done
-  perf-08-lazy-routes-angular: backlog
+  perf-08-lazy-routes-angular: done
   epic-perf-v2-retrospective: optional

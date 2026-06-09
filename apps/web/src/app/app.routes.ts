@@ -1,31 +1,13 @@
 import { Routes } from '@angular/router';
 
 import { MemberShell } from './layout/member-shell/member-shell';
-import { AccountPlaceholder } from './pages/account-placeholder/account-placeholder';
-import { LegacyAccountTabRedirect } from './pages/account-placeholder/legacy-account-tab-redirect';
 import { AccountEmailVerification } from './pages/account-email-verification/account-email-verification';
-import { AccountAboutTab } from './pages/account-placeholder/tabs/account-about-tab';
-import { AccountProfileTab } from './pages/account-placeholder/tabs/account-profile-tab';
-import { AccountNotificationsTab } from './pages/account-placeholder/tabs/account-notifications-tab';
-import { AccountPreferencesTab } from './pages/account-placeholder/tabs/account-preferences-tab';
 import { AuthRedirect } from './pages/auth-redirect/auth-redirect';
 import { ForgotPassword } from './pages/forgot-password/forgot-password';
-import { MemberHomeTodo } from './pages/member-home-todo/member-home-todo';
 import { Login } from './pages/login/login';
 import { ResetPassword } from './pages/reset-password/reset-password';
 import { Signup } from './pages/signup/signup';
-import { EventDetail } from './pages/event-detail/event-detail';
-import { AdminMembres } from './pages/admin-membres/admin-membres';
-import { TroupeSettings } from './pages/troupe-settings/troupe-settings';
-import { AdminParticipants } from './pages/admin-participants/admin-participants';
-import { AdminEventParticipants } from './pages/admin-event-participants/admin-event-participants';
-import { AdminAudit } from './pages/admin-audit/admin-audit';
-import { SeasonHome } from './pages/season-home/season-home';
-import { SaisonLegacyRedirect } from './pages/saison-legacy-redirect/saison-legacy-redirect';
-import { MemberSeasonGlance } from './pages/member-season-glance/member-season-glance';
-import { UserAgenda } from './pages/user-agenda/user-agenda';
-import { TroupeHub } from './pages/troupe-hub/troupe-hub';
-import { TroupesList } from './pages/troupes-list/troupes-list';
+import { MemberHomeTodo } from './pages/member-home-todo/member-home-todo';
 
 function redirectPathWithQuery(targetPath: string, queryParamMap: {
   keys: Iterable<string>;
@@ -56,53 +38,179 @@ export const routes: Routes = [
     component: MemberShell,
     children: [
       { path: 'accueil', component: MemberHomeTodo },
-      { path: 'agenda', component: UserAgenda },
-      { path: 'membre/:userSlug', component: MemberSeasonGlance },
+      {
+        path: 'agenda',
+        loadComponent: () =>
+          import('./pages/user-agenda/user-agenda').then((m) => m.UserAgenda),
+      },
+      {
+        path: 'membre/:userSlug',
+        loadComponent: () =>
+          import('./pages/member-season-glance/member-season-glance').then(
+            (m) => m.MemberSeasonGlance,
+          ),
+      },
       {
         path: 'compte',
-        component: AccountPlaceholder,
+        loadComponent: () =>
+          import('./pages/account-placeholder/account-placeholder').then(
+            (m) => m.AccountPlaceholder,
+          ),
         children: [
-          { path: '', component: AccountProfileTab },
-          { path: 'preferences', component: AccountPreferencesTab },
-          { path: 'notifications', component: AccountNotificationsTab },
-          { path: 'securite', component: LegacyAccountTabRedirect },
-          { path: 'identite', component: LegacyAccountTabRedirect },
-          { path: 'a-propos', component: AccountAboutTab },
+          {
+            path: '',
+            loadComponent: () =>
+              import('./pages/account-placeholder/tabs/account-profile-tab').then(
+                (m) => m.AccountProfileTab,
+              ),
+          },
+          {
+            path: 'preferences',
+            loadComponent: () =>
+              import('./pages/account-placeholder/tabs/account-preferences-tab').then(
+                (m) => m.AccountPreferencesTab,
+              ),
+          },
+          {
+            path: 'notifications',
+            loadComponent: () =>
+              import('./pages/account-placeholder/tabs/account-notifications-tab').then(
+                (m) => m.AccountNotificationsTab,
+              ),
+          },
+          {
+            path: 'securite',
+            loadComponent: () =>
+              import('./pages/account-placeholder/legacy-account-tab-redirect').then(
+                (m) => m.LegacyAccountTabRedirect,
+              ),
+          },
+          {
+            path: 'identite',
+            loadComponent: () =>
+              import('./pages/account-placeholder/legacy-account-tab-redirect').then(
+                (m) => m.LegacyAccountTabRedirect,
+              ),
+          },
+          {
+            path: 'a-propos',
+            loadComponent: () =>
+              import('./pages/account-placeholder/tabs/account-about-tab').then(
+                (m) => m.AccountAboutTab,
+              ),
+          },
           { path: '**', redirectTo: '' },
         ],
       },
-      { path: 'troupes', component: TroupesList },
-      { path: 'troupes/:slug/admin/membres', component: AdminMembres },
-      { path: 'troupes/:slug/admin/parametres', component: TroupeSettings },
-      { path: 'troupes/:slug/admin/audit', component: AdminAudit, data: { auditScope: 'troupe' } },
-      { path: 'troupes/:slug', component: TroupeHub },
-      { path: 'troupe/admin/membres', component: AdminMembres },
+      {
+        path: 'troupes',
+        loadComponent: () =>
+          import('./pages/troupes-list/troupes-list').then((m) => m.TroupesList),
+      },
+      {
+        path: 'troupes/:slug/admin/membres',
+        loadComponent: () =>
+          import('./pages/admin-membres/admin-membres').then((m) => m.AdminMembres),
+      },
+      {
+        path: 'troupes/:slug/admin/parametres',
+        loadComponent: () =>
+          import('./pages/troupe-settings/troupe-settings').then((m) => m.TroupeSettings),
+      },
+      {
+        path: 'troupes/:slug/admin/audit',
+        loadComponent: () =>
+          import('./pages/admin-audit/admin-audit').then((m) => m.AdminAudit),
+        data: { auditScope: 'troupe' },
+      },
+      {
+        path: 'troupes/:slug',
+        loadComponent: () =>
+          import('./pages/troupe-hub/troupe-hub').then((m) => m.TroupeHub),
+      },
+      {
+        path: 'troupe/admin/membres',
+        loadComponent: () =>
+          import('./pages/admin-membres/admin-membres').then((m) => m.AdminMembres),
+      },
       {
         path: 'saison/:troupeSlug/:seasonSlug/event/:eventSlug/admin/participants',
-        component: AdminEventParticipants,
+        loadComponent: () =>
+          import('./pages/admin-event-participants/admin-event-participants').then(
+            (m) => m.AdminEventParticipants,
+          ),
       },
-      { path: 'saison/:troupeSlug/:seasonSlug/event/:eventSlug', component: EventDetail },
-      { path: 'saison/:troupeSlug/:seasonSlug/admin/membres', component: AdminMembres },
-      { path: 'saison/:troupeSlug/:seasonSlug/admin/participants', component: AdminParticipants },
+      {
+        path: 'saison/:troupeSlug/:seasonSlug/event/:eventSlug',
+        loadComponent: () =>
+          import('./pages/event-detail/event-detail').then((m) => m.EventDetail),
+      },
+      {
+        path: 'saison/:troupeSlug/:seasonSlug/admin/membres',
+        loadComponent: () =>
+          import('./pages/admin-membres/admin-membres').then((m) => m.AdminMembres),
+      },
+      {
+        path: 'saison/:troupeSlug/:seasonSlug/admin/participants',
+        loadComponent: () =>
+          import('./pages/admin-participants/admin-participants').then(
+            (m) => m.AdminParticipants,
+          ),
+      },
       {
         path: 'saison/:troupeSlug/:seasonSlug/admin/audit',
-        component: AdminAudit,
+        loadComponent: () =>
+          import('./pages/admin-audit/admin-audit').then((m) => m.AdminAudit),
         data: { auditScope: 'season' },
       },
-      { path: 'saison/:troupeSlug/:seasonSlug', component: SeasonHome },
+      {
+        path: 'saison/:troupeSlug/:seasonSlug',
+        loadComponent: () =>
+          import('./pages/season-home/season-home').then((m) => m.SeasonHome),
+      },
       {
         path: 'saison/:seasonSlug/event/:eventSlug/admin/participants',
-        component: SaisonLegacyRedirect,
+        loadComponent: () =>
+          import('./pages/saison-legacy-redirect/saison-legacy-redirect').then(
+            (m) => m.SaisonLegacyRedirect,
+          ),
       },
-      { path: 'saison/:seasonSlug/event/:eventSlug', component: SaisonLegacyRedirect },
-      { path: 'saison/:seasonSlug/admin/membres', component: SaisonLegacyRedirect },
-      { path: 'saison/:seasonSlug/admin/participants', component: SaisonLegacyRedirect },
+      {
+        path: 'saison/:seasonSlug/event/:eventSlug',
+        loadComponent: () =>
+          import('./pages/saison-legacy-redirect/saison-legacy-redirect').then(
+            (m) => m.SaisonLegacyRedirect,
+          ),
+      },
+      {
+        path: 'saison/:seasonSlug/admin/membres',
+        loadComponent: () =>
+          import('./pages/saison-legacy-redirect/saison-legacy-redirect').then(
+            (m) => m.SaisonLegacyRedirect,
+          ),
+      },
+      {
+        path: 'saison/:seasonSlug/admin/participants',
+        loadComponent: () =>
+          import('./pages/saison-legacy-redirect/saison-legacy-redirect').then(
+            (m) => m.SaisonLegacyRedirect,
+          ),
+      },
       {
         path: 'saison/:seasonSlug/admin/audit',
-        component: SaisonLegacyRedirect,
+        loadComponent: () =>
+          import('./pages/saison-legacy-redirect/saison-legacy-redirect').then(
+            (m) => m.SaisonLegacyRedirect,
+          ),
         data: { auditScope: 'season' },
       },
-      { path: 'saison/:seasonSlug', component: SaisonLegacyRedirect },
+      {
+        path: 'saison/:seasonSlug',
+        loadComponent: () =>
+          import('./pages/saison-legacy-redirect/saison-legacy-redirect').then(
+            (m) => m.SaisonLegacyRedirect,
+          ),
+      },
     ],
   },
   {
