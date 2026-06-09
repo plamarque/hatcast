@@ -1,0 +1,665 @@
+{
+  "phase": "PHASE_1_COMPLETE",
+  "generated_at": "2026-06-09T09:20:00+02:00",
+  "regate": {
+    "trigger": "Lot D mini-DS 2026-06-09",
+    "previous_gate": "CONCERNS",
+    "previous_p1_full_pct": 56
+  },
+  "trace_target": {
+    "type": "story",
+    "id": "8-4b-notifications-orga-v2",
+    "label": "Story 8.4b — Organizer ops notifications v2 refinements"
+  },
+  "collection_mode": "contract_static",
+  "allow_gate": true,
+  "coverage_basis": "acceptance_criteria",
+  "summary_confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/8-4b-notifications-orga-v2.md",
+      "_bmad-output/specs/spec-notifications-orga-v2/SPEC.md",
+      "_bmad-output/specs/spec-notifications-orga-v2/orga-notification-catalog.md",
+      "_bmad-output/specs/spec-notifications-orga-v2/orga-recipient-rules.md",
+      "_bmad-output/specs/spec-notifications-orga-v2/role-promotion-alerts.md",
+      "docs/v2/technical/NOTIFICATIONS_CATALOG.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "requirements": [
+    {
+      "id": "AC1",
+      "cap": "CAP-1",
+      "title": "UI orga pref rows — v2 French labels",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "notification-preferences-section.spec.ts:252",
+          "title": "renders organizer section with Équipe plus complète when hasOrganizerScope is true",
+          "file": "apps/web/src/app/shared/notification-preferences-section/notification-preferences-section.spec.ts",
+          "line": 252,
+          "level": "component",
+          "status": "active"
+        },
+        {
+          "id": "notification-preferences-section.spec.ts:264",
+          "title": "renders v2 organizer copy for Nouveau spectacle, Compo proposée and Nouveau rôle orga",
+          "file": "apps/web/src/app/shared/notification-preferences-section/notification-preferences-section.spec.ts",
+          "line": 264,
+          "level": "component",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": []
+    },
+    {
+      "id": "AC2",
+      "cap": "CAP-1",
+      "title": "Push/email payloads — normative v2 copy",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "NotificationPayloadBuilderOrganizerOpsTest.kt:27",
+          "title": "organizer ops payloads use normative French copy",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/NotificationPayloadBuilderOrganizerOpsTest.kt",
+          "line": 27,
+          "level": "unit",
+          "status": "active"
+        },
+        {
+          "id": "NotificationPayloadBuilderOrganizerOpsTest.kt:53",
+          "title": "organizer ops email subjects match catalogue",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/NotificationPayloadBuilderOrganizerOpsTest.kt",
+          "line": 53,
+          "level": "unit",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": []
+    },
+    {
+      "id": "AC3",
+      "cap": "CAP-1",
+      "title": "OpenAPI + prefs API — new keys, retire ORG_ASSIGNEE_DECLINED",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "MeNotificationPreferencesIntegrationTest.kt:71",
+          "title": "get notification preferences exposes ORG_SCOPE_GRANTED and omits ORG_ASSIGNEE_DECLINED",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/MeNotificationPreferencesIntegrationTest.kt",
+          "line": 71,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "services/api/openapi/notification-preferences.yaml — ORG_TEAM_REGRESSED + ORG_SCOPE_GRANTED enums present"
+      ]
+    },
+    {
+      "id": "AC4",
+      "cap": "CAP-2",
+      "title": "Orga ops prefs remain opt-in OFF/OFF on grant",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "tests": [
+        {
+          "id": "MeNotificationPreferencesIntegrationTest.kt:48",
+          "title": "get notification preferences returns all categories — ORG_TEAM_REGRESSED default false",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/MeNotificationPreferencesIntegrationTest.kt",
+          "line": 48,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "MeNotificationPreferencesIntegrationTest.kt:71",
+          "title": "ORG_SCOPE_GRANTED push/email default false",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/MeNotificationPreferencesIntegrationTest.kt",
+          "line": 71,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "NotificationPreferenceEligibilityAdapterTest.kt:78",
+          "title": "missing organizer preference json defaults to blocked",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/NotificationPreferenceEligibilityAdapterTest.kt",
+          "line": 78,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Grant hooks do not write ORG_* pref rows (8.4 pattern unchanged per CAP-2)"
+      ]
+    },
+    {
+      "id": "AC5",
+      "cap": "CAP-3",
+      "title": "Transactional promotion email on new grant",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerScopeGrantedNotificationServiceTest.kt:73",
+          "title": "notifyScopeGranted sends transactional email with role label",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationServiceTest.kt",
+          "line": 73,
+          "level": "unit",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerScopeGrantedNotificationIntegrationTest.kt:67",
+          "title": "grant season organizer invokes scope granted notification once",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationIntegrationTest.kt",
+          "line": 67,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Mailpit recette step 7 — transactional promotion email with orga prefs OFF (Patrice CK 2026-06-09)"
+      ]
+    },
+    {
+      "id": "AC6",
+      "cap": "CAP-3",
+      "title": "Promotion push only if ORG_SCOPE_GRANTED pref ON",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerScopeGrantedNotificationServiceTest.kt:144",
+          "title": "notifyScopeGranted sends push when ORG_SCOPE_GRANTED pref is on",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationServiceTest.kt",
+          "line": 144,
+          "level": "unit",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerScopeGrantedNotificationServiceTest.kt:73",
+          "title": "notifyScopeGranted — push never when ORG_SCOPE_GRANTED push off",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationServiceTest.kt",
+          "line": 73,
+          "level": "unit",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": []
+    },
+    {
+      "id": "AC7",
+      "cap": "CAP-3",
+      "title": "Promotion dedupe — idempotent re-grant",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerScopeGrantedNotificationServiceTest.kt:95",
+          "title": "notifyScopeGranted dedupes via reminder mark",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationServiceTest.kt",
+          "line": 95,
+          "level": "unit",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerScopeGrantedNotificationIntegrationTest.kt:95",
+          "title": "idempotent season organizer grant does not invoke notification twice",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationIntegrationTest.kt",
+          "line": 95,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": []
+    },
+    {
+      "id": "AC8",
+      "cap": "CAP-4",
+      "title": "TEAM_REGRESSED on COMPLETE → ¬COMPLETE after commit",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:152",
+          "title": "validated decline dispatches TEAM_REGRESSED",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 152,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Mailpit recette step 5 — TEAM_REGRESSED déclin de… → Charlene (Patrice CK 2026-06-09)"
+      ]
+    },
+    {
+      "id": "AC9",
+      "cap": "CAP-4",
+      "title": "TEAM_REGRESSED — no daily dedupe per edge",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:306",
+          "title": "two distinct complete regressions dispatch TEAM_REGRESSED twice without daily dedupe",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 306,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": []
+    },
+    {
+      "id": "AC10",
+      "cap": "CAP-4",
+      "title": "reasonSummary per transition cause",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:152",
+          "title": "validated decline dispatches TEAM_REGRESSED",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 152,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:201",
+          "title": "unlock complete team dispatches TEAM_REGRESSED with unlock reason",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 201,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:226",
+          "title": "reset confirmed participation to pending dispatches TEAM_REGRESSED",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 226,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:278",
+          "title": "clearing validated complete slot dispatches TEAM_REGRESSED with gap reason",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 278,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "NotificationPayloadBuilderOrganizerOpsTest.kt:27",
+          "title": "TEAM_REGRESSED body includes reasonSummary",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/NotificationPayloadBuilderOrganizerOpsTest.kt",
+          "line": 27,
+          "level": "unit",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": []
+    },
+    {
+      "id": "AC11",
+      "cap": "CAP-4",
+      "title": "ASSIGNEE_DECLINED / ORG_ASSIGNEE_DECLINED retired",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "StoredNotificationPreferencesTest.kt:14",
+          "title": "legacy ORG_ASSIGNEE_DECLINED deserialization without active category",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/StoredNotificationPreferencesTest.kt",
+          "line": 14,
+          "level": "unit",
+          "status": "active"
+        },
+        {
+          "id": "MeNotificationPreferencesIntegrationTest.kt:71",
+          "title": "API omits ORG_ASSIGNEE_DECLINED category",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/MeNotificationPreferencesIntegrationTest.kt",
+          "line": 71,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:254",
+          "title": "draft composition decline does not dispatch TEAM_REGRESSED",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 254,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Static review 2026-06-09: ASSIGNEE_DECLINED absent from dispatcher, prefs service, OpenAPI, UI copy"
+      ]
+    },
+    {
+      "id": "AC12",
+      "cap": "CAP-5",
+      "title": "EVENT_DRAFT_CREATED → season organizers only",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerOpsRecipientMatrixIntegrationTest.kt:68",
+          "title": "pierrick receives draft signal charlene receives event operational audience",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsRecipientMatrixIntegrationTest.kt",
+          "line": 68,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "NotificationRecipientResolverTest.kt:522",
+          "title": "resolveSeasonOrganizerRecipients returns season organizers only",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/NotificationRecipientResolverTest.kt",
+          "line": 522,
+          "level": "unit",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Mailpit recette step 1 — draft → Pierrick only (Patrice CK 2026-06-09)"
+      ]
+    },
+    {
+      "id": "AC13",
+      "cap": "CAP-5",
+      "title": "COMPOSITION_SHARED / TEAM_COMPLETE / TEAM_REGRESSED → event organizers only",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerOpsRecipientMatrixIntegrationTest.kt:68",
+          "title": "charlene sole event orga for operational intents",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsRecipientMatrixIntegrationTest.kt",
+          "line": 68,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:176",
+          "title": "first publish draft composition dispatches COMPOSITION_SHARED",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 176,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerOpsNotificationIntegrationTest.kt:114",
+          "title": "team complete dispatches both TEAM_COMPLETE and TEAM_COMPLETE_MEMBER",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt",
+          "line": 114,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Mailpit recette steps 3–5 — COMPOSITION_SHARED, TEAM_COMPLETE, TEAM_REGRESSED → Charlene (Patrice CK 2026-06-09)"
+      ]
+    },
+    {
+      "id": "AC14",
+      "cap": "CAP-5",
+      "title": "Scheduled reminders → event ∪ season, one delivery per user per tick",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerSlaOpenAvailabilityJobTest.kt:76",
+          "title": "processRemindersAt dispatches once when user holds both event and season organizer roles",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerSlaOpenAvailabilityJobTest.kt",
+          "line": 76,
+          "level": "unit",
+          "status": "active"
+        },
+        {
+          "id": "CompositionIncompleteReminderJobTest.kt:187",
+          "title": "processWeeklyRemindersAt dispatches once when user holds both event and season organizer roles",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/CompositionIncompleteReminderJobTest.kt",
+          "line": 187,
+          "level": "unit",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Mailpit recette step 6 — SLA/incomplete: one email per user per tick when both roles + prefs ON (Patrice CK 2026-06-09)"
+      ]
+    },
+    {
+      "id": "AC15",
+      "cap": "CAP-5",
+      "title": "Pierrick/Charlene matrix — deterministic audiences",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerOpsRecipientMatrixIntegrationTest.kt:68",
+          "title": "pierrick receives draft signal charlene receives event operational audience",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsRecipientMatrixIntegrationTest.kt",
+          "line": 68,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Mailpit recette full matrix Pierrick/Charlene — all steps 1–6 (Patrice CK 2026-06-09)"
+      ]
+    },
+    {
+      "id": "AC16",
+      "cap": "CAP-6",
+      "title": "Dev recette seed Improbots + Mailpit path valid",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [],
+      "manual_evidence": [
+        "Manual CK Patrice 2026-06-09 — pierrick@seed.improbots.test / charlene@seed.improbots.test, Mailpit SENT matches checklist 7/7",
+        "WAIVED automation — AC explicitly manual dev recette per story CAP-6"
+      ]
+    },
+    {
+      "id": "AC17",
+      "cap": "CAP-7",
+      "title": "Event create seeds season organizers → event organizers",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerControllerIntegrationTest.kt:376",
+          "title": "event create seeds event organizers from season organizers",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/organizer/OrganizerControllerIntegrationTest.kt",
+          "line": 376,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "OrganizerControllerIntegrationTest.kt:399",
+          "title": "event create bootstraps season organizers from troupe admins when none exist",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/organizer/OrganizerControllerIntegrationTest.kt",
+          "line": 399,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Mailpit recette step 2 — Pierrick removed as event orga after create (seed + delegate path exercised)"
+      ]
+    },
+    {
+      "id": "AC18",
+      "cap": "CAP-7",
+      "title": "Last event organizer removal rejected (409)",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "OrganizerControllerIntegrationTest.kt:416",
+          "title": "revoking last event organizer returns 409",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/organizer/OrganizerControllerIntegrationTest.kt",
+          "line": 416,
+          "level": "api",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": []
+    },
+    {
+      "id": "AC19",
+      "cap": "CAP-7",
+      "title": "Organizer names visible on event Infos tab",
+      "priority": "P2",
+      "coverage": "NONE",
+      "tests": [],
+      "manual_evidence": [
+        "Deferred — covered by story 17.15 (done); no 8.4b-specific regression test"
+      ]
+    },
+    {
+      "id": "AC20",
+      "cap": "CAP-7",
+      "title": "No auto-sync season↔event organizers; no backfill",
+      "priority": "P2",
+      "coverage": "NONE",
+      "tests": [],
+      "manual_evidence": [
+        "By design / non-goal OQ-5c — absence of sync code is the contract"
+      ]
+    },
+    {
+      "id": "AC21",
+      "cap": "cross",
+      "title": "NFR-R2 — domain unchanged if notification fails; per-recipient isolation",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        {
+          "id": "NotificationDispatcherTest.kt:49",
+          "title": "push failure is logged without propagating to caller",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/NotificationDispatcherTest.kt",
+          "line": 49,
+          "level": "unit",
+          "status": "active"
+        },
+        {
+          "id": "NotificationDispatcherTest.kt:142",
+          "title": "unexpected push error does not stop following recipients",
+          "file": "services/api/src/test/kotlin/com/hatcast/api/notification/NotificationDispatcherTest.kt",
+          "line": 142,
+          "level": "unit",
+          "status": "active"
+        }
+      ],
+      "manual_evidence": [
+        "Heritage 8.3/8.4 — dispatcher per-recipient try/catch applies to all intents including orga ops v2; no story-specific duplicate required"
+      ]
+    },
+    {
+      "id": "AC22",
+      "cap": "cross",
+      "title": "NOTIFICATIONS_CATALOG aligned — gap note closed, intents Actif",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [],
+      "manual_evidence": [
+        "docs/v2/technical/NOTIFICATIONS_CATALOG.md — TEAM_REGRESSED + ORGANIZER_SCOPE_GRANTED Actif; ASSIGNEE_DECLINED Retiré; no § Écart runtime (8.4)"
+      ]
+    }
+  ],
+  "coverage_statistics": {
+    "total_requirements": 22,
+    "fully_covered": 19,
+    "partially_covered": 1,
+    "uncovered": 2,
+    "overall_coverage_percentage": 86,
+    "priority_breakdown": {
+      "P0": { "total": 4, "covered": 4, "percentage": 100 },
+      "P1": { "total": 16, "covered": 15, "percentage": 94 },
+      "P2": { "total": 2, "covered": 0, "percentage": 0 },
+      "P3": { "total": 0, "covered": 0, "percentage": 100 }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": ["AC4"],
+    "low_gaps": ["AC19", "AC20"],
+    "partial_coverage_items": ["AC4"],
+    "unit_only_items": []
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "ui_journey_gaps": [],
+    "ui_state_gaps": [],
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0,
+      "ui_journeys_without_e2e": 0,
+      "ui_states_missing_coverage": 0
+    }
+  },
+  "test_inventory": {
+    "summary": {
+      "files": 14,
+      "cases": 35,
+      "skipped_cases": 0,
+      "fixme_cases": 0,
+      "pending_cases": 0,
+      "by_level": {
+        "e2e": { "tests": 0, "criteria_covered": 0 },
+        "api": { "tests": 16, "criteria_covered": 12 },
+        "component": { "tests": 2, "criteria_covered": 1 },
+        "unit": { "tests": 17, "criteria_covered": 10 },
+        "other": { "tests": 0, "criteria_covered": 0 }
+      }
+    },
+    "tests": [],
+    "blockers": []
+  },
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Optional: integration test grant organizer scope then GET prefs — all ORG_* remain OFF (AC4 depth)",
+      "requirements": ["AC4"]
+    },
+    {
+      "priority": "LOW",
+      "action": "Defer AC19 — Infos tab visibility owned by story 17.15",
+      "requirements": ["AC19"]
+    }
+  ],
+  "manual_recette": {
+    "status": "PASS",
+    "executor": "Patrice",
+    "date": "2026-06-09",
+    "environment": "start-dev.sh + Mailpit (HATCAST_NOTIFICATION_EMAIL_ENABLED=true)",
+    "accounts": [
+      "pierrick@seed.improbots.test",
+      "charlene@seed.improbots.test"
+    ],
+    "checklist_steps_verified": [1, 2, 3, 4, 5, 6, 7]
+  },
+  "suites_verified_green": {
+    "date": "2026-06-09",
+    "commands": [
+      "./gradlew test --tests \"com.hatcast.api.notification.*\" --tests \"com.hatcast.api.organizer.OrganizerControllerIntegrationTest\"",
+      "npm run test -w @hatcast/web -- --watch=false --include \"**/notification-preferences-section.spec.ts\""
+    ],
+    "results": {
+      "api": "BUILD SUCCESSFUL",
+      "vitest": "17/17 passed"
+    }
+  }
+}

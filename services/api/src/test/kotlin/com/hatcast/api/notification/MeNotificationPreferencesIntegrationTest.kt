@@ -68,6 +68,23 @@ class MeNotificationPreferencesIntegrationTest {
     }
 
     @Test
+    fun `get notification preferences exposes ORG_SCOPE_GRANTED and omits ORG_ASSIGNEE_DECLINED`() {
+        val cookie = signInAndJoin("sub-notif-pref-scope-key", "notif-pref-scope-key@example.com", "Scope Key")
+
+        mockMvc
+            .perform(get("/v1/me/notification-preferences").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_SCOPE_GRANTED')].key").value("ORG_SCOPE_GRANTED"))
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_SCOPE_GRANTED')].pushEnabled").value(false))
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_SCOPE_GRANTED')].emailEnabled").value(false))
+            .andExpect(
+                jsonPath("$.categories[?(@.key == 'ORG_SCOPE_GRANTED')].label")
+                    .value("Me prévenir par notification push quand on m'ajoute comme orga de spectacle, orga de saison ou admin de troupe"),
+            )
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_ASSIGNEE_DECLINED')]").isEmpty)
+    }
+
+    @Test
     fun `organizer scope is true for troupe admin`() {
         val googleSub = "sub-notif-pref-orga-scope"
         val cookie = signInAndJoin(googleSub, "notif-pref-orga-scope@example.com", "Orga Scope")

@@ -261,6 +261,24 @@ describe('NotificationPreferencesSection', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-org-team-regressed-push"]')).toBeTruthy()
   })
 
+  it('renders v2 organizer copy for Nouveau spectacle, Compo proposée and Nouveau rôle orga', async () => {
+    const { fixture } = await setup({ pushState: 'enabled', hasOrganizerScope: true })
+    const text = fixture.nativeElement.textContent ?? ''
+
+    expect(text).toContain('Nouveau spectacle')
+    expect(text).toContain('Me prévenir quand un spectacle en brouillon est créé')
+    expect(text).toContain('Compo proposée')
+    expect(text).toContain('Me prévenir quand une composition est partagée avec le cercle orga')
+    expect(text).toContain('Nouveau rôle orga')
+    expect(text).toContain("Me prévenir par notification push quand on m'ajoute comme orga")
+    expect(text).not.toContain('Nouveau brouillon')
+    expect(text).not.toContain('Brouillon partagé')
+    expect(text).not.toContain('Déclin immédiat')
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-org-event-draft-created-push"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-org-draft-composition-push"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-pref-org-scope-granted-push"]')).toBeTruthy()
+  })
+
   it('renders member/orga footnote when organizer section is visible', async () => {
     const { fixture } = await setup({ pushState: 'enabled', hasOrganizerScope: true })
     const text = fixture.nativeElement.textContent ?? ''

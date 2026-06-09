@@ -31,6 +31,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Instant
 import java.util.UUID
@@ -269,6 +270,82 @@ class OrganizerOpsNotificationIntegrationTest {
             ).andExpect(status().isConflict)
 
         verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.TEAM_REGRESSED },
+        )
+    }
+
+    @Test
+    fun `clearing validated complete slot dispatches TEAM_REGRESSED with gap reason`() {
+        val admin = adminCookie("sub-orga-ops-clear-admin")
+        memberCookie("sub-orga-ops-clear-member")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createPublishedEvent(admin, seasonId)
+        val memberId = participantIdForUser(seasonId, "sub-orga-ops-clear-member")
+        seedValidatedConfirmedSlots(eventId, listOf(memberId))
+        reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":null}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat {
+                intent == NotificationIntent.TEAM_REGRESSED &&
+                    reasonSummary?.contains("place à pourvoir") == true
+            },
+        )
+    }
+
+    @Test
+    fun `two distinct complete regressions dispatch TEAM_REGRESSED twice without daily dedupe`() {
+        val admin = adminCookie("sub-orga-ops-dedupe-admin")
+        val assignee = memberCookie("sub-orga-ops-dedupe-member")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createPublishedEvent(admin, seasonId)
+        val memberId = participantIdForUser(seasonId, "sub-orga-ops-dedupe-member")
+        seedValidatedConfirmedSlots(eventId, listOf(memberId))
+        reset(notificationDispatcher)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/unlock")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId, 0))
+                    .cookie(assignee)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"confirmed"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post(participationPath(seasonId, eventId, 0))
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"pending"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, times(2)).dispatch(
             argThat { intent == NotificationIntent.TEAM_REGRESSED },
         )
     }

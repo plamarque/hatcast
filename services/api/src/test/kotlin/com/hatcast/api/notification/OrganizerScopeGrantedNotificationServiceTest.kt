@@ -139,4 +139,42 @@ class OrganizerScopeGrantedNotificationServiceTest {
         verify(emailSender, never()).sendEmail(any(), any(), any(), any(), any(), any())
         verify(reminderMarkService, never()).tryClaimReminderMark(any(), any(), any(), any())
     }
+
+    @Test
+    fun `notifyScopeGranted sends push when ORG_SCOPE_GRANTED pref is on`() {
+        whenever(pushEligibilityPort.isPushAllowedForCategory(userId, NotificationCategory.ORG_SCOPE_GRANTED))
+            .thenReturn(true)
+        val preferencePort: NotificationPreferenceEligibilityPort = mock()
+        whenever(preferenceEligibilityPortProvider.ifAvailable).thenReturn(preferencePort)
+        whenever(
+            preferencePort.isAllowed(
+                userId,
+                NotificationCategory.ORG_SCOPE_GRANTED,
+                NotificationChannel.PUSH,
+            ),
+        ).thenReturn(true)
+        whenever(pushSender.sendPush(any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(
+                channel = NotificationChannel.PUSH,
+                status = NotificationDeliveryStatus.SENT,
+            ),
+        )
+
+        service.notifyScopeGranted(
+            OrganizerScopeGrantedEvent(
+                userId = userId,
+                scopeKind = OrganizerScopeKind.EVENT,
+                scopeId = scopeId,
+                scopeName = "Gala",
+            ),
+        )
+
+        verify(emailSender, times(1)).sendEmail(any(), any(), any(), any(), any(), any())
+        verify(pushSender, times(1)).sendPush(
+            eq(userId),
+            any(),
+            eq(NotificationIntent.ORGANIZER_SCOPE_GRANTED),
+            eq(scopeId),
+        )
+    }
 }

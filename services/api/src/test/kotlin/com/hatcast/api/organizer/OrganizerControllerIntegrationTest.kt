@@ -373,6 +373,46 @@ class OrganizerControllerIntegrationTest {
     }
 
     @Test
+    fun `event create seeds event organizers from season organizers`() {
+        val manager = signInAdmin("org-seed-manager", "seed-manager@example.com", "Seed Manager")
+        val seasonOrga = signIn("org-seed-season", "seed-season@example.com", "Seed Season Orga")
+        val seasonId = createSeason(manager.cookie)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/organizers")
+                    .cookie(manager.cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"seed-season@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val eventId = createEvent(manager.cookie, seasonId)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/organizers").cookie(manager.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.userId == '${seasonOrga.userId}')]").exists())
+    }
+
+    @Test
+    fun `event create bootstraps season organizers from troupe admins when none exist`() {
+        val manager = signInAdmin("org-seed-admin-only", "seed-admin-only@example.com", "Seed Admin Only")
+        val seasonId = createSeason(manager.cookie)
+        val eventId = createEvent(manager.cookie, seasonId)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/organizers").cookie(manager.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.userId == '${manager.userId}')]").exists())
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/organizers").cookie(manager.cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[?(@.userId == '${manager.userId}')]").exists())
+    }
+
+    @Test
     fun `revoking last event organizer returns 409`() {
         val manager = signInAdmin("org-manager-last", "manager-last@example.com", "Manager Last")
         val soleOrganizer = signIn("org-sole-event", "sole-event@example.com", "Sole Event Orga")

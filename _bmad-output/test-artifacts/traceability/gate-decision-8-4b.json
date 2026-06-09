@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-06-09T09:20:00+02:00",
+  "repo": "hatcast",
+  "target": {
+    "type": "story",
+    "id": "8-4b-notifications-orga-v2",
+    "label": "Story 8.4b — Organizer ops notifications v2 refinements"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "regate": {
+    "previous_status": "CONCERNS",
+    "trigger": "Lot D mini-DS 2026-06-09",
+    "gaps_closed": ["AC1", "AC3", "AC6", "AC9", "AC10", "AC17"]
+  },
+  "rationale": "Re-gate after Lot D. P0 coverage 100% (4/4 FULL). P1 FULL coverage 94% (15/16) — above 90% PASS target. Overall FULL coverage 86% (19/22) — above 80% minimum. Lot D closed defer gaps AC1/3/6/9/10/17 with new integration, unit and Vitest tests. AC11 upgraded FULL (API + legacy + static review). AC21 upgraded FULL via heritage 8.3/8.4 NotificationDispatcherTest per-recipient isolation. Residual AC4 PARTIAL (grant-then-prefs E2E not explicit; defaults + eligibility adapter sufficient). AC16 manual recette waived by design (CK Patrice 7/7). AC19/AC20 NONE by design (17.15 / OQ-5c). Suites green 2026-06-09.",
+  "p0_status": "MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "waivers": [
+    {
+      "id": "AC16",
+      "cap": "CAP-6",
+      "reason": "Manual Mailpit recette is the specified validation path; CK completed by Patrice 2026-06-09 (7/7 steps)",
+      "approver": "Patrice"
+    }
+  ],
+  "ship_recommendation": "done",
+  "return_to_ds": false,
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-matrix-8-4b.md",
+    "coverage_matrix_path": "_bmad-output/test-artifacts/traceability/8-4b-notifications-orga-v2-coverage-matrix.json",
+    "e2e_trace_summary_path": "_bmad-output/test-artifacts/traceability/e2e-trace-summary-8-4b.json"
+  }
+}

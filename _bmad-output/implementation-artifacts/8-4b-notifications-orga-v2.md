@@ -6,18 +6,18 @@ spec_kernel: _bmad-output/specs/spec-notifications-orga-v2/SPEC.md
 
 # Story 8.4b: Organizer ops notifications v2 refinements (FR31b extension)
 
-**Status:** review
+**Status:** done
 
 **Story ID:** 8.4b  
 **Story key:** `8-4b-notifications-orga-v2`  
 **Epic:** 8 — Notifications (push, email, preferences)  
 **Priority:** **P2** — post-ship extension of story **8.4** (FR31b)  
 **Spec (canonical):** [`SPEC.md`](../specs/spec-notifications-orga-v2/SPEC.md) · companions: [`orga-notification-catalog.md`](../specs/spec-notifications-orga-v2/orga-notification-catalog.md), [`orga-recipient-rules.md`](../specs/spec-notifications-orga-v2/orga-recipient-rules.md), [`role-promotion-alerts.md`](../specs/spec-notifications-orga-v2/role-promotion-alerts.md)  
-**Catalogue runtime:** [`NOTIFICATIONS_CATALOG.md`](../../docs/v2/technical/NOTIFICATIONS_CATALOG.md) § Ops organisateur v2 + écart runtime 8.4  
+**Catalogue runtime:** [`NOTIFICATIONS_CATALOG.md`](../../docs/v2/technical/NOTIFICATIONS_CATALOG.md) § Ops organisateur (runtime v2)  
 **Parent (brownfield):** [`8-4-notifications-ops-organisateurs.md`](./8-4-notifications-ops-organisateurs.md) (shipped — cascade, `ASSIGNEE_DECLINED`, 8.4 copy)  
 **UX prefs:** [`ux-notification-prefs-orga-section-brief.md`](../planning-artifacts/ux-notification-prefs-orga-section-brief.md)  
 **Depends:** Story **8.4** (review/done — dispatcher, prefs opt-in, jobs, UI section), **3.5** (organizer delegation API), **3.21** (draft gate), **17.15** (organizer list on Infos tab)  
-**Blocks (soft):** Catalogue § Ops organisateur — close runtime gap note after ship
+**Blocks (soft):** *(closed — catalogue runtime v2 aligné, story done)*
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -213,9 +213,17 @@ Recommended order: **Lot A** (domain + audiences) before **Lot B** (intents/copy
 - [x] **Catalogue AC 22** — `TEAM_REGRESSED` et `ORGANIZER_SCOPE_GRANTED` marqués **Actif** ; cascade/cercle documentés comme retirés
 - [x] **Validation** — `./gradlew test --tests "com.hatcast.api.notification.*"` vert
 
----
+### Lot D — Gate Murat defer gaps (CONCERNS → PASS)
 
-## Dev Notes
+- [x] **AC10** — `OrganizerOpsNotificationIntegrationTest` : slot clear validé → `TEAM_REGRESSED` `place à pourvoir`
+- [x] **AC9** — `OrganizerOpsNotificationIntegrationTest` : 2 edges `COMPLETE→¬COMPLETE` → 2 dispatches (pas de dedupe journalier)
+- [x] **AC3** — `MeNotificationPreferencesIntegrationTest` : `ORG_SCOPE_GRANTED` présent ; `ORG_ASSIGNEE_DECLINED` absent
+- [x] **AC1** — Vitest copy v2 : Nouveau spectacle, Compo proposée, Nouveau rôle orga
+- [x] **AC6** — `OrganizerScopeGrantedNotificationServiceTest` : push ON si pref `ORG_SCOPE_GRANTED`
+- [x] **AC17** — `OrganizerControllerIntegrationTest` : seed event organizers à la création (+ wire `EventService.create`)
+- [x] **Validation** — `./gradlew test --tests "com.hatcast.api.notification.*"` vert · Vitest prefs 17/17 vert
+
+---
 
 ### Current runtime vs v2 target (read before coding)
 
@@ -339,15 +347,39 @@ Login: `pierrick@seed.improbots.test` / `charlene@seed.improbots.test` ; passwor
 
 ### Agent Model Used
 
-_(to be filled by dev agent)_
+Dev: Amelia (lots A/B/C) · QA gate: Murat (TEA trace 2026-06-09) · VD: Paige (2026-06-09)
 
 ### Completion Notes List
 
-_(to be filled by dev agent)_
+- Lots A/B/C livrés ; patches review Amelia 2026-06-09 appliqués.
+- Recette Mailpit Pierrick/Charlene (CK Patrice 2026-06-09) — 7/7 PASS.
+- Gate TEA Murat (2026-06-09) : `CONCERNS` → **done** (P0 100 %, waiver AC16 ; gaps tests = defer qualité).
+- **Lot D (2026-06-09)** : gaps defer Murat combés — AC1/3/6/9/10/17 ; wire `seedEventOrganizersFromSeason` dans `EventService.create` ; slot clear validé + `place à pourvoir` ; suites vertes (164 notif + 17 Vitest).
+- VD Paige (2026-06-09) : NOTIFICATIONS_CATALOG AC22 **PASS** — patches M1–M3 appliqués.
+- `./gradlew test --tests "com.hatcast.api.notification.*"` vert · Vitest prefs 17/17 vert.
+- Trace : `_bmad-output/test-artifacts/traceability/traceability-matrix-8-4b.md`
 
 ### File List
 
-_(expected touch list — confirm during implementation)_
+_(confirmé — commit `33d9120d` + clôture VD 2026-06-09)_
+
+**API — composition & event**
+
+- services/api/src/main/kotlin/com/hatcast/api/event/EventService.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionSlotAssignmentService.kt
+
+**API — tests (Lot D)**
+
+- services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/MeNotificationPreferencesIntegrationTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationServiceTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/organizer/OrganizerControllerIntegrationTest.kt
+
+**Web (Lot D)**
+
+- apps/web/src/app/shared/notification-preferences-section/notification-preferences-section.spec.ts
+
+**API — notification**
 
 - services/api/src/main/kotlin/com/hatcast/api/notification/NotificationIntent.kt
 - services/api/src/main/kotlin/com/hatcast/api/notification/NotificationDispatchContext.kt
@@ -355,28 +387,63 @@ _(expected touch list — confirm during implementation)_
 - services/api/src/main/kotlin/com/hatcast/api/notification/NotificationDispatcher.kt
 - services/api/src/main/kotlin/com/hatcast/api/notification/NotificationPayloadBuilder.kt
 - services/api/src/main/kotlin/com/hatcast/api/notification/UserNotificationPreferencesService.kt
-- services/api/src/main/kotlin/com/hatcast/api/notification/dto/NotificationPreferencesDtos.kt
 - services/api/src/main/kotlin/com/hatcast/api/notification/OrganizerSlaOpenAvailabilityJob.kt
 - services/api/src/main/kotlin/com/hatcast/api/notification/CompositionIncompleteReminderJob.kt
 - services/api/src/main/kotlin/com/hatcast/api/notification/CompositionWorkflowNotificationAdapter.kt
+- services/api/src/main/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationService.kt
+
+**API — composition & organizer**
+
 - services/api/src/main/kotlin/com/hatcast/api/composition/CompositionLifecycleAuditRecorder.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionLifecycleTransitionContext.kt
 - services/api/src/main/kotlin/com/hatcast/api/composition/CompositionParticipationService.kt
 - services/api/src/main/kotlin/com/hatcast/api/composition/CompositionNotificationEvents.kt
 - services/api/src/main/kotlin/com/hatcast/api/composition/CompositionNotificationEventListener.kt
-- services/api/src/main/kotlin/com/hatcast/api/event/EventService.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionNotificationPort.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionService.kt
+- services/api/src/main/kotlin/com/hatcast/api/composition/CompositionSlotAssignmentService.kt
 - services/api/src/main/kotlin/com/hatcast/api/organizer/OrganizerAccessService.kt
-- services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMembershipService.kt *(or equivalent admin promotion path)*
+- services/api/src/main/kotlin/com/hatcast/api/organizer/OrganizerRepositories.kt
+- services/api/src/main/kotlin/com/hatcast/api/organizer/OrganizerScopeGrantedEvents.kt
+- services/api/src/main/kotlin/com/hatcast/api/organizer/OrganizerScopeGrantedEventListener.kt
+- services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMembershipService.kt
+- services/api/src/main/kotlin/com/hatcast/api/user/UserEntity.kt
+
+**API — tests**
+
+- services/api/src/test/kotlin/com/hatcast/api/notification/CompositionIncompleteReminderJobTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/MeNotificationPreferencesIntegrationTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/NotificationDispatcherTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/NotificationPayloadBuilderOrganizerOpsTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/NotificationPreferenceEligibilityAdapterTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/NotificationRecipientResolverTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsNotificationIntegrationTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerOpsRecipientMatrixIntegrationTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationIntegrationTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerScopeGrantedNotificationServiceTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/OrganizerSlaOpenAvailabilityJobTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/notification/StoredNotificationPreferencesTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/organizer/OrganizerControllerIntegrationTest.kt
+- services/api/src/test/kotlin/com/hatcast/api/troupe/TroupeMembershipServiceTest.kt
+
+**Web & contrat**
+
 - services/api/openapi/notification-preferences.yaml
-- services/api/src/test/kotlin/com/hatcast/api/notification/*
 - apps/web/src/app/core/notifications/notification-preference-orga-ui-copy.ts
 - apps/web/src/app/core/notifications/me-notification-preferences-api.service.ts
-- apps/web/src/app/shared/notification-preferences-section/notification-preferences-section.ts
 - apps/web/src/app/shared/notification-preferences-section/notification-preferences-section.spec.ts
+
+**Docs & tracking**
+
 - docs/v2/technical/NOTIFICATIONS_CATALOG.md
 - _bmad-output/implementation-artifacts/sprint-status.yaml
+- _bmad-output/implementation-artifacts/8-4b-notifications-orga-v2.md
+- _bmad-output/test-artifacts/traceability/traceability-matrix-8-4b.md
 
 ### Change Log
 
+- 2026-06-09 : Lot D — gaps defer gate Murat (AC1/3/6/9/10/17) ; wire CAP-7 seed ; slot clear validé.
+- 2026-06-09 : Clôture story — runtime v2 orga (CAP-1…7) ; catalogue AC22 ; gate TEA CONCERNS→done ; VD Paige PASS (M1–M3).
 - 2026-06-08 : Story created (bmad-create-story) — v2 refinements post-8.4.
 
 ---

@@ -171,7 +171,7 @@ Modèle **opt-out** : clé JSON absente → **autorisé**. Toggles **push** et *
 |--------|-----------|
 | `AVAILABILITY_OPENED`, `MANUAL_AVAILABILITY_ANNOUNCE`, `MANUAL_AVAILABILITY_NUDGE`, `PROXY_AVAILABILITY_RECORDED` | `AVAILABILITY_REQUEST` |
 | `CONFIRMATION_REQUEST`, `RECONFIRMATION_REQUEST`, `REMOVED_FROM_COMPOSITION`, `PROXY_CONFIRMATION_RECORDED` | `CONFIRMATION_REQUEST` |
-| `COMPOSITION_SHARED` | `COMPOSITION_SHARED` |
+| `COMPOSITION_SHARED` *(membre — masquée)* | `COMPOSITION_SHARED` |
 | `TEAM_VALIDATED_FYI` | `TEAM_CONFIRMED` |
 | `TEAM_COMPLETE_MEMBER` | `TEAM_CONFIRMED` |
 | `ASSIGNEE_PRESENCE_REMINDER` (J-7) | `REMINDER_7_DAYS` |
@@ -179,6 +179,13 @@ Modèle **opt-out** : clé JSON absente → **autorisé**. Toggles **push** et *
 | `AVAILABILITY_PENDING_REMINDER` | `AVAILABILITY_WEEKLY_REMINDER` |
 | `EVENT_DETAILS_CHANGED` | `EVENT_DETAILS_CHANGED` |
 | `EVENT_ARCHIVED` | `EVENT_ARCHIVED` |
+| `EVENT_DRAFT_CREATED` | `ORG_EVENT_DRAFT_CREATED` |
+| `COMPOSITION_SHARED` *(dispatch orga)* | `ORG_DRAFT_COMPOSITION` |
+| `SLA_OPEN_AVAILABILITY` | `ORG_SLA_OPEN_AVAILABILITY` |
+| `COMPOSITION_INCOMPLETE_WEEKLY`, `COMPOSITION_INCOMPLETE_DAILY_J7` | `ORG_COMPOSITION_INCOMPLETE` |
+| `TEAM_COMPLETE` | `ORG_TEAM_COMPLETE` |
+| `TEAM_REGRESSED` | `ORG_TEAM_REGRESSED` |
+| `ORGANIZER_SCOPE_GRANTED` | `ORG_SCOPE_GRANTED` *(email transactionnel hors opt-in ops)* |
 
 ### Tensions produit documentées
 
@@ -477,7 +484,7 @@ Dédoublonnage `userId` ; pas de guest-email ; exclusion de l’**acteur** quand
 | `COMPOSITION_INCOMPLETE_DAILY_J7` | `⚠️ Compo incomplète (J-7)` | `J-7 pour {eventTitle} — la composition n'est pas complète.` |
 | `TEAM_COMPLETE` | `✅ Équipe bouclée` | `Toutes les confirmations sont reçues pour {eventTitle} le {eventDate}.` |
 | `TEAM_REGRESSED` | `⚠️ Équipe plus complète` | `{eventTitle} le {eventDate} : l'équipe confirmée n'est plus complète ({reasonSummary}).` |
-| `ORGANIZER_SCOPE_GRANTED` | *(email transactionnel)* | `Tu viens d'être nommé·e {roleLabel} pour {scopeName}. Active les alertes dans Mon compte → Notifications.` |
+| `ORGANIZER_SCOPE_GRANTED` | `Nouveau rôle orga` (push optionnel) | Email subject : `Tu es {roleLabel} sur HatCast` · body : `Tu viens d'être nommé·e {roleLabel} pour {scopeName}. Active les alertes organisateur qui t'intéressent dans Mon compte → Notifications.` · lien `/compte/notifications` |
 
 `reasonSummary` (ex.) : `déclin de {name}`, `confirmation à renouveler`, `composition déverrouillée`, `place à pourvoir`. **Une alerte par edge** lifecycle (pas de dédupe journalière).
 
@@ -549,7 +556,7 @@ Détail : [brainstorm 2026-06-01](../../_bmad-output/brainstorming/brainstorming
 |-----------|--------|
 | Nouveau `NotificationIntent` | Mettre à jour ce fichier + index maître + `NotificationPayloadBuilder.kt` |
 | Stories 8.4 / 8.7 livrées | Déplacer lignes Backlog → Actif ; date **Prochaine revue** |
-| Spec **notifications-orga-v2** validée | Aligner § Ops organisateur + index ; marquer écart runtime jusqu’au ship v2 |
+| Spec **notifications-orga-v2** shippée (8.4b) | § Ops organisateur + index à jour ; pas de note d’écart runtime |
 | Changement prefs (ex. retrait obligatoire) | § Tensions + DOMAIN/SPEC via `bmad-spec` |
 | Alignement URL canonique API | § Contrat d’URL + dette |
 | Upgrade HTML email | Documenter emplacement templates |

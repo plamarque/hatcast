@@ -186,26 +186,57 @@ class CompositionSlotAssignmentService(
 
         if (isLocked) {
             if (participantId == null) {
+                if (beforeSlot?.hasAssignee() != true) {
+                    throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+                }
+                val compositionRow =
+                    composition
+                        ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+                slotCleared = clearSlot(eventId, roleKey, slotIndex, now)
+                if (slotCleared) {
+                    compositionRow.updatedAt = now
+                    compositionRepository.save(compositionRow)
+                    recordSlotAudit(
+                        event,
+                        seasonId,
+                        eventId,
+                        principal.userId,
+                        roleKey,
+                        slotIndex,
+                        null,
+                        beforeSnapshot,
+                        AuditActionType.SLOT_CLEARED,
+                    )
+                }
+            } else if (!CompositionGapFillRules.isTargetSlotEmpty(eventId, roleKey, slotIndex, slotRepository)) {
                 throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+            } else {
+                val compositionRow =
+                    composition
+                        ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+                assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
+                compositionRow.updatedAt = now
+                compositionRepository.save(compositionRow)
+                eventPublisher.publishEvent(
+                    CompositionConfirmationRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                        assigneeParticipantIds = listOf(participantId),
+                    ),
+                )
+                recordSlotAudit(
+                    event,
+                    seasonId,
+                    eventId,
+                    principal.userId,
+                    roleKey,
+                    slotIndex,
+                    participantId,
+                    beforeSnapshot,
+                    AuditActionType.SLOT_ASSIGNED,
+                )
             }
-            if (!CompositionGapFillRules.isTargetSlotEmpty(eventId, roleKey, slotIndex, slotRepository)) {
-                throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
-            }
-            val compositionRow =
-                composition
-                    ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
-            assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
-            compositionRow.updatedAt = now
-            compositionRepository.save(compositionRow)
-            eventPublisher.publishEvent(
-                CompositionConfirmationRequestedEvent(
-                    eventId = eventId,
-                    seasonId = seasonId,
-                    actorUserId = principal.userId,
-                    assigneeParticipantIds = listOf(participantId),
-                ),
-            )
-            recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
         } else if (participantId == null) {
             slotCleared = clearSlot(eventId, roleKey, slotIndex, now)
             if (composition != null && slotCleared) {
@@ -234,7 +265,7 @@ class CompositionSlotAssignmentService(
         }
 
         val lifecycleTransitionContext =
-            if (participantId == null && slotCleared && composition?.validatedAt != null) {
+            if (participantId == null && slotCleared && beforeLifecycle == CompositionLifecycle.COMPLETE) {
                 CompositionLifecycleTransitionContext(reasonSummary = "place à pourvoir")
             } else {
                 null

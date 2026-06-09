@@ -255,6 +255,7 @@ class EventService(
                 after = AuditSnapshots.event(saved),
             ),
         )
+        organizerAccess.seedEventOrganizersFromSeason(saved, principal.userId)
         eventPublisher.publishEvent(
             EventDraftCreatedEvent(
                 eventId = saved.id,
