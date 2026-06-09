@@ -7,7 +7,7 @@ import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
-import { MeInboxApiService, type InboxAction } from '../../core/inbox/me-inbox-api.service'
+import type { InboxAction } from '../../core/inbox/me-inbox-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import {
   calendarDaysFromNow,
@@ -41,7 +41,6 @@ import { AgendaParticipationStatus } from '../../shared/participation/agenda-par
 export class MemberHomeTodo implements OnInit, OnDestroy {
   private readonly auth = inject(AuthApiService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
-  private readonly inboxApi = inject(MeInboxApiService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
   protected readonly seasonShortcut = inject(LastVisitedSeasonShortcutService)
   private readonly router = inject(Router)
@@ -141,12 +140,11 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     this.loadError.set(false)
     this.referenceNow.set(new Date())
 
-    const r = await this.inboxApi.getInbox()
+    const r = await this.inboxBadge.refresh({ force: true })
     this.loadingInbox.set(false)
 
     if (r.ok && r.data) {
       this.actions.set(r.data.actions)
-      this.inboxBadge.pendingActionCount.set(r.data.actions.length)
       this.noParticipation.set(r.data.noParticipation ?? false)
       const next = r.data.nextEvent
       this.nextEvent.set(next ? enrichAgendaCardFields(next) : null)

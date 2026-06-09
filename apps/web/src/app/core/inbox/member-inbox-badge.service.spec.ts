@@ -18,7 +18,9 @@ describe('inboxBadgeDisplayLabel', () => {
 })
 
 describe('MemberInboxBadgeService', () => {
-  let inboxApi: { getInbox: ReturnType<typeof vi.fn> }
+  let inboxApi: {
+    getInbox: ReturnType<typeof vi.fn>
+  }
 
   beforeEach(() => {
     inboxApi = { getInbox: vi.fn() }
@@ -34,13 +36,56 @@ describe('MemberInboxBadgeService', () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
       status: 200,
-      data: { actions: [{}, {}, {}], nextEvent: null, shortcuts: { lastSeasonSlug: null, seasonGlanceQuery: {} }, noParticipation: false },
+      data: {
+        actions: [{}, {}, {}],
+        nextEvent: null,
+        shortcuts: { lastSeasonSlug: null, seasonGlanceQuery: {} },
+        noParticipation: false,
+      },
     })
 
     const service = TestBed.inject(MemberInboxBadgeService)
     await service.refresh()
 
+    expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: undefined })
     expect(service.pendingActionCount()).toBe(3)
+  })
+
+  it('returns inbox API result from refresh', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        actions: [{}, {}],
+        nextEvent: null,
+        shortcuts: { lastSeasonSlug: null, seasonGlanceQuery: {} },
+        noParticipation: false,
+      },
+    })
+
+    const service = TestBed.inject(MemberInboxBadgeService)
+    const result = await service.refresh({ force: true })
+
+    expect(result.ok).toBe(true)
+    expect(result.data?.actions.length).toBe(2)
+  })
+
+  it('passes force option through to inbox API', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        actions: [{}],
+        nextEvent: null,
+        shortcuts: { lastSeasonSlug: null, seasonGlanceQuery: {} },
+        noParticipation: false,
+      },
+    })
+
+    const service = TestBed.inject(MemberInboxBadgeService)
+    await service.refresh({ force: true })
+
+    expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: true })
   })
 
   it('resets count when inbox fails', async () => {

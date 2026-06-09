@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing'
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest'
 
 import { MePreferencesApiService } from '../account/me-preferences-api.service'
+import { MeInboxApiService } from '../inbox/me-inbox-api.service'
 import { AuthApiService } from './auth-api.service'
 import { FirebaseAuthService } from './firebase-auth.service'
 
@@ -137,14 +138,19 @@ describe('AuthApiService', () => {
     )
   })
 
-  it('logout invalide le cache des préférences membre', async () => {
-    const invalidateCache = vi.fn()
+  it('logout invalide le cache des préférences et inbox membre', async () => {
+    const invalidatePreferences = vi.fn()
+    const invalidateInbox = vi.fn()
     TestBed.resetTestingModule()
     TestBed.configureTestingModule({
       providers: [
         AuthApiService,
         { provide: FirebaseAuthService, useValue: { getAuthOrNull: () => null } },
-        { provide: MePreferencesApiService, useValue: { invalidateCache } },
+        { provide: MePreferencesApiService, useValue: { invalidateCache: invalidatePreferences } },
+        {
+          provide: MeInboxApiService,
+          useValue: { invalidateCache: invalidateInbox, bindSessionUser: vi.fn() },
+        },
       ],
     })
 
@@ -153,7 +159,8 @@ describe('AuthApiService', () => {
 
     await TestBed.inject(AuthApiService).logout()
 
-    expect(invalidateCache).toHaveBeenCalledTimes(1)
+    expect(invalidatePreferences).toHaveBeenCalledTimes(1)
+    expect(invalidateInbox).toHaveBeenCalledTimes(1)
   })
 
   it('logout : POST /v1/auth/logout et efface la préférence « se souvenir de moi » si OK (sans client Firebase)', async () => {
@@ -180,6 +187,29 @@ describe('AuthApiService', () => {
 
     expect(ok).toBe(false)
     expect(localStorage.getItem('hatcastRememberMe')).toBe('1')
+  })
+
+  it('deleteAccount invalide le cache inbox membre', async () => {
+    const invalidateInbox = vi.fn()
+    TestBed.resetTestingModule()
+    TestBed.configureTestingModule({
+      providers: [
+        AuthApiService,
+        { provide: FirebaseAuthService, useValue: { getAuthOrNull: () => null } },
+        {
+          provide: MeInboxApiService,
+          useValue: { invalidateCache: invalidateInbox, bindSessionUser: vi.fn() },
+        },
+      ],
+    })
+
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await TestBed.inject(AuthApiService).deleteAccount('id-token')
+
+    expect(result.ok).toBe(true)
+    expect(invalidateInbox).toHaveBeenCalledTimes(1)
   })
 
   it('uploadAvatar envoie multipart avec CSRF', async () => {

@@ -95,7 +95,7 @@ describe('MemberHomeTodo', () => {
   it('affiche le titre Accueil', async () => {
     await settle(fixture)
     expect(fixture.nativeElement.textContent).toContain('Accueil')
-    expect(inboxApi.getInbox).toHaveBeenCalled()
+    expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: true })
   })
 
   it('affiche deux lignes d’action pour deux dispos unknown', async () => {

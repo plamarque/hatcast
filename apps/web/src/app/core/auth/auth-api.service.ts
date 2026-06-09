@@ -2,6 +2,7 @@ import { inject, Injectable, signal } from '@angular/core'
 import { signOut } from 'firebase/auth'
 
 import { MePreferencesApiService } from '../account/me-preferences-api.service'
+import { MeInboxApiService } from '../inbox/me-inbox-api.service'
 import { ProductAnalyticsService } from '../analytics/product-analytics.service'
 import { csrfHeaders } from '../http/hatcast-csrf'
 import { FirebaseAuthService } from './firebase-auth.service'
@@ -35,6 +36,7 @@ export interface AuthSessionBody {
 export class AuthApiService {
   private readonly firebaseAuth = inject(FirebaseAuthService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
+  private readonly meInboxApi = inject(MeInboxApiService)
   private readonly productAnalytics = inject(ProductAnalyticsService)
   private readonly sessionUserSignal = signal<UserSummary | null>(null)
   private ensureInFlight: Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> | null =
@@ -103,6 +105,7 @@ export class AuthApiService {
       if (previousUserId != null && previousUserId !== data.user.id) {
         this.mePreferencesApi.invalidateCache()
       }
+      this.meInboxApi.bindSessionUser(data.user.id)
       this.sessionUserSignal.set(data.user)
       this.productAnalytics.identifyUser(data.user.id)
     }
@@ -226,6 +229,7 @@ export class AuthApiService {
     this.sessionUserSignal.set(null)
     this.productAnalytics.resetSession()
     this.mePreferencesApi.invalidateCache()
+    this.meInboxApi.invalidateCache()
 
     return apiOk
   }
@@ -245,6 +249,7 @@ export class AuthApiService {
       })
       if (res.status === 204) {
         this.sessionUserSignal.set(null)
+        this.meInboxApi.invalidateCache()
         return { ok: true, status: res.status }
       }
       let message: string | undefined
