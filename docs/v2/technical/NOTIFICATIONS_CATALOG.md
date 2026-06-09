@@ -100,7 +100,7 @@ flowchart LR
 | Destinataires & éligibilité | `NotificationDispatcher.kt`, `NotificationRecipientResolver.kt`                                                     |
 | Push global                 | `PushNotificationEligibilityPort.kt`                                                                                |
 | Préférences catégorie       | `UserNotificationPreferencesService.kt`, `GET/PATCH /v1/me/notification-preferences`                                |
-| Enveloppe email             | `EmailNotificationSender.kt`                                                                                        |
+| Enveloppe email             | `NotificationEmailHtml.kt` (shell) · `NotificationEmailBodyBuilder.kt` (copy) · `EmailNotificationSender.kt` (envoi) |
 | Rappels J-7 / J-1           | `AssigneePresenceReminderJob.kt` — cron `hatcast.notification.reminder-cron` (défaut `0 0 8 * * *`, `Europe/Paris`) |
 
 
@@ -157,19 +157,15 @@ Salutation : **`Bonjour {pseudo},`** (virgule) partout.
 
 Vocabulaire orga : **« Les orgas »** (pas « les organisateur·rices »).
 
-#### Enveloppe HTML cible
+#### Enveloppe HTML (story 8.10 — runtime)
 
-```html
-<p>Bonjour {pseudo},</p>
-<p>{intro}</p>
-<p>{détail optionnel}</p>
-<p><a href="{urlAbsEvent}">{libellé CTA}</a></p>
-<hr />
-<p style="font-size: smaller; color: #666;">
-  Pour ne plus recevoir ce type d’email ({libellé catégorie}),
-  <a href="{origin}/compte/notifications">changez vos préférences de notification</a>.
-</p>
-```
+Shell table-based 600 px max : barre accent violet, logo HatCast (`/icons/logo-hatcast-email.png`), carte blanche, **H1 headline** (distinct du sujet SMTP), bloc contexte spectacle (titre, date, troupe · saison, badges rôle/horizon), CTA bouton pill, footer préférences + « Envoyé par HatCast pour {troupe} ».
+
+Variantes : **A** action (défaut), **B** bonne nouvelle (`TEAM_COMPLETE_MEMBER` — icône ✓, CTA outline), **C** alerte orga (chip + intents ops), **transactionnel** (`ORGANIZER_SCOPE_GRANTED` — sans contexte spectacle).
+
+Cartes détails structurées : `PROXY_AVAILABILITY_RECORDED`, `EVENT_DETAILS_CHANGED`, `TEAM_REGRESSED` (motif dans carte « Motif »).
+
+Spec visuelle : [`_bmad-output/planning-artifacts/ux-design-email-templates.md`](../../_bmad-output/planning-artifacts/ux-design-email-templates.md) · preview : [`email-previews/hatcast-email-previews.html`](../../email-previews/hatcast-email-previews.html).
 
 **CTA par destination**
 

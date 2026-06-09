@@ -2,6 +2,8 @@ package com.hatcast.api.notification
 
 import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.event.EventEntity
+import com.hatcast.api.notification.NotificationEmailHtml.EmailVariant
+import com.hatcast.api.notification.NotificationEmailHtml.EventEmailContext
 import com.hatcast.api.role.RoleLabels
 import com.hatcast.api.user.MemberGender
 import org.springframework.stereotype.Component
@@ -36,6 +38,17 @@ class NotificationEmailBodyBuilder(
         val troupeName = event.season.troupe.name
         val seasonTitle = event.season.title
 
+        val detailsCardHtml: String? =
+            when (intent) {
+                NotificationIntent.PROXY_AVAILABILITY_RECORDED ->
+                    buildProxyAvailabilityDetailsCard(proxyChangeSummary as? ProxyChangeSummary.Availability)
+                NotificationIntent.EVENT_DETAILS_CHANGED ->
+                    buildEventDetailsCard(eventDetailsChangeSummary)
+                NotificationIntent.TEAM_REGRESSED ->
+                    buildTeamRegressedDetailsCard(reasonSummary)
+                else -> null
+            }
+
         val paragraphs =
             when (intent) {
                 NotificationIntent.AVAILABILITY_OPENED ->
@@ -68,8 +81,6 @@ class NotificationEmailBodyBuilder(
                     teamCompleteMemberParagraphs(eventTitle, eventDate)
                 NotificationIntent.PROXY_AVAILABILITY_RECORDED ->
                     proxyAvailabilityParagraphs(
-                        eventTitle,
-                        eventDate,
                         actor,
                         proxyChangeSummary as? ProxyChangeSummary.Availability,
                     )
@@ -82,11 +93,7 @@ class NotificationEmailBodyBuilder(
                         proxyChangeSummary as? ProxyChangeSummary.Participation,
                     )
                 NotificationIntent.EVENT_DETAILS_CHANGED ->
-                    eventDetailsChangedParagraphs(
-                        eventTitle,
-                        eventDate,
-                        eventDetailsChangeSummary,
-                    )
+                    eventDetailsChangedParagraphs()
                 NotificationIntent.EVENT_ARCHIVED ->
                     eventArchivedParagraphs(eventTitle, eventDate)
                 NotificationIntent.EVENT_DRAFT_CREATED ->
@@ -109,7 +116,7 @@ class NotificationEmailBodyBuilder(
                 NotificationIntent.TEAM_COMPLETE ->
                     teamCompleteParagraphs(eventTitle)
                 NotificationIntent.TEAM_REGRESSED ->
-                    teamRegressedParagraphs(eventTitle, eventDate, reasonSummary)
+                    teamRegressedParagraphs(eventTitle, eventDate)
                 NotificationIntent.TEAM_VALIDATED_FYI,
                 NotificationIntent.ORGANIZER_SCOPE_GRANTED,
                 ->
@@ -117,10 +124,22 @@ class NotificationEmailBodyBuilder(
             }
 
         return renderEmail(
+            intent = intent,
+            reminderWindow = reminderWindow,
             recipientName = recipientName,
             paragraphs = paragraphs,
+            detailsCardHtml = detailsCardHtml,
             relativeUrl = relativeUrl,
             category = category,
+            eventContext =
+                EventEmailContext(
+                    eventTitle = eventTitle,
+                    eventDate = eventDate,
+                    troupeName = troupeName,
+                    seasonTitle = seasonTitle,
+                    roleBadge = roleLabel,
+                    horizonBadge = horizonBadgeFor(reminderWindow),
+                ),
         )
     }
 
@@ -144,6 +163,9 @@ class NotificationEmailBodyBuilder(
         val relativeUrl = "/compte/notifications"
         val absoluteUrl = NotificationEmailHtml.joinOrigin(emailProperties.publicWebOrigin, relativeUrl)
         return NotificationEmailHtml.wrap(
+            headline = roleLabel.replaceFirstChar { it.uppercase() },
+            variant = EmailVariant.TRANSACTIONAL,
+            publicWebOrigin = emailProperties.publicWebOrigin,
             greetingHtml = NotificationEmailHtml.greeting(recipientName),
             bodyParagraphs = paragraphs,
             ctaHtml = NotificationEmailHtml.ctaBlock(absoluteUrl, relativeUrl),
@@ -152,23 +174,37 @@ class NotificationEmailBodyBuilder(
     }
 
     private fun renderEmail(
+        intent: NotificationIntent,
+        reminderWindow: NotificationReminderWindow?,
         recipientName: String,
         paragraphs: List<String>,
+        detailsCardHtml: String?,
         relativeUrl: String,
         category: NotificationCategory,
+        eventContext: EventEmailContext,
     ): String {
         val absoluteUrl = NotificationEmailHtml.joinOrigin(emailProperties.publicWebOrigin, relativeUrl)
+        val variant = variantFor(intent)
+        val isOutline = variant == EmailVariant.GOOD_NEWS
         return NotificationEmailHtml.wrap(
+            headline = headlineFor(intent, eventContext.eventTitle, reminderWindow),
+            variant = variant,
+            publicWebOrigin = emailProperties.publicWebOrigin,
             greetingHtml = NotificationEmailHtml.greeting(recipientName),
             bodyParagraphs = paragraphs,
-            ctaHtml = NotificationEmailHtml.ctaBlock(absoluteUrl, relativeUrl),
+            ctaHtml = NotificationEmailHtml.ctaBlock(absoluteUrl, relativeUrl, outline = isOutline),
             footerHtml =
                 NotificationEmailHtml.standardPreferencesFooter(
                     emailProperties.publicWebOrigin,
                     preferenceCategoryLabel(category),
+                    troupeName = eventContext.troupeName,
                 ),
+            eventContext = eventContext,
+            detailsCardHtml = detailsCardHtml,
         )
     }
+
+    // ── Paragraph builders ────────────────────────────────────────────────────
 
     private fun availabilityOpenedParagraphs(
         eventTitle: String,
@@ -315,30 +351,32 @@ class NotificationEmailBodyBuilder(
             ),
         )
 
+    /** Body paragraphs for PROXY_AVAILABILITY_RECORDED — details are rendered in a separate card. */
     private fun proxyAvailabilityParagraphs(
-        eventTitle: String,
-        eventDate: String,
         actor: String,
         summary: ProxyChangeSummary.Availability?,
-    ): List<String> {
-        val changePart =
-            summary?.let { "${it.beforeLabel} → ${it.afterLabel}" } ?: "mise à jour"
-        val rolesPart = summary?.roleKeysSummary ?: "—"
-        val commentPart = summary?.commentSnippet?.let { "« $it »" } ?: "—"
-        return listOf(
+    ): List<String> =
+        listOf(
             NotificationEmailHtml.paragraphHtml(
-                "${NotificationEmailHtml.bold(actor)} a enregistré ta disponibilité pour " +
-                    "${NotificationEmailHtml.bold(eventTitle)} le ${NotificationEmailHtml.bold(eventDate)} :",
+                "${NotificationEmailHtml.bold(actor)} a enregistré ta disponibilité pour ce spectacle :",
             ),
-            """<ul>
-              <li>Statut : ${NotificationEmailHtml.escape(changePart)}</li>
-              <li>Rôles : ${NotificationEmailHtml.escape(rolesPart)}</li>
-              <li>Commentaire : ${NotificationEmailHtml.escape(commentPart)}</li>
-            </ul>""",
             NotificationEmailHtml.paragraph(
                 "Vérifie que tout est correct ; tu peux corriger depuis HatCast si besoin.",
             ),
         )
+
+    private fun buildProxyAvailabilityDetailsCard(summary: ProxyChangeSummary.Availability?): String {
+        val changePart = summary?.let { "${it.beforeLabel} → ${it.afterLabel}" } ?: "mise à jour"
+        val rolesPart = summary?.roleKeysSummary ?: "—"
+        val commentPart = summary?.commentSnippet?.let { "« $it »" } ?: "—"
+        val itemStyle = "margin-bottom:4px;"
+        val listHtml =
+            """<ul style="margin:0;padding:0 0 0 18px;font-size:14px;line-height:1.55;color:#1D1B20;">""" +
+                """<li style="$itemStyle"><strong>Statut :</strong> ${NotificationEmailHtml.escape(changePart)}</li>""" +
+                """<li style="$itemStyle"><strong>Rôles :</strong> ${NotificationEmailHtml.escape(rolesPart)}</li>""" +
+                """<li style="$itemStyle"><strong>Commentaire :</strong> ${NotificationEmailHtml.escape(commentPart)}</li>""" +
+                """</ul>"""
+        return NotificationEmailHtml.detailsCardBlock("Détail de la modification", listHtml)
     }
 
     private fun proxyConfirmationParagraphs(
@@ -386,29 +424,26 @@ class NotificationEmailBodyBuilder(
         return listOf(NotificationEmailHtml.paragraphHtml(body))
     }
 
-    private fun eventDetailsChangedParagraphs(
-        eventTitle: String,
-        eventDate: String,
-        summary: EventDetailsChangeSummary?,
-    ): List<String> {
-        val lines = payloadBuilder.formattedEventDetailsDeltaLines(summary)
-        val deltaHtml =
-            if (lines.isEmpty()) {
-                NotificationEmailHtml.paragraph("Des informations importantes ont changé.")
-            } else {
-                val items = lines.joinToString("") { line -> "<li>${NotificationEmailHtml.escape(line)}</li>" }
-                """<ul>$items</ul>"""
-            }
-        return listOf(
-            NotificationEmailHtml.paragraphHtml(
-                "Des informations importantes ont changé pour ${NotificationEmailHtml.bold(eventTitle)} " +
-                    "le ${NotificationEmailHtml.bold(eventDate)} :",
+    /** Body paragraphs for EVENT_DETAILS_CHANGED — deltas are rendered in a separate card. */
+    private fun eventDetailsChangedParagraphs(): List<String> =
+        listOf(
+            NotificationEmailHtml.paragraph(
+                "Des informations importantes ont changé pour ce spectacle.",
             ),
-            deltaHtml,
             NotificationEmailHtml.paragraph(
                 "Pense à vérifier que tu es toujours disponible au nouveau créneau ou au nouveau lieu.",
             ),
         )
+
+    private fun buildEventDetailsCard(summary: EventDetailsChangeSummary?): String? {
+        val lines = payloadBuilder.formattedEventDetailsDeltaLines(summary)
+        if (lines.isEmpty()) return null
+        val itemStyle = "margin-bottom:4px;"
+        val items = lines.joinToString("") { line ->
+            """<li style="$itemStyle">${NotificationEmailHtml.escape(line)}</li>"""
+        }
+        val listHtml = """<ul style="margin:0;padding:0 0 0 18px;font-size:14px;line-height:1.55;color:#1D1B20;">$items</ul>"""
+        return NotificationEmailHtml.detailsCardBlock("Modifications", listHtml)
     }
 
     private fun eventArchivedParagraphs(
@@ -516,23 +551,94 @@ class NotificationEmailBodyBuilder(
             ),
         )
 
+    /** Body paragraphs for TEAM_REGRESSED — regression reason goes to the details card. */
     private fun teamRegressedParagraphs(
         eventTitle: String,
         eventDate: String,
-        reasonSummary: String?,
-    ): List<String> {
-        val reason = reasonSummary?.trim()?.takeIf { it.isNotEmpty() } ?: "équipe non complète"
-        return listOf(
+    ): List<String> =
+        listOf(
             NotificationEmailHtml.paragraphHtml(
                 "Mauvaise nouvelle, la composition de l'équipe pour ${NotificationEmailHtml.bold(eventTitle)} le " +
                     "${NotificationEmailHtml.bold(eventDate)} est de nouveau incomplète.",
             ),
-            NotificationEmailHtml.paragraphHtml("Motif : ${NotificationEmailHtml.bold(reason)}"),
             NotificationEmailHtml.paragraph(
                 "Action suggérée : rouvrir la compo, combler le trou ou relancer les personnes concernées.",
             ),
         )
+
+    private fun buildTeamRegressedDetailsCard(reasonSummary: String?): String? {
+        val reason = reasonSummary?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val listHtml =
+            """<ul style="margin:0;padding:0 0 0 18px;font-size:14px;line-height:1.55;color:#1D1B20;">""" +
+                """<li>${NotificationEmailHtml.escape(reason)}</li>""" +
+                """</ul>"""
+        return NotificationEmailHtml.detailsCardBlock("Motif", listHtml)
     }
+
+    // ── Headline mapping ──────────────────────────────────────────────────────
+
+    private fun headlineFor(
+        intent: NotificationIntent,
+        eventTitle: String,
+        reminderWindow: NotificationReminderWindow?,
+    ): String =
+        when (intent) {
+            NotificationIntent.AVAILABILITY_OPENED -> "Ta dispo pour $eventTitle ?"
+            NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE -> "Ta dispo pour $eventTitle ?"
+            NotificationIntent.MANUAL_AVAILABILITY_NUDGE -> "Rappel — ta dispo pour $eventTitle"
+            NotificationIntent.AVAILABILITY_PENDING_REMINDER -> "Rappel — ta dispo pour $eventTitle"
+            NotificationIntent.CONFIRMATION_REQUEST -> "Tu es dans la compo !"
+            NotificationIntent.RECONFIRMATION_REQUEST -> "Reconfirme ta participation"
+            NotificationIntent.REMOVED_FROM_COMPOSITION -> "Tu n'es plus dans la compo"
+            NotificationIntent.ASSIGNEE_PRESENCE_REMINDER ->
+                when (reminderWindow) {
+                    NotificationReminderWindow.DAYS_7 -> "C'est dans une semaine"
+                    NotificationReminderWindow.DAYS_1 -> "C'est demain !"
+                    else -> "C'est bientôt !"
+                }
+            NotificationIntent.PROXY_AVAILABILITY_RECORDED -> "Ta dispo a été mise à jour"
+            NotificationIntent.PROXY_CONFIRMATION_RECORDED -> "Ta participation a été mise à jour"
+            NotificationIntent.EVENT_DETAILS_CHANGED -> "Infos modifiées pour $eventTitle"
+            NotificationIntent.EVENT_ARCHIVED -> "Spectacle archivé"
+            NotificationIntent.TEAM_COMPLETE_MEMBER -> "L'équipe est au complet !"
+            NotificationIntent.COMPOSITION_SHARED -> "Nouvelle compo proposée"
+            NotificationIntent.EVENT_DRAFT_CREATED -> "Nouveau spectacle en brouillon"
+            NotificationIntent.SLA_OPEN_AVAILABILITY -> "Ouvre la collecte des dispos"
+            NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY -> "Compo encore incomplète"
+            NotificationIntent.COMPOSITION_INCOMPLETE_DAILY_J7 -> "J-7 — compo incomplète"
+            NotificationIntent.TEAM_COMPLETE -> "Compo bouclée"
+            NotificationIntent.TEAM_REGRESSED -> "La compo n'est plus complète"
+            NotificationIntent.TEAM_VALIDATED_FYI,
+            NotificationIntent.ORGANIZER_SCOPE_GRANTED,
+            -> eventTitle
+        }
+
+    // ── Variant mapping ───────────────────────────────────────────────────────
+
+    private fun variantFor(intent: NotificationIntent): EmailVariant =
+        when (intent) {
+            NotificationIntent.TEAM_COMPLETE_MEMBER -> EmailVariant.GOOD_NEWS
+            NotificationIntent.SLA_OPEN_AVAILABILITY,
+            NotificationIntent.COMPOSITION_INCOMPLETE_WEEKLY,
+            NotificationIntent.COMPOSITION_INCOMPLETE_DAILY_J7,
+            NotificationIntent.TEAM_COMPLETE,
+            NotificationIntent.TEAM_REGRESSED,
+            NotificationIntent.EVENT_DRAFT_CREATED,
+            NotificationIntent.COMPOSITION_SHARED,
+            -> EmailVariant.ORGA_ALERT
+            else -> EmailVariant.ACTION
+        }
+
+    // ── Horizon badge ─────────────────────────────────────────────────────────
+
+    private fun horizonBadgeFor(reminderWindow: NotificationReminderWindow?): String? =
+        when (reminderWindow) {
+            NotificationReminderWindow.DAYS_7 -> "J-7"
+            NotificationReminderWindow.DAYS_1 -> "J-1"
+            else -> null
+        }
+
+    // ── Category label ────────────────────────────────────────────────────────
 
     private fun preferenceCategoryLabel(category: NotificationCategory): String =
         when (category) {
