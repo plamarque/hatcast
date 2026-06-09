@@ -90,6 +90,10 @@ Composer (Amelia / bmad-dev-story)
 - **Bootstrap BFF** : `bootstrapSummary` évite le second `getEventAvailabilitySummary` quand PERF-10 a déjà fourni le summary.
 - **Tests** : +2 specs PERF-13 (`event-dispos-tab`, `availability-poll`) ; 80/80 specs ciblées vertes.
 - **AC4 profilage** : waiver review — gate wall non re-mesuré ; re-profilage recommandé avec PERF-14 `--in-app` (décision review 2026-06-10).
+- **Profilage post-fix** (`node scripts/v2/profile-web-performance.mjs`, stack dev local `@seed.improbots.test`, `.local/perf-profile/web-perf-2026-06-09T22-28-06-230Z.json`, 2026-06-10) vs baseline plan (`15-32-52-596Z` **2231 ms** Dispos / **553 ms** composition) et post-PERF-10 (`1759 ms`, **6** appels, BFF dispos **598 ms**) :
+  - **Event Dispos** wall **2942 ms** (baseline **2231**, Δ **+711 ms** ; post-PERF-10 **1759**, Δ **+1183 ms** — variance run / shell + résolution saison ; BFF `page?tab=dispos` **1795 ms** vs **598 ms** post-PERF-10) ; **7** appels (baseline **10**, post-PERF-10 **6**).
+  - **`GET …/composition` 0×** (baseline **1×** ~553 ms) ✓ AC1 ; **`GET …/availability/summary` 0×** hors BFF (summary sans chances via BFF uniquement) ✓ AC2 ; pas de `includeChances=true` au mount.
+  - **Gate AC4** (≤1400 ms avec PERF-10 / ≤1700 ms sans) : **non atteint** sur ce run (**2942 ms**) — lazy paths validés structurellement ; wall gate à re-valider en recette `--with-push` ou `--in-app` (PERF-14).
 
 ### File List
 
@@ -99,6 +103,7 @@ Composer (Amelia / bmad-dev-story)
 
 ### Change Log
 
+- 2026-06-10 — Re-profilage post-fix : `web-perf-2026-06-09T22-28-06-230Z.json` — Dispos composition 0× ; summary lazy via BFF ; gate wall AC4 non atteint (2942 ms, variance locale).
 - 2026-06-10 — Code review : waiver AC4 → PERF-14 ; +3 tests (bootstrap sans chances, miroir sans bootstrap, no fetch explainability off) ; story → done.
 - 2026-06-10 — PERF-13 : formalisation lazy explainability Dispos ; tests bootstrap BFF + skeleton pool ; story → review.
 
