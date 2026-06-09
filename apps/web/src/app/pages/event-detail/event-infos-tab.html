@@ -152,43 +152,45 @@
     >
       <span id="event-infos-organizers-label" class="event-infos__label">Organisateur·ices</span>
       <p id="event-infos-organizers-help" class="event-infos__section-help">{{ organizersHelp }}</p>
-      <div class="event-infos__organizers-body">
-        @if (organizers().length > 0) {
-          <mat-chip-set class="event-infos__chip-set">
-            @for (organizer of organizers(); track organizer.userId) {
-              <mat-chip
-                class="event-infos__organizer-chip"
-                [disabled]="saving()"
-                [removable]="canManageEventOrganizers()"
-                (removed)="removeOrganizer(organizer.userId)"
-              >
-                {{ organizerLabel(organizer) }}
-                @if (canManageEventOrganizers()) {
-                  <mat-icon
-                    matChipRemove
-                    [attr.aria-label]="'Retirer ' + organizerLabel(organizer)"
-                  >
-                    cancel
-                  </mat-icon>
-                }
-              </mat-chip>
-            }
-          </mat-chip-set>
-        } @else if (!canManageEventOrganizers()) {
-          <span class="event-infos__empty">Aucun·e organisateur·ice dédié·e</span>
-        }
-        @if (canManageEventOrganizers()) {
-          <button
-            type="button"
-            class="event-infos__add-organizer"
-            [disabled]="saving()"
-            (click)="openOrganizersDialog()"
-          >
-            <mat-icon aria-hidden="true">person_add</mat-icon>
-            Ajouter un·e organisateur·ice
-          </button>
-        }
-      </div>
+      @if (organizers().length > 0 || !canManageEventOrganizers()) {
+        <div class="event-infos__organizers-body">
+          @if (organizers().length > 0) {
+            <mat-chip-set class="event-infos__chip-set">
+              @for (organizer of organizers(); track organizer.userId) {
+                <mat-chip
+                  class="event-infos__organizer-chip"
+                  [disabled]="saving()"
+                  [removable]="canManageEventOrganizers()"
+                  (removed)="removeOrganizer(organizer.userId)"
+                >
+                  {{ organizerLabel(organizer) }}
+                  @if (canManageEventOrganizers()) {
+                    <mat-icon
+                      matChipRemove
+                      [attr.aria-label]="'Retirer ' + organizerLabel(organizer)"
+                    >
+                      cancel
+                    </mat-icon>
+                  }
+                </mat-chip>
+              }
+            </mat-chip-set>
+          } @else {
+            <span class="event-infos__empty">Aucun·e organisateur·ice dédié·e</span>
+          }
+        </div>
+      }
+      @if (canManageEventOrganizers()) {
+        <button
+          type="button"
+          class="event-infos__add-organizer"
+          [disabled]="saving()"
+          (click)="openOrganizersDialog()"
+        >
+          <mat-icon aria-hidden="true">person_add</mat-icon>
+          Ajouter un·e organisateur·ice
+        </button>
+      }
     </section>
   }
 
