@@ -1,3 +1,4 @@
+import { By } from '@angular/platform-browser'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
@@ -5,6 +6,7 @@ import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import {
   MeInboxApiService,
@@ -14,6 +16,7 @@ import {
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { MemberHomeTodo } from './member-home-todo'
 
 async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> {
@@ -32,6 +35,7 @@ describe('MemberHomeTodo', () => {
   let fixture: ComponentFixture<MemberHomeTodo>
   let inboxApi: { getInbox: ReturnType<typeof vi.fn> }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
+  let getPreferences: ReturnType<typeof vi.fn>
   let router: Router
   let navigateByUrlSpy: ReturnType<typeof vi.fn>
   let navigateSpy: ReturnType<typeof vi.fn>
@@ -67,6 +71,11 @@ describe('MemberHomeTodo', () => {
       }),
     }
     snack = { open: vi.fn() }
+    getPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { memberDisplayName: 'Patrice', preferredRoleKeys: [], gender: 'female' },
+    })
 
     await TestBed.configureTestingModule({
       imports: [MemberHomeTodo, NoopAnimationsModule],
@@ -74,6 +83,10 @@ describe('MemberHomeTodo', () => {
         provideRouter([]),
         { provide: AuthApiService, useValue: auth },
         { provide: MeInboxApiService, useValue: inboxApi },
+        {
+          provide: MePreferencesApiService,
+          useValue: { getPreferences, cacheRevision: () => 0 },
+        },
         { provide: TroupeSeasonResolverService, useValue: seasonResolver },
         { provide: MatSnackBar, useValue: snack },
       ],
@@ -418,6 +431,21 @@ describe('MemberHomeTodo', () => {
     expect(card?.textContent).toContain('Le prochain')
     expect(card?.querySelector('app-agenda-participation-status')).toBeTruthy()
     expect(card?.querySelector('.agenda-card__loc')).toBeFalsy()
+  })
+
+  it('preloads viewer gender once for the next-event participation status card', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([], agendaItem('soon', 'Le prochain', isoInDays(2), 'available')),
+    })
+
+    await settle(fixture)
+
+    const card = fixture.debugElement.query(By.directive(AgendaParticipationStatus))
+    expect(card).toBeTruthy()
+    expect(getPreferences).toHaveBeenCalledTimes(1)
+    expect(card.componentInstance.viewerGender()).toBe('female')
   })
 
   it('ouvre le prochain spectacle au clic sur la zone cliquable', async () => {

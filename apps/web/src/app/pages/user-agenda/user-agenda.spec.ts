@@ -1,3 +1,4 @@
+import { By } from '@angular/platform-browser'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
@@ -10,6 +11,7 @@ import {
 } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { USER_AGENDA_FILTERS_STORAGE_KEY } from '../../core/agenda/user-agenda-filters-storage'
 import {
@@ -19,6 +21,7 @@ import {
   type UserAgendaResponse,
 } from '../../core/agenda/user-agenda-api.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
+import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { UserAgenda } from './user-agenda'
 
 const TROUPE_A = 'a0000001-0000-4000-8000-000000000001'
@@ -47,6 +50,7 @@ describe('UserAgenda', () => {
   let fixture: ComponentFixture<UserAgenda>
   let agendaApi: { listAgenda: ReturnType<typeof vi.fn> }
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> }
+  let getPreferences: ReturnType<typeof vi.fn>
   let router: Router
   let navigateSpy: ReturnType<typeof vi.fn>
   let snack: { open: ReturnType<typeof vi.fn> }
@@ -80,6 +84,11 @@ describe('UserAgenda', () => {
       logout: vi.fn().mockResolvedValue(true),
     }
     snack = { open: vi.fn() }
+    getPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { memberDisplayName: 'Patrice', preferredRoleKeys: [], gender: 'female' },
+    })
 
     await TestBed.configureTestingModule({
       imports: [UserAgenda, NoopAnimationsModule],
@@ -87,6 +96,7 @@ describe('UserAgenda', () => {
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
         { provide: UserAgendaApiService, useValue: agendaApi },
+        { provide: MePreferencesApiService, useValue: { getPreferences, cacheRevision: () => 0 } },
         { provide: MatSnackBar, useValue: snack },
       ],
     }).compileComponents()
@@ -101,6 +111,17 @@ describe('UserAgenda', () => {
     localStorage.clear()
     sessionStorage.clear()
     vi.restoreAllMocks()
+  })
+
+  it('preloads viewer gender once and passes it to participation status cards', async () => {
+    await settle(fixture)
+
+    const cards = fixture.debugElement.queryAll(By.directive(AgendaParticipationStatus))
+    expect(cards.length).toBe(2)
+    expect(getPreferences).toHaveBeenCalledTimes(1)
+    for (const card of cards) {
+      expect(card.componentInstance.viewerGender()).toBe('female')
+    }
   })
 
   it('n’affiche pas le raccourci Ma saison dans le header', async () => {
