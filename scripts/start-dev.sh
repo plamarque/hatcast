@@ -6,6 +6,7 @@
 #   ./scripts/start-dev.sh --with-push   # build prod + watch + serve dist HTTPS (SW, push, recette MAJ PWA)
 #   ./scripts/start-dev.sh --with-push --no-tailscale
 #   ./scripts/start-dev.sh --no-tailscale   # sans Tailscale Serve (accès mobile MagicDNS)
+#   ./scripts/start-dev.sh --offline   # sans Neon : base H2 locale + comptes seed Improbots
 #   ./scripts/start-dev.sh --legacy   # ancien comportement : seulement le serveur V1 (Vue / Vite)
 #
 # Prérequis : `npm install` à la racine ; JDK 21 pour Gradle.
@@ -13,6 +14,7 @@
 # reconnues, commentaires `#` ignorés). Utile pour `HATCAST_*`, `VITE_*` (mode --legacy), etc.
 #   HATCAST_SKIP_TAILSCALE_SERVE=1 — équivalent à --no-tailscale
 #   HATCAST_START_DEV_WITH_PUSH=1 — équivalent à --with-push
+#   HATCAST_START_DEV_OFFLINE=1 — équivalent à --offline (H2 local, pas de Neon)
 #   HATCAST_NOTIFICATION_EMAIL_ENABLED=true — démarre Mailpit (Docker), force SMTP local pour l’API,
 #   désactive CLOUDFLARE_* du .env (Mailpit prioritaire), arrête Mailpit à la fin du script ; voir `.env.example`.
 #   --with-push + EMAIL_ENABLED : push (VAPID dans .env) et emails (Mailpit) en parallèle pour story 8.3.
@@ -22,8 +24,9 @@
 # URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host`).
 #   Accès mobile (tailnet) : `tailscale up` si déconnecté, puis Serve → https://<machine>.<tailnet>.ts.net
 #   OAuth Google : origine MagicDNS sans :4200 — voir docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md
-# API : PostgreSQL obligatoire (Neon) — exporter HATCAST_DATASOURCE_URL, HATCAST_DATASOURCE_USERNAME,
+# API : PostgreSQL (Neon) par défaut — exporter HATCAST_DATASOURCE_URL, HATCAST_DATASOURCE_USERNAME,
 # HATCAST_DATASOURCE_PASSWORD dans `.env` (Flyway + Spring Session sur cette base).
+# Mode --offline : base H2 fichier sous .local/hatcast-offline/ (pas de Neon requis).
 
 set -euo pipefail
 # Contrôle de jobs : le PID du job en arrière-plan devient chef de groupe → `kill -TERM -$pid` arrête Gradle **et** la JVM.
@@ -38,12 +41,30 @@ cd "$ROOT"
 
 SKIP_TAILSCALE_SERVE="${HATCAST_SKIP_TAILSCALE_SERVE:-0}"
 WITH_PUSH="${HATCAST_START_DEV_WITH_PUSH:-0}"
+OFFLINE="${HATCAST_START_DEV_OFFLINE:-0}"
 for arg in "$@"; do
   case "$arg" in
     --no-tailscale) SKIP_TAILSCALE_SERVE=1 ;;
     --with-push | --push-test) WITH_PUSH=1 ;;
+    --offline) OFFLINE=1 ;;
   esac
 done
+if [[ "${HATCAST_SPRING_PROFILE:-}" == *offline* ]]; then
+  OFFLINE=1
+fi
+
+configure_offline_dev() {
+  [[ "$OFFLINE" == "1" ]] || return 0
+  if [[ "$WITH_PUSH" == "1" ]]; then
+    echo "  ⚠ Mode --with-push ignoré en offline (push/PWA nécessitent le réseau)."
+    WITH_PUSH=0
+  fi
+  echo "→ Mode offline : base H2 locale (.local/hatcast-offline/), pas de Neon ni Tailscale"
+  unset HATCAST_DATASOURCE_URL HATCAST_DATASOURCE_USERNAME HATCAST_DATASOURCE_PASSWORD
+  export HATCAST_SPRING_PROFILE=dev,offline
+  SKIP_TAILSCALE_SERVE=1
+  mkdir -p "$ROOT/.local/hatcast-offline"
+}
 
 if [[ "${1:-}" == "--legacy" ]]; then
   exec npm run dev -- --host
@@ -336,6 +357,7 @@ if [[ ! -x "$ROOT/services/api/gradlew" ]]; then
 fi
 
 configure_local_mailpit_smtp
+configure_offline_dev
 ensure_mailpit
 if [[ "$WITH_PUSH" == "1" ]]; then
   echo "→ Mode notifications push (--with-push) : build production + watch + serve HTTPS statique (MAJ PWA recette)."
@@ -393,6 +415,11 @@ if [[ -n "$TAILSCALE_SERVE_URL" ]]; then
 fi
 if mailpit_enabled; then
   echo "    • Mailpit : ${MAILPIT_UI_URL}  (SMTP 127.0.0.1:${MAILPIT_SMTP_PORT} ; conteneur ${MAILPIT_CONTAINER_NAME})"
+fi
+if [[ "$OFFLINE" == "1" ]]; then
+  echo "    • Offline : connexion seed sur /connexion — ex. charlene@seed.improbots.test / charlene"
+  echo "      Reset base : rm -rf .local/hatcast-offline/ puis relancer --offline"
+  echo "      Google OAuth et Identity Platform réels indisponibles sans réseau."
 fi
 echo ""
 echo "  Ctrl+C arrête le front, l’API et Mailpit (Tailscale Serve reste actif en arrière-plan)."

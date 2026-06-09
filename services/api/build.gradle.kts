@@ -39,6 +39,7 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
 
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("com.h2database:h2")
     developmentOnly("com.h2database:h2")
     testRuntimeOnly("com.h2database:h2")
 

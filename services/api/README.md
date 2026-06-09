@@ -62,8 +62,10 @@ cd services/api
 | Profil | Usage |
 |--------|--------|
 | `dev` (défaut) | Poste local : Neon branche **`local`** via `HATCAST_DATASOURCE_*` dans `.env` ; Flyway `db/migration` + `db/seed` + `db/seed-postgresql`. |
+| `dev,offline` | Poste sans Neon : H2 fichier (`.local/hatcast-offline/`) + seeds Improbots ; auth seed uniquement — `./scripts/start-dev.sh --offline`. |
 | `cloud` | Cloud Run : en-têtes `Forwarded`, cookie session **Secure**, `HATCAST_CORS_ALLOWED_ORIGINS` obligatoire — voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). |
 | `test` | Réservé à `./gradlew test` : base **H2 en mémoire** isolée (pas de Neon requis en CI). |
+| `e2e` | Playwright E2E : H2 en mémoire + mocks auth — voir [`apps/web/e2e/README.md`](../../apps/web/e2e/README.md). |
 
 En **dev**, Flyway charge `db/migration` + `db/seed` + `db/seed-postgresql` ([ADR-0014](../../docs/adr/0014-v2-preprod-migration-no-seed.md)). Les données **Les Improbots** vivent surtout dans le repeatable **`R__seed_improbots_dev_demo.sql`** ; les anciennes migrations seed (`V6`, `V17`, …) sont des stubs no-op. Regénération : `npm run generate:improbots-dev-seed` (voir [DEVELOPMENT.md](../../DEVELOPMENT.md)). Si le démarrage échoue avec *« resolved migration not applied … 3.1 »*, la base a été migrée avant l’ajout du seed `V3_1` : le profil `dev` active `out-of-order` + `repair-on-migrate` pour l’appliquer. Sinon, réinitialiser la branche Neon **`local`** (reset) puis relancer `bootRun`. La branche **`development`** (cloud dev) ne doit pas recevoir les seeds — voir [DEPLOY_V2_CLOUD_RUN.md](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §5.
 
@@ -128,6 +130,7 @@ Regression gate for [`CompositionDrawService`](src/main/kotlin/com/hatcast/api/c
 |---------------|--------|--------|
 | **CI** + `./gradlew test` local | **H2** en mémoire | [`src/test/resources/application-test.yml`](src/test/resources/application-test.yml) |
 | **E2E Playwright V2** | **H2** en mémoire + seeds | [`src/main/resources/application-e2e.yml`](src/main/resources/application-e2e.yml) — profil **`e2e`** |
+| **Offline dev** (`--offline`) | **H2** fichier + seeds | [`src/main/resources/application-offline.yml`](src/main/resources/application-offline.yml) — profils **`dev,offline`** |
 | **dev** (poste, branche Neon `local`) / **cloud** (Cloud Run) | **PostgreSQL** (Neon) | `HATCAST_DATASOURCE_*` + profils `dev` / `cloud` |
 
 La CI (**[`.github/workflows/api-test.yml`](../../.github/workflows/api-test.yml)**) exécute `./gradlew test --no-daemon` sur chaque PR/push touchant `services/api/**` (branches `v2`, `main`). Échec du job = check rouge. Relance manuelle : onglet Actions → *services/api (tests)* → *Run workflow*.

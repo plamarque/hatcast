@@ -1,6 +1,7 @@
 package com.hatcast.api.auth
 
 import com.hatcast.api.user.UserRepository
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
@@ -14,14 +15,19 @@ import org.springframework.stereotype.Component
 @Primary
 class DevIdpIdTokenVerifier(
     private val userRepository: UserRepository,
-    private val firebaseIdpIdTokenVerifier: FirebaseIdpIdTokenVerifier,
+    @Autowired(required = false) private val firebaseIdpIdTokenVerifier: FirebaseIdpIdTokenVerifier?,
 ) : IdpIdTokenVerifier {
     override fun verify(idToken: String): IdpTokenPayload {
         val trimmed = idToken.trim()
         if (trimmed.startsWith(DevSeedAuthSupport.DEV_SEED_IDP_PREFIX)) {
             return verifyDevSeedToken(trimmed)
         }
-        return firebaseIdpIdTokenVerifier.verify(trimmed)
+        val firebase = firebaseIdpIdTokenVerifier
+            ?: throw IllegalArgumentException(
+                "Identity Platform unavailable in offline mode — use a Les Improbots seed account " +
+                    "(@seed.improbots.test) via email and password on /connexion",
+            )
+        return firebase.verify(trimmed)
     }
 
     private fun verifyDevSeedToken(token: String): IdpTokenPayload {

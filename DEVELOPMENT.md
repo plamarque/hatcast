@@ -78,6 +78,20 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 **Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe.
 
+**Mode offline (sans Neon / sans internet)** : si la branche Neon `local` est injoignable (train, avion, etc.), lancer avec une base H2 locale et les seeds Les Improbots :
+
+```bash
+./scripts/start-dev.sh --offline
+# équivalent : HATCAST_START_DEV_OFFLINE=1 ./scripts/start-dev.sh
+```
+
+- Base H2 fichier : `.local/hatcast-offline/` (gitignored) — persiste entre redémarrages API.
+- Connexion : `/connexion` avec un compte seed `@seed.improbots.test` (ex. `charlene@seed.improbots.test` / `charlene`, ou `patrice@seed.improbots.test` / `patricep` si slug < 8 caractères) — voir § Les Improbots ci-dessous.
+- **Indisponible offline** : Google OAuth, Identity Platform (email réel), Neon, `--with-push`, Tailscale (désactivé automatiquement).
+- Reset données : `rm -rf .local/hatcast-offline/` puis relancer `--offline`.
+- Prérequis : `npm install` et dépendances Gradle déjà en cache (première install nécessite internet).
+- Polices et icônes Material : embarquées dans le build Angular (plus de chargement depuis Google Fonts).
+
 Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
 **Trois troupes en local (`./scripts/start-dev.sh`, profil `dev`, Neon branche `local`) :**

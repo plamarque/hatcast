@@ -34,7 +34,7 @@ open class GoogleIdTokenService(
 }
 
 @Service
-@Profile("!e2e")
+@Profile("!e2e & !offline")
 class ProductionGoogleIdTokenService(
     @Value("\${hatcast.google.oauth-web-client-id:}") clientId: String,
 ) : GoogleIdTokenService(clientId)

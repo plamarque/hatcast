@@ -54,6 +54,9 @@ firebase-debug.log
 .dry-run-sandbox/
 .dry-run-sandbox-v2/
 
+# Offline dev H2 database (start-dev.sh --offline)
+.local/hatcast-offline/
+
 # Replay algorithm simulation output
 scripts/replay/output/
 
