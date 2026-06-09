@@ -153,8 +153,7 @@
   }
 }
 
-.event-infos__add-organizer,
-.event-infos__add-category {
+.event-infos__add-organizer {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -263,32 +262,5 @@
   color: var(--mat-sys-on-surface-variant);
   font-size: 0.8125rem;
   line-height: 1.25;
-}
-
-.event-infos__category-body {
-  padding: 0.5rem 0.9rem 0.65rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.event-infos__chip-set {
-  margin: 0;
-}
-
-.event-infos__category-chip {
-  --mdc-chip-elevated-container-color: rgba(255, 255, 255, 0.08);
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: default;
-
-  &--editable:not([disabled]) {
-    cursor: pointer;
-  }
-
-  &--default:not([disabled]) {
-    --mdc-chip-elevated-container-color: rgba(255, 255, 255, 0.04);
-    font-weight: 400;
-    opacity: 0.92;
-  }
 }
 

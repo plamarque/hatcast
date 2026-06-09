@@ -1,6 +1,7 @@
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
+import { provideRouter, Router } from '@angular/router'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 import { EventApiService } from '../../core/events/event-api.service'
@@ -62,6 +63,7 @@ describe('EventInfosTab', () => {
     await TestBed.configureTestingModule({
       imports: [EventInfosTab, NoopAnimationsModule],
       providers: [
+        provideRouter([]),
         {
           provide: EventApiService,
           useValue: { updateEvent: vi.fn() },
@@ -323,22 +325,50 @@ describe('EventInfosTab', () => {
     expect(help?.textContent?.trim()).toBe(CATEGORY_HELP)
   })
 
-  it('shows Spectacle ordinaire when no custom category', () => {
+  it('shows Spectacle ordinaire in disabled action row for read-only users', () => {
     fixture.detectChanges()
 
-    const chip = fixture.nativeElement.querySelector('.event-infos__category-chip')
-    expect(chip?.textContent?.trim()).toContain(DEFAULT_CATEGORY_DISPLAY_LABEL)
-    expect(chip?.classList.contains('event-infos__category-chip--default')).toBe(true)
+    const row = fixture.nativeElement.querySelector(
+      '.event-infos__category .event-infos__action-row--disabled',
+    )
+    expect(row?.textContent?.trim()).toContain(DEFAULT_CATEGORY_DISPLAY_LABEL)
   })
 
-  it('shows custom category label and allows remove when set', () => {
+  it('shows editable action row with chevron when organizer can manage events', () => {
     fixture.componentRef.setInput('canManageEvents', true)
-    fixture.componentRef.setInput('event', ev({ category: 'deplacements' }))
     fixture.detectChanges()
 
-    const chip = fixture.nativeElement.querySelector('.event-infos__category-chip')
-    expect(chip?.textContent?.trim()).toContain('deplacements')
-    expect(chip?.querySelector('[matChipRemove]')).not.toBeNull()
+    const row = fixture.nativeElement.querySelector(
+      '.event-infos__category button.event-infos__action-row',
+    ) as HTMLButtonElement | null
+    expect(row?.textContent?.trim()).toContain(DEFAULT_CATEGORY_DISPLAY_LABEL)
+    expect(row?.querySelector('.event-infos__chevron')).not.toBeNull()
+    expect(row?.getAttribute('aria-label')).toBe('Changer la catégorie')
+  })
+
+  it('shows manage categories link for troupe admin', () => {
+    fixture.componentRef.setInput('canManageTroupe', true)
+    fixture.detectChanges()
+
+    const link = fixture.nativeElement.querySelector('.event-infos__add-organizer')
+    expect(link?.textContent?.trim()).toContain('Gérer les catégories')
+  })
+
+  it('navigates to troupe settings when manage link clicked', () => {
+    fixture.componentRef.setInput('canManageTroupe', true)
+    fixture.detectChanges()
+
+    const router = TestBed.inject(Router)
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    const link = fixture.nativeElement.querySelector(
+      '.event-infos__add-organizer',
+    ) as HTMLButtonElement
+    link.click()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/', 'troupes', 'improbots', 'admin', 'parametres'], {
+      queryParams: { tab: 'categories' },
+    })
   })
 
   it('shows format and roles help on every Infos load', () => {

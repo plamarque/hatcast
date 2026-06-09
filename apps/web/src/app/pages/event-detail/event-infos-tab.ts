@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { DOCUMENT } from '@angular/common'
+import { Router } from '@angular/router'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
@@ -41,6 +42,7 @@ import {
   type TroupeCategory,
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
+import { troupeAdminSettingsPath } from '../../core/navigation/troupe-routes'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import {
   CATEGORY_HELP,
@@ -86,6 +88,7 @@ export class EventInfosTab {
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
+  private readonly router = inject(Router)
   private readonly doc = inject(DOCUMENT)
 
   readonly event = input.required<EventResponse>()
@@ -94,6 +97,7 @@ export class EventInfosTab {
   readonly troupeSlug = input.required<string>()
   readonly seasonSlug = input.required<string>()
   readonly canManageEvents = input(false)
+  readonly canManageTroupe = input(false)
   readonly canManageEventOrganizers = input(false)
   readonly canManageComposition = input(false)
   /** Incremented by parent when organizers change via admin menu dialog. */
@@ -135,8 +139,6 @@ export class EventInfosTab {
     }
     return this.glossary().find((t) => t.slug === slug)?.label ?? slug
   })
-
-  protected readonly hasCustomCategory = computed(() => this.event().category != null)
 
   protected readonly categoryDisplayLabel = computed(
     () => this.categoryLabel() ?? DEFAULT_CATEGORY_DISPLAY_LABEL,
@@ -257,12 +259,6 @@ export class EventInfosTab {
     }
   }
 
-  protected onCategoryChipClick(): void {
-    if (this.canManageEvents()) {
-      this.openCategoryDialog()
-    }
-  }
-
   protected roleCount(role: RoleKey): number {
     return normalizeRoleSlots(this.event().roleSlots)[role] ?? 0
   }
@@ -337,7 +333,9 @@ export class EventInfosTab {
   }
 
   protected openCategoryDialog(): void {
-    const label = this.categoryLabel()
+    if (!this.canManageEvents()) {
+      return
+    }
     const ref = this.dialog.open<
       EventCategoryDialog,
       EventCategoryDialogData,
@@ -345,7 +343,9 @@ export class EventInfosTab {
     >(EventCategoryDialog, {
       data: {
         troupeId: this.troupeId(),
-        initialQuery: label ?? '',
+        troupeSlug: this.troupeSlug(),
+        initialCategorySlug: this.event().category ?? null,
+        canManageTroupe: this.canManageTroupe(),
       },
       width: 'min(100vw - 2rem, 32rem)',
     })
@@ -353,12 +353,14 @@ export class EventInfosTab {
       if (result === undefined) {
         return
       }
-      void this.persistTag(result)
+      void this.persistCategory(result)
     })
   }
 
-  protected removeCategory(): void {
-    void this.persistTag(null)
+  protected navigateToCategorySettings(): void {
+    void this.router.navigate(troupeAdminSettingsPath(this.troupeSlug()), {
+      queryParams: { tab: 'categories' },
+    })
   }
 
   private exportContext(): CalendarExportContext {
@@ -444,10 +446,10 @@ export class EventInfosTab {
     }
   }
 
-  private async persistTag(value: string | null): Promise<void> {
+  private async persistCategory(slug: string | null): Promise<void> {
     const seasonId = this.seasonId()
     const ev = this.event()
-    const body = { category: value }
+    const body = { category: slug }
 
     this.saving.set(true)
     try {
@@ -460,7 +462,7 @@ export class EventInfosTab {
       this.eventUpdated.emit(result.data)
       const cleared = result.data.category == null
       this.snack.open(
-        cleared ? 'Tag retiré.' : 'Tag enregistré.',
+        cleared ? 'Spectacle ordinaire.' : 'Catégorie enregistrée.',
         'OK',
         { duration: 4000 },
       )

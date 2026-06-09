@@ -53,6 +53,11 @@ export function troupeAdminMembresPath(troupeSlug: string): string[] {
   return ['/', TROUPE_HUB_ROUTE_PREFIX, troupeSlug, 'admin', 'membres']
 }
 
+/** Troupe settings page — categories tab (Story 17.40). */
+export function troupeAdminSettingsPath(troupeSlug: string): string[] {
+  return ['/', TROUPE_HUB_ROUTE_PREFIX, troupeSlug, 'admin', 'parametres']
+}
+
 /** @deprecated Prefer {@link saisonWorkspacePath} with troupe slug. Legacy `/saison/:seasonSlug` only. */
 export function legacySaisonWorkspacePath(seasonSlug: string): string[] {
   return ['/saison', seasonSlug.trim()]

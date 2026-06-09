@@ -199,28 +199,36 @@
   >
     <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
     <p id="event-infos-category-help" class="event-infos__section-help">{{ categoryHelp }}</p>
-    <div class="event-infos__category-body">
-      <mat-chip-set class="event-infos__chip-set">
-        <mat-chip
-          class="event-infos__category-chip"
-          [class.event-infos__category-chip--default]="!hasCustomCategory()"
-          [class.event-infos__category-chip--editable]="canManageEvents()"
-          [disabled]="saving()"
-          [removable]="canManageEvents() && hasCustomCategory()"
-          (removed)="removeCategory()"
-          (click)="onCategoryChipClick()"
-        >
-          {{ categoryDisplayLabel() }}
-          @if (canManageEvents() && hasCustomCategory()) {
-            <mat-icon
-              matChipRemove
-              [attr.aria-label]="'Retirer ' + categoryDisplayLabel()"
-            >
-              cancel
-            </mat-icon>
-          }
-        </mat-chip>
-      </mat-chip-set>
-    </div>
+    @if (canManageEvents()) {
+      <button
+        type="button"
+        class="event-infos__action-row"
+        [disabled]="saving()"
+        aria-label="Changer la catégorie"
+        (click)="openCategoryDialog()"
+      >
+        <mat-icon aria-hidden="true">category</mat-icon>
+        <span class="event-infos__action-text">{{ categoryDisplayLabel() }}</span>
+        <mat-icon class="event-infos__chevron" aria-hidden="true">expand_more</mat-icon>
+      </button>
+    } @else {
+      <div class="event-infos__action-row event-infos__action-row--disabled">
+        <mat-icon aria-hidden="true">category</mat-icon>
+        <span class="event-infos__action-text event-infos__action-text--muted">{{
+          categoryDisplayLabel()
+        }}</span>
+      </div>
+    }
+    @if (canManageTroupe()) {
+      <button
+        type="button"
+        class="event-infos__add-organizer"
+        [disabled]="saving()"
+        (click)="navigateToCategorySettings()"
+      >
+        <mat-icon aria-hidden="true">settings</mat-icon>
+        Gérer les catégories
+      </button>
+    }
   </section>
 </main>
