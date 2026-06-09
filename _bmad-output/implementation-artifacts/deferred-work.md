@@ -35,6 +35,32 @@
 
 ---
 
+## Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)
+
+- AC1 non couvert par les tests ajoutés — bindings `[viewerGender]` vérifiés en revue code sur les 3 templates ; pas d'assertion DOM dans le diff PERF-05.
+- Race timing parent lent / enfant précoce non testée — atténuée par `await loadViewerGender()` dans `ngOnInit` avant rendu liste ; motivation story non simulée en test.
+- Effet `cacheRevision` non testé sur `user-agenda` / `member-home-todo` — reload genre après invalidation cache ; couverture PERF-01, hors patch minimal PERF-05.
+- Chemins échec `getPreferences` (preload KO → refetch enfant) non testés — au-delà des AC story.
+- Chaîne intégration `season-home` → `season-agenda` non testée — test isolé `SeasonAgenda` couvre le contrat input `viewerGender`.
+- `sprint-status.yaml` : changements collatéraux (`5-8`, `perf-04`) dans le même diff — hors périmètre PERF-05.
+
+---
+
+## Deferred from: code review of perf-04-session-context-cache (2026-06-09)
+
+- Gate S2 non profilé — AC3 non prouvé ; valider manuellement via `node scripts/v2/profile-web-performance.mjs` (serveur dev `--with-push`).
+- `ContextSwitcherDataService` non réinitialisé sur invalidation troupes/session — `initialized` court-circuite `ensureReady` ; état switcher potentiellement stale après switch user ; architectural, hors scope PERF-04.
+
+---
+
+## Deferred from: code review of perf-03-event-detail-tab-gated-load (2026-06-09)
+
+- Gate AC4 profilage Event Infos ≤ 1,2 s non exécutée — validation manuelle post-merge via `node scripts/v2/profile-web-performance.mjs`.
+- `reloadEvent` silent ne réinitialise pas composition — comportement préexistant ; cache composition peut diverger après reload silencieux sur onglet Équipe (`event-detail.ts:648-657`).
+- Duplication copy guidelines entre `resolveCompositionEquipeStatusFromEvent` et `resolveCompositionEquipeStatus` — dette maintenance, hors scope perf.
+
+---
+
 ## Deferred from: code review of perf-01-deduplicate-me-preferences (2026-06-09)
 
 - GET en échec non mis en cache — retry à chaque appel ; pattern d’erreur préexistant, impact marginal avec dedup parent (`me-preferences-api.service.ts`).
@@ -260,3 +286,28 @@
 - **AC10 suite web complète non verte** — 80 échecs préexistants / 29 fichiers ; tests share-announce 18/18 OK.
 - **`::ng-deep` panel menu** — dette technique Angular ; pattern acceptable court terme pour `panelClass`.
 - **Menu noms sans max-height** — débordement si audience très large ; **résolu en review 6.23** (`max-height` + `overflow-y` sur panel menu).
+
+---
+
+## Deferred from: code review of perf-02-inbox-badge-cache (2026-06-09)
+
+- **Gate S1 ≤ 800 ms non atteinte** (hub 1203 ms, compte 962 ms) — inbox retiré du chemin critique ; goulots auth/troupes adressés par PERF-04.
+- **Pas de test intégration « action inbox → retour /accueil → badge à jour »** — couverture AC2 repose sur tests unitaires + revue code.
+- **Pas d'invalidation serveur (push/WebSocket)** — tradeoff TTL 60 s documenté ; endpoint count envisagé PERF-06 (non livré — cache front suffisant MVP).
+
+---
+
+## Deferred from: PERF-06 inbox-api-profiling (2026-06-09)
+
+- **`GET /me/inbox/count` endpoint léger** — option plan perf ; non requis AC ; badge PERF-02 utilise réponse complète avec cache 60 s.
+- **Profilage Neon prod / Improbots volumineux** — garde-fou p95 sur H2 fixture minimale ; valider p95 réel sur branche dev avec données représentatives avant release perf.
+- **`NotificationRecipientResolver.isActiveEngagedMember` N+1** — item existant deferred-work 8-8 ; hors chemin `MeInboxService`.
+- **Suite `./gradlew test` 5 échecs préexistants** — composition/availability draw ; voir deferred-work 8-4/8-9 ; aucun lien PERF-06.
+
+---
+
+## Deferred from: code review of perf-06-inbox-api-profiling (2026-06-09)
+
+- **Pas de delta chiffré avant/après** — plan DoD §5.1 ; baseline RC-8 ~912 ms non reprise dans Completion Notes story.
+- **Fixture perf minimale sans scénario inbox « riche »** — membre seed sans pending confirmations ni horizon rempli ; garde-fou AC1 ne stress pas les chemins RC-8 optimisés.
+- **Risque drift requêtes DISTINCT vs COUNT miroir** — `findParticipatingSeasonIds*` conservées à côté de `existsParticipatingSeason*` ; correction future doit toucher les deux chemins.

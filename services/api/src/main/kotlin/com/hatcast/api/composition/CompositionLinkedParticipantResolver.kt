@@ -13,19 +13,25 @@ object CompositionLinkedParticipantResolver {
         userId: UUID,
         seasonParticipantRepository: SeasonParticipantRepository,
         eventParticipantRepository: EventParticipantRepository,
+        seasonParticipantIdsBySeasonId: MutableMap<UUID, Set<UUID>>? = null,
     ): Set<UUID> {
         val seasonId = season.id
         val ids = linkedSetOf<UUID>()
-        val seasonRows =
-            seasonParticipantRepository.findActiveForSeasonLinkedToUser(
-                seasonId,
-                ParticipantStatus.ACTIVE,
-                userId,
-            )
-        for (row in seasonRows) {
-            ids.add(row.id)
-        }
-        val seasonParticipantIds = seasonRows.map { it.id }.toSet()
+        val seasonParticipantIds =
+            if (seasonParticipantIdsBySeasonId != null) {
+                seasonParticipantIdsBySeasonId.getOrPut(seasonId) {
+                    seasonParticipantRepository
+                        .findActiveForSeasonLinkedToUser(seasonId, ParticipantStatus.ACTIVE, userId)
+                        .map { it.id }
+                        .toSet()
+                }
+            } else {
+                seasonParticipantRepository
+                    .findActiveForSeasonLinkedToUser(seasonId, ParticipantStatus.ACTIVE, userId)
+                    .map { it.id }
+                    .toSet()
+            }
+        ids.addAll(seasonParticipantIds)
         val eventRows =
             eventParticipantRepository.findActiveForEventLinkedToUser(
                 eventId,
@@ -33,8 +39,8 @@ object CompositionLinkedParticipantResolver {
                 userId,
             )
         for (row in eventRows) {
-            val linkedSeasonId = row.seasonParticipant?.id
-            if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
+            val linkedSeasonParticipantId = row.seasonParticipant?.id
+            if (linkedSeasonParticipantId != null && linkedSeasonParticipantId in seasonParticipantIds) {
                 continue
             }
             ids.add(row.id)

@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-09T17:45:00+02:00
+# last_updated: 2026-06-09T20:35:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -329,7 +329,7 @@ development_status:
   perf-03-event-detail-tab-gated-load: review
   perf-04-session-context-cache: backlog
   perf-05-viewer-gender-props: backlog
-  perf-06-inbox-api-profiling: backlog
+  perf-06-inbox-api-profiling: done
   perf-07-season-workspace-bootstrap-bff: backlog
   perf-08-lazy-routes-angular: backlog
   epic-perf-v2-retrospective: optional

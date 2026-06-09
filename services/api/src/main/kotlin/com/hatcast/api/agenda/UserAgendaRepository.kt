@@ -222,6 +222,26 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
 
   @Query(
     """
+    SELECT CASE WHEN COUNT(sp) > 0 THEN true ELSE false END
+    FROM SeasonParticipantEntity sp
+    JOIN sp.season s
+    LEFT JOIN sp.troupeMembership tm
+    WHERE sp.status = :status
+      AND s.archived = false
+      AND $USER_AGENDA_LINKED_SEASON_PARTICIPANT
+      AND (
+        sp.invitationScope IS NULL
+        OR sp.invitationScope = com.hatcast.api.participant.InvitationScope.SEASON
+      )
+    """,
+  )
+  fun existsParticipatingSeasonFromSeason(
+    @Param("userId") userId: UUID,
+    @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
+  ): Boolean
+
+  @Query(
+    """
     SELECT DISTINCT e.season.troupe.id FROM EventParticipantEntity ep
     JOIN ep.event e
     JOIN e.season s
@@ -307,6 +327,51 @@ interface UserAgendaRepository : JpaRepository<EventEntity, UUID> {
     @Param("userId") userId: UUID,
     @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
   ): List<UUID>
+
+  @Query(
+    """
+    SELECT CASE WHEN COUNT(ep) > 0 THEN true ELSE false END
+    FROM EventParticipantEntity ep
+    JOIN ep.event e
+    JOIN e.season s
+    LEFT JOIN ep.seasonParticipant sp
+    LEFT JOIN sp.troupeMembership tm
+    WHERE ep.status = :status
+      AND e.archived = false
+      AND s.archived = false
+      AND (
+        ep.user.id = :userId
+        OR sp.user.id = :userId
+        OR (
+          tm IS NOT NULL
+          AND tm.user.id = :userId
+          AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM SeasonParticipantEntity sp2
+        LEFT JOIN sp2.troupeMembership tm2
+        WHERE sp2.season.id = s.id
+          AND sp2.status = :status
+          AND (
+            sp2.user.id = :userId
+            OR (
+              tm2 IS NOT NULL
+              AND tm2.user.id = :userId
+              AND tm2.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+            )
+          )
+          AND (
+            sp2.invitationScope IS NULL
+            OR sp2.invitationScope = com.hatcast.api.participant.InvitationScope.SEASON
+          )
+      )
+    """,
+  )
+  fun existsParticipatingSeasonFromEventOnly(
+    @Param("userId") userId: UUID,
+    @Param("status") status: ParticipantStatus = ParticipantStatus.ACTIVE,
+  ): Boolean
 
   @Query(
     """

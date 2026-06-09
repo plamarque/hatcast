@@ -21,6 +21,7 @@ import com.hatcast.api.inbox.dto.MeInboxResponse
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.role.RoleLabels
+import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.UserRepository
 import org.springframework.data.domain.PageRequest
@@ -37,6 +38,7 @@ class MeInboxService(
   private val meInboxRepository: MeInboxRepository,
   private val availabilityService: AvailabilityService,
   private val eventRepository: EventRepository,
+  private val seasonRepository: SeasonRepository,
   private val seasonParticipantRepository: SeasonParticipantRepository,
   private val eventParticipantRepository: EventParticipantRepository,
   private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
@@ -63,21 +65,28 @@ class MeInboxService(
       )
     val upcomingRows = upcomingPage.content
     val rowsByEventId = upcomingRows.associateBy { it.eventId }
+    val nextEventRow = upcomingRows.firstOrNull()
 
-    val eventIds = upcomingRows.map { it.eventId }
-    val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, userId)
+    val horizonRows =
+      upcomingRows.filter { row ->
+        AgendaTimeBoundary.isWithinCalendarDaysFromNow(
+          row.startsAt,
+          referenceNow,
+          AgendaTimeBoundary.INBOX_AVAILABILITY_HORIZON_DAYS,
+        )
+      }
+    val availabilityEventIds =
+      (horizonRows.map { it.eventId } + listOfNotNull(nextEventRow?.eventId)).toSet()
+    val availabilityByEvent = availabilityService.myStatusByEventIds(availabilityEventIds, userId)
     val lifecycleByEvent =
-      compositionLifecycleEnrichment.loadViewsByEventIdsAcrossSeasons(eventIds, principal)
+      nextEventRow?.let { row ->
+        compositionLifecycleEnrichment.loadViewsByEventIdsAcrossSeasons(listOf(row.eventId), principal)
+      } ?: emptyMap()
 
     val availabilityActions =
-      upcomingRows
+      horizonRows
         .filter { row ->
-          availabilityByEvent[row.eventId] == AvailabilityStatusMapper.UNKNOWN &&
-            AgendaTimeBoundary.isWithinCalendarDaysFromNow(
-              row.startsAt,
-              referenceNow,
-              AgendaTimeBoundary.INBOX_AVAILABILITY_HORIZON_DAYS,
-            )
+          availabilityByEvent[row.eventId] == AvailabilityStatusMapper.UNKNOWN
         }.map { InboxActionDto.availabilityUnknown(it) }
 
     val pendingSlots = meInboxRepository.findPendingConfirmationSlotsForUser(userId, from)
@@ -97,6 +106,7 @@ class MeInboxService(
       } else {
         eventRepository.findAllById(slotEventIds).associateBy { it.id }
       }
+    val seasonParticipantIdsBySeasonId = mutableMapOf<UUID, Set<UUID>>()
     val viewerIdsByEventId = mutableMapOf<UUID, Set<UUID>>()
     val viewerGender =
       MemberGender.effective(
@@ -116,6 +126,7 @@ class MeInboxService(
               userId = userId,
               seasonParticipantRepository = seasonParticipantRepository,
               eventParticipantRepository = eventParticipantRepository,
+              seasonParticipantIdsBySeasonId = seasonParticipantIdsBySeasonId,
             )
           }
         if (assigneeId !in viewerIds) {
@@ -127,7 +138,6 @@ class MeInboxService(
 
     val actions = sortActions(availabilityActions + confirmActions)
 
-    val nextEventRow = upcomingRows.firstOrNull()
     val nextEvent =
       nextEventRow?.let { row ->
         val availability = availabilityByEvent[row.eventId]
@@ -175,13 +185,13 @@ class MeInboxService(
     myAvailabilityStatus: String?,
     principal: SessionUserPrincipal,
   ): ParticipantFocusSummaryDto? {
-    val event = eventRepository.findById(row.eventId).orElse(null) ?: return null
+    val season = seasonRepository.findById(row.seasonId).orElse(null) ?: return null
     val focusParticipantId =
       participantFocusService.resolveFocusParticipantId(row.seasonId, null, principal)
         ?: return null
     return participantFocusService
       .summariesByEventIds(
-        season = event.season,
+        season = season,
         eventIds = listOf(row.eventId),
         focusParticipantId = focusParticipantId,
         availabilityByEvent =
@@ -193,12 +203,10 @@ class MeInboxService(
   }
 
   private fun participationContext(userId: UUID): ParticipationContext {
-    val seasonIds =
-      (
-        userAgendaRepository.findParticipatingSeasonIdsFromSeason(userId) +
-          userAgendaRepository.findParticipatingSeasonIdsFromEventOnly(userId)
-      ).toSet()
-    return ParticipationContext(noParticipation = seasonIds.isEmpty())
+    val hasParticipation =
+      userAgendaRepository.existsParticipatingSeasonFromSeason(userId) ||
+        userAgendaRepository.existsParticipatingSeasonFromEventOnly(userId)
+    return ParticipationContext(noParticipation = !hasParticipation)
   }
 }
 
