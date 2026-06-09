@@ -9,6 +9,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 
+import { HatcastDialogDismiss } from '../../shared/dialog-chrome/hatcast-dialog-dismiss'
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import {
   type TroupeMemberAdmin,
@@ -27,6 +28,7 @@ export interface EventOrganizersDialogData {
 @Component({
   selector: 'app-event-organizers-dialog',
   imports: [
+    HatcastDialogDismiss,
     MatAutocompleteModule,
     MatButtonModule,
     MatDialogModule,

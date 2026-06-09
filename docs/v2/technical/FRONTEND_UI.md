@@ -110,6 +110,8 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 | Couleur hardcodée `#9333ea` sur un écran | Token ou `color-mix` sur `--mat-sys-primary` |
 | Modale div + `position: fixed` | `MatDialog` + composant standalone |
 | ✕ header + « Fermer » footer sur dialog standard | Une seule affordance (footer texte) — voir `ux-design-dialog-patterns.md` |
+| `mat-icon-button` close sur dialog formulaire / consultation | `app-hatcast-dialog-dismiss` ; ✕ réservé à `app-hatcast-picker-header` (sheet) |
+| Dismiss ad hoc (`mat-flat-button`, libellé anglais…) | `app-hatcast-dialog-dismiss` avec clé typée |
 | `mat-flat-button` pour le seul dismiss | `mat-button` pour Annuler / Fermer |
 | Nouvelle barre de navigation basse globale | Top app bar + rail desktop (spec hub) |
 | Dupliquer la logique « dernière saison » / agenda | `LastVisitedSeasonShortcutService`, `member-cross-nav` |
@@ -117,6 +119,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 ### Références code (bons patterns)
 
 - Footers modales : [`apps/web/src/styles/_hatcast-dialog-actions.scss`](../../../apps/web/src/styles/_hatcast-dialog-actions.scss) — dismiss `mat-button`, cibles 3 rem ; actions contenu `.hatcast-dialog-content-actions`.
+- Garde-fou dismiss : [`apps/web/src/app/shared/dialog-chrome/`](../../../apps/web/src/app/shared/dialog-chrome/) — `app-hatcast-dialog-dismiss` (libellé typé `annuler` \| `fermer` \| `plus_tard`) sur dialogs standard ; `app-hatcast-picker-header` **uniquement** sur pickers filtre (✕ + drag = sheet seulement).
 - Raccourcis membre : [`apps/web/src/app/shared/member-cross-nav/`](../../../apps/web/src/app/shared/member-cross-nav/) — `mat-stroked-button`, `routerLink`, `aria-label`, ellipsis mobile.
 - Thème M3 global : [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss).
 - **Charte sémantique participation** : [`apps/web/src/styles/_hatcast-semantic-colors.scss`](../../../apps/web/src/styles/_hatcast-semantic-colors.scss) (dispo, sélection, en attente, désistement, indispo ; cartes agenda [`_hatcast-agenda-event-card.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-card.scss) ; badges [`_hatcast-agenda-event-badges.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-badges.scss) + [`_hatcast-agenda-dispo-badge.scss`](../../../apps/web/src/styles/_hatcast-agenda-dispo-badge.scss)).

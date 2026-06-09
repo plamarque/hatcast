@@ -7,6 +7,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog'
 
+import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
 import { AGENDA_TIME_ZONE } from '../../pages/season-home/season-events.utils'
 import { AvailabilityForm } from './availability-form'
 import type { AvailabilityDialogData, AvailabilityDialogResult } from './availability-dialog.types'
@@ -15,7 +16,7 @@ export type { AvailabilityDialogData, AvailabilityDialogResult } from './availab
 
 @Component({
   selector: 'app-availability-dialog',
-  imports: [A11yModule, MatButtonModule, MatDialogModule, AvailabilityForm],
+  imports: [A11yModule, HatcastDialogDismiss, MatButtonModule, MatDialogModule, AvailabilityForm],
   templateUrl: './availability-dialog.html',
   styleUrl: './availability-dialog.scss',
 })

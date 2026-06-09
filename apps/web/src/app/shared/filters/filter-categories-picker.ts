@@ -6,12 +6,16 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 
 import { defaultStatsCategoryFilter, type StatsCategoryFilter } from '../../pages/season-home/stats-categories'
+import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
+import { HatcastPickerHeader } from '../dialog-chrome/hatcast-picker-header'
 import { FilterDimensionCategories } from './filter-dimension-categories'
 import type { CategoriesPickerData, CategoriesPickerResult } from './filter.types'
 
 @Component({
   selector: 'app-filter-categories-picker',
   imports: [
+    HatcastDialogDismiss,
+    HatcastPickerHeader,
     A11yModule,
     MatButtonModule,
     MatIconModule,

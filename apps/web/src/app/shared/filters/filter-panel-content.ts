@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 
+import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
 import { FilterDimensionCategories } from './filter-dimension-categories'
 import { FilterDimensionSingle } from './filter-dimension-single'
 import { buildAgendaFilterDimensions, resolveAgendaPanelSeason } from './filter-builders'
@@ -13,6 +14,7 @@ import type { FilterDimensionConfig, FilterPanelData, FilterPanelResult, FilterV
 @Component({
   selector: 'app-filter-panel-content',
   imports: [
+    HatcastDialogDismiss,
     A11yModule,
     MatButtonModule,
     MatIconModule,

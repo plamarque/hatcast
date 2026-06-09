@@ -15,6 +15,7 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
+import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
 import {
   buildDefaultShareMessage,
@@ -60,6 +61,7 @@ function isAlreadyNotified(card: RecipientCard): boolean {
 @Component({
   selector: 'app-share-announce-dialog',
   imports: [
+    HatcastDialogDismiss,
     FormsModule,
     TextFieldModule,
     MatButtonModule,

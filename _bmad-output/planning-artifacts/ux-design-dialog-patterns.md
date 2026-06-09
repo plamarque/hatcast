@@ -211,11 +211,22 @@ Fichiers : `filter-*-picker.html`, `filter-panel-content.*`, `filter-picker-shel
 
 ---
 
-## Suivi (hors Phase 0–3)
+## Phase 4 — garde-fou composants (2026-06-09)
 
-| Phase | Contenu | Story cible |
-|-------|---------|-------------|
-| **4** | Composant / directive garde-fou (optionnel) | Dette préventive |
+| Composant | Rôle | Usage |
+|-----------|------|-------|
+| `app-hatcast-dialog-dismiss` | Dismiss `mat-button` + libellé typé (`annuler` \| `fermer` \| `plus_tard`) | Tous dialogs standard |
+| `app-hatcast-picker-header` | Drag (sheet) + titre + ✕ conditionnel | Pickers filtre **uniquement** |
+
+Référence : [`apps/web/src/app/shared/dialog-chrome/`](../../apps/web/src/app/shared/dialog-chrome/).
+
+Dialogs migrés en référence : `changelog-dialog`, `availability-dialog`, `event-organizers-dialog`, `share-announce-dialog` + tous les `filter-*-picker`.
+
+---
+
+## Suivi
+
+Epic UX-DR23 **close patterns** : phases 0–4 livrées (2026-06-09).
 
 ---
 

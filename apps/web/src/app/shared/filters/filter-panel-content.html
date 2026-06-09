@@ -36,7 +36,7 @@
         Réinitialiser
       </button>
       @if (!isBottomSheet) {
-        <button mat-button type="button" data-testid="filter-panel-cancel" (click)="close()">Annuler</button>
+        <app-hatcast-dialog-dismiss label="annuler" testId="filter-panel-cancel" (clicked)="close()" />
       }
       @if (data.isMobile || hasMultiSelect()) {
         <button
