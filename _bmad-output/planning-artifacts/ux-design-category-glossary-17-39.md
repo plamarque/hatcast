@@ -2,14 +2,17 @@
 title: UX — Catégories spectacle (sélection + admin glossaire)
 author: Sally (UX) + Patrice
 date: '2026-06-08'
-amended: '2026-06-08'
+amended: '2026-06-09'
 status: draft
+stakeholderAmendments:
+  - '2026-06-09 Patrice — chips inline exclusifs (suppression modale S2) ; libellé pluriel Spectacles ordinaires'
 relatedArtifacts:
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-08-category-glossary-ux.md
   - _bmad-output/planning-artifacts/ux-design-journey-league-agenda.md
   - _bmad-output/planning-artifacts/ux-design-scope-admin-menu-epic17.md
   - apps/web/src/app/pages/event-detail/event-infos-tab.html
-  - apps/web/src/app/pages/event-detail/event-category-dialog.ts
+  - apps/web/src/app/pages/event-detail/event-category.constants.ts
+  - apps/web/src/app/pages/event-detail/event-category-select-chip-set.ts
   - docs/v2/technical/FRONTEND_UI.md
   - docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md
 stories:
@@ -24,13 +27,15 @@ stakeholderDecisions:
   - delete-impact-count-required
 ---
 
-# UX Design — Catégories spectacle (Screen 6b v3)
+# UX Design — Catégories spectacle (Screen 6b v4)
 
-**Purpose:** Remplacer l’autocomplete « tag » par une **sélection explicite** (modale radio). La **gestion admin** vit sur **Paramètres troupe → onglet Catégories** ; le lien **« Gérer les catégories »** (Infos + modale S2) **navigue** vers cette page (option B découvrabilité).
+**Purpose:** Remplacer l’autocomplete « tag » par une **sélection explicite inline** (chips exclusifs sur l’onglet Infos). La **gestion admin** vit sur **Paramètres troupe → onglet Catégories** ; le lien **« Gérer les catégories »** (Infos) **navigue** vers cette page (option B découvrabilité).
+
+**Amendement 2026-06-09 (Patrice ↔ Sally) :** la modale S2 (action-row + chevron ▾) créait une **fausse affordance** (pulldown) et un bug Annuler → PATCH erroné. **S2 supprimée** ; sélection = **chips inline exclusifs** (visuel proche des rôles préférés, comportement radio). Libellé par défaut harmonisé : **Spectacles ordinaires** (pluriel, aligné stats/filtres et « Déplacements »).
 
 **Contexte :** [SCP 2026-06-08](sprint-change-proposal-2026-06-08-category-glossary-ux.md) · **17.38** (API) · **17.39** (sélection Infos) · **17.40** (paramètres troupe).
 
-**Preview visuelle :** [`_bmad-output/previews/category-glossary-ux-mockup.html`](../previews/category-glossary-ux-mockup.html)
+**Preview visuelle :** [`_bmad-output/previews/category-glossary-ux-mockup.html`](../previews/category-glossary-ux-mockup.html) *(mockup v3 — à mettre à jour chips inline)*
 
 ---
 
@@ -38,21 +43,24 @@ stakeholderDecisions:
 
 | Point | Constat |
 |-------|---------|
-| **Affordance** | Le chip « Spectacle ordinaire » ressemble à un libellé statique — pas au pattern actionnable déjà utilisé pour Date / Lieu sur le même onglet. |
+| **Affordance (v3)** | L’action-row avec chevron ▾ évoquait un **menu déroulant** ; ouvrir une modale Annuler/Enregistrer sur 2–5 options = friction inutile. |
+| **Recette 2026-06-09** | Annuler dans la modale déclenchait parfois un PATCH → snackbar **« Catégorie invalide. »** |
 | **Modèle mental** | L’autocomplete évoque des **tags libres** ; le produit veut un **vocabulaire contrôlé** (dizaines d’entrées, pas des milliers). |
 | **Gouvernance** | Créer une catégorie en tapant sur un spectacle invite aux doublons (`Apérock` / `Aperock`). La curation appartient aux **admins troupe**. |
-| **Suppression** | L’admin doit **voir l’impact** avant de supprimer une catégorie (spectacles repassés en ordinaire). |
+| **Suppression** | L’admin doit **voir l’impact** avant de supprimer une catégorie (spectacles repassés en ordinaires). |
+| **Cohérence libellés** | Stats/filtres utilisent déjà **Spectacles ordinaires** ; Infos utilisait le singulier — incohérence produit. |
 
 ---
 
 ## Principes de design
 
-1. **Alignement Infos** — réutiliser le pattern `event-infos__action-row` (Date, Lieu) pour la catégorie courante : une seule ligne cliquable, chevron, 48 dp.
-2. **Liste complète, zéro frappe** — la modale affiche **toutes** les options ; pas de champ texte en MVP (< ~15 catégories typiques).
-3. **Deux vitesses** — orga **choisit** ; admin **curate** (créer / renommer / supprimer).
-4. **Découvrabilité + cohérence** — lien **« Gérer les catégories »** sur Infos **et** dans S2 → **navigation** vers la page paramètres (onglet Catégories), pas de modale admin empilée.
-5. **Extensibilité** — shell **Paramètres troupe** avec onglets (`mat-tab-group`) : **Catégories** (MVP) ; **Formules** / **Rôles** réservés (Epic 19+, futur).
-6. **Material 3** — `mat-radio-group`, `MatDialog`, `mat-tab-group`, tokens `--mat-sys-*` ; checklist [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md).
+1. **Sélection inline, pas de modale** — chips exclusifs visibles directement sous le help text ; tap → PATCH immédiat + snackbar (pas d’Annuler/Enregistrer).
+2. **Famille visuelle rôles préférés** — `mat-chip-set` + `highlighted` sur l’option active ; flex-wrap ; cibles ≥ 48 dp.
+3. **Liste complète, zéro frappe** — toutes les options visibles en MVP (< ~15 catégories typiques).
+4. **Deux vitesses** — orga **choisit** ; admin **curate** (créer / renommer / supprimer).
+5. **Découvrabilité** — lien **« Gérer les catégories »** sur Infos → navigation paramètres (onglet Catégories).
+6. **Extensibilité** — shell **Paramètres troupe** avec onglets (`mat-tab-group`) : **Catégories** (MVP) ; **Formules** / **Rôles** réservés (Epic 19+, futur).
+7. **Material 3** — `mat-chip-set`, tokens `--mat-sys-*` ; checklist [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md).
 
 ---
 
@@ -60,8 +68,8 @@ stakeholderDecisions:
 
 | Surface | Rôle | Composant / route |
 |---------|------|-------------------|
-| **S1** — Section Catégorie (Infos) | Valeur + sélection ; lien admin → paramètres | `event-infos-tab` |
-| **S2** — Dialog sélection | Choisir une catégorie pour ce spectacle | `EventCategoryDialog` (refonte) |
+| **S1** — Section Catégorie (Infos) | Sélection inline + lien admin → paramètres | `event-infos-tab` + `EventCategorySelectChipSet` |
+| ~~**S2** — Dialog sélection~~ | ~~Choisir une catégorie~~ | **Supprimée v4** — remplacée par chips S1 |
 | **S3** — Page Paramètres troupe · onglet **Catégories** | CRUD admin glossaire | `TroupeSettingsPage` + `CategoriesTab` (**17.40**) |
 | **S4** — Dialog confirmation suppression | Impact + confirm (sur S3) | `MatDialog` alert pattern |
 
@@ -70,23 +78,21 @@ stakeholderDecisions:
 | Origine | Action |
 |---------|--------|
 | **S1** — lien « Gérer les catégories » | `router.navigate` → paramètres, onglet Catégories |
-| **S2** — même lien (admin) | Ferme S2 puis même navigation |
 | **Hub troupe** — gear ⚙ → **Paramètres troupe** | Ouvre S3 (onglet par défaut ou dernier visité — MVP : Catégories si seul onglet actif) |
-| **Retour navigateur** | Depuis S3, retour au spectacle Infos si l’utilisateur venait de S1/S2 |
+| **Retour navigateur** | Depuis S3, retour au spectacle Infos si l’utilisateur venait de S1 |
 
 ---
 
-## S1 — Section Catégorie (onglet Infos)
+## S1 — Section Catégorie (onglet Infos) — v4
 
-### Structure (identique Format / Organisateur·ices)
+### Structure
 
 ```
 CATÉGORIE
 Choisis la catégorie dans laquelle ce spectacle comptera…
 
-┌─────────────────────────────────────────────┐
-│  category          Spectacle ordinaire    ▾ │  ← action-row (orga)
-└─────────────────────────────────────────────┘
+[ Spectacles ordinaires ]  [ Déplacements ]  [ Apérock ]  …
+     ↑ sélectionné (highlighted)              ↑ wrap mobile
 
   Gérer les catégories                        ← lien admin seulement
 ```
@@ -97,13 +103,15 @@ Choisis la catégorie dans laquelle ce spectacle comptera…
 |---------|-------|
 | **Label section** | `CATÉGORIE` — `event-infos__label` |
 | **Help inline** | Constante `CATEGORY_HELP` — inchangée |
-| **Valeur courante** | `button.event-infos__action-row` — **remplace le chip** |
-| **Icône gauche** | `category` ou `label` (Material Symbols) — optionnel, même taille que Date/Lieu |
-| **Texte** | Libellé glossaire ou **Spectacle ordinaire** si `category` null |
-| **Chevron** | `expand_more` à droite — indique ouverture modale |
-| **Interaction** | Clic → **S2** ; `aria-label="Changer la catégorie"` |
-| **Lecture seule** | Membre sans `canManageEvents` : `action-row--disabled`, pas de chevron actif |
-| **Retrait rapide** | **Supprimé** — plus de `×` sur le chip. Revenir à ordinaire = choisir **Spectacle ordinaire** dans S2 (évite double affordance). |
+| **Sélection** | `app-event-category-select-chip-set` — **remplace action-row + modale S2** |
+| **Composant M3** | `mat-chip-set` + `mat-chip` ; `[highlighted]` sur slug courant |
+| **Ordre options** | 1) **Spectacles ordinaires** (`slug=null`) · 2) **Déplacements** (si glossaire) · 3) custom **A→Z** par `label` |
+| **Libellé défaut** | **Spectacles ordinaires** (pluriel — aligné `stats-categories`, filtres stats) |
+| **Interaction orga** | Tap chip ≠ courant → PATCH `category: slug \| null` immédiat ; snackbar succès |
+| **Tap chip courant** | No-op (pas de PATCH) |
+| **Lecture seule** | Membre sans `canManageEvents` : chips `[disabled]`, sélection courante `highlighted` |
+| **Chargement glossaire** | Skeleton 2–3 chips ou `mat-spinner` sous le help text |
+| **Erreur PATCH** | Snackbar FR ; sélection visuelle reste sur valeur serveur (via `@Input event`) |
 
 ### Lien admin
 
@@ -112,59 +120,17 @@ Choisis la catégorie dans laquelle ce spectacle comptera…
 | **Visibilité** | `canManageTroupe` uniquement |
 | **Style** | Même classe que **« Ajouter un·e organisateur·ice »** — `.event-infos__add-organizer` |
 | **Libellé** | **Gérer les catégories** |
-| **Action** | **Navigation** vers `/troupes/{troupeSlug}/admin/parametres?tab=categories` (ferme rien — pas de modale ouverte) |
-| **Placement** | Sous l’action-row, aligné à gauche |
-| **Icône** | `settings` (comme mockup) — optionnel, même style que lien organisateur |
+| **Action** | **Navigation** vers `/troupes/{troupeSlug}/admin/parametres?tab=categories` |
+| **Placement** | Sous les chips, aligné à gauche |
+| **Icône** | `settings` — optionnel, même style que lien organisateur |
 
 ---
 
-## S2 — Dialog sélection (organisateur·ice)
+## ~~S2 — Dialog sélection~~ (supprimée v4)
 
-### Wireframe mobile
-
-```
-┌─────────────────────────────────────┐
-│ Catégorie                        ✕  │
-├─────────────────────────────────────┤
-│ Choisis la catégorie dans laquelle  │
-│ ce spectacle comptera pour les      │
-│ statistiques et les tirages.        │
-│                                     │
-│ ○ Spectacle ordinaire               │
-│ ● Déplacements                      │
-│ ○ Apérock                           │
-│                                     │
-│ Gérer les catégories                │  ← admin only, text button
-├─────────────────────────────────────┤
-│              Annuler    Enregistrer │
-└─────────────────────────────────────┘
-```
-
-### Composants Material
-
-| Élément | Implémentation |
-|---------|----------------|
-| **Conteneur** | `MatDialog` — `min-width: min(32rem, calc(100vw - 3rem))` |
-| **Titre** | `mat-dialog-title` — **Catégorie** |
-| **Intro** | Paragraphe `on-surface-variant` — copy `CATEGORY_HELP` (pas de `mat-form-field`) |
-| **Liste** | `mat-radio-group` + `mat-radio-button` par option |
-| **Ordre options** | 1) **Spectacle ordinaire** (`value=null`) · 2) **Déplacements** (si présent glossaire) · 3) custom **A→Z** par `label` |
-| **Pré-sélection** | Valeur courante de l’événement |
-| **Actions** | `mat-dialog-actions align="end"` — **Annuler** (`mat-button`) · **Enregistrer** (`mat-flat-button color="primary"`) |
-| **Admin link** | Même libellé/style que S1 : **Gérer les catégories** → **ferme S2** (`dialogRef.close()`) puis `router.navigate` vers paramètres · onglet Catégories |
-
-### Comportement
-
-- **Enregistrer** → PATCH `category: slug | null` ; snackbar « Catégorie enregistrée » / retour ordinaire.
-- **Aucune option cochée** → traiter comme ordinaire (ou désactiver Enregistrer si identique à l’état initial).
-- **Liste vide custom** → au minimum ordinaire + déplacements.
-- **Hors scope MVP** : recherche / filtre (seulement si > 10 entrées — reporter).
-
-### Accessibilité
-
-- `mat-radio-group` avec `aria-labelledby` pointant vers le titre.
-- Chaque radio : libellé visible ; pas de slug technique exposé.
-- Focus trap dialog ; Échap = Annuler.
+> **Historique v3 :** modale `MatDialog` + `mat-radio-group` + Annuler / Enregistrer.  
+> **Raison retrait :** fausse affordance pulldown, bug Annuler, friction inutile pour enum court.  
+> **Migration impl :** supprimer `EventCategoryDialog` ; logique options → `buildEventCategoryOptions()` dans `event-category.constants.ts`.
 
 ---
 
@@ -215,7 +181,7 @@ Choisis la catégorie dans laquelle ce spectacle comptera…
 
 **Entrées non supprimables via UI :** aucune — **Déplacements** est supprimable (décision PO) avec cascade ordinaire.
 
-**Spectacle ordinaire** n’apparaît **pas** dans cette liste (ce n’est pas une entrée glossaire).
+**Spectacles ordinaires** n’apparaît **pas** dans cette liste (ce n’est pas une entrée glossaire).
 
 ### Ajouter / modifier
 
@@ -244,7 +210,7 @@ Dialog **par-dessus** l’onglet Catégories — pas de navigation supplémentai
 ├─────────────────────────────────────┤
 │ ⚠ 3 spectacles utilisent cette      │
 │   catégorie. Ils seront basculés    │
-│   en Spectacle ordinaire.           │
+│   en Spectacles ordinaires.           │
 │                                     │
 │ Cette action est irréversible.      │
 ├─────────────────────────────────────┤
@@ -256,7 +222,7 @@ Dialog **par-dessus** l’onglet Catégories — pas de navigation supplémentai
 |---------|-------|
 | **Titre** | `Supprimer « {label} » ?` |
 | **Impact** | **`{eventCount}` spectacles** — chargé via API preview **avant** affichage (spinner si lent) |
-| **Copy impact** | *« {n} spectacle(s) utilisent cette catégorie. Ils seront basculés en Spectacle ordinaire. »* |
+| **Copy impact** | *« {n} spectacle(s) utilisent cette catégorie. Ils seront basculés en Spectacles ordinaires. »* |
 | **0 spectacles** | *« Aucun spectacle n’utilise cette catégorie. »* — bouton Supprimer reste actif |
 | **Bouton destructif** | `mat-flat-button color="warn"` — **Supprimer** |
 | **Succès** | Snackbar « Catégorie supprimée » ; rafraîchir glossaire ; si S2 ouvert plus tard, liste à jour |
@@ -265,10 +231,10 @@ Dialog **par-dessus** l’onglet Catégories — pas de navigation supplémentai
 
 ## Parcours (protagoniste : Léa, admin + orga)
 
-1. Léa ouvre un spectacle → onglet **Infos** → ligne Catégorie **Spectacle ordinaire** ▾.
-2. Elle tape la ligne → **S2** → choisit **Apérock** → **Enregistrer** → snackbar OK.
+1. Léa ouvre un spectacle → onglet **Infos** → chips **Spectacles ordinaires** · **Déplacements** · …
+2. Elle tape **Apérock** → PATCH immédiat → snackbar « Catégorie enregistrée ».
 3. Elle tape **Gérer les catégories** (S1) → **navigation** → **S3** onglet Catégories → **Ajouter** « Festival ».
-4. Retour navigateur → spectacle Infos ; la liste S2 inclut « Festival » au prochain open.
+4. Retour navigateur → spectacle Infos ; le chip **Festival** apparaît dans la liste inline.
 5. Sur S3, elle supprime « Apérock » → **S4** : **12 spectacles** → confirme → cascade API.
 
 **Climax :** le compteur S4 sur la page paramètres ; le lien Infos évite de « chercher » les paramètres dans le gear menu.
@@ -279,12 +245,12 @@ Dialog **par-dessus** l’onglet Catégories — pas de navigation supplémentai
 
 | État | Comportement |
 |------|--------------|
-| **Chargement glossaire** | S2 : skeleton 2–3 lignes radio ; S3 : `mat-progress-bar` |
-| **Erreur API** | Snackbar FR ; conserver sélection locale |
-| **Orga non admin** | Pas de lien « Gérer » ; S2 sans lien admin |
+| **Chargement glossaire** | S1 : skeleton 2–3 chips ou spinner ; S3 : `mat-progress-bar` |
+| **Erreur API PATCH** | Snackbar FR ; chips restent sur valeur `@Input event` |
+| **Erreur chargement glossaire** | Snackbar FR ; chips minimum = ordinaires seul |
+| **Orga non admin** | Pas de lien « Gérer » ; chips disabled |
 | **Admin seulement** | Peut ouvrir S3 via gear hub ou lien Infos |
-| **Deep link `?tab=categories`** | Onglet Catégories actif à l’arrivée depuis S1/S2 |
-| **Modale S2 ouverte + lien admin** | Fermer dialog puis naviguer (pas de dialog empilé + route) |
+| **Deep link `?tab=categories`** | Onglet Catégories actif à l’arrivée depuis S1 |
 | **1 seule catégorie custom** | Liste courte — pas de scroll |
 | **Legacy `template_type=deplacement`** | Affichage stats/tirage inchangé (lecture `SpectacleCategory`) ; UI peut montrer Déplacements si `category` null + legacy — **hors scope 17.39** (pas de badge spécial) |
 
@@ -293,8 +259,9 @@ Dialog **par-dessus** l’onglet Catégories — pas de navigation supplémentai
 ## Anti-patterns (interdits)
 
 - Champ texte + autocomplete pour choisir une catégorie.
-- Création de catégorie depuis S2 (saisie libre orga).
-- Chip plat sans chevron pour l’état éditable.
+- Création de catégorie depuis S1 (saisie libre orga).
+- Action-row + chevron ▾ masquant une modale pour un enum court (**retiré v4**).
+- Modale Annuler/Enregistrer pour 2–5 options (**retiré v4**).
 - Suppression sans compteur de spectacles impactés.
 - Modales empilées pour le CRUD admin (tout admin → page paramètres).
 - Paramètres troupe **uniquement** via gear menu sans lien Infos (PO a tranché option B : les deux entrées).
@@ -305,7 +272,7 @@ Dialog **par-dessus** l’onglet Catégories — pas de navigation supplémentai
 
 | Story | Points clés |
 |-------|-------------|
-| **17.39** | `mat-radio-group`, S1 action-row, S2 dialog, lien navigate |
+| **17.39** | `mat-chip-set` inline exclusif, PATCH au tap, lien navigate, **Spectacles ordinaires** |
 | **17.40** | Page admin, liste + CRUD, S4 dialog, breadcrumb, 48 dp |
 
 ---
@@ -314,8 +281,10 @@ Dialog **par-dessus** l’onglet Catégories — pas de navigation supplémentai
 
 | Fichier | Story | Action |
 |---------|-------|--------|
-| `event-infos-tab.html` | 17.39 | Chip → action-row ; lien `routerLink` / navigate paramètres |
-| `event-category-dialog.ts` | 17.39 | Autocomplete → radio list ; lien admin → navigate |
+| `event-category.constants.ts` | 17.39 amend | `CATEGORY_HELP`, `DEFAULT_CATEGORY_DISPLAY_LABEL`, `buildEventCategoryOptions()` |
+| `event-category-select-chip-set.ts` | 17.39 amend | Chips exclusifs inline |
+| `event-infos-tab.html` | 17.39 amend | Remplacer action-row + dialog par chip-set |
+| ~~`event-category-dialog.ts`~~ | 17.39 amend | **Supprimer** |
 | `troupe-settings/` (nouveau) | 17.40 | Page shell + onglet Catégories |
 | `troupe-categories-tab.ts` | 17.40 | Liste CRUD |
 | `troupe-category-delete-dialog.ts` | 17.40 | S4 |
@@ -334,21 +303,23 @@ Dialog **par-dessus** l’onglet Catégories — pas de navigation supplémentai
 |---|----------|---------------------|
 | OQ-1 | Onglets futurs visibles en MVP ? | **Masquer** Formules/Rôles jusqu’aux stories — shell routing prêt |
 | OQ-2 | Afficher le slug en lecture seule dans S3 ? | **Non** — libellé seul ; slug à la création |
-| OQ-3 | Réintroduire `×` sur action-row ? | **Non** — S2 uniquement |
+| OQ-3 | Réintroduire `×` sur chip ? | **Non** — tap **Spectacles ordinaires** |
 | OQ-4 | Query `?tab=` vs path `/parametres/categories` | **`?tab=categories`** — un seul composant shell, onglets futurs sans nouvelles routes |
+| OQ-5 | Modale vs chips inline ? | **Chips inline v4** — recette 2026-06-09 ; modale S2 retirée |
 
 ---
 
-## Flux confirmé (Patrice ↔ Sally)
+## Flux confirmé (Patrice ↔ Sally) — v4
 
 ```
-S1 Infos ──action-row──► S2 dialog sélection
-    │                         │
-    └── Gérer les catégories ─┴──► navigate ──► S3 Paramètres · tab Catégories
+S1 Infos ── chips inline (tap → PATCH)
+    │
+    └── Gérer les catégories ──► navigate ──► S3 Paramètres · tab Catégories
                                               └── 🗑 ──► S4 confirm dialog
 Hub ⚙ ── Paramètres troupe ───────────────────────► S3 (même destination)
 ```
 
 ---
 
-*Draft amendé 2026-06-08 — placement admin sur page paramètres ; lien Infos conservé (option B).*
+*Draft amendé 2026-06-08 — placement admin sur page paramètres ; lien Infos conservé (option B).*  
+*Amendement 2026-06-09 — chips inline exclusifs ; suppression S2 ; libellé pluriel Spectacles ordinaires.*

@@ -199,25 +199,25 @@
   >
     <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
     <p id="event-infos-category-help" class="event-infos__section-help">{{ categoryHelp }}</p>
-    @if (canManageEvents()) {
-      <button
-        type="button"
-        class="event-infos__action-row"
-        [disabled]="saving()"
-        aria-label="Changer la catégorie"
-        (click)="openCategoryDialog()"
+    @if (glossaryLoading()) {
+      <div
+        class="event-infos__category-loading"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        aria-label="Chargement des catégories"
       >
-        <mat-icon aria-hidden="true">category</mat-icon>
-        <span class="event-infos__action-text">{{ categoryDisplayLabel() }}</span>
-        <mat-icon class="event-infos__chevron" aria-hidden="true">expand_more</mat-icon>
-      </button>
-    } @else {
-      <div class="event-infos__action-row event-infos__action-row--disabled">
-        <mat-icon aria-hidden="true">category</mat-icon>
-        <span class="event-infos__action-text event-infos__action-text--muted">{{
-          categoryDisplayLabel()
-        }}</span>
+        <mat-spinner diameter="24" />
       </div>
+    } @else {
+      <app-event-category-select-chip-set
+        class="event-infos__category-chips"
+        ariaLabel="Catégorie du spectacle"
+        [options]="categoryOptions()"
+        [selectedSlug]="selectedCategorySlug()"
+        [disabled]="!canManageEvents() || saving()"
+        (categorySelect)="onCategorySelect($event)"
+      />
     }
     @if (canManageTroupe()) {
       <button

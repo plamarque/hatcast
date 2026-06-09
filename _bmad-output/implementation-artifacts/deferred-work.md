@@ -212,3 +212,18 @@
 - **`persistCategory` sans garde post-await identité événement** — même pattern que Date/Lieu ; pré-existant.
 - **Échec silencieux `loadGlossary` onglet Infos** — helper inchangé ; pré-existant.
 - **Fallback `categoryLabel` → slug brut si glossaire incomplet** — comportement hérité ; pré-existant.
+
+## Deferred from: code review of 17-39-ui-category-selection (2026-06-09, v4 chips inline)
+
+- **`saving` partagé orga/format/catégorie sans séquencement** — PATCH concurrents possibles ; pattern pré-existant onglet Infos.
+- **Catégorie éditable sur spectacle archivé si `canManageEvents`** — même gate que format ; pas introduit par v4.
+- **Changement `share-announce-messages.ts` hors scope 17.39** — copy rappel dispo ; à committer séparément ou revert.
+
+---
+
+## Deferred from: code review profil offline dev V2 (2026-06-09)
+
+- **Aucun test smoke du profil `dev,offline`** — pas de test d’intégration Spring (wiring auth, Flyway H2, seeds Improbots) ; outillage dev, non bloquant.
+- **Verrou H2 si second `bootRun` concurrent** — `.local/hatcast-offline/*.lock.db` peut bloquer le démarrage ; reset manuel documenté.
+- **Chemin H2 `${user.dir}/../../` hors `services/api`** — fonctionne via `start-dev.sh` (cwd garanti) ; `bootRun` manuel depuis un autre répertoire non supporté.
+- **ARCH.md sans mention du mode offline** — couvert par `DEVELOPMENT.md` + `services/api/README.md` ; ARCH normatif V2 runtime inchangé (outil dev local).

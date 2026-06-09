@@ -28,6 +28,16 @@
   white-space: pre-wrap;
 }
 
+.event-infos__category-loading {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+.event-infos__category-chips {
+  display: block;
+}
+
 .event-infos__action-row {
   display: flex;
   align-items: center;

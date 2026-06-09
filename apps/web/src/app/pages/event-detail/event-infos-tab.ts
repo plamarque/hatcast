@@ -45,12 +45,10 @@ import {
 import { troupeAdminSettingsPath } from '../../core/navigation/troupe-routes'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import {
+  buildEventCategoryOptions,
   CATEGORY_HELP,
-  DEFAULT_CATEGORY_DISPLAY_LABEL,
-  EventCategoryDialog,
-  type EventCategoryDialogData,
-  type EventCategoryDialogResult,
-} from './event-category-dialog'
+} from './event-category.constants'
+import { EventCategorySelectChipSet } from './event-category-select-chip-set'
 import {
   OrganizerApiService,
   type OrganizerResponse,
@@ -78,6 +76,7 @@ import { ORGANIZERS_HELP } from './event-organizers-dialog'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RoleDisplayChipSet,
+    EventCategorySelectChipSet,
   ],
   templateUrl: './event-infos-tab.html',
   styleUrl: './event-infos-tab.scss',
@@ -106,6 +105,7 @@ export class EventInfosTab {
   readonly eventUpdated = output<EventResponse>()
 
   protected readonly glossary = signal<TroupeCategory[]>([])
+  protected readonly glossaryLoading = signal(true)
   protected readonly organizers = signal<OrganizerResponse[]>([])
   protected readonly saving = signal(false)
   /** Format et besoins — spinner from dialog close until PATCH + parent refresh. */
@@ -132,16 +132,10 @@ export class EventInfosTab {
     ),
   )
 
-  protected readonly categoryLabel = computed(() => {
-    const slug = this.event().category
-    if (!slug) {
-      return null
-    }
-    return this.glossary().find((t) => t.slug === slug)?.label ?? slug
-  })
+  protected readonly selectedCategorySlug = computed(() => this.event().category ?? null)
 
-  protected readonly categoryDisplayLabel = computed(
-    () => this.categoryLabel() ?? DEFAULT_CATEGORY_DISPLAY_LABEL,
+  protected readonly categoryOptions = computed(() =>
+    buildEventCategoryOptions(this.glossary(), this.selectedCategorySlug()),
   )
 
   protected readonly dateExportEnabled = computed(() => {
@@ -332,33 +326,11 @@ export class EventInfosTab {
     })
   }
 
-  protected openCategoryDialog(selectionRetry?: string | null): void {
-    if (!this.canManageEvents()) {
+  protected onCategorySelect(slug: string | null): void {
+    if (!this.canManageEvents() || this.saving()) {
       return
     }
-    const ref = this.dialog.open<
-      EventCategoryDialog,
-      EventCategoryDialogData,
-      EventCategoryDialogResult
-    >(EventCategoryDialog, {
-      data: {
-        troupeId: this.troupeId(),
-        troupeSlug: this.troupeSlug(),
-        initialCategorySlug: selectionRetry ?? this.event().category ?? null,
-        canManageTroupe: this.canManageTroupe(),
-      },
-      width: 'min(100vw - 2rem, 32rem)',
-    })
-    ref.afterClosed().subscribe((result) => {
-      if (result === undefined) {
-        return
-      }
-      void this.persistCategory(result).then((ok) => {
-        if (!ok) {
-          this.openCategoryDialog(result)
-        }
-      })
-    })
+    void this.persistCategory(slug)
   }
 
   protected navigateToCategorySettings(): void {
@@ -450,7 +422,7 @@ export class EventInfosTab {
     }
   }
 
-  private async persistCategory(slug: string | null): Promise<boolean> {
+  private async persistCategory(slug: string | null): Promise<void> {
     const seasonId = this.seasonId()
     const ev = this.event()
     const body = { category: slug }
@@ -461,16 +433,15 @@ export class EventInfosTab {
       if (!result.ok || !result.data) {
         const message = result.errorMessage ?? 'Enregistrement impossible.'
         this.snack.open(message, 'OK', { duration: 6000 })
-        return false
+        return
       }
       this.eventUpdated.emit(result.data)
       const cleared = result.data.category == null
       this.snack.open(
-        cleared ? 'Spectacle ordinaire.' : 'Catégorie enregistrée.',
+        cleared ? 'Spectacles ordinaires.' : 'Catégorie enregistrée.',
         'OK',
         { duration: 4000 },
       )
-      return true
     } finally {
       this.saving.set(false)
     }
@@ -487,12 +458,28 @@ export class EventInfosTab {
   }
 
   private async loadGlossary(troupeId: string): Promise<void> {
-    const r = await this.troupeApi.listCategories(troupeId)
-    if (troupeId !== this.troupeId()) {
-      return
-    }
-    if (r.ok && r.data) {
-      this.glossary.set(r.data)
+    this.glossaryLoading.set(true)
+    try {
+      const r = await this.troupeApi.listCategories(troupeId)
+      if (troupeId !== this.troupeId()) {
+        return
+      }
+      if (r.ok && r.data) {
+        this.glossary.set(r.data)
+        return
+      }
+      this.glossary.set([])
+      this.snack.open('Impossible de charger les catégories.', 'OK', { duration: 6000 })
+    } catch {
+      if (troupeId !== this.troupeId()) {
+        return
+      }
+      this.glossary.set([])
+      this.snack.open('Impossible de charger les catégories.', 'OK', { duration: 6000 })
+    } finally {
+      if (troupeId === this.troupeId()) {
+        this.glossaryLoading.set(false)
+      }
     }
   }
 }
