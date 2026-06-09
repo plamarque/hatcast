@@ -125,6 +125,7 @@ class CompositionDrawIntegrationTest {
     ): UUID {
         val future = Instant.parse("2031-04-01T19:00:00Z")
         val templateJson = templateType?.let { """, "templateType": "$it"""" } ?: ""
+        category?.let { EventTestSupport.ensureGlossaryCategory(mockMvc, cookie, seedTroupeId, it) }
         val categoryJson = category?.let { """, "category": "$it"""" } ?: ""
         val res =
             mockMvc

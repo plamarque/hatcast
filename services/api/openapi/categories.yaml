@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: HatCast API — Catégories troupe (fragment)
   description: Glossaire des catégories de spectacle par troupe (ADR 0013).
-  version: 0.1.0
+  version: 0.2.0
 
 servers:
   - url: https://{apiHost}/v1
@@ -18,6 +18,9 @@ paths:
     get:
       tags: [Catégories]
       summary: Liste le glossaire des catégories d'une troupe
+      description: |
+        Membre actif requis. Si aucune entrée `deplacements` n'existe, elle est créée
+        de façon idempotente avant la réponse (slug `deplacements`, libellé « Déplacements »).
       security:
         - cookieAuth: []
       parameters:
@@ -42,6 +45,154 @@ paths:
           description: Utilisateur non membre actif de la troupe
         '404':
           description: Troupe introuvable
+    post:
+      tags: [Catégories]
+      summary: Crée une catégorie dans le glossaire troupe
+      description: Admin troupe ou plateforme. Slug optionnel (dérivé du libellé si omis).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTroupeCategoryRequest'
+      responses:
+        '201':
+          description: Catégorie créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeCategory'
+        '400':
+          description: Libellé ou slug invalide (ex. slug réservé principal/main)
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé (admin troupe requis)
+        '404':
+          description: Troupe introuvable
+        '409':
+          description: Slug déjà présent pour cette troupe
+
+  /troupes/{troupeId}/categories/{slug}:
+    patch:
+      tags: [Catégories]
+      summary: Met à jour le libellé d'une catégorie
+      description: Admin troupe ou plateforme. Le slug est immuable.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTroupeCategoryLabelRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeCategory'
+        '400':
+          description: Libellé invalide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé (admin troupe requis)
+        '404':
+          description: Troupe ou catégorie introuvable
+    delete:
+      tags: [Catégories]
+      summary: Supprime une catégorie et remet les événements concernés en Spectacle ordinaire
+      description: |
+        Admin troupe ou plateforme. Transaction atomique : `events.category = null`
+        pour les événements non archivés de la troupe, puis suppression de la ligne glossaire.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryDeleteResult'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé (admin troupe requis)
+        '404':
+          description: Troupe ou catégorie introuvable
+
+  /troupes/{troupeId}/categories/{slug}/delete-preview:
+    get:
+      tags: [Catégories]
+      summary: Aperçu de l'impact d'une suppression de catégorie
+      description: |
+        Admin troupe ou plateforme. Compte les événements non archivés de la troupe
+        (toutes saisons) avec `category` égal au slug (correspondance exacte).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryDeletePreview'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé (admin troupe requis)
+        '404':
+          description: Troupe ou catégorie introuvable
 
 components:
   securitySchemes:
@@ -62,4 +213,42 @@ components:
         label:
           type: string
           maxLength: 128
-          description: Libellé affiché (autocomplete)
+          description: Libellé affiché
+
+    CreateTroupeCategoryRequest:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+          maxLength: 128
+        slug:
+          type: string
+          maxLength: 64
+          description: Optionnel — dérivé du libellé si omis
+
+    UpdateTroupeCategoryLabelRequest:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+          maxLength: 128
+
+    CategoryDeletePreview:
+      type: object
+      required: [eventCount]
+      properties:
+        eventCount:
+          type: integer
+          format: int64
+          description: Nombre d'événements non archivés concernés
+
+    CategoryDeleteResult:
+      type: object
+      required: [affectedEventCount]
+      properties:
+        affectedEventCount:
+          type: integer
+          format: int64
+          description: Nombre d'événements remis en Spectacle ordinaire

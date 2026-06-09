@@ -4,7 +4,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
 /**
- * Normalise un tag d'équité (compartiment d'équité) en slug canonique (a-z, 0-9, tirets, max 64).
+ * Normalise une catégorie de spectacle en slug canonique (a-z, 0-9, tirets, max 64).
  */
 object CategorySlugNormalizer {
     const val MAX_LEN = 64
@@ -50,7 +50,7 @@ object CategorySlugNormalizer {
         if (trimmed.contains(',') || trimmed.contains(';')) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Un seul tag d’équité est autorisé par spectacle.",
+                "Une seule catégorie est autorisée par spectacle.",
             )
         }
     }
@@ -64,6 +64,6 @@ object CategorySlugNormalizer {
     private fun invalidTag(): ResponseStatusException =
         ResponseStatusException(
             HttpStatus.BAD_REQUEST,
-            "Tag d’équité invalide.",
+            "Catégorie invalide.",
         )
 }

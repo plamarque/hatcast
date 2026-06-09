@@ -27,7 +27,7 @@ class TroupeCategoryEntity(
     @Column(nullable = false, length = 64)
     val slug: String,
     @Column(nullable = false, length = 128)
-    val label: String,
+    var label: String,
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
 )

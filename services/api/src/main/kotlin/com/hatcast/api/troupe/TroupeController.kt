@@ -9,7 +9,11 @@ import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
 import com.hatcast.api.troupe.dto.PublicTroupeDirectoryItemDto
+import com.hatcast.api.troupe.dto.CategoryDeletePreviewDto
+import com.hatcast.api.troupe.dto.CategoryDeleteResultDto
+import com.hatcast.api.troupe.dto.CreateTroupeCategoryRequest
 import com.hatcast.api.troupe.dto.TroupeCategoryDto
+import com.hatcast.api.troupe.dto.UpdateTroupeCategoryLabelRequest
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
@@ -146,6 +150,38 @@ class TroupeController(
         @PathVariable troupeId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): List<TroupeCategoryDto> = troupeCategoryService.listForTroupe(troupeId, principal)
+
+    @PostMapping("/{troupeId}/categories")
+    fun createCategory(
+        @PathVariable troupeId: UUID,
+        @Valid @RequestBody body: CreateTroupeCategoryRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): ResponseEntity<TroupeCategoryDto> =
+        ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(troupeCategoryService.createCategory(troupeId, body, principal))
+
+    @PatchMapping("/{troupeId}/categories/{slug}")
+    fun updateCategoryLabel(
+        @PathVariable troupeId: UUID,
+        @PathVariable slug: String,
+        @Valid @RequestBody body: UpdateTroupeCategoryLabelRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeCategoryDto = troupeCategoryService.updateLabel(troupeId, slug, body, principal)
+
+    @GetMapping("/{troupeId}/categories/{slug}/delete-preview")
+    fun categoryDeletePreview(
+        @PathVariable troupeId: UUID,
+        @PathVariable slug: String,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CategoryDeletePreviewDto = troupeCategoryService.deletePreview(troupeId, slug, principal)
+
+    @DeleteMapping("/{troupeId}/categories/{slug}")
+    fun deleteCategory(
+        @PathVariable troupeId: UUID,
+        @PathVariable slug: String,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CategoryDeleteResultDto = troupeCategoryService.deleteCategory(troupeId, slug, principal)
 
     @GetMapping("/{troupeId}/memberships/me")
     fun getMyMembership(

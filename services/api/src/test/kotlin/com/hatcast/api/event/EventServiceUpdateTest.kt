@@ -177,6 +177,26 @@ class EventServiceUpdateTest {
     }
 
     @Test
+    fun `update rejects unknown category`() {
+        val event = baseEvent()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))
+        whenever(troupeCategoryService.requireExistingCategory(troupeId, "inconnue"))
+            .thenThrow(ResponseStatusException(HttpStatus.BAD_REQUEST, "Catégorie inconnue."))
+
+        val ex =
+            assertThrows<ResponseStatusException> {
+                service.update(
+                    seasonId,
+                    eventId,
+                    UpdateEventRequest(category = JsonNullable.of("inconnue")),
+                    principal,
+                )
+            }
+        assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
+        assertEquals("Catégorie inconnue.", ex.reason)
+    }
+
+    @Test
     fun `update rejects null startsAt`() {
         val event = baseEvent()
         whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(event))

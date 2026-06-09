@@ -3,9 +3,10 @@ package com.hatcast.api.event
 import com.hatcast.api.participant.GuestEventAccessJpql
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
-import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
 import java.util.UUID
 
@@ -182,6 +183,33 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
     ): Page<EventEntity>
 
     fun countBySeason_IdAndArchivedFalse(seasonId: UUID): Long
+
+    @Query(
+        """
+        SELECT COUNT(e) FROM EventEntity e
+        WHERE e.season.troupe.id = :troupeId
+          AND e.archived = false
+          AND e.category = :categorySlug
+        """,
+    )
+    fun countByTroupeIdAndCategory(
+        @Param("troupeId") troupeId: UUID,
+        @Param("categorySlug") categorySlug: String,
+    ): Long
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        UPDATE EventEntity e SET e.category = NULL
+        WHERE e.season.troupe.id = :troupeId
+          AND e.category = :categorySlug
+          AND e.archived = false
+        """,
+    )
+    fun clearCategoryForTroupe(
+        @Param("troupeId") troupeId: UUID,
+        @Param("categorySlug") categorySlug: String,
+    ): Int
 
     @Query(
         """

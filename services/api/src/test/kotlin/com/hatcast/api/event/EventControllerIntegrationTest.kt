@@ -742,6 +742,17 @@ class EventControllerIntegrationTest {
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-07-01T20:00:00Z")
 
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/categories")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "label": "Apérock", "slug": "aperock-event-it" }""")
+                    .with(csrf()),
+            ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.slug").value("aperock-event-it"))
+            .andExpect(jsonPath("$.label").value("Apérock"))
+
         val createRes =
             mockMvc
                 .perform(
@@ -753,19 +764,19 @@ class EventControllerIntegrationTest {
                             {
                               "title": "Apérock extérieur",
                               "startsAt": "$future",
-                              "category": "Apérock"
+                              "category": "aperock-event-it"
                             }
                             """.trimIndent(),
                         ).with(csrf()),
                 ).andExpect(status().isOk)
-                .andExpect(jsonPath("$.category").value("aperock"))
+                .andExpect(jsonPath("$.category").value("aperock-event-it"))
                 .andReturn()
         val eventId = mapper.readTree(createRes.response.contentAsString).get("id").asText()
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(cookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.category").value("aperock"))
+            .andExpect(jsonPath("$.category").value("aperock-event-it"))
 
         mockMvc
             .perform(
@@ -776,6 +787,22 @@ class EventControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.category").value(nullValue()))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "title": "Sans glossaire",
+                          "startsAt": "${future.plusSeconds(3600)}",
+                          "category": "fantome"
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isBadRequest)
 
         mockMvc
             .perform(
@@ -803,7 +830,7 @@ class EventControllerIntegrationTest {
                         {
                           "title": "Virgule tag",
                           "startsAt": "${future.plusSeconds(7200)}",
-                          "category": "deplacements,aperock"
+                          "category": "deplacements,aperock-event-it"
                         }
                         """.trimIndent(),
                     ).with(csrf()),

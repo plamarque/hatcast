@@ -194,3 +194,12 @@
 - **`TEAM_COMPLETE` peut re-fire si lifecycle repasse COMPLETE après déclin** — edge rare, pas de dedupe sur `CompositionLifecycleAuditRecorder`.
 - **Scan hebdo `CompositionIncompleteReminderJob` sans pagination** — perf acceptable court terme.
 - **`minLength(3)` mot de passe global sur login** — scope creep recette dev-seed, hors AC 8.4.
+
+---
+
+## Deferred from: code review of 17-38-category-glossary-api (2026-06-09)
+
+- **OpenAPI `events.yaml` non mis à jour pour le 400 catégorie inconnue** — hors scope explicite story (AC8 = `categories.yaml` only) ; gap doc pré-existant.
+- **Constantes réservées dupliquées (`RESERVED_SLUGS` vs `HIDDEN_SLUGS`)** — risque de divergence future faible ; partage de constante reporté.
+- **`labelForAutoCreate` code mort post-AC6** — nettoyage cosmétique dans `CategorySlugNormalizer.kt`.
+- **Fenêtre race preview → delete inter-requêtes** — pas de token de confirmation ; comportement UX standard accepté pour v1.

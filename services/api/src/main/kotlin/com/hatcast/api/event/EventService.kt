@@ -370,7 +370,7 @@ class EventService(
                 if (raw == null) {
                     null
                 } else {
-                    troupeCategoryService.ensureTag(e.season.troupe.id, raw)
+                    troupeCategoryService.requireExistingCategory(e.season.troupe.id, raw)
                 }
         }
         e.updatedAt = Instant.now()
@@ -673,7 +673,7 @@ class EventService(
         if (raw == null) {
             return null
         }
-        return troupeCategoryService.ensureTag(troupeId, raw)
+        return troupeCategoryService.requireExistingCategory(troupeId, raw)
     }
 
     private fun startOfTodayInclusive(zone: ZoneId): Instant {
