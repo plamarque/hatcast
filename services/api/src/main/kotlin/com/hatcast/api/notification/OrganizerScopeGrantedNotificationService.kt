@@ -12,6 +12,7 @@ import java.util.UUID
 class OrganizerScopeGrantedNotificationService(
     private val userRepository: UserRepository,
     private val emailSender: EmailNotificationSender,
+    private val emailBodyBuilder: NotificationEmailBodyBuilder,
     private val pushSender: WebPushNotificationSender,
     private val reminderMarkService: NotificationReminderMarkService,
     private val preferenceEligibilityPort: ObjectProvider<NotificationPreferenceEligibilityPort>,
@@ -39,14 +40,21 @@ class OrganizerScopeGrantedNotificationService(
 
         val roleLabel = roleLabelFor(event.scopeKind)
         val scopeName = event.scopeName.trim().ifEmpty { "HatCast" }
-        val subject = "Tu es $roleLabel sur HatCast"
-        val body =
+        val subject = "Tu es désormais $roleLabel sur HatCast"
+        val pushBody =
             "Tu viens d'être nommé·e $roleLabel pour $scopeName. " +
                 "Active les alertes organisateur qui t'intéressent dans Mon compte → Notifications."
+        val htmlBody =
+            emailBodyBuilder.buildOrganizerScopeGrantedHtml(
+                recipientName = user.displayName?.trim().orEmpty(),
+                recipientGender = user.gender,
+                roleLabel = roleLabel,
+                scopeName = scopeName,
+            )
         val payload =
             NotificationPayload(
-                title = "Nouveau rôle orga",
-                body = body,
+                title = "🤴 Nouveau rôle orga",
+                body = pushBody,
                 url = "/compte/notifications",
             )
 
@@ -54,7 +62,7 @@ class OrganizerScopeGrantedNotificationService(
             userId = event.userId,
             email = email,
             subject = subject,
-            payload = payload,
+            htmlBody = htmlBody,
             intent = NotificationIntent.ORGANIZER_SCOPE_GRANTED,
             eventId = event.scopeId,
         )

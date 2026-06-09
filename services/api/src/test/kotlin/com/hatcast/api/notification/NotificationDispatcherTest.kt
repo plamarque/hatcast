@@ -24,6 +24,11 @@ import java.util.UUID
 class NotificationDispatcherTest {
     private val recipientResolver: NotificationRecipientResolver = mock()
     private val payloadBuilder: NotificationPayloadBuilder = NotificationPayloadBuilder()
+    private val emailBodyBuilder =
+        NotificationEmailBodyBuilder(
+            NotificationEmailProperties(publicWebOrigin = "https://localhost:4200"),
+            payloadBuilder,
+        )
     private val pushSender: WebPushNotificationSender = mock()
     private val emailSender: EmailNotificationSender = mock()
     private val pushEligibilityPort: PushNotificationEligibilityPort = mock()
@@ -36,6 +41,7 @@ class NotificationDispatcherTest {
         NotificationDispatcher(
             recipientResolver = recipientResolver,
             payloadBuilder = payloadBuilder,
+            emailBodyBuilder = emailBodyBuilder,
             pushSender = pushSender,
             emailSender = emailSender,
             pushEligibilityPort = pushEligibilityPort,

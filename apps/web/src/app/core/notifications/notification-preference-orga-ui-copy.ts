@@ -42,8 +42,8 @@ export const ORGANIZER_NOTIFICATION_PREFERENCE_UI_COPY: Record<
     groupSubtitle: 'Signaux immédiats',
   },
   ORG_TEAM_COMPLETE: {
-    title: 'Équipe bouclée',
-    description: 'Me prévenir quand toutes les confirmations sont reçues.',
+    title: 'Compo bouclée',
+    description: 'Me prévenir quand la composition est bouclée (toutes les confirmations reçues).',
     groupSubtitle: 'Signaux immédiats',
   },
   ORG_COMPOSITION_INCOMPLETE: {

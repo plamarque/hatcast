@@ -89,7 +89,7 @@ enum class NotificationCategory(
         NotificationCategoryGroup.ORGANIZER_ALERTS,
     ),
     ORG_TEAM_COMPLETE(
-        "Me prévenir quand toutes les confirmations sont reçues",
+        "Me prévenir quand la composition est bouclée",
         NotificationCategoryGroup.ORGANIZER_ALERTS,
     ),
     ORG_COMPOSITION_INCOMPLETE(

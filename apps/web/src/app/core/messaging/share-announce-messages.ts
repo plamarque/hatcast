@@ -127,7 +127,7 @@ export function buildAvailabilityReminderMessage(params: {
 }): string {
   return `⏰ Rappel disponibilité
 
-N'oublie pas de répondre pour ${params.eventTitle} le ${params.eventDate} !
+N'oublie pas de donner tes dispos pour ${params.eventTitle} le ${params.eventDate}
 
 ✅ Dispo ❌ Pas dispo
 

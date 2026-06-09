@@ -16,6 +16,7 @@ import java.util.UUID
 class NotificationDispatcher(
     private val recipientResolver: NotificationRecipientResolver,
     private val payloadBuilder: NotificationPayloadBuilder,
+    private val emailBodyBuilder: NotificationEmailBodyBuilder,
     private val pushSender: WebPushNotificationSender,
     private val emailSender: EmailNotificationSender,
     private val pushEligibilityPort: PushNotificationEligibilityPort,
@@ -94,9 +95,31 @@ class NotificationDispatcher(
                     reasonSummary = context.reasonSummary,
                 )
             val emailSubject =
-                payloadBuilder.buildEmailSubject(context.intent, event, context.proxyChangeSummary)
+                payloadBuilder.buildEmailSubject(
+                    context.intent,
+                    event,
+                    context.proxyChangeSummary,
+                    context.roleKey,
+                    recipientGender,
+                )
+            val htmlBody =
+                emailBodyBuilder.buildHtml(
+                    intent = context.intent,
+                    event = event,
+                    recipientName = recipient.displayName,
+                    recipientGender = recipientGender,
+                    category = category,
+                    roleKey = context.roleKey,
+                    actorDisplayName = context.actorDisplayName,
+                    proxyChangeSummary = context.proxyChangeSummary,
+                    customMessageBody = context.customMessageBody,
+                    eventDetailsChangeSummary = context.eventDetailsChangeSummary,
+                    reasonSummary = context.reasonSummary,
+                    reminderWindow = context.reminderWindow,
+                    relativeUrl = payload.url,
+                )
             deliverPush(recipient.userId, category, payload, context.intent, context.eventId)
-            deliverEmail(recipient.userId, category, emailSubject, payload, context.intent, context.eventId)
+            deliverEmail(recipient.userId, category, emailSubject, htmlBody, context.intent, context.eventId)
         } catch (ex: Exception) {
             log.error(
                 "notification_recipient_unexpected_error intent={} userId={} eventId={} error={}",
@@ -133,8 +156,30 @@ class NotificationDispatcher(
                     eventDetailsChangeSummary = context.eventDetailsChangeSummary,
                 )
             val emailSubject =
-                payloadBuilder.buildEmailSubject(context.intent, event, context.proxyChangeSummary)
-            deliverGuestEmail(email, emailSubject, payload, context.intent, context.eventId)
+                payloadBuilder.buildEmailSubject(
+                    context.intent,
+                    event,
+                    context.proxyChangeSummary,
+                    context.roleKey,
+                    null,
+                )
+            val htmlBody =
+                emailBodyBuilder.buildHtml(
+                    intent = context.intent,
+                    event = event,
+                    recipientName = recipient.displayName,
+                    recipientGender = null,
+                    category = category,
+                    roleKey = context.roleKey,
+                    actorDisplayName = context.actorDisplayName,
+                    proxyChangeSummary = context.proxyChangeSummary,
+                    customMessageBody = context.customMessageBody,
+                    eventDetailsChangeSummary = context.eventDetailsChangeSummary,
+                    reasonSummary = context.reasonSummary,
+                    reminderWindow = context.reminderWindow,
+                    relativeUrl = payload.url,
+                )
+            deliverGuestEmail(email, emailSubject, htmlBody, context.intent, context.eventId)
         } catch (ex: Exception) {
             log.error(
                 "notification_guest_email_unexpected_error intent={} email={} eventId={} error={}",
@@ -150,12 +195,12 @@ class NotificationDispatcher(
     private fun deliverGuestEmail(
         email: String,
         subject: String,
-        payload: NotificationPayload,
+        htmlBody: String,
         intent: NotificationIntent,
         eventId: UUID,
     ) {
         try {
-            val result = emailSender.sendEmail(null, email, subject, payload, intent, eventId)
+            val result = emailSender.sendEmail(null, email, subject, htmlBody, intent, eventId)
             persistDeliveryLogSafely(intent, null, result, eventId, email)
         } catch (ex: Exception) {
             log.warn(
@@ -351,7 +396,7 @@ class NotificationDispatcher(
         userId: UUID,
         category: NotificationCategory,
         subject: String,
-        payload: NotificationPayload,
+        htmlBody: String,
         intent: NotificationIntent,
         eventId: UUID,
     ) {
@@ -387,7 +432,7 @@ class NotificationDispatcher(
             return
         }
         try {
-            val result = emailSender.sendEmail(userId, email, subject, payload, intent, eventId)
+            val result = emailSender.sendEmail(userId, email, subject, htmlBody, intent, eventId)
             persistDeliveryLogSafely(intent, userId, result, eventId)
         } catch (ex: Exception) {
             log.warn(

@@ -89,7 +89,7 @@ const categories = [
   },
   {
     key: 'ORG_TEAM_COMPLETE',
-    label: 'Me prévenir quand toutes les confirmations sont reçues.',
+    label: 'Me prévenir quand la composition est bouclée.',
     group: 'ORGANIZER_ALERTS',
     pushEnabled: false,
     emailEnabled: false,

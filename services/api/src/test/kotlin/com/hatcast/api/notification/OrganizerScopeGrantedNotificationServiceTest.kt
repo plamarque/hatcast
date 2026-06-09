@@ -7,6 +7,7 @@ import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -20,6 +21,7 @@ import java.util.UUID
 class OrganizerScopeGrantedNotificationServiceTest {
     private val userRepository: UserRepository = mock()
     private val emailSender: EmailNotificationSender = mock()
+    private val emailBodyBuilder: NotificationEmailBodyBuilder = mock()
     private val pushSender: WebPushNotificationSender = mock()
     private val reminderMarkService: NotificationReminderMarkService = mock()
     private val preferenceEligibilityPortProvider: ObjectProvider<NotificationPreferenceEligibilityPort> = mock()
@@ -29,6 +31,7 @@ class OrganizerScopeGrantedNotificationServiceTest {
         OrganizerScopeGrantedNotificationService(
             userRepository = userRepository,
             emailSender = emailSender,
+            emailBodyBuilder = emailBodyBuilder,
             pushSender = pushSender,
             reminderMarkService = reminderMarkService,
             preferenceEligibilityPort = preferenceEligibilityPortProvider,
@@ -67,6 +70,14 @@ class OrganizerScopeGrantedNotificationServiceTest {
         )
         whenever(pushEligibilityPort.isPushAllowedForCategory(userId, NotificationCategory.ORG_SCOPE_GRANTED))
             .thenReturn(false)
+        whenever(
+            emailBodyBuilder.buildOrganizerScopeGrantedHtml(
+                any(),
+                anyOrNull(),
+                any(),
+                any(),
+            ),
+        ).thenReturn("<p>html</p>")
     }
 
     @Test
@@ -83,8 +94,8 @@ class OrganizerScopeGrantedNotificationServiceTest {
         verify(emailSender, times(1)).sendEmail(
             eq(userId),
             eq("scope-svc@example.com"),
-            eq("Tu es organisateur de saison sur HatCast"),
-            any(),
+            eq("Tu es désormais organisateur de saison sur HatCast"),
+            eq("<p>html</p>"),
             eq(NotificationIntent.ORGANIZER_SCOPE_GRANTED),
             eq(scopeId),
         )

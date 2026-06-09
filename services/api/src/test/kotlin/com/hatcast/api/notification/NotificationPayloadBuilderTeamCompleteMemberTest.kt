@@ -35,11 +35,11 @@ class NotificationPayloadBuilderTeamCompleteMemberTest {
         assertNotEquals(teamComplete.body, teamValidated.body)
         assertTrue(
             builder.buildEmailSubject(NotificationIntent.TEAM_COMPLETE_MEMBER, event)
-                .startsWith("Équipe au complet · Spectacle test ("),
+                .startsWith("🎉 Équipe au complet · Spectacle test ("),
         )
         assertTrue(
             builder.buildEmailSubject(NotificationIntent.TEAM_VALIDATED_FYI, event)
-                .startsWith("Équipe validée · Spectacle test ("),
+                .startsWith("✅ Équipe validée · Spectacle test ("),
         )
         assertEquals("/saison/saison-test/event/spectacle-test?tab=equipe", teamComplete.url)
     }

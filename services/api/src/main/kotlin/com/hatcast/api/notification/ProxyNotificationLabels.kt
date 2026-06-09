@@ -31,7 +31,7 @@ object ProxyNotificationLabels {
         when (decisionLabel) {
             participationStatusLabel(SlotParticipationStatus.CONFIRMED) -> "a confirmé ta participation"
             participationStatusLabel(SlotParticipationStatus.DECLINED) -> "a décliné ta participation"
-            else -> "a remis ta participation à confirmer"
+            else -> "a remis à confirmer ta participation"
         }
 
     fun participationProxyUsesShowConfirmDeepLink(decisionLabel: String): Boolean =
@@ -39,9 +39,9 @@ object ProxyNotificationLabels {
 
     fun participationProxyNotificationTitle(decisionLabel: String): String =
         when (decisionLabel) {
-            participationStatusLabel(SlotParticipationStatus.CONFIRMED) -> "Participation confirmée"
-            participationStatusLabel(SlotParticipationStatus.DECLINED) -> "Participation déclinée"
-            else -> "Participation à reconfirmer"
+            participationStatusLabel(SlotParticipationStatus.CONFIRMED) -> "👍 Participation confirmée"
+            participationStatusLabel(SlotParticipationStatus.DECLINED) -> "👎 Participation déclinée"
+            else -> "⏳ Participation à confirmer"
         }
 
     fun shouldDeferProxyAvailabilityNotification(change: ProxyAvailabilityChange): Boolean =

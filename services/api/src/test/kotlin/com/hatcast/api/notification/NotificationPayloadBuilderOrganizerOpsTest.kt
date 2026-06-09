@@ -35,8 +35,8 @@ class NotificationPayloadBuilderOrganizerOpsTest {
         assertEquals("📝 Nouveau spectacle", draftCreated.title)
 
         val teamComplete = builder.build(NotificationIntent.TEAM_COMPLETE, event, "")
-        assertEquals("✅ Équipe bouclée", teamComplete.title)
-        assertEquals(true, teamComplete.body.contains("confirmations"))
+        assertEquals("✅ Compo bouclée", teamComplete.title)
+        assertEquals(true, teamComplete.body.contains("Tout le monde a confirmé"))
 
         val regressed =
             builder.build(
@@ -45,7 +45,7 @@ class NotificationPayloadBuilderOrganizerOpsTest {
                 "",
                 reasonSummary = "déclin de Alice",
             )
-        assertEquals("⚠️ Équipe plus complète", regressed.title)
+        assertEquals("⚠️ L'équipe n'est plus complète !", regressed.title)
         assertEquals(true, regressed.body.contains("déclin de Alice"))
     }
 
@@ -53,15 +53,15 @@ class NotificationPayloadBuilderOrganizerOpsTest {
     fun `organizer ops email subjects match catalogue`() {
         val event = sampleEvent()
         assertEquals(
-            "Compo proposée · Gala test",
+            "👥 Compo proposée · Gala test",
             builder.buildEmailSubject(NotificationIntent.COMPOSITION_SHARED, event).substringBefore(" ("),
         )
         assertEquals(
-            "Équipe bouclée · Gala test",
+            "✅ Compo bouclée · Gala test",
             builder.buildEmailSubject(NotificationIntent.TEAM_COMPLETE, event).substringBefore(" ("),
         )
         assertEquals(
-            "Équipe plus complète · Gala test",
+            "⚠️ L'équipe n'est plus complète · Gala test",
             builder.buildEmailSubject(NotificationIntent.TEAM_REGRESSED, event).substringBefore(" ("),
         )
     }

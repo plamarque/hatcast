@@ -24,7 +24,7 @@ class NotificationPayloadBuilderAvailabilityPendingReminderTest {
 
         assertEquals("⏰ Rappel disponibilité", payload.title)
         assertEquals(
-            "N'oublie pas de répondre pour Spectacle le jeudi 15 janvier 2032 à 20h00 !",
+            "N'oublie pas de donner tes dispos pour Spectacle le jeudi 15 janvier 2032 à 20h00",
             payload.body,
         )
         assertEquals("/saison/saison-test/event/spectacle-test?tab=dispos", payload.url)
@@ -34,7 +34,7 @@ class NotificationPayloadBuilderAvailabilityPendingReminderTest {
     fun `AVAILABILITY_PENDING_REMINDER email subject aligns with push title`() {
         val event = sampleEvent()
         val subject = builder.buildEmailSubject(NotificationIntent.AVAILABILITY_PENDING_REMINDER, event)
-        assertEquals("Rappel disponibilité · Spectacle (jeudi 15 janvier 2032 à 20h00)", subject)
+        assertEquals("⏰ Rappel disponibilité · Spectacle (jeudi 15 janvier 2032 à 20h00)", subject)
     }
 
     private fun sampleEvent(): EventEntity {

@@ -19,7 +19,7 @@ class EmailNotificationSender(
         userId: UUID?,
         email: String,
         subject: String,
-        payload: NotificationPayload,
+        htmlBody: String,
         intent: NotificationIntent,
         eventId: UUID?,
     ): NotificationDeliveryResult {
@@ -36,8 +36,6 @@ class EmailNotificationSender(
                 errorMessage = "email_disabled",
             )
         }
-
-        val htmlBody = buildHtmlBody(payload)
 
         if (cloudflareEmailClient.isAvailable()) {
             return sendViaCloudflare(userId, email, subject, htmlBody, intent, eventId)
@@ -127,10 +125,4 @@ class EmailNotificationSender(
                 errorMessage = error,
             )
         }
-
-    private fun buildHtmlBody(payload: NotificationPayload): String =
-        """
-        <p>${payload.body}</p>
-        <p><a href="${payload.url}">Ouvrir dans HatCast</a></p>
-        """.trimIndent()
 }
