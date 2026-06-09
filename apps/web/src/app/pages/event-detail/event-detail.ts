@@ -166,6 +166,9 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly canManageEvents = computed(
     () => this.seasonPermissions()?.canManageEvents === true,
   )
+  protected readonly canManageTroupe = computed(
+    () => this.seasonPermissions()?.canManageMembers === true,
+  )
   protected readonly canManageSeasonParticipants = computed(
     () => this.seasonPermissions()?.canManageSeasonParticipants === true,
   )
