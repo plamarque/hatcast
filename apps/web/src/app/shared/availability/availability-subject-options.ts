@@ -14,3 +14,36 @@ export function summaryParticipantsToSelectors(
     gender: p.gender,
   }))
 }
+
+export function resolveDefaultSubjectParticipantId(
+  participants: SummaryParticipant[],
+  options: {
+    currentUserId: string
+    linkedParticipantId: string | null
+    canSwitchSubject: boolean
+  },
+): string | null {
+  if (!participants.length) {
+    return null
+  }
+
+  if (options.currentUserId) {
+    const self = participants.find((p) => p.userId === options.currentUserId)
+    if (self) {
+      return self.participantId
+    }
+  }
+
+  if (
+    options.linkedParticipantId &&
+    participants.some((p) => p.participantId === options.linkedParticipantId)
+  ) {
+    return options.linkedParticipantId
+  }
+
+  if (options.canSwitchSubject) {
+    return participants[0].participantId
+  }
+
+  return null
+}

@@ -748,7 +748,6 @@ class AvailabilityService(
                 .findByIdEventId(eventId)
                 .map { it.id.seasonParticipantId }
                 .toSet()
-        val seasonParticipantIds = seasonRows.map { it.id }.toSet()
         val byId = linkedMapOf<UUID, EligibleParticipantRow>()
         val seenUserIds = mutableSetOf<UUID>()
 
@@ -757,7 +756,8 @@ class AvailabilityService(
                 continue
             }
             byId[row.id] = toEligibleRow(row)
-            row.user?.id?.let { seenUserIds.add(it) }
+            val user = row.user ?: row.troupeMembership?.user
+            user?.id?.let { seenUserIds.add(it) }
         }
 
         val eventRows =
@@ -767,7 +767,8 @@ class AvailabilityService(
             )
         for (row in eventRows) {
             val linkedSeasonId = row.seasonParticipant?.id
-            if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
+            // Skip only when the season row is already in the pool (not when excluded from this event).
+            if (linkedSeasonId != null && linkedSeasonId in byId) {
                 continue
             }
             val userId = row.user?.id

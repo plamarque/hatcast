@@ -13,7 +13,10 @@ import { isEventDraft } from '../../core/events/event-draft'
 import type { ParticipantSelector } from '../../core/participants/participant-api.service'
 import { AvailabilityPoll, type AvailabilityPollSavedPayload } from './availability-poll'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
-import { summaryParticipantsToSelectors } from './availability-subject-options'
+import {
+  resolveDefaultSubjectParticipantId,
+  summaryParticipantsToSelectors,
+} from './availability-subject-options'
 
 @Component({
   selector: 'app-event-dispos-tab',
@@ -37,6 +40,7 @@ export class EventDisposTab implements OnDestroy {
   readonly troupeId = input.required<string>()
   readonly event = input.required<EventResponse>()
   readonly currentUserId = input.required<string>()
+  readonly linkedParticipantId = input<string | null>(null)
   readonly canSwitchSubject = input(false)
   readonly canManageComposition = input(false)
   readonly explainabilityEnabled = input(false)
@@ -91,6 +95,27 @@ export class EventDisposTab implements OnDestroy {
         void this.load()
       }
     })
+
+    effect(
+      () => {
+        if (this.subjectParticipantId()) {
+          return
+        }
+        const summary = this.summary()
+        if (!summary) {
+          return
+        }
+        const defaultId = resolveDefaultSubjectParticipantId(summary.participants, {
+          currentUserId: this.currentUserId(),
+          linkedParticipantId: this.linkedParticipantId(),
+          canSwitchSubject: this.canSwitchSubject(),
+        })
+        if (defaultId) {
+          this.subjectParticipantId.set(defaultId)
+        }
+      },
+      { allowSignalWrites: true },
+    )
   }
 
   ngOnDestroy(): void {
@@ -168,11 +193,13 @@ export class EventDisposTab implements OnDestroy {
     this.summary.set(summaryResult.data)
     this.summaryChanged.emit(summaryResult.data)
 
-    const selfParticipant = summaryResult.data.participants.find(
-      (p) => p.userId === this.currentUserId(),
-    )
-    if (selfParticipant) {
-      this.subjectParticipantId.set(selfParticipant.participantId)
+    const defaultSubjectId = resolveDefaultSubjectParticipantId(summaryResult.data.participants, {
+      currentUserId: this.currentUserId(),
+      linkedParticipantId: this.linkedParticipantId(),
+      canSwitchSubject: this.canSwitchSubject(),
+    })
+    if (defaultSubjectId) {
+      this.subjectParticipantId.set(defaultSubjectId)
     }
   }
 }

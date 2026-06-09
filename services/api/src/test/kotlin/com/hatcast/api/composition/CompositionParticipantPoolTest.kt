@@ -5,6 +5,8 @@ import com.hatcast.api.availability.EventAvailabilityIndex
 import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.participant.EventParticipantEntity
+import com.hatcast.api.participant.EventParticipantExclusionEntity
+import com.hatcast.api.participant.EventParticipantExclusionId
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.ParticipantStatus
@@ -142,6 +144,44 @@ class CompositionParticipantPoolTest {
         assertTrue(names.contains("Standalone Guest"))
         assertFalse(names.contains("Linked To Removed"))
         assertEquals(1, pool.size)
+    }
+
+    @Test
+    fun `includes event row when linked season participant is excluded from event`() {
+        val seasonMember = seasonRow("Season Member", user = user("Season Member"))
+        val exclusion =
+            EventParticipantExclusionEntity(
+                id = EventParticipantExclusionId(event.id, seasonMember.id),
+                event = event,
+                seasonParticipant = seasonMember,
+                createdAt = Instant.now(),
+            )
+
+        whenever(
+            seasonParticipantRepository.findActiveForSeasonWithAssociations(season.id, ParticipantStatus.ACTIVE),
+        ).thenReturn(listOf(seasonMember))
+        whenever(eventParticipantExclusionRepository.findByIdEventId(event.id)).thenReturn(listOf(exclusion))
+        whenever(seasonParticipantRepository.findRemovedUserIdsForSeason(season.id)).thenReturn(emptyList())
+        whenever(
+            eventParticipantRepository.findActiveForEventWithAssociations(event.id, ParticipantStatus.ACTIVE),
+        ).thenReturn(
+            listOf(
+                eventRow("Season Member", user = seasonMember.user, seasonParticipant = seasonMember),
+            ),
+        )
+
+        val pool =
+            CompositionParticipantPool.loadEligibleParticipants(
+                season.id,
+                event.id,
+                seasonParticipantRepository,
+                eventParticipantRepository,
+                eventParticipantExclusionRepository,
+            )
+
+        assertEquals(1, pool.size)
+        assertEquals("Season Member", pool.single().displayName)
+        assertEquals(CompositionParticipantSource.EVENT, pool.single().source)
     }
 
     @Test

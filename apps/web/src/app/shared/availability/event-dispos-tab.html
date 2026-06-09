@@ -52,6 +52,12 @@
       (summaryPatch)="onSummaryPatch($event)"
       (saved)="onSaved($event)"
     />
+  } @else if (canSwitchSubject() && s.participants.length > 0) {
+    <p class="event-dispos__empty">
+      Sélectionnez un participant pour voir ou modifier ses disponibilités.
+    </p>
+  } @else if (canSwitchSubject()) {
+    <p class="event-dispos__empty">Aucun participant sur ce spectacle.</p>
   } @else {
     <p class="event-dispos__empty">Aucun participant lié à ce compte pour cet événement.</p>
   }

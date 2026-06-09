@@ -54,7 +54,11 @@ const mockSummary = {
   ],
 }
 
-async function setup(canSwitchSubject = false) {
+async function setup(
+  canSwitchSubject = false,
+  currentUserId = 'user-1',
+  linkedParticipantId: string | null = null,
+) {
   const getEventAvailabilitySummary = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
@@ -117,7 +121,8 @@ async function setup(canSwitchSubject = false) {
     roleSlots: ROLE_TEMPLATES.cabaret,
     archived: false,
   })
-  fixture.componentRef.setInput('currentUserId', 'user-1')
+  fixture.componentRef.setInput('currentUserId', currentUserId)
+  fixture.componentRef.setInput('linkedParticipantId', linkedParticipantId)
   fixture.componentRef.setInput('canSwitchSubject', canSwitchSubject)
   fixture.detectChanges()
   await fixture.whenStable()
@@ -146,6 +151,27 @@ describe('EventDisposTab', () => {
   it('shows subject selector for organizers', async () => {
     const { fixture } = await setup(true)
     expect(fixture.nativeElement.querySelector('app-availability-subject-selector')).not.toBeNull()
+  })
+
+  it('auto-selects first summary participant for organizer without linked self row', async () => {
+    const { fixture } = await setup(true, 'user-not-on-event')
+    expect(fixture.nativeElement.querySelector('app-availability-poll')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain(
+      'Aucun participant lié à ce compte pour cet événement.',
+    )
+    const comp = fixture.componentInstance as unknown as {
+      subjectParticipantId: () => string
+    }
+    expect(comp.subjectParticipantId()).toBe('p1')
+  })
+
+  it('prefers linked season participant when self row is absent from summary', async () => {
+    const { fixture } = await setup(false, 'user-not-on-event', 'p2')
+    expect(fixture.nativeElement.querySelector('app-availability-poll')).not.toBeNull()
+    const comp = fixture.componentInstance as unknown as {
+      subjectParticipantId: () => string
+    }
+    expect(comp.subjectParticipantId()).toBe('p2')
   })
 
   it('lists every summary participant in subject selector including name-only event roster', async () => {
