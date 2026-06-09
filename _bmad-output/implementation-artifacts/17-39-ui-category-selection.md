@@ -26,7 +26,7 @@ afin que **le vocabulaire reste contrôlé** et **l'affordance soit alignée ave
 
 ## Acceptance Criteria — Material 3 (UI)
 
-**M3-1** — `mat-radio-group`, `MatDialog`, `mat-flat-button`, `mat-icon`, `mat-spinner` (chargement glossaire).  
+**M3-1** — `mat-radio-group`, `MatDialog`, `mat-flat-button`, `mat-icon`, skeleton radio (chargement glossaire ; UX edge cases).  
 **M3-2** — tokens `--mat-sys-*` / `color-mix` dans dialog et styles Infos existants.  
 **M3-3** — action-row `min-height: 48px` ; `aria-label` français sur le bouton catégorie.  
 **M3-5** — aligné checklist FRONTEND_UI.md.
@@ -68,7 +68,8 @@ Composer (Cloud Agent)
 - Chip + autocomplete remplacés par action-row + `mat-radio-group` (UX 17.39).
 - Dialog retourne slug (pas libellé) pour PATCH event.
 - `troupeAdminSettingsPath` ajouté dans `troupe-routes.ts`.
-- Tests : 31/31 verts (`event-category-dialog`, `event-infos-tab`).
+- Tests : 38/38 verts (`event-category-dialog`, `event-infos-tab`).
+- Code review 2026-06-09 : skeleton chargement, snackbar erreur glossaire, slug orphelin, réouverture modale si PATCH échoue.
 
 ### File List
 
@@ -82,3 +83,18 @@ Composer (Cloud Agent)
 - `apps/web/src/app/pages/event-detail/event-detail.html`
 - `apps/web/src/app/pages/event-detail/event-detail.ts`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+### Review Findings
+
+- [x] [Review][Patch] Remplacer `mat-spinner` par skeleton 2–3 lignes radio (décision : UX edge cases prime sur M3-1) [event-category-dialog.ts:54-57]
+- [x] [Review][Patch] Snackbar FR si échec `listCategories` dans la modale [event-category-dialog.ts:207]
+- [x] [Review][Patch] Slug événement absent du glossaire : aucune option radio correspondante, `Enregistrer` reste désactivé [event-category-dialog.ts:167-194]
+- [x] [Review][Patch] Modale fermée avant PATCH : en cas d'erreur API (400), la sélection est perdue [event-infos-tab.ts:352-357]
+- [x] [Review][Dismiss] Import mort `MatChipsModule` — faux positif : chips organisateurs toujours utilisés [event-infos-tab.html:157]
+- [x] [Review][Patch] Tests manquants : flux dialog → PATCH + snackbars AC3 [event-infos-tab.spec.ts]
+- [x] [Review][Patch] Test manquant : lien admin absent quand `canManageTroupe` false (AC5) [event-infos-tab.spec.ts]
+- [x] [Review][Patch] Test manquant : libellé catégorie custom sur action-row [event-infos-tab.spec.ts]
+- [x] [Review][Defer] Navigation vers `/admin/parametres` sans route 17.40 [troupe-routes.ts:56] — deferred, non-goal explicite story
+- [x] [Review][Defer] `persistCategory` sans garde post-await identité événement [event-infos-tab.ts:449] — deferred, pré-existant (même pattern Date/Lieu)
+- [x] [Review][Defer] Échec silencieux `loadGlossary` onglet Infos [event-infos-tab.ts:484] — deferred, pré-existant
+- [x] [Review][Defer] Fallback `categoryLabel` → slug brut si glossaire incomplet [event-infos-tab.ts:140] — deferred, pré-existant

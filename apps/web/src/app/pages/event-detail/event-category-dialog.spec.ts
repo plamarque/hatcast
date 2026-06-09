@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { provideRouter, Router } from '@angular/router'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -19,13 +20,17 @@ async function setup(
   overrides: Partial<{
     initialCategorySlug: string | null
     canManageTroupe: boolean
+    listCategoriesResult: { ok: boolean; status: number; data?: typeof glossary }
   }> = {},
 ) {
-  const listCategories = vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    data: glossary,
-  })
+  const snackOpen = vi.fn()
+  const listCategories = vi.fn().mockResolvedValue(
+    overrides.listCategoriesResult ?? {
+      ok: true,
+      status: 200,
+      data: glossary,
+    },
+  )
   const close = vi.fn()
 
   await TestBed.configureTestingModule({
@@ -45,13 +50,19 @@ async function setup(
       },
       { provide: TroupeApiService, useValue: { listCategories } },
     ],
-  }).compileComponents()
+  })
+    .overrideComponent(EventCategoryDialog, {
+      set: {
+        providers: [{ provide: MatSnackBar, useValue: { open: snackOpen } }],
+      },
+    })
+    .compileComponents()
 
   const fixture = TestBed.createComponent(EventCategoryDialog)
   fixture.detectChanges()
   await fixture.whenStable()
 
-  return { fixture, close, listCategories }
+  return { fixture, close, listCategories, snackOpen }
 }
 
 describe('EventCategoryDialog', () => {
@@ -111,6 +122,84 @@ describe('EventCategoryDialog', () => {
     cmp.submit()
 
     expect(close).toHaveBeenCalledWith(null)
+  })
+
+  it('shows skeleton rows while glossary loads', async () => {
+    const listCategories = vi.fn(
+      () =>
+        new Promise<{ ok: boolean; status: number; data: typeof glossary }>((resolve) => {
+          setTimeout(
+            () =>
+              resolve({
+                ok: true,
+                status: 200,
+                data: glossary,
+              }),
+            50,
+          )
+        }),
+    )
+    const close = vi.fn()
+    const snackOpen = vi.fn()
+
+    await TestBed.configureTestingModule({
+      imports: [EventCategoryDialog, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        { provide: MatDialogRef, useValue: { close } },
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: {
+            troupeId: 'troupe-1',
+            troupeSlug: 'improbots',
+            initialCategorySlug: null,
+            canManageTroupe: false,
+          },
+        },
+        { provide: TroupeApiService, useValue: { listCategories } },
+      ],
+    })
+      .overrideComponent(EventCategoryDialog, {
+        set: {
+          providers: [{ provide: MatSnackBar, useValue: { open: snackOpen } }],
+        },
+      })
+      .compileComponents()
+
+    const fixture = TestBed.createComponent(EventCategoryDialog)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelectorAll('.category-dialog__skeleton-row')).toHaveLength(3)
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('mat-radio-group')).not.toBeNull()
+    })
+  })
+
+  it('shows snackbar when glossary load fails', async () => {
+    const { snackOpen } = await setup({
+      listCategoriesResult: { ok: false, status: 500 },
+    })
+
+    await vi.waitFor(() => {
+      expect(snackOpen).toHaveBeenCalledWith('Impossible de charger les catégories.', 'OK', {
+        duration: 6000,
+      })
+    })
+  })
+
+  it('includes orphan event slug when missing from glossary', async () => {
+    const { fixture } = await setup({ initialCategorySlug: 'legacy-slug' })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Apérock')
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      categoryOptions: () => { slug: string | null; label: string }[]
+    }
+
+    expect(cmp.categoryOptions().some((o) => o.slug === 'legacy-slug')).toBe(true)
   })
 
   it('shows manage link for troupe admin and navigates to settings', async () => {

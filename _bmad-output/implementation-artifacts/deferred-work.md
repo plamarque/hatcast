@@ -203,3 +203,12 @@
 - **Constantes réservées dupliquées (`RESERVED_SLUGS` vs `HIDDEN_SLUGS`)** — risque de divergence future faible ; partage de constante reporté.
 - **`labelForAutoCreate` code mort post-AC6** — nettoyage cosmétique dans `CategorySlugNormalizer.kt`.
 - **Fenêtre race preview → delete inter-requêtes** — pas de token de confirmation ; comportement UX standard accepté pour v1.
+
+---
+
+## Deferred from: code review of 17-39-ui-category-selection (2026-06-09)
+
+- **Navigation vers `/admin/parametres` sans route 17.40** — non-goal explicite story ; lien préparé pour 17.40.
+- **`persistCategory` sans garde post-await identité événement** — même pattern que Date/Lieu ; pré-existant.
+- **Échec silencieux `loadGlossary` onglet Infos** — helper inchangé ; pré-existant.
+- **Fallback `categoryLabel` → slug brut si glossaire incomplet** — comportement hérité ; pré-existant.

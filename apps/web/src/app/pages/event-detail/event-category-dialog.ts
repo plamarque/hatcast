@@ -6,8 +6,8 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatRadioModule } from '@angular/material/radio'
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router } from '@angular/router'
 
 import { troupeAdminSettingsPath } from '../../core/navigation/troupe-routes'
@@ -44,16 +44,27 @@ interface CategoryOption {
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     MatRadioModule,
+    MatSnackBarModule,
   ],
   template: `
     <h2 mat-dialog-title id="event-category-dialog-title">Catégorie</h2>
     <mat-dialog-content class="category-dialog">
       <p class="category-dialog__intro">{{ helpText }}</p>
       @if (loading()) {
-        <div class="category-dialog__loading" role="status" aria-live="polite">
-          <mat-spinner diameter="28" />
+        <div
+          class="category-dialog__skeleton"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          aria-label="Chargement des catégories"
+        >
+          @for (row of skeletonRows; track row) {
+            <div class="category-dialog__skeleton-row">
+              <span class="category-dialog__skeleton-radio" aria-hidden="true"></span>
+              <span class="category-dialog__skeleton-label" aria-hidden="true"></span>
+            </div>
+          }
         </div>
       } @else {
         <mat-radio-group
@@ -108,11 +119,35 @@ interface CategoryOption {
         line-height: 1.35;
       }
 
-      .category-dialog__loading {
+      .category-dialog__skeleton {
         display: flex;
-        justify-content: center;
+        flex-direction: column;
+        gap: 0.25rem;
         min-height: 6rem;
+      }
+
+      .category-dialog__skeleton-row {
+        display: flex;
         align-items: center;
+        gap: 0.75rem;
+        min-height: 48px;
+      }
+
+      .category-dialog__skeleton-radio,
+      .category-dialog__skeleton-label {
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
+      }
+
+      .category-dialog__skeleton-radio {
+        flex: 0 0 1.25rem;
+        height: 1.25rem;
+      }
+
+      .category-dialog__skeleton-label {
+        flex: 1;
+        max-width: 12rem;
+        height: 0.875rem;
       }
 
       .category-dialog__options {
@@ -156,10 +191,12 @@ interface CategoryOption {
 export class EventCategoryDialog implements OnInit {
   private readonly troupeApi = inject(TroupeApiService)
   private readonly router = inject(Router)
+  private readonly snack = inject(MatSnackBar)
   private readonly ref = inject(MatDialogRef<EventCategoryDialog, EventCategoryDialogResult>)
   protected readonly data = inject<EventCategoryDialogData>(MAT_DIALOG_DATA)
 
   protected readonly helpText = CATEGORY_HELP
+  protected readonly skeletonRows = [0, 1, 2] as const
   protected readonly loading = signal(true)
   protected readonly glossary = signal<TroupeCategory[]>([])
   protected readonly selectedSlug = signal<string | null>(this.data.initialCategorySlug)
@@ -178,6 +215,13 @@ export class EventCategoryDialog implements OnInit {
       options.push(deplacements)
     }
     options.push(...custom)
+
+    const initialSlug = this.data.initialCategorySlug
+    if (initialSlug && !options.some((o) => o.slug === initialSlug)) {
+      const known = entries.find((t) => t.slug === initialSlug)
+      options.push({ slug: initialSlug, label: known?.label ?? initialSlug })
+    }
+
     return options
   })
 
@@ -186,7 +230,7 @@ export class EventCategoryDialog implements OnInit {
   }
 
   protected onSelectionChange(value: string | null): void {
-    this.selectedSlug.set(value)
+    this.selectedSlug.set(value ?? null)
   }
 
   protected hasChanges(): boolean {
@@ -210,7 +254,11 @@ export class EventCategoryDialog implements OnInit {
       const r = await this.troupeApi.listCategories(this.data.troupeId)
       if (r.ok && r.data) {
         this.glossary.set(r.data)
+        return
       }
+      this.snack.open('Impossible de charger les catégories.', 'OK', { duration: 6000 })
+    } catch {
+      this.snack.open('Impossible de charger les catégories.', 'OK', { duration: 6000 })
     } finally {
       this.loading.set(false)
     }

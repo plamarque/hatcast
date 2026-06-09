@@ -332,7 +332,7 @@ export class EventInfosTab {
     })
   }
 
-  protected openCategoryDialog(): void {
+  protected openCategoryDialog(selectionRetry?: string | null): void {
     if (!this.canManageEvents()) {
       return
     }
@@ -344,7 +344,7 @@ export class EventInfosTab {
       data: {
         troupeId: this.troupeId(),
         troupeSlug: this.troupeSlug(),
-        initialCategorySlug: this.event().category ?? null,
+        initialCategorySlug: selectionRetry ?? this.event().category ?? null,
         canManageTroupe: this.canManageTroupe(),
       },
       width: 'min(100vw - 2rem, 32rem)',
@@ -353,7 +353,11 @@ export class EventInfosTab {
       if (result === undefined) {
         return
       }
-      void this.persistCategory(result)
+      void this.persistCategory(result).then((ok) => {
+        if (!ok) {
+          this.openCategoryDialog(result)
+        }
+      })
     })
   }
 
@@ -446,7 +450,7 @@ export class EventInfosTab {
     }
   }
 
-  private async persistCategory(slug: string | null): Promise<void> {
+  private async persistCategory(slug: string | null): Promise<boolean> {
     const seasonId = this.seasonId()
     const ev = this.event()
     const body = { category: slug }
@@ -457,7 +461,7 @@ export class EventInfosTab {
       if (!result.ok || !result.data) {
         const message = result.errorMessage ?? 'Enregistrement impossible.'
         this.snack.open(message, 'OK', { duration: 6000 })
-        return
+        return false
       }
       this.eventUpdated.emit(result.data)
       const cleared = result.data.category == null
@@ -466,6 +470,7 @@ export class EventInfosTab {
         'OK',
         { duration: 4000 },
       )
+      return true
     } finally {
       this.saving.set(false)
     }

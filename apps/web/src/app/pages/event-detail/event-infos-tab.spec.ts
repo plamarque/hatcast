@@ -1,7 +1,9 @@
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
+import { MatDialog } from '@angular/material/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
+import { Subject } from 'rxjs'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 import { EventApiService } from '../../core/events/event-api.service'
@@ -38,6 +40,9 @@ describe('EventInfosTab', () => {
   let fixture: ComponentFixture<EventInfosTab>
   let snackOpen: ReturnType<typeof vi.fn>
   let windowOpenSpy: ReturnType<typeof vi.spyOn>
+  let dialogOpen: ReturnType<typeof vi.fn>
+  let updateEvent: ReturnType<typeof vi.fn>
+  let listCategories: ReturnType<typeof vi.fn>
   const snackBarMock = { open: vi.fn() }
 
   type InfosTabTestApi = {
@@ -50,6 +55,7 @@ describe('EventInfosTab', () => {
     onCalendarMenuClosed: () => void
     onMapsMenuOpened: () => void
     onMapsMenuClosed: () => void
+    openCategoryDialog: () => void
   }
 
   function tab(): InfosTabTestApi {
@@ -59,18 +65,22 @@ describe('EventInfosTab', () => {
   beforeEach(async () => {
     snackBarMock.open.mockReset()
     windowOpenSpy = vi.spyOn(window, 'open').mockReturnValue({} as Window)
+    dialogOpen = vi.fn()
+    updateEvent = vi.fn()
+    listCategories = vi.fn().mockResolvedValue({ ok: true, data: [] })
 
     await TestBed.configureTestingModule({
       imports: [EventInfosTab, NoopAnimationsModule],
       providers: [
         provideRouter([]),
+        { provide: MatDialog, useValue: { open: dialogOpen } },
         {
           provide: EventApiService,
-          useValue: { updateEvent: vi.fn() },
+          useValue: { updateEvent },
         },
         {
           provide: TroupeApiService,
-          useValue: { listCategories: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+          useValue: { listCategories },
         },
         {
           provide: OrganizerApiService,
@@ -87,6 +97,8 @@ describe('EventInfosTab', () => {
         },
       })
       .compileComponents()
+
+    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
 
     fixture = TestBed.createComponent(EventInfosTab)
     snackOpen = snackBarMock.open
@@ -346,6 +358,34 @@ describe('EventInfosTab', () => {
     expect(row?.getAttribute('aria-label')).toBe('Changer la catégorie')
   })
 
+  it('hides manage categories link when user is not troupe admin', () => {
+    fixture.componentRef.setInput('canManageTroupe', false)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.event-infos__add-organizer')).toBeNull()
+  })
+
+  it('shows custom category label on action row when event has category', async () => {
+    listCategories.mockResolvedValue({
+      ok: true,
+      data: [{ slug: 'deplacements', label: 'Déplacements' }],
+    })
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.componentRef.setInput('event', ev({ category: 'deplacements' }))
+    fixture.componentRef.setInput('troupeId', 'troupe-glossary-reload')
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(listCategories).toHaveBeenCalledWith('troupe-glossary-reload')
+    })
+    await vi.waitFor(() => {
+      const row = fixture.nativeElement.querySelector(
+        '.event-infos__category button.event-infos__action-row',
+      )
+      expect(row?.textContent?.trim()).toContain('Déplacements')
+    })
+  })
+
   it('shows manage categories link for troupe admin', () => {
     fixture.componentRef.setInput('canManageTroupe', true)
     fixture.detectChanges()
@@ -369,6 +409,50 @@ describe('EventInfosTab', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/', 'troupes', 'improbots', 'admin', 'parametres'], {
       queryParams: { tab: 'categories' },
     })
+  })
+
+  it('persists category from dialog and shows success snackbar', async () => {
+    const afterClosed$ = new Subject<string | null | undefined>()
+    dialogOpen.mockReturnValue({ afterClosed: () => afterClosed$.asObservable() })
+    updateEvent.mockResolvedValue({
+      ok: true,
+      data: ev({ category: 'deplacements' }),
+    })
+
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    tab().openCategoryDialog()
+    afterClosed$.next('deplacements')
+
+    await vi.waitFor(() => {
+      expect(updateEvent).toHaveBeenCalledWith('season-1', ev().id, { category: 'deplacements' })
+      expect(snackOpen).toHaveBeenCalledWith('Catégorie enregistrée.', 'OK', { duration: 4000 })
+    })
+  })
+
+  it('reopens category dialog when PATCH fails', async () => {
+    const firstClose$ = new Subject<string | null | undefined>()
+    const secondClose$ = new Subject<string | null | undefined>()
+    dialogOpen
+      .mockReturnValueOnce({ afterClosed: () => firstClose$.asObservable() })
+      .mockReturnValueOnce({ afterClosed: () => secondClose$.asObservable() })
+    updateEvent.mockResolvedValueOnce({ ok: false, errorMessage: 'Catégorie inconnue.' })
+
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    tab().openCategoryDialog()
+    firstClose$.next('aperock')
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(2)
+    })
+
+    const secondDialogData = dialogOpen.mock.calls[1]?.[1]?.data as {
+      initialCategorySlug: string | null
+    }
+    expect(secondDialogData.initialCategorySlug).toBe('aperock')
   })
 
   it('shows format and roles help on every Infos load', () => {

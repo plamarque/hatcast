@@ -270,7 +270,7 @@ development_status:
   17-36-mon-compte-onglet-mon-profil: done  # UX amend 2026-06-04b — fusion Identité+Sécurité
   17-37-format-stable-role-customization: done  # SCP 2026-06-08 — format stable on role customize
   17-38-category-glossary-api: done  # SCP 2026-06-08 — admin CRUD + stop auto-create on event save
-  17-39-ui-category-selection: review  # SCP 2026-06-08 — selection dialog Infos ; depends 17.38
+  17-39-ui-category-selection: done  # SCP 2026-06-08 — selection dialog Infos ; depends 17.38
   17-40-troupe-settings-categories: backlog  # SCP 2026-06-08 — page Paramètres troupe onglet Catégories ; depends 17.38
   epic-17-retrospective: optional
 
