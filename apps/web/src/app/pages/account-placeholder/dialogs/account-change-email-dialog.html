@@ -10,10 +10,15 @@
       Un email de vérification sera envoyé à la nouvelle adresse. Le changement ne sera effectif qu’après
       confirmation du lien.
     </p>
-    <div class="account-security-dialog__current" aria-live="polite">
-      <span class="account-security-dialog__current-label">Adresse e-mail actuelle</span>
-      <span class="account-security-dialog__current-value">{{ data.currentEmail }}</span>
-    </div>
+    <mat-form-field
+      appearance="outline"
+      subscriptSizing="dynamic"
+      class="account-security-dialog__field account-security-dialog__field--readonly"
+      aria-live="polite"
+    >
+      <mat-label>Adresse e-mail actuelle</mat-label>
+      <input matInput [value]="data.currentEmail" readonly tabindex="-1" />
+    </mat-form-field>
     <form [formGroup]="form" class="account-security-dialog__form">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-security-dialog__field">
         <mat-label>Nouvelle adresse e-mail</mat-label>

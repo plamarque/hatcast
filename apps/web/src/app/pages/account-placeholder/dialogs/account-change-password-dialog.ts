@@ -1,6 +1,8 @@
 import { Component, inject, signal, ViewEncapsulation } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
+import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatInputModule } from '@angular/material/input'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { sendPasswordResetEmail } from 'firebase/auth'
@@ -19,7 +21,13 @@ export interface AccountChangePasswordDialogData {
 
 @Component({
   selector: 'app-account-change-password-dialog',
-  imports: [MatButtonModule, MatDialogModule, MatProgressSpinnerModule],
+  imports: [
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+  ],
   templateUrl: './account-change-password-dialog.html',
   styleUrl: './account-security-dialog.scss',
   encapsulation: ViewEncapsulation.None,

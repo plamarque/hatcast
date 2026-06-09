@@ -116,6 +116,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 
 ### Références code (bons patterns)
 
+- Footers modales : [`apps/web/src/styles/_hatcast-dialog-actions.scss`](../../../apps/web/src/styles/_hatcast-dialog-actions.scss) — dismiss `mat-button`, cibles 3 rem ; actions contenu `.hatcast-dialog-content-actions`.
 - Raccourcis membre : [`apps/web/src/app/shared/member-cross-nav/`](../../../apps/web/src/app/shared/member-cross-nav/) — `mat-stroked-button`, `routerLink`, `aria-label`, ellipsis mobile.
 - Thème M3 global : [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss).
 - **Charte sémantique participation** : [`apps/web/src/styles/_hatcast-semantic-colors.scss`](../../../apps/web/src/styles/_hatcast-semantic-colors.scss) (dispo, sélection, en attente, désistement, indispo ; cartes agenda [`_hatcast-agenda-event-card.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-card.scss) ; badges [`_hatcast-agenda-event-badges.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-badges.scss) + [`_hatcast-agenda-dispo-badge.scss`](../../../apps/web/src/styles/_hatcast-agenda-dispo-badge.scss)).

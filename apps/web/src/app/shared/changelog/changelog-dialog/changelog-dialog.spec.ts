@@ -72,8 +72,8 @@ describe('ChangelogDialog', () => {
       ],
     })
 
-    const closeBtn = fixture.nativeElement.querySelector(
-      '.changelog-dialog__close',
+    const closeBtn = [...fixture.nativeElement.querySelectorAll('button')].find(
+      (b: HTMLButtonElement) => b.textContent?.trim() === 'Fermer',
     ) as HTMLButtonElement
     expect(closeBtn?.textContent?.trim()).toBe('Fermer')
     expect(closeBtn?.classList.contains('mat-mdc-button-base')).toBe(true)

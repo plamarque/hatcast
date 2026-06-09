@@ -176,7 +176,27 @@ Audit mécanique de tous les `mat-dialog-actions` / footers sheet. Règle : **di
 
 ---
 
-## Suivi (hors Phase 0–2)
+## Phase 2b — rendu visuel unifié (2026-06-09)
+
+**Décision PO :** dismiss = **`mat-button` texte primary** (pas tonal plein, pas stroked) ; primaire = **`mat-flat-button`** ; actions métier dans le contenu = **`mat-button` + icône** (classe `.hatcast-dialog-content-actions`).
+
+### Livrables
+
+| Élément | Action |
+|---------|--------|
+| `styles/_hatcast-dialog-actions.scss` | Cibles 3 rem, gap, tokens text dismiss pour `mat-dialog-actions`, sheets aide, push opt-in |
+| `account-change-*` | E-mail affiché en `mat-form-field` outline readonly (plus bloc custom caps) |
+| `share-announce-dialog` | Copier / WhatsApp / Réessayer : `mat-button` (plus stroked) |
+| Overrides locaux | Retrait `changelog-dialog__close`, `account-security-dialog__actions button`, `create-troupe-dialog` footer |
+
+### Hors scope 2b (volontaire)
+
+- `member-profile` : **Voir dans mon agenda** reste `mat-stroked-button` (action secondaire nommée)
+- Pickers filtre : pattern sheet (Phase 3)
+
+---
+
+## Suivi (hors Phase 0–2b)
 
 | Phase | Contenu | Story cible |
 |-------|---------|-------------|
