@@ -1,0 +1,105 @@
+// Barre d’onglets capsule M3 — spec normative :
+// _bmad-output/planning-artifacts/ux-design-pill-tab-bar.md
+// Preview UX Sally 2026-06-09 (détail spectacle Infos · Dispos · Équipe).
+
+@mixin pill-tab-item-active {
+  background: var(--mat-sys-primary-container);
+
+  .mdc-tab__text-label,
+  .mdc-tab__text-label .mat-icon {
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+@mixin pill-tab-item-base {
+  min-height: 2.5rem;
+  border-radius: 999px;
+  opacity: 1;
+
+  .mdc-tab__text-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .mdc-tab__ripple {
+    border-radius: 999px;
+  }
+}
+
+@mixin pill-tab-header-shell {
+  background: var(--mat-sys-surface-container-high);
+  border-radius: 999px;
+  padding: 0.25rem;
+}
+
+@mixin pill-tab-hide-indicator {
+  .mdc-tab-indicator {
+    display: none;
+  }
+}
+
+/// `mat-tab-group` — ex. détail spectacle, paramètres troupe.
+@mixin group($centered: true) {
+  ::ng-deep {
+    @include pill-tab-hide-indicator;
+
+    .mat-mdc-tab-header {
+      @include pill-tab-header-shell;
+
+      @if $centered {
+        margin-inline: auto;
+        width: fit-content;
+        max-width: 100%;
+      }
+    }
+
+    .mat-mdc-tab-header-pagination {
+      border-radius: 999px;
+    }
+
+    .mat-mdc-tab-labels {
+      gap: 0.125rem;
+    }
+
+    .mat-mdc-tab {
+      @include pill-tab-item-base;
+      min-width: 5.5rem;
+
+      &.mdc-tab--active {
+        @include pill-tab-item-active;
+      }
+    }
+  }
+}
+
+/// `mat-tab-nav-bar` — ex. Mon compte.
+@mixin nav-bar($centered: false) {
+  @include pill-tab-header-shell;
+
+  @if $centered {
+    margin-inline: auto;
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  @include pill-tab-hide-indicator;
+
+  .mat-mdc-tab-link-container {
+    border-radius: 999px;
+  }
+
+  .mat-mdc-tab-links {
+    gap: 0.125rem;
+  }
+
+  .mat-mdc-tab-link {
+    @include pill-tab-item-base;
+    min-width: 5.5rem;
+
+    &.mdc-tab--active {
+      @include pill-tab-item-active;
+    }
+  }
+}

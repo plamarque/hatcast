@@ -1,3 +1,5 @@
+@use '../../../styles/hatcast-pill-tab-bar' as pill-tabs;
+
 .troupe-settings {
   display: grid;
   gap: 1rem;
@@ -50,6 +52,8 @@
 
 .troupe-settings__tabs {
   margin-top: 0.25rem;
+
+  @include pill-tabs.group($centered: false);
 }
 
 @media (max-width: 480px) {

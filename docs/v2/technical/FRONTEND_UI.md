@@ -45,6 +45,7 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-design-specification.md`](../../../_bmad-output/planning-artifacts/ux-design-specification.md) | Surfaces admin (Material defaults + tokens) |
 | [`_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md`](../../../_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md) | Brouillon spectacle, publication, bandeau, agendas (story **3.21**) |
 | [`_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md`](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md) | Détail spectacle — rangée titre + statut, breadcrumb sans titre, onglet Infos (2026-06-06) |
+| [`_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md`](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) | Barre d’onglets capsule M3 — coque + pastille active ; mixin `_hatcast-pill-tab-bar.scss` (2026-06-09) |
 | [`_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) | Détail cote par personne — waterfall deltas, barre pool, pairs (story **19.7**) |
 | [`_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md`](../../../_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md) | Sélection multi-rôles — `RoleToggleChipSet` (`mat-chip` + `[highlighted]`), Préférences compte |
 | [`_bmad-output/planning-artifacts/ux-design-dialog-patterns.md`](../../../_bmad-output/planning-artifacts/ux-design-dialog-patterns.md) | Fermeture modales — taxonomie M3, libellés Annuler/Fermer, anti double-affordance |
@@ -70,6 +71,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 ### Composants et structure
 
 - [ ] **Composant Material d’abord** — boutons (`mat-button`, `mat-stroked-button`, `mat-flat-button`), champs (`mat-form-field`), listes (`mat-list`, `mat-table`), dialogs (`MatDialog`), menus (`mat-menu`), chips (`mat-chip`), onglets (`mat-tab-group`), toolbars (`mat-toolbar`) : pas de `<button class="…">` ou div cliquable custom si Material couvre le cas.
+- [ ] **Barre d’onglets capsule** — si la story ajoute ou modifie une barre d’onglets page (détail spectacle, Mon compte, paramètres troupe, etc.) : mixin [`_hatcast-pill-tab-bar.scss`](../../../apps/web/src/styles/_hatcast-pill-tab-bar.scss) + spec [ux-design-pill-tab-bar.md](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) — pas de styles tab ad hoc ni ancien pattern `opacity: 0.75` / `rgba(255,255,255,0.1)`.
 - [ ] **Icônes** — `mat-icon` + noms [Material Symbols](https://fonts.google.com/icons) déjà utilisés dans l’app (`calendar_month`, `groups`, `settings`, etc.) ; `aria-hidden="true"` sur l’icône décorative si un libellé texte ou `aria-label` porte le sens.
 - [ ] **Dialogs / bottom sheets** — `MatDialog` (ou pattern documenté dans la story) ; pas de overlay maison pour des flux modaux standard.
 - [ ] **Fermeture dialog** — type identifié (formulaire / consultation / picker — cf. [`ux-design-dialog-patterns.md`](../../../_bmad-output/planning-artifacts/ux-design-dialog-patterns.md)) ; libellé dismiss conforme (**Annuler** / **Fermer** / **Plus tard**) ; dismiss en `mat-button` ; **pas** de croix header **et** bouton texte footer sur un dialog standard ; pickers filtre = exception documentée (✕ + Appliquer).
@@ -114,6 +116,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 | Dismiss ad hoc (`mat-flat-button`, libellé anglais…) | `app-hatcast-dialog-dismiss` avec clé typée |
 | `mat-flat-button` pour le seul dismiss | `mat-button` pour Annuler / Fermer |
 | Nouvelle barre de navigation basse globale | Top app bar + rail desktop (spec hub) |
+| Barre d’onglets sans coque / styles tab dupliqués par page | Mixin `_hatcast-pill-tab-bar.scss` + [ux-design-pill-tab-bar.md](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) |
 | Dupliquer la logique « dernière saison » / agenda | `LastVisitedSeasonShortcutService`, `member-cross-nav` |
 
 ### Références code (bons patterns)
@@ -128,6 +131,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 - Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*`, `--hatcast-participation-*` ou alias `--hatcast-availability-*`).
 - Détail spectacle — rangée titre / statut : [`event-detail.html`](../../../apps/web/src/app/pages/event-detail/event-detail.html) (`event-detail__context-row`), [`context-breadcrumb`](../../../apps/web/src/app/shared/context-breadcrumb/) (`omitEventFromBreadcrumb` sur le header événement), spec [ux-design-event-detail-title-row-2026-06-06.md](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md).
 - Chips rôles événement : [`role-toggle-chip-set`](../../../apps/web/src/app/shared/event-roles/role-toggle-chip-set/) (sélection) + [`role-display-chip-set`](../../../apps/web/src/app/shared/event-roles/role-display-chip-set/) (lecture seule) + [`role-action-chip`](../../../apps/web/src/app/shared/event-roles/role-action-chip/) (action unitaire, ex. équipe) ; spec [ux-design-role-toggle-chips.md](../../../_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md) ; référence filtre admin [`membres-tab.html`](../../../apps/web/src/app/pages/admin-membres/membres-tab.html).
+- Barre d’onglets capsule : [`_hatcast-pill-tab-bar.scss`](../../../apps/web/src/styles/_hatcast-pill-tab-bar.scss) — `@include pill-tabs.group()` / `nav-bar()` ; spec [ux-design-pill-tab-bar.md](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) ; surfaces [`event-detail.scss`](../../../apps/web/src/app/pages/event-detail/event-detail.scss), [`account-placeholder.scss`](../../../apps/web/src/app/pages/account-placeholder/account-placeholder.scss), [`troupe-settings.scss`](../../../apps/web/src/app/pages/troupe-settings/troupe-settings.scss).
 
 ### Couleurs sémantiques — participation
 

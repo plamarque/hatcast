@@ -33,6 +33,8 @@ afin de **{bénéfice}**.
 
 **M3-2. Tokens & thème** — **Given** les styles SCSS/HTML de la story, **when** couleurs ou fonds sont appliqués, **then** uniquement `var(--mat-sys-*)` et `color-mix(in srgb, var(--mat-sys-…) …)` — pas de couleur hex/rgb en dur sur les features (hors thème global `styles.scss`). [Source: FRONTEND_UI.md]
 
+*(Si la story touche une barre d’onglets page : ajouter AC ou Dev Note pointant [ux-design-pill-tab-bar.md](../planning-artifacts/ux-design-pill-tab-bar.md) + mixin `_hatcast-pill-tab-bar.scss`.)*
+
 **M3-3. Mobile & tactile** — **Given** viewport **max-width: 480px** (breakpoint standard HatCast), **when** les contrôles interactifs de la story sont affichés, **then** cibles tactiles **≥ 48×48 dp** (ou **≥ 40×40** si justifié ici) ; **si** le libellé texte est masqué, **then** `aria-label` **français** sur chaque contrôle concerné ; pas de chevauchement du chrome (avatar, menu). [Source: NFR-A1 ; FRONTEND_UI.md]
 
 **M3-4. Navigation membre** *(uniquement si chrome global / nav / header membre)* — **Given** une surface membre (`/agenda`, `/saison/*`, `/membre/*`, hub…), **when** la story ajoute ou modifie la navigation d’espace app, **then** respecter top app bar M3 et **ne pas** introduire de bottom app bar M2 ; rail desktop à **840px** seulement si spec [`ux-hub-a-faire.md`](../planning-artifacts/ux-hub-a-faire.md) ou story l’exige. [Source: ux-hub-a-faire.md]

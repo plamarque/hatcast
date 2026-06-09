@@ -90,6 +90,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | C3 | **Chrome page** | Même squelette que **Mon agenda** / **Mes Stats** : conteneur `max-width: 56rem`, header `h1` + `p` sous-titre. Typo L1/L2 : [`ux-design-hub-section-headers.md`](ux-design-hub-section-headers.md). |
 | C4 | **Navigation interne** | **4 onglets** Material (`mat-tab-nav-bar` + `mat-tab-link` + routes enfants) — **Mon profil** · Préférences · Notifications · À propos. **Pas** d’onglet Sécurité séparé (fusion **17.36**). |
 | C13 | **Icônes onglets** | Chaque `mat-tab-link` affiche **`mat-icon` + libellé français sur une ligne** (pas de pile icône au-dessus du texte, pas d’onglet icône seule). Mapping : `person` · **`tune`** · `notifications` · `info`. Icône décorative : `aria-hidden="true"` ; le texte visible porte le sens. **Livré** dans `account-placeholder` (one-shot 2026-06-08). |
+| C14 | **Style barre onglets** | Pattern **capsule M3** partagé ([ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md)) : coque `surface-container-high`, pastille active `primary-container`, mixin `_hatcast-pill-tab-bar.scss` via `@include pill-tabs.nav-bar()`. Scroll horizontal mobile inchangé (≤ 480 px). |
 | C5 | **Avatar** | Gestion **photo de profil** (story **2.6**) en tête de l’onglet **Mon profil** — zone compacte inchangée. |
 | C6 | **E-mail — édition** | E-mail affiché à côté de l’avatar ; action **modifier** = `mat-icon-button` icône `edit` (`aria-label` *Modifier l’adresse e-mail*, `data-testid="account-email-edit"`) ouvrant le dialog **1.6** — **pas** de ligne liste « Changer l’adresse e-mail ». |
 | C12 | **Modes de connexion** | Section dédiée sous le pseudo : état **Google** (connecté si `hasGoogleAccount`) ; **mot de passe HatCast** (défini / non défini) avec bouton **Changer** ou **Définir** un mot de passe → dialog **1.6** ; conserver hint Google + secours si applicable (`data-testid="account-google-password-hint"`). |
@@ -152,7 +153,7 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 |---------|--------|
 | **Titre (`h1`)** | `Mon compte` |
 | **Sous-titre** | `Paramètres de votre compte HatCast.` (une ligne) — voir [ux-voice-and-tone.md](./ux-voice-and-tone.md) |
-| **Barre d’onglets** | Sous le sous-titre ; **scrollable horizontalement** sur mobile (`mat-tab-nav-bar`) ; chaque lien = **icône + libellé sur une ligne** (C13) |
+| **Barre d’onglets** | Sous le sous-titre ; **scrollable horizontalement** sur mobile (`mat-tab-nav-bar`) ; chaque lien = **icône + libellé sur une ligne** (C13) ; style **capsule M3** (C14) |
 | **Actions header** | **Se déconnecter** à droite du titre (C8b) ; **aucun** menu avatar sur cette route (C8a) |
 | **Typo** | `font-size: 1.75rem` titre ; sous-titre `opacity: 0.85`, `0.95rem` |
 | **Layout header** | Ligne 1 : `flex` `space-between` — `h1` à gauche, action à droite ; ligne 2 : sous-titre pleine largeur |

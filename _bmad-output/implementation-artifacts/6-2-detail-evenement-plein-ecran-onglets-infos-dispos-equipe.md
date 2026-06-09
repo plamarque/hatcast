@@ -14,7 +14,7 @@ so that **I can navigate the spectacle clearly** and **future composition flows 
 
 1. **Given** an accessible spectacle at `/saison/:slug/event/:eventId`, **when** I open the screen, **then** I see a **full-page layout** (no modal overlay) with **header + tab bar + tab content** — SPEC full-screen contract; V2 path prefix remains **`/saison/`** (not legacy `/season/`).
 2. **Given** the event header (UX-DR4), **when** the page loads, **then** it shows: **back chevron** → `/saison/:slug` (agenda, not `/seasons`); **event type icon** + **title** + **formatted start date** (Europe/Paris, same helper as agenda); **right chrome**: **settings** menu (season-scoped admin links when permitted) + **user menu** (avatar, Mon compte) — reuse patterns from [`season-header`](../../apps/web/src/app/pages/season-home/season-header.ts).
-3. **Given** the tab bar, **when** I view the screen, **then** three tabs are visible and navigable: **Infos** (default), **Dispos**, **Équipe** — pill-style presentation per [ux-design — Event detail](../planning-artifacts/ux-design-hatcast-v2.md#screen-event-detail-infos-tab); selected tab visually distinct on dark theme.
+3. **Given** the tab bar, **when** I view the screen, **then** three tabs are visible and navigable: **Infos** (default), **Dispos**, **Équipe** — **capsule pill tab bar** per [ux-design-pill-tab-bar.md](../planning-artifacts/ux-design-pill-tab-bar.md) (coque `surface-container-high`, pastille active `primary-container`, pas d’indicateur Material) ; selected tab visually distinct on dark theme. **Régression CI :** voir § *Post-ship regression — pill tab bar (PT-AC)*.
 4. **Given** URL query `tab`, **when** the page loads or the tab changes, **then** the active tab syncs with the URL using **V2 values** `infos` | `dispos` | `equipe` (`replaceUrl: true`, merge other query params) — extend existing logic in [`event-detail-placeholder.ts`](../../apps/web/src/app/pages/event-detail-placeholder/event-detail-placeholder.ts).
 5. **Given** **legacy SPEC deep links**, **when** the page loads with alias query values, **then** they map to V2 tabs without breaking bookmarks:
    - `tab=info` → **Infos**
@@ -33,7 +33,22 @@ so that **I can navigate the spectacle clearly** and **future composition flows 
 12. **Given** the **Équipe** tab, **when** I open it without composition UI (stories **6.3+**), **then** I see a **product empty state** aligned with SPEC/UX (e.g. *« Aucun tirage pour le moment »* + short helper that composition tools arrive later) — **not** generic “prochaine version” stub; **no** draw/validate/share buttons.
 13. **Given** an **archived** event (`archived: true` on DTO), **when** I view Infos/Dispos, **then** **edit/archive** actions are hidden or disabled; Dispos self-edit follows **5.3** archived rule (read-only).
 14. **Given** old URLs `/saison/:slug?event=:id&modal=event_details` (and equivalent), **when** the app handles them, **then** redirect to `/saison/:slug/event/:id` preserving applicable query params — implement in season or global redirect guard if not already present; if out of scope, document **OPEN** in Dev Agent Record with rationale.
-15. **Couverture:** **UX-DR4** ; builds on **6.1** badges ; **NFR-Q1** — component tests for tab URL sync, legacy aliases, Infos fields, kebab gating; regression `ng test`, `ng build`, `./gradlew test` (no API changes required unless redirect needs new endpoint).
+15. **Couverture:** **UX-DR4** ; builds on **6.1** badges ; **NFR-Q1** — component tests for tab URL sync, legacy aliases, Infos fields, kebab gating; **pill tab bar PT-AC** (capsule shell, hidden indicator, E11 spacing) in `event-detail.spec.ts`; regression `ng test`, `ng build`, `./gradlew test` (no API changes required unless redirect needs new endpoint).
+
+### Post-ship regression — pill tab bar (PT-AC)
+
+**Amendement 2026-06-09 (Sally + Paige)** — le style barre d’onglets a évolué après la livraison initiale de **6.2** : pastilles isolées + `rgba(255,255,255,0.1)` → **barre capsule M3** partagée ([ux-design-pill-tab-bar.md](../planning-artifacts/ux-design-pill-tab-bar.md), mixin [`_hatcast-pill-tab-bar.scss`](../../apps/web/src/styles/_hatcast-pill-tab-bar.scss)). Cette story reste le **garde-fou CI** du détail spectacle : tout changement sous `event-detail.scss` / `_hatcast-pill-tab-bar.scss` doit garder les tests **PT-AC** verts dans [`event-detail.spec.ts`](../../apps/web/src/app/pages/event-detail/event-detail.spec.ts).
+
+| PT-AC | Vérifié en CI (component test) |
+|-------|--------------------------------|
+| **PT-AC-01** | Coque capsule : `.mat-mdc-tab-header` avec `border-radius` pill (≥ 999px) |
+| **PT-AC-02** | Pastille active : `.mdc-tab--active` avec `border-radius` pill (≥ 999px) |
+| **PT-AC-03** | Onglets inactifs : `opacity: 1` (pas de régression `0.75`) |
+| **PT-AC-04** | `.mdc-tab-indicator` masqué (`display: none`) |
+| **PT-AC-07** | `.mat-mdc-tab-body-content` : `padding-top: 1.5rem` (E11) |
+| **PT-AC-05, 06, 08, 09** | Tokens couleur / mixin `@use` / Mon compte / revue story — revue manuelle + spec doc ; jsdom ne résout pas `--mat-sys-*` |
+
+**Ne pas** réintroduire de styles tab ad hoc dans `event-detail.scss` : `@include pill-tabs.group()` obligatoire.
 
 ### Explicit out of scope (later stories — do not implement in 6.2)
 
@@ -189,6 +204,7 @@ apps/web/src/app/core/events/event-detail-tabs.ts   # resolveEventDetailTab + ty
 | Unit | Tab resolver: all alias + flag combinations |
 | Component | Infos fields; kebab visibility; archive navigates away; settings menu links when permitted |
 | Component | Dispos tab still mounts after refactor |
+| Component | **Pill tab bar PT-AC** — capsule shell, active pill, hidden indicator, E11 body spacing (`event-detail.spec.ts`) |
 | Regression | 6.1 badge tests; 5.3 dispos tests; season agenda navigation |
 | Manual | Side-by-side UX screenshot checklist (header, tabs, Infos layout) |
 
@@ -218,6 +234,7 @@ apps/web/src/app/core/events/event-detail-tabs.ts   # resolveEventDetailTab + ty
 - [epics.md — Story 6.2](../planning-artifacts/epics.md) ; **UX-DR4** definition
 - [SPEC.md — Event details full screen](../../SPEC.md) (tabs, query params, layout)
 - [ux-design-hatcast-v2.md — Event detail Infos / Dispos / Équipe](../planning-artifacts/ux-design-hatcast-v2.md)
+- [ux-design-pill-tab-bar.md — Barre capsule M3 + PT-AC](../planning-artifacts/ux-design-pill-tab-bar.md)
 - Story **3.3** — navigation contract
 - Story **5.3** — Dispos tab
 - Story **6.1** — composition badges
@@ -269,6 +286,7 @@ Composer
 ### Change Log
 
 - 2026-05-24: Story 6.2 — full-screen event detail shell (Infos/Dispos/Équipe), URL contract, header chrome, legacy redirects.
+- 2026-06-09: Amendement PT-AC — barre capsule M3 ; garde-fous CI dans `event-detail.spec.ts` ; spec [ux-design-pill-tab-bar.md](../planning-artifacts/ux-design-pill-tab-bar.md).
 
 ### Review Findings
 

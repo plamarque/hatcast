@@ -511,15 +511,17 @@ When the user **opens a spectacle** (from the **agenda** or elsewhere), they lan
 
 ### Tab bar (below header)
 
-Three **pill tabs**, centered:
+> **2026-06-09 — Style capsule :** coque sombre + pastille active violette — spec normative [ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md). Remplace « lighter pill background vs unselected » ci-dessous.
+
+Three **pill tabs**, centered (inside shared capsule shell):
 
 | Tab | Icon hint | Role |
 |-----|-----------|------|
-| **Infos** | “i” in circle | **Selected** by default in reference; metadata & status. |
-| **Dispos** | puzzle piece | Availability: self/others, **Moi** vs **Tous**, role candidacy ([screenshots below](#screen-event-detail-dispos-tab)). |
-| **Équipe** | theatre masks | Slots, tirage, validation — [spec below](#screen-event-detail-equipe-tab). |
+| **Infos** | `info` | **Selected** by default in reference; metadata & status. |
+| **Dispos** | `ballot` | Availability sondage unifié ([Dispos tab spec](./ux-design-dispos-poll-2026-06-09.md)). |
+| **Équipe** | `groups` | Slots, tirage, validation — [spec below](#screen-event-detail-equipe-tab). |
 
-Selected tab: **lighter** pill background vs unselected.
+Selected tab: **`primary-container`** pill inside **`surface-container-high`** capsule ; unselected: transparent, **`on-surface-variant`** text.
 
 ### “Infos” tab content
 
