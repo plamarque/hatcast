@@ -9,6 +9,7 @@ import { AdminParticipants } from './pages/admin-participants/admin-participants
 import { EventDetail } from './pages/event-detail/event-detail'
 import { SeasonHome } from './pages/season-home/season-home'
 import { TroupesList } from './pages/troupes-list/troupes-list'
+import { TroupeSettings } from './pages/troupe-settings/troupe-settings'
 
 function activatedComponent(router: Router): Route['component'] {
   let route = router.routerState.root
@@ -41,6 +42,13 @@ describe('app.routes', () => {
 
     expect(router.url).toBe('/troupes?foo=bar&foo=baz')
     expect(activatedComponent(router)).toBe(TroupesList)
+  })
+
+  it('resolves troupe settings route', async () => {
+    const router = TestBed.inject(Router)
+    await router.navigateByUrl('/troupes/test-slug/admin/parametres?tab=categories')
+    expect(router.url).toBe('/troupes/test-slug/admin/parametres?tab=categories')
+    expect(activatedComponent(router)).toBe(TroupeSettings)
   })
 
   it.each([

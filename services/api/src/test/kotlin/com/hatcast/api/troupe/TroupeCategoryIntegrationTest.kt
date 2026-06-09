@@ -40,6 +40,9 @@ class TroupeCategoryIntegrationTest {
     private lateinit var membershipRepository: TroupeMembershipRepository
 
     @Autowired
+    private lateinit var troupeRepository: TroupeRepository
+
+    @Autowired
     private lateinit var userRepository: UserRepository
 
     @MockBean
@@ -102,6 +105,39 @@ class TroupeCategoryIntegrationTest {
     }
 
     @Test
+    fun `list includes default principal category first`() {
+        val cookie = adminCookie("sub-category-principal-1")
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/categories").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].slug").value("principal"))
+            .andExpect(jsonPath("$[0].label").value("Spectacles ordinaires"))
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/categories/principal")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "label": "Spectacles classiques" }""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slug").value("principal"))
+            .andExpect(jsonPath("$.label").value("Spectacles classiques"))
+
+        val troupe = troupeRepository.findById(seedTroupeId).orElseThrow()
+        org.junit.jupiter.api.Assertions.assertEquals("Spectacles classiques", troupe.defaultCategoryLabel)
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/categories/principal/delete-preview").cookie(cookie))
+            .andExpect(status().isBadRequest)
+
+        mockMvc
+            .perform(delete("/v1/troupes/$seedTroupeId/categories/principal").cookie(cookie).with(csrf()))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
     fun `list lazily seeds deplacements and sorts by label`() {
         val cookie = adminCookie("sub-category-list-1")
         troupeCategoryRepository
@@ -157,6 +193,15 @@ class TroupeCategoryIntegrationTest {
                     .cookie(admin)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{ "label": "Principal" }""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/categories/aperock-crud-it")
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "label": "${"x".repeat(129)}" }""")
                     .with(csrf()),
             ).andExpect(status().isBadRequest)
 

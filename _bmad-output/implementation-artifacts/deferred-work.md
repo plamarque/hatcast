@@ -221,6 +221,14 @@
 
 ---
 
+## Deferred from: code review of 17-40-troupe-settings-categories (2026-06-09)
+
+- **`AvailabilityService.kt` modifié (draw odds operational)** — changement story 19.x bundlé dans le working tree ; sans lien avec Paramètres catégories.
+- **Tests composition (`CompositionGapFillIntegrationTest`, `CompositionSlotAssignmentIntegrationTest`)** — idem, bundlé sans lien 17.40.
+- **Race concurrent delete : `affectedEventCount` peut diverger du preview** — intégrité données OK ; count preview/delete peut être stale sous concurrence ; pattern v1 accepté (cf. 17-38).
+
+---
+
 ## Deferred from: code review profil offline dev V2 (2026-06-09)
 
 - **Aucun test smoke du profil `dev,offline`** — pas de test d’intégration Spring (wiring auth, Flyway H2, seeds Improbots) ; outillage dev, non bloquant.

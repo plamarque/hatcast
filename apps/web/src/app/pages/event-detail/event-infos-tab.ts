@@ -47,6 +47,7 @@ import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import {
   buildEventCategoryOptions,
   CATEGORY_HELP,
+  defaultCategoryLabelFromGlossary,
 } from './event-category.constants'
 import { EventCategorySelectChipSet } from './event-category-select-chip-set'
 import {
@@ -438,7 +439,9 @@ export class EventInfosTab {
       this.eventUpdated.emit(result.data)
       const cleared = result.data.category == null
       this.snack.open(
-        cleared ? 'Spectacles ordinaires.' : 'Catégorie enregistrée.',
+        cleared
+          ? `${defaultCategoryLabelFromGlossary(this.glossary())}.`
+          : 'Catégorie enregistrée.',
         'OK',
         { duration: 4000 },
       )

@@ -33,14 +33,20 @@ export function isValidInternalRedirectPath(path: string): boolean {
   if (segments[0] === 'troupes') {
     return (
       segments.length === 2 ||
-      (segments.length === 4 && segments[2] === 'admin' && segments[3] === 'membres')
+      (segments.length === 4 &&
+        segments[2] === 'admin' &&
+        (segments[3] === 'membres' || segments[3] === 'parametres'))
     )
   }
 
   if (segments[0] === 'troupe') {
     return (
-      (segments.length === 3 && segments[1] === 'admin' && segments[2] === 'membres') ||
-      (segments.length === 4 && segments[2] === 'admin' && segments[3] === 'membres')
+      (segments.length === 3 &&
+        segments[1] === 'admin' &&
+        (segments[2] === 'membres' || segments[2] === 'parametres')) ||
+      (segments.length === 4 &&
+        segments[2] === 'admin' &&
+        (segments[3] === 'membres' || segments[3] === 'parametres'))
     )
   }
 

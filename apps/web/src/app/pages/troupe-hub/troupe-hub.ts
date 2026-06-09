@@ -16,6 +16,7 @@ import {
   saisonWorkspacePath,
   troupeAdminAuditPath,
   troupeAdminMembresPath,
+  troupeAdminSettingsPath,
   troupesListPath,
 } from '../../core/navigation/troupe-routes'
 import {
@@ -145,6 +146,12 @@ export class TroupeHub implements OnInit, OnDestroy {
         label: 'Membres',
         icon: 'groups',
         routerLink: troupeAdminMembresPath(slug),
+      },
+      {
+        label: 'Paramètres',
+        icon: 'settings',
+        routerLink: troupeAdminSettingsPath(slug),
+        queryParams: { tab: 'categories' },
       },
     ]
     if (this.canViewAuditTroupe()) {
