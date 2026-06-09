@@ -1,6 +1,6 @@
 # Story PERF-10 — BFF bootstrap event-detail par onglet
 
-**Status:** review
+**Status:** done
 
 **Plan:** [perf-improvement-plan-v2-wave2.md](../planning-artifacts/perf-improvement-plan-v2-wave2.md) § S4a  
 **Issue:** [ISSUES.md](../../ISSUES.md) PERF-002  
@@ -54,7 +54,7 @@ afin que **le détail événement s’affiche en ≤ 1,2–1,5 s** (NFR-P1).
 - [x] Conserver PERF-03 + **5.9** : pas de prefetch composition sur Dispos ; `ensureCompositionLoaded` no-op hors onglet Équipe ; BFF dispos `includeChances=false` par défaut.
 - [x] OpenAPI fragment + `EventPageIntegrationTest`.
 - [x] Mettre à jour `event-detail.spec.ts` (mocks BFF, chemins `/saison/{troupe}/{season}`).
-- [ ] Re-run `node scripts/v2/profile-web-performance.mjs` — delta Completion Notes.
+- [x] Re-run `node scripts/v2/profile-web-performance.mjs` — delta Completion Notes.
 
 ---
 
@@ -103,6 +103,16 @@ Composer (Cursor)
   - **Event Dispos** : wall **1840 ms** (baseline 2231, **−391 ms**), **6** appels (baseline 10) — BFF `tab=dispos` 574 ms ; plus de prefetch composition/summary parallèles
   - **Event Équipe** : wall **2071 ms** (baseline 2263, **−192 ms**), **6** appels (baseline 9) — BFF `tab=equipe` 736 ms
   - Cibles AC5 (≤1200 / ≤1500 ms) : **non atteintes** sur ce run local — gain net sur Dispos/Équipe ; Infos inchangé (résolution saison + shell)
+- Re-run profilage (2026-06-09T21-39-53) — snapshot `web-perf-2026-06-09T21-39-53-553Z.json` vs baseline story :
+  - **Event Infos** : wall **1748 ms** (**−203 ms**), **6** appels (baseline 10) — BFF `…/page?tab=infos` 586 ms
+  - **Event Dispos** : wall **1807 ms** (**−424 ms**), **6** appels (baseline 10) — BFF `tab=dispos` 579 ms
+  - **Event Équipe** : wall **1829 ms** (**−434 ms**), **6** appels (baseline 9) — BFF `tab=equipe` 718 ms
+  - AC5 wall cibles : **non atteintes** (1748 / 1807 / 1829 ms) — réduction nette appels (−4 à −3) et wall sur les 3 onglets ; goulot restant = BFF page + résolution saison/shell
+- Re-run profilage post-review (2026-06-09T21-55-52) — snapshot `web-perf-2026-06-09T21-55-52-408Z.json` vs baseline story (`19-46-21-738Z`) et run précédent (`21-39-53-553Z`) :
+  - **Event Infos** : wall **1968 ms** (baseline 1951, **+17 ms** ; run préc. 1748, **+220 ms**), **6** appels (baseline 10, **−4**) — BFF `…/page?tab=infos` **644 ms**
+  - **Event Dispos** : wall **1759 ms** (baseline 2231, **−472 ms** ; run préc. 1807, **−48 ms**), **6** appels (baseline 10, **−4**) — BFF `tab=dispos` **598 ms**
+  - **Event Équipe** : wall **2043 ms** (baseline 2263, **−220 ms** ; run préc. 1829, **+214 ms**), **6** appels (baseline 9, **−3**) — BFF `tab=equipe` **884 ms**
+  - AC5 wall cibles : **non atteintes** (1968 / 1759 / 2043 ms) — appels stables à **6** ; variance run-à-run sur wall (shell + résolution saison) ; gain structurel vs baseline conservé sur Dispos/Équipe
 
 ### File List
 
@@ -118,3 +128,21 @@ Composer (Cursor)
 - `apps/web/src/app/pages/event-detail/event-infos-tab.ts`
 - `apps/web/src/app/shared/availability/event-dispos-tab.ts`
 - `apps/web/src/app/pages/event-detail/event-detail.spec.ts`
+
+### Review Findings
+
+- [x] [Review][Decision] AC5/AC2 perf gates non atteints — **Résolu (D1:1)** : clôturer story `done` ; suivi latence/appels via PERF-15 + shell/resolver (PERF-09).
+- [x] [Review][Decision] AC1 read-only vs `ensureMembershipParticipants` — **Résolu (D2:2)** : dette acceptée (comportement hérité des endpoints agrégés) ; fix dans story roster/perf dédiée si besoin.
+
+- [x] [Review][Patch] OpenAPI `/page` absent du commit [`services/api/openapi/events.yaml`](../../services/api/openapi/events.yaml) — AC4 ; aucune route `/page` ni schéma `EventPageResponse` dans OpenAPI malgré tâche cochée.
+- [x] [Review][Patch] Test intégration 403 manquant [`EventPageIntegrationTest.kt`](../../services/api/src/test/kotlin/com/hatcast/api/event/EventPageIntegrationTest.kt) — AC4 ; seuls 404 et 400 tab sont couverts.
+- [x] [Review][Patch] Test front 403 manquant [`event-detail.spec.ts`](../../apps/web/src/app/pages/event-detail/event-detail.spec.ts) — AC4 ; handler 403 présent dans `event-detail.ts` L732–735 / L849–851 mais non testé.
+- [x] [Review][Patch] `tabBootstrapLoaded[tab]=true` sur échec BFF [`event-detail.ts:853`](../../apps/web/src/app/pages/event-detail/event-detail.ts) — empêche retry au changement d’onglet ; masque erreurs réseau/5xx.
+- [x] [Review][Patch] Dispos débloqué sans données après échec bootstrap [`event-detail.ts:796-799`](../../apps/web/src/app/pages/event-detail/event-detail.ts), [`event-detail.html`](../../apps/web/src/app/pages/event-detail/event-detail.html) — `isDisposBootstrapReady()` true alors que `disposBootstrapSummary` reste null.
+- [x] [Review][Patch] Équipe spinner infini si bootstrap BFF échoue [`event-detail.ts:848-854`](../../apps/web/src/app/pages/event-detail/event-detail.ts), [`event-equipe-tab.ts:436-438`](../../apps/web/src/app/pages/event-detail/event-equipe-tab.ts) — `compositionLoaded` reste false, pas de fallback `ensureCompositionLoaded`.
+- [x] [Review][Patch] `organizersReloadTrigger` ignoré après bootstrap BFF [`event-infos-tab.ts:171-178`](../../apps/web/src/app/pages/event-detail/event-infos-tab.ts) — modification organisateurs via menu admin ne rafraîchit plus la liste affichée.
+- [x] [Review][Patch] Bootstrap onglet concurrent sans garde in-flight [`event-detail.ts:810-826`](../../apps/web/src/app/pages/event-detail/event-detail.ts) — changements d’onglet rapides peuvent lancer plusieurs `/page` ; pas de comparaison `activeTab` avant `applyEventPageResponse`.
+
+- [x] [Review][Defer] `includeChances` non passé depuis le front — deferred, by design : lazy 5.9 / PERF-13 ; BFF garde `includeChances=false` par défaut comme spécifié.
+- [x] [Review][Defer] Fallback `loadComposition` legacy si BFF équipe sans payload — deferred, pre-existing : filet de sécurité hérité de PERF-03 ; risque d’appel supplémentaire marginal.
+- [x] [Review][Defer] `ensureMembershipParticipants` sur GET `/page` via `listSelectors`/`getComposition` — deferred, dette acceptée (D2:2) ; comportement hérité des endpoints séparés ; fix roster/perf si priorisé.

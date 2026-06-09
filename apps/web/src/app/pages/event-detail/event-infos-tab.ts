@@ -172,8 +172,8 @@ export class EventInfosTab {
       const bootstrap = this.bootstrapOrganizers()
       const seasonId = this.seasonId()
       const eventId = this.event().id
-      const _trigger = this.organizersReloadTrigger()
-      if (bootstrap != null) {
+      const trigger = this.organizersReloadTrigger()
+      if (bootstrap != null && trigger === 0) {
         this.organizers.set(bootstrap)
         return
       }

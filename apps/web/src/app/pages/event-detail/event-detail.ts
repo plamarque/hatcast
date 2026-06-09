@@ -125,6 +125,7 @@ export class EventDetail implements OnDestroy, OnInit {
   private querySubscription = Subscription.EMPTY
   private loadRequestId = 0
   private compositionLoadInFlight = false
+  private tabBootstrapInFlight: EventPageTab | null = null
   private lastNotificationLinkCaptureKey = ''
   private tabBootstrapLoaded = signal<Record<EventPageTab, boolean>>({
     infos: false,
@@ -681,6 +682,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.infosOrganizers.set(null)
       this.infosCategories.set(null)
       this.tabBootstrapLoaded.set({ infos: false, dispos: false, equipe: false })
+      this.tabBootstrapInFlight = null
       this.resetResolvedContext()
       this.lastNotificationLinkCaptureKey = ''
     }
@@ -814,47 +816,63 @@ export class EventDetail implements OnDestroy, OnInit {
       this.ensureCompositionLoaded()
       return
     }
+    if (this.tabBootstrapInFlight === pageTab) {
+      return
+    }
     const ev = this.event()
     const seasonId = this.seasonId()
     const routeSegment = this.event()?.slug ?? this.eventSlug()
-    const troupeSlug = this.routeTroupeSlug()
-    const seasonSlug = this.slug()
-    if (!ev || !seasonId || !routeSegment || !troupeSlug || !seasonSlug) {
+    if (!ev || !seasonId || !routeSegment) {
       this.ensureCompositionLoaded()
       return
     }
-    void this.loadTabBootstrap(troupeSlug, seasonSlug, routeSegment, pageTab)
+    void this.loadTabBootstrap(routeSegment, pageTab)
   }
 
   private async loadTabBootstrap(
-    troupeSlug: string,
-    seasonSlug: string,
     routeSegment: string,
     tab: EventPageTab,
   ): Promise<void> {
+    if (this.tabBootstrapInFlight === tab) {
+      return
+    }
+    this.tabBootstrapInFlight = tab
     const requestId = this.loadRequestId
     const seasonId = this.seasonId()
     if (!seasonId) {
+      this.tabBootstrapInFlight = null
       return
     }
-    const isUuidSegment = UUID_IN_PATH_REGEX.test(routeSegment)
-    const pageResult = await this.eventsApi.getEventPage(seasonId, routeSegment, {
-      tab,
-      bySlug: !isUuidSegment,
-    })
-    if (requestId !== this.loadRequestId) {
-      return
-    }
-    if (!pageResult.ok || !pageResult.data) {
-      if (pageResult.status === 403) {
-        this.snack.open('Accès refusé à ce spectacle.', 'Mon agenda', { duration: 6000 })
-        await this.router.navigate(['/agenda'])
+    try {
+      const isUuidSegment = UUID_IN_PATH_REGEX.test(routeSegment)
+      const pageResult = await this.eventsApi.getEventPage(seasonId, routeSegment, {
+        tab,
+        bySlug: !isUuidSegment,
+      })
+      if (requestId !== this.loadRequestId) {
+        return
       }
-      this.tabBootstrapLoaded.update((loaded) => ({ ...loaded, [tab]: true }))
-      return
+      if (this.eventDetailTabToPageTab(this.activeTab()) !== tab) {
+        return
+      }
+      if (!pageResult.ok || !pageResult.data) {
+        if (pageResult.status === 403) {
+          this.snack.open('Accès refusé à ce spectacle.', 'Mon agenda', { duration: 6000 })
+          await this.router.navigate(['/agenda'])
+          return
+        }
+        if (tab === 'equipe') {
+          this.ensureCompositionLoaded()
+        }
+        return
+      }
+      this.applyEventPageResponse(pageResult.data, tab, { markTabLoaded: tab })
+      this.ensureCompositionLoaded()
+    } finally {
+      if (this.tabBootstrapInFlight === tab) {
+        this.tabBootstrapInFlight = null
+      }
     }
-    this.applyEventPageResponse(pageResult.data, tab, { markTabLoaded: tab })
-    this.ensureCompositionLoaded()
   }
 
   private clampActiveTab(): void {

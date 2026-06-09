@@ -1491,6 +1491,16 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.querySelector('.event-detail__context-row')).toBeNull()
   })
 
+  it('redirects to agenda when initial event page returns 403', async () => {
+    getEventPage.mockResolvedValue({ ok: false, status: 403 })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(getEventPage).toHaveBeenCalled()
+      expect(router.navigate).toHaveBeenCalledWith(['/agenda'])
+    })
+  })
+
   it('syncCompositionFromEquipe patches lifecycle without reloading event', async () => {
     pagePermissions = {
         isTroupeAdmin: false,

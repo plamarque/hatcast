@@ -6,11 +6,14 @@ import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
+import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -18,6 +21,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Instant
 import java.util.UUID
 
 @SpringBootTest
@@ -149,6 +153,51 @@ class EventPageIntegrationTest {
                     .param("tab", "infos")
                     .cookie(cookie),
             ).andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `GET page access control returns 404 for event and 403 for season list when not a member`() {
+        val cookie = memberCookie("sub-event-page-admin-404-access")
+        val eventId = createPublishedEvent(cookie, "event-page-no-access")
+        val outsider = signInOnly("sub-event-page-outsider-no-access")
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events")
+                    .param("scope", "upcoming")
+                    .cookie(outsider),
+            ).andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events/$eventId/page")
+                    .param("tab", "infos")
+                    .cookie(outsider),
+            ).andExpect(status().isNotFound)
+    }
+
+    private fun signInOnly(googleSub: String): jakarta.servlet.http.Cookie {
+        val jwt =
+            Jwt
+                .withTokenValue("header.payload.sig")
+                .header("alg", "RS256")
+                .claim("sub", googleSub)
+                .claim("email", "$googleSub@example.com")
+                .claim("name", "Outsider")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .issuer("https://accounts.google.com")
+                .build()
+        whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
+        val result =
+            mockMvc
+                .perform(
+                    post("/v1/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"idToken":"fake","rememberMe":true}"""),
+                ).andExpect(status().isOk)
+                .andReturn()
+        return result.response.getCookie("HATCAST_SESSION")!!
     }
 
     private fun createPublishedEvent(

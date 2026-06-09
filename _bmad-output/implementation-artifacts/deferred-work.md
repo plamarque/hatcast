@@ -35,6 +35,16 @@
 
 ---
 
+## Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)
+
+- AC4 profilage wall recette — validation manuelle `profile-web-performance.mjs` recommandée en recette (Completion Notes).
+- syncInitialFilterUrl bloque premier loadAgenda — waterfall résiduel hors scope minimal PERF-11.
+- troupeContext.load fire-and-forget pour edit dispos — trade-off accepté story (filtres API, pas troupe catalog).
+- Gate perf H2 ≠ prod Neon — même pattern que PERF-06.
+- 4 requêtes participation mono-troupe inchangées — EXISTS early exit seulement sans participation.
+
+---
+
 ## Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)
 
 - Breakdown accessible sur événement archivé via fallback `CompositionExplainabilityAccess` (pas de garde `archived`) — trou pré-existant, rendu visible par l'union Dispos+Équipe sur `resolveShowExplainability`.
@@ -358,3 +368,11 @@
 ## Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09) — 3-lite follow-up
 
 - **Boot network/5xx retry UI** — On bootstrap `status 0` or 5xx, show retry screen instead of redirect to `/connexion` (decision 2+3-lite; auth 401 still redirects with post-login URL restore).
+
+---
+
+## Deferred from: code review of perf-10-event-detail-page-bff (2026-06-09)
+
+- **`includeChances` non passé depuis le front** — by design : lazy 5.9 / PERF-13 ; BFF garde `includeChances=false` par défaut comme spécifié.
+- **Fallback `loadComposition` legacy si BFF équipe sans payload** — filet de sécurité hérité de PERF-03 ; risque d’appel supplémentaire marginal.
+- **`ensureMembershipParticipants` sur GET `/page`** — dette acceptée (D2:2, perf-10 review) ; hérité de `listSelectors`/`getComposition` ; fix roster/perf si priorisé.
