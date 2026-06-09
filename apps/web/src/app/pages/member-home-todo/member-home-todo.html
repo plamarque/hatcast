@@ -5,12 +5,7 @@
 
   @if (loadingSession()) {
     <p class="member-home-todo__status" role="status">Vérification de la session…</p>
-  } @else if (loadingInbox()) {
-    <div class="member-home-todo__spinner" role="status">
-      <p class="member-home-todo__status">Chargement…</p>
-      <mat-spinner diameter="40" />
-    </div>
-  } @else if (loadError()) {
+  } @else if (showInboxLoadError()) {
     <section class="member-home-todo__empty" aria-labelledby="todo-load-error-heading">
       <h2 id="todo-load-error-heading" class="member-home-todo__empty-title">Impossible de charger</h2>
       <p class="member-home-todo__empty-text">
@@ -26,7 +21,7 @@
         Réessayer
       </button>
     </section>
-  } @else if (noParticipation()) {
+  } @else if (showNoParticipationEmpty()) {
     <section class="member-home-todo__empty" aria-labelledby="todo-no-participation-heading">
       <h2 id="todo-no-participation-heading" class="member-home-todo__empty-title">
         Rien en attente pour l'instant
@@ -49,159 +44,189 @@
       </div>
     </section>
   } @else {
-    @if (completedGhosts().length > 0) {
-      <section class="member-home-todo__section" aria-hidden="true">
-        <div class="member-home-todo__action-cards">
-          @for (ghost of completedGhosts(); track ghost.key) {
-            <div
-              class="member-home-todo__action-card member-home-todo__action-card--done"
-              [class.member-home-todo__action-card--confirm]="ghost.confirm"
-              [class.member-home-todo__action-card--dispo]="!ghost.confirm"
-              animate.leave="member-home-todo__action-card--leaving"
-            >
-              <span class="member-home-todo__check member-home-todo__check--checked">
-                <span class="member-home-todo__check-box">
-                  <mat-icon class="member-home-todo__check-mark">check</mat-icon>
-                </span>
-              </span>
-              <span class="member-home-todo__action-card-main">
-                <span class="member-home-todo__action-verb">{{ ghost.verb }}</span>
-                <span class="member-home-todo__action-title">{{ ghost.title }}</span>
-                <span class="member-home-todo__action-meta">C'est noté !</span>
-              </span>
-            </div>
-          }
-        </div>
-      </section>
-    }
-
-    @if (showAllCaughtUpBanner()) {
-      <section class="member-home-todo__celebration" aria-labelledby="todo-caught-up-heading">
-        <mat-icon class="member-home-todo__celebration-icon" aria-hidden="true">check_circle</mat-icon>
-        <h2 id="todo-caught-up-heading" class="member-home-todo__celebration-title">Tout est à jour</h2>
-        @if (showNoUpcomingEventsEmpty()) {
-          <p class="member-home-todo__celebration-text">
-            Rien ne te retient pour l'instant. On te préviendra dès qu'un spectacle arrive.
-          </p>
-          <div class="member-home-todo__celebration-actions">
-            <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
-          </div>
-        } @else {
-          <p class="member-home-todo__celebration-text">
-            Tu es à jour pour tes spectacles. Le prochain est juste en dessous.
-          </p>
-        }
-      </section>
-    }
-
-    @if (showActionsSection()) {
-      <section class="member-home-todo__section" aria-labelledby="todo-actions-heading">
-        <h2 id="todo-actions-heading" class="member-home-todo__section-title">
+    @if (showActionsSkeleton()) {
+      <section
+        class="member-home-todo__section member-home-todo__actions-skeleton"
+        aria-labelledby="todo-actions-skeleton-heading"
+        aria-busy="true"
+        role="status"
+        data-testid="todo-actions-skeleton"
+      >
+        <h2 id="todo-actions-skeleton-heading" class="member-home-todo__section-title">
           Actions requises
-          @if (actions().length > 1) {
-            <span class="member-home-todo__section-count" aria-hidden="true">· {{ actions().length }}</span>
-          }
         </h2>
-        <div class="member-home-todo__action-cards">
-          @for (action of visibleActions(); track actionKey(action)) {
-            <button
-              type="button"
-              class="member-home-todo__action-card"
-              [class.member-home-todo__action-card--confirm]="isConfirmAction(action)"
-              [class.member-home-todo__action-card--dispo]="isAvailabilityAction(action)"
-              [attr.aria-label]="actionAriaLabel(action)"
-              [attr.data-testid]="
-                isConfirmAction(action) ? 'todo-action-confirm' : 'todo-action-dispo'
-              "
-              animate.leave="member-home-todo__action-card--leaving"
-              (click)="openAction(action)"
-            >
-              <span class="member-home-todo__check" aria-hidden="true">
-                <span class="member-home-todo__check-box">
-                  <mat-icon class="member-home-todo__check-mark">check</mat-icon>
-                </span>
+        <div class="member-home-todo__skeleton-cards">
+          @for (row of [0, 1, 2]; track row) {
+            <div class="member-home-todo__skeleton-card">
+              <span class="member-home-todo__skeleton-circle" aria-hidden="true"></span>
+              <span class="member-home-todo__skeleton-lines">
+                <span class="member-home-todo__skeleton-line member-home-todo__skeleton-line--short"></span>
+                <span class="member-home-todo__skeleton-line"></span>
+                <span class="member-home-todo__skeleton-line member-home-todo__skeleton-line--meta"></span>
               </span>
-              <span class="member-home-todo__action-card-main">
-                <span class="member-home-todo__action-card-head">
-                  <span class="member-home-todo__action-verb">{{ actionVerbLabel(action) }}</span>
-                  @if (actionDateBadge(action); as badge) {
-                    <span
-                      class="member-home-todo__date-chip"
-                      [class.member-home-todo__date-chip--urgent]="badge.urgent"
-                    >
-                      {{ badge.label }}
-                    </span>
-                  }
-                </span>
-                <span class="member-home-todo__action-card-subhead">
-                  <span class="member-home-todo__action-title">{{ actionEventTitle(action) }}</span>
-                  <mat-icon class="member-home-todo__action-card-chevron" aria-hidden="true">
-                    chevron_right
-                  </mat-icon>
-                </span>
-              </span>
-            </button>
+            </div>
           }
         </div>
-        @if (showSeeAllInAgenda()) {
-          <a
-            mat-stroked-button
-            routerLink="/agenda"
-            class="member-home-todo__see-all"
-            data-testid="todo-see-all-agenda"
-          >
-            Voir tout dans l'agenda
-          </a>
-        }
       </section>
     }
 
-    @if (nextEvent(); as next) {
-      <section class="member-home-todo__section" aria-labelledby="todo-next-event-heading">
-        <h2 id="todo-next-event-heading" class="member-home-todo__section-title">Prochain spectacle</h2>
-        <article class="agenda-card agenda-card--featured agenda-card--row" data-testid="todo-next-event-card">
-          <div
-            class="agenda-card__clickable"
-            role="button"
-            tabindex="0"
-            [attr.aria-label]="'Ouvrir ' + next.title + ' dans ' + next.seasonTitle"
-            (click)="openNextEvent(next)"
-            (keydown.enter)="openNextEvent(next)"
-            (keydown.space)="openNextEvent(next); $event.preventDefault()"
-          >
-            <div class="agenda-card__date">
-              <span class="agenda-card__day">{{ next.dayNumber }}</span>
-              <span class="agenda-card__weekday">{{ next.dayName }}</span>
-              <span class="agenda-card__time">{{ timeLabel(next) }}</span>
-            </div>
-            <div class="agenda-card__body">
-              <h3 class="agenda-card__title">{{ next.title }}</h3>
-              @if (eventDetailText(next); as detail) {
-                <div class="agenda-card__details">
-                  @if (detail.description) {
-                    <p class="agenda-card__meta-desc">{{ detail.description }}</p>
-                  }
-                  @if (detail.location) {
-                    <p class="agenda-card__meta-loc">
-                      <mat-icon aria-hidden="true">place</mat-icon>
-                      <span>{{ detail.location }}</span>
-                    </p>
-                  }
-                </div>
-              }
-            </div>
+    @if (showInboxContent()) {
+      @if (completedGhosts().length > 0) {
+        <section class="member-home-todo__section" aria-hidden="true">
+          <div class="member-home-todo__action-cards">
+            @for (ghost of completedGhosts(); track ghost.key) {
+              <div
+                class="member-home-todo__action-card member-home-todo__action-card--done"
+                [class.member-home-todo__action-card--confirm]="ghost.confirm"
+                [class.member-home-todo__action-card--dispo]="!ghost.confirm"
+                animate.leave="member-home-todo__action-card--leaving"
+              >
+                <span class="member-home-todo__check member-home-todo__check--checked">
+                  <span class="member-home-todo__check-box">
+                    <mat-icon class="member-home-todo__check-mark">check</mat-icon>
+                  </span>
+                </span>
+                <span class="member-home-todo__action-card-main">
+                  <span class="member-home-todo__action-verb">{{ ghost.verb }}</span>
+                  <span class="member-home-todo__action-title">{{ ghost.title }}</span>
+                  <span class="member-home-todo__action-meta">C'est noté !</span>
+                </span>
+              </div>
+            }
           </div>
-          <div class="agenda-card__status">
-            <app-agenda-participation-status
-              [myAvailabilityStatus]="next.myAvailabilityStatus"
-              [participantFocus]="next.participantFocus"
-              [viewerGender]="viewerGender()"
-            />
-          </div>
-        </article>
-      </section>
-    }
+        </section>
+      }
 
+      @if (showAllCaughtUpBanner()) {
+        <section class="member-home-todo__celebration" aria-labelledby="todo-caught-up-heading">
+          <mat-icon class="member-home-todo__celebration-icon" aria-hidden="true">check_circle</mat-icon>
+          <h2 id="todo-caught-up-heading" class="member-home-todo__celebration-title">Tout est à jour</h2>
+          @if (showNoUpcomingEventsEmpty()) {
+            <p class="member-home-todo__celebration-text">
+              Rien ne te retient pour l'instant. On te préviendra dès qu'un spectacle arrive.
+            </p>
+            <div class="member-home-todo__celebration-actions">
+              <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
+            </div>
+          } @else {
+            <p class="member-home-todo__celebration-text">
+              Tu es à jour pour tes spectacles. Le prochain est juste en dessous.
+            </p>
+          }
+        </section>
+      }
+
+      @if (showActionsSection()) {
+        <section class="member-home-todo__section" aria-labelledby="todo-actions-heading">
+          <h2 id="todo-actions-heading" class="member-home-todo__section-title">
+            Actions requises
+            @if (actions().length > 1) {
+              <span class="member-home-todo__section-count" aria-hidden="true">· {{ actions().length }}</span>
+            }
+          </h2>
+          <div class="member-home-todo__action-cards">
+            @for (action of visibleActions(); track actionKey(action)) {
+              <button
+                type="button"
+                class="member-home-todo__action-card"
+                [class.member-home-todo__action-card--confirm]="isConfirmAction(action)"
+                [class.member-home-todo__action-card--dispo]="isAvailabilityAction(action)"
+                [attr.aria-label]="actionAriaLabel(action)"
+                [attr.data-testid]="
+                  isConfirmAction(action) ? 'todo-action-confirm' : 'todo-action-dispo'
+                "
+                animate.leave="member-home-todo__action-card--leaving"
+                (click)="openAction(action)"
+              >
+                <span class="member-home-todo__check" aria-hidden="true">
+                  <span class="member-home-todo__check-box">
+                    <mat-icon class="member-home-todo__check-mark">check</mat-icon>
+                  </span>
+                </span>
+                <span class="member-home-todo__action-card-main">
+                  <span class="member-home-todo__action-card-head">
+                    <span class="member-home-todo__action-verb">{{ actionVerbLabel(action) }}</span>
+                    @if (actionDateBadge(action); as badge) {
+                      <span
+                        class="member-home-todo__date-chip"
+                        [class.member-home-todo__date-chip--urgent]="badge.urgent"
+                      >
+                        {{ badge.label }}
+                      </span>
+                    }
+                  </span>
+                  <span class="member-home-todo__action-card-subhead">
+                    <span class="member-home-todo__action-title">{{ actionEventTitle(action) }}</span>
+                    <mat-icon class="member-home-todo__action-card-chevron" aria-hidden="true">
+                      chevron_right
+                    </mat-icon>
+                  </span>
+                </span>
+              </button>
+            }
+          </div>
+          @if (showSeeAllInAgenda()) {
+            <a
+              mat-stroked-button
+              routerLink="/agenda"
+              class="member-home-todo__see-all"
+              data-testid="todo-see-all-agenda"
+            >
+              Voir tout dans l'agenda
+            </a>
+          }
+        </section>
+      }
+
+      @if (nextEvent(); as next) {
+        <section class="member-home-todo__section" aria-labelledby="todo-next-event-heading">
+          <h2 id="todo-next-event-heading" class="member-home-todo__section-title">Prochain spectacle</h2>
+          <article class="agenda-card agenda-card--featured agenda-card--row" data-testid="todo-next-event-card">
+            <div
+              class="agenda-card__clickable"
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="'Ouvrir ' + next.title + ' dans ' + next.seasonTitle"
+              (click)="openNextEvent(next)"
+              (keydown.enter)="openNextEvent(next)"
+              (keydown.space)="openNextEvent(next); $event.preventDefault()"
+            >
+              <div class="agenda-card__date">
+                <span class="agenda-card__day">{{ next.dayNumber }}</span>
+                <span class="agenda-card__weekday">{{ next.dayName }}</span>
+                <span class="agenda-card__time">{{ timeLabel(next) }}</span>
+              </div>
+              <div class="agenda-card__body">
+                <h3 class="agenda-card__title">{{ next.title }}</h3>
+                @if (eventDetailText(next); as detail) {
+                  <div class="agenda-card__details">
+                    @if (detail.description) {
+                      <p class="agenda-card__meta-desc">{{ detail.description }}</p>
+                    }
+                    @if (detail.location) {
+                      <p class="agenda-card__meta-loc">
+                        <mat-icon aria-hidden="true">place</mat-icon>
+                        <span>{{ detail.location }}</span>
+                      </p>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+            <div class="agenda-card__status">
+              <app-agenda-participation-status
+                [myAvailabilityStatus]="next.myAvailabilityStatus"
+                [participantFocus]="next.participantFocus"
+                [viewerGender]="viewerGender()"
+              />
+            </div>
+          </article>
+        </section>
+      }
+    }
+  }
+
+  @if (!loadingSession()) {
     <section class="member-home-todo__section" aria-labelledby="todo-shortcuts-heading">
       <h2 id="todo-shortcuts-heading" class="member-home-todo__section-title">Accès rapides</h2>
       <div class="member-home-todo__quick-links">

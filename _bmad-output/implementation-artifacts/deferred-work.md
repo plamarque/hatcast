@@ -35,6 +35,14 @@
 
 ---
 
+## Deferred from: code review of perf-12-accueil-progressive-render (2026-06-10)
+
+- AC4 seuil ≤ 300 ms non mesuré — waiver PERF-14 documenté dans la story ; proxy test DOM seulement.
+- `peekFreshCache` avec `boundUserId === null` — comportement préexistant PERF-02 (`isCacheForBoundUser` retourne true).
+- Promesses async sans annulation post-`ngOnDestroy` — pattern courant Angular hors scope PERF-12.
+
+---
+
 ## Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)
 
 - AC4 profilage wall recette — validation manuelle `profile-web-performance.mjs` recommandée en recette (Completion Notes).

@@ -16,6 +16,7 @@ import {
   type InboxAction,
   type MeInboxResponse,
 } from '../../core/inbox/me-inbox-api.service'
+import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
@@ -36,7 +37,10 @@ async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> 
 
 describe('MemberHomeTodo', () => {
   let fixture: ComponentFixture<MemberHomeTodo>
-  let inboxApi: { getInbox: ReturnType<typeof vi.fn> }
+  let inboxApi: {
+    getInbox: ReturnType<typeof vi.fn>
+    peekFreshCache: ReturnType<typeof vi.fn>
+  }
   let auth: {
     sessionUser: ReturnType<typeof signal<UserSummary | null>>
     ensureHatcastSession: ReturnType<typeof vi.fn>
@@ -60,6 +64,7 @@ describe('MemberHomeTodo', () => {
         status: 200,
         data: inboxResponse([]),
       }),
+      peekFreshCache: vi.fn().mockReturnValue(null),
     }
     const sessionUser = signal<UserSummary | null>({
       id: 'user-1',
@@ -121,7 +126,135 @@ describe('MemberHomeTodo', () => {
   it('affiche le titre Accueil', async () => {
     await settle(fixture)
     expect(fixture.nativeElement.textContent).toContain('Accueil')
+    expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: false })
+  })
+
+  it('affiche le titre et les accès rapides avant la fin du chargement inbox', async () => {
+    let resolveInbox!: (value: unknown) => void
+    const inboxDeferred = new Promise((resolve) => {
+      resolveInbox = resolve
+    })
+    inboxApi.getInbox.mockReturnValue(inboxDeferred)
+
+    fixture.detectChanges()
+    for (let i = 0; i < 15; i++) {
+      await fixture.whenStable()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      if (!fixture.componentInstance['loadingSession']()) {
+        break
+      }
+    }
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Accueil')
+    expect(fixture.componentInstance['loadingInbox']()).toBe(true)
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-actions-skeleton"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeTruthy()
+
+    resolveInbox({ ok: true, status: 200, data: inboxResponse([]) })
+    await settle(fixture)
+  })
+
+  it('affiche le cache inbox puis rafraîchit en arrière-plan', async () => {
+    const stale = inboxResponse([availabilityAction('stale', 'Spectacle en cache', isoInDays(2))])
+    const fresh = inboxResponse([availabilityAction('fresh', 'Spectacle à jour', isoInDays(2))])
+    inboxApi.peekFreshCache.mockReturnValue(stale)
+
+    let resolveBackground!: (value: unknown) => void
+    inboxApi.getInbox.mockReturnValue(
+      new Promise((resolve) => {
+        resolveBackground = resolve
+      }),
+    )
+
+    fixture.detectChanges()
+    for (let i = 0; i < 15; i++) {
+      await fixture.whenStable()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      if (!fixture.componentInstance['loadingSession']()) {
+        break
+      }
+    }
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Spectacle en cache')
     expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: true })
+
+    resolveBackground({ ok: true, status: 200, data: fresh })
+    await settle(fixture)
+    expect(fixture.nativeElement.textContent).toContain('Spectacle à jour')
+  })
+
+  it('conserve le cache inbox quand le refresh background échoue', async () => {
+    const stale = inboxResponse([availabilityAction('stale', 'Spectacle en cache', isoInDays(2))])
+    inboxApi.peekFreshCache.mockReturnValue(stale)
+    inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
+
+    await settle(fixture)
+
+    expect(fixture.nativeElement.textContent).toContain('Spectacle en cache')
+    expect(fixture.nativeElement.textContent).not.toContain('Impossible de charger')
+  })
+
+  it('ne masque pas le badge quand le refresh background échoue', async () => {
+    const stale = inboxResponse([availabilityAction('stale', 'Spectacle en cache', isoInDays(2))])
+    inboxApi.peekFreshCache.mockReturnValue(stale)
+
+    const badge = TestBed.inject(MemberInboxBadgeService)
+    inboxApi.getInbox.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: stale,
+    })
+    await badge.refresh()
+    expect(badge.pendingActionCount()).toBe(1)
+
+    inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
+    fixture = TestBed.createComponent(MemberHomeTodo)
+    await settle(fixture)
+
+    expect(badge.pendingActionCount()).toBe(1)
+    expect(fixture.nativeElement.textContent).toContain('Spectacle en cache')
+  })
+
+  it('n’affiche pas « Tout est à jour » pendant la revalidation SWR', async () => {
+    inboxApi.peekFreshCache.mockReturnValue(inboxResponse([]))
+
+    let resolveBackground!: (value: unknown) => void
+    inboxApi.getInbox.mockReturnValue(
+      new Promise((resolve) => {
+        resolveBackground = resolve
+      }),
+    )
+
+    fixture.detectChanges()
+    for (let i = 0; i < 15; i++) {
+      await fixture.whenStable()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      if (!fixture.componentInstance['loadingSession']()) {
+        break
+      }
+    }
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).not.toContain('Tout est à jour')
+
+    resolveBackground({
+      ok: true,
+      status: 200,
+      data: inboxResponse([]),
+    })
+    await settle(fixture)
+    expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
+  })
+
+  it('affiche les accès rapides même en erreur de chargement inbox', async () => {
+    inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
+
+    await settle(fixture)
+
+    expect(fixture.nativeElement.textContent).toContain('Impossible de charger')
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeTruthy()
   })
 
   it('affiche deux lignes d’action pour deux dispos unknown', async () => {
@@ -406,6 +539,7 @@ describe('MemberHomeTodo', () => {
     await settle(fixture)
 
     expect(inboxApi.getInbox).toHaveBeenCalledTimes(2)
+    expect(inboxApi.getInbox).toHaveBeenLastCalledWith({ force: true })
     expect(fixture.nativeElement.textContent).toContain('Retour hub')
   })
 

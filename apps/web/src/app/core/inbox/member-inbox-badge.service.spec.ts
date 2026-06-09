@@ -96,4 +96,26 @@ describe('MemberInboxBadgeService', () => {
 
     expect(service.pendingActionCount()).toBe(0)
   })
+
+  it('preserves count when inbox fails with preserveBadgeOnError', async () => {
+    inboxApi.getInbox.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: {
+        actions: [{}, {}],
+        nextEvent: null,
+        shortcuts: { lastSeasonSlug: null, seasonGlanceQuery: {} },
+        noParticipation: false,
+      },
+    })
+
+    const service = TestBed.inject(MemberInboxBadgeService)
+    await service.refresh()
+    expect(service.pendingActionCount()).toBe(2)
+
+    inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
+    await service.refresh({ force: true, preserveBadgeOnError: true })
+
+    expect(service.pendingActionCount()).toBe(2)
+  })
 })

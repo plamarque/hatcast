@@ -72,6 +72,14 @@ export class MeInboxApiService {
     this.boundUserId = userId
   }
 
+  /** Returns cached inbox when TTL is still valid — synchronous peek for stale-while-revalidate UI. */
+  peekFreshCache(): MeInboxResponse | null {
+    if (this.isCacheFresh(this.memoryCache) && this.isCacheForBoundUser(this.memoryCache)) {
+      return this.memoryCache!.data
+    }
+    return null
+  }
+
   /** Clears session memo — call after logout or user switch. */
   invalidateCache(): void {
     this.memoryCache = null

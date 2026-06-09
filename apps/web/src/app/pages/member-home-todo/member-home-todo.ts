@@ -1,14 +1,13 @@
 import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
-import type { InboxAction } from '../../core/inbox/me-inbox-api.service'
+import type { InboxAction, MeInboxResponse } from '../../core/inbox/me-inbox-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import {
   calendarDaysFromNow,
@@ -31,7 +30,6 @@ import { AgendaParticipationStatus } from '../../shared/participation/agenda-par
   imports: [
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
     AgendaParticipationStatus,
@@ -53,6 +51,8 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
 
   protected readonly loadingSession = signal(true)
   protected readonly loadingInbox = signal(false)
+  protected readonly inboxLoaded = signal(false)
+  protected readonly inboxRevalidating = signal(false)
   protected readonly loadError = signal(false)
   protected readonly actions = signal<InboxAction[]>([])
   protected readonly completedGhosts = signal<CompletedGhost[]>([])
@@ -63,6 +63,7 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
 
   private ghostTimer: ReturnType<typeof setTimeout> | null = null
   private lastSeenPreferencesRevision = -1
+  private inboxLoadingRequests = 0
 
   constructor() {
     effect(() => {
@@ -106,12 +107,34 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
 
   protected readonly showAllCaughtUpBanner = computed(
     () =>
+      this.inboxLoaded() &&
+      !this.inboxRevalidating() &&
       !this.noParticipation() &&
       !this.loadingSession() &&
       !this.loadingInbox() &&
       !this.loadError() &&
       this.actions().length === 0 &&
       this.completedGhosts().length === 0,
+  )
+
+  protected readonly showActionsSkeleton = computed(
+    () =>
+      !this.loadingSession() &&
+      this.loadingInbox() &&
+      this.actions().length === 0 &&
+      !this.noParticipation(),
+  )
+
+  protected readonly showInboxContent = computed(
+    () => !this.loadingSession() && this.inboxLoaded() && !this.noParticipation(),
+  )
+
+  protected readonly showInboxLoadError = computed(
+    () => !this.loadingSession() && this.loadError() && !this.inboxLoaded(),
+  )
+
+  protected readonly showNoParticipationEmpty = computed(
+    () => !this.loadingSession() && !this.loadingInbox() && this.noParticipation(),
   )
 
   protected readonly showNoUpcomingEventsEmpty = computed(
@@ -128,10 +151,10 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
       await this.redirectToLogin()
       return
     }
-    await this.loadViewerGender()
     this.loadingSession.set(false)
+    void this.loadViewerGender()
     void this.seasonShortcut.refresh()
-    await this.loadInbox()
+    void this.bootstrapInbox()
   }
 
   ngOnDestroy(): void {
@@ -141,20 +164,48 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     }
   }
 
-  protected async loadInbox(): Promise<void> {
-    this.loadingInbox.set(true)
-    this.loadError.set(false)
-    this.referenceNow.set(new Date())
+  protected async loadInbox(options?: { force?: boolean }): Promise<void> {
+    await this.fetchInbox({ force: options?.force ?? true, showLoading: true })
+  }
 
-    const r = await this.inboxBadge.refresh({ force: true })
-    this.loadingInbox.set(false)
+  private async bootstrapInbox(): Promise<void> {
+    const cached = this.inboxBadge.peekFreshCache()
+    if (cached) {
+      this.applyInboxResponse(cached)
+      this.inboxRevalidating.set(true)
+      try {
+        await this.fetchInbox({ force: true, showLoading: false })
+      } finally {
+        this.inboxRevalidating.set(false)
+      }
+      return
+    }
+
+    this.loadingInbox.set(true)
+    await this.fetchInbox({ force: false, showLoading: true })
+  }
+
+  private async fetchInbox(options: { force: boolean; showLoading: boolean }): Promise<void> {
+    if (options.showLoading) {
+      this.inboxLoadingRequests++
+      this.loadingInbox.set(true)
+    }
+    this.loadError.set(false)
+
+    const r = await this.inboxBadge.refresh({
+      force: options.force,
+      preserveBadgeOnError: !options.showLoading || this.inboxLoaded(),
+    })
+
+    if (options.showLoading) {
+      this.inboxLoadingRequests = Math.max(0, this.inboxLoadingRequests - 1)
+      if (this.inboxLoadingRequests === 0) {
+        this.loadingInbox.set(false)
+      }
+    }
 
     if (r.ok && r.data) {
-      this.actions.set(r.data.actions)
-      this.noParticipation.set(r.data.noParticipation ?? false)
-      const next = r.data.nextEvent
-      this.nextEvent.set(next ? enrichAgendaCardFields(next) : null)
-      this.detectCompletedGhosts(r.data.actions)
+      this.applyInboxResponse(r.data)
       return
     }
 
@@ -163,9 +214,23 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
       return
     }
 
+    if (this.inboxLoaded()) {
+      return
+    }
+
     this.loadError.set(true)
     this.actions.set([])
     this.nextEvent.set(null)
+  }
+
+  private applyInboxResponse(data: MeInboxResponse): void {
+    this.referenceNow.set(new Date())
+    this.actions.set(data.actions)
+    this.noParticipation.set(data.noParticipation ?? false)
+    const next = data.nextEvent
+    this.nextEvent.set(next ? enrichAgendaCardFields(next) : null)
+    this.detectCompletedGhosts(data.actions)
+    this.inboxLoaded.set(true)
   }
 
   protected openAction(action: InboxAction): void {

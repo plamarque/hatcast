@@ -74,6 +74,20 @@ describe('MeInboxApiService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('peekFreshCache returns cached data within TTL without fetch', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => sampleInbox(2),
+    })
+
+    const service = readyService()
+    await service.getInbox()
+
+    expect(service.peekFreshCache()?.actions.length).toBe(2)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('deduplicates concurrent getInbox calls', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
