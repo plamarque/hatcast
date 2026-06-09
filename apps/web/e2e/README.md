@@ -22,7 +22,7 @@ Playwright démarre automatiquement :
 
 Par défaut, les serveurs sont **toujours démarrés par Playwright** (profil `e2e`, CSRF désactivé côté API).
 
-- Réutiliser des processus déjà lancés : `PLAYWRIGHT_REUSE_SERVERS=1 npm run test:e2e` — l'API **doit** tourner avec `HATCAST_SPRING_PROFILE=e2e`.
+- Réutiliser des processus déjà lancés : par défaut en local (si `4200` / `8080` occupés). Forcer un boot complet : `PLAYWRIGHT_REUSE_SERVERS=0 npm run test:e2e`. L'API réutilisée **doit** être en profil `e2e` si tu bypasses le boot Playwright côté API.
 - Cibler un projet : `npm run test:e2e -- --project=e1-mobile-member`
 
 ## Projets Playwright
@@ -87,7 +87,11 @@ Le gate staging (`e1-preprod-gate.yml`, `PLAYWRIGHT_STAGING_E2E=1`) n’exécute
 
 ## E1 cutover nominal
 
-Specs sous `e2e/e1/` — stats perso, activité spectacle (membre), stats saison, audit (orga), composition MVP.
+Specs sous `e2e/e1/` — stats perso, activité spectacle (membre), stats saison, audit (orga), composition MVP, sondage Dispos unifié (5.8) et pool explainability (5.9).
+
+| Spec | IDs | Stories |
+|------|-----|---------|
+| `member-dispos-poll.mobile.spec.ts` | E1-MEM-030…033 | 5.8 sondage unifié ; 5.9 pool % + breakdown sans onglet Équipe (E1-MEM-033) |
 
 ### T1 — CI local / `e2e-smoke.yml`
 

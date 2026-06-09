@@ -35,7 +35,11 @@ export class MemberShell implements OnInit {
   protected readonly isMobileViewport = signal(isMemberMobileShellViewport())
 
   ngOnInit(): void {
-    void this.inboxBadge.refresh()
+    const initialPath = pathFromUrl(this.router.url)
+    // Accueil todo owns a forced inbox fetch for list + badge (PERF-02).
+    if (initialPath !== '/accueil') {
+      void this.inboxBadge.refresh()
+    }
 
     if (typeof globalThis.matchMedia === 'function') {
       const mq = globalThis.matchMedia(MEMBER_SHELL_MOBILE_MEDIA_QUERY)
@@ -54,9 +58,6 @@ export class MemberShell implements OnInit {
       .subscribe((event) => {
         this.currentUrl.set(event.urlAfterRedirects)
         const path = pathFromUrl(event.urlAfterRedirects)
-        if (path === '/accueil') {
-          void this.inboxBadge.refresh()
-        }
         void this.persistMemberEntryPathIfNeeded(event.urlAfterRedirects, path)
       })
   }
@@ -72,8 +73,7 @@ export class MemberShell implements OnInit {
 
     const membreSlug = memberStatsSlugFromMemberEntryPath(path)
     if (membreSlug) {
-      const session = await this.auth.ensureHatcastSession()
-      const ownSlug = session.data?.user.slug?.trim()
+      const ownSlug = this.auth.sessionUser()?.slug?.trim()
       if (!ownSlug || membreSlug !== ownSlug) {
         return
       }

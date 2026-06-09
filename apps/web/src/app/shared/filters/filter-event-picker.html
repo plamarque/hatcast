@@ -3,12 +3,11 @@
   [class.filter-picker-shell--sheet]="isBottomSheet"
   [class.filter-picker-shell--dialog]="!isBottomSheet"
 >
-  <div class="filter-picker-shell__header">
-    <h2 class="filter-picker-shell__title" cdkFocusInitial>Filtrer les spectacles</h2>
-    <button type="button" mat-icon-button aria-label="Fermer" (click)="close()">
-      <mat-icon>close</mat-icon>
-    </button>
-  </div>
+  <app-hatcast-picker-header
+    title="Filtrer les spectacles"
+    [surface]="isBottomSheet ? 'sheet' : 'dialog'"
+    (close)="close()"
+  />
 
   <div class="filter-picker-shell__search-row">
     <mat-form-field class="filter-picker-shell__search" appearance="outline" subscriptSizing="dynamic">
@@ -113,6 +112,9 @@
     <button mat-button type="button" data-testid="event-picker-reset" (click)="onReset()">
       Réinitialiser
     </button>
+    @if (!isBottomSheet) {
+      <app-hatcast-dialog-dismiss label="annuler" testId="event-picker-cancel" (clicked)="close()" />
+    }
     <button mat-flat-button color="primary" type="button" data-testid="event-picker-apply" (click)="onApply()">
       Appliquer
     </button>

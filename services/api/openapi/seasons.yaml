@@ -1205,6 +1205,53 @@ paths:
         '404':
           description: Saison inconnue
 
+  /seasons/{seasonId}/workspace:
+    get:
+      tags: [Saisons]
+      summary: Bootstrap read-only du workspace saison (BFF PERF-07)
+      description: >
+        Agrège en un seul round-trip les champs actuellement fetchés séparément au chargement
+        de `season-home` (vue agenda) : permissions, sélecteurs participants, catégories troupe
+        et spectacles à venir paginés.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - name: view
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [agenda]
+            default: agenda
+          description: Vue workspace ; seul `agenda` est supporté (PERF-07).
+        - name: eventPage
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: eventSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeasonWorkspaceResponse'
+        '400':
+          description: Paramètre view invalide
+        '403':
+          description: Utilisateur non membre actif de la troupe de la saison
+        '404':
+          description: Saison inconnue
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1971,3 +2018,67 @@ components:
           items:
             type: string
             format: uuid
+
+    SeasonWorkspaceParticipantSelector:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        kind:
+          type: string
+        userId:
+          type: string
+          format: uuid
+          nullable: true
+
+    SeasonWorkspaceCategory:
+      type: object
+      required: [slug, label]
+      properties:
+        slug:
+          type: string
+        label:
+          type: string
+
+    SeasonWorkspacePagedEvents:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+
+    SeasonWorkspaceResponse:
+      type: object
+      required:
+        - permissions
+        - participantSelectors
+        - categories
+        - upcomingEvents
+      properties:
+        permissions:
+          $ref: '#/components/schemas/MySeasonPermissions'
+        participantSelectors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeasonWorkspaceParticipantSelector'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeasonWorkspaceCategory'
+        upcomingEvents:
+          $ref: '#/components/schemas/SeasonWorkspacePagedEvents'

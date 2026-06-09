@@ -74,6 +74,16 @@ describe('MemberProfileDialog', () => {
     )
   })
 
+  it('n’affiche pas de croix de fermeture en header (footer Fermer uniquement)', async () => {
+    const { fixture } = await setup(selfProfile)
+    expect(fixture.nativeElement.querySelector('header button[mat-icon-button]')).toBeNull()
+    const closeBtn = [...fixture.nativeElement.querySelectorAll('button')].find((b: HTMLButtonElement) =>
+      b.textContent?.trim() === 'Fermer',
+    ) as HTMLButtonElement
+    expect(closeBtn).toBeTruthy()
+    expect(closeBtn.classList.contains('mat-mdc-unelevated-button')).toBe(false)
+  })
+
   it('affiche l’éditeur de rôles préférés pour soi', async () => {
     const { fixture } = await setup(selfProfile)
     expect(fixture.nativeElement.textContent).toContain('Mes rôles préférés')

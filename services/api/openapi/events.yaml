@@ -124,6 +124,54 @@ paths:
         '404':
           description: Spectacle ou saison introuvable
 
+  /seasons/{seasonId}/events/by-slug/{slug}/page:
+    get:
+      tags: [Événements]
+      summary: Bootstrap read-only détail spectacle par onglet (BFF PERF-10)
+      description: >
+        Agrège en un round-trip les données nécessaires à l’onglet actif (Infos, Dispos ou Équipe).
+        Champs communs : event, permissions, participantSelectors. Payload tab-scoped selon `tab`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 128
+        - name: tab
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [infos, dispos, equipe]
+            default: infos
+          description: Onglet cible ; défaut `infos`.
+        - name: includeChances
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Inclure les cotes dans availabilitySummary (tab=dispos uniquement).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventPageResponse'
+        '400':
+          description: Paramètre tab invalide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe de la saison
+        '404':
+          description: Spectacle ou saison introuvable
+
   /seasons/{seasonId}/events/{eventId}:
     get:
       tags: [Événements]
@@ -184,6 +232,48 @@ paths:
           description: Gestion refusée (hors règle provisoire seed/admin)
         '404':
           description: Événement ou saison inconnue
+
+  /seasons/{seasonId}/events/{eventId}/page:
+    get:
+      tags: [Événements]
+      summary: Bootstrap read-only détail spectacle par onglet (BFF PERF-10)
+      description: >
+        Agrège en un round-trip event, permissions, participantSelectors et le payload
+        de l’onglet (`tab=infos|dispos|equipe`). Lecture seule.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: tab
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [infos, dispos, equipe]
+            default: infos
+        - name: includeChances
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Cotes explainability (tab=dispos ; défaut false).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventPageResponse'
+        '400':
+          description: Paramètre tab invalide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe de la saison
+        '404':
+          description: Spectacle ou saison introuvable
 
   /seasons/{seasonId}/events/{eventId}/actions/archive:
     post:
@@ -612,3 +702,37 @@ components:
         grantedAt:
           type: string
           format: date-time
+
+    EventPageResponse:
+      type: object
+      required: [event, permissions, participantSelectors]
+      description: Bootstrap read-only event-detail par onglet (PERF-10 BFF).
+      properties:
+        event:
+          $ref: '#/components/schemas/Event'
+        permissions:
+          type: object
+          description: Même forme que MySeasonPermissions (`seasons.yaml`).
+        participantSelectors:
+          type: array
+          items:
+            type: object
+          description: Même forme que ParticipantSelector (`participants.yaml`).
+        organizers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organizer'
+          description: Présent si tab=infos ; absent sinon.
+        categories:
+          type: array
+          items:
+            type: object
+          description: Catégories troupe ; présent si tab=infos.
+        availabilitySummary:
+          type: object
+          nullable: true
+          description: Résumé dispos ; présent si tab=dispos (`availability.yaml`).
+        composition:
+          type: object
+          nullable: true
+          description: Composition ; présent si tab=equipe (`composition.yaml`).

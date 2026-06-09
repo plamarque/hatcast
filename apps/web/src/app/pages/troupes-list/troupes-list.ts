@@ -70,7 +70,7 @@ export class TroupesList implements OnInit {
   protected async loadTroupes(): Promise<void> {
     this.loadingList.set(true)
     this.loadError.set(false)
-    const result = await this.troupeApi.listMyTroupes()
+    const result = await this.troupeApi.listMyTroupes({ force: true })
     this.loadingList.set(false)
     if (!result.ok || !result.data) {
       this.loadError.set(true)

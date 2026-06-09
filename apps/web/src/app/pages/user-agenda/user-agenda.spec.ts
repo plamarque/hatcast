@@ -1,3 +1,5 @@
+import { signal } from '@angular/core'
+import { By } from '@angular/platform-browser'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
@@ -10,6 +12,7 @@ import {
 } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { USER_AGENDA_FILTERS_STORAGE_KEY } from '../../core/agenda/user-agenda-filters-storage'
 import {
@@ -18,7 +21,10 @@ import {
   type UserAgendaParticipationFilters,
   type UserAgendaResponse,
 } from '../../core/agenda/user-agenda-api.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
+import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
+import type { UserSummary } from '../../core/auth/auth-api.service'
 import { UserAgenda } from './user-agenda'
 
 const TROUPE_A = 'a0000001-0000-4000-8000-000000000001'
@@ -46,7 +52,13 @@ async function settle(fixture: ComponentFixture<UserAgenda>): Promise<void> {
 describe('UserAgenda', () => {
   let fixture: ComponentFixture<UserAgenda>
   let agendaApi: { listAgenda: ReturnType<typeof vi.fn> }
-  let auth: { ensureHatcastSession: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> }
+  let auth: {
+    sessionUser: ReturnType<typeof signal<UserSummary | null>>
+    ensureHatcastSession: ReturnType<typeof vi.fn>
+    logout: ReturnType<typeof vi.fn>
+  }
+  let troupeContext: { load: ReturnType<typeof vi.fn>; activeTroupes: ReturnType<typeof vi.fn>; currentUserDisplayLabel: ReturnType<typeof vi.fn> }
+  let getPreferences: ReturnType<typeof vi.fn>
   let router: Router
   let navigateSpy: ReturnType<typeof vi.fn>
   let snack: { open: ReturnType<typeof vi.fn> }
@@ -63,30 +75,45 @@ describe('UserAgenda', () => {
         ]),
       }),
     }
+    const sessionUser = signal<UserSummary | null>({
+      id: 'user-1',
+      slug: 'patrice',
+      email: 'patrice@example.com',
+      displayName: 'Patrice',
+      avatarUrl: null,
+    })
     auth = {
+      sessionUser,
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         data: {
-          user: {
-            id: 'user-1',
-            email: 'patrice@example.com',
-            displayName: 'Patrice',
-            avatarUrl: null,
-          },
+          user: sessionUser(),
           platformAdmin: false,
         },
       }),
       logout: vi.fn().mockResolvedValue(true),
     }
+    troupeContext = {
+      load: vi.fn().mockResolvedValue(true),
+      activeTroupes: vi.fn().mockReturnValue([]),
+      currentUserDisplayLabel: vi.fn().mockReturnValue('Patrice'),
+    }
     snack = { open: vi.fn() }
+    getPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { memberDisplayName: 'Patrice', preferredRoleKeys: [], gender: 'female' },
+    })
 
     await TestBed.configureTestingModule({
       imports: [UserAgenda, NoopAnimationsModule],
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
+        { provide: TroupeContextService, useValue: troupeContext },
         { provide: UserAgendaApiService, useValue: agendaApi },
+        { provide: MePreferencesApiService, useValue: { getPreferences, cacheRevision: () => 0 } },
         { provide: MatSnackBar, useValue: snack },
       ],
     }).compileComponents()
@@ -101,6 +128,17 @@ describe('UserAgenda', () => {
     localStorage.clear()
     sessionStorage.clear()
     vi.restoreAllMocks()
+  })
+
+  it('preloads viewer gender once and passes it to participation status cards', async () => {
+    await settle(fixture)
+
+    const cards = fixture.debugElement.queryAll(By.directive(AgendaParticipationStatus))
+    expect(cards.length).toBe(2)
+    expect(getPreferences).toHaveBeenCalledTimes(1)
+    for (const card of cards) {
+      expect(card.componentInstance.viewerGender()).toBe('female')
+    }
   })
 
   it('n’affiche pas le raccourci Ma saison dans le header', async () => {
@@ -231,6 +269,7 @@ describe('UserAgenda', () => {
 
   it('redirige vers connexion avec snackbar si la session est invalide', async () => {
     auth.ensureHatcastSession.mockResolvedValue({ ok: false, status: 401 })
+    auth.sessionUser.set(null)
     Object.defineProperty(router, 'url', { value: '/agenda', configurable: true })
 
     await settle(fixture)
@@ -295,6 +334,7 @@ describe('UserAgenda', () => {
 
     expect(navigateSpy).toHaveBeenCalledWith([
       '/saison',
+      'la-bim',
       'ligue-clavier',
       'event',
       'event-keyboard',
@@ -317,7 +357,7 @@ describe('UserAgenda', () => {
     const card = fixture.nativeElement.querySelector('.agenda-card__clickable') as HTMLElement
     card.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-espace', 'event', 'event-space'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'la-bim', 'ligue-espace', 'event', 'event-space'])
   })
 
   it('masque la barre de filtres quand filterBarVisible est false', async () => {
@@ -424,6 +464,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
+        { provide: TroupeContextService, useValue: troupeContext },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {
@@ -467,6 +508,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
+        { provide: TroupeContextService, useValue: troupeContext },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {
@@ -656,6 +698,7 @@ describe('UserAgenda', () => {
       providers: [
         provideRouter(testRoutes),
         { provide: AuthApiService, useValue: auth },
+        { provide: TroupeContextService, useValue: troupeContext },
         { provide: UserAgendaApiService, useValue: agendaApi },
         { provide: MatSnackBar, useValue: snack },
         {

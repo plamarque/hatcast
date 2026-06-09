@@ -41,6 +41,7 @@ stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail)'
 | **E9** | Composition status badge lives **only** on the title row (above tabs), **right-aligned** with help icon — not centered, **not** in Infos tab. Help panel spans full width below the title row when open. | E6 centered badge on Infos / Équipe. |
 | **E10** | **Infos tab:** no **Titre** field. **Description:** no section label; show text in value card **only when** `description.trim()` is non-empty; otherwise **omit block entirely** (no « Non renseignée »). | Prior Infos three-field stack (Description labeled). |
 | **E11** | Tab body content: **≥ 1.5rem** padding-top below pill tab bar (all tabs). | — |
+| **E12** | Barre d’onglets : pattern **capsule M3** (coque `surface-container-high` + pastille active `primary-container`) — spec normative [ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md) ; mixin `_hatcast-pill-tab-bar.scss`. | Ancien style pastilles isolées + `rgba(255,255,255,0.1)`. |
 
 **Unchanged from 2026-05-31 chrome alignment:** E1 gear in header row (all tabs), E2 gear visibility, E3 agenda card ⋮ removed, date only in Infos Date field.
 
@@ -121,6 +122,7 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 ### Tabs spacing
 
 - [ ] **E11** Visible gap between tab bar and first Infos content (≥ 1.5rem).
+- [ ] **E12** Tab bar uses capsule pattern (outer shell + active primary-container pill) per [ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md).
 
 ### Prior chrome (still required)
 
@@ -137,6 +139,7 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 | Area | File(s) |
 |------|---------|
 | Title row | `event-detail.html`, `event-detail.scss` |
+| Tab bar capsule | `_hatcast-pill-tab-bar.scss`, spec [ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md) |
 | Breadcrumb omit | `event-detail-header.html` → `[omitEventFromBreadcrumb]="true"`, `context-breadcrumb.html/ts` |
 | Status inline | `composition-equipe-status-header.ts/scss` (`inlineInEventContext`) |
 | Infos | `event-infos-tab.html` |
@@ -156,3 +159,4 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-06-06 | Sally / Patrice | Amendment E7–E11 after mobile + desktop shipping |
+| 2026-06-09 | Sally / Paige | E12 — barre onglets capsule M3 ; lien ux-design-pill-tab-bar.md |

@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core'
 
+import type { EventAvailabilitySummary } from '../availability/availability-api.service'
+import type { CompositionResponse } from '../composition/composition-api.service'
 import type { AvailabilityStatus } from '../availability/availability-status'
+import type { MySeasonPermissions } from '../permissions/organizer-api.service'
+import type { OrganizerResponse } from '../permissions/organizer-api.service'
+import type { ParticipantSelector } from '../participants/participant-api.service'
+import type { TroupeCategory } from '../troupes/troupe-api.service'
 import type { TeamStatusBadge } from '../composition/composition-lifecycle'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
@@ -66,6 +72,18 @@ export interface UpdateEventBody {
 
 export type EventListScope = 'all' | 'upcoming' | 'past'
 
+export type EventPageTab = 'infos' | 'dispos' | 'equipe'
+
+export interface EventPageResponse {
+  event: EventResponse
+  permissions: MySeasonPermissions
+  participantSelectors: ParticipantSelector[]
+  organizers?: OrganizerResponse[]
+  categories?: TroupeCategory[]
+  availabilitySummary?: EventAvailabilitySummary | null
+  composition?: CompositionResponse
+}
+
 export type EventMutationResult = {
   ok: boolean
   status: number
@@ -117,6 +135,35 @@ export class EventApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async getEventPage(
+    seasonId: string,
+    eventRef: string,
+    options: {
+      tab?: EventPageTab
+      includeChances?: boolean
+      bySlug?: boolean
+    } = {},
+  ): Promise<{ ok: boolean; status: number; data?: EventPageResponse }> {
+    const tab = options.tab ?? 'infos'
+    const q = new URLSearchParams({ tab })
+    if (options.includeChances) {
+      q.set('includeChances', 'true')
+    }
+    const path = options.bySlug
+      ? `/v1/seasons/${encodeURIComponent(seasonId)}/events/by-slug/${encodeURIComponent(eventRef)}/page?${q}`
+      : `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventRef)}/page?${q}`
+    try {
+      const res = await fetch(path, { credentials: 'include' })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as EventPageResponse
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }

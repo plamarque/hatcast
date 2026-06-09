@@ -35,7 +35,7 @@
     "migrate:v2:validate-replay": "node scripts/v2/validate-replay-log.mjs",
     "reconcile:season-event-counts": "node scripts/v2/reconcile-season-event-counts.mjs",
     "simulate:notification-volume": "node scripts/v2/simulate-notification-volume.mjs",
-    "test:migrate": "node --test scripts/v1/*.test.js scripts/v2/migrate-lib/*.test.mjs scripts/v2/notification-volume/simulator.test.js",
+    "test:migrate": "node --test scripts/v1/*.test.js scripts/v2/migrate-lib/*.test.mjs scripts/v2/notification-volume/simulator.test.js scripts/v2/audit-db-latency.test.mjs",
     "generate:improbots-dev-seed": "node scripts/v2/generate-improbots-seed-sql.js",
     "generate:improbots-seed": "npm run generate:improbots-dev-seed",
     "generate:malice-seed": "npm run generate:improbots-dev-seed"

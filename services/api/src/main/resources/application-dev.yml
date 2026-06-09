@@ -8,10 +8,24 @@ management:
   health:
     mail:
       enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  metrics:
+    enable:
+      jdbc: true
+      hikaricp: true
+
+hatcast:
+  jdbc:
+    metrics-enabled: true
+    query-log-enabled: ${HATCAST_DB_QUERY_LOG:false}
+    slow-query-threshold-ms: ${HATCAST_JDBC_SLOW_QUERY_MS:100}
 
 spring:
   flyway:
-    locations: classpath:db/migration,classpath:db/seed,classpath:db/seed-postgresql
+    locations: classpath:db/migration,classpath:db/migration-postgresql,classpath:db/seed,classpath:db/seed-postgresql
     # Seeds déplacés dans db/seed (OPS-1) : V3_1 peut arriver après V4+ sur une base Neon déjà migrée.
     out-of-order: true
     repair-on-migrate: true

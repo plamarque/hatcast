@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 
+import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
 import { FilterDimensionCategories } from './filter-dimension-categories'
 import { FilterDimensionSingle } from './filter-dimension-single'
 import { buildAgendaFilterDimensions, resolveAgendaPanelSeason } from './filter-builders'
@@ -13,6 +14,7 @@ import type { FilterDimensionConfig, FilterPanelData, FilterPanelResult, FilterV
 @Component({
   selector: 'app-filter-panel-content',
   imports: [
+    HatcastDialogDismiss,
     A11yModule,
     MatButtonModule,
     MatIconModule,
@@ -37,9 +39,10 @@ export class FilterPanelContent {
   })
 
   protected readonly data = this.sheetData ?? this.dialogData!
+  protected readonly isBottomSheet = this.sheetRef != null
   protected readonly draft = signal<FilterValues>({ ...this.data.values })
 
-  protected readonly showFooter = this.data.isMobile || this.hasMultiSelect()
+  protected readonly showFooter = this.data.isMobile || this.hasMultiSelect() || !this.isBottomSheet
 
   protected effectiveDimensions(): FilterDimensionConfig[] {
     if (this.data.participationFilters) {
@@ -101,7 +104,7 @@ export class FilterPanelContent {
     this.dialogRef?.close(result)
   }
 
-  private hasMultiSelect(): boolean {
+  protected hasMultiSelect(): boolean {
     return this.effectiveDimensions().some((d) => d.type === 'multi-select')
   }
 

@@ -1,0 +1,102 @@
+<p class="availability-poll__hint">Sélectionnez une ou plusieurs options</p>
+
+@if (chanceSourceHint(); as hint) {
+  <p class="availability-poll__chance-hint" role="status">{{ hint }}</p>
+}
+
+<div class="availability-poll__rows">
+  <app-availability-poll-row
+    rowKind="unavailable"
+    label="Pas disponible"
+    [checked]="isUnavailableChecked()"
+    [disabled]="!canEdit()"
+    [fillPercent]="unavailableFillPercent()"
+    [counterText]="'' + unavailableCount()"
+    [avatars]="unavailableAvatars()"
+    [expanded]="isRowExpanded('unavailable')"
+    [poolSegments]="unavailablePoolSegments()"
+    [poolShowNeutral]="unavailablePoolShowNeutral()"
+    [hasCandidates]="unavailableCount() > 0"
+    [saving]="isRowSaving('unavailable')"
+    (checkedChange)="onUnavailableToggle($event)"
+    (poolTrigger)="onPoolTrigger('unavailable')"
+  />
+
+  @if (hasRoles()) {
+    @for (role of roleRows(); track role.roleKey) {
+      <app-availability-poll-row
+        rowKind="role"
+        [roleKey]="role.roleKey"
+        [label]="roleLabel(role.roleKey)"
+        [emoji]="roleEmojiFor(role.roleKey)"
+        [checked]="isRoleRowChecked(role.roleKey)"
+        [disabled]="rolesDisabled()"
+        [fillPercent]="roleFillPercent(role.roleKey)"
+        [counterText]="roleCounterText(role.roleKey)"
+        [avatars]="roleAvatars(role.roleKey)"
+        [expanded]="isRowExpanded('role:' + role.roleKey)"
+        [poolLoading]="loadingChances() && isRowExpanded('role:' + role.roleKey)"
+        [poolSegments]="poolSegments(role.roleKey)"
+        [poolShowChancePreview]="rolePoolShowChancePreview(role.roleKey)"
+        [poolShowNeutral]="rolePoolShowNeutral(role.roleKey)"
+        [poolChancesUnavailable]="rolePoolChancesUnavailable(role.roleKey)"
+        [poolInteractive]="poolInteractive(role.roleKey)"
+        [hasCandidates]="roleAvatars(role.roleKey).length > 0"
+        [saving]="isRowSaving('role:' + role.roleKey)"
+        (checkedChange)="onRoleToggle(role.roleKey, $event)"
+        (poolTrigger)="onPoolTrigger('role:' + role.roleKey)"
+        (poolSegmentTap)="onPoolSegmentTap($event, role.roleKey)"
+      />
+    }
+  } @else {
+    <app-availability-poll-row
+      rowKind="available"
+      label="Dispo"
+      [checked]="isAvailableFlatChecked()"
+      [disabled]="!canEdit()"
+      [fillPercent]="flatAvailableFillPercent()"
+      [counterText]="flatAvailableCountValue() + '/' + summary().participants.length"
+      [avatars]="flatAvailableAvatars()"
+      [expanded]="isRowExpanded('available')"
+      [poolSegments]="flatAvailablePoolSegments()"
+      [poolShowNeutral]="flatAvailablePoolShowNeutral()"
+      [hasCandidates]="flatAvailableCountValue() > 0"
+      [saving]="isRowSaving('available-flat')"
+      (checkedChange)="onAvailableFlatToggle($event)"
+      (poolTrigger)="onPoolTrigger('available')"
+    />
+  }
+</div>
+
+@if (showCommentBlock()) {
+  <div class="availability-poll__comment">
+    <mat-form-field appearance="outline" class="availability-poll__comment-field">
+      <mat-label>Commentaire (optionnel)</mat-label>
+      <textarea
+        matInput
+        rows="3"
+        [readonly]="!canEdit()"
+        [value]="commentText()"
+        [attr.maxlength]="500"
+        (input)="onCommentInput($any($event.target).value)"
+      ></textarea>
+      @if (canEdit()) {
+        <mat-hint align="end">{{ commentText().length }} / 500</mat-hint>
+      }
+    </mat-form-field>
+    @if (commentError()) {
+      <p class="availability-poll__comment-error" role="alert">{{ commentError() }}</p>
+    }
+    @if (canEdit()) {
+      <button
+        mat-flat-button
+        type="button"
+        class="availability-poll__comment-save"
+        [disabled]="!commentDirty() || savingComment()"
+        (click)="saveComment()"
+      >
+        Enregistrer le commentaire
+      </button>
+    }
+  </div>
+}

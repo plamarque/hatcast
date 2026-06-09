@@ -1,0 +1,72 @@
+// UX-DR23 Phase 2b — footers modales / sheets : cibles tactiles et dismiss homogènes.
+// Voir _bmad-output/planning-artifacts/ux-design-dialog-patterns.md
+
+@use '@angular/material' as mat;
+
+$hatcast-dialog-footer-selectors: (
+  '.mat-mdc-dialog-container .mat-mdc-dialog-actions',
+  '.draw-chances-help__footer',
+  '.chance-breakdown-sheet__actions',
+  '.push-opt-in-dialog__actions',
+  '.filter-picker-shell__footer',
+  '.filter-panel-content__footer',
+);
+
+@each $selector in $hatcast-dialog-footer-selectors {
+  #{$selector} {
+    gap: 0.5rem;
+
+    // Dismiss et actions texte (mat-button) — pas flat / outlined / icon
+    .mat-mdc-button:not(.mat-mdc-unelevated-button):not(.mat-mdc-outlined-button):not(
+        .mat-mdc-icon-button
+      ) {
+      min-height: 3rem;
+      min-width: 3rem;
+
+      @include mat.button-overrides(
+        (
+          text-label-text-color: var(--mat-sys-primary),
+          text-state-layer-color: var(--mat-sys-primary),
+        )
+      );
+    }
+
+    .mat-mdc-unelevated-button,
+    .mat-mdc-outlined-button {
+      min-height: 3rem;
+    }
+  }
+}
+
+// Actions métier dans le contenu d’un dialog (hors footer) — alignées sur mat-button + icône
+.hatcast-dialog-content-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+
+  .mat-mdc-button:not(.mat-mdc-unelevated-button):not(.mat-mdc-outlined-button):not(
+      .mat-mdc-icon-button
+    ) {
+    flex: 1 1 8rem;
+    min-height: 3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hatcast-dialog-content-actions {
+    flex-direction: column;
+
+    .mat-mdc-button:not(.mat-mdc-unelevated-button):not(.mat-mdc-outlined-button):not(
+        .mat-mdc-icon-button
+      ) {
+      width: 100%;
+      flex: 1 1 auto;
+    }
+  }
+
+  @each $selector in $hatcast-dialog-footer-selectors {
+    #{$selector} {
+      flex-wrap: wrap;
+    }
+  }
+}

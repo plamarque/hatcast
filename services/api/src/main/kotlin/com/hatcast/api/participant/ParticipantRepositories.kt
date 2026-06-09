@@ -17,7 +17,8 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
         """
         SELECT p FROM SeasonParticipantEntity p
         LEFT JOIN FETCH p.user
-        LEFT JOIN FETCH p.troupeMembership
+        LEFT JOIN FETCH p.troupeMembership tm
+        LEFT JOIN FETCH tm.user
         WHERE p.season.id = :seasonId AND p.status = :status
         ORDER BY p.displayName ASC
         """,
@@ -170,6 +171,19 @@ interface SeasonParticipantRepository : JpaRepository<SeasonParticipantEntity, U
 
     @Query(
         """
+        SELECT p FROM SeasonParticipantEntity p
+        LEFT JOIN FETCH p.user
+        LEFT JOIN FETCH p.troupeMembership tm
+        LEFT JOIN FETCH tm.user
+        WHERE p.id IN :ids
+        """,
+    )
+    fun findAllByIdWithUserAssociations(
+        @Param("ids") ids: Collection<UUID>,
+    ): List<SeasonParticipantEntity>
+
+    @Query(
+        """
         SELECT CASE WHEN COUNT(sp) > 0 THEN true ELSE false END FROM SeasonParticipantEntity sp
         LEFT JOIN sp.troupeMembership tm
         WHERE sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
@@ -215,7 +229,9 @@ interface EventParticipantRepository : JpaRepository<EventParticipantEntity, UUI
         SELECT p FROM EventParticipantEntity p
         LEFT JOIN FETCH p.user
         LEFT JOIN FETCH p.seasonParticipant sp
-        LEFT JOIN FETCH sp.troupeMembership
+        LEFT JOIN FETCH sp.user
+        LEFT JOIN FETCH sp.troupeMembership tm
+        LEFT JOIN FETCH tm.user
         WHERE p.event.id = :eventId AND p.status = :status
         ORDER BY p.displayName ASC
         """,
@@ -303,6 +319,17 @@ interface EventParticipantRepository : JpaRepository<EventParticipantEntity, UUI
     )
     fun findAllByUser_Id(
         @Param("userId") userId: UUID,
+    ): List<EventParticipantEntity>
+
+    @Query(
+        """
+        SELECT p FROM EventParticipantEntity p
+        LEFT JOIN FETCH p.user
+        WHERE p.id IN :ids
+        """,
+    )
+    fun findAllByIdWithUser(
+        @Param("ids") ids: Collection<UUID>,
     ): List<EventParticipantEntity>
 
     @Query(

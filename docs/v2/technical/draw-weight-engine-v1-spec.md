@@ -466,10 +466,17 @@ Per-candidate waterfall breakdown: how `chancePercent` differs from a **pure dra
 
 | Method | Path | Audience |
 |--------|------|----------|
-| `GET` | `/v1/seasons/{seasonId}/events/{eventId}/composition/chance-breakdown?roleKey=&participantId=` | Orga (draft or validated) ; member after composition **validated** |
+| `GET` | `/v1/seasons/{seasonId}/events/{eventId}/composition/chance-breakdown?roleKey=&participantId=` | Orga (draft or validated) ; member on **Dispos** when event published ; member on **Équipe** when composition published or validated |
 | `GET` | `/v1/seasons/{seasonId}/events/{eventId}/composition/pool-preview?roleKey=` | Orga (`canManageComposition`) only |
 
-**403** when explainability is not allowed (same gates as Dispos `includeChances` / Équipe slot odds — stories **6.3**, **6.4**).
+**403** when explainability is not allowed for the **requested surface**:
+
+| Surface | Parameter / endpoint | Member gate | Organizer gate |
+|---------|---------------------|-------------|----------------|
+| Dispos | `includeChances=true` on availability summary ; breakdown from Dispos context | Published event (`availabilityOpenedAt` set, not draft/archived) + troupe membership | Same + `canManageComposition` on draft **events** per **3.21** |
+| Équipe | Composition GET slot odds ; `chance-breakdown` from Équipe | Composition `publishedAt` or `validatedAt` | `canManageComposition` |
+
+**Do not** use composition slot visibility to gate Dispos `includeChances` (SCP 2026-06-09 ; story **5.9**).
 
 ### `ChanceBreakdownDto`
 

@@ -10,12 +10,16 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatMenuModule } from '@angular/material/menu'
 
+import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
+import { HatcastPickerHeader } from '../dialog-chrome/hatcast-picker-header'
 import { filterEventPickerVisibleOptions } from './filter-builders'
 import type { EventPickerData, EventPickerResult } from './filter.types'
 
 @Component({
   selector: 'app-filter-event-picker',
   imports: [
+    HatcastDialogDismiss,
+    HatcastPickerHeader,
     A11yModule,
     FormsModule,
     MatButtonModule,

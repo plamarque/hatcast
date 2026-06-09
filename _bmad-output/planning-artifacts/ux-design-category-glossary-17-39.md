@@ -165,6 +165,7 @@ Choisis la catégorie dans laquelle ce spectacle comptera…
 |---------|-------|
 | **Titre page** | **Paramètres troupe** |
 | **Onglets MVP** | **Catégories** (actif) — seul onglet implémenté en **17.40** |
+| **Style onglets** | Barre **capsule M3** — [ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md) ; `@include pill-tabs.group($centered: false)` dans `troupe-settings.scss` |
 | **Onglets futurs** | **Formules** (Epic 19.19–19.21), **Rôles** (FR14+) — visibles en grisé / « Bientôt » **ou** masqués jusqu’à story dédiée (choix dev : masquer = moins de bruit) |
 | **Recommandation Sally** | **Masquer** les onglets non implémentés en MVP ; ajouter au fur et à mesure des epics — le shell `mat-tab-group` reste prêt côté routing |
 | **Accès** | `requireCanManageTroupe` ; sinon 403 / redirect hub |

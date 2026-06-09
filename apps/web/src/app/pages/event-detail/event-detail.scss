@@ -1,3 +1,5 @@
+@use '../../../styles/hatcast-pill-tab-bar' as pill-tabs;
+
 .event-detail {
   --event-detail-shell-bg: var(--mat-sys-surface, #121212);
   max-width: 40rem;
@@ -46,10 +48,15 @@
 }
 
 .event-detail__tabs-shell {
+  display: flex;
+  justify-content: center;
   margin-top: 0;
 }
 
 .event-detail__tabs {
+  width: 100%;
+
+  @include pill-tabs.group();
 
   ::ng-deep .mat-mdc-tab-body-content {
     overflow: visible;
@@ -62,24 +69,6 @@
 
   ::ng-deep .mat-mdc-tab-labels {
     justify-content: center;
-    gap: 0.25rem;
-  }
-
-  ::ng-deep .mat-mdc-tab {
-    min-width: 5.5rem;
-    border-radius: 999px;
-    opacity: 0.75;
-  }
-
-  ::ng-deep .mat-mdc-tab.mdc-tab--active {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  ::ng-deep .mat-mdc-tab .mdc-tab__text-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
   }
 }
 

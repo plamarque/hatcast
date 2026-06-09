@@ -2,7 +2,10 @@ import { defineConfig, devices } from '@playwright/test'
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://localhost:4200'
 const apiHealthUrl = process.env.PLAYWRIGHT_API_HEALTH_URL ?? 'http://127.0.0.1:8080/actuator/health'
-const reuseServers = process.env.PLAYWRIGHT_REUSE_SERVERS === '1'
+/** Local: reuse servers on 4200/8080 when start-dev is already up. CI: always boot fresh. Force off: PLAYWRIGHT_REUSE_SERVERS=0 */
+const reuseServers =
+  process.env.PLAYWRIGHT_REUSE_SERVERS === '1' ||
+  (!process.env.CI && process.env.PLAYWRIGHT_REUSE_SERVERS !== '0')
 const isStagingTarget = !!process.env.PLAYWRIGHT_STAGING_E2E
 
 export default defineConfig({

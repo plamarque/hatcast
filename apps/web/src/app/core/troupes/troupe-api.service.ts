@@ -175,6 +175,18 @@ type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>
 
 @Injectable({ providedIn: 'root' })
 export class TroupeApiService {
+  private troupesCache: { ok: boolean; status: number; data?: TroupeListItem[] } | null = null
+  private troupesCacheGeneration = 0
+  private troupesInFlight: Promise<{ ok: boolean; status: number; data?: TroupeListItem[] }> | null =
+    null
+
+  /** Clears session memo for GET /troupes — call after logout or membership change. */
+  invalidateCache(): void {
+    this.troupesCacheGeneration++
+    this.troupesCache = null
+    this.troupesInFlight = null
+  }
+
   async listCategories(troupeId: string): ApiResult<TroupeCategory[]> {
     try {
       const res = await fetch(
@@ -289,6 +301,7 @@ export class TroupeApiService {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as TroupeListItem
+      this.invalidateCache()
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -358,14 +371,46 @@ export class TroupeApiService {
     }
   }
 
-  async listMyTroupes(): ApiResult<TroupeListItem[]> {
+  async listMyTroupes(options?: { force?: boolean }): ApiResult<TroupeListItem[]> {
+    const force = options?.force ?? false
+
+    if (!force && this.troupesCache?.ok) {
+      return this.troupesCache
+    }
+
+    if (this.troupesInFlight) {
+      if (!force) {
+        return this.troupesInFlight
+      }
+      await this.troupesInFlight
+    }
+
+    const generation = this.troupesCacheGeneration
+    const fetchPromise = this.fetchMyTroupes(generation)
+    this.troupesInFlight = fetchPromise.finally(() => {
+      this.troupesInFlight = null
+    })
+    return this.troupesInFlight
+  }
+
+  private async fetchMyTroupes(
+    cacheGeneration: number,
+  ): Promise<{ ok: boolean; status: number; data?: TroupeListItem[] }> {
     try {
       const res = await fetch('/v1/troupes', { credentials: 'include' })
       if (!res.ok) {
-        return { ok: false, status: res.status }
+        const result = { ok: false as const, status: res.status }
+        if (res.status === 401) {
+          this.invalidateCache()
+        }
+        return result
       }
       const data = (await res.json()) as TroupeListItem[]
-      return { ok: true, status: res.status, data }
+      const result = { ok: true as const, status: res.status, data }
+      if (cacheGeneration === this.troupesCacheGeneration) {
+        this.troupesCache = result
+      }
+      return result
     } catch {
       return { ok: false, status: 0 }
     }

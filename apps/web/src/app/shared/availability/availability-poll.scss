@@ -1,0 +1,38 @@
+.availability-poll__hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 68%, transparent);
+}
+
+.availability-poll__chance-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+}
+
+.availability-poll__rows {
+  border: 1px solid var(--hatcast-availability-border);
+  border-radius: 0.85rem;
+  padding-inline: 0.65rem;
+  background: var(--mat-sys-surface);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.availability-poll__comment {
+  margin-top: 1rem;
+}
+
+.availability-poll__comment-field {
+  width: 100%;
+}
+
+.availability-poll__comment-error {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-error);
+}
+
+.availability-poll__comment-save {
+  margin-top: 0.5rem;
+}

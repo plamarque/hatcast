@@ -22,6 +22,16 @@
   padding: 0.35rem 0 0;
 }
 
+.filter-picker-shell__drag-handle {
+  flex-shrink: 0;
+  align-self: center;
+  width: 2rem;
+  height: 0.25rem;
+  margin: 0.15rem auto 0.1rem;
+  border-radius: 999px;
+  background: var(--mat-sys-outline-variant);
+}
+
 .filter-picker-shell--dialog {
   max-height: 85vh;
   overflow: hidden;

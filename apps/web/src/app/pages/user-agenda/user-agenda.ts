@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core'
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
@@ -44,6 +44,7 @@ import { CompositionStatusBadge } from '../../shared/composition/composition-sta
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import type { MemberGender } from '../../core/account/member-gender'
 import { CompositionApiService } from '../../core/composition/composition-api.service'
 import {
   applyAvailabilityUpdateToAgendaEvent,
@@ -95,8 +96,23 @@ export class UserAgenda implements OnInit {
   private readonly troupeContext = inject(TroupeContextService)
 
   private loadGeneration = 0
+  private lastSeenPreferencesRevision = -1
 
   private readonly user = signal<UserSummary | null>(null)
+
+  constructor() {
+    effect(() => {
+      const revision = this.mePreferencesApi.cacheRevision()
+      if (revision === this.lastSeenPreferencesRevision) {
+        return
+      }
+      this.lastSeenPreferencesRevision = revision
+      if (revision === 0) {
+        return
+      }
+      void this.loadViewerGender()
+    })
+  }
 
   protected readonly joiningDemo = this.demoJoin.joining
 
@@ -153,18 +169,32 @@ export class UserAgenda implements OnInit {
     groupEventsByMonth(this.items()),
   )
 
+  protected readonly viewerGender = signal<MemberGender | undefined>(undefined)
+
   async ngOnInit(): Promise<void> {
-    const r = await this.auth.ensureHatcastSession()
-    if (!r.ok || !r.data) {
+    this.bootstrapFiltersFromRoute()
+    await this.syncInitialFilterUrl()
+
+    const [session] = await Promise.all([
+      this.auth.ensureHatcastSession(),
+      this.loadAgenda(),
+      this.loadViewerGender(),
+    ])
+
+    if (!session.ok) {
       await this.redirectToLogin()
       return
     }
-    this.user.set(r.data.user)
-    await this.troupeContext.load()
+    const user = this.auth.sessionUser()
+    if (!user) {
+      await this.redirectToLogin()
+      return
+    }
+    this.user.set(user)
     this.loadingSession.set(false)
-    this.bootstrapFiltersFromRoute()
-    await this.syncInitialFilterUrl()
-    await this.loadAgenda()
+
+    // Troupe catalog is only needed for edit-availability checks — not for filter bar (API catalog).
+    void this.troupeContext.load()
   }
 
   protected async loadAgenda(): Promise<void> {
@@ -363,8 +393,6 @@ export class UserAgenda implements OnInit {
     if (!focus.inTeam || !focus.compositionRoleKey) {
       return
     }
-    const prefs = await this.mePreferencesApi.getPreferences()
-    const viewerGender = prefs.ok ? prefs.data?.gender : undefined
     const result = await openAgendaParticipationDialog(
       this.dialog,
       this.compositionApi,
@@ -376,7 +404,7 @@ export class UserAgenda implements OnInit {
         eventStartsAt: item.startsAt,
         roleKey: focus.compositionRoleKey,
         currentStatus: focus.slotParticipationStatus ?? 'pending',
-        viewerGender,
+        viewerGender: this.viewerGender(),
       },
     )
     if (!result) {
@@ -510,5 +538,12 @@ export class UserAgenda implements OnInit {
 
   protected async joinDemoTroupe(): Promise<void> {
     await this.demoJoin.join()
+  }
+
+  private async loadViewerGender(): Promise<void> {
+    const prefs = await this.mePreferencesApi.getPreferences()
+    if (prefs.ok && prefs.data) {
+      this.viewerGender.set(prefs.data.gender)
+    }
   }
 }

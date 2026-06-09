@@ -56,6 +56,22 @@ describe('TroupeContextService', () => {
     expect(localStorage.getItem('hatcast.selectedTroupeId')).toBe('troupe-2')
   })
 
+  it('load délègue force: true à reloadAndSelect', async () => {
+    api.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1', 'La Malice'), troupe('troupe-2', 'Les Impros')],
+    })
+
+    const ctx = service()
+    await ctx.load()
+    await ctx.reloadAndSelect('troupe-2')
+
+    expect(api.listMyTroupes).toHaveBeenCalledTimes(2)
+    expect(api.listMyTroupes).toHaveBeenLastCalledWith({ force: true })
+    expect(ctx.selectedTroupe()?.id).toBe('troupe-2')
+  })
+
   it('retombe sur la première troupe active quand la préférence est invalide', async () => {
     localStorage.setItem('hatcast.selectedTroupeId', 'ancienne-troupe')
     api.listMyTroupes.mockResolvedValue({

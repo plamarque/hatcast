@@ -127,30 +127,16 @@
             hideSingleSelectionIndicator
             aria-labelledby="account-gender-label"
           >
-            <mat-button-toggle
-              value="female"
-              class="account-page__gender-toggle-option--female"
-              aria-label="Féminin (ex: une improvisatrice)"
-              data-testid="account-gender-female"
-            >
-              Féminin
-            </mat-button-toggle>
-            <mat-button-toggle
-              value="non_specified"
-              class="account-page__gender-toggle-option--neutral"
-              aria-label="Non spécifié (ex: un.e improvisateur.trice)"
-              data-testid="account-gender-non-specified"
-            >
-              Non spéc.
-            </mat-button-toggle>
-            <mat-button-toggle
-              value="male"
-              class="account-page__gender-toggle-option--male"
-              aria-label="Masculin (ex: un improvisateur)"
-              data-testid="account-gender-male"
-            >
-              Masculin
-            </mat-button-toggle>
+            @for (option of genderOptions; track option.value) {
+              <mat-button-toggle
+                [value]="option.value"
+                [class]="genderToggleToneClass(option.value)"
+                [attr.aria-label]="option.label"
+                [attr.data-testid]="'account-gender-' + option.value.replace('_', '-')"
+              >
+                {{ option.toggleLabel }}
+              </mat-button-toggle>
+            }
           </mat-button-toggle-group>
         </div>
 

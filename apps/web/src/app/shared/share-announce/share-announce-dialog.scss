@@ -1,13 +1,5 @@
 :host {
   display: block;
-  position: relative;
-}
-
-.share-announce-dialog__close {
-  position: absolute;
-  top: 0.35rem;
-  right: 0.35rem;
-  z-index: 1;
 }
 
 .share-announce-dialog__content {
@@ -25,17 +17,6 @@
 
 .share-announce-dialog__message-field {
   width: 100%;
-}
-
-.share-announce-dialog__actions-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.share-announce-dialog__action-btn {
-  flex: 1 1 8rem;
-  min-height: 3rem;
 }
 
 .share-announce-dialog__recipients-line {
@@ -78,11 +59,6 @@
 }
 
 @media (max-width: 480px) {
-  .share-announce-dialog__actions-row {
-    flex-direction: column;
-  }
-
-  .share-announce-dialog__action-btn,
   .share-announce-dialog__already-link {
     width: 100%;
     flex: 1 1 auto;

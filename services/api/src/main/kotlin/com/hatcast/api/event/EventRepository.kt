@@ -11,6 +11,19 @@ import java.time.Instant
 import java.util.UUID
 
 interface EventRepository : JpaRepository<EventEntity, UUID> {
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        JOIN FETCH e.season s
+        JOIN FETCH s.troupe
+        WHERE e.id = :eventId AND s.id = :seasonId
+        """,
+    )
+    fun findByIdAndSeason_IdWithSeason(
+        @Param("eventId") eventId: UUID,
+        @Param("seasonId") seasonId: UUID,
+    ): EventEntity?
+
     fun findBySeason_IdAndSlug(
         seasonId: UUID,
         slug: String,

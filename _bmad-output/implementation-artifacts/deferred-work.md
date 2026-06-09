@@ -35,6 +35,116 @@
 
 ---
 
+## Deferred from: code review of perf-15-composition-summary-api-hot-path (2026-06-10)
+
+- Avatar URL without storage read (metadata-only hot path) — intentional PERF-15 trade-off per dev notes; hot path skips `readAvatarContent`.
+- Neon gate command not in DEVELOPMENT.md — KDoc on `NeonCompositionSummaryPerformanceIntegrationTest` sufficient for manual CI gate.
+- JOIN FETCH cartesian risk on large rosters — JDBC budget passes on Improbots seed; monitor via PERF-16 headers.
+
+---
+
+## Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)
+
+- `loginEmail` and default seed credentials written in JSON report — pre-existing in perf script; local-only artifact.
+- `attachApiListeners` pending-map leak / query-string endpoint merge — pre-existing before PERF-14 refactor.
+- `networkidle` timeout swallowed in `waitForReady` — pre-existing; acceptable for dev gate script.
+- `isMain` path compare fragile on Windows — pre-existing pattern; team dev on macOS.
+- No Playwright E2E for `--in-app` flux — manual validation documented in story; out of PERF-14 scope.
+- UI selector coupling (French tab labels, CSS classes) — acceptable for internal perf gate script.
+
+---
+
+## Deferred from: code review of perf-13-dispos-lazy-composition-explainability (2026-06-10)
+
+- AC3 FR19/FR24 orgas sans test PERF-13 dédié — couverture via `composition-explainability.spec.ts` et tests event-detail préexistants.
+- AC1 sans test PERF-13 composition Dispos — gate `ensureCompositionLoaded()` couvert par PERF-03 / story 5.9.
+- `ensureChancesLoaded` échec API / rejet promesse — pre-existing ; snack sur `!ok` mais pas de `catch` sur reject (`availability-poll.ts`).
+- Course bootstrap vs `load()` in-flight — pre-existing ; bootstrap peut être écrasé si fetch déjà lancé (`event-dispos-tab.ts`).
+- `bootstrapSummary` stale au changement d'événement — pre-existing ; pas de validation eventId (`event-dispos-tab.ts`).
+
+## Deferred from: code review of perf-12-accueil-progressive-render (2026-06-10)
+
+- AC4 seuil ≤ 300 ms non mesuré — waiver PERF-14 documenté dans la story ; proxy test DOM seulement.
+- `peekFreshCache` avec `boundUserId === null` — comportement préexistant PERF-02 (`isCacheForBoundUser` retourne true).
+- Promesses async sans annulation post-`ngOnDestroy` — pattern courant Angular hors scope PERF-12.
+
+---
+
+## Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)
+
+- AC4 profilage wall recette — validation manuelle `profile-web-performance.mjs` recommandée en recette (Completion Notes).
+- syncInitialFilterUrl bloque premier loadAgenda — waterfall résiduel hors scope minimal PERF-11.
+- troupeContext.load fire-and-forget pour edit dispos — trade-off accepté story (filtres API, pas troupe catalog).
+- Gate perf H2 ≠ prod Neon — même pattern que PERF-06.
+- 4 requêtes participation mono-troupe inchangées — EXISTS early exit seulement sans participation.
+
+---
+
+## Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)
+
+- Breakdown accessible sur événement archivé via fallback `CompositionExplainabilityAccess` (pas de garde `archived`) — trou pré-existant, rendu visible par l'union Dispos+Équipe sur `resolveShowExplainability`.
+- AC-4 : pas de test « composition publiée non validée → slots Équipe visibles membre » — incertitude runtime reconnue dans l'AC ; hors scope non-goals 5.9.
+- M3-3 : pas de test E2E/composant « tap % → breakdown sheet » sans composition préchargée — dette test UI.
+- OpenAPI `availability.yaml` : pas de doc du 403 explainability vs membership — amélioration doc.
+- Chemins `EVENT_ORGANIZER` / `SEASON_ORGANIZER` pour `canManageComposition` non couverts par tests — pré-existant.
+
+---
+
+## Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)
+
+- Pas de budget `angular.json` sur chunks lazy (hors scope initial bundle PERF-08).
+- Pas de handler erreur chargement chunk / PWA stale chunk — risque amplifié par lazy routes, story perf séparée.
+- Waterfall lazy parent+enfant sur `/compte` — tradeoff accepté pour réduire le bundle initial.
+- Délai spinner sur redirects legacy (`SaisonLegacyRedirect`, onglets compte) — tradeoff perf vs UX immédiate.
+- Pas de wildcard `**` sous `MemberShell` — pré-existant, outlet vide sur URL invalide.
+- Stratégie preload post-login absente — follow-up perf (PERF plan vague 3+).
+
+---
+
+## Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)
+
+- Tests intégration 403/404 non couverts — gap pattern similaire à d'autres endpoints BFF.
+- Schémas OpenAPI dupliqués (`SeasonWorkspaceParticipantSelector` vs DTO canonique) — qualité contrat, pas de régression runtime.
+- Aucun test automatisé du budget ≤3 appels AC2 — assertion manuelle dans dev notes.
+- Bascule history→agenda bypass le BFF — follow-up documenté dans dev notes.
+- Fix `enableExplainabilityForChances` hors scope PERF-07 — autre story (19.7).
+
+---
+
+## Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)
+
+- AC1 non couvert par les tests ajoutés — bindings `[viewerGender]` vérifiés en revue code sur les 3 templates ; pas d'assertion DOM dans le diff PERF-05.
+- Race timing parent lent / enfant précoce non testée — atténuée par `await loadViewerGender()` dans `ngOnInit` avant rendu liste ; motivation story non simulée en test.
+- Effet `cacheRevision` non testé sur `user-agenda` / `member-home-todo` — reload genre après invalidation cache ; couverture PERF-01, hors patch minimal PERF-05.
+- Chemins échec `getPreferences` (preload KO → refetch enfant) non testés — au-delà des AC story.
+- Chaîne intégration `season-home` → `season-agenda` non testée — test isolé `SeasonAgenda` couvre le contrat input `viewerGender`.
+- `sprint-status.yaml` : changements collatéraux (`5-8`, `perf-04`) dans le même diff — hors périmètre PERF-05.
+
+---
+
+## Deferred from: code review of perf-04-session-context-cache (2026-06-09)
+
+- Gate S2 non profilé — AC3 non prouvé ; valider manuellement via `node scripts/v2/profile-web-performance.mjs` (serveur dev `--with-push`).
+- `ContextSwitcherDataService` non réinitialisé sur invalidation troupes/session — `initialized` court-circuite `ensureReady` ; état switcher potentiellement stale après switch user ; architectural, hors scope PERF-04.
+
+---
+
+## Deferred from: code review of perf-03-event-detail-tab-gated-load (2026-06-09)
+
+- Gate AC4 profilage Event Infos ≤ 1,2 s non exécutée — validation manuelle post-merge via `node scripts/v2/profile-web-performance.mjs`.
+- `reloadEvent` silent ne réinitialise pas composition — comportement préexistant ; cache composition peut diverger après reload silencieux sur onglet Équipe (`event-detail.ts:648-657`).
+- Duplication copy guidelines entre `resolveCompositionEquipeStatusFromEvent` et `resolveCompositionEquipeStatus` — dette maintenance, hors scope perf.
+
+---
+
+## Deferred from: code review of perf-01-deduplicate-me-preferences (2026-06-09)
+
+- GET en échec non mis en cache — retry à chaque appel ; pattern d’erreur préexistant, impact marginal avec dedup parent (`me-preferences-api.service.ts`).
+- Pas de sync multi-onglets — cache mémoire process ; limitation navigateur hors scope PERF-01.
+- Échec silencieux `loadViewerGender` — signal reste `undefined`, pas de retry ; pattern préexistant sur les trois pages parentes.
+
+---
+
 ## Deferred from: code review of 6-24-participation-copy-declinaison-desistement-retrait (2026-06-09)
 
 - Dispatch proxy par égalité de `decisionLabel` (fragile si labels changent) — pattern préexistant étendu, pas introduit par 6.24.
@@ -252,3 +362,59 @@
 - **AC10 suite web complète non verte** — 80 échecs préexistants / 29 fichiers ; tests share-announce 18/18 OK.
 - **`::ng-deep` panel menu** — dette technique Angular ; pattern acceptable court terme pour `panelClass`.
 - **Menu noms sans max-height** — débordement si audience très large ; **résolu en review 6.23** (`max-height` + `overflow-y` sur panel menu).
+
+---
+
+## Deferred from: code review of perf-02-inbox-badge-cache (2026-06-09)
+
+- **Gate S1 ≤ 800 ms non atteinte** (hub 1203 ms, compte 962 ms) — inbox retiré du chemin critique ; goulots auth/troupes adressés par PERF-04.
+- **Pas de test intégration « action inbox → retour /accueil → badge à jour »** — couverture AC2 repose sur tests unitaires + revue code.
+- **Pas d'invalidation serveur (push/WebSocket)** — tradeoff TTL 60 s documenté ; endpoint count envisagé PERF-06 (non livré — cache front suffisant MVP).
+
+---
+
+## Deferred from: PERF-06 inbox-api-profiling (2026-06-09)
+
+- **`GET /me/inbox/count` endpoint léger** — option plan perf ; non requis AC ; badge PERF-02 utilise réponse complète avec cache 60 s.
+- **Profilage Neon prod / Improbots volumineux** — garde-fou p95 sur H2 fixture minimale ; valider p95 réel sur branche dev avec données représentatives avant release perf.
+- **`NotificationRecipientResolver.isActiveEngagedMember` N+1** — item existant deferred-work 8-8 ; hors chemin `MeInboxService`.
+- **Suite `./gradlew test` 5 échecs préexistants** — composition/availability draw ; voir deferred-work 8-4/8-9 ; aucun lien PERF-06.
+
+---
+
+## Deferred from: code review of perf-06-inbox-api-profiling (2026-06-09)
+
+- **Pas de delta chiffré avant/après** — plan DoD §5.1 ; baseline RC-8 ~912 ms non reprise dans Completion Notes story.
+- **Fixture perf minimale sans scénario inbox « riche »** — membre seed sans pending confirmations ni horizon rempli ; garde-fou AC1 ne stress pas les chemins RC-8 optimisés.
+- **Risque drift requêtes DISTINCT vs COUNT miroir** — `findParticipatingSeasonIds*` conservées à côté de `existsParticipatingSeason*` ; correction future doit toucher les deux chemins.
+
+---
+
+## Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09)
+
+- **Guard and logout integration test gaps** — no spec for guard 401/UrlTree or logout → effect → refetch chain.
+- **Navigation spec uses stubs not real EventDetail/UserAgenda** — AC2 proven at router level only; e2e or real-component spec deferred.
+- **Testing helper underused** — `member-shell-bootstrap.testing.ts` exists but page specs duplicate inline mocks.
+- **Remaining shell pages still call ensureHatcastSession** — progressive migration explicit non-goal; season-home, troupe-hub, admin routes still refetch.
+- **Bootstrap memo stale after auth cache invalidation without sessionUser clear** — pre-existing `AuthApiService` 401 path; **partially addressed** in PERF-09 review (clear `sessionUser` on 401).
+
+---
+
+## Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09) — 3-lite follow-up
+
+- **Boot network/5xx retry UI** — On bootstrap `status 0` or 5xx, show retry screen instead of redirect to `/connexion` (decision 2+3-lite; auth 401 still redirects with post-login URL restore).
+
+---
+
+## Deferred from: code review of perf-10-event-detail-page-bff (2026-06-09)
+
+- **`includeChances` non passé depuis le front** — by design : lazy 5.9 / PERF-13 ; BFF garde `includeChances=false` par défaut comme spécifié.
+- **Fallback `loadComposition` legacy si BFF équipe sans payload** — filet de sécurité hérité de PERF-03 ; risque d’appel supplémentaire marginal.
+- **`ensureMembershipParticipants` sur GET `/page`** — dette acceptée (D2:2, perf-10 review) ; hérité de `listSelectors`/`getComposition` ; fix roster/perf si priorisé.
+
+## Deferred from: code review of perf-16-db-latency-observability (2026-06-10)
+
+- **ThreadLocal JDBC metrics sur threads async/scheduled** — seul le filtre HTTP appelle `clear()`/`remove()` ; jobs `@Scheduled` futurs pourraient fuiter ou gonfler les compteurs.
+- **BeanPostProcessor enveloppe tout bean `DataSource`** — risque théorique de double proxy si plusieurs beans ; pratique Spring Boot = un seul DS.
+- **p95 sur n=10 ≈ max** — formule percentile sur 10 échantillons retourne le max ; acceptable pour gate manuel si documenté.
+- **`NeonAgendaPerformanceIntegrationTest` MockMvc in-process** — ne mesure pas le RTT réseau Neon/Cloud Run ; gate documenté comme opt-in manual CI avec waiver.

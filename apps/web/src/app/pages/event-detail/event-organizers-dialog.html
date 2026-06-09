@@ -33,7 +33,7 @@
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button type="button" mat-button (click)="close()">Fermer</button>
+  <app-hatcast-dialog-dismiss label="annuler" (clicked)="close()" />
   <button type="button" mat-flat-button color="primary" [disabled]="saving()" (click)="submit()">
     Ajouter
   </button>

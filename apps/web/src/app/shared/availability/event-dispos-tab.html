@@ -13,54 +13,52 @@
   </div>
 } @else if (summary(); as s) {
   <div class="event-dispos__toolbar">
-    @if (canSwitchSubject() && viewMode() === 'moi') {
+    @if (canSwitchSubject()) {
       <app-availability-subject-selector
+        class="event-dispos__subject-selector"
         [participants]="subjectSelectorOptions()"
         [selectedParticipantId]="subjectParticipantId()"
         (selectedParticipantIdChange)="onSubjectChange($event)"
       />
     }
-
-    <mat-button-toggle-group
-      class="event-dispos__toggle"
-      [value]="viewMode()"
-      (change)="setViewMode($event.value)"
-      hideSingleSelectionIndicator
-      aria-label="Vue Moi ou Tous"
-    >
-      <mat-button-toggle value="moi">Moi</mat-button-toggle>
-      <mat-button-toggle value="tous">Tous</mat-button-toggle>
-    </mat-button-toggle-group>
+    @if (subjectProxyMode() && subjectParticipant(); as subject) {
+      <div
+        class="event-dispos__proxy-hint"
+        role="status"
+        [attr.aria-label]="proxyHintAriaLabel(subject.displayName)"
+      >
+        <mat-icon class="event-dispos__proxy-icon" aria-hidden="true">warning</mat-icon>
+        <span class="event-dispos__proxy-text">
+          Tu modifies les dispos de {{ subject.displayName }}
+        </span>
+      </div>
+    }
   </div>
 
-  @if (viewMode() === 'moi') {
-    @if (subjectParticipant(); as subject) {
-      <app-availability-moi-panel
-        [seasonId]="seasonId()"
-        [eventId]="event().id"
-        [troupeId]="troupeId()"
-        [roleSlots]="event().roleSlots"
-        [subject]="subject"
-        [readOnly]="subjectReadOnly()"
-        [proxyMode]="subjectProxyMode()"
-        [archived]="event().archived"
-        [availabilityOpenedAt]="event().availabilityOpenedAt ?? null"
-        (saved)="onSaved($event)"
-      />
-    } @else {
-      <p class="event-dispos__empty">Aucun participant lié à ce compte pour cet événement.</p>
-    }
-  } @else {
-    <app-availability-tous-panel
-      [summary]="s"
+  @if (subjectParticipant(); as subject) {
+    <app-availability-poll
       [seasonId]="seasonId()"
       [eventId]="event().id"
+      [troupeId]="troupeId()"
+      [roleSlots]="event().roleSlots"
+      [summary]="s"
+      [subject]="subject"
+      [readOnly]="subjectReadOnly()"
+      [proxyMode]="subjectProxyMode()"
+      [archived]="event().archived"
       [explainabilityEnabled]="explainabilityEnabled()"
-      [loadingChances]="loadingChances()"
-      [chanceSource]="s.chanceSource ?? null"
-      [canSelectSubject]="canSwitchSubject()"
       [currentUserId]="currentUserId()"
-      (participantSelected)="onParticipantFromTous($event)"
+      [availabilityOpenedAt]="event().availabilityOpenedAt ?? null"
+      (summaryPatch)="onSummaryPatch($event)"
+      (saved)="onSaved($event)"
     />
+  } @else if (canSwitchSubject() && s.participants.length > 0) {
+    <p class="event-dispos__empty">
+      Sélectionnez un participant pour voir ou modifier ses disponibilités.
+    </p>
+  } @else if (canSwitchSubject()) {
+    <p class="event-dispos__empty">Aucun participant sur ce spectacle.</p>
+  } @else {
+    <p class="event-dispos__empty">Aucun participant lié à ce compte pour cet événement.</p>
   }
 }

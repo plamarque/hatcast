@@ -16,15 +16,6 @@
       <div class="member-profile__identity">
         <h2 mat-dialog-title class="member-profile__name">{{ p.displayName }}</h2>
       </div>
-      <button
-        type="button"
-        mat-icon-button
-        class="member-profile__close"
-        aria-label="Fermer"
-        (click)="close()"
-      >
-        <mat-icon>close</mat-icon>
-      </button>
     </header>
 
     <mat-dialog-content class="member-profile__content">
@@ -47,7 +38,7 @@
       >
         Voir dans mon agenda
       </button>
-      <button type="button" mat-flat-button color="primary" (click)="close()">Fermer</button>
+      <button type="button" mat-button (click)="close()">Fermer</button>
     </mat-dialog-actions>
   </div>
 }

@@ -3,26 +3,29 @@ package com.hatcast.api.season
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.season.dto.CreateSeasonRequest
 import com.hatcast.api.season.dto.SeasonResponseDto
+import com.hatcast.api.season.dto.SeasonWorkspaceResponseDto
 import com.hatcast.api.season.dto.UpdateSeasonRequest
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.http.HttpStatus
-import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 @RestController
 @RequestMapping("/v1")
 class SeasonController(
     private val seasonService: SeasonService,
+    private val seasonWorkspaceService: SeasonWorkspaceService,
 ) {
     @GetMapping("/troupes/{troupeId}/seasons")
     fun listByTroupe(
@@ -58,6 +61,26 @@ class SeasonController(
         @PathVariable seasonId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): SeasonResponseDto = seasonService.getById(seasonId, principal)
+
+    @GetMapping("/seasons/{seasonId}/workspace")
+    fun workspace(
+        @PathVariable seasonId: UUID,
+        @RequestParam(defaultValue = "agenda") view: String,
+        @RequestParam(defaultValue = "0") eventPage: Int,
+        @RequestParam(defaultValue = "50") eventSize: Int,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): SeasonWorkspaceResponseDto {
+        val parsedView =
+            SeasonWorkspaceView.parse(view)
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "view doit être agenda")
+        return seasonWorkspaceService.loadWorkspace(
+            seasonId,
+            parsedView,
+            eventPage,
+            eventSize,
+            principal,
+        )
+    }
 
     @PatchMapping("/seasons/{seasonId}")
     fun update(

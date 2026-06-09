@@ -18,7 +18,7 @@ describe('notification-volume simulator', () => {
     const model = buildSeasonModel(raw)
     const orga = model.participants.find((p) => p.id === 'p3')
     assert.equal(orga?.isOrganizer, true)
-    assert.equal(model.events.length, 2)
+    assert.equal(model.events.length, 3)
     assert.equal(model.events[0].lifecycle, 'AWAITING_CONFIRMATIONS')
   })
 
@@ -65,5 +65,27 @@ describe('notification-volume simulator', () => {
       p90: 0,
       p95: 0,
     })
+  })
+
+  it('simulates AVAILABILITY_PENDING_REMINDER for unknown roster on open events (8.7)', () => {
+    const raw = JSON.parse(readFileSync(FIXTURE, 'utf8'))
+    const preferences = loadPreferences(DEFAULT_PREFS)
+    const result = simulateNotificationVolume(raw, { preferences })
+    const pending = result.deliveries.filter(
+      (d) => d.intent === 'AVAILABILITY_PENDING_REMINDER' && d.delivered && d.channel === 'email',
+    )
+    assert.ok(pending.length > 0, 'expected pending availability reminders')
+    assert.ok(
+      pending.some((d) => d.recipientId === 'p2' && d.eventId === 'evt3'),
+      'bob has no dispo row for evt3',
+    )
+    assert.ok(
+      !pending.some((d) => d.recipientId === 'p1' && d.eventId === 'evt3'),
+      'alice answered evt3 — excluded from unknown set',
+    )
+    assert.ok(
+      !pending.some((d) => d.eventId === 'evt1'),
+      'evt1 composition validated — not collecting',
+    )
   })
 })

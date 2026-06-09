@@ -50,6 +50,7 @@
         [canManageEvents]="canManageEvents()"
         [canEditAvailability]="canEditAvailability()"
         [categoryLabels]="categoryLabels()"
+        [viewerGender]="viewerGender()"
         (eventClick)="openEvent($event)"
         (loadMoreClick)="loadMoreEvents()"
         (availabilityClick)="openAvailability($event)"
@@ -65,6 +66,7 @@
         [loadedEventsCount]="pastEvents().length"
         [filtersExcludeAll]="historyFiltersExcludeAll()"
         [categoryLabels]="categoryLabels()"
+        [viewerGender]="viewerGender()"
         (eventClick)="openEvent($event)"
         (loadMoreClick)="loadMorePastEvents()"
       />

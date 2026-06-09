@@ -33,6 +33,36 @@ interface SeasonOrganizerRepository : JpaRepository<SeasonOrganizerEntity, Seaso
         seasonId: UUID,
         userId: UUID,
     ): Boolean
+
+    @Query(
+        """
+        SELECT CASE WHEN
+          EXISTS (
+            SELECT 1 FROM TroupeMembershipEntity tm
+            WHERE tm.troupe.id = :troupeId
+              AND tm.user.id = :userId
+              AND tm.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+              AND tm.baselineRole = com.hatcast.api.troupe.TroupeBaselineRole.TROUPE_ADMIN
+          )
+          OR EXISTS (
+            SELECT 1 FROM SeasonOrganizerEntity so
+            WHERE so.season.id = :seasonId AND so.user.id = :userId
+          )
+          OR EXISTS (
+            SELECT 1 FROM EventOrganizerEntity eo
+            WHERE eo.event.id = :eventId AND eo.user.id = :userId
+          )
+        THEN true ELSE false END
+        FROM SeasonEntity s
+        WHERE s.id = :seasonId
+        """,
+    )
+    fun canManageCompositionForUser(
+        @Param("troupeId") troupeId: UUID,
+        @Param("seasonId") seasonId: UUID,
+        @Param("eventId") eventId: UUID,
+        @Param("userId") userId: UUID,
+    ): Boolean
 }
 
 interface EventOrganizerRepository : JpaRepository<EventOrganizerEntity, EventOrganizerId> {

@@ -23,6 +23,13 @@
       "date": "2026-02-14",
       "archived": true,
       "roles": { "player": 2 }
+    },
+    {
+      "id": "evt3",
+      "title": "Soirée Mars",
+      "date": "2026-03-15",
+      "archived": false,
+      "roles": { "player": 2 }
     }
   ],
   "players": [
@@ -33,7 +40,8 @@
   "availability": [
     { "v1PlayerId": "p1", "v1EventId": "evt1", "available": true, "roles": ["player"] },
     { "v1PlayerId": "p2", "v1EventId": "evt1", "available": false, "roles": [] },
-    { "v1PlayerId": "p1", "v1EventId": "evt2", "available": true, "roles": ["player"] }
+    { "v1PlayerId": "p1", "v1EventId": "evt2", "available": true, "roles": ["player"] },
+    { "v1PlayerId": "p1", "v1EventId": "evt3", "available": true, "roles": ["player"] }
   ],
   "casts": [
     {

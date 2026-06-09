@@ -19,10 +19,12 @@ class ShellChildStub {}
 describe('MemberShell', () => {
   let fixture: ComponentFixture<MemberShell>
   let router: Router
-  let inboxApi: { getInbox: ReturnType<typeof vi.fn> }
+  let inboxFetchCount: number
 
   beforeEach(async () => {
     localStorage.clear()
+    sessionStorage.clear()
+    inboxFetchCount = 0
     vi.stubGlobal(
       'matchMedia',
       vi.fn((query: string) => ({
@@ -32,18 +34,26 @@ describe('MemberShell', () => {
         removeEventListener: vi.fn(),
       })),
     )
-    inboxApi = {
-      getInbox: vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        data: {
-          actions: [],
-          nextEvent: null,
-          shortcuts: { lastSeasonSlug: null, seasonGlanceQuery: {} },
-          noParticipation: false,
-        },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url.includes('/v1/me/inbox')) {
+          inboxFetchCount += 1
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              actions: [],
+              nextEvent: null,
+              shortcuts: { lastSeasonSlug: null, seasonGlanceQuery: {} },
+              noParticipation: false,
+            }),
+          }
+        }
+        return { ok: false, status: 404, json: async () => ({}) }
       }),
-    }
+    )
 
     await TestBed.configureTestingModule({
       imports: [MemberShell, NoopAnimationsModule],
@@ -63,8 +73,8 @@ describe('MemberShell', () => {
             ],
           },
         ]),
+        MeInboxApiService,
         MemberInboxBadgeService,
-        { provide: MeInboxApiService, useValue: inboxApi },
         {
           provide: TroupeSeasonResolverService,
           useValue: { resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }) },
@@ -107,11 +117,13 @@ describe('MemberShell', () => {
     }).compileComponents()
 
     router = TestBed.inject(Router)
+    TestBed.inject(MeInboxApiService).bindSessionUser('user-1')
     fixture = TestBed.createComponent(MemberShell)
   })
 
   afterEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     vi.unstubAllGlobals()
   })
 
@@ -170,16 +182,27 @@ describe('MemberShell', () => {
     expect(fixture.nativeElement.querySelector('app-member-nav')).not.toBeNull()
   })
 
-  it('loads inbox badge on init', async () => {
-    await renderAt('/accueil')
-    expect(inboxApi.getInbox).toHaveBeenCalled()
+  it('loads inbox badge on init for non-accueil routes', async () => {
+    await renderAt('/agenda')
+    expect(inboxFetchCount).toBe(1)
   })
 
-  it('refreshes inbox badge when navigating back to accueil', async () => {
-    await renderAt('/agenda')
-    inboxApi.getInbox.mockClear()
+  it('does not refresh inbox badge from shell on accueil init', async () => {
+    const badge = TestBed.inject(MemberInboxBadgeService)
+    const refreshSpy = vi.spyOn(badge, 'refresh')
     await renderAt('/accueil')
-    expect(inboxApi.getInbox).toHaveBeenCalled()
+    expect(refreshSpy).not.toHaveBeenCalled()
+    expect(inboxFetchCount).toBe(0)
+  })
+
+  it('uses inbox cache when shell remounts within TTL', async () => {
+    await renderAt('/agenda')
+    expect(inboxFetchCount).toBe(1)
+    fixture.destroy()
+
+    fixture = TestBed.createComponent(MemberShell)
+    await renderAt('/compte')
+    expect(inboxFetchCount).toBe(1)
   })
 
   it('persists last member entry path on shell NavigationEnd', async () => {

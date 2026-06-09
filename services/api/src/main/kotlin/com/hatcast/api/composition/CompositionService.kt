@@ -20,15 +20,13 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
-import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
-import com.hatcast.api.user.ParticipantAvatarResolver
-import com.hatcast.api.user.ParticipantGenderResolver
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -39,7 +37,6 @@ import java.util.UUID
 
 @Service
 class CompositionService(
-    private val seasonRepository: SeasonRepository,
     private val eventRepository: EventRepository,
     private val compositionRepository: EventCompositionRepository,
     private val slotRepository: EventCompositionSlotRepository,
@@ -59,8 +56,6 @@ class CompositionService(
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
     private val consecutiveShowWarningService: ConsecutiveShowWarningService,
     private val multiRoleOnEventWarningService: MultiRoleOnEventWarningService,
-    private val participantGenderResolver: ParticipantGenderResolver,
-    private val participantAvatarResolver: ParticipantAvatarResolver,
 ) {
     @Transactional(readOnly = true)
     fun getComposition(
@@ -281,12 +276,9 @@ class CompositionService(
         canManage: Boolean? = null,
         includeSlotExplainability: Boolean = true,
     ): CompositionResponseDto {
-        if (includeSlotExplainability) {
-            seasonParticipantService.ensureMembershipParticipants(event.season)
-        }
         val seasonId = event.season.id
         val eventId = event.id
-        val resolvedCanManage = canManage ?: organizerAccess.canManageComposition(eventId, seasonId, principal)
+        val resolvedCanManage = canManage ?: organizerAccess.canManageComposition(eventId, event.season, principal)
         val composition = compositionRepository.findById(eventId).orElse(null)
         val normalizedRoleSlots = RoleTemplates.normalize(event.roleSlots)
         val slots =
@@ -309,6 +301,9 @@ class CompositionService(
                 slots,
                 resolvedCanManage,
             )
+        if (showExplainability && includeSlotExplainability) {
+            seasonParticipantService.ensureMembershipParticipants(event.season)
+        }
         val explainabilityByRoleAndParticipant =
             if (showExplainability && includeSlotExplainability) {
                 buildExplainabilityLookup(event, seasonId, eventId, slots)
@@ -316,14 +311,35 @@ class CompositionService(
                 emptyMap()
             }
 
+        val declineRows =
+            if (canViewSlots) {
+                declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId)
+            } else {
+                emptyList()
+            }
+        val participantIdsForPresentation =
+            if (canViewSlots) {
+                val fromSlots = slots.mapNotNull { it.assignedParticipantId() }
+                val fromDeclines =
+                    declineRows.mapNotNull { row ->
+                        row.seasonParticipantId ?: row.eventParticipantId
+                    }
+                (fromSlots + fromDeclines).toSet()
+            } else {
+                emptySet()
+            }
+        val presentation =
+            if (participantIdsForPresentation.isEmpty()) {
+                ParticipantPresentation.EMPTY
+            } else {
+                resolveParticipantPresentation(eventId, participantIdsForPresentation)
+            }
+        val displayNames = presentation.displayNames
+        val gendersByParticipantId = presentation.genders
+        val avatarUrlsByParticipantId = presentation.avatarUrls
+
         val slotDtos =
             if (canViewSlots) {
-                val participantIds = slots.mapNotNull { it.assignedParticipantId() }.toSet()
-                val displayNames = resolveDisplayNames(eventId, participantIds)
-                val gendersByParticipantId =
-                    participantGenderResolver.resolveByParticipantIds(eventId, participantIds)
-                val avatarUrlsByParticipantId =
-                    participantAvatarResolver.resolveByParticipantIds(eventId, participantIds)
                 val consecutiveWarningsBySlot =
                     if (resolvedCanManage) {
                         consecutiveShowWarningService.warningsBySlotKey(event, slots)
@@ -375,7 +391,12 @@ class CompositionService(
             )
         val declineDtos =
             if (canViewSlots) {
-                mapDeclines(eventId, declineRepository.findByEventIdOrderByDeclinedAtDesc(eventId))
+                mapDeclines(
+                    declineRows,
+                    displayNames,
+                    gendersByParticipantId,
+                    avatarUrlsByParticipantId,
+                )
             } else {
                 emptyList()
             }
@@ -391,21 +412,14 @@ class CompositionService(
     }
 
     private fun mapDeclines(
-        eventId: UUID,
         rows: List<EventCompositionDeclineEntity>,
+        displayNames: Map<UUID, String>,
+        gendersByParticipantId: Map<UUID, String>,
+        avatarUrlsByParticipantId: Map<UUID, String?>,
     ): List<CompositionDeclineDto> {
         if (rows.isEmpty()) {
             return emptyList()
         }
-        val participantIds =
-            rows.mapNotNull { row ->
-                row.seasonParticipantId ?: row.eventParticipantId
-            }.toSet()
-        val displayNames = resolveDisplayNames(eventId, participantIds)
-        val gendersByParticipantId =
-            participantGenderResolver.resolveByParticipantIds(eventId, participantIds)
-        val avatarUrlsByParticipantId =
-            participantAvatarResolver.resolveByParticipantIds(eventId, participantIds)
         return rows.map { row ->
             val participantId =
                 row.seasonParticipantId ?: row.eventParticipantId
@@ -564,26 +578,47 @@ class CompositionService(
         return byId.values.toList()
     }
 
-    private fun resolveDisplayNames(
+    private data class ParticipantPresentation(
+        val displayNames: Map<UUID, String>,
+        val genders: Map<UUID, String>,
+        val avatarUrls: Map<UUID, String?>,
+    ) {
+        companion object {
+            val EMPTY = ParticipantPresentation(emptyMap(), emptyMap(), emptyMap())
+        }
+    }
+
+    private fun resolveParticipantPresentation(
         eventId: UUID,
         participantIds: Set<UUID>,
-    ): Map<UUID, String> {
-        if (participantIds.isEmpty()) {
-            return emptyMap()
+    ): ParticipantPresentation {
+        val displayNames = linkedMapOf<UUID, String>()
+        val genders = linkedMapOf<UUID, String>()
+        val avatarUrls = linkedMapOf<UUID, String?>()
+        val seasonRows = seasonParticipantRepository.findAllByIdWithUserAssociations(participantIds)
+        val resolvedSeasonIds = mutableSetOf<UUID>()
+        for (row in seasonRows) {
+            resolvedSeasonIds.add(row.id)
+            displayNames[row.id] = row.displayName
+            genders[row.id] = ParticipantRowPresentation.effectiveGenderWire(row)
+            avatarUrls[row.id] =
+                ParticipantRowPresentation.publicAvatarUrlIfStored(ParticipantRowPresentation.linkedUser(row))
         }
-        val names =
-            seasonParticipantRepository
-                .findAllById(participantIds)
-                .associate { it.id to it.displayName }
-                .toMutableMap()
-        val unresolved = participantIds - names.keys
+        val unresolved = participantIds - resolvedSeasonIds
         if (unresolved.isNotEmpty()) {
             eventParticipantRepository
-                .findAllById(unresolved)
+                .findAllByIdWithUser(unresolved)
                 .filter { it.event.id == eventId }
-                .forEach { row -> names[row.id] = row.displayName }
+                .forEach { row ->
+                    displayNames[row.id] = row.displayName
+                    genders[row.id] = ParticipantRowPresentation.effectiveGenderWire(row)
+                    avatarUrls[row.id] = ParticipantRowPresentation.publicAvatarUrlIfStored(row.user)
+                }
         }
-        return names
+        for (participantId in participantIds) {
+            genders.putIfAbsent(participantId, "non_specified")
+        }
+        return ParticipantPresentation(displayNames, genders, avatarUrls)
     }
 
     private fun loadAuthorizedEvent(
@@ -591,18 +626,10 @@ class CompositionService(
         eventId: UUID,
         principal: SessionUserPrincipal,
     ): EventEntity {
-        val season =
-            seasonRepository
-                .findById(seasonId)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        guestInvitationAccess.requireMemberOrInvitedGuest(seasonId, eventId, principal)
         val event =
-            eventRepository
-                .findById(eventId)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
-        if (event.season.id != seasonId) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
-        }
+            eventRepository.findByIdAndSeason_IdWithSeason(eventId, seasonId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
+        guestInvitationAccess.requireMemberOrInvitedGuest(event.season, eventId, principal)
         return event
     }
 }

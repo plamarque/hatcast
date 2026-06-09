@@ -4,6 +4,7 @@ import com.hatcast.api.composition.EventCompositionEntity
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotEntity
 import com.hatcast.api.composition.EventCompositionSlotRepository
+import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
@@ -225,6 +226,193 @@ class AvailabilityControllerIntegrationTest {
     private fun syncSeasonParticipants(seasonId: UUID) {
         val season = seasonRepository.findById(seasonId).orElseThrow()
         seasonParticipantService.ensureMembershipParticipants(season)
+    }
+
+    @Test
+    @Tag("FR24")
+    fun `member includeChances on published event without composition returns chances`() {
+        val admin = memberCookie("sub-avail-dispos-chances-admin")
+        val member = signInOnly("sub-avail-dispos-chances-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+
+        val (seasonId, eventId) =
+            createSeasonAndEvent(
+                admin,
+                """
+                {
+                  "title": "Dispos chances sans compo",
+                  "startsAt": "2031-04-01T19:00:00Z",
+                  "roleSlots": { "player": 1 }
+                }
+                """.trimIndent(),
+            )
+
+        setAvailabilityForMember(seasonId, eventId, admin, "available", listOf("player"))
+        setAvailabilityForMember(seasonId, eventId, member, "available", listOf("player"))
+        syncSeasonParticipants(seasonId)
+
+        assert(compositionRepository.findById(eventId).isEmpty) {
+            "precondition: no event_compositions row"
+        }
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true")
+                    .cookie(member),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").exists())
+    }
+
+    @Test
+    @Tag("FR24")
+    fun `organizer includeChances on draft event returns chances`() {
+        val admin = memberCookie("sub-avail-dispos-orga-draft-admin")
+        val (seasonId, eventId) =
+            createSeasonAndDraftEvent(
+                admin,
+                """
+                {
+                  "title": "Brouillon chances orga",
+                  "startsAt": "2031-04-20T19:00:00Z",
+                  "roleSlots": { "player": 1 }
+                }
+                """.trimIndent(),
+            )
+
+        setAvailabilityForMember(seasonId, eventId, admin, "available", listOf("player"))
+        syncSeasonParticipants(seasonId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true")
+                    .cookie(admin),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").exists())
+    }
+
+    @Test
+    @Tag("FR24")
+    fun `archived event member summary omits chance percents when includeChances true`() {
+        val admin = memberCookie("sub-avail-dispos-archived-admin")
+        val member = signInOnly("sub-avail-dispos-archived-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+
+        val (seasonId, eventId) =
+            createSeasonAndEvent(
+                admin,
+                """
+                {
+                  "title": "Dispos chances archivé",
+                  "startsAt": "2031-06-01T19:00:00Z",
+                  "roleSlots": { "player": 1 }
+                }
+                """.trimIndent(),
+            )
+
+        setAvailabilityForMember(seasonId, eventId, admin, "available", listOf("player"))
+        setAvailabilityForMember(seasonId, eventId, member, "available", listOf("player"))
+        syncSeasonParticipants(seasonId)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/actions/archive")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true")
+                    .cookie(member),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.chanceSource").value(nullValue()))
+            .andExpect(jsonPath("$.roles[0].candidates[*].chancePercent").value(org.hamcrest.Matchers.everyItem(nullValue())))
+    }
+
+    @Test
+    @Tag("FR24")
+    fun `draft event member summary omits chance percents when includeChances true`() {
+        val admin = memberCookie("sub-avail-dispos-draft-admin")
+        val member = signInOnly("sub-avail-dispos-draft-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+
+        val (seasonId, eventId) = createSeasonAndDraftEvent(admin)
+
+        setAvailabilityForMember(seasonId, eventId, admin, "available", listOf("player"))
+        syncSeasonParticipants(seasonId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true")
+                    .cookie(member),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    @Tag("FR23")
+    fun `unlock hides equipe slots but dispos includeChances still returns chances`() {
+        val admin = memberCookie("sub-avail-unlock-dispos-admin")
+        val member = signInOnly("sub-avail-unlock-dispos-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+
+        val (seasonId, eventId) = createSeasonAndEvent(admin, """{"title":"Unlock dispos","startsAt":"2031-05-01T19:00:00Z","roleSlots":{"player":1}}""".trimIndent())
+
+        setAvailabilityForMember(seasonId, eventId, admin, "available", listOf("player"))
+        setAvailabilityForMember(seasonId, eventId, member, "available", listOf("player"))
+        syncSeasonParticipants(seasonId)
+
+        val participantId = participantIdForUser(seasonId, "sub-avail-unlock-dispos-member")
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = null,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 0,
+                seasonParticipantId = participantId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/validate")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots.length()").value(1))
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/composition/unlock")
+                    .cookie(admin)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.visibility").value("none"))
+            .andExpect(jsonPath("$.slots").isEmpty)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true")
+                    .cookie(member),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").exists())
     }
 
     @Test

@@ -62,6 +62,8 @@
               [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
               [canManageComposition]="canManageComposition()"
               [organizersReloadTrigger]="organizersReloadTrigger()"
+              [bootstrapOrganizers]="infosOrganizers()"
+              [bootstrapCategories]="infosCategories()"
               (eventUpdated)="onEventInfosUpdated($event)"
             />
           </section>
@@ -70,23 +72,31 @@
 
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="event-detail__tab-icon" aria-hidden="true">grid_on</mat-icon>
+          <mat-icon class="event-detail__tab-icon" aria-hidden="true">ballot</mat-icon>
           Dispos
         </ng-template>
         @if (activeTab() === 'dispos') {
           <section class="event-detail__tab-panel">
-            <app-event-dispos-tab
+            @if (isDisposBootstrapReady()) {
+              <app-event-dispos-tab
               [seasonId]="seasonId()"
               [seasonSlug]="slug()"
               [troupeSlug]="routeTroupeSlug()"
               [troupeId]="troupeId()"
               [event]="ev"
               [currentUserId]="user()?.id ?? ''"
+              [linkedParticipantId]="linkedParticipantId()"
               [canSwitchSubject]="canSwitchSubject()"
               [canManageComposition]="canManageComposition()"
               [explainabilityEnabled]="disposExplainabilityEnabled()"
+              [bootstrapSummary]="disposBootstrapSummary()"
               (summaryChanged)="onDisposSummaryChanged($event)"
             />
+            } @else {
+              <div class="event-detail__spinner" role="status">
+                <mat-spinner diameter="32" />
+              </div>
+            }
           </section>
         }
       </mat-tab>
@@ -105,6 +115,9 @@
             [event]="ev"
             [canManageComposition]="canManageComposition()"
             [showConfirmPending]="showConfirmPending()"
+            [compositionLoadManagedByParent]="true"
+            [parentComposition]="composition()"
+            [parentCompositionLoaded]="compositionLoaded()"
             (compositionPublished)="syncCompositionFromEquipe($event)"
             (compositionInteractionBlockedChange)="onCompositionInteractionBlockedChange($event)"
           />

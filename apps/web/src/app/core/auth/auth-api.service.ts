@@ -1,7 +1,10 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { signOut } from 'firebase/auth'
 
+import { MePreferencesApiService } from '../account/me-preferences-api.service'
+import { MeInboxApiService } from '../inbox/me-inbox-api.service'
 import { ProductAnalyticsService } from '../analytics/product-analytics.service'
+import { TroupeApiService } from '../troupes/troupe-api.service'
 import { csrfHeaders } from '../http/hatcast-csrf'
 import { FirebaseAuthService } from './firebase-auth.service'
 import {
@@ -30,13 +33,19 @@ export interface AuthSessionBody {
   platformAdmin?: boolean
 }
 
+export type AuthSessionResult = { ok: boolean; status: number; data?: AuthSessionBody }
+
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
   private readonly firebaseAuth = inject(FirebaseAuthService)
+  private readonly mePreferencesApi = inject(MePreferencesApiService)
+  private readonly meInboxApi = inject(MeInboxApiService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly productAnalytics = inject(ProductAnalyticsService)
   private readonly sessionUserSignal = signal<UserSummary | null>(null)
-  private ensureInFlight: Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> | null =
-    null
+  private sessionCache: AuthSessionResult | null = null
+  private sessionCacheGeneration = 0
+  private ensureInFlight: Promise<AuthSessionResult> | null = null
 
   /** Utilisateur HatCast en session (mis à jour par ensureHatcastSession et les flux auth). */
   readonly sessionUser = this.sessionUserSignal.asReadonly()
@@ -44,28 +53,62 @@ export class AuthApiService {
   /**
    * GET /v1/auth/me ; si 401 et « se souvenir de moi » + session Firebase encore présente,
    * rééchange un ID token Identity Platform → session HatCast (redémarrage API / perte cookie serveur).
+   * Session memo until logout / 401 / force refresh (PERF-04).
    */
-  async ensureHatcastSession(): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
-    if (this.ensureInFlight) {
-      return this.ensureInFlight
+  async ensureHatcastSession(options?: { force?: boolean }): Promise<AuthSessionResult> {
+    const force = options?.force ?? false
+
+    if (!force && this.sessionCache?.ok) {
+      return this.sessionCache
     }
 
+    if (this.ensureInFlight) {
+      if (!force) {
+        return this.ensureInFlight
+      }
+      await this.ensureInFlight
+    }
+
+    const generation = this.sessionCacheGeneration
     this.ensureInFlight = this.resolveEnsureHatcastSession()
     try {
-      return await this.ensureInFlight
+      const result = await this.ensureInFlight
+      this.applySessionCacheResult(result, generation)
+      return result
     } finally {
       this.ensureInFlight = null
     }
   }
 
-  private async resolveEnsureHatcastSession(): Promise<{
-    ok: boolean
-    status: number
-    data?: AuthSessionBody
-  }> {
+  /** Clears session memo — call after logout or failed auth. */
+  invalidateSessionCache(): void {
+    this.sessionCacheGeneration++
+    this.sessionCache = null
+    this.ensureInFlight = null
+  }
+
+  private writeSessionCache(result: AuthSessionResult, generation: number): void {
+    if (result.ok && generation === this.sessionCacheGeneration) {
+      this.sessionCache = result
+    }
+  }
+
+  private applySessionCacheResult(result: AuthSessionResult, generation?: number): void {
+    const gen = generation ?? this.sessionCacheGeneration
+    if (result.ok) {
+      this.writeSessionCache(result, gen)
+      return
+    }
+    if (result.status === 401) {
+      this.sessionUserSignal.set(null)
+      this.invalidateSessionCache()
+      this.troupeApi.invalidateCache()
+    }
+  }
+
+  private async resolveEnsureHatcastSession(): Promise<AuthSessionResult> {
     const first = await this.getMe()
     if (first.ok) {
-      this.applySessionBody(first.data)
       return first
     }
 
@@ -85,31 +128,42 @@ export class AuthApiService {
       if (!exchanged.ok) {
         return first
       }
-      const refreshed = await this.getMe()
-      if (refreshed.ok) {
-        this.applySessionBody(refreshed.data)
-      }
-      return refreshed
+      return await this.getMe()
     } catch {
       return first
     }
   }
 
-  private applySessionBody(data?: AuthSessionBody): void {
+  private applySessionBody(data?: AuthSessionBody, cacheGeneration?: number): void {
     if (data?.user) {
+      const previousUserId = this.sessionUserSignal()?.id
+      if (previousUserId != null && previousUserId !== data.user.id) {
+        this.mePreferencesApi.invalidateCache()
+        this.troupeApi.invalidateCache()
+      }
+      this.meInboxApi.bindSessionUser(data.user.id)
       this.sessionUserSignal.set(data.user)
       this.productAnalytics.identifyUser(data.user.id)
+      const gen = cacheGeneration ?? this.sessionCacheGeneration
+      this.writeSessionCache({ ok: true, status: 200, data }, gen)
     }
   }
 
-  async getMe(): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
+  async getMe(): Promise<AuthSessionResult> {
+    const generation = this.sessionCacheGeneration
+    const result = await this.fetchMe(generation)
+    this.applySessionCacheResult(result, generation)
+    return result
+  }
+
+  private async fetchMe(cacheGeneration: number): Promise<AuthSessionResult> {
     try {
       const res = await fetch('/v1/auth/me', { credentials: 'include' })
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as AuthSessionBody
-      this.applySessionBody(data)
+      this.applySessionBody(data, cacheGeneration)
       return { ok: true, status: res.status, data }
     } catch {
       return { ok: false, status: 0 }
@@ -219,6 +273,10 @@ export class AuthApiService {
 
     this.sessionUserSignal.set(null)
     this.productAnalytics.resetSession()
+    this.invalidateSessionCache()
+    this.mePreferencesApi.invalidateCache()
+    this.meInboxApi.invalidateCache()
+    this.troupeApi.invalidateCache()
 
     return apiOk
   }
@@ -238,6 +296,9 @@ export class AuthApiService {
       })
       if (res.status === 204) {
         this.sessionUserSignal.set(null)
+        this.invalidateSessionCache()
+        this.meInboxApi.invalidateCache()
+        this.troupeApi.invalidateCache()
         return { ok: true, status: res.status }
       }
       let message: string | undefined

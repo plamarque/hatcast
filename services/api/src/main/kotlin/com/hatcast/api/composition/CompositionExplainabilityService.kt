@@ -2,6 +2,7 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
+import com.hatcast.api.availability.DisposExplainabilityAccess
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.draw.ChanceBreakdownCalculator
 import com.hatcast.api.availability.draw.DrawWeightPipelines
@@ -244,6 +245,9 @@ class CompositionExplainabilityService(
         principal: SessionUserPrincipal,
     ): Boolean {
         val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
+        if (DisposExplainabilityAccess.canShowExplainability(event, canManage)) {
+            return true
+        }
         val composition = compositionRepository.findById(eventId).orElse(null)
         val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
         val slots =

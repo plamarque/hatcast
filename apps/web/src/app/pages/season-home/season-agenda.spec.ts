@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { SeasonAgenda } from './season-agenda'
 import type { MonthEventGroup } from './season-events.utils'
 import { emptyRoleSlots } from '../../core/events/event-types'
@@ -244,5 +245,44 @@ describe('SeasonAgenda', () => {
     expect(el.querySelector('.agenda-card')).toBeTruthy()
     expect(el.textContent).toContain('200 prochains spectacles')
     expect(button.disabled).toBe(true)
+  })
+
+  it('does not fetch preferences in participation status when viewerGender is provided', async () => {
+    const getPreferences = vi.fn()
+    await TestBed.resetTestingModule()
+    await TestBed.configureTestingModule({
+      imports: [SeasonAgenda],
+      providers: [{ provide: MePreferencesApiService, useValue: { getPreferences } }],
+    }).compileComponents()
+
+    const isolated = TestBed.createComponent(SeasonAgenda)
+    isolated.componentRef.setInput('monthGroups', monthGroups)
+    isolated.componentRef.setInput('viewerGender', 'female')
+    isolated.detectChanges()
+    await isolated.whenStable()
+
+    expect(isolated.nativeElement.querySelector('app-agenda-participation-status')).toBeTruthy()
+    expect(getPreferences).not.toHaveBeenCalled()
+  })
+
+  it('fetches preferences in participation status when viewerGender is not provided', async () => {
+    const getPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { memberDisplayName: 'Léa', preferredRoleKeys: [], gender: 'female' },
+    })
+    await TestBed.resetTestingModule()
+    await TestBed.configureTestingModule({
+      imports: [SeasonAgenda],
+      providers: [{ provide: MePreferencesApiService, useValue: { getPreferences } }],
+    }).compileComponents()
+
+    const isolated = TestBed.createComponent(SeasonAgenda)
+    isolated.componentRef.setInput('monthGroups', monthGroups)
+    isolated.detectChanges()
+    await isolated.whenStable()
+
+    expect(isolated.nativeElement.querySelector('app-agenda-participation-status')).toBeTruthy()
+    expect(getPreferences).toHaveBeenCalledTimes(1)
   })
 })

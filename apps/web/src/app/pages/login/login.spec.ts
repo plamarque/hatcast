@@ -33,6 +33,7 @@ describe('Login returnUrl', () => {
         {
           provide: AuthApiService,
           useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({ ok: false, status: 401 }),
             signInWithGoogleIdToken: vi.fn(),
             signInWithIdentityPlatformIdToken: vi.fn(),
           },
@@ -85,6 +86,7 @@ describe('Login returnUrl', () => {
         {
           provide: AuthApiService,
           useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({ ok: false, status: 401 }),
             signInWithGoogleIdToken: vi.fn(),
             signInWithIdentityPlatformIdToken: vi.fn(),
           },
@@ -143,6 +145,7 @@ describe('Login email IdP', () => {
         {
           provide: AuthApiService,
           useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({ ok: false, status: 401 }),
             signInWithGoogleIdToken: vi.fn(),
             signInWithIdentityPlatformIdToken,
             signInWithIdentityPlatformIdTokenWithRetry,

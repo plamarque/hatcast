@@ -1,13 +1,4 @@
 <h2 mat-dialog-title [id]="dialogTitleId">{{ dialogTitle }}</h2>
-<button
-  type="button"
-  mat-icon-button
-  class="share-announce-dialog__close"
-  mat-dialog-close
-  aria-label="Fermer"
->
-  <mat-icon>close</mat-icon>
-</button>
 
 <mat-dialog-content class="share-announce-dialog__content">
   <p class="share-announce-dialog__subtitle">
@@ -31,11 +22,10 @@
     }
   </mat-form-field>
 
-  <div class="share-announce-dialog__actions-row">
+  <div class="share-announce-dialog__actions-row hatcast-dialog-content-actions">
     <button
       type="button"
-      mat-stroked-button
-      class="share-announce-dialog__action-btn"
+      mat-button
       aria-label="Copier le message"
       (click)="copyMessage()"
     >
@@ -44,8 +34,7 @@
     </button>
     <button
       type="button"
-      mat-stroked-button
-      class="share-announce-dialog__action-btn"
+      mat-button
       (click)="openWhatsApp()"
       title="Ouvre WhatsApp avec ce message"
     >
@@ -58,7 +47,7 @@
     <mat-progress-bar mode="indeterminate" aria-busy="true" />
   } @else if (recipientsError()) {
     <p class="share-announce-dialog__error" role="alert">Impossible de charger les destinataires.</p>
-    <button type="button" mat-stroked-button (click)="retryLoadRecipients()">Réessayer</button>
+    <button type="button" mat-button (click)="retryLoadRecipients()">Réessayer</button>
   } @else if (recipientCards().length > 0) {
     <div class="share-announce-dialog__recipients-line">
       @if (alreadyCount() > 0) {
@@ -102,5 +91,5 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end" class="share-announce-dialog__footer">
-  <button type="button" mat-button mat-dialog-close>Fermer</button>
+  <app-hatcast-dialog-dismiss label="fermer" [dialogClose]="true" />
 </mat-dialog-actions>

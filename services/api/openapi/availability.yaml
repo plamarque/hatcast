@@ -139,7 +139,9 @@ paths:
             default: false
           description: >
             Inclure `chancePercent` sur les candidats par rôle (calcul basé sur l'historique
-            de composition). Recommandé pour la vue Tous de l'onglet Dispos (FR19).
+            de composition). Porte Dispos : spectacle publié (`availabilityOpenedAt` défini,
+            non archivé) — indépendant de l'état de la composition (story 5.9).
+            Recommandé pour la vue Tous de l'onglet Dispos (FR19).
       responses:
         '200':
           description: OK

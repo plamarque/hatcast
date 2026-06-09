@@ -64,15 +64,15 @@ body {
   /** Bandeau proxy / avertissement (saisie pour le compte d'un autre membre) */
   --hatcast-proxy-banner-surface: color-mix(
     in srgb,
-    var(--mat-sys-tertiary) 34%,
+    var(--mat-sys-tertiary-container) 52%,
     var(--mat-sys-surface)
   );
   --hatcast-proxy-banner-border: color-mix(
     in srgb,
-    var(--mat-sys-tertiary) 62%,
+    var(--mat-sys-tertiary) 48%,
     transparent
   );
-  --hatcast-proxy-banner-on: var(--mat-sys-on-surface);
+  --hatcast-proxy-banner-on: var(--mat-sys-on-tertiary-container);
   --hatcast-proxy-banner-icon: var(--mat-sys-tertiary);
 }
 
@@ -82,4 +82,5 @@ body {
 @import 'styles/hatcast-agenda-dispo-badge';
 @import 'app/layout/member-shell/member-shell-mobile-chrome.scss';
 @import 'styles/hatcast-filter-picker-overlays.scss';
+@import 'styles/hatcast-dialog-actions.scss';
 @import 'styles/hatcast-equipe-composition';

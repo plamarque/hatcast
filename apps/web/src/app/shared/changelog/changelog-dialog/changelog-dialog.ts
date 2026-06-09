@@ -4,10 +4,11 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { ChangelogService } from '../../../core/app/changelog.service';
+import { HatcastDialogDismiss } from '../../dialog-chrome/hatcast-dialog-dismiss';
 
 @Component({
   selector: 'app-changelog-dialog',
-  imports: [MatButtonModule, MatDialogModule, MatProgressSpinnerModule],
+  imports: [HatcastDialogDismiss, MatButtonModule, MatDialogModule, MatProgressSpinnerModule],
   templateUrl: './changelog-dialog.html',
   styleUrl: './changelog-dialog.scss',
 })

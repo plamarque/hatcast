@@ -9,12 +9,16 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 
+import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
+import { HatcastPickerHeader } from '../dialog-chrome/hatcast-picker-header'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
 import type { ParticipantPickerData, ParticipantPickerResult } from './filter.types'
 
 @Component({
   selector: 'app-filter-participant-picker',
   imports: [
+    HatcastDialogDismiss,
+    HatcastPickerHeader,
     A11yModule,
     FormsModule,
     MatButtonModule,

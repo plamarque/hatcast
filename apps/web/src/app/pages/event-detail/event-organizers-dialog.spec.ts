@@ -103,6 +103,8 @@ describe('EventOrganizersDialog', () => {
     const html = fixture.nativeElement.innerHTML
     expect(html).not.toContain('Retirer')
     expect(fixture.nativeElement.textContent).toContain('Ajouter un·e organisateur·ice')
+    expect(fixture.nativeElement.textContent).toContain('Annuler')
+    expect(fixture.nativeElement.textContent).not.toContain('Fermer')
   })
 
   it('loads troupe members and excludes already assigned organizers from suggestions', async () => {
@@ -120,16 +122,20 @@ describe('EventOrganizersDialog', () => {
     expect(harness().filteredMembers()[0]?.email).toBe('bob@example.com')
   })
 
-  it('stays open after successful add and closes with true when dismissed', async () => {
+  it('closes with true after successful add', async () => {
     const addEventOrganizer = vi.fn().mockResolvedValue({ ok: true, status: 200 })
-    const { close, harness, fixture } = await setup({ addEventOrganizer })
+    const { close, harness } = await setup({ addEventOrganizer })
     const h = harness()
     h.onPickerInput('bob@example.com')
     await h.submit()
     expect(addEventOrganizer).toHaveBeenCalledWith('season-1', 'event-1', 'bob@example.com')
-    expect(close).not.toHaveBeenCalled()
-    ;(fixture.componentInstance as unknown as Harness).close()
     expect(close).toHaveBeenCalledWith(true)
+  })
+
+  it('closes without result when dismissed without adding', async () => {
+    const { close, harness } = await setup({})
+    harness().close()
+    expect(close).toHaveBeenCalledWith()
   })
 
   it('shows French message on 404 when adding', async () => {

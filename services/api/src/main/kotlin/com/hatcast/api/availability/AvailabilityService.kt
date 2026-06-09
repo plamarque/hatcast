@@ -14,7 +14,6 @@ import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
-import com.hatcast.api.composition.CompositionExplainabilityAccess
 import com.hatcast.api.composition.CompositionSelectionHistoryService
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotRepository
@@ -203,7 +202,7 @@ class AvailabilityService(
         requireAvailabilitySummaryReadable(event, seasonId, principal)
         val effectiveIncludeChances =
             includeChances &&
-                resolveExplainabilityForSummary(event, seasonId, eventId, principal)
+                resolveExplainabilityForSummary(event, principal)
         val eligible = loadEligibleParticipants(seasonId, event.id)
         val availabilityIndex = buildAvailabilityIndex(event.id)
 
@@ -378,7 +377,7 @@ class AvailabilityService(
     }
 
     private fun buildAvailabilityIndex(eventId: UUID): AvailabilityIndex {
-        val rows = availabilityRepository.findByEvent_Id(eventId)
+        val rows = availabilityRepository.findByEvent_IdWithAssociations(eventId)
         return AvailabilityIndex(
             byUserId = rows.mapNotNull { row -> row.user?.id?.let { it to row } }.toMap(),
             bySeasonParticipantId =
@@ -738,7 +737,7 @@ class AvailabilityService(
     ): List<EligibleParticipantRow> {
         val seasonRows =
             seasonParticipantRepository
-                .findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE)
+                .findActiveForSeasonWithAssociations(seasonId, ParticipantStatus.ACTIVE)
                 .filter { row ->
                     row.troupeMembership == null ||
                         row.troupeMembership?.status == TroupeMembershipStatus.ACTIVE
@@ -748,7 +747,6 @@ class AvailabilityService(
                 .findByIdEventId(eventId)
                 .map { it.id.seasonParticipantId }
                 .toSet()
-        val seasonParticipantIds = seasonRows.map { it.id }.toSet()
         val byId = linkedMapOf<UUID, EligibleParticipantRow>()
         val seenUserIds = mutableSetOf<UUID>()
 
@@ -757,17 +755,19 @@ class AvailabilityService(
                 continue
             }
             byId[row.id] = toEligibleRow(row)
-            row.user?.id?.let { seenUserIds.add(it) }
+            val user = row.user ?: row.troupeMembership?.user
+            user?.id?.let { seenUserIds.add(it) }
         }
 
         val eventRows =
-            eventParticipantRepository.findByEvent_IdAndStatusOrderByDisplayNameAsc(
+            eventParticipantRepository.findActiveForEventWithAssociations(
                 eventId,
                 ParticipantStatus.ACTIVE,
             )
         for (row in eventRows) {
             val linkedSeasonId = row.seasonParticipant?.id
-            if (linkedSeasonId != null && linkedSeasonId in seasonParticipantIds) {
+            // Skip only when the season row is already in the pool (not when excluded from this event).
+            if (linkedSeasonId != null && linkedSeasonId in byId) {
                 continue
             }
             val userId = row.user?.id
@@ -810,18 +810,10 @@ class AvailabilityService(
         eventId: UUID,
         principal: SessionUserPrincipal,
     ): EventEntity {
-        val season =
-            seasonRepository
-                .findById(seasonId)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        guestInvitationAccess.requireMemberOrInvitedGuest(seasonId, eventId, principal)
         val event =
-            eventRepository
-                .findById(eventId)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
-        if (event.season.id != seasonId) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
-        }
+            eventRepository.findByIdAndSeason_IdWithSeason(eventId, seasonId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
+        guestInvitationAccess.requireMemberOrInvitedGuest(event.season, eventId, principal)
         return event
     }
 
@@ -852,19 +844,10 @@ class AvailabilityService(
 
     private fun resolveExplainabilityForSummary(
         event: EventEntity,
-        seasonId: UUID,
-        eventId: UUID,
         principal: SessionUserPrincipal,
     ): Boolean {
-        val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
-        val composition = compositionRepository.findById(eventId).orElse(null)
-        val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
-        val slots =
-            compositionSlotRepository.findByEventId(eventId).filter { slot ->
-                val count = normalizedSlots[slot.roleKey] ?: 0
-                slot.slotIndex in 0 until count
-            }
-        return CompositionExplainabilityAccess.canShowExplainability(composition, slots, canManage)
+        val canManage = organizerAccess.canManageComposition(event.id, event.season, principal)
+        return DisposExplainabilityAccess.canShowExplainability(event, canManage)
     }
 
     private fun requireAvailabilitySummaryReadable(

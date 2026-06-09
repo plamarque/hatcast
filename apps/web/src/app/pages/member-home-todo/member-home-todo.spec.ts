@@ -1,3 +1,5 @@
+import { signal } from '@angular/core'
+import { By } from '@angular/platform-browser'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
@@ -5,15 +7,20 @@ import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
+import type { UserSummary } from '../../core/auth/auth-api.service'
 import {
   MeInboxApiService,
   type InboxAction,
   type MeInboxResponse,
 } from '../../core/inbox/me-inbox-api.service'
+import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { MemberHomeTodo } from './member-home-todo'
 
 async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> {
@@ -30,8 +37,16 @@ async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> 
 
 describe('MemberHomeTodo', () => {
   let fixture: ComponentFixture<MemberHomeTodo>
-  let inboxApi: { getInbox: ReturnType<typeof vi.fn> }
-  let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
+  let inboxApi: {
+    getInbox: ReturnType<typeof vi.fn>
+    peekFreshCache: ReturnType<typeof vi.fn>
+  }
+  let auth: {
+    sessionUser: ReturnType<typeof signal<UserSummary | null>>
+    ensureHatcastSession: ReturnType<typeof vi.fn>
+  }
+  let memberBootstrap: { ensureReady: ReturnType<typeof vi.fn> }
+  let getPreferences: ReturnType<typeof vi.fn>
   let router: Router
   let navigateByUrlSpy: ReturnType<typeof vi.fn>
   let navigateSpy: ReturnType<typeof vi.fn>
@@ -49,31 +64,47 @@ describe('MemberHomeTodo', () => {
         status: 200,
         data: inboxResponse([]),
       }),
+      peekFreshCache: vi.fn().mockReturnValue(null),
     }
+    const sessionUser = signal<UserSummary | null>({
+      id: 'user-1',
+      slug: 'patrice',
+      email: 'patrice@example.com',
+      displayName: 'Patrice',
+      avatarUrl: null,
+    })
     auth = {
+      sessionUser,
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         data: {
-          user: {
-            id: 'user-1',
-            slug: 'patrice',
-            email: 'patrice@example.com',
-            displayName: 'Patrice',
-            avatarUrl: null,
-          },
+          user: sessionUser(),
           platformAdmin: false,
         },
       }),
     }
+    memberBootstrap = {
+      ensureReady: vi.fn().mockResolvedValue({ ok: true }),
+    }
     snack = { open: vi.fn() }
+    getPreferences = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { memberDisplayName: 'Patrice', preferredRoleKeys: [], gender: 'female' },
+    })
 
     await TestBed.configureTestingModule({
       imports: [MemberHomeTodo, NoopAnimationsModule],
       providers: [
         provideRouter([]),
         { provide: AuthApiService, useValue: auth },
+        { provide: MemberShellBootstrapService, useValue: memberBootstrap },
         { provide: MeInboxApiService, useValue: inboxApi },
+        {
+          provide: MePreferencesApiService,
+          useValue: { getPreferences, cacheRevision: () => 0 },
+        },
         { provide: TroupeSeasonResolverService, useValue: seasonResolver },
         { provide: MatSnackBar, useValue: snack },
       ],
@@ -95,7 +126,135 @@ describe('MemberHomeTodo', () => {
   it('affiche le titre Accueil', async () => {
     await settle(fixture)
     expect(fixture.nativeElement.textContent).toContain('Accueil')
-    expect(inboxApi.getInbox).toHaveBeenCalled()
+    expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: false })
+  })
+
+  it('affiche le titre et les accès rapides avant la fin du chargement inbox', async () => {
+    let resolveInbox!: (value: unknown) => void
+    const inboxDeferred = new Promise((resolve) => {
+      resolveInbox = resolve
+    })
+    inboxApi.getInbox.mockReturnValue(inboxDeferred)
+
+    fixture.detectChanges()
+    for (let i = 0; i < 15; i++) {
+      await fixture.whenStable()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      if (!fixture.componentInstance['loadingSession']()) {
+        break
+      }
+    }
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Accueil')
+    expect(fixture.componentInstance['loadingInbox']()).toBe(true)
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-actions-skeleton"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeTruthy()
+
+    resolveInbox({ ok: true, status: 200, data: inboxResponse([]) })
+    await settle(fixture)
+  })
+
+  it('affiche le cache inbox puis rafraîchit en arrière-plan', async () => {
+    const stale = inboxResponse([availabilityAction('stale', 'Spectacle en cache', isoInDays(2))])
+    const fresh = inboxResponse([availabilityAction('fresh', 'Spectacle à jour', isoInDays(2))])
+    inboxApi.peekFreshCache.mockReturnValue(stale)
+
+    let resolveBackground!: (value: unknown) => void
+    inboxApi.getInbox.mockReturnValue(
+      new Promise((resolve) => {
+        resolveBackground = resolve
+      }),
+    )
+
+    fixture.detectChanges()
+    for (let i = 0; i < 15; i++) {
+      await fixture.whenStable()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      if (!fixture.componentInstance['loadingSession']()) {
+        break
+      }
+    }
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Spectacle en cache')
+    expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: true })
+
+    resolveBackground({ ok: true, status: 200, data: fresh })
+    await settle(fixture)
+    expect(fixture.nativeElement.textContent).toContain('Spectacle à jour')
+  })
+
+  it('conserve le cache inbox quand le refresh background échoue', async () => {
+    const stale = inboxResponse([availabilityAction('stale', 'Spectacle en cache', isoInDays(2))])
+    inboxApi.peekFreshCache.mockReturnValue(stale)
+    inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
+
+    await settle(fixture)
+
+    expect(fixture.nativeElement.textContent).toContain('Spectacle en cache')
+    expect(fixture.nativeElement.textContent).not.toContain('Impossible de charger')
+  })
+
+  it('ne masque pas le badge quand le refresh background échoue', async () => {
+    const stale = inboxResponse([availabilityAction('stale', 'Spectacle en cache', isoInDays(2))])
+    inboxApi.peekFreshCache.mockReturnValue(stale)
+
+    const badge = TestBed.inject(MemberInboxBadgeService)
+    inboxApi.getInbox.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: stale,
+    })
+    await badge.refresh()
+    expect(badge.pendingActionCount()).toBe(1)
+
+    inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
+    fixture = TestBed.createComponent(MemberHomeTodo)
+    await settle(fixture)
+
+    expect(badge.pendingActionCount()).toBe(1)
+    expect(fixture.nativeElement.textContent).toContain('Spectacle en cache')
+  })
+
+  it('n’affiche pas « Tout est à jour » pendant la revalidation SWR', async () => {
+    inboxApi.peekFreshCache.mockReturnValue(inboxResponse([]))
+
+    let resolveBackground!: (value: unknown) => void
+    inboxApi.getInbox.mockReturnValue(
+      new Promise((resolve) => {
+        resolveBackground = resolve
+      }),
+    )
+
+    fixture.detectChanges()
+    for (let i = 0; i < 15; i++) {
+      await fixture.whenStable()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      if (!fixture.componentInstance['loadingSession']()) {
+        break
+      }
+    }
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).not.toContain('Tout est à jour')
+
+    resolveBackground({
+      ok: true,
+      status: 200,
+      data: inboxResponse([]),
+    })
+    await settle(fixture)
+    expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
+  })
+
+  it('affiche les accès rapides même en erreur de chargement inbox', async () => {
+    inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
+
+    await settle(fixture)
+
+    expect(fixture.nativeElement.textContent).toContain('Impossible de charger')
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeTruthy()
   })
 
   it('affiche deux lignes d’action pour deux dispos unknown', async () => {
@@ -320,13 +479,13 @@ describe('MemberHomeTodo', () => {
     ) as HTMLAnchorElement
     expect(seasonLink.textContent).toContain('Ma saison')
     expect(seasonLink.textContent).toContain('Malice 2025-2026')
-    expect(seasonLink.getAttribute('href')).toContain('/saison/ligue-2026')
+    expect(seasonLink.getAttribute('href')).toContain('/saison/la-malice/ligue-2026')
 
     const statsLink = fixture.nativeElement.querySelector(
       '[data-testid="todo-shortcut-season-stats"]',
     ) as HTMLAnchorElement
     expect(statsLink.textContent).toContain('Stats · Malice 2025-2026')
-    expect(statsLink.getAttribute('href')).toContain('/saison/ligue-2026')
+    expect(statsLink.getAttribute('href')).toContain('/saison/la-malice/ligue-2026')
     expect(statsLink.getAttribute('href')).toContain('view=stats')
 
     const troupeLink = fixture.nativeElement.querySelector(
@@ -337,7 +496,8 @@ describe('MemberHomeTodo', () => {
   })
 
   it('redirige vers connexion quand la session est absente', async () => {
-    auth.ensureHatcastSession.mockResolvedValue({ ok: false, status: 401 })
+    memberBootstrap.ensureReady.mockResolvedValue({ ok: false, status: 401 })
+    auth.sessionUser.set(null)
 
     await settle(fixture)
 
@@ -379,6 +539,7 @@ describe('MemberHomeTodo', () => {
     await settle(fixture)
 
     expect(inboxApi.getInbox).toHaveBeenCalledTimes(2)
+    expect(inboxApi.getInbox).toHaveBeenLastCalledWith({ force: true })
     expect(fixture.nativeElement.textContent).toContain('Retour hub')
   })
 
@@ -420,6 +581,21 @@ describe('MemberHomeTodo', () => {
     expect(card?.querySelector('.agenda-card__loc')).toBeFalsy()
   })
 
+  it('preloads viewer gender once for the next-event participation status card', async () => {
+    inboxApi.getInbox.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: inboxResponse([], agendaItem('soon', 'Le prochain', isoInDays(2), 'available')),
+    })
+
+    await settle(fixture)
+
+    const card = fixture.debugElement.query(By.directive(AgendaParticipationStatus))
+    expect(card).toBeTruthy()
+    expect(getPreferences).toHaveBeenCalledTimes(1)
+    expect(card.componentInstance.viewerGender()).toBe('female')
+  })
+
   it('ouvre le prochain spectacle au clic sur la zone cliquable', async () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
@@ -435,7 +611,7 @@ describe('MemberHomeTodo', () => {
     clickable.click()
     await fixture.whenStable()
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-click'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'la-bim', 'ligue-2026', 'event', 'next-click'])
   })
 
   it('affiche le rôle et la confirmation en attente via participantFocus', async () => {
@@ -477,11 +653,11 @@ describe('MemberHomeTodo', () => {
     ) as HTMLElement
 
     clickable.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-key'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'la-bim', 'ligue-2026', 'event', 'next-key'])
 
     navigateSpy.mockClear()
     clickable.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
-    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-2026', 'event', 'next-key'])
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'la-bim', 'ligue-2026', 'event', 'next-key'])
   })
 
   it('affiche confirm avant dispo quand le tri serveur le fournit', async () => {

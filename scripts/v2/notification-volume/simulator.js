@@ -13,6 +13,9 @@ import { computeRawLifecycle } from './lifecycle.js'
 import {
   buildSeasonModel,
   confirmedAssigneeIds,
+  isCollectingAvailabilityOnDay,
+  isInAvailabilityPendingHorizon,
+  isPublishedCollectingAvailability,
   organizerParticipants,
   pendingAssigneeIds,
   teamCompleteMemberIds,
@@ -33,6 +36,8 @@ import { buildVolumeReport } from './stats.js'
  * @property {number} [createdLeadDays=45]
  * @property {number} [slaHorizonDays=30]
  * @property {number} [compositionIncompleteWeeklyCadenceDays=7]
+ * @property {number} [availabilityPendingHorizonDays=21]
+ * @property {number} [availabilityPendingCadenceDays=5]
  * @property {boolean} [includeScheduledJobs=true]
  * @property {boolean} [includeOrgaDraftCreated=true]
  */
@@ -47,7 +52,6 @@ export const NON_REPLAYABLE_INTENTS = [
   'PROXY_CONFIRMATION_RECORDED',
   'EVENT_DETAILS_CHANGED',
   'TEAM_REGRESSED',
-  'AVAILABILITY_PENDING_REMINDER',
   'COMPOSITION_SHARED',
   'ORGANIZER_SCOPE_GRANTED',
   'TEAM_VALIDATED_FYI',
@@ -221,13 +225,16 @@ function replayScheduledJobs(model, options, organizerIds) {
   const prefs = options.preferences
   const horizon = options.slaHorizonDays ?? 30
   const weeklyCadence = options.compositionIncompleteWeeklyCadenceDays ?? 7
+  const pendingHorizon = options.availabilityPendingHorizonDays ?? 21
+  const pendingCadence = options.availabilityPendingCadenceDays ?? 5
 
   const startKey = localDateKey(model.seasonStart)
   const endKey = localDateKey(model.seasonEnd)
   let cursor = toDate(`${startKey}T00:00:00.000Z`)
 
-  /** @type {Map<string, Map<string, string>>} intent -> eventId -> userId -> lastSentIso */
+  /** @type {Map<string, Map<string, string>>} intent -> eventId:userId -> lastSentIso */
   const lastWeeklySent = new Map()
+  const lastPendingSent = new Map()
 
   while (localDateKey(cursor) <= endKey) {
     const dayKey = localDateKey(cursor)
@@ -238,6 +245,29 @@ function replayScheduledJobs(model, options, organizerIds) {
 
       const daysUntil = calendarDaysBetween(morning, event.startsAt)
       const isDraft = event.availabilityOpenedAt == null && !event.archived
+
+      if (
+        isPublishedCollectingAvailability(event) &&
+        isCollectingAvailabilityOnDay(event, morning) &&
+        isInAvailabilityPendingHorizon(event, morning, pendingHorizon)
+      ) {
+        for (const participantId of event.unknownParticipantIds) {
+          const pendingKey = `${event.v1EventId}:${participantId}`
+          const lastMap = lastPendingSent
+          const lastSent = lastMap.get(pendingKey)
+          const daysSince = lastSent ? calendarDaysBetween(toDate(lastSent), morning) : Infinity
+          if (daysSince < pendingCadence) continue
+          emit(out, {
+            recipientId: participantId,
+            recipientRole: 'participant',
+            eventId: event.v1EventId,
+            intent: 'AVAILABILITY_PENDING_REMINDER',
+            timestamp: morning.toISOString(),
+            prefs,
+          })
+          lastMap.set(pendingKey, morning.toISOString())
+        }
+      }
 
       if (isDraft && daysUntil >= 0 && daysUntil <= horizon) {
         for (const orgId of organizerIds) {
@@ -354,9 +384,10 @@ function buildAssumptions(options) {
     'Dispos ouvertes (= AVAILABILITY_OPENED) si engagement détecté (dispo, cast ou déclin).',
     'Validate compo → CONFIRMATION_REQUEST aux assignés encore pending (état final).',
     'Rappels présence J-7/J-1 pour assignés confirmed sur compo validée (08:00 Europe/Paris).',
+    'Rappels dispo pending (8.7) : roster sans réponse dans dump V1, cadence 5j, horizon J+1…J+21, jusqu’à validate compo.',
     'Jobs orga SLA / compo incomplète simulés jour par jour sur la plage saison.',
     `Préférences: push global ${options.preferences.pushGlobalEnabled ? 'ON' : 'OFF'} ; catégories ORG_* ${orgCategoriesOptedIn(options.preferences) ? 'opt-in ON (scénario orga activé)' : 'opt-in OFF par défaut'}.`,
-    'Non simulé: manuels Share, proxies, retraits, changements détail, revalidations, rappels dispo 8.7.',
+    'Non simulé: manuels Share, proxies, retraits, changements détail, revalidations.',
   ]
 }
 

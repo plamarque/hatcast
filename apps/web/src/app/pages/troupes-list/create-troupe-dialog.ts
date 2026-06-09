@@ -65,10 +65,6 @@ import { TroupeApiService } from '../../core/troupes/troupe-api.service'
       margin: 0 0 0.5rem;
       line-height: 1.35;
     }
-    mat-dialog-actions button {
-      min-height: 3rem;
-      min-width: 3rem;
-    }
   `,
 })
 export class CreateTroupeDialog {

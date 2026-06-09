@@ -1,3 +1,5 @@
+@use '../../../styles/hatcast-pill-tab-bar' as pill-tabs;
+
 .account-page {
   max-width: 56rem;
   margin: 0 auto;
@@ -30,9 +32,7 @@
 .account-page__tabs {
   margin-bottom: 0.5rem;
 
-  .mat-mdc-tab-link {
-    min-height: 3rem;
-  }
+  @include pill-tabs.nav-bar();
 }
 
 .account-page__tab-item {

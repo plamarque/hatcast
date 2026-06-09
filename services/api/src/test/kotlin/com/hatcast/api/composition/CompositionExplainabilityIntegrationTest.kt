@@ -4,6 +4,7 @@ import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.EventTestSupport
 import com.hatcast.api.support.TestAuthSupport
@@ -22,6 +23,8 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Instant
 import java.util.UUID
@@ -50,6 +53,9 @@ class CompositionExplainabilityIntegrationTest {
 
     @Autowired
     private lateinit var seasonParticipantRepository: SeasonParticipantRepository
+
+    @Autowired
+    private lateinit var seasonParticipantService: SeasonParticipantService
 
     @Autowired
     private lateinit var compositionRepository: EventCompositionRepository
@@ -155,13 +161,118 @@ class CompositionExplainabilityIntegrationTest {
     }
 
     @Test
-    fun `member cannot read chance breakdown on unpublished draft`() {
+    fun `member can read chance breakdown on published event without composition`() {
+        val adminCookie = memberCookie("sub-exp-no-compo-admin", admin = true)
+        val memberCookie = memberCookie("sub-exp-no-compo-member")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId)
+
+        assert(compositionRepository.findById(eventId).isEmpty) {
+            "precondition: no event_compositions row"
+        }
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(memberCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        seasonParticipantService.ensureMembershipParticipants(
+            seasonRepository.findById(seasonId).orElseThrow(),
+        )
+
+        val memberUser = userRepository.findByGoogleSub("sub-exp-no-compo-member")!!
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)
+                ?: error("Missing membership")
+        val memberParticipantId =
+            seasonParticipantRepository
+                .findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)
+                ?.id
+                ?: error("Missing season participant")
+
+        mockMvc
+            .perform(
+                get(
+                    "/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown" +
+                        "?roleKey=player&participantId=$memberParticipantId",
+                ).cookie(memberCookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.participantId").value(memberParticipantId.toString()))
+            .andExpect(jsonPath("$.chancePercent").exists())
+    }
+
+    @Test
+    fun `member can read chance breakdown on published event with draft composition`() {
         val adminCookie = memberCookie("sub-exp-admin-1", admin = true)
         val memberCookie = memberCookie("sub-exp-member-1")
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId)
-        val participantId = createSeasonParticipant(seasonId, "Alice")
-        seedDraftComposition(eventId, participantId)
+        val otherParticipantId = createSeasonParticipant(seasonId, "Alice")
+        seedDraftComposition(eventId, otherParticipantId)
+
+        mockMvc
+            .perform(
+                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                    .cookie(memberCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        seasonParticipantService.ensureMembershipParticipants(
+            seasonRepository.findById(seasonId).orElseThrow(),
+        )
+
+        val memberUser = userRepository.findByGoogleSub("sub-exp-member-1")!!
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)
+                ?: error("Missing membership")
+        val memberParticipantId =
+            seasonParticipantRepository
+                .findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)
+                ?.id
+                ?: error("Missing season participant")
+
+        mockMvc
+            .perform(
+                get(
+                    "/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown" +
+                        "?roleKey=player&participantId=$memberParticipantId",
+                ).cookie(memberCookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.participantId").value(memberParticipantId.toString()))
+            .andExpect(jsonPath("$.chancePercent").exists())
+    }
+
+    @Test
+    fun `member cannot read chance breakdown on draft event`() {
+        val adminCookie = memberCookie("sub-exp-draft-admin", admin = true)
+        val memberCookie = memberCookie("sub-exp-draft-member")
+        val seasonId = createSeason(adminCookie)
+        val future = Instant.parse("2031-04-01T19:00:00Z")
+        val res =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(adminCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Draft explainability",
+                              "startsAt": "$future",
+                              "roleSlots": { "player": 1 }
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val eventId = UUID.fromString(mapper.readTree(res.response.contentAsString).get("id").asText())
+        val participantId = createSeasonParticipant(seasonId, "DraftAlice")
 
         mockMvc
             .perform(
@@ -204,7 +315,7 @@ class CompositionExplainabilityIntegrationTest {
     }
 
     @Test
-    fun `organizer without assigned slot cannot read chance breakdown`() {
+    fun `organizer without eligible participant receives not found on chance breakdown`() {
         val adminCookie = memberCookie("sub-exp-admin-4", admin = true)
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId)
@@ -216,6 +327,6 @@ class CompositionExplainabilityIntegrationTest {
                     "/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown" +
                         "?roleKey=player&participantId=$participantId",
                 ).cookie(adminCookie),
-            ).andExpect(status().isForbidden)
+            ).andExpect(status().isNotFound)
     }
 }

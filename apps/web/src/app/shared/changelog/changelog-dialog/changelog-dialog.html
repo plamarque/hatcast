@@ -45,12 +45,5 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button
-    type="button"
-    mat-flat-button
-    mat-dialog-close
-    class="changelog-dialog__close"
-  >
-    Fermer
-  </button>
+  <app-hatcast-dialog-dismiss label="fermer" [dialogClose]="true" />
 </mat-dialog-actions>

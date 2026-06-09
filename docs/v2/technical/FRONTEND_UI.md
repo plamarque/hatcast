@@ -45,8 +45,10 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-design-specification.md`](../../../_bmad-output/planning-artifacts/ux-design-specification.md) | Surfaces admin (Material defaults + tokens) |
 | [`_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md`](../../../_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md) | Brouillon spectacle, publication, bandeau, agendas (story **3.21**) |
 | [`_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md`](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md) | Détail spectacle — rangée titre + statut, breadcrumb sans titre, onglet Infos (2026-06-06) |
+| [`_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md`](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) | Barre d’onglets capsule M3 — coque + pastille active ; mixin `_hatcast-pill-tab-bar.scss` (2026-06-09) |
 | [`_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) | Détail cote par personne — waterfall deltas, barre pool, pairs (story **19.7**) |
 | [`_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md`](../../../_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md) | Sélection multi-rôles — `RoleToggleChipSet` (`mat-chip` + `[highlighted]`), Préférences compte |
+| [`_bmad-output/planning-artifacts/ux-design-dialog-patterns.md`](../../../_bmad-output/planning-artifacts/ux-design-dialog-patterns.md) | Fermeture modales — taxonomie M3, libellés Annuler/Fermer, anti double-affordance |
 
 Avant toute story UI, lire la section **checklist** ci-dessous et les **Dev Notes** / AC de la story (souvent sous `_bmad-output/implementation-artifacts/`).
 
@@ -69,8 +71,10 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 ### Composants et structure
 
 - [ ] **Composant Material d’abord** — boutons (`mat-button`, `mat-stroked-button`, `mat-flat-button`), champs (`mat-form-field`), listes (`mat-list`, `mat-table`), dialogs (`MatDialog`), menus (`mat-menu`), chips (`mat-chip`), onglets (`mat-tab-group`), toolbars (`mat-toolbar`) : pas de `<button class="…">` ou div cliquable custom si Material couvre le cas.
+- [ ] **Barre d’onglets capsule** — si la story ajoute ou modifie une barre d’onglets page (détail spectacle, Mon compte, paramètres troupe, etc.) : mixin [`_hatcast-pill-tab-bar.scss`](../../../apps/web/src/styles/_hatcast-pill-tab-bar.scss) + spec [ux-design-pill-tab-bar.md](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) — pas de styles tab ad hoc ni ancien pattern `opacity: 0.75` / `rgba(255,255,255,0.1)`.
 - [ ] **Icônes** — `mat-icon` + noms [Material Symbols](https://fonts.google.com/icons) déjà utilisés dans l’app (`calendar_month`, `groups`, `settings`, etc.) ; `aria-hidden="true"` sur l’icône décorative si un libellé texte ou `aria-label` porte le sens.
 - [ ] **Dialogs / bottom sheets** — `MatDialog` (ou pattern documenté dans la story) ; pas de overlay maison pour des flux modaux standard.
+- [ ] **Fermeture dialog** — type identifié (formulaire / consultation / picker — cf. [`ux-design-dialog-patterns.md`](../../../_bmad-output/planning-artifacts/ux-design-dialog-patterns.md)) ; libellé dismiss conforme (**Annuler** / **Fermer** / **Plus tard**) ; dismiss en `mat-button` ; **pas** de croix header **et** bouton texte footer sur un dialog standard ; pickers filtre = exception documentée (✕ + Appliquer).
 - [ ] **CDK seulement si nécessaire** — overlay, drag-drop, focus trap : via CDK + tokens, pas de z-index / couleurs arbitraires.
 
 ### Thème, couleurs, typographie
@@ -107,11 +111,18 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 | Bouton HTML stylé en CSS | `mat-button` / `mat-stroked-button` + `routerLink` si lien |
 | Couleur hardcodée `#9333ea` sur un écran | Token ou `color-mix` sur `--mat-sys-primary` |
 | Modale div + `position: fixed` | `MatDialog` + composant standalone |
+| ✕ header + « Fermer » footer sur dialog standard | Une seule affordance (footer texte) — voir `ux-design-dialog-patterns.md` |
+| `mat-icon-button` close sur dialog formulaire / consultation | `app-hatcast-dialog-dismiss` ; ✕ réservé à `app-hatcast-picker-header` (sheet) |
+| Dismiss ad hoc (`mat-flat-button`, libellé anglais…) | `app-hatcast-dialog-dismiss` avec clé typée |
+| `mat-flat-button` pour le seul dismiss | `mat-button` pour Annuler / Fermer |
 | Nouvelle barre de navigation basse globale | Top app bar + rail desktop (spec hub) |
+| Barre d’onglets sans coque / styles tab dupliqués par page | Mixin `_hatcast-pill-tab-bar.scss` + [ux-design-pill-tab-bar.md](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) |
 | Dupliquer la logique « dernière saison » / agenda | `LastVisitedSeasonShortcutService`, `member-cross-nav` |
 
 ### Références code (bons patterns)
 
+- Footers modales : [`apps/web/src/styles/_hatcast-dialog-actions.scss`](../../../apps/web/src/styles/_hatcast-dialog-actions.scss) — dismiss `mat-button`, cibles 3 rem ; actions contenu `.hatcast-dialog-content-actions`.
+- Garde-fou dismiss : [`apps/web/src/app/shared/dialog-chrome/`](../../../apps/web/src/app/shared/dialog-chrome/) — `app-hatcast-dialog-dismiss` (libellé typé `annuler` \| `fermer` \| `plus_tard`) sur dialogs standard ; `app-hatcast-picker-header` **uniquement** sur pickers filtre (✕ + drag = sheet seulement).
 - Raccourcis membre : [`apps/web/src/app/shared/member-cross-nav/`](../../../apps/web/src/app/shared/member-cross-nav/) — `mat-stroked-button`, `routerLink`, `aria-label`, ellipsis mobile.
 - Thème M3 global : [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss).
 - **Charte sémantique participation** : [`apps/web/src/styles/_hatcast-semantic-colors.scss`](../../../apps/web/src/styles/_hatcast-semantic-colors.scss) (dispo, sélection, en attente, désistement, indispo ; cartes agenda [`_hatcast-agenda-event-card.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-card.scss) ; badges [`_hatcast-agenda-event-badges.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-badges.scss) + [`_hatcast-agenda-dispo-badge.scss`](../../../apps/web/src/styles/_hatcast-agenda-dispo-badge.scss)).
@@ -120,6 +131,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 - Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*`, `--hatcast-participation-*` ou alias `--hatcast-availability-*`).
 - Détail spectacle — rangée titre / statut : [`event-detail.html`](../../../apps/web/src/app/pages/event-detail/event-detail.html) (`event-detail__context-row`), [`context-breadcrumb`](../../../apps/web/src/app/shared/context-breadcrumb/) (`omitEventFromBreadcrumb` sur le header événement), spec [ux-design-event-detail-title-row-2026-06-06.md](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md).
 - Chips rôles événement : [`role-toggle-chip-set`](../../../apps/web/src/app/shared/event-roles/role-toggle-chip-set/) (sélection) + [`role-display-chip-set`](../../../apps/web/src/app/shared/event-roles/role-display-chip-set/) (lecture seule) + [`role-action-chip`](../../../apps/web/src/app/shared/event-roles/role-action-chip/) (action unitaire, ex. équipe) ; spec [ux-design-role-toggle-chips.md](../../../_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md) ; référence filtre admin [`membres-tab.html`](../../../apps/web/src/app/pages/admin-membres/membres-tab.html).
+- Barre d’onglets capsule : [`_hatcast-pill-tab-bar.scss`](../../../apps/web/src/styles/_hatcast-pill-tab-bar.scss) — `@include pill-tabs.group()` / `nav-bar()` ; spec [ux-design-pill-tab-bar.md](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) ; surfaces [`event-detail.scss`](../../../apps/web/src/app/pages/event-detail/event-detail.scss), [`account-placeholder.scss`](../../../apps/web/src/app/pages/account-placeholder/account-placeholder.scss), [`troupe-settings.scss`](../../../apps/web/src/app/pages/troupe-settings/troupe-settings.scss).
 
 ### Couleurs sémantiques — participation
 
@@ -166,7 +178,8 @@ Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
 |---------|---------|
 | Mes Stats (compteurs + chart) | `member-profile-dialog.scss` |
 | Modale participation | `composition-participation-dialog.scss` |
-| Onglet Dispos | `availability-form.scss` |
+| Onglet Dispos (sondage — story 5.8) | `availability-poll-row.scss`, `availability-poll.scss`, `event-dispos-tab.scss` |
+| Onglet Dispos (dialog agenda — formulaire) | `availability-form.scss` |
 | Onglet Équipe (lignes + badge désistements + header statut) | `event-equipe-tab.scss`, `composition-equipe-status-header.scss` |
 | Grille Statistiques — cellules événement (mois déplié) | `participation-event-cell.scss` |
 
@@ -181,6 +194,31 @@ Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
 
 **Helpers BEM :** `participationChartModifier()`, `participationSlotRowModifier()`, `participationBadgeModifier()`, `availabilityBadgeModifier()` (dispo pure).
 
+### Onglet Dispos — vue sondage (baseline figée 2026-06-09)
+
+**Spec UX normative :** [_bmad-output/planning-artifacts/ux-design-dispos-poll-as-built-2026-06-09.md](../../../_bmad-output/planning-artifacts/ux-design-dispos-poll-as-built-2026-06-09.md) — **lire avant tout changement** sur `app-availability-poll`, `app-availability-poll-row`, toolbar proxy de `app-event-dispos-tab`.
+
+| Composant | Fichiers |
+|-----------|----------|
+| Liste sondage | `availability-poll.ts`, `availability-poll.html`, `availability-poll.scss` |
+| Ligne vote | `availability-poll-row.ts`, `availability-poll-row.html`, `availability-poll-row.scss` |
+| Toolbar orga | `event-dispos-tab.scss` (`.event-dispos__toolbar`, `.event-dispos__proxy-hint`) |
+| Tokens proxy | `styles.scss` (`--hatcast-proxy-banner-*`) |
+
+**Layout obligatoire :**
+
+- **Mobile ≤ 480 px** — 2 lignes par vote : L1 = case + libellé + compteur + avatars ; L2 = jauge pleine largeur. Grille CSS **uniquement** dans `@media (max-width: 480px)` ; `.poll-row__gauge-row { display: contents }`.
+- **Desktop > 480 px** — 2 lignes : L1 = case + libellé ; L2 = jauge indentée (`--poll-gauge-indent`) + compteur + avatars en flex. **Défaut** : `.poll-row__main { display: flex; flex-direction: column }` — ne pas appliquer la grille mobile par défaut.
+
+**Régressions connues à éviter :**
+
+- Double indent mobile (`padding-inline-start` + `margin-inline-start` sur le pool-trigger).
+- Pré-cochage multi-rôles au premier clic (un toggle = un rôle).
+- Bandeau proxy gris (`on-surface`) ou empilé verticalement en mobile.
+- Désactivation des rôles quand « Pas disponible » est coché (as-built : rôles restent éditables sauf read-only / archivé).
+
+**Tests :** `availability-poll.spec.ts`, `event-dispos-tab.spec.ts` + checklist § anti-régression du doc as-built.
+
 ### Stories et agents
 
 - Chaque **story UI** doit référencer ce fichier et **UX-DR11**, et reprendre la section **« Acceptance Criteria — Material 3 (UI) »** du modèle [`story-template.md`](../../../_bmad-output/implementation-artifacts/story-template.md) (AC **M3-1** … **M3-5**, adaptés au périmètre).
@@ -193,6 +231,7 @@ Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
 ```text
 M3 HatCast — revue UI
 [ ] Composants Material (pas de contrôles HTML custom équivalents)
+[ ] Fermeture dialog conforme (ux-design-dialog-patterns.md)
 [ ] Couleurs / typo : --mat-sys-* uniquement (ou color-mix documenté)
 [ ] Mobile ≤480px : lisible, pas de chevauchement chrome
 [ ] Touch + aria-label si label masqué

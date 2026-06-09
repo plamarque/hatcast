@@ -69,11 +69,11 @@ object ParticipantRowPresentation {
     fun avatarUrl(
         avatarService: AvatarService,
         user: UserEntity?,
-    ): String? {
-        if (user == null || user.avatarUpdatedAt == null) {
-            return null
-        }
-        if (avatarService.readAvatarContent(user) == null) {
+    ): String? = publicAvatarUrlIfStored(user)
+
+    /** Hot-path safe: no storage read; omits URL when metadata exists without a stored object key. */
+    fun publicAvatarUrlIfStored(user: UserEntity?): String? {
+        if (user == null || user.avatarUpdatedAt == null || user.avatarUrl.isNullOrBlank()) {
             return null
         }
         return AvatarService.publicAvatarUrl(user.id, user.avatarUpdatedAt)

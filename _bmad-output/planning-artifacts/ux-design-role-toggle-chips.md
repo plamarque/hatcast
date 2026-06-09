@@ -61,7 +61,8 @@ Le pattern `[highlighted]` + `(click)` est déjà validé sur [`membres-tab.html
 |----------|-------------------------------|-------------|
 | **Préférences — rôles préférés** (compte global) | **Oui** — as-shipped 2026-06-08 | — |
 | **Profil membre troupe** (dialog `MemberProfilePanel`) | **Oui** — as-shipped 2026-06-08 | — |
-| **Saisie disponibilité** (événement, proxy) | **Oui** — as-shipped 2026-06-08 | `lockVolunteer=false` + `chipToggled` — règles bénévole contextuelles dans `AvailabilityForm` |
+| **Saisie disponibilité — dialog agenda** (cellule participation) | **Oui** — as-shipped 2026-06-08 | `lockVolunteer=false` + `chipToggled` — règles bénévole contextuelles dans `AvailabilityForm` |
+| **Saisie disponibilité — onglet Dispos** (story 5.8) | **Non** | `app-availability-poll` — cases à cocher + jauge collective (spec [ux-design-dispos-poll-2026-06-09.md](ux-design-dispos-poll-2026-06-09.md)) |
 | **Affichage lecture seule** (résumé Infos, favoris stats, participation) | **Non** — utiliser `RoleDisplayChipSet` | Voir § lecture seule |
 | **Filtre single-select** (admin) | **Non** | Chips filtres locaux (`highlighted` + un seul actif) |
 | **Slot équipe — pill rôle** (ouvre pool tirage) | **Oui** — `RoleActionChip` | `interactive` + `actionClick` ; `density=equipe` |
@@ -105,7 +106,7 @@ Pour les surfaces où le bénévole n'est pas verrouillé (saisie de disponibili
 - Écouter `(chipToggled)` et appliquer la normalisation métier côté parent.
 - Ne pas utiliser `(selectionChange)` sur ces écrans.
 
-Surfaces as-shipped : `availability-form` (dialog dispo, panneau Moi, onglet Dispos).
+Surfaces as-shipped : `availability-form` (dialog agenda) ; onglet Dispos → `availability-poll` (story 5.8).
 
 ---
 

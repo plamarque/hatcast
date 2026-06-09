@@ -134,6 +134,46 @@ Recette MVP pilot (Patrice) : [scripts/v2/MVP-PILOT-RECETTE.md](scripts/v2/MVP-P
 
 **Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) ; workflow Git (promote / release) : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) ; branches / environnements : [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 
+### Perf DB — observabilité latence Neon (PERF-16)
+
+Mesure le RTT réseau vs temps d’exécution SQL pour prioriser PERF-10/11/15. **Neon** (Frankfurt `aws-eu-central-1`) ↔ **Cloud Run** EU (~8–18 ms RTT/requête).
+
+**Variables** : `HATCAST_DATASOURCE_URL` (+ username/password) — résolues comme pour les migrations (`resolveHatcastDatasourceUrl` dans [`scripts/migrate-malice-load.mjs`](scripts/migrate-malice-load.mjs)). Profil API `dev` : proxy JDBC actif ; log SQL opt-in via `HATCAST_DB_QUERY_LOG=true` (jamais sur profil `cloud`).
+
+**`pg_stat_statements` (Flyway V64)** : migration idempotente sur Postgres/Neon. Si un tier Neon refuse l’extension (deploy Flyway bloqué), **waiver accepté** : documenter dans la story + utiliser **Neon Query Insights** (console) à la place de `audit-db-latency.mjs pg-stat` ; le script renvoie déjà un message d’erreur explicite si la vue est absente.
+
+**RTT baseline (10× `SELECT 1`)** :
+
+```bash
+# Poste local → Neon branche local (pooler)
+node scripts/v2/audit-db-latency.mjs rtt --source=local
+
+# Depuis Cloud Shell europe-west1 (proche prod) — même .env ou URL staging
+node scripts/v2/audit-db-latency.mjs rtt --source=cloud-shell --region=europe-west1
+```
+
+**Rapport complet** (RTT + `pg_stat_statements` + EXPLAIN hot paths + probe API optionnel) :
+
+```bash
+# API locale avec stack dev ; cookie session depuis DevTools (HATCAST_SESSION)
+HATCAST_PERF_SESSION_COOKIE='HATCAST_SESSION=…' node scripts/v2/audit-db-latency.mjs report
+# → .local/perf-profile/db-latency-*.json
+```
+
+Corréler avec le profil front in-app : `node scripts/v2/profile-web-performance.mjs --in-app` (PERF-14).
+
+**Gate NFR-P2 prod-like** (10× GET `/v1/me/agenda` contre API Neon, pas H2 seul) :
+
+```bash
+HATCAST_PERF_SESSION_COOKIE='HATCAST_SESSION=…' node scripts/v2/neon-perf-agenda-gate.mjs
+# échec si p95 > 500 ms ; waiver : HATCAST_NEON_PERF_WAIVER=1 ; H2 local : HATCAST_NEON_PERF_ALLOW_H2=1
+# requiert HATCAST_DATASOURCE_URL neon.tech (ou override ci-dessus) + en-têtes X-Hatcast-Sql-* (profil dev)
+```
+
+Test Gradle opt-in : `HATCAST_NEON_PERF_TEST=true ./gradlew test --tests NeonAgendaPerformanceIntegrationTest` (`@Tag("neon-perf")`).
+
+**Actuator** (dev) : `/actuator/metrics` authentifié — Hikari (`hikaricp.connections.acquire`) et JDBC pool. En-têtes hot path : `X-Hatcast-Sql-Count`, `X-Hatcast-Sql-Total-Ms`, `X-Hatcast-Http-Total-Ms`.
+
 ---
 
 ## Tests

@@ -4,6 +4,7 @@ import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipService
 import com.hatcast.api.user.UserRepository
 import org.springframework.http.HttpStatus
@@ -103,22 +104,32 @@ class GuestInvitationAccessService(
         eventId: UUID?,
         principal: SessionUserPrincipal,
     ) {
+        val season = loadSeason(seasonId)
+        requireMemberOrInvitedGuest(season, eventId, principal)
+    }
+
+    /** Uses a preloaded [season] (e.g. from JOIN FETCH on event) to avoid an extra season round-trip. */
+    @Transactional(readOnly = true)
+    fun requireMemberOrInvitedGuest(
+        season: SeasonEntity,
+        eventId: UUID?,
+        principal: SessionUserPrincipal,
+    ) {
         if (platformAdminService.isPlatformAdmin(principal)) {
             return
         }
-        val season = loadSeason(seasonId)
         val userId = principal.userId
-        if (isActiveTroupeMember(userId, season.troupe.id)) {
-            membershipService.requireActiveMemberMembership(userId, season.troupe.id)
+        val membership = membershipService.getActiveMembershipForUser(userId, season.troupe.id)
+        if (membership != null && membership.baselineRole != TroupeBaselineRole.EXTERNE) {
             return
         }
         if (eventId != null) {
-            if (!canAccessEventAsGuest(userId, seasonId, eventId)) {
+            if (!canAccessEventAsGuest(userId, season.id, eventId)) {
                 throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé pour cet événement.")
             }
             return
         }
-        if (resolveGuestSeasonWorkspaceMode(userId, seasonId) == GuestSeasonWorkspaceMode.NONE) {
+        if (resolveGuestSeasonWorkspaceMode(userId, season.id) == GuestSeasonWorkspaceMode.NONE) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé pour cette saison.")
         }
     }

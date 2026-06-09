@@ -49,6 +49,49 @@ function ev(id: string): EventResponse {
   }
 }
 
+function defaultPermissions(): MySeasonPermissions {
+  return {
+    canManageSeasonOrganizers: false,
+    canManageEventOrganizers: false,
+    canManageMembers: false,
+    canManageSeasons: false,
+    canManageEvents: false,
+    canManageSeasonParticipants: false,
+    canManageEventParticipants: false,
+    isTroupeAdmin: false,
+    isSeasonOrganizer: false,
+    eventOrganizerFor: [],
+    eventParticipantAdminFor: [],
+  }
+}
+
+function workspaceBootstrap(
+  seasonId: string,
+  overrides: {
+    permissions?: MySeasonPermissions
+    participantSelectors?: Array<{ id: string; displayName: string; avatarUrl: null; kind: string }>
+  } = {},
+) {
+  return {
+    ok: true,
+    status: 200,
+    data: {
+      permissions: overrides.permissions ?? defaultPermissions(),
+      participantSelectors: overrides.participantSelectors ?? [
+        { id: 'p-1', displayName: 'Alice', avatarUrl: null, kind: 'MEMBER' },
+      ],
+      categories: [],
+      upcomingEvents: {
+        content: [],
+        page: 0,
+        size: 50,
+        totalElements: 0,
+        totalPages: 0,
+      },
+    },
+  }
+}
+
 describe('SeasonHome', () => {
   let fixture: ComponentFixture<SeasonHome>
   let router: { navigate: ReturnType<typeof vi.fn> }
@@ -61,7 +104,11 @@ describe('SeasonHome', () => {
     listMyTroupes: ReturnType<typeof vi.fn>
     listCategories: ReturnType<typeof vi.fn>
   }
-  let seasonsApi: { getSeasonBySlug: ReturnType<typeof vi.fn>; getSeason: ReturnType<typeof vi.fn> }
+  let seasonsApi: {
+    getSeasonBySlug: ReturnType<typeof vi.fn>
+    getSeason: ReturnType<typeof vi.fn>
+    getSeasonWorkspace: ReturnType<typeof vi.fn>
+  }
   let eventsApi: { listEvents: ReturnType<typeof vi.fn> }
   let statisticsApi: { loadStatistics: ReturnType<typeof vi.fn> }
   const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
@@ -94,6 +141,9 @@ describe('SeasonHome', () => {
     seasonsApi = {
       getSeasonBySlug: vi.fn().mockResolvedValue({ ok: true, status: 200, data: season('season-1', 'troupe-1') }),
       getSeason: vi.fn(),
+      getSeasonWorkspace: vi.fn().mockImplementation(async (seasonId: string) =>
+        workspaceBootstrap(seasonId),
+      ),
     }
     eventsApi = {
       listEvents: vi.fn().mockResolvedValue({
@@ -251,7 +301,7 @@ describe('SeasonHome', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(organizerApi.mySeasonPermissions).toHaveBeenCalledWith('season-2')
+      expect(seasonsApi.getSeasonWorkspace).toHaveBeenCalledWith('season-2', expect.any(Object))
     })
     expect(seasonsApi.getSeasonBySlug).toHaveBeenCalledWith('troupe-2', 'season-a')
     expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('troupe-2')
@@ -266,17 +316,17 @@ describe('SeasonHome', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(organizerApi.mySeasonPermissions).toHaveBeenCalledWith('season-2')
+      expect(seasonsApi.getSeasonWorkspace).toHaveBeenCalledWith('season-2', expect.any(Object))
     })
     expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('troupe-2')
     expect(localStorage.getItem('hatcast.selectedTroupeId')).toBe('troupe-2')
   })
 
-  it('populates participant filter options from selectors API', async () => {
+  it('populates participant filter options from workspace bootstrap', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(participantApi.listSeasonParticipantSelectors).toHaveBeenCalledWith('season-1')
+      expect(seasonsApi.getSeasonWorkspace).toHaveBeenCalledWith('season-1', expect.any(Object))
     })
 
     const cmp = fixture.componentInstance as unknown as {
@@ -289,23 +339,23 @@ describe('SeasonHome', () => {
   })
 
   it('affiche le bandeau admin saison avec liens participants et organisateurs', async () => {
-    organizerApi.mySeasonPermissions.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        canManageSeasonOrganizers: true,
-        canManageEventOrganizers: false,
-        canManageMembers: false,
-        canManageSeasons: false,
-        canManageEvents: false,
-        canManageSeasonParticipants: true,
-        canManageEventParticipants: false,
-        isTroupeAdmin: false,
-        isSeasonOrganizer: true,
-        eventOrganizerFor: [],
-        eventParticipantAdminFor: [],
-      },
-    })
+    seasonsApi.getSeasonWorkspace.mockResolvedValue(
+      workspaceBootstrap('season-1', {
+        permissions: {
+          canManageSeasonOrganizers: true,
+          canManageEventOrganizers: false,
+          canManageMembers: false,
+          canManageSeasons: false,
+          canManageEvents: false,
+          canManageSeasonParticipants: true,
+          canManageEventParticipants: false,
+          isTroupeAdmin: false,
+          isSeasonOrganizer: true,
+          eventOrganizerFor: [],
+          eventParticipantAdminFor: [],
+        },
+      }),
+    )
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -675,29 +725,28 @@ describe('SeasonHome', () => {
     expect(cmp.canManageSettings()).toBe(true)
   })
 
-  it('loads upcoming events after season resolves', async () => {
-    eventsApi.listEvents.mockResolvedValue({
+  it('loads upcoming events via workspace bootstrap after season resolves', async () => {
+    seasonsApi.getSeasonWorkspace.mockResolvedValueOnce({
       ok: true,
       status: 200,
       data: {
-        content: [ev('event-1')],
-        page: 0,
-        size: 50,
-        totalElements: 1,
-        totalPages: 1,
+        permissions: defaultPermissions(),
+        participantSelectors: [{ id: 'p-1', displayName: 'Alice', avatarUrl: null, kind: 'MEMBER' }],
+        categories: [],
+        upcomingEvents: {
+          content: [ev('event-1')],
+          page: 0,
+          size: 50,
+          totalElements: 1,
+          totalPages: 1,
+        },
       },
     })
 
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(eventsApi.listEvents).toHaveBeenCalledWith(
-        'season-1',
-        0,
-        50,
-        'upcoming',
-        { participantId: null },
-      )
+      expect(seasonsApi.getSeasonWorkspace).toHaveBeenCalledWith('season-1', expect.any(Object))
     })
 
     const cmp = fixture.componentInstance as unknown as {
@@ -720,6 +769,7 @@ describe('SeasonHome', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes'], { replaceUrl: true })
     expect(snack.open).not.toHaveBeenCalled()
     expect(organizerApi.mySeasonPermissions).not.toHaveBeenCalled()
+    expect(seasonsApi.getSeasonWorkspace).not.toHaveBeenCalled()
     expect(eventsApi.listEvents).not.toHaveBeenCalled()
   })
 

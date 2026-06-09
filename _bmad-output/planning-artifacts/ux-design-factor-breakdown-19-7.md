@@ -106,7 +106,7 @@ Pas de ticket comptable. Pas de Π. On raconte une **petite histoire en 3 temps*
 | **W5** | **Comparateur 2 colonnes** (Alice \| Bob, lignes différenciées) = **phase 2** ; MVP = bascule nom-à-nom + liste pairs. |
 | **W6** | **Zéro** carrousel / slides / JPG dans la fiche. Lien discret « Comprendre le tirage en général » → [`draw-chances-explained.md`](../../docs/v2/product/draw-chances-explained.md). |
 | **W7** | **Entrée** : tap sur le **%** uniquement (Dispos Tous + slot Équipe) — pas sur toute la ligne candidat (conflit sélection sujet dispos). Affordance : `%` stylé **cliquable** (`mat-button` texte ou chip + `chevron_right` / `info` discret). |
-| **W8** | **Droits** : alignés **6.3 / 6.4** — orga en brouillon ; membre après validation ; pas de fiche si explainability masquée. |
+| **W8** | **Droits** : **Dispos** — membre dès spectacle publié (story **5.9**, FR24 Dispos) ; **Équipe** — orga en brouillon ; membre après publication ou validation composition ; pas de fiche si explainability masquée sur la surface. |
 | **W9** | Conteneur : **`MatBottomSheet`** mobile ; **≥ 840 px** : bottom sheet large ou `MatDialog` panneau (max-width ~28rem) — même composant interne `app-chance-breakdown-sheet`. |
 | **W10** | Facteurs avec **`deltaPoints === 0`** : **omis** en UI (pas de bruit). |
 | **W11** | **Équipe = surface orga prioritaire** pour explicabilité : aperçu pool, picker manuel, animation tirage — pas seulement Dispos. |

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { emptyRoleSlots } from '../events/event-types'
 import type { CompositionResponse } from './composition-api.service'
-import { resolveCompositionEquipeStatus } from './composition-equipe-status'
+import { resolveCompositionEquipeStatus, resolveCompositionEquipeStatusFromEvent } from './composition-equipe-status'
 
 function comp(overrides: Partial<CompositionResponse> = {}): CompositionResponse {
   return {
@@ -246,5 +246,91 @@ describe('resolveCompositionEquipeStatus', () => {
     expect(pending?.managerGuideline).toContain('« Annoncer la compo »')
     expect(pending?.managerGuideline).toContain('revenir en édition')
     expect(pending?.managerGuideline).not.toContain('masquer')
+  })
+})
+
+describe('resolveCompositionEquipeStatusFromEvent', () => {
+  const roleSlots = { ...emptyRoleSlots(), player: 2 }
+
+  it('returns null during preparing / collecte phase', () => {
+    expect(
+      resolveCompositionEquipeStatusFromEvent(
+        { compositionLifecycle: 'preparing', roleSlots },
+        true,
+      ),
+    ).toBeNull()
+  })
+
+  it('maps awaitingConfirmations without GET /composition', () => {
+    const status = resolveCompositionEquipeStatusFromEvent(
+      { compositionLifecycle: 'awaitingConfirmations', roleSlots },
+      true,
+    )
+    expect(status?.label).toBe('Confirmations en cours')
+    expect(status?.managerGuideline).toContain('Annoncer la compo')
+  })
+
+  it('maps complete lifecycle', () => {
+    const status = resolveCompositionEquipeStatusFromEvent(
+      { compositionLifecycle: 'complete', roleSlots },
+      true,
+    )
+    expect(status?.label).toBe('Équipe complète')
+    expect(status?.tone).toBe('success')
+  })
+
+  it('maps gapsToFill lifecycle', () => {
+    const status = resolveCompositionEquipeStatusFromEvent(
+      { compositionLifecycle: 'gapsToFill', roleSlots },
+      true,
+    )
+    expect(status?.label).toBe('À compléter')
+    expect(status?.tone).toBe('warning')
+  })
+
+  it('maps draftComposition lifecycle', () => {
+    const status = resolveCompositionEquipeStatusFromEvent(
+      { compositionLifecycle: 'draftComposition', roleSlots },
+      true,
+    )
+    expect(status?.label).toBe('En préparation')
+    expect(status?.managerGuideline).toContain('« Valider »')
+  })
+
+  it('suppresses validate CTA in draft guideline when requested', () => {
+    const status = resolveCompositionEquipeStatusFromEvent(
+      { compositionLifecycle: 'draftComposition', roleSlots },
+      true,
+      true,
+    )
+    expect(status?.managerGuideline).not.toContain('Valider la compo')
+    expect(status?.managerGuideline).toContain('Partagez-la aux responsables')
+  })
+
+  it('returns null for unknown lifecycle', () => {
+    expect(
+      resolveCompositionEquipeStatusFromEvent(
+        { compositionLifecycle: 'unknownFutureState', roleSlots },
+        true,
+      ),
+    ).toBeNull()
+  })
+
+  it('returns null when no required role slots', () => {
+    expect(
+      resolveCompositionEquipeStatusFromEvent(
+        { compositionLifecycle: 'awaitingConfirmations', roleSlots: emptyRoleSlots() },
+        true,
+      ),
+    ).toBeNull()
+  })
+
+  it('hides manager guideline for members without manage permission', () => {
+    const status = resolveCompositionEquipeStatusFromEvent(
+      { compositionLifecycle: 'awaitingConfirmations', roleSlots },
+      false,
+    )
+    expect(status?.label).toBe('Confirmations en cours')
+    expect(status?.managerGuideline).toBeNull()
   })
 })
