@@ -1,7 +1,10 @@
 import { normalizeEmail } from '../../v1/troupeMembersCsv.js'
 import {
   addDays,
+  calendarDaysBetween,
+  localDateKey,
   parseV1EventStartsAt,
+  toDate,
 } from './date-utils.js'
 import {
   computeRawLifecycle,
@@ -34,6 +37,8 @@ import {
  * @property {Array<{ roleKey: string, slotIndex: number, participantId: string|null, participationStatus: string, waived: boolean }>} slots
  * @property {Set<string>} engagedParticipantIds
  * @property {Set<string>} rosterParticipantIds
+ * @property {Set<string>} answeredParticipantIds
+ * @property {Set<string>} unknownParticipantIds
  */
 
 /**
@@ -89,9 +94,13 @@ export function buildSeasonModel(raw, options = {}) {
     const lifecycle = computeRawLifecycle(composition, slots, roleSlots)
 
     const availabilityRows = availabilityByEvent.get(String(evt.id)) || []
-    const engaged = new Set(
+    const answeredParticipantIds = new Set(
       availabilityRows.map((r) => r.v1PlayerId).filter((id) => rosterIds.has(id)),
     )
+    const unknownParticipantIds = new Set(
+      [...rosterIds].filter((id) => !answeredParticipantIds.has(id)),
+    )
+    const engaged = new Set(answeredParticipantIds)
     for (const slot of slots) {
       if (slot.participantId) engaged.add(slot.participantId)
     }
@@ -119,6 +128,8 @@ export function buildSeasonModel(raw, options = {}) {
       slots,
       engagedParticipantIds: engaged,
       rosterParticipantIds: rosterIds,
+      answeredParticipantIds,
+      unknownParticipantIds,
     })
   }
 
@@ -268,4 +279,43 @@ export function organizerParticipants(model) {
  */
 export function memberParticipants(model) {
   return model.participants.filter((p) => !p.isOrganizer)
+}
+
+/**
+ * Published spectacle still collecting availability (no validated composition).
+ * @param {SimulatedEvent} event
+ */
+export function isPublishedCollectingAvailability(event) {
+  return !event.archived && event.availabilityOpenedAt != null && event.validatedAt == null
+}
+
+/**
+ * @param {SimulatedEvent} event
+ * @param {Date} referenceMorning
+ * @param {number} [horizonDays=21]
+ */
+export function isInAvailabilityPendingHorizon(event, referenceMorning, horizonDays = 21) {
+  if (!event.startsAt) return false
+  const daysUntil = calendarDaysBetween(referenceMorning, event.startsAt)
+  return daysUntil >= 1 && daysUntil <= horizonDays
+}
+
+/**
+ * Collecting phase active on this civil day (between open and validate).
+ * @param {SimulatedEvent} event
+ * @param {Date} referenceMorning
+ */
+export function isCollectingAvailabilityOnDay(event, referenceMorning) {
+  if (event.archived || !event.availabilityOpenedAt) return false
+  if (referenceMorning < startOfDay(event.availabilityOpenedAt)) return false
+  if (event.validatedAt && referenceMorning >= startOfDay(toDate(event.validatedAt))) return false
+  return true
+}
+
+/**
+ * @param {Date|string} value
+ */
+function startOfDay(value) {
+  const d = value instanceof Date ? value : toDate(value)
+  return toDate(`${localDateKey(d)}T00:00:00.000Z`)
 }

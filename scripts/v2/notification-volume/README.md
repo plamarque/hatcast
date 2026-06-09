@@ -64,10 +64,13 @@ Le dump `raw.json` est un **instantané** : pas d’historique des transitions.
 | `TEAM_COMPLETE_MEMBER` / `TEAM_COMPLETE` | Lifecycle `COMPLETE` |
 | `EVENT_ARCHIVED` | `archived: true` + roster engagé |
 | `ASSIGNEE_PRESENCE_REMINDER` J-7/J-1 | Assignés `confirmed`, compo validée |
+| `AVAILABILITY_PENDING_REMINDER` (8.7) | Roster sans ligne dispo dans dump, cadence 5j, horizon J+1…J+21, spectacle publié sans compo validée |
 | Jobs orga SLA / compo incomplète | Simulation jour par jour |
 
-**Non simulé** (nécessiterait un journal d’audit V1) : annonces manuelles, nudges dispo,
-retraits/revalidations, proxies, changements détail, régressions équipe, rappels dispo 8.7.
+**Heuristique 8.7 :** absence de ligne dispo dans le dump = `unknown` pendant toute la collecte ; répondants exclus (pas de timestamp de réponse V1).
+
+**Non simulé** (nécessiterait un journal d’audit V1) : annonces manuelles, nudges dispo manuels,
+retraits/revalidations, proxies, changements détail, régressions équipe, `COMPOSITION_SHARED`.
 
 ## Tests
 
