@@ -37,4 +37,11 @@ class TroupeEntity(
      */
     @Column(name = "listed_in_directory", nullable = false)
     var listedInDirectory: Boolean = true,
-)
+    /** Libellé affiché pour les spectacles sans `category` (compartiment principal). */
+    @Column(name = "default_category_label", nullable = false, length = 128)
+    var defaultCategoryLabel: String = DEFAULT_CATEGORY_LABEL,
+) {
+    companion object {
+        const val DEFAULT_CATEGORY_LABEL = "Spectacles ordinaires"
+    }
+}

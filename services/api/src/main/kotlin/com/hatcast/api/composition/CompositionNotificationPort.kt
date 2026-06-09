@@ -37,6 +37,27 @@ interface CompositionNotificationPort {
         actorUserId: UUID,
     )
 
+    fun notifyTeamCompleteMember(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID?,
+    )
+
+    fun notifyTeamCompleteOrganizer(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID?,
+    )
+
+    fun notifyTeamRegressedOrganizer(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        reasonSummary: String,
+        actorUserId: UUID?,
+    )
+
     fun notifyAssigneeRemoved(
         eventId: UUID,
         seasonId: UUID,
@@ -125,6 +146,51 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
             eventId,
             seasonId,
             actorUserId,
+        )
+    }
+
+    override fun notifyTeamCompleteMember(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID?,
+    ) {
+        log.debug(
+            "team_complete_member eventId={} seasonId={} actorUserId={}",
+            eventId,
+            seasonId,
+            actorUserId,
+        )
+    }
+
+    override fun notifyTeamCompleteOrganizer(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID?,
+    ) {
+        log.debug(
+            "team_complete_organizer eventId={} seasonId={} troupeId={} actorUserId={}",
+            eventId,
+            seasonId,
+            troupeId,
+            actorUserId,
+        )
+    }
+
+    override fun notifyTeamRegressedOrganizer(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        reasonSummary: String,
+        actorUserId: UUID?,
+    ) {
+        log.debug(
+            "team_regressed_organizer eventId={} seasonId={} troupeId={} actorUserId={} reasonSummary={}",
+            eventId,
+            seasonId,
+            troupeId,
+            actorUserId,
+            reasonSummary,
         )
     }
 

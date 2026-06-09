@@ -1,6 +1,8 @@
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
+import { MatDialog } from '@angular/material/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
+import { provideRouter, Router } from '@angular/router'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 import { EventApiService } from '../../core/events/event-api.service'
@@ -9,6 +11,9 @@ import type { EventResponse } from '../../core/events/event-api.service'
 import { CALENDAR_SNACKBAR_MESSAGES } from '../../core/events/event-calendar-export'
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { CATEGORY_HELP, DEFAULT_CATEGORY_DISPLAY_LABEL } from './event-category.constants'
+import { FORMAT_AND_ROLES_HELP } from './event-type-roles-dialog'
+import { ORGANIZERS_HELP } from './event-organizers-dialog'
 import { EventInfosTab } from './event-infos-tab'
 
 function ev(overrides: Partial<EventResponse> = {}): EventResponse {
@@ -34,6 +39,9 @@ describe('EventInfosTab', () => {
   let fixture: ComponentFixture<EventInfosTab>
   let snackOpen: ReturnType<typeof vi.fn>
   let windowOpenSpy: ReturnType<typeof vi.spyOn>
+  let dialogOpen: ReturnType<typeof vi.fn>
+  let updateEvent: ReturnType<typeof vi.fn>
+  let listCategories: ReturnType<typeof vi.fn>
   const snackBarMock = { open: vi.fn() }
 
   type InfosTabTestApi = {
@@ -46,6 +54,7 @@ describe('EventInfosTab', () => {
     onCalendarMenuClosed: () => void
     onMapsMenuOpened: () => void
     onMapsMenuClosed: () => void
+    onCategorySelect: (slug: string | null) => void
   }
 
   function tab(): InfosTabTestApi {
@@ -55,17 +64,22 @@ describe('EventInfosTab', () => {
   beforeEach(async () => {
     snackBarMock.open.mockReset()
     windowOpenSpy = vi.spyOn(window, 'open').mockReturnValue({} as Window)
+    dialogOpen = vi.fn()
+    updateEvent = vi.fn()
+    listCategories = vi.fn().mockResolvedValue({ ok: true, data: [] })
 
     await TestBed.configureTestingModule({
       imports: [EventInfosTab, NoopAnimationsModule],
       providers: [
+        provideRouter([]),
+        { provide: MatDialog, useValue: { open: dialogOpen } },
         {
           provide: EventApiService,
-          useValue: { updateEvent: vi.fn() },
+          useValue: { updateEvent },
         },
         {
           provide: TroupeApiService,
-          useValue: { listCategories: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+          useValue: { listCategories },
         },
         {
           provide: OrganizerApiService,
@@ -82,6 +96,8 @@ describe('EventInfosTab', () => {
         },
       })
       .compileComponents()
+
+    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
 
     fixture = TestBed.createComponent(EventInfosTab)
     snackOpen = snackBarMock.open
@@ -310,5 +326,198 @@ describe('EventInfosTab', () => {
     fixture.detectChanges()
 
     expect(locationButton()?.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('shows category help when organizer can manage events', () => {
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    const help = fixture.nativeElement.querySelector('#event-infos-category-help')
+    expect(help?.textContent?.trim()).toBe(CATEGORY_HELP)
+  })
+
+  it('shows Spectacles ordinaires chip highlighted for read-only users', async () => {
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-infos__category-chips mat-chip'),
+      ).not.toBeNull()
+    })
+
+    const chips = fixture.nativeElement.querySelectorAll(
+      '.event-infos__category-chips mat-chip',
+    )
+    const ordinaire = [...chips].find((chip) =>
+      chip.textContent?.includes(DEFAULT_CATEGORY_DISPLAY_LABEL),
+    )
+    expect(ordinaire?.classList.contains('mat-mdc-chip-highlighted')).toBe(true)
+    expect(
+      fixture.nativeElement.querySelector('.event-infos__category-chips .mat-mdc-chip-disabled'),
+    ).not.toBeNull()
+  })
+
+  it('shows inline category chips when organizer can manage events', async () => {
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('app-event-category-select-chip-set'),
+      ).not.toBeNull()
+    })
+    expect(
+      fixture.nativeElement.querySelector('.event-infos__category button.event-infos__action-row'),
+    ).toBeNull()
+  })
+
+  it('highlights custom category chip when event has category', async () => {
+    listCategories.mockResolvedValue({
+      ok: true,
+      data: [{ slug: 'deplacements', label: 'Déplacements' }],
+    })
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.componentRef.setInput('event', ev({ category: 'deplacements' }))
+    fixture.componentRef.setInput('troupeId', 'troupe-glossary-reload')
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(listCategories).toHaveBeenCalledWith('troupe-glossary-reload')
+    })
+    await vi.waitFor(() => {
+      const chips = fixture.nativeElement.querySelectorAll('.event-infos__category-chips mat-chip')
+      expect(chips.length).toBeGreaterThan(1)
+    })
+
+    const chips = fixture.nativeElement.querySelectorAll('.event-infos__category-chips mat-chip')
+    const deplacements = [...chips].find((chip) => chip.textContent?.includes('Déplacements'))
+    expect(deplacements?.classList.contains('mat-mdc-chip-highlighted')).toBe(true)
+  })
+
+  function categoryManageLink(): HTMLButtonElement | null {
+    const section = fixture.nativeElement.querySelector('.event-infos__category')
+    if (!section) {
+      return null
+    }
+    return (
+      [...section.querySelectorAll('button.event-infos__add-organizer')].find((button) =>
+        button.textContent?.includes('Gérer les catégories'),
+      ) ?? null
+    )
+  }
+
+  it('hides manage categories link when user is not troupe admin', () => {
+    fixture.componentRef.setInput('canManageTroupe', false)
+    fixture.componentRef.setInput('canManageEventOrganizers', true)
+    fixture.detectChanges()
+
+    expect(categoryManageLink()).toBeNull()
+  })
+
+  it('persists category from chip tap and shows success snackbar', async () => {
+    updateEvent.mockResolvedValue({
+      ok: true,
+      data: ev({ category: 'deplacements' }),
+    })
+
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(listCategories).toHaveBeenCalled()
+    })
+
+    tab().onCategorySelect('deplacements')
+
+    await vi.waitFor(() => {
+      expect(updateEvent).toHaveBeenCalledWith('season-1', ev().id, { category: 'deplacements' })
+      expect(snackOpen).toHaveBeenCalledWith('Catégorie enregistrée.', 'OK', { duration: 4000 })
+    })
+  })
+
+  it('shows Spectacles ordinaires snackbar when clearing category', async () => {
+    updateEvent.mockResolvedValue({
+      ok: true,
+      data: ev({ category: null }),
+    })
+
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.componentRef.setInput('event', ev({ category: 'deplacements' }))
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(listCategories).toHaveBeenCalled()
+    })
+
+    tab().onCategorySelect(null)
+
+    await vi.waitFor(() => {
+      expect(updateEvent).toHaveBeenCalledWith('season-1', ev().id, { category: null })
+      expect(snackOpen).toHaveBeenCalledWith('Spectacles ordinaires.', 'OK', { duration: 4000 })
+    })
+  })
+
+  it('shows manage categories link for troupe admin', () => {
+    fixture.componentRef.setInput('canManageTroupe', true)
+    fixture.detectChanges()
+
+    expect(categoryManageLink()?.textContent?.trim()).toContain('Gérer les catégories')
+  })
+
+  it('navigates to troupe settings when manage link clicked', () => {
+    fixture.componentRef.setInput('canManageTroupe', true)
+    fixture.detectChanges()
+
+    const router = TestBed.inject(Router)
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    categoryManageLink()?.click()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/', 'troupes', 'improbots', 'admin', 'parametres'], {
+      queryParams: { tab: 'categories' },
+    })
+  })
+
+  it('shows snackbar when glossary load fails', async () => {
+    listCategories.mockResolvedValue({ ok: false, status: 500 })
+    fixture.componentRef.setInput('troupeId', 'troupe-glossary-fail')
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(snackOpen).toHaveBeenCalledWith('Impossible de charger les catégories.', 'OK', {
+        duration: 6000,
+      })
+    })
+  })
+
+  it('shows snackbar when category PATCH fails', async () => {
+    updateEvent.mockResolvedValue({ ok: false, errorMessage: 'Catégorie inconnue.' })
+
+    fixture.componentRef.setInput('canManageEvents', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(listCategories).toHaveBeenCalled()
+    })
+
+    tab().onCategorySelect('aperock')
+
+    await vi.waitFor(() => {
+      expect(snackOpen).toHaveBeenCalledWith('Catégorie inconnue.', 'OK', { duration: 6000 })
+    })
+  })
+
+
+  it('shows format and roles help on every Infos load', () => {
+    fixture.detectChanges()
+
+    const help = fixture.nativeElement.querySelector('#event-infos-format-help')
+    expect(help?.textContent?.trim()).toBe(FORMAT_AND_ROLES_HELP)
+  })
+
+  it('shows organizers help when section is visible', () => {
+    fixture.componentRef.setInput('canManageEventOrganizers', true)
+    fixture.detectChanges()
+
+    const help = fixture.nativeElement.querySelector('#event-infos-organizers-help')
+    expect(help?.textContent?.trim()).toBe(ORGANIZERS_HELP)
   })
 })

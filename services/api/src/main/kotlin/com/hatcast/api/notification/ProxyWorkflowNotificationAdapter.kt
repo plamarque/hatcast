@@ -51,6 +51,7 @@ class ProxyWorkflowNotificationAdapter(
         subjectUserId: UUID,
         roleKey: String,
         participationStatus: SlotParticipationStatus,
+        beforeParticipationStatus: SlotParticipationStatus?,
     ) {
         if (actorUserId == subjectUserId) {
             return
@@ -72,7 +73,11 @@ class ProxyWorkflowNotificationAdapter(
                 actorDisplayName = resolveActorDisplayName(actorUserId),
                 proxyChangeSummary =
                     ProxyChangeSummary.Participation(
-                        decisionLabel = ProxyNotificationLabels.participationStatusLabel(participationStatus),
+                        decisionLabel =
+                            ProxyNotificationLabels.participationDecisionLabel(
+                                participationStatus,
+                                beforeParticipationStatus,
+                            ),
                         roleLabel = roleLabel,
                     ),
             ),

@@ -21,6 +21,10 @@ Avec --patch|--minor|--major : bump la version produit et repart à rc.1.
 
 Prérequis : smoke E2E staging vert après ./scripts/deploy_staging.sh
 
+Notes « Nouveautés » : cutover requis dans
+  scripts/v2/changelog-entries/vX.Y.Z-cutover.json
+  (skill Cursor hatcast-v2-release recommandée — voir AGENTS.md)
+
 Options :
   --patch, --minor, --major   Bump semver produit
   --dry-run, -n               Simulation

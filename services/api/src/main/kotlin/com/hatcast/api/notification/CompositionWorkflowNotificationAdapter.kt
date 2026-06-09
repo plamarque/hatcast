@@ -18,11 +18,20 @@ class CompositionWorkflowNotificationAdapter(
         seasonId: UUID,
         actorUserId: UUID,
     ) {
-        log.debug(
-            "draft_composition_shared eventId={} seasonId={} actorUserId={} member_dispatch=skipped",
-            eventId,
-            seasonId,
-            actorUserId,
+        val troupeId =
+            reminderMarkService.findEventTroupeId(eventId)
+                ?: run {
+                    log.warn("draft_composition_shared_missing_troupe eventId={}", eventId)
+                    return
+                }
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.COMPOSITION_SHARED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+            ),
         )
     }
 
@@ -118,6 +127,58 @@ class CompositionWorkflowNotificationAdapter(
                 seasonId = seasonId,
                 troupeId = null,
                 actorUserId = actorUserId,
+            ),
+        )
+    }
+
+    override fun notifyTeamCompleteMember(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID?,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.TEAM_COMPLETE_MEMBER,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = null,
+                actorUserId = actorUserId,
+            ),
+        )
+    }
+
+    override fun notifyTeamCompleteOrganizer(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        actorUserId: UUID?,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.TEAM_COMPLETE,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+            ),
+        )
+    }
+
+    override fun notifyTeamRegressedOrganizer(
+        eventId: UUID,
+        seasonId: UUID,
+        troupeId: UUID,
+        reasonSummary: String,
+        actorUserId: UUID?,
+    ) {
+        dispatcher.dispatch(
+            NotificationDispatchContext(
+                intent = NotificationIntent.TEAM_REGRESSED,
+                eventId = eventId,
+                seasonId = seasonId,
+                troupeId = troupeId,
+                actorUserId = actorUserId,
+                reasonSummary = reasonSummary,
             ),
         )
     }

@@ -1,11 +1,38 @@
+:host {
+  display: block;
+  max-width: 100%;
+}
+
+// Let dialog grow with content — avoid Material max-height scroll + overflow-x:hidden
+// side effect (forces overflow-y:auto). Horizontal clip fixed via min-width:0 on inner wrapper.
+:host mat-dialog-content {
+  box-sizing: border-box;
+  max-height: none;
+  max-width: 100%;
+  overflow: visible;
+}
+
 .type-roles-dialog {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  min-width: min(100vw - 3rem, 32rem);
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 0.5rem;
+  width: 100%;
+}
+
+.type-roles-dialog__help {
+  margin: 0 0 0.25rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+  line-height: 1.35;
 }
 
 .type-roles-dialog__full {
+  max-width: 100%;
+  min-width: 0;
   width: 100%;
 }
 
@@ -28,51 +55,18 @@
 
 .template-confirm__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.roles-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  font-size: 0.875rem;
-  margin: 0.25rem 0;
-}
-
-.roles-summary__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.roles-summary__empty {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
-}
-
-.customize-btn {
-  align-self: flex-start;
-}
-
-.roles-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem 0.75rem;
-}
-
-.roles-grid__title {
-  grid-column: 1 / -1;
-  margin: 0.25rem 0;
+.type-roles-dialog__slots-title {
   font-size: 0.875rem;
   font-weight: 500;
+  margin: 0.15rem 0 0;
 }
 
-.roles-grid__field {
-  width: 100%;
-}
-
-@media (max-width: 480px) {
-  .roles-grid {
-    grid-template-columns: 1fr;
-  }
+.type-roles-dialog__slots {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
 }

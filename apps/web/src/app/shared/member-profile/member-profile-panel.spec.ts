@@ -103,6 +103,43 @@ describe('MemberProfilePanel', () => {
     expect(fixture.nativeElement.querySelector('h3.member-profile__section-title')).toBeNull()
   })
 
+  it('renders favorite role display chips', async () => {
+    await TestBed.configureTestingModule({
+      imports: [MemberProfilePanel, NoopAnimationsModule],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(MemberProfilePanel)
+    fixture.componentRef.setInput('profile', {
+      ...profileWithChart,
+      favoriteRoleCounts: [{ roleKey: 'player', count: 3 }],
+    })
+    fixture.componentRef.setInput('showPreferredRoles', false)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('app-role-display-chip-set')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('(3)')
+    expect(fixture.nativeElement.querySelector('.member-profile__pill')).toBeNull()
+  })
+
+  it('renders preferred role toggle chips for self', async () => {
+    await TestBed.configureTestingModule({
+      imports: [MemberProfilePanel, NoopAnimationsModule],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(MemberProfilePanel)
+    fixture.componentRef.setInput('profile', {
+      ...profileWithChart,
+      preferredRoleKeys: ['player', 'volunteer'],
+    })
+    fixture.componentRef.setInput('selectedRoleKeys', ['player', 'volunteer'])
+    fixture.componentRef.setInput('showPreferredRoles', true)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('app-role-toggle-chip-set')).toBeTruthy()
+    expect(fixture.nativeElement.querySelectorAll('mat-chip').length).toBeGreaterThan(0)
+    expect(fixture.nativeElement.querySelector('mat-checkbox')).toBeNull()
+  })
+
   it('uses gender-aware labels for favorite roles and chart tooltips', async () => {
     await TestBed.configureTestingModule({
       imports: [MemberProfilePanel, NoopAnimationsModule],

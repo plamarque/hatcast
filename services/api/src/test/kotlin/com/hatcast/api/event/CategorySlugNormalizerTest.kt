@@ -33,7 +33,7 @@ class CategorySlugNormalizerTest {
                 CategorySlugNormalizer.normalizeSlug("deplacements,aperock")
             }
         assertEquals(HttpStatus.BAD_REQUEST, multi.statusCode)
-        assertEquals("Un seul tag d’équité est autorisé par spectacle.", multi.reason)
+        assertEquals("Une seule catégorie est autorisée par spectacle.", multi.reason)
     }
 
     @Test

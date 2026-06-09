@@ -16,6 +16,7 @@ import { ResetPassword } from './pages/reset-password/reset-password';
 import { Signup } from './pages/signup/signup';
 import { EventDetail } from './pages/event-detail/event-detail';
 import { AdminMembres } from './pages/admin-membres/admin-membres';
+import { TroupeSettings } from './pages/troupe-settings/troupe-settings';
 import { AdminParticipants } from './pages/admin-participants/admin-participants';
 import { AdminEventParticipants } from './pages/admin-event-participants/admin-event-participants';
 import { AdminAudit } from './pages/admin-audit/admin-audit';
@@ -72,6 +73,7 @@ export const routes: Routes = [
       },
       { path: 'troupes', component: TroupesList },
       { path: 'troupes/:slug/admin/membres', component: AdminMembres },
+      { path: 'troupes/:slug/admin/parametres', component: TroupeSettings },
       { path: 'troupes/:slug/admin/audit', component: AdminAudit, data: { auditScope: 'troupe' } },
       { path: 'troupes/:slug', component: TroupeHub },
       { path: 'troupe/admin/membres', component: AdminMembres },

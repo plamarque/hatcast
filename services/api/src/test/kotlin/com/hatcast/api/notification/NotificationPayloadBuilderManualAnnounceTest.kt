@@ -32,9 +32,9 @@ class NotificationPayloadBuilderManualAnnounceTest {
     fun `MANUAL_AVAILABILITY_ANNOUNCE email subject is distinct from nudge`() {
         val event = sampleEvent()
         val subject = builder.buildEmailSubject(NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE, event)
-        assertTrue(subject.startsWith("Annonce spectacle · "))
+        assertTrue(subject.startsWith("📢 Annonce spectacle · "))
         val nudgeSubject = builder.buildEmailSubject(NotificationIntent.MANUAL_AVAILABILITY_NUDGE, event)
-        assertTrue(nudgeSubject.startsWith("Rappel disponibilité · "))
+        assertTrue(nudgeSubject.startsWith("⏰ Rappel disponibilité · "))
     }
 
     private fun sampleEvent(): EventEntity {

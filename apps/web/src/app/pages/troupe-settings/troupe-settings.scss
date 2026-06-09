@@ -1,0 +1,70 @@
+.troupe-settings {
+  display: grid;
+  gap: 1rem;
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.troupe-settings__header {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+}
+
+.troupe-settings__header-left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.troupe-settings__mobile-context {
+  display: none;
+}
+
+.troupe-settings__spinner {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.troupe-settings__content {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.troupe-settings__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.troupe-settings__intro {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+  margin: 0;
+}
+
+.troupe-settings__tabs {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 480px) {
+  .troupe-settings__mobile-context {
+    display: block;
+    padding: 0 0 0.5rem;
+    min-width: 0;
+  }
+
+  .troupe-settings__mobile-context-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+}

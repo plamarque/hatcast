@@ -621,7 +621,7 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
                 intent == NotificationIntent.PROXY_CONFIRMATION_RECORDED &&
                     subjectUserId == memberUserId &&
                     proxyChangeSummary is ProxyChangeSummary.Participation &&
-                    (proxyChangeSummary as ProxyChangeSummary.Participation).decisionLabel == "Décliné"
+                    (proxyChangeSummary as ProxyChangeSummary.Participation).decisionLabel == "Refusé"
             },
         )
     }

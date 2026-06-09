@@ -146,7 +146,7 @@ export function resolveCompositionEquipeStatus(
         label: 'À vérifier',
         tone: 'warning',
       },
-      'À vérifier : Des participants ont décliné. Vérifiez les disponibilités et ajustez la composition si besoin.',
+      'À vérifier : Des retraits sont enregistrés. Vérifiez les disponibilités et ajustez la composition si besoin.',
       canManageComposition,
     )
   }

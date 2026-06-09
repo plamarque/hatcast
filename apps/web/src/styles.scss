@@ -6,6 +6,8 @@
 @use '@angular/material' as mat;
 @use 'styles/hatcast-semantic-colors' as hatcast-colors;
 
+@import 'styles/hatcast-fonts';
+
 html {
   height: 100%;
   // `light dark` + tokens M3 (`light-dark()`) : l’app suit la préférence clair/sombre du système.

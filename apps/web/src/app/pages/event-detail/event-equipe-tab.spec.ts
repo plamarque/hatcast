@@ -211,7 +211,7 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       const pills = [
-        ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role-pill'),
+        ...fixture.nativeElement.querySelectorAll('app-role-action-chip'),
       ].map((el: Element) => el.textContent?.trim())
       expect(pills[0]).toBe('🎭 Comédienne')
       expect(pills[1]).toBe('🎭 Comédien·ne')
@@ -243,7 +243,7 @@ describe('EventEquipeTab', () => {
     })
 
     const rolePills = [
-      ...fixture.nativeElement.querySelectorAll('.event-equipe-tab__role-pill'),
+      ...fixture.nativeElement.querySelectorAll('app-role-action-chip'),
     ].map((el: Element) => el.textContent?.trim())
     expect(rolePills).toEqual(['🎧 DJ', '🎤 MC', '🎭 Comédien·ne', '🎭 Comédien·ne'])
   })
@@ -572,7 +572,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('passes gender-aware roleLabel into participation dialog when slot has participantGender', async () => {
+  it('passes gender-aware roleKey into participation dialog when slot has participantGender', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -610,7 +610,8 @@ describe('EventEquipeTab', () => {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            roleLabel: 'Comédienne',
+            roleKey: 'player',
+            roleGender: 'female',
           }),
         }),
       )
@@ -664,7 +665,8 @@ describe('EventEquipeTab', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             mode: 'self',
-            roleLabel: 'Comédienne',
+            roleKey: 'player',
+            roleGender: 'female',
           }),
         }),
       )
@@ -1270,6 +1272,98 @@ describe('EventEquipeTab', () => {
     expect(confirmCall[1]).toEqual(
       expect.objectContaining({
         data: expect.objectContaining({
+          message: 'Confirmer la déclinaison de Autre membre pour ce rôle ?',
+        }),
+      }),
+    )
+
+    dialogAfterClosed.next(true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(updateSlotParticipation).toHaveBeenCalledWith(
+        'season-1',
+        'event-1',
+        'player',
+        1,
+        'declined',
+        undefined,
+      )
+      expect(snackOpen).toHaveBeenCalledWith('Déclinaison enregistrée.', 'OK', { duration: 4000 })
+    })
+  })
+
+  it('shows proxy désistement confirm copy and toast for confirmed slot', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-organizer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-organizer',
+            participantDisplayName: 'Organisateur',
+            participationStatus: 'pending',
+          },
+          {
+            roleKey: 'player',
+            slotIndex: 1,
+            participantId: 'p-other',
+            participantDisplayName: 'Autre membre',
+            participationStatus: 'confirmed',
+          },
+        ],
+      },
+    })
+    updateSlotParticipation.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-organizer'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-organizer',
+            participantDisplayName: 'Organisateur',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Autre membre')
+    })
+
+    const rows = fixture.nativeElement.querySelectorAll('.event-equipe-tab__row') as NodeListOf<HTMLElement>
+    const foreignRow = [...rows].find((row) => row.textContent?.includes('Autre membre'))
+    const foreignBtn = foreignRow!.querySelector('.event-equipe-tab__row-hit') as HTMLButtonElement
+    foreignBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(1)
+    })
+
+    dialogAfterClosed.next({ status: 'declined' })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(2)
+    })
+    const confirmCall = dialogOpen.mock.calls[1]
+    expect(confirmCall[1]).toEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({
           message: 'Confirmer le désistement de Autre membre pour ce rôle ?',
         }),
       }),
@@ -1287,6 +1381,127 @@ describe('EventEquipeTab', () => {
         'declined',
         undefined,
       )
+      expect(snackOpen).toHaveBeenCalledWith('Désistement enregistré.', 'OK', { duration: 4000 })
+    })
+  })
+
+  it('shows déclinaison success toast after self decline from pending', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    updateSlotParticipation.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Moi')
+    })
+
+    const slotBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__row--participation .event-equipe-tab__row-hit',
+    ) as HTMLButtonElement
+    slotBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(1)
+    })
+
+    dialogAfterClosed.next({ status: 'declined' })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(2)
+    })
+
+    dialogAfterClosed.next(true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(snackOpen).toHaveBeenCalledWith('Déclinaison enregistrée.', 'OK', { duration: 4000 })
+    })
+  })
+
+  it('shows désistement success toast after self decline from confirmed', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'confirmed',
+          },
+        ],
+      },
+    })
+    updateSlotParticipation.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [],
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Moi')
+    })
+
+    const slotBtn = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__row--participation .event-equipe-tab__row-hit',
+    ) as HTMLButtonElement
+    slotBtn.click()
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(1)
+    })
+
+    dialogAfterClosed.next({ status: 'declined' })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalledTimes(2)
+    })
+
+    dialogAfterClosed.next(true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(snackOpen).toHaveBeenCalledWith('Désistement enregistré.', 'OK', { duration: 4000 })
     })
   })
 
@@ -1358,7 +1573,7 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('1 personne a décliné')
+      expect(fixture.nativeElement.textContent).toContain('1 retrait')
     })
 
     const badge = fixture.nativeElement.querySelector(
@@ -1367,7 +1582,7 @@ describe('EventEquipeTab', () => {
     badge.click()
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).toContain('Personnes ayant décliné')
+    expect(fixture.nativeElement.textContent).toContain('Retraits de la compo')
     expect(fixture.nativeElement.textContent).toContain('Alice')
     expect(
       fixture.nativeElement.querySelector('.event-equipe-tab__row--declined'),
@@ -1656,7 +1871,7 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('1 personne a décliné')
+      expect(fixture.nativeElement.textContent).toContain('1 retrait')
     })
 
     const badge = fixture.nativeElement.querySelector(

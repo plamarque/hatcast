@@ -35,6 +35,7 @@ const MEMBER_NAV_PATH_PATTERNS: RegExp[] = [
   /^\/membre\/[^/]+$/,
   /^\/troupes\/[^/]+$/,
   /^\/troupes\/[^/]+\/admin\/membres$/,
+  /^\/troupes\/[^/]+\/admin\/parametres$/,
   /^\/troupes\/[^/]+\/admin\/audit$/,
   /^\/troupe\/admin\/membres$/,
   // Legacy `/saison/:seasonSlug` (single segment after saison)

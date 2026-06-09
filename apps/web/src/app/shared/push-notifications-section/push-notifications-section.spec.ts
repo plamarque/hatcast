@@ -1,3 +1,4 @@
+import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -7,7 +8,12 @@ import { PushNotificationsService, type PushUiState } from '../../core/push/push
 import { PushNotificationsSection } from './push-notifications-section'
 
 async function setup(options: { initialState?: PushUiState } = {}) {
-  const loadStatus = vi.fn().mockResolvedValue({ state: options.initialState ?? 'disabled' })
+  const uiState = signal<PushUiState>('loading')
+  const loadStatus = vi.fn().mockImplementation(async () => {
+    const state = options.initialState ?? 'disabled'
+    uiState.set(state)
+    return { state }
+  })
   const enable = vi.fn()
   const disable = vi.fn()
   const canUsePush = vi.fn().mockReturnValue(true)
@@ -17,7 +23,14 @@ async function setup(options: { initialState?: PushUiState } = {}) {
     providers: [
       {
         provide: PushNotificationsService,
-        useValue: { loadStatus, enable, disable, canUsePush, getPermission: vi.fn().mockReturnValue('default') },
+        useValue: {
+          loadStatus,
+          enable,
+          disable,
+          canUsePush,
+          uiState,
+          getPermission: vi.fn().mockReturnValue('default'),
+        },
       },
       { provide: MatSnackBar, useValue: { open: vi.fn() } },
     ],
@@ -32,10 +45,11 @@ async function setup(options: { initialState?: PushUiState } = {}) {
 }
 
 describe('PushNotificationsSection', () => {
-  it('renders toggle with data-testid', async () => {
+  it('renders toggle with data-testid inside group card', async () => {
     const { fixture } = await setup({ initialState: 'disabled' })
     const toggle = fixture.nativeElement.querySelector('[data-testid="push-notifications-toggle"]')
     expect(toggle).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('.push-notifications-section__card')).toBeTruthy()
   })
 
   it('shows denied permission message', async () => {
@@ -43,18 +57,23 @@ describe('PushNotificationsSection', () => {
     await fixture.whenStable()
     fixture.detectChanges()
     const text = fixture.nativeElement.textContent as string
-    expect(text).toContain('Autorisation refusée')
+    expect(text).toContain('Autorisation refusée sur cet appareil')
     expect(fixture.nativeElement.querySelector('[data-testid="push-notifications-reactivate-help"]')).toBeTruthy()
   })
 
   it('shows unsupported message when push unavailable', async () => {
+    const uiState = signal<PushUiState>('loading')
     await TestBed.configureTestingModule({
       imports: [PushNotificationsSection, NoopAnimationsModule],
       providers: [
         {
           provide: PushNotificationsService,
           useValue: {
-            loadStatus: vi.fn().mockResolvedValue({ state: 'unsupported' }),
+            loadStatus: vi.fn().mockImplementation(async () => {
+              uiState.set('unsupported')
+              return { state: 'unsupported' }
+            }),
+            uiState,
             canUsePush: vi.fn().mockReturnValue(false),
           },
         },

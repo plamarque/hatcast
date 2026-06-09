@@ -166,6 +166,9 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly canManageEvents = computed(
     () => this.seasonPermissions()?.canManageEvents === true,
   )
+  protected readonly canManageTroupe = computed(
+    () => this.seasonPermissions()?.canManageMembers === true,
+  )
   protected readonly canManageSeasonParticipants = computed(
     () => this.seasonPermissions()?.canManageSeasonParticipants === true,
   )
@@ -433,7 +436,7 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!this.canAnnouncePublishedEvent()) {
       return
     }
-    openEventAnnounceDialog(this.dialog, this.snack, {
+    openEventAnnounceDialog(this.dialog, {
       seasonId,
       seasonSlug,
       troupeSlug,
@@ -452,7 +455,7 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!this.canRelanceDispos()) {
       return
     }
-    openAvailabilityNudgeDialog(this.dialog, this.snack, {
+    openAvailabilityNudgeDialog(this.dialog, {
       seasonId,
       seasonSlug,
       troupeSlug,

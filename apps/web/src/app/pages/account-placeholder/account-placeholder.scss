@@ -35,6 +35,28 @@
   }
 }
 
+.account-page__tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+
+  mat-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+}
+
+@media (min-width: 481px) {
+  .account-page__tab-item mat-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 1.5rem;
+  }
+}
+
 @media (max-width: 480px) {
   .account-page__tabs {
     overflow-x: auto;

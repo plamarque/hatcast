@@ -1,5 +1,4 @@
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 
 import type { EventResponse } from '../../core/events/event-api.service'
 import type {
@@ -10,11 +9,6 @@ import {
   ShareAnnounceDialog,
   type ShareAnnounceDialogData,
 } from './share-announce-dialog'
-import {
-  SHARE_ANNOUNCE_SNACK_DURATION_MS,
-  shareAnnounceSnackMessage,
-  type ShareAnnounceNotifyResult,
-} from './share-announce-snack'
 
 export interface OpenShareAnnounceDialogContext {
   intent: ShareAnnounceIntent
@@ -28,11 +22,10 @@ export interface OpenShareAnnounceDialogContext {
 
 export function openShareAnnounceDialog(
   dialog: MatDialog,
-  snack: MatSnackBar,
   ctx: OpenShareAnnounceDialogContext,
 ): void {
   const ev = ctx.event
-  const ref = dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, ShareAnnounceNotifyResult | undefined>(
+  dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, void>(
     ShareAnnounceDialog,
     {
       data: {
@@ -53,27 +46,18 @@ export function openShareAnnounceDialog(
       autoFocus: 'first-titled-element',
     },
   )
-  ref.afterClosed().subscribe((result) => {
-    if (result) {
-      snack.open(shareAnnounceSnackMessage(result), 'OK', {
-        duration: SHARE_ANNOUNCE_SNACK_DURATION_MS,
-      })
-    }
-  })
 }
 
 export function openEventAnnounceDialog(
   dialog: MatDialog,
-  snack: MatSnackBar,
   ctx: Omit<OpenShareAnnounceDialogContext, 'intent' | 'roleLines' | 'compositionValidatedAt'>,
 ): void {
-  openShareAnnounceDialog(dialog, snack, { ...ctx, intent: 'event', roleLines: [] })
+  openShareAnnounceDialog(dialog, { ...ctx, intent: 'event', roleLines: [] })
 }
 
 export function openAvailabilityNudgeDialog(
   dialog: MatDialog,
-  snack: MatSnackBar,
   ctx: Omit<OpenShareAnnounceDialogContext, 'intent' | 'roleLines' | 'compositionValidatedAt'>,
 ): void {
-  openShareAnnounceDialog(dialog, snack, { ...ctx, intent: 'availability_nudge', roleLines: [] })
+  openShareAnnounceDialog(dialog, { ...ctx, intent: 'availability_nudge', roleLines: [] })
 }

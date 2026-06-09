@@ -12,6 +12,14 @@ import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { effectiveMemberGender, type MemberGender } from '../../core/account/member-gender'
+import {
+  declineBadgeLabel,
+  participationDeclineConfirmLabel,
+  participationDeclineConfirmMessage,
+  participationDeclineConfirmTitle,
+  participationDeclineSuccessToast,
+  type ParticipationLiveStatus,
+} from '../../core/participation/participation-withdrawal-copy'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { computeRawCompositionLifecycle } from '../../core/composition/composition-lifecycle'
 import {
@@ -47,8 +55,9 @@ import {
   rolesWithSlots,
   type RoleKey,
 } from '../../core/events/event-types'
-import { auditRoleDisplay } from '../../core/audit/audit-display-labels'
 import { getRoleLabel } from '../../shared/event-roles/event-roles'
+import { roleActionChipDisplayText } from '../../shared/event-roles/role-action-chip/role-action-chip-label'
+import { RoleActionChip } from '../../shared/event-roles/role-action-chip/role-action-chip'
 import { ChanceBreakdownService } from '../../shared/composition/chance-breakdown.service'
 import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
 import { CompositionPoolPreview } from '../../shared/composition/composition-pool-preview'
@@ -70,11 +79,6 @@ import {
   ShareAnnounceDialog,
   type ShareAnnounceDialogData,
 } from '../../shared/share-announce/share-announce-dialog'
-import {
-  SHARE_ANNOUNCE_SNACK_DURATION_MS,
-  shareAnnounceSnackMessage,
-  type ShareAnnounceNotifyResult,
-} from '../../shared/share-announce/share-announce-snack'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
@@ -103,11 +107,14 @@ interface SlotRow {
     CompositionDrawAnimation,
     CompositionPoolPreview,
     UserAvatarComponent,
+    RoleActionChip,
   ],
   templateUrl: './event-equipe-tab.html',
   styleUrl: './event-equipe-tab.scss',
 })
 export class EventEquipeTab {
+  protected readonly roleChipDisplayText = roleActionChipDisplayText
+
   private readonly compositionApi = inject(CompositionApiService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly analytics = inject(ProductAnalyticsService)
@@ -337,7 +344,7 @@ export class EventEquipeTab {
     if (count === 0) {
       return null
     }
-    return count === 1 ? '1 personne a décliné' : `${count} personnes ont décliné`
+    return declineBadgeLabel(count)
   })
 
   protected readonly currentDrawStep = computed(() => {
@@ -529,11 +536,10 @@ export class EventEquipeTab {
   }
 
   protected slotRowAriaLabel(row: SlotRow): string {
-    const role = this.rolePillLabel(
-      row.roleKey,
-      row.slot?.participantGender,
-      !!row.slot?.participantId,
-    )
+    const role = roleActionChipDisplayText(row.roleKey, {
+      gender: row.slot?.participantGender,
+      hasAssignee: !!row.slot?.participantId,
+    })
     const name = row.slot?.participantDisplayName
     if (this.isParticipationSlotTappable(row)) {
       return name ? `Participation de ${name}, ${role}` : role
@@ -624,7 +630,7 @@ export class EventEquipeTab {
     }
     const ev = this.event()
     const roleLines = this.buildShareRoleLines()
-    const ref = this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, ShareAnnounceNotifyResult | undefined>(
+    this.dialog.open<ShareAnnounceDialog, ShareAnnounceDialogData, void>(
       ShareAnnounceDialog,
       {
         data: {
@@ -646,13 +652,6 @@ export class EventEquipeTab {
         autoFocus: 'first-titled-element',
       },
     )
-    ref.afterClosed().subscribe((result) => {
-      if (result) {
-        this.snack.open(shareAnnounceSnackMessage(result), 'OK', {
-          duration: SHARE_ANNOUNCE_SNACK_DURATION_MS,
-        })
-      }
-    })
   }
 
   private buildShareRoleLines(): RoleAssignmentLine[] {
@@ -680,20 +679,6 @@ export class EventEquipeTab {
   }
 
   protected readonly emptySlotPlaceholder = 'À pourvoir'
-
-  /** Inclusive label for empty slots; gender-aware when a participant is assigned. */
-  protected rolePillLabel(
-    roleKey: string,
-    participantGender?: MemberGender | null,
-    hasAssignee = false,
-  ): string {
-    const key = roleKey as RoleKey
-    if (hasAssignee) {
-      const emoji = ROLE_EMOJIS[key] ?? '•'
-      return `${emoji} ${getRoleLabel(key, participantGender)}`
-    }
-    return auditRoleDisplay(roleKey)
-  }
 
   private findOwnAssignedParticipationRow(): SlotRow | null {
     const viewerIds = this.viewerParticipantIds()
@@ -763,8 +748,8 @@ export class EventEquipeTab {
       data: {
         eventTitle: ev.title,
         eventDate: ev.startsAt,
-        roleLabel: getRoleLabel(row.roleKey as RoleKey, roleGender),
-        roleEmoji: row.roleEmoji,
+        roleKey: row.roleKey as RoleKey,
+        roleGender,
         currentStatus: slot.participationStatus,
         mode: options.mode,
         assigneeDisplayName: options.mode === 'proxy' ? assigneeName : undefined,
@@ -777,17 +762,19 @@ export class EventEquipeTab {
       return
     }
     if (result.status === 'declined') {
-      const declineMessage =
-        options.mode === 'proxy'
-          ? `Confirmer le désistement de ${assigneeName} pour ce rôle ?`
-          : 'Confirmer votre désistement pour ce rôle ?'
+      const liveStatus: ParticipationLiveStatus =
+        slot.participationStatus === 'confirmed' ? 'confirmed' : 'pending'
       const confirmed = await firstValueFrom(
         this.dialog
           .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
             data: {
-              title: 'Décliner la participation',
-              message: declineMessage,
-              confirmLabel: 'Décliner',
+              title: participationDeclineConfirmTitle(liveStatus),
+              message: participationDeclineConfirmMessage(
+                liveStatus,
+                options.mode,
+                options.mode === 'proxy' ? assigneeName : undefined,
+              ),
+              confirmLabel: participationDeclineConfirmLabel(liveStatus),
               destructive: true,
             },
           })
@@ -797,13 +784,14 @@ export class EventEquipeTab {
         return
       }
     }
-    await this.submitParticipation(row, result.status, result.note)
+    await this.submitParticipation(row, result.status, result.note, slot.participationStatus)
   }
 
   private async submitParticipation(
     row: SlotRow,
     status: SlotParticipationUpdateStatus,
     note?: string | null,
+    statusBeforeDecline?: CompositionSlot['participationStatus'],
   ): Promise<void> {
     if (this.updatingParticipation()) {
       return
@@ -836,7 +824,9 @@ export class EventEquipeTab {
       status === 'confirmed'
         ? 'Participation confirmée.'
         : status === 'declined'
-          ? 'Participation déclinée.'
+          ? participationDeclineSuccessToast(
+              statusBeforeDecline === 'confirmed' ? 'confirmed' : 'pending',
+            )
           : 'Participation remise en attente.'
     this.snack.open(message, 'OK', { duration: 4000 })
   }
@@ -1079,11 +1069,10 @@ export class EventEquipeTab {
   }
 
   protected rolePoolPreviewAriaLabel(row: SlotRow): string {
-    const role = this.rolePillLabel(
-      row.roleKey,
-      row.slot?.participantGender,
-      !!row.slot?.participantId,
-    )
+    const role = roleActionChipDisplayText(row.roleKey, {
+      gender: row.slot?.participantGender,
+      hasAssignee: !!row.slot?.participantId,
+    })
     return this.isRolePoolPreviewOpen(row)
       ? `Masquer le pool du tirage pour ${role}`
       : `Voir le pool du tirage pour ${role}`
@@ -1316,7 +1305,7 @@ export class EventEquipeTab {
       case 403:
         return 'Vous ne pouvez pas remettre ce participant en composition.'
       case 404:
-        return 'Déclin introuvable.'
+        return 'Retrait introuvable.'
       case 409:
         return 'Aucun créneau vide pour ce rôle ou composition non verrouillée.'
       default:

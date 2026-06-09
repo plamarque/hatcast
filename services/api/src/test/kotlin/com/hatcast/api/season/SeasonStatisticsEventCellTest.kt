@@ -150,7 +150,7 @@ class SeasonStatisticsEventCellTest {
             )
 
         assertEquals("declined", cell.status)
-        assertEquals("Décliné (J)", cell.label)
+        assertEquals("Retrait (J)", cell.label)
         assertEquals("player", cell.roleKey)
     }
 

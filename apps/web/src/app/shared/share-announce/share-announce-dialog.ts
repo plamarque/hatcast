@@ -1,22 +1,19 @@
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { Component, inject, signal } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
+import { MatChipsModule } from '@angular/material/chips'
 import {
   MAT_DIALOG_DATA,
-  MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog'
-import { MatExpansionModule } from '@angular/material/expansion'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
-import { MatListModule } from '@angular/material/list'
+import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { firstValueFrom } from 'rxjs'
 
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
 import {
@@ -26,11 +23,6 @@ import {
   type RoleAssignmentLine,
   type ShareAnnounceIntent,
 } from '../../core/messaging/share-announce-messages'
-import {
-  ConfirmDialog,
-  type ConfirmDialogData,
-} from '../../pages/seasons-list/confirm-dialog'
-import type { ShareAnnounceNotifyResult } from './share-announce-snack'
 
 export interface ShareAnnounceDialogData {
   intent: ShareAnnounceIntent
@@ -52,40 +44,17 @@ interface RecipientChannelStatus {
   lastNotifiedAt?: string | null
 }
 
-function formatNotifiedDate(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(new Date(iso))
-  } catch {
-    return iso
-  }
-}
-
 interface RecipientCard {
   participantId: string
   displayName: string
-  manualOnly: boolean
   channels: {
     email: RecipientChannelStatus
     push: RecipientChannelStatus
   }
 }
 
-function calendarDaysSince(iso: string, now = new Date()): number {
-  const from = new Date(iso)
-  const startFrom = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate())
-  const startNow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  return Math.floor((startNow - startFrom) / (24 * 60 * 60 * 1000))
-}
-
-/** French age label for manual-notify anti-spam confirm (calendar days, not hours). */
-export function formatManualNotifyGuardAge(days: number): string {
-  if (days <= 0) return "aujourd'hui"
-  if (days === 1) return 'hier'
-  return `il y a ${days} jours`
+function isAlreadyNotified(card: RecipientCard): boolean {
+  return card.channels.email.notified || card.channels.push.notified
 }
 
 @Component({
@@ -94,21 +63,19 @@ export function formatManualNotifyGuardAge(days: number): string {
     FormsModule,
     TextFieldModule,
     MatButtonModule,
+    MatChipsModule,
     MatDialogModule,
-    MatExpansionModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatListModule,
+    MatMenuModule,
     MatProgressBarModule,
-    MatProgressSpinnerModule,
   ],
   templateUrl: './share-announce-dialog.html',
   styleUrl: './share-announce-dialog.scss',
 })
 export class ShareAnnounceDialog {
-  private readonly ref = inject(MatDialogRef<ShareAnnounceDialog, ShareAnnounceNotifyResult | undefined>)
-  private readonly dialog = inject(MatDialog)
+  private readonly ref = inject(MatDialogRef<ShareAnnounceDialog, void>)
   private readonly api = inject(ShareAnnounceApiService)
   private readonly snack = inject(MatSnackBar)
   protected readonly data = inject<ShareAnnounceDialogData>(MAT_DIALOG_DATA)
@@ -148,57 +115,54 @@ export class ShareAnnounceDialog {
 
   protected readonly loadingRecipients = signal(true)
   protected readonly recipientsError = signal(false)
-  protected readonly sending = signal(false)
-  protected readonly sendError = signal<string | null>(null)
-  protected readonly recipientsSummary = signal<string | null>(null)
-  protected readonly guardDays = signal<number | null>(null)
-  protected readonly lastManualNotifyAt = signal<string | null>(null)
-  protected readonly notifiableCount = signal(0)
-  protected readonly manualCount = signal(0)
   protected readonly recipientCards = signal<RecipientCard[]>([])
+
+  protected readonly alreadyNotifiedRecipients = computed(() =>
+    this.recipientCards()
+      .filter(isAlreadyNotified)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr')),
+  )
+
+  protected readonly toReachRecipients = computed(() =>
+    this.recipientCards()
+      .filter((r) => !isAlreadyNotified(r))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr')),
+  )
+
+  protected readonly alreadyCount = computed(() => this.alreadyNotifiedRecipients().length)
+
+  protected readonly toReachCount = computed(() => this.toReachRecipients().length)
+
+  protected readonly alreadyCountLabel = computed(() => {
+    const n = this.alreadyCount()
+    return `${n} personne${n > 1 ? 's' : ''}`
+  })
+
+  protected readonly alreadyNotifiedNamesJoined = computed(() =>
+    this.alreadyNotifiedRecipients()
+      .map((r) => r.displayName)
+      .join(', '),
+  )
+
+  protected readonly alreadyNotifiedSuffix = computed(() =>
+    this.alreadyCount() > 1
+      ? 'déjà notifiées automatiquement'
+      : 'déjà notifiée automatiquement',
+  )
+
+  protected readonly alreadyLinkAriaLabel = computed(() => {
+    const n = this.alreadyCount()
+    return `${n} personne${n > 1 ? 's' : ''} déjà notifiée${n > 1 ? 's' : ''} — afficher les noms`
+  })
+
+  private loadRecipientsSeq = 0
 
   constructor() {
     void this.loadRecipients()
   }
 
-  protected rowAriaLabel(card: RecipientCard): string {
-    if (card.manualOnly) {
-      return `${card.displayName} — contact manuel`
-    }
-    const parts: string[] = []
-    if (card.channels.email.eligible) {
-      const at = card.channels.email.lastNotifiedAt
-      parts.push(
-        card.channels.email.notified
-          ? at
-            ? `email déjà envoyé le ${formatNotifiedDate(at)}`
-            : 'email déjà envoyé'
-          : 'email prévu au prochain envoi',
-      )
-    }
-    if (card.channels.push.eligible) {
-      const at = card.channels.push.lastNotifiedAt
-      parts.push(
-        card.channels.push.notified
-          ? at
-            ? `push déjà envoyé le ${formatNotifiedDate(at)}`
-            : 'push déjà envoyé'
-          : 'push prévu au prochain envoi',
-      )
-    }
-    return `${card.displayName} — ${parts.join(', ')}`
-  }
-
   protected showCharHint(): boolean {
     return this.messageText.length > 450
-  }
-
-  protected notifyButtonLabel(): string {
-    const count = this.notifiableCount()
-    if (count === 0) {
-      return 'Aucune notification automatique'
-    }
-    return `Notifier ${count} personne${count > 1 ? 's' : ''}`
   }
 
   protected async copyMessage(): Promise<void> {
@@ -218,112 +182,35 @@ export class ShareAnnounceDialog {
   }
 
   protected retryLoadRecipients(): void {
+    if (this.loadingRecipients()) {
+      return
+    }
     void this.loadRecipients()
   }
 
-  protected async sendNotifications(): Promise<void> {
-    if (this.sending()) return
-    const confirmMessage = this.guardConfirmMessage()
-    if (confirmMessage) {
-      const confirmed = await this.confirmResend(confirmMessage)
-      if (!confirmed) return
-    }
-    this.sending.set(true)
-    this.sendError.set(null)
-    const result = await this.api.sendNotifications(
-      this.data.seasonId,
-      this.data.eventId,
-      this.data.intent,
-      this.messageText,
-    )
-    this.sending.set(false)
-    if (!result.ok) {
-      this.sendError.set(result.errorMessage ?? 'Envoi impossible.')
-      return
-    }
-    this.ref.close({
-      intent: this.data.intent,
-      notifiedCount: result.data.notifiedCount,
-      manualCount: result.data.manualCount,
-    })
-  }
-
-  private guardConfirmMessage(): string | null {
-    const lastAt = this.lastManualNotifyAt()
-    const guardDays = this.guardDays()
-    if (!lastAt || guardDays == null) {
-      return null
-    }
-    const days = calendarDaysSince(lastAt)
-    if (days >= guardDays) {
-      return null
-    }
-    const age = formatManualNotifyGuardAge(days)
-    const title = this.data.eventTitle.trim()
-    const eventRef = title ? `« ${title} »` : 'ce spectacle'
-
-    switch (this.data.intent) {
-      case 'availability_nudge':
-        return `Un rappel de disponibilité a déjà été envoyé pour ${eventRef} ${age}.`
-      case 'event':
-        return `Une annonce a déjà été envoyée pour ${eventRef} ${age}.`
-      case 'draw':
-        return `Un partage du tirage a déjà été enregistré pour ${eventRef} ${age}.`
-      case 'composition':
-        return `Une annonce de composition a déjà été enregistrée pour ${eventRef} ${age}.`
-    }
-  }
-
-  private async confirmResend(message: string): Promise<boolean> {
-    const title =
-      this.data.intent === 'availability_nudge'
-        ? 'Renvoyer un rappel ?'
-        : 'Renvoyer cette annonce ?'
-    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
-      data: {
-        title,
-        message,
-        confirmLabel: 'Envoyer quand même',
-      },
-      width: 'min(24rem, 92vw)',
-    })
-    return (await firstValueFrom(ref.afterClosed())) === true
-  }
-
   private async loadRecipients(): Promise<void> {
+    const seq = ++this.loadRecipientsSeq
     this.loadingRecipients.set(true)
     this.recipientsError.set(false)
-    this.lastManualNotifyAt.set(null)
     const result = await this.api.getRecipients(
       this.data.seasonId,
       this.data.eventId,
       this.data.intent,
     )
+    if (seq !== this.loadRecipientsSeq) {
+      return
+    }
     this.loadingRecipients.set(false)
     if (!result.ok || !result.data) {
       this.recipientsError.set(true)
       return
     }
-    const { total, notifiableCount, manualCount, recipients, lastManualNotifyAt, guardDays } =
-      result.data
-    this.notifiableCount.set(notifiableCount)
-    this.manualCount.set(manualCount)
-    this.recipientsSummary.set(
-      `${total} personne${total > 1 ? 's' : ''} concernée${total > 1 ? 's' : ''} — ${notifiableCount} notifiable${notifiableCount > 1 ? 's' : ''} automatiquement, ${manualCount} à contacter manuellement`,
-    )
-    this.guardDays.set(guardDays ?? null)
-    this.lastManualNotifyAt.set(lastManualNotifyAt ?? null)
     this.recipientCards.set(
-      recipients.map((r) => {
-        const emailEligible = r.channels.email.eligible
-        const pushEligible = r.channels.push.eligible
-        return {
-          participantId: r.participantId,
-          displayName: r.displayName,
-          manualOnly: !emailEligible && !pushEligible,
-          channels: r.channels,
-        }
-      }),
+      result.data.recipients.map((r) => ({
+        participantId: r.participantId,
+        displayName: r.displayName,
+        channels: r.channels,
+      })),
     )
   }
 }

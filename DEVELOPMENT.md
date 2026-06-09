@@ -78,6 +78,20 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 **Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe.
 
+**Mode offline (sans Neon / sans internet)** : si la branche Neon `local` est injoignable (train, avion, etc.), lancer avec une base H2 locale et les seeds Les Improbots :
+
+```bash
+./scripts/start-dev.sh --offline
+# équivalent : HATCAST_START_DEV_OFFLINE=1 ./scripts/start-dev.sh
+```
+
+- Base H2 fichier : `.local/hatcast-offline/` (gitignored) — persiste entre redémarrages API.
+- Connexion : `/connexion` avec un compte seed `@seed.improbots.test` (ex. `charlene@seed.improbots.test` / `charlene`, ou `patrice@seed.improbots.test` / `patricep` si slug < 8 caractères) — voir § Les Improbots ci-dessous.
+- **Indisponible offline** : Google OAuth, Identity Platform (email réel), Neon, `--with-push`, Tailscale (désactivé automatiquement).
+- Reset données : `rm -rf .local/hatcast-offline/` puis relancer `--offline`.
+- Prérequis : `npm install` et dépendances Gradle déjà en cache (première install nécessite internet).
+- Polices et icônes Material : embarquées dans le build Angular (plus de chargement depuis Google Fonts).
+
 Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
 **Trois troupes en local (`./scripts/start-dev.sh`, profil `dev`, Neon branche `local`) :**
@@ -113,6 +127,8 @@ npm run generate:improbots-dev-seed
 **Reset Neon branche `local`** (schéma prod cloné, sans données Improbots) : reset branche → `./scripts/start-dev.sh` → Flyway applique migrations prod, stubs versionnés, puis le **`R__`** (repeatable, après toutes les versionnées). Pas de patch out-of-order par seed historique.
 
 Recette MVP pilot (Patrice) : [scripts/v2/MVP-PILOT-RECETTE.md](scripts/v2/MVP-PILOT-RECETTE.md). Générateur : [scripts/v2/generate-improbots-seed-sql.js](scripts/v2/generate-improbots-seed-sql.js).
+
+**Connexion comptes seed Les Improbots (profil API `dev` uniquement)** : sur `/connexion` en local (`localhost`, build prod `--with-push` inclus), email `prenom@seed.improbots.test` (ex. `charlene@seed.improbots.test`, `pierrick@seed.improbots.test`) et mot de passe = colonne **`users.slug`** du seed (`charlene`, `pierrick`, …). Si le slug fait moins de 8 caractères, il est **répété** jusqu’à 8 (`angie` → `angieang`). Pas de compte Firebase requis pour ces adresses ; l’API accepte un jeton mock `dev-seed-idp|…` (voir `DevIdpIdTokenVerifier`). **Alertes orga** : prefs opt-in **OFF** par défaut — chaque compte doit activer **E-mail** dans `/compte/notifications` → section **Alertes organisateur**.
 
 **Troupe Démo prod (ADR-0015) :** bootstrap idempotent Flyway `V33`–`V37` + repeatable `R__bootstrap_demo_admin_memberships.sql` (`db/migration`, profil `cloud` inclus). UUID `a0000001-0000-4000-8000-000000000099`. Les liens `TROUPE_ADMIN` pour `patrice.lamarque@gmail.com` / `impropick@gmail.com` sont appliqués idempotent à chaque migrate Flyway dès que les comptes `users` existent (première connexion Google sur Neon vide incluse). Smoke manuel après join : `/saison/demo/saison-2026-2027` — checklist opérateur dans [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) § Post-deploy smoke.
 

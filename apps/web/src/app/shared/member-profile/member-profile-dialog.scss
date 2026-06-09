@@ -197,37 +197,12 @@
   max-width: 16rem;
 }
 
-.member-profile__pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+.member-profile__favorite-roles {
+  display: block;
 }
 
-.member-profile__pill {
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.8rem;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.member-profile__roles-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem 0.75rem;
-}
-
-.member-profile__role-row {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-}
-
-.member-profile__role-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.85rem;
+.member-profile__roles {
+  display: block;
 }
 
 .member-profile__save-row {

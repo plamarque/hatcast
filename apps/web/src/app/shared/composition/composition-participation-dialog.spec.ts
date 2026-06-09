@@ -26,8 +26,7 @@ describe('CompositionParticipationDialog', () => {
           useValue: {
             eventTitle: 'Gala',
             eventDate: '2026-05-12T19:00:00.000Z',
-            roleLabel: 'Comédien·ne',
-            roleEmoji: '🎭',
+            roleKey: 'player',
             currentStatus: 'pending',
           } satisfies CompositionParticipationDialogData,
         },
@@ -93,8 +92,7 @@ describe('CompositionParticipationDialog', () => {
           useValue: {
             eventTitle: 'Gala',
             eventDate: '2026-05-12T19:00:00.000Z',
-            roleLabel: 'Comédien·ne',
-            roleEmoji: '🎭',
+            roleKey: 'player',
             currentStatus: 'pending',
             mode: 'proxy',
             assigneeDisplayName: 'Alice',

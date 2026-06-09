@@ -1,0 +1,44 @@
+<div class="troupe-settings">
+  <header class="troupe-settings__header">
+    <div class="troupe-settings__header-left">
+      @if (showBreadcrumb()) {
+        <app-context-breadcrumb
+          layout="troupe"
+          leafTitle="Paramètres"
+          [troupeName]="troupeName()!"
+          [troupeSlug]="troupeSlug()!"
+          [troupeLogoUrl]="troupeLogoUrl()"
+        />
+      }
+    </div>
+  </header>
+
+  @if (showBreadcrumb()) {
+    <div class="troupe-settings__mobile-context">
+      <h1 class="troupe-settings__mobile-context-title">Paramètres</h1>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="troupe-settings__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (troupeId() && canManageTroupe()) {
+    <div class="troupe-settings__content">
+      <h2 class="troupe-settings__title">Paramètres troupe</h2>
+      <p class="troupe-settings__intro">
+        Les catégories séparent les stats et les tirages par compartiment.
+      </p>
+
+      <mat-tab-group
+        class="troupe-settings__tabs"
+        [selectedIndex]="selectedTabIndex()"
+        (selectedIndexChange)="onTabChange($event)"
+      >
+        <mat-tab label="Catégories">
+          <app-troupe-categories-tab [troupeId]="troupeId()!" />
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+  }
+</div>

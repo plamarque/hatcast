@@ -27,7 +27,7 @@ Sections retirées de `deferred-work.md` actif — stories **done** ou dette **D
 ### Template match (fermé story 3.22, 2026-06-04)
 
 - **DW-101 / DW-102** — API `RoleTemplates` + seeds dev `coach: 1` — story [3-22-match-template-coach-api-seeds.md](3-22-match-template-coach-api-seeds.md) **done**.
-- **DW-103** — Matchs historiques `coach: 0` → `detectTemplateFromRoles` = `custom` si édition — **accepté**, pas de backfill massif (AC4–5 story 3.22).
+- **DW-103** — **Résolu** (SCP 2026-06-08 + story **17.37**) : personnalisation des slots ne modifie plus `templateType`. Matchs historiques `coach: 0` restent valides en lecture ; pas de backfill massif.
 
 ### DW-111 — replay migration (fermé 2026-06-05)
 

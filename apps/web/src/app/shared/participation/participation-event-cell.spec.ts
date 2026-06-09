@@ -67,9 +67,9 @@ describe('ParticipationEventCell', () => {
   it('applies declined modifier and role emoji', async () => {
     const fixture = await setup({
       status: 'declined',
-      label: 'Décliné (J)',
+      label: 'Retrait (J)',
       roleKey: 'player',
-      tooltip: 'Comédien·ne — Décliné',
+      tooltip: 'Comédien·ne — Retrait',
     })
     const root = fixture.nativeElement.querySelector('.participation-event-cell') as HTMLElement
     expect(root.className).toContain('participation-event-cell--declined')

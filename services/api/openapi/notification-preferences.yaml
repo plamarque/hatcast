@@ -67,11 +67,21 @@ components:
             - REMINDER_7_DAYS
             - REMINDER_1_DAY
             - AVAILABILITY_WEEKLY_REMINDER
+            - EVENT_DETAILS_CHANGED
+            - EVENT_ARCHIVED
+            - ORG_TEAM_REGRESSED
+            - ORG_TEAM_COMPLETE
+            - ORG_SCOPE_GRANTED
+            - ORG_COMPOSITION_INCOMPLETE
+            - ORG_SLA_OPEN_AVAILABILITY
+            - ORG_DRAFT_COMPOSITION
+            - ORG_EVENT_DRAFT_CREATED
         label:
           type: string
+          example: Rappels tous les 5 jours si je n'ai pas indiqué mes disponibilités
         group:
           type: string
-          enum: [NOTIFICATIONS, AUTOMATIC_REMINDERS]
+          enum: [NOTIFICATIONS, AUTOMATIC_REMINDERS, ORGANIZER_ALERTS]
         pushEnabled:
           type: boolean
         emailEnabled:
@@ -79,8 +89,11 @@ components:
 
     NotificationPreferencesResponse:
       type: object
-      required: [categories]
+      required: [hasOrganizerScope, categories]
       properties:
+        hasOrganizerScope:
+          type: boolean
+          description: True when the user is event/season organizer or troupe admin on at least one troupe.
         categories:
           type: array
           items:

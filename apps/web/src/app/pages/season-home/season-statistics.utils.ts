@@ -39,7 +39,7 @@ export function statTooltip(
   if (declines === 0) {
     return `${selections} sélection${selections !== 1 ? 's' : ''} sur ${dispos} dispo${dispos !== 1 ? 's' : ''}`
   }
-  return `${selections} sélection${selections !== 1 ? 's' : ''} sur ${dispos} dispos (dont ${declines} désistement${declines !== 1 ? 's' : ''})`
+  return `${selections} sélection${selections !== 1 ? 's' : ''} sur ${dispos} dispos (dont ${declines} retrait${declines !== 1 ? 's' : ''})`
 }
 
 export function formatStatExportValue(
@@ -100,13 +100,13 @@ export function genderStatisticsEventCell(
     case 'selected':
       return { ...cell, label: roleLabel, tooltip: roleLabel }
     case 'declined':
-      if (cell.label.startsWith('Décliné (')) {
-        return { ...cell, tooltip: `${roleLabel} — Décliné` }
+      if (cell.label.startsWith('Retrait (')) {
+        return { ...cell, tooltip: `${roleLabel} — Retrait` }
       }
       return {
         ...cell,
         label: roleLabel,
-        tooltip: `${roleLabel} — Décliné`,
+        tooltip: `${roleLabel} — Retrait`,
       }
     default:
       return cell

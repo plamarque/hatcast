@@ -15,6 +15,9 @@ import {
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
 
+export const ORGANIZERS_HELP =
+  'Personnes spécifiquement désignées pour gérer l’organisation et la composition du spectacle.'
+
 export interface EventOrganizersDialogData {
   seasonId: string
   eventId: string

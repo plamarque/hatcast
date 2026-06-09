@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-07T18:00:00+02:00
+# last_updated: 2026-06-09T16:20:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-07T20:50:00+02:00"
+last_updated: "2026-06-09T16:10:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -153,6 +153,8 @@ development_status:
   6-19-export-calendrier-et-navigation-lieu-onglet-infos: done  # UX ux-hatcast-2026-06-05 EXPERIENCE.md — parité V1 calendrier + maps Infos
   6-21-hint-parite-genre-composition-player: done  # P2 — SCP 2026-06-05 G-011 ; depends 2.12* (done) ; UI strip only
   6-22-composition-unlock-preserve-participation: done  # SCP 2026-06-06 — unlock preserve statuses + draft org proxy (G-014)
+  6-23-modales-partager-annoncer-manuel-compact: done  # UX ux-design-share-announce-manual-only.md — approved 2026-06-09 ; Copier/WhatsApp only ; ligne compacte ; code review 2026-06-09
+  6-24-participation-copy-declinaison-desistement-retrait: done  # Copy V2 — DOMAIN § déclinaison/désistement/retrait ; API + web + notifs + audit
   epic-6-retrospective: optional
 
   epic-7: backlog
@@ -163,11 +165,17 @@ development_status:
   epic-8: in-progress
   8-1-opt-in-aux-notifications-navigateur-et-categories: done
   8-2-preferences-de-notification: done  # P1 — code review 2026-06-01: patches applied
+  8-2b-preferences-membre-copy-masquage-d6: done  # P0 — UX as-shipped 2026-06-08 : D6 + Me prévenir + Cet appareil + cartes
   8-3-notifications-mep-dispos-et-confirmation-assignes: done  # P0 MEP — depends 3.21, 8.1
-  8-4-notifications-ops-organisateurs: backlog  # P2 post-MEP — FR31b
+  8-4-notifications-ops-organisateurs: done  # P2 post-MEP — FR31b
+  8-4b-notifications-orga-v2: done  # P2 — extension 8.4 / FR31b ; spec notifications-orga-v2 ; VD Paige 2026-06-09
   8-5-extensions-notifications-membre: done  # P1 post-MEP initial — code review patches applied
   8-5b-garde-rappels-membres-desactives-dw-107: done  # DW-107 T0 — 8.5 review W3 ; guard AssigneePresenceReminderJob
   8-6-notifications-proxy-confirmation-membre-concerne: done  # P1 — proxy 5.5/6.8 → subject ack
+  8-7-rappels-automatiques-disponibilite-cadence-5-jours: done  # P1 — AVAILABILITY_WEEKLY_REMINDER scheduler ; cadence 5 j ; PO 2026-06-07 ; code review 2026-06-07
+  8-8-notifications-membre-event-details-et-archivage: done  # P1 — EVENT_DETAILS_CHANGED + EVENT_ARCHIVED ; engaged roster + guest email ; code review 2026-06-08
+  8-9-notification-equipe-confirmee-member: done  # P1 — G-012 TEAM_COMPLETE_MEMBER ; orgas événement + assignés confirmés ; pref TEAM_CONFIRMED ; code review 2026-06-08
+  8-10-email-notification-templates-shell: done  # P1 polish — shell HTML email table-based ; variantes A/B/C ; contexte event ; CTA pill ; code review 2026-06-09
   epic-8-retrospective: optional
 
   epic-9: in-progress
@@ -263,6 +271,10 @@ development_status:
   17-34-mon-compte-onglets-securite-preferences: done  # P0 V2.0.0 — SCP 2026-06-02
   17-35-mon-compte-pseudo-identite-rail-label: done  # UX amend 2026-06-04 — C2/C2b/C11
   17-36-mon-compte-onglet-mon-profil: done  # UX amend 2026-06-04b — fusion Identité+Sécurité
+  17-37-format-stable-role-customization: done  # SCP 2026-06-08 — format stable on role customize
+  17-38-category-glossary-api: done  # SCP 2026-06-08 — admin CRUD + stop auto-create on event save
+  17-39-ui-category-selection: done  # amend v4 2026-06-09 — inline chips ; depends 17.38 ; code review 2026-06-09
+  17-40-troupe-settings-categories: done  # SCP 2026-06-08 — page Paramètres troupe onglet Catégories ; depends 17.38
   epic-17-retrospective: optional
 
   epic-18: in-progress

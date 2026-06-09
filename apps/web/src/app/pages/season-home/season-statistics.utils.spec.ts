@@ -22,7 +22,7 @@ describe('season-statistics.utils', () => {
   })
 
   it('builds tooltip with declines', () => {
-    expect(statTooltip(1, 4, 2)).toContain('désistement')
+    expect(statTooltip(1, 4, 2)).toContain('retrait')
   })
 
   it('genres stats event cell tooltip for female player', () => {

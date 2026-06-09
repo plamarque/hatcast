@@ -97,7 +97,11 @@
     }
   </div>
 
-  <section class="event-infos__format" aria-labelledby="event-infos-format-label">
+  <section
+    class="event-infos__format"
+    aria-labelledby="event-infos-format-label"
+    aria-describedby="event-infos-format-help"
+  >
     <div class="event-infos__format-header">
       <span id="event-infos-format-label" class="event-infos__label">Format et besoins</span>
       @if (canManageEvents()) {
@@ -106,36 +110,48 @@
           mat-icon-button
           class="event-infos__format-edit"
           aria-label="Modifier format et besoins"
-          [disabled]="saving()"
+          [disabled]="savingTypeRoles()"
           (click)="openTypeRolesDialog()"
         >
           <mat-icon aria-hidden="true">edit</mat-icon>
         </button>
       }
     </div>
+    <p id="event-infos-format-help" class="event-infos__section-help">{{ formatAndRolesHelp }}</p>
     <div class="event-infos__format-body">
-      <div class="event-infos__type-row">
-        <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
-        <span>{{ typeLabel() }}</span>
-      </div>
-      <div class="event-infos__roles-summary">
-        @if (summaryRoleKeys().length === 0) {
-          <span class="event-infos__roles-empty">Aucun besoin renseigné</span>
-        } @else {
-          @for (role of summaryRoleKeys(); track role) {
-            <span class="event-infos__roles-item">
-              <span aria-hidden="true">{{ roleEmojis[role] }}</span>
-              {{ roleLabels[role] }}: <strong>{{ roleCount(role) }}</strong>
-            </span>
-          }
-        }
-      </div>
+      @if (savingTypeRoles()) {
+        <div
+          class="event-infos__format-loading"
+          role="status"
+          aria-live="polite"
+          aria-label="Mise à jour du format et des besoins"
+        >
+          <mat-spinner diameter="28" />
+          <span class="event-infos__format-loading-text">Mise à jour…</span>
+        </div>
+      } @else {
+        <div class="event-infos__type-row">
+          <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
+          <span>{{ typeLabel() }}</span>
+        </div>
+        <app-role-display-chip-set
+          class="event-infos__roles-summary"
+          ariaLabel="Besoins en rôles"
+          [items]="summaryRoleChipItems()"
+          emptyMessage="Aucun besoin renseigné"
+        />
+      }
     </div>
   </section>
 
   @if (showOrganizersSection()) {
-    <section class="event-infos__organizers" aria-labelledby="event-infos-organizers-label">
+    <section
+      class="event-infos__organizers"
+      aria-labelledby="event-infos-organizers-label"
+      aria-describedby="event-infos-organizers-help"
+    >
       <span id="event-infos-organizers-label" class="event-infos__label">Organisateur·ices</span>
+      <p id="event-infos-organizers-help" class="event-infos__section-help">{{ organizersHelp }}</p>
       <div class="event-infos__organizers-body">
         @if (organizers().length > 0) {
           <mat-chip-set class="event-infos__chip-set">
@@ -176,37 +192,43 @@
     </section>
   }
 
-  @if (showCategorySection()) {
-    <section class="event-infos__category" aria-labelledby="event-infos-category-label">
-      <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
-      <div class="event-infos__category-body">
-        @if (categoryLabel(); as label) {
-          <mat-chip-set class="event-infos__chip-set">
-            <mat-chip
-              class="event-infos__category-chip"
-              [disabled]="saving()"
-              [removable]="canManageEvents()"
-              (removed)="removeCategory()"
-              (click)="onCategoryChipClick()"
-            >
-              {{ label }}
-              @if (canManageEvents()) {
-                <mat-icon matChipRemove [attr.aria-label]="'Retirer ' + label">cancel</mat-icon>
-              }
-            </mat-chip>
-          </mat-chip-set>
-        } @else if (canManageEvents()) {
-          <button
-            type="button"
-            class="event-infos__add-category"
-            [disabled]="saving()"
-            (click)="openCategoryDialog()"
-          >
-            <mat-icon aria-hidden="true">sell</mat-icon>
-            Choisir une catégorie
-          </button>
-        }
+  <section
+    class="event-infos__category"
+    aria-labelledby="event-infos-category-label"
+    aria-describedby="event-infos-category-help"
+  >
+    <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
+    <p id="event-infos-category-help" class="event-infos__section-help">{{ categoryHelp }}</p>
+    @if (glossaryLoading()) {
+      <div
+        class="event-infos__category-loading"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        aria-label="Chargement des catégories"
+      >
+        <mat-spinner diameter="24" />
       </div>
-    </section>
-  }
+    } @else {
+      <app-event-category-select-chip-set
+        class="event-infos__category-chips"
+        ariaLabel="Catégorie du spectacle"
+        [options]="categoryOptions()"
+        [selectedSlug]="selectedCategorySlug()"
+        [disabled]="!canManageEvents() || saving()"
+        (categorySelect)="onCategorySelect($event)"
+      />
+    }
+    @if (canManageTroupe()) {
+      <button
+        type="button"
+        class="event-infos__add-organizer"
+        [disabled]="saving()"
+        (click)="navigateToCategorySettings()"
+      >
+        <mat-icon aria-hidden="true">settings</mat-icon>
+        Gérer les catégories
+      </button>
+    }
+  </section>
 </main>

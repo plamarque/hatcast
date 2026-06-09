@@ -30,7 +30,7 @@
           class="member-profile__stat member-profile__stat--decline"
           [matTooltip]="profile().stats!.declines.tooltip ?? ''"
         >
-          <span class="member-profile__stat-label">Désistements</span>
+          <span class="member-profile__stat-label">Retraits</span>
           <span class="member-profile__stat-value">
             {{ profile().stats!.declines.count }}
             <small>({{ profile().stats!.declines.percent }} %)</small>
@@ -88,15 +88,12 @@
         } @else {
           <h3 id="member-profile-fav-heading" class="member-profile__section-title">Rôles favoris</h3>
         }
-        <div class="member-profile__pills">
-          @for (item of profile().favoriteRoleCounts; track item.roleKey) {
-            <span class="member-profile__pill">
-              {{ roleEmoji($any(item.roleKey)) }}
-              {{ roleLabel($any(item.roleKey)) }}
-              ({{ item.count }})
-            </span>
-          }
-        </div>
+        <app-role-display-chip-set
+          class="member-profile__favorite-roles"
+          ariaLabel="Rôles favoris"
+          [items]="favoriteRoleChipItems()"
+          [gender]="profile().gender ?? 'non_specified'"
+        />
       </section>
     }
 
@@ -112,28 +109,16 @@
           </h3>
         }
         <p class="member-profile__helper">
-          Rôles pré-cochés par défaut lors de la saisie de disponibilité.
+          Pré-cochés par défaut à la saisie de disponibilité.
         </p>
-        <div class="member-profile__roles-grid">
-          @for (key of roleKeys; track key) {
-            <label class="member-profile__role-row">
-              <mat-checkbox
-                [checked]="isRoleSelected(key)"
-                [disabled]="!canToggleRole(key) || saving()"
-                [matTooltip]="
-                  key === 'volunteer'
-                    ? 'Le rôle bénévole est toujours pré-coché : si tu es disponible, tu peux toujours aider !'
-                    : ''
-                "
-                (change)="onToggleRole(key, $event.checked)"
-              />
-              <span class="member-profile__role-label">
-                <span aria-hidden="true">{{ roleEmoji(key) }}</span>
-                {{ roleLabel(key) }}
-              </span>
-            </label>
-          }
-        </div>
+        <app-role-toggle-chip-set
+          class="member-profile__roles"
+          ariaLabel="Mes rôles préférés"
+          [selectedKeys]="selectedRoleKeys()"
+          [gender]="profile().gender ?? 'non_specified'"
+          [disabled]="saving()"
+          (selectionChange)="onPreferredRolesChange($event)"
+        />
         <div class="member-profile__save-row">
           <button
             type="button"

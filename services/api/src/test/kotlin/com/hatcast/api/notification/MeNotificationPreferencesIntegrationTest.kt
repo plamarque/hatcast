@@ -3,6 +3,8 @@ package com.hatcast.api.notification
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -31,6 +33,9 @@ class MeNotificationPreferencesIntegrationTest {
     @Autowired
     private lateinit var userRepository: UserRepository
 
+    @Autowired
+    private lateinit var membershipRepository: TroupeMembershipRepository
+
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
 
@@ -46,12 +51,52 @@ class MeNotificationPreferencesIntegrationTest {
         mockMvc
             .perform(get("/v1/me/notification-preferences").cookie(cookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.categories.length()").value(NotificationCategory.entries.size))
+            .andExpect(
+                jsonPath("$.categories.length()").value(
+                    NotificationCategory.entries.size - HIDDEN_NOTIFICATION_PREFERENCE_CATEGORIES.size,
+                ),
+            )
+            .andExpect(jsonPath("$.categories[?(@.key == 'COMPOSITION_SHARED')]").isEmpty)
             .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].label").exists())
             .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].pushEnabled").value(true))
             .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].emailEnabled").value(true))
             .andExpect(jsonPath("$.categories[?(@.key == 'REMINDER_1_DAY')].pushEnabled").value(true))
             .andExpect(jsonPath("$.categories[?(@.key == 'REMINDER_1_DAY')].emailEnabled").value(true))
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_TEAM_REGRESSED')].pushEnabled").value(false))
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_TEAM_REGRESSED')].emailEnabled").value(false))
+            .andExpect(jsonPath("$.categories[?(@.key == 'AVAILABILITY_REQUEST')].pushEnabled").value(true))
+    }
+
+    @Test
+    fun `get notification preferences exposes ORG_SCOPE_GRANTED and omits ORG_ASSIGNEE_DECLINED`() {
+        val cookie = signInAndJoin("sub-notif-pref-scope-key", "notif-pref-scope-key@example.com", "Scope Key")
+
+        mockMvc
+            .perform(get("/v1/me/notification-preferences").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_SCOPE_GRANTED')].key").value("ORG_SCOPE_GRANTED"))
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_SCOPE_GRANTED')].pushEnabled").value(false))
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_SCOPE_GRANTED')].emailEnabled").value(false))
+            .andExpect(
+                jsonPath("$.categories[?(@.key == 'ORG_SCOPE_GRANTED')].label")
+                    .value("Me prévenir par notification push quand on m'ajoute comme orga de spectacle, orga de saison ou admin de troupe"),
+            )
+            .andExpect(jsonPath("$.categories[?(@.key == 'ORG_ASSIGNEE_DECLINED')]").isEmpty)
+    }
+
+    @Test
+    fun `organizer scope is true for troupe admin`() {
+        val googleSub = "sub-notif-pref-orga-scope"
+        val cookie = signInAndJoin(googleSub, "notif-pref-orga-scope@example.com", "Orga Scope")
+        val user = userRepository.findByGoogleSub(googleSub)!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)!!
+        membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
+        membershipRepository.save(membership)
+
+        mockMvc
+            .perform(get("/v1/me/notification-preferences").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.hasOrganizerScope").value(true))
     }
 
     @Test
@@ -72,8 +117,8 @@ class MeNotificationPreferencesIntegrationTest {
             .andExpect(jsonPath("$.categories[?(@.key == 'CONFIRMATION_REQUEST')].pushEnabled").value(true))
 
         val refreshed = userRepository.findById(user.id).orElseThrow()
-        assertFalse(refreshed.notificationPreferences[NotificationCategory.AVAILABILITY_REQUEST]?.push ?: true)
-        assertTrue(refreshed.notificationPreferences[NotificationCategory.AVAILABILITY_REQUEST]?.email ?: true)
+        assertFalse(refreshed.notificationPreferences[NotificationCategory.AVAILABILITY_REQUEST.name]?.push ?: true)
+        assertTrue(refreshed.notificationPreferences[NotificationCategory.AVAILABILITY_REQUEST.name]?.email ?: true)
     }
 
     @Test

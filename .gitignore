@@ -54,6 +54,9 @@ firebase-debug.log
 .dry-run-sandbox/
 .dry-run-sandbox-v2/
 
+# Offline dev H2 database (start-dev.sh --offline)
+.local/hatcast-offline/
+
 # Replay algorithm simulation output
 scripts/replay/output/
 
@@ -65,7 +68,9 @@ scripts/replay/output/
 /export/
 
 # BMad standard skills (installed locally; identical copies — regenerate from BMad if needed)
-.agents/skills/
+.agents/skills/*
+!.agents/skills/hatcast-v2-release/
+!.agents/skills/hatcast-v2-release/**
 .cursor/skills/
 
 # BMad personal install answers (user_name, communication_language — per developer)

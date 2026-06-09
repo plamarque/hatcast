@@ -21,5 +21,6 @@ interface ProxyNotificationPort {
         subjectUserId: UUID,
         roleKey: String,
         participationStatus: SlotParticipationStatus,
+        beforeParticipationStatus: SlotParticipationStatus? = null,
     )
 }

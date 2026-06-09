@@ -1,5 +1,4 @@
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { describe, expect, it, vi } from 'vitest'
 
 import { emptyRoleSlots } from '../../core/events/event-types'
@@ -10,9 +9,8 @@ describe('openEventAnnounceDialog', () => {
   it('opens ShareAnnounceDialog with event intent', () => {
     const dialogOpen = vi.fn().mockReturnValue({ afterClosed: () => ({ subscribe: vi.fn() }) })
     const dialog = { open: dialogOpen } as unknown as MatDialog
-    const snack = { open: vi.fn() } as unknown as MatSnackBar
 
-    openEventAnnounceDialog(dialog, snack, {
+    openEventAnnounceDialog(dialog, {
       seasonId: 'season-1',
       seasonSlug: 'saison-a',
       troupeSlug: 'troupe-a',
@@ -50,9 +48,8 @@ describe('openAvailabilityNudgeDialog', () => {
   it('opens ShareAnnounceDialog with availability_nudge intent', () => {
     const dialogOpen = vi.fn().mockReturnValue({ afterClosed: () => ({ subscribe: vi.fn() }) })
     const dialog = { open: dialogOpen } as unknown as MatDialog
-    const snack = { open: vi.fn() } as unknown as MatSnackBar
 
-    openAvailabilityNudgeDialog(dialog, snack, {
+    openAvailabilityNudgeDialog(dialog, {
       seasonId: 'season-1',
       seasonSlug: 'saison-a',
       troupeSlug: 'troupe-a',
@@ -82,5 +79,36 @@ describe('openAvailabilityNudgeDialog', () => {
         }),
       }),
     )
+  })
+})
+
+describe('openShareAnnounceDialog close value', () => {
+  it('does not subscribe to afterClosed for dispatch snack', () => {
+    const subscribe = vi.fn()
+    const dialogOpen = vi.fn().mockReturnValue({ afterClosed: () => ({ subscribe }) })
+    const dialog = { open: dialogOpen } as unknown as MatDialog
+
+    openEventAnnounceDialog(dialog, {
+      seasonId: 'season-1',
+      seasonSlug: 'saison-a',
+      troupeSlug: 'troupe-a',
+      event: {
+        id: 'event-1',
+        seasonId: 'season-1',
+        slug: 'event-1',
+        title: 'Apérock',
+        description: null,
+        location: null,
+        startsAt: '2026-05-12T19:00:00.000Z',
+        archived: false,
+        templateType: 'custom',
+        roleSlots: emptyRoleSlots(),
+        createdAt: '',
+        updatedAt: '',
+        availabilityOpenedAt: '2026-01-01T00:00:00.000Z',
+      },
+    })
+
+    expect(subscribe).not.toHaveBeenCalled()
   })
 })

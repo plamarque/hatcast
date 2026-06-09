@@ -16,53 +16,55 @@ import {
     <div class="push-notifications-section">
       @if (uiState() === 'unsupported') {
         <p class="push-notifications-section__message" data-testid="push-notifications-unsupported">
-          Les notifications push ne sont pas disponibles sur ce navigateur.
+          Les notifications sur cet appareil ne sont pas disponibles sur ce navigateur.
         </p>
       } @else if (loading()) {
         <div class="push-notifications-section__loading" role="status" aria-label="Chargement">
           <mat-spinner diameter="24" />
         </div>
       } @else {
-        <div class="push-notifications-section__row" data-testid="push-notifications-toggle">
-          <mat-slide-toggle
-            [checked]="uiState() === 'enabled'"
-            [disabled]="busy() || uiState() === 'denied'"
-            (change)="onToggle($event)"
-          >
-            Notifications sur cet appareil
-          </mat-slide-toggle>
-          @if (busy()) {
-            <mat-spinner class="push-notifications-section__inline-spinner" diameter="20" aria-hidden="true" />
+        <div class="push-notifications-section__card">
+          <div class="push-notifications-section__row" data-testid="push-notifications-toggle">
+            <mat-slide-toggle
+              class="push-notifications-section__toggle"
+              [checked]="uiState() === 'enabled'"
+              [disabled]="busy() || uiState() === 'denied'"
+              aria-label="Notifications sur cet appareil"
+              (change)="onToggle($event)"
+            >
+              Notifications sur cet appareil
+            </mat-slide-toggle>
+            @if (busy()) {
+              <mat-spinner class="push-notifications-section__inline-spinner" diameter="20" aria-hidden="true" />
+            }
+          </div>
+
+          @if (uiState() === 'enabled') {
+            <p class="push-notifications-section__hint">
+              Notifications actives — les réglages « Cet appareil » ci-dessous s’appliquent ici.
+            </p>
+          } @else if (uiState() === 'denied') {
+            <p class="push-notifications-section__hint push-notifications-section__hint--warn">
+              Autorisation refusée sur cet appareil. Réactivez les notifications dans les paramètres du système ou
+              du navigateur.
+            </p>
+            <button
+              type="button"
+              mat-stroked-button
+              class="push-notifications-section__help-btn"
+              data-testid="push-notifications-reactivate-help"
+              (click)="showReactivateHelp()"
+            >
+              Réactiver dans le navigateur
+            </button>
+          }
+
+          @if (errorMessage()) {
+            <p class="push-notifications-section__hint push-notifications-section__hint--warn" role="alert">
+              {{ errorMessage() }}
+            </p>
           }
         </div>
-
-        @if (uiState() === 'enabled') {
-          <p class="push-notifications-section__hint">Les notifications sont actives sur cet appareil.</p>
-        } @else if (uiState() === 'denied') {
-          <p class="push-notifications-section__hint push-notifications-section__hint--warn">
-            Autorisation refusée dans le navigateur. Réactivez les notifications dans les paramètres du
-            système ou du navigateur.
-          </p>
-          <button
-            type="button"
-            mat-stroked-button
-            class="push-notifications-section__help-btn"
-            data-testid="push-notifications-reactivate-help"
-            (click)="showReactivateHelp()"
-          >
-            Réactiver dans le navigateur
-          </button>
-        } @else {
-          <p class="push-notifications-section__hint">
-            Activez pour recevoir des notifications sur les événements importants de vos troupes.
-          </p>
-        }
-
-        @if (errorMessage()) {
-          <p class="push-notifications-section__hint push-notifications-section__hint--warn" role="alert">
-            {{ errorMessage() }}
-          </p>
-        }
       }
     </div>
   `,
@@ -72,11 +74,25 @@ import {
       flex-direction: column;
       gap: 0.75rem;
     }
+    .push-notifications-section__card {
+      border-radius: 1rem;
+      background: var(--mat-sys-surface-container-high);
+      overflow: hidden;
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
     .push-notifications-section__row {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 0.75rem;
       min-height: 3rem;
+    }
+    .push-notifications-section__toggle {
+      flex: 1;
+      min-width: 0;
     }
     .push-notifications-section__loading {
       min-height: 3rem;
@@ -85,16 +101,16 @@ import {
     }
     .push-notifications-section__hint {
       margin: 0;
-      font-size: 0.85rem;
+      font: var(--mat-sys-body-small);
       line-height: 1.45;
-      color: color-mix(in srgb, var(--mat-sys-on-surface) 75%, transparent);
+      color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
     }
     .push-notifications-section__hint--warn {
       color: var(--mat-sys-error);
     }
     .push-notifications-section__message {
       margin: 0;
-      font-size: 0.9rem;
+      font: var(--mat-sys-body-medium);
       line-height: 1.45;
       color: color-mix(in srgb, var(--mat-sys-on-surface) 80%, transparent);
     }
@@ -113,7 +129,7 @@ export class PushNotificationsSection implements OnInit {
 
   protected readonly loading = signal(true)
   protected readonly busy = signal(false)
-  protected readonly uiState = signal<PushUiState>('loading')
+  protected readonly uiState = this.pushService.uiState
   protected readonly errorMessage = signal<string | null>(null)
 
   async ngOnInit(): Promise<void> {
@@ -131,7 +147,6 @@ export class PushNotificationsSection implements OnInit {
     try {
       if (change.checked) {
         const result = await this.pushService.enable()
-        this.uiState.set(result.state)
         if (!result.ok) {
           change.source.checked = false
           if (result.message) {
@@ -140,7 +155,6 @@ export class PushNotificationsSection implements OnInit {
         }
       } else {
         const result = await this.pushService.disable()
-        this.uiState.set(result.state)
         if (!result.ok) {
           change.source.checked = true
           this.errorMessage.set('Désactivation impossible.')
@@ -163,8 +177,7 @@ export class PushNotificationsSection implements OnInit {
     this.loading.set(true)
     this.errorMessage.set(null)
     try {
-      const result = await this.pushService.loadStatus()
-      this.uiState.set(result.state)
+      await this.pushService.loadStatus()
     } finally {
       this.loading.set(false)
     }

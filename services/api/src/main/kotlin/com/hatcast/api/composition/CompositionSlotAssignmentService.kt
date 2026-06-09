@@ -177,6 +177,7 @@ class CompositionSlotAssignmentService(
             compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
         val beforeLifecycle = lifecycleAuditRecorder.captureRawLifecycle(eventId, event.roleSlots)
         val isLocked = composition?.validatedAt != null
+        var slotCleared = false
         val now = Instant.now()
         val participantId = body.participantId
         val beforeSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
@@ -185,33 +186,64 @@ class CompositionSlotAssignmentService(
 
         if (isLocked) {
             if (participantId == null) {
+                if (beforeSlot?.hasAssignee() != true) {
+                    throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+                }
+                val compositionRow =
+                    composition
+                        ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+                slotCleared = clearSlot(eventId, roleKey, slotIndex, now)
+                if (slotCleared) {
+                    compositionRow.updatedAt = now
+                    compositionRepository.save(compositionRow)
+                    recordSlotAudit(
+                        event,
+                        seasonId,
+                        eventId,
+                        principal.userId,
+                        roleKey,
+                        slotIndex,
+                        null,
+                        beforeSnapshot,
+                        AuditActionType.SLOT_CLEARED,
+                    )
+                }
+            } else if (!CompositionGapFillRules.isTargetSlotEmpty(eventId, roleKey, slotIndex, slotRepository)) {
                 throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+            } else {
+                val compositionRow =
+                    composition
+                        ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+                assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
+                compositionRow.updatedAt = now
+                compositionRepository.save(compositionRow)
+                eventPublisher.publishEvent(
+                    CompositionConfirmationRequestedEvent(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                        assigneeParticipantIds = listOf(participantId),
+                    ),
+                )
+                recordSlotAudit(
+                    event,
+                    seasonId,
+                    eventId,
+                    principal.userId,
+                    roleKey,
+                    slotIndex,
+                    participantId,
+                    beforeSnapshot,
+                    AuditActionType.SLOT_ASSIGNED,
+                )
             }
-            if (!CompositionGapFillRules.isTargetSlotEmpty(eventId, roleKey, slotIndex, slotRepository)) {
-                throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
-            }
-            val compositionRow =
-                composition
-                    ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
-            assignParticipant(event, seasonId, eventId, roleKey, slotIndex, participantId, now)
-            compositionRow.updatedAt = now
-            compositionRepository.save(compositionRow)
-            eventPublisher.publishEvent(
-                CompositionConfirmationRequestedEvent(
-                    eventId = eventId,
-                    seasonId = seasonId,
-                    actorUserId = principal.userId,
-                    assigneeParticipantIds = listOf(participantId),
-                ),
-            )
-            recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
         } else if (participantId == null) {
-            val cleared = clearSlot(eventId, roleKey, slotIndex, now)
-            if (composition != null && cleared) {
+            slotCleared = clearSlot(eventId, roleKey, slotIndex, now)
+            if (composition != null && slotCleared) {
                 composition.updatedAt = now
                 compositionRepository.save(composition)
             }
-            if (cleared) {
+            if (slotCleared) {
                 recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, null, beforeSnapshot, AuditActionType.SLOT_CLEARED)
             }
         } else {
@@ -232,7 +264,13 @@ class CompositionSlotAssignmentService(
             recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
         }
 
-        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
+        val lifecycleTransitionContext =
+            if (participantId == null && slotCleared && beforeLifecycle == CompositionLifecycle.COMPLETE) {
+                CompositionLifecycleTransitionContext(reasonSummary = "place à pourvoir")
+            } else {
+                null
+            }
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle, lifecycleTransitionContext)
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
     }
 

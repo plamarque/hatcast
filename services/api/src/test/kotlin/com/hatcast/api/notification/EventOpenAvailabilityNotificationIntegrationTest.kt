@@ -185,14 +185,19 @@ class EventOpenAvailabilityNotificationIntegrationTest {
     }
 
     @Test
-    fun `draft event create does not dispatch notifications`() {
+    fun `draft event create dispatches EVENT_DRAFT_CREATED not AVAILABILITY_OPENED`() {
         val admin = adminCookie("sub-open-avail-admin-2")
         memberCookie("sub-open-avail-member-3")
         val seasonId = createSeason(admin)
         ensureRoster(seasonId)
         createEvent(admin, seasonId)
 
-        verify(notificationDispatcher, never()).dispatch(any())
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat { intent == NotificationIntent.EVENT_DRAFT_CREATED },
+        )
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.AVAILABILITY_OPENED },
+        )
     }
 
     @Test

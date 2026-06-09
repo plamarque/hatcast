@@ -1,0 +1,26 @@
+{
+  "$schema": "hatcast/notification-default-preferences@1",
+  "description": "Mirrors services/api NotificationIntent.kt defaultPreference() + users.push_notifications_enabled default (false). Override this file to re-run volume simulations after model changes.",
+  "pushGlobalEnabled": false,
+  "categories": {
+    "AVAILABILITY_REQUEST": { "push": true, "email": true },
+    "COMPOSITION_SHARED": { "push": true, "email": true },
+    "CONFIRMATION_REQUEST": { "push": true, "email": true },
+    "TEAM_CONFIRMED": { "push": true, "email": true },
+    "REMINDER_7_DAYS": { "push": true, "email": true },
+    "REMINDER_1_DAY": { "push": true, "email": true },
+    "AVAILABILITY_WEEKLY_REMINDER": { "push": true, "email": true },
+    "EVENT_DETAILS_CHANGED": { "push": true, "email": true },
+    "EVENT_ARCHIVED": { "push": true, "email": true },
+    "ORG_TEAM_REGRESSED": { "push": false, "email": false },
+    "ORG_SCOPE_GRANTED": { "push": false, "email": false },
+    "ORG_TEAM_COMPLETE": { "push": false, "email": false },
+    "ORG_COMPOSITION_INCOMPLETE": { "push": false, "email": false },
+    "ORG_SLA_OPEN_AVAILABILITY": { "push": false, "email": false },
+    "ORG_DRAFT_COMPOSITION": { "push": false, "email": false },
+    "ORG_EVENT_DRAFT_CREATED": { "push": false, "email": false }
+  },
+  "transactionalEmailBypassesCategoryOptIn": {
+    "ORGANIZER_SCOPE_GRANTED": true
+  }
+}

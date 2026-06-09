@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HatCast — Preview templates email</title>
+  <style>
+    :root {
+      --hc-primary: #6750a4;
+      --hc-primary-light: #a974f0;
+      --hc-primary-container: #eaddff;
+      --hc-on-primary: #ffffff;
+      --hc-surface: #fffbfe;
+      --hc-surface-page: #f5f3f7;
+      --hc-on-surface: #1d1b20;
+      --hc-on-surface-variant: #49454f;
+      --hc-outline: #e7e0ec;
+      --hc-success: #386a20;
+      --hc-success-container: #e8f5e0;
+      --hc-orga-chip: #f3edf7;
+      --hc-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 2rem 1.5rem 4rem;
+      font-family: var(--hc-font);
+      background: #eceaf0;
+      color: var(--hc-on-surface);
+    }
+
+    .page-header {
+      max-width: 1200px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .page-header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .page-header p {
+      margin: 0;
+      color: var(--hc-on-surface-variant);
+      max-width: 62ch;
+      line-height: 1.5;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+    }
+
+    .legend span {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--hc-outline);
+    }
+
+    .legend .a { border-color: var(--hc-primary); color: var(--hc-primary); }
+    .legend .b { border-color: var(--hc-success); color: var(--hc-success); }
+    .legend .c { border-color: #7d5260; color: #7d5260; }
+
+    .gallery {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .preview-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 1rem 1rem 1.25rem;
+      box-shadow: 0 2px 12px rgba(29, 27, 32, 0.08);
+    }
+
+    .preview-card h2 {
+      margin: 0 0 0.25rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .preview-card .meta {
+      margin: 0 0 1rem;
+      font-size: 0.75rem;
+      color: var(--hc-on-surface-variant);
+    }
+
+    .preview-card .meta code {
+      font-size: 0.7rem;
+      background: var(--hc-surface-page);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+
+    .phone-frame {
+      border: 1px solid #d0c9d6;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--hc-surface-page);
+    }
+
+    /* ── Email shell (mirrors production template) ── */
+
+    .email-outer {
+      padding: 24px 16px;
+      background: var(--hc-surface-page);
+      font-family: var(--hc-font);
+    }
+
+    .email-card {
+      max-width: 600px;
+      margin: 0 auto;
+      background: var(--hc-surface);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(29, 27, 32, 0.06);
+    }
+
+    .email-accent-bar {
+      height: 4px;
+      background: linear-gradient(90deg, var(--hc-primary-light) 0%, var(--hc-primary) 55%, #4f378b 100%);
+    }
+
+    .email-inner {
+      padding: 28px 24px 24px;
+    }
+
+    .email-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .email-brand-icon {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+
+    .email-brand-name {
+      font-size: 1.125rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--hc-on-surface);
+    }
+
+    .email-orga-chip {
+      display: inline-block;
+      margin-bottom: 16px;
+      padding: 4px 10px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--hc-primary);
+      background: var(--hc-orga-chip);
+      border-radius: 999px;
+    }
+
+    .email-event-context {
+      background: color-mix(in srgb, var(--hc-primary) 8%, white);
+      border: 1px solid color-mix(in srgb, var(--hc-primary) 18%, white);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 22px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .email-event-context .icon {
+      font-size: 1.25rem;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .email-event-context .title {
+      margin: 0 0 4px;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--hc-on-surface);
+    }
+
+    .email-event-context .meta-line {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--hc-on-surface-variant);
+      line-height: 1.45;
+    }
+
+    .email-event-context .role-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 8px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--hc-primary);
+      background: var(--hc-primary-container);
+      border-radius: 999px;
+    }
+
+    .email-event-context .horizon-badge {
+      display: inline-block;
+      margin-top: 8px;
+      margin-left: 6px;
+      padding: 2px 8px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      color: #7d5260;
+      background: #ffd8e4;
+      border-radius: 999px;
+    }
+
+    .email-headline {
+      margin: 0 0 18px;
+      font-size: 1.375rem;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      color: var(--hc-on-surface);
+    }
+
+    .email-body p {
+      margin: 0 0 14px;
+      font-size: 0.9375rem;
+      line-height: 1.55;
+      color: var(--hc-on-surface);
+    }
+
+    .email-body p:last-child {
+      margin-bottom: 0;
+    }
+
+    .email-body strong {
+      font-weight: 700;
+    }
+
+    .email-cta-wrap {
+      margin: 26px 0 8px;
+      text-align: center;
+    }
+
+    .email-cta-cell {
+      display: inline-block;
+      border-radius: 24px;
+      background: linear-gradient(135deg, var(--hc-primary-light) 0%, var(--hc-primary) 100%);
+      box-shadow: 0 2px 8px rgba(103, 80, 164, 0.28);
+    }
+
+    .email-cta-cell--outline {
+      background: var(--hc-surface);
+      border: 2px solid var(--hc-primary);
+      box-shadow: none;
+    }
+
+    .email-cta {
+      display: block;
+      padding: 12px 28px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      line-height: 24px;
+      text-decoration: none;
+      color: var(--hc-on-primary);
+    }
+
+    .email-cta--outline {
+      color: var(--hc-primary);
+    }
+
+    .email-details-card {
+      margin-top: 22px;
+      padding: 14px 16px;
+      background: var(--hc-surface);
+      border: 1px solid var(--hc-outline);
+      border-radius: 10px;
+    }
+
+    .email-details-card h3 {
+      margin: 0 0 10px;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--hc-on-surface-variant);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .email-details-card ul {
+      margin: 0;
+      padding: 0 0 0 18px;
+      font-size: 0.875rem;
+      line-height: 1.55;
+      color: var(--hc-on-surface);
+    }
+
+    .email-details-card li {
+      margin-bottom: 4px;
+    }
+
+    .email-good-news-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      background: var(--hc-success-container);
+      border-radius: 50%;
+    }
+
+    .email-footer {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid var(--hc-outline);
+    }
+
+    .email-footer p {
+      margin: 0 0 8px;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: #79747e;
+    }
+
+    .email-footer a {
+      color: var(--hc-primary);
+      text-decoration: underline;
+    }
+
+    .email-footer p:last-child {
+      margin-bottom: 0;
+    }
+
+    .email-signoff {
+      margin-top: 18px;
+      font-size: 0.875rem;
+      color: var(--hc-on-surface-variant);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>HatCast — Preview templates email</h1>
+    <p>
+      Proposition UX statique (Sally) — shell unique, 3 variantes.
+      Ouvrir ce fichier dans un navigateur pour prévisualiser.
+      Les styles ci-dessous servent de référence pour l’implémentation table-based + CSS inline en production.
+    </p>
+    <div class="legend">
+      <span class="a">A — Action</span>
+      <span class="b">B — Bonne nouvelle</span>
+      <span class="c">C — Orga / transactionnel</span>
+    </div>
+  </header>
+
+  <main class="gallery">
+
+    <!-- 1. AVAILABILITY_OPENED -->
+    <article class="preview-card">
+      <h2>Collecte des dispos ouverte</h2>
+      <p class="meta">Variante <strong>A</strong> · <code>AVAILABILITY_OPENED</code></p>
+      <div class="phone-frame">
+        <div class="email-outer">
+          <div class="email-card">
+            <div class="email-accent-bar"></div>
+            <div class="email-inner">
+              <div class="email-brand">
+                <svg class="email-brand-icon" viewBox="0 0 512 512" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="g1" x1="120" y1="120" x2="392" y2="452" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stop-color="#A974F0"/>
+                      <stop offset="55%" stop-color="#7E57C2"/>
+                      <stop offset="100%" stop-color="#6750A4"/>
+                    </linearGradient>
+                  </defs>
+                  <path fill="url(#g1)" d="M120 168 C120 142 144 130 174 134 C206 138 234 158 256 166 C278 158 306 138 338 134 C368 130 392 142 392 168 C396 252 348 446 256 452 C164 446 116 252 120 168Z"/>
+                  <path fill="#FFFBFE" d="M164 222 C186 258 214 258 236 222 C216 234 184 234 164 222Z"/>
+                  <path fill="#FFFBFE" d="M276 222 C298 258 326 258 348 222 C328 234 296 234 276 222Z"/>
+                </svg>
+                <span class="email-brand-name">HatCast</span>
+              </div>
+
+              <div class="email-event-context">
+                <span class="icon" aria-hidden="true">📅</span>
+                <div>
+                  <p class="title">Gala des Improbots</p>
+                  <p class="meta-line">Sam. 15 juin · 20h30</p>
+                  <p class="meta-line">Les Improbots · Malice 2025-2026</p>
+                </div>
+              </div>
+
+              <h1 class="email-headline">Ta dispo pour le Gala ?</h1>
+
+              <div class="email-body">
+                <p>Bonjour Alice,</p>
+                <p>
+                  Les orgas ont ouvert la collecte des disponibilités pour ce spectacle.
+                  Merci d’indiquer si tu es disponible ou non.
+                  ☝️ Même un « pas dispo » aide l’équipe à s’organiser.
+                </p>
+              </div>
+
+              <div class="email-cta-wrap">
+                <span class="email-cta-cell"><a class="email-cta" href="#">Indiquer mes disponibilités</a></span>
+              </div>
+
+              <footer class="email-footer">
+                <p>
+                  Pour ne plus recevoir ce type d’email (demandes de disponibilité),
+                  <a href="#">changez vos préférences de notification</a>.
+                </p>
+                <p>Envoyé par HatCast pour Les Improbots</p>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 2. CONFIRMATION_REQUEST -->
+    <article class="preview-card">
+      <h2>Demande de confirmation</h2>
+      <p class="meta">Variante <strong>A</strong> · <code>CONFIRMATION_REQUEST</code></p>
+      <div class="phone-frame">
+        <div class="email-outer">
+          <div class="email-card">
+            <div class="email-accent-bar"></div>
+            <div class="email-inner">
+              <div class="email-brand">
+                <svg class="email-brand-icon" viewBox="0 0 512 512" aria-hidden="true">
+                  <defs><linearGradient id="g2" x1="120" y1="120" x2="392" y2="452" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#A974F0"/><stop offset="100%" stop-color="#6750A4"/>
+                  </linearGradient></defs>
+                  <path fill="url(#g2)" d="M120 168 C120 142 144 130 174 134 C206 138 234 158 256 166 C278 158 306 138 338 134 C368 130 392 142 392 168 C396 252 348 446 256 452 C164 446 116 252 120 168Z"/>
+                  <path fill="#FFFBFE" d="M164 222 C186 258 214 258 236 222 C216 234 184 234 164 222Z"/>
+                  <path fill="#FFFBFE" d="M276 222 C298 258 326 258 348 222 C328 234 296 234 276 222Z"/>
+                </svg>
+                <span class="email-brand-name">HatCast</span>
+              </div>
+
+              <div class="email-event-context">
+                <span class="icon" aria-hidden="true">📅</span>
+                <div>
+                  <p class="title">Cabaret du vendredi</p>
+                  <p class="meta-line">Ven. 20 juin · 21h00</p>
+                  <p class="meta-line">Les Improbots · Malice 2025-2026</p>
+                  <span class="role-badge">Joueur</span>
+                </div>
+              </div>
+
+              <h1 class="email-headline">Tu es dans la compo !</h1>
+
+              <div class="email-body">
+                <p>Bonjour Camille,</p>
+                <p>
+                  Tu es <strong>sélectionnée</strong> comme <strong>Joueur</strong> pour ce spectacle.
+                  La composition a été validée : merci de confirmer que tu es toujours partante,
+                  ou de décliner si tu n’es plus disponible.
+                </p>
+              </div>
+
+              <div class="email-cta-wrap">
+                <span class="email-cta-cell"><a class="email-cta" href="#">Confirmer ma participation</a></span>
+              </div>
+
+              <footer class="email-footer">
+                <p>
+                  Pour ne plus recevoir ce type d’email (demandes de confirmation),
+                  <a href="#">changez vos préférences de notification</a>.
+                </p>
+                <p>Envoyé par HatCast pour Les Improbots</p>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 3. ASSIGNEE_PRESENCE_REMINDER J-7 -->
+    <article class="preview-card">
+      <h2>Rappel J-7</h2>
+      <p class="meta">Variante <strong>A</strong> · <code>ASSIGNEE_PRESENCE_REMINDER</code></p>
+      <div class="phone-frame">
+        <div class="email-outer">
+          <div class="email-card">
+            <div class="email-accent-bar"></div>
+            <div class="email-inner">
+              <div class="email-brand">
+                <svg class="email-brand-icon" viewBox="0 0 512 512" aria-hidden="true">
+                  <defs><linearGradient id="g3" x1="120" y1="120" x2="392" y2="452" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#A974F0"/><stop offset="100%" stop-color="#6750A4"/>
+                  </linearGradient></defs>
+                  <path fill="url(#g3)" d="M120 168 C120 142 144 130 174 134 C206 138 234 158 256 166 C278 158 306 138 338 134 C368 130 392 142 392 168 C396 252 348 446 256 452 C164 446 116 252 120 168Z"/>
+                  <path fill="#FFFBFE" d="M164 222 C186 258 214 258 236 222Z"/>
+                  <path fill="#FFFBFE" d="M276 222 C298 258 326 258 348 222Z"/>
+                </svg>
+                <span class="email-brand-name">HatCast</span>
+              </div>
+
+              <div class="email-event-context">
+                <span class="icon" aria-hidden="true">📅</span>
+                <div>
+                  <p class="title">Gala des Improbots</p>
+                  <p class="meta-line">Sam. 15 juin · 20h30</p>
+                  <p class="meta-line">Les Improbots · Malice 2025-2026</p>
+                  <span class="role-badge">DJ</span>
+                  <span class="horizon-badge">J-7</span>
+                </div>
+              </div>
+
+              <h1 class="email-headline">C’est dans une semaine</h1>
+
+              <div class="email-body">
+                <p>Bonjour Bob,</p>
+                <p>
+                  Pour rappel, tu es <strong>inscrit</strong> comme <strong>DJ</strong> pour ce spectacle.
+                  Si tu es toujours disponible, tu n’as rien à faire.
+                  Sinon, merci de décliner au plus vite pour libérer ta place.
+                </p>
+              </div>
+
+              <div class="email-cta-wrap">
+                <span class="email-cta-cell"><a class="email-cta" href="#">Voir les infos du spectacle</a></span>
+              </div>
+
+              <footer class="email-footer">
+                <p>
+                  Pour ne plus recevoir ce type d’email (rappels avant spectacle),
+                  <a href="#">changez vos préférences de notification</a>.
+                </p>
+                <p>Envoyé par HatCast pour Les Improbots</p>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 4. PROXY_AVAILABILITY_RECORDED -->
+    <article class="preview-card">
+      <h2>Proxy dispo enregistrée</h2>
+      <p class="meta">Variante <strong>A</strong> + carte détails · <code>PROXY_AVAILABILITY_RECORDED</code></p>
+      <div class="phone-frame">
+        <div class="email-outer">
+          <div class="email-card">
+            <div class="email-accent-bar"></div>
+            <div class="email-inner">
+              <div class="email-brand">
+                <svg class="email-brand-icon" viewBox="0 0 512 512" aria-hidden="true">
+                  <defs><linearGradient id="g4" x1="120" y1="120" x2="392" y2="452" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#A974F0"/><stop offset="100%" stop-color="#6750A4"/>
+                  </linearGradient></defs>
+                  <path fill="url(#g4)" d="M120 168 C120 142 144 130 174 134 C206 138 234 158 256 166 C278 158 306 138 338 134 C368 130 392 142 392 168 C396 252 348 446 256 452 C164 446 116 252 120 168Z"/>
+                  <path fill="#FFFBFE" d="M164 222 C186 258 214 258 236 222Z"/>
+                  <path fill="#FFFBFE" d="M276 222 C298 258 326 258 348 222Z"/>
+                </svg>
+                <span class="email-brand-name">HatCast</span>
+              </div>
+
+              <div class="email-event-context">
+                <span class="icon" aria-hidden="true">📅</span>
+                <div>
+                  <p class="title">Gala des Improbots</p>
+                  <p class="meta-line">Sam. 15 juin · 20h30</p>
+                  <p class="meta-line">Les Improbots · Malice 2025-2026</p>
+                </div>
+              </div>
+
+              <h1 class="email-headline">Ta dispo a été mise à jour</h1>
+
+              <div class="email-body">
+                <p>Bonjour Alice,</p>
+                <p>
+                  <strong>Patrice</strong> a enregistré ta disponibilité pour ce spectacle :
+                </p>
+              </div>
+
+              <div class="email-details-card">
+                <h3>Détail de la modification</h3>
+                <ul>
+                  <li><strong>Statut :</strong> Pas dispo → Disponible</li>
+                  <li><strong>Rôles :</strong> Joueur, MC</li>
+                  <li><strong>Commentaire :</strong> « Dispo sauf si match PSG »</li>
+                </ul>
+              </div>
+
+              <div class="email-body" style="margin-top: 16px;">
+                <p>Vérifie que tout est correct ; tu peux corriger depuis HatCast si besoin.</p>
+              </div>
+
+              <div class="email-cta-wrap">
+                <span class="email-cta-cell"><a class="email-cta" href="#">Indiquer mes disponibilités</a></span>
+              </div>
+
+              <footer class="email-footer">
+                <p>
+                  Pour ne plus recevoir ce type d’email (demandes de disponibilité),
+                  <a href="#">changez vos préférences de notification</a>.
+                </p>
+                <p>Envoyé par HatCast pour Les Improbots</p>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 5. TEAM_COMPLETE_MEMBER -->
+    <article class="preview-card">
+      <h2>Équipe au complet (membre)</h2>
+      <p class="meta">Variante <strong>B</strong> · <code>TEAM_COMPLETE_MEMBER</code></p>
+      <div class="phone-frame">
+        <div class="email-outer">
+          <div class="email-card">
+            <div class="email-accent-bar"></div>
+            <div class="email-inner">
+              <div class="email-brand">
+                <svg class="email-brand-icon" viewBox="0 0 512 512" aria-hidden="true">
+                  <defs><linearGradient id="g5" x1="120" y1="120" x2="392" y2="452" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#A974F0"/><stop offset="100%" stop-color="#6750A4"/>
+                  </linearGradient></defs>
+                  <path fill="url(#g5)" d="M120 168 C120 142 144 130 174 134 C206 138 234 158 256 166 C278 158 306 138 338 134 C368 130 392 142 392 168 C396 252 348 446 256 452 C164 446 116 252 120 168Z"/>
+                  <path fill="#FFFBFE" d="M164 222 C186 258 214 258 236 222Z"/>
+                  <path fill="#FFFBFE" d="M276 222 C298 258 326 258 348 222Z"/>
+                </svg>
+                <span class="email-brand-name">HatCast</span>
+              </div>
+
+              <div class="email-good-news-icon" aria-hidden="true">✓</div>
+
+              <div class="email-event-context">
+                <span class="icon" aria-hidden="true">📅</span>
+                <div>
+                  <p class="title">Gala des Improbots</p>
+                  <p class="meta-line">Sam. 15 juin · 20h30</p>
+                  <p class="meta-line">Les Improbots · Malice 2025-2026</p>
+                </div>
+              </div>
+
+              <h1 class="email-headline">L’équipe est au complet !</h1>
+
+              <div class="email-body">
+                <p>Bonjour Alice,</p>
+                <p>
+                  Bonne nouvelle : tout le monde a confirmé pour ce spectacle.
+                  L’équipe est au complet. Bravo et merci à tou·tes !
+                </p>
+              </div>
+
+              <div class="email-cta-wrap">
+                <span class="email-cta-cell email-cta-cell--outline"><a class="email-cta email-cta--outline" href="#">Voir la composition</a></span>
+              </div>
+
+              <footer class="email-footer">
+                <p>
+                  Pour ne plus recevoir ce type d’email (équipe au complet),
+                  <a href="#">changez vos préférences de notification</a>.
+                </p>
+                <p>Envoyé par HatCast pour Les Improbots</p>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 6. TEAM_REGRESSED (orga) -->
+    <article class="preview-card">
+      <h2>Équipe plus complète (orga)</h2>
+      <p class="meta">Variante <strong>C</strong> · <code>TEAM_REGRESSED</code></p>
+      <div class="phone-frame">
+        <div class="email-outer">
+          <div class="email-card">
+            <div class="email-accent-bar"></div>
+            <div class="email-inner">
+              <div class="email-brand">
+                <svg class="email-brand-icon" viewBox="0 0 512 512" aria-hidden="true">
+                  <defs><linearGradient id="g6" x1="120" y1="120" x2="392" y2="452" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#A974F0"/><stop offset="100%" stop-color="#6750A4"/>
+                  </linearGradient></defs>
+                  <path fill="url(#g6)" d="M120 168 C120 142 144 130 174 134 C206 138 234 158 256 166 C278 158 306 138 338 134 C368 130 392 142 392 168 C396 252 348 446 256 452 C164 446 116 252 120 168Z"/>
+                  <path fill="#FFFBFE" d="M164 222 C186 258 214 258 236 222Z"/>
+                  <path fill="#FFFBFE" d="M276 222 C298 258 326 258 348 222Z"/>
+                </svg>
+                <span class="email-brand-name">HatCast</span>
+              </div>
+
+              <span class="email-orga-chip">Alerte organisateur</span>
+
+              <div class="email-event-context">
+                <span class="icon" aria-hidden="true">📅</span>
+                <div>
+                  <p class="title">Gala des Improbots</p>
+                  <p class="meta-line">Sam. 15 juin · 20h30</p>
+                  <p class="meta-line">Les Improbots · Malice 2025-2026</p>
+                </div>
+              </div>
+
+              <h1 class="email-headline">La compo n’est plus complète</h1>
+
+              <div class="email-body">
+                <p>Bonjour Patrice,</p>
+                <p>
+                  Mauvaise nouvelle, la composition de l’équipe pour ce spectacle
+                  est de nouveau incomplète.
+                </p>
+              </div>
+
+              <div class="email-details-card">
+                <h3>Motif</h3>
+                <ul>
+                  <li>Désistement de <strong>Camille</strong> (Joueur)</li>
+                </ul>
+              </div>
+
+              <div class="email-body" style="margin-top: 16px;">
+                <p>Action suggérée : rouvrir la compo, combler le trou ou relancer les personnes concernées.</p>
+              </div>
+
+              <div class="email-cta-wrap">
+                <span class="email-cta-cell"><a class="email-cta" href="#">Voir la composition</a></span>
+              </div>
+
+              <footer class="email-footer">
+                <p>
+                  Pour ne plus recevoir ce type d’email (équipe plus complète),
+                  <a href="#">changez vos préférences de notification</a>.
+                </p>
+                <p>Envoyé par HatCast pour Les Improbots</p>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 7. ORGANIZER_SCOPE_GRANTED -->
+    <article class="preview-card">
+      <h2>Promotion orga (transactionnel)</h2>
+      <p class="meta">Variante <strong>C</strong> · <code>ORGANIZER_SCOPE_GRANTED</code></p>
+      <div class="phone-frame">
+        <div class="email-outer">
+          <div class="email-card">
+            <div class="email-accent-bar"></div>
+            <div class="email-inner">
+              <div class="email-brand">
+                <svg class="email-brand-icon" viewBox="0 0 512 512" aria-hidden="true">
+                  <defs><linearGradient id="g7" x1="120" y1="120" x2="392" y2="452" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#A974F0"/><stop offset="100%" stop-color="#6750A4"/>
+                  </linearGradient></defs>
+                  <path fill="url(#g7)" d="M120 168 C120 142 144 130 174 134 C206 138 234 158 256 166 C278 158 306 138 338 134 C368 130 392 142 392 168 C396 252 348 446 256 452 C164 446 116 252 120 168Z"/>
+                  <path fill="#FFFBFE" d="M164 222 C186 258 214 258 236 222Z"/>
+                  <path fill="#FFFBFE" d="M276 222 C298 258 326 258 348 222Z"/>
+                </svg>
+                <span class="email-brand-name">HatCast</span>
+              </div>
+
+              <h1 class="email-headline">Tu es désormais orga spectacle</h1>
+
+              <div class="email-body">
+                <p>Bonjour Patrice,</p>
+                <p>
+                  Tu viens d’être <strong>nommé</strong> <strong>Orga spectacle</strong>
+                  pour <strong>Malice 2025-2026</strong> sur HatCast.
+                </p>
+                <p>
+                  En tant qu’orga, tu peux activer les alertes qui t’intéressent depuis ton compte.
+                </p>
+              </div>
+
+              <div class="email-cta-wrap">
+                <span class="email-cta-cell"><a class="email-cta" href="#">Gérer mes notifications</a></span>
+              </div>
+
+              <footer class="email-footer">
+                <p>
+                  Cet email confirme un changement de rôle sur ton compte.
+                  Pour configurer tes alertes organisateur :
+                  <a href="#">Mon compte → Notifications</a>.
+                </p>
+                <p class="email-signoff">— L’équipe HatCast</p>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+</body>
+</html>

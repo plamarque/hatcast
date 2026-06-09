@@ -18,7 +18,7 @@ export function isDeclinedParticipationFocus(focus: ParticipantFocusSummary): bo
 export function formatParticipantFocusLabel(focus: ParticipantFocusSummary): string {
   if (isDeclinedParticipationFocus(focus)) {
     const role = roleLabelSingular(focus.compositionRoleKey as RoleKey)
-    return `${role} · décliné`
+    return `${role} · Retrait`
   }
   if (focus.inTeam && focus.compositionRoleKey) {
     const role = roleLabelSingular(focus.compositionRoleKey as RoleKey)

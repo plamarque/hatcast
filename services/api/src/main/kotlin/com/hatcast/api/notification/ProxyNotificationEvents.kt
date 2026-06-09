@@ -27,4 +27,5 @@ data class ProxyParticipationRecordedEvent(
     val subjectUserId: UUID,
     val roleKey: String,
     val participationStatus: SlotParticipationStatus,
+    val beforeParticipationStatus: SlotParticipationStatus? = null,
 )

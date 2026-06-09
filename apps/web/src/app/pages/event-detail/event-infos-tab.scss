@@ -28,6 +28,16 @@
   white-space: pre-wrap;
 }
 
+.event-infos__category-loading {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+.event-infos__category-chips {
+  display: block;
+}
+
 .event-infos__action-row {
   display: flex;
   align-items: center;
@@ -128,7 +138,7 @@
 .event-infos__organizers {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .event-infos__organizers-body {
@@ -153,8 +163,7 @@
   }
 }
 
-.event-infos__add-organizer,
-.event-infos__add-category {
+.event-infos__add-organizer {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -188,7 +197,7 @@
 .event-infos__format {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .event-infos__format-header {
@@ -220,6 +229,20 @@
   padding: 0.75rem 0.9rem;
   border-radius: 0.5rem;
   background: rgba(255, 255, 255, 0.06);
+  min-height: 3.5rem;
+}
+
+.event-infos__format-loading {
+  align-items: center;
+  color: var(--mat-sys-on-surface-variant);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  min-height: 2.5rem;
+}
+
+.event-infos__format-loading-text {
+  font-size: 0.875rem;
 }
 
 .event-infos__type-row {
@@ -235,48 +258,19 @@
 }
 
 .event-infos__roles-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-.event-infos__roles-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.event-infos__roles-empty {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
-  font-style: italic;
+  display: block;
 }
 
 .event-infos__category {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
-.event-infos__category-body {
-  padding: 0.5rem 0.9rem 0.65rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.event-infos__chip-set {
+.event-infos__section-help {
   margin: 0;
-}
-
-.event-infos__category-chip {
-  --mdc-chip-elevated-container-color: rgba(255, 255, 255, 0.08);
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: default;
-
-  &:not([disabled]) {
-    cursor: pointer;
-  }
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+  line-height: 1.25;
 }
 

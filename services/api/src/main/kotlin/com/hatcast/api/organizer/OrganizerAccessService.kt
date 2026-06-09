@@ -13,8 +13,10 @@ import com.hatcast.api.organizer.dto.OrganizerResponseDto
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeAccessService
+import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -76,7 +78,9 @@ class OrganizerAccessService(
     private val eventRepository: EventRepository,
     private val userRepository: UserRepository,
     private val troupeAccess: TroupeAccessService,
+    private val troupeMembershipRepository: TroupeMembershipRepository,
     private val auditRecorder: AuditEventRecorder,
+    private val eventPublisher: ApplicationEventPublisher,
 ) : OrganizerAccessRules {
     companion object {
         fun forTests(
@@ -134,6 +138,14 @@ class OrganizerAccessService(
                 seasonId = seasonId,
                 before = AuditSnapshots.organizerGranted(false),
                 after = AuditSnapshots.organizerGranted(true),
+            ),
+        )
+        eventPublisher.publishEvent(
+            OrganizerScopeGrantedEvent(
+                userId = user.id,
+                scopeKind = OrganizerScopeKind.SEASON,
+                scopeId = seasonId,
+                scopeName = season.title,
             ),
         )
         return OrganizerResponseDto.from(saved)
@@ -208,6 +220,14 @@ class OrganizerAccessService(
                 after = AuditSnapshots.organizerGranted(true),
             ),
         )
+        eventPublisher.publishEvent(
+            OrganizerScopeGrantedEvent(
+                userId = user.id,
+                scopeKind = OrganizerScopeKind.EVENT,
+                scopeId = eventId,
+                scopeName = event.title,
+            ),
+        )
         return OrganizerResponseDto.from(saved)
     }
 
@@ -221,6 +241,12 @@ class OrganizerAccessService(
         loadEventInSeason(seasonId, eventId, principal)
         requireCanManageEventOrganizers(eventId, seasonId, principal)
         val existing = eventOrganizerRepository.findByEvent_IdAndUser_Id(eventId, organizerUserId) ?: return
+        if (eventOrganizerRepository.countByEvent_Id(eventId) <= 1) {
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Impossible de retirer le dernier organisateur du spectacle. Nommez d'abord un remplaçant.",
+            )
+        }
         val event =
             eventRepository
                 .findById(eventId)
@@ -322,6 +348,82 @@ class OrganizerAccessService(
         seasonId: UUID,
         principal: SessionUserPrincipal,
     ): Boolean = isTroupeAdminForSeason(seasonId, principal) || isEventOrganizer(eventId, principal)
+
+    @Transactional
+    fun seedEventOrganizersFromSeason(
+        event: EventEntity,
+        grantedByUserId: UUID?,
+    ) {
+        val grantedBy = grantedByUserId?.let { userRepository.findById(it).orElse(null) }
+        val season = event.season
+        val seasonId = season.id
+        val troupeId = season.troupe.id
+        var seasonOrganizers = seasonOrganizerRepository.findBySeason_IdOrderByGrantedAtAsc(seasonId)
+        if (seasonOrganizers.isEmpty()) {
+            val now = Instant.now()
+            seasonOrganizers =
+                troupeMembershipRepository.findActiveTroupeAdminsByTroupeId(troupeId).mapNotNull { membership ->
+                    val user = membership.user ?: return@mapNotNull null
+                    bootstrapSeasonOrganizer(season, user, grantedBy, grantedByUserId, now)
+                }
+        }
+        if (seasonOrganizers.isEmpty()) {
+            throw IllegalStateException(
+                "Cannot seed event organizers: no season organizers and no active troupe admins for seasonId=$seasonId",
+            )
+        }
+        val now = Instant.now()
+        for (seasonOrganizer in seasonOrganizers) {
+            if (eventOrganizerRepository.existsByEvent_IdAndUser_Id(event.id, seasonOrganizer.user.id)) {
+                continue
+            }
+            eventOrganizerRepository.save(
+                EventOrganizerEntity(
+                    event = event,
+                    user = seasonOrganizer.user,
+                    grantedAt = now,
+                    grantedBy = grantedBy,
+                ),
+            )
+        }
+        if (eventOrganizerRepository.countByEvent_Id(event.id) < 1) {
+            throw IllegalStateException("Cannot seed event organizers: eventId=${event.id} has zero organizers")
+        }
+    }
+
+    private fun bootstrapSeasonOrganizer(
+        season: SeasonEntity,
+        user: UserEntity,
+        grantedBy: UserEntity?,
+        actorUserId: UUID?,
+        grantedAt: Instant,
+    ): SeasonOrganizerEntity {
+        val existing = seasonOrganizerRepository.findBySeason_IdAndUser_Id(season.id, user.id)
+        if (existing != null) {
+            return existing
+        }
+        val saved =
+            seasonOrganizerRepository.save(
+                SeasonOrganizerEntity(
+                    season = season,
+                    user = user,
+                    grantedAt = grantedAt,
+                    grantedBy = grantedBy,
+                ),
+            )
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SEASON_ORGANIZER_GRANTED,
+                actorUserId = actorUserId,
+                subjectUserId = user.id,
+                troupeId = season.troupe.id,
+                seasonId = season.id,
+                before = AuditSnapshots.organizerGranted(false),
+                after = AuditSnapshots.organizerGranted(true),
+            ),
+        )
+        return saved
+    }
 
     private fun requireCanManageSeasonOrganizers(
         season: SeasonEntity,

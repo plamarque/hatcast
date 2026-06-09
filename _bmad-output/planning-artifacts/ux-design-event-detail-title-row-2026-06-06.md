@@ -89,8 +89,9 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 | Description | Optional card, no label, hidden if empty |
 | Date | Labeled « Date », calendar export when valid |
 | Lieu | Labeled « Lieu », maps menu when set |
-| Format et besoins | Section unchanged |
-| Organisateur·ices / Catégorie | Gating unchanged |
+| Format et besoins | Inline help under label ; section always visible ; edit icon if `canManageEvents` (**17.14**, **UX-DR22**) |
+| Organisateur·ices | Inline help when section visible ; gating unchanged (`canManageEventOrganizers` or ≥1 organizer) (**17.15**, **UX-DR23**) |
+| Catégorie | **Always visible** ; inline help under label ; chip **Spectacle ordinaire** when unset ; custom chip + **×** when set ; chip click opens dialog if orga (**UX-DR21**) |
 
 ---
 
@@ -114,6 +115,8 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 - [ ] **E10** No « Titre » label or value in Infos.
 - [ ] **E10** Empty or whitespace-only description → no description block.
 - [ ] **E10** Non-empty description → card without « DESCRIPTION » heading.
+- [ ] **E10** **Catégorie** section always present ; default chip **Spectacle ordinaire** when `category` null.
+- [ ] **E10** Inline help under **Catégorie**, **Format et besoins**, and **Organisateur·ices** (when that section is shown).
 
 ### Tabs spacing
 

@@ -35,6 +35,14 @@
 
 ---
 
+## Deferred from: code review of 6-24-participation-copy-declinaison-desistement-retrait (2026-06-09)
+
+- Dispatch proxy par égalité de `decisionLabel` (fragile si labels changent) — pattern préexistant étendu, pas introduit par 6.24.
+- Clé enum `DECLINE_RESTORED` non renommée — explicit non-goal story (identifiants techniques inchangés).
+- Paramètre optionnel `statusBeforeDecline` sans garde — risque latent faible, call sites actuels corrects.
+
+---
+
 ## Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)
 
 - Cibles tactiles &lt; 48 dp sur segments pool et trigger % grille — waiver PO documenté `FRONTEND_UI.md` ; follow-up post-release 19.7.
@@ -138,6 +146,27 @@
 
 ---
 
+## Deferred from: code review of 8-7-rappels-automatiques-disponibilite-cadence-5-jours (2026-06-07)
+
+- Cadence avancée malgré opt-out total push+email — **accepté (PO : B)** : marque = run traité, aligné 8.5 ; pas de pré-filtre prefs avant claim.
+- Marque consommée si dispatch échoue après claim — même pattern que `AssigneePresenceReminderJob` (story 8.5).
+- Course recipient répond entre claim et `afterCommit` dispatch — fenêtre étroite, pas de re-resolve au dispatch.
+- Suite Gradle non entièrement verte (793/796) — échecs hors périmètre 8.7.
+- `@Scheduled` Cloud Run scale-to-zero — documenté dans Dev Notes story 8.7, même limitation que 8.5.
+
+---
+
+## Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)
+
+- PATCH push debouncé après désactivation globale appareil — fenêtre debounce 300 ms ; guard optionnel MVP.
+- `uiState` enabled pendant `disable()` async — pas de signal busy partagé ; pattern 8.1.
+- Test count 5 lignes explicite absent — filtrage D6 couvert indirectement.
+- Libellés canal mobile `0.7rem` vs token `body-medium` — polish M3.
+- `display: contents` sur wrappers channel desktop — trade-off grille accepté.
+- Fallback copy clé API inconnue — story 8.8.
+
+---
+
 ## Liens normatifs
 
 | Sujet | Où tracer |
@@ -146,3 +175,80 @@
 | Réserve produit historique | PLAN § iso-V1, DW-020–021 (triage mai) |
 | Epic 19 formules tirage | `sprint-status.yaml` — **reporté** post-2.1.0 |
 | Dispatch brouillon partagé | Story **8.4** (hors DW-106 — mapping prefs déjà fait) |
+
+---
+
+## Deferred from: code review of 8-8-notifications-membre-event-details-et-archivage (2026-06-08)
+
+- **`isActiveEngagedMember` N+1** — `NotificationRecipientResolver.kt` reconstruit le roster complet pour chaque destinataire archive ; correct, optimisation non requise MVP.
+- **URLs 2 segments** — `NotificationPayloadBuilder.kt` ; dette connue, listée dans Non-goals story 8.8.
+- **`ShareRecipientsService` ignore logs guest** — entrées `user_id = null` exclues de l’agrégat « déjà notifié » ; acceptable hors scope.
+- **`AvailabilityPendingReminderJob` `userId ?: continue`** — fix défensif pour `NotificationRecipient` nullable ; support 8.8, non documenté dans story.
+
+---
+
+## Deferred from: code review of 8-9-notification-equipe-confirmee-member (2026-06-08)
+
+- **AC4 re-dispatch test** — pas de test pour le second edge `→ COMPLETE` après régression lifecycle ; chemin produit optionnel (AC4 « may »).
+- **Push opt-out unit test** — pas de test dédié `TEAM_COMPLETE_MEMBER` push bloqué ; même chemin dispatcher que les autres intents (email testé).
+- **`./gradlew test` 3 échecs non liés** — `AvailabilityControllerIntegrationTest` ×2, `CompositionDrawIntegrationTest` ×1 (`chancePercent` null) ; pré-existants au périmètre draw/dispos.
+
+---
+
+## Deferred from: code review of 8-4-notifications-ops-organisateurs (2026-06-09)
+
+- **`./gradlew test` non vert sur suite complète (838/841)** — 3 échecs `AvailabilityController` / `CompositionDraw` préexistants branche `v2`.
+- **Claim reminder mark avant dispatch empêche retry si envoi échoue** — pattern hérité story 8.7 ; `CompositionIncompleteReminderJob.kt`.
+- **`TEAM_COMPLETE` peut re-fire si lifecycle repasse COMPLETE après déclin** — edge rare, pas de dedupe sur `CompositionLifecycleAuditRecorder`.
+- **Scan hebdo `CompositionIncompleteReminderJob` sans pagination** — perf acceptable court terme.
+- **`minLength(3)` mot de passe global sur login** — scope creep recette dev-seed, hors AC 8.4.
+
+---
+
+## Deferred from: code review of 17-38-category-glossary-api (2026-06-09)
+
+- **OpenAPI `events.yaml` non mis à jour pour le 400 catégorie inconnue** — hors scope explicite story (AC8 = `categories.yaml` only) ; gap doc pré-existant.
+- **Constantes réservées dupliquées (`RESERVED_SLUGS` vs `HIDDEN_SLUGS`)** — risque de divergence future faible ; partage de constante reporté.
+- **`labelForAutoCreate` code mort post-AC6** — nettoyage cosmétique dans `CategorySlugNormalizer.kt`.
+- **Fenêtre race preview → delete inter-requêtes** — pas de token de confirmation ; comportement UX standard accepté pour v1.
+
+---
+
+## Deferred from: code review of 17-39-ui-category-selection (2026-06-09)
+
+- **Navigation vers `/admin/parametres` sans route 17.40** — non-goal explicite story ; lien préparé pour 17.40.
+- **`persistCategory` sans garde post-await identité événement** — même pattern que Date/Lieu ; pré-existant.
+- **Échec silencieux `loadGlossary` onglet Infos** — helper inchangé ; pré-existant.
+- **Fallback `categoryLabel` → slug brut si glossaire incomplet** — comportement hérité ; pré-existant.
+
+## Deferred from: code review of 17-39-ui-category-selection (2026-06-09, v4 chips inline)
+
+- **`saving` partagé orga/format/catégorie sans séquencement** — PATCH concurrents possibles ; pattern pré-existant onglet Infos.
+- **Catégorie éditable sur spectacle archivé si `canManageEvents`** — même gate que format ; pas introduit par v4.
+- **Changement `share-announce-messages.ts` hors scope 17.39** — copy rappel dispo ; à committer séparément ou revert.
+
+---
+
+## Deferred from: code review of 17-40-troupe-settings-categories (2026-06-09)
+
+- **`AvailabilityService.kt` modifié (draw odds operational)** — changement story 19.x bundlé dans le working tree ; sans lien avec Paramètres catégories.
+- **Tests composition (`CompositionGapFillIntegrationTest`, `CompositionSlotAssignmentIntegrationTest`)** — idem, bundlé sans lien 17.40.
+- **Race concurrent delete : `affectedEventCount` peut diverger du preview** — intégrité données OK ; count preview/delete peut être stale sous concurrence ; pattern v1 accepté (cf. 17-38).
+
+---
+
+## Deferred from: code review profil offline dev V2 (2026-06-09)
+
+- **Aucun test smoke du profil `dev,offline`** — pas de test d’intégration Spring (wiring auth, Flyway H2, seeds Improbots) ; outillage dev, non bloquant.
+- **Verrou H2 si second `bootRun` concurrent** — `.local/hatcast-offline/*.lock.db` peut bloquer le démarrage ; reset manuel documenté.
+- **Chemin H2 `${user.dir}/../../` hors `services/api`** — fonctionne via `start-dev.sh` (cwd garanti) ; `bootRun` manuel depuis un autre répertoire non supporté.
+- **ARCH.md sans mention du mode offline** — couvert par `DEVELOPMENT.md` + `services/api/README.md` ; ARCH normatif V2 runtime inchangé (outil dev local).
+
+---
+
+## Deferred from: code review of 6-23-modales-partager-annoncer-manuel-compact (2026-06-09)
+
+- **Tooltip WhatsApp via `title` natif** — préexistant story 6.15 ; `matTooltip` non importé ; M3-1 partiellement satisfait.
+- **AC10 suite web complète non verte** — 80 échecs préexistants / 29 fichiers ; tests share-announce 18/18 OK.
+- **`::ng-deep` panel menu** — dette technique Angular ; pattern acceptable court terme pour `panelClass`.
+- **Menu noms sans max-height** — débordement si audience très large ; **résolu en review 6.23** (`max-height` + `overflow-y` sur panel menu).

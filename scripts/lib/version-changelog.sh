@@ -308,8 +308,7 @@ hatcast_staging_changelog_range() {
 }
 
 # User-facing changelog.json always spans the full release (rc.1 anchor), not rc.N−1..HEAD.
-# rc.2+ only adds technical commits to CHANGELOG.md; OpenAI on the delta often returns [] and
-# must not replace rc.1 notes (OPS-6 / Story 10.3).
+# rc.2+ reuses the cutover from rc.1; notes are curated via hatcast-v2-release skill (OPS-6 / Story 10.3).
 hatcast_staging_changelog_user_json_range() {
   local base="$1"
   local rc="$2"
@@ -432,6 +431,29 @@ else
   _HATCAST_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 fi
 HATCAST_CHANGELOG_JSON_REL="apps/web/public/changelog.json"
+HATCAST_CHANGELOG_ENTRIES_REL="scripts/v2/changelog-entries"
+
+# Re-sync repo root from current git toplevel (dry-run sandbox cd).
+hatcast_changelog_sync_repo_root_from_git() {
+  local root=""
+  root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  if [[ -n "${root}" ]]; then
+    _HATCAST_REPO_ROOT="${root}"
+  fi
+}
+
+hatcast_cutover_entry_path() {
+  local version="$1"
+  local primary="${_HATCAST_REPO_ROOT}/${HATCAST_CHANGELOG_ENTRIES_REL}/v${version}-cutover.json"
+  local alternate="${_HATCAST_REPO_ROOT}/${HATCAST_CHANGELOG_ENTRIES_REL}/${version}-cutover.json"
+  if [[ -f "${primary}" ]]; then
+    echo "${primary}"
+  elif [[ -f "${alternate}" ]]; then
+    echo "${alternate}"
+  else
+    echo "${primary}"
+  fi
+}
 
 hatcast_changelog_json_path() {
   echo "${_HATCAST_REPO_ROOT}/${HATCAST_CHANGELOG_JSON_REL}"
@@ -448,11 +470,9 @@ hatcast_load_openai_env() {
 hatcast_load_cutover_changelog_entry() {
   local version="$1"
   local build_date="$2"
-  local entry_file="${_HATCAST_REPO_ROOT}/scripts/v2/changelog-entries/v${version}-cutover.json"
+  local entry_file
+  entry_file="$(hatcast_cutover_entry_path "${version}")"
 
-  if [[ ! -f "${entry_file}" ]]; then
-    entry_file="${_HATCAST_REPO_ROOT}/scripts/v2/changelog-entries/${version}-cutover.json"
-  fi
   if [[ ! -f "${entry_file}" ]]; then
     return 1
   fi
@@ -462,7 +482,195 @@ hatcast_load_cutover_changelog_entry() {
     return 1
   fi
 
-  jq -c --arg date "${build_date}" 'del(.source, .notes) | .date = $date' "${entry_file}"
+  jq -c --arg date "${build_date}" 'del(.source, .notes, .changes_en) | .date = $date' "${entry_file}"
+}
+
+# User-facing EN bullets for GitHub Release (prod tag only) — one line per bullet on stdout.
+# $1=version $2=optional git ref (commit/tag) to read cutover via git show
+hatcast_load_cutover_changes_en() {
+  local version="$1"
+  local git_ref="${2:-}"
+  local entry_file cutover_rel
+  entry_file="$(hatcast_cutover_entry_path "${version}")"
+  cutover_rel="${entry_file#${_HATCAST_REPO_ROOT}/}"
+
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ jq requis pour changelog cutover (installer jq)." >&2
+    return 1
+  fi
+
+  if [[ -n "${git_ref}" ]]; then
+    if ! git show "${git_ref}:${cutover_rel}" 2>/dev/null | jq -e '.changes_en | type == "array" and length > 0' >/dev/null 2>&1; then
+      return 1
+    fi
+    git show "${git_ref}:${cutover_rel}" | jq -r '.changes_en[]'
+    return 0
+  fi
+
+  if [[ ! -f "${entry_file}" ]]; then
+    return 1
+  fi
+
+  if ! jq -e '.changes_en | type == "array" and length > 0' "${entry_file}" >/dev/null 2>&1; then
+    return 1
+  fi
+
+  jq -r '.changes_en[]' "${entry_file}"
+}
+
+# Extract ## [version] section from CHANGELOG.md (stops at --- or next ##).
+# $1=version $2=optional git ref (commit/tag) to read via git show
+hatcast_extract_changelog_md_section() {
+  local version="$1"
+  local git_ref="${2:-}"
+  local changelog_file="${_HATCAST_REPO_ROOT}/CHANGELOG.md"
+  local awk_script='
+    BEGIN { found=0 }
+    /^## \[/ {
+      if (found) exit
+      if ($0 ~ "^## \\[" ver "\\]") found=1
+      next
+    }
+    found && /^---$/ { exit }
+    found { print }
+  '
+
+  if [[ -n "${git_ref}" ]]; then
+    if ! git show "${git_ref}:CHANGELOG.md" >/dev/null 2>&1; then
+      return 1
+    fi
+    git show "${git_ref}:CHANGELOG.md" | awk -v ver="${version}" "${awk_script}"
+    return 0
+  fi
+
+  if [[ ! -f "${changelog_file}" ]]; then
+    return 1
+  fi
+
+  awk -v ver="${version}" "${awk_script}" "${changelog_file}"
+}
+
+# Assemble GitHub Release markdown (EN user bullets + technical CHANGELOG section).
+# $1=version $2=optional git ref — stdout full body; return 1 if CHANGELOG section missing.
+hatcast_build_github_release_body() {
+  local version="$1"
+  local git_ref="${2:-}"
+  local technical_section has_user_en=false
+  local -a user_lines=()
+  local line
+
+  while IFS= read -r line; do
+    [[ -z "${line}" ]] && continue
+    user_lines+=("${line}")
+  done < <(hatcast_load_cutover_changes_en "${version}" "${git_ref}" 2>/dev/null || true)
+
+  if [[ ${#user_lines[@]} -gt 0 ]]; then
+    has_user_en=true
+  else
+    echo "⚠️  Cutover sans changes_en pour ${version} — release GitHub : section technique uniquement." >&2
+    echo "   Ajoutez changes_en via la skill hatcast-v2-release avant deploy_prod." >&2
+  fi
+
+  technical_section="$(hatcast_extract_changelog_md_section "${version}" "${git_ref}" || true)"
+  if [[ -z "${technical_section}" ]]; then
+    echo "❌ Section CHANGELOG.md introuvable pour ${version}." >&2
+    return 1
+  fi
+
+  if [[ "${has_user_en}" == true ]]; then
+    echo "## What's new"
+    echo ""
+    for line in "${user_lines[@]}"; do
+      echo "- ${line}"
+    done
+    echo ""
+    echo "## Technical changes"
+    echo ""
+  else
+    echo "## Technical changes"
+    echo ""
+  fi
+  echo "${technical_section}"
+}
+
+# Create GitHub Release for an existing tag (prod vX.Y.Z only).
+# $1=tag $2=notes_file $3=dry_run (true|false)
+hatcast_create_github_release() {
+  local tag="$1"
+  local notes_file="$2"
+  local dry_run="${3:-false}"
+  local title version
+
+  version="${tag#v}"
+  title="HatCast v${version}"
+
+  if [[ "${dry_run}" == true ]]; then
+    echo ""
+    echo "📄 GitHub Release preview (${tag}) :"
+    echo "────────────────────────────────────────"
+    cat "${notes_file}"
+    echo "────────────────────────────────────────"
+    echo "📝 WOULD RUN: gh release create \"${tag}\" --title \"${title}\" --notes-file \"${notes_file}\""
+    return 0
+  fi
+
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "❌ gh CLI requis pour la GitHub Release (brew install gh)." >&2
+    return 1
+  fi
+
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "❌ gh non authentifié — exécutez : gh auth login" >&2
+    return 1
+  fi
+
+  if gh release view "${tag}" >/dev/null 2>&1; then
+    echo "ℹ️  GitHub Release ${tag} existe déjà — pas de recréation."
+    local release_url
+    release_url="$(hatcast_v2_github_release_url "${tag}" 2>/dev/null || true)"
+    if [[ -n "${release_url}" ]]; then
+      echo "🌐 ${release_url}"
+    fi
+    return 0
+  fi
+
+  echo "📦 Création GitHub Release ${tag}…"
+  gh release create "${tag}" --title "${title}" --notes-file "${notes_file}"
+  local release_url
+  release_url="$(hatcast_v2_github_release_url "${tag}" 2>/dev/null || true)"
+  echo "✅ GitHub Release créée : ${tag}"
+  if [[ -n "${release_url}" ]]; then
+    echo "🌐 ${release_url}"
+  fi
+}
+
+# Orchestrator for promote-tag-to-prod.sh — build notes from RC commit and create GH Release.
+# $1=base_version $2=prod_tag $3=rc_commit $4=dry_run $5=skip_github_release (true|false)
+hatcast_publish_github_release_for_prod() {
+  local base_version="$1"
+  local prod_tag="$2"
+  local rc_commit="$3"
+  local dry_run="$4"
+  local skip_github_release="${5:-false}"
+  local notes_file
+
+  if [[ "${skip_github_release}" == true ]]; then
+    echo "⏭️  GitHub Release ignorée (--no-github-release)"
+    return 0
+  fi
+
+  hatcast_changelog_sync_repo_root_from_git
+
+  notes_file="$(mktemp)"
+
+  if ! hatcast_build_github_release_body "${base_version}" "${rc_commit}" >"${notes_file}"; then
+    rm -f "${notes_file}"
+    echo "❌ Impossible de générer les notes GitHub Release pour ${base_version}." >&2
+    return 1
+  fi
+
+  hatcast_create_github_release "${prod_tag}" "${notes_file}" "${dry_run}"
+  rm -f "${notes_file}"
 }
 
 # Technical JSON from git log (same range/filters as hatcast_generate_changelog_md).
@@ -615,32 +823,13 @@ hatcast_generate_changelog_json_for_release() {
   fi
 
   if entry_json="$(hatcast_load_cutover_changelog_entry "${version}" "${date}")"; then
-    echo "ℹ️  Changelog ${version} : entrée cutover curated (pas de git/OpenAI)"
+    echo "ℹ️  Changelog ${version} : entrée cutover curated"
     hatcast_update_changelog_json_file "${entry_json}" "${version}"
     return $?
   fi
 
-  echo "📝 Génération ${HATCAST_CHANGELOG_JSON_REL} (${commit_range})…"
-  if ! technical_json="$(hatcast_build_technical_changelog_json "${version}" "${date}" "${commit_range}")"; then
-    echo "❌ Impossible de construire le JSON technique changelog." >&2
-    return 1
-  fi
-
-  if ! hatcast_changelog_range_has_user_facing_commits "${commit_range}"; then
-    echo "ℹ️  Aucun commit feat/fix dans ${commit_range} — entrée ${version} avec changes: [] (OpenAI ignoré)."
-    user_json="$(hatcast_changelog_json_empty_entry "${version}" "${date}")"
-  elif user_json="$(hatcast_transform_changelog_json_with_openai "${technical_json}" "${version}")"; then
-    echo "ℹ️  Notes utilisateur générées (OpenAI / Argil)"
-    local feat_count change_count
-    feat_count="$(echo "${technical_json}" | jq '[.changes[] | select(startswith("✨"))] | length')"
-    change_count="$(echo "${user_json}" | jq '.changes | length')"
-    if [[ "${feat_count}" -ge 5 && "${change_count}" -le 2 ]]; then
-      echo "⚠️  OpenAI n'a retenu que ${change_count} puce(s) pour ${feat_count} feat — ajoutez scripts/v2/changelog-entries/v${version}-cutover.json (cf. v2.1.0 / v2.2.0)." >&2
-    fi
-  else
-    echo "⚠️  OpenAI indisponible ou échec — entrée ${version} avec changes: [] (pas de fallback technique)." >&2
-    user_json="$(hatcast_changelog_json_empty_entry "${version}" "${date}")"
-  fi
-
-  hatcast_update_changelog_json_file "${user_json}" "${version}"
+  echo "❌ Cutover manquant pour ${version}." >&2
+  echo "   Attendu : ${HATCAST_CHANGELOG_ENTRIES_REL}/v${version}-cutover.json" >&2
+  echo "   Créez-le via la skill hatcast-v2-release ou manuellement (cf. v2.2.0-cutover.json)." >&2
+  return 1
 }

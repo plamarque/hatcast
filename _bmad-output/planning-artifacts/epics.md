@@ -1200,8 +1200,8 @@ afin de relancer sans attendre les rappels automatiques, tout en évitant le spa
 
 **Acceptance Criteria**
 
-- **Given** un événement publié avec dispos insuffisantes, **when** l’organisateur déclenche « Rappel dispos », **then** message éditable + envoi push/email selon politique (complète 6.10, intent **MANUAL_AVAILABILITY_NUDGE**).
-- **Given** un rappel déjà envoyé récemment, **when** l’organisateur retente, **then** l’UI avertit (« rappel envoyé il y a X jours ») et demande confirmation explicite.
+- **Given** un événement publié avec dispos insuffisantes, **when** l’organisateur déclenche « Rappel dispos », **then** message éditable + **Copier / WhatsApp** ; transparence via GET `share-recipients` (story **6.23** — remplace envoi bulk UI et intent **MANUAL_AVAILABILITY_NUDGE** via Notifier).
+- **Given** un rappel déjà envoyé récemment, **when** l’organisateur retente, **then** ~~l’UI avertit (« rappel envoyé il y a X jours ») et demande confirmation explicite~~ **N/A UI 6.23** — garde anti-spam POST conservée API seulement ; orga voit qui est *déjà notifié* dans la ligne compacte.
 - **Couverture :** UX-DR7 ; P1 post-MEP ; complète intents auto (**8.4**).
 
 ---
@@ -1779,7 +1779,8 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 
 #### Story 17.8 : UI onglet Infos — tag d’équité optionnel
 
-> **2026-05-25 (SCP event-form UX) :** Tag saisi sur l’**onglet Infos** du détail spectacle, **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
+> **2026-05-25 (SCP event-form UX) :** Tag saisi sur l’**onglet Infos** du détail spectacle, **pas** dans `EventFormDialog`. Voir [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).  
+> **2026-06-08 (UX amend.) :** libellé **Catégorie** ; help inline ; chip **Spectacle ordinaire** par défaut — spec normative à jour : [ux-design-journey-league-agenda.md](ux-design-journey-league-agenda.md) § Screen 6b (remplace CTA « Mettre dans un groupe » / « Choisir une catégorie » ci-dessous).
 
 **Acceptance Criteria**
 

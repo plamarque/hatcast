@@ -35,8 +35,10 @@ class EmailNotificationSenderTest {
         NotificationPayload(
             title = "T",
             body = "Body",
-            url = "https://hatcast.app/saison/x/event/y",
+            url = "/saison/x/event/y?tab=dispos",
         )
+
+    private val htmlBody = "<p>Body</p>"
 
     @Test
     fun `uses Cloudflare when client is available`() {
@@ -48,7 +50,7 @@ class EmailNotificationSenderTest {
                 userId = UUID.randomUUID(),
                 email = "user@example.com",
                 subject = "Test",
-                payload = payload,
+                htmlBody = htmlBody,
                 intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
                 eventId = null,
             )
@@ -77,7 +79,7 @@ class EmailNotificationSenderTest {
                 UUID.randomUUID(),
                 "user@example.com",
                 "Test",
-                payload,
+                htmlBody,
                 NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
                 null,
             )
@@ -96,7 +98,7 @@ class EmailNotificationSenderTest {
                 UUID.randomUUID(),
                 "user@example.com",
                 "Test",
-                payload,
+                htmlBody,
                 NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
                 null,
             )

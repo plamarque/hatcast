@@ -115,6 +115,7 @@ class ConsecutiveShowWarningIntegrationTest {
         roleSlotsJson: String = """{ "player": 1 }""",
         category: String? = null,
     ): UUID {
+        category?.let { EventTestSupport.ensureGlossaryCategory(mockMvc, cookie, seedTroupeId, it) }
         val categoryJson = category?.let { """, "category": "$it"""" } ?: ""
         val res =
             mockMvc

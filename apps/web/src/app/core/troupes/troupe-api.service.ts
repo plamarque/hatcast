@@ -20,6 +20,23 @@ export interface TroupeCategory {
   label: string
 }
 
+export interface CreateTroupeCategoryRequest {
+  label: string
+  slug?: string
+}
+
+export interface UpdateTroupeCategoryLabelRequest {
+  label: string
+}
+
+export interface CategoryDeletePreview {
+  eventCount: number
+}
+
+export interface CategoryDeleteResult {
+  affectedEventCount: number
+}
+
 export interface TroupeListItem {
   id: string
   name: string
@@ -166,6 +183,92 @@ export class TroupeApiService {
       )
       if (!res.ok) return { ok: false, status: res.status }
       return { ok: true, status: res.status, data: (await res.json()) as TroupeCategory[] }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async createCategory(
+    troupeId: string,
+    body: CreateTroupeCategoryRequest,
+  ): ApiResult<TroupeCategory> {
+    try {
+      const payload: CreateTroupeCategoryRequest = {
+        label: body.label.trim(),
+        ...(body.slug?.trim() ? { slug: body.slug.trim() } : {}),
+      }
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/categories`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...csrfHeaders(),
+          },
+          body: JSON.stringify(payload),
+        },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as TroupeCategory }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async updateCategoryLabel(
+    troupeId: string,
+    slug: string,
+    body: UpdateTroupeCategoryLabelRequest,
+  ): ApiResult<TroupeCategory> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/categories/${encodeURIComponent(slug)}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...csrfHeaders(),
+          },
+          body: JSON.stringify({ label: body.label.trim() }),
+        },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as TroupeCategory }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async previewDeleteCategory(
+    troupeId: string,
+    slug: string,
+  ): ApiResult<CategoryDeletePreview> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/categories/${encodeURIComponent(slug)}/delete-preview`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as CategoryDeletePreview }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async deleteCategory(troupeId: string, slug: string): ApiResult<CategoryDeleteResult> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/categories/${encodeURIComponent(slug)}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+        },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as CategoryDeleteResult }
     } catch {
       return { ok: false, status: 0 }
     }

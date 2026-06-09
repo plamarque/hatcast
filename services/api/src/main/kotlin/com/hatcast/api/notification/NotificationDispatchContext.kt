@@ -1,5 +1,6 @@
 package com.hatcast.api.notification
 
+import java.time.Instant
 import java.util.UUID
 
 data class NotificationDispatchContext(
@@ -7,7 +8,7 @@ data class NotificationDispatchContext(
     val eventId: UUID,
     val seasonId: UUID,
     val troupeId: UUID?,
-    val actorUserId: UUID,
+    val actorUserId: UUID? = null,
     val assigneeParticipantIds: List<UUID> = emptyList(),
     val recipientUserIds: List<UUID> = emptyList(),
     val roleKey: String? = null,
@@ -17,7 +18,20 @@ data class NotificationDispatchContext(
     val actorDisplayName: String? = null,
     val proxyChangeSummary: ProxyChangeSummary? = null,
     val customMessageBody: String? = null,
+    val eventDetailsChangeSummary: EventDetailsChangeSummary? = null,
+    /** Lifecycle regression cause — story 8.4b TEAM_REGRESSED. */
+    val reasonSummary: String? = null,
 )
+
+data class EventDetailsChangeSummary(
+    val startsAtChange: StartsAtChange? = null,
+    val locationChange: LocationChange? = null,
+    val templateTypeChange: TemplateTypeChange? = null,
+) {
+    data class StartsAtChange(val oldValue: Instant, val newValue: Instant)
+    data class LocationChange(val oldValue: String?, val newValue: String?)
+    data class TemplateTypeChange(val oldValue: String, val newValue: String)
+}
 
 sealed class ProxyChangeSummary {
     data class Availability(
@@ -34,8 +48,9 @@ sealed class ProxyChangeSummary {
 }
 
 data class NotificationRecipient(
-    val userId: UUID,
+    val userId: UUID?,
     val displayName: String,
+    val email: String? = null,
 )
 
 data class NotificationPayload(

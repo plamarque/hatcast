@@ -32,7 +32,7 @@ class NotificationPayloadBuilderManualNudgeTest {
     fun `MANUAL_AVAILABILITY_NUDGE email subject matches reminder template`() {
         val event = sampleEvent()
         val subject = builder.buildEmailSubject(NotificationIntent.MANUAL_AVAILABILITY_NUDGE, event)
-        assertTrue(subject.startsWith("Rappel disponibilité · "))
+        assertTrue(subject.startsWith("⏰ Rappel disponibilité · "))
     }
 
     private fun sampleEvent(): EventEntity {

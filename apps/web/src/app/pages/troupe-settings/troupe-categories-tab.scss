@@ -1,0 +1,70 @@
+.troupe-categories-tab {
+  display: grid;
+  gap: 1rem;
+}
+
+.troupe-categories-tab__loading {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.troupe-categories-tab__error {
+  color: color-mix(in srgb, var(--mat-sys-error) 85%, var(--mat-sys-on-surface));
+  margin: 0;
+}
+
+.troupe-categories-tab__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.troupe-categories-tab__row {
+  align-items: center;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  min-height: 3rem;
+  padding: 0.25rem 0.5rem 0.25rem 1rem;
+}
+
+.troupe-categories-tab__label-block {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.troupe-categories-tab__label {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.troupe-categories-tab__default-hint {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 62%, transparent);
+  font-size: 0.8rem;
+}
+
+.troupe-categories-tab__row--default {
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 28%, transparent);
+}
+
+.troupe-categories-tab__actions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.troupe-categories-tab__add {
+  justify-self: start;
+}
+
+@media (max-width: 480px) {
+  .troupe-categories-tab__actions button {
+    min-height: 3rem;
+    min-width: 3rem;
+  }
+}

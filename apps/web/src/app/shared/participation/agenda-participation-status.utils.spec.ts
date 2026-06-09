@@ -85,7 +85,7 @@ describe('agendaParticipationStatusFromFocus', () => {
       true,
     )
     expect(view.cell.status).toBe('declined')
-    expect(view.cell.tooltip).toContain('Décliné')
+    expect(view.cell.tooltip).toContain('Retrait')
     expect(view.availabilityEditable).toBe(false)
     expect(view.participationEditable).toBe(false)
   })

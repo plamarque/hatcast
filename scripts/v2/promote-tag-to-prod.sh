@@ -16,13 +16,15 @@ DRY_RUN=false
 EXPLICIT_VERSION=""
 EXPLICIT_RC_TAG=""
 FORCE=false
+NO_GITHUB_RELEASE=false
 
 usage() {
   cat << EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Promote a staging RC lineage to production tag vX.Y.Z.
-This script only creates/pushes tags. Production deploy is handled by CI on tag push.
+Creates/pushes the prod tag and a GitHub Release (notes from cutover changes_en + CHANGELOG.md).
+Production deploy is handled by CI on tag push.
 
 Façade développeur : ./scripts/deploy_prod.sh (auto-detect dernier RC)
 
@@ -30,7 +32,9 @@ Options:
   --version=X.Y.Z   Required semver target (example: 2.0.0)
   --rc-tag=vX.Y.Z-rc.N
                     Optional explicit RC source tag (default: latest RC for --version)
-  --dry-run, -n     Simulation only (no tag creation/push)
+  --dry-run, -n     Simulation only (no tag creation/push; preview GitHub Release notes)
+  --no-github-release
+                    Skip GitHub Release creation (tag push only)
   --force           Allow replacing a mismatched local tag (never rewrites remote tags)
   --help, -h        Show this help
 EOF
@@ -41,6 +45,7 @@ for arg in "$@"; do
     --version=*) EXPLICIT_VERSION="${arg#*=}" ;;
     --rc-tag=*) EXPLICIT_RC_TAG="${arg#*=}" ;;
     --dry-run|-n) DRY_RUN=true ;;
+    --no-github-release) NO_GITHUB_RELEASE=true ;;
     --force) FORCE=true ;;
     --help|-h)
       usage
@@ -178,6 +183,7 @@ if [[ "${DRY_RUN}" == true ]]; then
     echo "🧪 DRY RUN: ${PROD_TAG} déjà présent et aligné sur ${RC_COMMIT}"
   fi
   echo "🧪 DRY RUN: git push origin \"${PROD_TAG}\""
+  hatcast_publish_github_release_for_prod "${BASE_VERSION}" "${PROD_TAG}" "${RC_COMMIT}" "true" "${NO_GITHUB_RELEASE}"
   echo "🌐 Actions: $(hatcast_v2_github_actions_url)"
   exit 0
 fi
@@ -204,6 +210,8 @@ if [[ "${remote_prod_exists}" == false ]]; then
 else
   echo "ℹ️  Tag distant ${PROD_TAG} déjà présent et conforme; pas de push nécessaire."
 fi
+
+hatcast_publish_github_release_for_prod "${BASE_VERSION}" "${PROD_TAG}" "${RC_COMMIT}" "false" "${NO_GITHUB_RELEASE}"
 
 echo "✅ Promotion terminée: ${RC_TAG} -> ${PROD_TAG}"
 echo "🌐 Suivre le déploiement: $(hatcast_v2_github_actions_url)"

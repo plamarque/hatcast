@@ -1,0 +1,19 @@
+@if (interactive()) {
+  <button
+    type="button"
+    class="role-action-chip"
+    [class.role-action-chip--active]="active()"
+    [attr.aria-label]="ariaLabel() ?? null"
+    [attr.aria-expanded]="ariaExpanded()"
+    [attr.data-testid]="testId()"
+    (click)="onClick($event)"
+  >
+    <span class="role-action-chip__emoji" aria-hidden="true">{{ emoji() }} </span>
+    <span class="role-action-chip__label">{{ label() }}</span>
+  </button>
+} @else {
+  <span class="role-action-chip" [attr.data-testid]="testId()">
+    <span class="role-action-chip__emoji" aria-hidden="true">{{ emoji() }} </span>
+    <span class="role-action-chip__label">{{ label() }}</span>
+  </span>
+}

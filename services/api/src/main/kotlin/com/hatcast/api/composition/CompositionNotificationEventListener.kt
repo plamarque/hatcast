@@ -45,6 +45,36 @@ class CompositionNotificationEventListener(
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onTeamCompleteMemberRequested(event: TeamCompleteMemberRequestedEvent) {
+        notificationPort.notifyTeamCompleteMember(
+            event.eventId,
+            event.seasonId,
+            event.actorUserId,
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onTeamCompleteOrganizerRequested(event: TeamCompleteOrganizerRequestedEvent) {
+        notificationPort.notifyTeamCompleteOrganizer(
+            event.eventId,
+            event.seasonId,
+            event.troupeId,
+            event.actorUserId,
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onTeamRegressedOrganizerRequested(event: TeamRegressedOrganizerRequestedEvent) {
+        notificationPort.notifyTeamRegressedOrganizer(
+            event.eventId,
+            event.seasonId,
+            event.troupeId,
+            event.reasonSummary,
+            event.actorUserId,
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onAssigneeRemoved(event: CompositionAssigneeRemovedEvent) {
         notificationPort.notifyAssigneeRemoved(
             event.eventId,

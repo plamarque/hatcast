@@ -1,10 +1,12 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { DOCUMENT } from '@angular/common'
+import { Router } from '@angular/router'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import type { EventResponse } from '../../core/events/event-api.service'
@@ -28,21 +30,26 @@ import {
   getEventTypeLabel,
   normalizeRoleSlots,
   type RoleKey,
-  ROLE_EMOJIS,
-  ROLE_LABELS,
   rolesWithSlots,
 } from '../../core/events/event-types'
+import {
+  roleDisplayChipItems,
+  roleSlotCountSuffix,
+} from '../../shared/event-roles/role-display-chip-set/role-display-chip-item'
+import { RoleDisplayChipSet } from '../../shared/event-roles/role-display-chip-set/role-display-chip-set'
 import { getPwaBrowserInfo } from '../../core/pwa/pwa-browser-info'
 import {
   type TroupeCategory,
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
+import { troupeAdminSettingsPath } from '../../core/navigation/troupe-routes'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import {
-  EventCategoryDialog,
-  type EventCategoryDialogData,
-  type EventCategoryDialogResult,
-} from './event-category-dialog'
+  buildEventCategoryOptions,
+  CATEGORY_HELP,
+  defaultCategoryLabelFromGlossary,
+} from './event-category.constants'
+import { EventCategorySelectChipSet } from './event-category-select-chip-set'
 import {
   OrganizerApiService,
   type OrganizerResponse,
@@ -53,9 +60,11 @@ import {
 } from './event-organizers-dialog'
 import {
   EventTypeRolesDialog,
+  FORMAT_AND_ROLES_HELP,
   type EventTypeRolesDialogData,
   type EventTypeRolesDialogResult,
 } from './event-type-roles-dialog'
+import { ORGANIZERS_HELP } from './event-organizers-dialog'
 
 @Component({
   selector: 'app-event-infos-tab',
@@ -65,7 +74,10 @@ import {
     MatDialogModule,
     MatIconModule,
     MatMenuModule,
+    MatProgressSpinnerModule,
     MatSnackBarModule,
+    RoleDisplayChipSet,
+    EventCategorySelectChipSet,
   ],
   templateUrl: './event-infos-tab.html',
   styleUrl: './event-infos-tab.scss',
@@ -76,6 +88,7 @@ export class EventInfosTab {
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
+  private readonly router = inject(Router)
   private readonly doc = inject(DOCUMENT)
 
   readonly event = input.required<EventResponse>()
@@ -84,6 +97,7 @@ export class EventInfosTab {
   readonly troupeSlug = input.required<string>()
   readonly seasonSlug = input.required<string>()
   readonly canManageEvents = input(false)
+  readonly canManageTroupe = input(false)
   readonly canManageEventOrganizers = input(false)
   readonly canManageComposition = input(false)
   /** Incremented by parent when organizers change via admin menu dialog. */
@@ -92,14 +106,17 @@ export class EventInfosTab {
   readonly eventUpdated = output<EventResponse>()
 
   protected readonly glossary = signal<TroupeCategory[]>([])
+  protected readonly glossaryLoading = signal(true)
   protected readonly organizers = signal<OrganizerResponse[]>([])
   protected readonly saving = signal(false)
+  /** Format et besoins — spinner from dialog close until PATCH + parent refresh. */
+  protected readonly savingTypeRoles = signal(false)
   protected readonly calendarMenuOpen = signal(false)
   protected readonly mapsMenuOpen = signal(false)
 
-  protected readonly showCategorySection = computed(
-    () => this.canManageEvents() || this.event().category != null,
-  )
+  protected readonly categoryHelp = CATEGORY_HELP
+  protected readonly formatAndRolesHelp = FORMAT_AND_ROLES_HELP
+  protected readonly organizersHelp = ORGANIZERS_HELP
 
   protected readonly showOrganizersSection = computed(
     () => this.canManageEventOrganizers() || this.organizers().length > 0,
@@ -110,16 +127,17 @@ export class EventInfosTab {
   protected readonly summaryRoleKeys = computed((): RoleKey[] =>
     rolesWithSlots(normalizeRoleSlots(this.event().roleSlots)),
   )
-  protected readonly roleLabels = ROLE_LABELS
-  protected readonly roleEmojis = ROLE_EMOJIS
+  protected readonly summaryRoleChipItems = computed(() =>
+    roleDisplayChipItems(this.summaryRoleKeys(), (key) =>
+      roleSlotCountSuffix(this.roleCount(key)),
+    ),
+  )
 
-  protected readonly categoryLabel = computed(() => {
-    const slug = this.event().category
-    if (!slug) {
-      return null
-    }
-    return this.glossary().find((t) => t.slug === slug)?.label ?? slug
-  })
+  protected readonly selectedCategorySlug = computed(() => this.event().category ?? null)
+
+  protected readonly categoryOptions = computed(() =>
+    buildEventCategoryOptions(this.glossary(), this.selectedCategorySlug()),
+  )
 
   protected readonly dateExportEnabled = computed(() => {
     const ev = this.event()
@@ -236,12 +254,6 @@ export class EventInfosTab {
     }
   }
 
-  protected onCategoryChipClick(): void {
-    if (this.canManageEvents()) {
-      this.openCategoryDialog()
-    }
-  }
-
   protected roleCount(role: RoleKey): number {
     return normalizeRoleSlots(this.event().roleSlots)[role] ?? 0
   }
@@ -310,33 +322,22 @@ export class EventInfosTab {
       if (result === undefined) {
         return
       }
+      this.savingTypeRoles.set(true)
       void this.persistTypeRoles(result)
     })
   }
 
-  protected openCategoryDialog(): void {
-    const label = this.categoryLabel()
-    const ref = this.dialog.open<
-      EventCategoryDialog,
-      EventCategoryDialogData,
-      EventCategoryDialogResult
-    >(EventCategoryDialog, {
-      data: {
-        troupeId: this.troupeId(),
-        initialQuery: label ?? '',
-      },
-      width: 'min(100vw - 2rem, 32rem)',
-    })
-    ref.afterClosed().subscribe((result) => {
-      if (result === undefined) {
-        return
-      }
-      void this.persistTag(result)
-    })
+  protected onCategorySelect(slug: string | null): void {
+    if (!this.canManageEvents() || this.saving()) {
+      return
+    }
+    void this.persistCategory(slug)
   }
 
-  protected removeCategory(): void {
-    void this.persistTag(null)
+  protected navigateToCategorySettings(): void {
+    void this.router.navigate(troupeAdminSettingsPath(this.troupeSlug()), {
+      queryParams: { tab: 'categories' },
+    })
   }
 
   private exportContext(): CalendarExportContext {
@@ -418,13 +419,14 @@ export class EventInfosTab {
       this.snack.open('Format et besoins enregistrés.', 'OK', { duration: 4000 })
     } finally {
       this.saving.set(false)
+      this.savingTypeRoles.set(false)
     }
   }
 
-  private async persistTag(value: string | null): Promise<void> {
+  private async persistCategory(slug: string | null): Promise<void> {
     const seasonId = this.seasonId()
     const ev = this.event()
-    const body = { category: value }
+    const body = { category: slug }
 
     this.saving.set(true)
     try {
@@ -437,7 +439,9 @@ export class EventInfosTab {
       this.eventUpdated.emit(result.data)
       const cleared = result.data.category == null
       this.snack.open(
-        cleared ? 'Tag retiré.' : 'Tag enregistré.',
+        cleared
+          ? `${defaultCategoryLabelFromGlossary(this.glossary())}.`
+          : 'Catégorie enregistrée.',
         'OK',
         { duration: 4000 },
       )
@@ -457,12 +461,28 @@ export class EventInfosTab {
   }
 
   private async loadGlossary(troupeId: string): Promise<void> {
-    const r = await this.troupeApi.listCategories(troupeId)
-    if (troupeId !== this.troupeId()) {
-      return
-    }
-    if (r.ok && r.data) {
-      this.glossary.set(r.data)
+    this.glossaryLoading.set(true)
+    try {
+      const r = await this.troupeApi.listCategories(troupeId)
+      if (troupeId !== this.troupeId()) {
+        return
+      }
+      if (r.ok && r.data) {
+        this.glossary.set(r.data)
+        return
+      }
+      this.glossary.set([])
+      this.snack.open('Impossible de charger les catégories.', 'OK', { duration: 6000 })
+    } catch {
+      if (troupeId !== this.troupeId()) {
+        return
+      }
+      this.glossary.set([])
+      this.snack.open('Impossible de charger les catégories.', 'OK', { duration: 6000 })
+    } finally {
+      if (troupeId === this.troupeId()) {
+        this.glossaryLoading.set(false)
+      }
     }
   }
 }

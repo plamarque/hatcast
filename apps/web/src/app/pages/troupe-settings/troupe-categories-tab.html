@@ -1,0 +1,53 @@
+<div class="troupe-categories-tab">
+  @if (loading()) {
+    <div class="troupe-categories-tab__loading" role="status">
+      <mat-spinner diameter="32" />
+    </div>
+  } @else if (loadError()) {
+    <p class="troupe-categories-tab__error">Impossible de charger les catégories.</p>
+  } @else {
+    <ul class="troupe-categories-tab__list" aria-label="Catégories de spectacle">
+      @for (category of categories(); track category.slug) {
+        <li class="troupe-categories-tab__row" [class.troupe-categories-tab__row--default]="isDefaultCategory(category)">
+          <div class="troupe-categories-tab__label-block">
+            <span class="troupe-categories-tab__label">{{ category.label }}</span>
+            @if (isDefaultCategory(category)) {
+              <span class="troupe-categories-tab__default-hint">Catégorie par défaut</span>
+            }
+          </div>
+          <div class="troupe-categories-tab__actions">
+            <button
+              type="button"
+              mat-icon-button
+              [attr.aria-label]="'Modifier ' + category.label"
+              (click)="openEdit(category)"
+            >
+              <mat-icon aria-hidden="true">edit</mat-icon>
+            </button>
+            @if (!isDefaultCategory(category)) {
+              <button
+                type="button"
+                mat-icon-button
+                [attr.aria-label]="'Supprimer ' + category.label"
+                (click)="openDelete(category)"
+              >
+                <mat-icon aria-hidden="true">delete</mat-icon>
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+
+    <button
+      type="button"
+      mat-stroked-button
+      class="troupe-categories-tab__add"
+      aria-label="Ajouter une catégorie"
+      (click)="openCreate()"
+    >
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Ajouter une catégorie
+    </button>
+  }
+</div>

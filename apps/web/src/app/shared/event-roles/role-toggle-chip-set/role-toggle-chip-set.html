@@ -1,0 +1,20 @@
+<mat-chip-set
+  class="role-toggle-chip-set"
+  [attr.aria-label]="ariaLabel()"
+>
+  @for (key of roleKeys(); track key) {
+    <mat-chip
+      class="role-toggle-chip-set__chip"
+      [class.role-toggle-chip-set__chip--locked]="isLocked(key)"
+      [highlighted]="isSelected(key)"
+      [disabled]="disabled()"
+      [attr.aria-pressed]="isSelected(key)"
+      [matTooltip]="tooltipFor(key)"
+      [matTooltipDisabled]="!tooltipFor(key)"
+      (click)="onChipClick(key)"
+    >
+      <span class="role-toggle-chip-set__emoji" aria-hidden="true">{{ emojiFor(key) }}</span>
+      <span class="role-toggle-chip-set__label">{{ labelFor(key) }}</span>
+    </mat-chip>
+  }
+</mat-chip-set>

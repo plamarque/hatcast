@@ -55,14 +55,14 @@ class NotificationPayloadBuilderProxyTest {
             )
 
         assertTrue(payload.body.contains("a confirmé ta participation"))
-        assertEquals("Participation confirmée", payload.title)
+        assertEquals("👍 Participation confirmée", payload.title)
         assertTrue(payload.body.contains("Joueur"))
         assertTrue(payload.body.contains("janvier 2032"))
         assertEquals("/saison/saison-test/event/spectacle-test?tab=equipe", payload.url)
     }
 
     @Test
-    fun `proxy participation declined uses equipe tab`() {
+    fun `proxy participation declined from pending uses declinaison copy`() {
         val event = sampleEvent()
         val payload =
             builder.build(
@@ -73,14 +73,36 @@ class NotificationPayloadBuilderProxyTest {
                 actorDisplayName = "Bob Orga",
                 proxyChangeSummary =
                     ProxyChangeSummary.Participation(
-                        decisionLabel = "Décliné",
+                        decisionLabel = "Refusé",
                         roleLabel = "Joueur",
                     ),
             )
 
-        assertTrue(payload.body.contains("a décliné ta participation"))
-        assertEquals("Participation déclinée", payload.title)
+        assertTrue(payload.body.contains("a refusé ta participation"))
+        assertEquals("👎 Déclinaison enregistrée", payload.title)
         assertTrue(payload.body.contains("janvier 2032"))
+        assertEquals("/saison/saison-test/event/spectacle-test?tab=equipe", payload.url)
+    }
+
+    @Test
+    fun `proxy participation declined from confirmed uses desistement copy`() {
+        val event = sampleEvent()
+        val payload =
+            builder.build(
+                intent = NotificationIntent.PROXY_CONFIRMATION_RECORDED,
+                event = event,
+                recipientName = "Alice",
+                roleKey = "player",
+                actorDisplayName = "Bob Orga",
+                proxyChangeSummary =
+                    ProxyChangeSummary.Participation(
+                        decisionLabel = "Désisté",
+                        roleLabel = "Joueur",
+                    ),
+            )
+
+        assertTrue(payload.body.contains("a enregistré ton désistement"))
+        assertEquals("👎 Désistement enregistré", payload.title)
         assertEquals("/saison/saison-test/event/spectacle-test?tab=equipe", payload.url)
     }
 
@@ -101,8 +123,8 @@ class NotificationPayloadBuilderProxyTest {
                     ),
             )
 
-        assertTrue(payload.body.contains("a remis ta participation à confirmer"))
-        assertEquals("Participation à reconfirmer", payload.title)
+        assertTrue(payload.body.contains("a remis à confirmer ta participation"))
+        assertEquals("⏳ Participation à confirmer", payload.title)
         assertEquals("/saison/saison-test/event/spectacle-test?showConfirm=true", payload.url)
     }
 

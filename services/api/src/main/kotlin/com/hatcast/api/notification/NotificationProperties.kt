@@ -13,6 +13,8 @@ data class WebPushProperties(
 data class NotificationEmailProperties(
     val enabled: Boolean = false,
     val from: String = "HatCast <noreply@hatcast.app>",
+    /** Absolute web app origin for links in notification emails (no trailing slash). */
+    val publicWebOrigin: String = "https://localhost:4200",
 )
 
 @ConfigurationProperties(prefix = "hatcast.notifications")

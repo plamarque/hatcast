@@ -1,0 +1,32 @@
+.role-display-chip-set {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.role-display-chip-set__chip {
+  cursor: default;
+  pointer-events: none;
+}
+
+.role-display-chip-set__emoji {
+  margin-inline-end: 0.25rem;
+}
+
+.role-display-chip-set__label {
+  white-space: nowrap;
+}
+
+.role-display-chip-set__suffix {
+  margin-inline-start: 0.15rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.role-display-chip-set__empty {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+}

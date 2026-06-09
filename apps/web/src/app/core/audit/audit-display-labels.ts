@@ -23,7 +23,7 @@ export type AuditPillTone =
 const PARTICIPATION_STATUS_LABELS: Record<string, string> = {
   confirmed: 'Confirmé 👍',
   pending: 'À confirmer ⏳',
-  declined: 'Décliné 👎',
+  declined: 'Retrait 👎',
 }
 
 const LIFECYCLE_LABELS: Record<string, string> = {

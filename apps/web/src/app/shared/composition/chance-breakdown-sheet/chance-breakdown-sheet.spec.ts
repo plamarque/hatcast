@@ -86,7 +86,7 @@ describe('ChanceBreakdownSheet', () => {
   })
 
   it('opens draw chances help from doc link', () => {
-    const help = TestBed.inject(DrawChancesHelpService) as { open: ReturnType<typeof vi.fn> }
+    const help = TestBed.inject(DrawChancesHelpService) as unknown as { open: ReturnType<typeof vi.fn> }
     const link = fixture.nativeElement.querySelector(
       '.chance-breakdown-sheet__doc-link',
     ) as HTMLButtonElement

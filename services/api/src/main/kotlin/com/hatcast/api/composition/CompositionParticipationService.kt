@@ -185,7 +185,22 @@ class CompositionParticipationService(
                 metadata = mapOf("assigneeParticipantId" to assigneeId.toString()),
             ),
         )
-        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle)
+        val lifecycleTransitionContext =
+            when {
+                composition.validatedAt != null && participationStatus == SlotParticipationStatus.DECLINED -> {
+                    val assigneeDisplayName =
+                        resolveAssigneeDisplayName(subjectSeasonParticipantId, subjectEventParticipantId)
+                    CompositionLifecycleTransitionContext(
+                        reasonSummary = withdrawalReasonSummary(beforeStatus, assigneeDisplayName),
+                    )
+                }
+                composition.validatedAt != null &&
+                    participationStatus == SlotParticipationStatus.PENDING &&
+                    beforeStatus == SlotParticipationStatus.CONFIRMED ->
+                    CompositionLifecycleTransitionContext(reasonSummary = "confirmation à renouveler")
+                else -> null
+            }
+        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeLifecycle, lifecycleTransitionContext)
 
         if (composition.validatedAt != null &&
             assigneeUserId != null &&
@@ -201,11 +216,29 @@ class CompositionParticipationService(
                     subjectUserId = assigneeUserId,
                     roleKey = roleKey,
                     participationStatus = participationStatus,
+                    beforeParticipationStatus = beforeStatus,
                 ),
             )
         }
 
         return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
+    }
+
+    private fun resolveAssigneeDisplayName(
+        seasonParticipantId: UUID?,
+        eventParticipantId: UUID?,
+    ): String {
+        seasonParticipantId?.let { id ->
+            seasonParticipantRepository.findById(id).orElse(null)?.let { participant ->
+                return participant.displayName
+            }
+        }
+        eventParticipantId?.let { id ->
+            eventParticipantRepository.findById(id).orElse(null)?.let { participant ->
+                return participant.displayName
+            }
+        }
+        return "Un·e participant·e"
     }
 
     private fun resolveLinkedUserId(
@@ -252,4 +285,14 @@ class CompositionParticipationService(
         }
         return event
     }
+
+    private fun withdrawalReasonSummary(
+        beforeStatus: SlotParticipationStatus,
+        displayName: String,
+    ): String =
+        when (beforeStatus) {
+            SlotParticipationStatus.PENDING -> "déclinaison de $displayName"
+            SlotParticipationStatus.CONFIRMED -> "désistement de $displayName"
+            SlotParticipationStatus.DECLINED -> "retrait de $displayName"
+        }
 }

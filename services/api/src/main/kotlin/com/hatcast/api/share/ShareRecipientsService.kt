@@ -335,15 +335,20 @@ class ShareRecipientsService(
                     NotificationIntent.AVAILABILITY_OPENED,
                     NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
                     NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE,
+                    NotificationIntent.AVAILABILITY_PENDING_REMINDER,
                 )
             ShareRecipientIntent.EVENT ->
                 setOf(
                     NotificationIntent.AVAILABILITY_OPENED,
                     NotificationIntent.MANUAL_AVAILABILITY_ANNOUNCE,
                 )
-            ShareRecipientIntent.DRAW,
-            ShareRecipientIntent.COMPOSITION,
-            -> emptySet()
+            ShareRecipientIntent.DRAW ->
+                setOf(NotificationIntent.COMPOSITION_SHARED)
+            ShareRecipientIntent.COMPOSITION ->
+                setOf(
+                    NotificationIntent.CONFIRMATION_REQUEST,
+                    NotificationIntent.RECONFIRMATION_REQUEST,
+                )
         }
 
     private data class NotifiedChannelKey(
@@ -381,7 +386,8 @@ class ShareRecipientsService(
                 intents = logIntents,
                 statuses = statuses,
             ).forEach { log ->
-                val key = NotifiedChannelKey(log.userId, log.channel)
+                val userId = log.userId ?: return@forEach
+                val key = NotifiedChannelKey(userId, log.channel)
                 val createdAt = log.createdAt
                 val previous = latestByKey[key]
                 if (previous == null || createdAt.isAfter(previous)) {

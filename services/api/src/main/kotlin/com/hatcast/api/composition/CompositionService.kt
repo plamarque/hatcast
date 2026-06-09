@@ -266,7 +266,12 @@ class CompositionService(
             ),
         )
 
-        lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
+        lifecycleAuditRecorder.recordIfChanged(
+            event,
+            seasonId,
+            beforeRawLifecycle,
+            CompositionLifecycleTransitionContext(reasonSummary = "composition déverrouillée"),
+        )
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
     }
 

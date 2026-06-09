@@ -65,10 +65,10 @@ class CompositionDeclineRestoreService(
 
         val decline =
             declineRepository.findById(declineId).orElseThrow {
-                ResponseStatusException(HttpStatus.NOT_FOUND, "Déclin inconnu")
+                ResponseStatusException(HttpStatus.NOT_FOUND, "Retrait inconnu")
             }
         if (decline.eventId != eventId) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Déclin inconnu")
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Retrait inconnu")
         }
 
         val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
@@ -82,7 +82,7 @@ class CompositionDeclineRestoreService(
 
         val declineParticipantId =
             decline.seasonParticipantId ?: decline.eventParticipantId
-                ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Déclin sans participant")
+                ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Retrait sans participant")
 
         val now = Instant.now()
         seasonParticipantService.ensureMembershipParticipants(event.season)

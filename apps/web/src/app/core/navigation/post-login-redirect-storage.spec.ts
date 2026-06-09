@@ -59,8 +59,14 @@ describe('postLoginRedirectStorage', () => {
     expect(isValidInternalRedirectPath('/troupes')).toBe(true)
     expect(isValidInternalRedirectPath('/troupes/la-malice')).toBe(true)
     expect(isValidInternalRedirectPath('/troupes/la-malice/admin/membres')).toBe(true)
+    expect(isValidInternalRedirectPath('/troupes/la-malice/admin/parametres')).toBe(true)
+    expect(isValidInternalRedirectPath('/troupes/la-malice/admin/parametres?tab=categories')).toBe(
+      true,
+    )
     expect(isValidInternalRedirectPath('/troupe/admin/membres')).toBe(true)
+    expect(isValidInternalRedirectPath('/troupe/admin/parametres')).toBe(true)
     expect(isValidInternalRedirectPath('/troupe/demo/admin/membres')).toBe(true)
+    expect(isValidInternalRedirectPath('/troupe/demo/admin/parametres')).toBe(true)
   })
 
   it('rejects open-redirect and login-loop paths', () => {

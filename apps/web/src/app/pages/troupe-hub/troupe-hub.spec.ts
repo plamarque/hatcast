@@ -539,7 +539,13 @@ describe('TroupeHub', () => {
     const items = (fixture.componentInstance as unknown as { troupeAdminItems(): { label: string }[] })
       .troupeAdminItems()
       .map((item) => item.label)
-    expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres', "Journal d'audit"])
+    expect(items).toEqual([
+      'Modifier',
+      'Nouvelle saison',
+      'Membres',
+      'Paramètres',
+      "Journal d'audit",
+    ])
   })
 
   it('links Membres to canonical troupe admin path', async () => {
@@ -556,6 +562,17 @@ describe('TroupeHub', () => {
     expect(membresLink?.getAttribute('href')).toBe('/troupes/les-improbots/admin/membres')
   })
 
+  it('links Paramètres with categories tab query param', async () => {
+    const { fixture } = await setup('TROUPE_ADMIN')
+    const items = (
+      fixture.componentInstance as unknown as {
+        troupeAdminItems(): { label: string; queryParams?: Record<string, string> }[]
+      }
+    ).troupeAdminItems()
+    const settings = items.find((item) => item.label === 'Paramètres')
+    expect(settings?.queryParams).toEqual({ tab: 'categories' })
+  })
+
   it('shows Membres admin menu for platform admin without troupe admin role', async () => {
     const { fixture } = await setup('MEMBER', true)
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeTruthy()
@@ -566,7 +583,13 @@ describe('TroupeHub', () => {
     const items = (fixture.componentInstance as unknown as { troupeAdminItems(): { label: string }[] })
       .troupeAdminItems()
       .map((item) => item.label)
-    expect(items).toEqual(['Modifier', 'Nouvelle saison', 'Membres', "Journal d'audit"])
+    expect(items).toEqual([
+      'Modifier',
+      'Nouvelle saison',
+      'Membres',
+      'Paramètres',
+      "Journal d'audit",
+    ])
   })
 
   it('shows access denied for public slug without membership', async () => {
