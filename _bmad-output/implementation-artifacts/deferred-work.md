@@ -403,3 +403,10 @@
 - **`includeChances` non passé depuis le front** — by design : lazy 5.9 / PERF-13 ; BFF garde `includeChances=false` par défaut comme spécifié.
 - **Fallback `loadComposition` legacy si BFF équipe sans payload** — filet de sécurité hérité de PERF-03 ; risque d’appel supplémentaire marginal.
 - **`ensureMembershipParticipants` sur GET `/page`** — dette acceptée (D2:2, perf-10 review) ; hérité de `listSelectors`/`getComposition` ; fix roster/perf si priorisé.
+
+## Deferred from: code review of perf-16-db-latency-observability (2026-06-10)
+
+- **ThreadLocal JDBC metrics sur threads async/scheduled** — seul le filtre HTTP appelle `clear()`/`remove()` ; jobs `@Scheduled` futurs pourraient fuiter ou gonfler les compteurs.
+- **BeanPostProcessor enveloppe tout bean `DataSource`** — risque théorique de double proxy si plusieurs beans ; pratique Spring Boot = un seul DS.
+- **p95 sur n=10 ≈ max** — formule percentile sur 10 échantillons retourne le max ; acceptable pour gate manuel si documenté.
+- **`NeonAgendaPerformanceIntegrationTest` MockMvc in-process** — ne mesure pas le RTT réseau Neon/Cloud Run ; gate documenté comme opt-in manual CI avec waiver.

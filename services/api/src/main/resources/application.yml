@@ -77,6 +77,10 @@ hatcast:
         api-token: ${CLOUDFLARE_EMAIL_SENDING_API_TOKEN:}
   notifications:
     manual-availability-nudge-guard-days: ${HATCAST_MANUAL_AVAILABILITY_NUDGE_GUARD_DAYS:3}
+  jdbc:
+    metrics-enabled: ${HATCAST_JDBC_METRICS_ENABLED:false}
+    query-log-enabled: ${HATCAST_DB_QUERY_LOG:false}
+    slow-query-threshold-ms: ${HATCAST_JDBC_SLOW_QUERY_MS:100}
 
 management:
   endpoints:

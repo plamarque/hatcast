@@ -62,6 +62,7 @@ class SecurityConfig(
                 auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
+                    .requestMatchers("/actuator/metrics", "/actuator/metrics/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/google").permitAll()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/idp").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/auth/me").authenticated()

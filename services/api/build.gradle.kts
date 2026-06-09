@@ -33,6 +33,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.openapitools:jackson-databind-nullable:0.2.6")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("net.ttddyy:datasource-proxy:1.10.1")
     implementation("com.google.firebase:firebase-admin:9.4.3")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("nl.martijndwars:web-push:5.1.1")
