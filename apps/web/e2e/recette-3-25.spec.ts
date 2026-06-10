@@ -123,7 +123,7 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
   }) => {
     await signInGuest(page, E2E_GUEST_RUBEN_TOKEN, baseURL!)
     await openGuestEventTab(page, fx, fx.rubenSeasonSlug, fx.rubenInvitedFutureSlug, 'dispos')
-    await clickBreadcrumbSeasonLink(page)
+    await clickBreadcrumbSeasonLink(page, fx, fx.rubenSeasonSlug)
     await expect(page).toHaveURL(
       new RegExp(`/saison/${fx.troupeSlug}/${fx.rubenSeasonSlug}`),
     )

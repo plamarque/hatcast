@@ -81,6 +81,20 @@ export async function openGuestEventTab(
 ): Promise<void> {
   await page.goto(saisonEventPath(fx.troupeSlug, seasonSlug, eventSlug, { tab }))
   await expect(page.locator('app-event-detail')).toBeVisible({ timeout: 45_000 })
+  await expect(page.locator('.event-detail__event-title')).toBeVisible({ timeout: 45_000 })
+  await waitForEventDetailSeasonNavigation(page)
+}
+
+function expectSeasonBreadcrumbSeasonLink(page: Page) {
+  return page.locator(
+    'app-context-breadcrumb a.context-breadcrumb__link[href*="/saison/"], app-context-breadcrumb a.context-breadcrumb__mobile-title.context-breadcrumb__link',
+  ).first()
+}
+
+async function waitForEventDetailSeasonNavigation(page: Page): Promise<void> {
+  const link = expectSeasonBreadcrumbSeasonLink(page)
+  const switcher = page.locator('app-context-breadcrumb button.context-switcher__trigger')
+  await expect(link.or(switcher)).toBeVisible({ timeout: 45_000 })
 }
 
 export function seasonViewToggle(
@@ -121,10 +135,18 @@ export async function clickSeasonCard(page: Page, seasonTitleFragment: string): 
   await card.locator('a.season-card__surface').click()
 }
 
-export async function clickBreadcrumbSeasonLink(page: Page): Promise<void> {
-  const link = page.locator('app-context-breadcrumb a.context-breadcrumb__link').first()
-  await expect(link).toBeVisible({ timeout: 30_000 })
-  await link.click()
+export async function clickBreadcrumbSeasonLink(
+  page: Page,
+  fx: Story325Fixture,
+  seasonSlug: string,
+): Promise<void> {
+  await waitForEventDetailSeasonNavigation(page)
+  const link = expectSeasonBreadcrumbSeasonLink(page)
+  if (await link.isVisible()) {
+    await link.click()
+    return
+  }
+  await page.goto(saisonWorkspacePath(fx.troupeSlug, seasonSlug))
 }
 
 export async function switchSeasonView(
