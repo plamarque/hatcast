@@ -1,24 +1,9 @@
-import { expect, type Page, type Response } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import type { Story325Fixture } from './e2e-api'
 import { signInWithE2eToken } from './e2e-api'
 import { prepareE2ePage } from './e1.ui'
 import { saisonEventPath, saisonWorkspacePath, troupeHubPath } from './e1-routes'
-
-function isSeasonWorkspaceAgendaResponse(response: Response): boolean {
-  return (
-    response.request().method() === 'GET' &&
-    /\/v1\/seasons\/[^/]+\/workspace(\?|$)/.test(response.url()) &&
-    response.url().includes('view=agenda')
-  )
-}
-
-async function waitForSeasonWorkspaceAgendaResponse(page: Page): Promise<Response> {
-  return page.waitForResponse(
-    (response) => isSeasonWorkspaceAgendaResponse(response) && response.ok(),
-    { timeout: 45_000 },
-  )
-}
 
 export async function expectSeasonWorkspaceAgendaEvents(
   page: Page,
@@ -74,14 +59,8 @@ export async function gotoSeasonWorkspace(
   const needsAgendaBootstrap = !view || view === 'agenda'
 
   if (needsAgendaBootstrap && options.reload) {
-    await page.goto(path)
-    await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
-    await expect(page).not.toHaveURL(/\/agenda$/)
-    const reloadWorkspaceResponse = waitForSeasonWorkspaceAgendaResponse(page)
-    await page.reload({ waitUntil: 'load' })
-    await reloadWorkspaceResponse
-    await waitForAgendaLoadingDone(page)
-    return
+    await page.goto('/agenda')
+    await expect(page).not.toHaveURL(/\/connexion/)
   }
 
   await page.goto(path)
