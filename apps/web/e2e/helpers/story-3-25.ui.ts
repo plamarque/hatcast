@@ -84,16 +84,11 @@ export async function gotoSeasonWorkspace(
     return
   }
 
-  const workspaceResponse = needsAgendaBootstrap
-    ? waitForSeasonWorkspaceAgendaResponse(page)
-    : null
-
   await page.goto(path)
   await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
   await expect(page).not.toHaveURL(/\/agenda$/)
 
-  if (needsAgendaBootstrap && workspaceResponse) {
-    await workspaceResponse
+  if (needsAgendaBootstrap) {
     await waitForAgendaLoadingDone(page)
   }
 }
