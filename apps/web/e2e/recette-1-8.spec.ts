@@ -19,6 +19,7 @@ import {
   failIdpThenPass,
   fillLoginForm,
   fillSignupForm,
+  gotoLoginForm,
   submitLogin,
   submitSignup,
 } from './helpers/story-1-8.ui'
@@ -83,7 +84,7 @@ test.describe('Recette 1.8 — signup IdP recovery (DW-104)', () => {
     const me = await page.request.get('/v1/auth/me')
     const first = (await me.json()) as { user: { id: string; email: string } }
 
-    await page.goto('/connexion')
+    await gotoLoginForm(page)
     await fillLoginForm(page, email, STORY_18_PASSWORD)
     await submitLogin(page)
     await expectAuthenticatedSession(page)

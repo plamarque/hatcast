@@ -29,9 +29,24 @@ export async function gotoSeasonWorkspace(
   view?: 'agenda' | 'history' | 'stats',
 ): Promise<void> {
   const query = view ? `?view=${view}` : ''
+  const waitForWorkspace =
+    !view || view === 'agenda'
+      ? page.waitForResponse(
+          (response) =>
+            response.request().method() === 'GET' &&
+            response.url().includes('/v1/seasons/') &&
+            response.url().includes('/workspace') &&
+            response.ok(),
+          { timeout: 45_000 },
+        )
+      : null
   await page.goto(`${saisonWorkspacePath(fx.troupeSlug, seasonSlug)}${query}`)
   await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
   await expect(page).not.toHaveURL(/\/agenda$/)
+  if (waitForWorkspace) {
+    await waitForWorkspace
+    await expect(page.getByText('Chargement de l’agenda…')).toHaveCount(0, { timeout: 45_000 })
+  }
 }
 
 export async function openGuestEventTab(
