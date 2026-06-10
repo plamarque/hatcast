@@ -23,6 +23,11 @@ export async function gotoAgenda(page: Page): Promise<void> {
 }
 
 async function waitForAgendaLoadingDone(page: Page): Promise<void> {
+  const seasonAgenda = page.locator('app-season-agenda')
+  if ((await seasonAgenda.count()) > 0) {
+    await expect(seasonAgenda.locator('.season-agenda__status')).toHaveCount(0, { timeout: 45_000 })
+    return
+  }
   await expect(page.getByText('Chargement de l’agenda…')).toHaveCount(0, { timeout: 45_000 })
 }
 

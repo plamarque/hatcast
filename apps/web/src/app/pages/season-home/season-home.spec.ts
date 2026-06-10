@@ -757,6 +757,38 @@ describe('SeasonHome', () => {
     expect(cmp.monthGroups()[0]?.events[0]?.title).toBe('Spectacle event-1')
   })
 
+  it('does not duplicate upcoming fetch after workspace bootstrap when syncViewLoads runs', async () => {
+    seasonsApi.getSeasonWorkspace.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: {
+        permissions: defaultPermissions(),
+        participantSelectors: [{ id: 'p-1', displayName: 'Alice', avatarUrl: null, kind: 'MEMBER' }],
+        categories: [],
+        upcomingEvents: {
+          content: [ev('event-1')],
+          page: 0,
+          size: 50,
+          totalElements: 1,
+          totalPages: 1,
+        },
+      },
+    })
+    eventsApi.listEvents.mockResolvedValue({ ok: false, status: 503 })
+
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(seasonsApi.getSeasonWorkspace).toHaveBeenCalledWith('season-1', expect.any(Object))
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      events: () => EventResponse[]
+    }
+    await vi.waitFor(() => expect(cmp.events()).toHaveLength(1))
+    expect(eventsApi.listEvents).not.toHaveBeenCalled()
+  })
+
   it('ne charge pas une saison quand le slug est ambigu', async () => {
     Object.defineProperty(fixture.componentInstance, 'troupeSeasonResolver', {
       value: {

@@ -147,6 +147,8 @@ export class SeasonHome implements OnDestroy, OnInit {
   private pastEventLoadRequestId = 0
   private statisticsLoadRequestId = 0
   private pinnedFilterLoadRequestId = 0
+  /** Workspace bootstrap request id; syncViewLoads skips one duplicate upcoming fetch for it. */
+  private agendaBootstrapRequestId: number | null = null
 
   private readonly pinnedFilterEvents = signal<EventResponse[]>([])
   private lastSeenPreferencesRevision = -1
@@ -476,6 +478,9 @@ export class SeasonHome implements OnDestroy, OnInit {
         const participantKey = this.selectedParticipantIds().join(',')
         const statsEventKey = this.selectedStatsEventIds().join(',')
         const statsCategoriesKeyValue = statsCategoriesKey(this.statsCategoryFilter())
+        if (view !== 'agenda') {
+          this.agendaBootstrapRequestId = null
+        }
         if (view !== lastView) {
           this.syncViewQueryParam()
         }
@@ -495,6 +500,13 @@ export class SeasonHome implements OnDestroy, OnInit {
           void this.loadPastEvents()
         }
         if (view === 'agenda' && this.season()) {
+          if (this.loadingEvents()) {
+            return
+          }
+          if (this.agendaBootstrapRequestId === this.seasonLoadRequestId) {
+            this.agendaBootstrapRequestId = null
+            return
+          }
           void this.loadUpcomingEvents()
         }
         if (view === 'stats' && this.season()) {
@@ -568,6 +580,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   }
 
   private resetSeasonState(): void {
+    this.agendaBootstrapRequestId = null
     this.season.set(null)
     this.seasonPermissions.set(null)
     this.participantSelectors.set([])
@@ -694,6 +707,9 @@ export class SeasonHome implements OnDestroy, OnInit {
       this.participantSelectors.set(r.data.participantSelectors)
       this.categories.set(r.data.categories)
       this.applyWorkspaceUpcomingEvents(r.data.upcomingEvents, requestId)
+      if (requestId === this.seasonLoadRequestId) {
+        this.agendaBootstrapRequestId = requestId
+      }
     } finally {
       if (requestId === this.seasonLoadRequestId) {
         this.loadingEvents.set(false)
