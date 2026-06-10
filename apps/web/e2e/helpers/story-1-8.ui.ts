@@ -29,6 +29,20 @@ export async function submitLogin(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Se connecter' }).click()
 }
 
+/** Clears HatCast session cookie so /connexion stays on the email form (Login redirects when already signed in). */
+export async function logoutHatcastSession(page: Page): Promise<void> {
+  const response = await page.request.post('/v1/auth/logout')
+  if (!response.ok()) {
+    throw new Error(`E2E logout failed (${response.status()}): ${await response.text()}`)
+  }
+}
+
+export async function gotoLoginForm(page: Page): Promise<void> {
+  await logoutHatcastSession(page)
+  await page.goto('/connexion')
+  await expect(page.getByLabel('Email', { exact: true })).toBeVisible({ timeout: 15_000 })
+}
+
 /** Blocks all HatCast IdP session exchanges (simulates API down after Firebase signup). */
 export async function blockIdpApi(page: Page): Promise<void> {
   await page.route('**/v1/auth/idp', async (route) => {
