@@ -478,6 +478,7 @@ export class SeasonHome implements OnDestroy, OnInit {
         const participantKey = this.selectedParticipantIds().join(',')
         const statsEventKey = this.selectedStatsEventIds().join(',')
         const statsCategoriesKeyValue = statsCategoriesKey(this.statsCategoryFilter())
+        const participantChanged = participantKey !== lastParticipant
         if (view !== 'agenda') {
           this.agendaBootstrapRequestId = null
         }
@@ -503,8 +504,10 @@ export class SeasonHome implements OnDestroy, OnInit {
           if (this.loadingEvents()) {
             return
           }
-          if (this.agendaBootstrapRequestId === this.seasonLoadRequestId) {
-            this.agendaBootstrapRequestId = null
+          if (
+            !participantChanged &&
+            this.agendaBootstrapRequestId === this.seasonLoadRequestId
+          ) {
             return
           }
           void this.loadUpcomingEvents()
@@ -822,6 +825,9 @@ export class SeasonHome implements OnDestroy, OnInit {
           requestId,
           scope === 'upcoming' ? this.eventLoadRequestId : this.pastEventLoadRequestId,
         )
+        if (result.failed) {
+          return
+        }
         collected = result.events
         total = result.totalElements
       }
@@ -868,7 +874,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     options: { participantId?: string | null },
     requestId: number,
     activeRequestId: number,
-  ): Promise<{ events: EventResponse[]; totalElements: number }> {
+  ): Promise<{ events: EventResponse[]; totalElements: number; failed?: boolean }> {
     let page = 0
     let collected: EventResponse[] = []
     let total = 0
@@ -891,7 +897,7 @@ export class SeasonHome implements OnDestroy, OnInit {
             ? 'Impossible de charger l’historique.'
             : 'Impossible de charger les spectacles.'
         this.snack.open(message, 'OK', { duration: 6000 })
-        return { events: [], totalElements: 0 }
+        return { events: [], totalElements: 0, failed: true }
       }
       total = r.data.totalElements
       collected = collected.concat(r.data.content)
@@ -905,7 +911,7 @@ export class SeasonHome implements OnDestroy, OnInit {
       page += 1
     }
 
-    return { events: collected, totalElements: total }
+    return { events: collected, totalElements: total, failed: false }
   }
 
   private async collectMergedEventsForParticipants(

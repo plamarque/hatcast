@@ -20,6 +20,7 @@ import {
   clickSeasonCard,
   expectAgendaCardAbsent,
   expectAgendaCardVisible,
+  expectSeasonWorkspaceAgendaEvents,
   expectSeasonViewTabs,
   gotoAgenda,
   gotoSeasonWorkspace,
@@ -73,7 +74,12 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
     baseURL,
   }) => {
     await signInGuest(page, E2E_GUEST_LAETITIA_TOKEN, baseURL!)
-    await gotoSeasonWorkspace(page, fx, fx.laetitiaSeasonSlug, 'agenda')
+    await gotoSeasonWorkspace(page, fx, fx.laetitiaSeasonSlug, 'agenda', { reload: true })
+    await expectSeasonWorkspaceAgendaEvents(
+      page,
+      fx.laetitiaSeasonId,
+      fx.laetitiaPublishedEventTitles.length,
+    )
     for (const title of fx.laetitiaPublishedEventTitles) {
       await expectAgendaCardVisible(page, title)
     }
