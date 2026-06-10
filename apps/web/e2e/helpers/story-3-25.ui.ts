@@ -1,9 +1,40 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page, type Response } from '@playwright/test'
 
 import type { Story325Fixture } from './e2e-api'
 import { signInWithE2eToken } from './e2e-api'
 import { prepareE2ePage } from './e1.ui'
 import { saisonEventPath, saisonWorkspacePath, troupeHubPath } from './e1-routes'
+
+function isSeasonWorkspaceAgendaResponse(response: Response): boolean {
+  return (
+    response.request().method() === 'GET' &&
+    /\/v1\/seasons\/[^/]+\/workspace(\?|$)/.test(response.url()) &&
+    response.url().includes('view=agenda')
+  )
+}
+
+async function waitForSeasonWorkspaceAgendaResponse(page: Page): Promise<Response> {
+  return page.waitForResponse(
+    (response) => isSeasonWorkspaceAgendaResponse(response) && response.ok(),
+    { timeout: 45_000 },
+  )
+}
+
+export async function expectSeasonWorkspaceAgendaEvents(
+  page: Page,
+  seasonId: string,
+  minCount: number,
+): Promise<void> {
+  const response = await page.request.get(
+    `/v1/seasons/${seasonId}/workspace?view=agenda&eventPage=0&eventSize=50`,
+  )
+  expect(response.ok(), `workspace GET failed (${response.status()})`).toBeTruthy()
+  const payload = (await response.json()) as { upcomingEvents?: { content?: unknown[] } }
+  const count = payload.upcomingEvents?.content?.length ?? 0
+  expect(count, `workspace agenda returned ${count} events, expected >= ${minCount}`).toBeGreaterThanOrEqual(
+    minCount,
+  )
+}
 
 export async function signInGuest(
   page: Page,
@@ -36,12 +67,33 @@ export async function gotoSeasonWorkspace(
   fx: Story325Fixture,
   seasonSlug: string,
   view?: 'agenda' | 'history' | 'stats',
+  options: { reload?: boolean } = {},
 ): Promise<void> {
   const query = view ? `?view=${view}` : ''
-  await page.goto(`${saisonWorkspacePath(fx.troupeSlug, seasonSlug)}${query}`)
+  const path = `${saisonWorkspacePath(fx.troupeSlug, seasonSlug)}${query}`
+  const needsAgendaBootstrap = !view || view === 'agenda'
+
+  if (needsAgendaBootstrap && options.reload) {
+    await page.goto(path)
+    await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
+    await expect(page).not.toHaveURL(/\/agenda$/)
+    const reloadWorkspaceResponse = waitForSeasonWorkspaceAgendaResponse(page)
+    await page.reload({ waitUntil: 'load' })
+    await reloadWorkspaceResponse
+    await waitForAgendaLoadingDone(page)
+    return
+  }
+
+  const workspaceResponse = needsAgendaBootstrap
+    ? waitForSeasonWorkspaceAgendaResponse(page)
+    : null
+
+  await page.goto(path)
   await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
   await expect(page).not.toHaveURL(/\/agenda$/)
-  if (!view || view === 'agenda') {
+
+  if (needsAgendaBootstrap && workspaceResponse) {
+    await workspaceResponse
     await waitForAgendaLoadingDone(page)
   }
 }
