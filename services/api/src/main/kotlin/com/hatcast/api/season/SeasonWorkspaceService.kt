@@ -4,6 +4,9 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventListScope
 import com.hatcast.api.event.EventService
 import com.hatcast.api.organizer.OrganizerAccessService
+import com.hatcast.api.organizer.dto.MySeasonPermissionsDto
+import com.hatcast.api.participant.GuestInvitationAccessService
+import com.hatcast.api.participant.GuestSeasonWorkspaceMode
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.dto.SeasonWorkspaceResponseDto
 import com.hatcast.api.troupe.TroupeCategoryService
@@ -16,6 +19,7 @@ import java.util.UUID
 @Service
 class SeasonWorkspaceService(
     private val seasonRepository: SeasonRepository,
+    private val guestInvitationAccess: GuestInvitationAccessService,
     private val organizerAccessService: OrganizerAccessService,
     private val seasonParticipantService: SeasonParticipantService,
     private val troupeCategoryService: TroupeCategoryService,
@@ -33,11 +37,27 @@ class SeasonWorkspaceService(
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
+        val workspaceMode = guestInvitationAccess.requireSeasonWorkspaceAccess(seasonId, principal)
         val troupeId = season.troupe.id
 
-        val permissions = organizerAccessService.mySeasonPermissions(seasonId, principal)
-        val participantSelectors = seasonParticipantService.listSelectors(seasonId, principal)
-        val categories = troupeCategoryService.listForTroupe(troupeId, principal)
+        val permissions =
+            if (workspaceMode == GuestSeasonWorkspaceMode.FULL) {
+                organizerAccessService.mySeasonPermissions(seasonId, principal)
+            } else {
+                MySeasonPermissionsDto.guestWorkspaceReadOnly()
+            }
+        val participantSelectors =
+            if (workspaceMode == GuestSeasonWorkspaceMode.FULL) {
+                seasonParticipantService.listSelectors(seasonId, principal)
+            } else {
+                emptyList()
+            }
+        val categories =
+            if (workspaceMode == GuestSeasonWorkspaceMode.FULL) {
+                troupeCategoryService.listForTroupe(troupeId, principal)
+            } else {
+                troupeCategoryService.listForGuestWorkspace(seasonId, principal)
+            }
 
         val upcomingEvents =
             when (view) {

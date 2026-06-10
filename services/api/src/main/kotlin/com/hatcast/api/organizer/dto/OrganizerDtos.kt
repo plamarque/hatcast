@@ -51,4 +51,24 @@ data class MySeasonPermissionsDto(
     val canViewAuditTroupe: Boolean,
     val canViewAuditSeason: Boolean,
     val canViewAuditEvent: Boolean,
-)
+) {
+    companion object {
+        fun guestWorkspaceReadOnly(): MySeasonPermissionsDto =
+            MySeasonPermissionsDto(
+                canManageSeasonOrganizers = false,
+                canManageEventOrganizers = false,
+                canManageMembers = false,
+                canManageSeasons = false,
+                canManageEvents = false,
+                canManageSeasonParticipants = false,
+                canManageEventParticipants = false,
+                isTroupeAdmin = false,
+                isSeasonOrganizer = false,
+                eventOrganizerFor = emptyList(),
+                eventParticipantAdminFor = emptyList(),
+                canViewAuditTroupe = false,
+                canViewAuditSeason = false,
+                canViewAuditEvent = false,
+            )
+    }
+}

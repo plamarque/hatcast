@@ -433,6 +433,15 @@ class GuestInvitationAccessIntegrationTest {
             .andExpect(jsonPath("$.content", hasSize<Any>(2)))
 
         mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/workspace")
+                    .param("view", "agenda")
+                    .cookie(laetitia.cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.permissions.canManageEvents").value(false))
+            .andExpect(jsonPath("$.upcomingEvents.content", hasSize<Any>(2)))
+
+        mockMvc
             .perform(get("/v1/seasons/$seasonId/events?scope=past").cookie(laetitia.cookie))
             .andExpect(status().isForbidden)
 
