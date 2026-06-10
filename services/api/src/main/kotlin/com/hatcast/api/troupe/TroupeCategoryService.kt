@@ -1,6 +1,8 @@
 package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.participant.GuestInvitationAccessService
+import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.event.CategorySlugNormalizer
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.SpectacleCategory
@@ -22,6 +24,8 @@ class TroupeCategoryService(
     private val troupeCategoryRepository: TroupeCategoryRepository,
     private val eventRepository: EventRepository,
     private val troupeAccess: TroupeAccessService,
+    private val seasonRepository: SeasonRepository,
+    private val guestInvitationAccess: GuestInvitationAccessService,
 ) {
     @Transactional
     fun listForTroupe(
@@ -30,6 +34,23 @@ class TroupeCategoryService(
     ): List<TroupeCategoryDto> {
         requireTroupeExists(troupeId)
         troupeAccess.requireActiveMember(principal, troupeId)
+        return buildCategoryList(troupeId)
+    }
+
+    @Transactional(readOnly = true)
+    fun listForGuestWorkspace(
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ): List<TroupeCategoryDto> {
+        guestInvitationAccess.requireSeasonWorkspaceAccess(seasonId, principal)
+        val season =
+            seasonRepository
+                .findById(seasonId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
+        return buildCategoryList(season.troupe.id)
+    }
+
+    private fun buildCategoryList(troupeId: UUID): List<TroupeCategoryDto> {
         ensureDeplacementsSeed(troupeId)
         val troupe =
             troupeRepository

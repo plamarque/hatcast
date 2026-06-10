@@ -704,6 +704,7 @@ export class SeasonHome implements OnDestroy, OnInit {
       }
       if (!r.ok || !r.data) {
         this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
+        void this.loadUpcomingEvents()
         return
       }
       this.seasonPermissions.set(r.data.permissions)
