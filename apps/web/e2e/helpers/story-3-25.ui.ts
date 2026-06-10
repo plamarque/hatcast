@@ -41,7 +41,7 @@ export async function gotoSeasonWorkspace(
   await page.goto(`${saisonWorkspacePath(fx.troupeSlug, seasonSlug)}${query}`)
   await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
   await expect(page).not.toHaveURL(/\/agenda$/)
-  if (view === 'agenda') {
+  if (!view || view === 'agenda') {
     await waitForAgendaLoadingDone(page)
   }
 }
