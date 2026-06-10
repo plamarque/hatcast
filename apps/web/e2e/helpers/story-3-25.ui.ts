@@ -22,6 +22,10 @@ export async function gotoAgenda(page: Page): Promise<void> {
   })
 }
 
+async function waitForAgendaLoadingDone(page: Page): Promise<void> {
+  await expect(page.getByText('Chargement de l’agenda…')).toHaveCount(0, { timeout: 45_000 })
+}
+
 export async function gotoSeasonWorkspace(
   page: Page,
   fx: Story325Fixture,
@@ -29,23 +33,11 @@ export async function gotoSeasonWorkspace(
   view?: 'agenda' | 'history' | 'stats',
 ): Promise<void> {
   const query = view ? `?view=${view}` : ''
-  const waitForWorkspace =
-    !view || view === 'agenda'
-      ? page.waitForResponse(
-          (response) =>
-            response.request().method() === 'GET' &&
-            response.url().includes('/v1/seasons/') &&
-            response.url().includes('/workspace') &&
-            response.ok(),
-          { timeout: 45_000 },
-        )
-      : null
   await page.goto(`${saisonWorkspacePath(fx.troupeSlug, seasonSlug)}${query}`)
   await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
   await expect(page).not.toHaveURL(/\/agenda$/)
-  if (waitForWorkspace) {
-    await waitForWorkspace
-    await expect(page.getByText('Chargement de l’agenda…')).toHaveCount(0, { timeout: 45_000 })
+  if (view === 'agenda') {
+    await waitForAgendaLoadingDone(page)
   }
 }
 
@@ -77,6 +69,7 @@ export async function expectSeasonViewTabs(
 }
 
 export async function expectAgendaCardVisible(page: Page, title: string): Promise<void> {
+  await waitForAgendaLoadingDone(page)
   await expect(page.locator('.agenda-card__title', { hasText: title }).first()).toBeVisible({
     timeout: 30_000,
   })
