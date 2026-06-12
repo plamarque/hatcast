@@ -112,6 +112,17 @@ export async function openGuestEventTab(
 ): Promise<void> {
   await primeGuestSeasonContext(page, fx, seasonSlug)
   await page.goto(saisonEventPath(fx.troupeSlug, seasonSlug, eventSlug, { tab }))
+  await expect(page.locator('app-event-detail')).toBeVisible({ timeout: 45_000 })
+  await expect(page).not.toHaveURL(/\/agenda$/)
+  await expect(page.locator('.event-detail__spinner')).toHaveCount(0, { timeout: 45_000 })
+  if (tab === 'dispos') {
+    await expect(page.locator('app-event-dispos-tab')).toBeVisible({ timeout: 45_000 })
+    await expect(page.locator('app-event-dispos-tab .event-dispos__spinner')).toHaveCount(0, {
+      timeout: 45_000,
+    })
+    await expect(page.getByLabel('Choix de disponibilité')).toBeVisible({ timeout: 45_000 })
+    return
+  }
   await expectGuestEventDetailReady(page)
 }
 
