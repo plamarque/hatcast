@@ -6,14 +6,64 @@ import { BehaviorSubject, of } from 'rxjs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { AvailabilityApiService } from '../../core/availability/availability-api.service'
+import { CompositionApiService } from '../../core/composition/composition-api.service'
+import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import {
+  getLastVisitedSeasonSlugForTroupe,
+  rememberLastVisitedSeasonSlug,
+} from '../../core/navigation/last-visited-season-storage'
 import { getLastVisitedTroupeSlug } from '../../core/navigation/last-visited-troupe-storage'
-import { SeasonApiService } from '../../core/seasons/season-api.service'
+import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
+import { SeasonStatisticsApiService } from '../../core/seasons/season-statistics-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
-import { TroupeHub } from './troupe-hub'
+import {
+  participantPreviewCap,
+  PARTICIPANT_DESKTOP_MAX_LINES,
+  PARTICIPANT_DESKTOP_AVATARS_PER_ROW,
+  PARTICIPANT_PREVIEW_CAP_MOBILE,
+  pickDefaultSeason,
+  TroupeHub,
+} from './troupe-hub'
 import { TroupeEditDialog } from './troupe-edit-dialog'
 
-describe('TroupeHub', () => {
+const hubSupportProviders = [
+  {
+    provide: AvailabilityApiService,
+    useValue: {
+      getMyAvailability: vi.fn(),
+      setMyAvailability: vi.fn(),
+    },
+  },
+  {
+    provide: CompositionApiService,
+    useValue: {
+      getComposition: vi.fn(),
+      respondToSlot: vi.fn(),
+    },
+  },
+  {
+    provide: MePreferencesApiService,
+    useValue: {
+      getPreferences: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { gender: null } }),
+    },
+  },
+]
+
+describe('participantPreviewCap', () => {
+  it('returns mobile cap below desktop breakpoint', () => {
+    expect(participantPreviewCap(false)).toBe(PARTICIPANT_PREVIEW_CAP_MOBILE)
+  })
+
+  it('returns up to six rows on desktop dashboard', () => {
+    expect(participantPreviewCap(true)).toBe(
+      PARTICIPANT_DESKTOP_MAX_LINES * PARTICIPANT_DESKTOP_AVATARS_PER_ROW,
+    )
+  })
+})
+
+describe('pickDefaultSeason', () => {
   beforeEach(() => {
     localStorage.clear()
   })
@@ -22,14 +72,27 @@ describe('TroupeHub', () => {
     localStorage.clear()
   })
 
-  const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'les-improbots' }))
-
-  const seasons = [
+  const activeSeasons = [
     {
-      id: 's1',
+      id: 's-old',
+      troupeId: 't1',
+      slug: '2023-24',
+      title: 'Ancienne active',
+      description: null,
+      startDate: '2023-09-01',
+      endDate: '2024-06-30',
+      archived: false,
+      active: true,
+      eventCount: 1,
+      participantCount: 4,
+      createdAt: '',
+      updatedAt: '',
+    },
+    {
+      id: 's-new',
       troupeId: 't1',
       slug: '2025-26',
-      title: 'Saison active',
+      title: 'Saison récente',
       description: null,
       startDate: '2025-09-01',
       endDate: '2026-06-30',
@@ -40,72 +103,278 @@ describe('TroupeHub', () => {
       createdAt: '',
       updatedAt: '',
     },
-    {
-      id: 's2',
-      troupeId: 't1',
-      slug: '2023-24',
-      title: 'Ancienne',
-      description: null,
-      startDate: null,
-      endDate: null,
-      archived: true,
-      active: false,
-      eventCount: 1,
-      participantCount: 5,
-      createdAt: '',
-      updatedAt: '',
-    },
   ]
 
-  const secondTroupe = {
-    id: 't2',
-    name: 'Autre Troupe',
-    slug: 'autre-troupe',
-    membership: {
-      id: 'm2',
-      displayName: 'Membre',
-      status: 'ACTIVE' as const,
-      baselineRole: 'MEMBER' as const,
-      createdAt: '',
-      updatedAt: '',
+  it('prefers last visited season slug for troupe when present', () => {
+    rememberLastVisitedSeasonSlug('2023-24', 't1')
+    expect(pickDefaultSeason(activeSeasons, 't1')?.slug).toBe('2023-24')
+  })
+
+  it('falls back to latest startDate when no remembered slug', () => {
+    expect(pickDefaultSeason(activeSeasons, 't1')?.slug).toBe('2025-26')
+  })
+
+  it('returns null when no active seasons', () => {
+    expect(pickDefaultSeason([], 't1')).toBeNull()
+  })
+})
+
+describe('TroupeHub', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'les-improbots' }))
+
+  const activeSeason: SeasonResponse = {
+    id: 's1',
+    troupeId: 't1',
+    slug: '2025-26',
+    title: 'Saison 2025-26',
+    description: null,
+    startDate: '2025-09-01',
+    endDate: '2026-06-30',
+    archived: false,
+    active: true,
+    eventCount: 24,
+    participantCount: 12,
+    createdAt: '',
+    updatedAt: '',
+  }
+
+  const secondActiveSeason: SeasonResponse = {
+    ...activeSeason,
+    id: 's2',
+    slug: '2024-25',
+    title: 'Saison 2024-25',
+    startDate: '2024-09-01',
+    eventCount: 10,
+    participantCount: 8,
+  }
+
+  const archivedSeason: SeasonResponse = {
+    id: 's-arch',
+    troupeId: 't1',
+    slug: '2023-24',
+    title: 'Ancienne',
+    description: null,
+    startDate: null,
+    endDate: null,
+    archived: true,
+    active: false,
+    eventCount: 1,
+    participantCount: 5,
+    createdAt: '',
+    updatedAt: '',
+  }
+
+  const workspaceFixture = {
+    permissions: {
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: false,
+      canManageSeasons: false,
+      canManageEvents: false,
+      canManageSeasonParticipants: false,
+      canManageEventParticipants: false,
+      isTroupeAdmin: false,
+      isSeasonOrganizer: false,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
     },
-    activeMemberCount: 2,
-    upcomingEventCount: 0,
+    participantSelectors: [],
+    categories: [{ slug: 'gala', label: 'Gala', sortOrder: 0 }],
+    upcomingEvents: {
+      content: [
+        {
+          id: 'e1',
+          seasonId: 's1',
+          slug: 'gala-1',
+          title: 'Gala d’ouverture',
+          description: null,
+          location: null,
+          startsAt: '2026-01-15T20:00:00+01:00',
+          archived: false,
+          templateType: 'MATCH',
+          roleSlots: {},
+          createdAt: '',
+          updatedAt: '',
+          category: 'gala',
+          myAvailabilityStatus: 'available',
+        },
+        {
+          id: 'e2',
+          seasonId: 's1',
+          slug: 'gala-2',
+          title: 'Deuxième gala',
+          description: null,
+          location: null,
+          startsAt: '2026-02-10T20:00:00+01:00',
+          archived: false,
+          templateType: 'MATCH',
+          roleSlots: {},
+          createdAt: '',
+          updatedAt: '',
+        },
+        {
+          id: 'e3',
+          seasonId: 's1',
+          slug: 'gala-3',
+          title: 'Troisième gala',
+          description: null,
+          location: null,
+          startsAt: '2026-03-10T20:00:00+01:00',
+          archived: false,
+          templateType: 'MATCH',
+          roleSlots: {},
+          createdAt: '',
+          updatedAt: '',
+        },
+        {
+          id: 'e4',
+          seasonId: 's1',
+          slug: 'gala-4',
+          title: 'Quatrième gala',
+          description: null,
+          location: null,
+          startsAt: '2026-04-10T20:00:00+01:00',
+          archived: false,
+          templateType: 'MATCH',
+          roleSlots: {},
+          createdAt: '',
+          updatedAt: '',
+        },
+      ],
+      page: 0,
+      size: 3,
+      totalElements: 4,
+      totalPages: 2,
+    },
+  }
+
+  const statsFixture = {
+    participants: [],
+    monthKeys: [],
+    events: [],
+    confirmedCompositionsCount: 7,
+    rows: [
+      {
+        participantId: 'p1',
+        displayName: 'Alice',
+        userSlug: 'alice',
+        avatarUrl: null,
+        annual: { totalJeu: { selections: 40, dispos: 10, declines: 0 } },
+        monthSummary: {},
+        byMonth: {},
+        eventCells: {},
+        eventCellDetails: {},
+      },
+      {
+        participantId: 'p2',
+        displayName: 'Bob',
+        userSlug: 'bob',
+        avatarUrl: null,
+        annual: { totalJeu: { selections: 35, dispos: 8, declines: 1 } },
+        monthSummary: {},
+        byMonth: {},
+        eventCells: {},
+        eventCellDetails: {},
+      },
+      {
+        participantId: 'p3',
+        displayName: 'Charlie',
+        userSlug: null,
+        avatarUrl: null,
+        annual: { totalJeu: { selections: 20, dispos: 5, declines: 0 } },
+        monthSummary: {},
+        byMonth: {},
+        eventCells: {},
+        eventCellDetails: {},
+      },
+      {
+        participantId: 'p4',
+        displayName: 'Dana',
+        userSlug: 'dana',
+        avatarUrl: null,
+        annual: { totalJeu: { selections: 15, dispos: 4, declines: 0 } },
+        monthSummary: {},
+        byMonth: {},
+        eventCells: {},
+        eventCellDetails: {},
+      },
+      {
+        participantId: 'p5',
+        displayName: 'Eve',
+        userSlug: 'eve',
+        avatarUrl: null,
+        annual: { totalJeu: { selections: 12, dispos: 3, declines: 0 } },
+        monthSummary: {},
+        byMonth: {},
+        eventCells: {},
+        eventCellDetails: {},
+      },
+      {
+        participantId: 'p6',
+        displayName: 'Frank',
+        userSlug: 'frank',
+        avatarUrl: null,
+        annual: { totalJeu: { selections: 10, dispos: 2, declines: 0 } },
+        monthSummary: {},
+        byMonth: {},
+        eventCells: {},
+        eventCellDetails: {},
+      },
+      {
+        participantId: 'p7',
+        displayName: 'Grace',
+        userSlug: 'grace',
+        avatarUrl: null,
+        annual: { totalJeu: { selections: 8, dispos: 1, declines: 0 } },
+        monthSummary: {},
+        byMonth: {},
+        eventCells: {},
+        eventCellDetails: {},
+      },
+    ],
   }
 
   async function setup(
-    baselineRole: 'MEMBER' | 'TROUPE_ADMIN' = 'TROUPE_ADMIN',
+    baselineRole: 'MEMBER' | 'TROUPE_ADMIN' | 'EXTERNE' = 'TROUPE_ADMIN',
     platformAdmin = false,
-    options: { patchTroupeProfile?: ReturnType<typeof vi.fn> } = {},
+    options: {
+      seasons?: SeasonResponse[]
+      activeTroupes?: ReturnType<typeof defaultTroupes>
+      patchTroupeProfile?: ReturnType<typeof vi.fn>
+      getSeasonWorkspace?: ReturnType<typeof vi.fn>
+      loadStatistics?: ReturnType<typeof vi.fn>
+    } = {},
   ) {
     const dialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of('new-saison') }),
     }
     const patchTroupeProfile = options.patchTroupeProfile ?? vi.fn()
-    const troupes = [
-      {
-        id: 't1',
-        name: 'Les Improbots',
-        slug: 'les-improbots',
-        membership: {
-          id: 'm1',
-          displayName: 'Admin',
-          status: 'ACTIVE' as const,
-          baselineRole,
-          createdAt: '',
-          updatedAt: '',
-        },
-        activeMemberCount: 4,
-        upcomingEventCount: 2,
-      },
-    ]
+    const troupes = options.activeTroupes ?? defaultTroupes(baselineRole)
+    const seasons = options.seasons ?? [activeSeason, archivedSeason]
+    const getSeasonWorkspace =
+      options.getSeasonWorkspace ??
+      vi.fn().mockResolvedValue({ ok: true, status: 200, data: workspaceFixture })
+    const loadStatistics =
+      options.loadStatistics ??
+      vi.fn().mockResolvedValue({ ok: true, status: 200, data: statsFixture })
 
     await TestBed.configureTestingModule({
       imports: [TroupeHub, NoopAnimationsModule],
       providers: [
         provideRouter([
           { path: 'troupes/:slug', component: TroupeHub },
-          { path: 'saison/:slug', component: TroupeHub },
+          { path: 'saison/:troupeSlug/:seasonSlug', component: TroupeHub },
+          { path: 'saison/:troupeSlug/:seasonSlug/event/:eventSlug', component: TroupeHub },
+          { path: 'membre/:userSlug', component: TroupeHub },
         ]),
         {
           provide: ActivatedRoute,
@@ -144,10 +413,22 @@ describe('TroupeHub', () => {
             listSeasons: vi.fn().mockResolvedValue({
               ok: true,
               status: 200,
-              data: { content: seasons, page: 0, size: 50, totalElements: 2, totalPages: 1 },
+              data: {
+                content: seasons,
+                page: 0,
+                size: 50,
+                totalElements: seasons.length,
+                totalPages: 1,
+              },
             }),
+            getSeasonWorkspace,
           },
         },
+        {
+          provide: SeasonStatisticsApiService,
+          useValue: { loadStatistics },
+        },
+        ...hubSupportProviders,
         { provide: MatDialog, useValue: dialog },
         {
           provide: TroupeApiService,
@@ -166,7 +447,27 @@ describe('TroupeHub', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.troupe-hub__title')).not.toBeNull()
     })
-    return { fixture, dialog, patchTroupeProfile }
+    return { fixture, dialog, patchTroupeProfile, getSeasonWorkspace, loadStatistics }
+  }
+
+  function defaultTroupes(baselineRole: 'MEMBER' | 'TROUPE_ADMIN' | 'EXTERNE') {
+    return [
+      {
+        id: 't1',
+        name: 'Les Improbots',
+        slug: 'les-improbots',
+        membership: {
+          id: 'm1',
+          displayName: 'Admin',
+          status: 'ACTIVE' as const,
+          baselineRole,
+          createdAt: '',
+          updatedAt: '',
+        },
+        activeMemberCount: 4,
+        upcomingEventCount: 2,
+      },
+    ]
   }
 
   it('remembers last visited troupe slug after hub loads', async () => {
@@ -174,57 +475,206 @@ describe('TroupeHub', () => {
     expect(getLastVisitedTroupeSlug()).toBe('les-improbots')
   })
 
-  it('shows breadcrumb Troupes › troupe name', async () => {
+  it('does not render breadcrumb', async () => {
     const { fixture } = await setup()
-    const breadcrumb = fixture.nativeElement.querySelector('.troupe-hub__breadcrumb')
-    expect(breadcrumb?.textContent).toContain('Troupes')
-    expect(breadcrumb?.textContent).toContain('Les Improbots')
-    expect(fixture.nativeElement.querySelector('.troupe-hub__breadcrumb-logo mat-icon')).toBeTruthy()
-    const link = breadcrumb?.querySelector('a') as HTMLAnchorElement
-    expect(link.getAttribute('href')).toBe('/troupes')
+    expect(fixture.nativeElement.querySelector('.troupe-hub__breadcrumb')).toBeNull()
   })
 
-  it('lists active seasons with clickable card surface', async () => {
+  it('shows selected season title as h2 dashboard heading', async () => {
     const { fixture } = await setup()
+    const heading = fixture.nativeElement.querySelector('#troupe-season-dashboard-heading')
+    expect(heading?.textContent).toContain('Saison 2025-26')
+    expect(fixture.nativeElement.querySelector('#saisons-heading')).toBeNull()
+  })
+
+  it('hides season switcher for mono-season troupe', async () => {
+    const { fixture } = await setup('MEMBER', false, { seasons: [activeSeason] })
+    expect(fixture.nativeElement.querySelector('.troupe-hub__season-switcher')).toBeNull()
+  })
+
+  it('shows season switcher when multiple active seasons exist', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      seasons: [activeSeason, secondActiveSeason, archivedSeason],
+    })
+    expect(fixture.nativeElement.querySelector('.troupe-hub__season-switcher')).not.toBeNull()
+  })
+
+  it('renders metric tiles without active season grid or season CTA', async () => {
+    const { fixture } = await setup()
+    expect(fixture.nativeElement.textContent).toContain('Spectacles')
+    expect(fixture.nativeElement.textContent).toContain('Compos')
+    expect(fixture.nativeElement.textContent).toContain('Personnes')
+    expect(fixture.nativeElement.textContent).toContain('24')
+    expect(fixture.nativeElement.textContent).toContain('7')
+    expect(fixture.nativeElement.textContent).not.toContain('Ouvrir la saison')
     const cards = fixture.nativeElement.querySelectorAll('app-season-card')
-    expect(cards.length).toBe(1)
-    expect(cards[0].textContent).toContain('Saison active')
-    expect(cards[0].textContent).toContain('3 spectacles')
-    const openLink = cards[0].querySelector('a.season-card__surface') as HTMLAnchorElement
-    expect(openLink.getAttribute('href')).toBe('/saison/2025-26')
+    expect(cards.length).toBe(0)
+    expect(fixture.nativeElement.querySelector('a.troupe-hub__season-cta')).toBeNull()
   })
 
-  it('reveals archived seasons when toggled', async () => {
+  it('toggles archived seasons inline list', async () => {
     const { fixture } = await setup()
-    const archivedBtn = Array.from(
+    const toggle = Array.from(
       fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
-    ).find((b) => b.textContent?.includes('Afficher les saisons archivées'))!
-    archivedBtn.click()
+    ).find((button) => button.textContent?.includes('Saisons archivées (1)'))!
+    toggle.click()
     fixture.detectChanges()
     const cards = fixture.nativeElement.querySelectorAll('app-season-card')
-    expect(cards.length).toBe(2)
+    expect(cards.length).toBe(1)
+    expect(cards[0].textContent).toContain('Ancienne')
+  })
+
+  it('shows empty state when only archived seasons exist', async () => {
+    const { fixture } = await setup('TROUPE_ADMIN', false, { seasons: [archivedSeason] })
+    expect(fixture.nativeElement.textContent).toContain('Aucune saison en cours pour l\'instant.')
+    expect(fixture.nativeElement.textContent).toContain('Saisons archivées (1)')
+  })
+
+  it('shows expanded participant strip with overflow CTA link', async () => {
+    const manyRows = Array.from({ length: 14 }, (_, index) => ({
+      participantId: `p${index}`,
+      displayName: `User ${index}`,
+      userSlug: `user-${index}`,
+      avatarUrl: null,
+      annual: { totalJeu: { selections: 1, dispos: 0, declines: 0 } },
+      monthSummary: {},
+      byMonth: {},
+      eventCells: {},
+      eventCellDetails: {},
+    }))
+    const { fixture } = await setup('MEMBER', false, {
+      loadStatistics: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: { ...statsFixture, rows: manyRows },
+      }),
+    })
+    expect(fixture.nativeElement.querySelectorAll('app-user-avatar').length).toBe(12)
+    const overflow = fixture.nativeElement.querySelector(
+      '.troupe-hub__avatar-overflow',
+    ) as HTMLAnchorElement
+    expect(overflow?.textContent).toContain('+2')
+    expect(overflow?.getAttribute('href')).toBe('/saison/les-improbots/2025-26')
+    expect(fixture.nativeElement.textContent).not.toContain('Voir tout le monde')
+  })
+
+  it('navigates to member glance when avatar with slug is tapped', async () => {
+    const { fixture } = await setup()
+    const router = TestBed.inject(Router)
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+    const avatarButtons = fixture.nativeElement.querySelectorAll('.troupe-hub__avatar-btn')
+    ;(avatarButtons[0] as HTMLButtonElement).click()
+    expect(navigateSpy).toHaveBeenCalledWith(['/membre', 'alice'], {
+      queryParams: { troupeId: 't1', seasonId: 's1' },
+    })
+  })
+
+  it('renders at most three upcoming event cards in teaser', async () => {
+    const { fixture } = await setup()
+    await vi.waitFor(() => {
+      const cards = fixture.nativeElement.querySelectorAll('.agenda-card')
+      expect(cards.length).toBe(3)
+    })
+    expect(fixture.nativeElement.textContent).toContain('Gala d’ouverture')
+    const agendaLink = Array.from(
+      fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>,
+    ).find((link) => link.textContent?.includes('Voir tous les spectacles'))
+    expect(agendaLink?.getAttribute('href')).toBe('/saison/les-improbots/2025-26')
+  })
+
+  it('shows teaser empty copy when workspace has no upcoming events', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      getSeasonWorkspace: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          ...workspaceFixture,
+          upcomingEvents: { content: [], page: 0, size: 3, totalElements: 0, totalPages: 0 },
+        },
+      }),
+    })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Aucun spectacle à venir cette saison.')
+    })
+  })
+
+  it('shows multi-troupe footer link when user has at least two troupes', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      activeTroupes: [
+        ...defaultTroupes('MEMBER'),
+        {
+          id: 't2',
+          name: 'Autre Troupe',
+          slug: 'autre-troupe',
+          membership: {
+            id: 'm2',
+            displayName: 'Membre',
+            status: 'ACTIVE' as const,
+            baselineRole: 'MEMBER' as const,
+            createdAt: '',
+            updatedAt: '',
+          },
+          activeMemberCount: 2,
+          upcomingEventCount: 0,
+        },
+      ],
+    })
+    const footerLink = fixture.nativeElement.querySelector('.troupe-hub__footer a') as HTMLAnchorElement
+    expect(footerLink?.textContent).toContain('Voir les autres troupes')
+    expect(footerLink.getAttribute('href')).toBe('/troupes')
+  })
+
+  it('hides multi-troupe footer for mono-troupe member', async () => {
+    const { fixture } = await setup('MEMBER')
+    expect(fixture.nativeElement.querySelector('.troupe-hub__footer')).toBeNull()
+  })
+
+  it('resolves default season from last visited slug for troupe', async () => {
+    rememberLastVisitedSeasonSlug('2024-25', 't1')
+    const { fixture } = await setup('MEMBER', false, {
+      seasons: [activeSeason, secondActiveSeason],
+    })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('#troupe-season-dashboard-heading')?.textContent).toContain(
+        'Saison 2024-25',
+      )
+    })
+    expect(getLastVisitedSeasonSlugForTroupe('t1')).toBe('2024-25')
+  })
+
+  it('persists season slug when user switches season on hub', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      seasons: [activeSeason, secondActiveSeason],
+    })
+    ;(
+      fixture.componentInstance as unknown as { selectSeason(season: typeof secondActiveSeason): void }
+    ).selectSeason(secondActiveSeason)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(getLastVisitedSeasonSlugForTroupe('t1')).toBe('2024-25')
+      expect(fixture.nativeElement.querySelector('#troupe-season-dashboard-heading')?.textContent).toContain(
+        'Saison 2024-25',
+      )
+    })
+  })
+
+  it('shows guest hint for externe viewers', async () => {
+    const { fixture } = await setup('EXTERNE')
+    expect(fixture.nativeElement.textContent).toContain('Saisons où tu es invité·e.')
   })
 
   it('shows admin gear for TROUPE_ADMIN without section Nouvelle saison button', async () => {
     const { fixture } = await setup('TROUPE_ADMIN')
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('Préférences dans cette troupe')
     const sectionHeaderButton = Array.from(
-      fixture.nativeElement.querySelectorAll('.troupe-hub__seasons button') as NodeListOf<HTMLButtonElement>,
-    ).find((b) => b.textContent?.includes('Nouvelle saison'))
+      fixture.nativeElement.querySelectorAll('.troupe-hub__dashboard button') as NodeListOf<HTMLButtonElement>,
+    ).find((button) => button.textContent?.includes('Nouvelle saison'))
     expect(sectionHeaderButton).toBeUndefined()
   })
 
   it('hides admin gear for non-admin members', async () => {
     const { fixture } = await setup('MEMBER')
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeNull()
-  })
-
-  it('does not render preferences trigger or discovery footer', async () => {
-    const { fixture } = await setup('MEMBER')
-    expect(fixture.nativeElement.textContent).not.toContain('Préférences dans cette troupe')
-    expect(fixture.nativeElement.querySelector('.troupe-hub__footer')).toBeNull()
-    expect(fixture.nativeElement.textContent).not.toContain('Explorer d’autres troupes')
   })
 
   it('does not navigate when create dialog is cancelled', async () => {
@@ -246,7 +696,7 @@ describe('TroupeHub', () => {
     ;(fixture.componentInstance as unknown as { openCreateSeason(): void }).openCreateSeason()
     expect(dialog.open).toHaveBeenCalled()
     await vi.waitFor(() => {
-      expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'new-saison'])
+      expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'les-improbots', 'new-saison'])
     })
   })
 
@@ -302,79 +752,6 @@ describe('TroupeHub', () => {
     })
   })
 
-  it('affiche le logo et la description dans le hero', async () => {
-    const troupeWithIdentity = {
-      id: 't1',
-      name: 'Les Improbots',
-      slug: 'les-improbots',
-      logoUrl: '/v1/troupes/t1/logo?v=1',
-      description: 'Troupe d’impro à Malice.',
-      membership: {
-        id: 'm1',
-        displayName: 'Admin',
-        status: 'ACTIVE' as const,
-        baselineRole: 'TROUPE_ADMIN' as const,
-        createdAt: '',
-        updatedAt: '',
-      },
-      activeMemberCount: 4,
-      upcomingEventCount: 2,
-      isDemo: false,
-      joinPolicy: 'OPEN' as const,
-    }
-    const dialog = { open: vi.fn() }
-    await TestBed.configureTestingModule({
-      imports: [TroupeHub, NoopAnimationsModule],
-      providers: [
-        provideRouter([{ path: 'troupes/:slug', component: TroupeHub }]),
-        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
-        {
-          provide: AuthApiService,
-          useValue: {
-            ensureHatcastSession: vi.fn().mockResolvedValue({
-              ok: true,
-              data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' }, platformAdmin: false },
-            }),
-          },
-        },
-        {
-          provide: TroupeContextService,
-          useValue: {
-            load: vi.fn().mockResolvedValue(true),
-            selectTroupe: vi.fn(),
-            patchTroupeProfile: vi.fn(),
-            patchTroupeName: vi.fn(),
-            resolveTroupeBySlug: vi.fn().mockResolvedValue(troupeWithIdentity),
-          },
-        },
-        {
-          provide: SeasonApiService,
-          useValue: {
-            listSeasons: vi.fn().mockResolvedValue({
-              ok: true,
-              status: 200,
-              data: { content: seasons, page: 0, size: 50, totalElements: 0, totalPages: 0 },
-            }),
-          },
-        },
-        { provide: MatDialog, useValue: dialog },
-        {
-          provide: TroupeApiService,
-          useValue: { listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
-        },
-      ],
-    }).compileComponents()
-    const fixture = TestBed.createComponent(TroupeHub)
-    fixture.detectChanges()
-    await vi.waitFor(() => {
-      const img = fixture.nativeElement.querySelector('.troupe-hub__logo img') as HTMLImageElement
-      expect(img?.getAttribute('src')).toBe('/v1/troupes/t1/logo?v=1')
-      expect(fixture.nativeElement.querySelector('.troupe-hub__description')?.textContent).toContain(
-        'Troupe d’impro',
-      )
-    })
-  })
-
   it('reloads troupe when slug param changes', async () => {
     const listSeasons = vi.fn().mockImplementation(async (troupeId: string) => ({
       ok: true,
@@ -382,16 +759,8 @@ describe('TroupeHub', () => {
       data: {
         content:
           troupeId === 't1'
-            ? [seasons[0]]
-            : [
-                {
-                  ...seasons[0],
-                  id: 's3',
-                  troupeId: 't2',
-                  slug: 'saison-b',
-                  title: 'Saison B',
-                },
-              ],
+            ? [activeSeason]
+            : [{ ...activeSeason, id: 's3', troupeId: 't2', slug: 'saison-b', title: 'Saison B' }],
         page: 0,
         size: 50,
         totalElements: 1,
@@ -400,32 +769,29 @@ describe('TroupeHub', () => {
     }))
     const selectTroupe = vi.fn()
     const hubTroupes = [
+      ...defaultTroupes('TROUPE_ADMIN'),
       {
-        id: 't1',
-        name: 'Les Improbots',
-        slug: 'les-improbots',
+        id: 't2',
+        name: 'Autre Troupe',
+        slug: 'autre-troupe',
         membership: {
-          id: 'm1',
+          id: 'm2',
           displayName: 'Admin',
           status: 'ACTIVE' as const,
           baselineRole: 'TROUPE_ADMIN' as const,
           createdAt: '',
           updatedAt: '',
         },
-        activeMemberCount: 4,
-        upcomingEventCount: 2,
+        activeMemberCount: 2,
+        upcomingEventCount: 0,
       },
-      secondTroupe,
     ]
 
     await TestBed.configureTestingModule({
       imports: [TroupeHub, NoopAnimationsModule],
       providers: [
         provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: { paramMap: paramMap$.asObservable() },
-        },
+        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
         {
           provide: AuthApiService,
           useValue: {
@@ -448,9 +814,32 @@ describe('TroupeHub', () => {
             ),
           },
         },
-        { provide: SeasonApiService, useValue: { listSeasons } },
+        {
+          provide: SeasonApiService,
+          useValue: {
+            listSeasons,
+            getSeasonWorkspace: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: workspaceFixture,
+            }),
+          },
+        },
+        {
+          provide: SeasonStatisticsApiService,
+          useValue: {
+            loadStatistics: vi.fn().mockResolvedValue({ ok: true, status: 200, data: statsFixture }),
+          },
+        },
+        ...hubSupportProviders,
         { provide: MatDialog, useValue: { open: vi.fn() } },
-        { provide: TroupeApiService, useValue: { updateTroupe: vi.fn(), listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }) } },
+        {
+          provide: TroupeApiService,
+          useValue: {
+            updateTroupe: vi.fn(),
+            listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+          },
+        },
       ],
     }).compileComponents()
 
@@ -475,125 +864,8 @@ describe('TroupeHub', () => {
     paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
   })
 
-  it('shows only-archived hint before toggle', async () => {
-    const listSeasons = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        content: [seasons[1]],
-        page: 0,
-        size: 50,
-        totalElements: 1,
-        totalPages: 1,
-      },
-    })
-    const archivedTroupes = [
-      {
-        id: 't1',
-        name: 'Les Improbots',
-        slug: 'les-improbots',
-        membership: {
-          id: 'm1',
-          displayName: 'Admin',
-          status: 'ACTIVE' as const,
-          baselineRole: 'TROUPE_ADMIN' as const,
-          createdAt: '',
-          updatedAt: '',
-        },
-        activeMemberCount: 4,
-        upcomingEventCount: 2,
-      },
-    ]
-    await TestBed.configureTestingModule({
-      imports: [TroupeHub, NoopAnimationsModule],
-      providers: [
-        provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: { paramMap: paramMap$.asObservable() },
-        },
-        {
-          provide: AuthApiService,
-          useValue: {
-            ensureHatcastSession: vi.fn().mockResolvedValue({
-              ok: true,
-              data: { user: { id: 'u1', email: 'a@b.c', displayName: 'Test' } },
-            }),
-          },
-        },
-        {
-          provide: TroupeContextService,
-          useValue: {
-            load: vi.fn().mockResolvedValue(true),
-            selectTroupe: vi.fn(),
-            patchTroupeName: vi.fn(),
-            currentUserDisplayLabel: () => 'Test',
-            activeTroupes: () => archivedTroupes,
-            resolveTroupeBySlug: vi.fn().mockImplementation(async (slug: string) =>
-              archivedTroupes.find((t) => t.slug === slug) ?? null,
-            ),
-          },
-        },
-        { provide: SeasonApiService, useValue: { listSeasons } },
-        { provide: MatDialog, useValue: { open: vi.fn() } },
-        { provide: TroupeApiService, useValue: { updateTroupe: vi.fn(), listPublicTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }) } },
-      ],
-    }).compileComponents()
-
-    paramMap$.next(convertToParamMap({ slug: 'les-improbots' }))
-    const fixture = TestBed.createComponent(TroupeHub)
-    fixture.detectChanges()
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Aucune saison active')
-    })
-  })
-
   it('builds admin menu items Modifier, Nouvelle saison, Membres in order', async () => {
     const { fixture } = await setup('TROUPE_ADMIN')
-    const items = (fixture.componentInstance as unknown as { troupeAdminItems(): { label: string }[] })
-      .troupeAdminItems()
-      .map((item) => item.label)
-    expect(items).toEqual([
-      'Modifier',
-      'Nouvelle saison',
-      'Membres',
-      'Paramètres',
-      "Journal d'audit",
-    ])
-  })
-
-  it('links Membres to canonical troupe admin path', async () => {
-    const { fixture } = await setup('TROUPE_ADMIN')
-    const trigger = fixture.nativeElement.querySelector(
-      '.scope-admin-menu__trigger',
-    ) as HTMLButtonElement
-    trigger.click()
-    fixture.detectChanges()
-
-    const membresLink = Array.from(
-      document.querySelectorAll('.cdk-overlay-container a'),
-    ).find((a) => a.textContent?.includes('Membres')) as HTMLAnchorElement | undefined
-    expect(membresLink?.getAttribute('href')).toBe('/troupes/les-improbots/admin/membres')
-  })
-
-  it('links Paramètres with categories tab query param', async () => {
-    const { fixture } = await setup('TROUPE_ADMIN')
-    const items = (
-      fixture.componentInstance as unknown as {
-        troupeAdminItems(): { label: string; queryParams?: Record<string, string> }[]
-      }
-    ).troupeAdminItems()
-    const settings = items.find((item) => item.label === 'Paramètres')
-    expect(settings?.queryParams).toEqual({ tab: 'categories' })
-  })
-
-  it('shows Membres admin menu for platform admin without troupe admin role', async () => {
-    const { fixture } = await setup('MEMBER', true)
-    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeTruthy()
-  })
-
-  it('builds admin menu items for platform admin in order', async () => {
-    const { fixture } = await setup('MEMBER', true)
     const items = (fixture.componentInstance as unknown as { troupeAdminItems(): { label: string }[] })
       .troupeAdminItems()
       .map((item) => item.label)
@@ -612,10 +884,7 @@ describe('TroupeHub', () => {
       imports: [TroupeHub, NoopAnimationsModule],
       providers: [
         provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: { paramMap: paramMap$.asObservable() },
-        },
+        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
         {
           provide: AuthApiService,
           useValue: {
@@ -638,8 +907,13 @@ describe('TroupeHub', () => {
         },
         {
           provide: SeasonApiService,
-          useValue: { listSeasons: vi.fn() },
+          useValue: { listSeasons: vi.fn(), getSeasonWorkspace: vi.fn() },
         },
+        {
+          provide: SeasonStatisticsApiService,
+          useValue: { loadStatistics: vi.fn() },
+        },
+        ...hubSupportProviders,
         {
           provide: TroupeApiService,
           useValue: {
@@ -661,16 +935,6 @@ describe('TroupeHub', () => {
       expect(fixture.nativeElement.querySelector('#troupe-access-denied-heading')).not.toBeNull()
     })
     expect(fixture.nativeElement.textContent).toContain('Tu n’es pas membre de cette troupe.')
-    expect(fixture.nativeElement.textContent).toContain("Découvrir d'autres troupes")
-    const decouvrirLink = fixture.nativeElement.querySelector(
-      'a[href="/troupes#decouvrir"]',
-    ) as HTMLAnchorElement | null
-    expect(decouvrirLink).not.toBeNull()
-    const agendaLink = fixture.nativeElement.querySelector(
-      'a[href="/agenda"]',
-    ) as HTMLAnchorElement | null
-    expect(agendaLink).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('.troupe-hub__empty-actions')).not.toBeNull()
   })
 
   it('shows access check error when public directory lookup fails', async () => {
@@ -679,10 +943,7 @@ describe('TroupeHub', () => {
       imports: [TroupeHub, NoopAnimationsModule],
       providers: [
         provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: { paramMap: paramMap$.asObservable() },
-        },
+        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
         {
           provide: AuthApiService,
           useValue: {
@@ -705,8 +966,13 @@ describe('TroupeHub', () => {
         },
         {
           provide: SeasonApiService,
-          useValue: { listSeasons: vi.fn() },
+          useValue: { listSeasons: vi.fn(), getSeasonWorkspace: vi.fn() },
         },
+        {
+          provide: SeasonStatisticsApiService,
+          useValue: { loadStatistics: vi.fn() },
+        },
+        ...hubSupportProviders,
         {
           provide: TroupeApiService,
           useValue: {
@@ -721,9 +987,7 @@ describe('TroupeHub', () => {
     const fixture = TestBed.createComponent(TroupeHub)
     fixture.detectChanges()
     await vi.waitFor(() => {
-      expect(
-        fixture.nativeElement.querySelector('#troupe-access-check-error-heading'),
-      ).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('#troupe-access-check-error-heading')).not.toBeNull()
     })
     expect(fixture.nativeElement.textContent).toContain('Vérification impossible')
   })
@@ -734,10 +998,7 @@ describe('TroupeHub', () => {
       imports: [TroupeHub],
       providers: [
         provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: { paramMap: paramMap$.asObservable() },
-        },
+        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
         {
           provide: AuthApiService,
           useValue: {
@@ -760,8 +1021,13 @@ describe('TroupeHub', () => {
         },
         {
           provide: SeasonApiService,
-          useValue: { listSeasons: vi.fn() },
+          useValue: { listSeasons: vi.fn(), getSeasonWorkspace: vi.fn() },
         },
+        {
+          provide: SeasonStatisticsApiService,
+          useValue: { loadStatistics: vi.fn() },
+        },
+        ...hubSupportProviders,
         {
           provide: TroupeApiService,
           useValue: {
@@ -801,7 +1067,15 @@ describe('TroupeHub session gate', () => {
           provide: TroupeContextService,
           useValue: { load: vi.fn(), activeTroupes: () => [] },
         },
-        { provide: SeasonApiService, useValue: { listSeasons: vi.fn() } },
+        {
+          provide: SeasonApiService,
+          useValue: { listSeasons: vi.fn(), getSeasonWorkspace: vi.fn() },
+        },
+        {
+          provide: SeasonStatisticsApiService,
+          useValue: { loadStatistics: vi.fn() },
+        },
+        ...hubSupportProviders,
         { provide: MatDialog, useValue: { open: vi.fn() } },
       ],
     }).compileComponents()

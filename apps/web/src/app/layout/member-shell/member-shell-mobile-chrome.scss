@@ -9,9 +9,10 @@
     --member-shell-corner-top: max(0.25rem, env(safe-area-inset-top, 0px));
   }
 
-  /* Engrenage admin saison / spectacle : même rangée que l’avatar fixe (UX-DR22.1 mobile). */
+  /* Engrenage admin saison / spectacle / hub troupe : même rangée que l’avatar fixe (UX-DR22.1 mobile). */
   .member-shell--with-nav .season-header.season-header--with-admin,
-  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin {
+  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin,
+  .member-shell--with-nav .troupe-hub__hero.troupe-hub__hero--with-admin {
     padding-inline-end: calc(
       var(--member-shell-account-reserve, 3.25rem) + var(--member-shell-corner-size, 3rem) +
         var(--member-shell-corner-gap, 0.35rem) + env(safe-area-inset-right, 0px)
@@ -19,7 +20,8 @@
   }
 
   .member-shell--with-nav .season-header.season-header--with-admin .season-header__admin,
-  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin .event-detail-header__admin {
+  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin .event-detail-header__admin,
+  .member-shell--with-nav .troupe-hub__hero.troupe-hub__hero--with-admin .troupe-hub__hero-admin {
     position: fixed;
     z-index: 1100;
     top: var(--member-shell-corner-top, max(0.25rem, env(safe-area-inset-top, 0px)));
@@ -33,6 +35,11 @@
     width: var(--member-shell-corner-size, 3rem);
     height: var(--member-shell-corner-size, 3rem);
     margin: 0;
+    padding: 0;
+  }
+
+  .member-shell--with-nav .troupe-hub__hero.troupe-hub__hero--with-admin .troupe-hub__hero-admin .scope-admin-menu__trigger {
+    margin: 0;
   }
 
   .member-shell--with-nav .season-header,
@@ -43,7 +50,7 @@
   .member-shell--with-nav .user-agenda__header,
   .member-shell--with-nav .member-home-todo__header,
   .member-shell--with-nav .member-glance-page__header,
-  .member-shell--with-nav .troupe-hub__header,
+  .member-shell--with-nav .troupe-hub__hero,
   .member-shell--with-nav .troupes-list__header {
     box-sizing: border-box;
     padding-inline-end: calc(var(--member-shell-account-reserve, 3.25rem) + env(safe-area-inset-right, 0px));

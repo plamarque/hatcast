@@ -244,6 +244,9 @@ Legend: **M** = mobile project (blocking) · **D** = desktop orga · **API** = n
 | 3.6b | Nav **Mes stats** (bottom tab mobile) → même page | **P0** | **M** | E1-MEM-021 | ✅ |
 | 3.6c | Nav **Ma troupe** → hub dernier slug visité | **P0** | **M** | E1-MEM-040 | ✅ |
 | 3.6d | Nav **Ma troupe** fallback liste + seed href | **P1** | **M** | E1-MEM-041–042 | ✅ |
+| 3.6e | Hub dashboard — tuiles **Spectacles · Compos · Personnes** (sans CTA carte) | **P1** | **M** | E1-MEM-043 | ✅ |
+| 3.6f | Hub **Personnes** — bandeau avatars / +N | **P1** | **M** | E1-MEM-044 | ✅ |
+| 3.6g | Hub teaser — ≤3 cartes + **Voir tous les spectacles** → workspace | **P1** | **M** | E1-MEM-045 | ✅ |
 | 3.7 | Stats spot-check vs V1 | P3 | — | — | 👁 |
 | 4.5 | Spectacle **Activité** — journal « Moi » (membre inscrit) | **P0** | **M** | E1-MEM-022 | ❌ |
 | 4.1 | Dispos tab: change subject / states | P0 | **M** | E1-MEM-010 | ❌ |
@@ -296,6 +299,9 @@ Legend: **M** = mobile project (blocking) · **D** = desktop orga · **API** = n
 | **E1-MEM-040** | Visit season workspace then **Ma troupe** tab | **P0** — URL `/troupes/{slug}`; `app-troupe-hub` visible; tab `aria-current="page"` |
 | **E1-MEM-041** | Clear `lastVisitedTroupeSlug` → **Ma troupe** | **P1** — URL `/troupes` list; tab **not** active |
 | **E1-MEM-042** | Seed slug in storage → check href | **P1** — Tab links to `/troupes/{slug}` |
+| **E1-MEM-043** | `goto /troupes/{slug}` | **P1** — `#troupe-season-dashboard-heading` ; tuiles **Spectacles / Compos / Personnes** ; pas **Ouvrir la saison** ni grille saisons active |
+| **E1-MEM-044** | Hub section **Personnes** | **P1** — ≥1 avatar cliquable **ou** lien **+N** ; tap avatar → `/membre/{slug}` si slug connu |
+| **E1-MEM-045** | Hub teaser **Prochains spectacles** | **P1** — ≤3 `.agenda-card` ; **Voir tous les spectacles** → workspace saison ; empty state sans CTA si aucun à venir |
 | **E1-MEM-022** | Open `[E1] dispos open` → tab **Activité** | Tab visible; journal list renders (≥1 row **or** empty label from `audit-journal-list`, no error banner); mode **Moi** |
 | E1-MEM-010–012 | Open `[E1] dispos open` event | Tabs Dispos/Équipe/Infos visible; toggle dispo; save |
 | E1-MEM-013 | Event with pending confirm | Confirm as member |
@@ -324,6 +330,7 @@ Reuse helpers from `scripts/v2/MVP-PILOT-RECETTE.md` scenarios 01–03 (tirage, 
 
 - `e1/member-stats.mobile.spec.ts` — E1-MEM-020, E1-MEM-021  
 - `e1/member-troupe-nav.mobile.spec.ts` — **E1-MEM-040 (P0 blocking)**, E1-MEM-041, E1-MEM-042 (P1)
+- `e1/member-troupe-hub.mobile.spec.ts` — E1-MEM-043, E1-MEM-044, E1-MEM-045 (P1, story **17.42**)
 - `e1/member-event-activite.mobile.spec.ts` — E1-MEM-022 (+ layout E1-MOB-002)  
 - `e1/orga-season-stats-audit.desktop.spec.ts` — E1-ORG-010, 011, 012  
 - `e1/orga-event-activite.desktop.spec.ts` — E1-ORG-013 (can merge with compo spec if shorter CI)

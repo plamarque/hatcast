@@ -44,6 +44,8 @@ export interface SeasonStatisticsResponse {
   monthKeys: string[]
   events: StatisticsEvent[]
   rows: ParticipantStatisticsRow[]
+  /** Spectacles dont l'équipe est complète et confirmée (badge « Confirmé »). */
+  confirmedCompositionsCount?: number
 }
 
 export type CategoryFilterQuery = 'all' | string[]

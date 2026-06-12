@@ -2,8 +2,10 @@
 title: UX — Univers Ma Troupe (hub collectif + chrome événement)
 author: Sally (UX) + Patrice
 date: '2026-06-10'
+amended: '2026-06-12'
 status: approved
 stakeholderSignOff: '2026-06-10 — Patrice'
+amendmentSignOff: '2026-06-12 — Patrice (rétro-doc ajustements hub 17.42)'
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-troupe-hub.md
   - _bmad-output/planning-artifacts/ux-design-hub-a-faire.md
@@ -59,7 +61,7 @@ uxDr: UX-DR13 (amended post-login), UX-DR14 (agenda distinction)
 | **MT2** | Mémoriser **`lastVisitedTroupeSlug`** (mise à jour à chaque visite hub troupe ou workspace saison de la troupe) — parallèle à `lastVisitedSeason`. |
 | **MT3** | Nav membre cible : **Accueil · Mon agenda · Ma troupe · Mes stats** (libellés UI ; routes `/accueil`, `/agenda`, `/troupes/:slug`, `/membre/:userSlug`). |
 | **MT4** | **Mon agenda** reste la chronologie **personnelle cross-troupes** ; **Ma troupe** est le **tableau de bord collectif** — pas un second agenda complet. |
-| **MT5** | Workspace saison (`/saison/:troupeSlug/:seasonSlug`) reste le **drill-down orga** (Agenda \| Historique \| Statistiques \| admin) ; accessible depuis le hub via **Ouvrir la saison**. |
+| **MT5** | Workspace saison (`/saison/:troupeSlug/:seasonSlug`) reste le **drill-down orga** (Agenda \| Historique \| Statistiques \| admin). Depuis le hub : **Voir tous les spectacles**, lien **+N** (section Personnes), tap carte teaser — **pas** de CTA primaire « Ouvrir la saison » sur la carte métriques (amend. 2026-06-12). L’onglet Infos événement conserve **Ouvrir la saison** (ED4). |
 
 ### Hub troupe (`/troupes/:slug`)
 
@@ -67,10 +69,10 @@ uxDr: UX-DR13 (amended post-login), UX-DR14 (agenda distinction)
 |----|----------|
 | **MT6** | Le hub n’est **plus** une grille « Saisons » en première intention ; c’est un **dashboard collectif** centré sur la **saison active par défaut**. |
 | **MT7** | **Titre de la première section** = **intitulé de la saison** (ex. `Saison 2025-26`) — **pas** de label générique « Saison en cours » au-dessus. |
-| **MT8** | **Carte saison unique** (section 1) : titre saison + métriques inline + CTA **Ouvrir la saison** ; **switcher `[▾]`** à droite du titre **uniquement** si l’utilisateur est inscrit·e dans **>1 saison active** de la troupe. |
+| **MT8** | **Carte saison unique** (section 1) : titre saison + **3 tuiles métriques** inline — **sans** CTA primaire sous les tuiles (amend. 2026-06-12) ; **switcher `[▾]`** à droite du titre **uniquement** si l’utilisateur est inscrit·e dans **>1 saison active** de la troupe. |
 | **MT9** | Sous la carte : lien texte discret **Saisons archivées (N)** si `N > 0` — expand inline ou sheet ; **pas** de lien permanent « Historique » (déjà dans le workspace). |
-| **MT10** | Section **Participant·es** : avatars (max 6 + compteur), tap → stats individuelles ; **Voir tout le roster** → workspace `?view=participants` (ou onglet Participants quand livré). |
-| **MT11** | Section **Prochains spectacles** : **max 3** cartes `agenda-card` compact ; CTA **Voir tout l'agenda** → workspace onglet Agenda. Empty : *Aucun spectacle à venir cette saison.* |
+| **MT10** | Section **Personnes** (libellé UI ; amend. 2026-06-12) : bandeau d’avatars **cliquables** (`3.5rem` / 56 dp), **retour à la ligne** (`flex-wrap`, pas de scroll horizontal) ; cap **12** visibles mobile, **36** desktop (6 lignes × 6 colonnes, breakpoint grille hub **≥ 840 px**) ; **+N** seul overflow → workspace agenda ; tap avatar → `/membre/{userSlug}` ; **pas** de CTA texte « Voir tout le roster / le monde ». |
+| **MT11** | Section **Prochains spectacles** : **max 3** cartes `agenda-card` compact ; CTA **Voir tous les spectacles** → workspace onglet Agenda, **centré** dans la colonne (desktop 2 colonnes). Empty : *Aucun spectacle à venir cette saison.* |
 | **MT12** | Lien bas de page **Voir les autres troupes** → `/troupes` — **visible uniquement** si `myTroupes.length >= 2` ; **absent** en mono-troupe (pas de placeholder). |
 | **MT13** | **Retirer** le fil d’Ariane `Troupes › …` du header hub (escape via nav **Ma troupe** + lien MT12). Hero : logo + nom troupe + gear admin. |
 | **MT14** | **Préférences membre** : inchangé vs [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) T5/T6 — **Mon compte** uniquement ; pas de lien Préférences sur le hub. |
@@ -131,19 +133,18 @@ flowchart TB
 ├─────────────────────────────────────┤
 │  Saison 2025-26              [▾]?   │  ← h2 = intitulé ; [▾] si multi-saisons
 │  ┌─────────────────────────────┐   │
-│  │ ┌────┐ ┌────┐ ┌────┐        │   │  ← métriques MVP (phase 1)
-│  │ │ 24 │ │156 │ │ 12 │        │   │
+│  │ ┌────┐ ┌────┐ ┌────┐        │   │  ← métriques (amend. 2026-06-12)
+│  │ │ 45 │ │ 11 │ │ 37 │        │   │  Spectacles · Compos · Personnes
 │  │ └────┘ └────┘ └────┘        │   │
-│  │ [ Ouvrir la saison → ]      │   │
-│  └─────────────────────────────┘   │
+│  └─────────────────────────────┘   │  ← pas de CTA « Ouvrir la saison »
 │  Saisons archivées (2)              │  ← mat-button texte ; si N > 0
 ├─────────────────────────────────────┤
-│  PARTICIPANT·ES                     │
-│  [avatars scroll]  [ Voir tout → ]  │
+│  PERSONNES                          │
+│  [avatars wrap, max 12] [+N]        │  ← +N → workspace ; pas de CTA texte
 ├─────────────────────────────────────┤
 │  PROCHAINS SPECTACLES               │
 │  [ carte ] [ carte ] [ carte ]      │
-│  [ Voir tout l'agenda → ]           │
+│      [ Voir tous les spectacles ]   │  ← centré en colonne (desktop)
 ├─────────────────────────────────────┤
 │  Voir les autres troupes →          │  ← si ≥ 2 troupes seulement
 ├─────────────────────────────────────┤
@@ -154,7 +155,9 @@ flowchart TB
 ### Desktop (≥ 840 px)
 
 - Rail : 4 entrées (MT3).
-- Participants + Prochains spectacles en **2 colonnes** si largeur suffisante.
+- **Personnes** + **Prochains spectacles** en **2 colonnes** (`grid` 2×1).
+- Bandeau avatars : grille `auto-fill` sur **6 lignes max** (cap 36) ; pas de scroll horizontal.
+- CTA teaser **Voir tous les spectacles** : **centré** horizontalement dans la colonne droite.
 - Même contenu ; pas de breadcrumb header.
 
 ---
@@ -165,8 +168,8 @@ flowchart TB
 |---------|-------|
 | **Titre section** | `h2` = `{season.title}` (ex. Saison 2025-26) |
 | **Switcher** | `mat-menu` (desktop) / bottom sheet (mobile) ; visible si **>1 saison active** où user est participant·e |
-| **Métriques MVP** | 3 tuiles : spectacles (à venir ou total saison — à figer en impl.), participations, participant·es actifs·ves |
-| **CTA** | **Ouvrir la saison** → `/saison/:troupeSlug/:seasonSlug` (onglet agenda par défaut) |
+| **Métriques** | 3 tuiles (libellés exacts UI) : **Spectacles** (`season.eventCount`, total non archivé), **Compos** (`confirmedCompositionsCount` — spectacles dont l’équipe est au cycle **Confirmé** / `CompositionLifecycle.COMPLETE`), **Personnes** (`season.participantCount`, roster actif). Spinner ou `—` si stats indisponibles pour **Compos** uniquement. |
+| **CTA carte** | **Aucun** sur la carte métriques (amend. 2026-06-12). Drill-down workspace via teaser + **+N** + nav. |
 | **Saisons archivées** | Lien sous la carte ; toggle liste `season-card` archivées ou sheet |
 
 ### Sélection saison par défaut
@@ -188,14 +191,18 @@ Saison
 
 ---
 
-## Section 2 — Participant·es
+## Section 2 — Personnes
 
 | Élément | Règle |
 |---------|-------|
-| Label section | **Participant·es** ([ux-design-hub-section-headers.md](./ux-design-hub-section-headers.md) L2) |
-| Avatars | Max 6 + « +N » ; scroll horizontal mobile ; 40–48 dp |
-| Tap avatar | `/membre/{userSlug}?troupeId=…&seasonId=…` (stats filtrées) |
-| CTA | **Voir tout le roster** → workspace participants |
+| Label section | **Personnes** ([ux-design-hub-section-headers.md](./ux-design-hub-section-headers.md) L2) — remplace « Participant·es » (amend. 2026-06-12) |
+| Tuile métrique (carte saison) | Même libellé **Personnes** ; valeur = `participantCount` |
+| Avatars | `app-user-avatar` **3.5rem** (56 dp) ; rangée `flex-wrap` / grille desktop — **pas** de scroll horizontal |
+| Cap visible | **12** (mobile / colonne étroite) ; **36** (desktop ≥ 840 px, 6 lignes × 6 avatars) puis **+N** |
+| Tap avatar | Bouton parent ; `/membre/{userSlug}?troupeId=…&seasonId=…` si `userSlug` ; sinon avatar non cliquable |
+| Overflow **+N** | Lien circulaire même taille qu’un avatar → `saisonWorkspacePath` (agenda par défaut) ; seul CTA de section |
+| CTA texte roster | **Absent** — pas de « Voir tout le roster / le monde » (amend. 2026-06-12) |
+| Empty / erreur | *Aucune personne pour l'instant.* / *Impossible de charger les personnes.* |
 | Invité·e | Lecture seule ; hint sous hero si `EXTERNE` |
 
 ---
@@ -208,7 +215,7 @@ Saison
 | Composant | `agenda-card` compact (réutilisation) |
 | Cellule droite | Dispo / confirmation si viewer participant (identique Mon agenda) |
 | Tap carte | Event detail |
-| CTA | **Voir tout l'agenda** → workspace onglet Agenda |
+| CTA | **Voir tous les spectacles** (`mat-stroked-button`) → workspace onglet Agenda ; **centré** dans la colonne (amend. 2026-06-12) |
 | Distinction | **Ne pas** dupliquer Mon agenda ; pas de filtres troupe/saison ici |
 
 ---
@@ -294,9 +301,9 @@ Saison
 
 - [ ] **MT-AC4** : Première section titrée avec `{season.title}` — pas de label « Saison en cours ».
 - [ ] **MT-AC5** : Switcher visible **iff** >1 saison active avec participation user.
-- [ ] **MT-AC6** : Carte saison : métriques + **Ouvrir la saison** ; pas de grille saisons active en page principale.
-- [ ] **MT-AC7** : Participants : avatars + **Voir tout le roster**.
-- [ ] **MT-AC8** : Prochains spectacles : ≤3 cartes + **Voir tout l'agenda**.
+- [ ] **MT-AC6** : Carte saison : 3 tuiles **Spectacles / Compos / Personnes** ; **pas** de CTA « Ouvrir la saison » ; pas de grille saisons active en page principale.
+- [ ] **MT-AC7** : Personnes : avatars wrap (cap 12 mobile / 36 desktop) + **+N** vers workspace ; pas de CTA texte roster.
+- [ ] **MT-AC8** : Prochains spectacles : ≤3 cartes + **Voir tous les spectacles** centré en colonne.
 - [ ] **MT-AC9** : **Voir les autres troupes** visible **iff** ≥2 troupes ; libellé exact.
 - [ ] **MT-AC10** : Pas de breadcrumb `Troupes ›` ; pas de footer Historique · Préférences.
 - [ ] **MT-AC11** : Mon agenda et hub troupe : listes distinctes (teaser vs chronologie complète).
@@ -312,7 +319,7 @@ Saison
 
 - [ ] **M3-1** : Composants Material ; réutilisation `agenda-card`, `scope-admin-menu`.
 - [ ] **M3-2** : Tokens `--mat-sys-*`.
-- [ ] **M3-3** : Mobile-first ; cibles ≥ 48 dp.
+- [ ] **M3-3** : Mobile-first ; cibles ≥ 48 dp ; bandeau Personnes en **wrap** (pas de scroll horizontal obligatoire).
 - [ ] **M3-4** : Libellés FR ; `aria-label` chevron « Retour ».
 
 ---
@@ -323,7 +330,7 @@ Saison
 |------|-------------------|
 | Nav 4 onglets | `member-shell-nav*.ts`, `member-shell-nav-visibility.ts`, icône `groups` |
 | lastVisitedTroupe | Service parallèle `lastVisitedSeason` ; post-login optionnel troupe-first si mono-troupe |
-| Hub | Refonte `troupe-hub.html/ts` — API : saisons + events teaser + stats summary + roster preview |
+| Hub | Refonte `troupe-hub.html/ts` — API : saisons + `getSeasonWorkspace` teaser + `loadStatistics` (`confirmedCompositionsCount` + rows roster) |
 | Participants view | Workspace `season-home` onglet ou query `view=participants` |
 | Event header | Retirer breadcrumb de `event-detail-header` ; chevron + `NavigationHistoryService` ou `lastMemberEntryPath` |
 | Event Infos | `event-infos-tab` — section Contexte |
@@ -368,3 +375,20 @@ Saison
 | Mini-chart mois en phase 2 ? | Oui (MT15) |
 
 **Statut :** `approved` (2026-06-10 — Patrice).
+
+---
+
+## Amendement 2026-06-12 — Rétro-doc hub 17.42 (Patrice)
+
+Ajustements validés en recette après implémentation initiale ; la spec ci-dessus est **mise à jour** (pas de nouvelle story).
+
+| Sujet | Avant (spec 2026-06-10) | Après (shipped) |
+|-------|---------------------------|-----------------|
+| Métrique centrale | **Participations** (somme sélections jeu) | **Compos** — nombre de spectacles **équipe confirmée** (`confirmedCompositionsCount`) |
+| Métrique roster | **Participant·es** | **Personnes** (tuile + section) |
+| CTA carte saison | **Ouvrir la saison** | **Retiré** — redondant avec teaser, +N, nav |
+| Section Personnes | 6 avatars + scroll horizontal + CTA roster | Wrap ; cap **12** / **36** ; **+N** seul CTA ; avatars **56 dp** cliquables |
+| Teaser CTA | **Voir tout l'agenda** | **Voir tous les spectacles**, centré en colonne |
+| Donnée Compos | — | Champ API stats saison ; règle métier = badge **Confirmé** (lifecycle `complete`) |
+
+**Non modifié :** ED4 (**Ouvrir la saison** sur Infos événement), MT12 footer multi-troupe, switcher saison, saisons archivées, parité dispo/participation sur cartes teaser.

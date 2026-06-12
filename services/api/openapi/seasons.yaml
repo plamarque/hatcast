@@ -1968,7 +1968,7 @@ components:
 
     SeasonStatisticsResponse:
       type: object
-      required: [participants, monthKeys, events, rows]
+      required: [participants, monthKeys, events, rows, confirmedCompositionsCount]
       properties:
         participants:
           type: array
@@ -1986,6 +1986,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ParticipantStatisticsRow'
+        confirmedCompositionsCount:
+          type: integer
+          description: >
+            Nombre de spectacles non archivés dont la composition est au cycle de vie
+            « équipe confirmée » (tous les rôles requis assignés et confirmés ou dérogés).
+          minimum: 0
 
     MySeasonPermissions:
       type: object

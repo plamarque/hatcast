@@ -44,6 +44,8 @@ data class SeasonStatisticsResponseDto(
     val monthKeys: List<String>,
     val events: List<StatisticsEventDto>,
     val rows: List<ParticipantStatisticsRowDto>,
+    /** Spectacles dont l'équipe est complète et confirmée (`CompositionLifecycle.COMPLETE`). */
+    val confirmedCompositionsCount: Int = 0,
 )
 
 data class StatisticsParticipantDto(

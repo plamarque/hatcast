@@ -4,6 +4,7 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.StoredAvailabilityStatus
+import com.hatcast.api.composition.CompositionLifecycleService
 import com.hatcast.api.composition.EventCompositionDeclineEntity
 import com.hatcast.api.composition.EventCompositionDeclineRepository
 import com.hatcast.api.composition.EventCompositionEntity
@@ -48,6 +49,7 @@ class SeasonStatisticsEventCellTest {
     private val troupeAccess = mock<TroupeAccessService>()
     private val guestInvitationAccess = mock<GuestInvitationAccessService>()
     private val userRepository = mock<UserRepository>()
+    private val compositionLifecycleService = CompositionLifecycleService()
 
     private val service =
         SeasonStatisticsService(
@@ -61,6 +63,7 @@ class SeasonStatisticsEventCellTest {
             troupeAccess,
             guestInvitationAccess,
             userRepository,
+            compositionLifecycleService,
         )
 
     @org.junit.jupiter.api.BeforeEach

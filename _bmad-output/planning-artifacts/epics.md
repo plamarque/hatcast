@@ -2153,8 +2153,8 @@ afin de **voir « chez nous »** sans dupliquer Mon agenda.
 
 **Acceptance Criteria (résumé)**
 
-- **Given** `/troupes/:slug`, **when** chargé, **then** première section titrée `{season.title}` (pas « Saison en cours ») ; carte métriques + **Ouvrir la saison** ; switcher saison si >1 saison active inscrite.
-- **Given** sections suivantes, **then** **Participant·es** (avatars + Voir tout le roster) ; **Prochains spectacles** (max 3 + Voir tout l'agenda).
+- **Given** `/troupes/:slug`, **when** chargé, **then** première section titrée `{season.title}` ; tuiles **Spectacles · Compos · Personnes** (sans CTA carte — amend. 2026-06-12) ; switcher si >1 saison active.
+- **Given** sections suivantes, **then** **Personnes** (avatars wrap + **+N**) ; **Prochains spectacles** (max 3 + **Voir tous les spectacles** centré).
 - **Given** ≥2 troupes, **then** lien **Voir les autres troupes** → `/troupes` ; absent en mono-troupe.
 - **Given** saisons archivées, **then** lien discret **Saisons archivées (N)** sous la carte — pas de grille saisons active en page principale.
 - **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT6–MT14.
