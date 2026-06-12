@@ -17,6 +17,7 @@ import { resetStory325Fixture, type Story325Fixture } from './helpers/e2e-api'
 import { saisonWorkspacePath } from './helpers/e1-routes'
 import {
   clickBreadcrumbSeasonLink,
+  clickSeasonAgendaEvent,
   clickSeasonCard,
   expectAgendaCardAbsent,
   expectAgendaCardVisible,
@@ -122,7 +123,8 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
     baseURL,
   }) => {
     await signInGuest(page, E2E_GUEST_RUBEN_TOKEN, baseURL!)
-    await openGuestEventTab(page, fx, fx.rubenSeasonSlug, fx.rubenInvitedFutureSlug, 'dispos')
+    await gotoSeasonWorkspace(page, fx, fx.rubenSeasonSlug)
+    await clickSeasonAgendaEvent(page, fx.rubenInvitedFutureTitle)
     await clickBreadcrumbSeasonLink(page, fx, fx.rubenSeasonSlug)
     await expect(page).toHaveURL(
       new RegExp(`/saison/${fx.troupeSlug}/${fx.rubenSeasonSlug}`),

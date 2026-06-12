@@ -49,6 +49,7 @@ class E2eStory325FixtureService(
     private val troupeExterneCarnetService: TroupeExterneCarnetService,
     private val userRepository: UserRepository,
 ) {
+    @Synchronized
     @Transactional
     fun resetStory325(): Story325FixtureResponse {
         val troupe =

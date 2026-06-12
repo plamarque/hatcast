@@ -85,15 +85,24 @@ export type Story325Fixture = {
 }
 
 export async function resetStory325Fixture(request: APIRequestContext): Promise<Story325Fixture> {
-  const response = await request.post(`${apiBase}/v1/e2e/fixtures/story-3-25/reset`, {
-    headers: {
-      'X-Hatcast-E2E-Key': E2E_API_KEY,
-    },
-  })
-  if (!response.ok()) {
-    throw new Error(`Story 3.25 fixture reset failed (${response.status()}): ${await response.text()}`)
+  const maxAttempts = 3
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await request.post(`${apiBase}/v1/e2e/fixtures/story-3-25/reset`, {
+      headers: {
+        'X-Hatcast-E2E-Key': E2E_API_KEY,
+      },
+    })
+    if (response.ok()) {
+      return response.json() as Promise<Story325Fixture>
+    }
+    const body = await response.text()
+    if (response.status() === 409 && attempt < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500))
+      continue
+    }
+    throw new Error(`Story 3.25 fixture reset failed (${response.status()}): ${body}`)
   }
-  return response.json() as Promise<Story325Fixture>
+  throw new Error('Story 3.25 fixture reset failed after retries')
 }
 
 export async function resetStory319Fixture(request: APIRequestContext): Promise<Story319Fixture> {
