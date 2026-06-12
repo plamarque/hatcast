@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test'
 
 import type { Story325Fixture } from './e2e-api'
 import { signInWithE2eToken } from './e2e-api'
+import { expectDisposPollReady } from './dispos-poll.ui'
 import { prepareE2ePage } from './e1.ui'
 import { saisonEventPath, saisonWorkspacePath, troupeHubPath } from './e1-routes'
 
@@ -120,7 +121,7 @@ export async function openGuestEventTab(
     await expect(page.locator('app-event-dispos-tab .event-dispos__spinner')).toHaveCount(0, {
       timeout: 45_000,
     })
-    await expect(page.getByLabel('Choix de disponibilité')).toBeVisible({ timeout: 45_000 })
+    await expectDisposPollReady(page)
     return
   }
   await expectGuestEventDetailReady(page)
