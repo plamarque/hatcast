@@ -2180,7 +2180,7 @@ afin de **ne pas perdre de place** au breadcrumb sur mobile.
 
 **Priorité :** P1.  
 **Depends :** 17.41.  
-**Story file :** *(à créer via `bmad-create-story 17.43`)*
+**Story file :** [_17-43-event-detail-contexte-infos.md_](../implementation-artifacts/17-43-event-detail-contexte-infos.md)
 
 ---
 
