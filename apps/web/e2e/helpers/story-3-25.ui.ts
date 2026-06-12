@@ -72,42 +72,6 @@ export async function gotoSeasonWorkspace(
   }
 }
 
-function waitForGuestEventPageResponse(page: Page, eventSlug: string) {
-  return page.waitForResponse(
-    (response) => {
-      const url = response.url()
-      return (
-        response.request().method() === 'GET' &&
-        url.includes('/events/by-slug/') &&
-        url.includes(eventSlug) &&
-        url.includes('/page') &&
-        response.status() === 200
-      )
-    },
-    { timeout: 45_000 },
-  )
-}
-
-async function expectGuestEventDetailReady(page: Page): Promise<void> {
-  await expect(page.locator('app-event-detail')).toBeVisible({ timeout: 45_000 })
-  await expect(page).not.toHaveURL(/\/agenda$/)
-  await expect(page.locator('.event-detail__spinner')).toHaveCount(0, { timeout: 45_000 })
-  await waitForEventDetailSeasonNavigation(page)
-}
-
-export async function openGuestEventTab(
-  page: Page,
-  fx: Story325Fixture,
-  seasonSlug: string,
-  eventSlug: string,
-  tab: 'dispos' | 'equipe' | 'infos',
-): Promise<void> {
-  const eventPageReady = waitForGuestEventPageResponse(page, eventSlug)
-  await page.goto(saisonEventPath(fx.troupeSlug, seasonSlug, eventSlug, { tab }))
-  await eventPageReady
-  await expectGuestEventDetailReady(page)
-}
-
 function expectSeasonBreadcrumbSeasonLink(page: Page) {
   return page.locator(
     'app-context-breadcrumb a.context-breadcrumb__link[href*="/saison/"], app-context-breadcrumb a.context-breadcrumb__mobile-title.context-breadcrumb__link',
@@ -118,6 +82,36 @@ async function waitForEventDetailSeasonNavigation(page: Page): Promise<void> {
   const link = expectSeasonBreadcrumbSeasonLink(page)
   const switcher = page.locator('app-context-breadcrumb button.context-switcher__trigger')
   await expect(link.or(switcher)).toBeVisible({ timeout: 45_000 })
+}
+
+async function expectGuestEventDetailReady(page: Page): Promise<void> {
+  await expect(page.locator('app-event-detail')).toBeVisible({ timeout: 45_000 })
+  await expect(page).not.toHaveURL(/\/agenda$/)
+  await expect(page.locator('.event-detail__spinner')).toHaveCount(0, { timeout: 45_000 })
+  await waitForEventDetailSeasonNavigation(page)
+}
+
+/** Prime guest season context before deep-linking an event (CI-stable for EXTERNE). */
+async function primeGuestSeasonContext(
+  page: Page,
+  fx: Story325Fixture,
+  seasonSlug: string,
+): Promise<void> {
+  await page.goto(saisonWorkspacePath(fx.troupeSlug, seasonSlug))
+  await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
+  await expect(page).not.toHaveURL(/\/agenda$/)
+}
+
+export async function openGuestEventTab(
+  page: Page,
+  fx: Story325Fixture,
+  seasonSlug: string,
+  eventSlug: string,
+  tab: 'dispos' | 'equipe' | 'infos',
+): Promise<void> {
+  await primeGuestSeasonContext(page, fx, seasonSlug)
+  await page.goto(saisonEventPath(fx.troupeSlug, seasonSlug, eventSlug, { tab }))
+  await expectGuestEventDetailReady(page)
 }
 
 export function seasonViewToggle(
