@@ -568,6 +568,26 @@ class GuestInvitationAccessIntegrationTest {
     }
 
     @Test
+    fun `guest can load in-scope event page aggregate`() {
+        val admin = signInAdmin("guest-page-admin", "guest-page-admin@example.com", "Admin")
+        val guest = signIn("guest-page", "guest-page@example.com", "Guest Page", joinSeed = false)
+        val seasonId = createSeason(admin.cookie)
+        val eventId = createEvent(admin.cookie, seasonId, "Page show")
+        addEventGuest(admin, seasonId, eventId, "Guest Page", guest.email)
+        openAvailability(admin.cookie, seasonId, eventId)
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seasonId/events/$eventId/page")
+                    .param("tab", "infos")
+                    .cookie(guest.cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.event.id").value(eventId.toString()))
+            .andExpect(jsonPath("$.permissions.isTroupeAdmin").value(false))
+            .andExpect(jsonPath("$.participantSelectors").isArray)
+    }
+
+    @Test
     fun `open-availability notifies linked season-scoped externe`() {
         val admin = signInAdmin("guest-notif-admin", "guest-notif-admin@example.com", "Admin")
         val laetitia = signIn("guest-notif-laetitia", "laetitia-notif@example.com", "Laetitia Notif", joinSeed = false)

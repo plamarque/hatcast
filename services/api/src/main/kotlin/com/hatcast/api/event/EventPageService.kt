@@ -9,7 +9,10 @@ import com.hatcast.api.event.dto.EventPageResponseDto
 import com.hatcast.api.event.dto.EventResponseDto
 import com.hatcast.api.organizer.EventOrganizerRepository
 import com.hatcast.api.organizer.OrganizerAccessService
+import com.hatcast.api.organizer.dto.MySeasonPermissionsDto
 import com.hatcast.api.organizer.dto.OrganizerResponseDto
+import com.hatcast.api.participant.GuestInvitationAccessService
+import com.hatcast.api.participant.GuestSeasonWorkspaceMode
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeCategoryService
@@ -24,6 +27,7 @@ import java.util.UUID
 class EventPageService(
     private val eventService: EventService,
     private val seasonRepository: SeasonRepository,
+    private val guestInvitationAccess: GuestInvitationAccessService,
     private val organizerAccessService: OrganizerAccessService,
     private val seasonParticipantService: SeasonParticipantService,
     private val troupeCategoryService: TroupeCategoryService,
@@ -75,8 +79,19 @@ class EventPageService(
         includeChances: Boolean,
         principal: SessionUserPrincipal,
     ): EventPageResponseDto {
-        val permissions = organizerAccessService.mySeasonPermissions(seasonId, principal)
-        val participantSelectors = seasonParticipantService.listSelectors(seasonId, principal)
+        val workspaceMode = guestInvitationAccess.resolveSeasonReadAccess(seasonId, principal)
+        val permissions =
+            if (workspaceMode == GuestSeasonWorkspaceMode.FULL) {
+                organizerAccessService.mySeasonPermissions(seasonId, principal)
+            } else {
+                MySeasonPermissionsDto.guestWorkspaceReadOnly()
+            }
+        val participantSelectors =
+            if (workspaceMode == GuestSeasonWorkspaceMode.FULL) {
+                seasonParticipantService.listSelectors(seasonId, principal)
+            } else {
+                seasonParticipantService.listGuestSelectors(seasonId, principal)
+            }
 
         val organizers =
             when (tab) {
@@ -86,7 +101,12 @@ class EventPageService(
 
         val categories =
             when (tab) {
-                EventPageTab.INFOS -> listCategoriesForSeason(seasonId, principal)
+                EventPageTab.INFOS ->
+                    if (workspaceMode == GuestSeasonWorkspaceMode.FULL) {
+                        listCategoriesForSeason(seasonId, principal)
+                    } else {
+                        troupeCategoryService.listForGuestWorkspace(seasonId, principal)
+                    }
                 else -> null
             }
 
