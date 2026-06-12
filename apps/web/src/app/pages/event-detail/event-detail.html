@@ -1,15 +1,18 @@
-<div class="event-detail">
+<div
+  class="event-detail"
+  [class.event-detail--with-admin]="eventAdminItems().length > 0"
+  [class.event-detail--draft]="eventIsDraft()"
+>
   <app-event-detail-header
-    [seasonSlug]="slug()"
-    [seasonId]="seasonId()"
-    [troupeId]="troupeId()"
-    [troupeName]="contextTroupeName()"
-    [troupeSlug]="contextTroupeSlug()"
-    [troupeLogoUrl]="contextTroupeLogoUrl()"
-    [seasonTitle]="contextLeagueTitle()"
-    [eventTitle]="event()?.title ?? null"
+    [showBack]="showEventHeaderBack()"
     [adminItems]="eventAdminItems()"
-  />
+  >
+    @if (event(); as ev) {
+      <div data-event-detail-title-row class="event-detail__context-row">
+        <h1 class="event-detail__event-title" aria-current="page">{{ ev.title }}</h1>
+      </div>
+    }
+  </app-event-detail-header>
 
   @if (loading()) {
     <div class="event-detail__spinner" role="status">
@@ -24,18 +27,6 @@
       [canPublish]="canManageComposition()"
       (eventUpdated)="onEventInfosUpdated($event)"
     />
-
-    <div class="event-detail__context-row">
-      <h1 class="event-detail__event-title" aria-current="page">{{ ev.title }}</h1>
-      @if (equipeStatus(); as status) {
-        <div class="event-detail__status">
-          <app-composition-equipe-status-header
-            [status]="status"
-            [inlineInEventContext]="true"
-          />
-        </div>
-      }
-    </div>
 
     <div class="event-detail__tabs-shell">
       <mat-tab-group
@@ -57,6 +48,8 @@
               [troupeId]="troupeId()"
               [troupeSlug]="routeTroupeSlug()"
               [seasonSlug]="slug()"
+              [troupeName]="contextTroupeName()"
+              [seasonTitle]="contextLeagueTitle()"
               [canManageEvents]="canManageEvents()"
               [canManageTroupe]="canManageTroupe()"
               [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"

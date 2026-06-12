@@ -6,23 +6,55 @@
 }
 
 :host(.composition-equipe-status-header--event-inline) {
-  display: contents;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  min-width: 0;
 }
 
 :host(.composition-equipe-status-header--event-inline) .composition-equipe-status {
-  display: contents;
+  display: flex;
+  width: auto;
 }
 
 :host(.composition-equipe-status-header--event-inline) .composition-equipe-status__head {
-  grid-column: 2;
-  grid-row: 1;
   justify-content: flex-end;
   width: auto;
 }
 
-:host(.composition-equipe-status-header--event-inline) .composition-equipe-status__help-panel {
-  grid-column: 1 / -1;
-  grid-row: 2;
+:host(.composition-equipe-status-header--event-inline) .composition-equipe-status__badge-row {
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 839px) {
+  :host(.composition-equipe-status-header--event-inline) .composition-equipe-status__badge {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 5.5rem;
+  }
+
+  :host(.composition-equipe-status-header--event-inline) .composition-equipe-status__help {
+    --mdc-icon-button-state-layer-size: 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  :host(.composition-equipe-status-header--event-inline) .composition-equipe-status__help-panel {
+    position: fixed;
+    top: calc(
+      var(--member-shell-corner-top, max(0.25rem, env(safe-area-inset-top, 0px))) +
+        var(--member-shell-corner-size, 3rem) + 0.35rem
+    );
+    left: max(1rem, env(safe-area-inset-left, 0px));
+    right: max(1rem, env(safe-area-inset-right, 0px));
+    width: auto;
+    max-width: min(40rem, calc(100vw - 2rem));
+    margin-inline: auto;
+    z-index: 1095;
+  }
 }
 
 .composition-equipe-status--badge-only {

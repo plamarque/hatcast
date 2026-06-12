@@ -19,6 +19,12 @@ describe('lastMemberEntryPathStorage', () => {
     localStorage.clear()
   })
 
+  it('stores and reads troupe hub path', () => {
+    rememberLastMemberEntryPath('/troupes/improbots')
+
+    expect(getLastMemberEntryPath()).toBe('/troupes/improbots')
+  })
+
   it('returns null when nothing stored', () => {
     expect(getLastMemberEntryPath()).toBeNull()
   })
@@ -56,6 +62,7 @@ describe('lastMemberEntryPathStorage', () => {
       expect(isPersistableMemberEntryPath('/agenda')).toBe(true)
       expect(isPersistableMemberEntryPath('/saison/festibask')).toBe(true)
       expect(isPersistableMemberEntryPath('/membre/alice')).toBe(true)
+      expect(isPersistableMemberEntryPath('/troupes/improbots')).toBe(true)
     })
 
     it('rejects admin, login, event detail, and malformed paths', () => {

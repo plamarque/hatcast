@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { DOCUMENT } from '@angular/common'
-import { Router } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
@@ -42,7 +42,7 @@ import {
   type TroupeCategory,
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
-import { troupeAdminSettingsPath } from '../../core/navigation/troupe-routes'
+import { troupeAdminSettingsPath, troupeHubPath, saisonWorkspacePath } from '../../core/navigation/troupe-routes'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import {
   buildEventCategoryOptions,
@@ -76,6 +76,7 @@ import { ORGANIZERS_HELP } from './event-organizers-dialog'
     MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    RouterLink,
     RoleDisplayChipSet,
     EventCategorySelectChipSet,
   ],
@@ -96,6 +97,8 @@ export class EventInfosTab {
   readonly troupeId = input.required<string>()
   readonly troupeSlug = input.required<string>()
   readonly seasonSlug = input.required<string>()
+  readonly troupeName = input<string | null>(null)
+  readonly seasonTitle = input<string | null>(null)
   readonly canManageEvents = input(false)
   readonly canManageTroupe = input(false)
   readonly canManageEventOrganizers = input(false)
@@ -123,6 +126,20 @@ export class EventInfosTab {
   protected readonly showOrganizersSection = computed(
     () => this.canManageEventOrganizers() || this.organizers().length > 0,
   )
+
+  protected readonly showScopeNav = computed(
+    () =>
+      !!this.troupeName()?.trim() &&
+      !!this.seasonTitle()?.trim() &&
+      !!this.troupeSlug()?.trim() &&
+      !!this.seasonSlug()?.trim(),
+  )
+
+  protected readonly seasonWorkspaceLink = computed(() =>
+    saisonWorkspacePath(this.troupeSlug(), this.seasonSlug()),
+  )
+
+  protected readonly troupeHubLink = computed(() => troupeHubPath(this.troupeSlug()))
 
   protected readonly typeIcon = computed(() => getEventTypeIcon(this.event().templateType))
   protected readonly typeLabel = computed(() => getEventTypeLabel(this.event().templateType))

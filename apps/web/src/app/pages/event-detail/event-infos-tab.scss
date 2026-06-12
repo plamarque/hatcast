@@ -1,3 +1,24 @@
+.event-infos__saison {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.event-infos__scope-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.event-infos__scope-chip {
+  min-height: 48px;
+  --mdc-chip-label-text-size: 0.875rem;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
 .event-infos {
   display: flex;
   flex-direction: column;

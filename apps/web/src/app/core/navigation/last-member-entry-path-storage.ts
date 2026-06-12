@@ -31,6 +31,9 @@ export function isPersistableMemberEntryPath(path: string): boolean {
     if (prefix === 'saison') {
       return true
     }
+    if (prefix === 'troupes') {
+      return true
+    }
   }
   if (segments.length === 3 && segments[0] === 'saison') {
     return !!segments[1]?.trim() && !!segments[2]?.trim()

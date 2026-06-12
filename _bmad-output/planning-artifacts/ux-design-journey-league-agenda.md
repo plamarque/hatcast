@@ -307,7 +307,7 @@ Card grid (responsive):
 
 - [ ] Nav **Ma troupe** lands here
 - [ ] Distinct from **Mon agenda**
-- [ ] Event Infos › Contexte links here or workspace
+- [ ] Event Infos › **Saison** chips link here or workspace
 
 ---
 
@@ -336,21 +336,22 @@ Card grid (responsive):
 
 ### Chrome
 
-> **2026-06-10 (approved):** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) — **no breadcrumb** on event detail ; chevron back (history + fallback) ; **Contexte** section on Infos tab (troupe · saison + links). Title row above tabs unchanged (E7–E9).
+> **2026-06-10 (approved):** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) — **no breadcrumb** on event detail ; chevron back (history + fallback).
+> **2026-06-12 (amend.):** titre **inline** dans le header (même ligne que chevron) ; badge statut **Équipe tab only** ; Infos › section **Saison** (dernier bloc, chips).
 
 | Zone | Content |
 |------|---------|
-| **Header left** | **Chevron Retour** — `history.back()` ; fallback `/agenda` or `lastMemberEntryPath` |
-| **Header right** | `app-scope-admin-menu` (when permitted) |
-| **Title row** | `h1` event title + composition status badge (E7–E9) |
+| **Header** | **Chevron Retour** + **`h1` titre** (une ligne, ellipsis mobile) + `app-scope-admin-menu` (when permitted) + shell avatar |
 | **Tabs** | Infos \| Dispos \| Équipe \| … |
-| **Infos tab** | **Contexte** (troupe · saison + Ouvrir la saison / Voir la troupe) then Date, Lieu, Format… |
-| **Removed** | `app-context-breadcrumb` troupe › saison on event detail (supersedes E8 2026-06-06) |
+| **Infos tab** | Date, Lieu, Format…, Catégorie, puis **Saison** (chips `{troupeName}` + `{seasonTitle}`) |
+| **Équipe tab** | Badge statut composition + aide **`?`** en tête ; puis grille / actions |
+| **Removed** | `app-context-breadcrumb` troupe › saison ; badge statut dans le header / title row (supersedes E7–E9 partiel 2026-06-06) |
 
 **Acceptance hints:**
 
-- [ ] Event title readable line 1 (title row)
-- [ ] Troupe + saison discoverable in Infos › Contexte
+- [ ] Event title readable on header line 1 (with back chevron)
+- [ ] Troupe + saison discoverable in Infos › **Saison** (chips)
+- [ ] Composition status visible on **Équipe** tab only
 - [ ] Shareable slug URL (17.6)
 
 ---

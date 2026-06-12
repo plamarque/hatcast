@@ -697,7 +697,6 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Valider')
     })
-    expect(fixture.nativeElement.textContent).not.toContain('En préparation')
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
     expect(
       fixture.nativeElement.textContent,
@@ -1688,7 +1687,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('does not show inline status badge in équipe tab on validated pending composition', async () => {
+  it('shows status badge in équipe tab on validated pending composition', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1717,8 +1716,10 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).not.toContain('Confirmations :')
-      expect(fixture.nativeElement.querySelector('.composition-equipe-status__badge')).toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__status')).not.toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-status-badge"]')?.textContent,
+      ).toContain('Confirmations en cours')
       expect(fixture.nativeElement.textContent).toContain('Annoncer la compo')
     })
   })

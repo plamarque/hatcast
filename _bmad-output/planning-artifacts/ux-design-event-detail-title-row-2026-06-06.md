@@ -20,26 +20,26 @@ stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail) �
 
 # UX — Event detail title row (amendment 2026-06-06)
 
-**Purpose:** Freeze the **post–2026-06-06** event detail chrome after mobile field testing: event title leaves the breadcrumb and sits on a **dedicated row above tabs**, paired with the composition status badge; Infos tab no longer duplicates title/description chrome.
+**Purpose:** Freeze event detail chrome after mobile field testing and **17.43** (2026-06-12): event title **inline in sticky header** with back chevron; composition status badge **on Équipe tab only**; troupe/saison context in Infos **Saison** section (chips, last block).
 
-**Trigger:** Mobile breadcrumb truncation (`[MVP] 02 · Assignatio…`); redundant Infos fields after title row shipped.
+**Trigger:** Mobile breadcrumb truncation; badge in header harmed title readability; context section « Contexte » too abstract — renamed **Saison**, moved to bottom with chips.
 
 ---
 
 ## User story
 
-> As a member or organizer on event detail, I want the **spectacle name** readable at a glance next to its **composition status**, without fighting the breadcrumb or repeating the same information in Infos — on **phone and desktop**.
+> As a member or organizer on event detail, I want the **spectacle name** readable in the header without competing chrome, discover troupe/saison in Infos when I need it, and see **composition status** where I act on the team — on **phone and desktop**.
 
 ---
 
-## Design decisions (amend prior E4–E6)
+## Design decisions (amend prior E4–E9)
 
-| ID | Decision | Replaces |
-|----|----------|----------|
-| **E7** | **Title row above tabs** (all breakpoints): `h1.event-detail__event-title` left, composition status badge + help trigger right. `aria-current="page"` on the `h1`. | E4 mobile-context removal (still valid); **reverses** E5 (title in breadcrumb). |
-| **E8** | Breadcrumb on event detail = **troupe + saison only** (`omitEventFromBreadcrumb` on `app-context-breadcrumb`). Desktop **and** mobile. Season segment stays a link on event detail. | E5 breadcrumb leaf = event title. |
-| **E9** | Composition status badge lives **only** on the title row (above tabs), **right-aligned** with help icon — not centered, **not** in Infos tab. Help panel spans full width below the title row when open. | E6 centered badge on Infos / Équipe. |
-| **E10** | **Infos tab:** no **Titre** field. **Description:** no section label; show text in value card **only when** `description.trim()` is non-empty; otherwise **omit block entirely** (no « Non renseignée »). | Prior Infos three-field stack (Description labeled). |
+| ID | Decision | Replaces / notes |
+|----|----------|------------------|
+| **E7** | **Title in sticky header** (all breakpoints): same row as chevron back — `h1.event-detail__event-title`, ellipsis on narrow viewports. `aria-current="page"` on the `h1`. Tabs **below** header. | 2026-06-06 title row **above** tabs with badge right. |
+| **E8** | ~~Breadcrumb troupe › saison on event detail~~ — **superseded by ED1** (no breadcrumb). Admin sub-pages unchanged. | E5 breadcrumb leaf = event title. |
+| **E9** | Composition status badge + help **`?`** : **Équipe tab only** (top of `event-equipe-tab`), centered row — **not** in header, **not** on Infos/Dispos. Help panel below badge row when open. | E6 centered badge on Infos ; 2026-06-06 title row badge. |
+| **E10** | **Infos tab:** no **Titre** field. **Description:** no section label; show text in value card **only when** `description.trim()` is non-empty. **Saison** section (last block): chips `{troupeName}` + `{seasonTitle}` → hub / workspace. | Prior « Contexte » first block + buttons (ED4 initial). |
 | **E11** | Tab body content: **≥ 1.5rem** padding-top below pill tab bar (all tabs). | — |
 | **E12** | Barre d’onglets : pattern **capsule M3** (coque `surface-container-high` + pastille active `primary-container`) — spec normative [ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md) ; mixin `_hatcast-pill-tab-bar.scss`. | Ancien style pastilles isolées + `rgba(255,255,255,0.1)`. |
 
@@ -51,37 +51,30 @@ stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail) �
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ [logo] Troupe › Saison 2026-2027                        [ ⚙ ] [avatar] │
-├──────────────────────────────────────────────────────────────────────┤
-│ [MVP] 02 · Assignation manuelle              [ À composer ] [ ? ]     │  ← title row
+│ [←] Spectacle title (ellipsis…)                           [ ⚙ ] [av] │  ← sticky header
 ├──────────────────────────────────────────────────────────────────────┤
 │              [ Infos | Dispos | Équipe | Activité ]                     │
 ├──────────────────────────────────────────────────────────────────────┤
 │ (1.5rem gap)                                                          │
-│ Infos: description card (if any) · Date · Lieu · Format…              │
+│ Infos: … · Catégorie · Saison [chip troupe] [chip saison]             │
+│ Équipe: [ Confirmé ] [ ? ] · grille…                                  │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-### Title row (`event-detail__context-row`)
+### Header title (`event-detail-header` — title projected via `data-event-detail-title-row`)
 
 | Property | Value |
 |----------|-------|
-| Layout | CSS grid: `minmax(0, 1fr) auto` — title col 1, status col 2 |
-| Title | `h1`, `1.25rem` mobile / `1.35rem` ≥ 840px, `font-weight: 700`, wrap allowed |
-| Status | `app-composition-equipe-status-header` with `inlineInEventContext` |
-| Draft banner (composition) | Full width row **above** title+badge when shown |
-| No status yet | Title row shows title only (no placeholder badge) |
+| Layout | Flex row: back chevron \| title (`flex 1`, ellipsis mobile) \| admin gear (fixed corner mobile) |
+| Title | `h1`, `1.25rem` mobile / `1.35rem` ≥ 840px, `font-weight: 700` |
+| Status badge | **Not in header** — see E9 / Équipe tab |
+| Draft banner (event) | Full width **below** header when event unpublished |
 
 ### Breadcrumb (`app-context-breadcrumb`, event detail)
 
-| Breakpoint | Trail |
-|------------|-------|
-| Desktop | `[logo] Troupe › Saison` (saison linked) |
-| Mobile | `[logo] › Saison` (switcher or link) |
+**Removed on canonical event detail** (ED1 / 17.43). No `omitEventFromBreadcrumb` — component absent from header.
 
-Event title **must not** appear in breadcrumb on canonical event detail (`event-detail-header` sets omit flag).
-
-**Admin sub-pages** (e.g. Participants du spectacle): keep event title in breadcrumb + separate mobile H1 per `mobileOmitLeaf` pattern — **unchanged**.
+**Admin sub-pages** (e.g. Participants du spectacle): keep full breadcrumb + separate mobile H1 — **unchanged**.
 
 ### Infos tab fields (member view)
 
@@ -93,23 +86,28 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 | Format et besoins | Inline help under label ; section always visible ; edit icon if `canManageEvents` (**17.14**, **UX-DR22**) |
 | Organisateur·ices | Inline help when section visible ; gating unchanged (`canManageEventOrganizers` or ≥1 organizer) (**17.15**, **UX-DR23**) |
 | Catégorie | **Always visible** ; inline help under label ; chip **Spectacle ordinaire** when unset ; custom chip + **×** when set ; chip click opens dialog if orga (**UX-DR21**) |
+| Saison | **Last block** ; label **Saison** ; two **clickable chips** (troupe name → hub, season title → workspace), centered ; hidden if context unresolved (**17.43** / ED4) |
 
 ---
 
 ## Acceptance criteria (regression guards)
 
-### Title row & breadcrumb
+### Header & title
 
-- [ ] **E7** Event title visible in `event-detail__event-title` after event load; `aria-current="page"` on `h1`.
-- [ ] **E8** Breadcrumb does **not** contain event title on event detail (desktop trail + mobile row).
-- [ ] **E8** Breadcrumb still shows troupe + saison; saison links to `/saison/:slug`.
-- [ ] Title row hidden while loading / on resolver or event 404.
+- [ ] **E7** Event title in `event-detail__event-title` inside sticky header (same row as back chevron); `aria-current="page"` on `h1`.
+- [ ] **E7** Title hidden while loading / on resolver or event 404.
+- [ ] **E7** No composition status badge in header.
+
+### Breadcrumb
+
+- [ ] **E8** No `app-context-breadcrumb` on canonical event detail (ED1).
+- [ ] Admin event sub-pages still use breadcrumb with event title leaf.
 
 ### Composition status
 
-- [ ] **E9** Badge + help on title row right; not duplicated in Infos tab.
-- [ ] Help panel opens below title row, full content width.
-- [ ] When composition draft banner shows, it appears above title row without overlapping title.
+- [ ] **E9** Badge + help on **Équipe tab** top only; not on Infos/Dispos/header.
+- [ ] Help panel opens below badge row on Équipe tab.
+- [ ] When composition draft zone shows on Équipe, it appears below status chrome without overlap.
 
 ### Infos tab
 
@@ -117,7 +115,7 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 - [ ] **E10** Empty or whitespace-only description → no description block.
 - [ ] **E10** Non-empty description → card without « DESCRIPTION » heading.
 - [ ] **E10** **Catégorie** section always present ; default chip **Spectacle ordinaire** when `category` null.
-- [ ] **E10** Inline help under **Catégorie**, **Format et besoins**, and **Organisateur·ices** (when that section is shown).
+- [ ] **E10** **Saison** section last in Infos when troupe + season context known ; chips navigate correctly.
 
 ### Tabs spacing
 
@@ -138,12 +136,12 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 
 | Area | File(s) |
 |------|---------|
-| Title row | `event-detail.html`, `event-detail.scss` |
+| Header + title | `event-detail-header.html/ts`, `event-detail.html`, `event-detail.scss` |
 | Tab bar capsule | `_hatcast-pill-tab-bar.scss`, spec [ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md) |
-| Breadcrumb omit | `event-detail-header.html` → `[omitEventFromBreadcrumb]="true"`, `context-breadcrumb.html/ts` |
-| Status inline | `composition-equipe-status-header.ts/scss` (`inlineInEventContext`) |
-| Infos | `event-infos-tab.html` |
-| Tests | `event-detail.spec.ts`, `event-infos-tab.spec.ts`, `context-breadcrumb.spec.ts` |
+| Status (Équipe) | `event-equipe-tab.html`, `composition-equipe-status-header.ts/scss` |
+| Infos Saison | `event-infos-tab.html` |
+| Hub UX source | [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) ED1–ED5 |
+| Tests | `event-detail.spec.ts`, `event-infos-tab.spec.ts`, `event-equipe-tab.spec.ts` |
 
 ---
 
@@ -160,3 +158,4 @@ Event title **must not** appear in breadcrumb on canonical event detail (`event-
 |------|--------|--------|
 | 2026-06-06 | Sally / Patrice | Amendment E7–E11 after mobile + desktop shipping |
 | 2026-06-09 | Sally / Paige | E12 — barre onglets capsule M3 ; lien ux-design-pill-tab-bar.md |
+| 2026-06-12 | Sally / Patrice | **17.43 retro-doc** — titre inline header ; badge Équipe only ; Infos › Saison (chips, dernier bloc) ; supersedes E8 breadcrumb omit + E9 title-row badge |

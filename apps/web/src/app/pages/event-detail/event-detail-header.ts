@@ -1,5 +1,10 @@
-import { Component, computed, input } from '@angular/core'
-import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
+import { Location } from '@angular/common'
+import { Component, computed, inject, input } from '@angular/core'
+import { Router } from '@angular/router'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
+
+import { getLastMemberEntryPath } from '../../core/navigation/last-member-entry-path-storage'
 import {
   ScopeAdminMenu,
   type ScopeAdminMenuItem,
@@ -7,28 +12,28 @@ import {
 
 @Component({
   selector: 'app-event-detail-header',
-  imports: [ContextBreadcrumb, ScopeAdminMenu],
+  imports: [MatButtonModule, MatIconModule, ScopeAdminMenu],
   templateUrl: './event-detail-header.html',
   styleUrl: './event-detail-header.scss',
 })
 export class EventDetailHeader {
-  readonly seasonSlug = input.required<string>()
-  readonly seasonId = input.required<string>()
-  readonly troupeId = input.required<string>()
-  readonly troupeName = input<string | null>(null)
-  readonly troupeSlug = input<string | null>(null)
-  readonly troupeLogoUrl = input<string | null>(null)
-  readonly seasonTitle = input<string | null>(null)
-  readonly eventTitle = input<string | null>(null)
+  private readonly location = inject(Location)
+  private readonly router = inject(Router)
+
+  readonly showBack = input(false)
   readonly adminItems = input<ScopeAdminMenuItem[]>([])
 
-  protected readonly showBreadcrumb = computed(
-    () =>
-      !!this.troupeName()?.trim() &&
-      !!this.troupeSlug()?.trim() &&
-      !!this.seasonTitle()?.trim() &&
-      !!this.eventTitle()?.trim(),
-  )
-
   protected readonly showAdminMenu = computed(() => this.adminItems().length > 0)
+
+  protected onBack(): void {
+    const state = this.location.getState() as { navigationId?: number } | null
+    const hasAppHistory =
+      typeof state?.navigationId === 'number' && state.navigationId > 1
+    if (hasAppHistory) {
+      this.location.back()
+      return
+    }
+    const fallback = getLastMemberEntryPath() ?? '/agenda'
+    void this.router.navigateByUrl(fallback)
+  }
 }

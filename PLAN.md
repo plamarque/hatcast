@@ -621,7 +621,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **17.37** | Détail spectacle — rangée titre + statut hors breadcrumb ; Infos sans titre redondant | P2 | 17.1, chrome alignment | **done** 2026-06-06 |
 | **17.41** | Nav shell — onglet **Ma troupe** + `lastVisitedTroupeSlug` | P1 | 17.22, 17.4 | **done** 2026-06-12 |
 | **17.42** | Hub troupe — **dashboard collectif** (carte saison, participants, teaser agenda) | P1 | 17.41 |
-| **17.43** | Détail spectacle — retrait breadcrumb header + **Contexte** onglet Infos | P1 | 17.41 ; parallèle 17.42 possible |
+| **17.43** | Détail spectacle — retrait breadcrumb ; titre inline header ; Infos **Saison** (chips) ; badge statut onglet Équipe | P1 | 17.41 ; parallèle 17.42 possible |
 | **17.44** | Hub troupe — mini-chart mois saison *(phase 2)* | P2 | 17.42 |
 | **17.26** | ~~Hub troupe — onglets Saisons / Membres~~ — **superseded** par **17.42** (dashboard + roster via workspace) ; idée G-007 partielle | — | voir 17.42 |
 

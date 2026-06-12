@@ -52,14 +52,14 @@ Usability testing on wireframes was **not run** (no participants available); dec
 
 **`app-context-breadcrumb`**
 
-- **Desktop:** troupe logo + name › season title › event title (current leaf not linked).
-- **Mobile:** **troupe logo only** in breadcrumb slot (tap → troupe hub); season/event titles in page body to avoid overflow.
-- **No ⚙** in global header.
+- **Season workspace, admin sub-pages, troupe settings:** unchanged — desktop trail troupe › season › … ; mobile logo-only compromise where applicable.
+- **Canonical event detail** (`/saison/:troupeSlug/:seasonSlug/event/:eventSlug`): **no breadcrumb** (story **17.43**, [ux-design-ma-troupe-hub.md](../../_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md) ED1). Header = chevron **Retour** + event title (inline) + scope admin gear ; troupe/saison context in Infos tab section **Saison** (chips). Composition status badge on **Équipe tab only** (ED5).
+- **No ⚙** in global header row (breadcrumb + avatar) on surfaces that still use breadcrumb.
 
 **`app-scope-admin-menu`** (one scope per screen, role-gated)
 
 - **Control:** gear icon (`settings` / `admin_panel_settings`) opening a **`mat-menu`** with scope-appropriate entries (router links and dialog actions). Hidden when the user has no entries for that scope.
-- **Placement:** **inline in view chrome** — not a full-width row below the header. Examples: season workspace — gear to the **right** of **Agenda | Historique** in the season toolbar; event detail — gear on the tab/actions row; troupe hub — gear in the hero/toolbar row (not a band across the canvas).
+- **Placement:** **inline in view chrome** — not a full-width row below the header. Examples: season workspace — gear to the **right** of **Agenda | Historique** in the season toolbar; **event detail** — gear in sticky header (right, with chevron + title left); troupe hub — gear in the hero/toolbar row (not a band across the canvas).
 - Labels in menu items remain explicit (e.g. Participants, Organisateur·ices, Membres); optional menu header text may repeat scope (« Administration de la saison ») for screen readers.
 - Troupe **member preferences** (pseudo, preferred roles) behind a **secondary preferences** control on troupe hub — not the admin gear menu.
 
@@ -139,6 +139,7 @@ Usability testing on wireframes was **not run** (no participants available); dec
 ## References
 
 - [_bmad-output/design-thinking-2026-05-25.md](../../_bmad-output/design-thinking-2026-05-25.md)
-- [ux-design-journey-league-agenda.md](../../_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) — to be updated for Saison copy, `/troupes`, breadcrumb
+- [ux-design-journey-league-agenda.md](../../_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) — Screen 6 event detail (17.43)
+- [ux-design-ma-troupe-hub.md](../../_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md) — ED1–ED5 event detail chrome
 - PLAN.md Epic 17
 - DOMAIN.md § Catégorie, Season UI label

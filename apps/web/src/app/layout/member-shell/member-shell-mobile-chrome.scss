@@ -11,7 +11,6 @@
 
   /* Engrenage admin saison / spectacle / hub troupe : même rangée que l’avatar fixe (UX-DR22.1 mobile). */
   .member-shell--with-nav .season-header.season-header--with-admin,
-  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin,
   .member-shell--with-nav .troupe-hub__hero.troupe-hub__hero--with-admin {
     padding-inline-end: calc(
       var(--member-shell-account-reserve, 3.25rem) + var(--member-shell-corner-size, 3rem) +
@@ -20,7 +19,6 @@
   }
 
   .member-shell--with-nav .season-header.season-header--with-admin .season-header__admin,
-  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin .event-detail-header__admin,
   .member-shell--with-nav .troupe-hub__hero.troupe-hub__hero--with-admin .troupe-hub__hero-admin {
     position: fixed;
     z-index: 1100;
@@ -42,8 +40,24 @@
     margin: 0;
   }
 
+  .member-shell--with-nav .event-detail-header.event-detail-header--with-admin .event-detail-header__admin {
+    position: fixed;
+    z-index: 1100;
+    top: var(--member-shell-corner-top, max(0.25rem, env(safe-area-inset-top, 0px)));
+    inset-inline-end: calc(
+      var(--member-shell-corner-inset, max(0.5rem, env(safe-area-inset-right, 0px))) +
+        var(--member-shell-corner-size, 3rem) + var(--member-shell-corner-gap, 0.35rem)
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--member-shell-corner-size, 3rem);
+    height: var(--member-shell-corner-size, 3rem);
+    margin: 0;
+    padding: 0;
+  }
+
   .member-shell--with-nav .season-header,
-  .member-shell--with-nav .event-detail-header,
   .member-shell--with-nav .admin-participants__header,
   .member-shell--with-nav .admin-membres__header,
   .member-shell--with-nav .admin-event-participants__header,

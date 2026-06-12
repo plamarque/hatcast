@@ -48,6 +48,7 @@ import { canShowCompositionExplainability } from '../../core/composition/composi
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { showCompositionDraftBanner } from '../../core/composition/composition-visibility'
 import type { EventResponse } from '../../core/events/event-api.service'
+import { isEventDraft } from '../../core/events/event-draft'
 import {
   normalizeRoleSlots,
   ROLE_EMOJIS,
@@ -60,6 +61,7 @@ import { roleActionChipDisplayText } from '../../shared/event-roles/role-action-
 import { RoleActionChip } from '../../shared/event-roles/role-action-chip/role-action-chip'
 import { ChanceBreakdownService } from '../../shared/composition/chance-breakdown.service'
 import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
+import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { CompositionPoolPreview } from '../../shared/composition/composition-pool-preview'
 import {
   CompositionParticipationDialog,
@@ -105,12 +107,13 @@ interface SlotRow {
     MatTooltipModule,
     EventEquipeEmpty,
     CompositionDrawAnimation,
+    CompositionEquipeStatusHeader,
     CompositionPoolPreview,
     UserAvatarComponent,
     RoleActionChip,
   ],
   templateUrl: './event-equipe-tab.html',
-  styleUrl: './event-equipe-tab.scss',
+  styleUrls: ['./event-equipe-tab.scss', '../../shared/composition/composition-equipe-status-header.scss'],
 })
 export class EventEquipeTab {
   protected readonly roleChipDisplayText = roleActionChipDisplayText
@@ -266,6 +269,11 @@ export class EventEquipeTab {
       roleSlots: normalizeRoleSlots(ev.roleSlots),
       suppressValidateCtaInGuideline: this.canValidate(),
     })
+  })
+
+  protected readonly eventIsDraft = computed(() => {
+    const ev = this.event()
+    return !!ev && isEventDraft(ev)
   })
 
   protected readonly equipeActionFlags = computed(() => ({
