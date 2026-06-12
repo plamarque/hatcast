@@ -83,6 +83,19 @@ class SeasonParticipantService(
             }
     }
 
+    @Transactional(readOnly = true)
+    fun listGuestSelectors(
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ): List<ParticipantSelectorDto> =
+        seasonParticipantRepository
+            .findActiveForSeasonLinkedToUser(seasonId, ParticipantStatus.ACTIVE, principal.userId)
+            .sortedByFrenchDisplayName { it.displayName }
+            .map { row ->
+                val avatarUrl = selectorAvatarUrl(row.user ?: row.troupeMembership?.user)
+                ParticipantSelectorDto.from(row, avatarUrl)
+            }
+
     @Transactional
     fun create(
         seasonId: UUID,

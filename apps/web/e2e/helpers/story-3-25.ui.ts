@@ -88,6 +88,7 @@ async function expectGuestEventDetailReady(page: Page): Promise<void> {
   await expect(page.locator('app-event-detail')).toBeVisible({ timeout: 45_000 })
   await expect(page).not.toHaveURL(/\/agenda$/)
   await expect(page.locator('.event-detail__spinner')).toHaveCount(0, { timeout: 45_000 })
+  await expect(page.locator('.event-detail__event-title')).toBeVisible({ timeout: 45_000 })
   await waitForEventDetailSeasonNavigation(page)
 }
 
