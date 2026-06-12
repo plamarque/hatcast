@@ -72,18 +72,15 @@ export async function gotoSeasonWorkspace(
   }
 }
 
-function waitForGuestEventPageResponse(
-  page: Page,
-  eventSlug: string,
-  tab: 'dispos' | 'equipe' | 'infos',
-) {
+function waitForGuestEventPageResponse(page: Page, eventSlug: string) {
   return page.waitForResponse(
     (response) => {
       const url = response.url()
       return (
         response.request().method() === 'GET' &&
-        url.includes(`/events/by-slug/${encodeURIComponent(eventSlug)}/page`) &&
-        url.includes(`tab=${tab}`) &&
+        url.includes('/events/by-slug/') &&
+        url.includes(eventSlug) &&
+        url.includes('/page') &&
         response.status() === 200
       )
     },
@@ -105,32 +102,8 @@ export async function openGuestEventTab(
   eventSlug: string,
   tab: 'dispos' | 'equipe' | 'infos',
 ): Promise<void> {
-  const eventPageReady = waitForGuestEventPageResponse(page, eventSlug, tab)
+  const eventPageReady = waitForGuestEventPageResponse(page, eventSlug)
   await page.goto(saisonEventPath(fx.troupeSlug, seasonSlug, eventSlug, { tab }))
-  await eventPageReady
-  await expectGuestEventDetailReady(page)
-}
-
-export async function clickSeasonAgendaEvent(page: Page, eventTitle: string): Promise<void> {
-  await waitForAgendaLoadingDone(page)
-  const card = page.locator('.agenda-card').filter({
-    has: page.locator('.agenda-card__title', { hasText: eventTitle }),
-  }).first()
-  await expect(card).toBeVisible({ timeout: 30_000 })
-  const eventPageReady = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'GET' &&
-      response.url().includes('/events/by-slug/') &&
-      response.url().includes('/page?') &&
-      response.status() === 200,
-    { timeout: 45_000 },
-  )
-  const clickable = card.locator('.agenda-card__clickable')
-  if ((await clickable.count()) > 0) {
-    await clickable.click()
-  } else {
-    await card.locator('.agenda-card__body').click()
-  }
   await eventPageReady
   await expectGuestEventDetailReady(page)
 }
