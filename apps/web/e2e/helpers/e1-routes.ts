@@ -2,6 +2,12 @@ export function saisonWorkspacePath(troupeSlug: string, seasonSlug: string): str
   return `/saison/${troupeSlug}/${seasonSlug}`
 }
 
+/** Season workspace URL (optional query, e.g. `?view=agenda` from SeasonHome). */
+export function seasonWorkspaceUrlPattern(troupeSlug: string, seasonSlug: string): RegExp {
+  const path = saisonWorkspacePath(troupeSlug, seasonSlug).replace(/\//g, '\\/')
+  return new RegExp(`${path}(?:\\?.*)?$`)
+}
+
 export function saisonEventPath(
   troupeSlug: string,
   seasonSlug: string,

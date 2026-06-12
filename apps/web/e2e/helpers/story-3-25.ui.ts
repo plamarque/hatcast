@@ -157,12 +157,32 @@ export async function expectAgendaCardAbsent(page: Page, title: string): Promise
 export async function gotoTroupeHub(page: Page, fx: Story325Fixture): Promise<void> {
   await page.goto(troupeHubPath(fx.troupeSlug))
   await expect(page.locator('app-troupe-hub')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.troupe-hub__dashboard')).toBeVisible({ timeout: 30_000 })
+}
+
+/** Story 17.42 — active seasons use dashboard heading, not season-card list. */
+export async function expectTroupeHubDashboardSeason(
+  page: Page,
+  seasonTitleFragment: string,
+): Promise<void> {
+  await expect(page.locator('#troupe-season-dashboard-heading')).toContainText(seasonTitleFragment, {
+    timeout: 30_000,
+  })
 }
 
 export async function clickSeasonCard(page: Page, seasonTitleFragment: string): Promise<void> {
-  const card = page.locator('app-season-card').filter({ hasText: seasonTitleFragment }).first()
-  await expect(card).toBeVisible({ timeout: 30_000 })
-  await card.locator('a.season-card__surface').click()
+  await expectTroupeHubDashboardSeason(page, seasonTitleFragment)
+  const cta = page.getByRole('link', { name: 'Voir tous les spectacles', exact: true })
+  const overflow = page.locator('.troupe-hub__avatar-overflow').first()
+  if ((await cta.count()) > 0) {
+    await cta.click()
+    return
+  }
+  if ((await overflow.count()) > 0) {
+    await overflow.click()
+    return
+  }
+  throw new Error(`No season workspace CTA on troupe hub for "${seasonTitleFragment}"`)
 }
 
 export async function clickBreadcrumbSeasonLink(
