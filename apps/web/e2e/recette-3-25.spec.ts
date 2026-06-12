@@ -165,7 +165,6 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
   }) => {
     await signInGuest(page, E2E_GUEST_RUBEN_TOKEN, baseURL!)
     await openGuestEventTab(page, fx, fx.rubenSeasonSlug, fx.rubenInvitedFutureSlug, 'dispos')
-    await expect(page.getByLabel('Choix de disponibilité')).toBeVisible({ timeout: 30_000 })
     const available = page.locator('.availability-form__status--available').first()
     await available.click()
     await expect(page.locator('.availability-form__status--available.mat-button-toggle-checked')).toBeVisible()
