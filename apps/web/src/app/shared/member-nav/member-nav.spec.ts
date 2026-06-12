@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import { MemberStatsShortcutService } from '../../core/navigation/member-stats-shortcut.service'
+import { LastVisitedTroupeShortcutService } from '../../core/navigation/last-visited-troupe-shortcut.service'
 import { PwaInstallService } from '../../core/pwa/pwa-install.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { MemberNav } from './member-nav'
@@ -19,6 +20,12 @@ describe('MemberNav', () => {
     userSlug: ReturnType<typeof signal<string | null>>
     link: ReturnType<typeof signal<string>>
     refresh: ReturnType<typeof vi.fn>
+  }
+  let troupeShortcut: {
+    troupeSlug: ReturnType<typeof signal<string | null>>
+    link: ReturnType<typeof signal<string>>
+    refresh: ReturnType<typeof vi.fn>
+    isTroupeTabActive: ReturnType<typeof vi.fn>
   }
   let router: Router
 
@@ -33,6 +40,12 @@ describe('MemberNav', () => {
       link: signal('/membre/patrice'),
       refresh: vi.fn().mockResolvedValue(undefined),
     }
+    troupeShortcut = {
+      troupeSlug: signal('malice'),
+      link: signal('/troupes/malice'),
+      refresh: vi.fn(),
+      isTroupeTabActive: vi.fn((path: string) => path.startsWith('/troupes/malice')),
+    }
 
     await TestBed.configureTestingModule({
       imports: [MemberNav, NoopAnimationsModule],
@@ -42,9 +55,12 @@ describe('MemberNav', () => {
           { path: 'agenda', component: MemberNav },
           { path: 'compte', component: MemberNav },
           { path: 'membre/:userSlug', component: MemberNav },
+          { path: 'troupes/:slug', component: MemberNav },
+          { path: 'troupes', component: MemberNav },
         ]),
         { provide: MemberInboxBadgeService, useValue: inboxBadge },
         { provide: MemberStatsShortcutService, useValue: statsShortcut },
+        { provide: LastVisitedTroupeShortcutService, useValue: troupeShortcut },
         {
           provide: AuthApiService,
           useValue: {
@@ -134,7 +150,57 @@ describe('MemberNav', () => {
     await renderAt('/agenda')
 
     const activeBottom = fixture.nativeElement.querySelector('.member-nav__bottom .mdc-tab--active')
-    expect(activeBottom?.textContent).toContain('Agenda')
+    expect(activeBottom?.textContent).toContain('Mon agenda')
+  })
+
+  it('renders four bottom tabs including Ma troupe', async () => {
+    await renderAt('/accueil')
+
+    const bottomTabs = fixture.nativeElement.querySelectorAll('.member-nav__bottom a.mat-mdc-tab-link')
+    expect(bottomTabs.length).toBe(4)
+    expect(fixture.nativeElement.textContent).toContain('Ma troupe')
+    expect(fixture.nativeElement.textContent).toContain('Mon agenda')
+  })
+
+  it('links Ma troupe tab to stored troupe hub', async () => {
+    await renderAt('/accueil')
+
+    const troupeLinks = fixture.nativeElement.querySelectorAll('a[href="/troupes/malice"]')
+    expect(troupeLinks.length).toBeGreaterThan(0)
+  })
+
+  it('falls back Ma troupe link to troupes list when no slug stored', async () => {
+    troupeShortcut.link = signal('/troupes')
+    await renderAt('/accueil')
+
+    const troupeLinks = fixture.nativeElement.querySelectorAll('a[href="/troupes"]')
+    expect(troupeLinks.length).toBeGreaterThan(0)
+  })
+
+  it('does not mark Ma troupe tab active on troupes list', async () => {
+    troupeShortcut.isTroupeTabActive = vi.fn((path: string) => path !== '/troupes' && path.startsWith('/troupes/'))
+    await renderAt('/troupes')
+
+    const maTroupeRail = Array.from(
+      fixture.nativeElement.querySelectorAll('.member-nav__rail-link') as NodeListOf<HTMLElement>,
+    ).find((link) => link.textContent?.includes('Ma troupe'))
+    expect(maTroupeRail?.classList.contains('member-nav__link--active')).toBe(false)
+
+    const activeBottom = fixture.nativeElement.querySelector('.member-nav__bottom .mdc-tab--active')
+    expect(activeBottom).toBeNull()
+  })
+
+  it('marks Ma troupe tab active on troupe hub route', async () => {
+    troupeShortcut.isTroupeTabActive = vi.fn((path: string) => path === '/troupes/malice')
+    await renderAt('/troupes/malice')
+
+    const activeRail = fixture.nativeElement.querySelector(
+      '.member-nav__rail a.member-nav__link--active',
+    )
+    expect(activeRail?.textContent).toContain('Ma troupe')
+
+    const activeBottom = fixture.nativeElement.querySelector('.member-nav__bottom .mdc-tab--active')
+    expect(activeBottom?.textContent).toContain('Ma troupe')
   })
 
   it('links stats tab to member glance', async () => {
@@ -151,10 +217,10 @@ describe('MemberNav', () => {
     const activeRail = fixture.nativeElement.querySelector(
       '.member-nav__rail a.member-nav__link--active',
     )
-    expect(activeRail?.textContent).toContain('Stats')
+    expect(activeRail?.textContent).toContain('Mes stats')
 
     const activeBottom = fixture.nativeElement.querySelector('.member-nav__bottom .mdc-tab--active')
-    expect(activeBottom?.textContent).toContain('Stats')
+    expect(activeBottom?.textContent).toContain('Mes stats')
   })
 
   it('does not mark stats active when viewing another member glance', async () => {
@@ -183,5 +249,20 @@ describe('MemberNav', () => {
   it('hides rail account footer on /compte', async () => {
     await renderAt('/compte')
     expect(fixture.nativeElement.querySelector('.member-account-menu-trigger--rail')).toBeNull()
+  })
+
+  it('refreshes troupe shortcut on init', async () => {
+    await renderAt('/accueil')
+    expect(troupeShortcut.refresh).toHaveBeenCalled()
+  })
+
+  it('refreshes troupe shortcut when route changes', async () => {
+    await renderAt('/accueil')
+    troupeShortcut.refresh.mockClear()
+    await router.navigateByUrl('/agenda')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(troupeShortcut.refresh).toHaveBeenCalled()
   })
 })

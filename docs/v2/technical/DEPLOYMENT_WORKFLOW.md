@@ -197,7 +197,7 @@ Le job T2 est déclenché automatiquement par [`deploy-v2-cloud-run.yml`](../../
 
 **Spectacles Malice :** `resolveE1Context` interroge l’API (`scope=all`) et retient un event avec `availabilityOpenedAt` — **à venir en priorité**, sinon **le plus récent passé** (navigation directe `/saison/…/event/{slug}`, pas dépendant de l’agenda « upcoming »). Override : `HATCAST_E2E_EVENT_DISPOS_SLUG` / `_DRAW_SLUG`.
 
-**Critères de sortie (PO) :** 100 % P0 `e1-mobile-member` (échec = bloquant) ; 100 % P0 `e1-desktop-orga` ; `e1-staging-migration-assert.mjs` vert ; `check-pwa.sh` vert.
+**Critères de sortie (PO) :** 100 % P0 `e1-mobile-member` (échec = bloquant), incl. **E1-MEM-040** (onglet **Ma troupe** → hub) depuis 2026-06-12 ; 100 % P0 `e1-desktop-orga` ; `e1-staging-migration-assert.mjs` vert ; `check-pwa.sh` vert.
 
 **Assert migration §6 (sanity, pas comptes figés) :** saison trouvée ; roster actif ≥ 1 ; events non archivés ≥ 1 ; `seasons.event_count` = events non archivés ; ≥ 1 déplacement ; ≥ 1 spectacle avec dispos ouvertes. Les totaux (36 events, 4 déplacements, etc.) sont **loggés** mais ne bloquent pas — les chiffres V1 évoluent (archivage, nouveaux spectacles). Parité stricte optionnelle via `HATCAST_E2E_EVENTS_EXPECTED` (replay migration local uniquement).
 

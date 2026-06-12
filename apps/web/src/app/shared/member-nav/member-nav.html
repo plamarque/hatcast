@@ -28,14 +28,29 @@
       routerLink="/agenda"
       routerLinkActive="member-nav__link--active"
       #agendaRailRla="routerLinkActive"
-      aria-label="Agenda"
+      aria-label="Mon agenda"
       [attr.aria-current]="agendaRailRla.isActive ? 'page' : null"
     >
       <span class="member-nav__rail-item">
         <span class="member-nav__rail-icon-wrap">
           <mat-icon aria-hidden="true">calendar_month</mat-icon>
         </span>
-        <span class="member-nav__rail-label">Agenda</span>
+        <span class="member-nav__rail-label">Mon agenda</span>
+      </span>
+    </a>
+    <a
+      mat-list-item
+      class="member-nav__rail-link"
+      [routerLink]="troupeShortcut.link()"
+      [class.member-nav__link--active]="isTroupeTabActive()"
+      aria-label="Ma troupe"
+      [attr.aria-current]="isTroupeTabActive() ? 'page' : null"
+    >
+      <span class="member-nav__rail-item">
+        <span class="member-nav__rail-icon-wrap">
+          <mat-icon aria-hidden="true">groups</mat-icon>
+        </span>
+        <span class="member-nav__rail-label">Ma troupe</span>
       </span>
     </a>
     <a
@@ -43,14 +58,14 @@
       class="member-nav__rail-link"
       [routerLink]="statsShortcut.link()"
       [class.member-nav__link--active]="isStatsTabActive()"
-      aria-label="Stats"
+      aria-label="Mes stats"
       [attr.aria-current]="isStatsTabActive() ? 'page' : null"
     >
       <span class="member-nav__rail-item">
         <span class="member-nav__rail-icon-wrap">
           <mat-icon aria-hidden="true">insights</mat-icon>
         </span>
-        <span class="member-nav__rail-label">Stats</span>
+        <span class="member-nav__rail-label">Mes stats</span>
       </span>
     </a>
     </mat-nav-list>
@@ -93,24 +108,36 @@
       routerLinkActive
       #agendaRla="routerLinkActive"
       [active]="agendaRla.isActive"
-      aria-label="Agenda"
+      aria-label="Mon agenda"
       [attr.aria-current]="agendaRla.isActive ? 'page' : null"
     >
       <span class="member-nav__bottom-item">
         <mat-icon aria-hidden="true">calendar_month</mat-icon>
-        <span class="member-nav__bottom-label">Agenda</span>
+        <span class="member-nav__bottom-label">Mon agenda</span>
+      </span>
+    </a>
+    <a
+      mat-tab-link
+      [routerLink]="troupeShortcut.link()"
+      [active]="isTroupeTabActive()"
+      aria-label="Ma troupe"
+      [attr.aria-current]="isTroupeTabActive() ? 'page' : null"
+    >
+      <span class="member-nav__bottom-item">
+        <mat-icon aria-hidden="true">groups</mat-icon>
+        <span class="member-nav__bottom-label">Ma troupe</span>
       </span>
     </a>
     <a
       mat-tab-link
       [routerLink]="statsShortcut.link()"
       [active]="isStatsTabActive()"
-      aria-label="Stats"
+      aria-label="Mes stats"
       [attr.aria-current]="isStatsTabActive() ? 'page' : null"
     >
       <span class="member-nav__bottom-item">
         <mat-icon aria-hidden="true">insights</mat-icon>
-        <span class="member-nav__bottom-label">Stats</span>
+        <span class="member-nav__bottom-label member-nav__bottom-label--truncate">Mes stats</span>
       </span>
     </a>
   </nav>

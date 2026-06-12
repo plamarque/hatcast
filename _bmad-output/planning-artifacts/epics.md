@@ -2124,6 +2124,84 @@ afin de **ne pas perdre le contexte** sur mobile et desktop.
 
 ---
 
+#### Story 17.41 : Nav shell — onglet Ma troupe + `lastVisitedTroupeSlug` *(UX 2026-06-10)*
+
+En tant que **membre**,  
+je veux un onglet **Ma troupe** dans la navigation globale,  
+afin d’**accéder en un tap** au hub de ma troupe (dernière visitée).
+
+**Acceptance Criteria (résumé)**
+
+- **Given** shell membre, **when** nav affichée, **then** **4 onglets** : Accueil · **Mon agenda** · **Ma troupe** · Mes stats (icône `groups` → `/troupes/{lastVisitedTroupeSlug}` ou `/troupes`).
+- **Given** visite hub troupe ou workspace saison canonique, **when** chargement OK, **then** persistance `lastVisitedTroupeSlug`.
+- **Given** post-login, **then** pas de défaut forcé vers Ma troupe.
+- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT1–MT3 ; amendement ux-hub 4ᵉ onglet.
+
+**Priorité :** P1 — prérequis **17.42** (dashboard hub).  
+**Depends :** 17.22, 17.4.  
+**Statut :** done (2026-06-12).  
+**Hors scope :** contenu hub, chrome événement.  
+**Story file:** [_17-41-nav-shell-ma-troupe.md_](../implementation-artifacts/17-41-nav-shell-ma-troupe.md)
+
+---
+
+#### Story 17.42 : Hub troupe — dashboard collectif *(UX 2026-06-10)*
+
+En tant que **membre**,  
+je veux un **hub troupe** centré sur la **saison en cours** (métriques, participants, prochains spectacles),  
+afin de **voir « chez nous »** sans dupliquer Mon agenda.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** `/troupes/:slug`, **when** chargé, **then** première section titrée `{season.title}` (pas « Saison en cours ») ; carte métriques + **Ouvrir la saison** ; switcher saison si >1 saison active inscrite.
+- **Given** sections suivantes, **then** **Participant·es** (avatars + Voir tout le roster) ; **Prochains spectacles** (max 3 + Voir tout l'agenda).
+- **Given** ≥2 troupes, **then** lien **Voir les autres troupes** → `/troupes` ; absent en mono-troupe.
+- **Given** saisons archivées, **then** lien discret **Saisons archivées (N)** sous la carte — pas de grille saisons active en page principale.
+- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT6–MT14.
+
+**Priorité :** P1.  
+**Depends :** 17.41 (done).  
+**Hors scope :** mini-chart mois (**17.44**), chrome événement (**17.43**).  
+**Story file :** [_17-42-hub-troupe-dashboard-collectif.md_](../implementation-artifacts/17-42-hub-troupe-dashboard-collectif.md)
+
+---
+
+#### Story 17.43 : Détail spectacle — contexte Infos + retrait breadcrumb *(UX 2026-06-10)*
+
+En tant que **membre**,  
+je veux le **titre du spectacle** en premier plan et le contexte troupe/saison dans **Infos**,  
+afin de **ne pas perdre de place** au breadcrumb sur mobile.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** détail spectacle, **then** **pas** de `app-context-breadcrumb` troupe › saison ; chevron **Retour** (`history.back()` + fallback) ; title row inchangé (17.37).
+- **Given** onglet Infos, **then** section **Contexte** : `{troupe} · {saison}` + liens **Ouvrir la saison** / **Voir la troupe**.
+- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) ED1–ED4 ; supersede partiel E8 (title row 2026-06-06).
+
+**Priorité :** P1.  
+**Depends :** 17.41.  
+**Story file :** *(à créer via `bmad-create-story 17.43`)*
+
+---
+
+#### Story 17.44 : Hub troupe — mini-chart mois saison *(UX phase 2)*
+
+En tant que **membre**,  
+je veux un **aperçu visuel de l'année** dans la carte saison du hub,  
+afin de **voir la densité des spectacles** comme sur Mes Stats.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** hub troupe carte saison, **when** ≥3 spectacles passés, **then** bandeau mois par mois (grammaire `member-profile-panel`) sous les tuiles métriques.
+- **Given** <3 spectacles passés, **then** tuiles chiffrées seules (comportement 17.42).
+- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT15.
+
+**Priorité :** P2.  
+**Depends :** 17.42.  
+**Story file :** *(à créer via `bmad-create-story 17.44`)*
+
+---
+
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 **Décisions produit (2026-05-28) :** sandbox **partagée** ; admin contenu par **super-admin** ; participants fictifs obligatoires ; `join_policy` sans paywall premium ; **Démo prod** via **`db/migration` idempotent (Option A)** ; seed dev renommé **Les Improbots** (slug `les-improbots`, emails `@seed.improbots.test`) — **La Malice** réservée à la migration V1 prod réelle.

@@ -3,9 +3,10 @@ import { MatDialog } from '@angular/material/dialog'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { BehaviorSubject, of } from 'rxjs'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { getLastVisitedTroupeSlug } from '../../core/navigation/last-visited-troupe-storage'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
@@ -13,6 +14,14 @@ import { TroupeHub } from './troupe-hub'
 import { TroupeEditDialog } from './troupe-edit-dialog'
 
 describe('TroupeHub', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
   const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'les-improbots' }))
 
   const seasons = [
@@ -159,6 +168,11 @@ describe('TroupeHub', () => {
     })
     return { fixture, dialog, patchTroupeProfile }
   }
+
+  it('remembers last visited troupe slug after hub loads', async () => {
+    await setup()
+    expect(getLastVisitedTroupeSlug()).toBe('les-improbots')
+  })
 
   it('shows breadcrumb Troupes › troupe name', async () => {
     const { fixture } = await setup()

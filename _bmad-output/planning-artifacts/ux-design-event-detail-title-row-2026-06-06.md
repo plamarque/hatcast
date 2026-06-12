@@ -15,7 +15,7 @@ supersedesPartially:
   - ux-design-event-detail-chrome-alignment.md#composition-status-badge--centered-e6
   - ux-design-journey-league-agenda.md#screen-6--détail-événement
   - ux-design-scope-admin-menu-epic17.md#screen-2--event-detail
-stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail)'
+stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail) — E8 breadcrumb superseded 2026-06-10 by ux-design-ma-troupe-hub.md ED1'
 ---
 
 # UX — Event detail title row (amendment 2026-06-06)

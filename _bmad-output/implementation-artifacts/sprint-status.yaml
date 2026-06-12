@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-10T18:00:00+02:00
+# last_updated: 2026-06-12T18:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-10T01:10:00+02:00"
+last_updated: "2026-06-12T18:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -277,6 +277,10 @@ development_status:
   17-38-category-glossary-api: done  # SCP 2026-06-08 — admin CRUD + stop auto-create on event save
   17-39-ui-category-selection: done  # amend v4 2026-06-09 — inline chips ; depends 17.38 ; code review 2026-06-09
   17-40-troupe-settings-categories: done  # SCP 2026-06-08 — page Paramètres troupe onglet Catégories ; depends 17.38
+  17-41-nav-shell-ma-troupe: done  # UX ma-troupe-hub MT1–MT3 — 4th nav tab + lastVisitedTroupeSlug ; code review 2026-06-12
+  17-42-hub-troupe-dashboard-collectif: ready-for-dev  # UX ma-troupe-hub MT6–MT14 — dashboard saison + participants + teaser
+  17-43-event-detail-contexte-infos: backlog  # UX ma-troupe-hub ED1–ED4 — retrait breadcrumb + section Contexte Infos
+  17-44-hub-troupe-mini-chart-saison: backlog  # UX ma-troupe-hub MT15 — phase 2 mini-chart mois
   epic-17-retrospective: optional
 
   epic-18: in-progress

@@ -418,3 +418,8 @@
 - **BeanPostProcessor enveloppe tout bean `DataSource`** — risque théorique de double proxy si plusieurs beans ; pratique Spring Boot = un seul DS.
 - **p95 sur n=10 ≈ max** — formule percentile sur 10 échantillons retourne le max ; acceptable pour gate manuel si documenté.
 - **`NeonAgendaPerformanceIntegrationTest` MockMvc in-process** — ne mesure pas le RTT réseau Neon/Cloud Run ; gate documenté comme opt-in manual CI avec waiver.
+
+## Deferred from: code review of 17-41-nav-shell-ma-troupe (2026-06-12)
+
+- **No logout / access-denied slug clear** — story explicitly deferred (season slug not cleared on logout either); `clearLastVisitedTroupeSlug` exported but unused in prod paths.
+- **Full `npm run test -w @hatcast/web` suite failures** — pre-existing (76+ failures unrelated to this story); targeted includes pass (22/22).

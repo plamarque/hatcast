@@ -289,10 +289,15 @@
 @media (max-width: 480px) {
   .member-nav__bottom .mat-mdc-tab-link {
     min-height: 3rem;
+    padding-inline: 0.125rem;
   }
 
   .member-nav__bottom-item {
     min-height: 3rem;
     min-width: 3rem;
+  }
+
+  .member-nav__bottom-label {
+    font-size: 0.625rem;
   }
 }

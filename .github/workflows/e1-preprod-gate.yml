@@ -1,5 +1,5 @@
 # E1 cutover preprod gate (T2) — staging Cloud Run + Neon Malice.
-# Blocking: e1-mobile-member P0 ; e1-desktop-orga P0 ; migration counts §6.
+# Blocking: e1-mobile-member P0 (incl. E1-MEM-040 Ma troupe) ; e1-desktop-orga P0 ; migration counts §6.
 # Design: _bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md
 name: E1 preprod gate (staging)
 

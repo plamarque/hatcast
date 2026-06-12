@@ -3,10 +3,12 @@ title: UX Design — Troupe & saison journey, user agenda
 status: approved-with-amendments
 author: Sally (UX) + Patrice
 date: '2026-05-24'
-amendmentDate: '2026-05-25'
+amendmentDate: '2026-06-10'
 approvedDate: '2026-05-24'
 approvedBy: Patrice
 amendedBy: Patrice
+relatedAmendments:
+  - _bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md
 stakeholderReservations:
   - id: RES-001
     topic: Agenda filter chrome
@@ -30,7 +32,7 @@ uxDr: UX-DR13 through UX-DR21
 **Status:** **Approved** 2026-05-24 — **Amended** 2026-05-25 per [ADR 0013](../../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) and Design Thinking session  
 **Scope:** Member entry, user agenda, troupe directory & hub, season workspace, event navigation — screen by screen
 
-> **Amendment note (2026-05-25):** French UI uses **Saison** (not Ligue) for the `season` entity. Canonical routes: `/saison/:slug`, `/troupes`, `/troupes/:slug`, `/saison/:slug/event/:eventSlug`. `/ligue/*` redirects to `/saison/*`. Sections marked **[ADR-0013]** supersede the 2026-05-24 text. Equity **tags** replace travel leagues for déplacements (ADR 0012 §3 superseded). Implementation: **Epic 17**.
+> **Amendment note (2026-06-10):** Hub troupe = dashboard collectif **Ma troupe** (nav 4ᵉ onglet) ; event detail sans breadcrumb troupe/saison — voir [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md). Supersedes Screen 4 grid-first layout and Screen 6 breadcrumb E8.
 
 ---
 
@@ -283,53 +285,29 @@ Card grid (responsive):
 
 ---
 
-## Screen 4 — Hub troupe (`/troupes/:slug`) **[ADR-0013] [Epic 17.4]**
+## Screen 4 — Hub troupe (`/troupes/:slug`) **[ADR-0013] [Epic 17.4] [amended 2026-06-10]**
 
-**Persona:** Amira — “Tout ce qui concerne La Malice.”
+> **Normative (2026-06-10):** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md).
 
-**Purpose:** Troupe identity, **seasons** list, admin entry, low-priority member prefs.
+**Persona:** Amira or Léa — collective home (J2/J3).
 
-### Chrome
+**Purpose:** Dashboard **Ma troupe** — saison courante, participants, teaser agenda. Entry : nav 4ᵉ onglet **Ma troupe**.
+
+### Chrome (cible 2026-06-10)
 
 | Zone | Content |
 |------|---------|
-| **Breadcrumb** | `Troupes › La Malice` (desktop) / logo slot (mobile) |
-| **Hero** | Large **logo + name** (centred or left per layout) |
-| **Hero / actions row** | `app-scope-admin-menu` — gear (TROUPE_ADMIN) |
-| **Top-right** | Avatar menu |
-
-### Block — Saisons **[ADR-0013]**
-
-```
-Saisons                           [ + Nouvelle saison ]  (admin only)
-
-┌──────────────────────────────────────┐
-│ Saison 2025-26 · active              │
-│ 12 événements · 18 participants      │
-└──────────────────────────────────────┘
-
-[ Afficher les saisons archivées ]
-```
-
-- Card tap → `/saison/:slug`
-- Admin: create season (Screen 5) — Story 13.3 roster modes when multi-season epic ships
-
-### Block — Préférences (secondary) **[ADR-0013]**
-
-- Icon control **Préférences dans cette troupe** → drawer/sheet:
-  - **Pseudo** troupe (FR9)
-  - **Rôles préférés** (AC10)
-- Not inline in hero (low prominence)
-
-### Block — Découverte
-
-- **Explorer d’autres troupes** → `/troupes#decouvrir`
+| **Hero** | Logo + name + gear — **no** breadcrumb |
+| **Section 1** | `h2` = season title ; metrics ; **Ouvrir la saison** ; switcher if >1 active season |
+| **Section 2** | **Participant·es** |
+| **Section 3** | **Prochains spectacles** (max 3) |
+| **Footer** | **Voir les autres troupes** if ≥2 memberships |
 
 **Acceptance hints:**
 
-- [ ] Multiple active seasons visible when applicable (ADR 0011)
-- [ ] Membres admin via scope gear menu, not `/seasons`
-- [ ] Event detail troupe link lands here (not admin membres)
+- [ ] Nav **Ma troupe** lands here
+- [ ] Distinct from **Mon agenda**
+- [ ] Event Infos › Contexte links here or workspace
 
 ---
 
@@ -350,31 +328,30 @@ Saisons                           [ + Nouvelle saison ]  (admin only)
 
 ---
 
-## Screen 6 — Détail événement (`/saison/:slug/event/:eventSlug`) **[ADR-0013]**
+## Screen 6 — Détail événement (`/saison/:slug/event/:eventSlug`) **[ADR-0013] [amended 2026-06-10]**
 
 **Persona:** Léa — dispos, compo, confirmation.
 
-**Purpose:** Functional tabs unchanged (UX-DR4–6 in `ux-design-hatcast-v2.md`); **navigation chrome** per ADR 0013.
+**Purpose:** Functional tabs unchanged (UX-DR4–6 in `ux-design-hatcast-v2.md`); **navigation chrome** per [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) ED1–ED4 + [ux-design-event-detail-title-row-2026-06-06.md](./ux-design-event-detail-title-row-2026-06-06.md) E7–E12.
 
 ### Chrome
 
-> **2026-06-06 (approved):** [ux-design-event-detail-title-row-2026-06-06.md](./ux-design-event-detail-title-row-2026-06-06.md) — title row above tabs; breadcrumb troupe + saison only; status badge on title row; Infos without titre/redundant description. Gear/agenda rules: [ux-design-event-detail-chrome-alignment.md](./ux-design-event-detail-chrome-alignment.md) E1–E3.
+> **2026-06-10 (approved):** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) — **no breadcrumb** on event detail ; chevron back (history + fallback) ; **Contexte** section on Infos tab (troupe · saison + links). Title row above tabs unchanged (E7–E9).
 
 | Zone | Content |
 |------|---------|
-| **Breadcrumb** | `[logo] Troupe › Saison` — **no event title** (desktop + mobile) |
-| **Title row** | `h1` event title (left) + composition status badge + help (right), above tabs — **all breakpoints** |
-| **Header right** | `app-scope-admin-menu` (when permitted) + avatar |
-| **Removed** | Event title in breadcrumb; mobile `event-detail__mobile-context`; agenda card `more_vert`; Infos « Titre » field; empty description block |
-| **Infos tab** | Description card only if non-empty (no label); date in Date field only; **no** status badge in tab |
-
-**Removed vs 2026-05-24:** chevron back; **context strip** (`La Malice · Ligue…`) — redundant with breadcrumb.
+| **Header left** | **Chevron Retour** — `history.back()` ; fallback `/agenda` or `lastMemberEntryPath` |
+| **Header right** | `app-scope-admin-menu` (when permitted) |
+| **Title row** | `h1` event title + composition status badge (E7–E9) |
+| **Tabs** | Infos \| Dispos \| Équipe \| … |
+| **Infos tab** | **Contexte** (troupe · saison + Ouvrir la saison / Voir la troupe) then Date, Lieu, Format… |
+| **Removed** | `app-context-breadcrumb` troupe › saison on event detail (supersedes E8 2026-06-06) |
 
 **Acceptance hints:**
 
-- [ ] User always knows troupe + saison (breadcrumb + aria)
+- [ ] Event title readable line 1 (title row)
+- [ ] Troupe + saison discoverable in Infos › Contexte
 - [ ] Shareable slug URL (17.6)
-- [ ] Inter-troupe event never cross-loads wrong troupe
 
 ---
 
