@@ -68,8 +68,8 @@ test.describe('E1 — membre nav Ma troupe (mobile)', () => {
     const fx = await resolveE1Context(request)
     await assertMobileViewport(page)
 
-    await clearLastVisitedTroupeSlug(page)
     await page.goto('/agenda')
+    await clearLastVisitedTroupeSlug(page)
     await seedLastVisitedTroupeSlug(page, fx.troupeSlug)
     await page.reload()
 

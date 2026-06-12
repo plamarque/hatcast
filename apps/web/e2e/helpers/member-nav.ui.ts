@@ -10,8 +10,16 @@ export const MEMBER_SHELL_TAB = {
 
 export type MemberShellTabLabel = (typeof MEMBER_SHELL_TAB)[keyof typeof MEMBER_SHELL_TAB]
 
+/** Accueil tab aria-label includes inbox badge suffix when pending actions exist (story 17.22). */
+function memberShellTabName(label: MemberShellTabLabel): string | RegExp {
+  if (label === MEMBER_SHELL_TAB.accueil) {
+    return /^Accueil/
+  }
+  return label
+}
+
 export function memberShellTab(page: Page, label: MemberShellTabLabel): Locator {
-  return page.getByRole('tab', { name: label, exact: true })
+  return page.getByRole('tab', { name: memberShellTabName(label), exact: true })
 }
 
 export async function expectMemberShellTabsVisible(page: Page): Promise<void> {
