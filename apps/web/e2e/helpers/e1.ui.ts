@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test'
 
 import type { E1CutoverFixture } from './e2e-api'
-import { seedMemberDisposVote } from './dispos-poll.ui'
+import { seedMemberDisposRoles } from './dispos-poll.ui'
 import { saisonEventPath, saisonWorkspacePath } from './e1-routes'
 
 /** Dismiss PWA install banner so it does not block clicks (local E2E). */
@@ -62,14 +62,13 @@ export async function runWeightedDraw(page: Page) {
   await expect(draw).toBeEnabled({ timeout: 60_000 })
 }
 
-/** Staging: saisir une dispo « moi » pour créer une ligne audit Activité (E1-MEM-022). */
+/** Seed a member availability vote for Activité audit journal (E1-MEM-022). */
 export async function seedMemberDisposForActivite(
   page: Page,
   fx: E1CutoverFixture,
   eventSlug: string,
 ): Promise<void> {
-  await openEventTab(page, fx, eventSlug, 'dispos')
-  await seedMemberDisposVote(page)
+  await seedMemberDisposRoles(page, fx, eventSlug, ['mc'])
 }
 
 export async function validateComposition(page: Page) {
