@@ -24,6 +24,7 @@ import {
 } from '../../core/navigation/last-member-entry-path-storage'
 import { ContextSwitcherDataService } from '../../core/navigation/context-switcher-data.service'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
+import { rememberLastVisitedTroupeSlug } from '../../core/navigation/last-visited-troupe-storage'
 import { navigateAwayFromUnreachableSeason } from '../../core/navigation/unreachable-season-navigation'
 import {
   saisonAdminMembresPath,
@@ -662,6 +663,7 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeLogoUrl.set(resolved.troupe.logoUrl ?? null)
     this.season.set(resolved.season)
     rememberLastVisitedSeasonSlug(resolved.season.slug, resolved.troupe.id)
+    rememberLastVisitedTroupeSlug(resolved.troupe.slug)
     rememberLastMemberEntryPath(
       saisonMemberEntryPath(resolved.troupe.slug, resolved.season.slug),
     )

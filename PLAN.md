@@ -619,9 +619,15 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **17.21** | API `GET /me/inbox` (confirmations + actions) | P1 | 6.7, 17.19 |
 | **17.22** | Navigation bar M3 membre (3 onglets) | P2 | 17.19 ; 17.21 reco. |
 | **17.37** | Détail spectacle — rangée titre + statut hors breadcrumb ; Infos sans titre redondant | P2 | 17.1, chrome alignment | **done** 2026-06-06 |
-| **17.26** | Hub troupe — onglets **Saisons / Membres** ; édition/archive saison sur cartes ; embed admin membres ; retrait gear troupe | P2 | 17.4, 17.11, 2.2 ; idée [G-007](_bmad-output/planning-artifacts/growth-backlog.md) |
+| **17.41** | Nav shell — onglet **Ma troupe** + `lastVisitedTroupeSlug` | P1 | 17.22, 17.4 | **done** 2026-06-12 |
+| **17.42** | Hub troupe — **dashboard collectif** (carte saison, participants, teaser agenda) | P1 | 17.41 |
+| **17.43** | Détail spectacle — retrait breadcrumb header + **Contexte** onglet Infos | P1 | 17.41 ; parallèle 17.42 possible |
+| **17.44** | Hub troupe — mini-chart mois saison *(phase 2)* | P2 | 17.42 |
+| **17.26** | ~~Hub troupe — onglets Saisons / Membres~~ — **superseded** par **17.42** (dashboard + roster via workspace) ; idée G-007 partielle | — | voir 17.42 |
 
 **Wave hub membre (2026-05-27) :** livrer **17.18** seul en premier si besoin rapide ; puis **17.19** ; **17.21** avant ou en parallèle de **17.22** ; **17.20** si remember last visit doit inclure `/accueil`. Spec : [_ux-hub-a-faire.md_](_bmad-output/planning-artifacts/ux-hub-a-faire.md).
+
+**Wave univers Ma Troupe (2026-06-10) :** spec normative [_ux-design-ma-troupe-hub.md_](_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md). Ordre : **17.41** (nav, done) → **17.42** (contenu hub) ; **17.43** (chrome événement) en parallèle ou juste après ; **17.44** (mini-chart) optionnel phase 2. Distinction : **Mon agenda** = moi cross-troupes ; **Ma troupe** = nous (saison courante).
 
 **DoD phase navigation (17.1–17.5) :** plus de hub `/seasons` ; breadcrumb sur troupe/saison/événement ; admin troupe depuis hub ; lien nom de troupe sur événement → hub.
 
@@ -633,7 +639,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **DoD polish formulaire (17.12–17.15) :** modale spectacle = noyau planning ; gouvernance (type, rôles, orgas) sur Infos ; participants spectacle hors modale. SCP : [sprint-change-proposal-2026-05-25-epic17-event-form-ux.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-25-epic17-event-form-ux.md).
 
-**UX spec :** [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (amended 2026-05-25 ; Screen 6 **2026-06-06** — [title row](_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md), story **17.37**).  
+**UX spec :** [_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (amended 2026-05-25 ; Screen 6 **2026-06-06** — [title row](_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md), story **17.37** ; **Ma Troupe 2026-06-10** — [ux-design-ma-troupe-hub.md](_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md), stories **17.41–17.44**).  
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 17.
 
 ---

@@ -7,6 +7,7 @@ import { BehaviorSubject } from 'rxjs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import * as lastVisitedTroupeStorage from '../../core/navigation/last-visited-troupe-storage'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { OrganizerApiService, type MySeasonPermissions } from '../../core/permissions/organizer-api.service'
 import { ParticipantApiService } from '../../core/participants/participant-api.service'
@@ -264,6 +265,16 @@ describe('SeasonHome', () => {
     await vi.waitFor(() => {
       expect(localStorage.getItem('lastVisitedSeason')).toBe('season-a')
     })
+  })
+
+  it('calls rememberLastVisitedTroupeSlug when season resolves', async () => {
+    const rememberTroupe = vi.spyOn(lastVisitedTroupeStorage, 'rememberLastVisitedTroupeSlug')
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(rememberTroupe).toHaveBeenCalledWith('troupe-1')
+    })
+    rememberTroupe.mockRestore()
   })
 
   it('redirige vers /agenda quand l’utilisateur n’a aucune troupe', async () => {

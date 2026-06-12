@@ -7,7 +7,7 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: step-05-generate-output
 lastSaved: 2026-06-05
-poAddendum: 2026-06-05-stats-audit-p0
+poAddendum: 2026-06-12-ma-troupe-nav-p0
 inputDocuments:
   - _bmad-output/implementation-artifacts/e1-cutover-screen-tour-staging-v2.0.0.md
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-v2.0.0-cutover-scope.md
@@ -19,7 +19,7 @@ constraintsFromPO:
   - Preprod gate before prod promote (nominal product paths)
   - Mobile responsive viewport is blocking on failure (not optional sample)
   - Desktop Chromium parallel for admin/orga-oriented scenarios
-  - P0 member: personal stats (Mes Stats) + spectacle Activité tab
+  - P0 member: personal stats (Mes Stats) + spectacle Activité tab + **Ma troupe** bottom tab (E1-MEM-040)
   - P0 orga/desktop: season Statistiques view + audit journal (saison + troupe)
 ---
 
@@ -63,12 +63,14 @@ constraintsFromPO:
 
 | Priority | Scenarios | Mobile | Desktop | Est. new effort |
 | -------- | --------- | ------ | ------- | --------------- |
-| P0 | **20** | **11** | **9** | ~16–24 h |
-| P1 | 8 | 2 | 4 | ~6–10 h |
+| P0 | **21** | **12** | **9** | ~16–24 h |
+| P1 | 7 | 2 | 4 | ~6–10 h |
 | P2/P3 | 8 | 2 | 4 | ~4–6 h (mostly manual/API) |
 | **Total** | **36** | — | — | **~28–40 h** (~4–5 dev-days) |
 
 **PO addendum (2026-06-05):** Stats & audit are **first-class P0**, not nice-to-have P1.
+
+**PO addendum (2026-06-12):** **E1-MEM-040** (onglet **Ma troupe** → hub dernier slug) is **P0 blocking** on `e1-mobile-member` (story **17.41**). E1-MEM-041–042 remain **P1** (fallback + seed href).
 
 **PO constraint encoded:** Any P0 scenario **failing on `e1-mobile-member`** blocks preprod→prod regardless of desktop green.
 
@@ -239,7 +241,9 @@ Legend: **M** = mobile project (blocking) · **D** = desktop orga · **API** = n
 | 3.4 | Workspace season chip/link | P0 | **M** | E1-MEM-004 | ❌ |
 | 3.5 | Breadcrumb troupe › saison | P1 | M+D | E1-NAV-001 | ❌ |
 | 3.6 | **Mes Stats** `/membre/{slug}` — KPIs + panel (E1 §3.6) | **P0** | **M** | E1-MEM-020 | ❌ |
-| 3.6b | Nav **Stats** (bottom tab mobile) → même page | **P0** | **M** | E1-MEM-021 | ❌ |
+| 3.6b | Nav **Mes stats** (bottom tab mobile) → même page | **P0** | **M** | E1-MEM-021 | ✅ |
+| 3.6c | Nav **Ma troupe** → hub dernier slug visité | **P0** | **M** | E1-MEM-040 | ✅ |
+| 3.6d | Nav **Ma troupe** fallback liste + seed href | **P1** | **M** | E1-MEM-041–042 | ✅ |
 | 3.7 | Stats spot-check vs V1 | P3 | — | — | 👁 |
 | 4.5 | Spectacle **Activité** — journal « Moi » (membre inscrit) | **P0** | **M** | E1-MEM-022 | ❌ |
 | 4.1 | Dispos tab: change subject / states | P0 | **M** | E1-MEM-010 | ❌ |
@@ -272,7 +276,8 @@ Legend: **M** = mobile project (blocking) · **D** = desktop orga · **API** = n
 
 | Feature | Route / UI | Component | Who |
 | ------- | ---------- | ----------- | --- |
-| Stats perso | `/membre/:userSlug` + nav **Stats** | `MemberSeasonGlance` + `MemberProfilePanel` | Membre (self) |
+| Stats perso | `/membre/:userSlug` + nav **Mes stats** | `MemberSeasonGlance` + `MemberProfilePanel` | Membre (self) |
+| Hub troupe | `/troupes/:slug` + nav **Ma troupe** | `TroupeHub` + `LastVisitedTroupeShortcutService` | Membre |
 | Activité spectacle | Event detail tab **Activité** | `EventActiviteTab` + `AuditJournalList` | Membre (`linkedParticipantId`) ; orga (`canViewAuditEvent`, toggle **Tous**) |
 | Stats saison | `/saison/...` view **Statistiques** | `SeasonStatistics` via `season-view-toolbar` | Orga / admin saison |
 | Audit saison | `/saison/:troupeSlug/:seasonSlug/admin/audit` | `AdminAudit` `auditScope: season` | `canViewAuditSeason` |
@@ -282,12 +287,15 @@ Legend: **M** = mobile project (blocking) · **D** = desktop orga · **API** = n
 
 | ID | Steps (abbrev.) | Assertions |
 | -- | --------------- | ---------- |
-| E1-SAN-001 | `goto /agenda` | Not 403/5xx; main landmark visible |
+| E1-SAN-001 | `goto /agenda` | Not 403/5xx; **four** shell tabs visible (Accueil · Mon agenda · Ma troupe · Mes stats); no horizontal overflow |
 | E1-SAN-002 | Login as member | Text/troupe season from env or fixture |
 | E1-MEM-001 | Open agenda | ≥1 event card; date readable at 390px width |
 | E1-MEM-004 | Tap season workspace | URL `/saison/...` or `/ligue/...` per routing |
 | **E1-MEM-020** | `goto /membre/{slug}` or tap bottom nav **Stats** | Heading **Mes Stats**; stats block visible (Disponibilités / Sélections / Désistements **or** explicit empty-state copy — not spinner forever) |
-| **E1-MEM-021** | From mobile nav: **Stats** tab | Lands on same profile; `aria-current="page"` on Stats tab |
+| **E1-MEM-021** | From mobile nav: **Mes stats** tab | Lands on same profile; `aria-current="page"` on Mes stats tab |
+| **E1-MEM-040** | Visit season workspace then **Ma troupe** tab | **P0** — URL `/troupes/{slug}`; `app-troupe-hub` visible; tab `aria-current="page"` |
+| **E1-MEM-041** | Clear `lastVisitedTroupeSlug` → **Ma troupe** | **P1** — URL `/troupes` list; tab **not** active |
+| **E1-MEM-042** | Seed slug in storage → check href | **P1** — Tab links to `/troupes/{slug}` |
 | **E1-MEM-022** | Open `[E1] dispos open` → tab **Activité** | Tab visible; journal list renders (≥1 row **or** empty label from `audit-journal-list`, no error banner); mode **Moi** |
 | E1-MEM-010–012 | Open `[E1] dispos open` event | Tabs Dispos/Équipe/Infos visible; toggle dispo; save |
 | E1-MEM-013 | Event with pending confirm | Confirm as member |
@@ -315,6 +323,7 @@ Reuse helpers from `scripts/v2/MVP-PILOT-RECETTE.md` scenarios 01–03 (tirage, 
 **Suggested spec split:**
 
 - `e1/member-stats.mobile.spec.ts` — E1-MEM-020, E1-MEM-021  
+- `e1/member-troupe-nav.mobile.spec.ts` — **E1-MEM-040 (P0 blocking)**, E1-MEM-041, E1-MEM-042 (P1)
 - `e1/member-event-activite.mobile.spec.ts` — E1-MEM-022 (+ layout E1-MOB-002)  
 - `e1/orga-season-stats-audit.desktop.spec.ts` — E1-ORG-010, 011, 012  
 - `e1/orga-event-activite.desktop.spec.ts` — E1-ORG-013 (can merge with compo spec if shorter CI)

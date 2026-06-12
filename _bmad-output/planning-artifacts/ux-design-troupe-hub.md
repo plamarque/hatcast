@@ -335,7 +335,7 @@ Remplace la **Zone B — Préférences par troupe** (lien vers `/troupes`).
 | M3-2 | Tokens | `var(--mat-sys-*)` ; pas de hex sur nouveaux styles |
 | M3-3 | Mobile-first | Hero wrap ; menu engrenage 48dp ; dialog `min(100vw - 2rem, 28rem)` |
 | M3-4 | a11y | Labels français ; `aria-label` gear ; champs pseudo avec `mat-label` |
-| M3-5 | Nav membre | Pas de 4ᵉ onglet ; pas de bottom app bar M2 |
+| M3-5 | Nav membre | **4 entrées** Accueil · Mon agenda · **Ma troupe** · Mes stats — voir [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT1 ; pas de bottom app bar M2 |
 
 **Anti-patterns :** bouton stroked « préférences » dans le hero ; CTA primary concurrent dans l’en-tête Saisons ; bouton **Ouvrir** isolé sur une carte déjà cliquable ; footer découverte redondant ; formulaires troupe sur `/compte`.
 
@@ -395,3 +395,5 @@ Remplace la **Zone B — Préférences par troupe** (lien vers `/troupes`).
 | FR9 per-troupe abandonné pour self-service ? | Oui — propagation multi-troupes via endpoints existants en 17-29 ; ADR global optionnel plus tard |
 
 **Statut :** `approved` (2026-05-31) — implémentation : [17-29-refonte-hub-troupe-mon-compte-preferences.md](../implementation-artifacts/17-29-refonte-hub-troupe-mon-compte-preferences.md).
+
+> **Amendement 2026-06-10 :** layout hub (dashboard collectif, nav Ma troupe, retrait breadcrumb header) — spec normative [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md). Les décisions T1–T11 (gear, cartes, Mon compte) restent valides sauf grille Saisons-first et M3-5 (4ᵉ onglet).

@@ -1,6 +1,11 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
 import type { E1CutoverFixture } from './e2e-api'
+import { stagingMutateRequestHeaders } from './staging-csrf'
+
+function isStagingE2eEnv(): boolean {
+  return process.env.PLAYWRIGHT_STAGING_E2E === '1'
+}
 
 /** Story 5.8 — unified availability poll (replaces availability-form on Dispos tab). */
 
@@ -39,9 +44,11 @@ export async function seedMemberDisposRoles(
     throw new Error(`Event lookup failed (${eventResponse.status()}): ${await eventResponse.text()}`)
   }
   const event = (await eventResponse.json()) as { id: string }
+  const headers = isStagingE2eEnv() ? await stagingMutateRequestHeaders(page) : undefined
   const putResponse = await page.request.put(
     `/v1/seasons/${fx.seasonId}/events/${event.id}/availability/me`,
     {
+      headers,
       data: {
         status,
         roleKeys: status === 'available' ? roleKeys : [],

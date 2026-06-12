@@ -12,6 +12,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { DEMO_TROUPE_SLUG } from '../../core/troupes/demo-troupe.constants'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
+import { rememberLastVisitedTroupeSlug } from '../../core/navigation/last-visited-troupe-storage'
 import {
   saisonWorkspacePath,
   troupeAdminAuditPath,
@@ -233,6 +234,7 @@ export class TroupeHub implements OnInit, OnDestroy {
     if (match) {
       this.troupeContext.selectTroupe(match.id)
       this.troupe.set(match)
+      rememberLastVisitedTroupeSlug(match.slug)
       await this.loadSeasons(match.id, requestId)
       return
     }

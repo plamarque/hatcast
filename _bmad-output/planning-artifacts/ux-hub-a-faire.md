@@ -75,9 +75,9 @@ flowchart TB
 | **Agenda** | Liste complète des spectacles à venir | `calendar_month` |
 | **Stats** | Clin d'œil perso (`/membre/{userSlug}` session) ; badge inbox sur **Accueil** uniquement | `insights` |
 
-**Workspace saison** (`/saison/:slug`) : **hors** barre globale — accès via chip **Ma saison · {titre}** (Accueil, Agenda, headers saison) et menu compte. Distinction : Agenda = chronologie multi-troupes ; Stats = participation perso ; workspace = ligue.
+**Workspace saison** (`/saison/:slug`) : drill-down depuis **Ma troupe** ou chips **Ma saison · {titre}** (Accueil, Agenda) — **pas** un onglet nav dédié. Distinction : Mon agenda = chronologie multi-troupes ; Ma troupe = collectif (saison en cours) ; Stats = participation perso ; workspace = outil saison complet (orga).
 
-**Desktop (≥ 840 px) :** navigation **rail** à gauche (mêmes 3 entrées). Pas de barre basse permanente sur grand écran.
+**Desktop (≥ 840 px) :** navigation **rail** à gauche (**4 entrées** depuis amendement 2026-06-10 — voir [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md)). Pas de barre basse permanente sur grand écran.
 
 **Ce qu’on n’utilise pas :** bottom app bar M2, docked toolbar globale pour changer d’espace app ; **hamburger** latéral pour un second panneau de navigation (la bottom bar couvre déjà les 3 destinations ; un drawer serait vide).
 
@@ -314,13 +314,17 @@ InboxSummary:
 | **17.19** | Hub `/accueil` À faire (MVP `GET /me/agenda`) | 2 | P1 |
 | **17.20** | `lastMemberEntryPath` (remember last visit élargi) | 2 | P2 — optionnel |
 | **17.21** | API `GET /me/inbox` + confirmations pending | 3 | P1 (après ou MVP+17.19) |
-| **17.22** | Shell navigation bar M3 (3 onglets) | 4 | P2 |
+| **17.22** | Shell navigation bar M3 (4 onglets depuis **17.41**) | 4 | P2 — **done** |
 | **17.23** | Sélecteur contexte troupe · saison (fil + menu) | done | P2 |
 | **17.25** | Menu compte — rail footer (desktop) · avatar shell (mobile) | 4b | P2 |
+| **17.41** | Nav shell — onglet **Ma troupe** + `lastVisitedTroupeSlug` | 5 | P1 — **done** |
+| **17.42** | Hub troupe — dashboard collectif | 5 | P1 — backlog |
+| **17.43** | Event detail — contexte Infos, retrait breadcrumb | 5 | P1 — backlog |
+| **17.44** | Hub — mini-chart mois saison (phase 2) | 5 | P2 — backlog |
 
-Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.25 ; ordre PLAN : [`PLAN.md`](../../PLAN.md) § Epic 17.
+Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.44 ; ordre PLAN : [`PLAN.md`](../../PLAN.md) § Epic 17 (wave **Univers Ma Troupe**). Spec : [`ux-design-ma-troupe-hub.md`](./ux-design-ma-troupe-hub.md).
 
-**Fichiers story :** **17.18** → [`17-18-raccourcis-croises-agenda-saison.md`](../implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md) (`done`) ; **17.19** → [`17-19-hub-accueil-a-faire-mvp.md`](../implementation-artifacts/17-19-hub-accueil-a-faire-mvp.md) (`done`) ; **17.20** → [`17-20-remember-last-member-entry-path.md`](../implementation-artifacts/17-20-remember-last-member-entry-path.md) (`done`) ; **17.21** → [`17-21-api-me-inbox-hub-membre.md`](../implementation-artifacts/17-21-api-me-inbox-hub-membre.md) (`done`) ; **17.22** → [`17-22-navigation-bar-m3-membre.md`](../implementation-artifacts/17-22-navigation-bar-m3-membre.md) (`done`) ; **17.23** → [`17-23-selecteur-contexte-troupe-saison.md`](../implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md) (`done`) ; **17.25** → [`17-25-menu-compte-rail-desktop-avatar-mobile.md`](../implementation-artifacts/17-25-menu-compte-rail-desktop-avatar-mobile.md) (`ready-for-dev`).
+**Fichiers story :** **17.18** → [`17-18-raccourcis-croises-agenda-saison.md`](../implementation-artifacts/17-18-raccourcis-croises-agenda-saison.md) (`done`) ; **17.19** → [`17-19-hub-accueil-a-faire-mvp.md`](../implementation-artifacts/17-19-hub-accueil-a-faire-mvp.md) (`done`) ; **17.20** → [`17-20-remember-last-member-entry-path.md`](../implementation-artifacts/17-20-remember-last-member-entry-path.md) (`done`) ; **17.21** → [`17-21-api-me-inbox-hub-membre.md`](../implementation-artifacts/17-21-api-me-inbox-hub-membre.md) (`done`) ; **17.22** → [`17-22-navigation-bar-m3-membre.md`](../implementation-artifacts/17-22-navigation-bar-m3-membre.md) (`done`) ; **17.23** → [`17-23-selecteur-contexte-troupe-saison.md`](../implementation-artifacts/17-23-selecteur-contexte-troupe-saison.md) (`done`) ; **17.25** → [`17-25-menu-compte-rail-desktop-avatar-mobile.md`](../implementation-artifacts/17-25-menu-compte-rail-desktop-avatar-mobile.md) (`done`) ; **17.41** → [`17-41-nav-shell-ma-troupe.md`](../implementation-artifacts/17-41-nav-shell-ma-troupe.md) (`done`) ; **17.42–17.44** → à créer via `bmad-create-story`.
 
 ---
 
@@ -340,7 +344,8 @@ Détail AC : [`epics.md`](./epics.md) § Stories 17.18–17.25 ; ordre PLAN : [`
 | **Post-login** | **Remember last visit** — pas `/accueil` par défaut (2026-05-27). |
 | **Route hub** | **Route dédiée `/accueil`** — écran À faire autonome, pas une section en tête de `/agenda` (2026-05-27). |
 | **Priorité dev** | Stories **17.18 → 17.19 → 17.21 → 17.22** ; **17.20** optionnel (planifié dans `epics.md` / `PLAN.md`). |
-| **Menu compte** | **Rail footer** (desktop ≥ 840 px) + **avatar shell** (mobile) ; headers allégés ; pas de 4ᵉ onglet ni hamburger — **17.25** (2026-05-28). |
+| **Menu compte** | **Rail footer** (desktop ≥ 840 px) + **avatar shell** (mobile) ; headers allégés ; pas de hamburger — **17.25** (2026-05-28). |
+| **Nav Ma troupe** | **4ᵉ onglet** shell **Ma troupe** → hub collectif `/troupes/:slug` — [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) (2026-06-10). |
 
 **Conséquences techniques (route dédiée) :**
 

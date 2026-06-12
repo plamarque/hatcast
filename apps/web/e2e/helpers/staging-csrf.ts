@@ -56,6 +56,15 @@ export async function waitForCsrfToken(page: Page, timeoutMs = 30_000): Promise<
   throw new Error('Timed out waiting for XSRF-TOKEN (staging CSRF bootstrap)')
 }
 
+/** Headers for staging mutating API calls (PUT/PATCH/POST/DELETE). */
+export async function stagingMutateRequestHeaders(page: Page): Promise<Record<string, string>> {
+  const csrf = (await readContextCsrfToken(page)) ?? (await ensureStagingCsrfToken(page))
+  return {
+    'Content-Type': 'application/json',
+    'X-XSRF-TOKEN': csrf,
+  }
+}
+
 /**
  * Ensure Spring CSRF is available (storageState, Set-Cookie on /v1, or document.cookie).
  * Call before saving admin.json and before orga PATCH/POST in staging bootstrap.

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { assertMobileViewport, assertNoHorizontalOverflow } from '../helpers/e1-layout'
+import { memberShellTab, expectMemberShellTabsVisible, MEMBER_SHELL_TAB } from '../helpers/member-nav.ui'
 import { saisonWorkspacePath } from '../helpers/e1-routes'
 import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 
@@ -12,9 +13,10 @@ test.describe('E1 — sanity (mobile)', () => {
   test('E1-SAN-001 — agenda loads without error', async ({ page }) => {
     await assertMobileViewport(page)
     await page.goto('/agenda')
-    await expect(page.getByRole('tab', { name: 'Agenda' })).toBeVisible({
+    await expect(memberShellTab(page, MEMBER_SHELL_TAB.agenda)).toBeVisible({
       timeout: 30_000,
     })
+    await expectMemberShellTabsVisible(page)
     await assertNoHorizontalOverflow(page)
   })
 

@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit } from '@angular/core'
+import { Component, computed, effect, inject, OnInit } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
@@ -11,6 +11,7 @@ import {
   MemberInboxBadgeService,
 } from '../../core/inbox/member-inbox-badge.service'
 import { MemberStatsShortcutService } from '../../core/navigation/member-stats-shortcut.service'
+import { LastVisitedTroupeShortcutService } from '../../core/navigation/last-visited-troupe-shortcut.service'
 import { isMemberStatsPath, pathFromUrl } from '../../layout/member-shell/member-shell-nav-visibility'
 import { MemberAccountMenuTrigger } from '../member-account-menu/member-account-menu-trigger'
 
@@ -32,6 +33,7 @@ import { MemberAccountMenuTrigger } from '../member-account-menu/member-account-
 export class MemberNav implements OnInit {
   private readonly router = inject(Router)
   protected readonly statsShortcut = inject(MemberStatsShortcutService)
+  protected readonly troupeShortcut = inject(LastVisitedTroupeShortcutService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
 
   private readonly currentPath = toSignal(
@@ -42,6 +44,13 @@ export class MemberNav implements OnInit {
     ),
     { initialValue: pathFromUrl(this.router.url) },
   )
+
+  constructor() {
+    effect(() => {
+      this.currentPath()
+      this.troupeShortcut.refresh()
+    })
+  }
 
   protected readonly isStatsTabActive = computed(() => {
     const path = this.currentPath()
@@ -55,6 +64,10 @@ export class MemberNav implements OnInit {
     const match = path.match(/^\/membre\/([^/]+)$/)
     return match?.[1] === slug
   })
+
+  protected readonly isTroupeTabActive = computed(() =>
+    this.troupeShortcut.isTroupeTabActive(this.currentPath()),
+  )
 
   protected readonly accueilBadgeLabel = computed(() =>
     inboxBadgeDisplayLabel(this.inboxBadge.pendingActionCount()),
