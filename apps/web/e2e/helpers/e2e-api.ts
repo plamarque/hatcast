@@ -85,7 +85,7 @@ export type Story325Fixture = {
 }
 
 export async function resetStory325Fixture(request: APIRequestContext): Promise<Story325Fixture> {
-  const maxAttempts = 3
+  const maxAttempts = 5
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const response = await request.post(`${apiBase}/v1/e2e/fixtures/story-3-25/reset`, {
       headers: {
@@ -97,7 +97,7 @@ export async function resetStory325Fixture(request: APIRequestContext): Promise<
     }
     const body = await response.text()
     if (response.status() === 409 && attempt < maxAttempts) {
-      await new Promise((resolve) => setTimeout(resolve, attempt * 500))
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1_000))
       continue
     }
     throw new Error(`Story 3.25 fixture reset failed (${response.status()}): ${body}`)

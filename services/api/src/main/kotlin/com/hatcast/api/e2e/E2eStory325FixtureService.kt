@@ -25,9 +25,11 @@ import com.hatcast.api.troupe.TroupeRepository
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.springframework.context.annotation.Profile
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -48,10 +50,27 @@ class E2eStory325FixtureService(
     private val troupeMembershipRepository: TroupeMembershipRepository,
     private val troupeExterneCarnetService: TroupeExterneCarnetService,
     private val userRepository: UserRepository,
+    transactionManager: PlatformTransactionManager,
 ) {
+    private val resetTransaction = TransactionTemplate(transactionManager)
+
     @Synchronized
-    @Transactional
     fun resetStory325(): Story325FixtureResponse {
+        var lastConflict: DataIntegrityViolationException? = null
+        repeat(3) { attempt ->
+            try {
+                return resetTransaction.execute { doResetStory325() }!!
+            } catch (ex: DataIntegrityViolationException) {
+                lastConflict = ex
+                if (attempt < 2) {
+                    Thread.sleep(500L * (attempt + 1))
+                }
+            }
+        }
+        throw lastConflict ?: IllegalStateException("Story 3.25 fixture reset failed")
+    }
+
+    private fun doResetStory325(): Story325FixtureResponse {
         val troupe =
             troupeRepository.findById(SEED_TROUPE_ID).orElseThrow {
                 ResponseStatusException(HttpStatus.NOT_FOUND, "Seed troupe missing")
