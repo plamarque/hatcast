@@ -14,6 +14,7 @@ import {
   E2E_MEMBER_ID_TOKEN,
 } from './fixtures/story-3-25.constants'
 import { resetStory325Fixture, type Story325Fixture } from './helpers/e2e-api'
+import { pollCheckbox, setPollCheckboxAndWait } from './helpers/dispos-poll.ui'
 import { saisonWorkspacePath } from './helpers/e1-routes'
 import {
   clickBreadcrumbSeasonLink,
@@ -165,9 +166,8 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
   }) => {
     await signInGuest(page, E2E_GUEST_RUBEN_TOKEN, baseURL!)
     await openGuestEventTab(page, fx, fx.rubenSeasonSlug, fx.rubenInvitedFutureSlug, 'dispos')
-    const available = page.locator('.availability-form__status--available').first()
-    await available.click()
-    await expect(page.locator('.availability-form__status--available.mat-button-toggle-checked')).toBeVisible()
+    await setPollCheckboxAndWait(page, /^Comédien/, true)
+    await expect(pollCheckbox(page, /^Comédien/)).toBeChecked()
   })
 
   test('3.25-E2E-12 — Ruben équipe tab empty state without load error', async ({
@@ -189,7 +189,7 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
       `/saison/${fx.troupeSlug}/${fx.rubenSeasonSlug}/event/guest-325-ruben-futur-sibling?tab=dispos`,
     )
     await expect(page).not.toHaveURL(/guest-325-ruben-futur-sibling/, { timeout: 30_000 })
-    await expect(page.getByLabel('Choix de disponibilité')).toHaveCount(0)
+    await expect(page.locator('app-availability-poll')).toHaveCount(0)
   })
 
   test('3.25-E2E-14 — Piotrix sees invited season A only in hub and workspace', async ({
