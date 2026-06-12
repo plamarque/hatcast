@@ -5,6 +5,10 @@ import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.StoredAvailabilityStatus
+import com.hatcast.api.composition.CompositionLifecycle
+import com.hatcast.api.composition.CompositionLifecycleService
+import com.hatcast.api.composition.CompositionSlotSnapshot
+import com.hatcast.api.composition.CompositionSnapshot
 import com.hatcast.api.composition.EventCompositionDeclineEntity
 import com.hatcast.api.composition.EventCompositionDeclineRepository
 import com.hatcast.api.composition.EventCompositionEntity
@@ -52,6 +56,7 @@ class SeasonStatisticsService(
     private val troupeAccess: TroupeAccessService,
     private val guestInvitationAccess: GuestInvitationAccessService,
     private val userRepository: UserRepository,
+    private val compositionLifecycleService: CompositionLifecycleService,
 ) {
     companion object {
         private val STATS_ZONE: ZoneId = ZoneId.of("Europe/Paris")
@@ -165,8 +170,45 @@ class SeasonStatisticsService(
             monthKeys = monthKeys,
             events = eventDtos,
             rows = rows,
+            confirmedCompositionsCount =
+                countConfirmedCompositions(
+                    events = events,
+                    compositions = compositions,
+                    slotsByEvent = slotsByEvent,
+                ),
         )
     }
+
+    private fun countConfirmedCompositions(
+        events: List<EventEntity>,
+        compositions: Map<UUID, EventCompositionEntity>,
+        slotsByEvent: Map<UUID, List<EventCompositionSlotEntity>>,
+    ): Int =
+        events.count { event ->
+            val composition = compositions[event.id]
+            val slots =
+                slotsByEvent[event.id].orEmpty().map { slot ->
+                    CompositionSlotSnapshot(
+                        roleKey = slot.roleKey,
+                        slotIndex = slot.slotIndex,
+                        participantId = slot.assignedParticipantId(),
+                        participationStatus = slot.participationStatus,
+                        waived = slot.waived,
+                    )
+                }
+            val snapshot =
+                composition?.let {
+                    CompositionSnapshot(
+                        validatedAt = it.validatedAt,
+                        publishedAt = it.publishedAt,
+                    )
+                }
+            compositionLifecycleService.computeRawLifecycle(
+                composition = snapshot,
+                slots = slots,
+                roleSlots = event.roleSlots,
+            ) == CompositionLifecycle.COMPLETE
+        }
 
     private fun buildRow(
         participant: SeasonParticipantEntity,

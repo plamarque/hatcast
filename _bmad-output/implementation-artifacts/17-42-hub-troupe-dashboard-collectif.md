@@ -4,7 +4,7 @@ baseline_commit: 5fd1c55bb9182b0cb06fbe2c773adec1c2fefb77
 
 # Story 17.42: Hub troupe — dashboard collectif
 
-Status: ready-for-dev
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -18,12 +18,12 @@ so that I see **« chez nous »** at a glance without duplicating **Mon agenda**
 
 1. **Given** `/troupes/:slug` loaded for a member, **when** the dashboard renders, **then** the first content section uses **`h2` = `{selectedSeason.title}`** (e.g. `Saison 2025-26`) — **no** generic label « Saison en cours » above it. [Source: [ux-design-ma-troupe-hub.md](../planning-artifacts/ux-design-ma-troupe-hub.md) MT7, MT-AC4]
 2. **Given** the troupe has **>1 non-archived season** the viewer can access, **when** the season header row renders, **then** a **season switcher** (`▾`, `mat-menu` desktop / bottom sheet mobile per existing patterns) appears **right of the title** ; **when** ≤1 such season, **then** switcher is **hidden**. [Source: MT8, MT-AC5]
-3. **Given** a selected active season, **when** the season card block renders, **then** it shows **three metric tiles** + primary CTA **Ouvrir la saison** → `saisonWorkspacePath(troupeSlug, seasonSlug)` (default agenda tab) ; **no** active-season **`season-card` grid** on the main hub surface. [Source: MT6, MT-AC6]
-4. **Given** metric tiles, **when** displayed, **then** labels are French: **Spectacles** (`selectedSeason.eventCount`), **Participations** (sum of `row.annual.totalJeu.selections` from season statistics for the selected season), **Participant·es** (`selectedSeason.participantCount`). Loading/error states must not break the hero or other sections. [Source: MT6 wireframe ; MT-AC6]
+3. **Given** a selected active season, **when** the season card block renders, **then** it shows **three metric tiles only** (no primary CTA on the card) ; **no** active-season **`season-card` grid** on the main hub surface. [Source: MT6, MT8 amend. 2026-06-12 ; MT-AC6]
+4. **Given** metric tiles, **when** displayed, **then** labels are French: **Spectacles** (`selectedSeason.eventCount`), **Compos** (`confirmedCompositionsCount` from season statistics — spectacles équipe confirmée), **Personnes** (`selectedSeason.participantCount`). Loading/error on **Compos** shows spinner or `—` without breaking hero or other sections. [Source: ux-design-ma-troupe-hub.md amend. 2026-06-12 ; MT-AC6]
 5. **Given** `archivedSeasons().length > 0`, **when** below the season card, **then** a discrete text control **Saisons archivées (N)** toggles an inline list of archived seasons (reuse `app-season-card` or compact list) — not shown when `N = 0`. [Source: MT9]
 6. **Given** no non-archived season, **when** hub loads, **then** empty copy *Aucune saison en cours pour l'instant.* + archived link if `N > 0` ; orga may still use hero gear **Nouvelle saison**. [Source: ux-design-ma-troupe-hub.md § Empty]
-7. **Given** the selected season, **when** section **Participant·es** renders, **then** show up to **6** avatars (`app-user-avatar`, 40–48 dp, horizontal scroll on mobile) + **+N** overflow ; tap navigates to `/membre/{userSlug}?troupeId=&seasonId=` when `userSlug` is available (prefer statistics rows — see Dev Notes) ; CTA **Voir tout le roster** → `saisonWorkspacePath(...)` (MVP — dedicated `?view=participants` not shipped). [Source: MT10, MT-AC7]
-8. **Given** the selected season, **when** section **Prochains spectacles** renders, **then** show **≤3** upcoming events as compact **`agenda-card`** rows (reuse `groupEventsByMonth` + card markup or a thin wrapper around `app-season-agenda` with capped input) ; participation/dispo cell on the right when viewer is a season participant (same rules as season agenda) ; CTA **Voir tout l'agenda** → workspace ; empty: *Aucun spectacle à venir cette saison.* [Source: MT11, MT-AC8, MT-AC11]
+7. **Given** the selected season, **when** section **Personnes** renders, **then** show avatars **3.5rem** (`flex-wrap`, no horizontal scroll) with cap **12** mobile / **36** desktop (6×6) + **+N** overflow link → `saisonWorkspacePath(...)` ; tap navigates to `/membre/{userSlug}?troupeId=&seasonId=` when `userSlug` is available ; **no** text CTA roster. [Source: MT10 amend. 2026-06-12 ; MT-AC7]
+8. **Given** the selected season, **when** section **Prochains spectacles** renders, **then** show **≤3** upcoming events as compact **`agenda-card`** rows (reuse `groupEventsByMonth` + `app-season-agenda`) ; participation/dispo cell when viewer is a season participant ; CTA **Voir tous les spectacles** centered in column → workspace ; empty: *Aucun spectacle à venir cette saison.* [Source: MT11 amend. 2026-06-12 ; MT-AC8, MT-AC11]
 9. **Given** `TroupeContextService.activeTroupes().length >= 2`, **when** bottom of hub, **then** link **Voir les autres troupes** → `/troupes` ; **when** mono-troupe, **then** link **absent** (no placeholder). [Source: MT12, MT-AC9]
 10. **Given** hub chrome, **when** rendered, **then** **no** breadcrumb `Troupes › …` ; hero keeps logo + troupe name + `app-scope-admin-menu` gear ; **no** footer Historique · Préférences ; guest hint *Saisons où tu es invité·e.* preserved when `EXTERNE`. [Source: MT13, MT14, MT-AC10]
 11. **Given** default season selection on hub load or troupe slug change, **when** seasons are available, **then** pick: (a) non-archived season matching `getLastVisitedSeasonSlugForTroupe(troupeId)` if in list, else (b) non-archived season with latest `startDate` (desc, nulls last), else (c) empty state. Persist `rememberLastVisitedSeasonSlug(slug, troupeId)` when user switches season on hub. [Source: ux-design-ma-troupe-hub.md § Sélection saison par défaut]
@@ -40,7 +40,7 @@ so that I see **« chez nous »** at a glance without duplicating **Mon agenda**
 
 **M3-2. Tokens & thème** — **Given** new hub SCSS, **when** colors/spacing apply, **then** only `var(--mat-sys-*)` and `color-mix(in srgb, var(--mat-sys-…) …)` ; section titles follow L2 tokens from [ux-design-hub-section-headers.md](../planning-artifacts/ux-design-hub-section-headers.md) (`1rem`, weight 600, `margin-bottom: 0.65rem`). [Source: FRONTEND_UI.md]
 
-**M3-3. Mobile & tactile** — **Given** ≤480px, **when** avatar row and CTAs render, **then** touch targets ≥ **48×48 dp** ; season switcher and CTAs have French `aria-label` when icon-only ; participant strip scrolls horizontally without clipping hero gear. [Source: NFR-A1 ; MT10]
+**M3-3. Mobile & tactile** — **Given** ≤480px, **when** avatar row and CTAs render, **then** touch targets ≥ **48×48 dp** ; season switcher and CTAs have French `aria-label` when icon-only ; Personnes strip uses **flex-wrap** (no mandatory horizontal scroll). [Source: NFR-A1 ; MT10 amend. 2026-06-12]
 
 **M3-4. Navigation membre** — **Given** hub under `MemberShell`, **when** delivered, **then** no new bottom app bar ; escape multi-troupe via **Voir les autres troupes** or nav **Ma troupe** (**17.41**) ; do not reintroduce breadcrumb. [Source: ux-hub-a-faire.md ; MT13]
 
@@ -50,40 +50,67 @@ so that I see **« chez nous »** at a glance without duplicating **Mon agenda**
 
 ## Tasks / Subtasks
 
-- [ ] **Default season + switcher** (AC: 1, 2, 11)
-  - [ ] In [`troupe-hub.ts`](../../apps/web/src/app/pages/troupe-hub/troupe-hub.ts): add `selectedSeasonId` signal ; implement `pickDefaultSeason(activeSeasons, troupeId)` using `getLastVisitedSeasonSlugForTroupe` + `startDate` sort.
-  - [ ] Season header row: `h2` title + conditional `mat-menu` trigger (`expand_more`) listing **non-archived** seasons only ; on pick → update selection + `rememberLastVisitedSeasonSlug`.
-  - [ ] Mobile: prefer `MatBottomSheet` for switcher if `mat-menu` is awkward at ≤480px (match patterns from dialogs elsewhere).
+- [x] **Default season + switcher** (AC: 1, 2, 11)
+  - [x] In [`troupe-hub.ts`](../../apps/web/src/app/pages/troupe-hub/troupe-hub.ts): add `selectedSeasonId` signal ; implement `pickDefaultSeason(activeSeasons, troupeId)` using `getLastVisitedSeasonSlugForTroupe` + `startDate` sort.
+  - [x] Season header row: `h2` title + conditional `mat-menu` trigger (`expand_more`) listing **non-archived** seasons only ; on pick → update selection + `rememberLastVisitedSeasonSlug`.
+  - [x] Mobile: prefer `MatBottomSheet` for switcher if `mat-menu` is awkward at ≤480px (match patterns from dialogs elsewhere).
 
-- [ ] **Season dashboard card — metrics + CTA** (AC: 3, 4, 6)
-  - [ ] Replace [`troupe-hub.html`](../../apps/web/src/app/pages/troupe-hub/troupe-hub.html) « Saisons » grid with season card block (metric tiles + **Ouvrir la saison**).
-  - [ ] Load statistics via [`SeasonStatisticsApiService.loadStatistics`](../../apps/web/src/app/core/seasons/season-statistics-api.service.ts)(seasonId) when season selected ; compute participations sum ; handle loading/error without blocking hero.
-  - [ ] Empty state when `activeSeasons().length === 0`.
+- [x] **Season dashboard card — metrics** (AC: 3, 4, 6)
+  - [x] Replace [`troupe-hub.html`](../../apps/web/src/app/pages/troupe-hub/troupe-hub.html) « Saisons » grid with season card block (3 metric tiles ; CTA **Ouvrir la saison** retiré amend. 2026-06-12).
+  - [x] Load statistics via [`SeasonStatisticsApiService.loadStatistics`](../../apps/web/src/app/core/seasons/season-statistics-api.service.ts)(seasonId) ; afficher `confirmedCompositionsCount` (tuile **Compos**) ; handle loading/error without blocking hero.
+  - [x] Empty state when `activeSeasons().length === 0`.
 
-- [ ] **Archived seasons** (AC: 5)
-  - [ ] Toggle **Saisons archivées (N)** below card ; inline `app-season-card` list for archived only (reuse existing component).
+- [x] **Archived seasons** (AC: 5)
+  - [x] Toggle **Saisons archivées (N)** below card ; inline `app-season-card` list for archived only (reuse existing component).
 
-- [ ] **Participant·es section** (AC: 7)
-  - [ ] Section `h2` **Participant·es** ; first 6 from statistics rows (has `userSlug`) or workspace `participantSelectors` with non-clickable fallback for rows without slug.
-  - [ ] Avatar tap → [`MemberProfileService.navigateToMemberGlance`](../../apps/web/src/app/core/member-profile/member-profile.service.ts) with `troupeId` + `seasonId` query params.
-  - [ ] CTA **Voir tout le roster** → `saisonWorkspacePath(troupeSlug, seasonSlug)`.
+- [x] **Personnes section** (AC: 7)
+  - [x] Section `h2` **Personnes** ; cap 12 mobile / 36 desktop depuis statistics rows ; `flex-wrap` ; avatars 3.5rem cliquables.
+  - [x] Avatar tap → [`MemberProfileService.navigateToMemberGlance`](../../apps/web/src/app/core/member-profile/member-profile.service.ts) with `troupeId` + `seasonId` query params.
+  - [x] Overflow **+N** seul CTA → `saisonWorkspacePath(troupeSlug, seasonSlug)` (pas de CTA texte roster).
 
-- [ ] **Prochains spectacles teaser** (AC: 8)
-  - [ ] On season select, call [`SeasonApiService.getSeasonWorkspace`](../../apps/web/src/app/core/seasons/season-api.service.ts)(seasonId, `{ eventPage: 0, eventSize: 3 }`) — reuse PERF-07 BFF.
-  - [ ] Map events with [`groupEventsByMonth`](../../apps/web/src/app/pages/season-home/season-events.utils.ts) ; render ≤3 cards ; wire click → `saisonEventPath(...)`.
-  - [ ] CTA **Voir tout l'agenda** → workspace ; wire participation cell when `participantFocus` / availability present on events.
+- [x] **Prochains spectacles teaser** (AC: 8)
+  - [x] On season select, call [`SeasonApiService.getSeasonWorkspace`](../../apps/web/src/app/core/seasons/season-api.service.ts)(seasonId, `{ eventPage: 0, eventSize: 3 }`) — reuse PERF-07 BFF.
+  - [x] Map events with [`groupEventsByMonth`](../../apps/web/src/app/pages/season-home/season-events.utils.ts) ; render ≤3 cards ; wire click → `saisonEventPath(...)`.
+  - [x] CTA **Voir tous les spectacles** (centré colonne) → workspace ; wire participation cell when `participantFocus` / availability present on events.
 
-- [ ] **Chrome cleanup + footer** (AC: 9, 10)
-  - [ ] Remove [`troupe-hub__breadcrumb`](../../apps/web/src/app/pages/troupe-hub/troupe-hub.html) block entirely.
-  - [ ] Add conditional footer link **Voir les autres troupes** when `troupeContext.activeTroupes().length >= 2`.
-  - [ ] Desktop ≥840px: optional two-column layout for Participant·es + Prochains spectacles (UX wireframe).
+- [x] **Chrome cleanup + footer** (AC: 9, 10)
+  - [x] Remove [`troupe-hub__breadcrumb`](../../apps/web/src/app/pages/troupe-hub/troupe-hub.html) block entirely.
+  - [x] Add conditional footer link **Voir les autres troupes** when `troupeContext.activeTroupes().length >= 2`.
+  - [x] Desktop ≥840px: two-column layout for Personnes + Prochains spectacles (UX wireframe).
 
 - [ ] **Optional follow-ups** (non-blocking)
   - [ ] Extend [`isPersistableMemberEntryPath`](../../apps/web/src/app/core/navigation/last-member-entry-path-storage.ts) for `/troupes/:slug` (deferred from **17.41**).
 
-- [ ] **Tests & regression** (AC: 13)
-  - [ ] Rewrite [`troupe-hub.spec.ts`](../../apps/web/src/app/pages/troupe-hub/troupe-hub.spec.ts): remove breadcrumb/grid-first expectations ; add dashboard AC coverage ; mock `getSeasonWorkspace` + `loadStatistics`.
-  - [ ] Preserve tests: session gate, access denied, admin gear, edit dialog, slug change, demo hint, `rememberLastVisitedTroupeSlug`.
+- [x] **Tests & regression** (AC: 13)
+  - [x] Rewrite [`troupe-hub.spec.ts`](../../apps/web/src/app/pages/troupe-hub/troupe-hub.spec.ts): remove breadcrumb/grid-first expectations ; add dashboard AC coverage ; mock `getSeasonWorkspace` + `loadStatistics`.
+  - [x] Preserve tests: session gate, access denied, admin gear, edit dialog, slug change, demo hint, `rememberLastVisitedTroupeSlug`.
+
+### Review Findings
+
+- [x] [Review][Decision] **AC8 — Interactivité dispo/participation sur le teaser** — **Décision PO : parité `season-home`** — câbler `(availabilityClick)` et `(participationClick)` sur le teaser hub (→ patch ci-dessous).
+- [x] [Review][Patch] **AC8 — Handlers dispo/participation manquants sur teaser** [`troupe-hub.html:274-279`, `troupe-hub.ts`] — ajouter `(availabilityClick)` / `(participationClick)` + méthodes alignées sur `season-home`.
+
+- [x] [Review][Patch] **Données dashboard périmées au changement de saison** [`troupe-hub.ts:425-434`] — `selectSeason()` ne vide pas `statsRows` / `teaserEvents` ; le template masque le spinner si `participantPreview().length > 0`, donc roster/agenda de l’ancienne saison restent visibles sous le nouveau titre.
+
+- [x] [Review][Patch] **Fuite subscription bottom sheet** [`troupe-hub.ts:416`] — `afterDismissed().subscribe()` non ajouté à `dialogSubscriptions` ; réouvertures multiples empilent des listeners.
+
+- [x] [Review][Patch] **`loadingSeasons` bloqué sur requête obsolète** [`troupe-hub.ts:522-524`] — retour anticipé sans `loadingSeasons.set(false)` si `slugRequestId` périmé.
+
+- [x] [Review][Patch] **`loadingDashboard` bloqué sur requête obsolète** [`troupe-hub.ts:564-569`] — retour anticipé sans `loadingDashboard.set(false)`.
+
+- [x] [Review][Patch] **`loadSeasons(t.id)` après création sans garde slug** [`troupe-hub.ts:511`] — peut écraser `allSeasons` si l’utilisateur a changé de troupe pendant le dialog.
+
+- [x] [Review][Patch] **Cible tactile toggle archivées < 48 dp** [`troupe-hub.scss:196-198`] — `.troupe-hub__archived-toggle` et bouton archivé état vide sans `min-height: 3rem` (M3-3).
+
+- [x] [Review][Patch] **Switcher mobile : premier rendu `mat-menu`** [`troupe-hub.ts:151-154`] — `isMobileLayout` initialisé à `false` ; branche desktop jusqu’à émission du `BreakpointObserver` (AC2 / M3-3).
+
+- [x] [Review][Patch] **Crash si `upcomingEvents` absent** [`troupe-hub.ts:588`] — accès à `.content` sans optional chaining ; devrait basculer sur `workspaceLoadError`.
+
+- [x] [Review][Patch] **`selectedSeasonId` orphelin après reload** [`troupe-hub.ts:531-538`] — si l’id mémorisé disparaît de `allSeasons`, dashboard vide sans message ; re-pick via `pickDefaultSeason` recommandé.
+
+- [x] [Review][Defer] **Pagination saisons limitée à 50** [`troupe-hub.ts:64`] — deferred, pre-existing (pattern `listSeasons` page 0 depuis 17.4 ; troupes >50 saisons rares).
+
+- [x] [Review][Defer] **Tests races async / bottom sheet mobile** [`troupe-hub.spec.ts`] — deferred, pre-existing (couverture happy-path suffisante pour MVP ; scénarios switch rapide à renforcer ultérieurement).
 
 ---
 
@@ -95,12 +122,11 @@ so that I see **« chez nous »** at a glance without duplicating **Mon agenda**
 - **Do not duplicate** full agenda: teaser is **max 3** cards, no month filters, no load-more on hub.
 - **Titre section = intitulé saison** — never a generic « Saison en cours » heading (**MT7**).
 - **Switcher scope:** seasons returned in `listSeasons` that are **not archived** ; for guests, API already scopes to invited seasons — show hint under hero (**existing `isGuestViewer`**).
-- **Metrics choice (PO-approved wireframe, figer en impl):**
-  - **Spectacles** → `SeasonResponse.eventCount` (total season events, matches legacy season-card stat).
-  - **Participations** → sum of confirmed composition selections across roster from statistics API (`annual.totalJeu.selections` per row).
-  - **Participant·es** → `SeasonResponse.participantCount`.
-- **Participant avatar taps:** Statistics rows include `userSlug` ([`SeasonStatisticsResponse.rows`](../../apps/web/src/app/core/seasons/season-statistics-api.service.ts)) ; `ParticipantSelector` does **not** — prefer stats rows for ordered preview + navigation ; skip tap handler when `userSlug` null (EXTERNES / name-only).
-- **Roster CTA:** Workspace has no `view=participants` yet — link to default workspace agenda ; do **not** invent admin routes for regular members.
+- **Metrics (amend. 2026-06-12 — voir [ux-design-ma-troupe-hub.md](../planning-artifacts/ux-design-ma-troupe-hub.md)):**
+  - **Spectacles** → `SeasonResponse.eventCount`.
+  - **Compos** → `SeasonStatisticsResponse.confirmedCompositionsCount` (équipes au cycle **Confirmé**).
+  - **Personnes** → `SeasonResponse.participantCount`.
+- **Personnes avatar taps:** Statistics rows include `userSlug` ; skip tap when null. Overflow **+N** → workspace agenda (pas de CTA texte roster).
 - **Cross-nav (**17.18**):** PO confirmed **2026-06-12** — **do not** remove Mon agenda / Ma saison shortcuts from season, event, or agenda headers ; out of scope for this story.
 
 ### Current state (must read before edit)
@@ -121,7 +147,7 @@ On slug resolved + seasons listed:
   1. pickDefaultSeason(activeSeasons)
   2. parallel:
      - GET /v1/seasons/:id/workspace?view=agenda&eventSize=3  → teaser events + categories labels
-     - GET /v1/seasons/:id/statistics                       → participations sum + avatar rows
+     - GET /v1/seasons/:id/statistics                       → confirmedCompositionsCount + avatar rows
   On season switch: repeat (2), cancel stale via requestId pattern (mirror slugRequestId)
 ```
 
@@ -135,18 +161,17 @@ Keep **`slugRequestId`** / stale-response guards when adding async season dashbo
 ├─────────────────────────────────────┤
 │  Saison 2025-26              [▾]?   │
 │  ┌─────────────────────────────┐   │
-│  │ 24      156      12         │   │
-│  │ Spectacles Particip. Part.  │   │
-│  │ [ Ouvrir la saison → ]      │   │
+│  │ 45       11       37         │   │
+│  │ Spectacles Compos Personnes   │   │
 │  └─────────────────────────────┘   │
 │  Saisons archivées (2)              │
 ├─────────────────────────────────────┤
-│  PARTICIPANT·ES                     │
-│  [avatars →]  [ Voir tout → ]       │
+│  PERSONNES                          │
+│  [avatars wrap, max 12] [+N]        │
 ├─────────────────────────────────────┤
 │  PROCHAINS SPECTACLES               │
 │  [agenda-card × ≤3]                 │
-│  [ Voir tout l'agenda → ]           │
+│      [ Voir tous les spectacles ]   │
 ├─────────────────────────────────────┤
 │  Voir les autres troupes →          │  (if ≥2 troupes)
 └─────────────────────────────────────┘
@@ -221,20 +246,40 @@ Manual smoke: mono-troupe (no footer link) · multi-troupe (footer) · multi-sea
 
 ### Agent Model Used
 
-*(filled by dev agent)*
+Composer (dev-story 17-42)
 
 ### Completion Notes List
 
-*(filled by dev agent)*
+- Replaced breadcrumb + season grid with season dashboard: title as `h2`, metric tiles (**Spectacles / Compos / Personnes**), archived toggle, Personnes strip (wrap, cap 12/36, +N), teaser agenda (≤3 via `getSeasonWorkspace` + `app-season-agenda`, CTA **Voir tous les spectacles** centré).
+- Amend. 2026-06-12 (Patrice) : retiré CTA **Ouvrir la saison** ; **Compos** = `confirmedCompositionsCount` API ; libellés **Personnes** ; spec rétro-doc [`ux-design-ma-troupe-hub.md`](../planning-artifacts/ux-design-ma-troupe-hub.md).
+- `pickDefaultSeason()` exported: last-visited slug per troupe, else latest `startDate` ; season switch via `mat-menu` (desktop) or `MatBottomSheet` (≤480px).
+- Parallel dashboard loads with `seasonDashboardRequestId` stale guard ; errors isolated per section.
+- Footer **Voir les autres troupes** when `activeTroupes().length >= 2` ; guest hint preserved for `EXTERNE`.
+- Tests: 32/32 green (`--include='**/troupe-hub.spec.ts'`) ; `npm run build -w @hatcast/web` OK.
+- **M3 checklist:** mat-flat/stroked/button, mat-menu, mat-spinner, tokens `var(--mat-sys-*)`, section titles L2 (1rem/600/0.65rem), touch targets ≥48dp on CTAs/avatars, French `aria-label` on switcher — no waivers.
+- **Deferred (optional task):** `lastMemberEntryPath` for `/troupes/:slug` — unchanged from 17.41.
 
 ### File List
 
-*(filled by dev agent)*
+- `apps/web/src/app/pages/troupe-hub/troupe-hub.ts`
+- `apps/web/src/app/pages/troupe-hub/troupe-hub.html`
+- `apps/web/src/app/pages/troupe-hub/troupe-hub.scss`
+- `apps/web/src/app/pages/troupe-hub/troupe-hub.spec.ts`
+- `apps/web/src/app/pages/troupe-hub/troupe-hub-season-switcher-sheet.ts`
+- `apps/web/src/app/core/seasons/season-statistics-api.service.ts`
+- `services/api/src/main/kotlin/com/hatcast/api/season/SeasonStatisticsService.kt`
+- `services/api/src/main/kotlin/com/hatcast/api/season/dto/SeasonStatisticsDtos.kt`
+- `services/api/openapi/seasons.yaml`
+- `_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ### Change Log
 
 - 2026-06-12 : Story created (bmad-create-story 17-42) — hub dashboard MT6–MT14 phase 1.
 - 2026-06-12 : PO decision — do **not** trim **17.18** cross-nav shortcuts in this story.
+- 2026-06-12 : Code review — 10 patchs appliqués (AC8 parité season-home, races async, M3 touch targets) ; status → done.
+- 2026-06-12 : Amendements UX PO (hub recette) — Compos / Personnes, retrait Ouvrir la saison, avatars wrap 12/36, teaser CTA centré ; rétro-doc spec UX + `confirmedCompositionsCount` API.
+- 2026-06-12 : E2E (Murat) — `e2e/helpers/troupe-hub.ui.ts` ; `e2e/e1/member-troupe-hub.mobile.spec.ts` — **E1-MEM-043…045 (P1)** ; matrice gate + README.
 
 ---
 

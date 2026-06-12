@@ -183,6 +183,13 @@
 
 ---
 
+## Deferred from: code review of 17-42-hub-troupe-dashboard-collectif (2026-06-12)
+
+- Pagination saisons limitée à 50 (`SEASONS_PAGE_SIZE`) — pattern hérité de 17.4 ; troupes avec >50 saisons rares.
+- Tests races async / bottom sheet mobile — couverture happy-path suffisante pour MVP ; scénarios switch rapide à renforcer ultérieurement.
+
+---
+
 ## Matrice rapide
 
 | Tier | Quand agir | IDs (ordre coût/bénéfice) |

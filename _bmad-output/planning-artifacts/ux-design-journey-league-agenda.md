@@ -298,9 +298,9 @@ Card grid (responsive):
 | Zone | Content |
 |------|---------|
 | **Hero** | Logo + name + gear — **no** breadcrumb |
-| **Section 1** | `h2` = season title ; metrics ; **Ouvrir la saison** ; switcher if >1 active season |
-| **Section 2** | **Participant·es** |
-| **Section 3** | **Prochains spectacles** (max 3) |
+| **Section 1** | `h2` = season title ; tuiles **Spectacles · Compos · Personnes** (pas de CTA carte — amend. 2026-06-12) ; switcher if >1 active season |
+| **Section 2** | **Personnes** (avatars wrap, +N → workspace) |
+| **Section 3** | **Prochains spectacles** (max 3) ; CTA **Voir tous les spectacles** centré |
 | **Footer** | **Voir les autres troupes** if ≥2 memberships |
 
 **Acceptance hints:**

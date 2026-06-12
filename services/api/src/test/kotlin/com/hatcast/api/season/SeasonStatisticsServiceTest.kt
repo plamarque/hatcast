@@ -4,9 +4,13 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.StoredAvailabilityStatus
+import com.hatcast.api.composition.CompositionLifecycleService
 import com.hatcast.api.composition.EventCompositionDeclineRepository
+import com.hatcast.api.composition.EventCompositionEntity
 import com.hatcast.api.composition.EventCompositionRepository
+import com.hatcast.api.composition.EventCompositionSlotEntity
 import com.hatcast.api.composition.EventCompositionSlotRepository
+import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.ParticipantStatus
@@ -46,6 +50,7 @@ class SeasonStatisticsServiceTest {
     private val troupeAccess = mock<TroupeAccessService>()
     private val guestInvitationAccess = mock<GuestInvitationAccessService>()
     private val userRepository = mock<UserRepository>()
+    private val compositionLifecycleService = CompositionLifecycleService()
 
     private val service =
         SeasonStatisticsService(
@@ -59,6 +64,7 @@ class SeasonStatisticsServiceTest {
             troupeAccess,
             guestInvitationAccess,
             userRepository,
+            compositionLifecycleService,
         )
 
     @org.junit.jupiter.api.BeforeEach
@@ -245,5 +251,101 @@ class SeasonStatisticsServiceTest {
 
         assertEquals(listOf(veroId, vivianeId), result.rows.map { it.participantId })
         assertEquals(listOf("Véro", "Viviane"), result.participants.map { it.displayName })
+    }
+
+    @Test
+    fun `loadStatistics exposes confirmed compositions count`() {
+        val troupe = mock<TroupeEntity> { whenever(it.id).thenReturn(troupeId) }
+        val season =
+            mock<SeasonEntity>().also {
+                whenever(it.id).thenReturn(seasonId)
+                whenever(it.troupe).thenReturn(troupe)
+            }
+        val participant =
+            mock<SeasonParticipantEntity>().also {
+                whenever(it.id).thenReturn(participantId)
+                whenever(it.displayName).thenReturn("Alice")
+                whenever(it.user).thenReturn(null)
+                whenever(it.troupeMembership).thenReturn(null)
+            }
+        val confirmedEventId = UUID.randomUUID()
+        val pendingEventId = UUID.randomUUID()
+        val now = Instant.parse("2026-06-01T12:00:00Z")
+        val confirmedEvent =
+            mock<EventEntity>().also {
+                whenever(it.id).thenReturn(confirmedEventId)
+                whenever(it.title).thenReturn("Équipe complète")
+                whenever(it.startsAt).thenReturn(Instant.parse("2026-06-13T19:00:00Z"))
+                whenever(it.templateType).thenReturn("match")
+                whenever(it.category).thenReturn(null)
+                whenever(it.roleSlots).thenReturn(mapOf("player" to 1))
+                whenever(it.archived).thenReturn(false)
+            }
+        val pendingEvent =
+            mock<EventEntity>().also {
+                whenever(it.id).thenReturn(pendingEventId)
+                whenever(it.title).thenReturn("En attente")
+                whenever(it.startsAt).thenReturn(Instant.parse("2026-06-18T19:00:00Z"))
+                whenever(it.templateType).thenReturn("match")
+                whenever(it.category).thenReturn(null)
+                whenever(it.roleSlots).thenReturn(mapOf("player" to 1))
+                whenever(it.archived).thenReturn(false)
+            }
+
+        whenever(seasonRepository.findById(seasonId)).thenReturn(Optional.of(season))
+        whenever(seasonParticipantRepository.findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE))
+            .thenReturn(listOf(participant))
+        whenever(eventRepository.findNonArchivedBySeasonId(seasonId))
+            .thenReturn(listOf(confirmedEvent, pendingEvent))
+        whenever(compositionRepository.findByEventIdIn(any())).thenReturn(
+            listOf(
+                EventCompositionEntity(
+                    eventId = confirmedEventId,
+                    validatedAt = now,
+                    publishedAt = null,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+                EventCompositionEntity(
+                    eventId = pendingEventId,
+                    validatedAt = now,
+                    publishedAt = null,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            ),
+        )
+        whenever(slotRepository.findByEventIdIn(any())).thenReturn(
+            listOf(
+                EventCompositionSlotEntity(
+                    eventId = confirmedEventId,
+                    roleKey = "player",
+                    slotIndex = 0,
+                    seasonParticipantId = participantId,
+                    participationStatus = SlotParticipationStatus.CONFIRMED,
+                ),
+                EventCompositionSlotEntity(
+                    eventId = pendingEventId,
+                    roleKey = "player",
+                    slotIndex = 0,
+                    seasonParticipantId = participantId,
+                    participationStatus = SlotParticipationStatus.PENDING,
+                ),
+            ),
+        )
+        whenever(declineRepository.findByEventIdIn(any())).thenReturn(emptyList())
+        whenever(availabilityRepository.findByEvent_IdIn(any())).thenReturn(emptyList())
+
+        val principal =
+            SessionUserPrincipal(
+                userId = UUID.randomUUID(),
+                googleSub = "sub",
+                idpUid = null,
+                email = "alice@example.com",
+            )
+
+        val result = service.loadStatistics(seasonId, principal)
+
+        assertEquals(1, result.confirmedCompositionsCount)
     }
 }
