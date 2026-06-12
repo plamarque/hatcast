@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-import { saisonWorkspacePath, troupeHubPath } from './e1-routes'
+import { seasonWorkspaceUrlPattern, troupeHubPath } from './e1-routes'
 
 /** Story 17.42 — hub dashboard collectif (Ma troupe). */
 export async function gotoTroupeHub(page: Page, troupeSlug: string): Promise<void> {
@@ -65,7 +65,7 @@ export async function openTroupeHubTeaserWorkspace(
   const cta = page.getByRole('link', { name: 'Voir tous les spectacles', exact: true })
   await expect(cta).toBeVisible({ timeout: 30_000 })
   await cta.click()
-  await expect(page).toHaveURL(new RegExp(`${saisonWorkspacePath(troupeSlug, seasonSlug)}$`), {
+  await expect(page).toHaveURL(seasonWorkspaceUrlPattern(troupeSlug, seasonSlug), {
     timeout: 30_000,
   })
   await expect(page.locator('app-season-header')).toBeVisible({ timeout: 30_000 })

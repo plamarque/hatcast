@@ -23,6 +23,7 @@ import {
   expectAgendaCardVisible,
   expectSeasonWorkspaceAgendaEvents,
   expectSeasonViewTabs,
+  expectTroupeHubDashboardSeason,
   gotoAgenda,
   gotoSeasonWorkspace,
   gotoTroupeHub,
@@ -198,7 +199,8 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
   }) => {
     await signInGuest(page, E2E_GUEST_PIOTRIX_TOKEN, baseURL!)
     await gotoTroupeHub(page, fx)
-    await expect(page.locator('app-season-card', { hasText: 'Guest 325 Piotrix A' })).toBeVisible()
+    await expectTroupeHubDashboardSeason(page, 'Guest 325 Piotrix A')
+    await expect(page.locator('#troupe-season-dashboard-heading')).not.toContainText('Piotrix B')
     await expect(page.locator('app-season-card', { hasText: 'Guest 325 Piotrix B' })).toHaveCount(0)
     await gotoSeasonWorkspace(page, fx, fx.piotrixSeasonASlug)
     await expectAgendaCardVisible(page, fx.piotrixInvitedEventTitle)
