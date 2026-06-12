@@ -26,6 +26,16 @@ export function memberStatsPath(userSlug: string): string {
   return `/membre/${userSlug}`
 }
 
+/** Member glance URL (optional query from hub avatar navigation). */
+export function memberProfileUrlPattern(userSlug: string): RegExp {
+  const slug = userSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`/membre/${slug}(?:\\?.*)?$`)
+}
+
+export function anyMemberProfileUrlPattern(): RegExp {
+  return /\/membre\/[^/?#]+(?:\?.*)?$/
+}
+
 export function saisonAdminAuditPath(troupeSlug: string, seasonSlug: string): string {
   return `/saison/${troupeSlug}/${seasonSlug}/admin/audit`
 }

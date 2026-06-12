@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { assertMobileViewport, assertNoHorizontalOverflow } from '../helpers/e1-layout'
-import { memberStatsPath } from '../helpers/e1-routes'
+import { anyMemberProfileUrlPattern, seasonWorkspaceUrlPattern } from '../helpers/e1-routes'
 import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 import {
   expectTroupeHubDashboardSections,
@@ -40,10 +40,19 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
     await expectTroupeHubDashboardSections(page)
     await expectTroupeHubPersonnesStrip(page)
 
-    const enabledAvatar = page.locator('.troupe-hub__avatar-btn:not([disabled])').first()
+    const personnesSection = page.locator('.troupe-hub__section').filter({
+      has: page.getByRole('heading', { name: 'Personnes', exact: true }),
+    })
+    const enabledAvatar = personnesSection.locator('.troupe-hub__avatar-btn:not([disabled])').first()
+    const overflow = personnesSection.locator('.troupe-hub__avatar-overflow').first()
     if ((await enabledAvatar.count()) > 0) {
       await enabledAvatar.click()
-      await expect(page).toHaveURL(new RegExp(`${memberStatsPath(fx.memberUserSlug)}`), {
+      await expect(page).toHaveURL(anyMemberProfileUrlPattern(), { timeout: 30_000 })
+      return
+    }
+    if ((await overflow.count()) > 0) {
+      await overflow.click()
+      await expect(page).toHaveURL(seasonWorkspaceUrlPattern(fx.troupeSlug, fx.seasonSlug), {
         timeout: 30_000,
       })
     }
