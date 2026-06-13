@@ -167,16 +167,31 @@ export async function expectTroupeHubDashboardSeason(
   })
 }
 
-export async function clickSeasonCard(page: Page, seasonTitleFragment: string): Promise<void> {
+export async function clickSeasonCard(
+  page: Page,
+  seasonTitleFragment: string,
+  options?: { troupeSlug?: string; seasonSlug?: string },
+): Promise<void> {
   await expectTroupeHubDashboardSeason(page, seasonTitleFragment)
+  await expect(page.locator('.troupe-hub__dashboard .troupe-hub__inline-spinner')).toHaveCount(0, {
+    timeout: 45_000,
+  })
+  await expect(page.locator('.troupe-hub__metrics mat-spinner')).toHaveCount(0, { timeout: 45_000 })
+
   const cta = page.getByRole('link', { name: 'Voir tous les spectacles', exact: true })
   const overflow = page.locator('.troupe-hub__avatar-overflow').first()
-  if ((await cta.count()) > 0) {
+
+  if (await cta.isVisible().catch(() => false)) {
     await cta.click()
     return
   }
-  if ((await overflow.count()) > 0) {
+  if (await overflow.isVisible().catch(() => false)) {
     await overflow.click()
+    return
+  }
+  // EVENT-scoped guests may see an empty teaser (no CTA) while the season dashboard is selected.
+  if (options?.troupeSlug && options?.seasonSlug) {
+    await page.goto(saisonWorkspacePath(options.troupeSlug, options.seasonSlug))
     return
   }
   throw new Error(`No season workspace CTA on troupe hub for "${seasonTitleFragment}"`)
