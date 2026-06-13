@@ -19,6 +19,11 @@ type PagedEvents = {
 type CompositionSnapshot = {
   validatedAt?: string | null
 }
+type AuthMe = { user: { id: string } }
+type SummaryParticipant = { participantId: string; userId?: string | null }
+type AvailabilitySummary = { participants: SummaryParticipant[] }
+type UserAgendaItem = { eventSlug: string; title: string; seasonSlug: string }
+type UserAgendaResponse = { content: UserAgendaItem[] }
 
 function env(name: string): string | undefined {
   return process.env[name]?.trim() || undefined
@@ -84,16 +89,61 @@ async function compositionValidated(
   return body.validatedAt != null
 }
 
+async function fetchCurrentUserId(request: APIRequestContext): Promise<string> {
+  const me = await apiGet<AuthMe>(request, '/v1/auth/me')
+  return me.user.id
+}
+
+async function memberParticipantOnEvent(
+  request: APIRequestContext,
+  seasonId: string,
+  eventId: string,
+  userId: string,
+): Promise<SummaryParticipant | undefined> {
+  const summary = await apiGet<AvailabilitySummary>(
+    request,
+    `/v1/seasons/${seasonId}/events/${eventId}/availability/summary`,
+  )
+  return summary.participants.find((p) => p.userId === userId)
+}
+
+async function filterMemberEligibleDisposOpen(
+  request: APIRequestContext,
+  seasonId: string,
+  events: SeasonEvent[],
+  userId: string,
+): Promise<SeasonEvent[]> {
+  const eligible: SeasonEvent[] = []
+  for (const event of disposOpen(events)) {
+    const participant = await memberParticipantOnEvent(request, seasonId, event.id, userId)
+    if (participant) {
+      eligible.push(event)
+    }
+  }
+  return eligible
+}
+
+async function resolveAgendaTitle(
+  request: APIRequestContext,
+  seasonSlug: string,
+  eventSlug: string,
+): Promise<string | undefined> {
+  const agenda = await apiGet<UserAgendaResponse>(request, '/v1/me/agenda?scope=upcoming&size=50')
+  return agenda.content.find((item) => item.seasonSlug === seasonSlug && item.eventSlug === eventSlug)
+    ?.title
+}
+
 async function pickDrawEvent(
   request: APIRequestContext,
   seasonId: string,
   events: SeasonEvent[],
 ): Promise<SeasonEvent> {
-  const pinned = pickBySlug(disposOpen(events), env('HATCAST_E2E_EVENT_DRAW_SLUG'))
+  const open = disposOpen(events)
+  const pinned = pickBySlug(open, env('HATCAST_E2E_EVENT_DRAW_SLUG'))
   if (pinned) {
     return pinned
   }
-  for (const event of sortForGate(disposOpen(events))) {
+  for (const event of sortForGate(open)) {
     const validated = await compositionValidated(request, seasonId, event.id)
     if (!validated) {
       return event
@@ -123,7 +173,7 @@ function pickDisposEvent(events: SeasonEvent[]): SeasonEvent {
   const ranked = sortForGate(open)
   if (ranked.length === 0) {
     throw new Error(
-      'No Malice event with open availability (availabilityOpenedAt) — pin HATCAST_E2E_EVENT_DISPOS_SLUG or publish dispos on staging',
+      'No season event with open availability (availabilityOpenedAt) — pin HATCAST_E2E_EVENT_DISPOS_SLUG or publish dispos on staging',
     )
   }
   return ranked[0]!
@@ -150,11 +200,35 @@ export async function discoverStagingE1Context(
     request,
     `/v1/troupes/${troupe.id}/seasons/by-slug/${encodeURIComponent(seasonSlug)}`,
   )
+  const memberUserId = await fetchCurrentUserId(request)
   const events = await listSeasonEvents(request, season.id)
-  const dispos = pickDisposEvent(events)
-  const draw = await pickDrawEvent(request, season.id, events)
-  const activiteSlug = env('HATCAST_E2E_EVENT_ACTIVITE_SLUG') ?? dispos.slug
-  const pendingSlug = env('HATCAST_E2E_EVENT_PENDING_SLUG') ?? dispos.slug
+  const memberEligible = await filterMemberEligibleDisposOpen(request, season.id, events, memberUserId)
+  if (memberEligible.length === 0) {
+    throw new Error(
+      'No season event with open dispos where the E2E member is linked — check roster/event exclusions or pin HATCAST_E2E_EVENT_DISPOS_SLUG',
+    )
+  }
+
+  const dispos = pickDisposEvent(memberEligible)
+  const draw = await pickDrawEvent(request, season.id, memberEligible)
+  const drawParticipant = await memberParticipantOnEvent(request, season.id, draw.id, memberUserId)
+  if (!drawParticipant) {
+    throw new Error(
+      `Draw event "${draw.slug}" has no season participant linked to the E2E member account`,
+    )
+  }
+
+  const activitePinned = env('HATCAST_E2E_EVENT_ACTIVITE_SLUG')
+  const activiteSlug =
+    activitePinned && memberEligible.some((event) => event.slug === activitePinned)
+      ? activitePinned
+      : dispos.slug
+  const pendingPinned = env('HATCAST_E2E_EVENT_PENDING_SLUG')
+  const pendingSlug =
+    pendingPinned && memberEligible.some((event) => event.slug === pendingPinned)
+      ? pendingPinned
+      : dispos.slug
+  const eventDrawTitle = (await resolveAgendaTitle(request, seasonSlug, draw.slug)) ?? draw.title
 
   return {
     troupeSlug,
@@ -163,10 +237,10 @@ export async function discoverStagingE1Context(
     memberDisplayName: env('HATCAST_E2E_MEMBER_DISPLAY_NAME') ?? 'E2E member',
     memberEmail: env('HATCAST_E2E_MEMBER_EMAIL') ?? '',
     memberUserSlug,
-    memberUserId: '00000000-0000-4000-8000-000000000001',
-    memberSeasonParticipantId: '00000000-0000-4000-8000-000000000001',
+    memberUserId,
+    memberSeasonParticipantId: drawParticipant.participantId,
     eventDrawSlug: draw.slug,
-    eventDrawTitle: draw.title,
+    eventDrawTitle,
     eventActiviteSlug: activiteSlug,
     eventActiviteTitle: pickBySlug(events, activiteSlug)?.title ?? dispos.title,
     eventPendingSlug: pendingSlug,
