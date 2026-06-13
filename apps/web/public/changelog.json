@@ -1,7 +1,7 @@
 [
   {
     "version": "2.3.0",
-    "date": "2026-06-07",
+    "date": "2026-06-13",
     "changes": [
       "✨ Tirage — visualise tous les candidats d'un rôle et touche un nom pour afficher l'explication de ses % de tirage"
     ]

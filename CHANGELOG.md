@@ -1,5 +1,139 @@
 # Changelog
 
+## [2.3.0] - 2026-06-13
+
+### ✨ New Features
+- feat(web): Refine event detail header and context
+- feat(web): Add troupe hub season dashboard
+- feat(web): Add Ma troupe fourth nav tab
+- feat(scripts): Simulate AVAILABILITY_PENDING_REMINDER in volume replay
+- feat(web): Add unified Dispos poll tab view
+- feat(web): Add dialog-chrome dismiss guard (Phase 4)
+- feat(web): Refine Mon profil gender designation copy
+- feat(notifications): Restore email HTML shell (8.10)
+- feat(composition): Align participation withdrawal copy
+- feat(share): Manual-only share dialog with compact recipients
+- feat(troupe): Add settings categories admin tab
+- feat(notifications): Add dedicated email bodies from catalog
+- feat(web): Bundle fonts for offline dev
+- feat(web): Inline category chips on Infos tab (17.39)
+- feat(dev): Add offline dev mode without Neon
+- feat(web): Replace category chip with radio selection (#3)
+- feat(notifications): Refine organizer ops alerts v2
+- feat(api): Add troupe category glossary admin API
+- feat(notifications): Ship organizer ops alerts (8.4)
+- feat(web): Add Infos tab section help and category default
+- feat(web): Stabilize format role slot dialog UX
+- feat(web): Unify event role chips across UI
+- feat(web): Add category help on event Infos tab
+- feat(notifications): Ship team complete member alerts
+- feat(web): Add account tab icons per C13 UX
+- feat(notifications): Dispatch event details and archive alerts
+- feat(notifications): Refresh prefs card layout
+- feat(notifications): Ship member prefs UX phase 1
+- feat(notifications): Add 5-day availability pending reminders
+- feat(ops): Add prod GitHub Release pipeline
+- feat(ops): Add Cursor release skill with cutover-only changelog
+
+### 🔧 Improvements
+- perf(scripts): Add in-app navigation to web perf profiler (PERF-14)
+- perf(api): Optimize composition and summary hot paths (PERF-15)
+- perf(api): Add Neon DB latency observability (PERF-16)
+- perf(web): Progressive render on accueil inbox (PERF-12)
+- perf(events): Close PERF-10 review patches
+- perf(agenda): Optimize me agenda API hot path (PERF-11)
+- perf(web): Bootstrap session and troupes at member shell
+- perf(events): Add tab-scoped event page BFF bootstrap
+- perf(web): Lazy-load member zone routes
+- perf(season): Add workspace bootstrap BFF
+- perf(api): Reduce GET /me/inbox server latency
+- perf(web): Pass viewerGender props on list pages
+- perf(web): Cache session and troupe list
+- style(web): Adopt M3 capsule pill tab bar
+- perf(web): Gate event-detail tab loads
+- perf(web): Cache inbox badge stale-while-revalidate
+- perf(web): Dedup GET /me/preferences on agenda lists
+
+### 🐛 Bug Fixes
+- fix(api): Allow guest event page bootstrap for EXTERNE invites
+- fix(api): Allow guest workspace bootstrap for EXTERNE invites
+- fix(season): Harden workspace agenda bootstrap against empty wipe
+- fix(season): Prevent bootstrap agenda wipe on sync load
+- fix(dispos): Decouple explainability gate from composition
+- fix(dispos): Restore event roster in summary and default subject
+- fix(web): Align filter picker close patterns (Phase 3)
+- fix(web): Unify dialog footer visual styles (Phase 2b)
+- fix(web): Align organizer add link with section actions
+- fix(web): Normalize dialog dismiss buttons (Phase 2)
+- fix(web): Close organizer dialog after add
+- fix(web): Harden category selection after review
+- fix(notifications): Close story 8.4 after code review
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Filter staging events by linked member
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Fallback goto for mat-tab-link nav clicks
+- chore(e2e): Add run_e2e wrapper and deploy gate
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Fix Ruben hub season open without teaser CTA
+- test(e2e): Harden staging gate nav and hub tests
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Align hub tests with 17.42 dashboard
+- docs(story): Add 17.43 event detail contexte story
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Fix member nav Accueil tab locators
+- chore(v2): promote v2 to staging-v2
+- docs(story): Add 17.42 troupe hub dashboard
+- test(e2e): Send CSRF on staging availability seed
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Seed E1-MEM-022 audit via availability API
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Align guest dispos tests with availability poll UI
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Wait for dispos form inside openGuestEventTab
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Prime guest season before event deep links
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Fix E2E-08 event page wait and fixture reset races
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Harden guest event navigation for E2E-08 gate
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Stabilize guest event breadcrumb season navigation
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Reset season workspace via agenda detour
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Scope workspace response wait to reload path only
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Wait for season agenda on default workspace view
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Scope season agenda wait to explicit view
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Stabilize smoke specs 1.8-E2E-03 and 3.25-E2E-04
+- chore(v2): promote v2 to staging-v2
+- docs(perf): Mark PERF-15 story as done
+- docs(perf): Mark PERF-11 story as done
+- docs(perf): Record PERF-13 post-fix profiling delta
+- docs(perf): Add PERF-14 story with review and profiling delta
+- test(web): Formalize PERF-13 lazy Dispos explainability
+- test(e2e): Add Dispos poll mobile specs for stories 5.8 and 5.9
+- docs(ux): Add dialog close patterns spec (Phase 0+1)
+- chore(v2): promote v2 to staging-v2
+- docs(share): Align specs with manual-only share dialog
+- test(notifications): Complete 8.4b QA gate closure
+- docs(notifications): Add orga ops stories 8.4 and 8.4b
+- docs(planning): Capture category glossary UX course correction
+- docs: Close story 17.37 handoff
+- docs(notifications): Add catalog, BS and prefs UX artifacts
+- chore(v2): sync release v2.3.0-rc.1 artifacts to v2
+- docs(release): Add v2.3.0 user changelog cutover
+
+---
+
 ## [2.3.0] - 2026-06-07
 
 ### ✨ New Features
