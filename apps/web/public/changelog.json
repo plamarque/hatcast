@@ -3,7 +3,11 @@
     "version": "2.3.0",
     "date": "2026-06-13",
     "changes": [
-      "✨ Tirage — visualise tous les candidats d'un rôle et touche un nom pour afficher l'explication de ses % de tirage"
+      "✨ Dispos — sondage unifié sur l'onglet Dispos : tu coches Indispo et tes rôles sur un même écran, sans basculer Moi/Tous",
+      "✨ Externes invités — agenda et espace saison limités à ton invitation ; tu renseignes tes dispos sans accès membre complet",
+      "✨ Notifications — préférences plus claires, alerte quand l'équipe est bouclée, rappel si ta dispo reste à préciser",
+      "✨ Spectacle — catégories visibles sur l'onglet Infos ; les admins gèrent le glossaire dans Réglages troupe",
+      "✨ Partage — fenêtre simplifiée : tu choisis toi-même les destinataires avant d'envoyer le message"
     ]
   },
   {
