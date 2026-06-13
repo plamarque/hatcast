@@ -23,6 +23,8 @@ Usage: $(basename "$0") [OPTIONS]
 Promouvoir le **dernier tag RC distant** (vX.Y.Z-rc.N) vers production (tag vX.Y.Z).
 Aucun --version ni --rc-tag requis.
 
+Exécute d’abord les E2E locaux (./scripts/run_e2e.sh) — parité gate CI e2e-smoke.
+
 Workflow développeur :
   ./scripts/deploy_staging.sh
   ./scripts/release_version.sh [--patch|--minor|--major]
@@ -34,6 +36,7 @@ Options :
   --no-github-release
                   Ne pas créer la GitHub Release (tag prod uniquement)
   --force         Remplacer un tag prod local divergent (transmis à promote-tag-to-prod.sh ; jamais de réécriture distante)
+  --skip-e2e      Ne pas lancer les E2E locaux avant le push tag (déconseillé)
   --dry-run, -n   Simulation (inclut preview des notes GitHub Release)
   --help, -h      Aide
 
@@ -53,7 +56,7 @@ for arg in "$@"; do
       echo "❌ ${arg%%=*} n’est plus nécessaire — le script détecte le dernier RC distant." >&2
       exit 1
       ;;
-    --force|--no-github-release)
+    --force|--no-github-release|--skip-e2e)
       FORWARD_ARGS+=("${arg}")
       ;;
     *)

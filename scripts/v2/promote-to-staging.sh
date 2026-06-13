@@ -11,6 +11,7 @@ hatcast_v2_detect_project_root
 
 DRY_RUN=false
 FF_ONLY=false
+SKIP_E2E=false
 
 usage() {
   cat << EOF
@@ -19,14 +20,18 @@ Usage: $(basename "$0") [OPTIONS]
 Promouvoir le développement V2 vers staging : merge origin/$HATCAST_V2_BRANCH_DEV
 dans $HATCAST_V2_BRANCH_STAGING puis push (workflow Deploy V2 → environnement staging).
 
+Exécute d’abord les E2E locaux (parité CI e2e-smoke) via ./scripts/run_e2e.sh.
+
 Façade développeur : ./scripts/deploy_staging.sh
 
 Options:
   --dry-run, -n   Afficher les commits et commandes sans exécuter
   --ff-only       Merge fast-forward uniquement (défaut : --no-ff)
+  --skip-e2e      Ne pas lancer les E2E locaux avant le push (déconseillé)
   --help, -h      Cette aide
 
 Configuration : scripts/v2/branches.env
+Variable : HATCAST_SKIP_E2E=1 — équivalent à --skip-e2e
 EOF
 }
 
@@ -34,6 +39,7 @@ for arg in "$@"; do
   case "${arg}" in
     --dry-run|-n) DRY_RUN=true ;;
     --ff-only) FF_ONLY=true ;;
+    --skip-e2e) SKIP_E2E=true ;;
     --help|-h)
       usage
       exit 0
@@ -45,6 +51,22 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+if [[ "${HATCAST_SKIP_E2E:-}" == "1" ]]; then
+  SKIP_E2E=true
+fi
+
+run_pre_push_e2e() {
+  if [[ "${SKIP_E2E}" == true ]]; then
+    echo "⏭️  E2E locaux ignorés (--skip-e2e ou HATCAST_SKIP_E2E=1)"
+    return 0
+  fi
+  echo ""
+  echo "🧪 E2E locaux (T1 — parité CI e2e-smoke) avant push staging…"
+  echo "   Arrêtez start-dev.sh si actif (ports 8080 / 4200)."
+  echo ""
+  "${HATCAST_V2_PROJECT_ROOT}/scripts/run_e2e.sh"
+}
 
 DEV_REF="$(hatcast_v2_origin_ref "${HATCAST_V2_BRANCH_DEV}")"
 STAGING_REF="$(hatcast_v2_origin_ref "${HATCAST_V2_BRANCH_STAGING}")"
@@ -87,6 +109,11 @@ fi
 
 if [[ "${DRY_RUN}" == true ]]; then
   echo "📝 Commandes qui seraient exécutées :"
+  if [[ "${SKIP_E2E}" == true ]]; then
+    echo "   (E2E locaux ignorés)"
+  else
+    echo "   ./scripts/run_e2e.sh"
+  fi
   echo "   git checkout ${HATCAST_V2_BRANCH_STAGING}"
   echo "   git pull origin ${HATCAST_V2_BRANCH_STAGING}"
   echo "   git merge ${MERGE_FLAG} ${DEV_REF} -m \"chore(v2): promote ${HATCAST_V2_BRANCH_DEV} to ${HATCAST_V2_BRANCH_STAGING}\""
@@ -98,6 +125,8 @@ if [[ "${DRY_RUN}" == true ]]; then
   echo "✅ DRY RUN terminé."
   exit 0
 fi
+
+run_pre_push_e2e
 
 git checkout "${HATCAST_V2_BRANCH_STAGING}"
 git pull origin "${HATCAST_V2_BRANCH_STAGING}"

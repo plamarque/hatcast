@@ -16,14 +16,17 @@ Usage: $(basename "$0") [OPTIONS]
 
 Merge la branche dev V2 dans staging, push, et déclenche la CI staging (E2E + Cloud Run).
 
+Exécute d’abord les E2E locaux (./scripts/run_e2e.sh) — parité gate CI e2e-smoke.
+
 Workflow développeur :
   git push origin v2          # dev cloud
-  ./scripts/deploy_staging.sh # staging + E2E
+  ./scripts/deploy_staging.sh # E2E locaux + staging + E2E CI
   ./scripts/release_version.sh [--patch|--minor|--major]  # après smoke vert
 
 Options (transmises au script interne) :
   --dry-run, -n   Simulation
   --ff-only       Merge fast-forward uniquement
+  --skip-e2e      Ne pas lancer les E2E locaux avant le push (déconseillé)
   --help, -h      Aide
 
 Implémentation : scripts/v2/promote-to-staging.sh
