@@ -76,7 +76,7 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 **Notifications email (V2, story 8.3)** : dans `.env`, `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` (+ optionnel `HATCAST_NOTIFICATION_EMAIL_FROM`). Avec **`./scripts/start-dev.sh`** (recommandé) : le script démarre **Mailpit** via Docker, force `SPRING_MAIL_HOST=127.0.0.1:1025` pour l’API, attend le SMTP, arrête Mailpit à la fin. UI de recette : **http://127.0.0.1:8025**. Pas de `SPRING_MAIL_*` local requis (les lignes Gmail du `.env` sont ignorées par le script). **`npm run dev:api` seul** ne démarre pas Mailpit — utiliser `start-dev.sh` pour tester l’envoi email. Staging/prod : secrets GitHub `SPRING_MAIL_*` (Gmail), pas Mailpit.
 4. **Client** : dans `apps/web`, éditer `src/environments/environment.development.ts` et renseigner `googleOAuthWebClientId` (même valeur publique que l’API) et, pour email/mot de passe, le bloc `firebase`, puis `npm install && npm run dev` (port **4200** en **HTTPS** ; le proxy envoie `/v1` et `/actuator` vers l’API en HTTP, voir `proxy.conf.json`). Routes : **`/`** redirige selon la session ; **`/connexion`** (Google + email si config Firebase présente) ; **`/accueil`** une fois connecté. Au premier chargement, le navigateur peut avertir sur le certificat de dev — accepter pour localhost.
 
-**Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe.
+**Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe. **E2E :** arrêter ce script puis `./scripts/run_e2e.sh` (voir § Tests).
 
 **Mode offline (sans Neon / sans internet)** : si la branche Neon `local` est injoignable (train, avion, etc.), lancer avec une base H2 locale et les seeds Les Improbots :
 
@@ -180,6 +180,8 @@ Test Gradle opt-in : `HATCAST_NEON_PERF_TEST=true ./gradlew test --tests NeonAge
 
 - **V2 (API + Angular) :** `./scripts/run-tests.sh` à la racine (Gradle puis `ng test` sans watch).
 
+- **V2 E2E (Playwright, profil API `e2e`, H2 + seeds)** : `./scripts/run_e2e.sh` à la racine. Playwright boot l’API et le front automatiquement — **arrêtez `./scripts/start-dev.sh` avant** (ports 8080 / 4200 ; réutiliser start-dev provoque des 401 sur les fixtures). Raccourcis : `--smoke` (auth + fixtures), `--gate` (E1 mobile + orga), suite complète sans option (= CI `e2e-smoke.yml`). Sélecteurs et dépannage : [apps/web/e2e/README.md](apps/web/e2e/README.md). Contournement : `--reuse-servers` (API déjà en profil `e2e` uniquement).
+
 - **V2 API (Spring, `services/api/`) seule :**  
   `cd services/api && ./gradlew test`
 
@@ -245,8 +247,9 @@ Test Gradle opt-in : `HATCAST_NEON_PERF_TEST=true ./gradlew test --tests NeonAge
 
 ### V2 (Cloud Run — branche `staging-v2`)
 
-- **Promotion staging :** `./scripts/v2/promote-to-staging.sh [--dry-run] [--ff-only]`
-- **Release production (tag-first) :** `./scripts/v2/promote-tag-to-prod.sh --version=X.Y.Z [--rc-tag=vX.Y.Z-rc.N] [--dry-run]`
+- **Promotion staging :** `./scripts/deploy_staging.sh` (E2E locaux puis merge + push ; `--skip-e2e` pour contourner)
+- **Release production (tag-first) :** `./scripts/deploy_prod.sh` (E2E locaux puis tag prod ; `--skip-e2e` pour contourner)
+- Implémentation : `./scripts/v2/promote-to-staging.sh`, `./scripts/v2/promote-tag-to-prod.sh`
 - Guide : [docs/v2/technical/DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md)
 
 ---

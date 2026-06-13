@@ -17,6 +17,7 @@ EXPLICIT_VERSION=""
 EXPLICIT_RC_TAG=""
 FORCE=false
 NO_GITHUB_RELEASE=false
+SKIP_E2E=false
 
 usage() {
   cat << EOF
@@ -25,6 +26,8 @@ Usage: $(basename "$0") [OPTIONS]
 Promote a staging RC lineage to production tag vX.Y.Z.
 Creates/pushes the prod tag and a GitHub Release (notes from cutover changes_en + CHANGELOG.md).
 Production deploy is handled by CI on tag push.
+
+Exécute d’abord les E2E locaux (parité CI e2e-smoke) via ./scripts/run_e2e.sh.
 
 Façade développeur : ./scripts/deploy_prod.sh (auto-detect dernier RC)
 
@@ -36,7 +39,10 @@ Options:
   --no-github-release
                     Skip GitHub Release creation (tag push only)
   --force           Allow replacing a mismatched local tag (never rewrites remote tags)
+  --skip-e2e        Ne pas lancer les E2E locaux avant le push tag (déconseillé)
   --help, -h        Show this help
+
+Variable : HATCAST_SKIP_E2E=1 — équivalent à --skip-e2e
 EOF
 }
 
@@ -47,6 +53,7 @@ for arg in "$@"; do
     --dry-run|-n) DRY_RUN=true ;;
     --no-github-release) NO_GITHUB_RELEASE=true ;;
     --force) FORCE=true ;;
+    --skip-e2e) SKIP_E2E=true ;;
     --help|-h)
       usage
       exit 0
@@ -58,6 +65,22 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+if [[ "${HATCAST_SKIP_E2E:-}" == "1" ]]; then
+  SKIP_E2E=true
+fi
+
+run_pre_push_e2e() {
+  if [[ "${SKIP_E2E}" == true ]]; then
+    echo "⏭️  E2E locaux ignorés (--skip-e2e ou HATCAST_SKIP_E2E=1)"
+    return 0
+  fi
+  echo ""
+  echo "🧪 E2E locaux (T1 — parité CI e2e-smoke) avant promotion prod…"
+  echo "   Arrêtez start-dev.sh si actif (ports 8080 / 4200)."
+  echo ""
+  "${HATCAST_V2_PROJECT_ROOT}/scripts/run_e2e.sh"
+}
 
 if [[ -z "${EXPLICIT_VERSION}" ]]; then
   echo "❌ --version=X.Y.Z est obligatoire." >&2
@@ -177,6 +200,11 @@ echo "  - Commit source : ${RC_COMMIT}"
 echo "  - Tag prod      : ${PROD_TAG}"
 
 if [[ "${DRY_RUN}" == true ]]; then
+  if [[ "${SKIP_E2E}" == true ]]; then
+    echo "🧪 DRY RUN: (E2E locaux ignorés)"
+  else
+    echo "🧪 DRY RUN: ./scripts/run_e2e.sh"
+  fi
   if [[ "${local_prod_exists}" == false && "${remote_prod_exists}" == false ]]; then
     echo "🧪 DRY RUN: git tag -a \"${PROD_TAG}\" \"${RC_COMMIT}\" -m \"${TAG_MESSAGE}\""
   else
@@ -187,6 +215,8 @@ if [[ "${DRY_RUN}" == true ]]; then
   echo "🌐 Actions: $(hatcast_v2_github_actions_url)"
   exit 0
 fi
+
+run_pre_push_e2e
 
 if [[ "${local_prod_exists}" == false && "${remote_prod_exists}" == false ]]; then
   git tag -a "${PROD_TAG}" "${RC_COMMIT}" -m "${TAG_MESSAGE}"

@@ -24,6 +24,18 @@ Pour démarrer **back et front** en local :
 
 Alternative manuelle : `npm run dev:api` et `npm run dev:web:v2` dans deux terminaux.
 
+## Tests E2E V2 (Playwright)
+
+**Incompatible avec `start-dev.sh` en parallèle** (mêmes ports 8080 / 4200 ; profil API différent). Arrêtez le dev server avant de lancer les E2E.
+
+```bash
+./scripts/run_e2e.sh              # suite complète (parité CI e2e-smoke)
+./scripts/run_e2e.sh --gate         # gate E1 (mobile + orga)
+./scripts/run_e2e.sh --smoke        # auth + fixtures (~30 s)
+```
+
+`deploy_staging.sh` et `deploy_prod.sh` exécutent `./scripts/run_e2e.sh` avant tout push git (`--skip-e2e` pour contourner). Détail : [apps/web/e2e/README.md](../apps/web/e2e/README.md), [DEVELOPMENT.md](../DEVELOPMENT.md) § Tests.
+
 ## Stack V1 (Vue / Vite sous `legacy/` — production Firebase actuelle)
 
 Pour exposer l’app sur toutes les interfaces (téléphone, autre machine sur le LAN) :
