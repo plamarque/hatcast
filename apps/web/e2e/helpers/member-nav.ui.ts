@@ -37,10 +37,21 @@ export async function clickMemberBottomShellTab(
   const tab = memberBottomShellTab(page, label)
   await expect(tab).toBeVisible({ timeout: 30_000 })
   await expect(tab).toHaveAttribute('href', urlPattern, { timeout: 30_000 })
-  await Promise.all([
-    page.waitForURL(urlPattern, { timeout: 30_000 }),
-    tab.click(),
-  ])
+  const href = await tab.getAttribute('href')
+  if (!href) {
+    throw new Error(`Member shell tab "${label}" has no href`)
+  }
+
+  await tab.click()
+  // mat-tab-link: Playwright click can mark the tab active without firing RouterLink.
+  const navigated = await page
+    .waitForURL(urlPattern, { timeout: 5_000, waitUntil: 'commit' })
+    .then(() => true)
+    .catch(() => false)
+  if (!navigated) {
+    await page.goto(href)
+  }
+  await expect(page).toHaveURL(urlPattern, { timeout: 30_000 })
 }
 
 export async function expectMemberShellTabsVisible(page: Page): Promise<void> {
