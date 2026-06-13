@@ -212,14 +212,16 @@ Le workflow CI tente aussi ce binding après chaque deploy (avertissement GitHub
 
 Spring Boot + Nginx dans la même image peuvent dépasser **512 Mi** au cold start (Flyway, parsing JPQL). Symptôme : logs **`Java heap space`** pendant la création des beans JPA, révision Cloud Run en échec « port 8080 ».
 
-Recommandation **staging / production** : **1 Gi** RAM minimum (le workflow CI applique déjà `--memory 1Gi` et `--cpu 1` — voir [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml)).
+Recommandation **production / development** : **1 Gi** RAM minimum. **Staging** : **2 Gi** (cold start Spring + Flyway + Nginx — 1 Gi peut OOM au démarrage).
 
-Ajustement manuel si besoin avant le prochain deploy CI :
+Le workflow CI applique `--memory 2Gi` sur **staging** et `--memory 1Gi` sur **development** / **production** (`--cpu 1` partout) — voir [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml).
+
+Ajustement manuel **hors CI** (écrasé au prochain deploy workflow) :
 
 ```bash
 gcloud run services update "${SERVICE_NAME}" \
   --region "${GCP_REGION}" \
-  --memory 1Gi \
+  --memory 2Gi \
   --cpu 1
 ```
 
