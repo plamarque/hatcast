@@ -6,6 +6,10 @@ import { openEventTab } from '../helpers/e1.ui'
 import { saisonWorkspacePath } from '../helpers/e1-routes'
 import { isStagingE2e, prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 test.describe('E1 — membre agenda & dispos (mobile)', () => {
   test.beforeEach(async ({ page, request }) => {
     await prepareE1Run(page, request)
@@ -19,6 +23,10 @@ test.describe('E1 — membre agenda & dispos (mobile)', () => {
       await expect(page.locator('app-agenda, app-member-agenda').first()).toBeVisible({
         timeout: 30_000,
       })
+    } else if (isStagingE2e()) {
+      await expect(
+        page.getByRole('button', { name: new RegExp(`^Ouvrir ${escapeRegExp(fx.eventDrawTitle)}`, 'i') }),
+      ).toBeVisible({ timeout: 30_000 })
     } else {
       await expect(page.getByText(fx.eventDrawTitle, { exact: false })).toBeVisible({
         timeout: 30_000,
