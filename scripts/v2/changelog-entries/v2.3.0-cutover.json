@@ -2,11 +2,19 @@
   "version": "2.3.0",
   "date": "__BUILD_DATE__",
   "source": "curated-release",
-  "notes": "v2.3.0 — explicabilité des % de tirage (19.7) — skill hatcast-v2-release",
+  "notes": "v2.3.0 — dispos, notifs, invités, catégories, partage (+ tirage 19.7 en prod) — skill hatcast-v2-release",
   "changes": [
-    "✨ Tirage — visualise tous les candidats d'un rôle et touche un nom pour afficher l'explication de ses % de tirage"
+    "✨ Dispos — sondage unifié sur l'onglet Dispos : tu coches Indispo et tes rôles sur un même écran, sans basculer Moi/Tous",
+    "✨ Externes invités — agenda et espace saison limités à ton invitation ; tu renseignes tes dispos sans accès membre complet",
+    "✨ Notifications — préférences plus claires, alerte quand l'équipe est bouclée, rappel si ta dispo reste à préciser",
+    "✨ Spectacle — catégories visibles sur l'onglet Infos ; les admins gèrent le glossaire dans Réglages troupe",
+    "✨ Partage — fenêtre simplifiée : tu choisis toi-même les destinataires avant d'envoyer le message"
   ],
   "changes_en": [
-    "✨ Draw — view all candidates for a role and tap a name to see the breakdown of their draw odds"
+    "✨ Availability — unified poll on the Dispos tab: check Unavailable and your roles on one screen, no Moi/Tous toggle",
+    "✨ Guest invites — schedule and season workspace scoped to your invite; set availability without full member access",
+    "✨ Notifications — clearer prefs, team-complete alert, reminder when your availability is still pending",
+    "✨ Event — categories on the Infos tab; admins manage the glossary in troupe Settings",
+    "✨ Share — simplified dialog: pick recipients yourself before sending"
   ]
 }
