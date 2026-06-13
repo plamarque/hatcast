@@ -4,6 +4,15 @@
 
 ### 📝 Other Changes
 - chore(v2): promote v2 to staging-v2
+- docs(release): Expand v2.3.0 user changelog cutover
+- chore(v2): sync release v2.3.0-rc.4 artifacts to v2
+
+---
+
+## [2.3.0] - 2026-06-13
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
 - docs(release): Add v2.3.0 changes_en for GitHub Release
 - chore(v2): sync release v2.3.0-rc.3 artifacts to v2
 
