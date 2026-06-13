@@ -5,5 +5,8 @@
   "notes": "v2.3.0 — explicabilité des % de tirage (19.7) — skill hatcast-v2-release",
   "changes": [
     "✨ Tirage — visualise tous les candidats d'un rôle et touche un nom pour afficher l'explication de ses % de tirage"
+  ],
+  "changes_en": [
+    "✨ Draw — view all candidates for a role and tap a name to see the breakdown of their draw odds"
   ]
 }
