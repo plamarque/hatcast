@@ -520,4 +520,29 @@ describe('EventInfosTab', () => {
     const help = fixture.nativeElement.querySelector('#event-infos-organizers-help')
     expect(help?.textContent?.trim()).toBe(ORGANIZERS_HELP)
   })
+
+  it('renders Saison section last when troupe and season names are provided', () => {
+    fixture.componentRef.setInput('troupeName', 'Les Improbots')
+    fixture.componentRef.setInput('seasonTitle', 'Saison 2025-26')
+    fixture.detectChanges()
+
+    const saison = fixture.nativeElement.querySelector('.event-infos__saison') as HTMLElement
+    expect(saison).not.toBeNull()
+    expect(saison.querySelector('#event-infos-saison-label')?.textContent?.trim()).toBe('Saison')
+    expect(saison.querySelector('a[href="/saison/improbots/2025-2026"]')?.textContent?.trim()).toBe(
+      'Saison 2025-26',
+    )
+    expect(saison.querySelector('a[href="/troupes/improbots"]')?.textContent?.trim()).toBe(
+      'Les Improbots',
+    )
+    expect(fixture.nativeElement.querySelector('.event-infos')?.lastElementChild).toBe(saison)
+  })
+
+  it('hides Saison section when troupe or season name is empty', () => {
+    fixture.componentRef.setInput('troupeName', 'Les Improbots')
+    fixture.componentRef.setInput('seasonTitle', '   ')
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.event-infos__saison')).toBeNull()
+  })
 })

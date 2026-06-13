@@ -60,9 +60,7 @@ import {
   computeRawCompositionLifecycle,
 } from '../../core/composition/composition-lifecycle'
 import { canValidateComposition as resolveCanValidateComposition } from '../../core/composition/composition-equipe-actions'
-import { resolveCompositionEquipeStatus, resolveCompositionEquipeStatusFromEvent } from '../../core/composition/composition-equipe-status'
 import { normalizeRoleSlots } from '../../core/events/event-types'
-import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
 import { isEventDraft } from '../../core/events/event-draft'
@@ -104,10 +102,9 @@ function findLinkedSeasonParticipant(
     EventActiviteTab,
     EventEquipeTab,
     EventInfosTab,
-    CompositionEquipeStatusHeader,
   ],
   templateUrl: './event-detail.html',
-  styleUrls: ['./event-detail.scss', '../../shared/composition/composition-equipe-status-header.scss'],
+  styleUrl: './event-detail.scss',
 })
 export class EventDetail implements OnDestroy, OnInit {
   private readonly analytics = inject(ProductAnalyticsService)
@@ -283,25 +280,9 @@ export class EventDetail implements OnDestroy, OnInit {
       compositionInteractionBlocked: this.compositionInteractionBlocked(),
     }),
   )
-  protected readonly equipeStatus = computed(() => {
+  protected readonly eventIsDraft = computed(() => {
     const ev = this.event()
-    if (!ev) {
-      return null
-    }
-    const suppressValidateCta = this.canValidateComposition()
-    if (this.compositionLoaded() && this.composition()) {
-      return resolveCompositionEquipeStatus({
-        composition: this.composition(),
-        canManageComposition: this.canManageComposition(),
-        roleSlots: normalizeRoleSlots(ev.roleSlots),
-        suppressValidateCtaInGuideline: suppressValidateCta,
-      })
-    }
-    return resolveCompositionEquipeStatusFromEvent(
-      ev,
-      this.canManageComposition(),
-      suppressValidateCta,
-    )
+    return !!ev && isEventDraft(ev)
   })
   protected readonly canViewAuditEvent = computed(() => {
     const ev = this.event()
@@ -313,6 +294,16 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly showActiviteTab = computed(
     () => this.canViewAuditEvent() || !!this.linkedParticipantId(),
   )
+  protected readonly showEventHeaderBack = computed(() => {
+    const ev = this.event()
+    return (
+      !!ev &&
+      !!this.contextTroupeName().trim() &&
+      !!this.contextTroupeSlug().trim() &&
+      !!this.contextLeagueTitle().trim() &&
+      !!ev.title?.trim()
+    )
+  })
   protected readonly visibleTabs = computed((): EventDetailTab[] => {
     const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
     if (this.showActiviteTab()) {

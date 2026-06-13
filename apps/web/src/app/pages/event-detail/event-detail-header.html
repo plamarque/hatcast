@@ -1,18 +1,17 @@
 <header class="event-detail-header" [class.event-detail-header--with-admin]="showAdminMenu()">
-  <div class="event-detail-header__left">
-    @if (showBreadcrumb()) {
-      <app-context-breadcrumb
-        layout="event"
-        [omitEventFromBreadcrumb]="true"
-        [troupeId]="troupeId()"
-        [troupeName]="troupeName()!"
-        [troupeSlug]="troupeSlug()!"
-        [troupeLogoUrl]="troupeLogoUrl()"
-        [seasonTitle]="seasonTitle()!"
-        [seasonSlug]="seasonSlug()"
-        [eventTitle]="eventTitle()"
-      />
-    }
+  @if (showBack()) {
+    <button
+      type="button"
+      mat-icon-button
+      class="event-detail-header__back"
+      aria-label="Retour"
+      (click)="onBack()"
+    >
+      <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    </button>
+  }
+  <div class="event-detail-header__center">
+    <ng-content select="[data-event-detail-title-row]" />
   </div>
   @if (showAdminMenu()) {
     <div class="event-detail-header__admin">

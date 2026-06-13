@@ -233,4 +233,31 @@
       </button>
     }
   </section>
+
+  @if (showScopeNav()) {
+    <section
+      class="event-infos__saison"
+      aria-labelledby="event-infos-saison-label"
+    >
+      <span id="event-infos-saison-label" class="event-infos__label">Saison</span>
+      <mat-chip-set class="event-infos__scope-chips" aria-label="Troupe et saison">
+        <a
+          mat-chip
+          class="event-infos__scope-chip"
+          [routerLink]="troupeHubLink()"
+          [attr.aria-label]="'Voir la troupe ' + troupeName()"
+        >
+          {{ troupeName() }}
+        </a>
+        <a
+          mat-chip
+          class="event-infos__scope-chip"
+          [routerLink]="seasonWorkspaceLink()"
+          [attr.aria-label]="'Ouvrir la saison ' + seasonTitle()"
+        >
+          {{ seasonTitle() }}
+        </a>
+      </mat-chip-set>
+    </section>
+  }
 </main>

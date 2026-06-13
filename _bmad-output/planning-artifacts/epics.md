@@ -2174,9 +2174,10 @@ afin de **ne pas perdre de place** au breadcrumb sur mobile.
 
 **Acceptance Criteria (résumé)**
 
-- **Given** détail spectacle, **then** **pas** de `app-context-breadcrumb` troupe › saison ; chevron **Retour** (`history.back()` + fallback) ; title row inchangé (17.37).
-- **Given** onglet Infos, **then** section **Contexte** : `{troupe} · {saison}` + liens **Ouvrir la saison** / **Voir la troupe**.
-- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) ED1–ED4 ; supersede partiel E8 (title row 2026-06-06).
+- **Given** détail spectacle, **then** **pas** de `app-context-breadcrumb` ; chevron **Retour** (`history.back()` + fallback `lastMemberEntryPath` / `/agenda`, incl. `/troupes/:slug`) ; titre **inline** dans le header (même ligne que chevron, ellipsis mobile) — **pas** de badge statut dans le header.
+- **Given** onglet **Infos**, **then** section **Saison** (**dernier** bloc) : chips cliquables `{troupeName}` + `{seasonTitle}` → hub / workspace (centrés).
+- **Given** onglet **Équipe**, **then** badge statut composition + aide **`?`** en tête du tab (ED5) — absent des autres onglets et du header.
+- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) ED1–ED5 ; amendement [ux-design-event-detail-title-row-2026-06-06.md](./ux-design-event-detail-title-row-2026-06-06.md) (2026-06-12).
 
 **Priorité :** P1.  
 **Depends :** 17.41.  

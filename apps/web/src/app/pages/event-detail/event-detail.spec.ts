@@ -325,7 +325,7 @@ describe('EventDetail', () => {
       const labels = [...fixture.nativeElement.querySelectorAll('.event-infos__label')].map(
         (el: Element) => el.textContent?.trim(),
       )
-      expect(labels).toEqual(['Date', 'Lieu', 'Format et besoins', 'Catégorie'])
+      expect(labels).toEqual(['Date', 'Lieu', 'Format et besoins', 'Catégorie', 'Saison'])
     })
     expect(fixture.nativeElement.textContent).toContain('Description test')
     expect(fixture.nativeElement.textContent).toContain('Paris')
@@ -811,7 +811,7 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Aucun tirage pour le moment')
   })
 
-  it('shows help trigger above tabs without open panel on Infos tab', async () => {
+  it('does not show composition status badge on Infos tab', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -858,17 +858,12 @@ describe('EventDetail', () => {
     await vi.waitFor(() => {
       expect(getComposition).not.toHaveBeenCalled()
       expect(fixture.nativeElement.querySelector('[data-testid="composition-status-hint"]')).toBeNull()
-      expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
-      expect(
-        fixture.nativeElement.querySelector('.event-detail__status [data-testid="composition-status-badge"]'),
-      ).not.toBeNull()
-      expect(
-        fixture.nativeElement.querySelector('.event-detail__status [data-testid="composition-status-help-trigger"]'),
-      ).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('[data-testid="composition-status-badge"]')).toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__status')).toBeNull()
     })
   })
 
-  it('opens composition help panel from event detail status chrome', async () => {
+  it('opens composition help panel from équipe tab status chrome', async () => {
     pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: true,
@@ -977,7 +972,7 @@ describe('EventDetail', () => {
     expect(hint.textContent).not.toContain('Valider')
   })
 
-  it('shows équipe status badge above tabs on Dispos tab', async () => {
+  it('does not show composition status badge on Dispos tab', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1011,17 +1006,12 @@ describe('EventDetail', () => {
 
     await vi.waitFor(() => {
       expect(getComposition).not.toHaveBeenCalled()
-      expect(
-        fixture.nativeElement.querySelector('.event-detail__status [data-testid="composition-status-badge"]'),
-      ).not.toBeNull()
-      expect(fixture.nativeElement.textContent).toContain('Confirmations en cours')
-      expect(
-        fixture.nativeElement.querySelector('.event-detail__status [data-testid="composition-status-help-trigger"]'),
-      ).toBeNull()
+      expect(fixture.nativeElement.querySelector('[data-testid="composition-status-badge"]')).toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__status')).toBeNull()
     })
   })
 
-  it('does not show composition draft banner in global status chrome (moved to équipe tab)', async () => {
+  it('shows composition status on équipe tab without draft banner in header', async () => {
     pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: true,
@@ -1041,26 +1031,17 @@ describe('EventDetail', () => {
         compositionLifecycle: 'draftComposition',
       }),
     )
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(getComposition).not.toHaveBeenCalled()
-      const statusChrome = fixture.nativeElement.querySelector('.event-detail__status') as HTMLElement
+      expect(fixture.nativeElement.querySelector('.event-detail__status')).toBeNull()
+      const statusChrome = fixture.nativeElement.querySelector('.event-equipe-tab__status') as HTMLElement
       expect(statusChrome?.textContent ?? '').not.toContain('Composition en brouillon')
       expect(
         statusChrome?.querySelector('[data-testid="composition-status-help-trigger"]'),
       ).not.toBeNull()
-    })
-  })
-
-  it('breadcrumb saison segment links to canonical /saison/ workspace', async () => {
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      const seasonLink = fixture.nativeElement.querySelector(
-        'app-context-breadcrumb a.context-breadcrumb__link',
-      ) as HTMLAnchorElement
-      expect(seasonLink?.getAttribute('href')).toBe('/saison/troupe/season-a')
     })
   })
 
@@ -1358,33 +1339,53 @@ describe('EventDetail', () => {
     expect(cmp.eventAdminItems().map((i) => i.label)).toEqual(['Annoncer', 'Participants'])
   })
 
-  it('does not render header settings or back chevron after breadcrumb refactor', async () => {
+  it('renders back chevron and no breadcrumb after successful load', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('app-context-breadcrumb')).toBeTruthy()
+      expect(fixture.nativeElement.querySelector('.event-detail-header__back')).toBeTruthy()
     })
 
     const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('app-context-breadcrumb')).toBeNull()
     expect(el.querySelector('[aria-label="Réglages saison"]')).toBeNull()
     expect(el.querySelector('[aria-label="Retour à l’agenda"]')).toBeNull()
-    expect(el.querySelector('.event-detail-header__back')).toBeNull()
+    expect(el.querySelector('.event-detail-header__back')?.getAttribute('aria-label')).toBe('Retour')
   })
 
-  it('renders breadcrumb with troupe hub and saison links on event detail', async () => {
+  it('does not render back chevron while loading', () => {
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-detail-header__back')).toBeNull()
+  })
+
+  it('shows Saison section with troupe and season nav chips at end of Infos tab', async () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      const troupeLink = fixture.nativeElement.querySelector(
-        'app-context-breadcrumb a.context-breadcrumb__troupe',
-      )
-      expect(troupeLink).toBeTruthy()
+      expect(fixture.nativeElement.querySelector('.event-infos__saison')).toBeTruthy()
     })
 
-    const seasonLink = fixture.nativeElement.querySelector(
-      'app-context-breadcrumb a.context-breadcrumb__link',
-    ) as HTMLAnchorElement
-    expect(seasonLink.getAttribute('href')).toBe('/saison/troupe/season-a')
+    const saison = fixture.nativeElement.querySelector('.event-infos__saison') as HTMLElement
+    expect(saison.querySelector('#event-infos-saison-label')?.textContent?.trim()).toBe('Saison')
+    expect(saison.textContent).toContain('Troupe')
+    expect(saison.textContent).toContain('Saison')
+    expect(saison.querySelector('a.event-infos__scope-chip[href="/saison/troupe/season-a"]')).not.toBeNull()
+    expect(saison.querySelector('a.event-infos__scope-chip[href="/troupes/troupe"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-infos')?.lastElementChild).toBe(saison)
+  })
+
+  it('shows event title in context row after successful load', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('.event-detail__event-title')?.textContent?.trim(),
+      ).toBe('Spectacle event-2')
+    })
+    expect(fixture.nativeElement.querySelector('app-context-breadcrumb')).toBeNull()
+    expect(
+      fixture.nativeElement.querySelector('.event-detail__event-title')?.getAttribute('aria-current'),
+    ).toBe('page')
   })
 
   it('navigates to season agenda after deactivate confirm', async () => {
@@ -1436,39 +1437,10 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.querySelector('app-member-agenda-shortcut')).toBeNull()
   })
 
-  it('links saison in breadcrumb to canonical /saison workspace', async () => {
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      const saisonLink = fixture.nativeElement.querySelector(
-        'app-context-breadcrumb a.context-breadcrumb__link',
-      )
-      expect(saisonLink?.getAttribute('href')).toBe('/saison/troupe/season-a')
-    })
-  })
-
-  it('shows event title in context row and omits it from breadcrumb after successful load', async () => {
-    fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(
-        fixture.nativeElement.querySelector('.event-detail__event-title')?.textContent?.trim(),
-      ).toBe('Spectacle event-2')
-    })
-    expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
-    const desktopTrail = fixture.nativeElement.querySelector(
-      '.context-breadcrumb__trail--desktop',
-    ) as HTMLElement
-    expect(desktopTrail?.textContent).not.toContain('Spectacle event-2')
-    expect(
-      fixture.nativeElement.querySelector('.event-detail__event-title')?.getAttribute('aria-current'),
-    ).toBe('page')
-  })
-
   it('does not render mobile context row while loading', () => {
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.event-detail__context-row')).toBeNull()
-    expect(fixture.nativeElement.querySelector('.context-breadcrumb__mobile-event-title')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail-header__back')).toBeNull()
   })
 
   it('does not render mobile context row after season resolver failure', async () => {

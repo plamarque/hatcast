@@ -79,18 +79,15 @@ function expectSeasonBreadcrumbSeasonLink(page: Page) {
   ).first()
 }
 
-async function waitForEventDetailSeasonNavigation(page: Page): Promise<void> {
-  const link = expectSeasonBreadcrumbSeasonLink(page)
-  const switcher = page.locator('app-context-breadcrumb button.context-switcher__trigger')
-  await expect(link.or(switcher)).toBeVisible({ timeout: 45_000 })
+async function waitForEventDetailReady(page: Page): Promise<void> {
+  await expect(page.locator('app-event-detail')).toBeVisible({ timeout: 45_000 })
+  await expect(page.locator('.event-detail__spinner')).toHaveCount(0, { timeout: 45_000 })
+  await expect(page.locator('.event-detail__event-title')).toBeVisible({ timeout: 45_000 })
 }
 
 async function expectGuestEventDetailReady(page: Page): Promise<void> {
-  await expect(page.locator('app-event-detail')).toBeVisible({ timeout: 45_000 })
   await expect(page).not.toHaveURL(/\/agenda$/)
-  await expect(page.locator('.event-detail__spinner')).toHaveCount(0, { timeout: 45_000 })
-  await expect(page.locator('.event-detail__event-title')).toBeVisible({ timeout: 45_000 })
-  await waitForEventDetailSeasonNavigation(page)
+  await waitForEventDetailReady(page)
 }
 
 /** Prime guest season context before deep-linking an event (CI-stable for EXTERNE). */
@@ -170,16 +167,31 @@ export async function expectTroupeHubDashboardSeason(
   })
 }
 
-export async function clickSeasonCard(page: Page, seasonTitleFragment: string): Promise<void> {
+export async function clickSeasonCard(
+  page: Page,
+  seasonTitleFragment: string,
+  options?: { troupeSlug?: string; seasonSlug?: string },
+): Promise<void> {
   await expectTroupeHubDashboardSeason(page, seasonTitleFragment)
+  await expect(page.locator('.troupe-hub__dashboard .troupe-hub__inline-spinner')).toHaveCount(0, {
+    timeout: 45_000,
+  })
+  await expect(page.locator('.troupe-hub__metrics mat-spinner')).toHaveCount(0, { timeout: 45_000 })
+
   const cta = page.getByRole('link', { name: 'Voir tous les spectacles', exact: true })
   const overflow = page.locator('.troupe-hub__avatar-overflow').first()
-  if ((await cta.count()) > 0) {
+
+  if (await cta.isVisible().catch(() => false)) {
     await cta.click()
     return
   }
-  if ((await overflow.count()) > 0) {
+  if (await overflow.isVisible().catch(() => false)) {
     await overflow.click()
+    return
+  }
+  // EVENT-scoped guests may see an empty teaser (no CTA) while the season dashboard is selected.
+  if (options?.troupeSlug && options?.seasonSlug) {
+    await page.goto(saisonWorkspacePath(options.troupeSlug, options.seasonSlug))
     return
   }
   throw new Error(`No season workspace CTA on troupe hub for "${seasonTitleFragment}"`)
@@ -190,12 +202,26 @@ export async function clickBreadcrumbSeasonLink(
   fx: Story325Fixture,
   seasonSlug: string,
 ): Promise<void> {
-  await waitForEventDetailSeasonNavigation(page)
-  const link = expectSeasonBreadcrumbSeasonLink(page)
-  if (await link.isVisible()) {
-    await link.click()
+  await waitForEventDetailReady(page)
+
+  const infosTab = page.locator('.event-detail__tabs').getByRole('tab', { name: /Infos/i })
+  if ((await infosTab.count()) > 0) {
+    await infosTab.click()
+    const seasonChip = page.locator('a.event-infos__scope-chip[href*="/saison/"]').first()
+    if ((await seasonChip.count()) > 0) {
+      await expect(seasonChip).toBeVisible({ timeout: 15_000 })
+      await seasonChip.click()
+      await expect(page).toHaveURL(new RegExp(`/saison/${fx.troupeSlug}/${seasonSlug}`))
+      return
+    }
+  }
+
+  const breadcrumbLink = expectSeasonBreadcrumbSeasonLink(page)
+  if ((await breadcrumbLink.count()) > 0 && (await breadcrumbLink.isVisible())) {
+    await breadcrumbLink.click()
     return
   }
+
   await page.goto(saisonWorkspacePath(fx.troupeSlug, seasonSlug))
 }
 

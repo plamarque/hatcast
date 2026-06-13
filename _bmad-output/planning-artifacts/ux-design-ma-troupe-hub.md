@@ -61,7 +61,7 @@ uxDr: UX-DR13 (amended post-login), UX-DR14 (agenda distinction)
 | **MT2** | Mémoriser **`lastVisitedTroupeSlug`** (mise à jour à chaque visite hub troupe ou workspace saison de la troupe) — parallèle à `lastVisitedSeason`. |
 | **MT3** | Nav membre cible : **Accueil · Mon agenda · Ma troupe · Mes stats** (libellés UI ; routes `/accueil`, `/agenda`, `/troupes/:slug`, `/membre/:userSlug`). |
 | **MT4** | **Mon agenda** reste la chronologie **personnelle cross-troupes** ; **Ma troupe** est le **tableau de bord collectif** — pas un second agenda complet. |
-| **MT5** | Workspace saison (`/saison/:troupeSlug/:seasonSlug`) reste le **drill-down orga** (Agenda \| Historique \| Statistiques \| admin). Depuis le hub : **Voir tous les spectacles**, lien **+N** (section Personnes), tap carte teaser — **pas** de CTA primaire « Ouvrir la saison » sur la carte métriques (amend. 2026-06-12). L’onglet Infos événement conserve **Ouvrir la saison** (ED4). |
+| **MT5** | Workspace saison (`/saison/:troupeSlug/:seasonSlug`) reste le **drill-down orga** (Agenda \| Historique \| Statistiques \| admin). Depuis le hub : **Voir tous les spectacles**, lien **+N** (section Personnes), tap carte teaser — **pas** de CTA primaire « Ouvrir la saison » sur la carte métriques (amend. 2026-06-12). L’onglet Infos événement : chips **Saison** / troupe (ED4). |
 
 ### Hub troupe (`/troupes/:slug`)
 
@@ -83,9 +83,10 @@ uxDr: UX-DR13 (amended post-login), UX-DR14 (agenda distinction)
 | ID | Décision |
 |----|----------|
 | **ED1** | **Retirer** `app-context-breadcrumb` du header événement (plus de `Troupe › Saison` en chrome). |
-| **ED2** | Header minimal : **chevron retour** (gauche) + **gear** (droite si admin) ; **title row** + onglets inchangés (E7–E12 title row spec). |
-| **ED3** | Chevron : `history.back()` si historique interne ; **fallback** `/agenda` ; si `lastMemberEntryPath` valide et interne → fallback vers cette route (ex. workspace saison). `aria-label` : **Retour** (pas « Mon agenda » en dur). |
-| **ED4** | Onglet **Infos** — nouvelle section **Contexte** (premier bloc) : `{troupeName} · {seasonTitle}` + actions **Ouvrir la saison** · **Voir la troupe** (`mat-stroked-button` ou liens texte). |
+| **ED2** | Header **une seule ligne** : **chevron retour** (gauche) + **`h1` titre** (ellipsis si besoin) + **gear** (droite si admin) ; avatar compte shell à droite. **Pas** de badge statut composition dans le header (amend. 2026-06-12). |
+| **ED3** | Chevron : `history.back()` si historique interne ; **fallback** `/agenda` ; si `lastMemberEntryPath` valide et interne → fallback vers cette route (ex. workspace saison, hub troupe). `aria-label` : **Retour** (pas « Mon agenda » en dur). |
+| **ED4** | Onglet **Infos** — section **Saison** (**dernier** bloc, après Catégorie) : deux **chips cliquables** centrés — `{troupeName}` → hub troupe, `{seasonTitle}` → workspace saison (`mat-chip` + `routerLink`). **Pas** de libellé « Contexte » ; **pas** de ligne résumé « troupe · saison » ni boutons « Ouvrir la saison » / « Voir la troupe » (amend. 2026-06-12). |
+| **ED5** | Badge statut composition + aide **`?`** : **onglet Équipe uniquement** (haut du contenu tab), **pas** dans le header ni au-dessus des onglets (amend. 2026-06-12 — pertinence contextuelle + lisibilité titre). |
 
 ---
 
@@ -108,7 +109,7 @@ flowchart TB
     Hub --> WS["Workspace saison"]
     Hub --> StatsIndiv["Stats membre filtrées"]
   end
-  Event --> InfosCtx["Contexte dans Infos"]
+  Event --> InfosSaison["Saison dans Infos (dernier bloc)"]
   WS --> Event
 ```
 
@@ -236,28 +237,30 @@ Saison
 
 ---
 
-## Wireframe — Détail événement (amendement ED1–ED4)
+## Wireframe — Détail événement (amendement ED1–ED5)
 
 ```text
 ┌─────────────────────────────────────┐
-│ [←]                        [⚙]     │
-├─────────────────────────────────────┤
-│ Cabaret d'été           [ Confirmé ]│  ← title row (E7–E9)
+│ [←] Format long : Science-fi… [⚙]  │  ← une ligne : retour + titre + gear
 ├─────────────────────────────────────┤
 │     [ Infos | Dispos | Équipe ]     │
 ├─────────────────────────────────────┤
-│ Infos                               │
-│   Contexte                          │
-│     Les Improbots · Saison 2025-26  │
-│     [ Ouvrir la saison ] [ Troupe ]   │
-│   Date · Lieu · Format · …          │
+│ Infos : Date · Lieu · Format · …    │
+│   Catégorie                         │
+│   Saison                            │
+│     [ Les Improbots ] [ Saison 26 ] │  ← chips cliquables, centrés
+├─────────────────────────────────────┤
+│ Équipe :                            │
+│   [ À composer ] [ ? ]              │  ← badge statut (ED5), haut d’onglet
+│   (grille composition…)             │
 └─────────────────────────────────────┘
 ```
 
-| Zone | Supprimé vs 2026-06-06 | Conservé |
-|------|------------------------|----------|
-| Header | `app-context-breadcrumb` | Chevron ED3, gear E1–E2, title row E7–E9 |
-| Infos | — | + section Contexte ED4 ; reste E10 |
+| Zone | Supprimé vs 2026-06-06 | Conservé / ajouté |
+|------|------------------------|-------------------|
+| Header | `app-context-breadcrumb` ; badge statut dans le header | Chevron ED3, titre inline ED2, gear E1–E2 |
+| Infos | — | Section **Saison** ED4 (dernier bloc, chips) ; reste E10 |
+| Équipe | — | Badge statut composition ED5 (haut du tab) |
 
 ---
 
@@ -308,12 +311,13 @@ Saison
 - [ ] **MT-AC10** : Pas de breadcrumb `Troupes ›` ; pas de footer Historique · Préférences.
 - [ ] **MT-AC11** : Mon agenda et hub troupe : listes distinctes (teaser vs chronologie complète).
 
-### Event detail (ED1–ED4)
+### Event detail (ED1–ED5)
 
 - [ ] **ED-AC1** : Pas de `app-context-breadcrumb` sur event detail.
 - [ ] **ED-AC2** : Chevron retour avec fallback intelligent (ED3).
-- [ ] **ED-AC3** : Infos › Contexte avec troupe · saison + liens saison/troupe.
-- [ ] **ED-AC4** : Title row et gear inchangés (E7–E9, E1–E2).
+- [ ] **ED-AC3** : Infos › section **Saison** (dernier bloc) : chips `{troupeName}` + `{seasonTitle}` cliquables vers hub / workspace.
+- [ ] **ED-AC4** : Header une ligne : chevron + titre + gear ; **pas** de badge statut dans le header.
+- [ ] **ED-AC5** : Badge statut composition + aide **`?`** visibles **uniquement** sur l’onglet **Équipe** (ED5).
 
 ### Material 3
 
@@ -332,8 +336,9 @@ Saison
 | lastVisitedTroupe | Service parallèle `lastVisitedSeason` ; post-login optionnel troupe-first si mono-troupe |
 | Hub | Refonte `troupe-hub.html/ts` — API : saisons + `getSeasonWorkspace` teaser + `loadStatistics` (`confirmedCompositionsCount` + rows roster) |
 | Participants view | Workspace `season-home` onglet ou query `view=participants` |
-| Event header | Retirer breadcrumb de `event-detail-header` ; chevron + `NavigationHistoryService` ou `lastMemberEntryPath` |
-| Event Infos | `event-infos-tab` — section Contexte |
+| Event header | Retirer breadcrumb ; chevron + titre inline ; `lastMemberEntryPath` (+ `/troupes/:slug`) |
+| Event Infos | `event-infos-tab` — section **Saison** (chips, dernier bloc) |
+| Event Équipe | `event-equipe-tab` — `app-composition-equipe-status-header` en tête d’onglet |
 | Tests | `troupe-hub.spec.ts`, `event-detail.spec.ts`, nav shell specs |
 
 ---
@@ -345,8 +350,9 @@ Saison
 | [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) T12 | Pas de lien autres troupes depuis hub | **Voir les autres troupes** si multi-troupe (MT12) |
 | [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) M3-5 | Pas de 4ᵉ onglet nav | **Ma troupe** 4ᵉ onglet (MT1) |
 | [ux-design-hub-a-faire.md](./ux-design-hub-a-faire.md) | Workspace hors nav | Workspace drill-down ; **Ma troupe** en nav (MT1) |
-| [ux-design-event-detail-title-row](./ux-design-event-detail-title-row-2026-06-06.md) E8 | Breadcrumb troupe › saison | **Supprimé** ; contexte Infos (ED1, ED4) |
-| [ADR 0013](../../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) §2 | Breadcrumb event detail | Amender : chevron + Infos contexte |
+| [ux-design-event-detail-title-row](./ux-design-event-detail-title-row-2026-06-06.md) E7–E9 | Title row + badge au-dessus des onglets | **Titre inline header** (ED2) ; badge **Équipe tab** (ED5) |
+| [ux-design-event-detail-title-row](./ux-design-event-detail-title-row-2026-06-06.md) E8 | Breadcrumb troupe › saison | **Supprimé** ; chips Saison Infos (ED1, ED4) |
+| [ADR 0013](../../docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md) §2 | Breadcrumb event detail | Chevron + section Saison Infos ; pas de breadcrumb event |
 
 ---
 
@@ -356,7 +362,7 @@ Saison
 |----|-------|-------|
 | **17.41** ✅ | Nav shell — onglet Ma troupe + `lastVisitedTroupe` | MT1–MT3 — **done** — [17-41-nav-shell-ma-troupe.md](../implementation-artifacts/17-41-nav-shell-ma-troupe.md) |
 | **17.42** | Hub troupe — dashboard collectif (phase 1) | MT6–MT14 |
-| **17.43** | Event detail — retrait breadcrumb + contexte Infos | ED1–ED4 |
+| **17.43** ✅ | Event detail — retrait breadcrumb + Saison Infos + badge Équipe | ED1–ED5 |
 | **17.44** | Hub troupe — mini-chart mois saison (phase 2) | MT15 |
 
 *(17.38–17.40 = category glossary slice — already shipped.)*
@@ -371,7 +377,7 @@ Saison
 | Hub = dashboard saison courante, pas grille saisons ? | Oui (MT6–MT8) |
 | Titre section = intitulé saison ? | Oui (MT7) |
 | Bas de page = **Voir les autres troupes** (conditionnel) uniquement ? | Oui (MT12) |
-| Event detail sans breadcrumb ; contexte Infos ? | Oui (ED1–ED4) |
+| Event detail sans breadcrumb ; Saison Infos + badge Équipe ? | Oui (ED1–ED5) |
 | Mini-chart mois en phase 2 ? | Oui (MT15) |
 
 **Statut :** `approved` (2026-06-10 — Patrice).
@@ -391,4 +397,17 @@ Ajustements validés en recette après implémentation initiale ; la spec ci-des
 | Teaser CTA | **Voir tout l'agenda** | **Voir tous les spectacles**, centré en colonne |
 | Donnée Compos | — | Champ API stats saison ; règle métier = badge **Confirmé** (lifecycle `complete`) |
 
-**Non modifié :** ED4 (**Ouvrir la saison** sur Infos événement), MT12 footer multi-troupe, switcher saison, saisons archivées, parité dispo/participation sur cartes teaser.
+**Non modifié :** MT12 footer multi-troupe, switcher saison, saisons archivées, parité dispo/participation sur cartes teaser.
+
+---
+
+## Amendement 2026-06-12 — Rétro-doc event detail 17.43 (Patrice)
+
+Ajustements validés en recette après implémentation initiale ; ED2–ED5 ci-dessus **mis à jour** (story **17.43** shipped).
+
+| Sujet | Spec initiale (2026-06-10) | Après (shipped) |
+|-------|-----------------------------|-----------------|
+| Header | Ligne 1 : chevron + gear ; ligne 2 : titre + badge statut | **Une ligne** : chevron + titre (ellipsis) + gear |
+| Badge statut composition | Title row au-dessus des onglets (E7–E9) | **Onglet Équipe uniquement** (ED5) — lisibilité titre |
+| Infos — contexte troupe/saison | Section **Contexte** (1er bloc) ; ligne résumé + boutons | Section **Saison** (**dernier** bloc) ; **chips** cliquables centrés |
+| Navigation retour hub | `lastMemberEntryPath` sans `/troupes/:slug` | Allowlist étendue à `/troupes/:slug` pour retour depuis hub |

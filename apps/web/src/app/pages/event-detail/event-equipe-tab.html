@@ -34,6 +34,14 @@
       />
     }
 
+    @if (equipeStatus(); as status) {
+      @if (!eventIsDraft()) {
+        <div class="event-equipe-tab__status">
+          <app-composition-equipe-status-header [status]="status" />
+        </div>
+      }
+    }
+
     <ng-template #slotBody let-row="row">
       @if (row.slot?.participantDisplayName; as name) {
         <app-user-avatar

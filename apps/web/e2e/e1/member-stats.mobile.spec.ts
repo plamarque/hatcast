@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 
 import { assertMobileViewport } from '../helpers/e1-layout'
-import { memberShellTab, MEMBER_SHELL_TAB } from '../helpers/member-nav.ui'
-import { memberStatsPath } from '../helpers/e1-routes'
+import { clickMemberBottomShellTab, MEMBER_SHELL_TAB, memberBottomShellTab } from '../helpers/member-nav.ui'
+import { memberProfileUrlPattern, memberStatsPath } from '../helpers/e1-routes'
 import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 
 test.describe('E1 — membre stats perso (mobile)', () => {
@@ -27,14 +27,13 @@ test.describe('E1 — membre stats perso (mobile)', () => {
     const fx = await resolveE1Context(request)
     await assertMobileViewport(page)
     await page.goto('/agenda')
-    const statsTab = memberShellTab(page, MEMBER_SHELL_TAB.stats)
+    const statsUrl = memberProfileUrlPattern(fx.memberUserSlug)
     // MemberStatsShortcutService.refresh() is async; link defaults to /accueil until slug loads.
-    await expect(statsTab).toHaveAttribute('href', new RegExp(`/membre/${fx.memberUserSlug}`), {
-      timeout: 30_000,
-    })
-    await statsTab.click()
-    await expect(page).toHaveURL(new RegExp(`/membre/${fx.memberUserSlug}`), { timeout: 30_000 })
+    await clickMemberBottomShellTab(page, MEMBER_SHELL_TAB.stats, statsUrl)
     await expect(page.locator('h1.member-glance-page__title')).toContainText('Mes Stats')
-    await expect(statsTab).toHaveAttribute('aria-current', 'page')
+    await expect(memberBottomShellTab(page, MEMBER_SHELL_TAB.stats)).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 })

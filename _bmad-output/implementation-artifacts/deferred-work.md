@@ -430,3 +430,10 @@
 
 - **No logout / access-denied slug clear** — story explicitly deferred (season slug not cleared on logout either); `clearLastVisitedTroupeSlug` exported but unused in prod paths.
 - **Full `npm run test -w @hatcast/web` suite failures** — pre-existing (76+ failures unrelated to this story); targeted includes pass (22/22).
+
+## Deferred from: code review of 17-43-event-detail-contexte-infos (2026-06-12)
+
+- **`Location.back()` si `navigationId > 1` peut renvoyer hors HatCast** — conforme ED3 / pattern story ; pas de garde route membre.
+- **Test gap fallback chevron vers `/troupes/:slug`** — allowlist étendue mais `onBack()` non testé sur ce chemin.
+- **Test gap AC8 Saison absente sur 404/403** — pas d’assertion intégration dans `event-detail.spec.ts`.
+- **Badge statut absent pendant spinner chargement onglet Équipe** — acceptable UX de chargement.

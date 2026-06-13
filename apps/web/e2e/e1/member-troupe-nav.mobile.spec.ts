@@ -5,7 +5,9 @@ import { saisonWorkspacePath, troupeHubPath } from '../helpers/e1-routes'
 import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 import {
   clearLastVisitedTroupeSlug,
+  clickMemberBottomShellTab,
   expectMemberShellTabsVisible,
+  memberBottomShellTab,
   memberShellTab,
   MEMBER_SHELL_TAB,
   seedLastVisitedTroupeSlug,
@@ -28,17 +30,16 @@ test.describe('E1 — membre nav Ma troupe (mobile)', () => {
     await expectMemberShellTabsVisible(page)
     await assertNoHorizontalOverflow(page)
 
-    const troupeTab = memberShellTab(page, MEMBER_SHELL_TAB.troupe)
-    await expect(troupeTab).toHaveAttribute('href', troupeHubPath(fx.troupeSlug), {
-      timeout: 30_000,
-    })
-    await troupeTab.click()
-
-    await expect(page).toHaveURL(new RegExp(`${troupeHubPath(fx.troupeSlug)}$`), {
-      timeout: 30_000,
-    })
+    await clickMemberBottomShellTab(
+      page,
+      MEMBER_SHELL_TAB.troupe,
+      new RegExp(`${troupeHubPath(fx.troupeSlug)}$`),
+    )
     await expect(page.locator('app-troupe-hub')).toBeVisible({ timeout: 30_000 })
-    await expect(troupeTab).toHaveAttribute('aria-current', 'page')
+    await expect(memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe)).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   test('E1-MEM-041 — Ma troupe falls back to troupes list when no slug stored', async ({
@@ -52,13 +53,12 @@ test.describe('E1 — membre nav Ma troupe (mobile)', () => {
     await clearLastVisitedTroupeSlug(page)
     await page.reload()
 
-    const troupeTab = memberShellTab(page, MEMBER_SHELL_TAB.troupe)
-    await expect(troupeTab).toHaveAttribute('href', '/troupes', { timeout: 30_000 })
-    await troupeTab.click()
-
-    await expect(page).toHaveURL(/\/troupes$/, { timeout: 30_000 })
+    await clickMemberBottomShellTab(page, MEMBER_SHELL_TAB.troupe, /\/troupes$/)
     await expect(page.locator('app-troupes-list')).toBeVisible({ timeout: 30_000 })
-    await expect(troupeTab).not.toHaveAttribute('aria-current', 'page')
+    await expect(memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe)).not.toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   test('E1-MEM-042 — season visit seeds Ma troupe shortcut from storage', async ({
