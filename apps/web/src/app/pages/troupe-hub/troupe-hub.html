@@ -181,6 +181,41 @@
               <span class="troupe-hub__metric-label">Personnes</span>
             </div>
           </div>
+
+          @if (showSeasonMiniChart()) {
+            <div
+              class="member-profile__chart troupe-hub__season-chart"
+              aria-label="Répartition des spectacles passés par mois"
+            >
+              @for (month of seasonMonthlyChart()!; track month.monthKey) {
+                <div class="member-profile__chart-month">
+                  <div class="member-profile__chart-blocks">
+                    @for (block of month.blocks; track block.eventId) {
+                      <button
+                        type="button"
+                        [class]="chartBlockModifierClass(block)"
+                        [matTooltip]="chartBlockTooltip(block)"
+                        matTooltipClass="member-profile__chart-tooltip"
+                        matTooltipPosition="above"
+                        [attr.aria-label]="chartBlockAriaLabel(block)"
+                        (click)="openChartEvent(block.eventSlug)"
+                        (keydown)="onChartBlockKeydown($event, block.eventSlug)"
+                      ></button>
+                    }
+                  </div>
+                  <span class="member-profile__chart-month-label">{{ chartMonthLabel(month.monthKey) }}</span>
+                </div>
+              }
+            </div>
+            <a
+              mat-stroked-button
+              class="troupe-hub__season-stats-cta"
+              [routerLink]="seasonWorkspaceLink(season)"
+              [queryParams]="{ view: 'stats' }"
+            >
+              Voir toutes les stats
+            </a>
+          }
         </div>
 
         @if (archivedSeasons().length > 0) {

@@ -2187,19 +2187,20 @@ afin de **ne pas perdre de place** au breadcrumb sur mobile.
 
 #### Story 17.44 : Hub troupe — mini-chart mois saison *(UX phase 2)*
 
-En tant que **membre**,  
-je veux un **aperçu visuel de l'année** dans la carte saison du hub,  
+En tant que **membre**,
+je veux un **aperçu visuel de l'année** dans la carte saison du hub,
 afin de **voir la densité des spectacles** comme sur Mes Stats.
 
 **Acceptance Criteria (résumé)**
 
-- **Given** hub troupe carte saison, **when** ≥3 spectacles passés, **then** bandeau mois par mois (grammaire `member-profile-panel`) sous les tuiles métriques.
+- **Given** hub troupe carte saison, **when** ≥3 spectacles passés, **then** bandeau mois par mois (grammaire `member-profile-panel`) sous les tuiles métriques ; blocs colorés par **statut Équipe agenda** (`teamStatusBadge`).
 - **Given** <3 spectacles passés, **then** tuiles chiffrées seules (comportement 17.42).
-- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT15.
+- **Given** bandeau visible, **then** tooltip = titre + statut Équipe + nb participations ; CTA **Voir toutes les stats** → workspace saison `?view=stats`.
+- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT15 ; spec détaillée [ux-design-hub-mini-chart-17-44.md](./ux-design-hub-mini-chart-17-44.md) (MC1–MC16).
 
-**Priorité :** P2.  
-**Depends :** 17.42.  
-**Story file :** *(à créer via `bmad-create-story 17.44`)*
+**Priorité :** P2.
+**Depends :** 17.42.
+**Story file :** [_17-44-hub-troupe-mini-chart-saison.md_](../implementation-artifacts/17-44-hub-troupe-mini-chart-saison.md)
 
 ---
 

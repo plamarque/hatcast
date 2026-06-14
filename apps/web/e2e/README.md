@@ -216,7 +216,7 @@ Specs sous `e2e/e1/` — stats perso, activité spectacle (membre), stats saison
 | Spec | IDs | Stories |
 |------|-----|---------|
 | `member-troupe-nav.mobile.spec.ts` | E1-MEM-040 (**P0**) …042 (P1) | 17.41 nav Ma troupe — gate T2 mobile |
-| `member-troupe-hub.mobile.spec.ts` | E1-MEM-043…045 (**P1**) | 17.42 hub dashboard collectif — tuiles, Personnes, teaser |
+| `member-troupe-hub.mobile.spec.ts` | E1-MEM-043…048 (**P1**) | 17.42 hub dashboard collectif ; 17.44 mini-chart saison |
 | `member-dispos-poll.mobile.spec.ts` | E1-MEM-030…033 | 5.8 sondage unifié ; 5.9 pool % + breakdown sans onglet Équipe (E1-MEM-033) |
 
 ### T1 — CI local / `e2e-smoke.yml`

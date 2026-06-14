@@ -6,7 +6,9 @@ import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.CompositionLifecycle
+import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import com.hatcast.api.composition.CompositionLifecycleService
+import com.hatcast.api.composition.TeamStatusBadgeDto
 import com.hatcast.api.composition.CompositionSlotSnapshot
 import com.hatcast.api.composition.CompositionSnapshot
 import com.hatcast.api.composition.EventCompositionDeclineEntity
@@ -57,6 +59,7 @@ class SeasonStatisticsService(
     private val guestInvitationAccess: GuestInvitationAccessService,
     private val userRepository: UserRepository,
     private val compositionLifecycleService: CompositionLifecycleService,
+    private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
 ) {
     companion object {
         private val STATS_ZONE: ZoneId = ZoneId.of("Europe/Paris")
@@ -138,15 +141,20 @@ class SeasonStatisticsService(
                 .distinct()
                 .sorted()
 
+        val lifecycleByEvent =
+            compositionLifecycleEnrichment.loadViewsByEventIds(events, season, principal)
+
         val eventDtos =
             events.map { event ->
                 StatisticsEventDto(
                     id = event.id,
                     title = event.title,
+                    slug = event.slug,
                     startsAt = event.startsAt.toString(),
                     templateType = event.templateType,
                     category = event.category,
                     monthKey = monthKey(event),
+                    teamStatusBadge = lifecycleByEvent[event.id]?.teamStatusBadge?.toDto(),
                 )
             }
 

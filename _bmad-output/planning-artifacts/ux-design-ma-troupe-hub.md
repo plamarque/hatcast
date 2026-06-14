@@ -76,7 +76,7 @@ uxDr: UX-DR13 (amended post-login), UX-DR14 (agenda distinction)
 | **MT12** | Lien bas de page **Voir les autres troupes** → `/troupes` — **visible uniquement** si `myTroupes.length >= 2` ; **absent** en mono-troupe (pas de placeholder). |
 | **MT13** | **Retirer** le fil d’Ariane `Troupes › …` du header hub (escape via nav **Ma troupe** + lien MT12). Hero : logo + nom troupe + gear admin. |
 | **MT14** | **Préférences membre** : inchangé vs [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) T5/T6 — **Mon compte** uniquement ; pas de lien Préférences sur le hub. |
-| **MT15** | **Phase 2** : mini-chart **mois par mois** dans la carte saison (grammaire visuelle `member-profile-panel` ; données `monthSummary` stats saison) — voir § Phase 2. |
+| **MT15** | **Phase 2** : mini-chart **mois par mois** dans la carte saison (grammaire visuelle `member-profile-panel` ; données stats saison) — spec détaillée [ux-design-hub-mini-chart-17-44.md](./ux-design-hub-mini-chart-17-44.md) ; résumé § Phase 2. |
 
 ### Détail événement
 
@@ -268,15 +268,18 @@ Saison
 
 **Objectif :** visualisation collective de l’année dans la carte saison — même grammaire que Mes Stats (`member-profile-panel`).
 
+**Spec normative (Story 17.44) :** [ux-design-hub-mini-chart-17-44.md](./ux-design-hub-mini-chart-17-44.md) — décisions **MC1–MC16**, wireframes mobile/desktop, états, MT15-AC, sign-off 2026-06-14 (amend. couleurs statut + CTA stats).
+
 | Aspect | Stats individuelles | Stats saison (hub) |
 |--------|---------------------|---------------------|
-| Bloc | 1 participation, couleur rôle | 1 spectacle |
-| Tooltip | Titre + rôle | Titre + nb participations |
+| Bloc | 1 participation, couleur rôle | 1 spectacle, **couleur statut Équipe** (badges agenda) |
+| Tooltip | Titre + rôle | Titre + **statut Équipe** + nb participations |
 | Tap | Event detail | Event detail |
+| CTA sous bandeau | — | **Voir toutes les stats** → `?view=stats` |
 | Affichage | Pleine page | Bandeau compact sous tuiles ; scroll horizontal si >12 mois |
 | Seuil | — | Afficher seulement si ≥ 3 spectacles passés dans la saison |
 
-**Hors scope phase 1** — nécessite chargement stats saison sur le hub.
+**Hors scope phase 1** — nécessite chargement stats saison sur le hub (livré **17.42**).
 
 ---
 

@@ -499,6 +499,7 @@ describe('SeasonHome', () => {
           {
             id: 'e1',
             title: 'Show',
+            slug: 'show',
             startsAt: '2026-05-12T19:00:00.000Z',
             templateType: 'custom',
             category: null,
@@ -863,6 +864,7 @@ describe('SeasonHome', () => {
           {
             id: 'e1',
             title: 'Spectacle',
+            slug: 'spectacle',
             startsAt: '2026-05-12T19:00:00.000Z',
             templateType: 'custom',
             category: null,

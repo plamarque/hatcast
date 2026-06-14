@@ -447,3 +447,9 @@
 - **Test gap AC8 Saison absente sur 404/403** — pas d’assertion intégration dans `event-detail.spec.ts`.
 - **Badge statut absent pendant spinner chargement onglet Équipe** — acceptable UX de chargement.
 - **Test équipe brouillon ne couvre pas AC 7b** — `event-equipe-tab.spec.ts` n’asserte pas le badge quand `availabilityOpenedAt == null`.
+
+## Deferred from: code review of 17-44-hub-troupe-mini-chart-saison (2026-06-14)
+
+- **E2E helper added but no Playwright spec consumes it** — story marks E2E optional/non-blocking ; `expectTroupeHubSeasonChartVisible` ready for future wiring.
+- **`slug` required on `StatisticsEvent` OpenAPI** — monorepo co-deploy with front ; intentional additive breaking field.
+- **Extra `loadViewsByEventIds` on every stats call** — acceptable story scope ; monitor if perf issue surfaces on large seasons.

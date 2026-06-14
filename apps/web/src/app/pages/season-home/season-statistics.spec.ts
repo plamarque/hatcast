@@ -15,6 +15,7 @@ describe('SeasonStatistics', () => {
       {
         id: 'ev1',
         title: 'Match test',
+        slug: 'match-test',
         startsAt: '2026-03-15T19:00:00Z',
         templateType: 'match',
         category: null,
