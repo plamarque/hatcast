@@ -15,7 +15,9 @@ import {
   MAX_VISIBLE_ACTIONS,
   relativeDayLabel,
   URGENT_DAYS,
+  inboxActionUrgencyTier,
   type AgendaCardEnrichedItem,
+  type InboxActionUrgencyTier,
 } from '../../core/member-home/member-home-todo.utils'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import { LastVisitedSeasonShortcutService } from '../../core/navigation/last-visited-season-shortcut.service'
@@ -317,9 +319,17 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     return action.type === 'composition_confirm_pending'
   }
 
+  protected actionLeadingIcon(action: InboxAction): string {
+    return this.isConfirmAction(action) ? 'how_to_reg' : 'edit_calendar'
+  }
+
   /** Verb-first call to action: the loudest, scannable line of the card. */
   protected actionVerbLabel(action: InboxAction): string {
     return this.isConfirmAction(action) ? 'Confirme ta présence' : 'Donne ta dispo'
+  }
+
+  protected actionUrgencyTier(action: InboxAction): InboxActionUrgencyTier {
+    return inboxActionUrgencyTier(action.startsAt, this.referenceNow())
   }
 
   /** Concrete relative-day chip (« Demain », « Dans 3 j »…) with urgent tone ≤ 2 days. */

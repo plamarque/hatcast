@@ -58,11 +58,10 @@
         <div class="member-home-todo__skeleton-cards">
           @for (row of [0, 1, 2]; track row) {
             <div class="member-home-todo__skeleton-card">
-              <span class="member-home-todo__skeleton-circle" aria-hidden="true"></span>
+              <span class="member-home-todo__skeleton-icon" aria-hidden="true"></span>
               <span class="member-home-todo__skeleton-lines">
                 <span class="member-home-todo__skeleton-line member-home-todo__skeleton-line--short"></span>
                 <span class="member-home-todo__skeleton-line"></span>
-                <span class="member-home-todo__skeleton-line member-home-todo__skeleton-line--meta"></span>
               </span>
             </div>
           }
@@ -72,19 +71,20 @@
 
     @if (showInboxContent()) {
       @if (completedGhosts().length > 0) {
-        <section class="member-home-todo__section" aria-hidden="true">
+        <section
+          class="member-home-todo__section"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <div class="member-home-todo__action-cards">
             @for (ghost of completedGhosts(); track ghost.key) {
               <div
                 class="member-home-todo__action-card member-home-todo__action-card--done"
-                [class.member-home-todo__action-card--confirm]="ghost.confirm"
-                [class.member-home-todo__action-card--dispo]="!ghost.confirm"
                 animate.leave="member-home-todo__action-card--leaving"
               >
-                <span class="member-home-todo__check member-home-todo__check--checked">
-                  <span class="member-home-todo__check-box">
-                    <mat-icon class="member-home-todo__check-mark">check</mat-icon>
-                  </span>
+                <span class="member-home-todo__action-done-icon" aria-hidden="true">
+                  <mat-icon>check</mat-icon>
                 </span>
                 <span class="member-home-todo__action-card-main">
                   <span class="member-home-todo__action-verb">{{ ghost.verb }}</span>
@@ -129,8 +129,9 @@
               <button
                 type="button"
                 class="member-home-todo__action-card"
-                [class.member-home-todo__action-card--confirm]="isConfirmAction(action)"
-                [class.member-home-todo__action-card--dispo]="isAvailabilityAction(action)"
+                [class.member-home-todo__action-card--urgent]="actionUrgencyTier(action) === 'urgent'"
+                [class.member-home-todo__action-card--soon]="actionUrgencyTier(action) === 'soon'"
+                [class.member-home-todo__action-card--normal]="actionUrgencyTier(action) === 'normal'"
                 [attr.aria-label]="actionAriaLabel(action)"
                 [attr.data-testid]="
                   isConfirmAction(action) ? 'todo-action-confirm' : 'todo-action-dispo'
@@ -138,29 +139,25 @@
                 animate.leave="member-home-todo__action-card--leaving"
                 (click)="openAction(action)"
               >
-                <span class="member-home-todo__check" aria-hidden="true">
-                  <span class="member-home-todo__check-box">
-                    <mat-icon class="member-home-todo__check-mark">check</mat-icon>
-                  </span>
-                </span>
+                <mat-icon class="member-home-todo__action-type-icon" aria-hidden="true">
+                  {{ actionLeadingIcon(action) }}
+                </mat-icon>
                 <span class="member-home-todo__action-card-main">
-                  <span class="member-home-todo__action-card-head">
-                    <span class="member-home-todo__action-verb">{{ actionVerbLabel(action) }}</span>
-                    @if (actionDateBadge(action); as badge) {
-                      <span
-                        class="member-home-todo__date-chip"
-                        [class.member-home-todo__date-chip--urgent]="badge.urgent"
-                      >
-                        {{ badge.label }}
-                      </span>
-                    }
-                  </span>
-                  <span class="member-home-todo__action-card-subhead">
-                    <span class="member-home-todo__action-title">{{ actionEventTitle(action) }}</span>
-                    <mat-icon class="member-home-todo__action-card-chevron" aria-hidden="true">
-                      chevron_right
-                    </mat-icon>
-                  </span>
+                  <span class="member-home-todo__action-verb">{{ actionVerbLabel(action) }}</span>
+                  <span class="member-home-todo__action-title">{{ actionEventTitle(action) }}</span>
+                </span>
+                <span class="member-home-todo__action-card-trailing">
+                  @if (actionDateBadge(action); as badge) {
+                    <span
+                      class="member-home-todo__date-chip"
+                      [class.member-home-todo__date-chip--urgent]="badge.urgent"
+                    >
+                      {{ badge.label }}
+                    </span>
+                  }
+                  <mat-icon class="member-home-todo__action-card-chevron" aria-hidden="true">
+                    chevron_right
+                  </mat-icon>
                 </span>
               </button>
             }

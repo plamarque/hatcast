@@ -2,6 +2,7 @@
 title: UX — Accueil — Actions requises & état « Tout est à jour »
 author: Sally (UX) + Patrice
 date: '2026-05-31'
+lastUpdated: '2026-06-14'
 status: approved
 trigger: 'Screenshot review — subline clipped, CTAs feel flat; encourage empty success state'
 relatedStories:
@@ -10,6 +11,7 @@ relatedStories:
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-hub-a-faire.md
   - _bmad-output/planning-artifacts/ux-design-hub-section-headers.md
+  - _bmad-output/planning-artifacts/ux-design-participation-semantic-colors.md
   - _bmad-output/planning-artifacts/ux-voice-and-tone.md
   - docs/v2/technical/FRONTEND_UI.md
   - apps/web/src/app/pages/member-home-todo/member-home-todo.html
@@ -18,6 +20,9 @@ stakeholderDecisions:
   - no-ellipsis-on-action-metadata
   - explicit-visual-cta-per-action-type
   - encouraging-all-caught-up-moment
+  - filled-action-cards-trailing-chip-chevron
+  - dispo-action-info-blue-token
+  - type-icon-not-checkbox
 ---
 
 # UX Design — Accueil — Actions requises & « Tout est à jour »
@@ -214,8 +219,9 @@ Prochain spectacle
 
 | Document | Change |
 |----------|--------|
-| [ux-hub-a-faire.md](./ux-hub-a-faire.md) § Zone 1 | Replace « liste compacte mat-list » with **action cards** + link to this file |
-| [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) table | Add row for `ux-design-accueil-actions-requises.md` |
+| [ux-hub-a-faire.md](./ux-hub-a-faire.md) § Zone 1 | Action cards filled tint, trailing chip+chevron, blue action-info — addendum 2026-06-14 |
+| [ux-design-participation-semantic-colors.md](./ux-design-participation-semantic-colors.md) | P17 + § Inbox action tokens |
+| [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) | § Inbox action-info table + spec table row |
 
 ---
 
@@ -283,5 +289,157 @@ M3-1…M3-5 still apply; the checkbox + chip are token-styled custom/`mat-chip` 
 |-------------|------|-------|
 | Patrice | 2026-05-31 | Screenshot-driven; wants visual CTAs + encouraging « tout est à jour » |
 | Patrice | 2026-06-02 | Verb-first + rounded checkbox + dated urgency + brand orange ✓ closure (Option A). Mockup approved. |
+| Patrice | 2026-06-14 | Fond plein teinté · layout trailing chip+chevron · bleu action-info dispo · icône type (sans checkbox). Canvas preview approved. |
 
-**Next step:** Implemented directly in `member-home-todo.*` (no separate story file; tracked via this addendum).
+**Next step (2026-06-14):** Implement addendum C in `member-home-todo.*` + tokens `--hatcast-sys-action-info*` in `_hatcast-semantic-colors.scss`.
+
+---
+
+## Addendum — 2026-06-14 — Fond plein, trailing unifié, bleu action-info
+
+**Trigger:** Post-ship review (Patrice). Cards feel **outlined / administrative** (border + left bar + grey dispo). Chevron misaligned when deadline chip sits on line 1. Checkbox affordance **misleading** (always empty; task disappears on complete). Grey dispo cards **not inciting** enough for a primary CTA zone.
+
+**Preview (validated):** [todo-actions-design-preview.canvas.tsx](/Users/patrice/.cursor/projects/Users-patrice-GitHub-hatcast/canvases/todo-actions-design-preview.canvas.tsx) — layout B + chips A + palette bleu action-info.
+
+**Supersedes** (for matching topics only): addendum B rows **B1** (layout), **B3** (checkbox), **B4** (dispo neutral grey + outline bar). Rows **B2**, **B5–B9** remain unless contradicted below.
+
+### Product decisions
+
+| # | Topic | Decision |
+|---|--------|----------|
+| C1 | **Card surface** | **Filled tint** per action type — **no** outer border, **no** left accent bar. `border-radius: 0.9rem` (12–14 px). Hover/focus: `surface-container-high` wash or accent outline ring (`outline-offset: 2px`) — **no** layout shift. |
+| C2 | **Layout (verb-first, 2 lines)** | **Line 1:** action verb only (accent colour). **Line 2:** event title (1 line, ellipsis); role for confirmations appended (`{title} · {role}`). **No line 3** on cards; full date remains in `aria-label` only. |
+| C3 | **Trailing column** | **Single horizontal row:** `[date chip?][chevron_right]` — chip and chevron **on the same baseline**, block **vertically centered** in the card (`align-items: center` on card flex). Chip is **not** on line 1 or embedded in line 2 text. When no chip (event beyond 7 days), trailing = chevron only. |
+| C4 | **Leading element = type icon** | **Remove** persistent empty checkbox. Leading **`mat-icon`** 20–24 dp, `aria-hidden="true"`: **`edit_calendar`** (dispo) · **`how_to_reg`** (confirm). Type identity = **icon + verb colour + card tint** (not checkbox). |
+| C5 | **Dispo colour — action-info blue** | **`availability_unknown`** cards use new token family **`--hatcast-sys-action-info*`** (Material `mat.$blue-palette`) — **not** `--hatcast-participation-neutral-*` (grey) and **not** `--hatcast-sys-positive` (green = already answered). Scope: **inbox action cards on `/accueil` only** — does **not** replace neutral on agenda badges, Dispos toggles, or chart. Rationale: inciting CTA without polluting participation semantics ([ux-design-participation-semantic-colors.md](./ux-design-participation-semantic-colors.md) § Inbox action tokens). |
+| C6 | **Confirm colour** | Unchanged: **`--hatcast-sys-pending*`** (ambre) for `composition_confirm_pending`. |
+| C7 | **Date chip** | Unchanged from B5: relative pill « Aujourd'hui » / « Demain » / « Dans N j » within 7 days; **`--urgent`** (error tokens) when ≤ 2 days; tertiary/orange mix when 3–7 days. Plain `<span>` pill — not `mat-chip`. |
+| C8 | **Done ghost (no checkbox)** | On return after resolved action: brief **ghost card** (sessionStorage flow unchanged). Leading = **filled circle** `tertiary` + white `check` icon (not square checkbox). Body: verb + title + meta **« C'est noté ! »** on line 2 or 3. Card `--done` wash: `color-mix(tertiary 8%, surface)`. Then `animate.leave` → « Tout est à jour » blooms. |
+| C9 | **Compact density** | `min-height` ≥ **48 dp**; padding ~`0.6rem 0.75rem`; gap between cards `0.5rem`. |
+| C10 | **No persistent history** | Completed actions **do not** stay in the list as checked items; no manual dismiss. Queue model unchanged. |
+
+### Anatomy (mobile, canonical)
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ 📅  Donne ta dispo                                        ›  │  ← dispo: blue tint, no chip
+│     rgefre                                                   │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ ✓   Confirme ta présence                   [Dans 4 j]  ›     │  ← confirm: amber tint
+│     dqsdqsd · DJ                                             │     chip + chevron same row
+└──────────────────────────────────────────────────────────────┘
+```
+
+| Zone | Content | Tokens / components |
+|------|---------|---------------------|
+| **Leading** | `mat-icon` type icon | Colour: `--todo-accent` (= action-info or pending) |
+| **Body L1** | Verb (`Donne ta dispo` / `Confirme ta présence`) | `font-weight: 700`, `color: var(--todo-accent)` |
+| **Body L2** | Event title (+ ` · {role}` if confirm) | `on-surface`, ellipsis 1 line |
+| **Trailing** | Optional date chip + `chevron_right` | Chip: existing `__date-chip`; chevron: `on-surface-variant` |
+
+### Token mapping — action cards
+
+| Modifier | `--todo-accent` (verb + icon) | Card background |
+|----------|-------------------------------|-----------------|
+| `--confirm` | `var(--hatcast-sys-pending)` | `color-mix(in srgb, var(--hatcast-sys-pending) 12%, var(--mat-sys-surface))` |
+| `--dispo` | `var(--hatcast-sys-action-info)` | `color-mix(in srgb, var(--hatcast-sys-action-info) 14%, var(--mat-sys-surface))` |
+| `--done` (ghost) | inherited | `color-mix(in srgb, var(--mat-sys-tertiary) 8%, var(--mat-sys-surface))` |
+
+**New tokens** (define in `_hatcast-semantic-colors.scss`, mirror `--hatcast-sys-pending` pattern):
+
+| Token | Role |
+|-------|------|
+| `--hatcast-sys-action-info` | Foreground accent (verb, icon) — dispo inbox cards |
+| `--hatcast-sys-action-info-container` | Optional container reference |
+| `--hatcast-sys-on-action-info` | On-accent (if filled badge needed later) |
+
+Source palette: **`mat.$blue-palette`** with `light-dark()` pair — same mechanical pattern as `--hatcast-sys-pending`.
+
+### Action types — mapping (revised)
+
+| `InboxAction.type` | Leading icon | Card modifier | Trailing |
+|--------------------|--------------|---------------|----------|
+| `composition_confirm_pending` | `how_to_reg` | `--confirm` | `[chip?] chevron_right` |
+| `availability_unknown` | `edit_calendar` | `--dispo` | `[chip?] chevron_right` |
+
+**Sort / cap / API:** unchanged (B5, A10, server order, max 5 + see-all).
+
+### Interaction states
+
+| State | Behavior |
+|-------|----------|
+| Default | Filled tint, no border |
+| `:hover` / `:focus-visible` | `background: var(--mat-sys-surface-container-high)` **or** keep tint + `outline: 2px solid var(--todo-accent)` |
+| `:active` | `color-mix(in srgb, var(--todo-accent) 5%, var(--mat-sys-surface))` |
+| Leaving | Unchanged `animate.leave` collapse |
+
+### Accessibility
+
+- Full French **`aria-label`** on card `<button>` via `actionAriaLabel()` (verb + title + date/urgency) — unchanged.
+- Type icon + chevron: `aria-hidden="true"`.
+- Date chip: decorative if date is in `aria-label`; chip text may duplicate relative date (acceptable).
+
+### Implementation notes
+
+| File | Change |
+|------|--------|
+| `_hatcast-semantic-colors.scss` | Add `--hatcast-sys-action-info*` family (`mat.$blue-palette`) |
+| `member-home-todo.html` | Restructure: icon leading; L1 verb; L2 title; trailing row chip+chevron; remove checkbox markup on pending cards; ghost uses circle+check |
+| `member-home-todo.scss` | Remove border/left-bar; filled `--dispo` / `--confirm` backgrounds; trailing flex row; icon styles; drop `__check-box` on pending state (keep ghost done styles) |
+| `member-home-todo.spec.ts` | Layout selectors; dispo card uses action-info class; trailing chip+chevron alignment smoke; ghost still works |
+| `ux-design-participation-semantic-colors.md` | § Inbox action tokens + decision P17 |
+| `FRONTEND_UI.md` | Reference action-info tokens + scope guard |
+
+### Material 3 acceptance criteria (addendum C)
+
+| ID | Criterion |
+|----|-----------|
+| M3-1 | `mat-icon` leading + `chevron_right` trailing; date chip = token-styled `<span>` |
+| M3-2 | Colours via `--mat-sys-*`, `--hatcast-sys-action-info*`, `--hatcast-sys-pending*` + `color-mix` only |
+| M3-3 | Card tap ≥ 48 dp; full French `aria-label`; title ellipsis OK, chip never clips chevron alignment |
+| M3-4 | No new bottom nav |
+| M3-5 | FRONTEND_UI checklist in Dev Agent Record |
+
+### Out of scope (unchanged)
+
+Persistent checked history, manual dismiss, new inbox types, agenda badge colour change for unknown dispo.
+
+---
+
+## Addendum — 2026-06-14 (D) — Couleur = urgence (variante A)
+
+**Trigger:** Review Patrice — type-based card colours (bleu/ambre) do not help prioritise; deadline chips alone are too small. **Variant A approved:** background = urgency tier; type = neutral icon + verb.
+
+**Preview:** [todo-actions-urgency-colors.canvas.tsx](/Users/patrice/.cursor/projects/Users-patrice-GitHub-hatcast/canvases/todo-actions-urgency-colors.canvas.tsx)
+
+**Supersedes** addendum C rows **C5**, **C6**, and § Token mapping (type → colour). Layout C2–C4, C7–C10 unchanged.
+
+### Decisions
+
+| # | Topic | Decision |
+|---|--------|----------|
+| D1 | **Card background = urgency** | Three tiers from `startsAt` (Paris calendar days): **urgent** ≤ 2 j · **soon** 3–7 j · **normal** > 7 j (no chip). Same tier for dispo and confirm at equal offset. |
+| D2 | **Colour ramp** | **Urgent** — `color-mix(error 12%, surface)` · **Soon** — `color-mix(tertiary 14%, surface)` · **Normal** — `color-mix(action-info 10%, surface)`. |
+| D3 | **Variant A — neutral type** | Icon `on-surface-variant`; verb `on-surface` bold; shape + copy distinguish dispo vs confirm. **No** type-coloured icon (variant B rejected). |
+| D4 | **Focus ring** | `--todo-accent` follows tier (error / tertiary / action-info) for `:focus-visible` outline. |
+| D5 | **Date chip** | Unchanged B5/C7: error tone ≤ 2 j; default chip uses tertiary for 3–7 j. |
+| D6 | **Helper** | `inboxActionUrgencyTier(startsAt, now)` in `member-home-todo.utils.ts`; modifiers `--urgent` / `--soon` / `--normal` on card. |
+
+### Token mapping (revised)
+
+| Modifier | Background | `--todo-accent` (focus only) |
+|----------|------------|------------------------------|
+| `--urgent` | error ~12 % | `--mat-sys-error` |
+| `--soon` | tertiary ~14 % | `--mat-sys-tertiary` |
+| `--normal` | action-info ~10 % | `--hatcast-sys-action-info` |
+
+### Sign-off
+
+| Stakeholder | Date | Notes |
+|-------------|------|-------|
+| Patrice | 2026-06-14 | Variante A — urgence pure (rouge / orange / bleu) |
+
+**Status:** Implemented in `member-home-todo.*` + `inboxActionUrgencyTier` util.
+

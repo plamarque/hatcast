@@ -386,7 +386,7 @@ describe('MemberHomeTodo', () => {
     expect(card.textContent).toContain('Apérock Juin')
     expect(card.textContent).toContain('Comédien·ne')
     expect(card.textContent).not.toContain('La BIM')
-    expect(card.querySelector('.member-home-todo__date-chip')?.textContent).toContain('Dans 3 j')
+    expect(card.querySelector('.member-home-todo__action-card-trailing .member-home-todo__date-chip')?.textContent).toContain('Dans 3 j')
     expect(card.getAttribute('aria-label')).toContain('Comédien·ne')
     expect(card.getAttribute('aria-label')).toContain('Dans 3 j')
   })
@@ -400,9 +400,11 @@ describe('MemberHomeTodo', () => {
 
     await settle(fixture)
 
-    expect(fixture.nativeElement.querySelector('.member-home-todo__date-chip')?.textContent).toContain(
-      'Dans 3 j',
-    )
+    const card = fixture.nativeElement.querySelector(
+      '[data-testid="todo-action-dispo"]',
+    ) as HTMLElement
+    expect(card.querySelector('.member-home-todo__date-chip')?.textContent).toContain('Dans 3 j')
+    expect(card.classList.contains('member-home-todo__action-card--soon')).toBe(true)
   })
 
   it('rejoue une carte cochée (ghost) au retour quand une action a été résolue', async () => {
@@ -433,7 +435,7 @@ describe('MemberHomeTodo', () => {
     ) as HTMLElement
     expect(ghost).toBeTruthy()
     expect(ghost.textContent).toContain('noté')
-    expect(fixture.nativeElement.querySelector('.member-home-todo__check--checked')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('.member-home-todo__action-done-icon')).toBeTruthy()
     expect(fixture.nativeElement.textContent).not.toContain('Tout est à jour')
 
     fixture.destroy()

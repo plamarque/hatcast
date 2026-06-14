@@ -116,6 +116,27 @@ export function relativeDayLabel(
   return `Dans ${offset} j`
 }
 
+export type InboxActionUrgencyTier = 'urgent' | 'soon' | 'normal'
+
+/** Card background tier for Accueil inbox actions (addendum D — urgency ramp). */
+export function inboxActionUrgencyTier(
+  startsAt: string,
+  now: Date,
+  timeZone = AGENDA_TIME_ZONE,
+): InboxActionUrgencyTier {
+  const offset = calendarDaysFromNow(startsAt, now, timeZone)
+  if (offset < 0) {
+    return 'normal'
+  }
+  if (offset <= URGENT_DAYS) {
+    return 'urgent'
+  }
+  if (offset <= SOON_DAYS) {
+    return 'soon'
+  }
+  return 'normal'
+}
+
 export function pickNextEvent(items: UserAgendaItem[]): UserAgendaItem | null {
   if (items.length === 0) {
     return null

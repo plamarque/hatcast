@@ -9,6 +9,7 @@ import {
   deriveSeasonGlanceQueryParams,
   deriveSeasonGlanceQueryParamsFromInbox,
   enrichAgendaCardFields,
+  inboxActionUrgencyTier,
   isSoonAction,
   isWithinCalendarDaysFromNow,
   pickNextEvent,
@@ -82,6 +83,14 @@ describe('member-home-todo.utils', () => {
     expect(relativeDayLabel('2026-06-03T20:00:00+02:00', now, TZ)).toBe('Dans 7 j')
     expect(relativeDayLabel('2026-06-04T20:00:00+02:00', now, TZ)).toBeNull()
     expect(relativeDayLabel('2026-05-25T20:00:00+02:00', now, TZ)).toBeNull()
+  })
+
+  it('inboxActionUrgencyTier maps calendar offset to urgent, soon, normal', () => {
+    expect(inboxActionUrgencyTier('2026-05-27T20:00:00+02:00', now, TZ)).toBe('urgent')
+    expect(inboxActionUrgencyTier('2026-05-28T20:00:00+02:00', now, TZ)).toBe('urgent')
+    expect(inboxActionUrgencyTier('2026-05-30T20:00:00+02:00', now, TZ)).toBe('soon')
+    expect(inboxActionUrgencyTier('2026-06-03T20:00:00+02:00', now, TZ)).toBe('soon')
+    expect(inboxActionUrgencyTier('2026-06-04T20:00:00+02:00', now, TZ)).toBe('normal')
   })
 
   it('pickNextEvent returns earliest even when input is unsorted', () => {

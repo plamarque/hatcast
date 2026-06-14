@@ -40,6 +40,24 @@ $_hatcast-pending-dark: mat.define-theme(
   )
 );
 
+$_hatcast-action-info-light: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$blue-palette,
+    ),
+  )
+);
+
+$_hatcast-action-info-dark: mat.define-theme(
+  (
+    color: (
+      theme-type: dark,
+      primary: mat.$blue-palette,
+    ),
+  )
+);
+
 @mixin hatcast-semantic-color-tokens() {
   --hatcast-sys-positive: light-dark(
     #{mat.get-theme-color($_hatcast-positive-light, primary)},
@@ -74,6 +92,24 @@ $_hatcast-pending-dark: mat.define-theme(
   --hatcast-sys-on-pending-container: light-dark(
     #{mat.get-theme-color($_hatcast-pending-light, on-primary-container)},
     #{mat.get-theme-color($_hatcast-pending-dark, on-primary-container)}
+  );
+
+  // Inbox action cards (Accueil) — dispo CTA; not a participation state (see ux-design-accueil-actions-requises.md)
+  --hatcast-sys-action-info: light-dark(
+    #{mat.get-theme-color($_hatcast-action-info-light, primary)},
+    #{mat.get-theme-color($_hatcast-action-info-dark, primary)}
+  );
+  --hatcast-sys-action-info-container: light-dark(
+    #{mat.get-theme-color($_hatcast-action-info-light, primary-container)},
+    #{mat.get-theme-color($_hatcast-action-info-dark, primary-container)}
+  );
+  --hatcast-sys-on-action-info: light-dark(
+    #{mat.get-theme-color($_hatcast-action-info-light, on-primary)},
+    #{mat.get-theme-color($_hatcast-action-info-dark, on-primary)}
+  );
+  --hatcast-sys-on-action-info-container: light-dark(
+    #{mat.get-theme-color($_hatcast-action-info-light, on-primary-container)},
+    #{mat.get-theme-color($_hatcast-action-info-dark, on-primary-container)}
   );
 
   // --- Participation: available (dispo) ---

@@ -36,19 +36,19 @@
 
 .member-home-todo__skeleton-card {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
-  min-height: 4.5rem;
+  min-height: 3.25rem;
   padding: 0.75rem;
-  border-radius: 0.75rem;
+  border-radius: 0.9rem;
   background: var(--mat-sys-surface-container-low);
 }
 
-.member-home-todo__skeleton-circle {
-  flex: 0 0 3rem;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 999px;
+.member-home-todo__skeleton-icon {
+  flex: 0 0 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.35rem;
   background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, var(--mat-sys-surface-container-high));
 }
 
@@ -71,11 +71,6 @@
 
 .member-home-todo__skeleton-line--short {
   width: 42%;
-}
-
-.member-home-todo__skeleton-line--meta {
-  width: 58%;
-  height: 0.75rem;
 }
 
 @keyframes member-home-todo-skeleton-pulse {
@@ -191,8 +186,8 @@
   gap: 0.65rem;
   width: 100%;
   min-height: 3rem;
-  padding: 0.6rem 0.7rem 0.6rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 60%, transparent);
+  padding: 0.6rem 0.75rem;
+  border: none;
   border-radius: 0.9rem;
   background: var(--mat-sys-surface);
   color: inherit;
@@ -202,27 +197,28 @@
   transition: background 0.18s, opacity 0.32s, transform 0.32s, max-height 0.32s, margin 0.32s,
     padding 0.32s;
 
-  &:hover,
-  &:focus-visible {
-    background: var(--mat-sys-surface-container-high);
+  &:hover:not(&--done),
+  &:focus-visible:not(&--done) {
     outline: 2px solid var(--todo-accent);
     outline-offset: 2px;
   }
 
-  &--confirm {
-    --todo-accent: var(--hatcast-sys-pending);
-    border-inline-start: 4px solid var(--hatcast-sys-pending);
-    padding-inline-start: calc(0.75rem - 3px);
+  &--urgent {
+    --todo-accent: var(--mat-sys-error);
+    background: color-mix(in srgb, var(--mat-sys-error) 12%, var(--mat-sys-surface));
   }
 
-  // Unknown dispo = neutral « pas encore répondu », not success green.
-  &--dispo {
-    --todo-accent: var(--hatcast-participation-neutral-badge-fg);
-    border-inline-start: 4px solid color-mix(in srgb, var(--mat-sys-outline) 55%, transparent);
-    padding-inline-start: calc(0.75rem - 3px);
+  &--soon {
+    --todo-accent: var(--mat-sys-tertiary);
+    background: color-mix(in srgb, var(--mat-sys-tertiary) 14%, var(--mat-sys-surface));
   }
 
-  &:active {
+  &--normal {
+    --todo-accent: var(--hatcast-sys-action-info);
+    background: color-mix(in srgb, var(--hatcast-sys-action-info) 10%, var(--mat-sys-surface));
+  }
+
+  &:active:not(&--done) {
     background: color-mix(in srgb, var(--todo-accent) 5%, var(--mat-sys-surface));
   }
 
@@ -242,40 +238,30 @@
   }
 }
 
-.member-home-todo__check {
+.member-home-todo__action-type-icon {
   flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 1.25rem;
+  color: var(--mat-sys-on-surface-variant);
 }
 
-.member-home-todo__check-box {
+.member-home-todo__action-done-icon {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 0.45rem;
-  border: 2px solid var(--todo-accent);
-  background: color-mix(in srgb, var(--todo-accent) 8%, transparent);
-}
-
-.member-home-todo__check-mark {
-  width: 1.1rem;
-  height: 1.1rem;
-  font-size: 1.1rem;
-  color: var(--mat-sys-on-tertiary);
-  transform: scale(0);
-  opacity: 0;
-  visibility: hidden;
-}
-
-.member-home-todo__check--checked .member-home-todo__check-box {
-  border-color: var(--mat-sys-tertiary);
+  border-radius: 999px;
   background: var(--mat-sys-tertiary);
-}
 
-.member-home-todo__check--checked .member-home-todo__check-mark {
-  transform: scale(1);
-  opacity: 1;
-  visibility: visible;
+  mat-icon {
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
+    color: var(--mat-sys-on-tertiary);
+  }
 }
 
 .member-home-todo__action-card-main {
@@ -283,34 +269,31 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0.1rem;
 }
 
-.member-home-todo__action-card-head,
-.member-home-todo__action-card-subhead {
+.member-home-todo__action-card-trailing {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.member-home-todo__action-verb,
-.member-home-todo__action-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  gap: 0.25rem;
 }
 
 .member-home-todo__action-verb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.2;
-  color: var(--todo-accent);
+  color: var(--mat-sys-on-surface);
 }
 
 .member-home-todo__action-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25;
