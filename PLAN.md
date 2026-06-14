@@ -12,7 +12,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md) and [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 - **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
-- **V2 deploy (Cloud Run + Neon):** **Release train V2.0.x** validé (**E3**, prod **v2.0.3+** sur **`https://hatcast.app`**). **Vague 2.1.0** en cours — retours **démo commission spectacle** (implémentation presque terminée). **M4** bascule audience **reportée** (fin saison V1 ~août 2026). **Epic 19** (tirage / formules custom) **reporté** version ultérieure. Pipeline : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + **OPS-11**.
+- **V2 deploy (Cloud Run + Neon):** **Release train V2.0.x** validé (**E3**, prod **v2.0.3+** sur **`https://hatcast.app`**). **Vague 2.1.0** en cours — retours **démo commission spectacle** (implémentation presque terminée). **M4** bascule audience **reportée** (fin saison V1 ~août 2026). **Epic 19** sprint **Wave D** actif (**19.15→19.21**) — formules admin + choix orga ; facteurs **19.11–19.14** parked. Pipeline : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + **OPS-11**.
 
 ---
 
@@ -377,7 +377,13 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 
 - **Démo V2** au responsable commission spectacle : **faite** ; retours notés et pris en charge (WIP, presque terminé).
 - **Release cible :** **`v2.1.0`** (`./scripts/release_version.sh` → recette staging → `./scripts/deploy_prod.sh`) dès les retours mergés.
-- **Epic 19** (moteur tirage, formules & politiques custom) : **reporté version ultérieure** — ne pas bloquer 2.1.0 ni M4 ; fondations **19.1** [x] / **19.2** en pause conservées au backlog.
+- **Epic 19** (moteur tirage, formules & politiques custom) : ~~**reporté version ultérieure**~~ — **repris 2026-06** en parallèle de 2.1.0 (ne bloque ni M4 ni release train) ; voir amendement ci-dessous.
+
+**Amendement PO — reprise Epic 19 (2026-06, MAJ sprint-status) :**
+
+- **Décision :** implémentation **19.1+** reprise après fondations documentaires ; pas d’attente formelle de **2.1.0** / **M4** pour le moteur technique.
+- **État :** Waves **A–B** [x] ; Wave **C** partielle — **19.8–19.10** [x], **19.11–19.14 parked** ; **sprint Wave D** actif (**19.15→19.21**, voir § Epic 19) ; **OQ-19-01→04** tranchées.
+- **Prod runtime :** pipeline défaut = compartiment `category` + malus participations passées ; facteurs **19.9+** codés **off by default** jusqu’à formules Wave D.
 
 **Ordre de session actuel (post-démo) :**
 
@@ -386,7 +392,7 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 3. **Release 2.1.0** — tag staging validé → prod (`release_version` + `deploy_prod`)  
 4. **Décision fenêtre M4** — date, comms, critères go/no-go (V1 fin saison, migration prod, formation orga)  
 5. **M4** + **OPS-7** (après décision PO + commission)  
-6. Backlog **hors vague** — § récap ; **Epic 19** après 2.1.0 / M4 selon priorité PO
+6. **Epic 19** sprint **Wave D** (**19.15→19.21**) — voir § Epic 19 ; **19.11–19.14** après démo formules
 
 *(Historique ordre SCP 2026-06-02 : waves A–F code + **E1**/**E2**/**E3** — voir `sprint-status.yaml`.)*
 
@@ -646,7 +652,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 ### Epic 19 — Moteur de tirage pondéré (parité V1, facteurs, formules & politiques)
 
-**Statut PO (2026-06) :** **Reporté version ultérieure** — après **v2.1.0** (retours démo) et indépendamment de **M4**. Ne pas planifier **19.3+** (formules custom, politiques admin, UI) avant décision PO explicite. **19.1** (spec + ADR) reste une fondation documentaire ; **19.2** (golden) en pause.
+**Statut PO (2026-06, MAJ pivot Wave D) :** **In progress** — Waves **A–B** [x] ; Wave **C** partielle [x] (**19.8–19.10**) ; **19.11–19.14 parked** (reprise après démo formules). **Sprint actif : Wave D** « Formules administrables — démo E2E » (**19.15→19.21**, voir § ci-dessous). Ne bloque pas **2.1.0** ni **M4**. Détail statuts : `sprint-status.yaml`.
 
 **Added:** 2026-06-04 — SCP [draw weight engine](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-04-epic19-draw-weight-engine.md) ; amendements **(b–c)** formules, politiques par catégorie, choix au tirage.
 
@@ -674,13 +680,52 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **19.21** | UI orga — choix formule au tirage | P2 | 19.18, 6.4 |
 | **19.22** | Snapshot formule au tirage | P2 | 19.21, 6.14 |
 
-**DoD Wave A (19.1–19.4) :** ADR 0019 ; suite golden CI ; doc cotes ; zéro dérive formulaire vs V1.
+**DoD Wave A (19.1–19.4) :** [x] ADR 0019 ; suite golden CI ; doc cotes ; zéro dérive formulaire vs V1.
 
-**DoD Wave B (19.5–19.6) :** un seul chemin de calcul ; facteur historique seul actif par défaut ; golden 19.2 vert.
+**DoD Wave B (19.5–19.7) :** [x] un seul chemin de calcul ; pipeline facteurs ; golden 19.2 vert ; breakdown explicabilité (**19.7**).
 
-**DoD Wave D (19.15–19.22) :** catalogue multi-formules ; politique avec règles **par catégorie** (clé exacte = **OQ-19-01**, stakeholder) ; résolution événement ; sélecteur orga si `CHOICE` ≥2 ; snapshot auditable.
+**DoD Wave C (19.8–19.14) :** partielle [x] — **19.8–19.10** livrés ; facteurs **off by default** jusqu’à formules Wave D ; **19.11–19.14 parked** (post-démo formules admin).
 
-**Open questions :** SCP §5b — premier jet epic, amendable post-stakeholder sans re-ouvrir **6.4**.
+**DoD Wave D (19.15–19.22) :** catalogue multi-formules ; politique avec règles **par catégorie** ; résolution événement ; sélecteur orga si `CHOICE` ≥2 ; snapshot auditable (**19.22** phase 2 sprint).
+
+**Décisions PO sprint Wave D (2026-06, tranchées) :**
+
+| ID | Sujet | Décision |
+|----|--------|----------|
+| **OQ-19-01** | Clé résolution politique | **`event.category`** (slug glossaire **17.7**) |
+| **OQ-19-02** | Politique MVP sans UI **19.20** | Troupe : **`defaultRule = CHOICE`** + toutes formules publiées ; politique saison optionnelle via API **19.18** |
+| **OQ-19-03** | Preview % éditeur (**19.17** AC3) | **Waivable** pour Demo 1 — éditeur sauvegarde seule |
+| **OQ-19-04** | Invariant ADR 0019 | **`% affichés = même pipeline que tirage`** dès **19.18** (brancher runtime sur formule persistée) |
+
+**Open questions restantes :** SCP §5b — amendable sans re-ouvrir **6.4** ; règles **par catégorie** avancées (**19.20**) hors MVP sprint.
+
+#### Sprint Epic 19 — Wave D : « Formules administrables — démo E2E »
+
+**Trigger :** **19.10** [x] ; pivot PO — UI formules **avant** nouveaux facteurs **19.11–19.14**.
+
+**Objectif sprint :** démontrer (1) composition de formules en admin à partir des facteurs **déjà codés**, puis (2) choix orga au tirage avec recalcul des %.
+
+**Facteurs exposés dans l’éditeur MVP :** compartiment `category` (**19.8**, toujours actif) ; `past_participation` (**19.6**) ; `immediate_replay` (**19.9**) ; `role_request` (**19.10**). Facteurs **19.11+** masqués « bientôt ».
+
+**Parked (hors sprint) :** **19.11–19.14** — reprise après Demo 2 ; **19.13** reste couplé **Epic 20.6**.
+
+| Phase | Stories | Milestone |
+|-------|---------|-----------|
+| **Spec + persistance** | **19.15** → **19.16** → **19.17** | Backend formules + seed V1 |
+| **Demo 1 — admin** | **19.19** | Éditeur Material 3 — créer/éditer une recette |
+| **Demo 2 — orga** | **19.18** → **19.21** | Politique effective + choix formule au tirage ; draw branché sur pipeline configurée |
+| **Phase 2 (hors MVP sprint)** | **19.20**, **19.22** | UI admin politiques par catégorie ; snapshot formule au tirage |
+
+**Ordre de session suggéré (2 stories max / session) :**
+
+1. **19.15** seule — SPEC/DOMAIN + amendement ADR 0019  
+2. **19.16** — migration Flyway + formule système V1  
+3. **19.17** — API CRUD formules  
+4. **19.19** — **Demo 1** UI admin  
+5. **19.18** — API politiques + runtime draw/`formulaId`  
+6. **19.21** — **Demo 2** UI orga choix au tirage  
+
+**DoD sprint MVP :** admin crée une formule (ex. V1 + `role_request`) ; orga choisit entre ≥2 formules au tirage ; golden **19.2** vert avec pipeline **DEFAULT** inchangée si formule système V1 ; invariant **OQ-19-04** vérifié sur Dispos + draw.
 
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 19.
 
@@ -774,7 +819,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **V2.0.0 release train** | **Closed** | Code + **E1**/**E2**/**E3** + **OPS-8** ; prod sur `hatcast.app` |
 | **V2.1.0 (retours démo)** | **In progress** | Démo commission faite ; implémentation retours presque terminée |
 | **M4 cutover gate** | **Deferred** | Après 2.1.0 + accord date ; V1 jusqu’à ~août |
-| **Epic 19 (tirage / formules)** | **Deferred** | Version ultérieure — PO 2026-06 |
+| **Epic 19 (tirage / formules)** | **In progress** | Sprint Wave D **19.15→19.21** ; **19.11–19.14** parked |
 | **Domaine prod** | **Live 2026-06-04** | **`https://hatcast.app`** — Cloudflare Registrar + orange proxy → Cloud Run west1 |
 
 ### PRD / UX references (V2)
