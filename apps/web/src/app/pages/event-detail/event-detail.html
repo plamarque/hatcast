@@ -9,7 +9,7 @@
   >
     @if (event(); as ev) {
       <div data-event-detail-title-row class="event-detail__context-row">
-        <h1 class="event-detail__event-title" aria-current="page">{{ ev.title }}</h1>
+        <h1 class="event-detail__event-title" aria-current="page" [title]="ev.title">{{ ev.title }}</h1>
       </div>
     }
   </app-event-detail-header>

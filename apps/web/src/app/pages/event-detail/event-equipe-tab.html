@@ -35,11 +35,9 @@
     }
 
     @if (equipeStatus(); as status) {
-      @if (!eventIsDraft()) {
-        <div class="event-equipe-tab__status">
-          <app-composition-equipe-status-header [status]="status" />
-        </div>
-      }
+      <div class="event-equipe-tab__status">
+        <app-composition-equipe-status-header [status]="status" />
+      </div>
     }
 
     <ng-template #slotBody let-row="row">

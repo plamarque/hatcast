@@ -446,3 +446,4 @@
 - **Test gap fallback chevron vers `/troupes/:slug`** — allowlist étendue mais `onBack()` non testé sur ce chemin.
 - **Test gap AC8 Saison absente sur 404/403** — pas d’assertion intégration dans `event-detail.spec.ts`.
 - **Badge statut absent pendant spinner chargement onglet Équipe** — acceptable UX de chargement.
+- **Test équipe brouillon ne couvre pas AC 7b** — `event-equipe-tab.spec.ts` n’asserte pas le badge quand `availabilityOpenedAt == null`.
