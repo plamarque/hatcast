@@ -1,14 +1,25 @@
 import { expect, test } from '@playwright/test'
 
 import { assertMobileViewport, assertNoHorizontalOverflow } from '../helpers/e1-layout'
-import { anyMemberProfileUrlPattern, seasonWorkspaceUrlPattern } from '../helpers/e1-routes'
+import {
+  anyMemberProfileUrlPattern,
+  saisonEventPath,
+  seasonWorkspaceUrlPattern,
+} from '../helpers/e1-routes'
 import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 import {
+  clickTroupeHubSeasonChartBlock,
+  countPastStatisticsEvents,
   expectTroupeHubDashboardSections,
   expectTroupeHubLegacyChromeAbsent,
   expectTroupeHubMetricTiles,
   expectTroupeHubPersonnesStrip,
+  expectTroupeHubSeasonChartStatusBlocks,
+  expectTroupeHubSeasonChartVisible,
+  fetchSeasonStatisticsEvents,
   gotoTroupeHub,
+  newestPastStatisticsEvent,
+  openTroupeHubSeasonStatsFromChart,
   openTroupeHubTeaserWorkspace,
 } from '../helpers/troupe-hub.ui'
 
@@ -86,5 +97,59 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
 
     await openTroupeHubTeaserWorkspace(page, fx.troupeSlug, fx.seasonSlug)
     await assertNoHorizontalOverflow(page)
+  })
+
+  test('E1-MEM-046 — mini-chart saison sous les tuiles métriques', async ({ page, request }) => {
+    const fx = await resolveE1Context(request)
+    const statsEvents = await fetchSeasonStatisticsEvents(request, fx.seasonId)
+    test.skip(
+      countPastStatisticsEvents(statsEvents) < 3,
+      'Season has fewer than 3 past events — mini-chart hidden (MT15 threshold)',
+    )
+
+    await assertMobileViewport(page)
+    await gotoTroupeHub(page, fx.troupeSlug)
+    await expectTroupeHubDashboardSections(page)
+    await expectTroupeHubMetricTiles(page)
+    await expectTroupeHubSeasonChartVisible(page)
+    await expectTroupeHubSeasonChartStatusBlocks(page)
+    await assertNoHorizontalOverflow(page)
+  })
+
+  test('E1-MEM-047 — CTA Voir toutes les stats → grille stats saison', async ({ page, request }) => {
+    const fx = await resolveE1Context(request)
+    const statsEvents = await fetchSeasonStatisticsEvents(request, fx.seasonId)
+    test.skip(
+      countPastStatisticsEvents(statsEvents) < 3,
+      'Season has fewer than 3 past events — stats CTA not shown',
+    )
+
+    await assertMobileViewport(page)
+    await gotoTroupeHub(page, fx.troupeSlug)
+    await expectTroupeHubDashboardSections(page)
+    await expectTroupeHubSeasonChartVisible(page)
+    await openTroupeHubSeasonStatsFromChart(page, fx.troupeSlug, fx.seasonSlug)
+  })
+
+  test('E1-MEM-048 — bloc mini-chart → détail spectacle', async ({ page, request }) => {
+    const fx = await resolveE1Context(request)
+    const statsEvents = await fetchSeasonStatisticsEvents(request, fx.seasonId)
+    test.skip(
+      countPastStatisticsEvents(statsEvents) < 3,
+      'Season has fewer than 3 past events — mini-chart hidden',
+    )
+    const pastEvent = newestPastStatisticsEvent(statsEvents)
+    test.skip(!pastEvent?.slug, 'No past event slug available for navigation')
+
+    await assertMobileViewport(page)
+    await gotoTroupeHub(page, fx.troupeSlug)
+    await expectTroupeHubDashboardSections(page)
+    await expectTroupeHubSeasonChartVisible(page)
+    await clickTroupeHubSeasonChartBlock(page, pastEvent!.title)
+    await expect(page).toHaveURL(
+      saisonEventPath(fx.troupeSlug, fx.seasonSlug, pastEvent!.slug),
+      { timeout: 30_000 },
+    )
+    await expect(page.locator('app-event-detail')).toBeVisible({ timeout: 30_000 })
   })
 })

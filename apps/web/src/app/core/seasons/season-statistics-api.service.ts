@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core'
 
 import { effectiveMemberGender, type MemberGender } from '../account/member-gender'
+import type { TeamStatusBadge } from '../composition/composition-lifecycle'
 import type { ParticipationChartStatus } from '../participation/participation-status'
 
 export interface StatCounts {
@@ -19,10 +20,12 @@ export interface StatisticsEventCell {
 export interface StatisticsEvent {
   id: string
   title: string
+  slug: string
   startsAt: string
   templateType: string
   category: string | null
   monthKey: string
+  teamStatusBadge?: TeamStatusBadge | null
 }
 
 export interface ParticipantStatisticsRow {

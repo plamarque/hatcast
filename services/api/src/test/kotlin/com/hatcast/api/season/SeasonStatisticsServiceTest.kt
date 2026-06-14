@@ -4,7 +4,12 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.StoredAvailabilityStatus
+import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import com.hatcast.api.composition.CompositionLifecycleService
+import com.hatcast.api.composition.CompositionLifecycle
+import com.hatcast.api.composition.CompositionLifecycleView
+import com.hatcast.api.composition.TeamStatusBadge
+import com.hatcast.api.composition.TeamStatusBadgeKey
 import com.hatcast.api.composition.EventCompositionDeclineRepository
 import com.hatcast.api.composition.EventCompositionEntity
 import com.hatcast.api.composition.EventCompositionRepository
@@ -51,6 +56,7 @@ class SeasonStatisticsServiceTest {
     private val guestInvitationAccess = mock<GuestInvitationAccessService>()
     private val userRepository = mock<UserRepository>()
     private val compositionLifecycleService = CompositionLifecycleService()
+    private val compositionLifecycleEnrichment = mock<CompositionLifecycleEnrichmentService>()
 
     private val service =
         SeasonStatisticsService(
@@ -65,11 +71,13 @@ class SeasonStatisticsServiceTest {
             guestInvitationAccess,
             userRepository,
             compositionLifecycleService,
+            compositionLifecycleEnrichment,
         )
 
     @org.junit.jupiter.api.BeforeEach
     fun setupAccess() {
         doNothing().whenever(guestInvitationAccess).requireMemberOnlyPastAccess(any(), any())
+        whenever(compositionLifecycleEnrichment.loadViewsByEventIds(any(), any(), any())).thenReturn(emptyMap())
     }
 
     @Test
@@ -101,6 +109,7 @@ class SeasonStatisticsServiceTest {
             mock<EventEntity>().also {
                 whenever(it.id).thenReturn(eventId)
                 whenever(it.title).thenReturn("Match test")
+                whenever(it.slug).thenReturn("match-test")
                 whenever(it.startsAt).thenReturn(Instant.parse("2026-03-15T19:00:00Z"))
                 whenever(it.templateType).thenReturn("match")
                 whenever(it.category).thenReturn(null)
@@ -162,6 +171,7 @@ class SeasonStatisticsServiceTest {
             mock<EventEntity>().also {
                 whenever(it.id).thenReturn(UUID.randomUUID())
                 whenever(it.title).thenReturn("Match local")
+                whenever(it.slug).thenReturn("match-local")
                 whenever(it.startsAt).thenReturn(Instant.parse("2026-03-10T19:00:00Z"))
                 whenever(it.templateType).thenReturn("match")
                 whenever(it.category).thenReturn(null)
@@ -172,6 +182,7 @@ class SeasonStatisticsServiceTest {
             mock<EventEntity>().also {
                 whenever(it.id).thenReturn(eventId)
                 whenever(it.title).thenReturn("Déplacement")
+                whenever(it.slug).thenReturn("deplacement")
                 whenever(it.startsAt).thenReturn(Instant.parse("2026-03-15T19:00:00Z"))
                 whenever(it.templateType).thenReturn("deplacement")
                 whenever(it.category).thenReturn(null)
@@ -275,6 +286,7 @@ class SeasonStatisticsServiceTest {
             mock<EventEntity>().also {
                 whenever(it.id).thenReturn(confirmedEventId)
                 whenever(it.title).thenReturn("Équipe complète")
+                whenever(it.slug).thenReturn("equipe-complete")
                 whenever(it.startsAt).thenReturn(Instant.parse("2026-06-13T19:00:00Z"))
                 whenever(it.templateType).thenReturn("match")
                 whenever(it.category).thenReturn(null)
@@ -285,6 +297,7 @@ class SeasonStatisticsServiceTest {
             mock<EventEntity>().also {
                 whenever(it.id).thenReturn(pendingEventId)
                 whenever(it.title).thenReturn("En attente")
+                whenever(it.slug).thenReturn("en-attente")
                 whenever(it.startsAt).thenReturn(Instant.parse("2026-06-18T19:00:00Z"))
                 whenever(it.templateType).thenReturn("match")
                 whenever(it.category).thenReturn(null)
@@ -347,5 +360,73 @@ class SeasonStatisticsServiceTest {
         val result = service.loadStatistics(seasonId, principal)
 
         assertEquals(1, result.confirmedCompositionsCount)
+    }
+
+    @Test
+    fun `loadStatistics exposes slug and teamStatusBadge on events`() {
+        val troupe = mock<TroupeEntity> { whenever(it.id).thenReturn(troupeId) }
+        val season =
+            mock<SeasonEntity>().also {
+                whenever(it.id).thenReturn(seasonId)
+                whenever(it.troupe).thenReturn(troupe)
+            }
+        val participant =
+            mock<SeasonParticipantEntity>().also {
+                whenever(it.id).thenReturn(participantId)
+                whenever(it.displayName).thenReturn("Alice")
+                whenever(it.user).thenReturn(null)
+                whenever(it.troupeMembership).thenReturn(null)
+            }
+        val event =
+            mock<EventEntity>().also {
+                whenever(it.id).thenReturn(eventId)
+                whenever(it.title).thenReturn("Match test")
+                whenever(it.slug).thenReturn("match-test")
+                whenever(it.startsAt).thenReturn(Instant.parse("2026-03-15T19:00:00Z"))
+                whenever(it.templateType).thenReturn("match")
+                whenever(it.category).thenReturn(null)
+                whenever(it.roleSlots).thenReturn(mapOf("player" to 6))
+                whenever(it.archived).thenReturn(false)
+            }
+
+        whenever(seasonRepository.findById(seasonId)).thenReturn(Optional.of(season))
+        whenever(seasonParticipantRepository.findBySeason_IdAndStatusOrderByDisplayNameAsc(seasonId, ParticipantStatus.ACTIVE))
+            .thenReturn(listOf(participant))
+        whenever(eventRepository.findNonArchivedBySeasonId(seasonId)).thenReturn(listOf(event))
+        whenever(compositionRepository.findByEventIdIn(any())).thenReturn(emptyList())
+        whenever(slotRepository.findByEventIdIn(any())).thenReturn(emptyList())
+        whenever(declineRepository.findByEventIdIn(any())).thenReturn(emptyList())
+        whenever(availabilityRepository.findByEvent_IdIn(any())).thenReturn(emptyList())
+        whenever(compositionLifecycleEnrichment.loadViewsByEventIds(any(), any(), any()))
+            .thenReturn(
+                mapOf(
+                    eventId to
+                        CompositionLifecycleView(
+                            compositionLifecycle = CompositionLifecycle.COMPLETE,
+                            teamStatusBadge =
+                                TeamStatusBadge(
+                                    key = TeamStatusBadgeKey.CONFIRMED,
+                                    label = "Équipe confirmée",
+                                    tone = "confirmed",
+                                    shortLabel = "Confirmé",
+                                ),
+                        ),
+                ),
+            )
+
+        val principal =
+            SessionUserPrincipal(
+                userId = UUID.randomUUID(),
+                googleSub = "sub",
+                idpUid = null,
+                email = "alice@example.com",
+            )
+
+        val result = service.loadStatistics(seasonId, principal)
+
+        val eventDto = result.events.single()
+        assertEquals("match-test", eventDto.slug)
+        assertEquals("confirmed", eventDto.teamStatusBadge?.tone)
+        assertEquals("Confirmé", eventDto.teamStatusBadge?.shortLabel)
     }
 }

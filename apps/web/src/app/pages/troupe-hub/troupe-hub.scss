@@ -1,3 +1,5 @@
+@use '../../shared/participation-monthly-chart/hatcast-participation-monthly-chart';
+
 .troupe-hub {
   max-width: 56rem;
   margin: 0 auto;
@@ -192,6 +194,82 @@
 .troupe-hub__metric-label {
   font-size: 0.8rem;
   color: var(--mat-sys-on-surface-variant);
+}
+
+.troupe-hub__season-chart {
+  min-height: 6.5rem;
+
+  .member-profile__chart-blocks {
+    min-height: 4.5rem;
+  }
+
+  .troupe-hub__season-chart-block {
+    cursor: pointer;
+    min-width: 2rem;
+    min-height: 2rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid transparent;
+
+    &:focus-visible {
+      outline: 2px solid var(--mat-sys-primary);
+      outline-offset: 2px;
+    }
+
+    &--draft {
+      background: light-dark(
+        color-mix(in srgb, var(--mat-sys-primary) 12%, transparent),
+        color-mix(in srgb, var(--mat-sys-primary) 28%, transparent)
+      );
+      border-color: light-dark(
+        color-mix(in srgb, var(--mat-sys-primary) 35%, transparent),
+        color-mix(in srgb, var(--mat-sys-primary) 40%, transparent)
+      );
+    }
+
+    &--collecting {
+      background: light-dark(rgba(6, 182, 212, 0.14), rgba(6, 182, 212, 0.28));
+      border-color: light-dark(rgba(6, 182, 212, 0.35), rgba(34, 211, 238, 0.35));
+    }
+
+    &--preparing {
+      background: light-dark(rgba(234, 88, 12, 0.14), rgba(234, 88, 12, 0.32));
+      border-color: light-dark(rgba(234, 88, 12, 0.35), rgba(251, 146, 60, 0.4));
+    }
+
+    &--confirmed {
+      background: light-dark(rgba(22, 163, 74, 0.14), rgba(22, 163, 74, 0.35));
+      border-color: light-dark(rgba(22, 163, 74, 0.35), rgba(74, 222, 128, 0.35));
+    }
+  }
+
+  @media (min-width: 840px) {
+    min-height: 8rem;
+
+    .member-profile__chart-blocks {
+      min-height: 5.5rem;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .member-profile__chart-block,
+    .troupe-hub__season-chart-block {
+      width: 2rem;
+      height: 2rem;
+      min-width: 2rem;
+      min-height: 2rem;
+    }
+
+    .member-profile__chart-blocks {
+      min-height: 4.5rem;
+    }
+  }
+}
+
+.troupe-hub__season-stats-cta {
+  align-self: center;
+  min-height: 3rem;
 }
 
 .troupe-hub__archived-toggle {
