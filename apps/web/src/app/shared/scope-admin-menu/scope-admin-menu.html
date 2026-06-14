@@ -1,13 +1,28 @@
 @if (items().length > 0) {
-  <button
-    type="button"
-    mat-icon-button
-    class="scope-admin-menu__trigger"
-    [matMenuTriggerFor]="adminMenu"
-    [attr.aria-label]="menuAriaLabel()"
-  >
-    <mat-icon aria-hidden="true">settings</mat-icon>
-  </button>
+  @if (triggerVariant() === 'stroked') {
+    <button
+      type="button"
+      mat-stroked-button
+      class="scope-admin-menu__trigger scope-admin-menu__trigger--stroked"
+      [matMenuTriggerFor]="adminMenu"
+      [attr.aria-label]="triggerAriaLabel()"
+    >
+      <mat-icon aria-hidden="true">settings</mat-icon>
+      @if (triggerLabel()?.trim(); as label) {
+        <span class="scope-admin-menu__trigger-label">{{ label }}</span>
+      }
+    </button>
+  } @else {
+    <button
+      type="button"
+      mat-icon-button
+      class="scope-admin-menu__trigger"
+      [matMenuTriggerFor]="adminMenu"
+      [attr.aria-label]="triggerAriaLabel()"
+    >
+      <mat-icon aria-hidden="true">settings</mat-icon>
+    </button>
+  }
 
   <mat-menu #adminMenu="matMenu" class="scope-admin-menu__panel">
     @for (item of items(); track item.label) {

@@ -1,5 +1,8 @@
 .scope-admin-menu__trigger {
   flex-shrink: 0;
+}
+
+.scope-admin-menu__trigger:not(.scope-admin-menu__trigger--stroked) {
   --mdc-icon-button-state-layer-size: var(--member-shell-corner-size, 3rem);
   --mdc-icon-button-icon-size: 1.5rem;
   box-sizing: border-box;
@@ -28,5 +31,54 @@
   &:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
+  }
+}
+
+.scope-admin-menu__trigger--stroked {
+  min-height: 2.75rem;
+  padding-inline: 0.65rem;
+
+  mat-icon {
+    margin-right: 0.25rem;
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+.scope-admin-menu__trigger-label {
+  white-space: nowrap;
+}
+
+@media (max-width: 839px) {
+  .scope-admin-menu__trigger--stroked {
+    box-sizing: border-box;
+    width: var(--member-shell-corner-size, 3rem);
+    min-width: var(--member-shell-corner-size, 3rem);
+    height: var(--member-shell-corner-size, 3rem);
+    min-height: var(--member-shell-corner-size, 3rem);
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    .scope-admin-menu__trigger-label {
+      display: none;
+    }
+
+    mat-icon {
+      margin-right: 0;
+    }
+
+    .mat-mdc-button-touch-target {
+      width: var(--member-shell-corner-size, 3rem);
+      height: var(--member-shell-corner-size, 3rem);
+    }
   }
 }

@@ -24,6 +24,29 @@ describe('ScopeAdminMenu', () => {
     return fixture
   }
 
+  async function setupStrokedTroupe(
+    triggerLabel = 'Gérer la troupe',
+  ): Promise<ComponentFixture<ScopeAdminMenu>> {
+    await TestBed.configureTestingModule({
+      imports: [ScopeAdminMenu],
+      providers: [provideRouter([])],
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ScopeAdminMenu)
+    fixture.componentRef.setInput('scope', 'troupe')
+    fixture.componentRef.setInput('items', [
+      {
+        label: 'Membres',
+        icon: 'groups',
+        routerLink: ['/troupes', 'les-improbots', 'admin', 'membres'],
+      },
+    ])
+    fixture.componentRef.setInput('triggerVariant', 'stroked')
+    fixture.componentRef.setInput('triggerLabel', triggerLabel)
+    fixture.detectChanges()
+    return fixture
+  }
+
   it('renders nothing when items are empty', async () => {
     await TestBed.configureTestingModule({
       imports: [ScopeAdminMenu],
@@ -46,6 +69,31 @@ describe('ScopeAdminMenu', () => {
 
     expect(trigger.getAttribute('aria-label')).toBe('Administration de la saison')
     expect(trigger.querySelector('mat-icon')?.textContent?.trim()).toBe('settings')
+    expect(trigger.classList.contains('scope-admin-menu__trigger--stroked')).toBe(false)
+  })
+
+  it('renders stroked trigger with visible label and aria-label', async () => {
+    const fixture = await setupStrokedTroupe()
+
+    const trigger = fixture.nativeElement.querySelector(
+      '.scope-admin-menu__trigger--stroked',
+    ) as HTMLButtonElement
+    expect(trigger).not.toBeNull()
+    expect(trigger.getAttribute('aria-label')).toBe('Gérer la troupe')
+    expect(trigger.textContent).toContain('Gérer la troupe')
+    expect(trigger.querySelector('.scope-admin-menu__trigger-label')?.textContent?.trim()).toBe(
+      'Gérer la troupe',
+    )
+  })
+
+  it('omits visible label span when triggerLabel is whitespace only', async () => {
+    const fixture = await setupStrokedTroupe('   ')
+
+    const trigger = fixture.nativeElement.querySelector(
+      '.scope-admin-menu__trigger--stroked',
+    ) as HTMLButtonElement
+    expect(trigger.querySelector('.scope-admin-menu__trigger-label')).toBeNull()
+    expect(trigger.getAttribute('aria-label')).toBe('Administration de la troupe')
   })
 
   it('uses spectacle label for event scope', async () => {
@@ -55,5 +103,4 @@ describe('ScopeAdminMenu', () => {
     ) as HTMLButtonElement
     expect(trigger.getAttribute('aria-label')).toBe('Administration du spectacle')
   })
-
 })

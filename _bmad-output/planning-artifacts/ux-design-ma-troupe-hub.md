@@ -2,10 +2,10 @@
 title: UX — Univers Ma Troupe (hub collectif + chrome événement)
 author: Sally (UX) + Patrice
 date: '2026-06-10'
-amended: '2026-06-12'
+amended: '2026-06-14'
 status: approved
 stakeholderSignOff: '2026-06-10 — Patrice'
-amendmentSignOff: '2026-06-12 — Patrice (rétro-doc ajustements hub 17.42)'
+amendmentSignOff: '2026-06-12 — Patrice (rétro-doc ajustements hub 17.42) ; 2026-06-14 — Patrice (bouton Gérer la troupe hero)'
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-troupe-hub.md
   - _bmad-output/planning-artifacts/ux-design-hub-a-faire.md
@@ -14,6 +14,7 @@ relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-hub-section-headers.md
   - docs/adr/0013-troupe-navigation-equity-tags-event-slugs.md
   - docs/v2/technical/FRONTEND_UI.md
+  - _bmad-output/specs/spec-hub-troupe-admin-trigger/SPEC.md
 supersedesPartially:
   - ux-design-troupe-hub.md#chrome--hub-troupe-cible
   - ux-design-troupe-hub.md#wireframe-desktop--mobile
@@ -74,7 +75,7 @@ uxDr: UX-DR13 (amended post-login), UX-DR14 (agenda distinction)
 | **MT10** | Section **Personnes** (libellé UI ; amend. 2026-06-12) : bandeau d’avatars **cliquables** (`3.5rem` / 56 dp), **retour à la ligne** (`flex-wrap`, pas de scroll horizontal) ; cap **12** visibles mobile, **36** desktop (6 lignes × 6 colonnes, breakpoint grille hub **≥ 840 px**) ; **+N** seul overflow → workspace agenda ; tap avatar → `/membre/{userSlug}` ; **pas** de CTA texte « Voir tout le roster / le monde ». |
 | **MT11** | Section **Prochains spectacles** : **max 3** cartes `agenda-card` compact ; CTA **Voir tous les spectacles** → workspace onglet Agenda, **centré** dans la colonne (desktop 2 colonnes). Empty : *Aucun spectacle à venir cette saison.* |
 | **MT12** | Lien bas de page **Voir les autres troupes** → `/troupes` — **visible uniquement** si `myTroupes.length >= 2` ; **absent** en mono-troupe (pas de placeholder). |
-| **MT13** | **Retirer** le fil d’Ariane `Troupes › …` du header hub (escape via nav **Ma troupe** + lien MT12). Hero : logo + nom troupe + gear admin. |
+| **MT13** | **Retirer** le fil d’Ariane `Troupes › …` du header hub (escape via nav **Ma troupe** + lien MT12). Hero : logo + nom troupe + **admin orga** à droite (`.troupe-hub__hero-admin`) — bouton **`Gérer la troupe`** (`mat-stroked-button` + icône `settings`, `app-scope-admin-menu` `triggerVariant="stroked"`) ; visible **iff** `TROUPE_ADMIN`. **≤ 839 px** (shell fixe) : libellé masqué, icône seule + `aria-label="Gérer la troupe"` ; menu inchangé (Modifier, Nouvelle saison, Membres, Paramètres, Journal d’audit). Amend. 2026-06-14 — [spec hub-troupe-admin-trigger](../specs/spec-hub-troupe-admin-trigger/SPEC.md). |
 | **MT14** | **Préférences membre** : inchangé vs [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) T5/T6 — **Mon compte** uniquement ; pas de lien Préférences sur le hub. |
 | **MT15** | **Phase 2** : mini-chart **mois par mois** dans la carte saison (grammaire visuelle `member-profile-panel` ; données stats saison) — spec détaillée [ux-design-hub-mini-chart-17-44.md](./ux-design-hub-mini-chart-17-44.md) ; résumé § Phase 2. |
 
@@ -130,7 +131,7 @@ flowchart TB
 ┌─────────────────────────────────────┐
 │                            [👤]     │  ← shell avatar compte
 ├─────────────────────────────────────┤
-│  [logo]  Les Improbots         [⚙]  │  ← hero identité + gear orga
+│  [logo]  Les Improbots         [⚙]  │  ← hero identité ; admin orga (icône seule ≤839 px ; aria-label « Gérer la troupe »)
 ├─────────────────────────────────────┤
 │  Saison 2025-26              [▾]?   │  ← h2 = intitulé ; [▾] si multi-saisons
 │  ┌─────────────────────────────┐   │
@@ -156,10 +157,20 @@ flowchart TB
 ### Desktop (≥ 840 px)
 
 - Rail : 4 entrées (MT3).
+- Hero : logo + nom troupe + bouton **`Gérer la troupe`** à droite (MT13) — pas d’icône seule sur desktop.
 - **Personnes** + **Prochains spectacles** en **2 colonnes** (`grid` 2×1).
 - Bandeau avatars : grille `auto-fill` sur **6 lignes max** (cap 36) ; pas de scroll horizontal.
 - CTA teaser **Voir tous les spectacles** : **centré** horizontalement dans la colonne droite.
 - Même contenu ; pas de breadcrumb header.
+
+```text
+┌──────────────────────────────────────────────────────────┐
+│  [logo]  Les Improbots              [ ⚙ Gérer la troupe ] │  ← hero (orga)
+├──────────────────────────────────────────────────────────┤
+│  Saison 2025-26                                    [▾]?  │
+│  … (carte métriques · Personnes | Prochains spectacles)  │
+└──────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -187,7 +198,7 @@ flowchart TB
 Saison
   Aucune saison en cours pour l’instant.
   [ Saisons archivées (N) ]
-  (orga) gear → Nouvelle saison
+  (orga) menu hero « Gérer la troupe » → Nouvelle saison
 ```
 
 ---
@@ -291,7 +302,7 @@ Saison
 | Multi-saison active | Switcher change contenu sections 2–3 |
 | Multi-troupe | Nav Ma troupe → dernière troupe ; lien MT12 |
 | Invité·e | Métriques/stats collectives selon permissions ; hint saisons invitées |
-| Orga | Gear hero ; hub reste membre-first |
+| Orga | Bouton **Gérer la troupe** hero (desktop) / icône seule (≤839 px) ; hub reste membre-first |
 
 ---
 
@@ -313,6 +324,7 @@ Saison
 - [ ] **MT-AC9** : **Voir les autres troupes** visible **iff** ≥2 troupes ; libellé exact.
 - [ ] **MT-AC10** : Pas de breadcrumb `Troupes ›` ; pas de footer Historique · Préférences.
 - [ ] **MT-AC11** : Mon agenda et hub troupe : listes distinctes (teaser vs chronologie complète).
+- [ ] **MT-AC12** : Orga : hero affiche **`Gérer la troupe`** (`mat-stroked-button` + `settings`) à droite du nom ; menu admin inchangé ; ≤839 px libellé masqué + `aria-label` ; absent pour non-admin.
 
 ### Event detail (ED1–ED5)
 
@@ -337,7 +349,7 @@ Saison
 |------|-------------------|
 | Nav 4 onglets | `member-shell-nav*.ts`, `member-shell-nav-visibility.ts`, icône `groups` |
 | lastVisitedTroupe | Service parallèle `lastVisitedSeason` ; post-login optionnel troupe-first si mono-troupe |
-| Hub | Refonte `troupe-hub.html/ts` — API : saisons + `getSeasonWorkspace` teaser + `loadStatistics` (`confirmedCompositionsCount` + rows roster) |
+| Hub | Refonte `troupe-hub.html/ts` — API : saisons + `getSeasonWorkspace` teaser + `loadStatistics` (`confirmedCompositionsCount` + rows roster) ; admin hero : `app-scope-admin-menu` `triggerVariant="stroked"` + `triggerLabel="Gérer la troupe"` |
 | Participants view | Workspace `season-home` onglet ou query `view=participants` |
 | Event header | Retirer breadcrumb ; chevron + titre inline ; `lastMemberEntryPath` (+ `/troupes/:slug`) |
 | Event Infos | `event-infos-tab` — section **Saison** (chips, dernier bloc) |
@@ -401,6 +413,22 @@ Ajustements validés en recette après implémentation initiale ; la spec ci-des
 | Donnée Compos | — | Champ API stats saison ; règle métier = badge **Confirmé** (lifecycle `complete`) |
 
 **Non modifié :** MT12 footer multi-troupe, switcher saison, saisons archivées, parité dispo/participation sur cartes teaser.
+
+---
+
+## Amendement 2026-06-14 — Bouton admin hero (Patrice)
+
+Remplace l’engrenage seul (MT13 initial) par un déclencheur **explicite** validé en mockup PO. Spec machine : [spec-hub-troupe-admin-trigger](../specs/spec-hub-troupe-admin-trigger/SPEC.md).
+
+| Sujet | Avant (MT13 / wireframe 2026-06-10) | Après (shipped) |
+|-------|--------------------------------------|-----------------|
+| Déclencheur admin hero | `mat-icon-button` + icône `settings` seule | **`Gérer la troupe`** — `mat-stroked-button` + icône + libellé (desktop) |
+| Placement | `.troupe-hub__hero-admin` à droite logo + nom | Inchangé |
+| Mobile ≤839 px | Icône seule (slot fixe shell) | Inchangé visuellement ; `aria-label="Gérer la troupe"` |
+| Menu / routes | Modifier, Nouvelle saison, Membres, Paramètres, Audit | Inchangé |
+| Saison / événement | Gear seul (`scope-admin-menu` défaut) | Inchangé — variante `stroked` réservée au hub troupe |
+
+**Non modifié :** visibilité `TROUPE_ADMIN` uniquement ; pas d’admin dans le footer ni sous la carte saison.
 
 ---
 

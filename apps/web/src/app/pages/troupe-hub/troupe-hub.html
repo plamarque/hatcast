@@ -65,7 +65,12 @@
       </div>
       @if (troupeAdminItems().length > 0) {
         <div class="troupe-hub__hero-admin">
-          <app-scope-admin-menu scope="troupe" [items]="troupeAdminItems()" />
+          <app-scope-admin-menu
+            scope="troupe"
+            [items]="troupeAdminItems()"
+            triggerVariant="stroked"
+            triggerLabel="Gérer la troupe"
+          />
         </div>
       }
     </div>

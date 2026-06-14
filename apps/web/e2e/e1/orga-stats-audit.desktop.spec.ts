@@ -3,6 +3,10 @@ import { expect, test } from '@playwright/test'
 import { expectAuditJournalReady, openSeasonStats } from '../helpers/e1.ui'
 import { saisonAdminAuditPath, troupeAdminAuditPath, troupeHubPath } from '../helpers/e1-routes'
 import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
+import {
+  expectTroupeHubLabeledAdminTrigger,
+  gotoTroupeHub,
+} from '../helpers/troupe-hub.ui'
 
 test.describe('E1 — orga stats saison & audit (desktop)', () => {
   test.beforeEach(async ({ page, request }) => {
@@ -33,5 +37,14 @@ test.describe('E1 — orga stats saison & audit (desktop)', () => {
       timeout: 30_000,
     })
     await expectAuditJournalReady(page)
+  })
+
+  test('E1-ORG-013 — hub troupe : libellé masqué en viewport <= 839px', async ({ page, request }) => {
+    const fx = await resolveE1Context(request)
+    await page.setViewportSize({ width: 839, height: 900 })
+    await gotoTroupeHub(page, fx.troupeSlug)
+    await expectTroupeHubLabeledAdminTrigger(page, { visibleLabel: false })
+    await page.locator('.troupe-hub__hero-admin .scope-admin-menu__trigger').click()
+    await expect(page.getByRole('menuitem', { name: 'Membres' })).toBeVisible()
   })
 })

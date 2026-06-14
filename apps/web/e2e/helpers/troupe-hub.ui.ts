@@ -47,6 +47,25 @@ export async function gotoTroupeHub(page: Page, troupeSlug: string): Promise<voi
   await expect(page.locator('.troupe-hub__dashboard')).toBeVisible({ timeout: 45_000 })
 }
 
+/** MT-AC12 / CAP-3 — hero admin trigger « Gérer la troupe » (orga). */
+export async function expectTroupeHubLabeledAdminTrigger(
+  page: Page,
+  options?: { visibleLabel?: boolean },
+): Promise<void> {
+  const trigger = page.locator('.troupe-hub__hero-admin .scope-admin-menu__trigger--stroked')
+  await expect(trigger).toBeVisible({ timeout: 15_000 })
+  await expect(trigger).toHaveAttribute('aria-label', 'Gérer la troupe')
+
+  const label = trigger.locator('.scope-admin-menu__trigger-label')
+  if (options?.visibleLabel === false) {
+    await expect(label).toHaveCount(1)
+    await expect(label).toBeHidden()
+  } else {
+    await expect(label).toBeVisible()
+    await expect(label).toHaveText('Gérer la troupe')
+  }
+}
+
 /** Waits for season dashboard sections after metrics load. */
 export async function expectTroupeHubDashboardSections(page: Page): Promise<void> {
   await expect(page.locator('#troupe-season-dashboard-heading')).toBeVisible({ timeout: 45_000 })

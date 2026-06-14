@@ -831,16 +831,21 @@ describe('TroupeHub', () => {
     expect(fixture.nativeElement.textContent).toContain('Saisons où tu es invité·e.')
   })
 
-  it('shows admin gear for TROUPE_ADMIN without section Nouvelle saison button', async () => {
+  it('shows labeled admin trigger for TROUPE_ADMIN without section Nouvelle saison button', async () => {
     const { fixture } = await setup('TROUPE_ADMIN')
-    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).not.toBeNull()
+    const trigger = fixture.nativeElement.querySelector(
+      '.scope-admin-menu__trigger--stroked',
+    ) as HTMLButtonElement
+    expect(trigger).not.toBeNull()
+    expect(trigger.getAttribute('aria-label')).toBe('Gérer la troupe')
+    expect(trigger.textContent).toContain('Gérer la troupe')
     const sectionHeaderButton = Array.from(
       fixture.nativeElement.querySelectorAll('.troupe-hub__dashboard button') as NodeListOf<HTMLButtonElement>,
     ).find((button) => button.textContent?.includes('Nouvelle saison'))
     expect(sectionHeaderButton).toBeUndefined()
   })
 
-  it('hides admin gear for non-admin members', async () => {
+  it('hides admin trigger for non-admin members', async () => {
     const { fixture } = await setup('MEMBER')
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeNull()
   })
