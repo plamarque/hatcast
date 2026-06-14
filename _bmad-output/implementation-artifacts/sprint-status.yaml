@@ -190,6 +190,7 @@ development_status:
   10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil: done
   10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: done
   10-3-version-app-changelog-dialog: done  # P0 V2.0.0
+  10-3b-about-build-metadata: done  # retro 2026-06-14 — meta build ligne À propos + pipeline canal
   10-4-recette-pwa-manifest-icons-sw: done
   10-5-aides-install-contextuelles-ios-android: done
   10-6-opt-in-notifications-post-install: done

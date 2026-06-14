@@ -19,6 +19,7 @@ dist-ssr
 
 # Recette prod locale (--with-push) : injecté depuis .env, ne pas committer
 apps/web/src/environments/environment.production.local.ts
+apps/web/public/version.local.txt
 
 # Local HTTPS certs/keys (mkcert/dev)
 *.pem

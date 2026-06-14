@@ -284,6 +284,15 @@
 
 ---
 
+## Deferred from: code review of 10-3b-about-build-metadata (2026-06-14)
+
+- Requête 404 `/version.local.txt` en prod — trade-off accepté AC3 (local-first puis fallback).
+- Couplage libellés canal sur 4 artefacts (release shell, patch Docker, parser TS, doc) — contrat implicite MVP.
+- Pas de tests `patch-version-txt-channel.mjs` — script CI simple ; couverture parser Angular suffisante pour l’UI.
+- `version.local.txt` stale sans redémarrage `start-dev.sh` — workflow dev documenté DEPLOYMENT_WORKFLOW.md.
+
+---
+
 ## Liens normatifs
 
 | Sujet | Où tracer |

@@ -7,6 +7,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/git-branches.sh
 source "${SCRIPT_DIR}/lib/git-branches.sh"
+# shellcheck source=lib/version-txt.sh
+source "${SCRIPT_DIR}/lib/version-txt.sh"
 # shellcheck source=../lib/version-changelog.sh
 source "${SCRIPT_DIR}/../lib/version-changelog.sh"
 
@@ -197,17 +199,6 @@ assert_package_versions_match() {
   fi
 }
 
-write_version_txt() {
-  local version="$1" build_date="$2" git_hash="$3" build_time="$4"
-  mkdir -p "$(dirname "${VERSION_TXT}")"
-  cat > "${VERSION_TXT}" << EOF
-${version}
-Staging RC build - ${build_date}
-Git: ${git_hash}
-Build: ${build_time}
-EOF
-}
-
 bump_both_package_json() {
   local old_version="$1" new_version="$2"
   hatcast_set_package_json_version "${ROOT_PACKAGE}" "${old_version}" "${new_version}"
@@ -283,7 +274,7 @@ if [[ "$(hatcast_read_package_version "${ROOT_PACKAGE}")" != "${NEW_VERSION}" ]]
   echo "❌ Échec du bump package.json" >&2
   exit 1
 fi
-write_version_txt "${NEW_VERSION}" "${BUILD_DATE}" "${GIT_HASH}" "${BUILD_TIME}"
+write_version_txt "${NEW_VERSION}" "${BUILD_DATE}" "${GIT_HASH}" "${BUILD_TIME}" staging "${VERSION_TXT}"
 
 echo "📝 Génération CHANGELOG (${COMMIT_RANGE})…"
 hatcast_generate_changelog_md "${NEW_VERSION}" "${BUILD_DATE}" "${COMMIT_RANGE}"

@@ -26,7 +26,11 @@ ENV HATCAST_FIREBASE_AUTH_DOMAIN=${HATCAST_FIREBASE_AUTH_DOMAIN}
 ENV HATCAST_FIREBASE_PROJECT_ID=${HATCAST_FIREBASE_PROJECT_ID}
 ENV HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY=${HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY}
 ENV HATCAST_POSTHOG_PROJECT_API_KEY=${HATCAST_POSTHOG_PROJECT_API_KEY}
-RUN node apps/web/scripts/inject-google-client-id.mjs \
+ARG HATCAST_VERSION_CHANNEL=development
+ENV HATCAST_VERSION_CHANNEL=${HATCAST_VERSION_CHANNEL}
+RUN rm -f apps/web/public/version.local.txt \
+  && node apps/web/scripts/patch-version-txt-channel.mjs \
+  && node apps/web/scripts/inject-google-client-id.mjs \
   && npm run build -w @hatcast/web -- --configuration production
 
 # --- Runtime : Nginx + JRE + supervisord

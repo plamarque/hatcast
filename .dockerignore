@@ -11,6 +11,9 @@ functions
 .env.*
 !.env.example
 
+# Dev-only version override — must not ship in Cloud Run images
+apps/web/public/version.local.txt
+
 # Monorepo : npm ci exige le manifest legacy ; pas besoin du reste du client V1.
 legacy/**
 !legacy/package.json
