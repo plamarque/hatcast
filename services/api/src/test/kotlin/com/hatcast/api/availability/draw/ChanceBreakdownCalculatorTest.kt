@@ -2,8 +2,12 @@ package com.hatcast.api.availability.draw
 
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.user.MemberGender
+import com.hatcast.api.availability.draw.DrawWeightPipelines
+import com.hatcast.api.availability.draw.ImmediateReplayFactor
+import com.hatcast.api.availability.draw.ImmediateReplayMode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
@@ -260,6 +264,82 @@ class ChanceBreakdownCalculatorTest {
     requireNotNull(result)
     assertTrue(result.adjustments.none { it.factorId == CategoryCompartmentFactor.FACTOR_ID })
     assertEquals(1, result.adjustments.size)
+  }
+
+  @Test
+  @Tag("19.9")
+  fun `immediate replay EXCLUDE produces large negative delta`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val replay = mapOf(alice to false, bob to true)
+    val pipeline = DrawWeightPipelines.withImmediateReplay(ImmediateReplayMode.EXCLUDE)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = bob,
+            roleKey = "player",
+            pipeline = pipeline,
+            playedSameRoleOnImmediatePredecessorByParticipant = replay,
+            immediatePredecessorTitle = "Cabaret du 12",
+            immediatePredecessorStartsAt = java.time.Instant.parse("2031-05-01T19:00:00Z"),
+        )
+    requireNotNull(result)
+    val replayLine = result.adjustments.first { it.factorId == ImmediateReplayFactor.FACTOR_ID }
+    assertTrue(replayLine.deltaPoints < -20)
+    assertTrue(replayLine.label.contains("Cabaret du 12"))
+  }
+
+  @Test
+  @Tag("19.9")
+  fun `no immediate replay line when trigger false`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val pipeline = DrawWeightPipelines.withImmediateReplay(ImmediateReplayMode.EXCLUDE)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = bob,
+            roleKey = "player",
+            pipeline = pipeline,
+            playedSameRoleOnImmediatePredecessorByParticipant = mapOf(alice to false, bob to false),
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == ImmediateReplayFactor.FACTOR_ID })
+  }
+
+  @Test
+  @Tag("19.9")
+  fun `DEFAULT pipeline has no immediate replay adjustment`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 3)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = bob,
+            roleKey = "player",
+            pipeline = DrawWeightPipelines.DEFAULT,
+            playedSameRoleOnImmediatePredecessorByParticipant = mapOf(bob to true),
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == ImmediateReplayFactor.FACTOR_ID })
   }
 
   @Test

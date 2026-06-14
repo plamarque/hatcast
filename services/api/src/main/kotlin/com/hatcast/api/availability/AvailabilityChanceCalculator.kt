@@ -51,6 +51,9 @@ object AvailabilityChanceCalculator {
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
         categorySlug: String = DEFAULT_CATEGORY_SLUG,
         pastSelectionCountUnscoped: Int? = null,
+        playedSameRoleOnImmediatePredecessor: Boolean = false,
+        immediatePredecessorTitle: String? = null,
+        immediatePredecessorStartsAt: java.time.Instant? = null,
     ): Double {
         val context =
             DrawWeightContext(
@@ -60,6 +63,9 @@ object AvailabilityChanceCalculator {
                 requiredCount = requiredCount,
                 categorySlug = categorySlug,
                 pastSelectionCountUnscoped = pastSelectionCountUnscoped,
+                playedSameRoleOnImmediatePredecessor = playedSameRoleOnImmediatePredecessor,
+                immediatePredecessorTitle = immediatePredecessorTitle,
+                immediatePredecessorStartsAt = immediatePredecessorStartsAt,
             )
         return pipeline.apply(baseWeight(context), context)
     }
@@ -75,6 +81,9 @@ object AvailabilityChanceCalculator {
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
         categorySlug: String = DEFAULT_CATEGORY_SLUG,
         pastSelectionCountUnscopedByParticipant: Map<UUID, Int> = emptyMap(),
+        playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
+        immediatePredecessorTitle: String? = null,
+        immediatePredecessorStartsAt: java.time.Instant? = null,
     ): List<WeightedCandidate> =
         candidates.map { candidate ->
             val pastCount = pastSelectionCountByParticipant[candidate.participantId] ?: 0
@@ -91,6 +100,10 @@ object AvailabilityChanceCalculator {
                         categorySlug = categorySlug,
                         pastSelectionCountUnscoped =
                             pastSelectionCountUnscopedByParticipant[candidate.participantId],
+                        playedSameRoleOnImmediatePredecessor =
+                            playedSameRoleOnImmediatePredecessorByParticipant[candidate.participantId] == true,
+                        immediatePredecessorTitle = immediatePredecessorTitle,
+                        immediatePredecessorStartsAt = immediatePredecessorStartsAt,
                     ),
                 pastSelectionCount = pastCount,
             )
@@ -196,6 +209,9 @@ object AvailabilityChanceCalculator {
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
         categorySlug: String = DEFAULT_CATEGORY_SLUG,
         pastSelectionCountUnscopedByParticipant: Map<UUID, Int> = emptyMap(),
+        playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
+        immediatePredecessorTitle: String? = null,
+        immediatePredecessorStartsAt: java.time.Instant? = null,
     ): List<ScoredCandidate> {
         if (candidates.isEmpty()) {
             return emptyList()
@@ -209,6 +225,9 @@ object AvailabilityChanceCalculator {
                 pipeline,
                 categorySlug,
                 pastSelectionCountUnscopedByParticipant,
+                playedSameRoleOnImmediatePredecessorByParticipant,
+                immediatePredecessorTitle,
+                immediatePredecessorStartsAt,
             )
         val totalWeight = weighted.sumOf { it.weight }
         if (totalWeight <= 0.0) {
