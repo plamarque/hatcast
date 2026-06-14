@@ -620,14 +620,14 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **17.22** | Navigation bar M3 membre (3 onglets) | P2 | 17.19 ; 17.21 reco. |
 | **17.37** | Détail spectacle — rangée titre + statut hors breadcrumb ; Infos sans titre redondant | P2 | 17.1, chrome alignment | **done** 2026-06-06 |
 | **17.41** | Nav shell — onglet **Ma troupe** + `lastVisitedTroupeSlug` | P1 | 17.22, 17.4 | **done** 2026-06-12 |
-| **17.42** | Hub troupe — **dashboard collectif** (carte saison, participants, teaser agenda) | P1 | 17.41 |
-| **17.43** | Détail spectacle — retrait breadcrumb ; titre inline header ; Infos **Saison** (chips) ; badge statut onglet Équipe | P1 | 17.41 ; parallèle 17.42 possible |
-| **17.44** | Hub troupe — mini-chart mois saison *(phase 2)* | P2 | 17.42 |
+| **17.42** | Hub troupe — **dashboard collectif** (carte saison, participants, teaser agenda) | P1 | 17.41 | **done** 2026-06-12 |
+| **17.43** | Détail spectacle — retrait breadcrumb ; titre inline header ; Infos **Saison** (chips) ; badge statut onglet Équipe | P1 | 17.41 ; parallèle 17.42 possible | **done** 2026-06-12 |
+| **17.44** | Hub troupe — mini-chart mois saison *(phase 2)* | P2 | 17.42 | **done** 2026-06-14 |
 | **17.26** | ~~Hub troupe — onglets Saisons / Membres~~ — **superseded** par **17.42** (dashboard + roster via workspace) ; idée G-007 partielle | — | voir 17.42 |
 
 **Wave hub membre (2026-05-27) :** livrer **17.18** seul en premier si besoin rapide ; puis **17.19** ; **17.21** avant ou en parallèle de **17.22** ; **17.20** si remember last visit doit inclure `/accueil`. Spec : [_ux-hub-a-faire.md_](_bmad-output/planning-artifacts/ux-hub-a-faire.md).
 
-**Wave univers Ma Troupe (2026-06-10) :** spec normative [_ux-design-ma-troupe-hub.md_](_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md). Ordre : **17.41** (nav, done) → **17.42** (contenu hub) ; **17.43** (chrome événement) en parallèle ou juste après ; **17.44** (mini-chart) optionnel phase 2. Distinction : **Mon agenda** = moi cross-troupes ; **Ma troupe** = nous (saison courante).
+**Wave univers Ma Troupe (2026-06-10) :** spec normative [_ux-design-ma-troupe-hub.md_](_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md). **Done** 2026-06-14 — **17.41–17.44** (nav **Ma troupe**, hub dashboard collectif, chrome événement ED1–ED5, mini-chart MT15). Distinction : **Mon agenda** = moi cross-troupes ; **Ma troupe** = nous (saison courante). Raccourcis **17.18** conservés sur agenda/saison (PO 2026-06-12).
 
 **DoD phase navigation (17.1–17.5) :** plus de hub `/seasons` ; breadcrumb sur troupe/saison/événement ; admin troupe depuis hub ; lien nom de troupe sur événement → hub.
 
