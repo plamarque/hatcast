@@ -1,6 +1,13 @@
+---
+feature_branch: feat/{story-key}
+baseline_commit:
+---
+
 # Story {EPIC}.{NUM} : {Titre court}
 
 Status: backlog
+
+<!-- frontmatter : `feature_branch` + `baseline_commit` renseignés par create-story via `./scripts/v2/story-branch.sh start {story-key}` -->
 
 <!-- Copier ce fichier pour une nouvelle story. Commande BMad : /bmad-create-story — inclure ce template si le skill ne le charge pas automatiquement. -->
 

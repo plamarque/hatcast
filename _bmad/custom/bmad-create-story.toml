@@ -1,0 +1,14 @@
+# HatCast — une branche feat/{story-key} par user story, tirée de origin/v2.
+# Voir _bmad/custom/story-branch-workflow.md
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/_bmad/custom/story-branch-workflow.md",
+  "HatCast story Git rule (MANDATORY): never implement or author a story file on branch v2 directly. Each story uses branch feat/{story-key} from origin/v2 (HATCAST_V2_BRANCH_DEV).",
+  "GATE after workflow step 1 (story_key known), BEFORE step 2: run `./scripts/v2/story-branch.sh start {{story_key}}` from repo root. HALT on non-zero exit. Parse FEATURE_BRANCH and BASELINE_COMMIT from script output.",
+  "When writing the story file (step 5), YAML frontmatter MUST include `feature_branch: feat/{{story_key}}` and `baseline_commit: <value from script>`.",
+  "Sprint-status and story artifact edits for this story happen on feat/{{story_key}}, not on v2.",
+]
+
+on_complete = "Report feature_branch and baseline_commit in the completion summary. Remind the user that all dev work for this story stays on feat/{story_key} until merge after code review."
