@@ -13,12 +13,13 @@ This document defines the **observed V1 production behaviour** (`chancesService.
 
 | In scope (this spec) | Out of scope (follow-up stories) |
 |----------------------|----------------------------------|
-| Weight formula (`malus`, `weight`) | Factor pipeline implementation (**19.5–19.7**) |
-| `pastSelectionCount` rules | History SQL / compartment factor (**19.8**) |
-| `performWeightedDraw` | Full draw orchestration fixtures (**19.3**) |
+| Weight formula (`malus`, `weight`) | Wave D formulas & policies (**19.15+**) |
+| `pastSelectionCount` rules + history compartment (`SpectacleCategory`, **19.8**) | Full draw orchestration fixtures (**19.3** — done) |
+| Factor pipeline DEFAULT (`CategoryCompartmentFactor` + `PastParticipationFactor`) | Optional formula toggles (**19.16+**) |
+| `performWeightedDraw` | — |
 | `exactSelectionProbability` + display `%` | — |
-| Intra-role / cross-role exclusion semantics | Draw-time snapshot persistence (**6.14** — reference only) |
-| Full vs partial redraw semantics | Wave D formulas & policies (**19.15+**) |
+| Intra-role / cross-role exclusion semantics | — |
+| Full vs partial redraw semantics | — |
 | User-facing orga/member doc | — (see [Comprendre les pourcentages](../product/draw-chances-explained.md)) |
 
 **Documentation utilisateur (organisateur / membre) :** [`docs/v2/product/draw-chances-explained.md`](../product/draw-chances-explained.md) — plain-language French guide to displayed %; does not duplicate this spec.
@@ -79,7 +80,22 @@ V1 uses a **binary split** on `event.templateType`:
 
 **Evidence:** `legacy/src/services/chancesService.js:48-59` (`countCasts`); `legacy/src/components/GridBoard.vue:7818-7829` (`countSelections`).
 
-V2 evolved to multi-slug **`SpectacleCategory`** via `event.category` (**17.9**) — see **G-01**.
+V2 evolved to multi-slug **`SpectacleCategory`** via `event.category` (**17.9**) — see **G-01**. Story **19.8** hardens this as an explicit factor pipeline entry:
+
+| Piece | Role |
+|-------|------|
+| `CategoryCompartmentHistoryScope` | Resolves `categorySlug` and runs scoped / unscoped JPQL (`EventCompositionSlotRepository`) |
+| `CompositionSelectionHistoryService` | Delegates history counts; scoped map feeds weights, unscoped map feeds breakdown only |
+| `CategoryCompartmentFactor` (`FACTOR_ID = equity_tag`) | Always in `DrawWeightPipelines.DEFAULT` before `PastParticipationFactor`; `multiplier = 1.0` (compartment applied via scoped `pastSelectionCount`) |
+| Golden fixtures | `services/api/src/test/resources/draw/golden/compartment/*.json` (`DrawCompartmentGoldenTest`) |
+
+**Compartment slug rules** (must match JPQL `:categorySlug` filter):
+
+| `categorySlug` | Events counted |
+|----------------|----------------|
+| `principal` | `category IS NULL` AND `templateType <> 'deplacement'` |
+| `deplacements` | `category = 'deplacements'` OR (`category IS NULL` AND `templateType = 'deplacement'`) |
+| `{glossary slug}` | `category = slug` |
 
 ---
 
@@ -254,7 +270,7 @@ Source: [`draw-v1-v2-gaps-investigation.md`](../../../_bmad-output/implementatio
 
 | ID | Gap | Grade | V1 evidence | V2 evidence | Follow-up |
 |----|-----|-------|-------------|-------------|-----------|
-| **G-01** | History compartment granularity — V1 binary `templateType === 'deplacement'` vs V2 multi-slug `SpectacleCategory` / `event.category` (`aperock`, `deplacements`, `principal`, …) | **Confirmed** | `legacy/src/components/GridBoard.vue:7818-7829`, `legacy/src/services/chancesService.js:48-59` | `SpectacleCategory.kt:14-18`, `EventCompositionSlotRepository.kt:32-36` | **19.8** factor + golden; example: `category=aperock` on cabaret → V1 principal pool, V2 aperock pool |
+| **G-01** | History compartment granularity — V1 binary `templateType === 'deplacement'` vs V2 multi-slug `SpectacleCategory` / `event.category` (`aperock`, `deplacements`, `principal`, …) | **Confirmed (intentional V2)** | `legacy/src/components/GridBoard.vue:7818-7829`, `legacy/src/services/chancesService.js:48-59` | `SpectacleCategory.kt`, `CategoryCompartmentHistoryScope.kt`, `CategoryCompartmentFactor.kt`, `EventCompositionSlotRepository.kt:32-36` | **Done — 19.8** golden `draw/golden/compartment/`; V2 multi-slug is product intent, not a parity bug |
 | **G-02** | Current-event exclusion during draw weighting — V2 always excludes `excludeEventId`; V1 draw passes `null` to `countSelections` | **Deduced** (edge) | `legacy/src/services/chancesService.js:325` (via `calculateRoleChancesForFill` → `GridBoard.vue:7492`) | `EventCompositionSlotRepository.kt:27` | Differs only if current event already has **confirmed/validated** composition |
 | **G-03** | Slot model — V1 per-role **arrays** (append on partial fill) vs V2 indexed `(roleKey, slotIndex)` with gap fill | **Hypothesized** | `legacy/src/components/GridBoard.vue:7304-7305` | `CompositionDrawService.kt:183-189` | **19.3** orchestration fixture required to confirm/refute |
 | **G-04** | Replay harness incomplete for display % — `chancesLogic.js` has no `exactSelectionProbability` | **Confirmed** | `legacy/src/services/chancesService.js:165-251` | `scripts/replay/chancesLogic.js:42-68` (weights only) | **19.2** golden % must source from this spec / Kotlin, **not** replay alone |
@@ -300,11 +316,11 @@ Source: [`draw-v1-v2-gaps-investigation.md`](../../../_bmad-output/implementatio
 
 | IN (19.2 implements) | OUT (later stories) |
 |----------------------|---------------------|
-| `AvailabilityChanceCalculator.weightForParticipant` | `CompositionDrawService` orchestration → **19.3** |
-| `toWeightedCandidates` | History SQL / compartment → **19.8** |
+| `AvailabilityChanceCalculator.weightForParticipant` | — |
+| `toWeightedCandidates` (scoped `pastSelectionCount` + DEFAULT pipeline) | — |
 | `exactSelectionProbability` | Snapshots → **6.14** / **E-04** |
-| `scoreCandidates` | |
-| `performWeightedDraw` | |
+| `scoreCandidates` | — |
+| `performWeightedDraw` | — |
 
 **19.2 edge-case scope clarification:** Do **not** test parity for the V1 edge case where draw weighting can include current-event history because `excludeEventId = null` (see **G-02**). Treat this as out of scope for Wave A golden and cover it later with orchestration/history stories.
 
@@ -403,7 +419,7 @@ Story **19.3** locks **multi-role draw orchestration** in `CompositionDrawServic
 | IN (19.3) | OUT |
 |-----------|-----|
 | Full / partial redraw semantics | `AvailabilityChanceCalculator` unit golden → **19.2** |
-| Cross-role + intra-role exclusion in one request | Category compartment SQL → **19.8** |
+| Cross-role + intra-role exclusion in one request | — (compartment in **19.8** — done) |
 | `%` draw = summary at orchestration level | Factor pipeline → **19.5** |
 | Opening snapshot `chancePercent` persistence (**6.14**, **E-04**) | Formula id on snapshot → **19.22** |
 | G-03 indexed slot gap fill | UI explainability → **19.4** |

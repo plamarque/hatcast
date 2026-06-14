@@ -193,6 +193,7 @@ class ChanceBreakdownCalculatorTest {
             pastSelectionCountByParticipant = past,
             targetParticipantId = bob,
             roleKey = "player",
+            pastSelectionCountUnscopedByParticipant = past,
         )
     requireNotNull(result)
     assertEquals(50, result.referencePercent)
@@ -203,6 +204,62 @@ class ChanceBreakdownCalculatorTest {
         result.chancePercent - result.referencePercent,
         result.adjustments.sumOf { it.deltaPoints },
     )
+  }
+
+  @Test
+  fun `equity_tag line when away-only history on principal compartment`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val scoped = mapOf(alice to 0, bob to 0)
+    val unscoped = mapOf(alice to 0, bob to 3)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = scoped,
+            pastSelectionCountUnscopedByParticipant = unscoped,
+            targetParticipantId = bob,
+            roleKey = "player",
+            categorySlug = "principal",
+        )
+    requireNotNull(result)
+    assertEquals(50, result.referencePercent)
+    assertEquals(50, result.chancePercent)
+    assertEquals(2, result.adjustments.size)
+    val equityLine = result.adjustments.first { it.factorId == CategoryCompartmentFactor.FACTOR_ID }
+    assertEquals("Compté dans un autre type de spectacle", equityLine.label)
+    assertEquals(-30, equityLine.deltaPoints)
+    val pastLine = result.adjustments.first { it.factorId == PastParticipationFactor.FACTOR_ID }
+    assertEquals(30, pastLine.deltaPoints)
+    assertEquals(
+        result.chancePercent - result.referencePercent,
+        result.adjustments.sumOf { it.deltaPoints },
+    )
+  }
+
+  @Test
+  fun `no equity_tag line when scoped equals unscoped`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 3)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            pastSelectionCountUnscopedByParticipant = past,
+            targetParticipantId = bob,
+            roleKey = "player",
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == CategoryCompartmentFactor.FACTOR_ID })
+    assertEquals(1, result.adjustments.size)
   }
 
   @Test

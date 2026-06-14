@@ -453,3 +453,9 @@
 - **E2E helper added but no Playwright spec consumes it** — story marks E2E optional/non-blocking ; `expectTroupeHubSeasonChartVisible` ready for future wiring.
 - **`slug` required on `StatisticsEvent` OpenAPI** — monorepo co-deploy with front ; intentional additive breaking field.
 - **Extra `loadViewsByEventIds` on every stats call** — acceptable story scope ; monitor if perf issue surfaces on large seasons.
+
+## Deferred from: code review of 19-8-facteur-equity-tag-history-ex-17-9 (2026-06-14)
+
+- **Double requête SQL sur explainability** — `buildRolePoolContext` exécute scoped + unscoped par rôle ; trade-off documenté en Dev Notes 19.8.
+- **Branche spéciale `when (CategoryCompartmentFactor)` dans breakdown** — acceptable pour DEFAULT à 2 facteurs ; extensibilité à revoir avec facteurs narratifs futurs.
+- **Pas de test d’intégration bout-en-bout `CompositionExplainabilityService` → delta `equity_tag`** — couvert par tests unitaires + intégration draw compartiment.

@@ -4,6 +4,7 @@ import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.composition.dto.ChanceAdjustmentDto
 import com.hatcast.api.composition.dto.ChanceBreakdownPeerDto
 import com.hatcast.api.composition.dto.ChanceFactorBreakdownDto
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.user.MemberGender
 import java.lang.Math.round as halfUpRound
 import java.util.UUID
@@ -34,6 +35,8 @@ object ChanceBreakdownCalculator {
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
         overrideChancePercent: Int? = null,
         targetParticipantGender: MemberGender = MemberGender.NON_SPECIFIED,
+        categorySlug: String = SpectacleCategory.PRINCIPAL,
+        pastSelectionCountUnscopedByParticipant: Map<UUID, Int>? = null,
     ): Result? {
         if (candidates.isEmpty()) {
             return null
@@ -68,28 +71,20 @@ object ChanceBreakdownCalculator {
         val factorBreakdown = mutableListOf<ChanceFactorBreakdownDto>()
         var percentBefore = referencePercent
 
+        val scopedPast = pastSelectionCountByParticipant[targetParticipantId] ?: 0
+        val unscopedPast =
+            pastSelectionCountUnscopedByParticipant?.get(targetParticipantId) ?: scopedPast
+
         for (factor in pipeline.factors) {
-            val partialPipeline =
-                DrawWeightPipeline.of(
-                    pipeline.factors.take(pipeline.factors.indexOf(factor) + 1),
-                )
-            val percentAfter =
-                percentForTarget(
-                    candidates,
-                    requiredCount,
-                    pastSelectionCountByParticipant,
-                    roleKey,
-                    targetIndex,
-                    partialPipeline,
-                )
-            val deltaPoints = percentAfter - percentBefore
             val context =
                 DrawWeightContext(
                     participantId = targetParticipantId,
                     roleKey = roleKey,
-                    pastSelectionCount = pastSelectionCountByParticipant[targetParticipantId] ?: 0,
+                    pastSelectionCount = scopedPast,
                     requiredCount = requiredCount,
                     participantGender = targetParticipantGender,
+                    categorySlug = categorySlug,
+                    pastSelectionCountUnscoped = unscopedPast,
                 )
             val multiplier = factor.multiplier(context)
             val label =
@@ -104,6 +99,39 @@ object ChanceBreakdownCalculator {
                     label = label,
                 ),
             )
+
+            val percentAfter =
+                when (factor) {
+                    CategoryCompartmentFactor ->
+                        compartmentExplainabilityPercent(
+                            candidates = candidates,
+                            requiredCount = requiredCount,
+                            pastSelectionCountByParticipant = pastSelectionCountByParticipant,
+                            pastSelectionCountUnscopedByParticipant = pastSelectionCountUnscopedByParticipant,
+                            roleKey = roleKey,
+                            targetIndex = targetIndex,
+                            scopedPast = scopedPast,
+                            unscopedPast = unscopedPast,
+                            percentBefore = percentBefore,
+                        )
+                    else -> {
+                        val partialPipeline =
+                            DrawWeightPipeline.of(
+                                pipeline.factors.take(pipeline.factors.indexOf(factor) + 1),
+                            )
+                        percentForTarget(
+                            candidates,
+                            requiredCount,
+                            pastSelectionCountByParticipant,
+                            roleKey,
+                            targetIndex,
+                            partialPipeline,
+                            categorySlug,
+                            pastSelectionCountUnscopedByParticipant,
+                        )
+                    }
+                }
+            val deltaPoints = percentAfter - percentBefore
             if (deltaPoints != 0) {
                 adjustments.add(
                     ChanceAdjustmentDto(
@@ -145,6 +173,8 @@ object ChanceBreakdownCalculator {
                 pastSelectionCountByParticipant,
                 roleKey = roleKey,
                 pipeline = pipeline,
+                categorySlug = categorySlug,
+                pastSelectionCountUnscopedByParticipant = pastSelectionCountUnscopedByParticipant ?: emptyMap(),
             )
         val targetChance = chancePercent
         val peers =
@@ -176,6 +206,34 @@ object ChanceBreakdownCalculator {
         )
     }
 
+    private fun compartmentExplainabilityPercent(
+        candidates: List<AvailabilityChanceCalculator.Candidate>,
+        requiredCount: Int,
+        pastSelectionCountByParticipant: Map<UUID, Int>,
+        pastSelectionCountUnscopedByParticipant: Map<UUID, Int>?,
+        roleKey: String,
+        targetIndex: Int,
+        scopedPast: Int,
+        unscopedPast: Int,
+        percentBefore: Int,
+    ): Int {
+        if (pastSelectionCountUnscopedByParticipant == null || unscopedPast <= scopedPast) {
+            return percentBefore
+        }
+        val unscopedPastMap =
+            pastSelectionCountByParticipant.toMutableMap().apply {
+                this[candidates[targetIndex].participantId] = unscopedPast
+            }
+        return percentForTarget(
+            candidates,
+            requiredCount,
+            unscopedPastMap,
+            roleKey,
+            targetIndex,
+            DrawWeightPipeline.of(PastParticipationFactor),
+        )
+    }
+
     private fun percentForTarget(
         candidates: List<AvailabilityChanceCalculator.Candidate>,
         requiredCount: Int,
@@ -183,6 +241,8 @@ object ChanceBreakdownCalculator {
         roleKey: String,
         targetIndex: Int,
         pipeline: DrawWeightPipeline,
+        categorySlug: String = SpectacleCategory.PRINCIPAL,
+        pastSelectionCountUnscopedByParticipant: Map<UUID, Int>? = null,
     ): Int {
         val weighted =
             AvailabilityChanceCalculator.toWeightedCandidates(
@@ -191,6 +251,8 @@ object ChanceBreakdownCalculator {
                 pastSelectionCountByParticipant,
                 roleKey = roleKey,
                 pipeline = pipeline,
+                categorySlug = categorySlug,
+                pastSelectionCountUnscopedByParticipant = pastSelectionCountUnscopedByParticipant ?: emptyMap(),
             )
         return halfUpRound(
             AvailabilityChanceCalculator.exactSelectionProbability(

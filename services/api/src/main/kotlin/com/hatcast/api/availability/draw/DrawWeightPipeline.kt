@@ -30,7 +30,8 @@ class DrawWeightPipeline private constructor(
     }
 }
 
-/** Default troupe/event configuration: V1 past-participation malus only (story 19.6). */
+/** Default troupe/event configuration: compartment (always on) + past-participation malus (19.8 + 19.6). */
 object DrawWeightPipelines {
-    val DEFAULT: DrawWeightPipeline = DrawWeightPipeline.of(PastParticipationFactor)
+    val DEFAULT: DrawWeightPipeline =
+        DrawWeightPipeline.of(CategoryCompartmentFactor, PastParticipationFactor)
 }

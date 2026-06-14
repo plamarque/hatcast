@@ -49,6 +49,8 @@ object AvailabilityChanceCalculator {
         participantId: UUID = ZERO_PARTICIPANT_ID,
         roleKey: String = DEFAULT_ROLE_KEY,
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
+        categorySlug: String = DEFAULT_CATEGORY_SLUG,
+        pastSelectionCountUnscoped: Int? = null,
     ): Double {
         val context =
             DrawWeightContext(
@@ -56,6 +58,8 @@ object AvailabilityChanceCalculator {
                 roleKey = roleKey,
                 pastSelectionCount = pastSelectionCount,
                 requiredCount = requiredCount,
+                categorySlug = categorySlug,
+                pastSelectionCountUnscoped = pastSelectionCountUnscoped,
             )
         return pipeline.apply(baseWeight(context), context)
     }
@@ -69,6 +73,8 @@ object AvailabilityChanceCalculator {
         pastSelectionCountByParticipant: Map<UUID, Int> = emptyMap(),
         roleKey: String = DEFAULT_ROLE_KEY,
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
+        categorySlug: String = DEFAULT_CATEGORY_SLUG,
+        pastSelectionCountUnscopedByParticipant: Map<UUID, Int> = emptyMap(),
     ): List<WeightedCandidate> =
         candidates.map { candidate ->
             val pastCount = pastSelectionCountByParticipant[candidate.participantId] ?: 0
@@ -82,6 +88,9 @@ object AvailabilityChanceCalculator {
                         participantId = candidate.participantId,
                         roleKey = roleKey,
                         pipeline = pipeline,
+                        categorySlug = categorySlug,
+                        pastSelectionCountUnscoped =
+                            pastSelectionCountUnscopedByParticipant[candidate.participantId],
                     ),
                 pastSelectionCount = pastCount,
             )
@@ -185,6 +194,8 @@ object AvailabilityChanceCalculator {
         pastSelectionCountByParticipant: Map<UUID, Int> = emptyMap(),
         roleKey: String = DEFAULT_ROLE_KEY,
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
+        categorySlug: String = DEFAULT_CATEGORY_SLUG,
+        pastSelectionCountUnscopedByParticipant: Map<UUID, Int> = emptyMap(),
     ): List<ScoredCandidate> {
         if (candidates.isEmpty()) {
             return emptyList()
@@ -196,6 +207,8 @@ object AvailabilityChanceCalculator {
                 pastSelectionCountByParticipant,
                 roleKey,
                 pipeline,
+                categorySlug,
+                pastSelectionCountUnscopedByParticipant,
             )
         val totalWeight = weighted.sumOf { it.weight }
         if (totalWeight <= 0.0) {
@@ -222,4 +235,5 @@ object AvailabilityChanceCalculator {
     private val ZERO_PARTICIPANT_ID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000000")
 
     private const val DEFAULT_ROLE_KEY = "player"
+    private const val DEFAULT_CATEGORY_SLUG = "principal"
 }

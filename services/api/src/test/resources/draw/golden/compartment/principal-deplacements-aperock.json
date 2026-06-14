@@ -1,0 +1,105 @@
+[
+  {
+    "id": "COMP-P1",
+    "description": "Principal compartment — zero scoped history yields equal chances",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "categorySlug": "principal",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 50, "B": 50 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "COMP-P2",
+    "description": "Principal compartment — away-only history (scoped 0, unscoped 3) does not reduce principal chances",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "categorySlug": "principal",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 },
+      "pastSelectionCountUnscopedByParticipant": { "A": 0, "B": 3 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 50, "B": 50 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "COMP-D1",
+    "description": "Deplacements compartment — veteran malus within deplacements history",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "categorySlug": "deplacements",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 3 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 80, "B": 20 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "COMP-L1",
+    "description": "Legacy templateType=deplacement → deplacements slug — veteran malus within legacy compartment",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "categorySlug": "deplacements",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 1 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 67, "B": 33 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "COMP-A1",
+    "description": "Custom glossary slug aperock — compartment isolated weights",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "categorySlug": "aperock",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 2 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 75, "B": 25 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "COMP-W1",
+    "description": "Default pipeline weight unchanged with categorySlug present",
+    "function": "weightForParticipant",
+    "input": {
+      "pastSelectionCount": 3,
+      "requiredCount": 5,
+      "categorySlug": "principal"
+    },
+    "expected": { "weight": 1.25 },
+    "tolerancePercent": 0
+  }
+]
