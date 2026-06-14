@@ -1,5 +1,6 @@
 package com.hatcast.api.availability.draw
 
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.user.MemberGender
 import java.util.UUID
 
@@ -13,4 +14,7 @@ data class DrawWeightContext(
     val pastSelectionCount: Int,
     val requiredCount: Int,
     val participantGender: MemberGender = MemberGender.NON_SPECIFIED,
+    val categorySlug: String = SpectacleCategory.PRINCIPAL,
+    /** All-category history count for breakdown when compartment isolates selections (19.8). */
+    val pastSelectionCountUnscoped: Int? = null,
 )

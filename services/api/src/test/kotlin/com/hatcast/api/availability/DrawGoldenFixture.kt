@@ -77,4 +77,11 @@ object DrawGoldenFixtureLoader {
             participantId(key) to value.asInt()
         }
     }
+
+    fun parseUnscopedPastMap(input: JsonNode): Map<UUID, Int> {
+        val pastNode = input.get("pastSelectionCountUnscopedByParticipant") ?: return emptyMap()
+        return pastNode.fields().asSequence().associate { (key, value) ->
+            participantId(key) to value.asInt()
+        }
+    }
 }

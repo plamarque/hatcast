@@ -14,6 +14,7 @@ import com.hatcast.api.composition.dto.CompositionPoolPreviewSegmentDto
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
@@ -103,6 +104,8 @@ class CompositionExplainabilityService(
                 pipeline = DrawWeightPipelines.DEFAULT,
                 overrideChancePercent = overrideChancePercent,
                 targetParticipantGender = targetGender,
+                categorySlug = poolContext.categorySlug,
+                pastSelectionCountUnscopedByParticipant = poolContext.pastUnscopedByParticipant,
             )
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Breakdown indisponible")
 
@@ -194,6 +197,8 @@ class CompositionExplainabilityService(
     private data class RolePoolContext(
         val pool: List<CompositionEligibleParticipant>,
         val pastByParticipant: Map<UUID, Int>,
+        val pastUnscopedByParticipant: Map<UUID, Int>,
+        val categorySlug: String,
     )
 
     private fun buildRolePoolContext(
@@ -217,6 +222,10 @@ class CompositionExplainabilityService(
             selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
         val pastByParticipant =
             selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+        val unscopedCounts =
+            selectionHistory.pastSelectionCountUnscopedByParticipantAndRole(event, historyMode)
+        val pastUnscopedByParticipant =
+            selectionHistory.pastSelectionCountByParticipant(unscopedCounts, roleKey)
         val pool =
             CompositionParticipantPool.buildRolePool(
                 eligible = eligible,
@@ -224,7 +233,12 @@ class CompositionExplainabilityService(
                 roleKey = roleKey,
                 excluded = emptySet(),
             )
-        return RolePoolContext(pool, pastByParticipant)
+        return RolePoolContext(
+            pool = pool,
+            pastByParticipant = pastByParticipant,
+            pastUnscopedByParticipant = pastUnscopedByParticipant,
+            categorySlug = SpectacleCategory.slug(event),
+        )
     }
 
     private fun requireExplainabilityAccess(

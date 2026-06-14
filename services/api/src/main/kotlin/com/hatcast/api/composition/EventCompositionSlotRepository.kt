@@ -74,4 +74,50 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
         @Param("beforeCreatedAt") beforeCreatedAt: Instant,
         @Param("categorySlug") categorySlug: String,
     ): List<RoleSelectionCountProjection>
+
+    @Query(
+        """
+        SELECT COALESCE(s.seasonParticipantId, s.eventParticipantId) AS participantId, s.roleKey AS roleKey, COUNT(s) AS selectionCount
+        FROM EventCompositionSlotEntity s
+        JOIN EventCompositionEntity c ON c.eventId = s.eventId
+        JOIN EventEntity e ON e.id = s.eventId
+        WHERE e.season.id = :seasonId
+          AND s.eventId <> :excludeEventId
+          AND e.archived = false
+          AND c.validatedAt IS NOT NULL
+          AND COALESCE(s.seasonParticipantId, s.eventParticipantId) IS NOT NULL
+          AND s.participationStatus <> com.hatcast.api.composition.SlotParticipationStatus.DECLINED
+        GROUP BY COALESCE(s.seasonParticipantId, s.eventParticipantId), s.roleKey
+        """,
+    )
+    fun countValidatedSelectionsBySeasonAllCategories(
+        @Param("seasonId") seasonId: UUID,
+        @Param("excludeEventId") excludeEventId: UUID,
+    ): List<RoleSelectionCountProjection>
+
+    @Query(
+        """
+        SELECT COALESCE(s.seasonParticipantId, s.eventParticipantId) AS participantId, s.roleKey AS roleKey, COUNT(s) AS selectionCount
+        FROM EventCompositionSlotEntity s
+        JOIN EventCompositionEntity c ON c.eventId = s.eventId
+        JOIN EventEntity e ON e.id = s.eventId
+        WHERE e.season.id = :seasonId
+          AND e.archived = false
+          AND c.validatedAt IS NOT NULL
+          AND COALESCE(s.seasonParticipantId, s.eventParticipantId) IS NOT NULL
+          AND s.participationStatus <> com.hatcast.api.composition.SlotParticipationStatus.DECLINED
+          AND (
+            e.startsAt < :beforeStartsAt
+            OR (e.startsAt = :beforeStartsAt AND e.createdAt < :beforeCreatedAt)
+            OR (e.startsAt = :beforeStartsAt AND e.createdAt = :beforeCreatedAt AND e.id < :beforeEventId)
+          )
+        GROUP BY COALESCE(s.seasonParticipantId, s.eventParticipantId), s.roleKey
+        """,
+    )
+    fun countValidatedSelectionsBeforeEventAllCategories(
+        @Param("seasonId") seasonId: UUID,
+        @Param("beforeEventId") beforeEventId: UUID,
+        @Param("beforeStartsAt") beforeStartsAt: Instant,
+        @Param("beforeCreatedAt") beforeCreatedAt: Instant,
+    ): List<RoleSelectionCountProjection>
 }

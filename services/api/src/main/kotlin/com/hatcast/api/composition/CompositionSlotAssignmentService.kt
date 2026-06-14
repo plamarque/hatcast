@@ -16,6 +16,7 @@ import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
@@ -120,6 +121,7 @@ class CompositionSlotAssignmentService(
                 requiredCount,
                 pastByParticipant,
                 roleKey = roleKey,
+                categorySlug = SpectacleCategory.slug(event),
             )
         val assignedRoleKeysByParticipant = assignedRoleKeysByParticipant(eventId)
 

@@ -18,6 +18,7 @@ import com.hatcast.api.composition.dto.DrawCompositionRequestDto
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
@@ -153,6 +154,7 @@ class CompositionDrawService(
             historyCounts = historyCounts,
             crossRoleExcluded = openingCrossRoleExcluded,
             snapshotAccumulator = snapshotAccumulator,
+            categorySlug = SpectacleCategory.slug(event),
         )
 
         for (roleKey in requiredRoles) {
@@ -204,6 +206,7 @@ class CompositionDrawService(
 
             val pastByParticipant =
                 selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+            val categorySlug = SpectacleCategory.slug(event)
 
             for (slotIndex in indicesToFill) {
                 val pool =
@@ -225,6 +228,7 @@ class CompositionDrawService(
                         requiredCount,
                         pastByParticipant,
                         roleKey = roleKey,
+                        categorySlug = categorySlug,
                     )
                 val scored =
                     AvailabilityChanceCalculator.scoreCandidates(
@@ -238,6 +242,7 @@ class CompositionDrawService(
                         requiredCount,
                         pastByParticipant,
                         roleKey = roleKey,
+                        categorySlug = categorySlug,
                     )
                 val drawResult = AvailabilityChanceCalculator.performWeightedDraw(weighted, random)
 
@@ -416,6 +421,7 @@ class CompositionDrawService(
         historyCounts: Map<Pair<UUID, String>, Int>,
         crossRoleExcluded: Set<UUID>,
         snapshotAccumulator: MutableMap<Pair<String, UUID>, DrawChanceSnapshotInput>,
+        categorySlug: String,
     ) {
         for (roleKey in requiredRoles) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
@@ -446,6 +452,7 @@ class CompositionDrawService(
                     requiredCount,
                     pastByParticipant,
                     roleKey = roleKey,
+                    categorySlug = categorySlug,
                 )
             for (candidate in scored) {
                 snapshotAccumulator[roleKey to candidate.participantId] =
