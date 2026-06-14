@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-14T19:00:00+02:00"
+last_updated: "2026-06-14T21:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -293,7 +293,7 @@ development_status:
   18-5-configuration-prod-tests-separation-demo: done
   epic-18-retrospective: optional
 
-  epic-19: backlog  # DEFERRED post-2.1.0 — tirage/formules custom ; PO 2026-06 ; 19.1 done, 19.2 paused
+  epic-19: in-progress  # Wave C optional factors — 19.1–19.8 done ; 19.9+ backlog
   19-1-spec-normative-v1-adr-draw-weight-engine: done
   19-2-golden-tests-v1-js-kotlin: done  # paused — epic deferred
   19-3-fixtures-orchestration-draw-complet: done
@@ -302,7 +302,7 @@ development_status:
   19-6-facteur-past-participation-v1: done
   19-7-breakdown-explicabilite-par-facteur: done
   19-8-facteur-equity-tag-history-ex-17-9: done  # harden 17.9 (category compartment) into factor pipeline + golden
-  19-9-facteur-rejouer-immediatement: backlog
+  19-9-facteur-rejouer-immediatement: done
   19-10-facteur-nombre-demandes-role: backlog
   19-11-facteur-parite-genre: backlog
   19-12-facteur-mix-equipe: backlog

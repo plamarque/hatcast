@@ -132,7 +132,16 @@ La vue **Statistiques** (ex-Compositions / Historique stats V1) affiche des stat
 
 Dans un **compartiment** (`SpectacleCategory.slug` — `principal`, `deplacements`, ou catégorie personnalisée), le **prédécesseur immédiat** d’un événement courant est le dernier événement **strictement antérieur** (tie-break : `startsAt`, `createdAt`, `id`) de la même saison, **même compartiment**, composition **validée** (`event_compositions.validated_at IS NOT NULL`), non archivé.
 
-Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur sans assigné actif (retrait / déclinaison / désistement). Visible **organisateur uniquement** (API + onglet Équipe). Le resolver est réutilisable pour le facteur tirage Epic **19.9** (hors scope 6.20).
+Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur sans assigné actif (retrait / déclinaison / désistement). Visible **organisateur uniquement** (API + onglet Équipe). Distinct du facteur tirage **19.9** (ci-dessous) : l’avertissement **informe** ; le facteur **pondère** le tirage lorsqu’il est activé dans une formule.
+
+### Facteur tirage rejeu immédiat (Story 19.9)
+
+Même **prédicat** que l’avertissement 6.20 (prédécesseur immédiat validé, même compartiment, même `roleKey`, slot prédécesseur non `DECLINED`). Lorsqu’activé dans une pipeline de tirage (hors `DrawWeightPipelines.DEFAULT` jusqu’à **19.16**), le facteur `immediate_replay` peut :
+
+- **`EXCLUDE`** — `multiplier = 0` (interdiction au tirage) ;
+- **`MALUS`** — `multiplier = 0.25` (interim, constante `ImmediateReplayFactor.MALUS_MULTIPLIER`).
+
+`DrawWeightPipelines.DEFAULT` reste `[CategoryCompartmentFactor, PastParticipationFactor]` — comportement prod inchangé. L’assignation manuelle (FR21) n’est pas bloquée. Breakdown explainability (19.7) : libellé « Déjà {rôle} au spectacle « {titre} » ({date}) » lorsque le prédicat est vrai.
 
 ### Exclusion cross-rôle au tirage (composition)
 

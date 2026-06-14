@@ -34,4 +34,19 @@ class DrawWeightPipeline private constructor(
 object DrawWeightPipelines {
     val DEFAULT: DrawWeightPipeline =
         DrawWeightPipeline.of(CategoryCompartmentFactor, PastParticipationFactor)
+
+    /** Test / custom formula builder — immediate replay after past participation (PO OQ-19-9-02). */
+    fun withImmediateReplay(mode: ImmediateReplayMode): DrawWeightPipeline {
+        if (mode == ImmediateReplayMode.OFF) {
+            return DEFAULT
+        }
+        return DrawWeightPipeline.of(
+            CategoryCompartmentFactor,
+            PastParticipationFactor,
+            ImmediateReplayFactor(mode),
+        )
+    }
+
+    fun includesImmediateReplay(pipeline: DrawWeightPipeline): Boolean =
+        pipeline.factors.any { it is ImmediateReplayFactor }
 }

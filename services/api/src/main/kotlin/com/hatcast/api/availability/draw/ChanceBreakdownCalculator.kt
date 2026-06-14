@@ -37,6 +37,9 @@ object ChanceBreakdownCalculator {
         targetParticipantGender: MemberGender = MemberGender.NON_SPECIFIED,
         categorySlug: String = SpectacleCategory.PRINCIPAL,
         pastSelectionCountUnscopedByParticipant: Map<UUID, Int>? = null,
+        playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
+        immediatePredecessorTitle: String? = null,
+        immediatePredecessorStartsAt: java.time.Instant? = null,
     ): Result? {
         if (candidates.isEmpty()) {
             return null
@@ -65,6 +68,11 @@ object ChanceBreakdownCalculator {
                     roleKey,
                     targetIndex,
                     pipeline,
+                    categorySlug,
+                    pastSelectionCountUnscopedByParticipant,
+                    playedSameRoleOnImmediatePredecessorByParticipant,
+                    immediatePredecessorTitle,
+                    immediatePredecessorStartsAt,
                 )
 
         val adjustments = mutableListOf<ChanceAdjustmentDto>()
@@ -74,6 +82,8 @@ object ChanceBreakdownCalculator {
         val scopedPast = pastSelectionCountByParticipant[targetParticipantId] ?: 0
         val unscopedPast =
             pastSelectionCountUnscopedByParticipant?.get(targetParticipantId) ?: scopedPast
+        val replayTriggered =
+            playedSameRoleOnImmediatePredecessorByParticipant[targetParticipantId] == true
 
         for (factor in pipeline.factors) {
             val context =
@@ -85,6 +95,9 @@ object ChanceBreakdownCalculator {
                     participantGender = targetParticipantGender,
                     categorySlug = categorySlug,
                     pastSelectionCountUnscoped = unscopedPast,
+                    playedSameRoleOnImmediatePredecessor = replayTriggered,
+                    immediatePredecessorTitle = immediatePredecessorTitle,
+                    immediatePredecessorStartsAt = immediatePredecessorStartsAt,
                 )
             val multiplier = factor.multiplier(context)
             val label =
@@ -128,6 +141,9 @@ object ChanceBreakdownCalculator {
                             partialPipeline,
                             categorySlug,
                             pastSelectionCountUnscopedByParticipant,
+                            playedSameRoleOnImmediatePredecessorByParticipant,
+                            immediatePredecessorTitle,
+                            immediatePredecessorStartsAt,
                         )
                     }
                 }
@@ -175,6 +191,9 @@ object ChanceBreakdownCalculator {
                 pipeline = pipeline,
                 categorySlug = categorySlug,
                 pastSelectionCountUnscopedByParticipant = pastSelectionCountUnscopedByParticipant ?: emptyMap(),
+                playedSameRoleOnImmediatePredecessorByParticipant = playedSameRoleOnImmediatePredecessorByParticipant,
+                immediatePredecessorTitle = immediatePredecessorTitle,
+                immediatePredecessorStartsAt = immediatePredecessorStartsAt,
             )
         val targetChance = chancePercent
         val peers =
@@ -243,6 +262,9 @@ object ChanceBreakdownCalculator {
         pipeline: DrawWeightPipeline,
         categorySlug: String = SpectacleCategory.PRINCIPAL,
         pastSelectionCountUnscopedByParticipant: Map<UUID, Int>? = null,
+        playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
+        immediatePredecessorTitle: String? = null,
+        immediatePredecessorStartsAt: java.time.Instant? = null,
     ): Int {
         val weighted =
             AvailabilityChanceCalculator.toWeightedCandidates(
@@ -253,6 +275,9 @@ object ChanceBreakdownCalculator {
                 pipeline = pipeline,
                 categorySlug = categorySlug,
                 pastSelectionCountUnscopedByParticipant = pastSelectionCountUnscopedByParticipant ?: emptyMap(),
+                playedSameRoleOnImmediatePredecessorByParticipant = playedSameRoleOnImmediatePredecessorByParticipant,
+                immediatePredecessorTitle = immediatePredecessorTitle,
+                immediatePredecessorStartsAt = immediatePredecessorStartsAt,
             )
         return halfUpRound(
             AvailabilityChanceCalculator.exactSelectionProbability(

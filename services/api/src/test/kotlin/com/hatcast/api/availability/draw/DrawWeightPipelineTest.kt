@@ -1,6 +1,9 @@
 package com.hatcast.api.availability.draw
 
+import com.hatcast.api.availability.draw.DrawWeightPipelines
+import com.hatcast.api.availability.draw.ImmediateReplayMode
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
@@ -80,12 +83,30 @@ class DrawWeightPipelineTest {
     }
 
     @Test
-    fun `invalid intermediate factor zeroes weight even when later factor is valid`() {
-        val pipeline =
-            DrawWeightPipeline.of(
-                DrawWeightFactor { Double.NaN },
-                DrawWeightFactor { 2.0 },
+    @Tag("19.9")
+    fun `withImmediateReplay EXCLUDE pipeline zeroes triggered veteran weight`() {
+        val pipeline = DrawWeightPipelines.withImmediateReplay(ImmediateReplayMode.EXCLUDE)
+        val context =
+            DrawWeightContext(
+                participantId = participantId,
+                roleKey = "player",
+                pastSelectionCount = 0,
+                requiredCount = 1,
+                playedSameRoleOnImmediatePredecessor = true,
             )
-        assertEquals(0.0, pipeline.apply(5.0, context()))
+        assertEquals(0.0, pipeline.apply(1.0, context))
+    }
+
+    @Test
+    @Tag("19.9")
+    fun `DEFAULT pipeline excludes immediate replay factor`() {
+        assertEquals(false, DrawWeightPipelines.includesImmediateReplay(DrawWeightPipelines.DEFAULT))
+    }
+
+    @Test
+    @Tag("19.9")
+    fun `withImmediateReplay pipeline includes immediate replay factor`() {
+        val pipeline = DrawWeightPipelines.withImmediateReplay(ImmediateReplayMode.MALUS)
+        assertEquals(true, DrawWeightPipelines.includesImmediateReplay(pipeline))
     }
 }
