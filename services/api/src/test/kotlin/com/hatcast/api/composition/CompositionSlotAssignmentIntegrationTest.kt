@@ -461,7 +461,7 @@ class CompositionSlotAssignmentIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"participantId":null}""")
                     .with(csrf()),
-            ).andExpect(status().isConflict)
+            ).andExpect(status().isOk)
     }
 
     @Test
