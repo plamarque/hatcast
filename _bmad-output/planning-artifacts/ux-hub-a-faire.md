@@ -150,7 +150,7 @@ flowchart TB
 
 ### Zone 1 — Actions requises (priorité haute)
 
-**Cartes d’action** empilées (max 5 visibles + « Voir tout dans l’agenda » si plus) — **pas** `mat-nav-list` : une carte = verbe + titre spectacle + métadonnées sur **2 lignes max** (sans ellipsis) + CTA visuel (**Confirmer** / **Dispo**). Spec détaillée : [`ux-design-accueil-actions-requises.md`](./ux-design-accueil-actions-requises.md).
+**Cartes d’action** empilées (max 5 visibles + « Voir tout dans l’agenda » si plus) — fond **plein teinté par urgence** (rouge ≤ 2 j · orange 3–7 j · bleu > 7 j), verbe + icône **neutres** (variante A), trailing **chip + chevron** sur une ligne. Spec : [`ux-design-accueil-actions-requises.md`](./ux-design-accueil-actions-requises.md) (addendum D 2026-06-14).
 
 | Type d’action | Condition (MVP) | Libellé ligne | Tap → |
 |---------------|-------------------|---------------|-------|

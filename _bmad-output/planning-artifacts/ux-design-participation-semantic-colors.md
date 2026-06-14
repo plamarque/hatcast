@@ -3,6 +3,7 @@ title: UX — Participation semantic colors (V1 parity)
 author: Sally (UX) + Patrice
 date: '2026-05-29'
 lastUpdated: '2026-05-29'
+lastUpdated: '2026-06-14'
 status: approved
 stakeholderDecisions:
   - restore-violet-for-selections-globally
@@ -14,6 +15,7 @@ stakeholderDecisions:
   - extend-chart-api-status-selected-not-available
   - gradient-strong-unified-v1-tailwind-palette
   - same-gradient-strong-on-counters-chart-modal-dispos-equipe
+  - inbox-action-info-blue-separate-from-neutral-participation
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-design-hatcast-v2.md
   - docs/v2/technical/FRONTEND_UI.md
@@ -32,6 +34,7 @@ inputDocuments:
   - services/api/src/main/kotlin/com/hatcast/api/memberprofile/SeasonGlanceStatsProvider.kt
 revisionNotes:
   - '2026-05-29 (PM): Gradient canon locked to V1 Tailwind stops (ConfirmationModal.vue). -gradient-strong is the single fill for counters, chart, modal, Dispos toggles, Équipe rows/badges. M3 color-mix gradients superseded for participation fills.'
+  - '2026-06-14: P17 — --hatcast-sys-action-info* (blue) for Accueil inbox dispo cards only; does not replace neutral participation tokens elsewhere.'
 ---
 
 # UX Design — Participation semantic colors
@@ -83,6 +86,7 @@ revisionNotes:
 | P14 | **Gradient canon** | Participation **fills** use **V1 Tailwind diagonal gradients** (`ConfirmationModal.vue`, `status-colors.css`) — not M3 `color-mix` on `--mat-sys-*` |
 | P15 | **`-gradient-strong` unification** | Counters, chart blocks, modal buttons, Dispos toggles (checked), Équipe rows and équipe status badges share the **same** `-gradient-strong` per state |
 | P16 | **Gradient stops** | Fixed hex stops exposed as `--hatcast-v1-*` in `_hatcast-semantic-colors.scss`; features reference `--hatcast-participation-*-gradient-*` only |
+| P17 | **Inbox action-info (blue)** | **`--hatcast-sys-action-info*`** (`mat.$blue-palette`) for **Accueil inbox dispo cards only** — **not** a seventh participation state; does **not** replace `--hatcast-participation-neutral-*` on agenda, Dispos, chart, or Équipe. See [ux-design-accueil-actions-requises.md](./ux-design-accueil-actions-requises.md) addendum 2026-06-14. |
 
 ---
 
@@ -106,7 +110,23 @@ revisionNotes:
 
 ---
 
-## Pending vs declined — differentiation (P13)
+## Inbox action tokens (outside participation chart — P17)
+
+**Purpose:** Colour language for **call-to-action cards** on `/accueil` (`MemberHomeTodo`) when the member must **still answer** availability. This is **not** the same as marking participation `neutral` / unknown on agenda or Dispos — those surfaces keep `--hatcast-participation-neutral-*`.
+
+| Token | Palette | Scope | Must NOT appear on |
+|-------|---------|-------|-------------------|
+| `--hatcast-sys-action-info` | `mat.$blue-palette` | Inbox card `--dispo` accent (verb, icon, focus ring) | Agenda badges, Dispos toggles, Mes Stats chart, Équipe rows |
+| `--hatcast-sys-action-info-container` | derived | Optional reference | idem |
+| `--hatcast-sys-on-action-info` | derived | On-accent text if needed | idem |
+
+**Pairing with confirm inbox cards:** dispo = **blue action-info** · confirm = **`--hatcast-sys-pending`** (amber). Both use **filled card tint** (`color-mix` ~12–14 % on `--mat-sys-surface`).
+
+**Why not green or violet:** green = dispo **already** recorded (P5); violet = **selected** in team (P2). Why not grey neutral: insufficient CTA energy for Zone 1 Accueil ([ux-design-accueil-actions-requises.md](./ux-design-accueil-actions-requises.md) C5).
+
+**Implementation:** define tokens in `_hatcast-semantic-colors.scss` using the same `light-dark()` + `mat.define-theme` pattern as `--hatcast-sys-pending`. Consume only in `member-home-todo.scss` (and future inbox surfaces if explicitly specced).
+
+---
 
 These two states both sit *after* a selection, so they need **different hues**, not just different opacities of the same orange.
 

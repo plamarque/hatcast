@@ -41,7 +41,7 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-design-hatcast-v2.md`](../../../_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) | Continuité V1, tokens, écrans de référence |
 | [`_bmad-output/planning-artifacts/ux-hub-a-faire.md`](../../../_bmad-output/planning-artifacts/ux-hub-a-faire.md) | Top app bar M3, nav rail desktop (≥ 840 px), interdits M2 |
 | [`_bmad-output/planning-artifacts/ux-design-hub-section-headers.md`](../../../_bmad-output/planning-artifacts/ux-design-hub-section-headers.md) | Titres L1/L2 hub membre (typo, espacements, anti-dérive dialogue → page) |
-| [`_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md`](../../../_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md) | Accueil — cartes Actions requises + moment « Tout est à jour » |
+| [`_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md`](../../../_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md) | Accueil — cartes Actions requises (fond plein, bleu action-info dispo, trailing chip+chevron) + moment « Tout est à jour » |
 | [`_bmad-output/planning-artifacts/ux-design-specification.md`](../../../_bmad-output/planning-artifacts/ux-design-specification.md) | Surfaces admin (Material defaults + tokens) |
 | [`_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md`](../../../_bmad-output/planning-artifacts/ux-event-draft-publish-3-21.md) | Brouillon spectacle, publication, bandeau, agendas (story **3.21**) |
 | [`_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md`](../../../_bmad-output/planning-artifacts/ux-design-event-detail-title-row-2026-06-06.md) | Détail spectacle — titre inline header, badge statut onglet Équipe, Infos › Saison (2026-06-06, amend. 17.43) |
@@ -126,7 +126,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 - Garde-fou dismiss : [`apps/web/src/app/shared/dialog-chrome/`](../../../apps/web/src/app/shared/dialog-chrome/) — `app-hatcast-dialog-dismiss` (libellé typé `annuler` \| `fermer` \| `plus_tard`) sur dialogs standard ; `app-hatcast-picker-header` **uniquement** sur pickers filtre (✕ + drag = sheet seulement).
 - Raccourcis membre : [`apps/web/src/app/shared/member-cross-nav/`](../../../apps/web/src/app/shared/member-cross-nav/) — `mat-stroked-button`, `routerLink`, `aria-label`, ellipsis mobile.
 - Thème M3 global : [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss).
-- **Charte sémantique participation** : [`apps/web/src/styles/_hatcast-semantic-colors.scss`](../../../apps/web/src/styles/_hatcast-semantic-colors.scss) (dispo, sélection, en attente, désistement, indispo ; cartes agenda [`_hatcast-agenda-event-card.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-card.scss) ; badges [`_hatcast-agenda-event-badges.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-badges.scss) + [`_hatcast-agenda-dispo-badge.scss`](../../../apps/web/src/styles/_hatcast-agenda-dispo-badge.scss)).
+- **Charte sémantique participation** : [`apps/web/src/styles/_hatcast-semantic-colors.scss`](../../../apps/web/src/styles/_hatcast-semantic-colors.scss) (dispo, sélection, en attente, désistement, indispo ; **inbox action-info** pour cartes Accueil dispo ; cartes agenda [`_hatcast-agenda-event-card.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-card.scss) ; badges [`_hatcast-agenda-event-badges.scss`](../../../apps/web/src/styles/_hatcast-agenda-event-badges.scss) + [`_hatcast-agenda-dispo-badge.scss`](../../../apps/web/src/styles/_hatcast-agenda-dispo-badge.scss)).
 - Helpers : [`availability-status.ts`](../../../apps/web/src/app/core/availability/availability-status.ts) (dispo pure), [`participation-status.ts`](../../../apps/web/src/app/core/participation/participation-status.ts) (chart, équipe, badges étendus).
 - Spec UX : [`ux-design-participation-semantic-colors.md`](../../../_bmad-output/planning-artifacts/ux-design-participation-semantic-colors.md).
 - Tokens dans les features : `event-detail`, `admin-membres`, `user-agenda` (fichiers `*.scss` avec `--mat-sys-*`, `--hatcast-participation-*` ou alias `--hatcast-availability-*`).
@@ -148,6 +148,18 @@ Spec UX normative : [`ux-design-participation-semantic-colors.md`](../../../_bma
 | Retrait (déclinaison ou désistement) | Participation plus dans la compo — voir [DOMAIN.md § Participation](../../DOMAIN.md#participation--déclinaison-désistement-et-retrait-v2-normative) | `--hatcast-participation-declined-gradient-strong` |
 | Pas dispo | Refus de disponibilité | `--hatcast-participation-unavailable-gradient-strong` |
 | Non renseigné / neutre | Pas de réponse ou N/A | `--hatcast-participation-neutral-gradient-strong` |
+
+#### Inbox action-info (hors charte participation)
+
+Spec UX : [`ux-design-accueil-actions-requises.md`](../../../_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md) addendum 2026-06-14 · décision P17 dans [`ux-design-participation-semantic-colors.md`](../../../_bmad-output/planning-artifacts/ux-design-participation-semantic-colors.md).
+
+| Usage | Token | Scope |
+|-------|-------|-------|
+| Carte Accueil palier **normal** (> 7 j) | `--hatcast-sys-action-info` + `color-mix(... 10%, surface)` | `member-home-todo` uniquement |
+| Carte Accueil palier **soon** (3–7 j) | `--mat-sys-tertiary` + `color-mix(... 14%, surface)` | idem |
+| Carte Accueil palier **urgent** (≤ 2 j) | `--mat-sys-error` + `color-mix(... 12%, surface)` | idem |
+
+Spec : addendum D (2026-06-14) dans [`ux-design-accueil-actions-requises.md`](../../../_bmad-output/planning-artifacts/ux-design-accueil-actions-requises.md) — fond = urgence ; type = icône + verbe neutres.
 
 #### Dégradés V1 (stops canoniques — 135°)
 
