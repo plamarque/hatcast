@@ -269,6 +269,16 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - Entry points that previously opened a composition popup now open or focus **event details with the Composition tab selected**: on the full-screen event view there is no footer "Composition Équipe" button — users open the Composition tab via the **Équipe** tab; TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo`. No separate modal layer for composition.
   - User experience is a single place (event details) with one tab (Composition) where users see and perform only the actions their permissions allow.
 
+### Draw formulas & policies (Wave D, Story 19.15)
+
+- Troupe admins maintain a **catalogue of draw formulas** (ordered factor recipes). **Draw policies** define which formula applies per event category (`event.category` slug — **17.7**). Troupe policy is the **default for all seasons**; each season may adopt its **own complete policy** that **replaces** the troupe policy for that season.
+- **Resolution:** season policy → troupe policy → **implicit MVP default** (`CHOICE` among all published formulas + system V1 recipe, always including system V1 even when equivalent published entries exist).
+- **Effective formula in Équipe UI:** A default formula is **shown clearly** in the Composition tab; the organizer may **change it before draw** when the resolved rule allows choice. **`%` and breakdown follow the selected formula** (**OQ-19-04** — runtime **19.18**). No per-event **policy** row — only formula selection for the composition session.
+- **Fallback:** If a referenced formula becomes unavailable, another active formula takes over; **≥1 usable formula** always (system V1 counts). Formula + policy context **traced on draw** (snapshots **19.22**, audit journal).
+- **Troupe admins** configure policies (**19.18** / UI **19.20** later); season organizers consume effective rules and choose at draw when permitted.
+- **Policy ≠ factor:** e.g. a season rule may **mandate** a gender-parity formula for `match` events while factor **19.11** remains unshipped — the formula slot documents intent; factor math stays in the weight engine spec.
+- Normative contract: [draw-formulas-policies-spec.md](docs/v2/technical/draw-formulas-policies-spec.md) + [ADR 0019](docs/adr/0019-draw-weight-engine.md); this SPEC does not duplicate factor math or full JSON schemas.
+
 - **Slot click in composition (Composition tab) for participation confirmation**
   - In the **Composition tab** of event details (inline composition UI), clicking on a filled slot (a person in the composition) opens the **participation confirmation** popup.
   - **Permissions:** An **administrator** (e.g. can edit the event) can open the confirmation popup for any slot (to confirm, decline, or set to pending for any player). The **concerned player** can open it only for **their own** slot (to confirm or decline their own participation). Other users do not open the popup (or see an error if they try).

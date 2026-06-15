@@ -465,3 +465,14 @@
 - **Requête role-request relancée par rôle au tirage** — acceptable Wave C tant que facteur hors DEFAULT ; optimiser si activé en prod (19.16+).
 - **DRY compartiment partiel** — `SpectacleCategoryCompartmentJpql` extrait mais requêtes historiques existantes du slot repo inchangées ; refactor opportuniste.
 - **Pas de test mock prouvant z SQL en DEFAULT (AC18)** — chargement conditionnel présent via `includesRoleRequest` ; pattern identique 19.9.
+
+## Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)
+
+- **Identité UUID stable de la formule system V1** — contrat de seed reporté à story **19.16**.
+- **`formulaId` pour Simuler / preview % (19.17 AC3)** — comportement HTTP/UI reporté à **19.17–19.18**.
+- **Epics 19.16 AC3 (system V1 seul) vs OQ-19-02 (CHOICE + published + system V1)** — epics à realigner au grooming Wave D.
+- **Epics 19.18 titre « admin saison » vs OQ-19-05 TROUPE_ADMIN only** — epics outdated ; spec 19.15 fait foi.
+- **PLAN.md résumé résolution tronqué (sans chemin implicit CHOICE)** — hors scope 19.15 ; MAJ PLAN opportuniste.
+- **Codes HTTP draw (403 vs 400) pour formulaId hors liste** — OpenAPI **19.18**.
+- **Visibilité effective policy pour membres (Équipe tab)** — story **19.21**.
+- **Défaut `immediate_replay.params.mode` si absent** — **19.16** param wiring.

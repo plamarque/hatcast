@@ -13,7 +13,7 @@ This document defines the **observed V1 production behaviour** (`chancesService.
 
 | In scope (this spec) | Out of scope (follow-up stories) |
 |----------------------|----------------------------------|
-| Weight formula (`malus`, `weight`) | Wave D formulas & policies (**19.15+**) |
+| Weight formula (`malus`, `weight`) | Wave D formulas & policies → [draw-formulas-policies-spec.md](draw-formulas-policies-spec.md) (**19.15** normative; runtime **19.16–19.18**) |
 | `pastSelectionCount` rules + history compartment (`SpectacleCategory`, **19.8**) | Full draw orchestration fixtures (**19.3** — done) |
 | Factor pipeline DEFAULT (`CategoryCompartmentFactor` + `PastParticipationFactor`) | Optional formula toggles (**19.16+**) |
 | `performWeightedDraw` | — |
