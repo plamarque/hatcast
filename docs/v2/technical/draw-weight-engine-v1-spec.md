@@ -88,6 +88,7 @@ V2 evolved to multi-slug **`SpectacleCategory`** via `event.category` (**17.9**)
 | `CompositionSelectionHistoryService` | Delegates history counts; scoped map feeds weights, unscoped map feeds breakdown only |
 | `CategoryCompartmentFactor` (`FACTOR_ID = equity_tag`) | Always in `DrawWeightPipelines.DEFAULT` before `PastParticipationFactor`; `multiplier = 1.0` (compartment applied via scoped `pastSelectionCount`) |
 | `ImmediateReplayFactor` (`FACTOR_ID = immediate_replay`, **19.9**) | **Not** in `DEFAULT` until **19.16**; optional in custom pipelines after `PastParticipationFactor`. Modes: `EXCLUDE` (`0.0`) or `MALUS` (`0.25`). Trigger = same predicate as Story **6.20** consecutive-show warning. Golden: `draw/golden/immediate-replay/*.json` (`DrawImmediateReplayGoldenTest`) |
+| `RoleRequestFactor` (`FACTOR_ID = role_request`, **19.10**) | **Not** in `DEFAULT` until **19.16**; optional after `PastParticipationFactor`. **Bonus only**: `multiplier = min(1 + n × 1.0, 10.0)` where `n = unfulfilledRoleRequestCount` (past validated events, same compartment, available for role but not selected). Golden: `draw/golden/role-request/*.json` (`DrawRoleRequestGoldenTest`) |
 | Golden fixtures | `services/api/src/test/resources/draw/golden/compartment/*.json` (`DrawCompartmentGoldenTest`) |
 
 **Compartment slug rules** (must match JPQL `:categorySlug` filter):

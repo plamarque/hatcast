@@ -59,6 +59,7 @@ class CompositionSlotAssignmentService(
     private val participantGenderResolver: ParticipantGenderResolver,
     private val participantAvatarResolver: ParticipantAvatarResolver,
     private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
+    private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
     private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
 ) {
     private val drawWeightPipeline: DrawWeightPipeline
@@ -128,6 +129,14 @@ class CompositionSlotAssignmentService(
                 pool = pool,
                 replayService = immediatePredecessorRoleReplayService,
             )
+        val unfulfilledCounts =
+            DrawRoleRequestSupport.unfulfilledCountsForRolePool(
+                pipeline = drawWeightPipeline,
+                event = event,
+                roleKey = roleKey,
+                pool = pool,
+                roleRequestService = unfulfilledRoleRequestService,
+            )
         val scored =
             AvailabilityChanceCalculator.scoreCandidates(
                 pool.map {
@@ -141,6 +150,7 @@ class CompositionSlotAssignmentService(
                 playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
                 immediatePredecessorTitle = replayInputs.predecessorTitle,
                 immediatePredecessorStartsAt = replayInputs.predecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant = unfulfilledCounts,
             )
         val assignedRoleKeysByParticipant = assignedRoleKeysByParticipant(eventId)
 

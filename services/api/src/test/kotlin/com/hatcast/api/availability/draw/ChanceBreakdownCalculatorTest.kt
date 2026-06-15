@@ -296,6 +296,90 @@ class ChanceBreakdownCalculatorTest {
   }
 
   @Test
+  @Tag("19.10")
+  fun `role request bonus produces positive delta when n greater than 0`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val unfulfilled = mapOf(alice to 7, bob to 0)
+    val pipeline = DrawWeightPipelines.withRoleRequest()
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = alice,
+            roleKey = "dj",
+            targetParticipantGender = MemberGender.FEMALE,
+            pipeline = pipeline,
+            unfulfilledRoleRequestCountByParticipant = unfulfilled,
+        )
+    requireNotNull(result)
+    assertEquals(50, result.referencePercent)
+    assertEquals(89, result.chancePercent)
+    val roleRequestLine = result.adjustments.single { it.factorId == RoleRequestFactor.FACTOR_ID }
+    assertEquals(
+        "A demandé DJ 7 fois sans être tiré·e — bonus aspiration",
+        roleRequestLine.label,
+    )
+    assertEquals(39, roleRequestLine.deltaPoints)
+    assertEquals(
+        result.chancePercent - result.referencePercent,
+        result.adjustments.sumOf { it.deltaPoints },
+    )
+  }
+
+  @Test
+  @Tag("19.10")
+  fun `no role request line when unfulfilled count is zero`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val pipeline = DrawWeightPipelines.withRoleRequest()
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = alice,
+            roleKey = "dj",
+            pipeline = pipeline,
+            unfulfilledRoleRequestCountByParticipant = mapOf(alice to 0, bob to 0),
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == RoleRequestFactor.FACTOR_ID })
+  }
+
+  @Test
+  @Tag("19.10")
+  fun `DEFAULT pipeline has no role request adjustment line`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = alice,
+            roleKey = "dj",
+            pipeline = DrawWeightPipelines.DEFAULT,
+            unfulfilledRoleRequestCountByParticipant = mapOf(alice to 7, bob to 0),
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == RoleRequestFactor.FACTOR_ID })
+  }
+
+  @Test
   @Tag("19.9")
   fun `no immediate replay line when trigger false`() {
     val candidates =

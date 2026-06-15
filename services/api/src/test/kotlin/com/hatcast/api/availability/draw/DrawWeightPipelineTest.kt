@@ -109,4 +109,26 @@ class DrawWeightPipelineTest {
         val pipeline = DrawWeightPipelines.withImmediateReplay(ImmediateReplayMode.MALUS)
         assertEquals(true, DrawWeightPipelines.includesImmediateReplay(pipeline))
     }
+
+    @Test
+    @Tag("19.10")
+    fun `DEFAULT pipeline excludes role request factor`() {
+        assertEquals(false, DrawWeightPipelines.includesRoleRequest(DrawWeightPipelines.DEFAULT))
+    }
+
+    @Test
+    @Tag("19.10")
+    fun `withRoleRequest pipeline applies aspiration bonus`() {
+        val pipeline = DrawWeightPipelines.withRoleRequest()
+        val context =
+            DrawWeightContext(
+                participantId = participantId,
+                roleKey = "dj",
+                pastSelectionCount = 0,
+                requiredCount = 1,
+                unfulfilledRoleRequestCount = 7,
+            )
+        assertEquals(8.0, pipeline.apply(1.0, context))
+        assertEquals(true, DrawWeightPipelines.includesRoleRequest(pipeline))
+    }
 }

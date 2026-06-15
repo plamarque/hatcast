@@ -4,10 +4,10 @@ stepsCompleted:
   - step-02-design-epics
   - step-03-create-stories
   - step-04-final-validation
-lastUpdated: 2026-06-04
+lastUpdated: 2026-06-14
 updateMode: incremental
 status: ready-for-development
-ceRevision: '2026-06-04 — Epic 19 Wave D: formules, politiques par catégorie, choix orga au tirage'
+ceRevision: '2026-06-14 — Epic 19.10 : bonus aspiration (demandes de rôle non satisfaites)'
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -2612,17 +2612,20 @@ afin de **rotations** plus équitables.
 
 ---
 
-#### Story 19.10 : Facteur nombre de demandes de rôle
+#### Story 19.10 : Facteur nombre de demandes de rôle *(bonus aspiration)*
 
 En tant qu **organisateur**,  
-je veux un malus si un membre a **souvent demandé** ce rôle sans être tiré (ou inverse — à cadrer SPEC),  
-afin d’**équilibrer** les aspirations.
+je veux un **bonus au tirage** pour les membres qui ont **souvent demandé** un rôle (dispo déclarée) **sans jamais (ou rarement) l’obtenir** sur des spectacles passés validés,  
+afin d’**honorer les aspirations** et d’augmenter significativement leurs chances lorsqu’ils continuent de se proposer.
+
+**Exemple PO :** Boubou a demandé **7** fois à faire **DJ** sans jamais être sélectionnée — au prochain match, ses cotes DJ doivent refléter un **boost substantiel** vs une paire sans cet historique.
 
 **Acceptance Criteria**
 
-1. **Given** métrique « demandes » définie en SPEC, **when** facteur activé, **then** multiplicateur documenté appliqué.
-2. **Given** facteur off, **when** tirage, **then** pas d’impact.
-3. **Priorité :** P2 backlog. **Depends :** 19.6, données dispo/rôle (**5.2**).
+1. **Given** métrique **`unfulfilledRoleRequestCount`** définie en SPEC/DOMAIN (dispo pour `roleKey` + composition validée + non assignée sur ce rôle ; même compartiment **19.8** ; même `SelectionHistoryMode` que `pastSelectionCount`), **when** facteur activé, **then** multiplicateur **bonus** documenté appliqué : `min(1 + n × k, cap)` avec constantes nommées (interim : `k = 1`, cap `10` — ex. `n = 7` → ×8).
+2. **Given** facteur **off** (absent de `DrawWeightPipelines.DEFAULT`), **when** tirage, **then** pas d’impact ; golden **19.2** inchangé.
+3. **Given** explainability (**19.7**) et facteur actif, **when** breakdown, **then** ligne `role_request` avec delta **positif** et libellé FR aspiration.
+4. **Couverture :** FR19, FR20. **Priorité :** P2 backlog. **Depends :** **19.6**, **19.8**, données dispo/rôle (**5.2**). **UI :** N/A. **Story file :** [`19-10-facteur-nombre-demandes-role.md`](../implementation-artifacts/19-10-facteur-nombre-demandes-role.md).
 
 ---
 

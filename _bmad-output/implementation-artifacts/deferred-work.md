@@ -459,3 +459,9 @@
 - **Double requête SQL sur explainability** — `buildRolePoolContext` exécute scoped + unscoped par rôle ; trade-off documenté en Dev Notes 19.8.
 - **Branche spéciale `when (CategoryCompartmentFactor)` dans breakdown** — acceptable pour DEFAULT à 2 facteurs ; extensibilité à revoir avec facteurs narratifs futurs.
 - **Pas de test d’intégration bout-en-bout `CompositionExplainabilityService` → delta `equity_tag`** — couvert par tests unitaires + intégration draw compartiment.
+
+## Deferred from: code review of 19-10-facteur-nombre-demandes-role (2026-06-14)
+
+- **Requête role-request relancée par rôle au tirage** — acceptable Wave C tant que facteur hors DEFAULT ; optimiser si activé en prod (19.16+).
+- **DRY compartiment partiel** — `SpectacleCategoryCompartmentJpql` extrait mais requêtes historiques existantes du slot repo inchangées ; refactor opportuniste.
+- **Pas de test mock prouvant z SQL en DEFAULT (AC18)** — chargement conditionnel présent via `includesRoleRequest` ; pattern identique 19.9.

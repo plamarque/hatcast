@@ -54,6 +54,7 @@ object AvailabilityChanceCalculator {
         playedSameRoleOnImmediatePredecessor: Boolean = false,
         immediatePredecessorTitle: String? = null,
         immediatePredecessorStartsAt: java.time.Instant? = null,
+        unfulfilledRoleRequestCount: Int = 0,
     ): Double {
         val context =
             DrawWeightContext(
@@ -66,6 +67,7 @@ object AvailabilityChanceCalculator {
                 playedSameRoleOnImmediatePredecessor = playedSameRoleOnImmediatePredecessor,
                 immediatePredecessorTitle = immediatePredecessorTitle,
                 immediatePredecessorStartsAt = immediatePredecessorStartsAt,
+                unfulfilledRoleRequestCount = unfulfilledRoleRequestCount,
             )
         return pipeline.apply(baseWeight(context), context)
     }
@@ -84,6 +86,7 @@ object AvailabilityChanceCalculator {
         playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
         immediatePredecessorTitle: String? = null,
         immediatePredecessorStartsAt: java.time.Instant? = null,
+        unfulfilledRoleRequestCountByParticipant: Map<UUID, Int> = emptyMap(),
     ): List<WeightedCandidate> =
         candidates.map { candidate ->
             val pastCount = pastSelectionCountByParticipant[candidate.participantId] ?: 0
@@ -104,6 +107,8 @@ object AvailabilityChanceCalculator {
                             playedSameRoleOnImmediatePredecessorByParticipant[candidate.participantId] == true,
                         immediatePredecessorTitle = immediatePredecessorTitle,
                         immediatePredecessorStartsAt = immediatePredecessorStartsAt,
+                        unfulfilledRoleRequestCount =
+                            unfulfilledRoleRequestCountByParticipant[candidate.participantId] ?: 0,
                     ),
                 pastSelectionCount = pastCount,
             )
@@ -212,6 +217,7 @@ object AvailabilityChanceCalculator {
         playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
         immediatePredecessorTitle: String? = null,
         immediatePredecessorStartsAt: java.time.Instant? = null,
+        unfulfilledRoleRequestCountByParticipant: Map<UUID, Int> = emptyMap(),
     ): List<ScoredCandidate> {
         if (candidates.isEmpty()) {
             return emptyList()
@@ -228,6 +234,7 @@ object AvailabilityChanceCalculator {
                 playedSameRoleOnImmediatePredecessorByParticipant,
                 immediatePredecessorTitle,
                 immediatePredecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant,
             )
         val totalWeight = weighted.sumOf { it.weight }
         if (totalWeight <= 0.0) {

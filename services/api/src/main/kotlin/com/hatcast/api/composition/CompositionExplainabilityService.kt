@@ -51,6 +51,7 @@ class CompositionExplainabilityService(
     private val participantAvatarResolver: ParticipantAvatarResolver,
     private val participantGenderResolver: ParticipantGenderResolver,
     private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
+    private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
     private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
 ) {
     private val drawWeightPipeline: DrawWeightPipeline
@@ -115,6 +116,7 @@ class CompositionExplainabilityService(
                 playedSameRoleOnImmediatePredecessorByParticipant = poolContext.replayByParticipant,
                 immediatePredecessorTitle = poolContext.replayPredecessorTitle,
                 immediatePredecessorStartsAt = poolContext.replayPredecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant = poolContext.unfulfilledByParticipant,
             )
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Breakdown indisponible")
 
@@ -186,6 +188,7 @@ class CompositionExplainabilityService(
                 playedSameRoleOnImmediatePredecessorByParticipant = poolContext.replayByParticipant,
                 immediatePredecessorTitle = poolContext.replayPredecessorTitle,
                 immediatePredecessorStartsAt = poolContext.replayPredecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant = poolContext.unfulfilledByParticipant,
             )
         val participantIds = scored.map { it.participantId }.toSet()
         val avatarUrls = participantAvatarResolver.resolveByParticipantIds(eventId, participantIds)
@@ -216,6 +219,7 @@ class CompositionExplainabilityService(
         val replayByParticipant: Map<UUID, Boolean> = emptyMap(),
         val replayPredecessorTitle: String? = null,
         val replayPredecessorStartsAt: java.time.Instant? = null,
+        val unfulfilledByParticipant: Map<UUID, Int> = emptyMap(),
     )
 
     private fun buildRolePoolContext(
@@ -258,6 +262,14 @@ class CompositionExplainabilityService(
                 pool = pool,
                 replayService = immediatePredecessorRoleReplayService,
             )
+        val unfulfilledCounts =
+            DrawRoleRequestSupport.unfulfilledCountsForRolePool(
+                pipeline = drawWeightPipeline,
+                event = event,
+                roleKey = roleKey,
+                pool = pool,
+                roleRequestService = unfulfilledRoleRequestService,
+            )
         return RolePoolContext(
             pool = pool,
             pastByParticipant = pastByParticipant,
@@ -266,6 +278,7 @@ class CompositionExplainabilityService(
             replayByParticipant = replayInputs.byParticipant,
             replayPredecessorTitle = replayInputs.predecessorTitle,
             replayPredecessorStartsAt = replayInputs.predecessorStartsAt,
+            unfulfilledByParticipant = unfulfilledCounts,
         )
     }
 
