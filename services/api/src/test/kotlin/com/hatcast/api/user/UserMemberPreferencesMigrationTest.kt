@@ -142,6 +142,12 @@ class UserMemberPreferencesMigrationTest {
                         "drop_event_availability_pk" to "DROP PRIMARY KEY",
                         "notification_preferences_json_type" to "JSON",
                         "notification_preferences_json_default" to "JSON '{}'",
+                        "draw_factor_config_json_type" to "JSON",
+                        "draw_policy_rule_json_type" to "JSON",
+                        "draw_policy_rules_json_type" to "JSON",
+                        "draw_policy_rules_json_default" to "JSON '[]'",
+                        "draw_policies_season_idx_sql" to
+                            "CREATE INDEX draw_policies_season_idx ON draw_policies (season_id)",
                     ),
                 )
         if (target != null) {

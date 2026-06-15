@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-15T12:00:00+02:00
+# last_updated: 2026-06-15T14:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-15T12:00:00+02:00"
+last_updated: "2026-06-15T23:16:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -309,7 +309,7 @@ development_status:
   19-13-facteur-prestige-history-ex-19-13: backlog  # parked — post Wave D demo ; depends 19.6 + 20.6
   19-14-facteur-bonus-malus-benevole: backlog  # parked — post Wave D demo
   19-15-spec-formules-politiques-adr: done  # sprint Wave D S1 ; normative spec + SPEC/DOMAIN/ADR ; code review 2026-06-15
-  19-16-persistance-formules-defaut-v1: backlog  # sprint Wave D S2
+  19-16-persistance-formules-defaut-v1: done  # sprint Wave D S2
   19-17-api-crud-formules-tirage: backlog  # sprint Wave D S3
   19-18-api-politiques-tirage-troupe-saison: backlog  # sprint Wave D S5 — Demo 2 runtime
   19-19-ui-admin-editeur-formules: backlog  # sprint Wave D S4 — Demo 1

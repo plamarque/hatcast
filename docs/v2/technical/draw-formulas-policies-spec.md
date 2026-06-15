@@ -344,14 +344,16 @@ Event with `category = null` (principal pool):
 
 ---
 
-## Persistence expectations (19.16 — illustrative)
+## Persistence expectations (19.16)
 
-Table names are indicative; Flyway owned by **19.16**:
+Tables (Flyway **V64** / seed **V65**):
 
 | Table | Holds |
 |-------|-------|
-| `draw_formulas` | Troupe catalogue rows |
-| `draw_policies` | Troupe + season policy JSON |
+| `draw_formulas` | Troupe catalogue rows (`id`, `troupe_id`, `name`, `description`, `status`, `factor_config` JSON, `version`, `is_system`, `system_troupe_key` nullable unique when system, timestamps) |
+| `draw_policies` | Troupe + season policy JSON (`default_rule`, `category_rules`); scope uniqueness via nullable `troupe_scope_key` / `season_scope_key`; season index on PostgreSQL uses `WHERE season_id IS NOT NULL` (Flyway placeholder) |
+
+**System V1 id contract:** `DrawFormulaIds.systemV1(troupeId)` = `UUID.nameUUIDFromBytes("hatcast:draw:system-v1:" + troupeId)` — seeded per troupe (`is_system = true`, `status = PUBLISHED`, `factor_config` = `[equity_tag, past_participation]`). Golden alias `"system-v1"` maps to this id in tests.
 
 Troupe isolation: all queries scoped by `troupe_id`; season policies additionally scoped by `season_id`.
 
