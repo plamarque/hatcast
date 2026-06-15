@@ -12,7 +12,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
-        generate_statistics: true
+        # Perf gates (MeInboxPerformanceIntegrationTest, etc.) use wall-clock headers, not Hibernate stats.
+        generate_statistics: false
   flyway:
     enabled: true
     locations: classpath:db/migration,classpath:db/seed,classpath:db/seed-postgresql
@@ -23,6 +24,11 @@ spring:
   session:
     jdbc:
       initialize-schema: always
+  test:
+    context:
+      cache:
+        # ~70 @SpringBootTest variants; default maxSize=32 keeps too many full contexts alive → tail OOM/GC thrash.
+        maxSize: 4
 
 hatcast:
   google:

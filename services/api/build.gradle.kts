@@ -60,6 +60,8 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Recycle JVM periodically — bounds heap fragmentation from many Spring context bootstraps (not a larger -Xmx).
+    forkEvery = 50
 }
 
 tasks.bootJar {
