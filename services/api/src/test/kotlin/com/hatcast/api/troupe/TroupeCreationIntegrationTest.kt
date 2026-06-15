@@ -3,8 +3,13 @@ package com.hatcast.api.troupe
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.draw.DrawFormulaIds
+import com.hatcast.api.draw.DrawFormulaRepository
+import com.hatcast.api.draw.DrawFormulaSeedConstants
+import com.hatcast.api.draw.DrawFormulaStatus
 import com.hatcast.api.support.TestAuthSupport
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -29,6 +34,9 @@ class TroupeCreationIntegrationTest {
 
     @Autowired
     private lateinit var troupeRepository: TroupeRepository
+
+    @Autowired
+    private lateinit var drawFormulaRepository: DrawFormulaRepository
 
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
@@ -86,6 +94,42 @@ class TroupeCreationIntegrationTest {
         mockMvc
             .perform(get("/v1/troupes/$troupeId/members/export").cookie(cookie))
             .andExpect(status().isOk)
+    }
+
+    @Test
+    fun `POST creates troupe with system V1 draw formula seeded`() {
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
+                mockMvc,
+                googleIdTokenService,
+                "sub-create-troupe-draw-seed",
+            )
+
+        val createBody =
+            mockMvc
+                .perform(
+                    post("/v1/troupes")
+                        .cookie(cookie)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"name":"Troupe Draw Seed"}"""),
+                ).andExpect(status().isCreated)
+                .andReturn()
+                .response
+                .contentAsString
+
+        val troupeId = UUID.fromString(mapper.readTree(createBody).get("id").asText())
+        val systemFormula =
+            drawFormulaRepository
+                .findById(DrawFormulaIds.systemV1(troupeId))
+                .orElseThrow()
+
+        assertEquals(DrawFormulaIds.systemV1(troupeId), systemFormula.id)
+        assertEquals(troupeId, systemFormula.troupeId)
+        assertTrue(systemFormula.isSystem)
+        assertEquals(DrawFormulaStatus.PUBLISHED, systemFormula.status)
+        assertEquals(DrawFormulaSeedConstants.SYSTEM_V1_NAME, systemFormula.name)
+        assertEquals(DrawFormulaSeedConstants.SYSTEM_V1_FACTOR_CONFIG, systemFormula.factorConfig)
     }
 
     @Test

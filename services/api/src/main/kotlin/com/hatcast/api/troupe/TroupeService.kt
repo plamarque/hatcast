@@ -2,6 +2,7 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.draw.DrawFormulaSeedService
 import com.hatcast.api.troupe.dto.CreateTroupeRequest
 import com.hatcast.api.troupe.dto.TroupeAdminSummaryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
@@ -23,6 +24,7 @@ class TroupeService(
     private val platformAdminService: PlatformAdminService,
     private val troupeAccess: TroupeAccessService,
     private val membershipService: TroupeMembershipService,
+    private val drawFormulaSeedService: DrawFormulaSeedService,
 ) {
     @Transactional
     fun create(
@@ -71,6 +73,7 @@ class TroupeService(
                             updatedAt = now,
                         ),
                     )
+                drawFormulaSeedService.ensureSystemFormula(troupeId)
                 return TroupeListItemDto.from(
                     troupe = troupe,
                     membership = membership,

@@ -476,3 +476,10 @@
 - **Codes HTTP draw (403 vs 400) pour formulaId hors liste** — OpenAPI **19.18**.
 - **Visibilité effective policy pour membres (Équipe tab)** — story **19.21**.
 - **Défaut `immediate_replay.params.mode` si absent** — **19.16** param wiring.
+
+## Deferred from: code review of 19-16-persistance-formules-defaut-v1 (2026-06-15)
+
+- **`DrawPolicyValidator` n'exige pas `status=PUBLISHED`** — enforcement runtime et validation API reportés à **19.18**.
+- **`troupeScopeKey`/`seasonScopeKey` non imposés à la persistance** — factory/service policy save en **19.18**.
+- **V65 prépare un statement JDBC par troupe** — volume troupes MVP acceptable ; optimiser si backfill massif.
+- **`draw_policies` sans `created_at`** — hors AC1 explicite ; audit historique si besoin futur.
