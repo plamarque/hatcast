@@ -49,4 +49,15 @@ object DrawWeightPipelines {
 
     fun includesImmediateReplay(pipeline: DrawWeightPipeline): Boolean =
         pipeline.factors.any { it is ImmediateReplayFactor }
+
+    /** Test / custom formula builder — role-request aspiration bonus after past participation (19.10). */
+    fun withRoleRequest(): DrawWeightPipeline =
+        DrawWeightPipeline.of(
+            CategoryCompartmentFactor,
+            PastParticipationFactor,
+            RoleRequestFactor,
+        )
+
+    fun includesRoleRequest(pipeline: DrawWeightPipeline): Boolean =
+        pipeline.factors.any { it is RoleRequestFactor }
 }

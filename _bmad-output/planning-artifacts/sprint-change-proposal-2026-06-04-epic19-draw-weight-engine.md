@@ -6,6 +6,7 @@
 **Trigger:** Draw algorithm is business-critical; V2 ships basic V1 parity via **6.4** / **6.14** but lacks normative documentation, golden tests, and an extensible factor model for future fairness rules.  
 **Amended 2026-06-04 (b):** Product vision extends to **admin-configurable draw formulas** and **troupe/season policies** (mandatory vs organizer choice), with admin UI + organizer draw UX.  
 **Amended 2026-06-04 (c):** Policies include **per-spectacle-category rules** (`category` from **17.7**); effective rule resolved **per event**; operator **chooses at draw time** when ≥2 formulas allowed; example: **match** → gender-parity formula.  
+**Amended 2026-06-14 (d):** Story **19.10** direction — **bonus aspiration** (not malus) for repeated unfulfilled role requests ; see §5 row **19.10** and [`19-10-facteur-nombre-demandes-role.md`](../implementation-artifacts/19-10-facteur-nombre-demandes-role.md).  
 **Change scope:** **Moderate** (planning + backlog; implementation via Epic 19 stories)
 
 ---
@@ -98,7 +99,7 @@ The **weighted random draw** drives composition fairness (**FR20**, **FR24**) an
 | **19.7** | Breakdown explicabilité par facteur (API optional UI) | B | 19.6 |
 | **19.8** | Historique partitionné par `equity_tag` (ex-17.9) | C | 19.6, 17.7 |
 | **19.9** | Malus rejouer immédiatement (→ interdiction) | C | 19.6 |
-| **19.10** | Malus nombre de demandes de rôle | C | 19.6 |
+| **19.10** | Bonus aspiration — demandes de rôle non satisfaites (`role_request`) | C | 19.6, 19.8, 5.2 |
 | **19.11** | Parité de genre | C | 19.6 |
 | **19.12** | Mix équipe (éviter mêmes co-équipiers) | C | 19.6 |
 | **19.13** | Facteur historique prestige (`PrestigeHistoryFactor`) | C | 19.6, **20.6** |
@@ -176,3 +177,4 @@ The **weighted random draw** drives composition fairness (**FR20**, **FR24**) an
 | 2026-06-04 | Initial Epic 19 (Waves A–C) |
 | 2026-06-04 (b) | Wave **D** — configurable formulas, policies, admin UI, orga choice, snapshot **19.22** (PO) |
 | 2026-06-04 (c) | **Category-scoped policy rules** ; event-level resolution ; draw-time operator choice when ≥2 formulas (PO) |
+| 2026-06-14 (d) | **19.10** — draft « malus demandes de rôle » **superseded** : **bonus** for members who repeatedly declared availability for a role without being selected on validated past shows. Metric: `unfulfilledRoleRequestCount` (same compartment as **19.8**). Interim formula: `min(1 + n × k, cap)` (e.g. 7 unfulfilled DJ requests → ×8 boost). Factor off in DEFAULT until **19.16**. Aligned: `epics.md` § 19.10, story file **19-10**. |

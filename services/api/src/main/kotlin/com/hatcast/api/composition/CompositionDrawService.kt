@@ -60,6 +60,7 @@ class CompositionDrawService(
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
     private val participantGenderResolver: ParticipantGenderResolver,
     private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
+    private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
     private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
 ) {
     private val drawWeightPipeline: DrawWeightPipeline
@@ -232,6 +233,14 @@ class CompositionDrawService(
                         pool = pool,
                         replayService = immediatePredecessorRoleReplayService,
                     )
+                val unfulfilledCounts =
+                    DrawRoleRequestSupport.unfulfilledCountsForRolePool(
+                        pipeline = drawWeightPipeline,
+                        event = event,
+                        roleKey = roleKey,
+                        pool = pool,
+                        roleRequestService = unfulfilledRoleRequestService,
+                    )
                 val weighted =
                     AvailabilityChanceCalculator.toWeightedCandidates(
                         pool.map {
@@ -249,6 +258,7 @@ class CompositionDrawService(
                         playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
                         immediatePredecessorTitle = replayInputs.predecessorTitle,
                         immediatePredecessorStartsAt = replayInputs.predecessorStartsAt,
+                        unfulfilledRoleRequestCountByParticipant = unfulfilledCounts,
                     )
                 val scored =
                     AvailabilityChanceCalculator.scoreCandidates(
@@ -267,6 +277,7 @@ class CompositionDrawService(
                         playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
                         immediatePredecessorTitle = replayInputs.predecessorTitle,
                         immediatePredecessorStartsAt = replayInputs.predecessorStartsAt,
+                        unfulfilledRoleRequestCountByParticipant = unfulfilledCounts,
                     )
                 val drawResult = AvailabilityChanceCalculator.performWeightedDraw(weighted, random)
 
@@ -473,6 +484,14 @@ class CompositionDrawService(
                     pool = pool,
                     replayService = immediatePredecessorRoleReplayService,
                 )
+            val unfulfilledCounts =
+                DrawRoleRequestSupport.unfulfilledCountsForRolePool(
+                    pipeline = drawWeightPipeline,
+                    event = event,
+                    roleKey = roleKey,
+                    pool = pool,
+                    roleRequestService = unfulfilledRoleRequestService,
+                )
             val scored =
                 AvailabilityChanceCalculator.scoreCandidates(
                     pool.map {
@@ -490,6 +509,7 @@ class CompositionDrawService(
                     playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
                     immediatePredecessorTitle = replayInputs.predecessorTitle,
                     immediatePredecessorStartsAt = replayInputs.predecessorStartsAt,
+                    unfulfilledRoleRequestCountByParticipant = unfulfilledCounts,
                 )
             for (candidate in scored) {
                 snapshotAccumulator[roleKey to candidate.participantId] =

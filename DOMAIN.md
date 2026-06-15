@@ -143,6 +143,18 @@ Même **prédicat** que l’avertissement 6.20 (prédécesseur immédiat validé
 
 `DrawWeightPipelines.DEFAULT` reste `[CategoryCompartmentFactor, PastParticipationFactor]` — comportement prod inchangé. L’assignation manuelle (FR21) n’est pas bloquée. Breakdown explainability (19.7) : libellé « Déjà {rôle} au spectacle « {titre} » ({date}) » lorsque le prédicat est vrai.
 
+### Facteur tirage aspiration de rôle (Story 19.10)
+
+Métrique **`unfulfilledRoleRequestCount`** (*demandes de rôle non satisfaites*) : pour un couple `(participant, roleKey)` sur l’événement courant E, nombre d’événements **validés**, **non archivés**, du **même compartiment** (`SpectacleCategory.slug`) et de la **même saison** que E (hors E) où **toutes** les conditions suivantes sont vraies :
+
+- le participant était **disponible** pour le tirage sur `roleKey` (`status = available` et `AvailabilityRoleRules.isCandidateForRole` — `roleKeys = []` = tous les rôles) ;
+- la composition est **validée** (`validatedAt IS NOT NULL`) ;
+- le participant **n’a pas été assigné** à `roleKey` sur cet événement (aucun slot validé avec ce `roleKey` et `participationStatus ≠ DECLINED`) **ni proposé puis retiré** via déclinaison/désistement (`event_composition_declines` pour ce `roleKey` — tiré/orga proposé puis décliné = aspiration **satisfaite**, l'événement n'incrémente pas le compteur).
+
+**Mode temporel** : identique à `pastSelectionCount` (`SelectionHistoryMode` — `OPERATIONAL` inclut les événements futurs validés ; `RETROSPECTIVE` = strictement avant E).
+
+**Effet tirage** : facteur optionnel `role_request` — **bonus uniquement** (pas de malus). Hors `DrawWeightPipelines.DEFAULT` jusqu’à **19.16**. Formule interim : `multiplier = min(1 + n × 1.0, 10.0)` pour `n = unfulfilledRoleRequestCount > 0`, sinon `1.0`. Exemple PO : 7 demandes DJ non satisfaites → multiplicateur **×8** au prochain tirage (si le facteur est activé). Se cumule multiplicativement avec le malus `past_participation`. Breakdown (19.7) : « A demandé {rôle} {n} fois sans être tiré·e — bonus aspiration » lorsque `n > 0`.
+
 ### Exclusion cross-rôle au tirage (composition)
 
 Lors d’un **tirage automatique** (`CompositionDrawService`), un participant ne peut pas occuper **deux rôles** sur le **même événement** :

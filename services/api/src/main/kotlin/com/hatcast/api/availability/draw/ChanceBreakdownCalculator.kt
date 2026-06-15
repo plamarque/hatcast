@@ -40,6 +40,7 @@ object ChanceBreakdownCalculator {
         playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
         immediatePredecessorTitle: String? = null,
         immediatePredecessorStartsAt: java.time.Instant? = null,
+        unfulfilledRoleRequestCountByParticipant: Map<UUID, Int> = emptyMap(),
     ): Result? {
         if (candidates.isEmpty()) {
             return null
@@ -73,6 +74,7 @@ object ChanceBreakdownCalculator {
                     playedSameRoleOnImmediatePredecessorByParticipant,
                     immediatePredecessorTitle,
                     immediatePredecessorStartsAt,
+                    unfulfilledRoleRequestCountByParticipant,
                 )
 
         val adjustments = mutableListOf<ChanceAdjustmentDto>()
@@ -84,6 +86,7 @@ object ChanceBreakdownCalculator {
             pastSelectionCountUnscopedByParticipant?.get(targetParticipantId) ?: scopedPast
         val replayTriggered =
             playedSameRoleOnImmediatePredecessorByParticipant[targetParticipantId] == true
+        val unfulfilledCount = unfulfilledRoleRequestCountByParticipant[targetParticipantId] ?: 0
 
         for (factor in pipeline.factors) {
             val context =
@@ -98,6 +101,7 @@ object ChanceBreakdownCalculator {
                     playedSameRoleOnImmediatePredecessor = replayTriggered,
                     immediatePredecessorTitle = immediatePredecessorTitle,
                     immediatePredecessorStartsAt = immediatePredecessorStartsAt,
+                    unfulfilledRoleRequestCount = unfulfilledCount,
                 )
             val multiplier = factor.multiplier(context)
             val label =
@@ -144,6 +148,7 @@ object ChanceBreakdownCalculator {
                             playedSameRoleOnImmediatePredecessorByParticipant,
                             immediatePredecessorTitle,
                             immediatePredecessorStartsAt,
+                            unfulfilledRoleRequestCountByParticipant,
                         )
                     }
                 }
@@ -194,6 +199,7 @@ object ChanceBreakdownCalculator {
                 playedSameRoleOnImmediatePredecessorByParticipant = playedSameRoleOnImmediatePredecessorByParticipant,
                 immediatePredecessorTitle = immediatePredecessorTitle,
                 immediatePredecessorStartsAt = immediatePredecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant = unfulfilledRoleRequestCountByParticipant,
             )
         val targetChance = chancePercent
         val peers =
@@ -265,6 +271,7 @@ object ChanceBreakdownCalculator {
         playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
         immediatePredecessorTitle: String? = null,
         immediatePredecessorStartsAt: java.time.Instant? = null,
+        unfulfilledRoleRequestCountByParticipant: Map<UUID, Int> = emptyMap(),
     ): Int {
         val weighted =
             AvailabilityChanceCalculator.toWeightedCandidates(
@@ -278,6 +285,7 @@ object ChanceBreakdownCalculator {
                 playedSameRoleOnImmediatePredecessorByParticipant = playedSameRoleOnImmediatePredecessorByParticipant,
                 immediatePredecessorTitle = immediatePredecessorTitle,
                 immediatePredecessorStartsAt = immediatePredecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant = unfulfilledRoleRequestCountByParticipant,
             )
         return halfUpRound(
             AvailabilityChanceCalculator.exactSelectionProbability(

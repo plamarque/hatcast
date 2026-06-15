@@ -120,4 +120,21 @@ interface EventCompositionSlotRepository : JpaRepository<EventCompositionSlotEnt
         @Param("beforeStartsAt") beforeStartsAt: Instant,
         @Param("beforeCreatedAt") beforeCreatedAt: Instant,
     ): List<RoleSelectionCountProjection>
+
+    /** Validated non-declined assignees for [roleKey] on the given events (19.10 fulfilled check). */
+    @Query(
+        """
+        SELECT s FROM EventCompositionSlotEntity s
+        JOIN EventCompositionEntity c ON c.eventId = s.eventId
+        WHERE s.eventId IN :eventIds
+          AND s.roleKey = :roleKey
+          AND COALESCE(s.seasonParticipantId, s.eventParticipantId) IS NOT NULL
+          AND s.participationStatus <> com.hatcast.api.composition.SlotParticipationStatus.DECLINED
+          AND c.validatedAt IS NOT NULL
+        """,
+    )
+    fun findValidatedAssigneesForRoleOnEvents(
+        @Param("eventIds") eventIds: Collection<UUID>,
+        @Param("roleKey") roleKey: String,
+    ): List<EventCompositionSlotEntity>
 }
