@@ -1,0 +1,264 @@
+[
+  {
+    "id": "REF-R01",
+    "description": "Ex. A — 2 formules PUBLISHED, pas de DrawPolicy → implicit CHOICE [F1, F2, systemV1]",
+    "tags": ["19.18", "REF-R", "Ex-A"],
+    "specRef": "draw-formulas-policies-spec.md § Ex. A",
+    "setup": {
+      "troupeFormulas": [
+        { "id": "f1", "name": "V1 standard", "status": "PUBLISHED", "factorConfigRef": "REF-F02" },
+        { "id": "f2", "name": "V1 + aspirations rôle", "status": "PUBLISHED", "factorConfigRef": "REF-F06" }
+      ],
+      "troupePolicy": null,
+      "seasonPolicy": null,
+      "event": { "category": null }
+    },
+    "expected": {
+      "resolvedMode": "CHOICE",
+      "allowedFormulaIds": ["f1", "f2", "system-v1"],
+      "selectorVisible": true,
+      "requiresFormulaIdOnDraw": false,
+      "note": "≥2 entrées → sélecteur UI ; default serveur documenté en 19.18"
+    }
+  },
+  {
+    "id": "REF-R02",
+    "description": "Catalogue vide (0 PUBLISHED) → system V1 seul, pas de sélecteur",
+    "tags": ["19.16", "REF-R"],
+    "specRef": "draw-formulas-policies-spec.md § Implicit default branches",
+    "setup": {
+      "troupeFormulas": [],
+      "troupePolicy": null,
+      "seasonPolicy": null,
+      "event": { "category": null }
+    },
+    "expected": {
+      "resolvedMode": "CHOICE",
+      "allowedFormulaIds": ["system-v1"],
+      "selectorVisible": false,
+      "effectiveFormulaId": "system-v1"
+    }
+  },
+  {
+    "id": "REF-R03",
+    "description": "1 formule PUBLISHED → CHOICE [F1, systemV1], sélecteur 2 options",
+    "tags": ["19.16", "REF-R"],
+    "setup": {
+      "troupeFormulas": [
+        { "id": "f1", "status": "PUBLISHED", "factorConfigRef": "REF-F02" }
+      ],
+      "troupePolicy": null,
+      "seasonPolicy": null,
+      "event": { "category": null }
+    },
+    "expected": {
+      "resolvedMode": "CHOICE",
+      "allowedFormulaIds": ["f1", "system-v1"],
+      "selectorVisible": true
+    }
+  },
+  {
+    "id": "REF-R04",
+    "description": "Ex. B — season policy, category=match MANDATORY f-gender-parity",
+    "tags": ["19.18", "REF-R", "Ex-B"],
+    "specRef": "draw-formulas-policies-spec.md § Ex. B",
+    "setup": {
+      "troupeFormulas": [
+        { "id": "f-standard", "status": "PUBLISHED", "factorConfigRef": "REF-F02" },
+        { "id": "f-gender-parity", "status": "PUBLISHED", "factorConfigRef": "REF-F02", "note": "slot gender_parity réservé 19.11" }
+      ],
+      "troupePolicy": null,
+      "seasonPolicy": {
+        "scope": "SEASON",
+        "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f-standard"] },
+        "categoryRules": [
+          { "category": "match", "mode": "MANDATORY", "mandatoryFormulaId": "f-gender-parity" }
+        ]
+      },
+      "event": { "category": "match" },
+      "glossaryCategories": ["match", "cabaret"]
+    },
+    "expected": {
+      "resolvedMode": "MANDATORY",
+      "effectiveFormulaId": "f-gender-parity",
+      "selectorVisible": false,
+      "organizerChoiceAllowed": false
+    }
+  },
+  {
+    "id": "REF-R05",
+    "description": "Ex. C — category=cabaret CHOICE [f1, f2] → formulaId requis au draw",
+    "tags": ["19.18", "REF-R", "Ex-C"],
+    "specRef": "draw-formulas-policies-spec.md § Ex. C",
+    "setup": {
+      "troupePolicy": {
+        "scope": "TROUPE",
+        "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f-standard"] },
+        "categoryRules": [
+          { "category": "cabaret", "mode": "CHOICE", "allowedFormulaIds": ["f1", "f2"] }
+        ]
+      },
+      "event": { "category": "cabaret" }
+    },
+    "expected": {
+      "resolvedMode": "CHOICE",
+      "allowedFormulaIds": ["f1", "f2"],
+      "selectorVisible": true,
+      "drawWithoutFormulaId": { "rejected": true, "httpStatus": 400, "ref": "REF-V13" }
+    }
+  },
+  {
+    "id": "REF-R06",
+    "description": "Ex. D — category=null matche categoryRules entry category:null",
+    "tags": ["19.18", "REF-R", "Ex-D"],
+    "setup": {
+      "troupePolicy": {
+        "scope": "TROUPE",
+        "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f-default"] },
+        "categoryRules": [
+          { "category": null, "mode": "CHOICE", "allowedFormulaIds": ["f1"] }
+        ]
+      },
+      "event": { "category": null }
+    },
+    "expected": {
+      "resolvedRuleSource": "category",
+      "resolvedMode": "CHOICE",
+      "allowedFormulaIds": ["f1"],
+      "selectorVisible": false,
+      "effectiveFormulaId": "f1"
+    }
+  },
+  {
+    "id": "REF-R07",
+    "description": "Ex. D — category=null sans règle null → defaultRule",
+    "tags": ["19.18", "REF-R", "Ex-D"],
+    "setup": {
+      "troupePolicy": {
+        "scope": "TROUPE",
+        "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f-default"] },
+        "categoryRules": [
+          { "category": "cabaret", "mode": "MANDATORY", "mandatoryFormulaId": "f-cabaret" }
+        ]
+      },
+      "event": { "category": null }
+    },
+    "expected": {
+      "resolvedRuleSource": "default",
+      "resolvedMode": "CHOICE",
+      "allowedFormulaIds": ["f-default"]
+    }
+  },
+  {
+    "id": "REF-R08",
+    "description": "Season policy remplace troupe policy (remplacement complet, pas merge)",
+    "tags": ["19.18", "REF-R"],
+    "specRef": "draw-formulas-policies-spec.md § Season vs troupe policy",
+    "setup": {
+      "troupePolicy": {
+        "scope": "TROUPE",
+        "defaultRule": { "mode": "MANDATORY", "mandatoryFormulaId": "f-troupe" },
+        "categoryRules": []
+      },
+      "seasonPolicy": {
+        "scope": "SEASON",
+        "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f-season-a", "f-season-b"] },
+        "categoryRules": []
+      },
+      "event": { "category": null }
+    },
+    "expected": {
+      "policySource": "SEASON",
+      "resolvedMode": "CHOICE",
+      "allowedFormulaIds": ["f-season-a", "f-season-b"],
+      "troupePolicyIgnored": true
+    }
+  },
+  {
+    "id": "REF-R09",
+    "description": "Troupe policy seule — résolution depuis troupe (pas de season row)",
+    "tags": ["19.18", "REF-R"],
+    "setup": {
+      "troupePolicy": {
+        "scope": "TROUPE",
+        "defaultRule": { "mode": "MANDATORY", "mandatoryFormulaId": "f-troupe-only" },
+        "categoryRules": []
+      },
+      "seasonPolicy": null,
+      "event": { "category": "cabaret" }
+    },
+    "expected": {
+      "policySource": "TROUPE",
+      "resolvedMode": "MANDATORY",
+      "effectiveFormulaId": "f-troupe-only"
+    }
+  },
+  {
+    "id": "REF-R10",
+    "description": "Aucune policy explicite → implicit troupe default CHOICE + all PUBLISHED + systemV1",
+    "tags": ["19.16", "REF-R"],
+    "specRef": "draw-formulas-policies-spec.md § Implicit troupe default",
+    "setup": {
+      "troupeFormulas": [
+        { "id": "f1", "status": "PUBLISHED" },
+        { "id": "f2", "status": "PUBLISHED" }
+      ],
+      "troupePolicy": null,
+      "seasonPolicy": null,
+      "event": { "category": null }
+    },
+    "expected": {
+      "policySource": "IMPLICIT",
+      "resolvedMode": "CHOICE",
+      "allowedFormulaIdsIncludes": ["f1", "f2", "system-v1"]
+    }
+  },
+  {
+    "id": "REF-R11",
+    "description": "MANDATORY référence formule ARCHIVED au draw → fallback cascade, draw réussit",
+    "tags": ["19.18", "REF-R"],
+    "specRef": "draw-formulas-policies-spec.md § Active catalogue invariant",
+    "setup": {
+      "troupePolicy": {
+        "scope": "TROUPE",
+        "defaultRule": { "mode": "MANDATORY", "mandatoryFormulaId": "f-archived" },
+        "categoryRules": []
+      },
+      "troupeFormulas": [
+        { "id": "f-archived", "status": "ARCHIVED" },
+        { "id": "f-fallback", "status": "PUBLISHED", "factorConfigRef": "REF-F02" }
+      ],
+      "event": { "category": null }
+    },
+    "expected": {
+      "drawSucceeds": true,
+      "fallbackApplied": true,
+      "effectiveFormulaId": "system-v1",
+      "validationRef": "REF-V15"
+    }
+  },
+  {
+    "id": "REF-R12",
+    "description": "OQ-19-04 — même pipeline pour draw, Dispos Tous %, explainability",
+    "tags": ["19.18", "19.21", "REF-R", "OQ-19-04"],
+    "specRef": "draw-formulas-policies-spec.md § Effective formula & calculator invariant",
+    "setup": {
+      "troupePolicy": {
+        "scope": "TROUPE",
+        "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f1", "f2"] },
+        "categoryRules": []
+      },
+      "selectedFormulaId": "f2",
+      "factorConfigRef": "REF-F06",
+      "drawContext": {
+        "note": "réutiliser setup REF-O7 veteran/rookie si f2 = DEFAULT-like ; f6 = role_request pour delta visible"
+      }
+    },
+    "expected": {
+      "disposPercentMatchesDrawWeights": true,
+      "explainabilityUsesSamePipeline": true,
+      "orchestrationRef": "REF-O7",
+      "formulaPipelineRef": "REF-F06"
+    }
+  }
+]
