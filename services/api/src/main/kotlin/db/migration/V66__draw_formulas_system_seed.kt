@@ -13,10 +13,11 @@ import java.util.UUID
  * UUID contract: [DrawFormulaIds.systemV1].
  */
 @Suppress("ClassName")
-class V65__draw_formulas_system_seed : BaseJavaMigration() {
+class V66__draw_formulas_system_seed : BaseJavaMigration() {
     override fun migrate(context: Context) {
         val now = Timestamp.from(Instant.now())
         val connection = context.connection
+        val factorConfigExpr = jsonBindExpression(connection.metaData.databaseProductName)
         connection.prepareStatement("SELECT id FROM troupes").use { select ->
             select.executeQuery().use { rows ->
                 while (rows.next()) {
@@ -29,7 +30,7 @@ class V65__draw_formulas_system_seed : BaseJavaMigration() {
                               id, troupe_id, name, description, status, factor_config,
                               version, is_system, system_troupe_key, created_at, updated_at
                             )
-                            SELECT ?, ?, ?, NULL, 'PUBLISHED', ?, 1, TRUE, ?, ?, ?
+                            SELECT ?, ?, ?, NULL, 'PUBLISHED', $factorConfigExpr, 1, TRUE, ?, ?, ?
                             WHERE NOT EXISTS (
                               SELECT 1 FROM draw_formulas WHERE id = ?
                             )
@@ -49,6 +50,13 @@ class V65__draw_formulas_system_seed : BaseJavaMigration() {
             }
         }
     }
+
+    private fun jsonBindExpression(databaseProductName: String): String =
+        if (databaseProductName.equals("PostgreSQL", ignoreCase = true)) {
+            "CAST(? AS jsonb)"
+        } else {
+            "?"
+        }
 
     override fun getDescription(): String = "Seed system V1 draw formula per troupe (idempotent)"
 }

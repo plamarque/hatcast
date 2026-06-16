@@ -11,8 +11,8 @@ import java.util.UUID
 
 class DrawFormulaMigrationTest {
     @Test
-    fun `V64 and V65 create draw tables and seed one system formula per troupe idempotently`() {
-        val databaseName = "v64_draw_formulas_${UUID.randomUUID().toString().replace("-", "")}"
+    fun `V65 and V66 create draw tables and seed one system formula per troupe idempotently`() {
+        val databaseName = "v65_draw_formulas_${UUID.randomUUID().toString().replace("-", "")}"
         val url =
             "jdbc:h2:mem:$databaseName;" +
                 "MODE=PostgreSQL;" +
@@ -133,8 +133,8 @@ class DrawFormulaMigrationTest {
     }
 
     @Test
-    fun `draw policy uniqueness indexes exist after V64`() {
-        val databaseName = "v64_draw_policies_idx_${UUID.randomUUID().toString().replace("-", "")}"
+    fun `draw policy uniqueness indexes exist after V65`() {
+        val databaseName = "v65_draw_policies_idx_${UUID.randomUUID().toString().replace("-", "")}"
         val url =
             "jdbc:h2:mem:$databaseName;" +
                 "MODE=PostgreSQL;" +
@@ -167,8 +167,8 @@ class DrawFormulaMigrationTest {
     }
 
     @Test
-    fun `draw formulas system troupe unique index exists after V64`() {
-        val databaseName = "v64_draw_formulas_sys_${UUID.randomUUID().toString().replace("-", "")}"
+    fun `draw formulas system troupe unique index exists after V65`() {
+        val databaseName = "v65_draw_formulas_sys_${UUID.randomUUID().toString().replace("-", "")}"
         val url =
             "jdbc:h2:mem:$databaseName;" +
                 "MODE=PostgreSQL;" +
