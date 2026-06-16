@@ -9,45 +9,124 @@ import com.hatcast.api.availability.draw.PastParticipationFactor
 import com.hatcast.api.availability.draw.RoleRequestFactor
 import org.springframework.stereotype.Component
 
+class DrawFormulaValidationException(
+    message: String,
+) : IllegalArgumentException(message)
+
 @Component
 class DrawFormulaValidator {
-    private val knownFactorIds =
-        setOf(
-            CategoryCompartmentFactor.FACTOR_ID,
-            PastParticipationFactor.FACTOR_ID,
-            ImmediateReplayFactor.FACTOR_ID,
-            RoleRequestFactor.FACTOR_ID,
-        )
+    fun validateForSave(factorConfig: DrawFactorConfig) {
+        validateUniqueFactorIds(factorConfig)
+        validateKnownFactorIds(factorConfig, allowReservedDisabled = true)
+        validateEquityTagRequired(factorConfig)
+        validateImmediateReplayParams(factorConfig)
+        validateReservedFactorsDisabledOnSave(factorConfig)
+    }
 
+    fun validateForPublish(factorConfig: DrawFactorConfig) {
+        validateForSave(factorConfig)
+        validateNonEmptyEnabledPipeline(factorConfig)
+        validateImplementedFactorsOnly(factorConfig)
+    }
+
+    /** @deprecated Use [validateForSave] or [validateForPublish]. */
     fun validateFactorConfig(factorConfig: DrawFactorConfig) {
-        require(factorConfig.map { it.factorId }.toSet().size == factorConfig.size) {
-            "Duplicate factorId in factor_config"
+        validateForPublish(factorConfig)
+    }
+
+    private fun validateUniqueFactorIds(factorConfig: DrawFactorConfig) {
+        if (factorConfig.map { it.factorId }.toSet().size != factorConfig.size) {
+            throw DrawFormulaValidationException("Identifiant de facteur en double dans factorConfig")
         }
+    }
+
+    private fun validateKnownFactorIds(
+        factorConfig: DrawFactorConfig,
+        allowReservedDisabled: Boolean,
+    ) {
         factorConfig.forEach { entry ->
-            require(entry.factorId in knownFactorIds) {
-                "Unknown factorId: ${entry.factorId}"
+            val factorId = entry.factorId
+            when {
+                factorId in IMPLEMENTED_FACTOR_IDS -> Unit
+                factorId in RESERVED_FACTOR_IDS -> {
+                    if (!allowReservedDisabled || entry.enabled) {
+                        throw DrawFormulaValidationException("Facteur réservé non implémenté : $factorId")
+                    }
+                }
+                else -> throw DrawFormulaValidationException("Facteur inconnu : $factorId")
             }
         }
-        require(
-            factorConfig.any {
-                it.factorId == CategoryCompartmentFactor.FACTOR_ID && it.enabled
-            },
-        ) {
-            "equity_tag must be present and enabled"
+    }
+
+    private fun validateEquityTagRequired(factorConfig: DrawFactorConfig) {
+        if (!factorConfig.any { it.factorId == CategoryCompartmentFactor.FACTOR_ID && it.enabled }) {
+            throw DrawFormulaValidationException("equity_tag doit être présent et activé")
         }
+    }
+
+    private fun validateReservedFactorsDisabledOnSave(factorConfig: DrawFactorConfig) {
+        factorConfig
+            .filter { it.factorId in RESERVED_FACTOR_IDS && it.enabled }
+            .forEach { entry ->
+                throw DrawFormulaValidationException(
+                    "Facteur réservé non implémenté : ${entry.factorId}",
+                )
+            }
+    }
+
+    private fun validateNonEmptyEnabledPipeline(factorConfig: DrawFactorConfig) {
+        if (factorConfig.isEmpty()) {
+            throw DrawFormulaValidationException(
+                "factorConfig ne peut pas être vide pour une formule publiée",
+            )
+        }
+        if (!factorConfig.any { it.enabled }) {
+            throw DrawFormulaValidationException(
+                "Au moins un facteur doit être activé pour publier la formule",
+            )
+        }
+    }
+
+    private fun validateImplementedFactorsOnly(factorConfig: DrawFactorConfig) {
+        factorConfig
+            .filter { it.enabled && it.factorId !in IMPLEMENTED_FACTOR_IDS }
+            .forEach { entry ->
+                throw DrawFormulaValidationException(
+                    "Facteur activé non implémenté : ${entry.factorId}",
+                )
+            }
+    }
+
+    private fun validateImmediateReplayParams(factorConfig: DrawFactorConfig) {
         factorConfig
             .filter { it.factorId == ImmediateReplayFactor.FACTOR_ID && it.enabled }
             .forEach { entry ->
                 val mode = entry.params?.get("mode")?.toString()
-                if (mode != null) {
-                    require(mode in IMMEDIATE_REPLAY_MODES) {
-                        "immediate_replay.params.mode must be OFF, EXCLUDE, or MALUS"
-                    }
+                if (mode != null && mode !in IMMEDIATE_REPLAY_MODES) {
+                    throw DrawFormulaValidationException(
+                        "immediate_replay.params.mode doit être OFF, EXCLUDE ou MALUS",
+                    )
                 }
             }
     }
 
     companion object {
+        val IMPLEMENTED_FACTOR_IDS: Set<String> =
+            setOf(
+                CategoryCompartmentFactor.FACTOR_ID,
+                PastParticipationFactor.FACTOR_ID,
+                ImmediateReplayFactor.FACTOR_ID,
+                RoleRequestFactor.FACTOR_ID,
+            )
+
+        val RESERVED_FACTOR_IDS: Set<String> =
+            setOf(
+                "gender_parity",
+                "volunteer_bonus",
+                "class_mix",
+                "prestige",
+            )
+
         private val IMMEDIATE_REPLAY_MODES = setOf("OFF", "EXCLUDE", "MALUS")
     }
 }
@@ -57,7 +136,7 @@ class DrawFormulaPipelineAssembler(
     private val drawFormulaValidator: DrawFormulaValidator,
 ) {
     fun assemble(factorConfig: DrawFactorConfig): DrawWeightPipeline {
-        drawFormulaValidator.validateFactorConfig(factorConfig)
+        drawFormulaValidator.validateForPublish(factorConfig)
         val factors = mutableListOf<DrawWeightFactor>()
         for (entry in factorConfig) {
             if (!entry.enabled) {
@@ -80,7 +159,9 @@ class DrawFormulaPipelineAssembler(
             null, "EXCLUDE" -> ImmediateReplayMode.EXCLUDE
             "MALUS" -> ImmediateReplayMode.MALUS
             "OFF" -> ImmediateReplayMode.OFF
-            else -> throw IllegalArgumentException("immediate_replay.params.mode must be OFF, EXCLUDE, or MALUS")
+            else -> throw DrawFormulaValidationException(
+                "immediate_replay.params.mode doit être OFF, EXCLUDE ou MALUS",
+            )
         }
     }
 }

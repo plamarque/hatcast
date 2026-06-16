@@ -25,4 +25,11 @@ interface DrawFormulaRepository : JpaRepository<DrawFormulaEntity, UUID> {
         id: UUID,
         troupeId: UUID,
     ): Boolean
+
+    fun findByTroupeIdOrderByNameAsc(troupeId: UUID): List<DrawFormulaEntity>
+
+    fun findByIdAndTroupeId(
+        id: UUID,
+        troupeId: UUID,
+    ): DrawFormulaEntity?
 }
