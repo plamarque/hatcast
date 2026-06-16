@@ -30,12 +30,14 @@ Stratégie de tests **umbrella** pour la vague D (formules & politiques de tirag
 | Story | Fiche | Contenu |
 |-------|-------|---------|
 | **19.16** | [19-16-persistence-test-design.md](19-16-persistence-test-design.md) | Flyway, seed system V1, résolution implicite |
-| **19.17** | [19-17-formula-api-test-design.md](19-17-formula-api-test-design.md) | CRUD formules, REF-V01–V04, REF-F* |
+| **19.17** | [19-17-formula-api-test-design.md](19-17-formula-api-test-design.md) | CRUD formules, REF-V01–V04, REF-F01–F08 |
+| **19.19b** | [19-19b-factor-params-test-design.md](19-19b-factor-params-test-design.md) | Params runtime, REF-P01–P06, REF-F09–F11 |
 | **19.18** | [19-18-policy-api-test-design.md](19-18-policy-api-test-design.md) | Politiques, REF-V05–V15, REF-R*, runtime |
 | **19.21** | [19-21-e2e-formula-choice.md](19-21-e2e-formula-choice.md) | Playwright E2E-WD-01–08 |
 | **19.22** | [19-22-snapshot-metadata-test-design.md](19-22-snapshot-metadata-test-design.md) | REF-O8-ext, métadonnées snapshot |
 
-**19.19 / 19.20** — recette manuelle UI admin ; pas de fiche REF dédiée (régression APIs **19.17/19.18**).
+**19.19a** — spec params (docs only ; tests N/A).  
+**19.19c / 19.20** — recette manuelle UI admin ; régression APIs **19.17/19.18/19.19b**.
 
 ---
 
@@ -46,7 +48,9 @@ Stratégie de tests **umbrella** pour la vague D (formules & politiques de tirag
 | **19.16** | Migration ; seed system V1 ; REF-R02, REF-R10 | API HTTP → **19.17** |
 | **19.17** | REF-V01–V04 ; REF-F* ; auth TROUPE_ADMIN | Politiques → **19.18** |
 | **19.18** | REF-V05–V15 ; REF-R01–R12 ; runtime `formulaId` ; OQ-19-04 | UI admin → **19.20** ; snapshots → **19.22** |
-| **19.19** | Recette manuelle éditeur formules | — |
+| **19.19a** | Spec catalogue params (docs) | — |
+| **19.19b** | REF-P01–P06, REF-F09–F11 ; facteurs paramétrés | UI → **19.19c** |
+| **19.19c** | Recette manuelle éditeur coefficients | E2E optionnel post-Demo 1 |
 | **19.20** | Recette manuelle politiques | — |
 | **19.21** | E2E-WD-01–08 ; bandeau + modale choix | — |
 | **19.22** | REF-O8-ext ; frozen `factorConfig` | Journal audit optionnel |
@@ -134,9 +138,9 @@ Mappe 1:1 [`draw-formulas-policies-spec.md` § Validation matrix](../../docs/v2/
 | REF-F07 | past + replay EXCLUDE | REF-P4 + IR-EX1 |
 | REF-F08 | stack complet MVP | combinaison multi-facteurs |
 
-**Total REF-F : 8** — fixtures `formulas/pipelines.json` ; détail [19-17](19-17-formula-api-test-design.md).
+**Total REF-F : 8** (+ **REF-F09–F11** en **19.19b**) — fixtures `formulas/pipelines.json` ; détail [19-17](19-17-formula-api-test-design.md), params [19-19b](19-19b-factor-params-test-design.md).
 
-**Garde-fou :** REF-F01 = REF-W* ; ne pas modifier `weights.json` si divergence — corriger assembly pipeline.
+**Garde-fou :** REF-F01 = REF-W* ; ne pas modifier `weights.json` si divergence — corriger assembly pipeline. **REF-F01..F08 inchangés** quand params = defaults (**19.19b**).
 
 ---
 
@@ -171,7 +175,8 @@ Gates par story : voir fiches [19-16](19-16-persistence-test-design.md) … [19-
 | Story | AC (résumé) | Test IDs |
 |-------|-------------|----------|
 | 19.16 | Flyway + seed system V1 | REF-R02, REF-R10, migration smoke |
-| 19.17 | CRUD + validation | REF-V01–V04, REF-F* |
+| 19.17 | CRUD + validation | REF-V01–V04, REF-F01–F08 |
+| 19.19b | Params runtime + golden | REF-P01–P06, REF-F09–F11 |
 | 19.18 | Policy + runtime | REF-V05–V15, REF-R01–R12, REF-V13 |
 | 19.21 | UI orga choix | E2E-WD-01–08 |
 | 19.22 | Snapshot métadonnées | REF-O8-ext-1–3, T-O2 |
