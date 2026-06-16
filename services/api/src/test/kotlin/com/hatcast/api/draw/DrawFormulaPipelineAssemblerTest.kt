@@ -4,8 +4,10 @@ import com.hatcast.api.availability.draw.DrawWeightPipelines
 import com.hatcast.api.availability.draw.LabeledDrawWeightFactor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
+@Tag("19.19b")
 class DrawFormulaPipelineAssemblerTest {
     private val assembler = DrawFormulaPipelineAssembler(DrawFormulaValidator())
 
@@ -107,5 +109,18 @@ class DrawFormulaPipelineAssemblerTest {
             )
         val pipeline = assembler.assemble(config)
         assertEquals(listOf("equity_tag"), pipeline.factors.map { (it as LabeledDrawWeightFactor).factorId })
+    }
+
+    @Test
+    fun `REF-P04 config without params matches REF-F01 weights`() {
+        val config = DrawFormulaSeedConstants.SYSTEM_V1_FACTOR_CONFIG
+        val pipeline = assembler.assemble(config)
+        val weight =
+            com.hatcast.api.availability.AvailabilityChanceCalculator.weightForParticipant(
+                pastSelectionCount = 3,
+                requiredCount = 5,
+                pipeline = pipeline,
+            )
+        assertEquals(1.25, weight, 0.0001)
     }
 }

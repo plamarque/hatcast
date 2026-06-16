@@ -255,7 +255,7 @@ object ChanceBreakdownCalculator {
             unscopedPastMap,
             roleKey,
             targetIndex,
-            DrawWeightPipeline.of(PastParticipationFactor),
+            DrawWeightPipeline.of(PastParticipationFactor.DEFAULT),
         )
     }
 

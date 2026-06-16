@@ -1,0 +1,40 @@
+[
+  {
+    "id": "RR-BOUBOU-TUNED",
+    "description": "Boubou n=7 with bonusPerUnfulfilled=0.5 and cap 5.0",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "B", "displayName": "Boubou" },
+        { "key": "P", "displayName": "Peer" }
+      ],
+      "pastSelectionCountByParticipant": { "B": 0, "P": 0 },
+      "unfulfilledRoleRequestCountByParticipant": { "B": 7, "P": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "B": 82, "P": 18 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "RR-N1-TUNED",
+    "description": "n=1 with bonusPerUnfulfilled=0.5",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 },
+      "unfulfilledRoleRequestCountByParticipant": { "A": 1, "B": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 60, "B": 40 }
+    },
+    "tolerancePercent": 1
+  }
+]

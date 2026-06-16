@@ -9,6 +9,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Tag("19.9")
+@Tag("19.19b")
 class ImmediateReplayFactorTest {
     private val participantId = UUID.fromString("00000000-0000-0000-0000-000000000001")
 
@@ -41,9 +42,15 @@ class ImmediateReplayFactorTest {
     }
 
     @Test
-    fun `MALUS returns constant when triggered`() {
+    fun `MALUS returns default constant when triggered`() {
         val factor = ImmediateReplayFactor(ImmediateReplayMode.MALUS)
         assertEquals(ImmediateReplayFactor.MALUS_MULTIPLIER, factor.multiplier(context(triggered = true)))
+    }
+
+    @Test
+    fun `MALUS returns custom malusMultiplier when triggered`() {
+        val factor = ImmediateReplayFactor(ImmediateReplayMode.MALUS, malusMultiplier = 0.5)
+        assertEquals(0.5, factor.multiplier(context(triggered = true)))
     }
 
     @Test

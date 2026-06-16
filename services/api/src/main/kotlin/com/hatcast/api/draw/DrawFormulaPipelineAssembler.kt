@@ -4,7 +4,6 @@ import com.hatcast.api.availability.draw.CategoryCompartmentFactor
 import com.hatcast.api.availability.draw.DrawWeightFactor
 import com.hatcast.api.availability.draw.DrawWeightPipeline
 import com.hatcast.api.availability.draw.ImmediateReplayFactor
-import com.hatcast.api.availability.draw.ImmediateReplayMode
 import com.hatcast.api.availability.draw.PastParticipationFactor
 import com.hatcast.api.availability.draw.RoleRequestFactor
 import org.springframework.stereotype.Component
@@ -19,7 +18,7 @@ class DrawFormulaValidator {
         validateUniqueFactorIds(factorConfig)
         validateKnownFactorIds(factorConfig, allowReservedDisabled = true)
         validateEquityTagRequired(factorConfig)
-        validateImmediateReplayParams(factorConfig)
+        validateFactorParams(factorConfig)
         validateReservedFactorsDisabledOnSave(factorConfig)
     }
 
@@ -64,6 +63,14 @@ class DrawFormulaValidator {
         }
     }
 
+    private fun validateFactorParams(factorConfig: DrawFactorConfig) {
+        factorConfig
+            .filter { it.enabled && it.factorId in IMPLEMENTED_FACTOR_IDS }
+            .forEach { entry ->
+                DrawFactorParamCatalog.validateEnabledFactorParams(entry.factorId, entry.params)
+            }
+    }
+
     private fun validateReservedFactorsDisabledOnSave(factorConfig: DrawFactorConfig) {
         factorConfig
             .filter { it.factorId in RESERVED_FACTOR_IDS && it.enabled }
@@ -97,19 +104,6 @@ class DrawFormulaValidator {
             }
     }
 
-    private fun validateImmediateReplayParams(factorConfig: DrawFactorConfig) {
-        factorConfig
-            .filter { it.factorId == ImmediateReplayFactor.FACTOR_ID && it.enabled }
-            .forEach { entry ->
-                val mode = entry.params?.get("mode")?.toString()
-                if (mode != null && mode !in IMMEDIATE_REPLAY_MODES) {
-                    throw DrawFormulaValidationException(
-                        "immediate_replay.params.mode doit être OFF, EXCLUDE ou MALUS",
-                    )
-                }
-            }
-    }
-
     companion object {
         val IMPLEMENTED_FACTOR_IDS: Set<String> =
             setOf(
@@ -126,8 +120,6 @@ class DrawFormulaValidator {
                 "class_mix",
                 "prestige",
             )
-
-        private val IMMEDIATE_REPLAY_MODES = setOf("OFF", "EXCLUDE", "MALUS")
     }
 }
 
@@ -144,24 +136,14 @@ class DrawFormulaPipelineAssembler(
             }
             when (entry.factorId) {
                 CategoryCompartmentFactor.FACTOR_ID -> factors.add(CategoryCompartmentFactor)
-                PastParticipationFactor.FACTOR_ID -> factors.add(PastParticipationFactor)
+                PastParticipationFactor.FACTOR_ID ->
+                    factors.add(DrawFactorParamCatalog.parsePastParticipationFactor(entry.params))
                 ImmediateReplayFactor.FACTOR_ID ->
-                    factors.add(ImmediateReplayFactor(resolveImmediateReplayMode(entry.params)))
-                RoleRequestFactor.FACTOR_ID -> factors.add(RoleRequestFactor)
+                    factors.add(DrawFactorParamCatalog.parseImmediateReplayFactor(entry.params))
+                RoleRequestFactor.FACTOR_ID ->
+                    factors.add(DrawFactorParamCatalog.parseRoleRequestFactor(entry.params))
             }
         }
         return DrawWeightPipeline.of(factors)
-    }
-
-    private fun resolveImmediateReplayMode(params: Map<String, Any>?): ImmediateReplayMode {
-        val raw = params?.get("mode")?.toString()
-        return when (raw) {
-            null, "EXCLUDE" -> ImmediateReplayMode.EXCLUDE
-            "MALUS" -> ImmediateReplayMode.MALUS
-            "OFF" -> ImmediateReplayMode.OFF
-            else -> throw DrawFormulaValidationException(
-                "immediate_replay.params.mode doit être OFF, EXCLUDE ou MALUS",
-            )
-        }
     }
 }
