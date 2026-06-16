@@ -35,6 +35,14 @@
 
 ---
 
+## Deferred from: code review of 19-17-api-crud-formules-tirage (2026-06-16)
+
+- TOCTOU between policy reference check and archive save — MVP race window accepted at current scale.
+- O(n) in-memory policy scan on every archive — Dev Notes explicitly defer DB JSON query at MVP scale.
+- Version bump on no-op PATCH — minor versioning noise, low impact.
+
+---
+
 ## Deferred from: code review of perf-15-composition-summary-api-hot-path (2026-06-10)
 
 - Avatar URL without storage read (metadata-only hot path) — intentional PERF-15 trade-off per dev notes; hot path skips `readAvatarContent`.

@@ -26,19 +26,43 @@ class DrawFormulaPipelineAssemblerTest {
                 DrawFactorConfigEntry(factorId = "equity_tag", enabled = true),
                 DrawFactorConfigEntry(factorId = "past_participation", enabled = true),
             )
-        assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(DrawFormulaValidationException::class.java) {
             assembler.assemble(config)
         }
     }
 
     @Test
-    fun `equity_tag disabled only is rejected`() {
+    fun `REF-V04b reserved factor disabled on draft save is allowed`() {
+        val config =
+            listOf(
+                DrawFactorConfigEntry(factorId = "equity_tag", enabled = true),
+                DrawFactorConfigEntry(factorId = "past_participation", enabled = true),
+                DrawFactorConfigEntry(factorId = "gender_parity", enabled = false),
+            )
+        DrawFormulaValidator().validateForSave(config)
+    }
+
+    @Test
+    fun `reserved factor enabled on save is rejected`() {
+        val config =
+            listOf(
+                DrawFactorConfigEntry(factorId = "equity_tag", enabled = true),
+                DrawFactorConfigEntry(factorId = "gender_parity", enabled = true),
+            )
+        val validator = DrawFormulaValidator()
+        assertThrows(DrawFormulaValidationException::class.java) {
+            validator.validateForSave(config)
+        }
+    }
+
+    @Test
+    fun `equity_tag disabled only is rejected on publish`() {
         val config =
             listOf(
                 DrawFactorConfigEntry(factorId = "equity_tag", enabled = false),
                 DrawFactorConfigEntry(factorId = "past_participation", enabled = true),
             )
-        assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(DrawFormulaValidationException::class.java) {
             assembler.assemble(config)
         }
     }
@@ -50,7 +74,7 @@ class DrawFormulaPipelineAssemblerTest {
                 DrawFactorConfigEntry(factorId = "equity_tag", enabled = true),
                 DrawFactorConfigEntry(factorId = "unknown_factor", enabled = true),
             )
-        assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(DrawFormulaValidationException::class.java) {
             assembler.assemble(config)
         }
     }

@@ -6,6 +6,8 @@ import java.util.UUID
 
 @Repository
 interface DrawPolicyRepository : JpaRepository<DrawPolicyEntity, UUID> {
+    fun findByTroupeId(troupeId: UUID): List<DrawPolicyEntity>
+
     fun existsByTroupeIdAndScope(
         troupeId: UUID,
         scope: DrawPolicyScope,

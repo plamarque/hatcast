@@ -5,22 +5,21 @@ stepsCompleted:
   - step-03-generate-tests
   - step-04-validate-and-summarize
 lastStep: step-04-validate-and-summarize
-lastSaved: 2026-06-06
+lastSaved: 2026-06-16
 inputDocuments:
-  - _bmad-output/implementation-artifacts/3-8c-participant-add-typeahead.md
-  - _bmad-output/planning-artifacts/plan-participant-roster-ux-enhancements.md
-  - _bmad-output/planning-artifacts/ux-design-participant-roster-admin.md
+  - _bmad-output/implementation-artifacts/19-17-api-crud-formules-tirage.md
+  - _bmad-output/test-artifacts/19-17-formula-api-test-design.md
   - project-context.md
-story: 3-8c-participant-add-typeahead
-detected_stack: frontend
+story: 19-17-api-crud-formules-tirage
+detected_stack: backend
 execution_mode: sequential
 ---
 
-# Automation Summary — Story 3.8c (Participant add typeahead)
+# Automation Summary — Story 19.17 (API CRUD draw formulas)
 
-**Date:** 2026-06-06  
+**Date:** 2026-06-16  
 **Author:** TEA / bmad-testarch-automate  
-**Status:** Guardrail expansion complete — 33/33 unit tests green
+**Status:** Review-gap coverage complete — targeted integration tests green
 
 ---
 
@@ -28,77 +27,75 @@ execution_mode: sequential
 
 | Item | Value |
 |------|-------|
-| Story | `3-8c-participant-add-typeahead` (Lot A) |
-| Stack | Angular 21 + Vitest (component/unit) |
-| API changes | None — front-only typeahead |
-| Prior coverage | Dev-story delivered baseline specs (20 tests) |
-| This run | +13 guardrail tests (negative paths, AC4 hint, avatar overlay, cap-8) |
+| Story | `19-17-api-crud-formules-tirage` |
+| Stack | Kotlin + Spring Boot + MockMvc (API integration) |
+| UI | N/A |
+| Prior coverage | Dev-story delivered CRUD, validation golden, pipeline golden |
+| This run | Closed code-review test gaps (AC 2, 3, 7, 8, 10–11, 14) |
 
 ---
 
 ## Coverage plan
 
-| Level | Priority | Target | Rationale |
-|-------|----------|--------|-----------|
-| **Unit** | P0 | `filterTroupeMemberSuggestions` | Pure filter logic — exclusion, inactive, cap 8 |
-| **Component** | P0 | `AddParticipantDialog` | Season add AC1–5, FR45 submit paths |
-| **Component** | P0 | `AddEventParticipantDialog` | Event-only add AC1–4, roster exclusion |
-| **Component** | P1 | Parent pages (`admin-participants`, `admin-event-participants`) | `troupeId` passed in dialog data (pre-existing) |
-| **E2E** | P3 | Full admin add flow in browser | Deferred — unit guardrails sufficient for Lot A |
+| Priority | Test level | Target | Rationale |
+|----------|------------|--------|-----------|
+| P1 | API integration | `DrawFormulaValidationIntegrationTest` POST + PATCH | AC 10–11, 14 — REF-V01..V04b via both mutating paths |
+| P1 | API integration | `DrawFormulaControllerIntegrationTest` auth/isolation | AC 2, 3, 7, 8 — 403, 404, entity unchanged on failed publish |
+| P2 | Unit/golden | `DrawFormulaPipelineGoldenTest` | AC 13 — already green (no change) |
+
+**Scope:** backend API only. Preview endpoint (AC 9) waivable — not tested. E2E/UI deferred to **19.19**.
 
 ---
 
-## Files created / updated
+## Files updated
 
 | File | Change |
 |------|--------|
-| `apps/web/src/app/shared/participant-add/participant-member-suggestions.spec.ts` | +1 test (max 8 suggestions) |
-| `apps/web/src/app/pages/admin-participants/add-participant-dialog.spec.ts` | +7 guardrail tests |
-| `apps/web/src/app/pages/admin-event-participants/add-event-participant-dialog.spec.ts` | +6 guardrail tests |
-| `_bmad-output/test-artifacts/test-design-story-3-8c.md` | New traceability doc |
+| `services/api/src/test/kotlin/com/hatcast/api/availability/DrawFormulaValidationIntegrationTest.kt` | Split POST/PATCH parameterized tests; assert `expectedHttpStatus` from fixtures |
+| `services/api/src/test/kotlin/com/hatcast/api/draw/DrawFormulaControllerIntegrationTest.kt` | +5 tests: non-admin all endpoints, system PATCH 403, invalid publish rollback, cross-troupe PATCH/DELETE 404 |
 
 ---
 
-## Guardrail matrix (story AC → tests)
+## Tests added (summary)
 
-| AC | Guardrail |
-|----|-----------|
-| AC1 Typeahead + avatar | `mat-autocomplete` wired ; overlay `app-user-avatar` on panel open |
-| AC2 Select → linked create | Submit with prefilled email (season + event) |
-| AC3 Free-text name-only | Submit without selection |
-| AC4 Optional email + hint | Notifications hint copy asserted |
-| AC5 Exclude ACTIVE season rows | Alice excluded when on season roster |
-| AC6 Dialog shell | Intro hint preserved (event) ; overflow/layout unchanged (manual/M3 review) |
-| Error paths | Empty name, 409 duplicate, 403 unauthorized (both dialogs) |
-| Shared filter | Inactive members, display-name exclusion, 8-result cap |
+### DrawFormulaValidationIntegrationTest
+
+- **POST REF-V01..V04b** — asserts exact HTTP status from `validation.json` (201 or 400)
+- **PATCH REF-V01..V04b** — seed draft then PATCH; validates save/publish rules on update path
+
+### DrawFormulaControllerIntegrationTest
+
+- `non-admin receives 403 on all catalogue endpoints` — GET list/detail, POST, PATCH, DELETE (AC 2)
+- `system formula cannot be patched` — AC 7
+- `patch to published with invalid config returns 400 and leaves entity unchanged` — AC 8
+- `cross-troupe patch and delete return 404` — AC 3
 
 ---
 
-## Test execution
+## Validation
 
 ```bash
-cd apps/web && npx ng test --watch=false \
-  --include='**/add-participant-dialog.spec.ts' \
-  --include='**/add-event-participant-dialog.spec.ts' \
-  --include='**/participant-member-suggestions.spec.ts'
+cd services/api && ./gradlew -q test \
+  --tests 'com.hatcast.api.availability.DrawFormulaValidationIntegrationTest' \
+  --tests 'com.hatcast.api.draw.DrawFormulaControllerIntegrationTest'
 ```
 
-**Result:** 3 files, **33 tests**, all passed (2026-06-06).
+**Result:** exit 0 (all targeted tests green)
 
 ---
 
-## Risks & assumptions
+## Assumptions & remaining risks
 
-| Risk | Mitigation |
-|------|------------|
-| Overlay avatar only visible when panel opens | Tests use `MatAutocompleteTrigger.openPanel()` + CDK overlay query |
-| Large troupes (>100 members) | Out of scope per story — client filter on first page only |
-| E2E regression on dialog layout clip | Covered by shipped UX doc + M3 review ; no Playwright added |
+| Item | Status |
+|------|--------|
+| PATCH success returns 200 (POST success 201) — handled explicitly in PATCH assertions | Resolved |
+| Code-review **code** gaps (ARCHIVED via PATCH bypasses 409, POST ARCHIVED, readOnly seed) | Out of scope for test expansion — tracked in story Review Findings |
+| Preview endpoint | Waived per AC 9 / OQ-19-03 |
 
 ---
 
-## Next steps
+## Next recommended workflow
 
-1. Optional: `bmad-testarch-trace` for formal AC traceability matrix.
-2. Optional: Playwright smoke on `/saison/:slug/admin/participants` add dialog (P3).
-3. Story 3.8c remains **done** — guardrails are additive, no product change.
+- **`bmad-code-review`** — re-run adversarial review; test gaps above should be closed
+- **`bmad-testarch-trace`** — map REF-V/REF-F to AC matrix for Wave D gate
+- **`bmad-dev-story`** — address remaining [Review][Patch] code findings if not yet fixed
