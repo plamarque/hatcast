@@ -675,8 +675,11 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **19.16** | Persistance formules + défaut système V1 | P2 | 19.15, 19.6 |
 | **19.17** | API CRUD formules (admin troupe) | P2 | 19.16 |
 | **19.18** | API politiques troupe / saison | P2 | 19.17, 3.5 |
-| **19.19** | UI admin — éditeur de formules | P2 | 19.17, 17.2 |
-| **19.20** | UI admin — politiques de tirage | P2 | 19.18, 19.19 |
+| **19.19** | UI admin — éditeur de formules *(superseded → 19.19a/b/c)* | — | SCP 2026-06-16 |
+| **19.19a** | Spec — catalogue params facteurs (malus/bonus) | P2 | 19.15, 19.17 |
+| **19.19b** | Runtime — facteurs paramétrés + golden REF-P* | P2 | 19.19a, 19.17 |
+| **19.19c** | UI admin — éditeur formules (coefficients) | P2 | 19.19b, 17.2 |
+| **19.20** | UI admin — politiques de tirage | P2 | 19.18, 19.19c |
 | **19.21** | UI orga — choix formule au tirage | P2 | 19.18, 6.4 |
 | **19.22** | Snapshot formule au tirage | P2 | 19.21, 6.14 |
 
@@ -712,7 +715,8 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | Phase | Stories | Milestone |
 |-------|---------|-----------|
 | **Spec + persistance** | **19.15** → **19.16** → **19.17** | Backend formules + seed V1 |
-| **Demo 1 — admin** | **19.19** | Éditeur Material 3 — créer/éditer une recette |
+| **Spec params + runtime** | **19.19a** → **19.19b** | Catalogue coefficients + validateur + golden |
+| **Demo 1 — admin** | **19.19c** | Éditeur Material 3 — créer/éditer une recette avec coefficients |
 | **Demo 2 — orga** | **19.18** → **19.21** | Politique effective + choix formule au tirage ; draw branché sur pipeline configurée |
 | **Phase 2 (hors MVP sprint)** | **19.20**, **19.22** | UI admin politiques par catégorie ; snapshot formule au tirage |
 
@@ -721,9 +725,11 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 1. **19.15** seule — SPEC/DOMAIN + amendement ADR 0019  
 2. **19.16** — migration Flyway + formule système V1  
 3. **19.17** — API CRUD formules  
-4. **19.19** — **Demo 1** UI admin  
-5. **19.18** — API politiques + runtime draw/`formulaId`  
-6. **19.21** — **Demo 2** UI orga choix au tirage  
+4. **19.19a** — catalogue normatif params facteurs (malus/bonus)  
+5. **19.19b** — runtime paramétré + golden REF-P* / REF-F09+  
+6. **19.19c** — **Demo 1** UI admin (coefficients)  
+7. **19.18** — API politiques + runtime draw/`formulaId`  
+8. **19.21** — **Demo 2** UI orga choix au tirage  
 
 **DoD sprint MVP :** admin crée une formule (ex. V1 + `role_request`) ; orga choisit entre ≥2 formules au tirage ; golden **19.2** vert avec pipeline **DEFAULT** inchangée si formule système V1 ; invariant **OQ-19-04** vérifié sur Dispos + draw.
 

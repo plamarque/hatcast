@@ -404,7 +404,7 @@ Permettre aux organisateurs de renseigner un **prestige optionnel** (1–5 étoi
 
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→19.8** (partition category — ex-**17.9**) ; **Epic 19.1→19.3** avant **19.5** ; **19.5→19.6** avant **19.8+** et Wave **D** ; **20.1→20.2** avant **20.3–20.5** ; **20.6** avant **20.7** et **19.13** ; **19.13** après **19.6** + **20.6** ; **19.15→19.18** avant UI **19.19–19.21** ; chrome admin **17.2** recommandé ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** après **17.8** ; **17.18→17.22** (hub membre) ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→19.8** (partition category — ex-**17.9**) ; **Epic 19.1→19.3** avant **19.5** ; **19.5→19.6** avant **19.8+** et Wave **D** ; **20.1→20.2** avant **20.3–20.5** ; **20.6** avant **20.7** et **19.13** ; **19.13** après **19.6** + **20.6** ; **19.15→19.19a→19.19b→19.19c** avant **19.18** / UI **19.20–19.21** ; chrome admin **17.2** recommandé ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** après **17.8** ; **17.18→17.22** (hub membre) ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -2755,17 +2755,65 @@ afin d’**aligner** les spectacles sur la politique d’équité de la troupe.
 
 #### Story 19.19 : UI admin — éditeur de formules de tirage
 
+> **SUPERSEDED** by [Sprint Change Proposal 2026-06-16](sprint-change-proposal-2026-06-16-draw-formula-factor-params.md) — split into **19.19a** (spec), **19.19b** (runtime), **19.19c** (UI). Do not implement.
+
 En tant qu **admin troupe**,  
 je veux une **interface** pour composer une formule (facteurs + paramètres),  
 afin de **configurer** le tirage sans toucher au code.
 
-**Acceptance Criteria**
+**Acceptance Criteria** *(historical — see **19.19c**)*
 
 1. **Given** route admin troupe (menu **17.2** ou hub troupe), **when** « Formules de tirage », **then** liste + création/édition Material 3 (**UX-DR11**).
 2. **Given** éditeur, **when** facteurs affichés, **then** toggles + champs paramètres (seuils, coefficients) avec aide contextuelle ; facteurs non implémentés (**19.8+** backlog) **masqués** ou désactivés avec libellé « bientôt ».
 3. **Given** sauvegarde, **when** config invalide, **then** erreurs inline ; succès → snackbar.
 4. **Given** archivage, **when** formule utilisée par politique, **then** message blocage cohérent API **19.17**.
 5. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** 19.17, **17.2** recommandé.
+
+---
+
+#### Story 19.19a : Spec — factor params & malus/bonus catalogue
+
+En tant que **PO / architecte**,  
+je veux un **catalogue normatif des params par facteur** (malus/bonus, défauts parité V1),  
+afin que **19.19b** (runtime + golden) et **19.19c** (UI admin) implémentent les coefficients sans réinventer les schémas.
+
+**Acceptance Criteria**
+
+1. **Given** [`draw-formulas-policies-spec.md`](../../docs/v2/technical/draw-formulas-policies-spec.md) amendé, **when** § **Factor catalogue** est lu, **then** chaque facteur implémenté documente `direction`, schéma `params`, parité V1 à défauts, facteurs réservés **19.11–19.14** en stub « Bientôt ».
+2. **Given** table catalogue verrouillée (**19.19a**), **when** docs mergées, **then** copiée dans la spec + lien ADR 0019.
+3. **Given** § **Validation matrix**, **when** étendu, **then** règles **REF-P01..P05** documentées (enforcement **19.19b**).
+4. **Couverture :** Wave D S4a. **Priorité :** P2. **Depends :** **19.15**, **19.17**. **Blocks :** **19.19b**. **UI : N/A**.
+
+---
+
+#### Story 19.19b : Runtime — parameterized factors + golden tests
+
+En tant que **développeur**,  
+je veux que les facteurs lisent **`params`**, que le validateur applique **REF-P***, et que les golden prouvent la parité V1 à défauts,  
+afin de **débloquer** l'éditeur admin coefficients (**19.19c**).
+
+**Acceptance Criteria**
+
+1. **Given** formule avec `params` valides, **when** pipeline assemblée, **then** multiplicateurs = formules catalogue à défauts = constants Kotlin baseline `81d2b5f8`.
+2. **Given** `params` invalides (REF-P*), **when** save/publish, **then** **400** avec messages FR cohérents.
+3. **Given** golden `pipelines.json` / `validation.json`, **when** étendus (**REF-F09+**, **REF-P***), **then** **REF-F01..F08** inchangés à défauts ; `./gradlew test` vert.
+4. **Couverture :** Wave D S4b. **Priorité :** P2. **Depends :** **19.19a**, **19.17**. **Blocks :** **19.19c**.
+
+---
+
+#### Story 19.19c : UI admin — éditeur de formules (coefficients)
+
+En tant qu **admin troupe**,  
+je veux une **interface** pour composer une formule (facteurs + **coefficients** malus/bonus),  
+afin de **configurer** l'intensité du tirage sans toucher au code.
+
+**Acceptance Criteria**
+
+1. **Given** route admin troupe (menu **17.2** ou hub troupe), **when** « Formules de tirage », **then** liste + création/édition Material 3 (**UX-DR11**).
+2. **Given** éditeur, **when** facteurs affichés, **then** badges direction (Malus/Bonus/Neutre) + champs paramètres numériques/enum avec aide contextuelle catalogue ; facteurs réservés **19.11+** « bientôt ».
+3. **Given** sauvegarde, **when** config invalide (API **400** REF-P*), **then** erreurs inline ; succès → snackbar.
+4. **Given** archivage, **when** formule utilisée par politique, **then** message blocage cohérent API **19.17**.
+5. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** **19.19b**, **17.2** recommandé. **Demo 1 gate** Wave D.
 
 ---
 
@@ -2782,7 +2830,7 @@ afin que **les orgas** sachent quelles règles s’appliquent.
 3. **Given** mode `CHOICE`, **when** ≥2 formules cochées, **then** copy « l’organisateur choisira au tirage » ; preview liste formules autorisées pour un spectacle exemple (optionnel).
 4. **Given** admin saison, **when** écran, **then** surcharge troupe + bandeau héritage ; conflit catégorie saison **remplace** entrée troupe pour cette catégorie.
 5. **Given** politique `MANDATORY` pour catégorie courante, **when** orga ouvre Équipe (sans tirage), **then** formule imposée visible en lecture seule avec libellé catégorie.
-6. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** 19.18, 19.19, **17.7**.
+6. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** 19.18, **19.19c**, **17.7**.
 
 ---
 
