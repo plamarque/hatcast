@@ -41,14 +41,14 @@ A reusable **recipe** for composing draw weight factors. Formulas belong to exac
 **`factorConfig` entry:**
 
 ```json
-{ "factorId": "equity_tag", "enabled": true, "params": { "mode": "MALUS" } }
+{ "factorId": "past_participation", "enabled": true, "params": { "strength": 1.0 } }
 ```
 
 | Subfield | Semantics |
 |----------|-----------|
 | `factorId` | Stable string matching Kotlin factor registry (see § Factor catalogue) |
 | `enabled` | When `false`, factor is skipped in pipeline assembly |
-| `params` | Factor-specific JSON; optional until **19.16** wires param persistence |
+| `params` | Factor-specific JSON map; keys and ranges defined in § **Factor catalogue** (normative from **19.19a**). Omitted keys use catalogue defaults. Unknown keys → **reject** on save (**REF-P01**, enforcement **19.19b**). |
 
 **Status rules (normative — enforced from 19.16+):**
 
@@ -232,7 +232,7 @@ Draw **must not fail** solely because a catalogue row referenced by policy was a
 
 ## Validation matrix
 
-Server-side rules (enforcement stories **19.16–19.18**):
+Server-side rules (enforcement stories **19.16–19.18** ; param key/range rules **REF-P01..P05** in **19.19b**):
 
 | Condition | When | Action |
 |-----------|------|--------|
@@ -251,30 +251,126 @@ Server-side rules (enforcement stories **19.16–19.18**):
 | Formula id ∉ allowed set | Draw request | **Reject** |
 | Category slug deleted from glossary after policy saved | Draw runtime | **Fallback** to `defaultRule` |
 | Resolved formula `ARCHIVED` / deleted after policy saved | Draw runtime | **Fallback** cascade (§ Active catalogue invariant) |
+| Unknown param key for enabled factor | Formula save / publish | **Reject** (**REF-P01**) |
+| Param value out of documented range | Formula save / publish | **Reject** (**REF-P02**, **REF-P05**) |
+| `malusMultiplier` present but `immediate_replay.params.mode ≠ MALUS` | Formula save / publish | **Reject** (**REF-P03**) |
+| Enabled factor missing required param with no default | Formula save / publish | Use catalogue default (**REF-P04**) — not 400 |
+
+**REF-P error message examples (French — enforcement **19.19b**, pattern aligned with [`DrawFormulaValidationException`](../../../services/api/src/main/kotlin/com/hatcast/api/draw/DrawFormulaPipelineAssembler.kt)):**
+
+| Ref | Example message |
+|-----|-----------------|
+| **REF-P01** | `Paramètre inconnu pour past_participation : intensity` |
+| **REF-P02** | `role_request.params.maxBonusMultiplier doit être entre 1.0 et 20.0` |
+| **REF-P03** | `immediate_replay.params.malusMultiplier n'est autorisé que si mode=MALUS` |
+| **REF-P05** | `past_participation.params.strength doit être entre 0.0 et 2.0` |
 
 ---
 
-## Factor catalogue (MVP editor scope)
+## Factor catalogue
 
-Implemented factors — stable ids matching Kotlin under `services/api/.../draw/`:
+Implemented factors — stable ids matching Kotlin under `services/api/.../draw/`. Each row documents **`direction`** (catalogue metadata for admin UI **19.19c** — read-only, **not** persisted in `factorConfig`), **`params` schema**, and **V1 parity** at documented defaults (baseline commit `81d2b5f8` hardcoded constants).
 
-| factorId | Class | MVP editor | params (if any) |
-|----------|-------|------------|-----------------|
-| `equity_tag` | `CategoryCompartmentFactor` | Always on (non-disableable) | — |
-| `past_participation` | `PastParticipationFactor` | Toggle | — |
-| `immediate_replay` | `ImmediateReplayFactor` | Toggle | `mode`: `EXCLUDE` \| `MALUS` |
-| `role_request` | `RoleRequestFactor` | Toggle | — (constants in code until **19.16** param wiring) |
+**Pipeline composition:** `finalWeight = base × Π factorMultiplier` (ADR 0019 §3). Factor order in `factorConfig` determines pipeline order.
 
-**Reserved / not in MVP editor** (stories **19.11–19.14** — « coming soon »):
+### Normative params table (locked **19.19a**)
 
-| factorId | Story | Notes |
-|----------|-------|-------|
-| `gender_parity` | 19.11 | Policy may reference formula slot; factor stubbed until shipped |
-| `volunteer_bonus` | 19.12 | Same |
-| `class_mix` | 19.13 | Same |
-| `prestige` | 19.14 | Same |
+| factorId | Direction | Param key | Type / range | Default | Runtime formula at default |
+|----------|-----------|-----------|--------------|---------|----------------------------|
+| `equity_tag` | NEUTRAL | — | — | — | `multiplier = 1.0` ; compartment via scoped `pastSelectionCount` |
+| `past_participation` | MALUS | `strength` | number `0.0–2.0` | `1.0` | `mult = (1/(1+n))^strength` where `n = pastSelectionCount` ; `strength=1` → V1 `1/(1+n)` |
+| `immediate_replay` | MALUS | `mode` | `EXCLUDE` \| `MALUS` | `EXCLUDE` | Same as [`ImmediateReplayFactor`](../../../services/api/src/main/kotlin/com/hatcast/api/availability/draw/ImmediateReplayFactor.kt) modes |
+| | | `malusMultiplier` | number `0.0–1.0` | `0.25` | When `mode=MALUS` and replay detected: `mult = malusMultiplier` (today `MALUS_MULTIPLIER=0.25`) |
+| `role_request` | BONUS | `bonusPerUnfulfilled` | number `0.0–5.0` | `1.0` | `mult = min(1 + n × bonusPerUnfulfilled, maxBonusMultiplier)` |
+| | | `maxBonusMultiplier` | number `1.0–20.0` | `10.0` | Caps bonus (today `BONUS_PER_UNFULFILLED=1.0`, `MAX_BONUS_MULTIPLIER=10.0`) |
 
-Factor order in `factorConfig` determines pipeline order: `finalWeight = base × Π factorMultiplier` (ADR 0019 §3).
+**Semantics:**
+
+- **`direction`** — `MALUS` \| `BONUS` \| `NEUTRAL` for admin UI legibility only; does not change math.
+- **Unknown param keys on save** → **reject** (**REF-P01**).
+- **Out-of-range values** → **reject** (**REF-P02**, **REF-P05**).
+- **`past_participation.strength = 0`** → `mult = 1.0` always (effectively off while factor remains enabled).
+- **`immediate_replay`:** omit `mode` → default `EXCLUDE` (matches [`DrawFormulaPipelineAssembler.resolveImmediateReplayMode`](../../../services/api/src/main/kotlin/com/hatcast/api/draw/DrawFormulaPipelineAssembler.kt) today).
+- **`immediate_replay.params.mode` enum (normative):** `EXCLUDE` \| `MALUS` only — MVP editor and catalogue. Runtime **19.17** still accepts legacy `OFF` (no penalty when replay detected, factor remains enabled); **19.19b** will **reject** `OFF` on save/publish — use `enabled: false` or remove the factor slot instead.
+- **`malusMultiplier` when `mode ≠ MALUS`** → **reject** on save (**REF-P03** — strict).
+- **Omit optional params** → use defaults (parity with Kotlin constants).
+- **V1 parity gate:** when all params omitted or at documented defaults, assembled pipeline **MUST** produce identical weights to baseline commit `81d2b5f8` hardcoded constants. Golden **REF-F01..F08** remain valid at defaults (**19.19b** verifies).
+
+**Plain-language `effect` helpers (French — admin UI **19.19c**):**
+
+| factorId | Param | `effect` (helper text) |
+|----------|-------|------------------------|
+| `past_participation` | `strength` | Plus la valeur est haute, plus les participations passées pèsent sur les cotes ; `0` = pas d'effet ; `1` = comportement V1 |
+| `immediate_replay` | `mode` | Exclure ou pénaliser un candidat qui occupait le même rôle au spectacle précédent (même compartiment) |
+| `immediate_replay` | `malusMultiplier` | Si mode MALUS : multiplicateur appliqué au poids (ex. `0.25` = forte pénalité) |
+| `role_request` | `bonusPerUnfulfilled` | Bonus ajouté par demande de rôle non satisfaite dans le passé |
+| `role_request` | `maxBonusMultiplier` | Plafond du multiplicateur de bonus |
+
+### Per-factor catalogue rows
+
+| factorId | Class | MVP editor | Notes |
+|----------|-------|------------|-------|
+| `equity_tag` | `CategoryCompartmentFactor` | Always on (non-disableable) | `params: null` — no tunable keys |
+| `past_participation` | `PastParticipationFactor` | Toggle + `strength` | See normative table |
+| `immediate_replay` | `ImmediateReplayFactor` | Toggle + `mode`, `malusMultiplier` | See normative table |
+| `role_request` | `RoleRequestFactor` | Toggle + `bonusPerUnfulfilled`, `maxBonusMultiplier` | See normative table |
+
+**Reserved / not in MVP editor** (stories **19.11–19.14** — « Bientôt »):
+
+| factorId | Story | Direction | params |
+|----------|-------|-----------|--------|
+| `gender_parity` | 19.11 | — | `null` (stub — no tunable keys until factor ships) |
+| `volunteer_bonus` | 19.12 | — | `null` |
+| `class_mix` | 19.13 | — | `null` |
+| `prestige` | 19.14 | — | `null` |
+
+Policy may reference formulas containing reserved factor slots; runtime publish rejects enabled reserved factors until shipped.
+
+### Handoff to **19.19b** (runtime + golden — not this story)
+
+Extend golden fixtures under `services/api/src/test/resources/draw/golden/`:
+
+| Fixture id | Purpose |
+|------------|---------|
+| **REF-P01** | Unknown param key → 400 on save |
+| **REF-P02** | Out-of-range `maxBonusMultiplier` → 400 |
+| **REF-P03** | `malusMultiplier` with `mode=EXCLUDE` → 400 |
+| **REF-P04** | Omitted `strength` → assembler uses default `1.0` (parity REF-F01) |
+| **REF-P05** | `strength=2.5` → 400 |
+| **REF-F09** | Tuned `past_participation.params.strength=1.5` — pipeline weight variant |
+| **REF-F10** | Tuned `role_request` params (`bonusPerUnfulfilled=0.5`, `maxBonusMultiplier=5.0`) |
+| **REF-F11** | Tuned `immediate_replay` (`mode=MALUS`, `malusMultiplier=0.5`) |
+
+**Also in 19.19b:** reject legacy `immediate_replay.params.mode=OFF` on save (not in normative enum — see § Semantics above).
+
+**Invariant:** **REF-F01..F08** unchanged at default params vs baseline `81d2b5f8`.
+
+### Handoff to **19.19c** (admin UI — not this story)
+
+UI reads **`direction`** and param schemas from a shared catalogue constant (file created in **19.19c**):
+
+```typescript
+// Expected export shape — apps/web/src/app/core/draw/draw-factor-catalog.ts (19.19c)
+export type DrawFactorDirection = 'MALUS' | 'BONUS' | 'NEUTRAL';
+
+export interface DrawFactorParamSpec {
+  key: string;
+  type: 'number' | 'enum';
+  range?: { min: number; max: number };
+  enumValues?: string[];
+  default: number | string;
+  effect: string; // French plain-language helper
+}
+
+export interface DrawFactorCatalogEntry {
+  factorId: string;
+  direction: DrawFactorDirection;
+  params: DrawFactorParamSpec[] | null; // null = reserved / no tunable keys
+  reserved?: boolean; // true → « Bientôt » in editor
+}
+```
+
+Live preview % in editor **deferred** (**OQ-P3**) — static helper text + link [`draw-chances-explained.md`](../product/draw-chances-explained.md) / **19.7** breakdown.
 
 ---
 

@@ -31,7 +31,7 @@ This document defines the **observed V1 production behaviour** (`chancesService.
 For each eligible participant in a role pool at draw or display time:
 
 ```
-malus = 1 / (1 + pastSelectionCount)
+malus = (1 / (1 + pastSelectionCount))^strength   // strength default 1.0 → V1: 1 / (1 + pastSelectionCount)
 weight = malus × requiredCountForRole
 ```
 
@@ -87,8 +87,9 @@ V2 evolved to multi-slug **`SpectacleCategory`** via `event.category` (**17.9**)
 | `CategoryCompartmentHistoryScope` | Resolves `categorySlug` and runs scoped / unscoped JPQL (`EventCompositionSlotRepository`) |
 | `CompositionSelectionHistoryService` | Delegates history counts; scoped map feeds weights, unscoped map feeds breakdown only |
 | `CategoryCompartmentFactor` (`FACTOR_ID = equity_tag`) | Always in `DrawWeightPipelines.DEFAULT` before `PastParticipationFactor`; `multiplier = 1.0` (compartment applied via scoped `pastSelectionCount`) |
-| `ImmediateReplayFactor` (`FACTOR_ID = immediate_replay`, **19.9**) | **Not** in `DEFAULT` until **19.16**; optional in custom pipelines after `PastParticipationFactor`. Modes: `EXCLUDE` (`0.0`) or `MALUS` (`0.25`). Trigger = same predicate as Story **6.20** consecutive-show warning. Golden: `draw/golden/immediate-replay/*.json` (`DrawImmediateReplayGoldenTest`) |
-| `RoleRequestFactor` (`FACTOR_ID = role_request`, **19.10**) | **Not** in `DEFAULT` until **19.16**; optional after `PastParticipationFactor`. **Bonus only**: `multiplier = min(1 + n × 1.0, 10.0)` where `n = unfulfilledRoleRequestCount` (past validated events, same compartment, available for role but not selected). Golden: `draw/golden/role-request/*.json` (`DrawRoleRequestGoldenTest`) |
+| `PastParticipationFactor` (`FACTOR_ID = past_participation`, **19.6**) | Always in `DrawWeightPipelines.DEFAULT` after `equity_tag`. Param `strength` (number `0.0–2.0`, default `1.0`): `multiplier = (1/(1+n))^strength` where `n = pastSelectionCount`; at default `strength=1.0` restores V1 `malus = 1/(1+n)`. Golden: `draw/golden/weights.json`, factor tests **19.6** |
+| `ImmediateReplayFactor` (`FACTOR_ID = immediate_replay`, **19.9**) | **Not** in `DEFAULT` until **19.16**; optional in custom pipelines after `PastParticipationFactor`. Params: `mode` (`EXCLUDE` \| `MALUS`, default `EXCLUDE`), `malusMultiplier` (number `0.0–1.0`, default `0.25`). At defaults: modes `EXCLUDE` (`0.0`) or `MALUS` (`0.25`). Trigger = same predicate as Story **6.20** consecutive-show warning. Golden: `draw/golden/immediate-replay/*.json` (`DrawImmediateReplayGoldenTest`) |
+| `RoleRequestFactor` (`FACTOR_ID = role_request`, **19.10**) | **Not** in `DEFAULT` until **19.16**; optional after `PastParticipationFactor`. **Bonus only**: params `bonusPerUnfulfilled` (default `1.0`), `maxBonusMultiplier` (default `10.0`); `multiplier = min(1 + n × bonusPerUnfulfilled, maxBonusMultiplier)` where `n = unfulfilledRoleRequestCount`. At defaults: `min(1 + n × 1.0, 10.0)`. Golden: `draw/golden/role-request/*.json` (`DrawRoleRequestGoldenTest`) |
 | Golden fixtures | `services/api/src/test/resources/draw/golden/compartment/*.json` (`DrawCompartmentGoldenTest`) |
 
 **Compartment slug rules** (must match JPQL `:categorySlug` filter):
@@ -98,6 +99,20 @@ V2 evolved to multi-slug **`SpectacleCategory`** via `event.category` (**17.9**)
 | `principal` | `category IS NULL` AND `templateType <> 'deplacement'` |
 | `deplacements` | `category = 'deplacements'` OR (`category IS NULL` AND `templateType = 'deplacement'`) |
 | `{glossary slug}` | `category = slug` |
+
+---
+
+## Parameterized factors (Wave D — **19.19a**)
+
+Admin-tunable **`params`** per enabled factor are defined normatively in [draw-formulas-policies-spec.md § Factor catalogue](draw-formulas-policies-spec.md#factor-catalogue) (Wave D param authority). This spec documents **math at defaults** (= V1 parity) and **parameterized formulas** where implemented.
+
+| Factor | Param keys | Formula (runtime **19.19b**) |
+|--------|------------|--------------------------------|
+| `past_participation` | `strength` | `(1/(1+n))^strength` — default `1.0` = V1 |
+| `immediate_replay` | `mode`, `malusMultiplier` | `EXCLUDE` → `0.0`; `MALUS` → `malusMultiplier` (default `0.25`) |
+| `role_request` | `bonusPerUnfulfilled`, `maxBonusMultiplier` | `min(1 + n × bonusPerUnfulfilled, maxBonusMultiplier)` |
+
+**V1 parity gate:** omitted params or values at catalogue defaults **MUST** match hardcoded Kotlin constants at baseline `81d2b5f8`. Golden **REF-F01..F08** unchanged at defaults; param variants (**REF-F09+**) owned by **19.19b**.
 
 ---
 
