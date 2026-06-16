@@ -32,7 +32,7 @@ spring:
       draw_policy_rule_json_type: JSONB
       draw_policy_rules_json_type: JSONB
       draw_policy_rules_json_default: "'[]'::jsonb"
-      draw_policies_season_idx_sql: CREATE INDEX draw_policies_season_idx ON draw_policies (season_id) WHERE season_id IS NOT NULL
+      draw_policies_season_idx_sql: CREATE INDEX IF NOT EXISTS draw_policies_season_idx ON draw_policies (season_id) WHERE season_id IS NOT NULL
   session:
     store-type: jdbc
     jdbc:

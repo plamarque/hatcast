@@ -1,6 +1,7 @@
 -- Story 19.16: draw formula catalogue + draw policies (Wave D persistence).
+-- IF NOT EXISTS: offline H2 may already have these tables from pre-renumber V64.
 
-CREATE TABLE draw_formulas (
+CREATE TABLE IF NOT EXISTS draw_formulas (
     id UUID PRIMARY KEY,
     troupe_id UUID NOT NULL REFERENCES troupes (id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -15,10 +16,10 @@ CREATE TABLE draw_formulas (
     updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX draw_formulas_troupe_status_idx ON draw_formulas (troupe_id, status);
-CREATE UNIQUE INDEX draw_formulas_system_troupe_unique ON draw_formulas (system_troupe_key);
+CREATE INDEX IF NOT EXISTS draw_formulas_troupe_status_idx ON draw_formulas (troupe_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS draw_formulas_system_troupe_unique ON draw_formulas (system_troupe_key);
 
-CREATE TABLE draw_policies (
+CREATE TABLE IF NOT EXISTS draw_policies (
     id UUID PRIMARY KEY,
     troupe_id UUID NOT NULL REFERENCES troupes (id) ON DELETE CASCADE,
     season_id UUID REFERENCES seasons (id) ON DELETE CASCADE,
@@ -31,9 +32,9 @@ CREATE TABLE draw_policies (
     updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX draw_policies_troupe_idx ON draw_policies (troupe_id);
+CREATE INDEX IF NOT EXISTS draw_policies_troupe_idx ON draw_policies (troupe_id);
 ${draw_policies_season_idx_sql};
 
 -- At most one TROUPE-scoped policy per troupe; at most one SEASON-scoped policy per season.
-CREATE UNIQUE INDEX draw_policies_troupe_scope_unique ON draw_policies (troupe_scope_key);
-CREATE UNIQUE INDEX draw_policies_season_scope_unique ON draw_policies (season_scope_key);
+CREATE UNIQUE INDEX IF NOT EXISTS draw_policies_troupe_scope_unique ON draw_policies (troupe_scope_key);
+CREATE UNIQUE INDEX IF NOT EXISTS draw_policies_season_scope_unique ON draw_policies (season_scope_key);

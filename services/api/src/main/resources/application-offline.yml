@@ -25,7 +25,7 @@ spring:
       draw_policy_rule_json_type: JSON
       draw_policy_rules_json_type: JSON
       draw_policy_rules_json_default: JSON '[]'
-      draw_policies_season_idx_sql: CREATE INDEX draw_policies_season_idx ON draw_policies (season_id)
+      draw_policies_season_idx_sql: CREATE INDEX IF NOT EXISTS draw_policies_season_idx ON draw_policies (season_id)
   session:
     jdbc:
       initialize-schema: always

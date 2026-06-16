@@ -218,7 +218,7 @@ class DrawFormulaMigrationTest {
                         "draw_policy_rules_json_type" to "JSON",
                         "draw_policy_rules_json_default" to "JSON '[]'",
                         "draw_policies_season_idx_sql" to
-                            "CREATE INDEX draw_policies_season_idx ON draw_policies (season_id)",
+                            "CREATE INDEX IF NOT EXISTS draw_policies_season_idx ON draw_policies (season_id)",
                     ),
                 )
         if (target != null) {
