@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-15T14:00:00+02:00
+# last_updated: 2026-06-16T23:35:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -314,7 +314,7 @@ development_status:
   19-18-api-politiques-tirage-troupe-saison: backlog  # sprint Wave D S5 — Demo 2 runtime
   19-19-ui-admin-editeur-formules: cancelled  # superseded SCP 2026-06-16 → 19.19a/b/c
   19-19a-spec-factor-params-draw: done  # Wave D S4a — params catalogue + amend spec/ADR
-  19-19b-factor-params-runtime-tests: in-progress  # Wave D S4b — engine + validator + golden (review patches applied)
+  19-19b-factor-params-runtime-tests: done  # Wave D S4b — engine + validator + golden (code review approved)
   19-19c-ui-admin-editeur-formules: backlog  # Wave D S4c — admin UI coefficients (ex-19.19)
   19-20-ui-admin-politiques-tirage: backlog  # phase 2 sprint — hors MVP Wave D
   19-21-ui-orga-choix-formule-tirage: backlog  # sprint Wave D S6 — Demo 2

@@ -189,8 +189,8 @@ object DrawFactorParamCatalog {
     ) {
         actualKeys
             .filter { it !in allowedKeys }
-            .forEach { _ ->
-                throw DrawFormulaValidationException("Paramètre inconnu pour $factorId")
+            .forEach { key ->
+                throw DrawFormulaValidationException("Paramètre inconnu pour $factorId : $key")
             }
     }
 

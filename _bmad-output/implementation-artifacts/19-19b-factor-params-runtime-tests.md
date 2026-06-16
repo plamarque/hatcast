@@ -5,7 +5,7 @@ baseline_commit: 81d2b5f834949be07133d6049c35344b7ed67eee
 
 # Story 19.19b : Runtime — parameterized factors + golden tests
 
-Status: in-progress
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -337,16 +337,21 @@ Composer (dev-story 2026-06-16)
 
 - 2026-06-16 : Story created — Wave D S4b runtime + golden per SCP 2026-06-16 and TEA test design.
 - 2026-06-16 : Implemented runtime param catalogue, parameterized factors, REF-P/REF-F golden extensions; full test suite green.
+- 2026-06-16 : Code review approved — status done ; patch REF-P01 message harmonization.
 
 ---
 
 ### Review Findings
 
 - [x] [Review][Patch] NaN/Infinity bypass validation des params numériques — garde `value.isFinite()` ajouté dans `DrawFactorParamCatalog.requireDoubleInRange` + test `non-finite numeric param rejected`.
-- [ ] [Review][Patch] Implémentation non commitée — le diff review = working tree (0 commit depuis baseline `81d2b5f8`) ; committer avant merge vers `v2`.
+- [x] [Review][Patch] Implémentation non commitée — résolu : commit `e8a5c902` sur `feat/19-19b-factor-params-runtime-tests`.
 - [x] [Review][Patch] Test REF-P03 variante mode omis — `malusMultiplier without mode rejected` ajouté dans `DrawFormulaValidatorTest`.
+- [x] [Review][Patch] Messages REF-P01 incohérents — `rejectUnknownKeys` harmonisé avec `validateNoParams` (`Paramètre inconnu pour $factorId : $key`).
 - [x] [Review][Defer] Golden REF-P uniquement `formulaSave` — chemin `formulaPublish` non couvert par fixtures HTTP ; `validateForPublish` délègue à `validateForSave` donc comportement OK — deferred, pre-existing pattern 19.17.
 - [x] [Review][Defer] Messages FR non assertés en intégration — `DrawFormulaValidationIntegrationTest` ne vérifie que le status HTTP ; substrings couverts par `DrawFormulaValidatorTest` — deferred, couverture unitaire suffisante pour MVP.
+- [x] [Review][Defer] Artefact test design absent du dépôt — `19-19b-factor-params-test-design.md` référencé dans la story mais non versionné ; payloads présents dans golden JSON — deferred, traçabilité TEA.
+- [x] [Review][Defer] Spec normative 19.19a non mergée sur branche — `draw-formulas-policies-spec.md` sans `strength`/`malusMultiplier` ; runtime aligné sur table AC story — deferred, merge doc 19.19a séparé.
+- [x] [Review][Defer] `@Tag("19.19b")` absent sur `DrawFormulaPipelineGoldenTest` — fixtures JSON taguées mais pas la classe — deferred, filtrage CI par tags JSON suffisant pour MVP.
 
 ### Validation create-story
 
