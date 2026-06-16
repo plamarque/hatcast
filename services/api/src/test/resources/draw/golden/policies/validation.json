@@ -238,5 +238,99 @@
       "allowedFormulaIds": ["f-gone", "f-alt"]
     },
     "expected": { "rejected": false, "fallbackCascade": true, "finalFormulaId": "system-v1" }
+  },
+  {
+    "id": "REF-P01",
+    "description": "Unknown param key on enabled factor → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Unknown param",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true, "params": { "foo": 1.0 } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-P02",
+    "description": "maxBonusMultiplier out of range → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Role request cap invalid",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "role_request", "enabled": true, "params": { "maxBonusMultiplier": 25.0 } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-P03",
+    "description": "malusMultiplier with EXCLUDE mode → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Replay malus with exclude",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "EXCLUDE", "malusMultiplier": 0.5 } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-P04",
+    "description": "Enabled factors without params object → accept formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Default params implicit",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "role_request", "enabled": true }
+      ]
+    },
+    "expected": { "rejected": false, "httpStatus": 201 }
+  },
+  {
+    "id": "REF-P05",
+    "description": "strength out of range → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Past strength invalid",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true, "params": { "strength": 3.0 } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-P06",
+    "description": "immediate_replay mode OFF → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Replay OFF rejected",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "OFF" } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
   }
 ]

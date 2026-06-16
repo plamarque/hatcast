@@ -491,3 +491,11 @@
 - **`troupeScopeKey`/`seasonScopeKey` non imposés à la persistance** — factory/service policy save en **19.18**.
 - **V65 prépare un statement JDBC par troupe** — volume troupes MVP acceptable ; optimiser si backfill massif.
 - **`draw_policies` sans `created_at`** — hors AC1 explicite ; audit historique si besoin futur.
+
+## Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)
+
+- **Golden REF-P uniquement `formulaSave`** — chemin `formulaPublish` non couvert par fixtures HTTP ; `validateForPublish` délègue à `validateForSave` donc comportement OK.
+- **Messages FR non assertés en intégration** — `DrawFormulaValidationIntegrationTest` ne vérifie que le status HTTP ; substrings couverts par `DrawFormulaValidatorTest` — couverture unitaire suffisante pour MVP.
+- **Artefact test design absent du dépôt** — `19-19b-factor-params-test-design.md` référencé dans la story mais non versionné ; payloads présents dans golden JSON.
+- **Spec normative 19.19a non mergée sur branche** — `draw-formulas-policies-spec.md` sans `strength`/`malusMultiplier` ; runtime aligné sur table AC story ; merge doc 19.19a séparé.
+- **`@Tag("19.19b")` absent sur `DrawFormulaPipelineGoldenTest`** — fixtures JSON taguées mais pas la classe ; filtrage CI par tags JSON suffisant pour MVP.

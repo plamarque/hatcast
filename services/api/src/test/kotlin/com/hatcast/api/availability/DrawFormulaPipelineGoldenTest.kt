@@ -84,8 +84,35 @@ class DrawFormulaPipelineGoldenTest {
         assertion: WeightAssertion,
         pipeline: DrawWeightPipeline,
     ) {
+        if (assertion.input != null && assertion.expectedWeight != null) {
+            val input = assertion.input
+            val replayTriggered = input.path("playedSameRoleOnImmediatePredecessor").asBoolean(false)
+            val actual =
+                AvailabilityChanceCalculator.weightForParticipant(
+                    pastSelectionCount = input.get("pastSelectionCount").asInt(),
+                    requiredCount = input.get("requiredCount").asInt(),
+                    pipeline = pipeline,
+                    playedSameRoleOnImmediatePredecessor = replayTriggered,
+                )
+            val expected = assertion.expectedWeight
+            val decimalPlaces = assertion.decimalPlaces ?: 0
+            if (decimalPlaces > 0) {
+                val scale = Math.pow(10.0, decimalPlaces.toDouble())
+                assertEquals(
+                    round(expected * scale) / scale,
+                    round(actual * scale) / scale,
+                    0.0001,
+                    "[$fixtureId] inline weight ${assertion.ref}",
+                )
+            } else {
+                assertEquals(expected, actual, 0.0001, "[$fixtureId] inline weight ${assertion.ref}")
+            }
+            return
+        }
+
         val weightFixture =
             goldenFixtures.firstOrNull { it.id == assertion.ref }
+                ?: assertion.source?.let { loadFixtureFromPath(it, assertion.ref) }
                 ?: throw AssertionError("[$fixtureId] Missing weight fixture ${assertion.ref}")
         val input = weightFixture.input
         val actual =
@@ -93,6 +120,8 @@ class DrawFormulaPipelineGoldenTest {
                 pastSelectionCount = input.get("pastSelectionCount").asInt(),
                 requiredCount = input.get("requiredCount").asInt(),
                 pipeline = pipeline,
+                playedSameRoleOnImmediatePredecessor =
+                    input.path("playedSameRoleOnImmediatePredecessor").asBoolean(false),
             )
         val expected = weightFixture.expected.get("weight").asDouble()
         val decimalPlaces = weightFixture.expected.path("decimalPlaces").asInt(0)
@@ -206,6 +235,9 @@ class DrawFormulaPipelineGoldenTest {
     data class WeightAssertion(
         val ref: String,
         val source: String? = null,
+        val input: JsonNode? = null,
+        val expectedWeight: Double? = null,
+        val decimalPlaces: Int? = null,
     )
 
     data class ProbabilityAssertion(
@@ -235,6 +267,11 @@ class DrawFormulaPipelineGoldenTest {
                             WeightAssertion(
                                 ref = wa.get("ref").asText(),
                                 source = wa.path("source").asText(null),
+                                input = wa.path("input").takeIf { !it.isMissingNode && !it.isNull },
+                                expectedWeight =
+                                    wa.path("expectedWeight").takeIf { !it.isMissingNode && !it.isNull }?.asDouble(),
+                                decimalPlaces =
+                                    wa.path("decimalPlaces").takeIf { !it.isMissingNode && !it.isNull }?.asInt(),
                             )
                         },
                     probabilityAssertions =

@@ -1,0 +1,34 @@
+[
+  {
+    "id": "IR-ML1-TUNED",
+    "description": "MALUS malusMultiplier=0.5 — triggered candidate penalized vs peer",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "player",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 },
+      "playedSameRoleOnImmediatePredecessorByParticipant": { "A": false, "B": true }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 67, "B": 33 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "IR-W2-TUNED",
+    "description": "MALUS mode applies custom 0.5 multiplier for triggered participant",
+    "function": "weightForParticipant",
+    "input": {
+      "pastSelectionCount": 0,
+      "requiredCount": 1,
+      "roleKey": "player",
+      "playedSameRoleOnImmediatePredecessor": true
+    },
+    "expected": { "weight": 0.5 },
+    "tolerancePercent": 0
+  }
+]

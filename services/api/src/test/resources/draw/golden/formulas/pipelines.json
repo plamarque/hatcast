@@ -181,5 +181,71 @@
       }
     ],
     "implementationNote": "Runner calcule expected via pipeline assembly ; ne pas inventer % ici — cross-check RR-BOUBOU + IR-ML1 ordre"
+  },
+  {
+    "id": "REF-F09",
+    "description": "past_participation strength=1.5 — tuned malus weights",
+    "tags": ["19.19b", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true, "params": { "strength": 1.5 } }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "REF-W2",
+        "input": { "pastSelectionCount": 3, "requiredCount": 5 },
+        "expectedWeight": 0.625
+      },
+      {
+        "ref": "REF-W3",
+        "input": { "pastSelectionCount": 2, "requiredCount": 2 },
+        "expectedWeight": 0.3849,
+        "decimalPlaces": 4
+      }
+    ]
+  },
+  {
+    "id": "REF-F10",
+    "description": "role_request tuned bonusPerUnfulfilled and maxBonusMultiplier",
+    "tags": ["19.19b", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "role_request", "enabled": true, "params": { "bonusPerUnfulfilled": 0.5, "maxBonusMultiplier": 5.0 } }
+    ],
+    "probabilityAssertions": [
+      {
+        "ref": "RR-BOUBOU-TUNED",
+        "source": "draw/golden/role-request/bonus-tuned.json"
+      },
+      {
+        "ref": "RR-N1-TUNED",
+        "source": "draw/golden/role-request/bonus-tuned.json"
+      }
+    ]
+  },
+  {
+    "id": "REF-F11",
+    "description": "immediate_replay MALUS with malusMultiplier=0.5",
+    "tags": ["19.19b", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS", "malusMultiplier": 0.5 } }
+    ],
+    "probabilityAssertions": [
+      {
+        "ref": "IR-ML1-TUNED",
+        "source": "draw/golden/immediate-replay/exclude-malus-tuned.json"
+      }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "IR-W2-TUNED",
+        "source": "draw/golden/immediate-replay/exclude-malus-tuned.json",
+        "input": { "pastSelectionCount": 0, "requiredCount": 1, "playedSameRoleOnImmediatePredecessor": true },
+        "expectedWeight": 0.5
+      }
+    ]
   }
 ]

@@ -13,6 +13,7 @@ import java.util.Locale
  */
 class ImmediateReplayFactor(
     val mode: ImmediateReplayMode,
+    private val malusMultiplier: Double = MALUS_MULTIPLIER,
 ) : LabeledDrawWeightFactor {
     override val factorId: String = FACTOR_ID
 
@@ -23,7 +24,7 @@ class ImmediateReplayFactor(
         return when (mode) {
             ImmediateReplayMode.OFF -> 1.0
             ImmediateReplayMode.EXCLUDE -> 0.0
-            ImmediateReplayMode.MALUS -> MALUS_MULTIPLIER
+            ImmediateReplayMode.MALUS -> malusMultiplier
         }
     }
 

@@ -44,7 +44,7 @@ class CategoryCompartmentFactorTest {
     @Test
     fun `default pipeline with compartment factor preserves V1 weights`() {
         val pipeline = DrawWeightPipelines.DEFAULT
-        val pastOnly = DrawWeightPipeline.of(PastParticipationFactor)
+        val pastOnly = DrawWeightPipeline.of(PastParticipationFactor.DEFAULT)
         val ctx = context(scopedPast = 3)
         assertEquals(
             pastOnly.apply(5.0, ctx),

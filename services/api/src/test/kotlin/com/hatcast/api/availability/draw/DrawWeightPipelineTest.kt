@@ -58,7 +58,7 @@ class DrawWeightPipelineTest {
 
     @Test
     fun `factor receives draw context`() {
-        val pipeline = DrawWeightPipeline.of(PastParticipationFactor)
+        val pipeline = DrawWeightPipeline.of(PastParticipationFactor.DEFAULT)
         assertEquals(0.25, pipeline.apply(1.0, context(past = 3, required = 1)))
     }
 

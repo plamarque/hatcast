@@ -33,7 +33,7 @@ class DrawWeightPipeline private constructor(
 /** Default troupe/event configuration: compartment (always on) + past-participation malus (19.8 + 19.6). */
 object DrawWeightPipelines {
     val DEFAULT: DrawWeightPipeline =
-        DrawWeightPipeline.of(CategoryCompartmentFactor, PastParticipationFactor)
+        DrawWeightPipeline.of(CategoryCompartmentFactor, PastParticipationFactor.DEFAULT)
 
     /** Test / custom formula builder — immediate replay after past participation (PO OQ-19-9-02). */
     fun withImmediateReplay(mode: ImmediateReplayMode): DrawWeightPipeline {
@@ -42,7 +42,7 @@ object DrawWeightPipelines {
         }
         return DrawWeightPipeline.of(
             CategoryCompartmentFactor,
-            PastParticipationFactor,
+            PastParticipationFactor.DEFAULT,
             ImmediateReplayFactor(mode),
         )
     }
@@ -54,8 +54,8 @@ object DrawWeightPipelines {
     fun withRoleRequest(): DrawWeightPipeline =
         DrawWeightPipeline.of(
             CategoryCompartmentFactor,
-            PastParticipationFactor,
-            RoleRequestFactor,
+            PastParticipationFactor.DEFAULT,
+            RoleRequestFactor.DEFAULT,
         )
 
     fun includesRoleRequest(pipeline: DrawWeightPipeline): Boolean =
