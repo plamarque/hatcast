@@ -15,8 +15,10 @@ import {
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { ContextBreadcrumb } from '../../shared/context-breadcrumb/context-breadcrumb'
 import { TroupeCategoriesTab } from './troupe-categories-tab'
+import { TroupeDrawFormulasTab } from './troupe-draw-formulas-tab'
 
 const CATEGORIES_TAB = 'categories'
+const FORMULAS_TAB = 'formulas'
 
 @Component({
   selector: 'app-troupe-settings',
@@ -26,6 +28,7 @@ const CATEGORIES_TAB = 'categories'
     MatTabsModule,
     ContextBreadcrumb,
     TroupeCategoriesTab,
+    TroupeDrawFormulasTab,
   ],
   templateUrl: './troupe-settings.html',
   styleUrl: './troupe-settings.scss',
@@ -60,7 +63,7 @@ export class TroupeSettings implements OnDestroy, OnInit {
   )
 
   protected readonly selectedTabIndex = computed(() =>
-    this.activeTab() === CATEGORIES_TAB ? 0 : 0,
+    this.activeTab() === FORMULAS_TAB ? 1 : 0,
   )
 
   async ngOnInit(): Promise<void> {
@@ -90,7 +93,7 @@ export class TroupeSettings implements OnDestroy, OnInit {
           distinctUntilChanged(),
         )
         .subscribe((tab) => {
-          this.activeTab.set(tab === CATEGORIES_TAB ? CATEGORIES_TAB : CATEGORIES_TAB)
+          this.activeTab.set(tab === FORMULAS_TAB ? FORMULAS_TAB : CATEGORIES_TAB)
         }),
     )
   }
@@ -100,7 +103,7 @@ export class TroupeSettings implements OnDestroy, OnInit {
   }
 
   protected onTabChange(index: number): void {
-    const tab = index === 0 ? CATEGORIES_TAB : CATEGORIES_TAB
+    const tab = index === 1 ? FORMULAS_TAB : CATEGORIES_TAB
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { tab },

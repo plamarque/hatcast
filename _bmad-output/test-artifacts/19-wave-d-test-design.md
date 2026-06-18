@@ -137,8 +137,11 @@ Mappe 1:1 [`draw-formulas-policies-spec.md` § Validation matrix](../../docs/v2/
 | REF-F06 | + role_request | RR-BOUBOU, RR-N1 |
 | REF-F07 | past + replay EXCLUDE | REF-P4 + IR-EX1 |
 | REF-F08 | stack complet MVP | combinaison multi-facteurs |
+| REF-F12 | Demo 1 tuné (past + replay + role_request) | `combined-tuned.json` F12-P* |
+| REF-F13 | past + replay tunés (sans role_request) | `combined-tuned.json` F13-P1 |
+| REF-F14 | past + replay malus 0.25 (intensité UI 0.75) | `combined-tuned.json` F14-P1 |
 
-**Total REF-F : 8** (+ **REF-F09–F11** en **19.19b**) — fixtures `formulas/pipelines.json` ; détail [19-17](19-17-formula-api-test-design.md), params [19-19b](19-19b-factor-params-test-design.md).
+**Total REF-F : 8** (+ **REF-F09–F11** en **19.19b** ; **REF-F12–F14** combinaisons tunées **19.19c**) — fixtures `formulas/pipelines.json` + `formulas/combined-tuned.json` ; détail [19-17](19-17-formula-api-test-design.md), params [19-19b](19-19b-factor-params-test-design.md).
 
 **Garde-fou :** REF-F01 = REF-W* ; ne pas modifier `weights.json` si divergence — corriger assembly pipeline. **REF-F01..F08 inchangés** quand params = defaults (**19.19b**).
 

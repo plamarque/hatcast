@@ -340,8 +340,13 @@ Extend golden fixtures under `services/api/src/test/resources/draw/golden/`:
 | **REF-F09** | Tuned `past_participation.params.strength=1.5` — pipeline weight variant |
 | **REF-F10** | Tuned `role_request` params (`bonusPerUnfulfilled=0.5`, `maxBonusMultiplier=5.0`) |
 | **REF-F11** | Tuned `immediate_replay` (`mode=MALUS`, `malusMultiplier=0.5`) |
+| **REF-F12** | **Combined tuned** Demo 1 — `strength=1.5` + replay MALUS `0.5` + role_request tuned (`bonusPerUnfulfilled=0.5`, `maxBonusMultiplier=5.0`) |
+| **REF-F13** | **Combined tuned** — `strength=1.5` + replay MALUS `0.5` (no role_request) |
+| **REF-F14** | **Combined tuned** — `strength=1.5` + replay MALUS `0.25` (UI intensity **0.75**, F2-R) |
 
 **Also in 19.19b:** reject legacy `immediate_replay.params.mode=OFF` on save (not in normative enum — see § Semantics above).
+
+**Combined fixtures:** `draw/golden/formulas/combined-tuned.json` (F12-P1..P3, F13-P1) — **19.19c** admin recipe non-reg.
 
 **Invariant:** **REF-F01..F08** unchanged at default params vs baseline `81d2b5f8`.
 

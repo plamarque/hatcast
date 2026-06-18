@@ -26,9 +26,11 @@
   } @else if (troupeId() && canManageTroupe()) {
     <div class="troupe-settings__content">
       <h2 class="troupe-settings__title">Paramètres troupe</h2>
-      <p class="troupe-settings__intro">
-        Les catégories séparent les stats et les tirages par compartiment.
-      </p>
+      @if (selectedTabIndex() === 0) {
+        <p class="troupe-settings__intro">
+          Les catégories séparent les stats et les tirages par compartiment.
+        </p>
+      }
 
       <mat-tab-group
         class="troupe-settings__tabs"
@@ -37,6 +39,9 @@
       >
         <mat-tab label="Catégories">
           <app-troupe-categories-tab [troupeId]="troupeId()!" />
+        </mat-tab>
+        <mat-tab label="Formules de tirage">
+          <app-troupe-draw-formulas-tab [troupeId]="troupeId()!" />
         </mat-tab>
       </mat-tab-group>
     </div>

@@ -492,6 +492,15 @@
 - **V65 prépare un statement JDBC par troupe** — volume troupes MVP acceptable ; optimiser si backfill massif.
 - **`draw_policies` sans `created_at`** — hors AC1 explicite ; audit historique si besoin futur.
 
+## Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)
+
+- **Verrouillage optimiste `version` non envoyé au PATCH** — API n'exige pas version client ; risque écrasement concurrent accepté MVP.
+- **`troupeId` input change sans reload** — composant parent stable en pratique ; edge théorique.
+- **Race `reload()` concurrent sans séquence** — pas de déclencheur UI parallèle.
+- **État vide liste sans copy dédiée quand `formulas=[]`** — CTA « Nouvelle formule » suffit MVP.
+- **Pas de bouton retry sur erreur chargement F1** — hors AC.
+- **Badges direction sans tokens error/tertiary distincts** — écart M3 mineur.
+
 ## Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)
 
 - **Golden REF-P uniquement `formulaSave`** — chemin `formulaPublish` non couvert par fixtures HTTP ; `validateForPublish` délègue à `validateForSave` donc comportement OK.

@@ -1,0 +1,213 @@
+<div class="editor-dialog" data-testid="draw-formula-editor-dialog">
+  <h2 mat-dialog-title>
+    {{ data.mode === 'create' ? 'Nouvelle formule' : 'Modifier la formule' }}
+  </h2>
+  <mat-dialog-content>
+    <form [formGroup]="form" class="editor-dialog__form">
+      <mat-form-field appearance="outline" class="editor-dialog__field">
+        <mat-label>Nom</mat-label>
+        <input matInput formControlName="name" required />
+        @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+          <mat-error>Obligatoire</mat-error>
+        }
+        @if (form.controls.name.touched && form.controls.name.errors?.['maxlength']) {
+          <mat-error>255 caractères maximum</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="editor-dialog__field">
+        <mat-label>Description (optionnel)</mat-label>
+        <textarea matInput rows="2" formControlName="description"></textarea>
+        @if (form.controls.description.touched && form.controls.description.errors?.['maxlength']) {
+          <mat-error>2 000 caractères maximum</mat-error>
+        }
+      </mat-form-field>
+
+      <app-troupe-draw-formula-profile-chart [editorState]="editorState()">
+        <ul class="editor-dialog__compact-criteria" aria-label="Réglages des critères">
+          @for (factor of malusBonusFactors; track factor.factorId) {
+            <li
+              class="editor-dialog__compact-row"
+              [class.editor-dialog__compact-row--off]="!isFactorEnabled(factor.factorId)"
+              [attr.data-testid]="'draw-formula-factor-' + factor.factorId"
+            >
+              <div class="editor-dialog__compact-head">
+                <div class="editor-dialog__compact-leading">
+                  @if (factor.factorId === 'past_participation') {
+                    <mat-slide-toggle formControlName="past_participation_enabled" />
+                  } @else if (factor.factorId === 'immediate_replay') {
+                    <mat-slide-toggle formControlName="immediate_replay_enabled" />
+                  } @else {
+                    <mat-slide-toggle formControlName="role_request_enabled" />
+                  }
+                  <div class="editor-dialog__compact-title">
+                    <span>{{ factor.label }}</span>
+                    @if (directionLabel(factor.factorId); as badge) {
+                      <mat-chip
+                        class="editor-dialog__direction"
+                        [attr.data-testid]="'draw-formula-direction-' + factor.factorId"
+                        matTooltip="Type du critère (fixe)"
+                      >
+                        {{ badge }}
+                      </mat-chip>
+                    }
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="editor-dialog__details-toggle"
+                  [attr.data-testid]="'draw-formula-details-toggle-' + factor.factorId"
+                  [attr.aria-expanded]="isFactorExpanded(factor.factorId)"
+                  [attr.aria-label]="
+                    isFactorExpanded(factor.factorId)
+                      ? 'Replier les détails de ' + factor.label
+                      : 'Déplier les détails de ' + factor.label
+                  "
+                  (click)="toggleFactorDetails(factor.factorId)"
+                >
+                  <mat-icon aria-hidden="true">
+                    {{ isFactorExpanded(factor.factorId) ? 'expand_less' : 'expand_more' }}
+                  </mat-icon>
+                </button>
+              </div>
+
+              @if (isFactorEnabled(factor.factorId)) {
+                <div class="editor-dialog__compact-slider">
+                  <span class="editor-dialog__slider-label">Intensité</span>
+                  @if (factor.factorId === 'past_participation') {
+                    <mat-slider min="0" max="2" step="0.1" discrete>
+                      <input
+                        matSliderThumb
+                        formControlName="past_participation_strength"
+                        [attr.data-testid]="'draw-formula-param-past_participation-strength'"
+                        [attr.aria-label]="'Intensité participations passées'"
+                        [attr.aria-valuetext]="
+                          formatStrength(form.controls.past_participation_strength.value ?? 0)
+                        "
+                      />
+                    </mat-slider>
+                    <span class="editor-dialog__slider-value">
+                      {{ formatStrength(form.controls.past_participation_strength.value ?? 0) }}
+                    </span>
+                  } @else if (factor.factorId === 'immediate_replay') {
+                    <mat-slider min="0" max="1" step="0.05" discrete>
+                      <input
+                        matSliderThumb
+                        formControlName="immediate_replay_intensity"
+                        [attr.data-testid]="
+                          'draw-formula-param-immediate_replay-replayDisplayIntensity'
+                        "
+                        [attr.aria-label]="'Intensité rejeu immédiat'"
+                        [attr.aria-valuetext]="
+                          formatReplay(form.controls.immediate_replay_intensity.value ?? 0)
+                        "
+                      />
+                    </mat-slider>
+                    <span class="editor-dialog__slider-value">
+                      {{ formatReplay(form.controls.immediate_replay_intensity.value ?? 0) }}
+                    </span>
+                  } @else {
+                    <mat-slider min="0" max="5" step="0.1" discrete>
+                      <input
+                        matSliderThumb
+                        formControlName="role_request_bonus"
+                        [attr.data-testid]="'draw-formula-param-role_request-bonusPerUnfulfilled'"
+                        [attr.aria-label]="'Intensité aspirations de rôle'"
+                        [attr.aria-valuetext]="formatBonus(form.controls.role_request_bonus.value ?? 0)"
+                      />
+                    </mat-slider>
+                    <span class="editor-dialog__slider-value">
+                      {{ formatBonus(form.controls.role_request_bonus.value ?? 0) }}
+                    </span>
+                  }
+                </div>
+              }
+
+              @if (isFactorEnabled(factor.factorId)) {
+                @if (factor.factorId === 'past_participation' && fieldError('past_participation_strength'); as err) {
+                  <p class="editor-dialog__inline-error">{{ err }}</p>
+                }
+                @if (factor.factorId === 'immediate_replay' && fieldError('replayDisplayIntensity'); as err) {
+                  <p class="editor-dialog__inline-error">{{ err }}</p>
+                }
+                @if (factor.factorId === 'role_request' && fieldError('role_request'); as err) {
+                  <p class="editor-dialog__inline-error">{{ err }}</p>
+                }
+              }
+
+              @if (isFactorExpanded(factor.factorId) && isFactorEnabled(factor.factorId)) {
+                <div class="editor-dialog__factor-details">
+                  <p
+                    class="editor-dialog__effect-summary"
+                    [attr.data-testid]="'draw-formula-effect-' + factor.factorId"
+                  >
+                    {{ effectSummary(factor.factorId) }}
+                  </p>
+
+                  @if (factor.factorId === 'role_request') {
+                    <div
+                      class="editor-dialog__advanced-param"
+                      data-testid="draw-formula-param-role_request-maxBonusMultiplier"
+                    >
+                      <span class="editor-dialog__slider-label editor-dialog__slider-label--advanced">
+                        Plafond du bonus total
+                      </span>
+                      <mat-slider min="1" max="20" step="0.5" discrete>
+                        <input
+                          matSliderThumb
+                          formControlName="role_request_cap"
+                          aria-label="Plafond du bonus total"
+                          [attr.aria-valuetext]="formatCap(form.controls.role_request_cap.value ?? 1)"
+                        />
+                      </mat-slider>
+                      <span class="editor-dialog__slider-value">
+                        {{ formatCap(form.controls.role_request_cap.value ?? 1) }}
+                      </span>
+                    </div>
+                  }
+
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </app-troupe-draw-formula-profile-chart>
+
+      <h3 class="editor-dialog__section-title editor-dialog__section-title--soon">Bientôt</h3>
+      <ul class="editor-dialog__soon-list">
+        @for (factor of reservedFactors; track factor.factorId) {
+          <li class="editor-dialog__soon-row">
+            <span>{{ factor.label }}</span>
+            <mat-chip class="editor-dialog__soon-chip">Bientôt</mat-chip>
+          </li>
+        }
+      </ul>
+
+      @if (footerError(); as err) {
+        <p class="editor-dialog__footer-error">{{ err }}</p>
+      }
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button type="button" mat-button mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button
+      type="button"
+      mat-stroked-button
+      [disabled]="form.invalid || saving()"
+      (click)="saveDraft()"
+    >
+      Enregistrer
+    </button>
+    <button
+      type="button"
+      mat-flat-button
+      color="primary"
+      data-testid="draw-formula-publish"
+      [disabled]="form.invalid || saving()"
+      (click)="publish()"
+    >
+      Publier
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,0 +1,98 @@
+[
+  {
+    "id": "F12-P1",
+    "description": "Demo 1 stack — past malus + replay malus + aspiration n=1 on same candidate",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 1, "B": 0 },
+      "playedSameRoleOnImmediatePredecessorByParticipant": { "A": false, "B": true },
+      "unfulfilledRoleRequestCountByParticipant": { "A": 1, "B": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 51, "B": 49 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "F12-P2",
+    "description": "Demo 1 stack — Boubou n=7 DJ tuned bonus (parity with REF-F10 isolated)",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "B", "displayName": "Boubou" },
+        { "key": "P", "displayName": "Peer" }
+      ],
+      "pastSelectionCountByParticipant": { "B": 0, "P": 0 },
+      "unfulfilledRoleRequestCountByParticipant": { "B": 7, "P": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "B": 82, "P": 18 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "F12-P3",
+    "description": "Demo 1 stack — aspiration n=7 vs peer veteran past=3 (past × bonus interaction)",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "B", "displayName": "Boubou" },
+        { "key": "P", "displayName": "Peer" }
+      ],
+      "pastSelectionCountByParticipant": { "B": 0, "P": 3 },
+      "unfulfilledRoleRequestCountByParticipant": { "B": 7, "P": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "B": 97, "P": 3 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "F13-P1",
+    "description": "Past strength 1.5 + replay malus 0.5 — veteran vs replay-triggered peer",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "player",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 2, "B": 0 },
+      "playedSameRoleOnImmediatePredecessorByParticipant": { "A": false, "B": true }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 28, "B": 72 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "F14-P1",
+    "description": "Past strength 1.5 + replay malus 0.25 (UI intensity 0.75) — veteran vs replay peer",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "player",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 2, "B": 0 },
+      "playedSameRoleOnImmediatePredecessorByParticipant": { "A": false, "B": true }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 44, "B": 56 }
+    },
+    "tolerancePercent": 1
+  }
+]

@@ -247,5 +247,125 @@
         "expectedWeight": 0.5
       }
     ]
+  },
+  {
+    "id": "REF-F12",
+    "description": "Demo 1 admin recipe — past strength 1.5 + replay MALUS 0.5 + role_request tuned (combined)",
+    "tags": ["19.19c", "19.19b", "REF-F", "combined-tuned"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true, "params": { "strength": 1.5 } },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS", "malusMultiplier": 0.5 } },
+      { "factorId": "role_request", "enabled": true, "params": { "bonusPerUnfulfilled": 0.5, "maxBonusMultiplier": 5.0 } }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "REF-W2",
+        "input": { "pastSelectionCount": 3, "requiredCount": 5 },
+        "expectedWeight": 0.625,
+        "note": "past-only slice — same as REF-F09"
+      },
+      {
+        "ref": "F12-W2",
+        "input": {
+          "pastSelectionCount": 3,
+          "requiredCount": 5,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.3125,
+        "note": "past strength 1.5 × replay malus 0.5"
+      },
+      {
+        "ref": "F12-W3",
+        "input": {
+          "pastSelectionCount": 1,
+          "requiredCount": 2,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.3536,
+        "decimalPlaces": 4
+      }
+    ],
+    "probabilityAssertions": [
+      { "ref": "F12-P1", "source": "draw/golden/formulas/combined-tuned.json" },
+      { "ref": "F12-P2", "source": "draw/golden/formulas/combined-tuned.json" },
+      { "ref": "F12-P3", "source": "draw/golden/formulas/combined-tuned.json" }
+    ]
+  },
+  {
+    "id": "REF-F13",
+    "description": "Combined tuned past strength 1.5 + replay MALUS 0.5 (no role_request)",
+    "tags": ["19.19c", "19.19b", "REF-F", "combined-tuned"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true, "params": { "strength": 1.5 } },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS", "malusMultiplier": 0.5 } }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "F13-W1",
+        "input": {
+          "pastSelectionCount": 3,
+          "requiredCount": 5,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.3125
+      },
+      {
+        "ref": "F13-W2",
+        "input": { "pastSelectionCount": 2, "requiredCount": 5 },
+        "expectedWeight": 0.9623,
+        "decimalPlaces": 4,
+        "note": "(1/3)^1.5 × requiredCount"
+      }
+    ],
+    "probabilityAssertions": [
+      { "ref": "F13-P1", "source": "draw/golden/formulas/combined-tuned.json" }
+    ]
+  },
+  {
+    "id": "REF-F14",
+    "description": "Combined tuned past strength 1.5 + replay MALUS 0.25 (UI intensity 0.75, F2-R mid slider)",
+    "tags": ["19.19c", "19.19b", "REF-F", "combined-tuned"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true, "params": { "strength": 1.5 } },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS", "malusMultiplier": 0.25 } }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "F14-W1",
+        "input": {
+          "pastSelectionCount": 3,
+          "requiredCount": 5,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.15625,
+        "note": "past strength 1.5 × replay malus 0.25 (half of F13-W1 penalty)"
+      },
+      {
+        "ref": "F14-W2",
+        "input": {
+          "pastSelectionCount": 1,
+          "requiredCount": 2,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.1768,
+        "decimalPlaces": 4
+      },
+      {
+        "ref": "F14-W3",
+        "input": {
+          "pastSelectionCount": 0,
+          "requiredCount": 1,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.25,
+        "note": "replay-only slice — malusMultiplier 0.25"
+      }
+    ],
+    "probabilityAssertions": [
+      { "ref": "F14-P1", "source": "draw/golden/formulas/combined-tuned.json" }
+    ]
   }
 ]
