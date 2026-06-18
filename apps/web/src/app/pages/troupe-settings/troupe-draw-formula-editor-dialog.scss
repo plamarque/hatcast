@@ -1,0 +1,170 @@
+.editor-dialog__form {
+  display: grid;
+  gap: 0.75rem;
+  min-width: min(100%, 28rem);
+  padding-top: 0.25rem;
+}
+
+.editor-dialog__field {
+  width: 100%;
+}
+
+.editor-dialog__compact-criteria {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  border-top: 1px solid color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+}
+
+.editor-dialog__compact-row {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
+}
+
+.editor-dialog__compact-row:last-child {
+  border-bottom: none;
+}
+
+.editor-dialog__compact-row--off {
+  opacity: 0.72;
+}
+
+.editor-dialog__compact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.editor-dialog__compact-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.editor-dialog__compact-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  font-weight: 500;
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+.editor-dialog__details-toggle {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 68%, transparent);
+  flex-shrink: 0;
+}
+
+.editor-dialog__compact-slider,
+.editor-dialog__advanced-param {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(6rem, 1fr) auto;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+
+.editor-dialog__advanced-param {
+  margin-top: 0.35rem;
+}
+
+.editor-dialog__direction {
+  --mdc-chip-label-text-size: 0.75rem;
+  height: 1.5rem;
+}
+
+.editor-dialog__slider-label {
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 78%, transparent);
+}
+
+.editor-dialog__slider-label--advanced {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 62%, transparent);
+  font-size: 0.75rem;
+}
+
+.editor-dialog__slider-value {
+  min-width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+}
+
+.editor-dialog__factor-details {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.15rem;
+}
+
+.editor-dialog__effect-summary {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-on-surface) 10%, transparent);
+  color: var(--mat-sys-on-surface);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.editor-dialog__section-title {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.editor-dialog__section-title--soon {
+  margin-top: 0.5rem;
+}
+
+.editor-dialog__inline-error,
+.editor-dialog__footer-error {
+  margin: 0;
+  color: color-mix(in srgb, var(--mat-sys-error) 85%, var(--mat-sys-on-surface));
+  font-size: 0.8125rem;
+}
+
+.editor-dialog__soon-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.editor-dialog__soon-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 4%, transparent);
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+}
+
+.editor-dialog__soon-chip {
+  --mdc-chip-label-text-size: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .editor-dialog__compact-slider,
+  .editor-dialog__advanced-param {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-dialog__slider-value {
+    justify-self: end;
+  }
+
+  .editor-dialog__details-toggle {
+    min-height: 3rem;
+    min-width: 3rem;
+  }
+}

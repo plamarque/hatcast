@@ -92,6 +92,15 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
     },
+    {
+      name: 'chromium-19-19c',
+      testMatch: /recette-19-19c\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup-admin', 'setup-member'],
+    },
   ],
   webServer: isStagingTarget
     ? undefined

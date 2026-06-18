@@ -130,4 +130,26 @@ describe('TroupeSettings', () => {
     expect(snack.open).toHaveBeenCalledWith('Accès non autorisé', 'OK', { duration: 5000 })
     expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes', 'test-troupe'])
   })
+
+  it('activates formulas tab from deep link query param', async () => {
+    queryParamMap$.next(convertToParamMap({ tab: 'formulas' }))
+    const { fixture } = await setup()
+    await fixture.whenStable()
+    const instance = fixture.componentInstance as unknown as {
+      selectedTabIndex: () => number
+    }
+    expect(instance.selectedTabIndex()).toBe(1)
+    expect(fixture.nativeElement.textContent).toContain('Formules de tirage')
+  })
+
+  it('defaults to categories tab without query param', async () => {
+    queryParamMap$.next(convertToParamMap({}))
+    const { fixture } = await setup()
+    await fixture.whenStable()
+    const instance = fixture.componentInstance as unknown as {
+      selectedTabIndex: () => number
+    }
+    expect(instance.selectedTabIndex()).toBe(0)
+    expect(fixture.nativeElement.textContent).toContain('Les catégories séparent les stats')
+  })
 })

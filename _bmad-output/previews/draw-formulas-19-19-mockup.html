@@ -251,8 +251,114 @@
       padding: 0.5rem 0;
       min-height: 48px;
     }
+    .factor-row--block {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--on-surface) 6%, transparent);
+    }
+    .factor-row-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      width: 100%;
+    }
     .factor-text { flex: 1; min-width: 0; }
+    .factor-label-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
     .factor-label { font-size: 0.9rem; font-weight: 500; }
+    .dir-chip {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      cursor: default;
+    }
+    .dir-chip--neutral {
+      background: color-mix(in srgb, var(--on-surface) 12%, transparent);
+      color: var(--on-surface-variant);
+    }
+    .dir-chip--malus {
+      background: color-mix(in srgb, #ffb4ab 18%, var(--surface-container));
+      color: #ffb4ab;
+    }
+    .dir-chip--bonus {
+      background: color-mix(in srgb, #7dd3a0 16%, var(--surface-container));
+      color: #b8f0c8;
+    }
+    .factor-params {
+      margin: 0.45rem 0 0 0;
+      padding-left: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .param-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .param-row label {
+      font-size: 0.72rem;
+      color: var(--on-surface-variant);
+    }
+    .param-row input[type="number"],
+    .param-row select {
+      max-width: 100%;
+      padding: 0.45rem 0.55rem;
+      border-radius: 8px;
+      border: 1px solid var(--outline-variant);
+      background: color-mix(in srgb, var(--on-surface) 4%, transparent);
+      color: inherit;
+      font: inherit;
+      font-size: 0.85rem;
+    }
+    .param-hint {
+      font-size: 0.68rem;
+      color: color-mix(in srgb, var(--on-surface-variant) 85%, transparent);
+      line-height: 1.35;
+    }
+    .effect-summary {
+      margin-top: 0.35rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 8px;
+      background: var(--surface-container-low);
+      border: 1px solid color-mix(in srgb, var(--on-surface) 10%, transparent);
+      font-size: 0.8125rem;
+      line-height: 1.45;
+      color: var(--on-surface);
+    }
+    .effect-summary strong {
+      font-weight: 600;
+      color: var(--on-surface);
+    }
+    .param-scale {
+      font-size: 0.68rem;
+      color: var(--on-surface-variant);
+      margin-top: 0.1rem;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+    }
+    .slider-value {
+      font-size: 0.82rem;
+      font-weight: 600;
+      min-width: 2rem;
+      text-align: right;
+    }
     .factor-hint { font-size: 0.75rem; color: var(--on-surface-variant); line-height: 1.35; margin-top: 0.15rem; }
     .factor-mode { margin-top: 0.35rem; }
     .factor-mode select { max-width: 140px; font-size: 0.82rem; padding: 0.4rem 0.5rem; }
@@ -367,23 +473,180 @@
       line-height: 1.45;
     }
     .overlay-stack .dialog { margin-top: 0.5rem; }
+    .recipe-viz {
+      margin: 0.75rem 0 1rem;
+      padding: 0.75rem;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--on-surface) 4%, transparent);
+      border: 1px solid color-mix(in srgb, var(--on-surface) 8%, transparent);
+    }
+    .recipe-viz__title {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      margin: 0 0 0.65rem;
+    }
+    .recipe-viz__body {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+    .recipe-donut-wrap {
+      position: relative;
+      width: 108px;
+      height: 108px;
+      flex-shrink: 0;
+    }
+    .recipe-donut {
+      width: 108px;
+      height: 108px;
+      border-radius: 50%;
+      /* Fallback statique : 3 critères malus/bonus */
+      background: conic-gradient(
+        #e08a8a 0% 33%,
+        #c96a6a 33% 66%,
+        #7dd3a0 66% 100%
+      );
+    }
+    .recipe-donut-hole {
+      position: absolute;
+      inset: 22px;
+      border-radius: 50%;
+      background: var(--surface-container);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0.25rem;
+    }
+    .recipe-donut-hole strong {
+      font-size: 0.72rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .recipe-donut-hole span {
+      font-size: 0.62rem;
+      color: var(--on-surface-variant);
+      line-height: 1.25;
+    }
+    .recipe-legend {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      flex: 1;
+      min-width: 140px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .recipe-legend li {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      line-height: 1.3;
+    }
+    .recipe-legend__swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .recipe-legend__label { flex: 1; }
+    .recipe-legend li.is-off {
+      opacity: 0.45;
+    }
+    .recipe-legend li.is-off .recipe-legend__label {
+      text-decoration: line-through;
+      text-decoration-color: color-mix(in srgb, var(--on-surface-variant) 60%, transparent);
+    }
+    .recipe-legend__state {
+      font-size: 0.65rem;
+      color: var(--on-surface-variant);
+      margin-left: 0.15rem;
+    }
+    .recipe-legend__pct {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 2rem;
+      text-align: right;
+    }
+    .recipe-viz__disclaimer {
+      margin: 0.55rem 0 0;
+      font-size: 0.68rem;
+      line-height: 1.35;
+      color: var(--on-surface-variant);
+    }
+    .compact-criteria {
+      list-style: none;
+      margin: 0.75rem 0 0;
+      padding: 0;
+      border-top: 1px solid color-mix(in srgb, var(--on-surface) 8%, transparent);
+    }
+    .compact-row {
+      padding: 0.65rem 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--on-surface) 6%, transparent);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .compact-row:last-child { border-bottom: none; }
+    .compact-row--off { opacity: 0.65; }
+    .compact-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .compact-leading {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 0;
+      flex: 1;
+    }
+    .compact-expand {
+      font-size: 20px;
+      opacity: 0.65;
+    }
+    .compact-slider {
+      display: grid;
+      grid-template-columns: 4.5rem 1fr auto;
+      gap: 0.35rem 0.5rem;
+      align-items: center;
+    }
+    .compact-slider__label {
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+    }
+    .mock-note {
+      margin: 0.65rem 0 0;
+      font-size: 0.72rem;
+      color: var(--on-surface-variant);
+      line-height: 1.35;
+    }
     @media (min-width: 700px) {
       .layout--split { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
     }
   </style>
 </head>
 <body>
-  <h1>Formules de tirage — admin catalogue (Story 19.19)</h1>
+  <h1>Formules de tirage — admin catalogue (Story 19.19c)</h1>
   <p class="lead">
     Spec UX : <code>_bmad-output/planning-artifacts/ux-design-draw-formulas-19-19.md</code>
+    · Story <strong>19.19c</strong> (coefficients malus/bonus)
     · Route <code>/troupes/:slug/admin/parametres?tab=formulas</code>
   </p>
 
   <div class="nav-views" role="tablist" aria-label="Écrans mockup">
     <button type="button" class="active" data-view="f1">F1 — Liste</button>
-    <button type="button" data-view="f2">F2 — Éditeur</button>
+    <button type="button" data-view="f2">F2 — Éditeur coefficients</button>
     <button type="button" data-view="f3">F3 — Archiver</button>
-    <button type="button" data-view="f4">F4 — Erreur 409</button>
+    <button type="button" data-view="f4">F4 — Erreurs</button>
     <button type="button" data-view="all">Tous les écrans</button>
   </div>
 
@@ -398,7 +661,7 @@
           <div class="breadcrumb">← Les Improbots</div>
           <div class="page-title">Paramètres</div>
           <div class="page-subtitle">Paramètres troupe</div>
-          <p class="intro">Les formules définissent comment HatCast calcule les cotes et le tirage. Les politiques seront configurées ensuite.</p>
+          <p class="intro">Les formules définissent comment HatCast calcule les cotes et le tirage. Vous pouvez ajuster l'intensité de chaque critère. Les politiques seront configurées ensuite.</p>
           <div class="pill-tabs">
             <span class="pill-tab">Catégories</span>
             <span class="pill-tab pill-tab--active">Formules de tirage</span>
@@ -409,14 +672,14 @@
                 <span class="formula-name">V1 standard (système)</span>
                 <span class="chip chip--system">Système</span>
               </div>
-              <div class="formula-summary">Compartiment par catégorie · Participations passées</div>
+              <div class="formula-summary">Participations passées</div>
             </div>
             <div class="formula-row">
               <div class="formula-row-top">
                 <span class="formula-name">V1 + aspirations rôle</span>
                 <span class="chip chip--published">Publiée</span>
               </div>
-              <div class="formula-summary">Compartiment · Participations · Aspirations de rôle</div>
+              <div class="formula-summary">Participations passées · Aspirations de rôle</div>
               <div class="formula-actions">
                 <button type="button" class="icon-btn" aria-label="Modifier V1 + aspirations rôle"><span class="mat-icon">edit</span></button>
                 <button type="button" class="icon-btn" aria-label="Archiver V1 + aspirations rôle"><span class="mat-icon">delete</span></button>
@@ -427,7 +690,7 @@
                 <span class="formula-name">Match test</span>
                 <span class="chip chip--draft">Brouillon</span>
               </div>
-              <div class="formula-summary">Compartiment · Participations passées</div>
+              <div class="formula-summary">Participations passées</div>
               <div class="formula-actions">
                 <button type="button" class="icon-btn" aria-label="Modifier Match test"><span class="mat-icon">edit</span></button>
                 <button type="button" class="icon-btn" aria-label="Archiver Match test"><span class="mat-icon">delete</span></button>
@@ -441,8 +704,8 @@
 
     <!-- F2 -->
     <div class="panel" data-panel="f2">
-      <div class="screen-label">F2 — Dialog éditeur</div>
-      <div class="screen-hint">MatDialog · Enregistrer brouillon + Publier</div>
+      <div class="screen-label">F2 — Dialog éditeur (coefficients 19.19c)</div>
+      <div class="screen-hint">Composition + sliders compacts · détails repliables · scroll interne</div>
       <div class="dialog">
         <div class="dialog-title">Nouvelle formule <span class="mat-icon" style="opacity:0.6;font-size:20px">close</span></div>
         <div class="dialog-content">
@@ -454,39 +717,72 @@
             <label for="f-desc">Description (optionnel)</label>
             <textarea id="f-desc">Bonus pour les membres qui se proposent souvent.</textarea>
           </div>
-          <div class="section-title">Facteurs</div>
-          <div class="factor-row">
-            <div class="factor-text">
-              <div class="factor-label">Compartiment par catégorie</div>
-              <div class="factor-hint">Sépare l'historique et les stats par type de spectacle.</div>
-            </div>
-            <div class="toggle toggle--on toggle--locked" title="Toujours activé"></div>
-          </div>
-          <div class="factor-row">
-            <div class="factor-text">
-              <div class="factor-label">Participations passées</div>
-              <div class="factor-hint">Plus un·e membre a déjà joué ce rôle, plus sa cote baisse.</div>
-            </div>
-            <div class="toggle toggle--on"></div>
-          </div>
-          <div class="factor-row">
-            <div class="factor-text">
-              <div class="factor-label">Rejouer immédiatement</div>
-              <div class="factor-hint">Pénalise ou exclut les membres tirés au spectacle précédent.</div>
-              <div class="factor-mode">
-                <label for="f-mode" style="font-size:0.72rem">Mode</label>
-                <select id="f-mode"><option>Exclure</option><option>Malus</option></select>
+
+          <div class="recipe-viz" data-testid="draw-formula-profile-chart" role="img" aria-label="Composition de la formule">
+            <div class="recipe-viz__title">Composition de la formule</div>
+            <div class="recipe-viz__body">
+              <div class="recipe-donut-wrap">
+                <div class="recipe-donut" id="recipe-donut"></div>
+                <div class="recipe-donut-hole">
+                  <strong id="recipe-center-count">3 critères</strong>
+                  <span id="recipe-center-hint">2 actifs</span>
+                </div>
               </div>
+              <ul class="recipe-legend" id="recipe-legend" data-testid="draw-formula-profile-legend"></ul>
             </div>
-            <div class="toggle"></div>
+
+            <ul class="compact-criteria" aria-label="Réglages des critères">
+              <li class="compact-row" data-factor="past_participation">
+                <div class="compact-head">
+                  <div class="compact-leading">
+                    <div class="toggle toggle--on"></div>
+                    <div class="factor-label-row">
+                      <span class="factor-label">Participations passées</span>
+                      <span class="dir-chip dir-chip--malus">Malus</span>
+                    </div>
+                  </div>
+                  <span class="mat-icon compact-expand">expand_more</span>
+                </div>
+                <div class="compact-slider">
+                  <span class="compact-slider__label">Intensité</span>
+                  <input type="range" min="0" max="2" step="0.1" value="1" />
+                  <span class="slider-value">1,0</span>
+                </div>
+              </li>
+              <li class="compact-row" data-factor="immediate_replay">
+                <div class="compact-head">
+                  <div class="compact-leading">
+                    <div class="toggle toggle--on"></div>
+                    <div class="factor-label-row">
+                      <span class="factor-label">Rejouer immédiatement</span>
+                      <span class="dir-chip dir-chip--malus">Malus</span>
+                    </div>
+                  </div>
+                  <span class="mat-icon compact-expand">expand_more</span>
+                </div>
+                <div class="compact-slider">
+                  <span class="compact-slider__label">Intensité</span>
+                  <input type="range" min="0" max="1" step="0.05" value="0.75" />
+                  <span class="slider-value">0,75</span>
+                </div>
+              </li>
+              <li class="compact-row compact-row--off" data-factor="role_request">
+                <div class="compact-head">
+                  <div class="compact-leading">
+                    <div class="toggle"></div>
+                    <div class="factor-label-row">
+                      <span class="factor-label">Aspirations de rôle</span>
+                      <span class="dir-chip dir-chip--bonus">Bonus</span>
+                    </div>
+                  </div>
+                  <span class="mat-icon compact-expand">expand_more</span>
+                </div>
+              </li>
+            </ul>
           </div>
-          <div class="factor-row">
-            <div class="factor-text">
-              <div class="factor-label">Aspirations de rôle</div>
-              <div class="factor-hint">Bonus pour les membres qui se proposent souvent sans être tirés.</div>
-            </div>
-            <div class="toggle toggle--on"></div>
-          </div>
+
+          <p class="mock-note">Déplier un critère → explications chiffrées + paramètres avancés (ex. plafond aspirations).</p>
+
           <div class="section-title">Bientôt</div>
           <div class="soon-row"><span>Parité genre</span><span class="soon-badge">Bientôt</span></div>
           <div class="soon-row"><span>Bonus bénévole</span><span class="soon-badge">Bientôt</span></div>
@@ -524,27 +820,55 @@
 
     <!-- F4 -->
     <div class="panel" data-panel="f4">
-      <div class="screen-label">F4 — Erreur 409 (politique)</div>
-      <div class="screen-hint">Réponse API · formule référencée</div>
-      <div class="dialog">
-        <div class="dialog-title">Archivage impossible</div>
-        <div class="dialog-content">
-          <p class="warn-box">Cette formule est utilisée par une <strong>politique de tirage</strong>. Retire-la de la politique avant de l'archiver.</p>
-        </div>
-        <div class="dialog-actions">
-          <button type="button" class="btn-filled">Compris</button>
-        </div>
-      </div>
-      <div style="margin-top:1rem;max-width:320px">
-        <div class="screen-label" style="margin-top:0.5rem">Variante — erreur publish (400)</div>
-        <div class="dialog" style="margin-top:0.35rem">
-          <div class="dialog-title">Nouvelle formule</div>
-          <div class="dialog-content">
-            <div class="inline-error">Au moins un facteur doit être activé pour publier la formule.</div>
+      <div class="screen-label">F4 — Erreurs API</div>
+      <div class="screen-hint">409 politique · 400 publish · 400 REF-P param</div>
+      <div class="layout" style="gap:1.25rem">
+        <div>
+          <div class="screen-label" style="margin-top:0">409 — Archivage</div>
+          <div class="dialog">
+            <div class="dialog-title">Archivage impossible</div>
+            <div class="dialog-content">
+              <p class="warn-box">Cette formule est utilisée par une <strong>politique de tirage</strong>. Retire-la de la politique avant de l'archiver.</p>
+            </div>
+            <div class="dialog-actions">
+              <button type="button" class="btn-filled">Compris</button>
+            </div>
           </div>
-          <div class="dialog-actions">
-            <button type="button" class="btn-text">Annuler</button>
-            <button type="button" class="btn-filled">Publier</button>
+        </div>
+        <div>
+          <div class="screen-label" style="margin-top:0">400 — Publish</div>
+          <div class="dialog">
+            <div class="dialog-title">Nouvelle formule</div>
+            <div class="dialog-content">
+              <div class="inline-error">Au moins un facteur doit être activé pour publier la formule.</div>
+            </div>
+            <div class="dialog-actions">
+              <button type="button" class="btn-text">Annuler</button>
+              <button type="button" class="btn-filled">Publier</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="screen-label" style="margin-top:0">400 — REF-P (coefficient)</div>
+          <div class="dialog">
+            <div class="dialog-title">Nouvelle formule</div>
+            <div class="dialog-content">
+              <div class="factor-row factor-row--block" style="border:none;padding:0">
+                <div class="factor-label-row"><span class="factor-label">Participations passées</span><span class="dir-chip dir-chip--malus">Malus</span></div>
+                <div class="param-row" style="margin-top:0.35rem">
+                  <label>Intensité</label>
+                  <div class="slider-row">
+                    <input type="range" min="0" max="2" step="0.1" value="2.5" style="accent-color:var(--error)" aria-invalid="true" />
+                    <span class="slider-value">2.5</span>
+                  </div>
+                  <div class="inline-error" style="margin:0.35rem 0 0">strength doit être entre 0.0 et 2.0</div>
+                </div>
+              </div>
+            </div>
+            <div class="dialog-actions">
+              <button type="button" class="btn-text">Annuler</button>
+              <button type="button" class="btn-stroked">Enregistrer brouillon</button>
+            </div>
           </div>
         </div>
       </div>
@@ -552,9 +876,10 @@
   </div>
 
   <p class="note">
-    <strong>Handoff :</strong> Onglets capsule = mixin <code>_hatcast-pill-tab-bar.scss</code> (17.40).
-    Toggles réels = <code>mat-slide-toggle</code>. Pas de preview % en MVP.
-    Canvas interactif : ouvrir <code>draw-formulas-19-19-preview.canvas.tsx</code> dans Cursor.
+    <strong>Handoff 19.19c :</strong> Onglets capsule = mixin <code>_hatcast-pill-tab-bar.scss</code> (17.40).
+    Toggles = <code>mat-slide-toggle</code> ; badges = <code>mat-chip</code> ; params numériques = <code>mat-slider</code> + valeur affichée (pas de input number) ; mode = <code>mat-select</code>.
+    Pas de preview % en MVP. Catalogue TS = <code>draw-factor-catalog.ts</code>.
+    Canvas : <code>draw-formulas-19-19-preview.canvas.tsx</code>.
   </p>
 
   <script>
@@ -578,6 +903,230 @@
     }
 
     buttons.forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
+
+    document.querySelectorAll('input[type="range"]').forEach((slider) => {
+      const id = slider.id;
+      const valueEl = id
+        ? document.querySelector(`.slider-value[data-for="${id}"]`)
+        : slider.parentElement?.querySelector('.slider-value');
+      if (!valueEl) return;
+      const decimals = Number(slider.dataset.decimals ?? '1');
+      const sync = () => {
+        valueEl.textContent = Number(slider.value).toFixed(decimals);
+        updateRecipeProfile();
+        updateEffectSummaries();
+      };
+      slider.addEventListener('input', sync);
+      sync();
+    });
+
+    const FACTOR_COLORS = {
+      past_participation: '#e08a8a',
+      immediate_replay: '#c96a6a',
+      role_request: '#7dd3a0',
+    };
+    const FACTOR_LABELS = {
+      past_participation: 'Participations',
+      immediate_replay: 'Rejouer',
+      role_request: 'Aspirations',
+    };
+
+    const FACTOR_ORDER = ['past_participation', 'immediate_replay', 'role_request'];
+
+    function factorEnabled(row) {
+      if (!row) return false;
+      const toggle = row.querySelector('.toggle');
+      return toggle && toggle.classList.contains('toggle--on');
+    }
+
+    function visualScore(factorId, row) {
+      if (!factorEnabled(row)) return 0;
+      if (factorId === 'past_participation') {
+        const slider = row.querySelector('input[type="range"]');
+        const v = Number(slider?.value ?? 1);
+        return v / 2;
+      }
+      if (factorId === 'immediate_replay') {
+        const slider = row.querySelector('input[type="range"]');
+        const d = Number(slider?.value ?? 0.75);
+        return d;
+      }
+      if (factorId === 'role_request') {
+        const slider = row.querySelector('input[type="range"]');
+        const b = Number(slider?.value ?? 1);
+        return b / 5;
+      }
+      return 0;
+    }
+
+    function fmtNum(n, decimals) {
+      return Number(n).toFixed(decimals).replace('.', ',');
+    }
+
+    function pastParticipationFactor(count, strength) {
+      return Math.pow(1 / (1 + count), strength);
+    }
+
+    function updateEffectSummaries() {
+      const pastRow = document.querySelector('[data-factor="past_participation"]');
+      const replayRow = document.querySelector('[data-factor="immediate_replay"]');
+      const roleRow = document.querySelector('[data-factor="role_request"]');
+      const effectPast = document.getElementById('effect-past');
+      const effectReplay = document.getElementById('effect-replay');
+      const effectRole = document.getElementById('effect-role');
+
+      if (effectPast) {
+        if (!factorEnabled(pastRow)) {
+          effectPast.style.display = 'none';
+        } else {
+          effectPast.style.display = 'block';
+          const s = Number(document.getElementById('f-strength')?.value ?? 1);
+          const f1 = pastParticipationFactor(1, s);
+          const f3 = pastParticipationFactor(3, s);
+          effectPast.innerHTML =
+            `Chaque participation passée de plus <strong>réduit</strong> la cote. Intensité <strong>${fmtNum(s, 1)}</strong> : ` +
+            `1 participation → cote <strong>× ${fmtNum(f1, 2)}</strong> · ` +
+            `3 participations → cote <strong>× ${fmtNum(f3, 2)}</strong>.`;
+        }
+      }
+
+      if (effectReplay) {
+        if (!factorEnabled(replayRow)) {
+          effectReplay.style.display = 'none';
+        } else {
+          effectReplay.style.display = 'block';
+          const d = Number(document.getElementById('f-replay-intensity')?.value ?? 0.75);
+          if (d >= 1) {
+            effectReplay.innerHTML =
+              `Si rejeu au spectacle précédent (même catégorie) : ` +
+              `<strong>exclue du tirage</strong> (cote nulle).`;
+          } else if (d <= 0) {
+            effectReplay.innerHTML =
+              `Si rejeu immédiat : <strong>aucune pénalité</strong> (cote × 1).`;
+          } else {
+            const m = 1 - d;
+            effectReplay.innerHTML =
+              `Si rejeu immédiat : cote <strong>× ${fmtNum(m, 2)}</strong>. ` +
+              `Intensité du malus <strong>${fmtNum(d, 2)}</strong>.`;
+          }
+        }
+      }
+
+      if (effectRole) {
+        if (!factorEnabled(roleRow)) {
+          effectRole.style.display = 'none';
+        } else {
+          effectRole.style.display = 'block';
+          const b = Number(document.getElementById('f-bonus')?.value ?? 1);
+          const cap = Number(document.getElementById('f-cap')?.value ?? 10);
+          const ex1 = Math.min(1 + b, cap);
+          const ex3 = Math.min(1 + 3 * b, cap);
+          effectRole.innerHTML =
+            `Chaque <strong>demande passée</strong> non satisfaite augmente la cote : ` +
+            `1 demande → <strong>× ${fmtNum(ex1, 1)}</strong> · ` +
+            `3 demandes → <strong>× ${fmtNum(ex3, 1)}</strong> ` +
+            `(bonus <strong>${fmtNum(b, 1)}</strong> par demande). Plafond total : <strong>× ${fmtNum(cap, 1)}</strong>.`;
+        }
+      }
+    }
+
+    function updateRecipeProfile() {
+      const donut = document.getElementById('recipe-donut');
+      const legend = document.getElementById('recipe-legend');
+      const centerCount = document.getElementById('recipe-center-count');
+      const centerHint = document.getElementById('recipe-center-hint');
+      if (!donut || !legend) return;
+
+      const segments = FACTOR_ORDER.map((id) => {
+        const row = document.querySelector(`[data-factor="${id}"]`);
+        return {
+          id,
+          enabled: factorEnabled(row),
+          score: visualScore(id, row),
+        };
+      });
+
+      const enabledEntries = segments.filter((s) => s.enabled);
+      const activeTotal = enabledEntries.reduce((a, s) => a + s.score, 0);
+      let allocated = 0;
+      const percents = segments.map((seg) => {
+        if (!seg.enabled || activeTotal <= 0) return 0;
+        const enabledIndex = enabledEntries.findIndex((e) => e.id === seg.id);
+        if (enabledIndex === enabledEntries.length - 1) {
+          return 100 - allocated;
+        }
+        const pct = Math.round((seg.score / activeTotal) * 100);
+        allocated += pct;
+        return pct;
+      });
+
+      const chartSegments = segments.filter((seg, i) => seg.enabled && percents[i] > 0);
+      let acc = 0;
+      const stops = [];
+      chartSegments.forEach((seg) => {
+        const i = segments.findIndex((s) => s.id === seg.id);
+        const pct = percents[i];
+        const start = acc;
+        acc += pct;
+        stops.push(`${FACTOR_COLORS[seg.id]} ${start}% ${acc}%`);
+      });
+
+      donut.style.background =
+        stops.length > 0
+          ? `conic-gradient(${stops.join(', ')})`
+          : 'color-mix(in srgb, #49454f 12%, transparent)';
+
+      legend.innerHTML = segments
+        .map((seg, i) => {
+          const offClass = seg.enabled ? '' : ' class="is-off"';
+          const state = seg.enabled ? '' : '<span class="recipe-legend__state">off</span>';
+          const pctCell = seg.enabled
+            ? `<span class="recipe-legend__pct">${percents[i]} %</span>`
+            : '<span class="recipe-legend__pct"><span class="recipe-legend__state">off</span></span>';
+          return (
+            `<li${offClass}>` +
+            `<span class="recipe-legend__swatch" style="background:${FACTOR_COLORS[seg.id]}"></span>` +
+            `<span class="recipe-legend__label">${FACTOR_LABELS[seg.id]}${state}</span>` +
+            pctCell +
+            `</li>`
+          );
+        })
+        .join('');
+
+      centerCount.textContent = '3 critères';
+      const activeCount = enabledEntries.length;
+      centerHint.textContent = `${activeCount} actif${activeCount > 1 ? 's' : ''}`;
+
+      const viz = document.querySelector('.recipe-viz');
+      if (viz) {
+        const activeParts = chartSegments
+          .map((seg) => {
+            const i = segments.findIndex((s) => s.id === seg.id);
+            return `${FACTOR_LABELS[seg.id]} ${percents[i]} %`;
+          })
+          .join(', ');
+        viz.setAttribute(
+          'aria-label',
+          activeParts
+            ? `Composition de la formule : ${activeParts}`
+            : 'Composition de la formule : aucun critère actif avec influence',
+        );
+      }
+    }
+
+    document.querySelectorAll('[data-factor] .toggle:not(.toggle--locked)').forEach((toggle) => {
+      toggle.style.cursor = 'pointer';
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('toggle--on');
+        const row = toggle.closest('[data-factor]');
+        if (row) row.dataset.enabled = toggle.classList.contains('toggle--on') ? 'true' : 'false';
+        updateRecipeProfile();
+        updateEffectSummaries();
+      });
+    });
+
+    updateRecipeProfile();
+    updateEffectSummaries();
   </script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 package com.hatcast.api.draw
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.MigrationVersion
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -194,6 +196,65 @@ class DrawFormulaMigrationTest {
                             names.add(rows.getString("index_name").lowercase())
                         }
                         assertTrue(names.any { it.contains("system_troupe") })
+                    }
+                }
+        }
+    }
+
+    @Test
+    fun `V66 system factor_config deserializes as JSON array on H2`() {
+        val databaseName = "v66_draw_factor_json_${UUID.randomUUID().toString().replace("-", "")}"
+        val url =
+            "jdbc:h2:mem:$databaseName;" +
+                "MODE=PostgreSQL;" +
+                "DATABASE_TO_LOWER=TRUE;" +
+                "DEFAULT_NULL_ORDERING=HIGH;" +
+                "DB_CLOSE_DELAY=-1;" +
+                "INIT=CREATE DOMAIN IF NOT EXISTS TIMESTAMPTZ AS TIMESTAMP WITH TIME ZONE"
+
+        val troupeId = UUID.fromString("22222222-2222-4222-8222-222222222221")
+        flyway(url, target = MigrationVersion.fromVersion("63")).migrate()
+
+        DriverManager.getConnection(url, "sa", "").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeUpdate(
+                    """
+                    INSERT INTO troupes (id, name, slug, created_at)
+                    VALUES (CAST('$troupeId' AS uuid), 'Troupe A', 'troupe-a-draw', TIMESTAMP '2026-01-01 00:00:00')
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        flyway(url).migrate()
+
+        DriverManager.getConnection(url, "sa", "").use { connection ->
+            connection
+                .prepareStatement(
+                    """
+                    SELECT factor_config
+                    FROM draw_formulas
+                    WHERE troupe_id = CAST(? AS uuid) AND is_system = TRUE
+                    """.trimIndent(),
+                ).use { statement ->
+                    statement.setString(1, troupeId.toString())
+                    statement.executeQuery().use { rows ->
+                        rows.next()
+                        val rawObject = rows.getObject("factor_config")
+                        val factorConfig = rows.getString("factor_config")
+                        assertTrue(
+                            rawObject != null,
+                            "factor_config raw object was null; string=$factorConfig",
+                        )
+                        val jsonText =
+                            when (rawObject) {
+                                is String -> rawObject
+                                else -> factorConfig
+                            }
+                        assertTrue(jsonText.trimStart().startsWith("["), "expected JSON array, got: $jsonText")
+                        val parsed =
+                            ObjectMapper().readValue<List<Map<String, Any>>>(jsonText)
+                        assertEquals("equity_tag", parsed[0]["factorId"])
                     }
                 }
         }
