@@ -48,6 +48,7 @@ Le PRD et les epics imposent **Angular Material en première intention**, le **t
 | [`_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md`](../../../_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md) | Hub troupe + chrome détail spectacle ED1–ED5 (breadcrumb retiré, chevron retour) |
 | [`_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md`](../../../_bmad-output/planning-artifacts/ux-design-pill-tab-bar.md) | Barre d’onglets capsule M3 — coque + pastille active ; mixin `_hatcast-pill-tab-bar.scss` (2026-06-09) |
 | [`_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) | Détail cote par personne — waterfall deltas, barre pool, pairs (story **19.7**) |
+| [`_bmad-output/planning-artifacts/ux-design-orga-formula-choice-19-21.md`](../../../_bmad-output/planning-artifacts/ux-design-orga-formula-choice-19-21.md) | Formule de tirage orga — menu overflow ⋮ Équipe, tirage immédiat (story **19.21**, PO 2026-06-19) |
 | [`_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md`](../../../_bmad-output/planning-artifacts/ux-design-role-toggle-chips.md) | Sélection multi-rôles — `RoleToggleChipSet` (`mat-chip` + `[highlighted]`), Préférences compte |
 | [`_bmad-output/planning-artifacts/ux-design-dialog-patterns.md`](../../../_bmad-output/planning-artifacts/ux-design-dialog-patterns.md) | Fermeture modales — taxonomie M3, libellés Annuler/Fermer, anti double-affordance |
 

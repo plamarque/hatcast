@@ -1,0 +1,336 @@
+[
+  {
+    "id": "REF-V01",
+    "description": "Unknown factorId in factorConfig → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.17", "REF-V"],
+    "specRef": "draw-formulas-policies-spec.md § Validation matrix",
+    "input": {
+      "name": "Invalid factor",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "unknown_factor", "enabled": true }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V02",
+    "description": "equity_tag missing or enabled:false → reject formula save/publish",
+    "function": "formulaSave",
+    "tags": ["19.17", "REF-V"],
+    "input": {
+      "name": "No equity tag",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "past_participation", "enabled": true }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V02b",
+    "description": "equity_tag enabled:false → reject formula publish",
+    "function": "formulaPublish",
+    "tags": ["19.17", "REF-V"],
+    "parentRef": "REF-V02",
+    "input": {
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": false },
+        { "factorId": "past_participation", "enabled": true }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V03",
+    "description": "factorConfig empty or all enabled:false → reject formula publish",
+    "function": "formulaPublish",
+    "tags": ["19.17", "REF-V"],
+    "input": {
+      "name": "Empty pipeline",
+      "status": "PUBLISHED",
+      "factorConfig": []
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V03b",
+    "description": "All factors disabled → reject publish",
+    "function": "formulaPublish",
+    "tags": ["19.17", "REF-V"],
+    "parentRef": "REF-V03",
+    "input": {
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": false },
+        { "factorId": "past_participation", "enabled": false }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V04",
+    "description": "Enabled factor not implemented → reject publish ; draft disabled reserved allowed",
+    "function": "formulaPublish",
+    "tags": ["19.17", "REF-V"],
+    "input": {
+      "name": "Gender parity enabled",
+      "status": "PUBLISHED",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "gender_parity", "enabled": true }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V04b",
+    "description": "Draft with gender_parity disabled → allowed save",
+    "function": "formulaSave",
+    "tags": ["19.17", "REF-V"],
+    "parentRef": "REF-V04",
+    "input": {
+      "name": "Parity reserved draft",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "gender_parity", "enabled": false }
+      ]
+    },
+    "expected": { "rejected": false, "httpStatus": 201 }
+  },
+  {
+    "id": "REF-V05",
+    "description": "Unknown category slug in categoryRules → reject policy save",
+    "function": "policySave",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "scope": "TROUPE",
+      "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f1"] },
+      "categoryRules": [
+        { "category": "unknown_slug", "mode": "MANDATORY", "mandatoryFormulaId": "f1" }
+      ],
+      "glossaryCategories": ["match", "cabaret"]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V06",
+    "description": "Duplicate category in categoryRules → reject policy save",
+    "function": "policySave",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "scope": "TROUPE",
+      "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f1"] },
+      "categoryRules": [
+        { "category": "match", "mode": "MANDATORY", "mandatoryFormulaId": "f1" },
+        { "category": "match", "mode": "CHOICE", "allowedFormulaIds": ["f2"] }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V07",
+    "description": "CHOICE with empty allowedFormulaIds → reject policy save",
+    "function": "policySave",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": [] },
+      "categoryRules": []
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V08",
+    "description": "Duplicate UUID in allowedFormulaIds → reject policy save",
+    "function": "policySave",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f1", "f1"] },
+      "categoryRules": []
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V09",
+    "description": "MANDATORY with missing mandatoryFormulaId → reject policy save",
+    "function": "policySave",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "defaultRule": { "mode": "MANDATORY" },
+      "categoryRules": []
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V10",
+    "description": "Formula from another troupe → reject policy save",
+    "function": "policySave",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "defaultRule": { "mode": "MANDATORY", "mandatoryFormulaId": "foreign-troupe-formula-id" },
+      "categoryRules": [],
+      "formulaTroupeId": "other-troupe"
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V11",
+    "description": "Reference to DRAFT formula → reject policy save",
+    "function": "policySave",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "defaultRule": { "mode": "MANDATORY", "mandatoryFormulaId": "f-draft" },
+      "categoryRules": [],
+      "formulaStatuses": { "f-draft": "DRAFT" }
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V12",
+    "description": "ARCHIVED formula in active policy → reject policy save",
+    "function": "policySave",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f-archived"] },
+      "categoryRules": [],
+      "formulaStatuses": { "f-archived": "ARCHIVED" }
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-V13",
+    "description": "Formula id not in allowed set → reject draw request",
+    "function": "compositionDraw",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "resolvedRule": { "mode": "CHOICE", "allowedFormulaIds": ["f1", "f2"] },
+      "requestFormulaId": "f-not-allowed"
+    },
+    "expected": { "rejected": true, "httpStatus": 403, "note": "400 vs 403 — OpenAPI 19.18" }
+  },
+  {
+    "id": "REF-V14",
+    "description": "Category slug deleted from glossary after policy saved → fallback defaultRule at draw",
+    "function": "drawRuntime",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "savedPolicy": {
+        "defaultRule": { "mode": "CHOICE", "allowedFormulaIds": ["f-default"] },
+        "categoryRules": [
+          { "category": "removed-cat", "mode": "MANDATORY", "mandatoryFormulaId": "f-match" }
+        ]
+      },
+      "event": { "category": "removed-cat" },
+      "glossaryCategories": []
+    },
+    "expected": { "rejected": false, "fallbackTo": "defaultRule", "effectiveFormulaFromDefault": true }
+  },
+  {
+    "id": "REF-V15",
+    "description": "Resolved formula ARCHIVED/deleted at draw → fallback cascade to system V1",
+    "function": "drawRuntime",
+    "tags": ["19.18", "REF-V"],
+    "input": {
+      "resolvedFormulaId": "f-gone",
+      "formulaStatusAtDraw": "ARCHIVED",
+      "allowedFormulaIds": ["f-gone", "f-alt"]
+    },
+    "expected": { "rejected": false, "fallbackCascade": true, "finalFormulaId": "system-v1" }
+  },
+  {
+    "id": "REF-P01",
+    "description": "Unknown param key on enabled factor → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Unknown param",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true, "params": { "foo": 1.0 } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-P02",
+    "description": "maxBonusMultiplier out of range → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Role request cap invalid",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "role_request", "enabled": true, "params": { "maxBonusMultiplier": 25.0 } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-P03",
+    "description": "malusMultiplier with EXCLUDE mode → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Replay malus with exclude",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "EXCLUDE", "malusMultiplier": 0.5 } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-P04",
+    "description": "Enabled factors without params object → accept formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Default params implicit",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "role_request", "enabled": true }
+      ]
+    },
+    "expected": { "rejected": false, "httpStatus": 201 }
+  },
+  {
+    "id": "REF-P05",
+    "description": "strength out of range → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Past strength invalid",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true, "params": { "strength": 3.0 } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  },
+  {
+    "id": "REF-P06",
+    "description": "immediate_replay mode OFF → reject formula save",
+    "function": "formulaSave",
+    "tags": ["19.19b", "REF-P"],
+    "input": {
+      "name": "Replay OFF rejected",
+      "status": "DRAFT",
+      "factorConfig": [
+        { "factorId": "equity_tag", "enabled": true },
+        { "factorId": "past_participation", "enabled": true },
+        { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "OFF" } }
+      ]
+    },
+    "expected": { "rejected": true, "httpStatus": 400 }
+  }
+]

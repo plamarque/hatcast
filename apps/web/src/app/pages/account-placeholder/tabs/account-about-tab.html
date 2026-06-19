@@ -12,9 +12,22 @@
     />
     <div class="account-page__about-brand-text">
       <p class="account-page__about-app-name">HatCast</p>
-      <p class="account-page__about-version" data-testid="account-app-version">
+      <p
+        class="account-page__about-version"
+        data-testid="account-app-version"
+        [attr.aria-describedby]="buildMetaLine() ? 'account-app-build-meta' : null"
+      >
         Version {{ version() }}
       </p>
+      @if (buildMetaLine(); as metaLine) {
+        <p
+          id="account-app-build-meta"
+          class="account-page__about-build-meta"
+          data-testid="account-app-build-meta"
+        >
+          {{ metaLine }}
+        </p>
+      }
     </div>
   </div>
 

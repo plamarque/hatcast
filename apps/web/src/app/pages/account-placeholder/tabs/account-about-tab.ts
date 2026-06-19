@@ -1,9 +1,9 @@
-import { Component, inject, ViewEncapsulation } from '@angular/core'
+import { Component, computed, inject, ViewEncapsulation } from '@angular/core'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
-import { AppVersionService } from '../../../core/app/app-version.service'
+import { AppVersionService, formatBuildMetaLine } from '../../../core/app/app-version.service'
 import {
   ManualUpdateCheckResult,
   PwaUpdateService,
@@ -35,6 +35,7 @@ export class AccountAboutTab {
   private readonly snack = inject(MatSnackBar)
 
   protected readonly version = this.appVersion.version
+  protected readonly buildMetaLine = computed(() => formatBuildMetaLine(this.appVersion.buildMeta()))
   protected readonly checkingUpdates = this.pwaUpdate.checking
   protected readonly manualCheckAvailable = () => this.pwaUpdate.isManualCheckAvailable
 

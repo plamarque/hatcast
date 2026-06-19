@@ -45,4 +45,4 @@ Spec UX as-shipped : [`ux-design-factor-breakdown-19-7.md`](../../_bmad-output/p
 
 ## Hors périmètre actuel
 
-Participations passées = seul facteur actif. Parité, formules personnalisées, comparateur deux colonnes, liste « devant toi » avec navigation pair : à venir.
+Participations passées = seul facteur actif en production (`DrawWeightPipelines.DEFAULT`). **Formules et politiques de tirage personnalisables** (Wave D — catalogue admin, politique troupe/saison, choix de formule au tirage) sont **documentées** ([draw-formulas-policies-spec.md](../technical/draw-formulas-policies-spec.md)) ; les **coefficients par facteur** (intensité malus/bonus) seront réglables par l’admin (**19.19c**) après spécification (**19.19a**) et moteur (**19.19b**). Parité genre, comparateur deux colonnes, liste « devant toi » avec navigation pair : à venir.

@@ -1,0 +1,371 @@
+[
+  {
+    "id": "REF-F01",
+    "description": "Formule système V1 — equity_tag + past_participation (équivalent DrawWeightPipelines.DEFAULT)",
+    "tags": ["19.16", "19.17", "REF-F", "system-v1"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true }
+    ],
+    "pipelineRef": "DrawWeightPipelines.DEFAULT",
+    "weightAssertions": [
+      {
+        "ref": "REF-W1",
+        "source": "draw/golden/weights.json",
+        "input": { "pastSelectionCount": 0, "requiredCount": 5 },
+        "expectedWeight": 5.0
+      },
+      {
+        "ref": "REF-W2",
+        "source": "draw/golden/weights.json",
+        "input": { "pastSelectionCount": 3, "requiredCount": 5 },
+        "expectedWeight": 1.25
+      },
+      {
+        "ref": "REF-W3",
+        "source": "draw/golden/weights.json",
+        "input": { "pastSelectionCount": 2, "requiredCount": 2 },
+        "expectedWeight": 0.6667,
+        "decimalPlaces": 4
+      }
+    ],
+    "probabilityAssertions": [
+      {
+        "ref": "REF-P4",
+        "source": "draw/golden/probabilities.json",
+        "note": "past {A:2, B:0}, required=1 → A=25%, B=75%"
+      }
+    ],
+    "orchestrationInvariant": {
+      "ref": "REF-O7",
+      "source": "draw/golden/orchestration.json",
+      "note": "step % = Dispos summary avec pipeline DEFAULT"
+    }
+  },
+  {
+    "id": "REF-F02",
+    "description": "Catalogue troupe « V1 standard » — même recette que REF-F01 (seed 19.16)",
+    "tags": ["19.16", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true }
+    ],
+    "equivalentRef": "REF-F01",
+    "catalogueLabel": "V1 standard",
+    "weightAssertions": [
+      { "ref": "REF-W2", "source": "draw/golden/weights.json", "sameAs": "REF-F01" }
+    ]
+  },
+  {
+    "id": "REF-F03",
+    "description": "equity_tag seul — past_participation désactivé (poids base = requiredCount)",
+    "tags": ["19.17", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": false }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "REF-W1",
+        "source": "draw/golden/weights.json",
+        "input": { "pastSelectionCount": 3, "requiredCount": 5 },
+        "expectedWeight": 5.0,
+        "note": "past ignoré — poids = requiredCount uniquement"
+      }
+    ],
+    "probabilityAssertions": [
+      {
+        "ref": "REF-P1",
+        "source": "draw/golden/probabilities.json",
+        "note": "3 candidats equal past → chances égales sans malus participation"
+      }
+    ]
+  },
+  {
+    "id": "REF-F04",
+    "description": "V1 + immediate_replay EXCLUDE",
+    "tags": ["19.17", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "EXCLUDE" } }
+    ],
+    "pipelineRef": "DrawWeightPipelines.withImmediateReplay(EXCLUDE)",
+    "probabilityAssertions": [
+      {
+        "ref": "IR-EX1",
+        "source": "draw/golden/immediate-replay/exclude-malus.json",
+        "note": "veteran rejoué immédiat → 0%, fresh → 100%"
+      }
+    ]
+  },
+  {
+    "id": "REF-F05",
+    "description": "V1 + immediate_replay MALUS",
+    "tags": ["19.17", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS" } }
+    ],
+    "pipelineRef": "DrawWeightPipelines.withImmediateReplay(MALUS)",
+    "probabilityAssertions": [
+      {
+        "ref": "IR-ML1",
+        "source": "draw/golden/immediate-replay/exclude-malus.json",
+        "note": "A=80%, B=20% — même vecteur que DrawImmediateReplayGoldenTest"
+      }
+    ]
+  },
+  {
+    "id": "REF-F06",
+    "description": "V1 + role_request (aspirations rôle)",
+    "tags": ["19.17", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "role_request", "enabled": true }
+    ],
+    "pipelineRef": "DrawWeightPipelines.withRoleRequest()",
+    "probabilityAssertions": [
+      {
+        "ref": "RR-BOUBOU",
+        "source": "draw/golden/role-request/bonus.json",
+        "note": "n=7 DJ → B=89%, P=11%"
+      },
+      {
+        "ref": "RR-N1",
+        "source": "draw/golden/role-request/bonus.json",
+        "note": "n=1 → A=67%, B=33%"
+      }
+    ]
+  },
+  {
+    "id": "REF-F07",
+    "description": "past_participation + immediate_replay EXCLUDE (sans role_request)",
+    "tags": ["19.17", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "EXCLUDE" } }
+    ],
+    "probabilityAssertions": [
+      {
+        "ref": "REF-P4",
+        "source": "draw/golden/probabilities.json",
+        "note": "baseline past malus — combiné avec IR-EX1 quand replay déclenché"
+      },
+      {
+        "ref": "IR-EX1",
+        "source": "draw/golden/immediate-replay/exclude-malus.json",
+        "note": "exclusion prime sur candidat replay"
+      }
+    ]
+  },
+  {
+    "id": "REF-F08",
+    "description": "Stack MVP complet — equity + past + replay MALUS + role_request",
+    "tags": ["19.17", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS" } },
+      { "factorId": "role_request", "enabled": true }
+    ],
+    "catalogueLabel": "V1 + replay malus + aspirations",
+    "probabilityAssertions": [
+      {
+        "ref": "RR-BOUBOU",
+        "source": "draw/golden/role-request/bonus.json",
+        "note": "ordre pipeline : base × past × replay × role_request — valeurs à figer au runner 19.17"
+      }
+    ],
+    "implementationNote": "Runner calcule expected via pipeline assembly ; ne pas inventer % ici — cross-check RR-BOUBOU + IR-ML1 ordre"
+  },
+  {
+    "id": "REF-F09",
+    "description": "past_participation strength=1.5 — tuned malus weights",
+    "tags": ["19.19b", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true, "params": { "strength": 1.5 } }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "REF-W2",
+        "input": { "pastSelectionCount": 3, "requiredCount": 5 },
+        "expectedWeight": 0.625
+      },
+      {
+        "ref": "REF-W3",
+        "input": { "pastSelectionCount": 2, "requiredCount": 2 },
+        "expectedWeight": 0.3849,
+        "decimalPlaces": 4
+      }
+    ]
+  },
+  {
+    "id": "REF-F10",
+    "description": "role_request tuned bonusPerUnfulfilled and maxBonusMultiplier",
+    "tags": ["19.19b", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "role_request", "enabled": true, "params": { "bonusPerUnfulfilled": 0.5, "maxBonusMultiplier": 5.0 } }
+    ],
+    "probabilityAssertions": [
+      {
+        "ref": "RR-BOUBOU-TUNED",
+        "source": "draw/golden/role-request/bonus-tuned.json"
+      },
+      {
+        "ref": "RR-N1-TUNED",
+        "source": "draw/golden/role-request/bonus-tuned.json"
+      }
+    ]
+  },
+  {
+    "id": "REF-F11",
+    "description": "immediate_replay MALUS with malusMultiplier=0.5",
+    "tags": ["19.19b", "REF-F"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS", "malusMultiplier": 0.5 } }
+    ],
+    "probabilityAssertions": [
+      {
+        "ref": "IR-ML1-TUNED",
+        "source": "draw/golden/immediate-replay/exclude-malus-tuned.json"
+      }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "IR-W2-TUNED",
+        "source": "draw/golden/immediate-replay/exclude-malus-tuned.json",
+        "input": { "pastSelectionCount": 0, "requiredCount": 1, "playedSameRoleOnImmediatePredecessor": true },
+        "expectedWeight": 0.5
+      }
+    ]
+  },
+  {
+    "id": "REF-F12",
+    "description": "Demo 1 admin recipe — past strength 1.5 + replay MALUS 0.5 + role_request tuned (combined)",
+    "tags": ["19.19c", "19.19b", "REF-F", "combined-tuned"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true, "params": { "strength": 1.5 } },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS", "malusMultiplier": 0.5 } },
+      { "factorId": "role_request", "enabled": true, "params": { "bonusPerUnfulfilled": 0.5, "maxBonusMultiplier": 5.0 } }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "REF-W2",
+        "input": { "pastSelectionCount": 3, "requiredCount": 5 },
+        "expectedWeight": 0.625,
+        "note": "past-only slice — same as REF-F09"
+      },
+      {
+        "ref": "F12-W2",
+        "input": {
+          "pastSelectionCount": 3,
+          "requiredCount": 5,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.3125,
+        "note": "past strength 1.5 × replay malus 0.5"
+      },
+      {
+        "ref": "F12-W3",
+        "input": {
+          "pastSelectionCount": 1,
+          "requiredCount": 2,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.3536,
+        "decimalPlaces": 4
+      }
+    ],
+    "probabilityAssertions": [
+      { "ref": "F12-P1", "source": "draw/golden/formulas/combined-tuned.json" },
+      { "ref": "F12-P2", "source": "draw/golden/formulas/combined-tuned.json" },
+      { "ref": "F12-P3", "source": "draw/golden/formulas/combined-tuned.json" }
+    ]
+  },
+  {
+    "id": "REF-F13",
+    "description": "Combined tuned past strength 1.5 + replay MALUS 0.5 (no role_request)",
+    "tags": ["19.19c", "19.19b", "REF-F", "combined-tuned"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true, "params": { "strength": 1.5 } },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS", "malusMultiplier": 0.5 } }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "F13-W1",
+        "input": {
+          "pastSelectionCount": 3,
+          "requiredCount": 5,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.3125
+      },
+      {
+        "ref": "F13-W2",
+        "input": { "pastSelectionCount": 2, "requiredCount": 5 },
+        "expectedWeight": 0.9623,
+        "decimalPlaces": 4,
+        "note": "(1/3)^1.5 × requiredCount"
+      }
+    ],
+    "probabilityAssertions": [
+      { "ref": "F13-P1", "source": "draw/golden/formulas/combined-tuned.json" }
+    ]
+  },
+  {
+    "id": "REF-F14",
+    "description": "Combined tuned past strength 1.5 + replay MALUS 0.25 (UI intensity 0.75, F2-R mid slider)",
+    "tags": ["19.19c", "19.19b", "REF-F", "combined-tuned"],
+    "factorConfig": [
+      { "factorId": "equity_tag", "enabled": true },
+      { "factorId": "past_participation", "enabled": true, "params": { "strength": 1.5 } },
+      { "factorId": "immediate_replay", "enabled": true, "params": { "mode": "MALUS", "malusMultiplier": 0.25 } }
+    ],
+    "weightAssertions": [
+      {
+        "ref": "F14-W1",
+        "input": {
+          "pastSelectionCount": 3,
+          "requiredCount": 5,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.15625,
+        "note": "past strength 1.5 × replay malus 0.25 (half of F13-W1 penalty)"
+      },
+      {
+        "ref": "F14-W2",
+        "input": {
+          "pastSelectionCount": 1,
+          "requiredCount": 2,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.1768,
+        "decimalPlaces": 4
+      },
+      {
+        "ref": "F14-W3",
+        "input": {
+          "pastSelectionCount": 0,
+          "requiredCount": 1,
+          "playedSameRoleOnImmediatePredecessor": true
+        },
+        "expectedWeight": 0.25,
+        "note": "replay-only slice — malusMultiplier 0.25"
+      }
+    ],
+    "probabilityAssertions": [
+      { "ref": "F14-P1", "source": "draw/golden/formulas/combined-tuned.json" }
+    ]
+  }
+]

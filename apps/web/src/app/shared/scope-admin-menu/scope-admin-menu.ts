@@ -6,6 +6,8 @@ import { RouterLink } from '@angular/router'
 
 export type ScopeAdminMenuScope = 'troupe' | 'saison' | 'event'
 
+export type ScopeAdminMenuTriggerVariant = 'icon' | 'stroked'
+
 export type ScopeAdminMenuItem = {
   label: string
   icon: string
@@ -29,6 +31,17 @@ export type ScopeAdminBarItem = ScopeAdminMenuItem
 export class ScopeAdminMenu {
   readonly scope = input.required<ScopeAdminMenuScope>()
   readonly items = input.required<ScopeAdminMenuItem[]>()
+  /** `icon` (default) = engrenage seul ; `stroked` = bouton Material avec libellé optionnel. */
+  readonly triggerVariant = input<ScopeAdminMenuTriggerVariant>('icon')
+  readonly triggerLabel = input<string | undefined>(undefined)
+
+  protected readonly triggerAriaLabel = computed(() => {
+    const label = this.triggerLabel()?.trim()
+    if (label) {
+      return label
+    }
+    return this.menuAriaLabel()
+  })
 
   protected readonly menuAriaLabel = computed(() => {
     switch (this.scope()) {

@@ -1,6 +1,6 @@
 package com.hatcast.api.composition
 
-import com.hatcast.api.event.SpectacleCategory
+import com.hatcast.api.availability.draw.CategoryCompartmentHistoryScope
 import com.hatcast.api.event.EventEntity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -11,8 +11,8 @@ import java.time.Instant
 import java.util.UUID
 
 class CompositionSelectionHistoryServiceTest {
-    private val slotRepository: EventCompositionSlotRepository = mock()
-    private val service = CompositionSelectionHistoryService(slotRepository)
+    private val compartmentHistory: CategoryCompartmentHistoryScope = mock()
+    private val service = CompositionSelectionHistoryService(compartmentHistory)
 
     private fun event(
         id: UUID = UUID.randomUUID(),
@@ -35,59 +35,45 @@ class CompositionSelectionHistoryServiceTest {
     fun `maps projection rows to participant role counts in operational mode`() {
         val target = event()
         val participantId = UUID.randomUUID()
-        val projection =
-            object : RoleSelectionCountProjection {
-                override fun getParticipantId(): UUID = participantId
-
-                override fun getRoleKey(): String = "player"
-
-                override fun getSelectionCount(): Long = 3
-            }
+        val counts = mapOf((participantId to "player") to 3)
         whenever(
-            slotRepository.countValidatedSelectionsBySeasonAndCategory(
-                target.season.id,
-                target.id,
-                SpectacleCategory.PRINCIPAL,
+            compartmentHistory.pastSelectionCountByParticipantAndRole(
+                target,
+                SelectionHistoryMode.OPERATIONAL,
             ),
-        ).thenReturn(listOf(projection))
+        ).thenReturn(counts)
 
-        val counts =
+        val result =
             service.pastSelectionCountByParticipantAndRole(
                 target,
                 SelectionHistoryMode.OPERATIONAL,
             )
-        assertEquals(3, counts[participantId to "player"])
-        assertEquals(3, service.pastSelectionCountFor(counts, participantId, "player"))
+        assertEquals(3, result[participantId to "player"])
+        assertEquals(3, service.pastSelectionCountFor(result, participantId, "player"))
         assertEquals(
             mapOf(participantId to 3),
-            service.pastSelectionCountByParticipant(counts, "player"),
+            service.pastSelectionCountByParticipant(result, "player"),
         )
     }
 
     @Test
-    fun `retrospective mode queries only events before target`() {
+    fun `delegates retrospective mode to compartment history scope`() {
         val target = event()
         whenever(
-            slotRepository.countValidatedSelectionsBeforeEvent(
-                target.season.id,
-                target.id,
-                target.startsAt,
-                target.createdAt,
-                SpectacleCategory.PRINCIPAL,
+            compartmentHistory.pastSelectionCountByParticipantAndRole(
+                target,
+                SelectionHistoryMode.RETROSPECTIVE,
             ),
-        ).thenReturn(emptyList())
+        ).thenReturn(emptyMap())
 
         service.pastSelectionCountByParticipantAndRole(
             target,
             SelectionHistoryMode.RETROSPECTIVE,
         )
 
-        verify(slotRepository).countValidatedSelectionsBeforeEvent(
-            target.season.id,
-            target.id,
-            target.startsAt,
-            target.createdAt,
-            SpectacleCategory.PRINCIPAL,
+        verify(compartmentHistory).pastSelectionCountByParticipantAndRole(
+            target,
+            SelectionHistoryMode.RETROSPECTIVE,
         )
     }
 
@@ -106,22 +92,39 @@ class CompositionSelectionHistoryServiceTest {
                 templateType = "deplacement",
             )
         whenever(
-            slotRepository.countValidatedSelectionsBySeasonAndCategory(
-                seasonId,
-                target.id,
-                SpectacleCategory.DEPLACEMENTS,
+            compartmentHistory.pastSelectionCountByParticipantAndRole(
+                target,
+                SelectionHistoryMode.OPERATIONAL,
             ),
-        ).thenReturn(emptyList())
+        ).thenReturn(emptyMap())
 
         service.pastSelectionCountByParticipantAndRole(
             target,
             SelectionHistoryMode.OPERATIONAL,
         )
 
-        verify(slotRepository).countValidatedSelectionsBySeasonAndCategory(
-            seasonId,
-            target.id,
-            SpectacleCategory.DEPLACEMENTS,
+        verify(compartmentHistory).pastSelectionCountByParticipantAndRole(
+            target,
+            SelectionHistoryMode.OPERATIONAL,
         )
+    }
+
+    @Test
+    fun `unscoped counts delegate to compartment history scope`() {
+        val target = event()
+        val participantId = UUID.randomUUID()
+        whenever(
+            compartmentHistory.pastSelectionCountUnscopedByParticipantAndRole(
+                target,
+                SelectionHistoryMode.OPERATIONAL,
+            ),
+        ).thenReturn(mapOf((participantId to "player") to 5))
+
+        val counts =
+            service.pastSelectionCountUnscopedByParticipantAndRole(
+                target,
+                SelectionHistoryMode.OPERATIONAL,
+            )
+        assertEquals(5, counts[participantId to "player"])
     }
 }

@@ -343,6 +343,34 @@ describe('TroupeHub', () => {
     ],
   }
 
+  function statsWithPastEvents(count: number) {
+    const tones = ['collecting', 'preparing', 'confirmed', 'draft'] as const
+    const events = Array.from({ length: count }, (_, index) => {
+      const month = String((index % 5) + 1).padStart(2, '0')
+      const tone = tones[index % tones.length]
+      return {
+        id: `past-e${index + 1}`,
+        slug: `spectacle-${index + 1}`,
+        title: `Spectacle ${index + 1}`,
+        startsAt: `2026-${month}-10T20:00:00+01:00`,
+        templateType: 'match',
+        category: null,
+        monthKey: `2026-${month}`,
+        teamStatusBadge: {
+          key: tone,
+          label: tone,
+          tone,
+          shortLabel: tone,
+        },
+      }
+    })
+    return {
+      ...statsFixture,
+      events,
+      monthKeys: [...new Set(events.map((event) => event.monthKey))],
+    }
+  }
+
   async function setup(
     baselineRole: 'MEMBER' | 'TROUPE_ADMIN' | 'EXTERNE' = 'TROUPE_ADMIN',
     platformAdmin = false,
@@ -598,6 +626,146 @@ describe('TroupeHub', () => {
     })
   })
 
+  it('shows season mini-chart when stats include at least three past events', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      loadStatistics: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: statsWithPastEvents(3),
+      }),
+    })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).not.toBeNull()
+    })
+    expect(fixture.nativeElement.querySelectorAll('.troupe-hub__season-chart-block').length).toBe(3)
+    expect(
+      fixture.nativeElement.querySelector('.troupe-hub__season-chart-block--confirmed'),
+    ).not.toBeNull()
+  })
+
+  it('links to season history stats from mini-chart CTA', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      loadStatistics: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: statsWithPastEvents(3),
+      }),
+    })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__season-stats-cta')).not.toBeNull()
+    })
+    const cta = fixture.nativeElement.querySelector(
+      '.troupe-hub__season-stats-cta',
+    ) as HTMLAnchorElement
+    expect(cta.textContent).toContain('Voir toutes les stats')
+    expect(cta.getAttribute('href')).toBe('/saison/les-improbots/2025-26?view=stats')
+  })
+
+  it('hides season mini-chart when fewer than three past events', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      loadStatistics: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: statsWithPastEvents(2),
+      }),
+    })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__metrics')).not.toBeNull()
+    })
+    expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).toBeNull()
+  })
+
+  it('hides season mini-chart when stats load fails', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      loadStatistics: vi.fn().mockResolvedValue({ ok: false, status: 503 }),
+    })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Compos')
+    })
+    expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).toBeNull()
+  })
+
+  it('hides season mini-chart while stats are loading', async () => {
+    let resolveStats!: (value: {
+      ok: true
+      status: 200
+      data: ReturnType<typeof statsWithPastEvents>
+    }) => void
+    const statsPromise = new Promise<{
+      ok: true
+      status: 200
+      data: ReturnType<typeof statsWithPastEvents>
+    }>((resolve) => {
+      resolveStats = resolve
+    })
+    const { fixture } = await setup('MEMBER', false, {
+      loadStatistics: vi.fn().mockReturnValue(statsPromise),
+    })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__metrics mat-spinner')).not.toBeNull()
+    })
+    expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).toBeNull()
+
+    resolveStats({ ok: true, status: 200, data: statsWithPastEvents(3) })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).not.toBeNull()
+    })
+  })
+
+  it('navigates to event detail when a chart block is clicked', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      loadStatistics: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: statsWithPastEvents(3),
+      }),
+    })
+    const router = TestBed.inject(Router)
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart-block')).not.toBeNull()
+    })
+    ;(fixture.nativeElement.querySelector('.troupe-hub__season-chart-block') as HTMLButtonElement).click()
+    expect(navigateSpy).toHaveBeenCalledWith([
+      '/saison',
+      'les-improbots',
+      '2025-26',
+      'event',
+      'spectacle-1',
+    ])
+  })
+
+  it('clears season mini-chart when switching seasons', async () => {
+    const loadStatistics = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: statsWithPastEvents(3),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: statsWithPastEvents(2),
+      })
+    const { fixture } = await setup('TROUPE_ADMIN', false, {
+      seasons: [activeSeason, secondActiveSeason],
+      loadStatistics,
+    })
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).not.toBeNull()
+    })
+    const switcher = fixture.nativeElement.querySelector('.troupe-hub__season-switcher') as HTMLButtonElement
+    switcher.click()
+    fixture.detectChanges()
+    const menuItems = document.querySelectorAll('.mat-mdc-menu-item')
+    ;(menuItems[1] as HTMLButtonElement).click()
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).toBeNull()
+    })
+  })
+
   it('shows multi-troupe footer link when user has at least two troupes', async () => {
     const { fixture } = await setup('MEMBER', false, {
       activeTroupes: [
@@ -663,16 +831,21 @@ describe('TroupeHub', () => {
     expect(fixture.nativeElement.textContent).toContain('Saisons où tu es invité·e.')
   })
 
-  it('shows admin gear for TROUPE_ADMIN without section Nouvelle saison button', async () => {
+  it('shows labeled admin trigger for TROUPE_ADMIN without section Nouvelle saison button', async () => {
     const { fixture } = await setup('TROUPE_ADMIN')
-    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).not.toBeNull()
+    const trigger = fixture.nativeElement.querySelector(
+      '.scope-admin-menu__trigger--stroked',
+    ) as HTMLButtonElement
+    expect(trigger).not.toBeNull()
+    expect(trigger.getAttribute('aria-label')).toBe('Gérer la troupe')
+    expect(trigger.textContent).toContain('Gérer la troupe')
     const sectionHeaderButton = Array.from(
       fixture.nativeElement.querySelectorAll('.troupe-hub__dashboard button') as NodeListOf<HTMLButtonElement>,
     ).find((button) => button.textContent?.includes('Nouvelle saison'))
     expect(sectionHeaderButton).toBeUndefined()
   })
 
-  it('hides admin gear for non-admin members', async () => {
+  it('hides admin trigger for non-admin members', async () => {
     const { fixture } = await setup('MEMBER')
     expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeNull()
   })

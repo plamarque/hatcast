@@ -8,6 +8,8 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.EventAvailabilityIndex
+import com.hatcast.api.availability.draw.DrawWeightPipeline
+import com.hatcast.api.availability.draw.DrawWeightPipelines
 import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.composition.dto.AssignSlotRequestDto
 import com.hatcast.api.composition.dto.CompositionCandidateDto
@@ -16,6 +18,8 @@ import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
+import com.hatcast.api.event.SpectacleCategory
+import com.hatcast.api.draw.DrawPolicyResolutionService
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
@@ -26,6 +30,7 @@ import com.hatcast.api.text.FrenchCollator
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.user.ParticipantAvatarResolver
 import com.hatcast.api.user.ParticipantGenderResolver
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -54,13 +59,29 @@ class CompositionSlotAssignmentService(
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
     private val participantGenderResolver: ParticipantGenderResolver,
     private val participantAvatarResolver: ParticipantAvatarResolver,
+    private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
+    private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
+    private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
+    private val drawPolicyResolutionService: DrawPolicyResolutionService,
 ) {
+    private fun resolveDrawPipeline(
+        event: EventEntity,
+        formulaId: UUID? = null,
+    ): DrawWeightPipeline =
+        drawWeightPipelineProvider.getIfAvailable()
+            ?: drawPolicyResolutionService
+                .resolveForEvent(
+                    event = event,
+                    requestedFormulaId = formulaId,
+                    validateForDraw = false,
+                ).pipeline
     @Transactional(readOnly = true)
     fun getCandidates(
         seasonId: UUID,
         eventId: UUID,
         roleKey: String,
         slotIndex: Int?,
+        formulaId: UUID?,
         principal: SessionUserPrincipal,
     ): CompositionCandidateListResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
@@ -112,6 +133,23 @@ class CompositionSlotAssignmentService(
                 roleKey = roleKey,
                 excluded = sameRoleExcluded,
             )
+        val drawPipeline = resolveDrawPipeline(event, formulaId)
+        val replayInputs =
+            DrawImmediateReplaySupport.replayInputsForRolePool(
+                pipeline = drawPipeline,
+                event = event,
+                roleKey = roleKey,
+                pool = pool,
+                replayService = immediatePredecessorRoleReplayService,
+            )
+        val unfulfilledCounts =
+            DrawRoleRequestSupport.unfulfilledCountsForRolePool(
+                pipeline = drawPipeline,
+                event = event,
+                roleKey = roleKey,
+                pool = pool,
+                roleRequestService = unfulfilledRoleRequestService,
+            )
         val scored =
             AvailabilityChanceCalculator.scoreCandidates(
                 pool.map {
@@ -120,6 +158,12 @@ class CompositionSlotAssignmentService(
                 requiredCount,
                 pastByParticipant,
                 roleKey = roleKey,
+                pipeline = drawPipeline,
+                categorySlug = SpectacleCategory.slug(event),
+                playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
+                immediatePredecessorTitle = replayInputs.predecessorTitle,
+                immediatePredecessorStartsAt = replayInputs.predecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant = unfulfilledCounts,
             )
         val assignedRoleKeysByParticipant = assignedRoleKeysByParticipant(eventId)
 

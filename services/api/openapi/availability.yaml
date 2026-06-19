@@ -142,6 +142,17 @@ paths:
             de composition). Porte Dispos : spectacle publié (`availabilityOpenedAt` défini,
             non archivé) — indépendant de l'état de la composition (story 5.9).
             Recommandé pour la vue Tous de l'onglet Dispos (FR19).
+            Politique 19.18 : avec `includeChances=true`, preview pipeline via politique effective ;
+            paramètre `formulaId` optionnel (même sémantique que GET effective).
+        - name: formulaId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: >
+            Formule effective pour preview des % (doit être dans allowedFormulaIds).
+            Ignoré si `includeChances=false`.
       responses:
         '200':
           description: OK

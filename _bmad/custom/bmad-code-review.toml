@@ -1,0 +1,10 @@
+# HatCast — code review sur la branche story ; merge après approbation.
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/_bmad/custom/story-branch-workflow.md",
+  "HatCast story Git rule: code review targets feat/{story-key}. Run `./scripts/v2/story-branch.sh assert {{story_key}}` when story_key is known; warn if reviewing from the wrong branch.",
+  "Review diff scope: prefer `git diff {{baseline_commit}}..HEAD` using baseline_commit from story frontmatter; fallback to diff against origin/v2 if baseline missing.",
+  "On Approve outcome: recommend `./scripts/v2/story-branch.sh merge {{story_key}}` and manual `git push origin v2`. Never push or merge without explicit user request.",
+]

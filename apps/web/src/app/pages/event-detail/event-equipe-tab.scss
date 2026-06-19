@@ -191,6 +191,19 @@
   align-self: center;
 }
 
+.event-equipe-tab__formula-menu-label {
+  opacity: 0.72;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.event-equipe-tab__formula-menu-spacer {
+  visibility: hidden;
+}
+
 .event-equipe-tab__action-hint {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;

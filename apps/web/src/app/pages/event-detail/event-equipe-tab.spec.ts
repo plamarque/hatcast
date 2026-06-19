@@ -7,6 +7,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { CompositionApiService } from '../../core/composition/composition-api.service'
+import {
+  DrawPolicyApiService,
+  type EffectiveDrawPolicy,
+} from '../../core/draw/draw-policy-api.service'
 import { emptyRoleSlots } from '../../core/events/event-types'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { EventEquipeTab } from './event-equipe-tab'
@@ -29,6 +33,30 @@ function ev(overrides: Partial<EventResponse> = {}): EventResponse {
   }
 }
 
+function mockChoicePolicy(
+  overrides: Partial<EffectiveDrawPolicy> = {},
+): { ok: true; data: EffectiveDrawPolicy } {
+  return {
+    ok: true,
+    data: {
+      policySource: 'TROUPE',
+      resolvedRuleSource: 'DEFAULT',
+      eventCategory: null,
+      resolvedMode: 'CHOICE',
+      allowedFormulaIds: ['formula-a', 'formula-b'],
+      allowedFormulas: [
+        { id: 'formula-a', name: 'Équité saison' },
+        { id: 'formula-b', name: 'Parité match' },
+      ],
+      effectiveFormulaId: 'formula-a',
+      effectiveFormulaName: 'Équité saison',
+      selectorVisible: true,
+      requiresFormulaIdOnDraw: true,
+      ...overrides,
+    },
+  }
+}
+
 describe('EventEquipeTab', () => {
   let fixture: ComponentFixture<EventEquipeTab>
   let getComposition: ReturnType<typeof vi.fn>
@@ -41,6 +69,7 @@ describe('EventEquipeTab', () => {
   let unlockComposition: ReturnType<typeof vi.fn>
   let updateSlotParticipation: ReturnType<typeof vi.fn>
   let restoreDeclinedParticipant: ReturnType<typeof vi.fn>
+  let getEffectiveDrawPolicy: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
   let snackOpen: ReturnType<typeof vi.fn>
   let getPreferences: ReturnType<typeof vi.fn>
@@ -107,6 +136,21 @@ describe('EventEquipeTab', () => {
     unlockComposition = vi.fn()
     updateSlotParticipation = vi.fn()
     restoreDeclinedParticipant = vi.fn()
+    getEffectiveDrawPolicy = vi.fn().mockResolvedValue({
+      ok: true,
+      data: {
+        policySource: 'IMPLICIT',
+        resolvedRuleSource: 'DEFAULT',
+        eventCategory: null,
+        resolvedMode: 'MANDATORY',
+        allowedFormulaIds: [],
+        allowedFormulas: [],
+        effectiveFormulaId: null,
+        effectiveFormulaName: null,
+        selectorVisible: false,
+        requiresFormulaIdOnDraw: false,
+      },
+    })
     dialogAfterClosed = new Subject<
       | { participantId: string }
       | { status: string; note?: string | null }
@@ -154,6 +198,10 @@ describe('EventEquipeTab', () => {
         {
           provide: MePreferencesApiService,
           useValue: { getPreferences },
+        },
+        {
+          provide: DrawPolicyApiService,
+          useValue: { getEffectiveDrawPolicy },
         },
       ],
     }).compileComponents()
@@ -367,7 +415,7 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(drawComposition).toHaveBeenCalledWith('season-1', 'event-1', 'full')
+      expect(drawComposition).toHaveBeenCalledWith('season-1', 'event-1', 'full', null)
       expect(fixture.nativeElement.textContent).toContain('Alice')
     })
     vi.unstubAllGlobals()
@@ -388,7 +436,13 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(getCompositionCandidates).toHaveBeenCalledWith('season-1', 'event-1', 'player', 0)
+      expect(getCompositionCandidates).toHaveBeenCalledWith(
+        'season-1',
+        'event-1',
+        'player',
+        0,
+        null,
+      )
     })
 
     dialogAfterClosed.next({ participantId: 'p-2' })
@@ -1783,7 +1837,7 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(drawComposition).toHaveBeenCalledWith('season-1', 'event-1', 'fillEmpty')
+      expect(drawComposition).toHaveBeenCalledWith('season-1', 'event-1', 'fillEmpty', null)
     })
   })
 
@@ -2935,7 +2989,7 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(getPoolPreview).toHaveBeenCalledWith('season-1', 'event-1', 'player')
+      expect(getPoolPreview).toHaveBeenCalledWith('season-1', 'event-1', 'player', null)
       expect(
         fixture.nativeElement.querySelector('[data-testid="composition-pool-preview"]'),
       ).toBeTruthy()
@@ -2977,6 +3031,353 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.event-equipe-tab__fill')).toBeNull()
       expect(fixture.nativeElement.querySelector('.event-equipe-tab__row--gap-empty')).toBeNull()
+    })
+  })
+
+  describe('19.21 draw formula choice (E2E-WD unit)', () => {
+    it('E2E-WD-02 unit — hides draw formula UI when selectorVisible is false', async () => {
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(getEffectiveDrawPolicy).toHaveBeenCalledWith('season-1', 'event-1')
+      })
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-draw-formula-menu"]'),
+      ).toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-draw-formula-chip"]'),
+      ).toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+      ).toBeNull()
+    })
+
+    it('E2E-WD-03 unit — hides formula UI when CHOICE allows only one formula', async () => {
+      getEffectiveDrawPolicy.mockResolvedValue(
+        mockChoicePolicy({
+          allowedFormulaIds: ['formula-only'],
+          allowedFormulas: [{ id: 'formula-only', name: 'Seule formule' }],
+          effectiveFormulaId: 'formula-only',
+          effectiveFormulaName: 'Seule formule',
+          selectorVisible: false,
+        }),
+      )
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(fixture.componentInstance['drawPolicyLoading']()).toBe(false)
+      })
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+      ).toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-draw-formula-menu"]'),
+      ).toBeNull()
+    })
+
+    it('E2E-WD-01 unit — shows overflow button for draw formula choice when selectorVisible is true', async () => {
+      getEffectiveDrawPolicy.mockResolvedValue(mockChoicePolicy())
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(
+          fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+        ).not.toBeNull()
+      })
+
+      expect(fixture.componentInstance['drawFormulaSelectorVisible']()).toBe(true)
+      expect(fixture.componentInstance['allowedDrawFormulas']()).toHaveLength(2)
+      expect(fixture.componentInstance['selectedFormulaId']()).toBe('formula-a')
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-draw-formula-chip"]'),
+      ).toBeNull()
+    })
+
+    it('E2E-WD-04 unit — draws immediately with selected formulaId when CHOICE policy is active', async () => {
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: true,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        }),
+      )
+      getEffectiveDrawPolicy.mockResolvedValue(mockChoicePolicy())
+      drawComposition.mockResolvedValue({
+        ok: true,
+        data: {
+          composition: {
+            publishedAt: null,
+            validatedAt: null,
+            visibility: 'organizerDraft',
+            slots: [
+              {
+                roleKey: 'player',
+                slotIndex: 0,
+                participantId: 'p-1',
+                participantDisplayName: 'Alice',
+                participationStatus: 'pending',
+              },
+            ],
+          },
+          steps: [],
+        },
+      })
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(fixture.componentInstance['drawPolicyLoading']()).toBe(false)
+        expect(fixture.nativeElement.textContent).toContain('Tirer au sort')
+      })
+
+      const drawBtn = fixture.nativeElement.querySelector('.event-equipe-tab__draw') as HTMLButtonElement
+      drawBtn.click()
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(drawComposition).toHaveBeenCalledWith(
+          'season-1',
+          'event-1',
+          'full',
+          'formula-a',
+        )
+      })
+      expect(dialogOpen).not.toHaveBeenCalled()
+      vi.unstubAllGlobals()
+    })
+
+    it('E2E-WD-05 unit — reloads pool preview with new formulaId after menu selection', async () => {
+      getEffectiveDrawPolicy.mockResolvedValue(mockChoicePolicy())
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(fixture.nativeElement.querySelector('.event-equipe-tab__row-hit')).not.toBeNull()
+      })
+
+      const roleBtn = fixture.nativeElement.querySelector(
+        '[data-testid="composition-role-pool-trigger"]',
+      ) as HTMLButtonElement
+      roleBtn.click()
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(getPoolPreview).toHaveBeenCalledWith('season-1', 'event-1', 'player', 'formula-a')
+      })
+
+      fixture.componentInstance['selectDrawFormula']('formula-b')
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(getPoolPreview).toHaveBeenCalledWith('season-1', 'event-1', 'player', 'formula-b')
+      })
+    })
+
+    it('AC1.4 — hides draw formula UI when effective policy GET fails', async () => {
+      getEffectiveDrawPolicy.mockResolvedValue({
+        ok: false,
+        status: 403,
+        errorMessage: 'Accès refusé',
+      })
+      drawComposition.mockResolvedValue({
+        ok: true,
+        data: {
+          composition: {
+            publishedAt: null,
+            validatedAt: null,
+            visibility: 'organizerDraft',
+            slots: [],
+          },
+          steps: [],
+        },
+      })
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(getEffectiveDrawPolicy).toHaveBeenCalledWith('season-1', 'event-1')
+        expect(fixture.componentInstance['drawPolicyLoading']()).toBe(false)
+      })
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-draw-formula-menu"]'),
+      ).toBeNull()
+      expect(fixture.componentInstance['selectedFormulaId']()).toBeNull()
+
+      const drawBtn = fixture.nativeElement.querySelector('.event-equipe-tab__draw') as HTMLButtonElement
+      drawBtn.click()
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(drawComposition).toHaveBeenCalledWith('season-1', 'event-1', 'full', null)
+      })
+    })
+
+    it('AC4 — sends effectiveFormulaId silently when selectorVisible is false', async () => {
+      getEffectiveDrawPolicy.mockResolvedValue(
+        mockChoicePolicy({
+          resolvedMode: 'MANDATORY',
+          allowedFormulaIds: ['formula-mandatory'],
+          allowedFormulas: [{ id: 'formula-mandatory', name: 'Équité saison' }],
+          effectiveFormulaId: 'formula-mandatory',
+          effectiveFormulaName: 'Équité saison',
+          selectorVisible: false,
+        }),
+      )
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(fixture.componentInstance['drawPolicyLoading']()).toBe(false)
+      })
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+      ).toBeNull()
+
+      const roleBtn = fixture.nativeElement.querySelector(
+        '[data-testid="composition-role-pool-trigger"]',
+      ) as HTMLButtonElement
+      roleBtn.click()
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(getPoolPreview).toHaveBeenCalledWith(
+          'season-1',
+          'event-1',
+          'player',
+          'formula-mandatory',
+        )
+      })
+    })
+
+    it('AC3.7 — renders overflow formula menu structure with section label and check icon', async () => {
+      getEffectiveDrawPolicy.mockResolvedValue(mockChoicePolicy())
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(
+          fixture.nativeElement.querySelector('[data-testid="composition-actions-overflow"]'),
+        ).not.toBeNull()
+        expect(fixture.componentInstance['drawPolicyLoading']()).toBe(false)
+      })
+
+      const overflowBtn = fixture.nativeElement.querySelector(
+        '[data-testid="composition-actions-overflow"]',
+      ) as HTMLButtonElement
+      overflowBtn.click()
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(
+          document.body.querySelector('[data-testid="composition-draw-formula-menu"]'),
+        ).not.toBeNull()
+      })
+
+      expect(document.body.textContent).toContain('Formule de tirage')
+      expect(
+        document.body.querySelector(
+          '[data-testid="composition-draw-formula-option-formula-a"]',
+        ),
+      ).not.toBeNull()
+      expect(
+        document.body.querySelector(
+          '[data-testid="composition-draw-formula-option-formula-b"]',
+        ),
+      ).not.toBeNull()
+      expect(
+        document.body
+          .querySelector('[data-testid="composition-draw-formula-option-formula-a"]')
+          ?.textContent,
+      ).toContain('Équité saison')
+    })
+
+    it('AC4 — passes activeDrawFormulaId to fillEmpty draw when policy requires formulaId', async () => {
+      getEffectiveDrawPolicy.mockResolvedValue(
+        mockChoicePolicy({
+          resolvedMode: 'MANDATORY',
+          allowedFormulaIds: ['formula-mandatory'],
+          allowedFormulas: [{ id: 'formula-mandatory', name: 'Équité saison' }],
+          effectiveFormulaId: 'formula-mandatory',
+          effectiveFormulaName: 'Équité saison',
+          selectorVisible: false,
+        }),
+      )
+      getComposition.mockResolvedValue({
+        ok: true,
+        data: {
+          publishedAt: null,
+          validatedAt: '2026-01-01T00:00:00.000Z',
+          visibility: 'validated',
+          slots: [
+            {
+              roleKey: 'player',
+              slotIndex: 0,
+              participantId: 'p-1',
+              participantDisplayName: 'Occupé',
+              participationStatus: 'pending',
+            },
+          ],
+        },
+      })
+      drawComposition.mockResolvedValue({
+        ok: true,
+        data: {
+          composition: {
+            publishedAt: null,
+            validatedAt: '2026-01-01T00:00:00.000Z',
+            visibility: 'validated',
+            slots: [],
+          },
+          steps: [],
+        },
+      })
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(fixture.componentInstance['drawPolicyLoading']()).toBe(false)
+        expect(fixture.nativeElement.textContent).toContain('Compléter')
+      })
+
+      const fillBtn = fixture.nativeElement.querySelector(
+        '.event-equipe-tab__fill',
+      ) as HTMLButtonElement
+      fillBtn.click()
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(drawComposition).toHaveBeenCalledWith(
+          'season-1',
+          'event-1',
+          'fillEmpty',
+          'formula-mandatory',
+        )
+      })
+    })
+
+    it('AC3.9 — does not open snackbar when draw formula changes from overflow menu', async () => {
+      getEffectiveDrawPolicy.mockResolvedValue(mockChoicePolicy())
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.detectChanges()
+
+      await vi.waitFor(() => {
+        expect(fixture.componentInstance['drawPolicyLoading']()).toBe(false)
+      })
+
+      fixture.componentInstance['selectDrawFormula']('formula-b')
+      fixture.detectChanges()
+
+      expect(snackOpen).not.toHaveBeenCalled()
+      expect(fixture.componentInstance['selectedFormulaId']()).toBe('formula-b')
     })
   })
 })

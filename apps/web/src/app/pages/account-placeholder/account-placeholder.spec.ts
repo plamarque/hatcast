@@ -175,6 +175,7 @@ describe('AccountPlaceholder', () => {
           provide: AppVersionService,
           useValue: {
             version: signal(options.appVersion ?? '0.0.0'),
+            buildMeta: signal(null),
             ensureLoaded: vi.fn().mockResolvedValue(undefined),
           },
         },

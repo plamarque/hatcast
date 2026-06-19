@@ -1,0 +1,39 @@
+{
+  "schema": "hatcast/migrate-post-smoke-golden@1",
+  "troupeSlug": "la-malice",
+  "anchors": {
+    "deplacement": {
+      "slug": null,
+      "note": "Resolved at runtime: first non-archived event with category deplacements"
+    },
+    "archived": {
+      "slug": null,
+      "note": "Resolved at runtime: first archived event in season"
+    },
+    "validatedComposition": {
+      "slug": null,
+      "note": "Resolved at runtime: event with composition.validated_at set"
+    },
+    "matchCambo": {
+      "slug": "match-cambo",
+      "emptySlot": {
+        "roleKey": "dj",
+        "slotIndex": 0
+      },
+      "reason": "PLAYER_UNRESOLVED — known MIG-3 reject"
+    }
+  },
+  "memberStats": {
+    "normalizedEmail": "patrice.lamarque@gmail.com",
+    "expected": {
+      "availabilities": 19,
+      "selections": 10,
+      "declines": 3
+    },
+    "tolerance": 0
+  },
+  "rejects": {
+    "mig2Max": 0,
+    "mig3Max": 2
+  }
+}

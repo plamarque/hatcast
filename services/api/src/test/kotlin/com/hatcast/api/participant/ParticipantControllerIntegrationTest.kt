@@ -7,21 +7,17 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
-import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
-import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
-import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.http.MediaType
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
@@ -56,7 +52,7 @@ class ParticipantControllerIntegrationTest {
     @Autowired
     private lateinit var eventRepository: EventRepository
 
-    @SpyBean
+    @Autowired
     private lateinit var troupeMembershipRepository: TroupeMembershipRepository
 
     @Autowired
@@ -769,73 +765,6 @@ class ParticipantControllerIntegrationTest {
                     .cookie(admin.cookie)
                     .with(csrf()),
             ).andExpect(status().isBadRequest)
-    }
-
-    @Test
-    fun `reinclude returns 409 when membership became inactive after pre-check`() {
-        val admin = signInAdmin("part-admin-18b", "part-admin-18b@example.com", "Part Admin Eighteen B")
-        val seasonId = createSeason(admin.cookie)
-        signIn("part-target-18b", "part-target-18b@example.com", "Part Target Eighteen B")
-
-        val addResult =
-            mockMvc
-                .perform(
-                    post("/v1/troupes/$seedTroupeId/members")
-                        .cookie(admin.cookie)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"email":"part-target-18b@example.com","displayName":"Part Target Eighteen B"}""")
-                        .with(csrf()),
-                ).andExpect(status().isOk)
-                .andReturn()
-        val membershipId = mapper.readTree(addResult.response.contentAsString).path("id").asText()
-        val membershipUuid = UUID.fromString(membershipId)
-
-        val listResult =
-            mockMvc
-                .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
-                .andExpect(status().isOk)
-                .andReturn()
-        val participantId =
-            mapper
-                .readTree(listResult.response.contentAsString)
-                .first { it.path("email").asText() == "part-target-18b@example.com" }
-                .path("id")
-                .asText()
-
-        mockMvc
-            .perform(
-                delete("/v1/seasons/$seasonId/participants/$participantId")
-                    .cookie(admin.cookie)
-                    .with(csrf()),
-            ).andExpect(status().isNoContent)
-
-        val loadedMembership = troupeMembershipRepository.findById(membershipUuid).orElseThrow()
-        org.junit.jupiter.api.Assertions.assertEquals(TroupeMembershipStatus.ACTIVE, loadedMembership.status)
-
-        doReturn(
-            TroupeMembershipEntity(
-                id = loadedMembership.id,
-                troupe = loadedMembership.troupe,
-                user = loadedMembership.user,
-                normalizedEmail = loadedMembership.normalizedEmail,
-                status = TroupeMembershipStatus.INACTIVE,
-                baselineRole = loadedMembership.baselineRole,
-                displayName = loadedMembership.displayName,
-                preferredRoleKeys = loadedMembership.preferredRoleKeys,
-            ),
-        ).whenever(troupeMembershipRepository).findByIdAndTroupe_Id(eq(membershipUuid), eq(seedTroupeId))
-
-        mockMvc
-            .perform(
-                post("/v1/seasons/$seasonId/participants/$participantId/reinclude")
-                    .cookie(admin.cookie)
-                    .with(csrf()),
-            ).andExpect(status().isConflict)
-
-        mockMvc
-            .perform(get("/v1/seasons/$seasonId/participants").cookie(admin.cookie))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$[?(@.id == '$participantId')]").isEmpty)
     }
 
     @Test

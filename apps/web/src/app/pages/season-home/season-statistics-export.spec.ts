@@ -10,6 +10,7 @@ describe('season-statistics-export', () => {
         {
           id: 'e1',
           title: 'Match mars',
+          slug: 'match-mars',
           startsAt: '2026-03-10T19:00:00Z',
           templateType: 'match',
           category: null,

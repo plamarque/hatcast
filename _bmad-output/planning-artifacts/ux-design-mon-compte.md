@@ -15,6 +15,7 @@ relatedStories:
   - '8.1'
   - '8.2'
   - '10.3'
+  - '10.3b'
   - '10.2'
 stakeholderDecisions:
   - global-member-preferences-on-compte
@@ -34,11 +35,13 @@ supersedes:
   - '2026-05-28 scroll layout (story 17.24) — structure remplacée par onglets 17.34'
   - '2026-06-06 onglet À propos — carte identité + lignes d’action (plus boutons pill version / MAJ)'
   - '2026-06-08 barre onglets texte seul — icônes M3 obligatoires icône + libellé sur une ligne (amendement Sally)'
+  - '2026-06-06 badge environnement global — remplacé par ligne discrète build meta sur À propos uniquement (10.3b, 2026-06-14)'
 relatedArtifacts:
   - _bmad-output/planning-artifacts/ux-hub-a-faire.md
   - _bmad-output/planning-artifacts/ux-design-troupe-hub.md
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/implementation-artifacts/spec-about-manual-pwa-update-check.md
+  - _bmad-output/implementation-artifacts/10-3b-about-build-metadata.md
   - apps/web/src/app/pages/account-placeholder/account-placeholder.html
   - _bmad-output/previews/account-tab-icons-compare.html
   - apps/web/src/app/pages/account-placeholder/tabs/account-about-tab.html
@@ -110,7 +113,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | 1 | **Mon profil** | Avatar ; e-mail + **icône modifier** ; `displayName` auth si distinct ; **pseudo** ; **Modes de connexion** (Google, MDP) ; **Zone sensible** (suppression) | `person` | `/compte` (défaut) |
 | 2 | **Préférences** | Rôles préférés globaux uniquement (sans pseudo) | **`tune`** (curseurs — **pas** `settings` ni `equalizer` ; choix validé 2026-06-08) | `/compte/preferences` |
 | 3 | **Notifications** | Push (`PushNotificationsSection`) + catégories (`NotificationPreferencesSection`) | `notifications` | `/compte/notifications` |
-| 4 | **À propos** | Carte identité app + actions (changelog, check MAJ PWA si SW actif) + copyright | `info` | `/compte/a-propos` |
+| 4 | **À propos** | Carte identité app + **build meta** discrète (10.3b) + actions (changelog, check MAJ PWA si SW actif) + copyright | `info` | `/compte/a-propos` |
 
 **Compat routes obsolètes :** `/compte/securite` et `/compte/identite` → **redirect** vers `/compte` (`replaceUrl: true`) — liens e-mail, vérif compte, stories **1.6**/**1.7**.
 
@@ -248,10 +251,13 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 
 **Amendement 2026-06-06** — carte identité + lignes d’action compactes (aligné Préférences / Notifications) ; check MAJ manuel (**10.2** + [spec-about-manual-pwa-update-check.md](../implementation-artifacts/spec-about-manual-pwa-update-check.md)).
 
+**Amendement 2026-06-14 (10.3b)** — sous la version semver, **ligne discrète build meta** pour opérateur / support (hash git, horodatage build, canal de déploiement). **Pas** de badge environnement global ailleurs dans l’app — la visibilité canal est **localisée** à cet onglet. Info opérateur, pas capacité métier membre ; **pas** d’amendement SPEC.md.
+
 ```
 ┌────────────────────────────────────────────────────────────┐
 │  [logo 48px]  HatCast                                      │
 │               Version X.Y.Z                                │
+│               {hash} · {YYYYMMDDHHmm} · canal {env}      │  ← discret, si metadata
 ├────────────────────────────────────────────────────────────┤
 │  ✨ Nouveautés                                    ›        │
 │  📲 Vérifier les mises à jour                     ›        │  ← si SW PWA actif
@@ -264,12 +270,13 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 |---------|--------|
 | **Conteneur** | `account-page__about-panel` — même surface que `account-page__preferences-panel` (tokens M3, `surface-container` 55 %). |
 | **Identité** | Logo HatCast 2 (48 px) + nom app + **Version X.Y.Z** en texte secondaire — **pas** de bouton pill version. |
+| **Build meta (10.3b)** | Ligne **secondaire** sous la version : `{gitHash} · {YYYYMMDDHHmm} · canal {label}` — ex. `a0db03f7 · 202606131249 · canal staging`. Source : lignes 2–4 de `/version.txt` (ou `/version.local.txt` en dev). Libellés canal UI : `production` · `staging` · `développement` · `local`. **Masquée** si le canal est absent ou illisible — l’écran reste orienté membre (version + actions). Typo 0.6875 rem, `on-surface` ~48 %, `tabular-nums` ; wrap mobile OK. **Pas** tap-to-copy ; **pas** badge env hors À propos. |
 | **Nouveautés** | Ligne action plate (`account-page__about-action`) : icône `new_releases`, libellé, chevron `chevron_right` ; clic → dialog changelog MatDialog (**10.3**). |
 | **Vérifier les mises à jour** | Même pattern ; icône `system_update` ; visible **uniquement** si service worker actif (`SwUpdate.isEnabled`, prod / recette `--with-push`). Spinner pendant le check ; snackbar résultat (à jour / disponible / erreur). Si MAJ en attente → réaffiche la bannière **Mettre à jour** (**10.2**), y compris après dismiss session. |
 | **Copyright** | Pied de carte, typo 0.75 rem, centré : `© 2025–2026 Patrice Lamarque`. |
-| **Test ids** | `account-app-version` (libellé version) · `account-changelog` · `account-check-updates` · `account-about-copyright` |
-| **Accessibilité** | Lignes action ≥ 48 dp ; `aria-label` dynamique pendant vérification MAJ ; titre section masqué visuellement (`account-page__visually-hidden`) — l’onglet porte déjà « À propos ». |
-| **Hors scope** | Liens GitHub / licence MIT, badge environnement — story ultérieure ; pas de badge permanent « MAJ dispo » sur la ligne action. |
+| **Test ids** | `account-app-version` · **`account-app-build-meta`** (ligne build, si présente) · `account-changelog` · `account-check-updates` · `account-about-copyright` |
+| **Accessibilité** | Lignes action ≥ 48 dp ; `aria-label` dynamique pendant vérification MAJ ; titre section masqué visuellement (`account-page__visually-hidden`) — l’onglet porte déjà « À propos ». Si build meta affichée : `aria-describedby="account-app-build-meta"` sur le libellé version. |
+| **Hors scope** | Liens GitHub / licence MIT ; badge environnement **global** (story 10.3 reportée — **couvert** par la ligne build meta **sur À propos** via **10.3b**, sans badge permanent ailleurs) ; pas de badge permanent « MAJ dispo » sur la ligne action. |
 
 **Parcours MAJ en attente (non installée) :** l’app reste sur l’ancienne version ; le SW a téléchargé la nouvelle en arrière-plan. Bannière auto (**10.2**) ou check manuel → snackbar « Une mise à jour est disponible » + bannière → **Mettre à jour** → reload + changelog auto (**10.3**). Fermer la bannière = repousser (session), pas annuler la MAJ.
 
@@ -345,8 +352,8 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | Fragment legacy | Redirect `/compte#notifications` → `/compte/notifications` |
 | Déconnexion | Dans le **shell** `account-placeholder` (header, C8b) — **pas** dans un onglet ni sous le `router-outlet` |
 | Icônes onglets (C13) | `account-placeholder.html` : wrapper `.account-page__tab-item` + `mat-icon` par onglet ; styles dans `account-placeholder.scss` |
-| Tests | `account-placeholder.spec.ts` : navigation onglets, deep links, présence sections, **présence icônes** (`mat-icon` + libellés) ; `account-about-tab.spec.ts` : carte, changelog, check MAJ |
-| À propos UI | `tabs/account-about-tab.html` + `account-placeholder.scss` (`.account-page__about-*`) |
+| Tests | `account-placeholder.spec.ts` : navigation onglets, deep links, présence sections, **présence icônes** (`mat-icon` + libellés) ; `account-about-tab.spec.ts` : carte, changelog, check MAJ, **build meta** (`account-app-build-meta`) |
+| À propos UI | `tabs/account-about-tab.html` + `account-placeholder.scss` (`.account-page__about-*`, `.account-page__about-build-meta`) ; `AppVersionService` + `formatBuildMetaLine` (**10.3b**) |
 | Story file | [17-34-mon-compte-onglets-securite-preferences.md](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) |
 
 ---
@@ -364,6 +371,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | **2.6** | Photo de profil (onglet **Mon profil**) |
 | **8.1** / **8.2** | Push + catégories (onglet **Notifications**) |
 | **10.3** | Version + changelog (onglet **À propos**) |
+| **10.3b** | Ligne build meta discrète (hash · horodatage · canal) — opérateur / support ; `data-testid="account-app-build-meta"` |
 | **10.2** | Check MAJ manuel + bannière apply-on-click (complète le parcours **À propos**) |
 | **FR9** | Pseudo membre — **global** (amendement vs per-troupe) |
 | **FR46** | Rôles préférés — **global** |
@@ -385,5 +393,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | Header sans menu avatar ? | **Oui** (C8a) |
 | Icône + libellé sur chaque onglet ? | **Oui** (C13) |
 | Icône Préférences = `tune` (pas `equalizer`) ? | **Oui** — validé 2026-06-08 |
+| Ligne build meta discrète sous la version (À propos) ? | **Oui** — `{hash} · {YYYYMMDDHHmm} · canal {env}` ; masquée sans metadata (**10.3b**, 2026-06-14) |
+| Badge environnement global dans l’app ? | **Non** — visibilité canal **uniquement** sur l’onglet À propos |
 
-**Statut :** `approved` (2026-06-03, amendé 2026-06-04a pseudo/rail, **2026-06-04b** fusion Mon profil, **2026-06-08** icônes onglets — Sally + Patrice) — stories : [17-34](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) `done` ; [17-35](../implementation-artifacts/17-35-mon-compte-pseudo-identite-rail-label.md) `done` ; [17-36](../implementation-artifacts/17-36-mon-compte-onglet-mon-profil.md) `done`. **C13 icônes onglets :** livré — [spec-account-tab-icons-c13.md](../implementation-artifacts/spec-account-tab-icons-c13.md).
+**Statut :** `approved` (2026-06-03, amendé 2026-06-04a pseudo/rail, **2026-06-04b** fusion Mon profil, **2026-06-08** icônes onglets, **2026-06-14** build meta À propos — Sally + Patrice) — stories : [17-34](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) `done` ; [17-35](../implementation-artifacts/17-35-mon-compte-pseudo-identite-rail-label.md) `done` ; [17-36](../implementation-artifacts/17-36-mon-compte-onglet-mon-profil.md) `done` ; [10-3b](../implementation-artifacts/10-3b-about-build-metadata.md) `done`. **C13 icônes onglets :** livré — [spec-account-tab-icons-c13.md](../implementation-artifacts/spec-account-tab-icons-c13.md).

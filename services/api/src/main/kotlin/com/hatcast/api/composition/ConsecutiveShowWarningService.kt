@@ -2,16 +2,15 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.composition.dto.ConsecutiveShowWarningDto
 import com.hatcast.api.event.EventEntity
-import com.hatcast.api.participant.EventParticipantRepository
-import com.hatcast.api.participant.SeasonParticipantRepository
 import org.springframework.stereotype.Service
 
 @Service
 class ConsecutiveShowWarningService(
+    private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
     private val immediatePredecessorEventResolver: ImmediatePredecessorEventResolver,
     private val slotRepository: EventCompositionSlotRepository,
-    private val seasonParticipantRepository: SeasonParticipantRepository,
-    private val eventParticipantRepository: EventParticipantRepository,
+    private val seasonParticipantRepository: com.hatcast.api.participant.SeasonParticipantRepository,
+    private val eventParticipantRepository: com.hatcast.api.participant.EventParticipantRepository,
 ) {
     /**
      * Batch warning lookup for current event slots (≤ 4 DB round-trips: predecessor + both slot lists + identity lookups).
@@ -58,16 +57,12 @@ class ConsecutiveShowWarningService(
                 val participantId = slot.assignedParticipantId() ?: return@mapNotNull null
                 val currentIdentity = currentIdentities[participantId] ?: return@mapNotNull null
                 val repeatsRoleOnPredecessor =
-                    predecessorSlots.any { predecessorSlot ->
-                        val predecessorParticipantId =
-                            predecessorSlot.assignedParticipantId() ?: return@any false
-                        val predecessorIdentity = predecessorIdentities[predecessorParticipantId] ?: return@any false
-                        currentIdentity.matchesRoleWith(
-                            slot.roleKey,
-                            predecessorSlot.roleKey,
-                            predecessorIdentity,
-                        )
-                    }
+                    immediatePredecessorRoleReplayService.playedSameRoleOnPredecessor(
+                        roleKey = slot.roleKey,
+                        candidateIdentity = currentIdentity,
+                        predecessorSlots = predecessorSlots,
+                        predecessorIdentities = predecessorIdentities,
+                    )
                 if (repeatsRoleOnPredecessor) {
                     (slot.roleKey to slot.slotIndex) to warning
                 } else {

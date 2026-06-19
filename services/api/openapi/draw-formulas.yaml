@@ -1,0 +1,297 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Formules de tirage (fragment)
+  description: |
+    Catalogue admin des formules de tirage par troupe (Wave D, story 19.17).
+    DELETE = archivage logique (status ARCHIVED) ; 409 si la formule est référencée par une politique.
+    Preview POST …/{formulaId}/preview — différé (OQ-19-03, story 19.19).
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Formules de tirage
+
+paths:
+  /troupes/{troupeId}/draw-formulas:
+    get:
+      tags: [Formules de tirage]
+      summary: Liste le catalogue des formules de tirage (admin)
+      description: |
+        Admin troupe ou plateforme. Inclut la formule système V1 (lecture seule) et toutes les formules
+        (DRAFT, PUBLISHED, ARCHIVED), triées par nom.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DrawFormula'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé (admin troupe requis)
+        '404':
+          description: Troupe introuvable
+    post:
+      tags: [Formules de tirage]
+      summary: Crée une formule de tirage
+      description: |
+        Admin troupe ou plateforme. Statut par défaut DRAFT.
+        Validation factorConfig : REF-V01..V04b (save vs publish).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDrawFormulaRequest'
+      responses:
+        '201':
+          description: Formule créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawFormula'
+        '400':
+          description: factorConfig ou statut invalide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé (admin troupe requis)
+        '404':
+          description: Troupe introuvable
+
+  /troupes/{troupeId}/draw-formulas/{formulaId}:
+    get:
+      tags: [Formules de tirage]
+      summary: Détail d'une formule (admin)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: formulaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawFormula'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé (admin troupe requis)
+        '404':
+          description: Troupe ou formule introuvable (isolation troupe)
+    patch:
+      tags: [Formules de tirage]
+      summary: Met à jour une formule (partiel)
+      description: |
+        Admin troupe. Incrémente version à chaque mutation réussie.
+        Formule système → 403. Transition vers PUBLISHED soumise à REF-V03/V04.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: formulaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDrawFormulaRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawFormula'
+        '400':
+          description: Validation factorConfig / statut
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé ou formule système
+        '404':
+          description: Troupe ou formule introuvable
+    delete:
+      tags: [Formules de tirage]
+      summary: Archive une formule (soft delete)
+      description: |
+        Admin troupe. Passe status à ARCHIVED (pas de DELETE physique).
+        409 si la formule est référencée par une politique de tirage de la troupe.
+        Formule système → 403.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: formulaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Formule archivée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawFormula'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Non autorisé ou formule système
+        '404':
+          description: Troupe ou formule introuvable
+        '409':
+          description: Formule utilisée par une politique de tirage
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  schemas:
+    DrawFactorConfigEntry:
+      type: object
+      required: [factorId, enabled]
+      properties:
+        factorId:
+          type: string
+        enabled:
+          type: boolean
+        params:
+          type: object
+          additionalProperties: true
+
+    DrawFormula:
+      type: object
+      required:
+        - id
+        - troupeId
+        - name
+        - status
+        - factorConfig
+        - version
+        - isSystem
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        troupeId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, ARCHIVED]
+        factorConfig:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrawFactorConfigEntry'
+        version:
+          type: integer
+        isSystem:
+          type: boolean
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateDrawFormulaRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED]
+        factorConfig:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrawFactorConfigEntry'
+
+    UpdateDrawFormulaRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, ARCHIVED]
+        factorConfig:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrawFactorConfigEntry'

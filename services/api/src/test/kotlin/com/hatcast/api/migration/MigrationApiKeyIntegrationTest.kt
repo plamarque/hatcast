@@ -109,6 +109,12 @@ class MigrationApiKeyAutoProvisionIntegrationTest {
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(
+    properties = [
+        "hatcast.migration.api-enabled=false",
+        "hatcast.migration.api-key=",
+    ],
+)
 class MigrationApiKeyDisabledIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc

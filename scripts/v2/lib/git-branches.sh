@@ -80,6 +80,20 @@ hatcast_v2_origin_ref() {
   echo "origin/${branch}"
 }
 
+hatcast_v2_dev_ref() {
+  hatcast_v2_origin_ref "${HATCAST_V2_BRANCH_DEV}"
+}
+
+# Branche Git dédiée à une user story BMad (convention HatCast).
+hatcast_v2_story_branch_name() {
+  local story_key="$1"
+  if [[ -z "${story_key}" || "${story_key}" =~ [[:space:]] ]]; then
+    echo "❌ story_key invalide pour hatcast_v2_story_branch_name" >&2
+    exit 1
+  fi
+  echo "feat/${story_key}"
+}
+
 hatcast_v2_github_repo_slug() {
   local remote slug
   remote="$(git config --get remote.origin.url 2>/dev/null || true)"

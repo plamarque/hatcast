@@ -1,0 +1,92 @@
+[
+  {
+    "id": "IR-EX1",
+    "description": "EXCLUDE — triggered veteran excluded, fresh candidate ~100%",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "player",
+      "immediateReplayMode": "EXCLUDE",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 },
+      "playedSameRoleOnImmediatePredecessorByParticipant": { "A": false, "B": true },
+      "immediatePredecessorTitle": "Cabaret du 12",
+      "immediatePredecessorStartsAt": "2031-05-01T19:00:00Z"
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 100, "B": 0 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "IR-ML1",
+    "description": "MALUS — triggered candidate heavily penalized vs peer",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "player",
+      "immediateReplayMode": "MALUS",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 },
+      "playedSameRoleOnImmediatePredecessorByParticipant": { "A": false, "B": true }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 80, "B": 20 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "IR-NO1",
+    "description": "No predecessor trigger — equal chances",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "player",
+      "immediateReplayMode": "EXCLUDE",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 },
+      "playedSameRoleOnImmediatePredecessorByParticipant": { "A": false, "B": false }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 50, "B": 50 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "IR-W1",
+    "description": "EXCLUDE mode zeroes weight for triggered participant",
+    "function": "weightForParticipant",
+    "input": {
+      "pastSelectionCount": 0,
+      "requiredCount": 1,
+      "roleKey": "player",
+      "immediateReplayMode": "EXCLUDE",
+      "playedSameRoleOnImmediatePredecessor": true
+    },
+    "expected": { "weight": 0.0 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "IR-W2",
+    "description": "MALUS mode applies 0.25 multiplier for triggered participant",
+    "function": "weightForParticipant",
+    "input": {
+      "pastSelectionCount": 0,
+      "requiredCount": 1,
+      "roleKey": "player",
+      "immediateReplayMode": "MALUS",
+      "playedSameRoleOnImmediatePredecessor": true
+    },
+    "expected": { "weight": 0.25 },
+    "tolerancePercent": 0
+  }
+]

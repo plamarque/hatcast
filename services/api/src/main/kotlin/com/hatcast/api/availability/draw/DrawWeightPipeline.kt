@@ -30,7 +30,34 @@ class DrawWeightPipeline private constructor(
     }
 }
 
-/** Default troupe/event configuration: V1 past-participation malus only (story 19.6). */
+/** Default troupe/event configuration: compartment (always on) + past-participation malus (19.8 + 19.6). */
 object DrawWeightPipelines {
-    val DEFAULT: DrawWeightPipeline = DrawWeightPipeline.of(PastParticipationFactor)
+    val DEFAULT: DrawWeightPipeline =
+        DrawWeightPipeline.of(CategoryCompartmentFactor, PastParticipationFactor.DEFAULT)
+
+    /** Test / custom formula builder — immediate replay after past participation (PO OQ-19-9-02). */
+    fun withImmediateReplay(mode: ImmediateReplayMode): DrawWeightPipeline {
+        if (mode == ImmediateReplayMode.OFF) {
+            return DEFAULT
+        }
+        return DrawWeightPipeline.of(
+            CategoryCompartmentFactor,
+            PastParticipationFactor.DEFAULT,
+            ImmediateReplayFactor(mode),
+        )
+    }
+
+    fun includesImmediateReplay(pipeline: DrawWeightPipeline): Boolean =
+        pipeline.factors.any { it is ImmediateReplayFactor }
+
+    /** Test / custom formula builder — role-request aspiration bonus after past participation (19.10). */
+    fun withRoleRequest(): DrawWeightPipeline =
+        DrawWeightPipeline.of(
+            CategoryCompartmentFactor,
+            PastParticipationFactor.DEFAULT,
+            RoleRequestFactor.DEFAULT,
+        )
+
+    fun includesRoleRequest(pipeline: DrawWeightPipeline): Boolean =
+        pipeline.factors.any { it is RoleRequestFactor }
 }

@@ -5,6 +5,7 @@ import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.availability.DisposExplainabilityAccess
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.draw.ChanceBreakdownCalculator
+import com.hatcast.api.availability.draw.DrawWeightPipeline
 import com.hatcast.api.availability.draw.DrawWeightPipelines
 import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.composition.dto.ChanceBreakdownDto
@@ -14,6 +15,8 @@ import com.hatcast.api.composition.dto.CompositionPoolPreviewSegmentDto
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
+import com.hatcast.api.event.SpectacleCategory
+import com.hatcast.api.draw.DrawPolicyResolutionService
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
@@ -24,6 +27,7 @@ import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.ParticipantAvatarResolver
 import com.hatcast.api.user.ParticipantGenderResolver
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -47,13 +51,29 @@ class CompositionExplainabilityService(
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val participantAvatarResolver: ParticipantAvatarResolver,
     private val participantGenderResolver: ParticipantGenderResolver,
+    private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
+    private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
+    private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
+    private val drawPolicyResolutionService: DrawPolicyResolutionService,
 ) {
+    private fun resolveDrawPipeline(
+        event: EventEntity,
+        formulaId: UUID? = null,
+    ): DrawWeightPipeline =
+        drawWeightPipelineProvider.getIfAvailable()
+            ?: drawPolicyResolutionService
+                .resolveForEvent(
+                    event = event,
+                    requestedFormulaId = formulaId,
+                    validateForDraw = false,
+                ).pipeline
     @Transactional(readOnly = true)
     fun getChanceBreakdown(
         seasonId: UUID,
         eventId: UUID,
         roleKey: String,
         participantId: UUID,
+        formulaId: UUID?,
         principal: SessionUserPrincipal,
     ): ChanceBreakdownDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
@@ -68,7 +88,7 @@ class CompositionExplainabilityService(
         }
 
         seasonParticipantService.ensureMembershipParticipants(event.season)
-        val poolContext = buildRolePoolContext(event, seasonId, eventId, roleKey)
+        val poolContext = buildRolePoolContext(event, seasonId, eventId, roleKey, formulaId)
         val targetRow =
             poolContext.pool.find { it.participantId == participantId }
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant non éligible pour ce rôle")
@@ -93,6 +113,7 @@ class CompositionExplainabilityService(
                 participantGenderResolver
                     .resolveByParticipantIds(eventId, setOf(participantId))[participantId],
             ) ?: MemberGender.NON_SPECIFIED
+        val drawPipeline = resolveDrawPipeline(event, formulaId)
         val breakdown =
             ChanceBreakdownCalculator.calculate(
                 candidates = candidates,
@@ -100,9 +121,15 @@ class CompositionExplainabilityService(
                 pastSelectionCountByParticipant = poolContext.pastByParticipant,
                 targetParticipantId = participantId,
                 roleKey = roleKey,
-                pipeline = DrawWeightPipelines.DEFAULT,
+                pipeline = drawPipeline,
                 overrideChancePercent = overrideChancePercent,
                 targetParticipantGender = targetGender,
+                categorySlug = poolContext.categorySlug,
+                pastSelectionCountUnscopedByParticipant = poolContext.pastUnscopedByParticipant,
+                playedSameRoleOnImmediatePredecessorByParticipant = poolContext.replayByParticipant,
+                immediatePredecessorTitle = poolContext.replayPredecessorTitle,
+                immediatePredecessorStartsAt = poolContext.replayPredecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant = poolContext.unfulfilledByParticipant,
             )
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Breakdown indisponible")
 
@@ -142,6 +169,7 @@ class CompositionExplainabilityService(
         seasonId: UUID,
         eventId: UUID,
         roleKey: String,
+        formulaId: UUID?,
         principal: SessionUserPrincipal,
     ): CompositionPoolPreviewResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
@@ -158,7 +186,8 @@ class CompositionExplainabilityService(
         }
 
         seasonParticipantService.ensureMembershipParticipants(event.season)
-        val poolContext = buildRolePoolContext(event, seasonId, eventId, roleKey)
+        val poolContext = buildRolePoolContext(event, seasonId, eventId, roleKey, formulaId)
+        val drawPipeline = resolveDrawPipeline(event, formulaId)
         val candidates =
             poolContext.pool.map {
                 AvailabilityChanceCalculator.Candidate(it.participantId, it.displayName, null)
@@ -169,6 +198,12 @@ class CompositionExplainabilityService(
                 requiredCount,
                 poolContext.pastByParticipant,
                 roleKey = roleKey,
+                pipeline = drawPipeline,
+                categorySlug = poolContext.categorySlug,
+                playedSameRoleOnImmediatePredecessorByParticipant = poolContext.replayByParticipant,
+                immediatePredecessorTitle = poolContext.replayPredecessorTitle,
+                immediatePredecessorStartsAt = poolContext.replayPredecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant = poolContext.unfulfilledByParticipant,
             )
         val participantIds = scored.map { it.participantId }.toSet()
         val avatarUrls = participantAvatarResolver.resolveByParticipantIds(eventId, participantIds)
@@ -194,6 +229,12 @@ class CompositionExplainabilityService(
     private data class RolePoolContext(
         val pool: List<CompositionEligibleParticipant>,
         val pastByParticipant: Map<UUID, Int>,
+        val pastUnscopedByParticipant: Map<UUID, Int>,
+        val categorySlug: String,
+        val replayByParticipant: Map<UUID, Boolean> = emptyMap(),
+        val replayPredecessorTitle: String? = null,
+        val replayPredecessorStartsAt: java.time.Instant? = null,
+        val unfulfilledByParticipant: Map<UUID, Int> = emptyMap(),
     )
 
     private fun buildRolePoolContext(
@@ -201,6 +242,7 @@ class CompositionExplainabilityService(
         seasonId: UUID,
         eventId: UUID,
         roleKey: String,
+        formulaId: UUID? = null,
     ): RolePoolContext {
         val eligible =
             CompositionParticipantPool.loadEligibleParticipants(
@@ -217,6 +259,10 @@ class CompositionExplainabilityService(
             selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
         val pastByParticipant =
             selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+        val unscopedCounts =
+            selectionHistory.pastSelectionCountUnscopedByParticipantAndRole(event, historyMode)
+        val pastUnscopedByParticipant =
+            selectionHistory.pastSelectionCountByParticipant(unscopedCounts, roleKey)
         val pool =
             CompositionParticipantPool.buildRolePool(
                 eligible = eligible,
@@ -224,7 +270,33 @@ class CompositionExplainabilityService(
                 roleKey = roleKey,
                 excluded = emptySet(),
             )
-        return RolePoolContext(pool, pastByParticipant)
+        val drawPipeline = resolveDrawPipeline(event, formulaId)
+        val replayInputs =
+            DrawImmediateReplaySupport.replayInputsForRolePool(
+                pipeline = drawPipeline,
+                event = event,
+                roleKey = roleKey,
+                pool = pool,
+                replayService = immediatePredecessorRoleReplayService,
+            )
+        val unfulfilledCounts =
+            DrawRoleRequestSupport.unfulfilledCountsForRolePool(
+                pipeline = drawPipeline,
+                event = event,
+                roleKey = roleKey,
+                pool = pool,
+                roleRequestService = unfulfilledRoleRequestService,
+            )
+        return RolePoolContext(
+            pool = pool,
+            pastByParticipant = pastByParticipant,
+            pastUnscopedByParticipant = pastUnscopedByParticipant,
+            categorySlug = SpectacleCategory.slug(event),
+            replayByParticipant = replayInputs.byParticipant,
+            replayPredecessorTitle = replayInputs.predecessorTitle,
+            replayPredecessorStartsAt = replayInputs.predecessorStartsAt,
+            unfulfilledByParticipant = unfulfilledCounts,
+        )
     }
 
     private fun requireExplainabilityAccess(

@@ -4,17 +4,16 @@ import net.ttddyy.dsproxy.ExecutionInfo
 import net.ttddyy.dsproxy.listener.QueryExecutionListener
 import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.config.BeanPostProcessor
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import javax.sql.DataSource
 
 @Component
 @ConditionalOnProperty(prefix = "hatcast.jdbc", name = ["metrics-enabled"], havingValue = "true")
-@EnableConfigurationProperties(HatcastJdbcProperties::class)
 class DataSourceProxyBeanPostProcessor(
-    private val properties: HatcastJdbcProperties,
+    private val propertiesProvider: ObjectProvider<HatcastJdbcProperties>,
 ) : BeanPostProcessor {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -42,6 +41,7 @@ class DataSourceProxyBeanPostProcessor(
                 execInfo: ExecutionInfo,
                 queryInfoList: MutableList<net.ttddyy.dsproxy.QueryInfo>,
             ) {
+                val properties = propertiesProvider.getObject()
                 queryInfoList.forEach { queryInfo ->
                     val normalizedSql = queryInfo.query.replace(Regex("\\s+"), " ").trim()
                     val elapsedMs = execInfo.elapsedTime

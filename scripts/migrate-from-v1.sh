@@ -35,6 +35,7 @@ SKIP_REDEPLOY=false
 SKIP_ENABLE_MIGRATION_API=false
 RESTART_MODE=""
 MIGRATION_API_CLOUD_RUN_CONFIGURED=false
+SKIP_POST_SMOKE=false
 EXTRA_ARGS=()
 RESET_FLAG=()
 
@@ -66,6 +67,7 @@ Options:
   --restart=MODE            Override: prompt-local | gcloud | github | none (staging défaut: gcloud)
   --skip-enable-migration-api
                             Ne pas pousser HATCAST_MIGRATION_API_* sur Cloud Run (défaut: auto pour development)
+  --skip-post-smoke           Ne pas lancer migrate:malice:post-smoke après le pipeline
   --help, -h                This help
 
 Environment (.env.local) — voir .env.example § migration V1:
@@ -327,6 +329,10 @@ while [[ $# -gt 0 ]]; do
       SKIP_ENABLE_MIGRATION_API=true
       shift
       ;;
+    --skip-post-smoke)
+      SKIP_POST_SMOKE=true
+      shift
+      ;;
     --help | -h)
       usage
       exit 0
@@ -467,6 +473,24 @@ if [[ "${DRY_RUN}" == false ]]; then
   npm run migrate:v2:validate-replay -- --path="${REPLAY_LOG}" --min=1 || true
   echo ""
   echo "Gate prod: ≥ 3 cycles → npm run migrate:v2:validate-replay -- --path=${REPLAY_LOG} --min=3"
+  if [[ "${SKIP_POST_SMOKE}" == false ]]; then
+    echo ""
+    echo "🧪 Post-smoke (consultation paths)…"
+    POST_SMOKE_ARGS=(
+      --database-url="${MIGRATE_DATABASE_URL}"
+      --api-base-url="${MIGRATE_API_BASE}"
+      --migration-api-key="${HATCAST_MIGRATION_API_KEY}"
+      --export-dir="$(node -e "
+const fs = require('fs');
+const p = process.argv[1];
+try {
+  const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+  console.log(j.exportDir || './export/malice-runs');
+} catch { console.log('./export/malice-runs'); }
+" "${CONFIG_PATH}")"
+    )
+    npm run migrate:malice:post-smoke -- "${POST_SMOKE_ARGS[@]}"
+  fi
 fi
 
 echo ""

@@ -216,7 +216,7 @@ Specs sous `e2e/e1/` — stats perso, activité spectacle (membre), stats saison
 | Spec | IDs | Stories |
 |------|-----|---------|
 | `member-troupe-nav.mobile.spec.ts` | E1-MEM-040 (**P0**) …042 (P1) | 17.41 nav Ma troupe — gate T2 mobile |
-| `member-troupe-hub.mobile.spec.ts` | E1-MEM-043…045 (**P1**) | 17.42 hub dashboard collectif — tuiles, Personnes, teaser |
+| `member-troupe-hub.mobile.spec.ts` | E1-MEM-043…048 (**P1**) | 17.42 hub dashboard collectif ; 17.44 mini-chart saison |
 | `member-dispos-poll.mobile.spec.ts` | E1-MEM-030…033 | 5.8 sondage unifié ; 5.9 pool % + breakdown sans onglet Équipe (E1-MEM-033) |
 
 ### T1 — CI local / `e2e-smoke.yml`
@@ -239,7 +239,17 @@ export PLAYWRIGHT_BASE_URL="https://hatcast-v2-staging-….run.app"
 
 cd apps/web
 npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
+# Migration consultation (staging only — skipped locally without PLAYWRIGHT_STAGING_E2E=1) :
+npm run test:e2e:migration
 ```
+
+Après replay migration local (palier 1, API/SQL) :
+
+```bash
+npm run migrate:malice:post-smoke
+```
+
+Palier 2 (Playwright) : exécuter `test:e2e:migration` sur staging après deploy (voir gate ci-dessous).
 
 Migration §6 (hors Playwright) — sanity structurel (pas de comptes figés 55/7) :
 

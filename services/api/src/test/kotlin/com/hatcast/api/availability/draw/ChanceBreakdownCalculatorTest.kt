@@ -2,8 +2,12 @@ package com.hatcast.api.availability.draw
 
 import com.hatcast.api.availability.AvailabilityChanceCalculator
 import com.hatcast.api.user.MemberGender
+import com.hatcast.api.availability.draw.DrawWeightPipelines
+import com.hatcast.api.availability.draw.ImmediateReplayFactor
+import com.hatcast.api.availability.draw.ImmediateReplayMode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
@@ -193,6 +197,7 @@ class ChanceBreakdownCalculatorTest {
             pastSelectionCountByParticipant = past,
             targetParticipantId = bob,
             roleKey = "player",
+            pastSelectionCountUnscopedByParticipant = past,
         )
     requireNotNull(result)
     assertEquals(50, result.referencePercent)
@@ -203,6 +208,222 @@ class ChanceBreakdownCalculatorTest {
         result.chancePercent - result.referencePercent,
         result.adjustments.sumOf { it.deltaPoints },
     )
+  }
+
+  @Test
+  fun `equity_tag line when away-only history on principal compartment`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val scoped = mapOf(alice to 0, bob to 0)
+    val unscoped = mapOf(alice to 0, bob to 3)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = scoped,
+            pastSelectionCountUnscopedByParticipant = unscoped,
+            targetParticipantId = bob,
+            roleKey = "player",
+            categorySlug = "principal",
+        )
+    requireNotNull(result)
+    assertEquals(50, result.referencePercent)
+    assertEquals(50, result.chancePercent)
+    assertEquals(2, result.adjustments.size)
+    val equityLine = result.adjustments.first { it.factorId == CategoryCompartmentFactor.FACTOR_ID }
+    assertEquals("Compté dans un autre type de spectacle", equityLine.label)
+    assertEquals(-30, equityLine.deltaPoints)
+    val pastLine = result.adjustments.first { it.factorId == PastParticipationFactor.FACTOR_ID }
+    assertEquals(30, pastLine.deltaPoints)
+    assertEquals(
+        result.chancePercent - result.referencePercent,
+        result.adjustments.sumOf { it.deltaPoints },
+    )
+  }
+
+  @Test
+  fun `no equity_tag line when scoped equals unscoped`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 3)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            pastSelectionCountUnscopedByParticipant = past,
+            targetParticipantId = bob,
+            roleKey = "player",
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == CategoryCompartmentFactor.FACTOR_ID })
+    assertEquals(1, result.adjustments.size)
+  }
+
+  @Test
+  @Tag("19.9")
+  fun `immediate replay EXCLUDE produces large negative delta`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val replay = mapOf(alice to false, bob to true)
+    val pipeline = DrawWeightPipelines.withImmediateReplay(ImmediateReplayMode.EXCLUDE)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = bob,
+            roleKey = "player",
+            pipeline = pipeline,
+            playedSameRoleOnImmediatePredecessorByParticipant = replay,
+            immediatePredecessorTitle = "Cabaret du 12",
+            immediatePredecessorStartsAt = java.time.Instant.parse("2031-05-01T19:00:00Z"),
+        )
+    requireNotNull(result)
+    val replayLine = result.adjustments.first { it.factorId == ImmediateReplayFactor.FACTOR_ID }
+    assertTrue(replayLine.deltaPoints < -20)
+    assertTrue(replayLine.label.contains("Cabaret du 12"))
+  }
+
+  @Test
+  @Tag("19.10")
+  fun `role request bonus produces positive delta when n greater than 0`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val unfulfilled = mapOf(alice to 7, bob to 0)
+    val pipeline = DrawWeightPipelines.withRoleRequest()
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = alice,
+            roleKey = "dj",
+            targetParticipantGender = MemberGender.FEMALE,
+            pipeline = pipeline,
+            unfulfilledRoleRequestCountByParticipant = unfulfilled,
+        )
+    requireNotNull(result)
+    assertEquals(50, result.referencePercent)
+    assertEquals(89, result.chancePercent)
+    val roleRequestLine = result.adjustments.single { it.factorId == RoleRequestFactor.FACTOR_ID }
+    assertEquals(
+        "A demandé DJ 7 fois sans être tiré·e — bonus aspiration",
+        roleRequestLine.label,
+    )
+    assertEquals(39, roleRequestLine.deltaPoints)
+    assertEquals(
+        result.chancePercent - result.referencePercent,
+        result.adjustments.sumOf { it.deltaPoints },
+    )
+  }
+
+  @Test
+  @Tag("19.10")
+  fun `no role request line when unfulfilled count is zero`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val pipeline = DrawWeightPipelines.withRoleRequest()
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = alice,
+            roleKey = "dj",
+            pipeline = pipeline,
+            unfulfilledRoleRequestCountByParticipant = mapOf(alice to 0, bob to 0),
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == RoleRequestFactor.FACTOR_ID })
+  }
+
+  @Test
+  @Tag("19.10")
+  fun `DEFAULT pipeline has no role request adjustment line`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = alice,
+            roleKey = "dj",
+            pipeline = DrawWeightPipelines.DEFAULT,
+            unfulfilledRoleRequestCountByParticipant = mapOf(alice to 7, bob to 0),
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == RoleRequestFactor.FACTOR_ID })
+  }
+
+  @Test
+  @Tag("19.9")
+  fun `no immediate replay line when trigger false`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 0)
+    val pipeline = DrawWeightPipelines.withImmediateReplay(ImmediateReplayMode.EXCLUDE)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = bob,
+            roleKey = "player",
+            pipeline = pipeline,
+            playedSameRoleOnImmediatePredecessorByParticipant = mapOf(alice to false, bob to false),
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == ImmediateReplayFactor.FACTOR_ID })
+  }
+
+  @Test
+  @Tag("19.9")
+  fun `DEFAULT pipeline has no immediate replay adjustment`() {
+    val candidates =
+        listOf(
+            candidate(alice, "Alice"),
+            candidate(bob, "Bob"),
+        )
+    val past = mapOf(alice to 0, bob to 3)
+    val result =
+        ChanceBreakdownCalculator.calculate(
+            candidates = candidates,
+            requiredCount = 1,
+            pastSelectionCountByParticipant = past,
+            targetParticipantId = bob,
+            roleKey = "player",
+            pipeline = DrawWeightPipelines.DEFAULT,
+            playedSameRoleOnImmediatePredecessorByParticipant = mapOf(bob to true),
+        )
+    requireNotNull(result)
+    assertTrue(result.adjustments.none { it.factorId == ImmediateReplayFactor.FACTOR_ID })
   }
 
   @Test

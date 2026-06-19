@@ -11,6 +11,7 @@
     "serve:dist:https": "node scripts/serve-dist-https.mjs",
     "test": "ng test",
     "test:e2e": "playwright test",
+    "test:e2e:migration": "playwright test --project=migration-mobile-member --project=migration-desktop-orga",
     "test:e2e:ui": "playwright test --ui"
   },
   "private": true,

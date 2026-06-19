@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { Subscription } from 'rxjs'
@@ -43,6 +44,7 @@ import {
 import {
   SeasonStatisticsApiService,
   type ParticipantStatisticsRow,
+  type StatisticsEvent,
 } from '../../core/seasons/season-statistics-api.service'
 import { type EventResponse } from '../../core/events/event-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
@@ -69,6 +71,13 @@ import {
   participantFocusFromEvent,
 } from '../season-home/season-participant-focus'
 import { TroupeEditDialog, type TroupeEditDialogData } from './troupe-edit-dialog'
+import {
+  buildSeasonHubMonthlyChart,
+  seasonHubChartBlockModifierClass,
+  seasonHubChartBlockTooltip,
+  seasonHubChartMonthLabel,
+  type SeasonHubChartBlock,
+} from './season-hub-mini-chart.utils'
 import {
   TroupeHubSeasonSwitcherSheet,
   type TroupeHubSeasonSwitcherSheetData,
@@ -133,6 +142,7 @@ function compareSeasonStartDateDesc(a: SeasonResponse, b: SeasonResponse): numbe
     MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTooltipModule,
     RouterLink,
     ScopeAdminMenu,
     SeasonAgenda,
@@ -204,6 +214,8 @@ export class TroupeHub implements OnInit, OnDestroy {
   protected readonly statsLoadError = signal(false)
   protected readonly workspaceLoadError = signal(false)
   protected readonly statsRows = signal<ParticipantStatisticsRow[]>([])
+  protected readonly statsEvents = signal<StatisticsEvent[]>([])
+  protected readonly statsMonthKeys = signal<string[]>([])
   protected readonly confirmedCompositionsCount = signal(0)
   protected readonly teaserEvents = signal<EventWithDateParts<EventResponse>[]>([])
   protected readonly categoryLabels = signal<Record<string, string>>({})
@@ -249,6 +261,19 @@ export class TroupeHub implements OnInit, OnDestroy {
   protected readonly participantOverflowCount = computed(() =>
     Math.max(0, this.statsRows().length - this.participantPreviewCap()),
   )
+
+  protected readonly seasonMonthlyChart = computed(() => {
+    if (this.loadingDashboard() || this.statsLoadError()) {
+      return null
+    }
+    return buildSeasonHubMonthlyChart(
+      this.statsEvents(),
+      this.statsRows(),
+      this.statsMonthKeys(),
+    )
+  })
+
+  protected readonly showSeasonMiniChart = computed(() => this.seasonMonthlyChart() !== null)
 
   protected readonly teaserMonthGroups = computed(() =>
     groupEventsByMonth(this.teaserEvents().slice(0, TEASER_EVENT_CAP)),
@@ -487,6 +512,40 @@ export class TroupeHub implements OnInit, OnDestroy {
     void this.router.navigate(saisonEventPath(troupeSlug, season.slug, eventSlug))
   }
 
+  protected openChartEvent(eventSlug: string): void {
+    if (!eventSlug.trim()) {
+      return
+    }
+    this.openTeaserEvent(eventSlug)
+  }
+
+  protected chartMonthLabel(monthKey: string): string {
+    return seasonHubChartMonthLabel(monthKey)
+  }
+
+  protected chartBlockTooltip(block: SeasonHubChartBlock): string {
+    return seasonHubChartBlockTooltip(
+      block.eventTitle,
+      block.participationCount,
+      block.statusLabel,
+    )
+  }
+
+  protected chartBlockModifierClass(block: SeasonHubChartBlock): string {
+    return seasonHubChartBlockModifierClass(block.statusTone)
+  }
+
+  protected chartBlockAriaLabel(block: SeasonHubChartBlock): string {
+    return this.chartBlockTooltip(block)
+  }
+
+  protected onChartBlockKeydown(event: KeyboardEvent, eventSlug: string): void {
+    if (event.key === ' ') {
+      event.preventDefault()
+      this.openChartEvent(eventSlug)
+    }
+  }
+
   protected async openTeaserAvailability(payload: {
     eventId: string
     status: AvailabilityStatus
@@ -656,6 +715,8 @@ export class TroupeHub implements OnInit, OnDestroy {
     this.statsLoadError.set(false)
     this.workspaceLoadError.set(false)
     this.statsRows.set([])
+    this.statsEvents.set([])
+    this.statsMonthKeys.set([])
     this.confirmedCompositionsCount.set(0)
     this.teaserEvents.set([])
     this.categoryLabels.set({})
@@ -697,10 +758,14 @@ export class TroupeHub implements OnInit, OnDestroy {
 
     if (statsResult.ok && statsResult.data) {
       this.statsRows.set(statsResult.data.rows)
+      this.statsEvents.set(statsResult.data.events)
+      this.statsMonthKeys.set(statsResult.data.monthKeys)
       this.confirmedCompositionsCount.set(statsResult.data.confirmedCompositionsCount ?? 0)
     } else {
       this.statsLoadError.set(true)
       this.statsRows.set([])
+      this.statsEvents.set([])
+      this.statsMonthKeys.set([])
       this.confirmedCompositionsCount.set(0)
     }
 

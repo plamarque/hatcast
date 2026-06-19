@@ -4,7 +4,7 @@ baseline_commit: 8cb2611d06c41fbeab8c883cf7fbf1fa6f45a631
 
 # Story 17.43: Event detail — Infos Saison + breadcrumb removal
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -75,14 +75,14 @@ so that **mobile header space is not wasted** on a breadcrumb I rarely use and t
 
 ### Review Findings
 
-- [ ] [Review][Patch] Badge statut masqué sur spectacles brouillon — `event-equipe-tab.html` enveloppe le statut dans `@if (!eventIsDraft())` ; les orgas perdent le badge composition sur l’onglet Équipe quand `availabilityOpenedAt == null` (régression vs header pré-17.43, AC 7b).
-- [ ] [Review][Patch] Spec header non versionnée — [`event-detail-header.spec.ts`](../../apps/web/src/app/pages/event-detail/event-detail-header.spec.ts) untracked ; couverture `onBack()` non CI-gated.
-- [ ] [Review][Patch] Titre mobile tronqué sans texte accessible — [`event-detail.scss`](../../apps/web/src/app/pages/event-detail/event-detail.scss) ellipsis sans `title` ni alternative a11y sur `h1.event-detail__event-title`.
+- [x] [Review][Patch] Badge statut masqué sur spectacles brouillon — `event-equipe-tab.html:37-42` enveloppe le statut dans `@if (!eventIsDraft())` ; les orgas perdent le badge composition sur l’onglet Équipe quand `availabilityOpenedAt == null` (régression vs header pré-17.43, AC 7b).
+- [x] [Review][Patch] Titre mobile tronqué sans texte accessible — `event-detail.html:12` + `event-detail.scss:53-58` ellipsis sans `[title]` ni alternative a11y sur `h1.event-detail__event-title` (AC 4 / M3-3).
 
 - [x] [Review][Defer] `Location.back()` si `navigationId > 1` peut renvoyer hors HatCast — conforme ED3 / pattern story — deferred, pre-existing.
 - [x] [Review][Defer] Test gap fallback chevron vers `/troupes/:slug` — allowlist étendue mais `onBack()` non testé sur ce chemin — deferred, test gap.
 - [x] [Review][Defer] Test gap AC8 Saison absente sur 404/403 au niveau `event-detail.spec.ts` — deferred, test gap.
 - [x] [Review][Defer] Badge statut absent pendant spinner chargement onglet Équipe — deferred, acceptable UX.
+- [x] [Review][Defer] Test équipe brouillon ne couvre pas AC 7b — `event-equipe-tab.spec.ts` n’asserte pas le badge quand `availabilityOpenedAt == null` — deferred, test gap.
 
 ---
 

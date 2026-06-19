@@ -1,5 +1,6 @@
 package com.hatcast.api.season.dto
 
+import com.hatcast.api.composition.TeamStatusBadgeDto
 import java.util.UUID
 
 data class StatCountsDto(
@@ -18,10 +19,13 @@ data class StatisticsEventCellDto(
 data class StatisticsEventDto(
     val id: UUID,
     val title: String,
+    val slug: String,
     val startsAt: String,
     val templateType: String,
     val category: String?,
     val monthKey: String,
+    /** Badge Équipe agenda (même sémantique que EventResponse.teamStatusBadge). */
+    val teamStatusBadge: TeamStatusBadgeDto? = null,
 )
 
 data class ParticipantStatisticsRowDto(

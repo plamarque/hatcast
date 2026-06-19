@@ -1,0 +1,117 @@
+[
+  {
+    "id": "RR-BOUBOU",
+    "description": "Boubou n=7 DJ heavily boosted vs peer n=0 (same pastSelectionCount)",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "B", "displayName": "Boubou" },
+        { "key": "P", "displayName": "Peer" }
+      ],
+      "pastSelectionCountByParticipant": { "B": 0, "P": 0 },
+      "unfulfilledRoleRequestCountByParticipant": { "B": 7, "P": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "B": 89, "P": 11 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "RR-N1",
+    "description": "n=1 modest boost vs peer n=0",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 },
+      "unfulfilledRoleRequestCountByParticipant": { "A": 1, "B": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 67, "B": 33 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "RR-N0",
+    "description": "n=0 neutral multiplier — equal chances",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "A", "displayName": "Alice" },
+        { "key": "B", "displayName": "Bob" }
+      ],
+      "pastSelectionCountByParticipant": { "A": 0, "B": 0 },
+      "unfulfilledRoleRequestCountByParticipant": { "A": 0, "B": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "A": 50, "B": 50 }
+    },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "RR-CAP",
+    "description": "cap at MAX_BONUS_MULTIPLIER when n very large",
+    "function": "weightForParticipant",
+    "input": {
+      "pastSelectionCount": 0,
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "unfulfilledRoleRequestCount": 20
+    },
+    "expected": { "weight": 10.0 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "RR-W7",
+    "description": "n=7 weight multiplier 8 on base requiredCount 1",
+    "function": "weightForParticipant",
+    "input": {
+      "pastSelectionCount": 0,
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "unfulfilledRoleRequestCount": 7
+    },
+    "expected": { "weight": 8.0 },
+    "tolerancePercent": 0
+  },
+  {
+    "id": "RR-STACK",
+    "description": "Boubou pastSelectionCount=2 and n=7 — past malus × role bonus stacks (~2.67 vs 1.0 peer)",
+    "function": "scoreCandidates",
+    "input": {
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "candidates": [
+        { "key": "B", "displayName": "Boubou" },
+        { "key": "P", "displayName": "Peer" }
+      ],
+      "pastSelectionCountByParticipant": { "B": 2, "P": 0 },
+      "unfulfilledRoleRequestCountByParticipant": { "B": 7, "P": 0 }
+    },
+    "expected": {
+      "chancePercentsByKey": { "B": 73, "P": 27 }
+    },
+    "tolerancePercent": 1
+  },
+  {
+    "id": "RR-STACK-W",
+    "description": "Stacked weight: base 1 × past malus 1/3 × role bonus 8 = 8/3",
+    "function": "weightForParticipant",
+    "input": {
+      "pastSelectionCount": 2,
+      "requiredCount": 1,
+      "roleKey": "dj",
+      "unfulfilledRoleRequestCount": 7
+    },
+    "expected": { "weight": 2.6666666666666665 },
+    "tolerancePercent": 0
+  }
+]

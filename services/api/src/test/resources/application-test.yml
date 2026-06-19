@@ -12,7 +12,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
-        generate_statistics: true
+        # Perf gates (MeInboxPerformanceIntegrationTest, etc.) use wall-clock headers, not Hibernate stats.
+        generate_statistics: false
   flyway:
     enabled: true
     locations: classpath:db/migration,classpath:db/seed,classpath:db/seed-postgresql
@@ -20,9 +21,19 @@ spring:
       drop_event_availability_pk: DROP PRIMARY KEY
       notification_preferences_json_type: JSON
       notification_preferences_json_default: JSON '{}'
+      draw_factor_config_json_type: JSON
+      draw_policy_rule_json_type: JSON
+      draw_policy_rules_json_type: JSON
+      draw_policy_rules_json_default: JSON '[]'
+      draw_policies_season_idx_sql: CREATE INDEX IF NOT EXISTS draw_policies_season_idx ON draw_policies (season_id)
   session:
     jdbc:
       initialize-schema: always
+  test:
+    context:
+      cache:
+        # ~70 @SpringBootTest variants; default maxSize=32 keeps too many full contexts alive → tail OOM/GC thrash.
+        maxSize: 4
 
 hatcast:
   google:

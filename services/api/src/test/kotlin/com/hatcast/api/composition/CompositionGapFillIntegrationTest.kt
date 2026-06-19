@@ -283,7 +283,7 @@ class CompositionGapFillIntegrationTest {
 
     @Test
     @Tag("FR27")
-    fun `validated assign to empty slot succeeds and occupied or clear returns 409`() {
+    fun `validated assign to empty slot succeeds occupied slot returns 409 and clear succeeds`() {
         val adminCookie = memberCookie("sub-gap-admin-assign", admin = true)
         val member = memberCookie("sub-gap-member-assign")
         val seasonId = createSeason(adminCookie)
@@ -337,7 +337,7 @@ class CompositionGapFillIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"participantId":null}""")
                     .with(csrf()),
-            ).andExpect(status().isConflict)
+            ).andExpect(status().isOk)
     }
 
     @Test

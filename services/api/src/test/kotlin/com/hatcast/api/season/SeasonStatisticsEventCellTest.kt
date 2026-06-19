@@ -4,6 +4,7 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.EventAvailabilityEntity
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.StoredAvailabilityStatus
+import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import com.hatcast.api.composition.CompositionLifecycleService
 import com.hatcast.api.composition.EventCompositionDeclineEntity
 import com.hatcast.api.composition.EventCompositionDeclineRepository
@@ -50,6 +51,7 @@ class SeasonStatisticsEventCellTest {
     private val guestInvitationAccess = mock<GuestInvitationAccessService>()
     private val userRepository = mock<UserRepository>()
     private val compositionLifecycleService = CompositionLifecycleService()
+    private val compositionLifecycleEnrichment = mock<CompositionLifecycleEnrichmentService>()
 
     private val service =
         SeasonStatisticsService(
@@ -64,11 +66,13 @@ class SeasonStatisticsEventCellTest {
             guestInvitationAccess,
             userRepository,
             compositionLifecycleService,
+            compositionLifecycleEnrichment,
         )
 
     @org.junit.jupiter.api.BeforeEach
     fun setupAccess() {
         doNothing().whenever(guestInvitationAccess).requireMemberOnlyPastAccess(any(), any())
+        whenever(compositionLifecycleEnrichment.loadViewsByEventIds(any(), any(), any())).thenReturn(emptyMap())
     }
 
     private val principal =
@@ -277,6 +281,7 @@ class SeasonStatisticsEventCellTest {
         mock<EventEntity>().also {
             whenever(it.id).thenReturn(eventId)
             whenever(it.title).thenReturn("Match test")
+            whenever(it.slug).thenReturn("match-test")
             whenever(it.startsAt).thenReturn(Instant.parse("2026-03-15T19:00:00Z"))
             whenever(it.templateType).thenReturn("match")
             whenever(it.category).thenReturn(null)

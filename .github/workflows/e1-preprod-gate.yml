@@ -82,6 +82,8 @@ jobs:
           npm run test:e2e --
           --project=e1-mobile-member
           --project=e1-desktop-orga
+          --project=migration-mobile-member
+          --project=migration-desktop-orga
 
       - name: Upload Playwright report on failure
         if: failure()

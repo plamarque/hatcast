@@ -19,6 +19,8 @@ export interface ChanceBreakdownOpenContext {
   eventId: string
   roleKey: string
   participantId: string
+  /** Optional draw formula for operational % (story 19.21). */
+  formulaId?: string | null
   /** Participant ids linked to the viewer account (for ta/sa copy). */
   viewerParticipantIds?: readonly string[]
   /** Optional banner above waterfall (e.g. draw animation step). */
@@ -57,6 +59,7 @@ export class ChanceBreakdownService {
         context.eventId,
         context.roleKey,
         context.participantId,
+        context.formulaId,
       )
       if (!result.ok || !result.data) {
         this.snack.open(

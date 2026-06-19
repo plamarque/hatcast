@@ -52,6 +52,24 @@ export default defineConfig({
       dependencies: ['setup-admin'],
     },
     {
+      name: 'migration-mobile-member',
+      testMatch: /migration\/.*\.mobile\.spec\.ts/,
+      use: {
+        ...devices['Pixel 5'],
+        storageState: 'e2e/.auth/member.json',
+      },
+      dependencies: ['setup-member'],
+    },
+    {
+      name: 'migration-desktop-orga',
+      testMatch: /migration\/.*\.desktop\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup-admin'],
+    },
+    {
       name: 'chromium-3-19',
       testMatch: /recette-3\.19\.spec\.ts/,
       use: {
@@ -91,6 +109,24 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
       },
+    },
+    {
+      name: 'chromium-19-19c',
+      testMatch: /recette-19-19c\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup-admin', 'setup-member'],
+    },
+    {
+      name: 'chromium-19-21',
+      testMatch: /draw-formula-choice\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup-admin'],
     },
   ],
   webServer: isStagingTarget

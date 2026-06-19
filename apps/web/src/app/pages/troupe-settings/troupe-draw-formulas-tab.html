@@ -1,0 +1,83 @@
+<div class="troupe-draw-formulas-tab" data-testid="draw-formulas-tab">
+  <p class="troupe-draw-formulas-tab__intro">
+    Les formules définissent comment HatCast ajuste les cotes (bonus et malus). Les politiques (par
+    saison ou catégorie) seront configurées ensuite.
+  </p>
+  <a
+    class="troupe-draw-formulas-tab__help-link"
+    [href]="helpPath"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Comprendre les cotes
+  </a>
+
+  @if (loading()) {
+    <div class="troupe-draw-formulas-tab__loading" role="status">
+      <mat-spinner diameter="32" />
+    </div>
+  } @else if (loadError()) {
+    <p class="troupe-draw-formulas-tab__error">Impossible de charger les formules de tirage.</p>
+  } @else {
+    <ul class="troupe-draw-formulas-tab__list" aria-label="Formules de tirage">
+      @for (formula of formulas(); track formula.id) {
+        <li
+          class="troupe-draw-formulas-tab__row"
+          [class.troupe-draw-formulas-tab__row--system]="formula.isSystem"
+          [class.troupe-draw-formulas-tab__row--archived]="formula.status === 'ARCHIVED'"
+          [attr.data-testid]="'draw-formula-row-' + formula.id"
+        >
+          <div class="troupe-draw-formulas-tab__main">
+            <div class="troupe-draw-formulas-tab__title-row">
+              <span class="troupe-draw-formulas-tab__name">{{ formula.name }}</span>
+              @if (formula.isSystem) {
+                <mat-chip class="troupe-draw-formulas-tab__chip troupe-draw-formulas-tab__chip--system">
+                  Système
+                </mat-chip>
+              } @else {
+                <mat-chip
+                  class="troupe-draw-formulas-tab__chip"
+                  [class.troupe-draw-formulas-tab__chip--archived]="formula.status === 'ARCHIVED'"
+                >
+                  {{ statusLabel(formula.status) }}
+                </mat-chip>
+              }
+            </div>
+            <p class="troupe-draw-formulas-tab__summary">{{ factorSummary(formula) }}</p>
+          </div>
+          @if (!formula.isSystem && formula.status !== 'ARCHIVED') {
+            <div class="troupe-draw-formulas-tab__actions">
+              <button
+                type="button"
+                mat-icon-button
+                [attr.aria-label]="'Modifier ' + formula.name"
+                (click)="openEdit(formula)"
+              >
+                <mat-icon aria-hidden="true">edit</mat-icon>
+              </button>
+              <button
+                type="button"
+                mat-icon-button
+                [attr.aria-label]="'Archiver ' + formula.name"
+                (click)="openArchive(formula)"
+              >
+                <mat-icon aria-hidden="true">archive</mat-icon>
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+
+    <button
+      type="button"
+      mat-stroked-button
+      class="troupe-draw-formulas-tab__add"
+      data-testid="draw-formula-add"
+      (click)="openCreate()"
+    >
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Nouvelle formule
+    </button>
+  }
+</div>

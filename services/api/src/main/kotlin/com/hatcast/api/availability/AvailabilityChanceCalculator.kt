@@ -49,6 +49,12 @@ object AvailabilityChanceCalculator {
         participantId: UUID = ZERO_PARTICIPANT_ID,
         roleKey: String = DEFAULT_ROLE_KEY,
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
+        categorySlug: String = DEFAULT_CATEGORY_SLUG,
+        pastSelectionCountUnscoped: Int? = null,
+        playedSameRoleOnImmediatePredecessor: Boolean = false,
+        immediatePredecessorTitle: String? = null,
+        immediatePredecessorStartsAt: java.time.Instant? = null,
+        unfulfilledRoleRequestCount: Int = 0,
     ): Double {
         val context =
             DrawWeightContext(
@@ -56,6 +62,12 @@ object AvailabilityChanceCalculator {
                 roleKey = roleKey,
                 pastSelectionCount = pastSelectionCount,
                 requiredCount = requiredCount,
+                categorySlug = categorySlug,
+                pastSelectionCountUnscoped = pastSelectionCountUnscoped,
+                playedSameRoleOnImmediatePredecessor = playedSameRoleOnImmediatePredecessor,
+                immediatePredecessorTitle = immediatePredecessorTitle,
+                immediatePredecessorStartsAt = immediatePredecessorStartsAt,
+                unfulfilledRoleRequestCount = unfulfilledRoleRequestCount,
             )
         return pipeline.apply(baseWeight(context), context)
     }
@@ -69,6 +81,12 @@ object AvailabilityChanceCalculator {
         pastSelectionCountByParticipant: Map<UUID, Int> = emptyMap(),
         roleKey: String = DEFAULT_ROLE_KEY,
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
+        categorySlug: String = DEFAULT_CATEGORY_SLUG,
+        pastSelectionCountUnscopedByParticipant: Map<UUID, Int> = emptyMap(),
+        playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
+        immediatePredecessorTitle: String? = null,
+        immediatePredecessorStartsAt: java.time.Instant? = null,
+        unfulfilledRoleRequestCountByParticipant: Map<UUID, Int> = emptyMap(),
     ): List<WeightedCandidate> =
         candidates.map { candidate ->
             val pastCount = pastSelectionCountByParticipant[candidate.participantId] ?: 0
@@ -82,6 +100,15 @@ object AvailabilityChanceCalculator {
                         participantId = candidate.participantId,
                         roleKey = roleKey,
                         pipeline = pipeline,
+                        categorySlug = categorySlug,
+                        pastSelectionCountUnscoped =
+                            pastSelectionCountUnscopedByParticipant[candidate.participantId],
+                        playedSameRoleOnImmediatePredecessor =
+                            playedSameRoleOnImmediatePredecessorByParticipant[candidate.participantId] == true,
+                        immediatePredecessorTitle = immediatePredecessorTitle,
+                        immediatePredecessorStartsAt = immediatePredecessorStartsAt,
+                        unfulfilledRoleRequestCount =
+                            unfulfilledRoleRequestCountByParticipant[candidate.participantId] ?: 0,
                     ),
                 pastSelectionCount = pastCount,
             )
@@ -185,6 +212,12 @@ object AvailabilityChanceCalculator {
         pastSelectionCountByParticipant: Map<UUID, Int> = emptyMap(),
         roleKey: String = DEFAULT_ROLE_KEY,
         pipeline: DrawWeightPipeline = DrawWeightPipelines.DEFAULT,
+        categorySlug: String = DEFAULT_CATEGORY_SLUG,
+        pastSelectionCountUnscopedByParticipant: Map<UUID, Int> = emptyMap(),
+        playedSameRoleOnImmediatePredecessorByParticipant: Map<UUID, Boolean> = emptyMap(),
+        immediatePredecessorTitle: String? = null,
+        immediatePredecessorStartsAt: java.time.Instant? = null,
+        unfulfilledRoleRequestCountByParticipant: Map<UUID, Int> = emptyMap(),
     ): List<ScoredCandidate> {
         if (candidates.isEmpty()) {
             return emptyList()
@@ -196,6 +229,12 @@ object AvailabilityChanceCalculator {
                 pastSelectionCountByParticipant,
                 roleKey,
                 pipeline,
+                categorySlug,
+                pastSelectionCountUnscopedByParticipant,
+                playedSameRoleOnImmediatePredecessorByParticipant,
+                immediatePredecessorTitle,
+                immediatePredecessorStartsAt,
+                unfulfilledRoleRequestCountByParticipant,
             )
         val totalWeight = weighted.sumOf { it.weight }
         if (totalWeight <= 0.0) {
@@ -222,4 +261,5 @@ object AvailabilityChanceCalculator {
     private val ZERO_PARTICIPANT_ID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000000")
 
     private const val DEFAULT_ROLE_KEY = "player"
+    private const val DEFAULT_CATEGORY_SLUG = "principal"
 }

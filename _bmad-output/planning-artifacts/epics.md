@@ -4,10 +4,10 @@ stepsCompleted:
   - step-02-design-epics
   - step-03-create-stories
   - step-04-final-validation
-lastUpdated: 2026-06-04
+lastUpdated: 2026-06-14
 updateMode: incremental
 status: ready-for-development
-ceRevision: '2026-06-04 — Epic 19 Wave D: formules, politiques par catégorie, choix orga au tirage'
+ceRevision: '2026-06-14 — Epic 19.10 : bonus aspiration (demandes de rôle non satisfaites)'
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -404,7 +404,7 @@ Permettre aux organisateurs de renseigner un **prestige optionnel** (1–5 étoi
 
 ---
 
-**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→19.8** (partition category — ex-**17.9**) ; **Epic 19.1→19.3** avant **19.5** ; **19.5→19.6** avant **19.8+** et Wave **D** ; **20.1→20.2** avant **20.3–20.5** ; **20.6** avant **20.7** et **19.13** ; **19.13** après **19.6** + **20.6** ; **19.15→19.18** avant UI **19.19–19.21** ; chrome admin **17.2** recommandé ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** après **17.8** ; **17.18→17.22** (hub membre) ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
+**Dépendances naturelles (ordre de valeur) :** Epic 1 → 2 → 3 (Stories **3.6**, **3.6b**, **3.8** avant Epic 5) ; Epic 5 → 6 ; **Epic 12** done ; **Epic 18** après **2.1** (membership) et **3.x** (events/composition) — **avant prod V2** ; **18.1→18.2** avant **18.3** (seed) et **18.4** (UI) ; **Epic 17.1→17.5** (navigation) ; **3.6** puis **17.10** (filtre compartiments stats) ; **17.7→19.8** (partition category — ex-**17.9**) ; **Epic 19.1→19.3** avant **19.5** ; **19.5→19.6** avant **19.8+** et Wave **D** ; **20.1→20.2** avant **20.3–20.5** ; **20.6** avant **20.7** et **19.13** ; **19.13** après **19.6** + **20.6** ; **19.15→19.19a→19.19b→19.19c** avant **19.18** / UI **19.20–19.21** ; chrome admin **17.2** recommandé ; **MIG-4** après import prod (`deplacement` → tag) ; **17.12–17.15** après **17.8** ; **17.18→17.22** (hub membre) ; **Epic 13** (sans 13.6) ; **Epic 16** après 12.3 ; Epic 15 post-MVP ; Epics 8–11 transverses.
 
 ---
 
@@ -2187,19 +2187,20 @@ afin de **ne pas perdre de place** au breadcrumb sur mobile.
 
 #### Story 17.44 : Hub troupe — mini-chart mois saison *(UX phase 2)*
 
-En tant que **membre**,  
-je veux un **aperçu visuel de l'année** dans la carte saison du hub,  
+En tant que **membre**,
+je veux un **aperçu visuel de l'année** dans la carte saison du hub,
 afin de **voir la densité des spectacles** comme sur Mes Stats.
 
 **Acceptance Criteria (résumé)**
 
-- **Given** hub troupe carte saison, **when** ≥3 spectacles passés, **then** bandeau mois par mois (grammaire `member-profile-panel`) sous les tuiles métriques.
+- **Given** hub troupe carte saison, **when** ≥3 spectacles passés, **then** bandeau mois par mois (grammaire `member-profile-panel`) sous les tuiles métriques ; blocs colorés par **statut Équipe agenda** (`teamStatusBadge`).
 - **Given** <3 spectacles passés, **then** tuiles chiffrées seules (comportement 17.42).
-- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT15.
+- **Given** bandeau visible, **then** tooltip = titre + statut Équipe + nb participations ; CTA **Voir toutes les stats** → workspace saison `?view=stats`.
+- **Couverture :** [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT15 ; spec détaillée [ux-design-hub-mini-chart-17-44.md](./ux-design-hub-mini-chart-17-44.md) (MC1–MC16).
 
-**Priorité :** P2.  
-**Depends :** 17.42.  
-**Story file :** *(à créer via `bmad-create-story 17.44`)*
+**Priorité :** P2.
+**Depends :** 17.42.
+**Story file :** [_17-44-hub-troupe-mini-chart-saison.md_](../implementation-artifacts/17-44-hub-troupe-mini-chart-saison.md)
 
 ---
 
@@ -2458,7 +2459,7 @@ display %: exactSelectionProbability(places, candidates, index) — port V1
 | **DrawFormula** | Recette nommée (catalogue troupe) : facteurs + paramètres ; **plusieurs** formules coexistent (ex. « V1 standard », « Match — parité genre ») |
 | **DrawPolicy** | Périmètre `troupe` \| `saison` ; règle **par défaut** + **règles par `category`** (slug glossaire **17.7** ; `null` = spectacles ordinaires) ; chaque règle : `MANDATORY` (1 formule) ou `CHOICE` (≥1 formule autorisée) |
 | **Résolution événement** | `GET effective draw rule(event)` : politique **saison** prime sur **troupe** ; matcher `event.category` → règle catégorie ; sinon règle défaut ; à défaut formule système V1 |
-| **Tirage (onglet Équipe)** | `MANDATORY` ou `CHOICE` avec 1 seule formule → appliquée sans dialogue ; `CHOICE` avec **≥2 formules** → **sélecteur obligatoire** au moment du tirage ; serveur valide `formulaId` |
+| **Tirage (onglet Équipe)** | `MANDATORY` ou `CHOICE` 1 formule → appliquée sans UI formule ; `CHOICE` ≥2 → défaut serveur + changement **optionnel** dans menu overflow **⋮** uniquement (**19.21**) ; tirage **immédiat** ; serveur valide `formulaId` |
 | **Snapshot** | **19.22** : formule + règle résolue (`category`, mode, scope politique) + % (**6.14**) |
 
 **Exemple PO :** politique saison — catégorie `match` → `MANDATORY` formule « Parité genre » ; catégorie `cabaret` → `CHOICE` entre « V1 » et « Mix équipe » ; défaut troupe → `CHOICE` toutes formules publiées.
@@ -2611,17 +2612,20 @@ afin de **rotations** plus équitables.
 
 ---
 
-#### Story 19.10 : Facteur nombre de demandes de rôle
+#### Story 19.10 : Facteur nombre de demandes de rôle *(bonus aspiration)*
 
 En tant qu **organisateur**,  
-je veux un malus si un membre a **souvent demandé** ce rôle sans être tiré (ou inverse — à cadrer SPEC),  
-afin d’**équilibrer** les aspirations.
+je veux un **bonus au tirage** pour les membres qui ont **souvent demandé** un rôle (dispo déclarée) **sans jamais (ou rarement) l’obtenir** sur des spectacles passés validés,  
+afin d’**honorer les aspirations** et d’augmenter significativement leurs chances lorsqu’ils continuent de se proposer.
+
+**Exemple PO :** Boubou a demandé **7** fois à faire **DJ** sans jamais être sélectionnée — au prochain match, ses cotes DJ doivent refléter un **boost substantiel** vs une paire sans cet historique.
 
 **Acceptance Criteria**
 
-1. **Given** métrique « demandes » définie en SPEC, **when** facteur activé, **then** multiplicateur documenté appliqué.
-2. **Given** facteur off, **when** tirage, **then** pas d’impact.
-3. **Priorité :** P2 backlog. **Depends :** 19.6, données dispo/rôle (**5.2**).
+1. **Given** métrique **`unfulfilledRoleRequestCount`** définie en SPEC/DOMAIN (dispo pour `roleKey` + composition validée + non assignée sur ce rôle ; même compartiment **19.8** ; même `SelectionHistoryMode` que `pastSelectionCount`), **when** facteur activé, **then** multiplicateur **bonus** documenté appliqué : `min(1 + n × k, cap)` avec constantes nommées (interim : `k = 1`, cap `10` — ex. `n = 7` → ×8).
+2. **Given** facteur **off** (absent de `DrawWeightPipelines.DEFAULT`), **when** tirage, **then** pas d’impact ; golden **19.2** inchangé.
+3. **Given** explainability (**19.7**) et facteur actif, **when** breakdown, **then** ligne `role_request` avec delta **positif** et libellé FR aspiration.
+4. **Couverture :** FR19, FR20. **Priorité :** P2 backlog. **Depends :** **19.6**, **19.8**, données dispo/rôle (**5.2**). **UI :** N/A. **Story file :** [`19-10-facteur-nombre-demandes-role.md`](../implementation-artifacts/19-10-facteur-nombre-demandes-role.md).
 
 ---
 
@@ -2751,17 +2755,65 @@ afin d’**aligner** les spectacles sur la politique d’équité de la troupe.
 
 #### Story 19.19 : UI admin — éditeur de formules de tirage
 
+> **SUPERSEDED** by [Sprint Change Proposal 2026-06-16](sprint-change-proposal-2026-06-16-draw-formula-factor-params.md) — split into **19.19a** (spec), **19.19b** (runtime), **19.19c** (UI). Do not implement.
+
 En tant qu **admin troupe**,  
 je veux une **interface** pour composer une formule (facteurs + paramètres),  
 afin de **configurer** le tirage sans toucher au code.
 
-**Acceptance Criteria**
+**Acceptance Criteria** *(historical — see **19.19c**)*
 
 1. **Given** route admin troupe (menu **17.2** ou hub troupe), **when** « Formules de tirage », **then** liste + création/édition Material 3 (**UX-DR11**).
 2. **Given** éditeur, **when** facteurs affichés, **then** toggles + champs paramètres (seuils, coefficients) avec aide contextuelle ; facteurs non implémentés (**19.8+** backlog) **masqués** ou désactivés avec libellé « bientôt ».
 3. **Given** sauvegarde, **when** config invalide, **then** erreurs inline ; succès → snackbar.
 4. **Given** archivage, **when** formule utilisée par politique, **then** message blocage cohérent API **19.17**.
 5. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** 19.17, **17.2** recommandé.
+
+---
+
+#### Story 19.19a : Spec — factor params & malus/bonus catalogue
+
+En tant que **PO / architecte**,  
+je veux un **catalogue normatif des params par facteur** (malus/bonus, défauts parité V1),  
+afin que **19.19b** (runtime + golden) et **19.19c** (UI admin) implémentent les coefficients sans réinventer les schémas.
+
+**Acceptance Criteria**
+
+1. **Given** [`draw-formulas-policies-spec.md`](../../docs/v2/technical/draw-formulas-policies-spec.md) amendé, **when** § **Factor catalogue** est lu, **then** chaque facteur implémenté documente `direction`, schéma `params`, parité V1 à défauts, facteurs réservés **19.11–19.14** en stub « Bientôt ».
+2. **Given** table catalogue verrouillée (**19.19a**), **when** docs mergées, **then** copiée dans la spec + lien ADR 0019.
+3. **Given** § **Validation matrix**, **when** étendu, **then** règles **REF-P01..P05** documentées (enforcement **19.19b**).
+4. **Couverture :** Wave D S4a. **Priorité :** P2. **Depends :** **19.15**, **19.17**. **Blocks :** **19.19b**. **UI : N/A**.
+
+---
+
+#### Story 19.19b : Runtime — parameterized factors + golden tests
+
+En tant que **développeur**,  
+je veux que les facteurs lisent **`params`**, que le validateur applique **REF-P***, et que les golden prouvent la parité V1 à défauts,  
+afin de **débloquer** l'éditeur admin coefficients (**19.19c**).
+
+**Acceptance Criteria**
+
+1. **Given** formule avec `params` valides, **when** pipeline assemblée, **then** multiplicateurs = formules catalogue à défauts = constants Kotlin baseline `81d2b5f8`.
+2. **Given** `params` invalides (REF-P*), **when** save/publish, **then** **400** avec messages FR cohérents.
+3. **Given** golden `pipelines.json` / `validation.json`, **when** étendus (**REF-F09+**, **REF-P***), **then** **REF-F01..F08** inchangés à défauts ; `./gradlew test` vert.
+4. **Couverture :** Wave D S4b. **Priorité :** P2. **Depends :** **19.19a**, **19.17**. **Blocks :** **19.19c**.
+
+---
+
+#### Story 19.19c : UI admin — éditeur de formules (coefficients)
+
+En tant qu **admin troupe**,  
+je veux une **interface** pour composer une formule (facteurs + **coefficients** malus/bonus),  
+afin de **configurer** l'intensité du tirage sans toucher au code.
+
+**Acceptance Criteria**
+
+1. **Given** route admin troupe (menu **17.2** ou hub troupe), **when** « Formules de tirage », **then** liste + création/édition Material 3 (**UX-DR11**).
+2. **Given** éditeur, **when** facteurs affichés, **then** badges direction (Malus/Bonus/Neutre) + champs paramètres numériques/enum avec aide contextuelle catalogue ; facteurs réservés **19.11+** « bientôt ».
+3. **Given** sauvegarde, **when** config invalide (API **400** REF-P*), **then** erreurs inline ; succès → snackbar.
+4. **Given** archivage, **when** formule utilisée par politique, **then** message blocage cohérent API **19.17**.
+5. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** **19.19b**, **17.2** recommandé. **Demo 1 gate** Wave D.
 
 ---
 
@@ -2777,26 +2829,30 @@ afin que **les orgas** sachent quelles règles s’appliquent.
 2. **Given** ajout règle catégorie `match`, **when** mode `MANDATORY`, **then** sélecteur **une** formule (ex. « Parité genre — match ») ; aide contextuelle PO.
 3. **Given** mode `CHOICE`, **when** ≥2 formules cochées, **then** copy « l’organisateur choisira au tirage » ; preview liste formules autorisées pour un spectacle exemple (optionnel).
 4. **Given** admin saison, **when** écran, **then** surcharge troupe + bandeau héritage ; conflit catégorie saison **remplace** entrée troupe pour cette catégorie.
-5. **Given** politique `MANDATORY` pour catégorie courante, **when** orga ouvre Équipe (sans tirage), **then** formule imposée visible en lecture seule avec libellé catégorie.
-6. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** 19.18, 19.19, **17.7**.
+5. **Given** politique `MANDATORY` pour catégorie courante, **when** orga ouvre Équipe, **then** **aucune** UI formule sur Équipe (**19.21** — formule appliquée silencieusement ; admin **19.20** pour config).
+6. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** 19.18, **19.19c**, **17.7**.
 
 ---
 
-#### Story 19.21 : UI orga — choix de formule au tirage (résolution par catégorie événement)
+#### Story 19.21 : UI orga — formule de tirage discrète (overflow Équipe)
 
 En tant qu **organisateur** avec `canManageComposition`,  
-je veux **voir la politique applicable** à mon spectacle et **choisir une formule** si plusieurs sont autorisées,  
-afin d’**appliquer** la bonne recette (ex. parité genre sur un **match**).
+je veux que la **bonne formule** s’applique **sans interrompre** mon tirage, avec un changement **optionnel et discret** si plusieurs formules sont autorisées,  
+afin de **garder le flux Équipe** tout en permettant un cas rare (ex. parité sur un **match**).
+
+**UX (normatif, PO 2026-06-19) :** [_ux-design-orga-formula-choice-19-21.md](./ux-design-orga-formula-choice-19-21.md)
 
 **Acceptance Criteria**
 
-1. **Given** ouverture onglet Équipe, **when** politique effective chargée (`GET …/draw-policy/effective`), **then** bandeau : catégorie spectacle, mode, formule imposée **ou** « choix au tirage » + noms formules autorisées.
-2. **Given** règle `CHOICE` avec **≥2** formules, **when** orga clique **Tirer au sort**, **then** modale sélecteur **obligatoire** (Material 3) avant confirmation ; une ligne par formule (nom + résumé facteurs).
-3. **Given** règle `MANDATORY` ou `CHOICE` à 1 formule, **when** tirage, **then** **pas** de modale ; formule appliquée directement (animation **6.4**).
-4. **Given** `POST …/composition/draw` avec `formulaId`, **when** serveur valide, **then** poids Dispos **Tous** recalculés avec **même formule** pour cohérence FR19 (documenté OpenAPI).
-5. **Given** spectacle sans catégorie (`null`), **when** résolution, **then** règle **défaut** de la politique effective.
-6. **Given** `prefers-reduced-motion`, **when** tirage, **then** comportement **6.4** inchangé.
-7. **Couverture :** FR19, FR20, UX-DR6. **Priorité :** P2. **Depends :** 19.18, **6.4**, **17.8**.
+1. **Given** ouverture onglet Équipe, **when** politique effective chargée (`GET …/draw-policy/effective`), **then** init `selectedFormulaId` depuis `effectiveFormulaId` — **pas** de bandeau, **pas** de chip, **pas** de ligne hint formule.
+2. **Given** `selectorVisible === false` (MANDATORY, CHOICE 1 formule), **when** toolbar affichée, **then** **aucune** UI formule.
+3. **Given** `selectorVisible === true` (CHOICE ≥2), **when** toolbar affichée, **then** section « Formule de tirage » **uniquement** dans le menu overflow **`more_vert`** (`mat-menu-item` par formule, check sur sélection courante).
+4. **Given** CHOICE ≥2, **when** orga clique **Tirer au sort**, **then** **pas** de modale ; tirage immédiat avec `formulaId` session (**6.4** inchangé).
+5. **Given** changement via menu overflow, **when** autre formule choisie, **then** `%` opérationnels recalculés — sans persister politique.
+6. **Given** `POST …/composition/draw` avec `formulaId`, **when** serveur valide, **then** cohérence FR19 / REF-R12 (**19.18**).
+7. **Given** spectacle sans catégorie (`null`), **when** résolution, **then** règle **défaut** serveur — pas d’affichage catégorie orga.
+8. **Given** `prefers-reduced-motion`, **when** tirage, **then** **6.4** inchangé.
+9. **Couverture :** FR19, FR20, UX-DR6. **Priorité :** P2. **Depends :** **19.18**, **6.4**, **17.8**.
 
 ---
 

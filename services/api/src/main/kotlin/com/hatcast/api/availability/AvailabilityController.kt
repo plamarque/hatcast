@@ -50,7 +50,8 @@ class AvailabilityController(
         @PathVariable seasonId: UUID,
         @PathVariable eventId: UUID,
         @RequestParam(defaultValue = "false") includeChances: Boolean,
+        @RequestParam(required = false) formulaId: UUID?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): EventAvailabilitySummaryResponse =
-        availabilityService.getSummary(seasonId, eventId, principal, includeChances)
+        availabilityService.getSummary(seasonId, eventId, principal, includeChances, formulaId)
 }

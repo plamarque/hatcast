@@ -165,7 +165,7 @@ Options avancées (script bas niveau uniquement) : `--version=X.Y.Z` (première 
 1. Arbre propre sur `staging-v2`, `git fetch origin` + tags
 2. Résolution semver produit + numéro RC (helpers dans `scripts/lib/version-changelog.sh`)
 3. Alignement `package.json` racine ↔ `apps/web/package.json` (racine legacy `0.x` → alignée sur web V2)
-4. Écrit `apps/web/public/version.txt` (ligne 1 = semver produit **sans** `-rc.N` ; ligne 2 = `Staging RC build - DATE`)
+4. Écrit `apps/web/public/version.txt` via [`scripts/v2/lib/version-txt.sh`](../../scripts/v2/lib/version-txt.sh) — contrat **4 lignes** (semver · canal staging · hash git · horodatage build) ; ligne 1 = semver produit **sans** `-rc.N` ; ligne 2 = `Staging RC build - DATE`
 5. Met à jour `CHANGELOG.md` (et `CHANGELOG_FR.md` si présent) depuis le tag RC précédent ou le dernier tag release
 6. Met à jour **`apps/web/public/changelog.json`** (notes « Nouveautés » PWA, Story 10.3) depuis **`scripts/v2/changelog-entries/vX.Y.Z-cutover.json`** (cutover **obligatoire** ; skill `hatcast-v2-release` recommandée). Flag **`--no-user-changelog`** pour ne pas toucher ce fichier (RC technique, cutover déjà en place).
 7. Commit `chore(v2): release staging vX.Y.Z-rc.N`, tag annoté `vX.Y.Z-rc.N`, push **branche + tag**
@@ -304,12 +304,52 @@ Par défaut, sans override explicite :
 
 ### Versioning
 
-- Fichier affiché / build : `apps/web/public/version.txt` (généré à chaque release)
+- Fichier affiché / build : `apps/web/public/version.txt` (généré à chaque release staging ; **patch canal** au build Docker — voir ci-dessous)
+- Override dev local (gitignored) : `apps/web/public/version.local.txt` — généré par `./scripts/start-dev.sh`, lu en **priorité** par le client (`AppVersionService`)
 - Journal utilisateur PWA : `apps/web/public/changelog.json` (généré par `release-staging.sh`, consommé par le dialogue « Nouveautés »)
 - Semver produit : `package.json` racine **et** `apps/web/package.json` doivent rester alignés
 - Tags Git prod : `vX.Y.Z` sur le commit de release
 - Tags Git staging RC : `vX.Y.Z-rc.N` (suffixe RC **uniquement** sur le tag, pas dans `package.json` / `version.txt`)
-- Promotion prod (`promote-tag-to-prod.sh`) : **aucun** bump fichier — le tag prod pointe le commit RC qui contient déjà `version.txt` et `changelog.json`
+- Promotion prod (`promote-tag-to-prod.sh`) : **aucun** bump fichier dans git — le tag prod pointe le **même commit** RC qui contient déjà `version.txt` (`Staging RC build …`) et `changelog.json` ; l’artefact **production** affiche **`Production build …`** grâce au patch Docker (OPS-5)
+
+#### Contrat `version.txt` (4 lignes)
+
+Généré par `write_version_txt` dans [`scripts/v2/lib/version-txt.sh`](../../scripts/v2/lib/version-txt.sh) ; consommé par `AppVersionService` (semver + métadonnées build sur `/compte/a-propos`, story **10.3b**).
+
+| Ligne | Contenu | Rôle |
+|-------|---------|------|
+| **1** | Semver produit (`X.Y.Z`, sans `-rc.N`) | Version affichée « Version X.Y.Z » |
+| **2** | `{Canal} build - {DATE}` | **Canal de déploiement** (préfixe parsé côté client) |
+| **3** | `Git: {hash court}` | Hash commit au moment de la génération |
+| **4** | `Build: {ISO8601}` | **Horodatage build** (ex. `2026-06-13T12:49:32+0200`) ; UI About : compact `YYYYMMDDHHmm` |
+
+Exemple (staging RC, tel que commité) :
+
+```text
+2.3.0
+Staging RC build - 2026-06-13
+Git: a0db03f7
+Build: 2026-06-13T12:49:32+0200
+```
+
+**Préfixes ligne 2 → canal UI** (`AppVersionService` / onglet À propos) :
+
+| Préfixe ligne 2 | Canal | Libellé UI |
+|-----------------|-------|------------|
+| `Production build` | `production` | production |
+| `Staging RC build` | `staging` | staging |
+| `Development build` | `development` | développement |
+| `Local build` | `local` | local |
+
+#### Patch canal au build Docker (`HATCAST_VERSION_CHANNEL`)
+
+Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) passe `--build-arg HATCAST_VERSION_CHANNEL=<target_env>` (`production` \| `staging` \| `development`) au `Dockerfile`. Avant `ng build`, [`apps/web/scripts/patch-version-txt-channel.mjs`](../../apps/web/scripts/patch-version-txt-channel.mjs) **réécrit uniquement la ligne 2** du `version.txt` copié depuis git — semver, hash et horodatage (l. 1, 3, 4) restent ceux du commit RC.
+
+Conséquence OPS-5 : un déploiement **production** (tag `vX.Y.Z` sur le commit RC) **ne modifie pas** le fichier versionné dans git (l. 2 reste `Staging RC build …` dans l’historique), mais l’image servie expose `Production build …` → l’UI About affiche **canal production**.
+
+#### Dev local — `start-dev.sh` → `Local build`
+
+À chaque `./scripts/start-dev.sh`, `patch_local_version_txt` écrit **`apps/web/public/version.local.txt`** (gitignored) avec canal **`local`** (`Local build - DATE`), hash git courant et horodatage — **`version.txt` versionné inchangé**. Le client tente `/version.local.txt` puis `/version.txt` (`cache: no-store`).
 
 **`changelog.json` (OPS-6)** : prérequis `jq` + **cutover** `scripts/v2/changelog-entries/vX.Y.Z-cutover.json`. Plage git CHANGELOG technique = tag RC précédent ou **dernier tag prod strictement antérieur** à la version cible pour `rc.1`. Référence éditoriale : [Argil — product updates](https://www.argil.io/playbooks/product/writing-product-updates-and-releases). `--no-user-changelog` : laisser le JSON existant. Smoke : `jq empty apps/web/public/changelog.json` et `check-pwa.sh` §5.
 

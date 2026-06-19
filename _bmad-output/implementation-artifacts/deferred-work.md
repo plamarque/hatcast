@@ -35,6 +35,23 @@
 
 ---
 
+## Deferred from: code review of 19-18-api-politiques-tirage-troupe-saison (2026-06-19)
+
+- `ObjectProvider<DrawWeightPipeline>` court-circuite la résolution — pattern test voulu (story 19.18 task 6), conservé pour `@Primary` test beans.
+- Course concurrente sur upsert politique — fenêtre TOCTOU rare ; index unique V65 ; retry non implémenté MVP.
+- GET politique 404 ambigu (troupe vs politique absente) — fuite d’information mineure ; pattern cohérent 19.17.
+- Pas de verrou optimiste / ETag sur PUT politique — last-write-wins MVP ; UI admin 19.20 pourra ajouter precondition.
+
+---
+
+## Deferred from: code review of 19-17-api-crud-formules-tirage (2026-06-16)
+
+- TOCTOU between policy reference check and archive save — MVP race window accepted at current scale.
+- O(n) in-memory policy scan on every archive — Dev Notes explicitly defer DB JSON query at MVP scale.
+- Version bump on no-op PATCH — minor versioning noise, low impact.
+
+---
+
 ## Deferred from: code review of perf-15-composition-summary-api-hot-path (2026-06-10)
 
 - Avatar URL without storage read (metadata-only hot path) — intentional PERF-15 trade-off per dev notes; hot path skips `readAvatarContent`.
@@ -284,6 +301,15 @@
 
 ---
 
+## Deferred from: code review of 10-3b-about-build-metadata (2026-06-14)
+
+- Requête 404 `/version.local.txt` en prod — trade-off accepté AC3 (local-first puis fallback).
+- Couplage libellés canal sur 4 artefacts (release shell, patch Docker, parser TS, doc) — contrat implicite MVP.
+- Pas de tests `patch-version-txt-channel.mjs` — script CI simple ; couverture parser Angular suffisante pour l’UI.
+- `version.local.txt` stale sans redémarrage `start-dev.sh` — workflow dev documenté DEPLOYMENT_WORKFLOW.md.
+
+---
+
 ## Liens normatifs
 
 | Sujet | Où tracer |
@@ -437,3 +463,62 @@
 - **Test gap fallback chevron vers `/troupes/:slug`** — allowlist étendue mais `onBack()` non testé sur ce chemin.
 - **Test gap AC8 Saison absente sur 404/403** — pas d’assertion intégration dans `event-detail.spec.ts`.
 - **Badge statut absent pendant spinner chargement onglet Équipe** — acceptable UX de chargement.
+- **Test équipe brouillon ne couvre pas AC 7b** — `event-equipe-tab.spec.ts` n’asserte pas le badge quand `availabilityOpenedAt == null`.
+
+## Deferred from: code review of 17-44-hub-troupe-mini-chart-saison (2026-06-14)
+
+- **E2E helper added but no Playwright spec consumes it** — story marks E2E optional/non-blocking ; `expectTroupeHubSeasonChartVisible` ready for future wiring.
+- **`slug` required on `StatisticsEvent` OpenAPI** — monorepo co-deploy with front ; intentional additive breaking field.
+- **Extra `loadViewsByEventIds` on every stats call** — acceptable story scope ; monitor if perf issue surfaces on large seasons.
+
+## Deferred from: code review of 19-8-facteur-equity-tag-history-ex-17-9 (2026-06-14)
+
+- **Double requête SQL sur explainability** — `buildRolePoolContext` exécute scoped + unscoped par rôle ; trade-off documenté en Dev Notes 19.8.
+- **Branche spéciale `when (CategoryCompartmentFactor)` dans breakdown** — acceptable pour DEFAULT à 2 facteurs ; extensibilité à revoir avec facteurs narratifs futurs.
+- **Pas de test d’intégration bout-en-bout `CompositionExplainabilityService` → delta `equity_tag`** — couvert par tests unitaires + intégration draw compartiment.
+
+## Deferred from: code review of 19-10-facteur-nombre-demandes-role (2026-06-14)
+
+- **Requête role-request relancée par rôle au tirage** — acceptable Wave C tant que facteur hors DEFAULT ; optimiser si activé en prod (19.16+).
+- **DRY compartiment partiel** — `SpectacleCategoryCompartmentJpql` extrait mais requêtes historiques existantes du slot repo inchangées ; refactor opportuniste.
+- **Pas de test mock prouvant z SQL en DEFAULT (AC18)** — chargement conditionnel présent via `includesRoleRequest` ; pattern identique 19.9.
+
+## Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)
+
+- **Identité UUID stable de la formule system V1** — contrat de seed reporté à story **19.16**.
+- **`formulaId` pour Simuler / preview % (19.17 AC3)** — comportement HTTP/UI reporté à **19.17–19.18**.
+- **Epics 19.16 AC3 (system V1 seul) vs OQ-19-02 (CHOICE + published + system V1)** — epics à realigner au grooming Wave D.
+- **Epics 19.18 titre « admin saison » vs OQ-19-05 TROUPE_ADMIN only** — epics outdated ; spec 19.15 fait foi.
+- **PLAN.md résumé résolution tronqué (sans chemin implicit CHOICE)** — hors scope 19.15 ; MAJ PLAN opportuniste.
+- **Codes HTTP draw (403 vs 400) pour formulaId hors liste** — OpenAPI **19.18**.
+- **Visibilité effective policy pour membres (Équipe tab)** — story **19.21**.
+- **Défaut `immediate_replay.params.mode` si absent** — **19.16** param wiring.
+
+## Deferred from: code review of 19-16-persistance-formules-defaut-v1 (2026-06-15)
+
+- **`DrawPolicyValidator` n'exige pas `status=PUBLISHED`** — enforcement runtime et validation API reportés à **19.18**.
+- **`troupeScopeKey`/`seasonScopeKey` non imposés à la persistance** — factory/service policy save en **19.18**.
+- **V65 prépare un statement JDBC par troupe** — volume troupes MVP acceptable ; optimiser si backfill massif.
+- **`draw_policies` sans `created_at`** — hors AC1 explicite ; audit historique si besoin futur.
+
+## Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)
+
+- **Verrouillage optimiste `version` non envoyé au PATCH** — API n'exige pas version client ; risque écrasement concurrent accepté MVP.
+- **`troupeId` input change sans reload** — composant parent stable en pratique ; edge théorique.
+- **Race `reload()` concurrent sans séquence** — pas de déclencheur UI parallèle.
+- **État vide liste sans copy dédiée quand `formulas=[]`** — CTA « Nouvelle formule » suffit MVP.
+- **Pas de bouton retry sur erreur chargement F1** — hors AC.
+- **Badges direction sans tokens error/tertiary distincts** — écart M3 mineur.
+
+## Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)
+
+- **Golden REF-P uniquement `formulaSave`** — chemin `formulaPublish` non couvert par fixtures HTTP ; `validateForPublish` délègue à `validateForSave` donc comportement OK.
+- **Messages FR non assertés en intégration** — `DrawFormulaValidationIntegrationTest` ne vérifie que le status HTTP ; substrings couverts par `DrawFormulaValidatorTest` — couverture unitaire suffisante pour MVP.
+- **Artefact test design absent du dépôt** — `19-19b-factor-params-test-design.md` référencé dans la story mais non versionné ; payloads présents dans golden JSON.
+- **Spec normative 19.19a non mergée sur branche** — `draw-formulas-policies-spec.md` sans `strength`/`malusMultiplier` ; runtime aligné sur table AC story ; merge doc 19.19a séparé.
+- **`@Tag("19.19b")` absent sur `DrawFormulaPipelineGoldenTest`** — fixtures JSON taguées mais pas la classe ; filtrage CI par tags JSON suffisant pour MVP.
+
+## Deferred from: code review of 19-21-ui-orga-choix-formule-tirage (2026-06-19)
+
+- **Cible 48×48 dp non codée explicitement sur le bouton ⋮** — défaut Material + pattern existant repo (`event-equipe-tab.scss:189-192`).
+- **Couverture E2E Playwright menu formule / tirage `formulaId`** — artefact séparé `19-21-e2e-formula-choice.md`, hors scope unit tests story.

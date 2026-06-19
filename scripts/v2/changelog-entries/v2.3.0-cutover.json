@@ -2,7 +2,7 @@
   "version": "2.3.0",
   "date": "__BUILD_DATE__",
   "source": "curated-release",
-  "notes": "v2.3.0 — dispos, notifs, invités, catégories, partage (+ tirage 19.7 en prod) — skill hatcast-v2-release",
+  "notes": "v2.3.0 — lot post-2.2.0 (dispos, notifs, externes, catégories, partage) — skill hatcast-v2-release, Gate A corrigée",
   "changes": [
     "✨ Dispos — sondage unifié sur l'onglet Dispos : tu coches Indispo et tes rôles sur un même écran, sans basculer Moi/Tous",
     "✨ Externes invités — agenda et espace saison limités à ton invitation ; tu renseignes tes dispos sans accès membre complet",

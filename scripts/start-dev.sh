@@ -172,6 +172,22 @@ warn_push_vapid_config() {
   fi
 }
 
+# Met à jour version.local.txt (gitignored) pour le dev local — ne pas toucher version.txt versionné.
+patch_local_version_txt() {
+  # shellcheck source=scripts/v2/lib/version-txt.sh
+  source "$ROOT/scripts/v2/lib/version-txt.sh"
+  local version_txt="$ROOT/apps/web/public/version.txt"
+  local version_local_txt="$ROOT/apps/web/public/version.local.txt"
+  local version build_date git_hash build_time
+  version="$(head -1 "$version_txt" 2>/dev/null | tr -d '\r\n' || true)"
+  [[ -n "$version" ]] || version="0.0.0-SNAPSHOT"
+  build_date="$(date +%Y-%m-%d)"
+  git_hash="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  build_time="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+  write_version_txt "$version" "$build_date" "$git_hash" "$build_time" local "$version_local_txt"
+  echo "✓ version.local.txt (${git_hash}, canal local) — version.txt inchangé"
+}
+
 # Régénère environment.production.local.ts (gitignored) depuis .env — build prod local --with-push.
 inject_web_prod_environment() {
   [[ "$WITH_PUSH" == "1" ]] || return 0
@@ -358,6 +374,7 @@ fi
 
 configure_local_mailpit_smtp
 configure_offline_dev
+patch_local_version_txt
 ensure_mailpit
 if [[ "$WITH_PUSH" == "1" ]]; then
   echo "→ Mode notifications push (--with-push) : build production + watch + serve HTTPS statique (MAJ PWA recette)."

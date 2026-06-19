@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-12T16:00:00+02:00
+# last_updated: 2026-06-19T19:40:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-12T15:36:00+02:00"
+last_updated: "2026-06-19T14:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -190,6 +190,7 @@ development_status:
   10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil: done
   10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: done
   10-3-version-app-changelog-dialog: done  # P0 V2.0.0
+  10-3b-about-build-metadata: done  # retro 2026-06-14 — meta build ligne À propos + pipeline canal
   10-4-recette-pwa-manifest-icons-sw: done
   10-5-aides-install-contextuelles-ios-android: done
   10-6-opt-in-notifications-post-install: done
@@ -279,8 +280,8 @@ development_status:
   17-40-troupe-settings-categories: done  # SCP 2026-06-08 — page Paramètres troupe onglet Catégories ; depends 17.38
   17-41-nav-shell-ma-troupe: done  # UX ma-troupe-hub MT1–MT3 — 4th nav tab + lastVisitedTroupeSlug ; code review 2026-06-12
   17-42-hub-troupe-dashboard-collectif: done  # UX ma-troupe-hub MT6–MT14 — dashboard saison + participants + teaser
-  17-43-event-detail-contexte-infos: review  # UX ma-troupe-hub ED1–ED5 — retrait breadcrumb, titre inline, Saison chips, badge Équipe
-  17-44-hub-troupe-mini-chart-saison: backlog  # UX ma-troupe-hub MT15 — phase 2 mini-chart mois
+  17-43-event-detail-contexte-infos: done  # UX ma-troupe-hub ED1–ED5 — retrait breadcrumb, titre inline, Saison chips, badge Équipe
+  17-44-hub-troupe-mini-chart-saison: done  # UX ma-troupe-hub MT15 — phase 2 mini-chart mois
   epic-17-retrospective: optional
 
   epic-18: in-progress
@@ -292,29 +293,32 @@ development_status:
   18-5-configuration-prod-tests-separation-demo: done
   epic-18-retrospective: optional
 
-  epic-19: backlog  # DEFERRED post-2.1.0 — tirage/formules custom ; PO 2026-06 ; 19.1 done, 19.2 paused
+  epic-19: in-progress  # Sprint Wave D 19.15→19.21 — formules admin + choix orga ; 19.11–19.14 parked
   19-1-spec-normative-v1-adr-draw-weight-engine: done
-  19-2-golden-tests-v1-js-kotlin: done  # paused — epic deferred
+  19-2-golden-tests-v1-js-kotlin: done
   19-3-fixtures-orchestration-draw-complet: done
   19-4-doc-orga-membre-comprendre-les-cotes: done
   19-5-pipeline-draw-weight-factor: done
   19-6-facteur-past-participation-v1: done
   19-7-breakdown-explicabilite-par-facteur: done
-  19-8-facteur-equity-tag-history-ex-17-9: backlog  # harden 17.9 (category compartment) into factor pipeline + golden
-  19-9-facteur-rejouer-immediatement: backlog
-  19-10-facteur-nombre-demandes-role: backlog
-  19-11-facteur-parite-genre: backlog
-  19-12-facteur-mix-equipe: backlog
-  19-13-facteur-prestige-history-ex-19-13: backlog  # PrestigeHistoryFactor — depends 19.6 + 20.6
-  19-14-facteur-bonus-malus-benevole: backlog
-  19-15-spec-formules-politiques-adr: backlog
-  19-16-persistance-formules-defaut-v1: backlog
-  19-17-api-crud-formules-tirage: backlog
-  19-18-api-politiques-tirage-troupe-saison: backlog
-  19-19-ui-admin-editeur-formules: backlog
-  19-20-ui-admin-politiques-tirage: backlog
-  19-21-ui-orga-choix-formule-tirage: backlog
-  19-22-snapshot-formule-au-tirage: backlog
+  19-8-facteur-equity-tag-history-ex-17-9: done  # harden 17.9 (category compartment) into factor pipeline + golden
+  19-9-facteur-rejouer-immediatement: done
+  19-10-facteur-nombre-demandes-role: done
+  19-11-facteur-parite-genre: backlog  # parked — post Wave D demo
+  19-12-facteur-mix-equipe: backlog  # parked — post Wave D demo
+  19-13-facteur-prestige-history-ex-19-13: backlog  # parked — post Wave D demo ; depends 19.6 + 20.6
+  19-14-facteur-bonus-malus-benevole: backlog  # parked — post Wave D demo
+  19-15-spec-formules-politiques-adr: done  # sprint Wave D S1 ; normative spec + SPEC/DOMAIN/ADR ; code review 2026-06-15
+  19-16-persistance-formules-defaut-v1: done  # sprint Wave D S2
+  19-17-api-crud-formules-tirage: done  # sprint Wave D S3
+  19-18-api-politiques-tirage-troupe-saison: done  # sprint Wave D S5 — Demo 2 runtime ; code review 2026-06-19
+  19-19-ui-admin-editeur-formules: cancelled  # superseded SCP 2026-06-16 → 19.19a/b/c
+  19-19a-spec-factor-params-draw: done  # Wave D S4a — params catalogue + amend spec/ADR
+  19-19b-factor-params-runtime-tests: done  # Wave D S4b — engine + validator + golden (code review approved)
+  19-19c-ui-admin-editeur-formules: done  # Wave D S4c — UI admin formula editor ; E2E recette ; merged 2026-06-18
+  19-20-ui-admin-politiques-tirage: backlog  # phase 2 sprint — hors MVP Wave D
+  19-21-ui-orga-choix-formule-tirage: done  # sprint Wave D S6 — Demo 2
+  19-22-snapshot-formule-au-tirage: backlog  # phase 2 sprint — hors MVP Wave D
   epic-19-retrospective: optional
 
   epic-20: backlog  # P2 post-MEP ; prestige stars capture/display/stats ; SCP 2026-06-05 (G-009)

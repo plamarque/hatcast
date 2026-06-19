@@ -1880,13 +1880,16 @@ components:
 
     StatisticsEvent:
       type: object
-      required: [id, title, startsAt, templateType, monthKey]
+      required: [id, title, slug, startsAt, templateType, monthKey]
       properties:
         id:
           type: string
           format: uuid
         title:
           type: string
+        slug:
+          type: string
+          description: Slug unique du spectacle dans la saison (navigation membre)
         startsAt:
           type: string
           format: date-time
@@ -1899,6 +1902,8 @@ components:
         monthKey:
           type: string
           description: yyyy-MM (Europe/Paris)
+        teamStatusBadge:
+          $ref: '../events.yaml#/components/schemas/TeamStatusBadge'
 
     StatisticsEventCell:
       type: object

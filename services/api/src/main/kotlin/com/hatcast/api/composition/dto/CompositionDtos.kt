@@ -60,6 +60,7 @@ data class UpdateSlotParticipationRequestDto(
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class DrawCompositionRequestDto(
     val mode: String? = null,
+    val formulaId: UUID? = null,
 )
 
 data class CompositionDrawStepCandidateDto(

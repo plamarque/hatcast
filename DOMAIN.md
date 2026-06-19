@@ -132,7 +132,48 @@ La vue **Statistiques** (ex-Compositions / Historique stats V1) affiche des stat
 
 Dans un **compartiment** (`SpectacleCategory.slug` — `principal`, `deplacements`, ou catégorie personnalisée), le **prédécesseur immédiat** d’un événement courant est le dernier événement **strictement antérieur** (tie-break : `startsAt`, `createdAt`, `id`) de la même saison, **même compartiment**, composition **validée** (`event_compositions.validated_at IS NOT NULL`), non archivé.
 
-Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur sans assigné actif (retrait / déclinaison / désistement). Visible **organisateur uniquement** (API + onglet Équipe). Le resolver est réutilisable pour le facteur tirage Epic **19.9** (hors scope 6.20).
+Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur sans assigné actif (retrait / déclinaison / désistement). Visible **organisateur uniquement** (API + onglet Équipe). Distinct du facteur tirage **19.9** (ci-dessous) : l’avertissement **informe** ; le facteur **pondère** le tirage lorsqu’il est activé dans une formule.
+
+### Facteur tirage rejeu immédiat (Story 19.9)
+
+Même **prédicat** que l’avertissement 6.20 (prédécesseur immédiat validé, même compartiment, même `roleKey`, slot prédécesseur non `DECLINED`). Lorsqu’activé dans une pipeline de tirage (hors `DrawWeightPipelines.DEFAULT` jusqu’à **19.16**), le facteur `immediate_replay` peut :
+
+- **`EXCLUDE`** — `multiplier = 0` (interdiction au tirage) ;
+- **`MALUS`** — `multiplier = 0.25` (interim, constante `ImmediateReplayFactor.MALUS_MULTIPLIER`).
+
+`DrawWeightPipelines.DEFAULT` reste `[CategoryCompartmentFactor, PastParticipationFactor]` — comportement prod inchangé. L’assignation manuelle (FR21) n’est pas bloquée. Breakdown explainability (19.7) : libellé « Déjà {rôle} au spectacle « {titre} » ({date}) » lorsque le prédicat est vrai.
+
+### Facteur tirage aspiration de rôle (Story 19.10)
+
+Métrique **`unfulfilledRoleRequestCount`** (*demandes de rôle non satisfaites*) : pour un couple `(participant, roleKey)` sur l’événement courant E, nombre d’événements **validés**, **non archivés**, du **même compartiment** (`SpectacleCategory.slug`) et de la **même saison** que E (hors E) où **toutes** les conditions suivantes sont vraies :
+
+- le participant était **disponible** pour le tirage sur `roleKey` (`status = available` et `AvailabilityRoleRules.isCandidateForRole` — `roleKeys = []` = tous les rôles) ;
+- la composition est **validée** (`validatedAt IS NOT NULL`) ;
+- le participant **n’a pas été assigné** à `roleKey` sur cet événement (aucun slot validé avec ce `roleKey` et `participationStatus ≠ DECLINED`) **ni proposé puis retiré** via déclinaison/désistement (`event_composition_declines` pour ce `roleKey` — tiré/orga proposé puis décliné = aspiration **satisfaite**, l'événement n'incrémente pas le compteur).
+
+**Mode temporel** : identique à `pastSelectionCount` (`SelectionHistoryMode` — `OPERATIONAL` inclut les événements futurs validés ; `RETROSPECTIVE` = strictement avant E).
+
+**Effet tirage** : facteur optionnel `role_request` — **bonus uniquement** (pas de malus). Hors `DrawWeightPipelines.DEFAULT` jusqu’à **19.16**. Formule interim : `multiplier = min(1 + n × 1.0, 10.0)` pour `n = unfulfilledRoleRequestCount > 0`, sinon `1.0`. Exemple PO : 7 demandes DJ non satisfaites → multiplicateur **×8** au prochain tirage (si le facteur est activé). Se cumule multiplicativement avec le malus `past_participation`. Breakdown (19.7) : « A demandé {rôle} {n} fois sans être tiré·e — bonus aspiration » lorsque `n > 0`.
+
+### Draw formulas & policies (Wave D)
+
+Normative technical contract : [draw-formulas-policies-spec.md](docs/v2/technical/draw-formulas-policies-spec.md) + [ADR 0019](docs/adr/0019-draw-weight-engine.md). Factor math remains in [draw-weight-engine-v1-spec.md](docs/v2/technical/draw-weight-engine-v1-spec.md) — this section defines **domain language** only.
+
+- **`DrawFormula`** — Troupe-scoped **catalogue entry**: a named, versioned recipe (`factorConfig`) composing draw weight factors (`equity_tag`, `past_participation`, optional toggles). Each entry may include **`params`** per enabled factor — réglages d'**intensité** (malus ou bonus selon le facteur), pas seulement activé/désactivé ; schéma normatif et sens malus/bonus/neutre : [draw-formulas-policies-spec.md § Factor catalogue](docs/v2/technical/draw-formulas-policies-spec.md#factor-catalogue). Status: `DRAFT` | `PUBLISHED` | `ARCHIVED`. Managed by **`TROUPE_ADMIN`**.
+- **`DrawPolicy`** — Rules for **which formula** applies when drawing. Scope: **`TROUPE`** (troupe-wide default) or **`SEASON`** (overrides troupe for one season). Shape: `{ defaultRule, categoryRules[] }`. Each **rule** has `mode` (`MANDATORY` | `CHOICE`), optional `mandatoryFormulaId`, and/or `allowedFormulaIds[]`.
+- **`categoryRule`** — Maps a **spectacle category slug** (glossary **17.7**, or `null` for principal / unset events) to a rule. Resolution uses **`event.category` only** — not `templateType`.
+- **`defaultRule`** — Fallback when no category rule matches the event's category.
+- **Effective rule** — The rule selected after policy resolution (season → troupe → implicit default) and category matching.
+- **Effective formula** — The catalogue recipe (`DrawFormula` or system V1) selected after rule resolution and optional organizer UI choice; drives draw weights and `%` display (**OQ-19-04**).
+- **System V1 formula** — Implicit troupe recipe matching `DrawWeightPipelines.DEFAULT` (`[equity_tag, past_participation]`). **Always** available in resolution and choice lists, including when an equivalent published catalogue entry exists (**19.16** seeds concretely).
+
+**Resolution narrative (plain language):** For an event, the system loads the season draw policy if present, else the troupe policy, else applies the **implicit MVP default** (organizer may choose among all published formulas + system V1). It then finds a category rule matching the event's category slug (exact match; `null` rule matches uncategorised events), else uses `defaultRule`. If the rule is **mandatory**, that formula runs (with fallback if unavailable). If **choice** with one allowed formula, that one runs. If **choice** with two or more, the organizer **selects a formula in the Équipe UI before draw** (default shown on load) — not a per-event policy row. Post-migration, déplacements events carry their glossary slug on `event.category`.
+
+**Policy vs factor:** A policy may require a formula that references a factor not yet implemented (e.g. gender parity for match events while **19.11** is parked). The catalogue entry documents product intent; the factor implementation is independent.
+
+**Immutability:** Editing a formula affects **future** draws only. Draw-time `%` snapshots (**6.14**) remain historical evidence; **19.22** will add formula id + frozen config to snapshots.
+
+**Permissions:** Season draw policy edit = **`TROUPE_ADMIN` only** (**OQ-19-05**); season organizers see effective rules and choose at draw when `CHOICE` ≥2. Effective rule read + draw choice require **`canManageComposition`** on the event.
 
 ### Exclusion cross-rôle au tirage (composition)
 
