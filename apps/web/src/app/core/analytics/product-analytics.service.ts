@@ -7,14 +7,21 @@ import {
   FR47_COMPOSITION_ALL_CONFIRMATIONS_RECEIVED,
   FR47_COMPOSITION_VALIDATED,
   FR47_NOTIFICATION_LINK_OPENED,
+  V2_MIGRATION_FIRST_SESSION,
 } from './fr47-event-names'
 import {
   getPostHogBrowserFacade,
   initPostHogBrowser,
-  type PostHogBrowserFacade,
+  type PostHogPersonProperties,
 } from './posthog-browser.client'
 
 const ALL_CONFIRMATIONS_DEDUPE_PREFIX = 'hatcast:fr47:all-confirmations:'
+const V2_MIGRATION_FIRST_SESSION_PREFIX = 'hatcast:v2-migration-first-session:'
+
+export type IdentifyUserInput = {
+  email?: string | null
+  displayName?: string | null
+}
 
 @Injectable({ providedIn: 'root' })
 export class ProductAnalyticsService {
@@ -30,12 +37,36 @@ export class ProductAnalyticsService {
     return this.enabled
   }
 
-  identifyUser(userId: string | null | undefined): void {
+  identifyUser(userId: string | null | undefined, input?: IdentifyUserInput): void {
     const id = userId?.trim()
     if (!id || !this.enabled) {
       return
     }
-    this.facade()?.identify(id)
+    const personProperties = buildPersonProperties(input)
+    this.facade()?.identify(id, personProperties)
+    this.captureV2MigrationFirstSession(id)
+  }
+
+  captureV2MigrationFirstSession(userId: string): void {
+    const id = userId.trim()
+    if (!id || !this.enabled) {
+      return
+    }
+    if (typeof localStorage !== 'undefined') {
+      const key = `${V2_MIGRATION_FIRST_SESSION_PREFIX}${id}`
+      try {
+        if (localStorage.getItem(key) === '1') {
+          return
+        }
+        localStorage.setItem(key, '1')
+      } catch {
+        /* storage blocked — still capture; dedupe best-effort only */
+      }
+    }
+    this.capture(V2_MIGRATION_FIRST_SESSION, {
+      user_id: id,
+      first_seen_at: new Date().toISOString(),
+    })
   }
 
   resetSession(): void {
@@ -133,7 +164,20 @@ export class ProductAnalyticsService {
     this.facade()?.capture(event, properties)
   }
 
-  private facade(): PostHogBrowserFacade | null {
+  private facade() {
     return getPostHogBrowserFacade()
   }
+}
+
+function buildPersonProperties(input?: IdentifyUserInput): PostHogPersonProperties | undefined {
+  const props: PostHogPersonProperties = {}
+  const email = input?.email?.trim()
+  const name = input?.displayName?.trim()
+  if (email) {
+    props.email = email
+  }
+  if (name) {
+    props.name = name
+  }
+  return Object.keys(props).length > 0 ? props : undefined
 }

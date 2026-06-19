@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { environment } from '../../../environments/environment'
-import { FR47_AVAILABILITY_FIRST_SUBMISSION, FR47_NOTIFICATION_LINK_OPENED } from './fr47-event-names'
+import { FR47_AVAILABILITY_FIRST_SUBMISSION, FR47_NOTIFICATION_LINK_OPENED, V2_MIGRATION_FIRST_SESSION } from './fr47-event-names'
 import { resolveNotificationLinkTab } from './notification-link-tab'
 import { setPostHogBrowserFacadeForTests } from './posthog-browser.client'
 import { ProductAnalyticsService } from './product-analytics.service'
@@ -11,12 +11,29 @@ describe('ProductAnalyticsService', () => {
   let capture: ReturnType<
     typeof vi.fn<(event: string, properties?: Record<string, unknown>) => void>
   >
-  let identify: ReturnType<typeof vi.fn<(distinctId: string) => void>>
+  let identify: ReturnType<
+    typeof vi.fn<
+      (distinctId: string, personProperties?: { email?: string; name?: string }) => void
+    >
+  >
   let reset: ReturnType<typeof vi.fn<() => void>>
   const savedEnv = { ...environment }
 
+  function clearSessionStorage(): void {
+    if (typeof sessionStorage !== 'undefined' && typeof sessionStorage.clear === 'function') {
+      sessionStorage.clear()
+    }
+  }
+
+  function clearV2MigrationDedupe(userId: string): void {
+    const key = `hatcast:v2-migration-first-session:${userId}`
+    if (typeof localStorage !== 'undefined' && typeof localStorage.removeItem === 'function') {
+      localStorage.removeItem(key)
+    }
+  }
+
   beforeEach(() => {
-    sessionStorage.clear()
+    clearSessionStorage()
     capture = vi.fn()
     identify = vi.fn()
     reset = vi.fn()
@@ -33,7 +50,8 @@ describe('ProductAnalyticsService', () => {
   afterEach(() => {
     setPostHogBrowserFacadeForTests(null)
     Object.assign(environment, savedEnv)
-    sessionStorage.clear()
+    clearSessionStorage()
+    clearV2MigrationDedupe('00000000-0000-4000-8000-000000000001')
   })
 
   function service(): ProductAnalyticsService {
@@ -102,7 +120,79 @@ describe('ProductAnalyticsService', () => {
     )
     await service().bootstrap()
     service().identifyUser('00000000-0000-4000-8000-000000000001')
-    expect(identify).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001')
+    expect(identify).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001', undefined)
+  })
+
+  it('identifies with email and name person properties when provided', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(
+      true,
+    )
+    await service().bootstrap()
+    service().identifyUser('00000000-0000-4000-8000-000000000001', {
+      email: 'alice@example.com',
+      displayName: 'Alice',
+    })
+    expect(identify).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001', {
+      email: 'alice@example.com',
+      name: 'Alice',
+    })
+  })
+
+  it('omits empty email and name from person properties', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(
+      true,
+    )
+    await service().bootstrap()
+    service().identifyUser('00000000-0000-4000-8000-000000000001', {
+      email: '  ',
+      displayName: null,
+    })
+    expect(identify).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001', undefined)
+  })
+
+  it('sends only available person properties when partial', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(
+      true,
+    )
+    await service().bootstrap()
+    service().identifyUser('00000000-0000-4000-8000-000000000001', {
+      email: 'bob@example.com',
+      displayName: '',
+    })
+    expect(identify).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001', {
+      email: 'bob@example.com',
+    })
+  })
+
+  it('captures v2_migration_first_session once per user', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(
+      true,
+    )
+    await service().bootstrap()
+    const userId = '00000000-0000-4000-8000-000000000001'
+    clearV2MigrationDedupe(userId)
+    service().identifyUser(userId, { email: 'alice@example.com', displayName: 'Alice' })
+    service().identifyUser(userId, { email: 'alice@example.com', displayName: 'Alice' })
+    expect(capture).toHaveBeenCalledTimes(1)
+    expect(capture).toHaveBeenCalledWith(
+      V2_MIGRATION_FIRST_SESSION,
+      expect.objectContaining({
+        user_id: userId,
+        first_seen_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      }),
+    )
+    expect(capture).not.toHaveBeenCalledWith(
+      V2_MIGRATION_FIRST_SESSION,
+      expect.objectContaining({ email: expect.anything() }),
+    )
   })
 
   it('dedupes composition_all_confirmations_received per event in session', async () => {

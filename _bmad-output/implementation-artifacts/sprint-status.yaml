@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-19T19:40:00+02:00
+# last_updated: 2026-06-19T23:45:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-19T14:00:00+02:00"
+last_updated: "2026-06-19T23:45:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -199,6 +199,7 @@ development_status:
 
   epic-11: backlog
   11-1-evenements-analytics-anonymises-indicateurs-success-criteria: backlog
+  11-2-posthog-identify-person-properties-m4-cutover: done
   epic-11-retrospective: optional
 
   epic-12: in-progress

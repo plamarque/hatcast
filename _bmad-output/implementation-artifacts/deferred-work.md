@@ -522,3 +522,12 @@
 
 - **Cible 48×48 dp non codée explicitement sur le bouton ⋮** — défaut Material + pattern existant repo (`event-equipe-tab.scss:189-192`).
 - **Couverture E2E Playwright menu formule / tirage `formulaId`** — artefact séparé `19-21-e2e-formula-choice.md`, hors scope unit tests story.
+
+## Deferred from: code review of 11-2-posthog-identify-person-properties-m4-cutover (2026-06-19)
+
+- **Dédupe `localStorage` écrite avant `capture()`** — P1 at-most-once ; même pattern que `sessionStorage` FR47 all-confirmations.
+- **Pas de test intégration logout → reset → re-identify** — hors périmètre AC8 ; code AC4 correct (`resetSession` au logout).
+- **Course multi-onglets sur première session** — P1 acceptable pour cutover ~30 users.
+- **Props personne obsolètes si email/name effacés côté API** — cas rare ; PostHog ne reçoit pas d’unset explicite.
+- **`identifyUser` no-op si PostHog pas encore initialisé** — comportement OPS-9 préexistant.
+- **Sémantique `v2_migration_first_session` = premier identify navigateur** — P1 documenté ; choix PO.

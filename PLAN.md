@@ -543,9 +543,9 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **Gate release train (code + deploy) :** [x] Waves **A–D** + **OPS-8** + **E1** + **E2** + **E3**.
 
-**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis techniques [x] (**OPS-10**, **6.17**) ; reste : décision PO + recette **1.2**/**1.3** prod si pas fait + comms.
+**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis techniques [x] (**OPS-10**, **6.17**) ; reste : décision PO + recette **1.2**/**1.3** prod si pas fait + comms ; **11.2** identify enrichi PostHog (pre-M4) — [11-2-posthog-identify-person-properties-m4-cutover.md](_bmad-output/implementation-artifacts/11-2-posthog-identify-person-properties-m4-cutover.md).
 
-**Avant M4 (PO 2026-06-05) :** **OPS-10** [x] staging validé 2026-06-05. **OPS-9** [x] (`sprint-status.yaml`).
+**Avant M4 (PO 2026-06-05) :** **OPS-10** [x] staging validé 2026-06-05. **OPS-9** [x] (`sprint-status.yaml`). **11.2** identify `email` + `name` sur People PostHog (cutover La Malice ~30 membres).
 
 **Hors V2.0.0 :** voir § **Récap backlog hors vague** ci-dessous.
 
@@ -557,7 +557,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **7.x** | Invitations / onboarding troupe | Croissance ; pas bloquant Malice |
 | **9.2** | Audit « changements me concernant » (UI membre) | Conformité / transparence ; P1 produit |
 | **8.4** | Notifications ops organisateurs (FR31b) | P2 ; extension 8.3 |
-| **11.x** | Analytics détaillé (hors **OPS-9** min) | PostHog posé ; dashboards / funnels plus tard |
+| **11.x** | Analytics détaillé (hors **OPS-9** min) | **11.2** identify People M4 [story](_bmad-output/implementation-artifacts/11-2-posthog-identify-person-properties-m4-cutover.md) ; dashboards / funnels plus tard |
 | **13.x** | Multi-saisons actives, roster ligue | Gros chantier ; **13.6** déplacements → tags (ADR-0013) |
 | **15.x** | Encounters | Réserve produit |
 | **Epic 14** | Hub troupe legacy | **Superseded** par **17.x** — ne pas rouvrir |
