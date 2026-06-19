@@ -3,6 +3,7 @@ package com.hatcast.api.draw
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -13,6 +14,8 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Tag("19.18")
+@Tag("REF-V")
 class DrawPolicyValidatorTest {
     @Autowired
     private lateinit var drawPolicyValidator: DrawPolicyValidator
@@ -162,6 +165,65 @@ class DrawPolicyValidatorTest {
 
         assertDoesNotThrow {
             drawPolicyValidator.validateCategoryRules(troupeId, rules)
+        }
+    }
+
+    @Test
+    fun `rejects CHOICE with empty allowedFormulaIds`() {
+        assertThrows(DrawPolicyValidationException::class.java) {
+            drawPolicyValidator.validateChoiceRule(emptyList())
+        }
+    }
+
+    @Test
+    fun `rejects duplicate formula ids in CHOICE rule`() {
+        assertThrows(DrawPolicyValidationException::class.java) {
+            drawPolicyValidator.validateChoiceRule(listOf(localFormulaId.toString(), localFormulaId.toString()))
+        }
+    }
+
+    @Test
+    fun `rejects DRAFT formula reference`() {
+        val draftId =
+            drawFormulaRepository
+                .save(
+                    DrawFormulaEntity(
+                        troupeId = troupeId,
+                        name = "Draft formula",
+                        status = DrawFormulaStatus.DRAFT,
+                        factorConfig = DrawFormulaSeedConstants.SYSTEM_V1_FACTOR_CONFIG,
+                        createdAt = Instant.now(),
+                        updatedAt = Instant.now(),
+                    ),
+                ).id
+        assertThrows(DrawPolicyValidationException::class.java) {
+            drawPolicyValidator.validateFormulaReference(troupeId, draftId.toString())
+        }
+    }
+
+    @Test
+    fun `rejects ARCHIVED formula reference`() {
+        val archivedId =
+            drawFormulaRepository
+                .save(
+                    DrawFormulaEntity(
+                        troupeId = troupeId,
+                        name = "Archived formula",
+                        status = DrawFormulaStatus.ARCHIVED,
+                        factorConfig = DrawFormulaSeedConstants.SYSTEM_V1_FACTOR_CONFIG,
+                        createdAt = Instant.now(),
+                        updatedAt = Instant.now(),
+                    ),
+                ).id
+        assertThrows(DrawPolicyValidationException::class.java) {
+            drawPolicyValidator.validateFormulaReference(troupeId, archivedId.toString())
+        }
+    }
+
+    @Test
+    fun `accepts PUBLISHED formula reference`() {
+        assertDoesNotThrow {
+            drawPolicyValidator.validateFormulaReference(troupeId, localFormulaId.toString())
         }
     }
 }

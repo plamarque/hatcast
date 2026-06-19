@@ -13,6 +13,15 @@ class DrawPolicyValidator(
     private val troupeCategoryRepository: TroupeCategoryRepository,
     private val drawFormulaRepository: DrawFormulaRepository,
 ) {
+    fun validatePolicyPayload(
+        troupeId: UUID,
+        defaultRule: DrawDefaultRule,
+        categoryRules: List<DrawCategoryRule>,
+    ) {
+        validateDefaultRule(troupeId, defaultRule)
+        validateCategoryRules(troupeId, categoryRules)
+    }
+
     fun validateCategoryRules(
         troupeId: UUID,
         categoryRules: List<DrawCategoryRule>,
@@ -21,35 +30,20 @@ class DrawPolicyValidator(
         categoryRules.forEach { rule ->
             val categoryKey = rule.category
             if (!seenCategories.add(categoryKey)) {
-                throw DrawPolicyValidationException("Duplicate category in category_rules: $categoryKey")
+                throw DrawPolicyValidationException(
+                    "Catégorie en double dans categoryRules : $categoryKey",
+                )
             }
             if (categoryKey != null) {
                 val known =
                     troupeCategoryRepository.existsByTroupe_IdAndSlug(troupeId, categoryKey)
                 if (!known) {
-                    throw DrawPolicyValidationException("Unknown category slug for troupe: $categoryKey")
+                    throw DrawPolicyValidationException(
+                        "Slug de catégorie inconnu pour la troupe : $categoryKey",
+                    )
                 }
             }
-            validateFormulaReferences(troupeId, rule)
-        }
-    }
-
-    private fun validateFormulaReferences(
-        troupeId: UUID,
-        rule: DrawCategoryRule,
-    ) {
-        when (rule.mode) {
-            DrawRuleMode.CHOICE ->
-                rule.allowedFormulaIds.orEmpty().forEach { formulaRef ->
-                    requireFormulaInTroupeCatalogue(troupeId, formulaRef)
-                }
-            DrawRuleMode.MANDATORY -> {
-                val mandatoryId = rule.mandatoryFormulaId
-                require(!mandatoryId.isNullOrBlank()) {
-                    "mandatoryFormulaId is required for MANDATORY mode"
-                }
-                requireFormulaInTroupeCatalogue(troupeId, mandatoryId)
-            }
+            validateRuleFormulas(troupeId, rule.mode, rule.allowedFormulaIds, rule.mandatoryFormulaId)
         }
     }
 
@@ -57,32 +51,78 @@ class DrawPolicyValidator(
         troupeId: UUID,
         defaultRule: DrawDefaultRule,
     ) {
-        when (defaultRule.mode) {
-            DrawRuleMode.CHOICE ->
-                defaultRule.allowedFormulaIds.orEmpty().forEach { formulaRef ->
-                    requireFormulaInTroupeCatalogue(troupeId, formulaRef)
-                }
-            DrawRuleMode.MANDATORY -> {
-                val mandatoryId = defaultRule.mandatoryFormulaId
-                require(!mandatoryId.isNullOrBlank()) {
-                    "mandatoryFormulaId is required for MANDATORY mode"
-                }
-                requireFormulaInTroupeCatalogue(troupeId, mandatoryId)
-            }
+        validateRuleFormulas(
+            troupeId,
+            defaultRule.mode,
+            defaultRule.allowedFormulaIds,
+            defaultRule.mandatoryFormulaId,
+        )
+    }
+
+    fun validateChoiceRule(allowedFormulaIds: List<String>?) {
+        val ids = allowedFormulaIds.orEmpty()
+        if (ids.isEmpty()) {
+            throw DrawPolicyValidationException(
+                "allowedFormulaIds ne peut pas être vide pour le mode CHOICE",
+            )
+        }
+        if (ids.size != ids.toSet().size) {
+            throw DrawPolicyValidationException(
+                "Identifiant de formule en double dans allowedFormulaIds",
+            )
         }
     }
 
-    private fun requireFormulaInTroupeCatalogue(
+    fun validateFormulaReference(
         troupeId: UUID,
         formulaRef: String,
     ) {
         val formulaId =
             runCatching { UUID.fromString(formulaRef) }
-                .getOrElse { throw DrawPolicyValidationException("Invalid formula id: $formulaRef") }
-        if (!drawFormulaRepository.existsByIdAndTroupeId(formulaId, troupeId)) {
-            throw DrawPolicyValidationException(
-                "Formula $formulaRef is not in troupe $troupeId catalogue",
-            )
+                .getOrElse {
+                    throw DrawPolicyValidationException("Identifiant de formule invalide : $formulaRef")
+                }
+        if (formulaId == DrawFormulaIds.systemV1(troupeId)) {
+            return
+        }
+        val entity =
+            drawFormulaRepository.findByIdAndTroupeId(formulaId, troupeId)
+                ?: throw DrawPolicyValidationException(
+                    "La formule $formulaRef n'appartient pas au catalogue de la troupe",
+                )
+        when (entity.status) {
+            DrawFormulaStatus.PUBLISHED -> Unit
+            DrawFormulaStatus.DRAFT ->
+                throw DrawPolicyValidationException(
+                    "La formule $formulaRef est en brouillon et ne peut pas être référencée",
+                )
+            DrawFormulaStatus.ARCHIVED ->
+                throw DrawPolicyValidationException(
+                    "La formule $formulaRef est archivée et ne peut pas être référencée",
+                )
+        }
+    }
+
+    private fun validateRuleFormulas(
+        troupeId: UUID,
+        mode: DrawRuleMode,
+        allowedFormulaIds: List<String>?,
+        mandatoryFormulaId: String?,
+    ) {
+        when (mode) {
+            DrawRuleMode.CHOICE -> {
+                validateChoiceRule(allowedFormulaIds)
+                allowedFormulaIds.orEmpty().forEach { validateFormulaReference(troupeId, it) }
+            }
+            DrawRuleMode.MANDATORY -> {
+                val mandatoryId = mandatoryFormulaId
+                if (mandatoryId.isNullOrBlank()) {
+                    throw DrawPolicyValidationException(
+                        "mandatoryFormulaId est requis pour le mode MANDATORY",
+                    )
+                }
+                validateFormulaReference(troupeId, mandatoryId)
+            }
         }
     }
 }

@@ -12,18 +12,26 @@ import com.hatcast.api.availability.dto.SummaryParticipantDto
 import com.hatcast.api.availability.dto.SummaryRoleCandidateDto
 import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
+import com.hatcast.api.availability.draw.DrawWeightPipeline
+import com.hatcast.api.draw.DrawPolicyResolutionService
 import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
+import com.hatcast.api.composition.CompositionParticipantPool
 import com.hatcast.api.composition.CompositionSelectionHistoryService
+import com.hatcast.api.composition.DrawImmediateReplaySupport
+import com.hatcast.api.composition.DrawRoleRequestSupport
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotRepository
+import com.hatcast.api.composition.ImmediatePredecessorRoleReplayService
 import com.hatcast.api.composition.SelectionHistoryMode
 import com.hatcast.api.composition.SelectionHistoryModeResolver
+import com.hatcast.api.composition.UnfulfilledRoleRequestService
 import com.hatcast.api.event.EventDraftVisibility
 import com.hatcast.api.event.EventDraftVisibility.Companion.DRAFT_AVAILABILITY_CLOSED_MESSAGE
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
+import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.event.isAvailabilityOpen
 import com.hatcast.api.organizer.OrganizerAccessService
 import com.hatcast.api.participant.EventParticipantExclusionRepository
@@ -69,6 +77,9 @@ class AvailabilityService(
     private val eventPublisher: ApplicationEventPublisher,
     private val avatarService: AvatarService,
     private val guestInvitationAccess: GuestInvitationAccessService,
+    private val drawPolicyResolutionService: DrawPolicyResolutionService,
+    private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
+    private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -197,14 +208,37 @@ class AvailabilityService(
         eventId: UUID,
         principal: SessionUserPrincipal,
         includeChances: Boolean = false,
+        formulaId: UUID? = null,
     ): EventAvailabilitySummaryResponse {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireAvailabilitySummaryReadable(event, seasonId, principal)
         val effectiveIncludeChances =
             includeChances &&
                 resolveExplainabilityForSummary(event, principal)
+        val operationalPipeline =
+            if (effectiveIncludeChances) {
+                resolveOperationalDrawPipeline(event, formulaId)
+            } else {
+                null
+            }
         val eligible = loadEligibleParticipants(seasonId, event.id)
-        val availabilityIndex = buildAvailabilityIndex(event.id)
+        val availabilityIndex =
+            availabilityRepository
+                .findByEvent_IdWithAssociations(event.id)
+                .toAvailabilityIndex()
+        val compositionEligible =
+            if (effectiveIncludeChances) {
+                CompositionParticipantPool.loadEligibleParticipants(
+                    seasonId,
+                    event.id,
+                    seasonParticipantRepository,
+                    eventParticipantRepository,
+                    eventParticipantExclusionRepository,
+                )
+            } else {
+                emptyList()
+            }
+        val categorySlug = SpectacleCategory.slug(event)
 
         val participants =
             eligible.map { row ->
@@ -278,6 +312,30 @@ class AvailabilityService(
                             if (needsScoring) {
                                 val pastByParticipant =
                                     selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
+                                val pipeline = checkNotNull(operationalPipeline)
+                                val rolePool =
+                                    CompositionParticipantPool.buildRolePool(
+                                        eligible = compositionEligible,
+                                        availabilityIndex = availabilityIndex,
+                                        roleKey = roleKey,
+                                        excluded = emptySet(),
+                                    )
+                                val replayInputs =
+                                    DrawImmediateReplaySupport.replayInputsForRolePool(
+                                        pipeline = pipeline,
+                                        event = event,
+                                        roleKey = roleKey,
+                                        pool = rolePool,
+                                        replayService = immediatePredecessorRoleReplayService,
+                                    )
+                                val unfulfilledCounts =
+                                    DrawRoleRequestSupport.unfulfilledCountsForRolePool(
+                                        pipeline = pipeline,
+                                        event = event,
+                                        roleKey = roleKey,
+                                        pool = rolePool,
+                                        roleRequestService = unfulfilledRoleRequestService,
+                                    )
                                 AvailabilityChanceCalculator
                                     .scoreCandidates(
                                         roleCandidates.map {
@@ -290,6 +348,12 @@ class AvailabilityService(
                                         requiredCount,
                                         pastByParticipant,
                                         roleKey = roleKey,
+                                        pipeline = pipeline,
+                                        categorySlug = categorySlug,
+                                        playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
+                                        immediatePredecessorTitle = replayInputs.predecessorTitle,
+                                        immediatePredecessorStartsAt = replayInputs.predecessorStartsAt,
+                                        unfulfilledRoleRequestCountByParticipant = unfulfilledCounts,
                                     ).associateBy { it.participantId }
                             } else {
                                 emptyMap()
@@ -849,6 +913,17 @@ class AvailabilityService(
         val canManage = organizerAccess.canManageComposition(event.id, event.season, principal)
         return DisposExplainabilityAccess.canShowExplainability(event, canManage)
     }
+
+    private fun resolveOperationalDrawPipeline(
+        event: EventEntity,
+        formulaId: UUID?,
+    ): DrawWeightPipeline =
+        drawPolicyResolutionService
+            .resolveForEvent(
+                event = event,
+                requestedFormulaId = formulaId,
+                validateForDraw = false,
+            ).pipeline
 
     private fun requireAvailabilitySummaryReadable(
         event: EventEntity,

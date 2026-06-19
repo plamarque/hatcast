@@ -73,6 +73,7 @@ class CompositionController(
         @PathVariable eventId: UUID,
         @RequestParam roleKey: String,
         @RequestParam participantId: UUID,
+        @RequestParam(required = false) formulaId: UUID?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): ChanceBreakdownDto =
         compositionExplainabilityService.getChanceBreakdown(
@@ -80,6 +81,7 @@ class CompositionController(
             eventId,
             roleKey,
             participantId,
+            formulaId,
             principal,
         )
 
@@ -88,9 +90,10 @@ class CompositionController(
         @PathVariable seasonId: UUID,
         @PathVariable eventId: UUID,
         @RequestParam roleKey: String,
+        @RequestParam(required = false) formulaId: UUID?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): CompositionPoolPreviewResponseDto =
-        compositionExplainabilityService.getPoolPreview(seasonId, eventId, roleKey, principal)
+        compositionExplainabilityService.getPoolPreview(seasonId, eventId, roleKey, formulaId, principal)
 
     @GetMapping("/candidates")
     fun getCompositionCandidates(
@@ -98,9 +101,17 @@ class CompositionController(
         @PathVariable eventId: UUID,
         @RequestParam roleKey: String,
         @RequestParam(required = false) slotIndex: Int?,
+        @RequestParam(required = false) formulaId: UUID?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): CompositionCandidateListResponseDto =
-        compositionSlotAssignmentService.getCandidates(seasonId, eventId, roleKey, slotIndex, principal)
+        compositionSlotAssignmentService.getCandidates(
+            seasonId,
+            eventId,
+            roleKey,
+            slotIndex,
+            formulaId,
+            principal,
+        )
 
     @PostMapping("/slots/{roleKey}/{slotIndex}/participation")
     fun updateSlotParticipation(

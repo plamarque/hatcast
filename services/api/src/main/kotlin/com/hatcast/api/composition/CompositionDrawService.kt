@@ -10,7 +10,6 @@ import com.hatcast.api.availability.AvailabilityRoleRules
 import com.hatcast.api.availability.EventAvailabilityIndex
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.draw.DrawWeightPipeline
-import com.hatcast.api.availability.draw.DrawWeightPipelines
 import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.composition.dto.CompositionDrawResponseDto
 import com.hatcast.api.composition.dto.CompositionDrawStepCandidateDto
@@ -27,6 +26,7 @@ import com.hatcast.api.participant.EventParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.draw.DrawPolicyResolutionService
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.user.ParticipantGenderResolver
 import org.springframework.beans.factory.ObjectProvider
@@ -62,9 +62,19 @@ class CompositionDrawService(
     private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
     private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
     private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
+    private val drawPolicyResolutionService: DrawPolicyResolutionService,
 ) {
-    private val drawWeightPipeline: DrawWeightPipeline
-        get() = drawWeightPipelineProvider.getIfAvailable() ?: DrawWeightPipelines.DEFAULT
+    private fun resolveDrawPipeline(
+        event: EventEntity,
+        body: DrawCompositionRequestDto?,
+    ): DrawWeightPipeline =
+        drawWeightPipelineProvider.getIfAvailable()
+            ?: drawPolicyResolutionService
+                .resolveForEvent(
+                    event = event,
+                    requestedFormulaId = body?.formulaId,
+                    validateForDraw = true,
+                ).pipeline
     @Transactional
     fun drawComposition(
         seasonId: UUID,
@@ -78,6 +88,7 @@ class CompositionDrawService(
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
         }
 
+        val drawPipeline = resolveDrawPipeline(event, body)
         val mode = parseDrawMode(body?.mode)
         val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(normalizedSlots)
@@ -164,6 +175,7 @@ class CompositionDrawService(
             crossRoleExcluded = openingCrossRoleExcluded,
             snapshotAccumulator = snapshotAccumulator,
             categorySlug = SpectacleCategory.slug(event),
+            drawPipeline = drawPipeline,
         )
 
         for (roleKey in requiredRoles) {
@@ -227,7 +239,7 @@ class CompositionDrawService(
                     )
                 val replayInputs =
                     DrawImmediateReplaySupport.replayInputsForRolePool(
-                        pipeline = drawWeightPipeline,
+                        pipeline = drawPipeline,
                         event = event,
                         roleKey = roleKey,
                         pool = pool,
@@ -235,7 +247,7 @@ class CompositionDrawService(
                     )
                 val unfulfilledCounts =
                     DrawRoleRequestSupport.unfulfilledCountsForRolePool(
-                        pipeline = drawWeightPipeline,
+                        pipeline = drawPipeline,
                         event = event,
                         roleKey = roleKey,
                         pool = pool,
@@ -253,7 +265,7 @@ class CompositionDrawService(
                         requiredCount,
                         pastByParticipant,
                         roleKey = roleKey,
-                        pipeline = drawWeightPipeline,
+                        pipeline = drawPipeline,
                         categorySlug = categorySlug,
                         playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
                         immediatePredecessorTitle = replayInputs.predecessorTitle,
@@ -272,7 +284,7 @@ class CompositionDrawService(
                         requiredCount,
                         pastByParticipant,
                         roleKey = roleKey,
-                        pipeline = drawWeightPipeline,
+                        pipeline = drawPipeline,
                         categorySlug = categorySlug,
                         playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
                         immediatePredecessorTitle = replayInputs.predecessorTitle,
@@ -458,6 +470,7 @@ class CompositionDrawService(
         crossRoleExcluded: Set<UUID>,
         snapshotAccumulator: MutableMap<Pair<String, UUID>, DrawChanceSnapshotInput>,
         categorySlug: String,
+        drawPipeline: DrawWeightPipeline,
     ) {
         for (roleKey in requiredRoles) {
             val requiredCount = normalizedSlots[roleKey] ?: 0
@@ -478,7 +491,7 @@ class CompositionDrawService(
                 selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
             val replayInputs =
                 DrawImmediateReplaySupport.replayInputsForRolePool(
-                    pipeline = drawWeightPipeline,
+                    pipeline = drawPipeline,
                     event = event,
                     roleKey = roleKey,
                     pool = pool,
@@ -486,7 +499,7 @@ class CompositionDrawService(
                 )
             val unfulfilledCounts =
                 DrawRoleRequestSupport.unfulfilledCountsForRolePool(
-                    pipeline = drawWeightPipeline,
+                    pipeline = drawPipeline,
                     event = event,
                     roleKey = roleKey,
                     pool = pool,
@@ -504,7 +517,7 @@ class CompositionDrawService(
                     requiredCount,
                     pastByParticipant,
                     roleKey = roleKey,
-                    pipeline = drawWeightPipeline,
+                    pipeline = drawPipeline,
                     categorySlug = categorySlug,
                     playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
                     immediatePredecessorTitle = replayInputs.predecessorTitle,

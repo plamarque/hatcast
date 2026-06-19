@@ -135,8 +135,11 @@ paths:
       description: >
         Exécute un tirage pondéré par rôle pour les slots vides ou, en mode `full`,
         refait les rôles déjà complets. Requiert `canManageComposition`.
+        Politique 19.18 : politique **explicite** MANDATORY (**400** si formulaId mismatch après fallback) ;
+        politique **explicite** CHOICE ≥2 exige formulaId (**400** si absent, **403** si hors allowed).
+        Politique **implicit** (pas de row) : défaut serveur sans formulaId obligatoire (REF-R01).
         Sur composition validée (`validatedAt`), seul le mode `fillEmpty` est autorisé
-        lorsqu’il reste au moins un slot requis vide ; `full` renvoie 409.
+        lorsqu'il reste au moins un slot requis vide ; `full` renvoie 409.
         Les nouveaux assignés déclenchent `requestConfirmationForAssignees` (cible Epic 8).
         Retourne la composition mise à jour et les étapes pour l’animation client.
       security:
@@ -159,8 +162,13 @@ paths:
                 $ref: '#/components/schemas/CompositionDrawResponse'
         '401':
           description: Non authentifié
+        '400':
+          description: >
+            Paramètres invalides ; politique draw — formulaId requis (CHOICE explicite ≥2)
+            ou incompatible (MANDATORY).
         '403':
-          description: Accès refusé
+          description: >
+            Accès refusé ; ou formulaId hors allowedFormulaIds (politique explicite CHOICE).
         '404':
           description: Saison ou événement inconnu
         '409':
@@ -582,6 +590,10 @@ components:
           type: string
           enum: [full, fillEmpty]
           default: full
+        formulaId:
+          type: string
+          format: uuid
+          description: Formule choisie par l'organisateur (requis si politique CHOICE ≥2).
 
     CompositionDrawStepCandidate:
       type: object

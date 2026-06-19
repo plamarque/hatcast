@@ -35,6 +35,15 @@
 
 ---
 
+## Deferred from: code review of 19-18-api-politiques-tirage-troupe-saison (2026-06-19)
+
+- `ObjectProvider<DrawWeightPipeline>` court-circuite la résolution — pattern test voulu (story 19.18 task 6), conservé pour `@Primary` test beans.
+- Course concurrente sur upsert politique — fenêtre TOCTOU rare ; index unique V65 ; retry non implémenté MVP.
+- GET politique 404 ambigu (troupe vs politique absente) — fuite d’information mineure ; pattern cohérent 19.17.
+- Pas de verrou optimiste / ETag sur PUT politique — last-write-wins MVP ; UI admin 19.20 pourra ajouter precondition.
+
+---
+
 ## Deferred from: code review of 19-17-api-crud-formules-tirage (2026-06-16)
 
 - TOCTOU between policy reference check and archive save — MVP race window accepted at current scale.
