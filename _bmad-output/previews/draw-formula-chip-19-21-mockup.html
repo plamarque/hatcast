@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mockup 19.21 v2 — Formule dans menu overflow (ultra discret)</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" />
+  <style>
+    :root {
+      --primary: #d0bcff;
+      --on-primary: #381e72;
+      --primary-container: #4f378b;
+      --surface: #141218;
+      --surface-container: #2b2930;
+      --on-surface: #e6e1e5;
+      --on-surface-variant: #cac4d0;
+      --outline-variant: #49454f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 1rem 1rem 2rem;
+      font-family: Roboto, system-ui, sans-serif;
+      background: #0e0d10;
+      color: var(--on-surface);
+    }
+    h1 { font-size: 1.05rem; margin: 0 0 0.35rem; }
+    .lead {
+      font-size: 0.82rem;
+      color: var(--on-surface-variant);
+      margin: 0 0 1rem;
+      max-width: 40rem;
+      line-height: 1.45;
+    }
+    .tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+    .tabs button {
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--outline-variant);
+      background: transparent;
+      color: var(--on-surface-variant);
+      font: inherit;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .tabs button.active {
+      background: var(--primary-container);
+      color: var(--primary);
+      border-color: var(--primary-container);
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; }
+    .phone {
+      width: 390px;
+      max-width: 100%;
+      border: 1px solid var(--outline-variant);
+      border-radius: 1.25rem;
+      background: var(--surface);
+      overflow: visible;
+      position: relative;
+    }
+    .phone-bar {
+      padding: 0.35rem;
+      text-align: center;
+      font-size: 0.65rem;
+      color: var(--on-surface-variant);
+      background: var(--surface-container);
+    }
+    .phone-inner { padding: 0 0.75rem 0.75rem; }
+    .event-tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+      border-bottom: 1px solid var(--outline-variant);
+      margin-bottom: 0.5rem;
+    }
+    .event-tabs .on { color: var(--primary); font-weight: 500; }
+    .draft-zone {
+      padding: 0.6rem;
+      border-radius: 0.65rem;
+      background: color-mix(in srgb, var(--primary-container) 22%, transparent);
+      border-left: 3px solid var(--primary);
+      margin: 0.5rem 0;
+      font-size: 0.82rem;
+    }
+    .slot { height: 1.75rem; margin: 0.35rem 0; background: color-mix(in srgb, var(--outline-variant) 30%, transparent); border-radius: 0.35rem; }
+    .sticky {
+      border-top: 1px solid var(--outline-variant);
+      padding-top: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .hint {
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+      margin: 0 0 0.45rem;
+      line-height: 1.35;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      flex: 1;
+    }
+    .btn {
+      min-height: 2.75rem;
+      border-radius: 999px;
+      border: none;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-p { background: var(--primary); color: var(--on-primary); }
+    .btn-s { background: transparent; border: 1px solid var(--outline-variant); color: var(--primary); }
+    .icon-btn {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--on-surface-variant);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-btn:hover { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+    .icon-btn .material-symbols-outlined { font-size: 1.35rem; }
+    .menu-float {
+      position: absolute;
+      right: 0.5rem;
+      bottom: 4.5rem;
+      min-width: 12.5rem;
+      background: var(--surface-container);
+      border: 1px solid var(--outline-variant);
+      border-radius: 0.5rem;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.55);
+      padding: 0.35rem 0;
+      z-index: 5;
+    }
+    .menu-float.hidden { display: none; }
+    .menu-head {
+      padding: 0.5rem 0.85rem 0.25rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      opacity: 0.75;
+    }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .menu-item:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+    .menu-item.on { color: var(--primary); font-weight: 500; }
+    .menu-item .check { width: 1.1rem; font-size: 1rem; opacity: 0.9; }
+    .menu-item .check.empty { opacity: 0; }
+    .menu-divider { height: 1px; background: var(--outline-variant); margin: 0.25rem 0; opacity: 0.5; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .callout {
+      max-width: 22rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      background: color-mix(in srgb, var(--primary-container) 25%, transparent);
+      border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+    }
+    .callout strong { color: var(--primary); }
+    .arrow {
+      position: absolute;
+      right: 1.1rem;
+      bottom: 5.1rem;
+      font-size: 0.7rem;
+      color: var(--primary);
+      z-index: 6;
+    }
+  </style>
+</head>
+<body>
+  <h1>19.21 v2 — Ultra discret (PO Patrice)</h1>
+  <p class="lead">
+    <strong>Aucun chip.</strong> Formule imposée ou unique → <strong>rien à l’écran</strong>.
+    Choix possible (≥2 formules) → entrées dans le menu <strong>⋮</strong> déjà présent à côté de Tirer / Valider.
+    Tap ⋮ pour ouvrir le menu (démo).
+  </p>
+
+  <div class="tabs">
+    <button type="button" class="active" data-p="menu">Menu ⋮ ouvert</button>
+    <button type="button" data-p="closed">Toolbar fermée</button>
+    <button type="button" data-p="hidden">Imposée (rien)</button>
+  </div>
+
+  <div class="row">
+    <div id="p-menu" class="panel active">
+      <div class="phone">
+        <div class="phone-bar">CHOICE ≥2 — formule dans overflow seulement</div>
+        <div class="phone-inner">
+          <div class="event-tabs"><span class="on">Équipe</span></div>
+          <div class="draft-zone">🎭 JEU <div class="slot"></div></div>
+          <div class="sticky">
+            <p class="hint">Proposition automatique selon les dispos…</p>
+            <div class="toolbar">
+              <div class="grid">
+                <button type="button" class="btn btn-p">Tirer au sort</button>
+                <button type="button" class="btn btn-s">Valider</button>
+              </div>
+              <button type="button" class="icon-btn" id="overflow-btn" aria-label="Autres actions">
+                <span class="material-symbols-outlined">more_vert</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <span class="arrow">menu ⋮</span>
+        <div class="menu-float" id="overflow-menu">
+          <button type="button" class="menu-item" style="width:100%;border:none;background:transparent;color:inherit;text-align:left;">
+            Partager
+          </button>
+          <div class="menu-divider"></div>
+          <div class="menu-head">Formule de tirage</div>
+          <div class="menu-item on"><span class="material-symbols-outlined check">check</span> Équité saison</div>
+          <div class="menu-item"><span class="check empty"></span> Parité match</div>
+          <div class="menu-item"><span class="check empty"></span> V1 système</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="p-closed" class="panel">
+      <div class="phone">
+        <div class="phone-bar">État normal — on ne voit que ⋮</div>
+        <div class="phone-inner">
+          <div class="event-tabs"><span class="on">Équipe</span></div>
+          <div class="draft-zone">🎭 JEU <div class="slot"></div></div>
+          <div class="sticky">
+            <p class="hint">Proposition automatique selon les dispos…</p>
+            <div class="toolbar">
+              <div class="grid">
+                <button type="button" class="btn btn-p">Tirer au sort</button>
+                <button type="button" class="btn btn-s">Valider</button>
+              </div>
+              <button type="button" class="icon-btn" aria-label="Autres actions">
+                <span class="material-symbols-outlined">more_vert</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="lead" style="margin-top:0.75rem;max-width:390px;">La formule active n’apparaît nulle part. Tooltip sur ⋮ optionnel : « Autres actions (formule : Équité saison) ».</p>
+    </div>
+
+    <div id="p-hidden" class="panel">
+      <div class="phone">
+        <div class="phone-bar">MANDATORY ou 1 formule — UI formule absente</div>
+        <div class="phone-inner">
+          <div class="event-tabs"><span class="on">Équipe</span></div>
+          <div class="draft-zone">🎭 JEU <div class="slot"></div></div>
+          <div class="sticky">
+            <div class="toolbar">
+              <div class="grid">
+                <button type="button" class="btn btn-p">Tirer au sort</button>
+                <button type="button" class="btn btn-s">Valider</button>
+              </div>
+              <!-- pas de ⋮ si overflow vide et pas de choix formule -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Règle PO</strong><br>
+      Chip = supprimé.<br>
+      Visible seulement si ≥2 formules <strong>et</strong> uniquement dans ⋮.<br>
+      Tirer au sort = toujours direct.
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.tabs button').forEach((b) => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('.tabs button').forEach((x) => x.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
+        b.classList.add('active');
+        document.getElementById('p-' + b.dataset.p).classList.add('active');
+      });
+    });
+    const btn = document.getElementById('overflow-btn');
+    const menu = document.getElementById('overflow-menu');
+    if (btn && menu) {
+      btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+      menu.querySelectorAll('.menu-item').forEach((item) => {
+        if (item.textContent.trim() === 'Partager') return;
+        item.addEventListener('click', () => {
+          menu.querySelectorAll('.menu-item').forEach((i) => {
+            i.classList.remove('on');
+            const c = i.querySelector('.check');
+            if (c) c.classList.add('empty');
+            if (c) c.textContent = '';
+          });
+          item.classList.add('on');
+          const c = item.querySelector('.check');
+          if (c) { c.classList.remove('empty'); c.textContent = 'check'; }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

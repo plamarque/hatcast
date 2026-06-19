@@ -163,25 +163,33 @@ Season policy remains **optional** — creatable via API **19.18** only (no admi
 
 **Branches by catalogue size** (implicit default `allowedFormulaIds` = all `PUBLISHED` + system V1):
 
-| `PUBLISHED` count | Allowed set size | UI at draw |
-|-------------------|------------------|------------|
-| 0 | 1 (system V1 only) | No selector — system V1 applied |
-| 1 | 2 (F1 + system V1) | Selector — organizer picks one |
-| ≥2 | n + 1 (all published + system V1) | Selector when ≥2 entries |
+| `PUBLISHED` count | Allowed set size | Organizer Équipe UI (**19.21**) |
+|-------------------|------------------|--------------------------------|
+| 0 | 1 (system V1 only) | **No formula UI** — system V1 applied |
+| 1 | 2 (F1 + system V1) | **No formula UI** — server default (`effectiveFormulaId`) |
+| ≥2 | n + 1 (all published + system V1) | **Overflow menu only** when `selectorVisible` (≥2 allowed) |
 
-Organizer sees a formula selector when **≥2** formulas are in the allowed set.
+Organizer **never** sees a bandeau, chip, or pre-draw dialog. Formula change is **optional** and **hidden** in the existing **`more_vert`** overflow menu when ≥2 formulas are allowed.
 
 ---
 
-## Operator choice & composition UI
+## Organizer Équipe UI (Story 19.21)
 
-| Resolved rule | Default effective formula | Organizer action |
-|---------------|---------------------------|------------------|
-| `MANDATORY` | `mandatoryFormulaId` (with fallback if unavailable) | No choice — shown read-only in Équipe UI (**19.21**) |
-| `CHOICE`, 1 allowed formula | The sole id | No selector — shown read-only |
-| `CHOICE`, ≥2 allowed formulas | Server default (e.g. first in `allowedFormulaIds` or system V1 — **19.18** documents tie-break) | **May change** formula in Équipe UI **before** draw; **must** pass `formulaId` on `POST …/composition/draw` |
+**Authority:** [_ux-design-orga-formula-choice-19-21.md](../../_bmad-output/planning-artifacts/ux-design-orga-formula-choice-19-21.md) (approved PO 2026-06-19). Mockup: [_draw-formula-chip-19-21-mockup.html](../../_bmad-output/previews/draw-formula-chip-19-21-mockup.html).
 
-The **active formula** is **displayed clearly** in the Équipe tab for organizers with **`canManageComposition`** (**19.21**). Same permission gate as draw today (`OrganizerAccessService`, story **3.5**).
+| Resolved rule | Server default (`effectiveFormulaId`) | Organizer Équipe UI | Draw request |
+|---------------|--------------------------------------|---------------------|--------------|
+| `MANDATORY` | `mandatoryFormulaId` (with fallback) | **None** — formula not shown | `formulaId` = resolved mandatory id |
+| `CHOICE`, 1 allowed formula | The sole id | **None** | `formulaId` = that id (or omit if server accepts) |
+| `CHOICE`, ≥2 allowed formulas | First id in `allowedFormulaIds` order (**19.18** tie-break) | **Overflow menu** — section « Formule de tirage » + formula names; check on current | `formulaId` = `selectedFormulaId` (client state, init from default) |
+
+**Interaction rules:**
+
+1. **Tirer au sort** is **immediate** — no modal, no confirmation step for formula choice.
+2. **`selectorVisible === false`** → no formula-related UI (no chip, no menu section, no ⋮ solely for formula unless other overflow actions exist).
+3. **`selectorVisible === true`** → formula names only inside `mat-menu` on `composition-actions-overflow`; tap updates session `selectedFormulaId` and operational `%` (pool preview, breakdown) without persisting policy.
+4. **No** category label, policy mode copy, or factor summary on the Équipe tab for formula (**admin** surfaces: **19.20**, Paramètres formules **19.19c**).
+5. Gate: **`canManageComposition`** (`OrganizerAccessService`, **3.5**). Members: no formula UI in **19.21** (post-draw label → **19.22**).
 
 **Not a per-event policy row:** UI formula selection is scoped to the **composition session**; it does not create a troupe/season `DrawPolicy` row (**OQ-19-02**).
 
@@ -223,8 +231,8 @@ Draw **must not fail** solely because a catalogue row referenced by policy was a
 | PUT troupe draw policy | **`TROUPE_ADMIN`** |
 | PUT season draw policy | **`TROUPE_ADMIN`** for that season's troupe (**OQ-19-05** — *not* delegated `SeasonOrganizer`; aligns with `canManageSeasons` / story **3.5** troupe-admin season settings) |
 | GET effective draw rule for event | Organizer with **`canManageComposition`** on event |
-| Choose `formulaId` at draw | Same as draw — **`canManageComposition`** when rule = `CHOICE` ≥2 |
-| Read-only effective policy on Équipe tab | Organizers + members per **19.21** (future); spec notes intent only |
+| Choose `formulaId` at draw | Same as draw — **`canManageComposition`**; client sends valid `formulaId` when required (**CHOICE** ≥2 explicit policy) — UI applies default without interrupting draw |
+| Formula name on Équipe tab | **19.21:** overflow menu only when `selectorVisible`; **19.22:** persisted label for past draws / members |
 
 **OQ-19-05:** Season organizers **consume** effective policy and choose at draw when permitted; they do **not** edit season draw policy. Only troupe admins configure policies.
 
@@ -387,7 +395,7 @@ Live preview % in editor **deferred** (**OQ-P3**) — static helper text + link 
 
 **Story 19.22 extension:** Snapshots will add **formula id + frozen `factorConfig` + policy context** as auditable source of truth for « which recipe was used ». Historical `%` in existing snapshots remain valid evidence; new metadata is additive.
 
-**Composition traceability (PO):** At draw, persist which **effective formula** and **policy context** (troupe/season policy ids, resolved rule) were used on the composition. Surface in the **audit journal** alongside existing composition events. UI (**19.21**) shows the active formula clearly before and at draw. Implementation split: metadata on composition + snapshots (**19.22**), journal wiring with existing audit patterns (**19.18** / **19.21**).
+**Composition traceability (PO):** At draw, persist which **effective formula** and **policy context** (troupe/season policy ids, resolved rule) were used on the composition. Surface in the **audit journal** alongside existing composition events. **19.21** wires silent default + optional overflow change before draw; **19.22** surfaces persisted formula label after draw. Implementation split: metadata on composition + snapshots (**19.22**), journal wiring with existing audit patterns (**19.18** / **19.21**).
 
 ---
 
@@ -402,7 +410,7 @@ Troupe **T** has two published formulas:
 
 No `DrawPolicy` row exists.
 
-→ Implicit default: `defaultRule.mode = CHOICE`, `allowedFormulaIds = [F1, F2, systemV1]`. Organizer sees a **three-option** selector (system V1 always listed, even though F1 is equivalent — **PO decision 1A**). Selected formula drives `%` in Équipe before draw (**19.21** / **19.18**).
+→ Implicit default: `defaultRule.mode = CHOICE`, `allowedFormulaIds = [F1, F2, systemV1]`. Organizer UI: **overflow menu** with three formula names when `selectorVisible` (**PO decision 1A** — system V1 always listed). Default `effectiveFormulaId` drives `%` until orga changes via menu (**19.21** / **19.18**). Draw is **not** blocked for selection.
 
 ### Ex. B — Season category mandatory (future 19.20 UI)
 
@@ -434,7 +442,7 @@ Event **E** with `category = match` → draw **must** use `f-gender-parity` with
 }
 ```
 
-Event with `category = cabaret` → organizer **must** pick `f1` or `f2` at draw (selector in **19.21**).
+Event with `category = cabaret` → client sends `formulaId` for `f1` or `f2` on draw (default = server `effectiveFormulaId`; optional change via overflow menu — **19.21**).
 
 ### Ex. D — Null category
 

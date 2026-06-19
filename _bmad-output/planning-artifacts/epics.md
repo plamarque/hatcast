@@ -2459,7 +2459,7 @@ display %: exactSelectionProbability(places, candidates, index) — port V1
 | **DrawFormula** | Recette nommée (catalogue troupe) : facteurs + paramètres ; **plusieurs** formules coexistent (ex. « V1 standard », « Match — parité genre ») |
 | **DrawPolicy** | Périmètre `troupe` \| `saison` ; règle **par défaut** + **règles par `category`** (slug glossaire **17.7** ; `null` = spectacles ordinaires) ; chaque règle : `MANDATORY` (1 formule) ou `CHOICE` (≥1 formule autorisée) |
 | **Résolution événement** | `GET effective draw rule(event)` : politique **saison** prime sur **troupe** ; matcher `event.category` → règle catégorie ; sinon règle défaut ; à défaut formule système V1 |
-| **Tirage (onglet Équipe)** | `MANDATORY` ou `CHOICE` avec 1 seule formule → appliquée sans dialogue ; `CHOICE` avec **≥2 formules** → **sélecteur obligatoire** au moment du tirage ; serveur valide `formulaId` |
+| **Tirage (onglet Équipe)** | `MANDATORY` ou `CHOICE` 1 formule → appliquée sans UI formule ; `CHOICE` ≥2 → défaut serveur + changement **optionnel** dans menu overflow **⋮** uniquement (**19.21**) ; tirage **immédiat** ; serveur valide `formulaId` |
 | **Snapshot** | **19.22** : formule + règle résolue (`category`, mode, scope politique) + % (**6.14**) |
 
 **Exemple PO :** politique saison — catégorie `match` → `MANDATORY` formule « Parité genre » ; catégorie `cabaret` → `CHOICE` entre « V1 » et « Mix équipe » ; défaut troupe → `CHOICE` toutes formules publiées.
@@ -2829,26 +2829,30 @@ afin que **les orgas** sachent quelles règles s’appliquent.
 2. **Given** ajout règle catégorie `match`, **when** mode `MANDATORY`, **then** sélecteur **une** formule (ex. « Parité genre — match ») ; aide contextuelle PO.
 3. **Given** mode `CHOICE`, **when** ≥2 formules cochées, **then** copy « l’organisateur choisira au tirage » ; preview liste formules autorisées pour un spectacle exemple (optionnel).
 4. **Given** admin saison, **when** écran, **then** surcharge troupe + bandeau héritage ; conflit catégorie saison **remplace** entrée troupe pour cette catégorie.
-5. **Given** politique `MANDATORY` pour catégorie courante, **when** orga ouvre Équipe (sans tirage), **then** formule imposée visible en lecture seule avec libellé catégorie.
+5. **Given** politique `MANDATORY` pour catégorie courante, **when** orga ouvre Équipe, **then** **aucune** UI formule sur Équipe (**19.21** — formule appliquée silencieusement ; admin **19.20** pour config).
 6. **Couverture :** UX-DR11. **Priorité :** P2. **Depends :** 19.18, **19.19c**, **17.7**.
 
 ---
 
-#### Story 19.21 : UI orga — choix de formule au tirage (résolution par catégorie événement)
+#### Story 19.21 : UI orga — formule de tirage discrète (overflow Équipe)
 
 En tant qu **organisateur** avec `canManageComposition`,  
-je veux **voir la politique applicable** à mon spectacle et **choisir une formule** si plusieurs sont autorisées,  
-afin d’**appliquer** la bonne recette (ex. parité genre sur un **match**).
+je veux que la **bonne formule** s’applique **sans interrompre** mon tirage, avec un changement **optionnel et discret** si plusieurs formules sont autorisées,  
+afin de **garder le flux Équipe** tout en permettant un cas rare (ex. parité sur un **match**).
+
+**UX (normatif, PO 2026-06-19) :** [_ux-design-orga-formula-choice-19-21.md](./ux-design-orga-formula-choice-19-21.md)
 
 **Acceptance Criteria**
 
-1. **Given** ouverture onglet Équipe, **when** politique effective chargée (`GET …/draw-policy/effective`), **then** bandeau : catégorie spectacle, mode, formule imposée **ou** « choix au tirage » + noms formules autorisées.
-2. **Given** règle `CHOICE` avec **≥2** formules, **when** orga clique **Tirer au sort**, **then** modale sélecteur **obligatoire** (Material 3) avant confirmation ; une ligne par formule (nom + résumé facteurs).
-3. **Given** règle `MANDATORY` ou `CHOICE` à 1 formule, **when** tirage, **then** **pas** de modale ; formule appliquée directement (animation **6.4**).
-4. **Given** `POST …/composition/draw` avec `formulaId`, **when** serveur valide, **then** poids Dispos **Tous** recalculés avec **même formule** pour cohérence FR19 (documenté OpenAPI).
-5. **Given** spectacle sans catégorie (`null`), **when** résolution, **then** règle **défaut** de la politique effective.
-6. **Given** `prefers-reduced-motion`, **when** tirage, **then** comportement **6.4** inchangé.
-7. **Couverture :** FR19, FR20, UX-DR6. **Priorité :** P2. **Depends :** 19.18, **6.4**, **17.8**.
+1. **Given** ouverture onglet Équipe, **when** politique effective chargée (`GET …/draw-policy/effective`), **then** init `selectedFormulaId` depuis `effectiveFormulaId` — **pas** de bandeau, **pas** de chip, **pas** de ligne hint formule.
+2. **Given** `selectorVisible === false` (MANDATORY, CHOICE 1 formule), **when** toolbar affichée, **then** **aucune** UI formule.
+3. **Given** `selectorVisible === true` (CHOICE ≥2), **when** toolbar affichée, **then** section « Formule de tirage » **uniquement** dans le menu overflow **`more_vert`** (`mat-menu-item` par formule, check sur sélection courante).
+4. **Given** CHOICE ≥2, **when** orga clique **Tirer au sort**, **then** **pas** de modale ; tirage immédiat avec `formulaId` session (**6.4** inchangé).
+5. **Given** changement via menu overflow, **when** autre formule choisie, **then** `%` opérationnels recalculés — sans persister politique.
+6. **Given** `POST …/composition/draw` avec `formulaId`, **when** serveur valide, **then** cohérence FR19 / REF-R12 (**19.18**).
+7. **Given** spectacle sans catégorie (`null`), **when** résolution, **then** règle **défaut** serveur — pas d’affichage catégorie orga.
+8. **Given** `prefers-reduced-motion`, **when** tirage, **then** **6.4** inchangé.
+9. **Couverture :** FR19, FR20, UX-DR6. **Priorité :** P2. **Depends :** **19.18**, **6.4**, **17.8**.
 
 ---
 

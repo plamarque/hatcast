@@ -717,7 +717,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **Spec + persistance** | **19.15** → **19.16** → **19.17** | Backend formules + seed V1 |
 | **Spec params + runtime** | **19.19a** → **19.19b** | Catalogue coefficients + validateur + golden |
 | **Demo 1 — admin** | **19.19c** | Éditeur Material 3 — créer/éditer une recette avec coefficients |
-| **Demo 2 — orga** | **19.18** → **19.21** | Politique effective + choix formule au tirage ; draw branché sur pipeline configurée |
+| **Demo 2 — orga** | **19.18** → **19.21** | Politique effective + formule par défaut silencieuse ; changement optionnel menu overflow ⋮ ; draw sur pipeline configurée |
 | **Phase 2 (hors MVP sprint)** | **19.20**, **19.22** | UI admin politiques par catégorie ; snapshot formule au tirage |
 
 **Ordre de session suggéré (2 stories max / session) :**
@@ -729,7 +729,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 5. **19.19b** — runtime paramétré + golden REF-P* / REF-F09+  
 6. **19.19c** — **Demo 1** UI admin (coefficients)  
 7. **19.18** — API politiques + runtime draw/`formulaId`  
-8. **19.21** — **Demo 2** UI orga choix au tirage  
+8. **19.21** — **Demo 2** UI orga formule discrète (overflow ⋮)  
 
 **DoD sprint MVP :** admin crée une formule (ex. V1 + `role_request`) ; orga choisit entre ≥2 formules au tirage ; golden **19.2** vert avec pipeline **DEFAULT** inchangée si formule système V1 ; invariant **OQ-19-04** vérifié sur Dispos + draw.
 
