@@ -35,6 +35,8 @@ jobs:
         VITE_ENVIRONMENT=staging
         VITE_FIRESTORE_DATABASE=staging
         VITE_STORAGE_PREFIX=staging/
+        VITE_V2_CUTOVER_ANNOUNCEMENT_ENABLED=true
+        VITE_V2_PROD_URL=https://hatcast.app
         EOF
         
     - name: Update version.txt for staging
