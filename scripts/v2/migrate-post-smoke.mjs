@@ -27,6 +27,7 @@ import {
 } from './migrate-lib/checks.mjs'
 import { deriveExpectedCounts } from './migrate-lib/expected-counts.mjs'
 import { withClient } from './migrate-lib/neon.mjs'
+import { resolveMigrateTarget } from './resolve-migrate-target.mjs'
 import { buildPostgresConnectionUrl } from '../migrate-malice-load.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -52,11 +53,13 @@ function parseArgs(argv) {
    *   goldenPath: string
    *   skipApi: boolean
    *   exportDir: string
+   *   target: string
    * }} */
   const out = {
     goldenPath: DEFAULT_GOLDEN,
     skipApi: false,
     exportDir: './export/malice-runs',
+    target: 'staging',
   }
 
   for (const arg of argv) {
@@ -66,6 +69,7 @@ function parseArgs(argv) {
     else if (arg.startsWith('--troupe-id=')) out.troupeId = arg.slice('--troupe-id='.length)
     else if (arg.startsWith('--database-url=')) out.databaseUrl = arg.slice('--database-url='.length)
     else if (arg.startsWith('--api-base-url=')) out.apiBaseUrl = arg.slice('--api-base-url='.length)
+    else if (arg.startsWith('--target=')) out.target = arg.slice('--target='.length)
     else if (arg.startsWith('--migration-api-key=')) {
       out.migrationApiKey = arg.slice('--migration-api-key='.length)
     } else if (arg.startsWith('--golden=')) out.goldenPath = arg.slice('--golden='.length)
@@ -73,9 +77,12 @@ function parseArgs(argv) {
     else if (arg === '--skip-api') out.skipApi = true
   }
 
+  const resolvedTarget = resolveMigrateTarget(out.target)
+
   const rawDatabaseUrl =
     out.databaseUrl ??
     process.env.HATCAST_MIGRATE_DATABASE_URL?.trim() ??
+    resolvedTarget.databaseUrl ??
     process.env.NEON_STAGING_URL?.trim() ??
     process.env.NEON_LOCAL_URL?.trim() ??
     process.env.HATCAST_DATASOURCE_URL?.trim()
@@ -90,6 +97,7 @@ function parseArgs(argv) {
   out.apiBaseUrl =
     out.apiBaseUrl ??
     process.env.HATCAST_MIGRATE_API_BASE?.trim() ??
+    resolvedTarget.apiBaseUrl ??
     process.env.HATCAST_MIGRATE_API_BASE_LOCAL?.trim() ??
     'http://127.0.0.1:8080'
 
@@ -234,6 +242,50 @@ function pickAnchors(events) {
 }
 
 /**
+ * MIG-3 omits slot rows when cast player ids cannot be resolved (rejects-ac PLAYER_UNRESOLVED).
+ * MIG-S08 accepts either an empty slot row or a documented reject for the golden anchor event.
+ *
+ * @param {string} artifactDir
+ * @param {string} eventSlug
+ * @param {string} roleKey
+ * @param {number} slotIndex
+ */
+export function hasKnownUnresolvedSlotReject(artifactDir, eventSlug, roleKey, slotIndex) {
+  const rejectsAcPath = join(artifactDir, 'rejects-ac.json')
+  const manifestPath = join(artifactDir, 'manifest.json')
+  if (!existsSync(rejectsAcPath) || !existsSync(manifestPath)) return false
+
+  const manifest = readJson(manifestPath)
+  const event = (manifest.events || []).find((e) => e.slug === eventSlug)
+  if (!event?.v1EventId) return false
+
+  const rejects = readJson(rejectsAcPath).rejects || []
+  const needle = `cast event=${event.v1EventId} role=${roleKey} slot=${slotIndex}`
+  return rejects.some((r) => r.reason === 'PLAYER_UNRESOLVED' && String(r.detail || '').includes(needle))
+}
+
+/**
+ * @param {boolean | null} assigned null = no slot row in DB
+ * @param {string} artifactDir
+ * @param {{ slug: string, emptySlot: { roleKey: string, slotIndex: number } }} matchCambo
+ */
+export function evaluateMatchCamboDjSlot(assigned, artifactDir, matchCambo) {
+  const { roleKey, slotIndex } = matchCambo.emptySlot
+  if (assigned === true) {
+    throw new Error(
+      `MIG-S08: expected empty ${roleKey} slot on ${matchCambo.slug} (known reject)`,
+    )
+  }
+  if (assigned === false) {
+    return `MIG-S08: ${matchCambo.slug} ${roleKey} slot empty (expected)`
+  }
+  if (hasKnownUnresolvedSlotReject(artifactDir, matchCambo.slug, roleKey, slotIndex)) {
+    return `MIG-S08: ${matchCambo.slug} ${roleKey} slot omitted (PLAYER_UNRESOLVED reject, expected)`
+  }
+  throw new Error(`MIG-S08: slot row missing for ${matchCambo.slug} ${roleKey}`)
+}
+
+/**
  * @param {ReturnType<typeof deriveExpectedCounts>} expected
  * @param {object} db
  * @param {object} golden
@@ -343,6 +395,8 @@ async function main() {
   const expected = deriveExpectedCounts(ctx.artifactDir, { requireAc: true })
 
   console.log(`Post-smoke — season=${ctx.seasonV2}`)
+  console.log(`  target: ${opts.target}`)
+  console.log(`  api: ${opts.apiBaseUrl}`)
   console.log(`  state: ${ctx.statePath}`)
   console.log(`  artifacts: ${ctx.artifactDir}`)
   console.log(
@@ -378,15 +432,7 @@ async function main() {
     matchCambo.emptySlot.roleKey,
     matchCambo.emptySlot.slotIndex,
   )
-  if (djAssigned === null) {
-    throw new Error(`MIG-S08: slot row missing for ${matchCambo.slug} ${matchCambo.emptySlot.roleKey}`)
-  }
-  if (djAssigned !== false) {
-    throw new Error(
-      `MIG-S08: expected empty ${matchCambo.emptySlot.roleKey} slot on ${matchCambo.slug} (known reject)`,
-    )
-  }
-  console.log(`  MIG-S08: ${matchCambo.slug} ${matchCambo.emptySlot.roleKey} slot empty (expected)`)
+  console.log(`  ${evaluateMatchCamboDjSlot(djAssigned, ctx.artifactDir, matchCambo)}`)
 
   if (!opts.skipApi) {
     if (!opts.migrationApiKey) {

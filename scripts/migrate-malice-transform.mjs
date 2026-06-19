@@ -128,8 +128,8 @@ function main() {
   )
 
   console.error(
-    `Wrote:\n  ${sqlPath} (${events.length} events, deplacements=${manifest.counts.deplacements})\n  ${manifestPath} ` +
-      `(players=${manifest.counts.players}, events=${manifest.counts.events}, deplacements=${manifest.counts.deplacements})\n  ${rejectsPath} (${rejects.length} reject(s))`,
+    `Wrote:\n  ${sqlPath} (${events.length} events, deplacements=${manifest.counts.deplacements}, active=${manifest.counts.deplacementsActive})\n  ${manifestPath} ` +
+      `(players=${manifest.counts.players}, events=${manifest.counts.events}, deplacements=${manifest.counts.deplacements}, deplacementsActive=${manifest.counts.deplacementsActive})\n  ${rejectsPath} (${rejects.length} reject(s))`,
   )
   if (participantRows.length === 0) {
     console.error(

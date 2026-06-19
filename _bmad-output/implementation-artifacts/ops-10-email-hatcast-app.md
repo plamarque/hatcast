@@ -282,6 +282,7 @@ Réponse `"success": true` et mail reçu → passer à l’intégration API.
 ### Recette bout en bout (staging puis prod)
 
 - [x] Reset mot de passe → mail reçu, `From: noreply@hatcast.app`, lien staging OK (PO 2026-06-05)
+- [x] Reset mot de passe prod → mail reçu, `From: noreply@hatcast.app`, lien `hatcast.app` OK (PO 2026-06-19)
 - [x] Notif métier → `@hatcast.app` OK staging (PO 2026-06-05)
 - [x] `info@` → forward OK
 - [x] `noreply@` inbound → Drop OK (implicite ops)
@@ -350,8 +351,8 @@ Composer (dev OPS-10)
 
 - Ops A–B–C validés (Routing, Sending, curl, `info@` forward, Gmail send-as `info@`).
 - API : `CloudflareEmailSendingClient` (RestClient) prioritaire si `CLOUDFLARE_*` ; fallback `JavaMailSender` (Mailpit local).
-- Deploy : secrets `CLOUDFLARE_*` sur staging ; recette staging OK (notifs + reset MDP, From `@hatcast.app`).
-- Clôture PO 2026-06-05. Prod : réutiliser mêmes secrets au prochain deploy prod si pas déjà fait.
+- Deploy : secrets `CLOUDFLARE_*` sur staging et prod ; recette staging OK 2026-06-05 ; recette prod reset MDP OK 2026-06-19 (`From: noreply@hatcast.app`).
+- Clôture PO 2026-06-05 (staging) ; recette prod reset MDP 2026-06-19.
 
 ### File List
 
@@ -380,7 +381,7 @@ Composer (dev OPS-10)
 | 6 | DMARC `p=none` publié | [x] |
 | 7 | curl CF Sending OK | [x] |
 | 8 | Staging API notif + reset MDP | [x] PO 2026-06-05 |
-| 9 | Prod idem | ☐ (staging seul validé ; prod = même secrets au deploy) |
+| 9 | Prod idem | [x] PO 2026-06-19 — reset MDP, `From: noreply@hatcast.app`, lien `hatcast.app` |
 | 10 | mail-tester / headers OK | waived |
 
 ### Session ops 2026-06-05 (phases A–B)

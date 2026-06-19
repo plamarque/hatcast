@@ -6,9 +6,16 @@ export type PostHogBrowserConfig = {
   uiHost: string
 }
 
+export type PostHogPersonProperties = {
+  email?: string
+  name?: string
+  v1_cutover_ph_ref?: string
+}
+
 export interface PostHogBrowserFacade {
   capture(event: string, properties?: Record<string, unknown>): void
-  identify(distinctId: string): void
+  identify(distinctId: string, personProperties?: PostHogPersonProperties): void
+  alias(alias: string, distinctId?: string): void
   reset(): void
 }
 
@@ -55,7 +62,9 @@ export function getPostHogBrowserFacade(): PostHogBrowserFacade | null {
   }
   return {
     capture: (event, properties) => posthogInstance!.capture(event, properties),
-    identify: (distinctId) => posthogInstance!.identify(distinctId),
+    identify: (distinctId, personProperties) =>
+      posthogInstance!.identify(distinctId, personProperties),
+    alias: (aliasId, distinctId) => posthogInstance!.alias(aliasId, distinctId),
     reset: () => posthogInstance!.reset(),
   }
 }

@@ -10,6 +10,15 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
 }
 
+/** Non-archived V1 deplacements — matches post-smoke dbSnapshot (MIG-S02). */
+function countDeplacementsActiveFromRaw(artifactDir) {
+  const rawPath = join(artifactDir, 'raw.json')
+  if (!existsSync(rawPath)) return null
+  const raw = readJson(rawPath)
+  const events = Array.isArray(raw.events) ? raw.events : []
+  return events.filter((e) => e.templateType === 'deplacement' && e.archived !== true).length
+}
+
 /**
  * @param {string} artifactDir export/malice/<ts> or run artifacts folder
  * @param {{ requireAc?: boolean }} [options]
@@ -60,7 +69,12 @@ export function deriveExpectedCounts(artifactDir, { requireAc = false } = {}) {
     declines: acCounts.declines,
     rejectsMig2,
     rejectsMig3,
-    deplacements: manifest.counts?.deplacements ?? 0,
+    // Post-smoke (MIG-S02) counts non-archived deplacements only — same as dbSnapshot SQL.
+    deplacements:
+      manifest.counts?.deplacementsActive ??
+      countDeplacementsActiveFromRaw(artifactDir) ??
+      manifest.counts?.deplacements ??
+      0,
     players: manifest.counts?.players ?? 0,
   }
 }

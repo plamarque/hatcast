@@ -36,6 +36,7 @@
     "firebase-functions": "^6.5.0",
     "luxon": "^3.7.2",
     "openai": "^5.20.0",
+    "posthog-js": "^1.391.2",
     "vue": "^3.3.0",
     "vue-router": "^4.5.1"
   },

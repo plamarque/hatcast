@@ -388,14 +388,16 @@ export function buildManifest({
   const { players, rejects: playerRejects } = buildPlayersManifest(v1Players, participants)
   const events = buildEventsManifest(v2Events)
 
-  const deplacements = (v2Events || []).filter((ev) => ev.category === 'deplacements').length
+  const deplacementEvents = (v2Events || []).filter((ev) => ev.category === 'deplacements')
+  const deplacements = deplacementEvents.length
+  const deplacementsActive = deplacementEvents.filter((ev) => !ev.archived).length
 
   const manifest = {
     schema: 'hatcast/mig-2/manifest@1',
     generatedAt: new Date().toISOString(),
     v1SeasonId,
     seasonV2Id,
-    counts: { players: players.length, events: events.length, deplacements },
+    counts: { players: players.length, events: events.length, deplacements, deplacementsActive },
     players,
     events,
   }

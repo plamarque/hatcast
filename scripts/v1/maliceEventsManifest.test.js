@@ -240,6 +240,7 @@ describe('maliceEventsManifest — manifest (AC4, AC5, AC6)', () => {
     assert.equal(manifest.counts.players, 2)
     assert.equal(manifest.counts.events, 3)
     assert.equal(manifest.counts.deplacements, 1)
+    assert.equal(manifest.counts.deplacementsActive, 0)
     assert.equal(manifest.v1SeasonId, 'o0kD2IJekMdGdiJeIg4O')
     // event reject + 2 player rejects
     assert.equal(rejects.length, 3)

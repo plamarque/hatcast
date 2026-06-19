@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-19T19:40:00+02:00
+# last_updated: 2026-06-19T23:57:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-19T14:00:00+02:00"
+last_updated: "2026-06-19T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -50,10 +50,11 @@ development_status:
   ops-5-prod-deploy-from-semver-tag: done
   ops-6-version-changelog-pipeline: done
   ops-11-simplified-release-cli: done
+  ops-m4-1-v1-cutover-announcement-banner: ready-for-dev  # P0 M4 — V1 comms → https://hatcast.app ; PO schedules deploy ; SCP 2026-06-19
   ops-7-branch-cutover-post-m4: backlog
   ops-8-prod-domain-hatcast-app: done  # P0 V2.0.0 — prod https://hatcast.app live 2026-06-04 ; gate M4 prérequis OK
   ops-9-posthog-hatcast-app: done  # P1 V2.0.0 — G-005
-  ops-10-email-hatcast-app: done  # P1 — staging recette OK 2026-06-05 ; Routing + CF Sending + Gmail info@
+  ops-10-email-hatcast-app: done  # P1 — staging 2026-06-05 + prod reset MDP 2026-06-19 ; Routing + CF Sending
 
   # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
   mig-2-export-v1-seasons-events-and-mapping-manifest: done
@@ -197,8 +198,10 @@ development_status:
   10-7-icone-pwa-hatcast-2: done
   epic-10-retrospective: optional
 
-  epic-11: backlog
+  epic-11: in-progress
   11-1-evenements-analytics-anonymises-indicateurs-success-criteria: backlog
+  11-2-posthog-identify-person-properties-m4-cutover: done
+  11-3-v1-v2-cutover-funnel-posthog: done
   epic-11-retrospective: optional
 
   epic-12: in-progress

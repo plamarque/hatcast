@@ -59,6 +59,8 @@ so that **FR47 leading indicators** (availability delay, confirmation delay, not
 
 12. **Given** PostHog person profiles, **when** identifying users, **then** use **opaque** `distinct_id` = internal `userId` UUID only — **never** email, name, avatar URL, or availability comment as person properties. [Source: NFR-S2; FR47 anonymized]
 
+    > **Dérogation M4 (Story 11.2)** : pour le cutover La Malice, person properties `email` et `name` (depuis `displayName`) sont envoyées via `identify` après `/v1/auth/me`, avec accès projet PostHog EU limité aux opérateurs produit. Règle par défaut post-cutover : réévaluer retrait des person properties dans une story de durcissement si l’audience PostHog s’élargit.
+
 13. **Given** implementation complete, **when** `npm run test -w @hatcast/web -- --watch=false` runs, **then** unit tests cover: disabled init without key, capture helpers no-op when disabled, demo flag on capture, and at least one FR47 hook (mock PostHog client). [Source: project-context.md]
 
 14. **Given** production deploy, **when** operator smoke-tests, **then** browser network tab shows events to **`https://e.hatcast.app`** (not `eu.i.posthog.com` directly) and PostHog **Live events** receives test captures. Record steps in Dev Agent Record. [Source: SCP acceptance]

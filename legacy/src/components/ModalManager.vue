@@ -63,7 +63,7 @@ const props = defineProps({
   showPreferences: { type: Boolean, default: false },
   showPlayers: { type: Boolean, default: false },
   showDevelopmentModal: { type: Boolean, default: false },
-  showNotifications: { type: Boolean, default: false }
+  showNotifications: { type: Boolean, default: false },
 })
 
 // Événements émis vers le composant parent
@@ -78,7 +78,7 @@ const emit = defineEmits([
   'close-preferences',
   'close-players',
   'close-development-modal',
-  'close-notifications'
+  'close-notifications',
 ])
 
 // Fonctions pour ouvrir les modales
