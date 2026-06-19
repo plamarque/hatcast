@@ -364,14 +364,16 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 | **MEP iso-V1** | § **Wave iso-V1 — MEP remainder** | **Done** — gate closed |
 | **V2.0.0 cutover** | § **Wave V2.0.0** | Code + release train **done** ; **M4** utilisateurs **reporté** |
 | **Replay prod gate** | Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** | [x] **E2** |
-| **M4 cutover** | Comms + bascule trafic prod | **Reporté** — voir amend. PO ci-dessous |
+| **M4 cutover** | Comms + bascule trafic prod | **Reporté** — pre-M4 : **OPS-M4-1** (bannière V1) ; voir amend. PO ci-dessous |
+
+**Amendement PO — comms V1 pre-M4 (2026-06-19) :** SCP [m4-v1-cutover-comms](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-m4-v1-cutover-comms.md). **OPS-M4-1** — bannière sur V1 (`selections.la-malice.fr`) annonçant HatCast 2 + lien `https://hatcast.app` ; activable par env au build ; **déploiement V1 programmé par PO** (indépendant de la date M4).
 
 **Amendement PO — report M4 (2026-06-05) :**
 
 - **Contexte :** fin de saison **V1** sur `selections.la-malice.fr` (~**4 spectacles** jusqu’à **août 2026**) ; démo **V2** au responsable commission spectacle ; accord sur **date** et **périmètre** de bascule prod.
 - **Déjà en place :** **`hatcast.app`** sert la **V2 en prod technique** (**OPS-8** [x] live **2026-06-04**, **E3** [x] jusqu’à **v2.0.3** — scripts `deploy_staging` / `release_version` / `deploy_prod` validés bout en bout).
-- **Pas encore :** bascule **audience** (comms membres, arrêt V1 comme outil principal, **OPS-7** branches, fenêtre migration prod si distincte de staging).
-- **Avant M4 (recommandé) :** ~~**OPS-10**~~ [x] ; ~~**6.17**~~ [x] ; ~~**démo stakeholder**~~ [x] ; **release 2.1.0** (retours démo — en cours) ; recette **1.2** / **1.3** sur prod si pas fait ; accord **date M4** avec commission.
+- **Pas encore :** bascule **audience** (arrêt V1 comme outil principal, **OPS-7** branches, fenêtre migration prod si distincte de staging) ; comms in-app = **OPS-M4-1** (backlog).
+- **Avant M4 (recommandé) :** ~~**OPS-10**~~ [x] ; ~~**6.17**~~ [x] ; ~~**démo stakeholder**~~ [x] ; **release 2.1.0** (retours démo — en cours) ; recette **1.2** / **1.3** sur prod si pas fait ; **OPS-M4-1** recette staging V1 puis deploy prod (PO) ; accord **date M4** avec commission.
 
 **Amendement PO — démo commission + vague 2.1.0 (2026-06) :**
 
@@ -390,9 +392,10 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 1. ~~**Démo V2** stakeholder~~ [x] — retours commission spectacle  
 2. **Finaliser retours démo** → merge sur `v2` / `staging-v2`  
 3. **Release 2.1.0** — tag staging validé → prod (`release_version` + `deploy_prod`)  
-4. **Décision fenêtre M4** — date, comms, critères go/no-go (V1 fin saison, migration prod, formation orga)  
-5. **M4** + **OPS-7** (après décision PO + commission)  
-6. **Epic 19** sprint **Wave D** (**19.15→19.21**) — voir § Epic 19 ; **19.11–19.14** après démo formules
+4. **OPS-M4-1** — story + implémentation V1 ; recette staging ; deploy prod quand PO prêt (indépendant de la date M4)  
+5. **Décision fenêtre M4** — date, critères go/no-go (V1 fin saison, migration prod, formation orga)  
+6. **M4** + **OPS-7** (après décision PO + commission)  
+7. **Epic 19** sprint **Wave D** (**19.15→19.21**) — voir § Epic 19 ; **19.11–19.14** après démo formules
 
 *(Historique ordre SCP 2026-06-02 : waves A–F code + **E1**/**E2**/**E3** — voir `sprint-status.yaml`.)*
 
@@ -538,12 +541,28 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **E1** | Tour écrans staging | [x] Checklist signée PO 2026-06-04 — [e1-cutover-screen-tour-staging-v2.0.0.md](_bmad-output/implementation-artifacts/e1-cutover-screen-tour-staging-v2.0.0.md) |
 | **E2** | Replay migration | [x] Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** (`validate-replay --min=3`) |
 | **E3** | Release semver staging → prod | [x] Pipeline validé ; prod **v2.0.3** (ajustements patch via `release_version.sh`) |
-| **M4** | Bascule audience prod | **Reporté** — fin saison V1 ; accord commission spectacle ; comms + critères go-live |
+| **M4** | Bascule audience prod | **Reporté** — fin saison V1 ; accord commission spectacle ; **pre-M4 : OPS-M4-1** ; critères go-live |
 | **E4** | Renommage branches | **OPS-7** — **après M4** |
 
 **Gate release train (code + deploy) :** [x] Waves **A–D** + **OPS-8** + **E1** + **E2** + **E3**.
 
-**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis techniques [x] (**OPS-10**, **6.17**) ; reste : décision PO + recette **1.2**/**1.3** prod si pas fait + comms.
+**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis techniques [x] (**OPS-10**, **6.17**) ; reste : décision PO + recette **1.2**/**1.3** prod si pas fait + **OPS-M4-1** (comms V1).
+
+#### Gate M4 — comms V1 (2026-06-19)
+
+| ID | Titre | Priorité | Statut | Notes |
+|----|-------|----------|--------|-------|
+| **OPS-M4-1** | Bannière V1 annonce HatCast 2 → `https://hatcast.app` | **P0 M4** | backlog | `legacy/` ; flag `VITE_V2_CUTOVER_ANNOUNCEMENT_ENABLED` ; deploy PO — SCP [2026-06-19](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-m4-v1-cutover-comms.md) |
+
+**Checklist go-live M4 (extrait) :**
+
+| # | Item | Owner |
+|---|------|-------|
+| 1 | **OPS-M4-1** déployé sur V1 prod (annonce activée) | PO |
+| 2 | Lien `https://hatcast.app` validé mobile + desktop | PO |
+| 3 | Replay migration Neon frais + release V2 au tag convenu | Ops / Dev |
+| 4 | Trafic membres basculé vers `hatcast.app` | PO + Ops |
+| 5 | **OPS-7** renommage branches **après** M4 | Dev |
 
 **Avant M4 (PO 2026-06-05) :** **OPS-10** [x] staging validé 2026-06-05. **OPS-9** [x] (`sprint-status.yaml`).
 
