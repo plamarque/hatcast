@@ -24,6 +24,9 @@ on:
       - 'Dockerfile'
       - '.dockerignore'
       - '.github/workflows/deploy-v2-cloud-run.yml'
+      - '.github/workflows/e1-preprod-gate.yml'
+      - '.github/workflows/migration-staging-gate.yml'
+      - 'scripts/v2/e1-staging-migration-assert.mjs'
 
 concurrency:
   group: deploy-v2-cloud-run-${{ github.ref }}
