@@ -278,8 +278,13 @@ export class CompositionApiService {
     seasonId: string,
     eventId: string,
     mode: 'full' | 'fillEmpty' = 'full',
+    formulaId?: string | null,
   ): Promise<{ ok: boolean; status: number; data?: CompositionDrawResponse }> {
     try {
+      const body: { mode: 'full' | 'fillEmpty'; formulaId?: string } = { mode }
+      if (formulaId) {
+        body.formulaId = formulaId
+      }
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/draw`,
         {
@@ -289,7 +294,7 @@ export class CompositionApiService {
             ...csrfHeaders(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ mode }),
+          body: JSON.stringify(body),
         },
       )
       if (!res.ok) {
@@ -318,9 +323,13 @@ export class CompositionApiService {
     eventId: string,
     roleKey: string,
     slotIndex: number,
+    formulaId?: string | null,
   ): Promise<CompositionApiResult<CompositionCandidateListResponse>> {
     try {
       const params = new URLSearchParams({ roleKey, slotIndex: String(slotIndex) })
+      if (formulaId) {
+        params.set('formulaId', formulaId)
+      }
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/candidates?${params}`,
         { credentials: 'include' },
@@ -401,9 +410,13 @@ export class CompositionApiService {
     eventId: string,
     roleKey: string,
     participantId: string,
+    formulaId?: string | null,
   ): Promise<CompositionApiResult<ChanceBreakdown>> {
     try {
       const params = new URLSearchParams({ roleKey, participantId })
+      if (formulaId) {
+        params.set('formulaId', formulaId)
+      }
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/chance-breakdown?${params}`,
         { credentials: 'include' },
@@ -426,9 +439,13 @@ export class CompositionApiService {
     seasonId: string,
     eventId: string,
     roleKey: string,
+    formulaId?: string | null,
   ): Promise<CompositionApiResult<CompositionPoolPreviewResponse>> {
     try {
       const params = new URLSearchParams({ roleKey })
+      if (formulaId) {
+        params.set('formulaId', formulaId)
+      }
       const res = await fetch(
         `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/pool-preview?${params}`,
         { credentials: 'include' },

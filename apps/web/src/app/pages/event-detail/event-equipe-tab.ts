@@ -3,7 +3,8 @@ import { Component, computed, effect, inject, input, output, signal, viewChild }
 import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
+import { MatDialog, MatDialogModule, type MatDialogRef } from '@angular/material/dialog'
+import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -12,6 +13,10 @@ import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { effectiveMemberGender, type MemberGender } from '../../core/account/member-gender'
+import {
+  DrawPolicyApiService,
+  type EffectiveDrawPolicy,
+} from '../../core/draw/draw-policy-api.service'
 import {
   declineBadgeLabel,
   participationDeclineConfirmLabel,
@@ -100,6 +105,7 @@ interface SlotRow {
     MatButtonModule,
     MatChipsModule,
     MatDialogModule,
+    MatDividerModule,
     MatIconModule,
     MatMenuModule,
     MatProgressSpinnerModule,
@@ -119,6 +125,7 @@ export class EventEquipeTab {
   protected readonly roleChipDisplayText = roleActionChipDisplayText
 
   private readonly compositionApi = inject(CompositionApiService)
+  private readonly drawPolicyApi = inject(DrawPolicyApiService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly analytics = inject(ProductAnalyticsService)
   private readonly snack = inject(MatSnackBar)
@@ -168,6 +175,43 @@ export class EventEquipeTab {
   protected readonly poolPreviewLoading = signal(false)
   protected readonly poolPreviewError = signal<string | null>(null)
   private poolPreviewGeneration = 0
+
+  /** Effective draw policy for this event (organizer only, story 19.21). */
+  protected readonly effectiveDrawPolicy = signal<EffectiveDrawPolicy | null>(null)
+  protected readonly drawPolicyLoading = signal(false)
+  protected readonly selectedFormulaId = signal<string | null>(null)
+
+  protected readonly drawFormulaSelectorVisible = computed(() => {
+    const policy = this.effectiveDrawPolicy()
+    return (
+      policy?.selectorVisible === true && (policy.allowedFormulas?.length ?? 0) >= 2
+    )
+  })
+
+  protected readonly showEquipeOverflow = computed(
+    () =>
+      this.equipeToolbar().overflow.length > 0 || this.drawFormulaSelectorVisible(),
+  )
+
+  protected readonly allowedDrawFormulas = computed(
+    () => this.effectiveDrawPolicy()?.allowedFormulas ?? [],
+  )
+
+  /** Formula id sent to draw / explainability APIs. */
+  protected readonly activeDrawFormulaId = computed(
+    () =>
+      this.selectedFormulaId() ?? this.effectiveDrawPolicy()?.effectiveFormulaId ?? null,
+  )
+
+  protected readonly drawFormulaReady = computed(
+    () =>
+      !this.canManageComposition() ||
+      (!this.drawPolicyLoading() &&
+        !(
+          this.effectiveDrawPolicy()?.requiresFormulaIdOnDraw === true &&
+          !this.activeDrawFormulaId()
+        )),
+  )
 
   /** HTTP draw in flight — show preparing panel before step animation. */
   protected readonly showDrawPreparing = computed(() => this.drawing() && !this.animatingDraw())
@@ -251,7 +295,8 @@ export class EventEquipeTab {
       !this.compositionInteractionBlocked() &&
       !this.animatingDraw() &&
       !this.loading() &&
-      !this.loadError(),
+      !this.loadError() &&
+      this.drawFormulaReady(),
   )
 
   protected readonly equipeStatus = computed(() => {
@@ -297,7 +342,8 @@ export class EventEquipeTab {
       this.canManageComposition() &&
       !this.isCompositionLocked() &&
       !this.compositionInteractionBlocked() &&
-      !this.animatingDraw(),
+      !this.animatingDraw() &&
+      this.drawFormulaReady(),
   )
 
   protected readonly canShareDraw = computed(
@@ -335,7 +381,8 @@ export class EventEquipeTab {
       this.canFillGaps() ||
       this.canDraw() ||
       this.canValidate() ||
-      this.canUnlock(),
+      this.canUnlock() ||
+      this.drawFormulaSelectorVisible(),
   )
 
   /** Draw helper copy — not when validate lead already guides the forward action. */
@@ -424,6 +471,17 @@ export class EventEquipeTab {
   })
 
   private loadRequestId = 0
+  private drawPolicyRequestId = 0
+  private loadedDrawPolicyKey: string | null = null
+  private activeSlotPicker: {
+    dialogRef: MatDialogRef<
+      CompositionSlotPickerDialog,
+      CompositionSlotPickerDialogResult | undefined
+    >
+    row: SlotRow
+    seasonId: string
+    eventId: string
+  } | null = null
 
   constructor() {
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
@@ -453,6 +511,26 @@ export class EventEquipeTab {
         previousEventId = eventId
         void this.load(seasonId, eventId)
       }
+    })
+
+    effect(() => {
+      const canManage = this.canManageComposition()
+      const eventId = this.event().id
+      const seasonId = this.seasonId()
+      const policyKey = `${seasonId}:${eventId}`
+      if (!canManage) {
+        this.drawPolicyRequestId += 1
+        this.loadedDrawPolicyKey = null
+        this.effectiveDrawPolicy.set(null)
+        this.selectedFormulaId.set(null)
+        this.drawPolicyLoading.set(false)
+        return
+      }
+      if (this.loadedDrawPolicyKey !== policyKey) {
+        this.selectedFormulaId.set(null)
+        this.effectiveDrawPolicy.set(null)
+      }
+      void this.loadEffectiveDrawPolicy(seasonId, eventId, policyKey)
     })
 
     effect(() => {
@@ -870,6 +948,25 @@ export class EventEquipeTab {
     }
   }
 
+  protected selectDrawFormula(formulaId: string): void {
+    if (
+      this.selectedFormulaId() === formulaId ||
+      !this.allowedDrawFormulas().some((formula) => formula.id === formulaId)
+    ) {
+      return
+    }
+    this.selectedFormulaId.set(formulaId)
+    const roleKey = this.poolPreviewRoleKey()
+    if (roleKey && this.poolPreviewAnchorKey()) {
+      void this.loadPoolPreview(roleKey)
+    }
+    void this.reloadActiveSlotPickerCandidates()
+  }
+
+  protected isSelectedDrawFormula(formulaId: string): boolean {
+    return this.selectedFormulaId() === formulaId
+  }
+
   protected async fillGaps(): Promise<void> {
     if (!this.canFillGaps()) {
       return
@@ -878,7 +975,12 @@ export class EventEquipeTab {
     this.beginDrawPrepare({ preserveExistingSlots: true })
     const seasonId = this.seasonId()
     const eventId = this.event().id
-    const result = await this.compositionApi.drawComposition(seasonId, eventId, 'fillEmpty')
+    const result = await this.compositionApi.drawComposition(
+      seasonId,
+      eventId,
+      'fillEmpty',
+      this.activeDrawFormulaId(),
+    )
     this.drawing.set(false)
     if (this.event().id !== eventId) {
       this.restoreDrawPrepareSnapshot()
@@ -942,7 +1044,12 @@ export class EventEquipeTab {
     this.beginDrawPrepare({ preserveExistingSlots: false })
     const seasonId = this.seasonId()
     const eventId = this.event().id
-    const result = await this.compositionApi.drawComposition(seasonId, eventId, 'full')
+    const result = await this.compositionApi.drawComposition(
+      seasonId,
+      eventId,
+      'full',
+      this.activeDrawFormulaId(),
+    )
     this.drawing.set(false)
     if (this.event().id !== eventId) {
       this.restoreDrawPrepareSnapshot()
@@ -1127,6 +1234,7 @@ export class EventEquipeTab {
         this.seasonId(),
         this.event().id,
         roleKey,
+        this.activeDrawFormulaId(),
       )
       if (generation !== this.poolPreviewGeneration) {
         return
@@ -1159,6 +1267,7 @@ export class EventEquipeTab {
       eventId: this.event().id,
       roleKey,
       participantId: event.participantId,
+      formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
     })
   }
@@ -1176,6 +1285,7 @@ export class EventEquipeTab {
       eventId: this.event().id,
       roleKey: step.roleKey,
       participantId: event.participantId,
+      formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
       stepBanner: `Étape ${this.drawStepIndex() + 1}/${this.drawSteps().length} — ${getRoleLabel(step.roleKey as RoleKey)}`,
     })
@@ -1192,6 +1302,7 @@ export class EventEquipeTab {
       eventId: this.event().id,
       roleKey: row.roleKey,
       participantId: slot.participantId,
+      formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
     })
   }
@@ -1239,12 +1350,19 @@ export class EventEquipeTab {
       },
       autoFocus: 'first-titled-element',
     })
+    this.activeSlotPicker = { dialogRef, row, seasonId, eventId }
+    void firstValueFrom(dialogRef.afterClosed()).finally(() => {
+      if (this.activeSlotPicker?.dialogRef === dialogRef) {
+        this.activeSlotPicker = null
+      }
+    })
 
     const candidatesResult = await this.compositionApi.getCompositionCandidates(
       seasonId,
       eventId,
       row.roleKey,
       row.slotIndex,
+      this.activeDrawFormulaId(),
     )
     if (this.event().id !== eventId) {
       dialogRef.close()
@@ -1437,6 +1555,76 @@ export class EventEquipeTab {
         : 'La composition n\'est pas verrouillée.'
     }
     return action === 'validate' ? 'Validation impossible.' : 'Déverrouillage impossible.'
+  }
+
+  private async loadEffectiveDrawPolicy(
+    seasonId: string,
+    eventId: string,
+    policyKey: string,
+  ): Promise<void> {
+    const requestId = ++this.drawPolicyRequestId
+    this.drawPolicyLoading.set(true)
+    const result = await this.drawPolicyApi.getEffectiveDrawPolicy(seasonId, eventId)
+    this.drawPolicyLoading.set(false)
+    if (
+      requestId !== this.drawPolicyRequestId ||
+      !this.canManageComposition() ||
+      this.seasonId() !== seasonId ||
+      this.event().id !== eventId
+    ) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      this.loadedDrawPolicyKey = null
+      this.effectiveDrawPolicy.set(null)
+      this.selectedFormulaId.set(null)
+      return
+    }
+    const data = result.data
+    this.effectiveDrawPolicy.set(data)
+    const allowedIds = new Set(data.allowedFormulaIds)
+    const currentSelection = this.selectedFormulaId()
+    if (currentSelection && allowedIds.has(currentSelection)) {
+      this.loadedDrawPolicyKey = policyKey
+      return
+    }
+    const effectiveId = data.effectiveFormulaId
+    if (effectiveId && allowedIds.has(effectiveId)) {
+      this.selectedFormulaId.set(effectiveId)
+    } else if (data.allowedFormulas.length > 0) {
+      this.selectedFormulaId.set(data.allowedFormulas[0]?.id ?? null)
+    } else {
+      this.selectedFormulaId.set(effectiveId)
+    }
+    this.loadedDrawPolicyKey = policyKey
+  }
+
+  private async reloadActiveSlotPickerCandidates(): Promise<void> {
+    const active = this.activeSlotPicker
+    if (!active || this.event().id !== active.eventId) {
+      return
+    }
+    const component = active.dialogRef.componentInstance
+    component.updateState([], true, null)
+    const result = await this.compositionApi.getCompositionCandidates(
+      active.seasonId,
+      active.eventId,
+      active.row.roleKey,
+      active.row.slotIndex,
+      this.activeDrawFormulaId(),
+    )
+    if (this.activeSlotPicker?.dialogRef !== active.dialogRef || this.event().id !== active.eventId) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      component.updateState(
+        [],
+        false,
+        this.candidatesErrorMessage(result.status, result.errorMessage),
+      )
+      return
+    }
+    component.updateState(result.data.candidates, false, null)
   }
 
   private async load(seasonId: string, eventId: string): Promise<void> {

@@ -288,7 +288,7 @@ Score brut — **uniquement si toggle ON** ; sinon `0` :
 | Story | Visualisation |
 |-------|---------------|
 | Preview API (**OQ-19-03** / **19.19d**) | Barres **% candidats** (réutiliser pattern `CompositionPoolPreview`) — là, vraies cotes |
-| **19.21** orga | Bandeau formule active avant tirage |
+| **19.21** orga | Menu overflow ⋮ — formule (si ≥2) ; [ux-design-orga-formula-choice-19-21.md](./ux-design-orga-formula-choice-19-21.md) |
 
 **Scope 19.19c :** F2-V **recommandé** dans la story (PO 2026-06-16) — waivable si time-box, mais mockup + spec prêts pour dev.
 
@@ -521,7 +521,8 @@ Variante mockup : onglet **F4 — Erreurs** dans le HTML.
 | Lot | Contenu |
 |-----|---------|
 | **MVP 19.19c** | F1 liste + F2 éditeur **composition compacte (F2-C)** + **F2-V** + F2-E repliable + F3 archivage + F4 erreurs 400/409 |
-| **Hors scope** | Preview % ; politiques (**19.20**) ; sélecteur orga (**19.21**) ; facteurs réservés activables |
+| **19.21** orga | Sélecteur overflow ⋮ Équipe — [ux-design-orga-formula-choice-19-21.md](./ux-design-orga-formula-choice-19-21.md) |
+| **Hors scope 19.19c** | Preview % ; politiques (**19.20**) ; facteurs réservés activables |
 
 ---
 

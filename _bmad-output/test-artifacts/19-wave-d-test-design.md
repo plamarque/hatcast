@@ -52,7 +52,7 @@ Stratégie de tests **umbrella** pour la vague D (formules & politiques de tirag
 | **19.19b** | REF-P01–P06, REF-F09–F11 ; facteurs paramétrés | UI → **19.19c** |
 | **19.19c** | Recette manuelle éditeur coefficients | E2E optionnel post-Demo 1 |
 | **19.20** | Recette manuelle politiques | — |
-| **19.21** | E2E-WD-01–08 ; bandeau + modale choix | — |
+| **19.21** | E2E-WD-01–08 ; overflow menu formule (CHOICE ≥2) | — |
 | **19.22** | REF-O8-ext ; frozen `factorConfig` | Journal audit optionnel |
 
 Détails : fiches story ci-dessus.

@@ -517,3 +517,8 @@
 - **Artefact test design absent du dépôt** — `19-19b-factor-params-test-design.md` référencé dans la story mais non versionné ; payloads présents dans golden JSON.
 - **Spec normative 19.19a non mergée sur branche** — `draw-formulas-policies-spec.md` sans `strength`/`malusMultiplier` ; runtime aligné sur table AC story ; merge doc 19.19a séparé.
 - **`@Tag("19.19b")` absent sur `DrawFormulaPipelineGoldenTest`** — fixtures JSON taguées mais pas la classe ; filtrage CI par tags JSON suffisant pour MVP.
+
+## Deferred from: code review of 19-21-ui-orga-choix-formule-tirage (2026-06-19)
+
+- **Cible 48×48 dp non codée explicitement sur le bouton ⋮** — défaut Material + pattern existant repo (`event-equipe-tab.scss:189-192`).
+- **Couverture E2E Playwright menu formule / tirage `formulaId`** — artefact séparé `19-21-e2e-formula-choice.md`, hors scope unit tests story.

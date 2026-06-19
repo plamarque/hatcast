@@ -114,7 +114,7 @@ Pas de ticket comptable. Pas de Π. On raconte une **petite histoire en 3 temps*
 | **W13** | **Tap segment barre** (preview **ou** animation live) → ouvre `app-chance-breakdown-sheet` pour ce candidat / ce rôle / cette étape. |
 | **W14** | **Picker manuel** (`composition-slot-picker-dialog`) : `%` **cliquable** → même sheet (MVP orga — **promu** depuis « hors scope »). |
 | **W15** | **Grille Équipe** (slot assigné, brouillon orga) : afficher **`chancePercent`** discret à droite du nom + tap → sheet (aligné explainability 6.4). |
-| **W16** | **Prévisualisation formule / what-if** (choix formule, sliders facteurs) = **Epic 19.21+** — s’accroche au **même bloc aperçu pool** ; hors MVP 19.7 mais **prévoir l’emplacement** sous la toolbar actions. |
+| **W16** | **Formule de tirage (19.21)** — changement **optionnel** dans menu overflow **⋮** Équipe seulement si ≥2 formules ; **pas** de bandeau sous pool ; tirage **immédiat**. Spec : [ux-design-orga-formula-choice-19-21.md](./ux-design-orga-formula-choice-19-21.md). |
 | **W17** | **Aperçu pool repliable** sur **mobile (≤ 480 px)** : **fermé par défaut** ; orga l’ouvre via `mat-expansion-panel` ou chip « Voir le pool du tirage ». **Desktop (≥ 840 px)** : **ouvert par défaut** si au moins un rôle avec candidats. État ouvert/fermé mémorisé **par événement** (session). *(PO Patrice 2026-06-07)* |
 | **W18** | **`referencePercent`** = cote **avant tout facteur modificatif** : tirage pondéré **pur** entre les candidats éligibles du pool (même `requiredCount` / places multiples, **aucun** malus ou bonus facteur actif). Les lignes `adjustments` expliquent l’écart vers `chancePercent`. *(PO Patrice 2026-06-07 — option C)* |
 | **W19** | **`requiredCount > 1`** : risque de confusion (« pourquoi ~63 % et pas 5÷8 ? »). Afficher une ** ligne hint** sous le waterfall (déjà prévu) ; **option** icône `info_outline` + **`matTooltip`** ou tap → phrase courte — *« Plusieurs places : ce % = chance d’être pris·e au moins une fois, pas une simple part du pool. »* Lien doc **19.4** § plusieurs places. Pas de paragraphe long en MVP ; ajuster après recette si besoin. *(PO Patrice 2026-06-07)* |
@@ -338,7 +338,7 @@ Sur mobile étroit : **`mat-tab-group`** « Alice » | « Bob » au lieu de deux
 
 **Ordre d’implémentation suggéré (19.7) :** sheet + API → **Équipe orga (P0)** → Dispos membre (P1) → comparateur phase 2.
 
-**Futur (19.21+) — emplacement réservé :** sous l’aperçu pool, bandeau « Formule : Équité saison » + action « Changer… » ; recalcule l’aperçu **sans** persister tant que « Tirer au sort » n’est pas cliqué.
+**Futur (19.21) — implémenté :** formule changeable via menu overflow **⋮** toolbar Équipe (pas sous pool). What-if sliders = hors scope.
 
 ---
 
