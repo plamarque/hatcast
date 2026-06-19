@@ -577,7 +577,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **7.x** | Invitations / onboarding troupe | Croissance ; pas bloquant Malice |
 | **9.2** | Audit « changements me concernant » (UI membre) | Conformité / transparence ; P1 produit |
 | **8.4** | Notifications ops organisateurs (FR31b) | P2 ; extension 8.3 |
-| **11.x** | Analytics détaillé (hors **OPS-9** min) | **11.2** identify People M4 [story](_bmad-output/implementation-artifacts/11-2-posthog-identify-person-properties-m4-cutover.md) ; dashboards / funnels plus tard |
+| **11.x** | Analytics détaillé (hors **OPS-9** min) | **11.2** identify People M4 [story](_bmad-output/implementation-artifacts/11-2-posthog-identify-person-properties-m4-cutover.md) ; **11.3** funnel V1 modal→V2 [story](_bmad-output/implementation-artifacts/11-3-v1-v2-cutover-funnel-posthog.md) ; dashboards / funnels plus tard |
 | **13.x** | Multi-saisons actives, roster ligue | Gros chantier ; **13.6** déplacements → tags (ADR-0013) |
 | **15.x** | Encounters | Réserve produit |
 | **Epic 14** | Hub troupe legacy | **Superseded** par **17.x** — ne pas rouvrir |

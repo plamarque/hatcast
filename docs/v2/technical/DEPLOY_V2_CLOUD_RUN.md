@@ -477,6 +477,49 @@ Local optionnel : `HATCAST_POSTHOG_PROJECT_API_KEY` dans `.env` + `./scripts/sta
 
 Par défaut **prod seule** reçoit la clé. Pour un projet PostHog staging séparé, ajouter le secret sur l’environnement GitHub `staging` et documenter la décision PO.
 
+#### Funnel cutover V1→V2 (Story 11.3 — modal La Malice)
+
+Mesure **individuelle** du parcours `selections.la-malice.fr` → `hatcast.app` → première session authentifiée.
+
+| Étape | Stack | Événement PostHog |
+|-------|-------|-------------------|
+| 1 — Clic CTA modal V1 | `legacy/` (Vue) | `v1_cutover_cta_clicked` |
+| 2 — Atterrissage V2 | `apps/web` | `v2_cutover_referral_landing` |
+| 3 — Login V2 | `apps/web` | `v2_migration_first_session` (+ `ph_ref`, `src`) |
+
+**UX V1 :** écran **modal plein** (pas bannière) ; flag build `VITE_V2_CUTOVER_MODAL_ENABLED=true` ; dismiss persistant `localStorage` clé `hatcast:v1-cutover-modal-dismissed=1`.
+
+**Attribution cross-domain :** au clic CTA, navigation vers `https://hatcast.app/?src=v1_cutover&ph_ref=<posthog_distinct_id>` (`ph_ref` = distinct_id PostHog anonyme V1, URL-encodé). Côté V2 au bootstrap :
+
+- persister `ph_ref` en `sessionStorage` (`hatcast:v1-cutover-ph-ref`) ;
+- capturer `v2_cutover_referral_landing` **une fois par session** ;
+- `history.replaceState` pour retirer `src` / `ph_ref` de l’URL visible.
+
+Après login (`identifyUser`) : `posthog.alias(user.id, ph_ref)` + person property `v1_cutover_ph_ref` ; enrichissement de `v2_migration_first_session` avec `ph_ref` et `src: v1_cutover` si présents.
+
+**Dashboard PostHog (opérateur) — Funnel Insight (14 j, prod, filtre demo si applicable) :**
+
+1. `v1_cutover_cta_clicked`
+2. `v2_cutover_referral_landing`
+3. `v2_migration_first_session`
+
+Vérification individuelle : **People** → person property `v1_cutover_ph_ref` ; parcours events liés post-`alias`.
+
+**Secrets / build V1 (Firebase prod La Malice) :**
+
+| Variable | Rôle |
+|----------|------|
+| `VITE_POSTHOG_PROJECT_API_KEY` | Même projet EU que V2 ; vide = pas de PostHog ni events cutover |
+| `VITE_V2_CUTOVER_MODAL_ENABLED` | `true` sur deploy cutover prod uniquement |
+
+Injecter via workflow Firebase / secrets GitHub (noms dans `.env.example`).
+
+**Recette smoke manuelle :**
+
+1. Build V1 avec flags + clé PostHog ; ouvrir `selections.la-malice.fr` → modal.
+2. Clic « Découvrir HatCast V2 » → V2 ; URL propre (sans query cutover).
+3. Login → Live events : `v2_migration_first_session` avec `ph_ref` ; People avec `v1_cutover_ph_ref`.
+
 ## Références
 
 - [Neon — documentation](https://neon.tech/docs)

@@ -35,6 +35,13 @@
 
 ---
 
+## Deferred from: code review of 11-3-v1-v2-cutover-funnel-posthog (2026-06-19)
+
+- Versions `posthog-js` divergentes entre legacy (^1.391.2) et web (^1.379.2) — aligner à terme, hors scope critique cutover M4.
+- Tests V1 sans mock PostHog initialisé — couverture partielle AC15 acceptable MVP ; renforcer si régression funnel.
+
+---
+
 ## Deferred from: code review of 19-18-api-politiques-tirage-troupe-saison (2026-06-19)
 
 - `ObjectProvider<DrawWeightPipeline>` court-circuite la résolution — pattern test voulu (story 19.18 task 6), conservé pour `@Primary` test beans.

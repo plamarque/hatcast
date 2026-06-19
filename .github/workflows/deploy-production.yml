@@ -41,6 +41,8 @@ jobs:
         VITE_ENVIRONMENT=production
         VITE_FIRESTORE_DATABASE=default
         VITE_STORAGE_PREFIX=production/
+        VITE_POSTHOG_PROJECT_API_KEY=${{ secrets.VITE_POSTHOG_PROJECT_API_KEY }}
+        VITE_V2_CUTOVER_MODAL_ENABLED=${{ vars.VITE_V2_CUTOVER_MODAL_ENABLED || 'false' }}
 
         EOF
         
