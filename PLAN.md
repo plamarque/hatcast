@@ -521,7 +521,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 |----|-------|----------|--------|-------|
 | **OPS-8** | Prod `hatcast.app` — Cloud Run **`europe-west1`**, domain mapping, CF proxy orange, OAuth/CORS/Firebase | **P0** | [x] done | Live **2026-06-04** ; doc [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §7 ; story [ops-8](_bmad-output/implementation-artifacts/ops-8-prod-domain-hatcast-app.md) |
 | **OPS-9** | PostHog EU — SDK + reverse proxy (`e.hatcast.app`, nuage **gris**) | **P1** | [x] done | Story [ops-9](_bmad-output/implementation-artifacts/ops-9-posthog-hatcast-app.md) |
-| **OPS-10** | Adresses `@hatcast.app` (`noreply@`, `info@`) — DNS mail, FROM prod, recette | **P1** | [x] done | Staging recette OK 2026-06-05 ; [ops-10](_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md) |
+| **OPS-10** | Adresses `@hatcast.app` (`noreply@`, `info@`) — DNS mail, FROM prod, recette | **P1** | [x] done | Staging 2026-06-05 + prod reset MDP 2026-06-19 ; [ops-10](_bmad-output/implementation-artifacts/ops-10-email-hatcast-app.md) |
 
 **Dev local inchangé :** Neon branche **`local`** + `./scripts/start-dev.sh`. **Dev cloud inchangé :** push **`v2`** → **`europe-west9`**.
 
@@ -564,7 +564,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | 4 | Trafic membres basculé vers `hatcast.app` | PO + Ops |
 | 5 | **OPS-7** renommage branches **après** M4 | Dev |
 
-**Avant M4 (PO 2026-06-05) :** **OPS-10** [x] staging validé 2026-06-05. **OPS-9** [x] (`sprint-status.yaml`).
+**Avant M4 (PO 2026-06-05) :** **OPS-10** [x] staging 2026-06-05 + prod reset MDP 2026-06-19. **OPS-9** [x] (`sprint-status.yaml`).
 
 **Hors V2.0.0 :** voir § **Récap backlog hors vague** ci-dessous.
 
