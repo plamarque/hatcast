@@ -20,14 +20,14 @@
         "roleKey": "dj",
         "slotIndex": 0
       },
-      "reason": "PLAYER_UNRESOLVED — known MIG-3 reject"
+      "reason": "PLAYER_UNRESOLVED — known MIG-3 reject; slot row omitted in load-ac.sql"
     }
   },
   "memberStats": {
     "normalizedEmail": "patrice.lamarque@gmail.com",
     "expected": {
-      "availabilities": 19,
-      "selections": 10,
+      "availabilities": 20,
+      "selections": 12,
       "declines": 3
     },
     "tolerance": 0
