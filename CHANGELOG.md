@@ -1,5 +1,66 @@
 # Changelog
 
+## [2.4.0] - 2026-06-19
+
+### ✨ New Features
+- feat(story): merge 19-21-ui-orga-choix-formule-tirage
+- feat(composition): Add overflow-only draw formula choice
+- feat(story): merge 19-18-api-politiques-tirage-troupe-saison
+- feat(migration): Add Malice post-migrate smoke gate
+- feat(api): Add draw policies API and runtime wiring
+- feat(story): merge 19-19c-ui-admin-editeur-formules
+- feat(web): Add admin draw formula editor UI
+- feat(story): Merge 19-19b-factor-params-runtime-tests
+- feat(api): Wire draw factor params at runtime
+- feat(story): merge 19-19a-spec-factor-params-draw
+- feat(story): merge 19-17-api-crud-formules-tirage
+- feat(api): Add draw formula admin CRUD API
+- feat(story): merge 19-16-persistance-formules-defaut-v1
+- feat(api): Persist draw formulas and system V1 seed
+- feat(story): merge 19-15-spec-formules-politiques-adr
+- feat(story): merge 19-10-facteur-nombre-demandes-role
+- feat(api): Add role request aspiration draw factor
+- feat(story): merge 19-9-facteur-rejouer-immediatement
+- feat(api): Add immediate replay draw factor
+- feat(api): Add category compartment draw factor
+- feat(troupe-hub): Add labeled hero admin trigger
+- feat(story): merge 17-44-hub-troupe-mini-chart-saison
+- feat(hub): Add season mini-chart to troupe hub (17.44)
+- feat(web): Add About build metadata and version channel pipeline
+
+### 🐛 Bug Fixes
+- fix(api): Harmonize REF-P01 unknown param errors
+- fix(api): Make draw formula V65 migration idempotent offline
+- fix(api): Fix JDBC metrics BeanPostProcessor warnings
+- fix(api): Fix draw formula Flyway migrations on Neon
+- fix(web): Restore draft status badge on Équipe tab (#5)
+
+### 📝 Other Changes
+- docs(release): Add v2.4.0 user changelog cutover
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- ci(staging): Trigger deploy on E1/migration gate changes
+- ci(staging): Skip E1 gate when Malice season missing
+- chore(v2): promote v2 to staging-v2
+- ci(staging): Decouple migration golden gate from deploy
+- chore(v2): promote v2 to staging-v2
+- docs(ux): Add draft draw formula editor design assets
+- docs(planning): Add draw formula factor params SCP
+- docs(test): Sync Wave D test design for 19.19 split
+- docs(draw): Add normative factor params catalogue (19.19a)
+- test(draw): Add Wave D test design scaffolding (19.16-19.22)
+- docs(draw): Add Wave D formulas and policies spec (19.15)
+- test(api): Fix integration suite OOM and tail GC thrash
+- docs(plan): Track Epic 19 Wave D sprint on v2
+- Merge pull request #6 from plamarque/feat/19-8-facteur-equity-tag-history-ex-17-9
+- docs(plan): Mark Ma Troupe wave 17.41–17.44 done
+- chore(bmad): Enforce per-story feature branches from v2
+- test(api): Align slot-clear tests with validated composition
+- docs(release): Enrich v2.3.0 cutover user notes
+- chore(v2): sync release v2.3.0-rc.5 artifacts to v2
+
+---
+
 ## [2.3.0] - 2026-06-13
 
 ### 📝 Other Changes

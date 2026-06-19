@@ -1,0 +1,20 @@
+{
+  "version": "2.4.0",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "v2.4.0 — Epic 19 Wave D (formules/politiques tirage, choix orga) + hub mini-chart 17.44 — skill hatcast-v2-release",
+  "changes": [
+    "✨ Tirage — les admins créent et règlent des formules personnalisées dans Réglages troupe",
+    "✨ Composition — quand des places restent ouvertes, l'orga choisit la formule de tirage à appliquer",
+    "✨ Tirage — prise en compte des rejoueurs immédiats, demandes de rôle et catégories de spectacle",
+    "✨ Ma troupe — mini-graphique mensuel de ta participation sur la saison dans le hub",
+    "✨ Mon compte — onglet À propos avec version et canal de build pour vérifier ta mise à jour"
+  ],
+  "changes_en": [
+    "✨ Draw — admins create and tune custom draw formulas in troupe Settings",
+    "✨ Lineup — when slots stay open, orgs pick which draw formula to fill the team",
+    "✨ Draw — immediate replay, role requests, and show categories weighted more fairly",
+    "✨ My team — monthly season participation mini-chart in the hub",
+    "✨ Account — About tab shows version and build channel so you can confirm your update"
+  ]
+}
