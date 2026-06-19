@@ -8,6 +8,7 @@
  * Usage:
  *   node scripts/v2/e1-staging-migration-assert.mjs
  *   node scripts/v2/e1-staging-migration-assert.mjs --database-url="$NEON_STAGING_URL"
+ *   node scripts/v2/e1-staging-migration-assert.mjs --probe   # exit 0 if season exists (T2 skip probe)
  *
  * Env (CI staging environment):
  *   HATCAST_DATASOURCE_URL | NEON_STAGING_URL | HATCAST_MIGRATE_DATABASE_URL
@@ -40,15 +41,18 @@ function parseArgs(argv) {
    *   eventsTolerance?: number
    *   deplacementsExpected?: number
    *   deplacementsTolerance?: number
+   *   probe: boolean
    * }} */
   const out = {
     troupeSlug: process.env.HATCAST_E2E_TROUPE_SLUG?.trim() || 'la-malice',
     minEvents: Number(process.env.HATCAST_E2E_MIG_MIN_EVENTS ?? 1),
     minParticipants: Number(process.env.HATCAST_E2E_MIG_MIN_PARTICIPANTS ?? 1),
     minDeplacements: Number(process.env.HATCAST_E2E_MIG_MIN_DEPLACEMENTS ?? 1),
+    probe: false,
   }
   for (const arg of argv) {
-    if (arg.startsWith('--database-url=')) out.databaseUrl = arg.slice('--database-url='.length)
+    if (arg === '--probe') out.probe = true
+    else if (arg.startsWith('--database-url=')) out.databaseUrl = arg.slice('--database-url='.length)
     else if (arg.startsWith('--troupe-slug=')) out.troupeSlug = arg.slice('--troupe-slug='.length)
     else if (arg.startsWith('--season-slug=')) out.seasonSlug = arg.slice('--season-slug='.length)
     else if (arg.startsWith('--min-events=')) out.minEvents = Number(arg.slice('--min-events='.length))
@@ -217,6 +221,14 @@ async function main() {
   }
 
   const season = await resolveSeasonId(opts.databaseUrl, opts.troupeSlug, opts.seasonSlug)
+
+  if (opts.probe) {
+    console.log(
+      `E1-MIG probe: ready — ${season.title} (${opts.troupeSlug}/${opts.seasonSlug})`,
+    )
+    return
+  }
+
   const snapshot = await migrationSnapshot(opts.databaseUrl, season.id)
 
   console.log(`E1-MIG gate — ${season.title} (${opts.troupeSlug}/${opts.seasonSlug})`)

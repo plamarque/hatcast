@@ -117,7 +117,7 @@ npm run migrate:v2:validate-replay -- --path=export/malice/replay-log.jsonl --mi
 1. GitHub → **Actions** → **Migration staging gate (Malice)** → **Run workflow**
 2. Voir [DEPLOYMENT_WORKFLOW.md](../technical/DEPLOYMENT_WORKFLOW.md) § Gate migration staging (T3)
 
-Le gate **E1 preprod (T2)** reste couplé au deploy mais n’inclut plus les tests golden migration — vous pouvez reset/rejouer la migration puis redeployer sans être bloqué par MIG-E2E-003.
+Le gate **E1 preprod (T2)** reste couplé au deploy : pendant un reset Neon ou un replay, il passe en **skip E1** (warning) tant que la saison Malice n’existe pas ; lancer **Migration staging gate (T3)** après `migrate-from-v1.sh`.
 
 ### Orchestrateur npm (MIG-5, advanced / troubleshooting)
 

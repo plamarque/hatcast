@@ -115,7 +115,7 @@ Comportement :
 2. Liste les commits `origin/staging-v2..origin/v2` ; si vide → exit 0
 3. `checkout staging-v2`, `pull`, `merge origin/v2`, `push origin staging-v2`
 4. CI : smoke E2E Playwright (recette 3.19 + E1 T1) puis deploy Cloud Run — le deploy staging **échoue** si le smoke est rouge
-5. **Gate E1 préprod (T2)** : après deploy staging réussi, workflow [`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) — health, PWA, assert migration structurel §6, Playwright mobile membre + desktop orga sur l’URL staging réelle (**sans** golden migration MIG-E2E)
+5. **Gate E1 préprod (T2)** : après deploy staging réussi, workflow [`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) — health, PWA ; Playwright E1 **si** saison Malice présente sur Neon (sinon skip + warning — reset/replay en cours)
 6. Rappel URL Actions + service `hatcast-v2-staging`
 
 **Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) (flux V1 Firebase). V2 : [`scripts/release_version.sh`](../../../scripts/release_version.sh).
@@ -200,7 +200,7 @@ Le job **T3** n’est **pas** couplé au deploy : lancer après `./scripts/migra
 
 **Spectacles Malice :** `resolveE1Context` interroge l’API (`scope=all`) et retient un event avec `availabilityOpenedAt` — **à venir en priorité**, sinon **le plus récent passé** (navigation directe `/saison/…/event/{slug}`, pas dépendant de l’agenda « upcoming »). Override : `HATCAST_E2E_EVENT_DISPOS_SLUG` / `_DRAW_SLUG`.
 
-**Critères de sortie (PO) :** 100 % P0 `e1-mobile-member` (échec = bloquant), incl. **E1-MEM-040** (onglet **Ma troupe** → hub) depuis 2026-06-12 ; 100 % P0 `e1-desktop-orga` ; `e1-staging-migration-assert.mjs` vert (seuils minimaux) ; `check-pwa.sh` vert. Les tests **MIG-E2E** (golden KPIs Patrice, historique archivé) sont dans le gate **T3** [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml), pas T2.
+**Critères de sortie (PO) :** health + PWA toujours requis ; 100 % P0 `e1-mobile-member` + `e1-desktop-orga` **quand** la saison Malice existe sur Neon (probe `--probe`) ; sinon gate **vert avec warning** pendant un reset/replay. Assert migration §6 + **MIG-E2E** golden : gate **T3** [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml).
 
 **Assert migration §6 (sanity, pas comptes figés) :** saison trouvée ; roster actif ≥ 1 ; events non archivés ≥ 1 ; `seasons.event_count` = events non archivés ; ≥ 1 déplacement ; ≥ 1 spectacle avec dispos ouvertes. Les totaux (36 events, 4 déplacements, etc.) sont **loggés** mais ne bloquent pas — les chiffres V1 évoluent (archivage, nouveaux spectacles). Parité stricte optionnelle via `HATCAST_E2E_EVENTS_EXPECTED` (replay migration local uniquement).
 
