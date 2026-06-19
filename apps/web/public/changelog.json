@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.4.0",
+    "date": "2026-06-19",
+    "changes": [
+      "✨ Tirage — les admins créent et règlent des formules personnalisées dans Réglages troupe",
+      "✨ Composition — quand des places restent ouvertes, l'orga choisit la formule de tirage à appliquer",
+      "✨ Tirage — prise en compte des rejoueurs immédiats, demandes de rôle et catégories de spectacle",
+      "✨ Ma troupe — mini-graphique mensuel de ta participation sur la saison dans le hub",
+      "✨ Mon compte — onglet À propos avec version et canal de build pour vérifier ta mise à jour"
+    ]
+  },
+  {
     "version": "2.3.0",
     "date": "2026-06-13",
     "changes": [
