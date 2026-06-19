@@ -398,6 +398,41 @@ Les permissions doivent être accordées dans cet ordre spécifique :
 - **Avantage** : Envoi réel aux utilisateurs
 - **Usage** : Notifications de production
 
+## 📢 **Blocage accès V1 → HatCast 2 (OPS-M4-1)**
+
+Écran plein page **bloquant** : quand activé au build, l'utilisateur **ne peut plus utiliser la V1** (contenu masqué, pas de bouton fermer). Copy : *Cette version de HatCast n'est plus disponible. Retrouvez vos saisons et spectacles sur HatCast 2 sur hatcast.app.* (`hatcast.app` affiché dynamiquement depuis `VITE_V2_PROD_URL`, sans `https://`) + CTA **Continuer sur HatCast 2** (même onglet). Barres PWA install / mise à jour SW masquées pendant le cutover. Activé **au build** par le PO.
+
+**PWA installée (mobile) :** à la détection d'une nouvelle version du service worker, l'app **se recharge automatiquement** (pas de bouton ✕ sur la barre « Mettre à jour »). L'utilisateur voit l'écran cutover dès que le nouveau bundle est actif. Vérification SW à chaque ouverture + toutes les heures. *Limite :* un utilisateur encore sur un **très ancien** build (antérieur à ce mécanisme) devra accepter **une** mise à jour manuelle avant de bénéficier du rechargement auto.
+
+### **Variables d'environnement Vite**
+
+| Variable | Valeurs | Défaut | Rôle |
+|----------|---------|--------|------|
+| `VITE_V2_CUTOVER_ANNOUNCEMENT_ENABLED` | `true` / autre | *(absent = désactivé)* | Coupe l'accès V1 et affiche l'écran cutover uniquement si `true` |
+| `VITE_V2_PROD_URL` | URL HTTPS | `https://hatcast.app` | Cible du CTA « Continuer sur HatCast 2 » et host affiché dans le texte |
+
+**Recette locale :**
+
+```bash
+VITE_V2_CUTOVER_ANNOUNCEMENT_ENABLED=true npm run dev -- --host
+# → écran bloquant uniquement ; pas de dismiss ; V1 inaccessible
+# Flag false ou absent → app V1 normale
+```
+
+**CI staging / prod :** ajouter les lignes ci-dessus dans le bloc `.env` de `.github/workflows/deploy-staging.yml` ou `deploy-production.yml` **uniquement** quand le PO active le cutover (sinon le flag absent laisse la V1 normale).
+
+### **Checklist recette PO (staging → prod)**
+
+1. Build staging avec `VITE_V2_CUTOVER_ANNOUNCEMENT_ENABLED=true`, `VITE_V2_PROD_URL=https://hatcast.app`.
+2. Ouvrir `https://hatcast-staging.web.app` — écran bloquant visible, **aucun** accès au contenu V1.
+3. Vérifier copy FR + `hatcast.app` dans le texte ; absence de bouton fermer.
+4. CTA → navigation vers `hatcast.app` (**même onglet**).
+5. Flag `false` → rebuild → app V1 normale ; barres PWA install / SW update inchangées.
+6. **PWA installée :** ouvrir l'app mobile après deploy cutover — rechargement auto attendu → écran bloquant (pas de dismiss MAJ).
+7. **Prod :** PO lance `./scripts/release-version.sh` quand satisfait — déploiement programmé par PO.
+
+---
+
 ## 🧪 **Tests et Qualité**
 
 ### **Tests Locaux**

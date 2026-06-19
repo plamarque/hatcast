@@ -1,5 +1,52 @@
 <template>
-  <div data-testid="app-loaded" class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+  <Transition
+    name="install-banner"
+    appear
+  >
+    <div
+      v-if="showCutoverBlock"
+      data-testid="v2-cutover-announcement"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="v2-cutover-announcement-title"
+      class="fixed inset-0 z-[100000] flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4"
+    >
+      <div class="w-full max-w-md bg-black/80 border border-gray-700 rounded-2xl p-6 text-center">
+        <div class="flex flex-col items-center gap-4">
+          <img
+            src="/icons/icon-48x48.png"
+            alt=""
+            class="w-16 h-16 rounded-lg"
+          />
+          <h1
+            id="v2-cutover-announcement-title"
+            class="font-semibold text-2xl text-white"
+          >
+            HatCast
+          </h1>
+          <p class="text-sm text-gray-300 leading-relaxed">
+            Cette version de HatCast n'est plus disponible. Retrouvez vos saisons et spectacles sur HatCast 2 sur
+            <span class="text-white font-medium">{{ v2ProdUrlDisplay }}</span>.
+          </p>
+          <a
+            data-testid="v2-cutover-announcement-cta"
+            :href="v2ProdUrl"
+            rel="noopener noreferrer"
+            autofocus
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            Continuer sur HatCast 2
+          </a>
+        </div>
+      </div>
+    </div>
+  </Transition>
+
+  <div
+    v-if="!showCutoverBlock"
+    data-testid="app-loaded"
+    class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
+  >
     <router-view v-slot="{ Component }">
       <!-- Overlay visible quand le router charge la route (Component null) ou pendant Suspense -->
       <div
@@ -39,7 +86,7 @@
     appear
   >
     <div
-      v-if="canInstallPwa && !bannerDismissed"
+      v-if="!showCutoverBlock && canInstallPwa && !bannerDismissed"
       class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
       @click="installPwa"
     >
@@ -72,6 +119,7 @@
           
           <!-- Bouton de fermeture -->
           <button
+            data-testid="pwa-install-banner-dismiss"
             class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
             @click.stop="dismissBanner"
             aria-label="Fermer la barre d'installation"
@@ -91,7 +139,7 @@
     appear
   >
     <div
-      v-if="updateAvailable && !refreshing && isPwaInstalled()"
+      v-if="!showCutoverBlock && updateAvailable && !refreshing && isPwaInstalled()"
       class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
       @click="updateApp"
     >
@@ -113,24 +161,13 @@
           </div>
         </div>
 
-        <!-- Bouton de mise à jour -->
+        <!-- Bouton de mise à jour (secours si le rechargement auto échoue) -->
         <div class="flex items-center space-x-3">
           <button
             class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             @click.stop="updateApp"
           >
             Mettre à jour
-          </button>
-          
-          <!-- Bouton de fermeture -->
-          <button
-            class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
-            @click.stop="updateAvailable = false"
-            aria-label="Fermer la barre de mise à jour"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
           </button>
         </div>
       </div>
@@ -139,7 +176,7 @@
   
   <!-- Modal d'instructions d'installation PWA -->
   <PWAInstallModal 
-    :show="showInstallModal" 
+    :show="!showCutoverBlock && showInstallModal" 
     :browser-info="installModalBrowserInfo"
     @close="showInstallModal = false"
     @retry-install="retryInstallFromModal"
@@ -151,7 +188,7 @@
     appear
   >
     <div
-      v-if="refreshing"
+      v-if="!showCutoverBlock && refreshing"
       class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
     >
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -191,8 +228,13 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import {
+  formatV2ProdUrlForDisplay,
+  getV2ProdUrl,
+  isCutoverAnnouncementEnabled,
+} from './services/v2CutoverAnnouncement.js'
 
 const route = useRoute()
 
@@ -218,6 +260,9 @@ const canInstallPwa = ref(false)
 const updateAvailable = ref(false)
 const refreshing = ref(false)
 const bannerDismissed = ref(false)
+const v2ProdUrl = getV2ProdUrl()
+const v2ProdUrlDisplay = formatV2ProdUrlForDisplay(v2ProdUrl)
+const showCutoverBlock = computed(() => isCutoverAnnouncementEnabled())
 
 // PWA Install Modal
 const showInstallModal = ref(false)
@@ -499,15 +544,20 @@ function retryInstallFromModal() {
   }
 }
 
-// Handle service worker updates
+// Handle service worker updates — PWA installée : rechargement auto (cutover M4)
+function reloadForPwaServiceWorkerUpdate() {
+  if (refreshing.value) return
+  refreshing.value = true
+  logger.info('🔄 Service worker mis à jour — rechargement PWA automatique')
+  window.location.reload()
+}
+
 function handleServiceWorkerUpdate() {
-  // Ne proposer de mise à jour que si la PWA est installée
   if (isPwaInstalled()) {
-    updateAvailable.value = true
-    logger.info('🔄 Mise à jour PWA disponible')
-  } else {
-    logger.info('ℹ️ Mise à jour disponible mais PWA non installée - ignorée')
+    reloadForPwaServiceWorkerUpdate()
+    return
   }
+  logger.info('ℹ️ Mise à jour disponible mais PWA non installée — ignorée')
 }
 
 async function updateApp() {
@@ -634,12 +684,8 @@ onMounted(() => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (refreshing.value) return
-      // Ne proposer de mise à jour que si la PWA est installée
       if (isPwaInstalled()) {
-        updateAvailable.value = true
-        logger.info('🔄 Service worker mis à jour - PWA installée')
-      } else {
-        logger.info('ℹ️ Service worker mis à jour mais PWA non installée - ignoré')
+        reloadForPwaServiceWorkerUpdate()
       }
     })
     
@@ -650,14 +696,16 @@ onMounted(() => {
       }
     })
     
-    // Check for updates every hour
-    setInterval(() => {
+    // Vérifier les mises à jour à l'ouverture puis toutes les heures
+    const checkServiceWorkerUpdate = () => {
       navigator.serviceWorker.getRegistration().then(registration => {
         if (registration) {
           registration.update()
         }
       })
-    }, 60 * 60 * 1000) // 1 hour
+    }
+    checkServiceWorkerUpdate()
+    setInterval(checkServiceWorkerUpdate, 60 * 60 * 1000) // 1 hour
   }
 })
 
