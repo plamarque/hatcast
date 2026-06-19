@@ -239,7 +239,11 @@ export PLAYWRIGHT_BASE_URL="https://hatcast-v2-staging-….run.app"
 
 cd apps/web
 npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
-# Migration consultation (staging only — skipped locally without PLAYWRIGHT_STAGING_E2E=1) :
+```
+
+**Gate T3 — migration golden (après replay complet)** : [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml) ou local :
+
+```bash
 npm run test:e2e:migration
 ```
 
@@ -249,7 +253,7 @@ Après replay migration local (palier 1, API/SQL) :
 npm run migrate:malice:post-smoke
 ```
 
-Palier 2 (Playwright) : exécuter `test:e2e:migration` sur staging après deploy (voir gate ci-dessous).
+Palier 2 (Playwright golden) : gate **T3** [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml) — **pas** couplé au deploy T2.
 
 Migration §6 (hors Playwright) — sanity structurel (pas de comptes figés 55/7) :
 

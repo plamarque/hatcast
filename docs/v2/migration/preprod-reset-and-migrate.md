@@ -112,6 +112,13 @@ Validate the ≥ 3 cycles gate:
 npm run migrate:v2:validate-replay -- --path=export/malice/replay-log.jsonl --min=3
 ```
 
+**Gate CI staging (T3)** — après migration complète sur Neon, valider les golden MIG-E2E (KPIs Patrice, historique) sans bloquer les deploys :
+
+1. GitHub → **Actions** → **Migration staging gate (Malice)** → **Run workflow**
+2. Voir [DEPLOYMENT_WORKFLOW.md](../technical/DEPLOYMENT_WORKFLOW.md) § Gate migration staging (T3)
+
+Le gate **E1 preprod (T2)** reste couplé au deploy mais n’inclut plus les tests golden migration — vous pouvez reset/rejouer la migration puis redeployer sans être bloqué par MIG-E2E-003.
+
 ### Orchestrateur npm (MIG-5, advanced / troubleshooting)
 
 Lower-level entry point — same pipeline, more flags:

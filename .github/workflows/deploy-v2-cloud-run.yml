@@ -2,7 +2,7 @@
 # Prérequis : secrets dépôt + secrets par environnement GitHub — voir docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md
 # Branches : v2 → development, staging-v2 → staging. Production is tag-first (vX.Y.Z).
 # Gate E2E smoke : staging-v2 branch push before staging deploy (RC tags = audit only, no CI).
-# Gate E1 préprod (T2) : après deploy staging réussi — e1-preprod-gate.yml (mobile + orga + migration Malice).
+# Gate E1 préprod (T2) : après deploy staging réussi — e1-preprod-gate.yml (mobile + orga ; migration golden → migration-staging-gate.yml).
 # La branche git `staging` reste réservée au déploiement V1 (Firebase) — voir DEPLOY_V2_CLOUD_RUN.md.
 # Noms configurables côté scripts : scripts/v2/branches.env (YAML GitHub = seconde source à maintenir).
 name: Deploy V2 (Cloud Run)
