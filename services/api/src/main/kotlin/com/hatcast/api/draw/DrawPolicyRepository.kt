@@ -17,4 +17,14 @@ interface DrawPolicyRepository : JpaRepository<DrawPolicyEntity, UUID> {
         seasonId: UUID,
         scope: DrawPolicyScope,
     ): Boolean
+
+    fun findByTroupeIdAndScope(
+        troupeId: UUID,
+        scope: DrawPolicyScope,
+    ): DrawPolicyEntity?
+
+    fun findBySeasonIdAndScope(
+        seasonId: UUID,
+        scope: DrawPolicyScope,
+    ): DrawPolicyEntity?
 }

@@ -1,0 +1,288 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Politiques de tirage (fragment)
+  description: |
+    Politiques de tirage troupe/saison (Wave D, story 19.18).
+    Verrouillages PO au draw :
+    - MANDATORY + formulaId client ≠ id résolu → **400** « formulaId incompatible avec la politique »
+    - CHOICE ≥2 sans formulaId → **400**
+    - formulaId ∉ allowedFormulaIds → **403**
+    Preview effective GET : paramètre optionnel `formulaId` ; défaut serveur = premier id dans `allowedFormulaIds`.
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Politiques de tirage
+
+paths:
+  /troupes/{troupeId}/draw-policy:
+    get:
+      tags: [Politiques de tirage]
+      summary: Lit la politique de tirage troupe
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TroupeId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawPolicy'
+        '403':
+          description: Admin troupe requis
+        '404':
+          description: Politique ou troupe introuvable
+    put:
+      tags: [Politiques de tirage]
+      summary: Crée ou met à jour la politique troupe
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TroupeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertDrawPolicyRequest'
+      responses:
+        '200':
+          description: Politique persistée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawPolicy'
+        '400':
+          description: Validation REF-V05–V12
+        '403':
+          description: Admin troupe requis
+
+  /seasons/{seasonId}/draw-policy:
+    get:
+      tags: [Politiques de tirage]
+      summary: Lit la politique de tirage saison
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawPolicy'
+        '403':
+          description: Admin troupe requis (OQ-19-05)
+        '404':
+          description: Politique ou saison introuvable
+    put:
+      tags: [Politiques de tirage]
+      summary: Crée ou met à jour la politique saison
+      description: Remplace entièrement la politique troupe pour les événements de la saison (REF-R08).
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertDrawPolicyRequest'
+      responses:
+        '200':
+          description: Politique persistée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawPolicy'
+        '400':
+          description: Validation REF-V05–V12
+        '403':
+          description: Admin troupe requis
+
+  /seasons/{seasonId}/events/{eventId}/draw-policy/effective:
+    get:
+      tags: [Politiques de tirage]
+      summary: Politique effective pour un événement (orga composition)
+      description: Requiert `canManageComposition`. Paramètre `formulaId` optionnel pour preview avant draw.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: formulaId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Règle résolue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EffectiveDrawPolicy'
+        '403':
+          description: Accès refusé
+        '404':
+          description: Saison ou événement inconnu
+
+components:
+  parameters:
+    TroupeId:
+      name: troupeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SeasonId:
+      name: seasonId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    DrawRuleMode:
+      type: string
+      enum: [CHOICE, MANDATORY]
+    DrawPolicyScope:
+      type: string
+      enum: [TROUPE, SEASON]
+    DrawPolicySource:
+      type: string
+      enum: [IMPLICIT, TROUPE, SEASON]
+    DrawRuleSource:
+      type: string
+      enum: [default, category]
+
+    DrawRule:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          $ref: '#/components/schemas/DrawRuleMode'
+        allowedFormulaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        mandatoryFormulaId:
+          type: string
+          format: uuid
+
+    DrawCategoryRule:
+      allOf:
+        - $ref: '#/components/schemas/DrawRule'
+        - type: object
+          properties:
+            category:
+              type: string
+              nullable: true
+
+    UpsertDrawPolicyRequest:
+      type: object
+      required: [defaultRule]
+      properties:
+        defaultRule:
+          $ref: '#/components/schemas/DrawRule'
+        categoryRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrawCategoryRule'
+
+    DrawPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        troupeId:
+          type: string
+          format: uuid
+        seasonId:
+          type: string
+          format: uuid
+          nullable: true
+        scope:
+          $ref: '#/components/schemas/DrawPolicyScope'
+        defaultRule:
+          $ref: '#/components/schemas/DrawRule'
+        categoryRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrawCategoryRule'
+        updatedAt:
+          type: string
+          format: date-time
+
+    DrawFormulaSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+
+    EffectiveDrawPolicy:
+      type: object
+      properties:
+        policySource:
+          $ref: '#/components/schemas/DrawPolicySource'
+        resolvedRuleSource:
+          $ref: '#/components/schemas/DrawRuleSource'
+        eventCategory:
+          type: string
+          nullable: true
+        eventCategoryLabel:
+          type: string
+          nullable: true
+          description: Libellé glossaire troupe pour eventCategory (story 19.18 AC7)
+        resolvedMode:
+          $ref: '#/components/schemas/DrawRuleMode'
+        allowedFormulaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        allowedFormulas:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrawFormulaSummary'
+        effectiveFormulaId:
+          type: string
+          format: uuid
+          nullable: true
+        effectiveFormulaName:
+          type: string
+          nullable: true
+        selectorVisible:
+          type: boolean
+        requiresFormulaIdOnDraw:
+          type: boolean
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION

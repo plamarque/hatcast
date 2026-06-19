@@ -1,6 +1,7 @@
 package com.hatcast.api.draw
 
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonValue
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import java.util.UUID
@@ -55,6 +56,15 @@ data class DrawCategoryRule(
     val mandatoryFormulaId: String? = null,
 )
 
+enum class DrawRuleSource {
+    DEFAULT,
+    CATEGORY,
+    ;
+
+    @JsonValue
+    fun toJson(): String = name.lowercase()
+}
+
 /** Result of implicit troupe default resolution (story 19.16 AC 8–10). */
 data class ResolvedDrawRule(
     val policySource: DrawPolicySource,
@@ -63,4 +73,17 @@ data class ResolvedDrawRule(
     val categoryRules: List<DrawCategoryRule> = emptyList(),
     val selectorVisible: Boolean,
     val effectiveFormulaId: UUID? = null,
+)
+
+/** Full runtime resolution for an event draw (story 19.18). */
+data class ResolvedDrawContext(
+    val policySource: DrawPolicySource,
+    val resolvedRuleSource: DrawRuleSource,
+    val eventCategory: String?,
+    val resolvedMode: DrawRuleMode,
+    val allowedFormulaIds: List<UUID>,
+    val effectiveFormulaId: UUID,
+    val selectorVisible: Boolean,
+    val requiresFormulaIdOnDraw: Boolean,
+    val pipeline: com.hatcast.api.availability.draw.DrawWeightPipeline,
 )

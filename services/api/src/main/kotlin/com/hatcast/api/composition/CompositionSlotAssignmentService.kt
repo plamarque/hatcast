@@ -19,6 +19,7 @@ import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.event.SpectacleCategory
+import com.hatcast.api.draw.DrawPolicyResolutionService
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.participant.EventParticipantExclusionRepository
 import com.hatcast.api.participant.EventParticipantRepository
@@ -61,15 +62,26 @@ class CompositionSlotAssignmentService(
     private val immediatePredecessorRoleReplayService: ImmediatePredecessorRoleReplayService,
     private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
     private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
+    private val drawPolicyResolutionService: DrawPolicyResolutionService,
 ) {
-    private val drawWeightPipeline: DrawWeightPipeline
-        get() = drawWeightPipelineProvider.getIfAvailable() ?: DrawWeightPipelines.DEFAULT
+    private fun resolveDrawPipeline(
+        event: EventEntity,
+        formulaId: UUID? = null,
+    ): DrawWeightPipeline =
+        drawWeightPipelineProvider.getIfAvailable()
+            ?: drawPolicyResolutionService
+                .resolveForEvent(
+                    event = event,
+                    requestedFormulaId = formulaId,
+                    validateForDraw = false,
+                ).pipeline
     @Transactional(readOnly = true)
     fun getCandidates(
         seasonId: UUID,
         eventId: UUID,
         roleKey: String,
         slotIndex: Int?,
+        formulaId: UUID?,
         principal: SessionUserPrincipal,
     ): CompositionCandidateListResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
@@ -121,9 +133,10 @@ class CompositionSlotAssignmentService(
                 roleKey = roleKey,
                 excluded = sameRoleExcluded,
             )
+        val drawPipeline = resolveDrawPipeline(event, formulaId)
         val replayInputs =
             DrawImmediateReplaySupport.replayInputsForRolePool(
-                pipeline = drawWeightPipeline,
+                pipeline = drawPipeline,
                 event = event,
                 roleKey = roleKey,
                 pool = pool,
@@ -131,7 +144,7 @@ class CompositionSlotAssignmentService(
             )
         val unfulfilledCounts =
             DrawRoleRequestSupport.unfulfilledCountsForRolePool(
-                pipeline = drawWeightPipeline,
+                pipeline = drawPipeline,
                 event = event,
                 roleKey = roleKey,
                 pool = pool,
@@ -145,7 +158,7 @@ class CompositionSlotAssignmentService(
                 requiredCount,
                 pastByParticipant,
                 roleKey = roleKey,
-                pipeline = drawWeightPipeline,
+                pipeline = drawPipeline,
                 categorySlug = SpectacleCategory.slug(event),
                 playedSameRoleOnImmediatePredecessorByParticipant = replayInputs.byParticipant,
                 immediatePredecessorTitle = replayInputs.predecessorTitle,
