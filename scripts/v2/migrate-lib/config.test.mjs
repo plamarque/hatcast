@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { parseConfig, shouldRunStep } from './config.mjs'
+import { isLocalMigrateTarget, parseConfig, shouldRunStep } from './config.mjs'
 
 describe('migrate-lib config', () => {
   it('shouldRunStep respects from-step order', () => {
@@ -25,6 +25,12 @@ describe('migrate-lib config', () => {
 
   it('parseConfig rejects unknown from-step', () => {
     assert.throws(() => parseConfig(['--from-step=unknown']), /Unknown --from-step/)
+  })
+
+  it('isLocalMigrateTarget is true only for --migrate-env=local', () => {
+    assert.equal(isLocalMigrateTarget({ migrateEnv: 'local' }), true)
+    assert.equal(isLocalMigrateTarget({ migrateEnv: 'staging' }), false)
+    assert.equal(isLocalMigrateTarget({ migrateEnv: 'development' }), false)
   })
 
   it('parseConfig resolves --migrate-env=development', () => {

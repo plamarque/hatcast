@@ -140,6 +140,11 @@ export function shouldRunStep(config, step) {
   return config.stepOrder.indexOf(step) >= config.stepOrder.indexOf(config.fromStep)
 }
 
+/** Neon branch `local` + Spring profile `dev` — Flyway seeds Les Improbots (@seed.improbots.test). */
+export function isLocalMigrateTarget(config) {
+  return config.migrateEnv === 'local'
+}
+
 export function validateConfig(config) {
   const errors = []
   const nodeMajor = Number(process.versions.node.split('.')[0])

@@ -5,7 +5,7 @@
 import { mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, appendFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
-import { createApiClient, isLocalApiBase } from './api-client.mjs'
+import { createApiClient } from './api-client.mjs'
 import {
   assertEqual,
   assertMax,
@@ -15,7 +15,7 @@ import {
 } from './checks.mjs'
 import { exportParticipantsJson, smokeCounts } from './neon.mjs'
 import { runNpmScript } from './spawn.mjs'
-import { shouldRunStep, validateConfig } from './config.mjs'
+import { isLocalMigrateTarget, shouldRunStep, validateConfig } from './config.mjs'
 import { deriveExpectedCounts } from './expected-counts.mjs'
 
 function saveState(config, state) {
@@ -103,11 +103,11 @@ export async function runPipeline(config, logger) {
           m.queryScalar(config.databaseUrl, "SELECT COUNT(*)::int FROM users WHERE email LIKE '%@seed.improbots.test'"),
         )
         const seedCount = Number(seedUsers)
-        if (isLocalApiBase(config.apiBaseUrl)) {
+        if (isLocalMigrateTarget(config)) {
           if (seedCount > 0) {
             logger.info(
               'preflight',
-              `Local API: ${seedCount} seed user(s) on DB (Les Improbots) — OK, not a staging-empty check`,
+              `Local target: ${seedCount} seed user(s) on DB (Les Improbots) — OK, not a staging-empty check`,
             )
           }
         } else {
@@ -300,7 +300,16 @@ export async function runPipeline(config, logger) {
       assertEqual('season_event_count', counts.season_event_count, counts.events_non_archived)
       assertEqual('availability', counts.availability, expected.availability)
       assertEqual('compositions', counts.compositions, expected.compositions)
-      assertEqual('seed_users', counts.seed_users, config.thresholds.seedUsers)
+      if (isLocalMigrateTarget(config)) {
+        if (counts.seed_users > 0) {
+          logger.info(
+            'smoke',
+            `Local target: ${counts.seed_users} seed user(s) (Les Improbots) — OK`,
+          )
+        }
+      } else {
+        assertEqual('seed_users', counts.seed_users, config.thresholds.seedUsers)
+      }
       const eventsPage = await api.listSeasonEvents(state.seasonV2, 0, 100)
       assertMin('api.events', eventsPage.totalElements ?? eventsPage.content?.length ?? 0, expected.events)
       state.smoke = { ...counts, expected }
