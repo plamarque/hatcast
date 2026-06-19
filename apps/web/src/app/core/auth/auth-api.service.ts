@@ -140,10 +140,14 @@ export class AuthApiService {
       if (previousUserId != null && previousUserId !== data.user.id) {
         this.mePreferencesApi.invalidateCache()
         this.troupeApi.invalidateCache()
+        this.productAnalytics.resetSession()
       }
       this.meInboxApi.bindSessionUser(data.user.id)
       this.sessionUserSignal.set(data.user)
-      this.productAnalytics.identifyUser(data.user.id)
+      this.productAnalytics.identifyUser(data.user.id, {
+        email: data.user.email,
+        displayName: data.user.displayName,
+      })
       const gen = cacheGeneration ?? this.sessionCacheGeneration
       this.writeSessionCache({ ok: true, status: 200, data }, gen)
     }

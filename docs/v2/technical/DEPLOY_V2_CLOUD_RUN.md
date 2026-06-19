@@ -417,6 +417,22 @@ Init dans `apps/web/src/app/core/analytics/posthog-browser.client.ts` :
 - `capture_pageview: 'history_change'` — autocapture **`$pageview`** à chaque navigation Angular (History API) ; requis pour le health check **Web analytics → Installation Health**
 - Événements métier FR47 en plus (`availability_first_submission`, etc.) via `ProductAnalyticsService`
 
+#### Identify & person properties (Story 11.2 — cutover M4 La Malice)
+
+Après `GET /v1/auth/me`, `ProductAnalyticsService.identifyUser` appelle `posthog.identify` avec :
+
+- **`distinct_id`** : UUID interne HatCast (`user.id`) — **jamais** l’email comme distinct_id
+- **Person properties** (dérogation M4 uniquement) : `email` ← `user.email`, `name` ← `user.displayName` (omises si vides)
+
+**Gouvernance :** accès projet PostHog EU **restreint** (opérateurs produit / PO — pas admins troupe). Les captures FR47 restent **anonymisées** (ids + timestamps) ; **ne pas** exporter `email` / `name` sur les événements workflow. Filtre dashboard **`is_demo_troupe != true`** inchangé.
+
+**Recette People (post-déploiement 11.2) :**
+
+1. Connexion membre test sur `https://hatcast.app`.
+2. PostHog EU → **People** : vérifier `distinct_id` = UUID + colonnes `email` + `name`.
+3. Logout → login autre compte → deux personnes distinctes (`posthog.reset()` au logout).
+4. *(Optionnel P1)* **Live events** : `v2_migration_first_session` (une fois par utilisateur, `user_id` UUID seul).
+
 Hors scope : session replay, feature flags, `defaults: '2026-01-30'` (on fixe les options explicitement).
 
 #### Projet PostHog Cloud EU

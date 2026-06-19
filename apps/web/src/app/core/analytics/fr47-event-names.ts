@@ -4,6 +4,7 @@ export const FR47_COMPOSITION_VALIDATED = 'composition_validated' as const
 export const FR47_COMPOSITION_ALL_CONFIRMATIONS_RECEIVED =
   'composition_all_confirmations_received' as const
 export const FR47_NOTIFICATION_LINK_OPENED = 'notification_link_opened' as const
+export const V2_MIGRATION_FIRST_SESSION = 'v2_migration_first_session' as const
 
 export type Fr47NotificationLinkTab = 'dispos' | 'equipe' | 'confirm' | 'other'
 
