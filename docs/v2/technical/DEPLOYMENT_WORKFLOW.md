@@ -115,7 +115,7 @@ Comportement :
 2. Liste les commits `origin/staging-v2..origin/v2` ; si vide → exit 0
 3. `checkout staging-v2`, `pull`, `merge origin/v2`, `push origin staging-v2`
 4. CI : smoke E2E Playwright (recette 3.19 + E1 T1) puis deploy Cloud Run — le deploy staging **échoue** si le smoke est rouge
-5. **Gate E1 préprod (T2)** : après deploy staging réussi, workflow [`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) — health, PWA, comptes migration Malice, Playwright mobile membre + desktop orga sur l’URL staging réelle
+5. **Gate E1 préprod (T2)** : après deploy staging réussi, workflow [`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) — health, PWA, assert migration structurel §6, Playwright mobile membre + desktop orga sur l’URL staging réelle (**sans** golden migration MIG-E2E)
 6. Rappel URL Actions + service `hatcast-v2-staging`
 
 **Ne pas** utiliser [`scripts/release-version.sh`](../../../scripts/release-version.sh) (flux V1 Firebase). V2 : [`scripts/release_version.sh`](../../../scripts/release_version.sh).
@@ -190,14 +190,17 @@ v2 → deploy_staging.sh → release_version.sh → tag vX.Y.Z-rc.N
 |--------|----------|-------|---------------|
 | **T1** | [`e2e-smoke.yml`](../../../.github/workflows/e2e-smoke.yml) | PR / push `v2`, **avant** deploy staging | API profil `e2e` + `localhost:4200` |
 | **T2** | [`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) | **Après** deploy staging (`staging-v2`) ; manuel `workflow_dispatch` | URL staging + Neon + Identity Platform |
+| **T3** | [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml) | **Après** replay migration Malice complet ; manuel `workflow_dispatch` | URL staging + Neon (golden KPIs MIG-E2E) |
 
 Le job T2 est déclenché automatiquement par [`deploy-v2-cloud-run.yml`](../../../.github/workflows/deploy-v2-cloud-run.yml) à la fin d’un deploy **staging** réussi. Il est aussi lançable à la main (Actions → **E1 preprod gate (staging)** → **Run workflow**).
+
+Le job **T3** n’est **pas** couplé au deploy : lancer après `./scripts/migrate-from-v1.sh` (ou `migrate:v2:run`) quand la base Neon staging contient la migration Malice complète. Permet de reset/rejouer la migration sans bloquer les pushes `staging-v2`.
 
 **Bootstrap membre staging :** au setup Playwright (`auth-member.setup.ts`), l’orga E2E réactive automatiquement le compte `HATCAST_E2E_MEMBER_EMAIL` s’il est `INACTIVE` / `REMOVED` (PATCH adhésion troupe → `ACTIVE`, puis `POST …/participants/{id}/reinclude` si besoin). Désactiver : `HATCAST_E2E_SKIP_MEMBER_REACTIVATE=1`.
 
 **Spectacles Malice :** `resolveE1Context` interroge l’API (`scope=all`) et retient un event avec `availabilityOpenedAt` — **à venir en priorité**, sinon **le plus récent passé** (navigation directe `/saison/…/event/{slug}`, pas dépendant de l’agenda « upcoming »). Override : `HATCAST_E2E_EVENT_DISPOS_SLUG` / `_DRAW_SLUG`.
 
-**Critères de sortie (PO) :** 100 % P0 `e1-mobile-member` (échec = bloquant), incl. **E1-MEM-040** (onglet **Ma troupe** → hub) depuis 2026-06-12 ; 100 % P0 `e1-desktop-orga` ; `e1-staging-migration-assert.mjs` vert ; `check-pwa.sh` vert.
+**Critères de sortie (PO) :** 100 % P0 `e1-mobile-member` (échec = bloquant), incl. **E1-MEM-040** (onglet **Ma troupe** → hub) depuis 2026-06-12 ; 100 % P0 `e1-desktop-orga` ; `e1-staging-migration-assert.mjs` vert (seuils minimaux) ; `check-pwa.sh` vert. Les tests **MIG-E2E** (golden KPIs Patrice, historique archivé) sont dans le gate **T3** [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml), pas T2.
 
 **Assert migration §6 (sanity, pas comptes figés) :** saison trouvée ; roster actif ≥ 1 ; events non archivés ≥ 1 ; `seasons.event_count` = events non archivés ; ≥ 1 déplacement ; ≥ 1 spectacle avec dispos ouvertes. Les totaux (36 events, 4 déplacements, etc.) sont **loggés** mais ne bloquent pas — les chiffres V1 évoluent (archivage, nouveaux spectacles). Parité stricte optionnelle via `HATCAST_E2E_EVENTS_EXPECTED` (replay migration local uniquement).
 
@@ -254,7 +257,26 @@ npx playwright install chromium
 npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
 ```
 
-**Avant `deploy_prod.sh` :** confirmer qu’un run T2 récent est **vert** sur le commit RC cible (ou lancer `workflow_dispatch` juste avant promote).
+**Avant `deploy_prod.sh` :** confirmer qu’un run T2 récent est **vert** sur le commit RC cible (ou lancer `workflow_dispatch` juste avant promote). Après un replay migration, lancer aussi **T3** ([`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml)) si la parité Malice doit être attestée avant cutover.
+
+#### Gate migration staging (T3 — après replay)
+
+**Objectif :** valider la parité consultation Malice (KPIs golden, historique, stats orga) **sans** bloquer les deploys pendant un reset Neon ou un replay en cours.
+
+1. GitHub → **Actions** → **Migration staging gate (Malice)** → **Run workflow**.
+2. Option **strict parity** : active les asserts `HATCAST_E2E_EVENTS_EXPECTED` / `DEPLACEMENTS_EXPECTED` (variables env `staging`) en plus du Playwright golden.
+3. En cas d’échec, artifact `migration-staging-playwright-report`.
+
+**Local (debug)** — après migration complète :
+
+```bash
+export PLAYWRIGHT_STAGING_E2E=1
+export PLAYWRIGHT_BASE_URL="https://hatcast-v2-staging-….run.app"
+# … mêmes secrets que T2 (membre + Neon)
+cd apps/web && npm run test:e2e:migration
+```
+
+Palier 1 (SQL/API, hors Playwright) : `npm run migrate:malice:post-smoke` — lancé automatiquement par `./scripts/migrate-from-v1.sh`.
 
 ## Release production V2 (tag-first OPS-5)
 
@@ -379,6 +401,7 @@ Ordre recommandé **sans impacter la prod V1** (`main` / Firebase) :
 - [ ] Sur `staging-v2` : `./scripts/v2/release-staging.sh --dry-run` puis `./scripts/v2/release-staging.sh --version=2.0.0` (première RC cutover) ou `./scripts/v2/release-staging.sh` (RC suivante)
 - [ ] Job CI → environnement `staging`, service `hatcast-v2-staging`
 - [ ] **Gate E1 préprod (T2)** vert sur ce deploy ([`e1-preprod-gate.yml`](../../../.github/workflows/e1-preprod-gate.yml) ou `workflow_dispatch`)
+- [ ] **Gate migration (T3)** vert si replay Malice récent ([`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml))
 - [ ] Recette fonctionnelle sur staging (parcours critique métier)
 
 ### 3. Release (simulation)

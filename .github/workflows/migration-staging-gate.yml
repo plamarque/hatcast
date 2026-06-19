@@ -1,21 +1,26 @@
-# E1 cutover preprod gate (T2) — staging Cloud Run + Neon Malice.
-# Blocking: e1-mobile-member P0 (incl. E1-MEM-040 Ma troupe) ; e1-desktop-orga P0 ; migration counts §6 (structural min only).
-# Playwright migration golden (MIG-E2E) : migration-staging-gate.yml (manual, after replay).
-# Design: _bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md
-name: E1 preprod gate (staging)
+# Migration staging gate — après replay Malice complet (Neon staging).
+# Non bloquant pour deploy : lancer manuellement après migrate-from-v1.sh / migrate:v2:run.
+# Design: _bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md §6 (UI golden)
+name: Migration staging gate (Malice)
 
 on:
-  workflow_call:
   workflow_dispatch:
+    inputs:
+      strict_parity:
+        description: >-
+          Assert strict V1 parity (HATCAST_E2E_EVENTS_EXPECTED / DEPLACEMENTS_EXPECTED on staging env).
+          Leave unchecked for structural + Playwright golden only.
+        type: boolean
+        default: false
 
 concurrency:
-  group: e1-preprod-gate-staging
+  group: migration-staging-gate
   cancel-in-progress: false
 
 jobs:
-  e1-preprod-gate:
+  migration-staging-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
     environment: staging
     env:
       BASE_URL: ${{ secrets.HATCAST_E2E_STAGING_BASE_URL }}
@@ -37,15 +42,19 @@ jobs:
       HATCAST_DATASOURCE_URL: ${{ secrets.HATCAST_DATASOURCE_URL }}
       HATCAST_DATASOURCE_USERNAME: ${{ secrets.HATCAST_DATASOURCE_USERNAME }}
       HATCAST_DATASOURCE_PASSWORD: ${{ secrets.HATCAST_DATASOURCE_PASSWORD }}
+      HATCAST_E2E_EVENTS_EXPECTED: ${{ inputs.strict_parity && vars.HATCAST_E2E_EVENTS_EXPECTED || '' }}
+      HATCAST_E2E_EVENTS_TOLERANCE: ${{ inputs.strict_parity && vars.HATCAST_E2E_EVENTS_TOLERANCE || '' }}
+      HATCAST_E2E_DEPLACEMENTS_EXPECTED: ${{ inputs.strict_parity && vars.HATCAST_E2E_DEPLACEMENTS_EXPECTED || '' }}
+      HATCAST_E2E_DEPLACEMENTS_TOLERANCE: ${{ inputs.strict_parity && vars.HATCAST_E2E_DEPLACEMENTS_TOLERANCE || '' }}
     steps:
       - name: Check required configuration
         run: |
           set -euo pipefail
           test -n "${BASE_URL}" || (echo "Missing secret HATCAST_E2E_STAGING_BASE_URL" && exit 1)
-          test -n "${HATCAST_E2E_ORGA_EMAIL}" || (echo "Missing secret HATCAST_E2E_ORGA_EMAIL" && exit 1)
-          test -n "${HATCAST_E2E_ORGA_PASSWORD}" || (echo "Missing secret HATCAST_E2E_ORGA_PASSWORD" && exit 1)
           test -n "${HATCAST_E2E_MEMBER_EMAIL}" || (echo "Missing secret HATCAST_E2E_MEMBER_EMAIL" && exit 1)
           test -n "${HATCAST_E2E_MEMBER_PASSWORD}" || (echo "Missing secret HATCAST_E2E_MEMBER_PASSWORD" && exit 1)
+          test -n "${HATCAST_E2E_ORGA_EMAIL}" || (echo "Missing secret HATCAST_E2E_ORGA_EMAIL" && exit 1)
+          test -n "${HATCAST_E2E_ORGA_PASSWORD}" || (echo "Missing secret HATCAST_E2E_ORGA_PASSWORD" && exit 1)
           test -n "${HATCAST_E2E_SEASON_SLUG}" || (echo "Missing var HATCAST_E2E_SEASON_SLUG on environment staging" && exit 1)
           test -n "${HATCAST_E2E_MEMBER_SLUG}" || (echo "Missing var HATCAST_E2E_MEMBER_SLUG on environment staging" && exit 1)
           test -n "${HATCAST_DATASOURCE_URL}" || (echo "Missing secret HATCAST_DATASOURCE_URL (Neon staging)" && exit 1)
@@ -62,11 +71,8 @@ jobs:
       - name: Install monorepo dependencies
         run: npm ci
 
-      - name: Staging health check (E1-SAN §0)
+      - name: Staging health check
         run: curl -fsS "${BASE_URL}/actuator/health" | head -c 500
-
-      - name: PWA smoke (E1 §7 partial)
-        run: BASE_URL="${BASE_URL}" ./scripts/check-pwa.sh
 
       - name: Migration counts assert (E1 §6)
         run: node scripts/v2/e1-staging-migration-assert.mjs
@@ -75,19 +81,16 @@ jobs:
         working-directory: apps/web
         run: npx playwright install --with-deps chromium
 
-      - name: Run E1 Playwright gate (mobile blocking + desktop orga)
+      - name: Run migration Playwright gate (MIG-E2E golden Malice)
         working-directory: apps/web
         env:
           CI: 'true'
-        run: >
-          npm run test:e2e --
-          --project=e1-mobile-member
-          --project=e1-desktop-orga
+        run: npm run test:e2e:migration
 
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e1-preprod-playwright-report
+          name: migration-staging-playwright-report
           path: apps/web/playwright-report/
           retention-days: 14
