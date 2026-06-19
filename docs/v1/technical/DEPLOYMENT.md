@@ -431,6 +431,19 @@ npm run test:email
 - ✅ Configuration via Firebase CLI
 - ✅ Variables d'environnement sécurisées
 
+### **Cutover V1 → V2 (story 11.3 — gate M4 La Malice)**
+
+Variables **build-time Vite** injectées par [`.github/workflows/deploy-production.yml`](../../../.github/workflows/deploy-production.yml) lors du déploiement prod (`main`) :
+
+| Variable | Secret / var GitHub | Comportement |
+|----------|---------------------|--------------|
+| `VITE_POSTHOG_PROJECT_API_KEY` | Secret `VITE_POSTHOG_PROJECT_API_KEY` | Même projet PostHog EU que V2 (OPS-9) ; vide = pas d’events cutover V1 |
+| `VITE_V2_CUTOVER_MODAL_ENABLED` | Var `VITE_V2_CUTOVER_MODAL_ENABLED` | `true` uniquement quand le PO active le cutover ; défaut `false` |
+
+**Recette avant prod :** ne pas activer le modal tant que la clé PostHog n’est pas configurée si l’attribution funnel est requise (voir [DEPLOY_V2_CLOUD_RUN.md §7.5](../../v2/technical/DEPLOY_V2_CLOUD_RUN.md)). Runbook funnel complet : même section.
+
+**Staging :** laisser `VITE_V2_CUTOVER_MODAL_ENABLED` absent ou `false` (workflow staging n’injecte pas ces variables).
+
 ### **Validation des Déploiements**
 - ✅ Tests automatisés avant déploiement
 - ✅ Validation manuelle en staging

@@ -188,6 +188,12 @@
     </div>
   </Transition>
   
+  <!-- Modal cutover V1 → V2 (story 11.3) -->
+  <V2CutoverModal
+    v-if="showV2CutoverModal"
+    :show="showV2CutoverModal"
+    @close="showV2CutoverModal = false"
+  />
 
 </template>
 
@@ -210,6 +216,13 @@ watch(() => route.path, (path) => {
 }, { immediate: true })
 import { ensurePushNotificationsActive, initializePushNotifications } from './services/notifications.js'
 import PWAInstallModal from './components/PWAInstallModal.vue'
+import V2CutoverModal from './components/V2CutoverModal.vue'
+import {
+  captureCutoverEvent,
+  initPostHogCutover,
+  shouldShowCutoverModal,
+  V1_CUTOVER_MODAL_SHOWN,
+} from './services/posthogCutover.js'
 import logger from './services/logger.js'
 import AuditClient from './services/auditClient.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
@@ -223,6 +236,9 @@ const bannerDismissed = ref(false)
 // PWA Install Modal
 const showInstallModal = ref(false)
 const installModalBrowserInfo = ref({})
+
+// Cutover V1 → V2 modal (story 11.3)
+const showV2CutoverModal = ref(false)
 
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
@@ -602,7 +618,13 @@ function handlePwaUpdateTest() {
   updateAvailable.value = true
 }
 
-onMounted(() => {
+onMounted(async () => {
+  if (shouldShowCutoverModal()) {
+    await initPostHogCutover()
+    showV2CutoverModal.value = true
+    captureCutoverEvent(V1_CUTOVER_MODAL_SHOWN)
+  }
+
   // Vérifier si on doit afficher la barre d'installation
   checkIfShouldShowInstallBanner()
   
