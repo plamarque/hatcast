@@ -492,6 +492,7 @@ Mesure **individuelle** du parcours `selections.la-malice.fr` → `hatcast.app` 
 **Attribution cross-domain :** au clic CTA, navigation vers `https://hatcast.app/?src=v1_cutover&ph_ref=<posthog_distinct_id>` (`ph_ref` = distinct_id PostHog anonyme V1, URL-encodé). Côté V2 au bootstrap :
 
 - persister `ph_ref` en `sessionStorage` (`hatcast:v1-cutover-ph-ref`) ;
+- **`posthog.identify(ph_ref)`** au boot (fusion profil V1 anonyme → session V2, funnel B nominatif) ;
 - capturer `v2_cutover_referral_landing` **une fois par session** ;
 - `history.replaceState` pour retirer `src` / `ph_ref` de l’URL visible.
 

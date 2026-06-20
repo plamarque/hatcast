@@ -247,6 +247,7 @@ describe('ProductAnalyticsService', () => {
     )
     window.history.replaceState({}, '', '/?src=v1_cutover&ph_ref=ph-anon-123')
     await service().bootstrap()
+    expect(identify).toHaveBeenCalledWith('ph-anon-123')
     expect(capture).toHaveBeenCalledWith(V2_CUTOVER_REFERRAL_LANDING, {
       src: V1_CUTOVER_SRC,
       ph_ref: 'ph-anon-123',
@@ -256,8 +257,10 @@ describe('ProductAnalyticsService', () => {
     expect(window.location.search).not.toContain('src=v1_cutover')
 
     capture.mockClear()
+    identify.mockClear()
     service().captureV1CutoverReferralFromUrl()
     expect(capture).not.toHaveBeenCalled()
+    expect(identify).not.toHaveBeenCalled()
   })
 
   it('does not capture referral landing without src=v1_cutover', async () => {
@@ -268,6 +271,7 @@ describe('ProductAnalyticsService', () => {
     )
     window.history.replaceState({}, '', '/?ph_ref=orphan')
     await service().bootstrap()
+    expect(identify).not.toHaveBeenCalled()
     expect(capture).not.toHaveBeenCalledWith(
       V2_CUTOVER_REFERRAL_LANDING,
       expect.anything(),
@@ -282,6 +286,7 @@ describe('ProductAnalyticsService', () => {
     )
     window.history.replaceState({}, '', '/?src=v1_cutover')
     await service().bootstrap()
+    expect(identify).not.toHaveBeenCalled()
     expect(capture).not.toHaveBeenCalledWith(
       V2_CUTOVER_REFERRAL_LANDING,
       expect.anything(),
@@ -348,6 +353,7 @@ describe('ProductAnalyticsService', () => {
     window.history.replaceState({}, '', '/?src=v1_cutover&ph_ref=ph-anon-789')
     await service().bootstrap()
     expect(capture).not.toHaveBeenCalled()
+    expect(identify).not.toHaveBeenCalled()
     expect(sessionStorage.getItem('hatcast:v1-cutover-ph-ref')).toBeNull()
     expect(window.location.search).not.toContain('ph_ref')
   })
