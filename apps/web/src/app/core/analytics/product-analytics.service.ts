@@ -22,6 +22,7 @@ const V2_MIGRATION_FIRST_SESSION_PREFIX = 'hatcast:v2-migration-first-session:'
 const V1_CUTOVER_PH_REF_KEY = 'hatcast:v1-cutover-ph-ref'
 const V1_CUTOVER_REFERRAL_CAPTURED_KEY = 'hatcast:v1-cutover-referral-captured'
 const V1_CUTOVER_ALIAS_APPLIED_PREFIX = 'hatcast:v1-cutover-alias-applied:'
+const V1_CUTOVER_PH_REF_IDENTIFIED_PREFIX = 'hatcast:v1-cutover-ph-ref-identified:'
 
 export type IdentifyUserInput = {
   email?: string | null
@@ -102,6 +103,7 @@ export class ProductAnalyticsService {
       } catch {
         /* storage blocked — capture still attempted */
       }
+      this.identifyV1CutoverPhRefAtLanding(phRef)
       this.captureV1CutoverReferralLanding(phRef)
     }
 
@@ -196,6 +198,24 @@ export class ProductAnalyticsService {
       troupe_id: troupeId,
       is_demo_troupe: troupeId === environment.demoTroupeId,
     }
+  }
+
+  private identifyV1CutoverPhRefAtLanding(phRef: string): void {
+    if (!this.enabled) {
+      return
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        const dedupeKey = `${V1_CUTOVER_PH_REF_IDENTIFIED_PREFIX}${phRef}`
+        if (sessionStorage.getItem(dedupeKey) === '1') {
+          return
+        }
+        sessionStorage.setItem(dedupeKey, '1')
+      } catch {
+        /* dedupe best-effort only */
+      }
+    }
+    this.facade()?.identify(phRef)
   }
 
   private captureV1CutoverReferralLanding(phRef: string): void {
