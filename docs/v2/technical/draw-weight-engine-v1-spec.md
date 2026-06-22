@@ -521,7 +521,7 @@ Per-candidate waterfall breakdown: how `chancePercent` differs from a **pure dra
 | `aheadCount` | Count of candidates with **strictly higher** `chancePercent` than the subject (= `pool.peers.length` when peers are returned). |
 | `tiedAtChanceCount` | Candidates sharing the subject’s `chancePercent` (including the subject); used for ex-aequo copy in UI. |
 | `chancePercent` | Effective % with `DrawWeightPipelines.DEFAULT` (or draw snapshot on retrospective events when present). |
-| `adjustments[]` | `{ factorId, label, deltaPoints }` — one row per pipeline factor; **omit** `deltaPoints === 0`. Sorted by \|delta\| desc. |
+| `adjustments[]` | `{ factorId, label, deltaPoints }` — one row per **explainability** pipeline factor; **omit** `deltaPoints === 0` and **omit** `equity_tag` (category scope only). Sorted by \|delta\| desc. |
 | `requiredCount` | Places to fill for the role (multi-place hint in UI header). |
 | `pool.peers` | Candidates with **strictly higher** `chancePercent` than the subject, desc. **Not** rendered as a peer list in as-shipped UI (rank summary only); still returned for API completeness / client fallback when rank fields are absent. |
 | `factorBreakdown` | Optional engine detail (`multiplier`, `label`) — tests / diagnostics, not MVP UI. |
@@ -541,11 +541,14 @@ Per-candidate waterfall breakdown: how `chancePercent` differs from a **pure dra
 1. Build the same eligible pool as `scoreCandidates` for the role (availability + role rules).
 2. `referencePercent` = rounded probability with `DrawWeightPipeline.EMPTY`.
 3. For each factor `f` in pipeline order: apply factors `1..i`, recompute target %, `deltaPoints = percentAfter − percentBefore` (integer points); skip zero deltas.
-4. **Tolerance:** `referencePercent + Σ deltaPoints ≈ chancePercent` (±1 pt rounding).
+4. **`CategoryCompartmentFactor` (`equity_tag`) is omitted from the waterfall** — category scope is applied **before** breakdown via category-filtered `pastSelectionCount` (story **19.8**). It is not a separate explainability row; cross-category history must not appear as a penalty line.
+5. **Tolerance:** `referencePercent + Σ deltaPoints ≈ chancePercent` (±1 pt rounding).
 
 ### Labels
 
-`PastParticipationFactor` (`past_participation`): « Déjà {rôle} {n} fois » ou « Jamais {rôle} » si `n = 0` (`RoleLabels`).
+`PastParticipationFactor` (`past_participation`): « Déjà {rôle} {n} fois » ou « Jamais {rôle} » si `n = 0` (`RoleLabels`). Count `n` is **category-scoped** for the event’s compartment.
+
+**Not shown in breakdown:** `equity_tag` / « Compté dans un autre type de spectacle » (removed 2026-06-23 — see ISSUES BUG-012).
 
 Implementation: `ChanceBreakdownCalculator`, `CompositionExplainabilityService`.
 

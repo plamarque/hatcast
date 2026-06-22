@@ -211,7 +211,7 @@ class ChanceBreakdownCalculatorTest {
   }
 
   @Test
-  fun `equity_tag line when away-only history on principal compartment`() {
+  fun `away-only history on principal compartment has no breakdown line`() {
     val candidates =
         listOf(
             candidate(alice, "Alice"),
@@ -232,38 +232,45 @@ class ChanceBreakdownCalculatorTest {
     requireNotNull(result)
     assertEquals(50, result.referencePercent)
     assertEquals(50, result.chancePercent)
-    assertEquals(2, result.adjustments.size)
-    val equityLine = result.adjustments.first { it.factorId == CategoryCompartmentFactor.FACTOR_ID }
-    assertEquals("Compté dans un autre type de spectacle", equityLine.label)
-    assertEquals(-30, equityLine.deltaPoints)
-    val pastLine = result.adjustments.first { it.factorId == PastParticipationFactor.FACTOR_ID }
-    assertEquals(30, pastLine.deltaPoints)
-    assertEquals(
-        result.chancePercent - result.referencePercent,
-        result.adjustments.sumOf { it.deltaPoints },
-    )
+    assertTrue(result.adjustments.isEmpty())
+    assertTrue(result.adjustments.none { it.factorId == CategoryCompartmentFactor.FACTOR_ID })
   }
 
   @Test
-  fun `no equity_tag line when scoped equals unscoped`() {
-    val candidates =
-        listOf(
-            candidate(alice, "Alice"),
-            candidate(bob, "Bob"),
-        )
-    val past = mapOf(alice to 0, bob to 3)
+  fun `mixed compartment history only shows scoped past participation line`() {
+    val ids = (1..8).map { UUID.fromString("00000000-0000-0000-0000-${it.toString().padStart(12, '0')}") }
+    val candidates = ids.map { id -> candidate(id, "P$id") }
+    val target = ids[5]
+    val scoped =
+        ids.associateWith { id ->
+          when (id) {
+            target -> 5
+            else -> 0
+          }
+        }
+    val unscoped =
+        scoped.toMutableMap().apply {
+          this[target] = 8
+        }
     val result =
         ChanceBreakdownCalculator.calculate(
             candidates = candidates,
-            requiredCount = 1,
-            pastSelectionCountByParticipant = past,
-            pastSelectionCountUnscopedByParticipant = past,
-            targetParticipantId = bob,
+            requiredCount = 5,
+            pastSelectionCountByParticipant = scoped,
+            pastSelectionCountUnscopedByParticipant = unscoped,
+            targetParticipantId = target,
             roleKey = "player",
+            categorySlug = "principal",
         )
     requireNotNull(result)
     assertTrue(result.adjustments.none { it.factorId == CategoryCompartmentFactor.FACTOR_ID })
     assertEquals(1, result.adjustments.size)
+    assertEquals(PastParticipationFactor.FACTOR_ID, result.adjustments.single().factorId)
+    assertTrue(result.adjustments.single().deltaPoints < 0)
+    assertEquals(
+        result.chancePercent - result.referencePercent,
+        result.adjustments.sumOf { it.deltaPoints },
+    )
   }
 
   @Test

@@ -35,6 +35,16 @@
 
 ---
 
+---
+
+## Deferred from: spec-fix-breakdown-no-equity-tag-line (2026-06-23)
+
+| Item | Rationale |
+|------|-----------|
+| **E2E fixture cross-compartment** | E1-MEM-033/034 assert absence of `equity_tag` line on any breakdown; optional follow-up: seed veteran with validated déplacement + assert principal breakdown content (Malice / dedicated fixture). |
+| **Story 19.8 AC7 wording** | AC7 still describes equity_tag breakdown line; superseded for explainability only — amend story file when next touching epic 19 docs. |
+| **`pastSelectionCountUnscoped` cleanup** | Field still passed through API context; no breakdown consumer — consider removing from explainability path if SQL cost matters. |
+
 ## Deferred from: code review of 11-3-v1-v2-cutover-funnel-posthog (2026-06-19)
 
 - Versions `posthog-js` divergentes entre legacy (^1.391.2) et web (^1.379.2) — aligner à terme, hors scope critique cutover M4.

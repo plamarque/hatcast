@@ -404,8 +404,8 @@ Documenter la règle exacte dans [`draw-weight-engine-v1-spec.md`](../../docs/v2
 
 | factorId | label UI (exemple) | delta typique |
 |----------|-------------------|---------------|
-| `past_participation` | « Déjà joué {n}× en {rôle} cette saison » | négatif |
-| `equity_tag` (19.8) | « Compté dans un autre type de spectacle » | négatif ou 0 |
+| `past_participation` | « Déjà joué {n}× en {rôle} cette saison » (category-scoped `n`) | négatif |
+| ~~`equity_tag` (19.8)~~ | ~~« Compté dans un autre type de spectacle »~~ **Removed from UI 2026-06-23** — category scopes `past_participation`, not a breakdown row | — |
 | `gender_parity` (19.11) | « Équilibre des genres sur ce rôle » | ± |
 | `prestige_history` (19.13) | « Prestige des spectacles passés » | ± |
 

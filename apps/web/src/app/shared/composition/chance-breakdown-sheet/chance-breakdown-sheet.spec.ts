@@ -85,6 +85,11 @@ describe('ChanceBreakdownSheet', () => {
     ).toBeTruthy()
   })
 
+  it('never renders equity_tag compartment line', () => {
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('[data-testid="chance-breakdown-adjustment-equity_tag"]')).toBeNull()
+  })
+
   it('opens draw chances help from doc link', () => {
     const help = TestBed.inject(DrawChancesHelpService) as unknown as { open: ReturnType<typeof vi.fn> }
     const link = fixture.nativeElement.querySelector(
