@@ -72,7 +72,7 @@
         <span class="chance-breakdown-sheet__waterfall-label">{{ referenceLineLabel() }}</span>
         <span class="chance-breakdown-sheet__waterfall-value">{{ breakdown().referencePercent }} %</span>
       </li>
-      @for (adjustment of breakdown().adjustments; track adjustment.factorId) {
+      @for (adjustment of visibleAdjustments(); track adjustment.factorId) {
         <li
           class="chance-breakdown-sheet__waterfall-row"
           [class]="deltaClass(adjustment.deltaPoints)"

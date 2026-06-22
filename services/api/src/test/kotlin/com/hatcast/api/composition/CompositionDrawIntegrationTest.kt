@@ -757,6 +757,14 @@ class CompositionDrawIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.adjustments[?(@.factorId == 'equity_tag')]").isEmpty())
             .andExpect(jsonPath("$.adjustments").isEmpty())
+            .andReturn()
+            .let { breakdownRes ->
+                val breakdown = mapper.readTree(breakdownRes.response.contentAsString)
+                assertEquals(
+                    breakdown.get("referencePercent").asInt(),
+                    breakdown.get("chancePercent").asInt(),
+                )
+            }
     }
 
     @Test

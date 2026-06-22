@@ -85,9 +85,46 @@ describe('ChanceBreakdownSheet', () => {
     ).toBeTruthy()
   })
 
-  it('never renders equity_tag compartment line', () => {
-    const el = fixture.nativeElement as HTMLElement
+  it('never renders equity_tag compartment line', async () => {
+    await TestBed.resetTestingModule()
+      .configureTestingModule({
+        imports: [ChanceBreakdownSheet, NoopAnimationsModule],
+        providers: [
+          {
+            provide: MAT_BOTTOM_SHEET_DATA,
+            useValue: {
+              ...sheetData,
+              breakdown: {
+                ...baseBreakdown,
+                adjustments: [
+                  ...baseBreakdown.adjustments,
+                  {
+                    factorId: 'equity_tag',
+                    label: 'Compté dans un autre type de spectacle',
+                    deltaPoints: -23,
+                  },
+                ],
+              },
+            } satisfies ChanceBreakdownSheetData,
+          },
+          { provide: MatBottomSheetRef, useValue: { dismiss: vi.fn() } },
+          { provide: MatDialogRef, useValue: null },
+          {
+            provide: DrawChancesHelpService,
+            useValue: { open: vi.fn() },
+          },
+        ],
+      })
+      .compileComponents()
+
+    const filteredFixture = TestBed.createComponent(ChanceBreakdownSheet)
+    filteredFixture.detectChanges()
+    const el = filteredFixture.nativeElement as HTMLElement
     expect(el.querySelector('[data-testid="chance-breakdown-adjustment-equity_tag"]')).toBeNull()
+    expect(
+      el.querySelector('[data-testid="chance-breakdown-adjustment-past_participation"]'),
+    ).toBeTruthy()
+    expect(el.textContent).not.toContain('Compté dans un autre type de spectacle')
   })
 
   it('opens draw chances help from doc link', () => {

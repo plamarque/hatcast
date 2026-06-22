@@ -6,12 +6,16 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
 import {
+  type ChanceAdjustment,
   type ChanceBreakdown,
 } from '../../../core/composition/composition-api.service'
 import { multiPlaceChanceTooltipCopy } from '../../../core/account/member-gender'
 import { chanceColorClass } from '../../../core/availability/availability-chances'
 import { UserAvatarComponent } from '../../user-avatar/user-avatar'
 import { DrawChancesHelpService } from '../draw-chances-help.service'
+
+/** Category scope is not a breakdown row (BUG-012); hide defensively if API regresses. */
+const BREAKDOWN_HIDDEN_FACTOR_IDS = new Set(['equity_tag'])
 
 export interface ChanceBreakdownSheetData {
   seasonId: string
@@ -144,5 +148,11 @@ export class ChanceBreakdownSheet {
     return delta < 0
       ? 'chance-breakdown-sheet__adjustment--negative'
       : 'chance-breakdown-sheet__adjustment--positive'
+  }
+
+  protected visibleAdjustments(): ChanceAdjustment[] {
+    return this.breakdown().adjustments.filter(
+      (adjustment) => !BREAKDOWN_HIDDEN_FACTOR_IDS.has(adjustment.factorId),
+    )
   }
 }
