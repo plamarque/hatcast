@@ -1,0 +1,8 @@
+{
+  "version": "2.4.1",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "RC technique — analytics cutover M4 (stories 11.2/11.3), gates E2E/migration. Aucun changement UI membre visible.",
+  "changes": [],
+  "changes_en": []
+}
