@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.4.1] - 2026-06-22
+
+### ✨ New Features
+- feat(analytics): Identify ph_ref at V2 cutover landing
+- feat(analytics): Merge 11.3 V1-V2 cutover funnel PostHog
+- feat(analytics): Add V1-V2 cutover funnel PostHog
+- feat(story): merge 11-2-posthog-identify-person-properties-m4-cutover
+- feat(analytics): Enrich PostHog identify for M4 cutover
+
+### 🐛 Bug Fixes
+- fix(e2e): Force local T1 profile in run_e2e.sh
+- fix(migration): Align Malice post-smoke gates
+
+### 📝 Other Changes
+- Merge branch 'v2' into staging-v2
+- docs(release): Add v2.4.1 user changelog cutover
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Assert aria-selected on member bottom nav
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- docs(story): Add 11.3 V1-V2 cutover funnel PostHog story
+- docs(ops-10): Record prod password reset recipe
+- docs(ops): Plan M4 V1 cutover announcement banner
+- chore(v2): sync release v2.4.0-rc.1 artifacts to v2
+
+---
+
 ## [2.4.0] - 2026-06-19
 
 ### ✨ New Features
