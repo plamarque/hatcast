@@ -6,8 +6,8 @@ import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 import {
   clearLastVisitedTroupeSlug,
   clickMemberBottomShellTab,
+  expectMemberBottomShellTabSelected,
   expectMemberShellTabsVisible,
-  memberBottomShellTab,
   memberShellTab,
   MEMBER_SHELL_TAB,
   seedLastVisitedTroupeSlug,
@@ -36,10 +36,7 @@ test.describe('E1 — membre nav Ma troupe (mobile)', () => {
       new RegExp(`${troupeHubPath(fx.troupeSlug)}$`),
     )
     await expect(page.locator('app-troupe-hub')).toBeVisible({ timeout: 30_000 })
-    await expect(memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe)).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    await expectMemberBottomShellTabSelected(page, MEMBER_SHELL_TAB.troupe)
   })
 
   test('E1-MEM-041 — Ma troupe falls back to troupes list when no slug stored', async ({
@@ -55,10 +52,7 @@ test.describe('E1 — membre nav Ma troupe (mobile)', () => {
 
     await clickMemberBottomShellTab(page, MEMBER_SHELL_TAB.troupe, /\/troupes$/)
     await expect(page.locator('app-troupes-list')).toBeVisible({ timeout: 30_000 })
-    await expect(memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe)).not.toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    await expectMemberBottomShellTabSelected(page, MEMBER_SHELL_TAB.troupe, false)
   })
 
   test('E1-MEM-042 — season visit seeds Ma troupe shortcut from storage', async ({
