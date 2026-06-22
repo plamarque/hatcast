@@ -137,6 +137,16 @@ ensure_playwright_browser() {
 
 ensure_java
 
+# T1 local (H2 + ng serve) — ignore staging E2E env leaked from shell / .env.staging exports.
+# Gate T2 staging : voir apps/web/e2e/README.md § T2 (PLAYWRIGHT_STAGING_E2E=1, lancer Playwright à la main).
+if [[ -n "${PLAYWRIGHT_STAGING_E2E:-}" || -n "${PLAYWRIGHT_BASE_URL:-}" || -n "${PLAYWRIGHT_API_BASE_URL:-}" ]]; then
+  echo "ℹ️  Variables staging E2E ignorées — profil local e2e (parité CI e2e-smoke)."
+fi
+unset PLAYWRIGHT_STAGING_E2E
+export PLAYWRIGHT_BASE_URL="https://localhost:4200"
+export PLAYWRIGHT_API_BASE_URL="http://127.0.0.1:8080"
+unset PLAYWRIGHT_API_HEALTH_URL
+
 if [[ "${REUSE_SERVERS}" -eq 0 ]]; then
   assert_ports_free
   export PLAYWRIGHT_REUSE_SERVERS=0
