@@ -1,7 +1,11 @@
 import { expect, test } from '@playwright/test'
 
 import { assertMobileViewport } from '../helpers/e1-layout'
-import { clickMemberBottomShellTab, MEMBER_SHELL_TAB, memberBottomShellTab } from '../helpers/member-nav.ui'
+import {
+  clickMemberBottomShellTab,
+  expectMemberBottomShellTabSelected,
+  MEMBER_SHELL_TAB,
+} from '../helpers/member-nav.ui'
 import { memberProfileUrlPattern, memberStatsPath } from '../helpers/e1-routes'
 import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 
@@ -31,9 +35,6 @@ test.describe('E1 — membre stats perso (mobile)', () => {
     // MemberStatsShortcutService.refresh() is async; link defaults to /accueil until slug loads.
     await clickMemberBottomShellTab(page, MEMBER_SHELL_TAB.stats, statsUrl)
     await expect(page.locator('h1.member-glance-page__title')).toContainText('Mes Stats')
-    await expect(memberBottomShellTab(page, MEMBER_SHELL_TAB.stats)).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    await expectMemberBottomShellTabSelected(page, MEMBER_SHELL_TAB.stats)
   })
 })

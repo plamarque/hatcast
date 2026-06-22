@@ -60,6 +60,20 @@ export async function expectMemberShellTabsVisible(page: Page): Promise<void> {
   }
 }
 
+/** mat-tab-link (bottom bar) uses aria-selected, not aria-current (tablist pattern). */
+export async function expectMemberBottomShellTabSelected(
+  page: Page,
+  label: MemberShellTabLabel,
+  selected = true,
+): Promise<void> {
+  const tab = memberBottomShellTab(page, label)
+  if (selected) {
+    await expect(tab).toHaveAttribute('aria-selected', 'true')
+  } else {
+    await expect(tab).not.toHaveAttribute('aria-selected', 'true')
+  }
+}
+
 export async function clearLastVisitedTroupeSlug(page: Page): Promise<void> {
   await page.evaluate(() => localStorage.removeItem('lastVisitedTroupeSlug'))
 }
