@@ -151,7 +151,7 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly platformAdmin = signal(false)
-  protected readonly canSwitchSubject = signal(false)
+  protected readonly canSwitchSubject = computed(() => this.canManageComposition())
   protected readonly linkedParticipantId = signal<string | null>(null)
   protected readonly linkedParticipantName = signal<string | null>(null)
   protected readonly activeTab = signal<EventDetailTab>('infos')
@@ -775,11 +775,6 @@ export class EventDetail implements OnDestroy, OnInit {
     const found = page.event
     this.event.set(found)
     this.seasonPermissions.set(page.permissions)
-    this.canSwitchSubject.set(
-      canManageCompositionForEvent(page.permissions, found.id, {
-        platformAdmin: this.platformAdmin(),
-      }),
-    )
     const user = this.user()
     const linked =
       page.participantSelectors && user
