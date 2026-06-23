@@ -2,8 +2,10 @@ package com.hatcast.api.draw
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import db.migration.V67__repair_h2_draw_factor_config_json
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.MigrationVersion
+import org.flywaydb.core.api.migration.Context
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -196,6 +198,110 @@ class DrawFormulaMigrationTest {
                             names.add(rows.getString("index_name").lowercase())
                         }
                         assertTrue(names.any { it.contains("system_troupe") })
+                    }
+                }
+        }
+    }
+
+    @Test
+    fun `V67 repairs H2 factor_config stored as JSON string by legacy V66`() {
+        val databaseName = "v67_draw_factor_repair_${UUID.randomUUID().toString().replace("-", "")}"
+        val url =
+            "jdbc:h2:mem:$databaseName;" +
+                "MODE=PostgreSQL;" +
+                "DATABASE_TO_LOWER=TRUE;" +
+                "DEFAULT_NULL_ORDERING=HIGH;" +
+                "DB_CLOSE_DELAY=-1;" +
+                "INIT=CREATE DOMAIN IF NOT EXISTS TIMESTAMPTZ AS TIMESTAMP WITH TIME ZONE"
+
+        val troupeId = UUID.fromString("33333333-3333-4333-8333-333333333331")
+        flyway(url, target = MigrationVersion.fromVersion("63")).migrate()
+
+        DriverManager.getConnection(url, "sa", "").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeUpdate(
+                    """
+                    INSERT INTO troupes (id, name, slug, created_at)
+                    VALUES (CAST('$troupeId' AS uuid), 'Legacy Troupe', 'legacy-troupe', TIMESTAMP '2026-01-01 00:00:00')
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        flyway(url, target = MigrationVersion.fromVersion("66")).migrate()
+
+        val legacyStringJson =
+            "\"${DrawFormulaSeedConstants.SYSTEM_V1_FACTOR_CONFIG_JSON.replace("\"", "\\\"")}\""
+        DriverManager.getConnection(url, "sa", "").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeUpdate(
+                    """
+                    UPDATE draw_formulas
+                    SET factor_config = CAST('$legacyStringJson' AS JSON)
+                    WHERE troupe_id = CAST('$troupeId' AS uuid)
+                    """.trimIndent(),
+                )
+            }
+            connection
+                .prepareStatement(
+                    "SELECT SUBSTRING(CAST(factor_config AS VARCHAR), 1, 1) FROM draw_formulas WHERE troupe_id = CAST(? AS uuid)",
+                ).use { statement ->
+                    statement.setString(1, troupeId.toString())
+                    statement.executeQuery().use { rows ->
+                        rows.next()
+                        assertEquals("\"", rows.getString(1))
+                    }
+                }
+        }
+
+        flyway(url, target = MigrationVersion.fromVersion("67")).migrate()
+
+        DriverManager.getConnection(url, "sa", "").use { connection ->
+            connection
+                .prepareStatement(
+                    """
+                    SELECT COUNT(*) AS cnt
+                    FROM draw_formulas
+                    WHERE SUBSTRING(CAST(factor_config AS VARCHAR), 1, 1) = '"'
+                    """.trimIndent(),
+                ).use { statement ->
+                    statement.executeQuery().use { rows ->
+                        rows.next()
+                        assertEquals(0, rows.getInt("cnt"), "no string-encoded factor_config should remain after V67")
+                    }
+                }
+            connection
+                .prepareStatement("SELECT CAST(factor_config AS VARCHAR) AS fc FROM draw_formulas WHERE troupe_id = CAST(? AS uuid)")
+                .use { statement ->
+                    statement.setString(1, troupeId.toString())
+                    statement.executeQuery().use { rows ->
+                        rows.next()
+                        val jsonText = rows.getString("fc")
+                        assertTrue(jsonText.trimStart().startsWith("["), "expected JSON array after V67, got: $jsonText")
+                        val parsed = ObjectMapper().readValue<List<Map<String, Any>>>(jsonText)
+                        assertEquals("equity_tag", parsed[0]["factorId"])
+                    }
+                }
+
+            val repairContext =
+                object : Context {
+                    override fun getConnection() = connection
+
+                    override fun getConfiguration(): org.flywaydb.core.api.configuration.Configuration =
+                        throw UnsupportedOperationException()
+                }
+            V67__repair_h2_draw_factor_config_json().migrate(repairContext)
+
+            connection
+                .prepareStatement("SELECT CAST(factor_config AS VARCHAR) AS fc FROM draw_formulas WHERE troupe_id = CAST(? AS uuid)")
+                .use { statement ->
+                    statement.setString(1, troupeId.toString())
+                    statement.executeQuery().use { rows ->
+                        rows.next()
+                        val jsonText = rows.getString("fc")
+                        assertTrue(jsonText.trimStart().startsWith("["), "expected JSON array after idempotent V67, got: $jsonText")
+                        val parsed = ObjectMapper().readValue<List<Map<String, Any>>>(jsonText)
+                        assertEquals("equity_tag", parsed[0]["factorId"])
                     }
                 }
         }
