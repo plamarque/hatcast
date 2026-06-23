@@ -99,6 +99,20 @@ After (correct):
 **Manual checks:**
 - Open Dispos pool breakdown for a member with déplacement history on a principal match — waterfall shows only past participation (or empty if scoped count is 0).
 
+### Review Findings
+
+- [x] [Review][Decision] Filtre client `equity_tag` dans le sheet — `visibleAdjustments()` filtre `equity_tag` ; test avec payload contenant la ligne
+- [x] [Review][Patch] Scoper l'assertion E2E « Compté dans un autre type de spectacle » au sheet [`dispos-poll.ui.ts:169`](../../apps/web/e2e/helpers/dispos-poll.ui.ts#L169)
+- [x] [Review][Patch] Assert `referencePercent == chancePercent` dans le test intégration away-only [`CompositionDrawIntegrationTest.kt:725`](../../services/api/src/test/kotlin/com/hatcast/api/composition/CompositionDrawIntegrationTest.kt#L725)
+- [x] [Review][Defer] E2E sans fixture cross-compartiment dédiée — déjà listé dans deferred-work ; couvert par test intégration HTTP
+- [x] [Review][Defer] Spec UI vacuitaire (fixture sans `equity_tag`) — garde-fou négatif seulement ; renforcement optionnel si filtre client rejeté
+- [x] [Review][Defer] Test mixte sans assertion label FR / delta exact — couverture partielle, réconciliation Σ delta OK
+- [x] [Review][Defer] `factorBreakdown` omet aussi `equity_tag` (skip avant add) — diagnostic moteur ; aligner doc si besoin futur
+- [x] [Review][Defer] `adjustmentLabel` retourne `"equity_tag"` — code mort tant que non surfacé
+- [x] [Review][Defer] Story 19.8 AC7 wording — superseded ; amend story file au prochain passage epic 19
+- [x] [Review][Defer] `pastSelectionCountUnscoped` toujours propagé — dette SQL/API reconnue
+- [x] [Review][Defer] Doc delta algorithm étape 3 vs 4 — reformuler boucle si prochaine édition spec moteur
+
 ## Review Summary (2026-06-23)
 
 | Reviewer | Verdict | Notes |
@@ -106,6 +120,15 @@ After (correct):
 | Adversarial | Pass with deferrals | E2E does not seed cross-compartment veteran (regression guard only); unscoped count still threaded through API |
 | Edge cases | Pass | Away-only, mixed scoped/unscoped, empty adjustments covered in unit + integration tests |
 | Acceptance auditor | Pass | AC met; draw weights unchanged; docs + ISSUES updated |
+
+## Review Summary (2026-06-23 — bmad-code-review)
+
+| Reviewer | Verdict | Notes |
+|----------|---------|-------|
+| Blind Hunter | Pass with deferrals | E2E guards faibles ; spec UI vacuitaire ; doc 19.8 AC7 en conflit |
+| Edge Case Hunter | Pass | Aucune branche non gérée dans le diff |
+| Acceptance Auditor | Pass | Tous les AC / contraintes Always-Never satisfaits |
+| Triage | 1 decision, 2 patch, 7 defer, 5 dismiss | Voir § Review Findings |
 
 ## Suggested Review Order
 

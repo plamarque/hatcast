@@ -45,6 +45,16 @@
 | **Story 19.8 AC7 wording** | AC7 still describes equity_tag breakdown line; superseded for explainability only — amend story file when next touching epic 19 docs. |
 | **`pastSelectionCountUnscoped` cleanup** | Field still passed through API context; no breakdown consumer — consider removing from explainability path if SQL cost matters. |
 
+## Deferred from: code review of spec-fix-breakdown-no-equity-tag-line (2026-06-23)
+
+| Item | Rationale |
+|------|-----------|
+| **Spec UI vacuitaire** | ~~Résolu f9aaa0b7~~ — test injecte désormais payload `equity_tag` + filtre client. |
+| **Test mixte sans label/delta exact** | Réconciliation Σ delta OK ; label FR scoped (5 vs 8) non verrouillé. |
+| **`factorBreakdown` omet `equity_tag`** | Skip avant `factorBreakdown.add` ; diagnostic moteur vs doc « tests / diagnostics ». |
+| **`adjustmentLabel` → `"equity_tag"`** | Code mort tant que le facteur n'est pas surfacé. |
+| **Doc delta algorithm étapes 3–4** | Étape 3 « for each factor » vs étape 4 omit — reformuler si prochaine édition. |
+
 ## Deferred from: code review of 11-3-v1-v2-cutover-funnel-posthog (2026-06-19)
 
 - Versions `posthog-js` divergentes entre legacy (^1.391.2) et web (^1.379.2) — aligner à terme, hors scope critique cutover M4.
