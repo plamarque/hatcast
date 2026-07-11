@@ -1,0 +1,14 @@
+{
+  "version": "2.4.3",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "v2.4.3 — guides vidéo connexion (story 4.4) + nettoyage détail tirage — skill hatcast-v2-release",
+  "changes": [
+    "✨ Connexion — trois guides vidéo (membre, organisateur, admin) directement sur la page de connexion",
+    "🐛 Tirage — le détail de tes chances n'affiche plus d'étiquettes techniques internes"
+  ],
+  "changes_en": [
+    "✨ Login — three video guides (member, organizer, admin) on the sign-in page",
+    "🐛 Draw — your chance breakdown no longer shows internal technical labels"
+  ]
+}
