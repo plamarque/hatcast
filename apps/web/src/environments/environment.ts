@@ -17,4 +17,10 @@ export const environment = {
     authDomain: '',
     projectId: '',
   } satisfies FirebaseOptions,
+  /** Public onboarding video URLs — swap strings only when moving to YouTube. */
+  onboardingVideoGuides: {
+    member: 'https://drive.google.com/file/d/1MHLED9mJYjNQLO8OClFTzwDrSnRdsGKD/view?usp=drive_link',
+    organizer: 'https://drive.google.com/file/d/1rDz8fAt5fYEZnfD9vooXTsqAUxuF6UNu/view?usp=drive_link',
+    admin: 'https://drive.google.com/file/d/18Es9X-yZIamdo2gkJOCjKVKYV_rISa69/view?usp=sharing',
+  },
 }

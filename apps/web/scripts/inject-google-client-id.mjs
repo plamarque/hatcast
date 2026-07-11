@@ -32,6 +32,15 @@ const projectId = process.env.HATCAST_FIREBASE_PROJECT_ID?.trim() ?? ''
 const vapidPublicKey = process.env.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY?.trim() ?? ''
 const posthogApiKey = process.env.HATCAST_POSTHOG_PROJECT_API_KEY?.trim() ?? ''
 
+/** Public onboarding video URLs (story 4.4) — swap strings only when moving to YouTube. */
+const onboardingVideoGuides = {
+  member:
+    'https://drive.google.com/file/d/1MHLED9mJYjNQLO8OClFTzwDrSnRdsGKD/view?usp=drive_link',
+  organizer:
+    'https://drive.google.com/file/d/1rDz8fAt5fYEZnfD9vooXTsqAUxuF6UNu/view?usp=drive_link',
+  admin: 'https://drive.google.com/file/d/18Es9X-yZIamdo2gkJOCjKVKYV_rISa69/view?usp=sharing',
+}
+
 const outputFilename = process.env.HATCAST_ENV_OUTPUT?.trim() || 'environment.ts'
 const isLocalRecette = outputFilename === LOCAL_RECETTE_FILENAME
 const fileBanner = isLocalRecette
@@ -55,6 +64,8 @@ export const environment = {
     authDomain: ${JSON.stringify(authDomain)},
     projectId: ${JSON.stringify(projectId)},
   } satisfies FirebaseOptions,
+  /** Public onboarding video URLs — swap strings only when moving to YouTube. */
+  onboardingVideoGuides: ${JSON.stringify(onboardingVideoGuides, null, 2).replace(/\n/g, '\n  ')},
 }
 `
 

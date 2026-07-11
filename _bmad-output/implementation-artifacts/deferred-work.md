@@ -558,3 +558,10 @@
 - **Props personne obsolètes si email/name effacés côté API** — cas rare ; PostHog ne reçoit pas d’unset explicite.
 - **`identifyUser` no-op si PostHog pas encore initialisé** — comportement OPS-9 préexistant.
 - **Sémantique `v2_migration_first_session` = premier identify navigateur** — P1 documenté ; choix PO.
+
+## Deferred from: code review of 4-4-guides-video-page-connexion (2026-07-11)
+
+- **Full web test suite still failing** (22 files / 100 tests, e.g. `season-card.spec.ts`) — pre-existing, unrelated to story 4.4
+- **No isolated unit tests for `guidesFromEnvironment()` edge cases** (`http://`, partial config, whitespace) — login.spec covers happy path + all-empty
+- **M3-1 minor: section title uses custom class** instead of reusing `.auth__heading` / `.auth__tagline` — tokens M3 OK
+- **Tests mutate global `environment` object** — restored in `afterEach`, acceptable pattern for this codebase
