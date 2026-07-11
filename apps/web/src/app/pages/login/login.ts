@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   Component,
+  computed,
   ElementRef,
   inject,
   OnDestroy,
@@ -14,6 +15,7 @@ import { MatCardModule } from '@angular/material/card'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
@@ -42,6 +44,7 @@ import {
 import { firstValueFrom } from 'rxjs'
 
 import { environment } from '../../../environments/environment'
+import { guidesFromEnvironment } from '../../core/onboarding/onboarding-video-guides'
 import { GoogleAvatarPromptDialog } from './google-avatar-prompt-dialog'
 
 const GOOGLE_AVATAR_PROMPT_DISMISSED_KEY = 'hatcast.googleAvatarPromptDismissed'
@@ -80,6 +83,7 @@ declare global {
     MatButtonModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatDialogModule,
     ReactiveFormsModule,
@@ -116,6 +120,8 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
 
   /** Parité V1 : coché par défaut (session longue côté API). */
   protected readonly rememberMe = signal(true)
+
+  protected readonly videoGuides = computed(() => guidesFromEnvironment(environment))
 
   protected get signupQueryParams(): { returnUrl?: string } {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')?.trim()

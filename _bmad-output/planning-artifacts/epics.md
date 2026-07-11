@@ -968,6 +968,28 @@ afin de m’informer sans adhésion.
 
 ---
 
+#### Story 4.4 : Guides vidéo sur la page connexion
+
+En tant que **visiteur ou membre sur le point de se connecter**,  
+je veux **trois points d’entrée clairs vers des guides vidéo sur `/connexion` (membre, organisateur, administrateur)**,  
+afin de **m’auto-former à HatCast 2 avant ou pendant la bascule M4** sans chercher les liens dans les communications.
+
+**Acceptance Criteria**
+
+- **Given** un visiteur anonyme sur **`/connexion`**, **when** la page s’affiche, **then** un bloc **Guides vidéo** propose **trois** CTA externes en français : **Guide membre**, **Guide organisateur**, **Guide administrateur** — sous le contenu principal de la carte auth (après le pied « Pas de compte ? » si le bloc email est visible, sinon après le bloc Google).
+- **Given** un CTA guide, **when** l’utilisateur l’active, **then** l’URL configurée s’ouvre dans un **nouvel onglet** (`target="_blank"`, `rel="noopener noreferrer"`) — pas d’iframe in-app, pas de navigation same-tab hors connexion.
+- **Given** les URLs PO initiales (Google Drive interim), **when** staging/prod est livré, **then** les trois liens pointent vers les vidéos PO (membre, orga, admin) ; remplacement futur par YouTube = mise à jour des constantes `environment*.ts` uniquement.
+- **Given** **`/inscription`**, **when** la story est livrée, **then** **aucun** bloc guides vidéo n’y est ajouté (périmètre `/connexion` seul).
+- **Given** une session déjà authentifiée, **when** `/connexion` charge, **then** la redirection post-login existante reste inchangée.
+- **Couverture :** onboarding M4 (PLAN § Gate M4 comms) ; surface auth Epic 1 ; NFR-A1 (cibles tactiles, aria-label FR) ; NFR-Q1 (tests web).
+
+**Priorité :** **P0 M4** — comms pre-cutover V2.  
+**Hors scope :** lecteur vidéo embarqué, i18n EN, analytics clic, `/inscription`, API, bannière V1 (→ **OPS-M4-1**).
+
+**Story file:** [_bmad-output/implementation-artifacts/4-4-guides-video-page-connexion.md](../implementation-artifacts/4-4-guides-video-page-connexion.md)
+
+---
+
 ### Epic 5 — Disponibilités (participants et organisations)
 
 #### Story 5.1 : Saisie de disponibilité par événement (états Dispo / Pas dispo / Non renseigné)
