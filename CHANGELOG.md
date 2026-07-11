@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.4.3] - 2026-07-11
+
+### ✨ New Features
+- feat(auth): Add login video guides (story 4.4)
+
+### 🐛 Bug Fixes
+- fix(draw): Repair H2 factor_config JSON encoding
+- fix(auth): Promote Demo super-admins after self-join
+- fix(draw): Hide equity_tag in breakdown UI
+- fix(draw): Omit equity_tag from chance breakdown
+
+### 📝 Other Changes
+- merge(v2): Integrate v2 for v2.4.3 release
+- docs(release): Add v2.4.3 user changelog cutover
+- merge(story): Integrate 4-4 login video guides into v2
+- docs(plan): Record M4 cutover prep order for July 2026
+- test(availability): Lock proxy dispos to orgas on seed data
+- docs(bmad): Record breakdown fix review findings
+- chore(v2): sync release v2.4.1-rc.1 artifacts to v2
+
+---
+
 ## [2.4.1] - 2026-06-22
 
 ### ✨ New Features

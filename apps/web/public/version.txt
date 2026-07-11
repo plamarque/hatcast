@@ -1,4 +1,4 @@
-2.4.1
-Staging RC build - 2026-06-22
-Git: 8ecf42b7
-Build: 2026-06-22T23:56:13+0200
+2.4.3
+Staging RC build - 2026-07-11
+Git: 69635d9b
+Build: 2026-07-11T21:15:49+0200
